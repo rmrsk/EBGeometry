@@ -12,7 +12,7 @@ For computing the signed distance one needs to define a suitable normal vector f
 EBGeometry provides bounding volume hierarchies (BVHs) for bounding geometric primitives in space.
 The BVHs are tree structures which permit accelerated closest-point searches.
 We point out that the BVHs in EBGeometry are shallow implementations without deep performance optimizations. 
-In the DCEL context the BVHs are used for bounding the facets on the surface mesh.
+In the DCEL context the BVHs are used for bounding the facets on the surface mesh, but there are no fundamental limitations on which objects that can be bounded. 
 Querying the distance to the mesh through the BVH is much faster than directly computing the distance.
 On average, if the mesh consists of N facets then a BVH has O(log(N)) complexity while a direct search has O(N) complexity. 
 
@@ -25,8 +25,13 @@ Usage
 -----
 
 The library is header-only, simple make EBGeometry.hpp visible to your code and include it.
-Examples are given in Examples. 
+Examples are given in Examples.
 
+Caveats
+-------
+
+EBGeometry takes, as input, a watertight and orientable surface.
+Although EBGeometry will process grids that contain self-intersections, it does not warn about these, and the signed distance functions is not well-defined either.
 
 License
 -------
