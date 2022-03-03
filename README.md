@@ -1,7 +1,8 @@
 EBGeometry
 ----------
 
-Support for signed-distance functions of tesselated surfaces. Used with embedded-boundary (EB) codes.
+Support for acceleration structures and signed-distance functions of tesselated surfaces.
+Can be used with embedded-boundary (EB) codes like Chombo amr AMReX.
 
 EBGeometry is a compact code for creating signed distance functions from watertight 3D surface tesselations.
 The surface mesh is stored in a doubly-connected edge list (DCEL), i.e. a half-edge data structure.
@@ -19,19 +20,35 @@ On average, if the mesh consists of N facets then a BVH has O(log(N)) complexity
 Requirements
 ------------
 
-C++14
+* A C++ compiler which supports C++14.
+* EBGeometry takes a watertight and orientable surface as input (only PLY files currently supported).
+  Although EBGeometry does it's best at processing grids that contain self-intersections, holes, and hanging vertices the signed distance function is not well-defined.
 
-Usage
------
+Basic usage
+-----------
 
 The library is header-only, simple make EBGeometry.hpp visible to your code and include it.
-Examples are given in Examples.
+To clone the code do
 
-Caveats
--------
+    git clone git@github.com:rmrsk/EBGeometry.git
 
-EBGeometry takes, as input, a watertight and orientable surface.
-Although EBGeometry will process grids that contain self-intersections, it does not warn about these, and the signed distance functions is not well-defined either.
+Various examples are given in the Examples folder.
+To run one of the examples, navigate to the example and compile and run it.
+
+    cd Examples/Basic/Sphere
+    g++ -std=c++14 example.cpp -o example.out
+
+All the examples take the following steps:
+
+1. Parse a surface mesh into a DCEL mesh object.
+2. Partition the DCEL mesh object in a bounding volume hierarchy.
+3. Create direct and BVH-accelerated signed distance functions and compute the distance to the mesh.
+
+Advanced usage
+--------------
+
+For more advanced usage, users can supply their own file parsers (only PLY files are currently supported), provide their own bounding volumes, or their own BVH partitioners.
+EBGeometry is not too strict about these things, and uses rigorous templating for ensuring that the EBGeometry functionality can be extended.
 
 License
 -------
