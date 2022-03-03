@@ -90,19 +90,19 @@ int main (int argc, char* argv[])
 	  
 	  if(which_geom == 0){// Airfoil case
 	    rb = RealBox({-100,-100,-75}, {400,100,125}); 
-	    filename = "airfoil.ply";
+	    filename = "../PLY/airfoil.ply";
 	  }
 	  else if (which_geom == 1){ // Sphere case
 	    rb = RealBox({-400,-400,-400}, {400,400,400});
-	    filename = "sphere.ply";
+	    filename = "../PLY/sphere.ply";
 	  }
 	  else if (which_geom == 2){ // Car geometry
 	    rb = RealBox({-20.,-20.,-20.}, {20.,20.,20.});
-	    filename = "porsche.ply";
+	    filename = "../PLY/porsche.ply";
 	  }
 	  else if (which_geom == 3){ // Orion geometry
 	    rb = RealBox({-10.,-10.,-10.}, {10.,10.,10.});
-	    filename = "orion.ply";
+	    filename = "../PLY/orion.ply";
 	  }	  	  
 
 	  Array<int,AMREX_SPACEDIM> is_periodic{false, false, false};
