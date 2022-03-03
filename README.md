@@ -28,7 +28,7 @@ Basic usage
 The library is header-only, simple make EBGeometry.hpp visible to your code and include it.
 To clone the code do
 
-   git clone git@github.com:rmrsk/EBGeometry.git
+    git clone git@github.com:rmrsk/EBGeometry.git
 
 Various examples are given in the Examples folder.
 To run one of the examples, navigate to the example and compile and run it.
@@ -36,7 +36,11 @@ To run one of the examples, navigate to the example and compile and run it.
     cd Examples/Sphere
     g++ -std=c++14 example.cpp -o example.out
 
-The					
+All the examples take the following steps:
+
+1. Parse a surface mesh into a DCEL mesh object.
+2. Partition the DCEL mesh object in a bounding volume hierarchy.
+3. Create direct and BVH-accelerated signed distance functions and compute the distance to the mesh. 
 
 Caveats
 -------
