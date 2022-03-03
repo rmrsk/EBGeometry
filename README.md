@@ -5,15 +5,16 @@ Support for acceleration structures and signed-distance functions of tesselated 
 Can be used with embedded-boundary (EB) codes like Chombo or AMReX.
 
 EBGeometry is a compact code for creating signed distance functions from watertight 3D surface tesselations.
-The surface mesh is stored in a doubly-connected edge list (DCEL), i.e. a half-edge data structure.
-Since the distance to any feature (facet, edge, vertex) in a surface mesh is well defined, the distance to the mesh can be computed from any point in space.
-Naively, this can be done by computing the shortest distance to every facet/edge/vertex in the surface mesh. 
-For computing the signed distance one needs to define a suitable normal vector for edges and vertices.
+The tesselations must consist of a planar polygons, but not necessarily restricted to triangles. 
+The surface mesh is stored in a doubly-connected edge list (DCEL), i.e. a half-edge data structure. 
+On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined.
+Naively, this distance can be computed by iterating through every facet in surface mesh and computing the distance. 
 
 EBGeometry provides bounding volume hierarchies (BVHs) for bounding geometric primitives in space.
 The BVHs are tree structures which permit accelerated closest-point searches.
 We point out that the BVHs in EBGeometry are shallow implementations without deep performance optimizations. 
-In the DCEL context the BVHs are used for bounding the facets on the surface mesh, but there are no fundamental limitations on which objects that can be bounded. 
+In the DCEL context the BVHs are used for bounding the facets on the surface mesh, but there are no fundamental limitations on which objects that can be bounded.
+Thus, multiple objects (e.g., surface grids or analytic functions) can also be bound in bounding volume hierarchy.
 Querying the distance to the mesh through the BVH is much faster than directly computing the distance.
 On average, if the mesh consists of N facets then a BVH has O(log(N)) complexity while a direct search has O(N) complexity. 
 
