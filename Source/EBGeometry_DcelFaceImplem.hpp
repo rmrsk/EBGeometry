@@ -99,7 +99,7 @@ namespace Dcel {
     // This computes the area of any N-side polygon. 
     const auto vertices = this->gatherVertices();
 
-    for (int i = 0; i < vertices.size() - 1; i++){
+    for (unsigned int i = 0; i < vertices.size() - 1; i++){
       const auto& v1 = vertices[i]  ->getPosition();
       const auto& v2 = vertices[i+1]->getPosition();
       m_area += m_normal.dot(v2.cross(v1));

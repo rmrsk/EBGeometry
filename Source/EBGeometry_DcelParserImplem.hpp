@@ -192,7 +192,7 @@ namespace Dcel {
 
       // Associate next/previous for the half edges inside the current face. Wish we had a circular iterator
       // but this will have to do. 
-      for (int i = 0; i < halfEdges.size(); i++){
+      for (unsigned int i = 0; i < halfEdges.size(); i++){
 	auto& curEdge  = halfEdges[i];
 	auto& nextEdge = halfEdges[(i+1)%halfEdges.size()];
 

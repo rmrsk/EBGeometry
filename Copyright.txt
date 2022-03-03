@@ -1,3 +1,3 @@
-Copyright © 2022 Robert Marskars
+Copyright © 2022 Robert Marskar
 
 See LICENSE for redistribution rights. 
