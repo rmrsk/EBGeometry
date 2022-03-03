@@ -44,8 +44,8 @@ int main() {
   fastSDF fast(root, false);
 
   // Query the distance to a point. 
-  std::cout << "Distance and time to point using direct method    = " << slow(Vec3::one()) << std::endl;
-  std::cout << "Distance and time to point using bounding volumes = " << fast(Vec3::one()) << std::endl;  
+  std::cout << "Distance to point using direct method    = " << slow(Vec3::one()) << std::endl;
+  std::cout << "Distance to point using bounding volumes = " << fast(Vec3::one()) << std::endl;  
   
   return 0;
 }
