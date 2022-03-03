@@ -1,23 +1,10 @@
-This folder contains various PLY surface grids.
-The grids have been obtained from various sources (outlined below) and repaired (and thus modified) using MeshLab.
-
-* airfoil.ply Obtained from equivalent STL file in AMReX-tutorials source code (https://github.com/AMReX-Codes/amrex-tutorials.git), commit 211e40b0504dd5660ed2ff2605ea9f542b176cb2.
-
-* armadillo.ply Obtained from Stanford 3D scanning repository (http://graphics.stanford.edu/data/3Dscanrep/).
-
-* dodecahedron.ply Obtained from https://people.sc.fsu.edu/~jburkardt/data/ply/ply.html
-
-* horse.ply Obtained from https://github.com/alecjacobson/common-3d-test-models and repaired (made watertight) using MeshLab.
-
-* orion.ply Obtained from NASA https://nasa3d.arc.nasa.gov/detail/orion-capsule
-
-* porsche.ply Obtained from https://people.sc.fsu.edu/~jburkardt/data/ply/ply.html
-
-* sphere.ply Obtained from https://people.sc.fsu.edu/~jburkardt/data/ply/ply.html
+This folder contains various PLY surface grids and remarks on where the data was obtained what was done with it. 
 
 | Model Name | Image | PLY file      | Source     | Note |
 |------------|-------|---------------|------------|------|
-| Airfoil       | <img src="img/airfoil.png"      width="200"/> | [.ply](airfoil.ply)      | [AMReX](http://git@github.com/AMReX-Codes/amrex-tutorials.git) | Converted from STL to PLY |
-| Armadillo     | <img src="img/armadillo.png"    width="200"/> | [.ply](armadillo.ply)    | [Stanford](http://graphics.stanford.edu/data/3Dscanrep/)       |                           |
-| Dodecahedron  | <img src="img/dodecahedron.png" width="200"/> | [.ply](dodecahedron.ply) | https://people.sc.fsu.edu/~jburkardt/data/ply/ply.html         |                           |
-| Horse         | <img src="img/horse.png"        width="200"/> | [.ply](horse.ply)        | https://github.com/alecjacobson/common-3d-test-models          | Repaired using MeshLab    |
+| Airfoil       | <img src="img/airfoil.png"      width="200"/> | [.ply](airfoil.ply)      | [AMReX]        (http://git@github.com/AMReX-Codes/amrex-tutorials.git)  | Converted from STL to PLY |
+| Armadillo     | <img src="img/armadillo.png"    width="200"/> | [.ply](armadillo.ply)    | [Stanford]     (http://graphics.stanford.edu/data/3Dscanrep/)           |                           |
+| Dodecahedron  | <img src="img/dodecahedron.png" width="200"/> | [.ply](dodecahedron.ply) | [John Burkardt](https://people.sc.fsu.edu/~jburkardt/data/ply/ply.html) |                           |
+| Horse         | <img src="img/horse.png"        width="200"/> | [.ply](horse.ply)        | [Alec Jacobson](https://github.com/alecjacobson/common-3d-test-models   | Repaired using MeshLab    |
+| Orion         | <img src="img/orion.png"        width="200"/> | [.ply](orion.ply)        | [NASA]         (https://nasa3d.arc.nasa.gov/detail/orion-capsule)       |                           |
+| Sphere        | <img src="img/sphere.png"       width="200"/> | [.ply](sphere.ply)       | [John Burkardt](https://people.sc.fsu.edu/~jburkardt/data/ply/ply.html) |                           |
