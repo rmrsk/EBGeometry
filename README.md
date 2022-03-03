@@ -21,7 +21,7 @@ Requirements
 ------------
 
 * A C++ compiler which supports C++14.
-* EBGeometry takes a watertight and orientable surface as input. 
+* EBGeometry takes a watertight and orientable surface as input (only PLY files currently supported).
   Although EBGeometry does it's best at processing grids that contain self-intersections, holes, and hanging vertices the signed distance function is not well-defined.
 
 Basic usage
