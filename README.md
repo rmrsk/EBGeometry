@@ -1,7 +1,8 @@
 EBGeometry
 ----------
 
-Support for signed-distance functions of tesselated surfaces. Used with embedded-boundary (EB) codes.
+Support for acceleration structures and signed-distance functions of tesselated surfaces.
+Can be used with embedded-boundary (EB) codes like Chombo amr AMReX.
 
 EBGeometry is a compact code for creating signed distance functions from watertight 3D surface tesselations.
 The surface mesh is stored in a doubly-connected edge list (DCEL), i.e. a half-edge data structure.
@@ -19,19 +20,29 @@ On average, if the mesh consists of N facets then a BVH has O(log(N)) complexity
 Requirements
 ------------
 
-C++14
+C++ 14
 
-Usage
------
+Basic usage
+-----------
 
 The library is header-only, simple make EBGeometry.hpp visible to your code and include it.
-Examples are given in Examples.
+To clone the code do
+
+   git clone git@github.com:rmrsk/EBGeometry.git
+
+Various examples are given in the Examples folder.
+To run one of the examples, navigate to the example and compile and run it.
+
+   cd Examples/Sphere
+   g++ -std=c++14 example.cpp -o example.out
+
+The					
 
 Caveats
 -------
 
-EBGeometry takes, as input, a watertight and orientable surface.
-Although EBGeometry will process grids that contain self-intersections, it does not warn about these, and the signed distance functions is not well-defined either.
+EBGeometry takes a watertight and orientable surface as input. 
+Although EBGeometry does it's best at processing grids that contain self-intersections, holes, and hanging vertices the signed distance function is not well-defined.
 
 License
 -------
