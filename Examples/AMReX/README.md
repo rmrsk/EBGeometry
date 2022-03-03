@@ -1,22 +1,22 @@
 This example uses the embedded boundary grid generation from AMReX.
 To compile this application, first install AMReX somewhere and point the AMREX_HOME environment variable to it.
 
-Compile and run this application (with MPI) by
+Compiling
+---------
+
+Compile (with your standard AMReX settings) using
 
     make -s -j8
-    mpirun -np 8 main3d.<something>.ex
 
-To select different geometries, put
+Running
+-------
 
-* Airfoil geometry:
+With MPI:
 
-      mpirun -np 8 main3d.<something>.ex which_geom=0
+    mpirun -np 8 main3d.<something>.ex which_geom=0
 
-* Sphere geometry:
+To select different geometries, set which_geom to one of the below.
 
-      mpirun -np 8 main3d.<something>.ex which_geom=1
-
-* Car geometry:
-
-      mpirun -np 8 main3d.<something>.ex which_geom=2
-
+* which_geom = 0 (Airfoil)
+* which_geom = 1 (Sphere)
+* which_geom = 2 (Car)

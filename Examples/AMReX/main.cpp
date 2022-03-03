@@ -100,10 +100,6 @@ int main (int argc, char* argv[])
 	    rb = RealBox({-20.,-20.,-20.}, {20.,20.,20.});
 	    filename = "../PLY/porsche.ply";
 	  }
-	  else if (which_geom == 3){ // Orion geometry
-	    rb = RealBox({-10.,-10.,-10.}, {10.,10.,10.});
-	    filename = "../PLY/orion.ply";
-	  }	  	  
 
 	  Array<int,AMREX_SPACEDIM> is_periodic{false, false, false};
 	  Geometry::Setup(&rb, 0, is_periodic.data());

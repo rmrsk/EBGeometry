@@ -1,7 +1,14 @@
-This folder contains basic examples of using EBGeometry.
+This folder contains a basic example of using EBGeometry.
+
+Compiling
+---------
+
 To compile the example, do
 
-    g++ -std=c++14 main.cpp
+    g++ -std=c++14 -O3 main.cpp
+
+Running
+-------
 
 Run it with
 
