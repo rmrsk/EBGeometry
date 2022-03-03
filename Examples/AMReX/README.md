@@ -22,9 +22,9 @@ Supported geometries
 To select different geometries, set which_geom to one of the below.
 
 * `which_geom = 0` Airfoil
-* which_geom = 1 Sphere
-* which_geom = 2 Dodecahedron
-* which_geom = 3 Hors)
-* which_geom = 4 Porsche
-* which_geom = 5 Orion capsule
-* which_geom = 6 Armadillo
+* `which_geom = 1` Sphere
+* `which_geom = 2` Dodecahedron
+* `which_geom = 3` Horse
+* `which_geom = 4` Porsche
+* `which_geom = 5` Orion capsule
+* `which_geom = 6` Armadillo

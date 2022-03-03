@@ -105,7 +105,7 @@ int main (int argc, char* argv[])
 	    filename = "../PLY/horse.ply";
 	  }
 	  else if (which_geom == 4){ // Car
-	    rb = RealBox({-20,-20,-20}, {20,20,20}); // Doesn't work. 
+	    //	    rb = RealBox({-20,-20,-20}, {20,20,20}); // Doesn't work. 
 	    rb = RealBox({-10,-5,-5}, {10,5,5}); // Works. 
 	    filename = "../PLY/porsche.ply";
 	  }
