@@ -8,13 +8,11 @@ The tesselations must consist of planar polygons, but these polygons are not nec
 Internally, the surface mesh is stored in a doubly-connected edge list (DCEL), i.e. a half-edge data structure. 
 On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can naively be computed by computing the distance to every facet. 
 
-EBGeometry provides bounding volume hierarchies (BVHs) for bounding geometric primitives in space.
-The BVHs are tree structures which permit accelerated closest-point searches.
-We point out that the BVHs in EBGeometry are shallow implementations without deep performance optimizations. 
+EBGeometry provides bounding volume hierarchies (BVHs) for accelerating the signed distance computation. 
 In the DCEL context the BVHs are used for bounding the facets on the surface mesh, but there are no fundamental limitations on which objects that can be bounded.
 Thus, multiple objects (e.g., surface grids or analytic functions) can also be bound in the BVHs.
 Querying the distance to the mesh through the BVH is much faster than the naive approach. 
-On average, if the mesh consists of N facets then a BVH has O(log(N)) complexity while a direct search has O(N) complexity. 
+On average, if the mesh consists of N facets then a BVH has O(log(N)) complexity while a direct search has O(N) complexity.
 
 Requirements
 ------------
