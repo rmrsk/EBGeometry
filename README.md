@@ -35,7 +35,7 @@ To clone the code do
 Various examples are given in the Examples folder.
 To run one of the examples, navigate to the example and compile and run it.
 
-    cd Examples/Sphere
+    cd Examples/Basic/Sphere
     g++ -std=c++14 example.cpp -o example.out
 
 All the examples take the following steps:
