@@ -40,7 +40,13 @@ All the examples take the following steps:
 
 1. Parse a surface mesh into a DCEL mesh object.
 2. Partition the DCEL mesh object in a bounding volume hierarchy.
-3. Create direct and BVH-accelerated signed distance functions and compute the distance to the mesh. 
+3. Create direct and BVH-accelerated signed distance functions and compute the distance to the mesh.
+
+Advanced usage
+--------------
+
+For more advanced usage, users can supply their own file parsers (only PLY files are currently supported), provide their own bounding volumes, or their own BVH partitioners.
+EBGeometry is not too strict about these things, and uses rigorous templating for ensuring that the EBGeometry functionality can be extended.
 
 Caveats
 -------
