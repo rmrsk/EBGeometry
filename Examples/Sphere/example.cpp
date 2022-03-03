@@ -19,7 +19,6 @@ int main() {
   // Aliases for cutting down on typing.
   using BV        = BoundingVolumes::AABBT<precision>;  
   using Vec3      = Vec3T<precision>;  
-  using Mesh      = MeshT<precision>;
   using Face      = FaceT<precision>;
   using slowSDF   = SignedDistanceDcel<precision>;
   using fastSDF   = SignedDistanceBVH<precision, BV, K>;    
