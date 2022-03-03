@@ -17,5 +17,6 @@ The grids have been obtained from various sources (outlined below) and repaired 
 
 | Model Name | Image | File          | Source     |
 |------------|-------|---------------|------------|
-| Airfoil    | <img src="img/airfoil.png"   width="200"/> | [.ply](airfoil.ply)   | [AMReX](http://git@github.com/AMReX-Codes/amrex-tutorials.git) |
-| Armadillo  | <img src="img/armadillo.png" width="200"/> | [.ply](armadillo.ply) | [Stanford](http://graphics.stanford.edu/data/3Dscanrep/)       |
+| Airfoil       | <img src="img/airfoil.png"      width="300"/> | [.ply](airfoil.ply)      | [AMReX](http://git@github.com/AMReX-Codes/amrex-tutorials.git) |
+| Armadillo     | <img src="img/armadillo.png"    width="300"/> | [.ply](armadillo.ply)    | [Stanford](http://graphics.stanford.edu/data/3Dscanrep/)       |
+| Dodecahedron  | <img src="img/dodecahedron.png" width="300"/> | [.ply](dodecahedron.ply) | (https://people.sc.fsu.edu/~jburkardt/data/ply/ply.html) |
