@@ -4,7 +4,6 @@ EBGeometry
 A compact code for computing signed distance functions to watertight and orientable surface grids. 
 Can be used with embedded-boundary (EB) codes like Chombo or AMReX.
 
-EBGeometry is a compact code for creating signed distance functions from watertight 3D surface tesselations.
 The tesselations must consist of planar polygons, but these polygons are not necessarily restricted to triangles.
 Internally, the surface mesh is stored in a doubly-connected edge list (DCEL), i.e. a half-edge data structure. 
 On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can naively be computed by computing the distance to every facet. 
