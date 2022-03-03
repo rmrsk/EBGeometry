@@ -25,6 +25,7 @@ Usage
 -----
 
 The library is header-only, simple make EBGeometry.hpp visible to your code and include it.
+Examples are given in Examples. 
 
 
 License
