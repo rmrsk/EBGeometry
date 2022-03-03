@@ -12,3 +12,11 @@ To select different geometries, put
 
       mpirun -np 8 main3d.<something>.ex which_geom=0
 
+* Sphere geometry:
+
+      mpirun -np 8 main3d.<something>.ex which_geom=1
+
+* Car geometry:
+
+      mpirun -np 8 main3d.<something>.ex which_geom=2
+

@@ -5,3 +5,5 @@
 *.F90
 Examples/AMReX/plt*
 Examples/AMReX/tmp_build_dir
+Examples/AMReX/Backtrace.*
+

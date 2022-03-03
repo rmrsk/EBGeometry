@@ -3,7 +3,7 @@
  * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
  */
 
-#include "../../EBGeometry.hpp"
+#include "../../../EBGeometry.hpp"
 
 using namespace EBGeometry;
 using namespace EBGeometry::Dcel;
@@ -25,7 +25,7 @@ int main() {
 
   // Create an empty DCEL mesh
   std::cout << "Parsing input file\n";  
-  auto mesh = EBGeometry::Dcel::Parser::PLY<precision>::readASCII("armadillo.ply");
+  auto mesh = EBGeometry::Dcel::Parser::PLY<precision>::readASCII("airfoil.ply");
 
   // Create a signed distance function from the mesh. This is the object
   // that will iterate through each and every facet in the input mesh. 
@@ -43,7 +43,7 @@ int main() {
 
   fastSDF fast(root, false);
 
-  // Query the distance to a point.
+  // Query the distance to a point. 
   std::cout << "Distance to point using direct method    = " << slow(Vec3::one()) << std::endl;
   std::cout << "Distance to point using bounding volumes = " << fast(Vec3::one()) << std::endl;  
   

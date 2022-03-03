@@ -3,7 +3,7 @@
  * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
  */
 
-#include "../../EBGeometry.hpp"
+#include "../../../EBGeometry.hpp"
 
 using namespace EBGeometry;
 using namespace EBGeometry::Dcel;
@@ -25,7 +25,7 @@ int main() {
 
   // Create an empty DCEL mesh
   std::cout << "Parsing input file\n";  
-  auto mesh = EBGeometry::Dcel::Parser::PLY<precision>::readASCII("sphere.ply");
+  auto mesh = EBGeometry::Dcel::Parser::PLY<precision>::readASCII("orion.ply");
 
   // Create a signed distance function from the mesh. This is the object
   // that will iterate through each and every facet in the input mesh. 
