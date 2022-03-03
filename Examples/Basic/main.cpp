@@ -3,7 +3,10 @@
  * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
  */
 
-#include "../../../EBGeometry.hpp"
+#include <string>
+#include <vector>
+
+#include "../../EBGeometry.hpp"
 
 using namespace EBGeometry;
 using namespace EBGeometry::Dcel;
@@ -11,7 +14,21 @@ using namespace EBGeometry::Dcel;
 // Degree of bounding volume hierarchies. 
 constexpr int K = 2;
 
-int main() {
+int main(int argc, char *argv[]) {
+
+  std::string current_exec_name = argv[0]; // Name of the current exec program
+  std::vector<std::string> all_args;
+
+  std::string file;
+  
+  if (argc == 2) {
+    file = "../PLY/" + std::string(argv[1]);
+  }
+  else{
+    std::cerr << "Missing file name. Use ./a.out 'filename' where 'filename' is one of the files in ../PLY\n";
+
+    return 1;
+  }
   
   // Declare precision. 
   using precision = float;
@@ -21,11 +38,13 @@ int main() {
   using Vec3      = Vec3T<precision>;  
   using Face      = FaceT<precision>;
   using slowSDF   = SignedDistanceDcel<precision>;
-  using fastSDF   = SignedDistanceBVH<precision, BV, K>;    
+  using fastSDF   = SignedDistanceBVH<precision, BV, K>;
+
+  std::string inputFile;
 
   // Create an empty DCEL mesh
   std::cout << "Parsing input file\n";  
-  auto mesh = EBGeometry::Dcel::Parser::PLY<precision>::readASCII("airfoil.ply");
+  auto mesh = EBGeometry::Dcel::Parser::PLY<precision>::readASCII(file);
 
   // Create a signed distance function from the mesh. This is the object
   // that will iterate through each and every facet in the input mesh. 

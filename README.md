@@ -2,7 +2,7 @@ EBGeometry
 ----------
 
 Support for acceleration structures and signed-distance functions of tesselated surfaces.
-Can be used with embedded-boundary (EB) codes like Chombo amr AMReX.
+Can be used with embedded-boundary (EB) codes like Chombo or AMReX.
 
 EBGeometry is a compact code for creating signed distance functions from watertight 3D surface tesselations.
 The surface mesh is stored in a doubly-connected edge list (DCEL), i.e. a half-edge data structure.
@@ -36,13 +36,15 @@ Various examples are given in the Examples folder.
 To run one of the examples, navigate to the example and compile and run it.
 
     cd Examples/Basic/Sphere
-    g++ -std=c++14 example.cpp -o example.out
+    g++ -std=c++14 main.cpp
 
-All the examples take the following steps:
+All the examples take the following steps that are specific to EBGeometry:
 
 1. Parse a surface mesh into a DCEL mesh object.
 2. Partition the DCEL mesh object in a bounding volume hierarchy.
 3. Create direct and BVH-accelerated signed distance functions and compute the distance to the mesh.
+
+More complex examples that use Chombo or AMReX will also include application-specific code. 
 
 Advanced usage
 --------------
