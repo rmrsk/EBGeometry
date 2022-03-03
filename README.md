@@ -20,7 +20,9 @@ On average, if the mesh consists of N facets then a BVH has O(log(N)) complexity
 Requirements
 ------------
 
-C++ 14
+* C++ 14
+* EBGeometry takes a watertight and orientable surface as input. 
+  Although EBGeometry does it's best at processing grids that contain self-intersections, holes, and hanging vertices the signed distance function is not well-defined.
 
 Basic usage
 -----------
@@ -51,8 +53,7 @@ EBGeometry is not too strict about these things, and uses rigorous templating fo
 Caveats
 -------
 
-EBGeometry takes a watertight and orientable surface as input. 
-Although EBGeometry does it's best at processing grids that contain self-intersections, holes, and hanging vertices the signed distance function is not well-defined.
+
 
 License
 -------
