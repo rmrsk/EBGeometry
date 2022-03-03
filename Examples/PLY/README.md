@@ -17,4 +17,4 @@ The grids have been obtained from various sources (outlined below) and repaired 
 
 | Model Name | Image | File          | Source     |
 |------------|-------|---------------|------------|
-| airfoil    | ![](img/airfoil.png) | [.ply](airfoil.ply) | [AMReX](http://git@github.com/AMReX-Codes/amrex-tutorials.git) |
+| airfoil    | <img src="img/airfoil.png" width="200"/> | [.ply](airfoil.ply) | [AMReX](http://git@github.com/AMReX-Codes/amrex-tutorials.git) |
