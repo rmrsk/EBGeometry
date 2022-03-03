@@ -97,7 +97,7 @@ int main (int argc, char* argv[])
 	    filename = "../PLY/sphere.ply";
 	  }
 	  else if (which_geom == 2){ // Dodecahedron
-	    rb = RealBox({-1.,-1.,-1.}, {1.,1.,1.});
+	    rb = RealBox({-2.,-2.,-2.}, {2.,2.,2.});
 	    filename = "../PLY/dodecahedron.ply";
 	  }
 
