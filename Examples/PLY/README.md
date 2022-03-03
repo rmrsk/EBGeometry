@@ -17,4 +17,5 @@ The grids have been obtained from various sources (outlined below) and repaired 
 
 | Model Name | Image | File          | Source     |
 |------------|-------|---------------|------------|
-| airfoil    | <img src="img/airfoil.png" width="200"/> | [.ply](airfoil.ply) | [AMReX](http://git@github.com/AMReX-Codes/amrex-tutorials.git) |
+| Airfoil    | <img src="img/airfoil.png"   width="200"/> | [.ply](airfoil.ply)   | [AMReX](http://git@github.com/AMReX-Codes/amrex-tutorials.git) |
+| Armadillo  | <img src="img/armadillo.png" width="200"/> | [.ply](armadillo.ply) | [Stanford](http://graphics.stanford.edu/data/3Dscanrep/)       |
