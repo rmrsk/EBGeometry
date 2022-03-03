@@ -96,9 +96,9 @@ int main (int argc, char* argv[])
 	    rb = RealBox({-400,-400,-400}, {400,400,400});
 	    filename = "../PLY/sphere.ply";
 	  }
-	  else if (which_geom == 2){ // Car geometry
-	    rb = RealBox({-20.,-20.,-20.}, {20.,20.,20.});
-	    filename = "../PLY/porsche.ply";
+	  else if (which_geom == 2){ // Dodecahedron
+	    rb = RealBox({-2.,-2.,-2.}, {2.,2.,2.});
+	    filename = "../PLY/dodecahedron.ply";
 	  }
 
 	  Array<int,AMREX_SPACEDIM> is_periodic{false, false, false};
