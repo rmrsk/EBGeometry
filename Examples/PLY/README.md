@@ -15,8 +15,8 @@ The grids have been obtained from various sources (outlined below) and repaired 
 
 * sphere.ply Obtained from https://people.sc.fsu.edu/~jburkardt/data/ply/ply.html
 
-| Model Name | Image | File          | Source     |
+| Model Name | Image | PLY file      | Source     |
 |------------|-------|---------------|------------|
-| Airfoil       | <img src="img/airfoil.png"      width="200"/> | (airfoil.ply)      | [AMReX](http://git@github.com/AMReX-Codes/amrex-tutorials.git) |
-| Armadillo     | <img src="img/armadillo.png"    width="200"/> | (armadillo.ply)    | [Stanford](http://graphics.stanford.edu/data/3Dscanrep/)       |
-| Dodecahedron  | <img src="img/dodecahedron.png" width="200"/> | (dodecahedron.ply) | (https://people.sc.fsu.edu/~jburkardt/data/ply/ply.html) |
+| Airfoil       | <img src="img/airfoil.png"      width="200"/> | [.ply](airfoil.ply)      | [AMReX](http://git@github.com/AMReX-Codes/amrex-tutorials.git) |
+| Armadillo     | <img src="img/armadillo.png"    width="200"/> | [.ply](armadillo.ply)    | [Stanford](http://graphics.stanford.edu/data/3Dscanrep/)       |
+| Dodecahedron  | <img src="img/dodecahedron.png" width="200"/> | [.ply](dodecahedron.ply) | https://people.sc.fsu.edu/~jburkardt/data/ply/ply.html         |
