@@ -25,11 +25,8 @@ int main() {
   using fastSDF   = SignedDistanceBVH<precision, BV, K>;    
 
   // Create an empty DCEL mesh
-  auto mesh = std::make_shared<Mesh>();
-
-  // Parse file into DCEL mesh structure.
-  std::cout << "Parsing input file\n";
-  EBGeometry::Dcel::Parser::PLY<precision>::readASCII(*mesh, "sphere.ply");
+  std::cout << "Parsing input file\n";  
+  auto mesh = EBGeometry::Dcel::Parser::PLY<precision>::readASCII("sphere.ply");
 
   // Create a signed distance function from the mesh. This is the object
   // that will iterate through each and every facet in the input mesh. 
