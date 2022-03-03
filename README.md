@@ -1,22 +1,18 @@
 EBGeometry
 ----------
 
-Support for acceleration structures and signed-distance functions of tesselated surfaces.
+A compact code for computing signed distance functions to watertight and orientable surface grids. 
 Can be used with embedded-boundary (EB) codes like Chombo or AMReX.
 
-EBGeometry is a compact code for creating signed distance functions from watertight 3D surface tesselations.
-The tesselations must consist of a planar polygons, but not necessarily restricted to triangles. 
-The surface mesh is stored in a doubly-connected edge list (DCEL), i.e. a half-edge data structure. 
-On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined.
-Naively, this distance can be computed by iterating through every facet in surface mesh and computing the distance. 
+The tesselations must consist of planar polygons, but these polygons are not necessarily restricted to triangles.
+Internally, the surface mesh is stored in a doubly-connected edge list (DCEL), i.e. a half-edge data structure. 
+On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can naively be computed by computing the distance to every facet. 
 
-EBGeometry provides bounding volume hierarchies (BVHs) for bounding geometric primitives in space.
-The BVHs are tree structures which permit accelerated closest-point searches.
-We point out that the BVHs in EBGeometry are shallow implementations without deep performance optimizations. 
+EBGeometry provides bounding volume hierarchies (BVHs) for accelerating the signed distance computation. 
 In the DCEL context the BVHs are used for bounding the facets on the surface mesh, but there are no fundamental limitations on which objects that can be bounded.
-Thus, multiple objects (e.g., surface grids or analytic functions) can also be bound in bounding volume hierarchy.
-Querying the distance to the mesh through the BVH is much faster than directly computing the distance.
-On average, if the mesh consists of N facets then a BVH has O(log(N)) complexity while a direct search has O(N) complexity. 
+Thus, multiple objects (e.g., surface grids or analytic functions) can also be bound in the BVHs.
+Querying the distance to the mesh through the BVH is much faster than the naive approach. 
+On average, if the mesh consists of N facets then a BVH has O(log(N)) complexity while a direct search has O(N) complexity.
 
 Requirements
 ------------
@@ -28,16 +24,20 @@ Requirements
 Basic usage
 -----------
 
-The library is header-only, simple make EBGeometry.hpp visible to your code and include it.
+EBGeometry is a header-only library in C++.
+To use it, simply make EBGeometry.hpp visible to your code and include it.
+
 To clone the code do
 
     git clone git@github.com:rmrsk/EBGeometry.git
 
 Various examples are given in the Examples folder.
 To run one of the examples, navigate to the example and compile and run it.
+E.g.,
 
-    cd Examples/Basic/Sphere
-    g++ -std=c++14 main.cpp
+    cd Examples/Basic
+    g++ -O3 -std=c++14 main.cpp
+    ./a.out porsche.ply
 
 All the examples take the following steps that are specific to EBGeometry:
 
