@@ -31,6 +31,16 @@ namespace Dcel {
 
   template <class T>
   inline
+  std::shared_ptr<EBGeometry::Dcel::MeshT<T> > Parser::PLY<T>::readASCII(const std::string a_filename) {
+    auto mesh = std::make_shared<Mesh>();
+
+    readASCII(*mesh, a_filename);
+
+    return mesh;
+  }
+
+  template <class T>
+  inline
   void Parser::PLY<T>::readASCII(Mesh& a_mesh, const std::string a_filename) {
     std::ifstream filestream(a_filename);
 
