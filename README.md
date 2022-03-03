@@ -24,16 +24,20 @@ Requirements
 Basic usage
 -----------
 
-The library is header-only, simple make EBGeometry.hpp visible to your code and include it.
+EBGeometry is a header-only library in C++.
+To use it, simply make EBGeometry.hpp visible to your code and include it.
+
 To clone the code do
 
     git clone git@github.com:rmrsk/EBGeometry.git
 
 Various examples are given in the Examples folder.
 To run one of the examples, navigate to the example and compile and run it.
+E.g.,
 
-    cd Examples/Basic/Sphere
-    g++ -std=c++14 main.cpp
+    cd Examples/Basic
+    g++ -O3 -std=c++14 main.cpp
+    ./a.out porsche.ply
 
 All the examples take the following steps that are specific to EBGeometry:
 
