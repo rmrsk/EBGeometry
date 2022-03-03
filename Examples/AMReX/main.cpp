@@ -100,6 +100,23 @@ int main (int argc, char* argv[])
 	    rb = RealBox({-2.,-2.,-2.}, {2.,2.,2.});
 	    filename = "../PLY/dodecahedron.ply";
 	  }
+	  else if (which_geom == 3){ // Horse
+	    rb = RealBox({-0.2,-0.2,-0.2}, {0.2,0.2,0.2});
+	    filename = "../PLY/horse.ply";
+	  }
+	  else if (which_geom == 4){ // Car
+	    //	    rb = RealBox({-20,-20,-20}, {20,20,20}); // Doesn't work. 
+	    rb = RealBox({-10,-5,-5}, {10,5,5}); // Works. 
+	    filename = "../PLY/porsche.ply";
+	  }
+	  else if (which_geom == 5){ // Orion
+	    rb = RealBox({-10,-5,-10}, {10,10,10}); 
+	    filename = "../PLY/orion.ply";
+	  }
+	  else if (which_geom == 6){ // Armadillo
+	    rb = RealBox({-100,-75,-100}, {100,125,100}); 
+	    filename = "../PLY/armadillo.ply";
+	  }	  	  	  	  
 
 	  Array<int,AMREX_SPACEDIM> is_periodic{false, false, false};
 	  Geometry::Setup(&rb, 0, is_periodic.data());
@@ -108,9 +125,9 @@ int main (int argc, char* argv[])
         }
 
 	// Create the signed distance function. 
-	EB2::SignedDistanceBVH sphere(filename, false);
+	EB2::SignedDistanceBVH sdf(filename, false);
 
-	auto gshop = EB2::makeShop(sphere);
+	auto gshop = EB2::makeShop(sdf);
 	EB2::Build(gshop, geom, 0, 0);
 
 	// Put some data
