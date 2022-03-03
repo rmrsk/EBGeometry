@@ -19,4 +19,4 @@ To select different geometries, set which_geom to one of the below.
 
 * which_geom = 0 (Airfoil)
 * which_geom = 1 (Sphere)
-* which_geom = 2 (Car) This examples breaks due to AMReX's EB limitations.
+* which_geom = 2 (Dodecahedron)
