@@ -47,7 +47,6 @@ namespace BoundingVolumes {
     // TLDR: Spheres enclosing other spheres is a difficult problem, but a sphere enclosing a set of points is simpler. For each
     //       input sphere we create a set of points representing the lo/hicorners of an axis-aligned bounding box that encloses the sphere.
     //       We then compute the bounding sphere from this set of points.
-
     std::vector<Vec3T<T> > points;
     for (const auto& sphere : a_otherSpheres){
       const T&        radius = sphere.getRadius();

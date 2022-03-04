@@ -71,7 +71,7 @@ namespace BoundingVolumes {
     /*!
       @brief Destructor (does nothing). 
     */
-    ~BoundingSphereT();
+    virtual ~BoundingSphereT();
 
     /*!
       @brief Template constructor which takes a set of 3D points (mixed precision allowed).
@@ -224,7 +224,7 @@ namespace BoundingVolumes {
     /*!
       @brief Destructor (does nothing)
     */
-    ~AABBT();
+    virtual ~AABBT();
 
     /*!
       @brief Template constructor (since mixed precision allowed) which creates an AABB that encloses a set of 3D points
