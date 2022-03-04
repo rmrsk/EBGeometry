@@ -21,22 +21,20 @@ Union<T>::Union(const std::vector<std::shared_ptr<SDF> >& a_distanceFunctions, c
   for (const auto& sdf : a_distanceFunctions){
     m_distanceFunctions.emplace_back(sdf);
   }
-  
-  m_flipSign          = a_flipSign;
+
+  m_flipSign = a_flipSign;
 }
 
 template <class T>
 T Union<T>::signedDistance(const Vec3T<T>& a_point) const noexcept {
   const int numDistanceFunctions = m_distanceFunctions.size();
 
-  T ret = -std::numeric_limits<T>::infinity();
+  T ret = std::numeric_limits<T>::infinity();
   
-  if(numDistanceFunctions > 0){
-    for (const auto & sdf : m_distanceFunctions){
-      const T cur = sdf->signedDistance(a_point);
+  for (const auto & sdf : m_distanceFunctions){
+    const T cur = sdf->signedDistance(a_point);
 
-      ret = (std::abs(cur) < std::abs(ret)) ? cur : ret;
-    }
+    ret = (std::abs(cur) < std::abs(ret)) ? cur : ret;
   }
 
   T sign = (m_flipSign) ? -1.0 : 1.0;  

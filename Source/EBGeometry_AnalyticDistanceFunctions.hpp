@@ -12,9 +12,6 @@
 #ifndef EBGeometry_AnalyticDistanceFunctions
 #define EBGeometry_AnalyticDistanceFunctions
 
-#include <chrono>
-#include <thread>
-
 #include "EBGeometry_SignedDistanceFunction.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
@@ -28,7 +25,11 @@ public:
   /*!
     @brief Disallowed weak construction. Use one of the full constructors. 
   */
-  SphereSDF() = delete;
+  SphereSDF(){
+    this->m_center     = Vec3T<T>::zero();
+    this->m_radius     = T(0.0);
+    this->m_flipInside = false;
+  }
 
   /*!
     @brief Default constructor
@@ -51,6 +52,11 @@ public:
     this->m_flipInside   = a_other.m_flipInside;            
     this->m_transformOps = a_other.m_transformOps;    
   }
+
+  /*!
+    @brief Destructor
+  */
+  virtual ~SphereSDF() = default;  
 
   /*!
     @brief Get center
@@ -81,22 +87,16 @@ public:
   }
 
   /*!
-    @brief Destructor
-  */
-  virtual ~SphereSDF() = default;
-
-  /*!
     @brief Signed distance function
   */
   virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override {
-    const int sign = m_flipInside ? -1 : 1;
+    const T sign = m_flipInside ? -1.0 : 1.0;
     
-    return sign * ( (a_point-m_center).length() - m_radius );
+    return sign * (m_radius - (a_point-m_center).length());
   }
 
   virtual T unsignedDistance2(const Vec3T<T>& a_point) const noexcept override {
-    
-    return (a_point - m_center).length2() - m_radius*m_radius;
+    return std::abs((a_point - m_center).length2() - m_radius*m_radius);
   }
   
 protected:
