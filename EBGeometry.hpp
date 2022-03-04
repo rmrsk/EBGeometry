@@ -11,4 +11,5 @@
 #include "Source/EBGeometry_SignedDistanceDcel.hpp"
 #include "Source/EBGeometry_SignedDistanceBVH.hpp"
 #include "Source/EBGeometry_Union.hpp"
+#include "Source/EBGeometry_UnionBVH.hpp"
 

@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
 
 
   // Make a union of SDFs. 
-  Union<precision> u({fast}, false);
+  UnionBVH<precision> u({fast, fast}, false);
 
   // Query the distance to a point. 
   std::cout << "Distance to point using direct method    = " << (*slow)(Vec3::one()) << std::endl;
