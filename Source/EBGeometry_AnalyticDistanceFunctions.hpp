@@ -12,6 +12,9 @@
 #ifndef EBGeometry_AnalyticDistanceFunctions
 #define EBGeometry_AnalyticDistanceFunctions
 
+#include <chrono>
+#include <thread>
+
 #include "EBGeometry_SignedDistanceFunction.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
@@ -85,13 +88,14 @@ public:
   /*!
     @brief Signed distance function
   */
-  T signedDistance(const Vec3T<T>& a_point) const noexcept override {
+  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override {
     const int sign = m_flipInside ? -1 : 1;
     
     return sign * ( (a_point-m_center).length() - m_radius );
   }
 
-  T unsignedDistance2(const Vec3T<T>& a_point) const noexcept override {
+  virtual T unsignedDistance2(const Vec3T<T>& a_point) const noexcept override {
+    
     return (a_point - m_center).length2() - m_radius*m_radius;
   }
   

@@ -22,8 +22,8 @@ UnionBVH<T, BV, K>::UnionBVH(const std::vector<std::shared_ptr<SDF> >& a_distanc
     m_distanceFunctions.emplace_back(sdf);
   }
   
-  m_flipSign          = a_flipSign;
-  m_isGood            = false;
+  m_flipSign = a_flipSign;
+  m_isGood   = false;
 }
 
 template <class T, class BV, int K>
@@ -95,6 +95,9 @@ void UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor) {
     std::array<int, K> startIndices;
     std::array<int, K> endIndices;    
 
+    startIndices[0] = 0;
+    endIndices  [K-1] = numPrimitives;
+    
     for (unsigned int i = 1; i < K; i++){
       startIndices[i] = startIndices[i-1] + almostEqualChunkSize;
 
@@ -108,7 +111,6 @@ void UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor) {
       endIndices[i] = startIndices[i+1];
     }
 
-
     // 5. Put the primitives in separate lists and return them like the API says. 
     std::array<SDFList, K> subVolumePrimitives;
     for (int i = 0; i < K; i++){
@@ -121,12 +123,9 @@ void UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor) {
     return subVolumePrimitives;
   };
 
-  //  const auto partitionedPrims = partitioner(m_distanceFunctions);
-
   // Stop function. Exists subdivision if there are not enough primitives left to keep subdividing. 
   EBGeometry::BVH::StopFunctionT<T, SDF, BV, K> stopFunc = [] (const Node& a_node) -> bool {
     const int numPrimsInNode = (a_node.getPrimitives()).size();
-
     return numPrimsInNode < K;
   };
 
@@ -136,6 +135,8 @@ void UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor) {
   m_rootNode->topDownSortAndPartitionPrimitives(a_bvConstructor,
   						partitioner,
   						stopFunc);
+
+  m_isGood = true;
 }
 
 template <class T, class BV, int K>
