@@ -75,9 +75,9 @@ int main(int argc, char *argv[]) {
   UnionBVH<precision, BV, 2> u({fast}, false, bvConstructor);  
 
   // Query the distance to a point. 
-  std::cout << "Distance to point using direct method    = " << (*slow)(Vec3::one()) << std::endl;
-  std::cout << "Distance to point using bounding volumes = " << (*fast)(Vec3::one()) << std::endl;
-  std::cout << "Distance to point using union = " << u(Vec3::one()) << std::endl;    
+  std::cout << "Distance to point using direct method    = " << slow->signedDistance(Vec3::one()) << std::endl;
+  std::cout << "Distance to point using bounding volumes = " << fast->signedDistance(Vec3::one()) << std::endl;
+  std::cout << "Distance to point using union = " << u.signedDistance(Vec3::one()) << std::endl;    
   
   return 0;
 }

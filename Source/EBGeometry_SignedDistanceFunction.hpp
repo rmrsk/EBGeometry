@@ -33,10 +33,18 @@ public:
   virtual ~SignedDistanceFunction() = default;
 
   /*!
-    @brief Value function. Must return the distance to the object. 
+    @brief Signed distance function. 
     @param[in] a_point 3D point. 
   */
-  virtual T operator()(const Vec3T<T>& a_point) const noexcept = 0;
+  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept = 0;
+
+  /*!
+    @brief Unsigned distance function. Must return the distance^2. 
+    @param[in] a_point 3D point. 
+  */
+  virtual T unsignedDistance2(const Vec3T<T>& a_point) const noexcept {
+    return std::pow(this->signedDistance(a_point), 2);
+  }
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

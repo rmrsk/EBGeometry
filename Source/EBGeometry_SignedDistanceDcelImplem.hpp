@@ -35,7 +35,7 @@ SignedDistanceDcel<T>::~SignedDistanceDcel(){
 }
 
 template <class T>
-T SignedDistanceDcel<T>::operator()(const Vec3T<T>& a_point) const noexcept {
+T SignedDistanceDcel<T>::signedDistance(const Vec3T<T>& a_point) const noexcept {
 
   T sign = (m_flipSign) ? -1.0 : 1.0;
   

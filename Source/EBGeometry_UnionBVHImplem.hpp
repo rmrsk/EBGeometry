@@ -136,7 +136,7 @@ void UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor) {
 }
 
 template <class T, class BV, int K>
-T UnionBVH<T, BV, K>::operator()(const Vec3T<T>& a_point) const noexcept {
+T UnionBVH<T, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept {
   const T sign = (m_flipSign) ? -1.0 : 1.0;
 
   return sign * m_rootNode->pruneTree(a_point);  
