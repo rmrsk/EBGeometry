@@ -43,10 +43,9 @@ const BV& SignedDistanceBVH<T, BV, K>::getBoundingVolume() const noexcept {
 
 template <class T, class BV, int K>
 T SignedDistanceBVH<T, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept {
-
   const T sign = (m_flipSign) ? -1.0 : 1.0;
 
-  return sign * m_rootNode->signedDistance(a_point);
+  return sign * m_rootNode->signedDistance(this->transformPoint(a_point));
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"
