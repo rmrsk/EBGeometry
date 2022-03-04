@@ -213,24 +213,36 @@ namespace BVH {
 
   template <class T, class P, class BV, int K>
   inline
-  T NodeT<T, P, BV, K>::pruneTree(const Vec3& a_point, const Prune a_pruning) const noexcept {
-    T ret;
+  T NodeT<T, P, BV, K>::signedDistance(const Vec3& a_point, const Prune a_pruning) const noexcept {
+    T ret = std::numeric_limits<T>::infinity();
     
     switch(a_pruning){
     case Prune::Ordered:
-      ret = this->pruneOrdered(a_point);
-      break;
+      {
+	ret = this->pruneOrdered(a_point);
+	
+	break;
+      }
     case Prune::Ordered2:
-      ret = this->pruneOrdered2(a_point);
-      break;
+      {
+	ret = this->pruneOrdered2(a_point);
+	
+	break;
+      }
     case Prune::Unordered:
-      ret = this->pruneUnordered(a_point);
-      break;
+      {
+	ret = this->pruneUnordered(a_point);
+	
+	break;
+      }
     case Prune::Unordered2:
-      ret = this->pruneUnordered2(a_point);
-      break;
+      {
+	ret = this->pruneUnordered2(a_point);
+	
+	break;
+      }
     default:
-      std::cerr << "In file EBGeometry_BVHImplem.hpp function NodeT<T, P, BV, K>::pruneTree(Vec3, Prune) -- bad input enum for 'Prune'\n";
+      std::cerr << "In file EBGeometry_BVHImplem.hpp function NodeT<T, P, BV, K>::signedDistance(Vec3, Prune) -- bad input enum for 'Prune'\n";
     };
 
     return ret;

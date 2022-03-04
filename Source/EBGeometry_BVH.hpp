@@ -85,7 +85,8 @@ namespace BVH {
   /*!
     @brief Class which encapsulates a node in a bounding volume hierarchy. 
     @details T is the precision for Vec3, P is the primitive type you want to enclose, BV is the bounding volume you use for it. 
-    @note P must supply a function signedDistance(...) and BV must supply a function getDistance (had this been C++20, we would have use concepts to enforce this). 
+    @note P MUST supply function signedDistance(...) and unsignedDistance2(Vec3). BV must supply a
+    function getDistance (had this been C++20, we would have use concepts to enforce this). 
   */
   template <class T, class P, class BV, int K>
   class NodeT {
@@ -202,7 +203,7 @@ namespace BVH {
       @details This will select amongs the various implementations. 
     */
     inline
-    T pruneTree(const Vec3& a_point, const Prune a_pruning = Prune::Ordered2) const noexcept;    
+    T signedDistance(const Vec3& a_point, const Prune a_pruning = Prune::Ordered2) const noexcept;    
 
     /*!
       @brief Function which computes the signed distance using ordered pruning along the BVH branches. 
