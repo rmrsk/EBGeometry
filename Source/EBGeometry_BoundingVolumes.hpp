@@ -57,6 +57,12 @@ namespace BoundingVolumes {
     BoundingSphereT(const Vec3T<T>& a_center, const T& a_radius);
 
     /*!
+      @brief Full constructor. Constructs a bounding sphere that encloses all the other bounding spheres
+      @param[in] a_others Other bounding spheres.
+    */
+    BoundingSphereT(const std::vector<BoundingSphereT<T> >& a_otherSpheres);
+
+    /*!
       @brief Copy constructor. Sets the center and radius from the other sphere. 
       @param[in] a_other Other sphere
     */    
@@ -65,7 +71,7 @@ namespace BoundingVolumes {
     /*!
       @brief Destructor (does nothing). 
     */
-    ~BoundingSphereT();
+    virtual ~BoundingSphereT();
 
     /*!
       @brief Template constructor which takes a set of 3D points (mixed precision allowed).
@@ -111,13 +117,13 @@ namespace BoundingVolumes {
       @brief Get modifiable center for this sphere
     */
     inline
-    Vec3& getCenter() noexcept;
+    Vec3& getCentroid() noexcept;
 
     /*!
       @brief Get immutable center for this sphere
     */
     inline
-    const Vec3& getCenter() const noexcept;
+    const Vec3& getCentroid() const noexcept;
 
     /*!
       @brief Compute the overlapping volume between this bounding sphere and another
@@ -218,7 +224,7 @@ namespace BoundingVolumes {
     /*!
       @brief Destructor (does nothing)
     */
-    ~AABBT();
+    virtual ~AABBT();
 
     /*!
       @brief Template constructor (since mixed precision allowed) which creates an AABB that encloses a set of 3D points
@@ -267,6 +273,12 @@ namespace BoundingVolumes {
     */        
     inline
     const Vec3T<T>& getHighCorner() const noexcept;
+
+    /*!
+      @brief Get bounding volume centroid.
+    */
+    inline
+    Vec3 getCentroid() const noexcept;
 
     /*!
       @brief Compute the overlapping volume between this AABB and another AABB.

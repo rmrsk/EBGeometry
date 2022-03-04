@@ -40,22 +40,15 @@ namespace Dcel {
   using PrimitiveList = std::vector<std::shared_ptr<const Dcel::FaceT<T> > >;
 
   /*!
-    @brief Bounding volume constructor for a primitive list. 
-    @details In DCEL, the input list is a list of FaceT<T> objects. BV is the bounding volume class which encloses the primitives. It is a template parameter which
-    can be constructed from a list of 3D coordinates that it must enclose (had this been C++20, we REALLY would have use concepts here).
-    @param[in] a_primitives List of primitives to enclose in a bounding volume. 
-    @return Returns a bounding volume which encloses the input primitives list. 
+    @brief Bounding volume constructor for a DCEL face. 
+    @details With BVHs and DCEL, the object to be bounded is the polygon face (e.g., triangle). We assume that our BV constructor can 
+    enclose points, so we return an object that encloses all the vertices of the polygon. 
+    @param[in] a_primitive Primitive (facet) to be bounded.
+    @return Returns a bounding volume which encloses the input face. 
   */
   template <class T, class BV>
-  BVH::BVConstructorT<FaceT<T>, BV> defaultBVConstructor = [](const PrimitiveList<T>& a_primitives){
-    std::vector<Vec3T<T> > coordinates;
-
-    for (const auto& f : a_primitives){
-      const auto faceCoordinates = f->getAllVertexCoordinates();
-      coordinates.insert(coordinates.end(), faceCoordinates.begin(), faceCoordinates.end());
-    }
-
-    return BV(coordinates);
+  BVH::BVConstructorT<FaceT<T>, BV> defaultBVConstructor = [](const std::shared_ptr<const FaceT<T> >& a_primitive){
+    return BV(a_primitive->getAllVertexCoordinates());
   };  
 
   /*!

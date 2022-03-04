@@ -128,12 +128,18 @@ namespace BVH {
 
   template <class T, class P, class BV, int K>
   inline
-  void NodeT<T, P, BV, K>::topDownSortAndPartitionPrimitives(const StopFunction&  a_stopCrit,
+  void NodeT<T, P, BV, K>::topDownSortAndPartitionPrimitives(const BVConstructor& a_bvConstructor,
 							     const Partitioner&   a_partitioner,
-							     const BVConstructor& a_bvConstructor) noexcept{
+							     const StopFunction&  a_stopCrit) noexcept {						     
 
-    // Compute the bounding volume for this node. 
-    m_boundingVolume = a_bvConstructor(m_primitives);
+
+    // Compute the bounding volume for this node.
+    std::vector<BV> boundingVolumes;
+    for (const auto& p : m_primitives){
+      boundingVolumes.emplace_back(a_bvConstructor(p));
+    }
+    
+    m_boundingVolume = BV(boundingVolumes);
 
     // Check if we can split this node into sub-bounding volumes. 
     const bool stopRecursiveSplitting = a_stopCrit(*this);
@@ -148,7 +154,7 @@ namespace BVH {
 
       // Partition children nodes further
       for (auto& c : m_children){
-	c->topDownSortAndPartitionPrimitives(a_stopCrit, a_partitioner, a_bvConstructor);
+	c->topDownSortAndPartitionPrimitives(a_bvConstructor, a_partitioner, a_stopCrit);
       }
     }
   }
@@ -207,24 +213,36 @@ namespace BVH {
 
   template <class T, class P, class BV, int K>
   inline
-  T NodeT<T, P, BV, K>::pruneTree(const Vec3& a_point, const Prune a_pruning) const noexcept {
-    T ret;
+  T NodeT<T, P, BV, K>::signedDistance(const Vec3& a_point, const Prune a_pruning) const noexcept {
+    T ret = std::numeric_limits<T>::infinity();
     
     switch(a_pruning){
     case Prune::Ordered:
-      ret = this->pruneOrdered(a_point);
-      break;
+      {
+	ret = this->pruneOrdered(a_point);
+	
+	break;
+      }
     case Prune::Ordered2:
-      ret = this->pruneOrdered2(a_point);
-      break;
+      {
+	ret = this->pruneOrdered2(a_point);
+	
+	break;
+      }
     case Prune::Unordered:
-      ret = this->pruneUnordered(a_point);
-      break;
+      {
+	ret = this->pruneUnordered(a_point);
+	
+	break;
+      }
     case Prune::Unordered2:
-      ret = this->pruneUnordered2(a_point);
-      break;
+      {
+	ret = this->pruneUnordered2(a_point);
+	
+	break;
+      }
     default:
-      std::cerr << "In file EBGeometry_BVHImplem.hpp function NodeT<T, P, BV, K>::pruneTree(Vec3, Prune) -- bad input enum for 'Prune'\n";
+      std::cerr << "In file EBGeometry_BVHImplem.hpp function NodeT<T, P, BV, K>::signedDistance(Vec3, Prune) -- bad input enum for 'Prune'\n";
     };
 
     return ret;

@@ -21,47 +21,43 @@ constexpr int K = 2;
 namespace amrex {
   namespace EB2 {
 
-    class SignedDistanceBVH {
+    using prec = float;
+    using Vec3 = EBGeometry::Vec3T<prec>;
+    using BV   = EBGeometry::BoundingVolumes::AABBT<prec>;
+    using Node = EBGeometry::BVH::NodeT<prec, EBGeometry::Dcel::FaceT<prec>, BV, K>;            
+    
+
+    class SignedDistanceBVH : public EBGeometry::SignedDistanceBVH<prec, BV, K> {
     public:
       
-      using P    = float;
-      using Vec3 = EBGeometry::Vec3T<P>;
-      using Face = EBGeometry::Dcel::FaceT<P>;      
-      using BV   = EBGeometry::BoundingVolumes::AABBT<P>;
-      using Node = EBGeometry::BVH::NodeT<P, Face, BV, K>;            
 
       SignedDistanceBVH(const std::string a_filename, const bool a_flipSign) {
 
-	auto mesh = EBGeometry::Dcel::Parser::PLY<P>::readASCII(a_filename);
+	auto mesh = EBGeometry::Dcel::Parser::PLY<prec>::readASCII(a_filename);
 
 	m_rootNode = std::make_shared<Node> (mesh->getFaces());
 
-	m_rootNode->topDownSortAndPartitionPrimitives(EBGeometry::Dcel::defaultStopFunction<P, BV, K>,
-						      EBGeometry::Dcel::spatialSplitPartitioner<P, K>,
-						      EBGeometry::Dcel::defaultBVConstructor<P, BV>);
+	m_rootNode->topDownSortAndPartitionPrimitives(EBGeometry::Dcel::defaultBVConstructor<prec, BV>,
+						      EBGeometry::Dcel::spatialSplitPartitioner<prec, K>,
+						      EBGeometry::Dcel::defaultStopFunction<prec, BV, K>);
       }
 
       SignedDistanceBVH(const SignedDistanceBVH& a_other) {
-	m_rootNode = a_other.m_rootNode;
-	m_flipSign = a_other.m_flipSign;	
+	this->m_rootNode     = a_other.m_rootNode;
+	this->m_flipSign     = a_other.m_flipSign;
+	this->m_transformOps = a_other.m_transformOps;
       }
 
       Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept {
 
 	const Real sign = (m_flipSign) ? -1.0 : 1.0;
 
-	return sign * m_rootNode->pruneTree(Vec3(x,y,z));
+	return sign * m_rootNode->signedDistance(this->transformPoint(Vec3(x,y,z)));
       };
 
-    inline Real operator() (const RealArray& p) const noexcept {
+      inline Real operator() (const RealArray& p) const noexcept {
         return this->operator()(AMREX_D_DECL(p[0],p[1],p[2]));
-    }      
-      
-    protected:
-
-      std::shared_ptr<Node> m_rootNode;
-
-      bool m_flipSign;
+      }      
     };
   }
 }
@@ -101,7 +97,7 @@ int main (int argc, char* argv[])
 	    filename = "../PLY/dodecahedron.ply";
 	  }
 	  else if (which_geom == 3){ // Horse
-	    rb = RealBox({-0.2,-0.2,-0.2}, {0.2,0.2,0.2});
+	    rb = RealBox({-0.12,-0.12,-0.12}, {0.12,0.12,0.12});
 	    filename = "../PLY/horse.ply";
 	  }
 	  else if (which_geom == 4){ // Car

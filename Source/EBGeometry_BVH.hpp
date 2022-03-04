@@ -62,7 +62,7 @@ namespace BVH {
     @return Returns a new bounding volumes which is guaranteed to enclose all the input primitives.
   */
   template <class P, class BV>
-  using BVConstructorT = std::function<BV(const PrimitiveListT<P>& a_primitives)>;
+  using BVConstructorT = std::function<BV(const std::shared_ptr<const P>& a_primitive)>;
 
   /*!
     @brief Enum for determining if a BVH node is a leaf or a regular node (only leaf nodes contain data)
@@ -85,7 +85,8 @@ namespace BVH {
   /*!
     @brief Class which encapsulates a node in a bounding volume hierarchy. 
     @details T is the precision for Vec3, P is the primitive type you want to enclose, BV is the bounding volume you use for it. 
-    @note P must supply a function signedDistance(...) and BV must supply a function getDistance (had this been C++20, we would have use concepts to enforce this). 
+    @note P MUST supply function signedDistance(...) and unsignedDistance2(Vec3). BV must supply a
+    function getDistance (had this been C++20, we would have use concepts to enforce this). 
   */
   template <class T, class P, class BV, int K>
   class NodeT {
@@ -169,9 +170,9 @@ namespace BVH {
       given in the input arguments (a_stopFunc, a_partFunc, a_bvFunc)
     */
     inline
-    void topDownSortAndPartitionPrimitives(const StopFunction&  a_stopCrit,
+    void topDownSortAndPartitionPrimitives(const BVConstructor& a_bvConstructor,
 					   const Partitioner&   a_partitioner,
-					   const BVConstructor& a_bvConstructor) noexcept;
+					   const StopFunction&  a_stopCrit) noexcept;
 
 
     /*!
@@ -202,7 +203,7 @@ namespace BVH {
       @details This will select amongs the various implementations. 
     */
     inline
-    T pruneTree(const Vec3& a_point, const Prune a_pruning = Prune::Ordered2) const noexcept;    
+    T signedDistance(const Vec3& a_point, const Prune a_pruning = Prune::Ordered2) const noexcept;    
 
     /*!
       @brief Function which computes the signed distance using ordered pruning along the BVH branches. 

@@ -16,6 +16,7 @@
 #include <memory>
 
 // Our includes
+#include "EBGeometry_SignedDistanceFunction.hpp"
 #include "EBGeometry_DcelMesh.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
@@ -24,7 +25,7 @@
   @details This does not use a bounding volume hierarchy for performance. The template parameter is the floating point precision. 
 */
 template <class T>
-class SignedDistanceDcel {
+class SignedDistanceDcel : public SignedDistanceFunction<T> {
 public:
 
   /*!
@@ -33,9 +34,9 @@ public:
   using Mesh = Dcel::MeshT<T>;
 
   /*!
-    @brief Disallowed, use the full constructor
+    @brief Weak constructor. 
   */
-  SignedDistanceDcel() = delete;
+  SignedDistanceDcel() = default;
 
   /*!
     @brief Full constructor
@@ -59,7 +60,7 @@ public:
     @brief Value function
     @param[in] a_point 3D point. 
   */
-  T operator()(const Vec3T<T>& a_point) const;
+  T signedDistance(const Vec3T<T>& a_point) const noexcept override;
   
 protected:
 

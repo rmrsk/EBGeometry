@@ -270,6 +270,12 @@ Vec3T<T> Vec3T<T>::operator/(const T& s) const noexcept {
   const T is = 1./s;
   return Vec3T<T>(is*X[0], is*X[1], is*X[2]);
 }
+
+template <class T>
+inline
+Vec3T<T> Vec3T<T>::operator/(const Vec3T<T>& v) const noexcept {
+  return Vec3T<T>(X[0]/v[0], X[1]/v[1], X[2]/v[2]);
+}
   
 template <class T>
 inline
@@ -428,6 +434,12 @@ template <class T>
 inline
 Vec3T<T> operator*(const T& s, const Vec3T<T>& a_other) noexcept {
   return a_other*s;
+}
+
+template <class T>
+inline
+Vec3T<T> operator*(const Vec3T<T>& u, const Vec3T<T>& v) noexcept {
+  return u * v;
 }
 
 template <class T>
