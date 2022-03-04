@@ -132,8 +132,13 @@ namespace BVH {
 							     const Partitioner&   a_partitioner,
 							     const BVConstructor& a_bvConstructor) noexcept{
 
-    // Compute the bounding volume for this node. 
-    m_boundingVolume = a_bvConstructor(m_primitives);
+    // Compute the bounding volume for this node.
+    std::vector<BV> boundingVolumes;
+    for (const auto& p : m_primitives){
+      boundingVolumes.emplace_back(a_bvConstructor(p));
+    }
+    
+    m_boundingVolume = BV(boundingVolumes);
 
     // Check if we can split this node into sub-bounding volumes. 
     const bool stopRecursiveSplitting = a_stopCrit(*this);

@@ -62,7 +62,7 @@ namespace BVH {
     @return Returns a new bounding volumes which is guaranteed to enclose all the input primitives.
   */
   template <class P, class BV>
-  using BVConstructorT = std::function<BV(const PrimitiveListT<P>& a_primitives)>;
+  using BVConstructorT = std::function<BV(const std::shared_ptr<const P>& a_primitive)>;
 
   /*!
     @brief Enum for determining if a BVH node is a leaf or a regular node (only leaf nodes contain data)

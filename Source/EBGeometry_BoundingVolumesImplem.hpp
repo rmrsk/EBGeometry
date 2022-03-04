@@ -250,7 +250,7 @@ namespace BoundingVolumes {
 
     for (const auto& other : a_others){
       m_loCorner = min(m_loCorner, other.getLowCorner());
-      m_hiCorner = max(m_loCorner, other.getHicorner());
+      m_hiCorner = max(m_hiCorner, other.getHighCorner());
     }
   }
 

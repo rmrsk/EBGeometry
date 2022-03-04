@@ -47,15 +47,8 @@ namespace Dcel {
     @return Returns a bounding volume which encloses the input primitives list. 
   */
   template <class T, class BV>
-  BVH::BVConstructorT<FaceT<T>, BV> defaultBVConstructor = [](const PrimitiveList<T>& a_primitives){
-    std::vector<Vec3T<T> > coordinates;
-
-    for (const auto& f : a_primitives){
-      const auto faceCoordinates = f->getAllVertexCoordinates();
-      coordinates.insert(coordinates.end(), faceCoordinates.begin(), faceCoordinates.end());
-    }
-
-    return BV(coordinates);
+  BVH::BVConstructorT<FaceT<T>, BV> defaultBVConstructor = [](const std::shared_ptr<const FaceT<T> >& a_primitive){
+    return BV(a_primitive->getAllVertexCoordinates());
   };  
 
   /*!
