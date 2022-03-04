@@ -42,6 +42,25 @@ namespace BoundingVolumes {
   }
 
   template <class T>
+  BoundingSphereT<T>::BoundingSphereT(const std::vector<BoundingSphereT<T> >& a_otherSpheres) {
+    
+    // TLDR: Spheres enclosing other spheres is a difficult problem, but a sphere enclosing a set of points is simpler. For each
+    //       input sphere we create a set of points representing the lo/hicorners of an axis-aligned bounding box that encloses the sphere.
+    //       We then compute the bounding sphere from this set of points.
+
+    std::vector<Vec3T<T> > points;
+    for (const auto& sphere : a_otherSpheres){
+      const T&        radius = sphere.getRadius();
+      const Vec3T<T>& center = sphere.getCenter();
+
+      points.emplace_back(center + radius*Vec3T<T>::one());
+      points.emplace_back(center - radius*Vec3T<T>::one());      
+    }
+
+    this->define(points, BoundingSphereT<T>::BoundingVolumeAlgorithm::Ritter);
+  }  
+
+  template <class T>
   template <class P>
   BoundingSphereT<T>::BoundingSphereT(const std::vector<Vec3T<P> >& a_points, const BoundingVolumeAlgorithm& a_algorithm){
     this->define(a_points, a_algorithm);

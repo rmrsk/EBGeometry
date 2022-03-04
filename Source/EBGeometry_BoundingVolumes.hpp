@@ -57,6 +57,12 @@ namespace BoundingVolumes {
     BoundingSphereT(const Vec3T<T>& a_center, const T& a_radius);
 
     /*!
+      @brief Full constructor. Constructs a bounding sphere that encloses all the other bounding spheres
+      @param[in] a_others Other bounding spheres.
+    */
+    BoundingSphereT(const std::vector<BoundingSphereT<T> >& a_otherSpheres);
+
+    /*!
       @brief Copy constructor. Sets the center and radius from the other sphere. 
       @param[in] a_other Other sphere
     */    
