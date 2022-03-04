@@ -16,15 +16,23 @@
 #include "EBGeometry_UnionBVH.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-template <class T>
-UnionBVH<T>::UnionBVH(const std::vector<std::shared_ptr<const SDF> >& a_distanceFunctions, const bool a_flipSign) {
+template <class T, class BV, int K>
+UnionBVH<T, BV, K>::UnionBVH(const std::vector<std::shared_ptr<const SDF> >& a_distanceFunctions, const bool a_flipSign) {
   m_distanceFunctions = a_distanceFunctions;
   m_flipSign          = a_flipSign;
   m_isGood            = false;
 }
 
-template <class T>
-T UnionBVH<T>::operator()(const Vec3T<T>& a_point) const noexcept {
+template <class T, class BV, int K>
+void UnionBVH<T, BV, K>::sortAndPartition(const BVConstructor& a_bvConstructor){
+
+  
+
+  m_isGood = true;
+}
+
+template <class T, class BV, int K>
+T UnionBVH<T, BV, K>::operator()(const Vec3T<T>& a_point) const noexcept {
   const int numDistanceFunctions = m_distanceFunctions.size();
 
   T ret = std::numeric_limits<T>::infinity();
