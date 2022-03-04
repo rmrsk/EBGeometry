@@ -126,7 +126,7 @@ void UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor) {
   // Stop function. Exists subdivision if there are not enough primitives left to keep subdividing. We set the limit at 10 primitives. 
   EBGeometry::BVH::StopFunctionT<T, SDF, BV, K> stopFunc = [] (const Node& a_node) -> bool {
     const int numPrimsInNode = (a_node.getPrimitives()).size();
-    return numPrimsInNode < std::min(4,K);
+    return numPrimsInNode < K;
   };
 
   // Init the root node and partition the primitives. 

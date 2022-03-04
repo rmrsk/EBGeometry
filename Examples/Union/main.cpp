@@ -61,6 +61,9 @@ void preciseSleep(double seconds) {
 class slowSphere : public EBGeometry::SphereSDF<T> {
 public:
 
+  // How many nanoseconds to wait when calling the functions. 
+  static constexpr int nsWait = 1000;
+
   slowSphere() : EBGeometry::SphereSDF<T>() {}
   slowSphere(const Vec3& a_center, const T& a_radius, const bool a_flipInside) : EBGeometry::SphereSDF<T> (a_center, a_radius, a_flipInside) {};
   slowSphere(const slowSphere& a_other) {
@@ -72,13 +75,13 @@ public:
   virtual ~slowSphere(){}
 
   T signedDistance(const Vec3& a_point) const noexcept override final {
-    preciseSleep(100E-9); // Wait one hundred nanoseconds. 
+    preciseSleep(nsWait * 1E-9);
 
     return EBGeometry::SphereSDF<T>::signedDistance(a_point);
   }
 
   T unsignedDistance2(const Vec3& a_point) const noexcept override final {
-    preciseSleep(100E-9); // Wait one hundred nanoseconds.     
+    preciseSleep(nsWait * 1E-9);    
 
     return EBGeometry::SphereSDF<T>::unsignedDistance2(a_point);    
   } 
