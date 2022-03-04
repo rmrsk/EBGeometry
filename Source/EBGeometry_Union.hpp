@@ -42,7 +42,7 @@ public:
     @param[in] a_distanceFunctions
     @param[in] a_flipSign Hook for turning inside to outside
   */
-  Union(const std::vector<std::shared_ptr<SDF> >& a_distanceFunctions, const bool a_flipSign);
+  Union(const std::vector<std::shared_ptr<const SDF> >& a_distanceFunctions, const bool a_flipSign);
 
   /*!
     @brief Destructor (does nothing)
@@ -60,7 +60,7 @@ protected:
   /*!
     @brief List of distance functions
   */
-  std::vector<std::shared_ptr<SDF> > m_distanceFunctions;
+  std::vector<std::shared_ptr<const SDF> > m_distanceFunctions;
 
   /*!
     @brief Hook for turning inside to outside

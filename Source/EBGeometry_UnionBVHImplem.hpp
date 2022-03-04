@@ -17,9 +17,10 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 template <class T>
-UnionBVH<T>::UnionBVH(const std::vector<std::shared_ptr<SDF> >& a_distanceFunctions, const bool a_flipSign) {
+UnionBVH<T>::UnionBVH(const std::vector<std::shared_ptr<const SDF> >& a_distanceFunctions, const bool a_flipSign) {
   m_distanceFunctions = a_distanceFunctions;
   m_flipSign          = a_flipSign;
+  m_isGood            = false;
 }
 
 template <class T>
