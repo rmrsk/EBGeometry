@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
   using BV        = BoundingVolumes::AABBT<precision>;  
   using Vec3      = Vec3T<precision>;  
   using Face      = FaceT<precision>;
+  using SDF       = SignedDistanceFunction<precision>;
   using slowSDF   = SignedDistanceDcel<precision>;
   using fastSDF   = SignedDistanceBVH<precision, BV, K>;
 
@@ -48,7 +49,7 @@ int main(int argc, char *argv[]) {
 
   // Create a signed distance function from the mesh. This is the object
   // that will iterate through each and every facet in the input mesh. 
-  slowSDF slow(mesh, false);
+  auto slow = std::make_shared<slowSDF>(mesh, false);
 
   // Create a bounding-volume hierarchy of the same mesh type. We begin by create the root node and supplying all the mesh faces to it. Here,
   // our bounding volume hierarchy bounds the facets in a binary tree.
@@ -60,11 +61,16 @@ int main(int argc, char *argv[]) {
   					  defaultBVConstructor<precision, BV>);
 
 
-  fastSDF fast(root, false);
+  auto fast = std::make_shared<fastSDF>(root, false);
+
+
+  // Make a union of SDFs. 
+  Union<precision> u({fast}, false);
 
   // Query the distance to a point. 
-  std::cout << "Distance to point using direct method    = " << slow(Vec3::one()) << std::endl;
-  std::cout << "Distance to point using bounding volumes = " << fast(Vec3::one()) << std::endl;  
+  std::cout << "Distance to point using direct method    = " << (*slow)(Vec3::one()) << std::endl;
+  std::cout << "Distance to point using bounding volumes = " << (*fast)(Vec3::one()) << std::endl;
+  std::cout << "Distance to point using union = " << u(Vec3::one()) << std::endl;    
   
   return 0;
 }
