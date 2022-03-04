@@ -1,3 +1,4 @@
+#include "Source/EBGeometry_AnalyticDistanceFunctions.hpp"
 #include "Source/EBGeometry_BoundingVolumes.hpp"
 #include "Source/EBGeometry_BVH.hpp"
 #include "Source/EBGeometry_DcelBVH.hpp"
@@ -7,6 +8,9 @@
 #include "Source/EBGeometry_DcelVertex.hpp"
 #include "Source/EBGeometry_DcelIterator.hpp"
 #include "Source/EBGeometry_DcelParser.hpp"
+#include "Source/EBGeometry_SignedDistanceFunction.hpp"
 #include "Source/EBGeometry_SignedDistanceDcel.hpp"
 #include "Source/EBGeometry_SignedDistanceBVH.hpp"
+#include "Source/EBGeometry_Union.hpp"
+#include "Source/EBGeometry_UnionBVH.hpp"
 

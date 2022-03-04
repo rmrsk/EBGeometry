@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
   using BV        = BoundingVolumes::AABBT<precision>;  
   using Vec3      = Vec3T<precision>;  
   using Face      = FaceT<precision>;
+  using SDF       = SignedDistanceFunction<precision>;
   using slowSDF   = SignedDistanceDcel<precision>;
   using fastSDF   = SignedDistanceBVH<precision, BV, K>;
 
@@ -48,23 +49,24 @@ int main(int argc, char *argv[]) {
 
   // Create a signed distance function from the mesh. This is the object
   // that will iterate through each and every facet in the input mesh. 
-  slowSDF slow(mesh, false);
+  auto slow = std::make_shared<slowSDF>(mesh, false);
 
   // Create a bounding-volume hierarchy of the same mesh type. We begin by create the root node and supplying all the mesh faces to it. Here,
   // our bounding volume hierarchy bounds the facets in a binary tree.
   auto root = std::make_shared<BVH::NodeT<precision, Face, BV, K> > (mesh->getFaces());
 
   std::cout << "Partitioning BVH\n";  
-  root->topDownSortAndPartitionPrimitives(defaultStopFunction<precision, BV, K>,
-  					  spatialSplitPartitioner<precision, K>,
-  					  defaultBVConstructor<precision, BV>);
+  root->topDownSortAndPartitionPrimitives(EBGeometry::Dcel::defaultBVConstructor<precision, BV>,
+  					  EBGeometry::Dcel::spatialSplitPartitioner<precision, K>,
+					  EBGeometry::Dcel::defaultStopFunction<precision, BV, K>);
 
 
-  fastSDF fast(root, false);
+  auto fast = std::make_shared<fastSDF>(root, false);
+
 
   // Query the distance to a point. 
-  std::cout << "Distance to point using direct method    = " << slow(Vec3::one()) << std::endl;
-  std::cout << "Distance to point using bounding volumes = " << fast(Vec3::one()) << std::endl;  
+  std::cout << "Distance to point using direct method    = " << (*slow)(Vec3::one()) << std::endl;
+  std::cout << "Distance to point using bounding volumes = " << (*fast)(Vec3::one()) << std::endl;
   
   return 0;
 }
