@@ -37,6 +37,11 @@ SignedDistanceBVH<T, BV, K>::~SignedDistanceBVH() {
 }
 
 template <class T, class BV, int K>
+const BV& SignedDistanceBVH<T, BV, K>::getBoundingVolume() const noexcept {
+  return m_rootNode->getBoundingVolume();
+}
+
+template <class T, class BV, int K>
 T SignedDistanceBVH<T, BV, K>::operator()(const Vec3T<T>& a_point) const noexcept {
 
   const T sign = (m_flipSign) ? -1.0 : 1.0;

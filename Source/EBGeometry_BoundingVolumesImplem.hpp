@@ -50,7 +50,7 @@ namespace BoundingVolumes {
     std::vector<Vec3T<T> > points;
     for (const auto& sphere : a_otherSpheres){
       const T&        radius = sphere.getRadius();
-      const Vec3T<T>& center = sphere.getCenter();
+      const Vec3T<T>& center = sphere.getCentroid();
 
       points.emplace_back(center + radius*Vec3T<T>::one());
       points.emplace_back(center - radius*Vec3T<T>::one());      
@@ -86,7 +86,7 @@ namespace BoundingVolumes {
   template <class T>
   inline
   bool BoundingSphereT<T>::intersects(const BoundingSphereT& a_other) const noexcept {
-    const Vec3 deltaV = m_center - a_other.getCenter();
+    const Vec3 deltaV = m_center - a_other.getCentroid();
     const T sumR      = m_radius + a_other.getRadius();
 
     return deltaV.dot(deltaV) < sumR*sumR;
@@ -106,13 +106,13 @@ namespace BoundingVolumes {
 
   template <class T>
   inline
-  Vec3T<T>& BoundingSphereT<T>::getCenter() noexcept {
+  Vec3T<T>& BoundingSphereT<T>::getCentroid() noexcept {
     return (m_center);
   }
 
   template <class T>
   inline
-  const Vec3T<T>& BoundingSphereT<T>::getCenter() const noexcept {
+  const Vec3T<T>& BoundingSphereT<T>::getCentroid() const noexcept {
     return (m_center);
   }
 
@@ -189,7 +189,7 @@ namespace BoundingVolumes {
       const auto& r1 = m_radius;
       const auto& r2 = a_other.getRadius();
 
-      const auto d   = (m_center-a_other.getCenter()).length();
+      const auto d   = (m_center-a_other.getCentroid()).length();
 
       retval = M_PI/(12.*d) * (r1+r2-d)*(r1+r2-d) * (d*d + 2*d*(r1+r2) - 3*(r1-r2)*(r1-r2));
     }
@@ -311,6 +311,14 @@ namespace BoundingVolumes {
   inline
   const Vec3T<T>& AABBT<T>::getHighCorner() const noexcept {
     return (m_hiCorner);
+  }
+
+  template <class T>
+  inline
+  Vec3T<T> AABBT<T>::getCentroid() const noexcept {
+    constexpr T half = T(0.5);
+
+    return half * (m_loCorner + m_hiCorner);
   }
 
   template <class T>

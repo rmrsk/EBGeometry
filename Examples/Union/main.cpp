@@ -65,7 +65,14 @@ int main(int argc, char *argv[]) {
 
 
   // Make a union of SDFs. 
-  UnionBVH<precision, BV, 2> u({fast, fast}, false);
+
+
+  EBGeometry::BVH::BVConstructorT<SDF, BV> bvConstructor = [](const std::shared_ptr<const SDF>& a_prim){
+    return ((const std::shared_ptr<const fastSDF>&) a_prim)->getBoundingVolume();
+  };
+
+  // Make the union. 
+  UnionBVH<precision, BV, 2> u({fast}, false, bvConstructor);  
 
   // Query the distance to a point. 
   std::cout << "Distance to point using direct method    = " << (*slow)(Vec3::one()) << std::endl;

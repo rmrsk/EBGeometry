@@ -117,13 +117,13 @@ namespace BoundingVolumes {
       @brief Get modifiable center for this sphere
     */
     inline
-    Vec3& getCenter() noexcept;
+    Vec3& getCentroid() noexcept;
 
     /*!
       @brief Get immutable center for this sphere
     */
     inline
-    const Vec3& getCenter() const noexcept;
+    const Vec3& getCentroid() const noexcept;
 
     /*!
       @brief Compute the overlapping volume between this bounding sphere and another
@@ -273,6 +273,12 @@ namespace BoundingVolumes {
     */        
     inline
     const Vec3T<T>& getHighCorner() const noexcept;
+
+    /*!
+      @brief Get bounding volume centroid.
+    */
+    inline
+    Vec3 getCentroid() const noexcept;
 
     /*!
       @brief Compute the overlapping volume between this AABB and another AABB.

@@ -33,14 +33,19 @@ public:
   using SDF = SignedDistanceFunction<T>;
 
   /*!
+    @brief Alias for cutting down on typing
+  */
+  using SDFList = std::vector<std::shared_ptr<const SDF> >;
+
+  /*!
     @brief Node type in BVH tree
   */
   using Node = EBGeometry::BVH::NodeT<T, SDF, BV, K>;
 
   /*!
-    @brief Alias for function that encloses an SDF with a bounding volume. 
+    @brief Alias for cutting down on typing. This is a std::function<BV(SDF)>, i.e. a function which returns a bounding volume for an SDF
   */
-  using BVConstructor = std::function<BV(const std::shared_ptr<const SDF>)>;
+  using BVConstructor = EBGeometry::BVH::BVConstructorT<SDF, BV>;
 
   /*!
     @brief Disallowed, use the full constructor
@@ -48,18 +53,25 @@ public:
   UnionBVH() = delete;
 
   /*!
-    @brief Full constructor. Computes the signed distance 
-    @param[in] a_distanceFunctions
-    @param[in] a_flipSign Hook for turning inside to outside
+    @brief Partial constructor. Associates distance functions but does not build BVH tree. 
+    @param[in] a_distanceFunctions Signed distance functions. 
+    @param[in] a_flipSign          Hook for turning inside to outside
   */
-  UnionBVH(const std::vector<std::shared_ptr<const SDF> >& a_distanceFunctions, const bool a_flipSign);
+  UnionBVH(const SDFList& a_distanceFunctions, const bool a_flipSign);
+
+  /*!
+    @brief Full constructor. 
+    @param[in] a_distanceFunctions Signed distance functions. 
+    @param[in] a_flipSign          Hook for turning inside to outside
+    @param[in] a_bvConstructor     Bounding volume constructor. 
+  */
+  UnionBVH(const SDFList& a_distanceFunctions, const bool a_flipSign, const BVConstructor& a_bvConstructor);  
 
   /*!
     @brief Build BVH tree for the input objects. User must supply a partitioner and a BV constructor for the SDF objects.
     @param[in] a_bvConstructor Constructor for building a bounding volume that encloses an object.
-    @param[in] a_partitioner   Partitioner for subdividing the SDFs. 
   */
-  void sortAndPartition(const BVConstructor& a_bvConstructor);
+  void buildTree(const BVConstructor& a_bvConstructor);
 
   /*!
     @brief Destructor (does nothing)

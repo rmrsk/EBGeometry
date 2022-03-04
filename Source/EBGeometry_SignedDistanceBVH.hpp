@@ -68,6 +68,11 @@ public:
   virtual ~SignedDistanceBVH();
 
   /*!
+    @brief Return the root node bounding volume
+  */
+  const BV& getBoundingVolume() const noexcept;
+
+  /*!
     @brief Value function
     @param[in] a_point 3D point. 
   */
