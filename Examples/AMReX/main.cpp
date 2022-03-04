@@ -36,9 +36,9 @@ namespace amrex {
 
 	m_rootNode = std::make_shared<Node> (mesh->getFaces());
 
-	m_rootNode->topDownSortAndPartitionPrimitives(EBGeometry::Dcel::defaultStopFunction<P, BV, K>,
+	m_rootNode->topDownSortAndPartitionPrimitives(EBGeometry::Dcel::defaultBVConstructor<P, BV>,
 						      EBGeometry::Dcel::spatialSplitPartitioner<P, K>,
-						      EBGeometry::Dcel::defaultBVConstructor<P, BV>);
+						      EBGeometry::Dcel::defaultStopFunction<P, BV, K>);
       }
 
       SignedDistanceBVH(const SignedDistanceBVH& a_other) {

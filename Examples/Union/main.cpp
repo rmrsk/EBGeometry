@@ -56,9 +56,9 @@ int main(int argc, char *argv[]) {
   auto root = std::make_shared<BVH::NodeT<precision, Face, BV, K> > (mesh->getFaces());
 
   std::cout << "Partitioning BVH\n";  
-  root->topDownSortAndPartitionPrimitives(defaultStopFunction<precision, BV, K>,
+  root->topDownSortAndPartitionPrimitives(defaultBVConstructor<precision, BV>,
   					  spatialSplitPartitioner<precision, K>,
-  					  defaultBVConstructor<precision, BV>);
+					  defaultStopFunction<precision, BV, K>);
 
 
   auto fast = std::make_shared<fastSDF>(root, false);

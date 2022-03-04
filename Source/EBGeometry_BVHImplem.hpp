@@ -128,9 +128,10 @@ namespace BVH {
 
   template <class T, class P, class BV, int K>
   inline
-  void NodeT<T, P, BV, K>::topDownSortAndPartitionPrimitives(const StopFunction&  a_stopCrit,
+  void NodeT<T, P, BV, K>::topDownSortAndPartitionPrimitives(const BVConstructor& a_bvConstructor,
 							     const Partitioner&   a_partitioner,
-							     const BVConstructor& a_bvConstructor) noexcept{
+							     const StopFunction&  a_stopCrit) noexcept {						     
+
 
     // Compute the bounding volume for this node.
     std::vector<BV> boundingVolumes;
@@ -153,7 +154,7 @@ namespace BVH {
 
       // Partition children nodes further
       for (auto& c : m_children){
-	c->topDownSortAndPartitionPrimitives(a_stopCrit, a_partitioner, a_bvConstructor);
+	c->topDownSortAndPartitionPrimitives(a_bvConstructor, a_partitioner, a_stopCrit);
       }
     }
   }

@@ -169,9 +169,9 @@ namespace BVH {
       given in the input arguments (a_stopFunc, a_partFunc, a_bvFunc)
     */
     inline
-    void topDownSortAndPartitionPrimitives(const StopFunction&  a_stopCrit,
+    void topDownSortAndPartitionPrimitives(const BVConstructor& a_bvConstructor,
 					   const Partitioner&   a_partitioner,
-					   const BVConstructor& a_bvConstructor) noexcept;
+					   const StopFunction&  a_stopCrit) noexcept;
 
 
     /*!

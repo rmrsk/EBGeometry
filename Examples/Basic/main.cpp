@@ -56,21 +56,17 @@ int main(int argc, char *argv[]) {
   auto root = std::make_shared<BVH::NodeT<precision, Face, BV, K> > (mesh->getFaces());
 
   std::cout << "Partitioning BVH\n";  
-  root->topDownSortAndPartitionPrimitives(defaultStopFunction<precision, BV, K>,
-  					  spatialSplitPartitioner<precision, K>,
-  					  defaultBVConstructor<precision, BV>);
+  root->topDownSortAndPartitionPrimitives(EBGeometry::Dcel::defaultBVConstructor<precision, BV>,
+  					  EBGeometry::Dcel::spatialSplitPartitioner<precision, K>,
+					  EBGeometry::Dcel::defaultStopFunction<precision, BV, K>);
 
 
   auto fast = std::make_shared<fastSDF>(root, false);
 
 
-  // Make a union of SDFs. 
-  UnionBVH<precision> u({fast, fast}, false);
-
   // Query the distance to a point. 
   std::cout << "Distance to point using direct method    = " << (*slow)(Vec3::one()) << std::endl;
   std::cout << "Distance to point using bounding volumes = " << (*fast)(Vec3::one()) << std::endl;
-  std::cout << "Distance to point using union = " << u(Vec3::one()) << std::endl;    
   
   return 0;
 }
