@@ -63,13 +63,11 @@ public:
 
   /*!
     @brief Rotate the signed distance function around. 
-    @param[in] a_center Center-point for rotation. 
-    @param[in] a_axis   Rotation axis
-    @param[in] a_theta  Theta-rotation (degrees)
-    @param[in] a_phi    Phi-rotation (degrees)
+    @param[in] a_angle Rotation angle
+    @param[in] a_axis  Rotation axis. 0 = x, 1 = y etc. 
   */  
   inline
-  void rotate(const Vec3T<T>& a_center, const Vec3T<T>& a_axis, const T a_theta, const T a_phi) noexcept;    
+  void rotate(const T a_angle, const int a_axis) noexcept;    
 
 protected:
 

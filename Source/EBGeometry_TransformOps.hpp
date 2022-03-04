@@ -111,26 +111,25 @@ protected:
   @brief Rotation operator. Can scale an input point. 
 */
 template <class T>
-class RotationOp : public TransformOp<T> {
+class RotateOp : public TransformOp<T> {
 public:
 
   /*!
     @brief Weak constructor. 
   */
-  RotationOp();
+  RotateOp();
 
   /*!
     @brief Full constructor.
+    @param[in] a_angle  Rotation angle
     @param[in] a_axis   Rotation axis
-    @param[in] a_theta  Theta-rotation (degrees)
-    @param[in] a_phi    Phi-rotation (degrees)
   */
-  RotationOp(const Vec3T<T>& a_axis, const T a_angle) noexcept;
+  RotateOp(const T a_angle, const int a_axis) noexcept;
 
   /*!
     @brief Destructor
   */
-  virtual ~RotationOp() = default;
+  virtual ~RotateOp() = default;
 
   /*!
     @brief Transform input point. 
@@ -140,9 +139,9 @@ public:
 protected:
 
   /*!
-    @brief Rotation axis. 
+    @brief Rotation axis. 0 = x, 1=y etc. 
   */
-  Vec3T<T> m_axis;
+  int m_axis;
 
   /*!
     @brief Theta-rotation (degrees)
