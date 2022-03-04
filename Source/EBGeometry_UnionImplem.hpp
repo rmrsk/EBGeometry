@@ -17,20 +17,23 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 template <class T>
-Union<T>::Union(const std::vector<std::shared_ptr<const SDF> >& a_distanceFunctions, const bool a_flipSign) {
-  m_distanceFunctions = a_distanceFunctions;
+Union<T>::Union(const std::vector<std::shared_ptr<SDF> >& a_distanceFunctions, const bool a_flipSign) {
+  for (const auto& sdf : a_distanceFunctions){
+    m_distanceFunctions.emplace_back(sdf);
+  }
+  
   m_flipSign          = a_flipSign;
 }
 
 template <class T>
-T Union<T>::operator()(const Vec3T<T>& a_point) const noexcept {
+T Union<T>::signedDistance(const Vec3T<T>& a_point) const noexcept {
   const int numDistanceFunctions = m_distanceFunctions.size();
 
-  T ret = std::numeric_limits<T>::infinity();
+  T ret = -std::numeric_limits<T>::infinity();
   
   if(numDistanceFunctions > 0){
     for (const auto & sdf : m_distanceFunctions){
-      const T cur = (*sdf)(a_point);
+      const T cur = sdf->signedDistance(a_point);
 
       ret = (std::abs(cur) < std::abs(ret)) ? cur : ret;
     }

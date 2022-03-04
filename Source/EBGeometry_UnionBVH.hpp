@@ -33,16 +33,6 @@ public:
   using SDF = SignedDistanceFunction<T>;
 
   /*!
-    @brief Alias for cutting down on typing
-  */
-  using SDFList = std::vector<std::shared_ptr<const SDF> >;
-
-  /*!
-    @brief Node type in BVH tree
-  */
-  using Node = EBGeometry::BVH::NodeT<T, SDF, BV, K>;
-
-  /*!
     @brief Alias for cutting down on typing. This is a std::function<BV(SDF)>, i.e. a function which returns a bounding volume for an SDF
   */
   using BVConstructor = EBGeometry::BVH::BVConstructorT<SDF, BV>;
@@ -57,7 +47,7 @@ public:
     @param[in] a_distanceFunctions Signed distance functions. 
     @param[in] a_flipSign          Hook for turning inside to outside
   */
-  UnionBVH(const SDFList& a_distanceFunctions, const bool a_flipSign);
+  UnionBVH(const std::vector<std::shared_ptr<SDF> >& a_distanceFunctions, const bool a_flipSign);
 
   /*!
     @brief Full constructor. 
@@ -65,7 +55,7 @@ public:
     @param[in] a_flipSign          Hook for turning inside to outside
     @param[in] a_bvConstructor     Bounding volume constructor. 
   */
-  UnionBVH(const SDFList& a_distanceFunctions, const bool a_flipSign, const BVConstructor& a_bvConstructor);  
+  UnionBVH(const std::vector<std::shared_ptr<SDF> >& a_distanceFunctions, const bool a_flipSign, const BVConstructor& a_bvConstructor);  
 
   /*!
     @brief Build BVH tree for the input objects. User must supply a partitioner and a BV constructor for the SDF objects.
@@ -85,6 +75,16 @@ public:
   T signedDistance(const Vec3T<T>& a_point) const noexcept override;  
   
 protected:
+
+  /*!
+    @brief Alias for cutting down on typing
+  */
+  using SDFList = std::vector<std::shared_ptr<const SDF> >;
+
+  /*!
+    @brief Node type in BVH tree
+  */
+  using Node = EBGeometry::BVH::NodeT<T, SDF, BV, K>;  
 
   /*!
     @brief List of distance functions

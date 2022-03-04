@@ -17,14 +17,17 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 template <class T, class BV, int K>
-UnionBVH<T, BV, K>::UnionBVH(const SDFList& a_distanceFunctions, const bool a_flipSign) {
-  m_distanceFunctions = a_distanceFunctions;
+UnionBVH<T, BV, K>::UnionBVH(const std::vector<std::shared_ptr<SDF> >& a_distanceFunctions, const bool a_flipSign) {
+  for (const auto& sdf : a_distanceFunctions){
+    m_distanceFunctions.emplace_back(sdf);
+  }
+  
   m_flipSign          = a_flipSign;
   m_isGood            = false;
 }
 
 template <class T, class BV, int K>
-UnionBVH<T, BV, K>::UnionBVH(const SDFList& a_distanceFunctions, const bool a_flipSign, const BVConstructor& a_bvConstructor) :
+UnionBVH<T, BV, K>::UnionBVH(const std::vector<std::shared_ptr<SDF> >& a_distanceFunctions, const bool a_flipSign, const BVConstructor& a_bvConstructor) :
   UnionBVH<T, BV, K>(a_distanceFunctions, a_flipSign) {
   
   this->buildTree(a_bvConstructor);

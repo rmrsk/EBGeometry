@@ -12,6 +12,7 @@
 #ifndef EBGeometry_SignedDistanceFunction
 #define EBGeometry_SignedDistanceFunction
 
+#include <memory>
 #include <deque>
 
 // Our includes
