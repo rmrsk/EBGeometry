@@ -16,6 +16,7 @@
 #include <memory>
 
 // Our includes
+#include "EBGeometry_SignedDistanceFunction.hpp"
 #include "EBGeometry_DcelMesh.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
@@ -25,7 +26,7 @@
   that encloses the primitives (BV), and the tree degree (K. 
 */
 template <class T, class BV, int K>
-class SignedDistanceBVH {
+class SignedDistanceBVH : public SignedDistanceFunction<T> {
 public:
 
   /*!
@@ -70,7 +71,7 @@ public:
     @brief Value function
     @param[in] a_point 3D point. 
   */
-  T operator()(const Vec3T<T>& a_point) const;
+  T operator()(const Vec3T<T>& a_point) const noexcept override;
   
 protected:
 
