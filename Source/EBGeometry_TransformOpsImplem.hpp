@@ -43,7 +43,7 @@ ScaleOp<T>::ScaleOp(const Vec3T<T>& a_translation) {
 
 template <class T>
 Vec3T<T> ScaleOp<T>::transform(const Vec3T<T>& a_inputPoint) const noexcept {
-  return a_inputPoint * m_scale;
+  return a_inputPoint/m_scale;
 }
 
 template <class T>

@@ -367,12 +367,28 @@ public:
   Vec3T<T> operator*(const T& s) const noexcept;
 
   /*!
+    @brief Component-wise multiplication operator
+    @param[in] s Scalar to multiply by
+    @return Returns a new vector with X[i] = this->X[i] * s[i] for each component. 
+  */
+  inline
+  Vec3T<T> operator*(const Vec3T<T>& s) const noexcept;  
+
+  /*!
     @brief Division operator. Returns a vector with scalar divided components
     @param[in] s Scalar to divided by
     @return Returns a new vector with X[i] = this->X[i] / s
   */
   inline
   Vec3T<T> operator/(const T& s) const noexcept;
+
+  /*!
+    @brief Component-wise division operator. 
+    @param[in] v Other vector
+    @return Returns a new vector with X[i] = this->X[i]/v[i] for each component. 
+  */
+  inline
+  Vec3T<T> operator/(const Vec3T<T>& v) const noexcept;    
 
   /*!
     @brief Vector addition operator. 
@@ -405,6 +421,8 @@ public:
   */
   inline
   Vec3T<T>& operator/=(const T& s) noexcept;
+
+
 
   /*!
     @brief Vector minimum function. Returns a new vector with componentwise minimums. 

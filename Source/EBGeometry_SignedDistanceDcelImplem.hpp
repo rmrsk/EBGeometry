@@ -19,14 +19,15 @@
 
 template <class T>
 SignedDistanceDcel<T>::SignedDistanceDcel(const std::shared_ptr<Mesh>& a_mesh, const bool a_flipSign) {
-  m_mesh     = a_mesh;
-  m_flipSign = a_flipSign;
+  this->m_mesh     = a_mesh;
+  this->m_flipSign = a_flipSign;
 }
 
 template <class T>
-SignedDistanceDcel<T>::SignedDistanceDcel(const SignedDistanceDcel& a_object){
-  m_mesh     = a_object.m_mesh;
-  m_flipSign = a_object.m_flipSign;
+SignedDistanceDcel<T>::SignedDistanceDcel(const SignedDistanceDcel& a_object) {
+  this->m_mesh         = a_object.m_mesh;
+  this->m_flipSign     = a_object.m_flipSign;
+  this->m_transformOps = a_object.m_transformOps;  
 }
 
 template <class T>

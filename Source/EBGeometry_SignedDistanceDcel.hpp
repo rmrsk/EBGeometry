@@ -34,9 +34,9 @@ public:
   using Mesh = Dcel::MeshT<T>;
 
   /*!
-    @brief Disallowed, use the full constructor
+    @brief Weak constructor. 
   */
-  SignedDistanceDcel() = delete;
+  SignedDistanceDcel() = default;
 
   /*!
     @brief Full constructor

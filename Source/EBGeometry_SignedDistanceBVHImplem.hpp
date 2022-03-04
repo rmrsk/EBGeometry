@@ -21,14 +21,15 @@ using namespace BVH;
 
 template <class T, class BV, int K>
 SignedDistanceBVH<T, BV, K>::SignedDistanceBVH(const std::shared_ptr<Node>& a_rootNode, const bool a_flipSign) {
-  m_rootNode = a_rootNode;
-  m_flipSign = a_flipSign;
+  this->m_rootNode = a_rootNode;
+  this->m_flipSign = a_flipSign;
 }
 
 template <class T, class BV, int K>
 SignedDistanceBVH<T, BV, K>::SignedDistanceBVH(const SignedDistanceBVH& a_other) {
-  m_rootNode = a_other.m_rootNode;
-  m_flipSign = a_other.m_flipSign;
+  this->m_mesh         = a_other.m_mesh;
+  this->m_flipSign     = a_other.m_flipSign;
+  this->m_transformOps = a_other.m_transformOps;    
 }
 
 template <class T, class BV, int K>
