@@ -124,18 +124,20 @@ void UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor) {
   };
 
   // Stop function. Exists subdivision if there are not enough primitives left to keep subdividing. We set the limit at 10 primitives. 
-  EBGeometry::BVH::StopFunctionT<T, SDF, BV, K> stopFunc = [] (const Node& a_node) -> bool {
+  EBGeometry::BVH::StopFunctionT<T, SDF, BV, K> stopFunc = [] (const BuilderNode& a_node) -> bool {
     const int numPrimsInNode = (a_node.getPrimitives()).size();
     return numPrimsInNode < K;
   };
 
   // Init the root node and partition the primitives. 
-  m_rootNode = std::make_shared<Node>(m_distanceFunctions);
+  auto root = std::make_shared<BuilderNode>(m_distanceFunctions);
   
-  m_rootNode->topDownSortAndPartitionPrimitives(a_bvConstructor,
-  						partitioner,
-  						stopFunc);
+  root->topDownSortAndPartitionPrimitives(a_bvConstructor,
+					  partitioner,
+					  stopFunc);
 
+  m_rootNode = root->flattenTree();
+  
   m_isGood = true;
 }
 
