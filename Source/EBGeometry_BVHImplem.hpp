@@ -492,7 +492,7 @@ namespace BVH {
 
   template <class T, class P, class BV, int K>
   inline
-  LinearNodeT<T, P, BV, K> NodeT<T, P, BV, K>::flattenTree() {
+  LinearBVH<T, P, BV, K> NodeT<T, P, BV, K>::flattenTree() {
 
     // Create a list of sorted primitives and nodes. 
     std::vector<std::shared_ptr<const P> > sortedPrimitives;
@@ -505,7 +505,7 @@ namespace BVH {
     this->flattenTree(linearNodes, sortedPrimitives, offset);
 
     // Return the root node. 
-    return linearNodes.front();
+    return LinearBVH<T, P, BV, K>(linearNodes, sortedPrimitives);
   }
 
   template <class T, class P, class BV, int K>
@@ -621,7 +621,72 @@ namespace BVH {
   inline
   const std::array<unsigned long, K>& LinearNodeT<T, P, BV, K>::getChildOffsets() const noexcept {
     return m_childOffsets;
-  }        
+  }
+
+  template <class T, class P, class BV, int K>
+  inline
+  bool LinearNodeT<T, P, BV, K>::isLeaf() const noexcept {
+    return m_numPrimitives > 0;
+  }
+
+  template <class T, class P, class BV, int K>
+  inline
+  T LinearNodeT<T, P, BV, K>::getDistanceToBoundingVolume(const Vec3& a_point) const noexcept{
+    return m_boundingVolume.getDistance(a_point);
+  }
+
+  template <class T, class P, class BV, int K>
+  inline
+  T LinearNodeT<T, P, BV, K>::getDistanceToBoundingVolume2(const Vec3& a_point) const noexcept{
+    return m_boundingVolume.getDistance2(a_point);
+  }  
+
+  template <class T, class P, class BV, int K>
+  inline
+  T LinearNodeT<T, P, BV, K>::getDistanceToPrimitives(const Vec3T<T>& a_point, const std::vector<std::shared_ptr<const P> >& a_primitives) const noexcept {
+    T minDist = std::numeric_limits<T>::infinity();
+
+    for (unsigned int i = 0; i < m_numPrimitives; i++){
+      const T curDist = a_primitives[m_primitivesOffset + i]->signedDistance(a_point);
+
+      if(std::abs(curDist) < std::abs(minDist)){
+	minDist = curDist;
+      }
+    }
+
+    return minDist;
+  }
+
+  template <class T, class P, class BV, int K>
+  inline
+  LinearBVH<T, P, BV, K>::LinearBVH(const std::vector<LinearNode>& a_linearNodes,
+				    const PrimitiveList&           a_primitives) {
+    m_linearNodes = a_linearNodes;
+    m_primitives  = a_primitives ;
+  }
+
+  template <class T, class P, class BV, int K>  
+  inline
+  LinearBVH<T, P, BV, K>::~LinearBVH() {
+
+  }
+
+  template <class T, class P, class BV, int K>
+  T LinearBVH<T, P, BV, K>::signedDistance(const Vec3& a_point) const noexcept {
+    T minDist = std::numeric_limits<T>::infinity();
+
+    for (const auto& node : m_linearNodes) {
+      if(node.isLeaf()){
+	const T curDist = node.getDistanceToPrimitives(a_point, m_primitives);
+
+	if(std::abs(curDist) < std::abs(minDist)) {
+	  minDist = curDist;
+	}
+      }
+    }
+
+    return minDist;
+  }
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"

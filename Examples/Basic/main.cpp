@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
   					  EBGeometry::Dcel::spatialSplitPartitioner<precision, K>,
 					  EBGeometry::Dcel::defaultStopFunction<precision, BV, K>);
 
-  auto linearNode = root->flattenTree();
+  auto linearBVH = root->flattenTree();
 
 
   auto fast = std::make_shared<fastSDF>(root, false);
@@ -68,6 +68,7 @@ int main(int argc, char *argv[]) {
   // Query the distance to a point. 
   std::cout << "Distance to point using direct method    = " << slow->signedDistance(Vec3::one()) << std::endl;
   std::cout << "Distance to point using bounding volumes = " << fast->signedDistance(Vec3::one()) << std::endl;
+  std::cout << "Distance to point using linearized bvh   = " << linearBVH.signedDistance(Vec3::one()) << std::endl;  
   
   return 0;
 }
