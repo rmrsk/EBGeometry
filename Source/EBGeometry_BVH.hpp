@@ -67,7 +67,7 @@ namespace BVH {
   /*!
     @brief Enum for determining if a BVH node is a leaf or a regular node (only leaf nodes contain data)
   */
-  enum class NodeType {
+  enum class NodeType : bool {
     Regular,
     Leaf,
   };
@@ -411,6 +411,78 @@ namespace BVH {
     */
     inline
     void pruneUnordered2(T& a_minDist2, std::shared_ptr<const P>& a_closest, const Vec3& a_point) const noexcept;
+  };
+
+  /*!
+    @brief Node type for linearized (flattened) BVH. This will be constructed from the other (conventional) BVH type.
+    @details T is the precision for Vec3, P is the primitive type you want to enclose, BV is the bounding volume you use for it. 
+    @note P MUST supply function signedDistance(...) and unsignedDistance2(Vec3). BV must supply a
+    function getDistance (had this been C++20, we would have use concepts to enforce this). 
+  */
+  template <class T, class P, class BV, int K>
+  class LinearNodeT {
+  public:
+
+    /*!
+      @brief Alias for cutting down on typing. 
+    */
+    using PrimitiveList = PrimitiveListT<P>;
+
+    /*!
+      @brief Alias for cutting down on typing
+    */
+    using Vec3 = Vec3T<T>;
+
+    /*!
+      @brief Constructor.
+    */
+    LinearNodeT();
+
+    /*!
+      @brief Destructor.
+    */
+    virtual ~LinearNodeT();
+
+    /*!
+      @brief Get the primitives offset
+    */
+    inline
+    const unsigned long& getPrimitivesOffset() const noexcept;
+
+    /*!
+      @brief Get the number of primitives. 
+    */
+    inline
+    const unsigned long& getNumPrimitives() const noexcept;
+
+    /*!
+      @brief Get the bounding volume
+    */
+    inline
+    const BV& getBoundingVolume() const noexcept;
+
+  protected:
+
+    /*!
+      @brief Bounding volume. An AABB box will be 6*T big => 24/48 bytes. 
+    */
+    BV m_bv;
+
+    /*!
+      @brief We assume that, outside of this class, is a data structure std::vector<std::shared_ptr<const P> >that holds all primitives. This member
+      is the starting index in that vector. 
+    */
+    unsigned long m_primitivesOffset; // 8 bytes
+
+    /*!
+      @ Number of primitives. m_numPrimitives = 0 is an interior node. Other it's a leaf node. 
+    */
+    unsigned int m_numPrimitives; // 8 bytes
+
+    /*!
+      @brief Offset to child nodes. 
+    */
+    std::array<unsigned long, K-1> m_childrenOffsets; // (K-1)*8 bytes.
   };
 }
 
