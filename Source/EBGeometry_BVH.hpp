@@ -35,6 +35,12 @@ namespace BVH {
   class NodeT;
 
   /*!
+    @brief Forward declare linear node class
+  */
+  template <class T, class P, class BV, int K>
+  class LinearNodeT;
+
+  /*!
     @brief Alias to cut down on typing. 
   */
   template <class P>
@@ -260,46 +266,11 @@ namespace BVH {
     T pruneUnordered2(const Vec3& a_point) const noexcept;
 
     /*!
-      @brief Build compact tree representation.
+      @brief Flatten everything beneath this node into a depth-first sorted BVH hierarchy. 
+      @details This will allocate a linear node
     */
-#if 0
-    void buildCompactTree() const noexcept;
-
-      std::vector<std::shared_ptr<const P> > sortedPrimitives;
-      std::vector<LinearNode<T> > linearNodes;
-
-      int offset = 0;
-      this->buildCompactTree2(linearNodes, sortedPrimitives, offset);
-
-      std::cout << "total number of primitives = " << sortedPrimitives.size() << std::endl;;
-    }
-
-    inline void buildCompactTree2(std::vector<LinearNode<T> >&            a_linearNodes,
-				  std::vector<std::shared_ptr<const P> >& a_sortedPrimitives);
-
-      switch(m_nodeType){
-      case NodeType::Leaf:
-	{
-	  a_sortedPrimitives.insert(a_sortedPrimitives.end(), m_primitives.begin(), m_primitives.end());
-
-
-	  a_linearNodes.emplace_back(std::make_shared<LinearNode<T> >());
-	  
-	  a_numPrims.emplace_back(m_primitives.size());
-
-	  break;
-	}
-      case NodeType::Regular:
-	{
-	  for (const auto& child : m_children){
-	    child->buildCompactTree2(a_sortedPrimitives, a_numPrims);
-	  }
-
-	  break;
-	}
-      }
-    }
-#endif
+    inline
+    LinearNodeT<T, P, BV, K> flattenTree();    
 
   protected:
 
@@ -453,6 +424,16 @@ namespace BVH {
     */
     inline
     void pruneUnordered2(T& a_minDist2, std::shared_ptr<const P>& a_closest, const Vec3& a_point) const noexcept;
+
+    /*!
+      @brief Internal flattening method
+    */
+    inline
+    unsigned long flattenTree(std::vector<LinearNodeT<T, P, BV, K> >& a_linearNodes,
+			      std::vector<std::shared_ptr<const P> >& a_sortedPrimitives,
+			      unsigned long&                          a_offset) const noexcept;
+
+
   };
 
   /*!
@@ -487,12 +468,10 @@ namespace BVH {
     void setBoundingVolume(const BV& a_boundingVolume) noexcept;
 
     /*!
-      @brief Set the child offsets. 
-      @param[in] a_childOffset Offset in node array. 
-      @param[in] a_whichChild  Child index in m_childrenOffsets. Must be [0,K-1]
+      @brief Set the offset into the primitives array. 
     */
     inline
-    void setChildOffset(const unsigned long a_childOffset, const int a_whichChild) noexcept;
+    void setPrimitivesOffset(const unsigned long a_primitivesOffset) noexcept;
 
     /*!
       @brief Set number of primitives.
@@ -500,6 +479,14 @@ namespace BVH {
     */
     inline
     void setNumPrimitives(const int a_numPrimitives) noexcept;
+
+    /*!
+      @brief Set the child offsets. 
+      @param[in] a_childOffset Offset in node array. 
+      @param[in] a_whichChild  Child index in m_childrenOffsets. Must be [0,K-1]
+    */
+    inline
+    void setChildOffset(const unsigned long a_childOffset, const  int a_whichChild) noexcept;    
 
     /*!
       @brief Get the node bounding volume. 
@@ -549,7 +536,7 @@ namespace BVH {
     /*!
       @brief Offset to child nodes. 
     */
-    std::array<unsigned long, K> m_childOffsets;       
+    std::array<unsigned long, K> m_childOffsets;
   };
 }
 

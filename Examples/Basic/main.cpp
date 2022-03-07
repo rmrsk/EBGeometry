@@ -37,7 +37,6 @@ int main(int argc, char *argv[]) {
   using BV        = BoundingVolumes::AABBT<precision>;  
   using Vec3      = Vec3T<precision>;  
   using Face      = FaceT<precision>;
-  using SDF       = SignedDistanceFunction<precision>;
   using slowSDF   = SignedDistanceDcel<precision>;
   using fastSDF   = SignedDistanceBVH<precision, BV, K>;
 
@@ -60,7 +59,7 @@ int main(int argc, char *argv[]) {
   					  EBGeometry::Dcel::spatialSplitPartitioner<precision, K>,
 					  EBGeometry::Dcel::defaultStopFunction<precision, BV, K>);
 
-  //  root->buildCompactTree();
+  auto linearNode = root->flattenTree();
 
 
   auto fast = std::make_shared<fastSDF>(root, false);

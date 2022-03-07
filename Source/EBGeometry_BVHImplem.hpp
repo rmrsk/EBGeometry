@@ -492,7 +492,75 @@ namespace BVH {
 
   template <class T, class P, class BV, int K>
   inline
-  LinearNodeT<T, P, BV, K>::LinearNodeT(){
+  LinearNodeT<T, P, BV, K> NodeT<T, P, BV, K>::flattenTree() {
+
+    // Create a list of sorted primitives and nodes. 
+    std::vector<std::shared_ptr<const P> > sortedPrimitives;
+    std::vector<LinearNodeT<T, P, BV, K> > linearNodes;
+
+    // Track the offset into the linearized node array. 
+    unsigned long offset = 0;
+
+    // Flatten recursively. 
+    this->flattenTree(linearNodes, sortedPrimitives, offset);
+
+    // Return the root node. 
+    return linearNodes.front();
+  }
+
+  template <class T, class P, class BV, int K>
+  inline
+  unsigned long NodeT<T, P, BV, K>::flattenTree(std::vector<LinearNodeT<T, P, BV, K> >& a_linearNodes,
+						std::vector<std::shared_ptr<const P> >& a_sortedPrimitives,
+						unsigned long&                          a_offset) const noexcept {
+
+    // TLDR: This is the main routine for flattening the hierarchy beneath the current node. When this is called we insert
+    //       this node into a_linearNodes and associate the array offsets so that we can find the children in the linearized array.
+
+    // Current node we are dealing with. 
+    const auto curNode = a_offset;
+    
+    // Insert a new node corresponding to this node and provide it with the current bounding volume. 
+    a_linearNodes.emplace_back(LinearNodeT<T, P, BV, K>());
+    a_linearNodes[curNode].setBoundingVolume(m_boundingVolume);
+
+    a_offset++;        
+
+    switch(m_nodeType){
+    case NodeType::Leaf:
+      {
+	// Insert primitives and offsets.
+	a_linearNodes[curNode].setNumPrimitives   (m_primitives.      size());
+	a_linearNodes[curNode].setPrimitivesOffset(a_sortedPrimitives.size());
+
+	a_sortedPrimitives.insert(a_sortedPrimitives.end(), m_primitives.begin(), m_primitives.end());
+
+	break;
+      }
+    case NodeType::Regular:
+      {
+	a_linearNodes[curNode].setNumPrimitives   (0  );
+	a_linearNodes[curNode].setPrimitivesOffset(0UL);
+
+	// Go through the children nodes and 
+	for (int k = 0; k < K; k++){
+	  const int offset = m_children[k]->flattenTree(a_linearNodes, a_sortedPrimitives, a_offset);
+	  
+	  a_linearNodes[curNode].setChildOffset(offset, k);
+	}
+
+	break;
+      }
+    }
+
+    return curNode;
+  }
+
+  template <class T, class P, class BV, int K>
+  inline
+  LinearNodeT<T, P, BV, K>::LinearNodeT() {
+
+    // Initialize everything. 
     m_boundingVolume   = BV();
     m_primitivesOffset = 0UL;
     m_numPrimitives    = 0;
@@ -504,7 +572,7 @@ namespace BVH {
 
   template <class T, class P, class BV, int K>
   inline
-  LinearNodeT<T, P, BV, K>::~LinearNodeT(){
+  LinearNodeT<T, P, BV, K>::~LinearNodeT() {
   }
 
   template <class T, class P, class BV, int K>
@@ -515,8 +583,8 @@ namespace BVH {
 
   template <class T, class P, class BV, int K>
   inline
-  void LinearNodeT<T, P, BV, K>::setChildOffset(const unsigned long a_childOffset, const int a_whichChild) noexcept {
-    m_childOffsets[a_whichChild] = a_childOffset;
+  void LinearNodeT<T, P, BV, K>::setPrimitivesOffset(const unsigned long a_primitivesOffset) noexcept {
+    m_primitivesOffset = a_primitivesOffset;
   }
 
   template <class T, class P, class BV, int K>
@@ -524,6 +592,12 @@ namespace BVH {
   void LinearNodeT<T, P, BV, K>::setNumPrimitives(const int a_numPrimitives) noexcept {
     m_numPrimitives = a_numPrimitives;
   }
+
+  template <class T, class P, class BV, int K>
+  inline
+  void LinearNodeT<T, P, BV, K>::setChildOffset(const unsigned long a_childOffset, const int a_whichChild) noexcept {
+    m_childOffsets[a_whichChild] = a_childOffset;
+  }  
 
   template <class T, class P, class BV, int K>
   inline
