@@ -6,7 +6,7 @@ Two unions are defined: :
 * A union that uses BVHs for finding the closest object(s).
 
 The scene is defined as an array of analytic spheres bound by axis-aligned bounding boxes.
-To shift the computational load to the signed distance function itself, computing the distance function has been given a delay of about 1 millisecond. 
+To shift the computational load to the signed distance function itself, computing the distance function has been given a delay of about 1 microsecond. 
 
 Compiling
 ---------

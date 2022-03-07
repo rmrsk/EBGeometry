@@ -9,8 +9,6 @@
 #include "Source/EBGeometry_DcelIterator.hpp"
 #include "Source/EBGeometry_DcelParser.hpp"
 #include "Source/EBGeometry_SignedDistanceFunction.hpp"
-#include "Source/EBGeometry_SignedDistanceDcel.hpp"
-#include "Source/EBGeometry_SignedDistanceBVH.hpp"
 #include "Source/EBGeometry_Union.hpp"
 #include "Source/EBGeometry_UnionBVH.hpp"
 

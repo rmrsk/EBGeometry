@@ -35,6 +35,18 @@ namespace BVH {
   class NodeT;
 
   /*!
+    @brief Forward declare linear node class
+  */
+  template <class T, class P, class BV, int K>
+  class LinearNodeT;
+
+  /*!
+    @brief Forward declare linear BVH class. 
+  */
+  template <class T, class P, class BV, int K>
+  class LinearBVH;
+
+  /*!
     @brief Alias to cut down on typing. 
   */
   template <class P>
@@ -67,7 +79,7 @@ namespace BVH {
   /*!
     @brief Enum for determining if a BVH node is a leaf or a regular node (only leaf nodes contain data)
   */
-  enum class NodeType {
+  enum class NodeType : bool {
     Regular,
     Leaf,
   };
@@ -259,6 +271,13 @@ namespace BVH {
     inline
     T pruneUnordered2(const Vec3& a_point) const noexcept;
 
+    /*!
+      @brief Flatten everything beneath this node into a depth-first sorted BVH hierarchy. 
+      @details This will compute the flattening of the standard BVH tree and return a pointer to the root node.
+    */
+    inline
+    std::shared_ptr<LinearBVH<T, P, BV, K> > flattenTree();    
+
   protected:
 
     /*!
@@ -411,6 +430,243 @@ namespace BVH {
     */
     inline
     void pruneUnordered2(T& a_minDist2, std::shared_ptr<const P>& a_closest, const Vec3& a_point) const noexcept;
+
+    /*!
+      @brief Flatten tree method. 
+      @details This function will flatten everything beneath the current node and linearize all the nodes and primitives beneath it to
+      a_linearNodes and a_sortedPrimitives. This function is called recursively. 
+      @param[inout] a_linearNodes      BVH nodes, linearized onto a vector. 
+      @param[inout] a_sortedPrimitives Sorted primitives (in leaf node order). 
+      @param[inout] a_offset           Supporting integer for figuring out where in the tree we are.
+      @note When called from the root node, a_linearNodes and a_sortedPrimitives should be empty and a_offset=0UL.
+    */
+    inline
+    unsigned long flattenTree(std::vector<LinearNodeT<T, P, BV, K> >& a_linearNodes,
+			      std::vector<std::shared_ptr<const P> >& a_sortedPrimitives,
+			      unsigned long&                          a_offset) const noexcept;
+  };
+
+  /*!
+    @brief Node type for linearized (flattened) BVH. This will be constructed from the other (conventional) BVH type.
+
+    @details T is the precision for Vec3, P is the primitive type you want to enclose, BV is the bounding volume you use for it. 
+
+    @note P MUST supply function signedDistance(...) and unsignedDistance2(Vec3). BV must supply a
+    function getDistance (had this been C++20, we would have use concepts to enforce this). Note that LinearNode is the result
+    of a flattnened BVH hierarchy where nodes are stored with depth-first ordering for improved cache-location in the downward
+    traversal. 
+
+    @note This class exists so that we can fit the nodes with a smaller memory footprint. The standard BVH node (NodeT) is very useful
+    when building the tree but less useful when traversing it since it stores references to the primitives in the node itself. It will span
+    multiple cache lines. This node exists so that we can fit all the BVH info onto fewer cache lines. The number of cache lines will depend
+    on the tree degree, precision, and bounding volume that is chosen. 
+
+    @todo There's a minor optimization that can be made to the memory alignment, which is as follows: For a leaf node we never really need 
+    the m_childOffsets array, and for a regular node we never really need the m_primitivesOffset member. Moreover, m_childOffsets could be
+    made into a K-1 sized array because we happen to know that the linearized hierarchy will store the first child node immediately after
+    the regular node. We could shave off 16 bytes of storage, which would mean that a double-precision binary tree only takes up one word
+    of CPU memory. 
+  */
+  template <class T, class P, class BV, int K>
+  class LinearNodeT {
+  public:
+
+    /*!
+      @brief Alias for cutting down on typing. 
+    */
+    using Vec3 = Vec3T<T>;
+
+    /*!
+      @brief Constructor.
+    */
+    inline
+    LinearNodeT();
+
+    /*!
+      @brief Destructor.
+    */
+    inline
+    virtual ~LinearNodeT();
+
+    /*!
+      @brief Set the bounding volume
+      @param[in] a_bv Bounding volume for this node. 
+    */
+    inline
+    void setBoundingVolume(const BV& a_boundingVolume) noexcept;
+
+    /*!
+      @brief Set the offset into the primitives array. 
+    */
+    inline
+    void setPrimitivesOffset(const unsigned long a_primitivesOffset) noexcept;
+
+    /*!
+      @brief Set number of primitives.
+      @param[in] a_numPrimitives Number of primitives. 
+    */
+    inline
+    void setNumPrimitives(const int a_numPrimitives) noexcept;
+
+    /*!
+      @brief Set the child offsets. 
+      @param[in] a_childOffset Offset in node array. 
+      @param[in] a_whichChild  Child index in m_childrenOffsets. Must be [0,K-1]
+    */
+    inline
+    void setChildOffset(const unsigned long a_childOffset, const  int a_whichChild) noexcept;    
+
+    /*!
+      @brief Get the node bounding volume. 
+      return m_boundingVolume
+    */
+    inline
+    const BV& getBoundingVolume() const noexcept;    
+
+    /*!
+      @brief Get the primitives offset
+      @return Returns m_primitivesOffset
+    */
+    inline
+    const unsigned long& getPrimitivesOffset() const noexcept;
+
+    /*!
+      @brief Get the number of primitives. 
+      @return Returns m_numPrimitives
+    */
+    inline
+    const unsigned long& getNumPrimitives() const noexcept;
+
+    /*!
+      @brief Get the child offsets
+      @return Returns m_childOffsets
+    */
+    inline
+    const std::array<unsigned long, K>& getChildOffsets() const noexcept;    
+
+    /*!
+      @brief Is leaf or not
+    */
+    inline
+    bool isLeaf() const noexcept;
+
+    /*!
+      @brief Get the distance from a 3D point to the bounding volume 
+      @param[in] a_point 3D point
+      @return Returns distance to bounding volume. A zero distance implies that the input point is inside the bounding volume. 
+    */
+    inline
+    T getDistanceToBoundingVolume(const Vec3& a_point) const noexcept;
+
+    /*!
+      @brief Get the unsigned square from a 3D point to the bounding volume 
+      @param[in] a_point 3D point
+      @return Returns squared distance to bounding volume. A zero distance implies that the input point is inside the bounding volume. 
+    */    
+    inline
+    T getDistanceToBoundingVolume2(const Vec3& a_point) const noexcept;    
+
+    /*!
+      @brief Compute signed distance to primitives. 
+      @note Only call if this is a leaf node. 
+    */
+    inline
+    T getDistanceToPrimitives(const Vec3& a_point, const std::vector<std::shared_ptr<const P> >& a_primitives) const noexcept;
+
+    /*!
+      @brief Pruning algorithm. This is the same algorithm as NodeT::pruneOrdered2, except that the nodes and primitives come in as arguments (and the node 
+      has been collapsed onto one cache line). 
+    */
+    inline
+    void pruneOrdered2(T& a_shortestSquareDistanceSoFar,
+		       unsigned long& a_closestPrimitiveSoFar,
+		       const Vec3& a_point,
+		       const std::vector<LinearNodeT<T, P, BV, K> >& a_linearNodes,		    
+		       const std::vector<std::shared_ptr<const P> >& a_primitives) const noexcept;    
+
+  protected:
+
+    /*!
+      @brief Bounding volume. 
+    */
+    BV m_boundingVolume;
+
+    /*!
+      @brief Offset into primitives array
+    */
+    unsigned long m_primitivesOffset;    
+
+    /*!
+      @brief Number of primitives
+    */
+    int m_numPrimitives;
+
+    /*!
+      @brief Offset to child nodes. 
+    */
+    std::array<unsigned long, K> m_childOffsets;
+  };
+
+  /*!
+    @brief Linear root node for BVH hierarchy
+  */
+  template<class T, class P, class BV, int K>
+  class LinearBVH {
+  public:
+
+    /*!
+      @brief Cut down on typing
+    */
+    using Vec3 = Vec3T<T>;
+
+    /*!
+      @brief Alias for cutting down on typing
+    */
+    using LinearNode = LinearNodeT<T, P, BV, K>;
+
+    /*!
+      @brief List of primitives
+    */
+    using PrimitiveList = std::vector<std::shared_ptr<const P> >;
+
+    /*!
+      @brief Disallowed. Use the full constructor please.
+    */
+    LinearBVH() = delete;
+
+    /*!
+      @brief Full constructor. Associates the nodes and primitives.
+      @param[in] a_linearNodes Linearized BVH nodes. 
+      @param[in] a_primitives  Primitives. 
+    */
+    inline
+    LinearBVH(const std::vector<LinearNode>& a_linearNodes,
+	      const PrimitiveList&           a_primitives);
+
+    /*!
+      @brief Destructor. Does nothing
+    */
+    inline
+    virtual ~LinearBVH();
+
+    /*!
+      @brief Function which computes the signed distance
+      @param[in] a_point 3D point in space
+    */
+    inline
+    T signedDistance(const Vec3& a_point, const Prune a_pruning = Prune::Ordered2) const noexcept;    
+
+  protected:
+
+    /*!
+      @brief List of linearly stored nodes
+    */
+    std::vector<LinearNodeT<T, P, BV, K> > m_linearNodes;
+
+    /*!
+      @brief Global list of primitives. Note that this is ALL primitives, sorted so that LinearNodeT can interface into it. 
+    */
+    PrimitiveList m_primitives;
   };
 }
 
