@@ -6,20 +6,21 @@ Can be used with embedded-boundary (EB) codes like Chombo or AMReX.
 
 The tesselations must consist of planar polygons, but these polygons are not necessarily restricted to triangles.
 Internally, the surface mesh is stored in a doubly-connected edge list (DCEL), i.e. a half-edge data structure. 
-On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can naively be computed by computing the distance to every facet. 
+On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can naively be computed in various ways:
 
-EBGeometry provides bounding volume hierarchies (BVHs) for accelerating the signed distance computation. 
-In the DCEL context the BVHs are used for bounding the facets on the surface mesh, but there are no fundamental limitations on which objects that can be bounded.
-Thus, multiple objects (e.g., surface grids or analytic functions) can also be bound in the BVHs.
-Querying the distance to the mesh through the BVH is much faster than the naive approach. 
-On average, if the mesh consists of N facets then a BVH has O(log(N)) complexity while a direct search has O(N) complexity.
+* Directly, by iterating through all facets.
+* With conventional bounding volume hierarchies (BVHs).
+* With compact (linearized) BVHs.
+
+The BVHs in EBGeometry are not limited to facets.
+By providing a bounding volume constructor, users can also embed entire objects (e.g., analytic functions) in the BVHs.
+This permits the construction of multi-object scenes, for example BVHs-of-BVHs type of scenes where multiple DCEL objects are embedded into another BVH layer.
 
 Requirements
 ------------
 
 * A C++ compiler which supports C++14.
 * EBGeometry takes a watertight and orientable surface as input (only PLY files currently supported).
-  Although EBGeometry does it's best at processing grids that contain self-intersections, holes, and hanging vertices the signed distance function is not well-defined.
 
 Basic usage
 -----------
