@@ -289,7 +289,7 @@ namespace Dcel {
   template <class T>  
   inline
   T MeshT<T>::signedDistance(const Vec3& a_point, SearchAlgorithm a_algorithm) const noexcept {
-    T minDist;
+    T minDist = std::numeric_limits<T>::max();
   
     switch(a_algorithm){
     case SearchAlgorithm::Direct:

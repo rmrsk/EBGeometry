@@ -5,14 +5,16 @@
 
 #include <string>
 #include <vector>
+#include <chrono>
 
 #include "../../EBGeometry.hpp"
 
 using namespace EBGeometry;
 using namespace EBGeometry::Dcel;
 
-// Degree of bounding volume hierarchies. 
-constexpr int K = 2;
+// Degree of bounding volume hierarchies. We use a 4-ary tree here, where each
+// regular node has four children. 
+constexpr int K = 4;
 
 int main(int argc, char *argv[]) {
 
@@ -20,53 +22,67 @@ int main(int argc, char *argv[]) {
   std::vector<std::string> all_args;
 
   std::string file;
-  
+
+  // Read the input file. 
   if (argc == 2) {
     file = "../PLY/" + std::string(argv[1]);
   }
   else{
     std::cerr << "Missing file name. Use ./a.out 'filename' where 'filename' is one of the files in ../PLY\n";
-
-    return 1;
   }
   
-  // Declare precision. 
-  using precision = float;
+  // Declare the precision T as float. 
+  using T = float;
 
-  // Aliases for cutting down on typing.
-  using BV        = BoundingVolumes::AABBT<precision>;  
-  using Vec3      = Vec3T<precision>;  
-  using Face      = FaceT<precision>;
-  using SDF       = SignedDistanceFunction<precision>;
-  using slowSDF   = SignedDistanceDcel<precision>;
-  using fastSDF   = SignedDistanceBVH<precision, BV, K>;
+  // Aliases for cutting down on typing. 
+  using BV   = BoundingVolumes::AABBT<T>;  
+  using Vec3 = Vec3T<T>;  
 
-  std::string inputFile;
-
-  // Create an empty DCEL mesh
+  // Parse the mesh from file. One can call the signed distance function directly on the mesh, but it will
+  // iterate through every facet. 
   std::cout << "Parsing input file\n";  
-  auto mesh = EBGeometry::Dcel::Parser::PLY<precision>::readASCII(file);
-
-  // Create a signed distance function from the mesh. This is the object
-  // that will iterate through each and every facet in the input mesh. 
-  auto slow = std::make_shared<slowSDF>(mesh, false);
+  std::shared_ptr<EBGeometry::Dcel::MeshT<T> > directSDF = EBGeometry::Dcel::Parser::PLY<T>::readASCII(file);
 
   // Create a bounding-volume hierarchy of the same mesh type. We begin by create the root node and supplying all the mesh faces to it. Here,
   // our bounding volume hierarchy bounds the facets in a binary tree.
-  auto root = std::make_shared<BVH::NodeT<precision, Face, BV, K> > (mesh->getFaces());
+  std::cout << "Partitioning BVH\n";    
+  auto bvhSDF = std::make_shared<BVH::NodeT<T, FaceT<T>, BV, K> > (directSDF->getFaces());
+  bvhSDF->topDownSortAndPartitionPrimitives(EBGeometry::Dcel::defaultBVConstructor<T, BV>,
+					    EBGeometry::Dcel::spatialSplitPartitioner<T, K>,
+					    EBGeometry::Dcel::defaultStopFunction<T, BV, K>);
 
-  std::cout << "Partitioning BVH\n";  
-  root->topDownSortAndPartitionPrimitives(EBGeometry::Dcel::defaultBVConstructor<precision, BV>,
-  					  EBGeometry::Dcel::spatialSplitPartitioner<precision, K>,
-					  EBGeometry::Dcel::defaultStopFunction<precision, BV, K>);
+  // Create the linear representation of the conventional BVH SDF above.
+  std::cout << "Flattening BVH tree\n";      
+  auto linSDF = bvhSDF->flattenTree();  
 
+  // Compute signed distance for this position and time all SDF representations. 
+  const Vec3 point = Vec3::one();
 
-  auto fast = std::make_shared<fastSDF>(root, false);
+  const auto t1 = std::chrono::high_resolution_clock::now();
+  const T directDist = directSDF->signedDistance(point);
+  const auto t2 = std::chrono::high_resolution_clock::now();
 
+  const auto t3 = std::chrono::high_resolution_clock::now();
+  const T bvhDist = bvhSDF->signedDistance(point);  
+  const auto t4 = std::chrono::high_resolution_clock::now();
 
-  // Query the distance to a point. 
-  std::cout << "Distance to point using direct method    = " << (*slow)(Vec3::one()) << std::endl;
-  std::cout << "Distance to point using bounding volumes = " << (*fast)(Vec3::one()) << std::endl;
+  const auto t5 = std::chrono::high_resolution_clock::now();
+  const T linDist = linSDF->signedDistance(point);    
+  const auto t6 = std::chrono::high_resolution_clock::now();
+
+  // Kill all the SDF representations. 
+  directSDF = nullptr;
+  bvhSDF    = nullptr;
+  linSDF    = nullptr;
+  
+  // Get the timings. 
+  const std::chrono::duration<T, std::micro> directTime = t2-t1;
+  const std::chrono::duration<T, std::micro> bvhTime    = t4-t3;
+  const std::chrono::duration<T, std::micro> linTime    = t6-t5;        
+
+  std::cout << "Distance and time using direct query     = " << directDist << ", which took " << directTime.count() << " us\n";
+  std::cout << "Distance and time using bvh query        = " << bvhDist    << ", which took " << bvhTime.   count() << " us\n";
+  std::cout << "Distance and time using linear bvh query = " << linDist    << ", which took " << linTime.   count() << " us\n";      
   
   return 0;
 }

@@ -82,9 +82,14 @@ protected:
   using SDFList = std::vector<std::shared_ptr<const SDF> >;
 
   /*!
-    @brief Node type in BVH tree
+    @brief Builder node type in BVH tree. Tree is constructed in "full". 
   */
-  using Node = EBGeometry::BVH::NodeT<T, SDF, BV, K>;  
+  using BuilderNode = EBGeometry::BVH::NodeT<T, SDF, BV, K>;    
+
+  /*!
+    @brief Node type in BVH tree. We use a flattened tree. 
+  */
+  using LinearNode = EBGeometry::BVH::LinearBVH<T, SDF, BV, K>;  
 
   /*!
     @brief List of distance functions
@@ -94,7 +99,7 @@ protected:
   /*!
     @brief Root node for BVH tree
   */
-  std::shared_ptr<Node> m_rootNode;
+  std::shared_ptr<LinearNode> m_rootNode;
 
   /*!
     @brief Is good or not

@@ -21,6 +21,9 @@
 
 /*!
   @brief Abstract representation of a signed distance function. 
+  @details Users can put whatever they like in here, e.g. analytic functions, DCEL meshes, or DCEL meshes stored in full or compact BVH trees. The signedDistance
+  function must be implemented by the user. When computing it, the user can apply transformation operators (rotations, scaling, translations) by calling transformPoint
+  on the input coordinate. 
 */
 template <class T>
 class SignedDistanceFunction {
