@@ -276,7 +276,7 @@ namespace BVH {
       @details This will allocate a linear node
     */
     inline
-    LinearBVH<T, P, BV, K> flattenTree();    
+    std::shared_ptr<LinearBVH<T, P, BV, K> > flattenTree();    
 
   protected:
 

@@ -492,7 +492,7 @@ namespace BVH {
 
   template <class T, class P, class BV, int K>
   inline
-  LinearBVH<T, P, BV, K> NodeT<T, P, BV, K>::flattenTree() {
+  std::shared_ptr<LinearBVH<T, P, BV, K> > NodeT<T, P, BV, K>::flattenTree() {
 
     // Create a list of sorted primitives and nodes. 
     std::vector<std::shared_ptr<const P> > sortedPrimitives;
@@ -505,7 +505,7 @@ namespace BVH {
     this->flattenTree(linearNodes, sortedPrimitives, offset);
 
     // Return the root node. 
-    return LinearBVH<T, P, BV, K>(linearNodes, sortedPrimitives);
+    return std::make_shared<LinearBVH<T, P, BV, K> >(linearNodes, sortedPrimitives);
   }
 
   template <class T, class P, class BV, int K>
