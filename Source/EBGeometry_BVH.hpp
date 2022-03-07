@@ -259,6 +259,48 @@ namespace BVH {
     inline
     T pruneUnordered2(const Vec3& a_point) const noexcept;
 
+    /*!
+      @brief Build compact tree representation.
+    */
+#if 0
+    void buildCompactTree() const noexcept;
+
+      std::vector<std::shared_ptr<const P> > sortedPrimitives;
+      std::vector<LinearNode<T> > linearNodes;
+
+      int offset = 0;
+      this->buildCompactTree2(linearNodes, sortedPrimitives, offset);
+
+      std::cout << "total number of primitives = " << sortedPrimitives.size() << std::endl;;
+    }
+
+    inline void buildCompactTree2(std::vector<LinearNode<T> >&            a_linearNodes,
+				  std::vector<std::shared_ptr<const P> >& a_sortedPrimitives);
+
+      switch(m_nodeType){
+      case NodeType::Leaf:
+	{
+	  a_sortedPrimitives.insert(a_sortedPrimitives.end(), m_primitives.begin(), m_primitives.end());
+
+
+	  a_linearNodes.emplace_back(std::make_shared<LinearNode<T> >());
+	  
+	  a_numPrims.emplace_back(m_primitives.size());
+
+	  break;
+	}
+      case NodeType::Regular:
+	{
+	  for (const auto& child : m_children){
+	    child->buildCompactTree2(a_sortedPrimitives, a_numPrims);
+	  }
+
+	  break;
+	}
+      }
+    }
+#endif
+
   protected:
 
     /*!
@@ -417,72 +459,97 @@ namespace BVH {
     @brief Node type for linearized (flattened) BVH. This will be constructed from the other (conventional) BVH type.
     @details T is the precision for Vec3, P is the primitive type you want to enclose, BV is the bounding volume you use for it. 
     @note P MUST supply function signedDistance(...) and unsignedDistance2(Vec3). BV must supply a
-    function getDistance (had this been C++20, we would have use concepts to enforce this). 
+    function getDistance (had this been C++20, we would have use concepts to enforce this). Note that LinearNode is the result
+    of a flattnened BVH hierarchy where nodes are stored with depth-first ordering for improved cache-location in the downward
+    traversal. 
   */
   template <class T, class P, class BV, int K>
   class LinearNodeT {
   public:
 
     /*!
-      @brief Alias for cutting down on typing. 
-    */
-    using PrimitiveList = PrimitiveListT<P>;
-
-    /*!
-      @brief Alias for cutting down on typing
-    */
-    using Vec3 = Vec3T<T>;
-
-    /*!
       @brief Constructor.
     */
+    inline
     LinearNodeT();
 
     /*!
       @brief Destructor.
     */
+    inline
     virtual ~LinearNodeT();
 
     /*!
+      @brief Set the bounding volume
+      @param[in] a_bv Bounding volume for this node. 
+    */
+    inline
+    void setBoundingVolume(const BV& a_boundingVolume) noexcept;
+
+    /*!
+      @brief Set the child offsets. 
+      @param[in] a_childOffset Offset in node array. 
+      @param[in] a_whichChild  Child index in m_childrenOffsets. Must be [0,K-1]
+    */
+    inline
+    void setChildOffset(const unsigned long a_childOffset, const int a_whichChild) noexcept;
+
+    /*!
+      @brief Set number of primitives.
+      @param[in] a_numPrimitives Number of primitives. 
+    */
+    inline
+    void setNumPrimitives(const int a_numPrimitives) noexcept;
+
+    /*!
+      @brief Get the node bounding volume. 
+      return m_boundingVolume
+    */
+    inline
+    const BV& getBoundingVolume() const noexcept;    
+
+    /*!
       @brief Get the primitives offset
+      @return Returns m_primitivesOffset
     */
     inline
     const unsigned long& getPrimitivesOffset() const noexcept;
 
     /*!
       @brief Get the number of primitives. 
+      @return Returns m_numPrimitives
     */
     inline
     const unsigned long& getNumPrimitives() const noexcept;
 
     /*!
-      @brief Get the bounding volume
+      @brief Get the child offsets
+      @return Returns m_childOffsets
     */
     inline
-    const BV& getBoundingVolume() const noexcept;
+    const std::array<unsigned long, K>& getChildOffsets() const noexcept;
 
   protected:
 
     /*!
-      @brief Bounding volume. An AABB box will be 6*T big => 24/48 bytes. 
+      @brief Bounding volume. 
     */
-    BV m_bv;
+    BV m_boundingVolume;
 
     /*!
-      @brief We assume that, outside of this class, is a data structure std::vector<std::shared_ptr<const P> >that holds all primitives. This member
-      is the starting index in that vector. 
+      @brief Offset into primitives array
     */
-    unsigned long m_primitivesOffset; // 8 bytes
+    unsigned long m_primitivesOffset;    
 
     /*!
-      @ Number of primitives. m_numPrimitives = 0 is an interior node. Other it's a leaf node. 
+      @brief Number of primitives
     */
-    unsigned int m_numPrimitives; // 8 bytes
+    int m_numPrimitives;
 
     /*!
       @brief Offset to child nodes. 
     */
-    std::array<unsigned long, K-1> m_childrenOffsets; // (K-1)*8 bytes.
+    std::array<unsigned long, K> m_childOffsets;       
   };
 }
 

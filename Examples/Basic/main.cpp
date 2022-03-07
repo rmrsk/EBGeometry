@@ -60,13 +60,15 @@ int main(int argc, char *argv[]) {
   					  EBGeometry::Dcel::spatialSplitPartitioner<precision, K>,
 					  EBGeometry::Dcel::defaultStopFunction<precision, BV, K>);
 
+  //  root->buildCompactTree();
+
 
   auto fast = std::make_shared<fastSDF>(root, false);
 
 
   // Query the distance to a point. 
-  std::cout << "Distance to point using direct method    = " << (*slow)(Vec3::one()) << std::endl;
-  std::cout << "Distance to point using bounding volumes = " << (*fast)(Vec3::one()) << std::endl;
+  std::cout << "Distance to point using direct method    = " << slow->signedDistance(Vec3::one()) << std::endl;
+  std::cout << "Distance to point using bounding volumes = " << fast->signedDistance(Vec3::one()) << std::endl;
   
   return 0;
 }

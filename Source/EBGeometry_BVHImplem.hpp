@@ -489,6 +489,65 @@ namespace BVH {
       }
     }
   }
+
+  template <class T, class P, class BV, int K>
+  inline
+  LinearNodeT<T, P, BV, K>::LinearNodeT(){
+    m_boundingVolume   = BV();
+    m_primitivesOffset = 0UL;
+    m_numPrimitives    = 0;
+
+    for (auto& offset : m_childOffsets){
+      offset = 0UL;
+    }
+  }
+
+  template <class T, class P, class BV, int K>
+  inline
+  LinearNodeT<T, P, BV, K>::~LinearNodeT(){
+  }
+
+  template <class T, class P, class BV, int K>
+  inline
+  void LinearNodeT<T, P, BV, K>::setBoundingVolume(const BV& a_boundingVolume) noexcept {
+    m_boundingVolume = a_boundingVolume;
+  }
+
+  template <class T, class P, class BV, int K>
+  inline
+  void LinearNodeT<T, P, BV, K>::setChildOffset(const unsigned long a_childOffset, const int a_whichChild) noexcept {
+    m_childOffsets[a_whichChild] = a_childOffset;
+  }
+
+  template <class T, class P, class BV, int K>
+  inline
+  void LinearNodeT<T, P, BV, K>::setNumPrimitives(const int a_numPrimitives) noexcept {
+    m_numPrimitives = a_numPrimitives;
+  }
+
+  template <class T, class P, class BV, int K>
+  inline
+  const BV& LinearNodeT<T, P, BV, K>::getBoundingVolume() const noexcept {
+    return m_boundingVolume;
+  }
+
+  template <class T, class P, class BV, int K>
+  inline
+  const unsigned long& LinearNodeT<T, P, BV, K>::getPrimitivesOffset() const noexcept {
+    return m_primitivesOffset;
+  }
+
+  template <class T, class P, class BV, int K>
+  inline
+  const unsigned long& LinearNodeT<T, P, BV, K>::getNumPrimitives() const noexcept {
+    return m_numPrimitives;
+  }
+
+  template <class T, class P, class BV, int K>
+  inline
+  const std::array<unsigned long, K>& LinearNodeT<T, P, BV, K>::getChildOffsets() const noexcept {
+    return m_childOffsets;
+  }        
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"
