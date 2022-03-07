@@ -444,11 +444,24 @@ namespace BVH {
 
   /*!
     @brief Node type for linearized (flattened) BVH. This will be constructed from the other (conventional) BVH type.
+
     @details T is the precision for Vec3, P is the primitive type you want to enclose, BV is the bounding volume you use for it. 
+
     @note P MUST supply function signedDistance(...) and unsignedDistance2(Vec3). BV must supply a
     function getDistance (had this been C++20, we would have use concepts to enforce this). Note that LinearNode is the result
     of a flattnened BVH hierarchy where nodes are stored with depth-first ordering for improved cache-location in the downward
     traversal. 
+
+    @note This class exists so that we can fit the nodes with a smaller memory footprint. The standard BVH node (NodeT) is very useful
+    when building the tree but less useful when traversing it since it stores references to the primitives in the node itself. It will span
+    multiple cache lines. This node exists so that we can fit all the BVH info onto fewer cache lines. The number of cache lines will depend
+    on the tree degree, precision, and bounding volume that is chosen. 
+
+    @todo There's a minor optimization that can be made to the memory alignment, which is as follows: For a leaf node we never really need 
+    the m_childOffsets array, and for a regular node we never really need the m_primitivesOffset member. Moreover, m_childOffsets could be
+    made into a K-1 sized array because we happen to know that the linearized hierarchy will store the first child node immediately after
+    the regular node. We could shave off 16 bytes of storage, which would mean that a double-precision binary tree only takes up one word
+    of CPU memory. 
   */
   template <class T, class P, class BV, int K>
   class LinearNodeT {
@@ -555,6 +568,17 @@ namespace BVH {
     */
     inline
     T getDistanceToPrimitives(const Vec3& a_point, const std::vector<std::shared_ptr<const P> >& a_primitives) const noexcept;
+
+    /*!
+      @brief Pruning algorithm. This is the same algorithm as NodeT::pruneOrdered2, except that the nodes and primitives come in as arguments (and the node 
+      has been collapsed onto one cache line). 
+    */
+    inline
+    void pruneOrdered2(T& a_shortestSquareDistanceSoFar,
+		       unsigned long& a_closestPrimitiveSoFar,
+		       const Vec3& a_point,
+		       const std::vector<LinearNodeT<T, P, BV, K> >& a_linearNodes,		    
+		       const std::vector<std::shared_ptr<const P> >& a_primitives) const noexcept;    
 
   protected:
 
