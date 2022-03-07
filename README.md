@@ -13,14 +13,15 @@ On watertight and orientable grids, the distance to any feature (facet, edge, ve
 * With compact (linearized) BVHs.
 
 The BVHs in EBGeometry are not limited to facets.
-By providing a bounding volume constructor, users can also embed entire objects (e.g., analytic functions) in the BVHs.
-This permits the construction of multi-object scenes, for example BVHs-of-BVHs type of scenes where multiple DCEL objects are embedded into another BVH layer.
+Users can also embed entire objects (e.g., analytic functions) in the BVHs, e.g. the BVH accelerator can be used for a packed sphere geometry.
+BVHs can also be nested so that the BVH accelerator is used to embed objects that are themselves described by a BVH.
+For example, a scene consisting of many objects described by surface grids can be embedded as a BVH-of-BVH type of scene. 
 
 Requirements
 ------------
 
 * A C++ compiler which supports C++14.
-* EBGeometry takes a watertight and orientable surface as input (only PLY files currently supported).
+* Watertight and orientable surfaces (only PLY files currently supported).
 
 Basic usage
 -----------
