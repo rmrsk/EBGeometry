@@ -38,18 +38,15 @@ int main(int argc, char *argv[]) {
   using BV   = BoundingVolumes::AABBT<T>;  
   using Vec3 = Vec3T<T>;  
 
-  // Parse the mesh from file. 
+  // Parse the mesh from file. One can call the signed distance function directly on the mesh, but it will
+  // iterate through every facet. 
   std::cout << "Parsing input file\n";  
-  const std::shared_ptr<EBGeometry::Dcel::MeshT<T> > mesh = EBGeometry::Dcel::Parser::PLY<T>::readASCII(file);
-
-  // Create a signed distance function from the mesh. This is the object
-  // that will iterate through each and every facet in the input mesh. 
-  auto directSDF = std::make_shared<EBGeometry::SignedDistanceDcel<T> >(mesh, false);
+  std::shared_ptr<EBGeometry::Dcel::MeshT<T> > directSDF = EBGeometry::Dcel::Parser::PLY<T>::readASCII(file);
 
   // Create a bounding-volume hierarchy of the same mesh type. We begin by create the root node and supplying all the mesh faces to it. Here,
   // our bounding volume hierarchy bounds the facets in a binary tree.
   std::cout << "Partitioning BVH\n";    
-  auto bvhSDF = std::make_shared<BVH::NodeT<T, FaceT<T>, BV, K> > (mesh->getFaces());
+  auto bvhSDF = std::make_shared<BVH::NodeT<T, FaceT<T>, BV, K> > (directSDF->getFaces());
   bvhSDF->topDownSortAndPartitionPrimitives(EBGeometry::Dcel::defaultBVConstructor<T, BV>,
 					    EBGeometry::Dcel::spatialSplitPartitioner<T, K>,
 					    EBGeometry::Dcel::defaultStopFunction<T, BV, K>);

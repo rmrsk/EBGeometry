@@ -273,7 +273,7 @@ namespace BVH {
 
     /*!
       @brief Flatten everything beneath this node into a depth-first sorted BVH hierarchy. 
-      @details This will allocate a linear node
+      @details This will compute the flattening of the standard BVH tree and return a pointer to the root node.
     */
     inline
     std::shared_ptr<LinearBVH<T, P, BV, K> > flattenTree();    
@@ -432,14 +432,18 @@ namespace BVH {
     void pruneUnordered2(T& a_minDist2, std::shared_ptr<const P>& a_closest, const Vec3& a_point) const noexcept;
 
     /*!
-      @brief Internal flattening method
+      @brief Flatten tree method. 
+      @details This function will flatten everything beneath the current node and linearize all the nodes and primitives beneath it to
+      a_linearNodes and a_sortedPrimitives. This function is called recursively. 
+      @param[inout] a_linearNodes      BVH nodes, linearized onto a vector. 
+      @param[inout] a_sortedPrimitives Sorted primitives (in leaf node order). 
+      @param[inout] a_offset           Supporting integer for figuring out where in the tree we are.
+      @note When called from the root node, a_linearNodes and a_sortedPrimitives should be empty and a_offset=0UL.
     */
     inline
     unsigned long flattenTree(std::vector<LinearNodeT<T, P, BV, K> >& a_linearNodes,
 			      std::vector<std::shared_ptr<const P> >& a_sortedPrimitives,
 			      unsigned long&                          a_offset) const noexcept;
-
-
   };
 
   /*!
@@ -650,7 +654,7 @@ namespace BVH {
       @param[in] a_point 3D point in space
     */
     inline
-    T signedDistance(const Vec3& a_point) const noexcept;
+    T signedDistance(const Vec3& a_point, const Prune a_pruning = Prune::Ordered2) const noexcept;    
 
   protected:
 

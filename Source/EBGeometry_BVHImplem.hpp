@@ -735,14 +735,25 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, int K>
-  T LinearBVH<T, P, BV, K>::signedDistance(const Vec3& a_point) const noexcept {
+  T LinearBVH<T, P, BV, K>::signedDistance(const Vec3& a_point, const Prune a_pruning) const noexcept {
+    T minDist = std::numeric_limits<T>::infinity();
 
-    T minDist2 = std::numeric_limits<T>::infinity();
-    unsigned long closestPrimitiveSoFar = 0UL;
+    switch(a_pruning){
+    case Prune::Ordered2:
+      {
+	unsigned long closestPrimitiveSoFar = 0UL;
 
-    m_linearNodes[0].pruneOrdered2(minDist2, closestPrimitiveSoFar, a_point, m_linearNodes, m_primitives);
+	m_linearNodes[0].pruneOrdered2(minDist, closestPrimitiveSoFar, a_point, m_linearNodes, m_primitives);
 
-    return m_primitives[closestPrimitiveSoFar]->signedDistance(a_point);
+	minDist = m_primitives[closestPrimitiveSoFar]->signedDistance(a_point);
+
+	break;
+      }
+    default:
+      std::cerr << "In file EBGeometry_BVHImplem.hpp function LinearBVH<T, P, BV, K>::signedDistance(Vec3, Prune) -- bad input enum for 'Prune'\n";
+    };
+
+    return minDist;
   }
 
 

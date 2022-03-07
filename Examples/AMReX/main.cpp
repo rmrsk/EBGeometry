@@ -16,7 +16,7 @@
 using namespace amrex;
 
 // BVH tree degree
-constexpr int K = 2;
+constexpr int K = 4;
 
 namespace amrex {
   namespace EB2 {
@@ -29,8 +29,6 @@ namespace amrex {
 
     class SignedDistanceBVH : public EBGeometry::SignedDistanceBVH<prec, BV, K> {
     public:
-      
-
       SignedDistanceBVH(const std::string a_filename, const bool a_flipSign) {
 
 	auto mesh = EBGeometry::Dcel::Parser::PLY<prec>::readASCII(a_filename);
