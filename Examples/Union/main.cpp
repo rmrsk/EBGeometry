@@ -127,8 +127,8 @@ int main() {
     const Vec3& c = sph.getCenter();
     const T&    r = sph.getRadius();
     
-    const Vec3 lo = c - 1.001*r*Vec3::one();
-    const Vec3 hi = c + 1.001*r*Vec3::one();
+    const Vec3 lo = c - r*Vec3::one();
+    const Vec3 hi = c + r*Vec3::one();
 
     return AABB(lo, hi);
   };
