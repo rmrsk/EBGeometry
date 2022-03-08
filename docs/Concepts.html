@@ -93,6 +93,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="DCEL.html">DCEL mesh structure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Implementation.html">Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
 </ul>
 
@@ -184,12 +185,13 @@ For example, the signed distance function for a sphere with center <span class="
 <div class="admonition important">
 <p class="admonition-title">Important</p>
 <p>For 2D applications, it is possible to slice the signed distance function through a plane.
-The resulting function is <em>an implicit function</em> rather than a signed distance function.</p>
+The resulting function is <em>an implicit function</em> rather than a signed distance function.
+It is possible to obtain the signed distance field in 2D by first scaling the original distance function by a large number (in the slicing plane).</p>
 </div>
 </div>
 <div class="section" id="transformations">
 <h2>Transformations<a class="headerlink" href="#transformations" title="Permalink to this headline">¶</a></h2>
-<p>Signed distance functions retain the Eikonal property for the following set of group transformations:</p>
+<p>Signed distance functions retain the Eikonal property for the following set of transformations:</p>
 <ul class="simple">
 <li><p>Rotations.</p></li>
 <li><p>Translations.</p></li>

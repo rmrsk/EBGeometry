@@ -203,7 +203,7 @@ It is templated as</p>
 </div>
 <p>Most of EBGeometry is written as three-dimensional code, but <code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> is needed for DCEL functionality when determining if a point projects onto the interior or exterior of a planar polygon, see <a class="reference internal" href="DCEL.html#chap-dcel"><span class="std std-ref">DCEL mesh structure</span></a>.
 <code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> has “most” common arithmetic operators like the dot product, length, multiplication operators and so on.</p>
-<p><code class="docutils literal notranslate"><span class="pre">Vec3T</span></code> is a three-dimensional vector type with precision <code class="docutils literal notranslate"><span class="pre">T</span></code>.
+<p><code class="docutils literal notranslate"><span class="pre">Vec3T</span></code> is a three-dimensional Cartesian vector type with precision <code class="docutils literal notranslate"><span class="pre">T</span></code>.
 It is templated as</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span> <span class="n">EBGeometry</span> <span class="p">{</span>
    <span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
@@ -254,7 +254,7 @@ It is templated as</p>
 <h2>Signed distance function<a class="headerlink" href="#signed-distance-function" title="Permalink to this headline">¶</a></h2>
 <p>In EBGeometry we have encapsulated the concept of a signed distance function in an abstract class</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
-<span class="k">class</span> <span class="nc">SignedDistanceFunction</span> <span class="o">:</span> <span class="p">{</span>
+<span class="k">class</span> <span class="nc">SignedDistanceFunction</span> <span class="p">{</span>
 <span class="k">public</span><span class="o">:</span>
 
    <span class="kt">void</span> <span class="n">scale</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_scale</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
@@ -309,13 +309,20 @@ When implementing the <code class="docutils literal notranslate"><span class="pr
 <li><p>Rotation, which defines the operation <span class="math notranslate nohighlight">\(\mathbf{x}^\prime = R\left(\mathbf{x}, \theta, a\right)\)</span> where <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> is rotated an angle <span class="math notranslate nohighlight">\(\theta\)</span> around the coordinate axis <span class="math notranslate nohighlight">\(a\)</span>.</p></li>
 </ul>
 <p>Transformations are applied sequentially.
-E.g. the following code will first translate, then 90 degrees about the <span class="math notranslate nohighlight">\(x\)</span>-axis.</p>
+The API for rotations are as follows:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">scale</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_scale</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>            <span class="c1">// a_scale are scalings alonng the Cartesian axes.</span>
+<span class="kt">void</span> <span class="nf">translate</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_translation</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>  <span class="c1">// a_translation are Cartesian translations vector</span>
+<span class="kt">void</span> <span class="nf">rotate</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="n">a_angle</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">a_axis</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span> <span class="c1">// a_anglein degrees and a_axis being the Cartesian axis</span>
+</pre></div>
+</div>
+<p>E.g. the following code will first translate, then 90 degrees about the <span class="math notranslate nohighlight">\(x\)</span>-axis.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">MySignedDistanceFunction</span><span class="o">&lt;</span><span class="nb">float</span><span class="o">&gt;</span> <span class="n">sdf</span><span class="p">;</span>
 
 <span class="n">sdf</span><span class="o">.</span><span class="n">translate</span><span class="p">({</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">});</span>
 <span class="n">sdf</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="mi">90</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </pre></div>
 </div>
+<p>Note that if the transformations are to be applied, the implementation of <code class="docutils literal notranslate"><span class="pre">signedDistance(...)</span></code> must transform the input point (as in the examples above).</p>
 </div>
 <div class="section" id="analytic-functions">
 <h3>Analytic functions<a class="headerlink" href="#analytic-functions" title="Permalink to this headline">¶</a></h3>

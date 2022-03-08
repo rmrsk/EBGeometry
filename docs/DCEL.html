@@ -93,6 +93,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Implementation.html">Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
 </ul>
 
@@ -165,9 +166,9 @@
 <p>EBGeometry uses a doubly-connected edge list (DCEL) structure for storing surface meshes.
 The DCEL structures consist of the following objects:</p>
 <ul class="simple">
-<li><p>Planar polygons (facets)</p></li>
-<li><p>Half-edges</p></li>
-<li><p>Vertices</p></li>
+<li><p>Planar polygons (facets).</p></li>
+<li><p>Half-edges.</p></li>
+<li><p>Vertices.</p></li>
 </ul>
 <p>As shown in <a class="reference internal" href="#fig-dcel"><span class="std std-numref">Fig. 1</span></a>, the half-edge is the most important data structure.
 Half-edges circulate the inside of the facet, with pointer-access to the previous and next half-edge.
@@ -199,7 +200,7 @@ If the surface mesh consists of holes or flipped facets, the signed distance fun
 <p>When computing the distance from a point <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the polygon face we first determine if the projection of <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the face’s plane lies inside or outside the face.
 This is more involved than one might think, and it is done by first computing the two-dimensional projection of the polygon face, ignoring one of the coordinates.
 Next, we determine, using 2D algorithms, if the projected point lies inside the embedded 2D representation of the polygon face.
-Various algorithms for this are available, such as computing the winding number, the crossing number, or the subtended angle between the point and the 2D polygon.</p>
+Various algorithms for this are available, such as computing the winding number, the crossing number, or the subtended angle between the projected point and the 2D polygon.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>EBGeometry uses the crossing number algorithm by default.</p>
@@ -220,7 +221,7 @@ Otherwise, the closest point is one of the vertices.</p>
 </div>
 <div class="section" id="normal-vectors">
 <h2>Normal vectors<a class="headerlink" href="#normal-vectors" title="Permalink to this headline">¶</a></h2>
-<p>The normal vectors for edges (<span class="math notranslate nohighlight">\(\mathbf{n}_e\)</span>) and vertices (<span class="math notranslate nohighlight">\(\mathbf{n}_v\)</span>) are not uniquely defined.
+<p>The normal vectors for edges <span class="math notranslate nohighlight">\(\mathbf{n}_e\)</span> and vertices <span class="math notranslate nohighlight">\(\mathbf{n}_v\)</span> are, unlike the facet normal, not uniquely defined.
 For both edges and vertices we use the pseudonormals from <span id="id1">[<a class="reference internal" href="ZZReferences.html#id2" title="J.A. Baerentzen and H. Aanaes. Signed distance computation using the angle weighted pseudonormal. IEEE Transactions on Visualization and Computer Graphics, 11(3):243-253, 2005. doi:10.1109/TVCG.2005.49.">1</a>]</span>:</p>
 <div class="math notranslate nohighlight">
 \[\mathbf{n}_{e} = \frac{1}{2}\left(\mathbf{n}_{f} + \mathbf{n}_{f^\prime}\right).\]</div>

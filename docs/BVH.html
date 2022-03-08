@@ -165,14 +165,21 @@
 <h2>Basic concept<a class="headerlink" href="#basic-concept" title="Permalink to this headline">¶</a></h2>
 <p>Bounding Volume Hierarchies (BVHs) are comparatively simple data structures that can accelerate closest-point searches by orders of magnitude.
 BVHs are tree structures where the regular nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces) further down in the hierarchy.
-There are two types of nodes in a BVH:</p>
+This means that every node in a BVH is associated with a <em>bounding volume</em>.
+The bounding volume can, in principle, be any type of volume.
+Moreover, there are two types of nodes in a BVH:</p>
 <ul class="simple">
-<li><p><em>Regular nodes</em>, which do not contain any of the primitives/objects, but stores references to child nodes.</p></li>
-<li><p><em>Leaf nodes</em>, which contain a subset of the primitives.</p></li>
+<li><p><strong>Regular nodes.</strong> These do not contain any of the primitives/objects.
+They are also called interior nodes, and store references to their child nodes.</p></li>
+<li><p><strong>Leaf nodes.</strong> These lie at the bottom of the BVH tree and each of them contain a subset of the geometric primitives.</p></li>
 </ul>
-<p>Both types of nodes contain a <em>bounding volume</em> which closes all geometric primitives in the subtree below the node.</p>
 <p><a class="reference internal" href="#fig-trianglesbvh"><span class="std std-numref">Fig. 4</span></a> shows a concept of BVH partitioning of a set of triangles.
-Here, <span class="math notranslate nohighlight">\(P\)</span> is a regular node whose bounding volume encloses all geometric primitives in it’s subtree.</p>
+Here, <span class="math notranslate nohighlight">\(P\)</span> is a regular node whose bounding volume encloses all geometric primitives in it’s subtree.
+It’s bounding volume, an axis-aligned bounding box or AABB for short, is illustrated by a dashed rectangle.
+The interior node <span class="math notranslate nohighlight">\(P\)</span> stores references to the leaf nodes <span class="math notranslate nohighlight">\(L\)</span> and <span class="math notranslate nohighlight">\(R\)</span>.
+As shown in <a class="reference internal" href="#fig-trianglesbvh"><span class="std std-numref">Fig. 4</span></a>, <span class="math notranslate nohighlight">\(L\)</span> contains 5 triangles enclosed by another AABB.
+The other child node <span class="math notranslate nohighlight">\(R\)</span> contains 6 triangles that are also enclosed by an AABB.
+Note that the bounding volume for <span class="math notranslate nohighlight">\(P\)</span> encloses the bounding volumes of <span class="math notranslate nohighlight">\(L\)</span> and <span class="math notranslate nohighlight">\(R\)</span> and that the bounding volumes for <span class="math notranslate nohighlight">\(L\)</span> and <span class="math notranslate nohighlight">\(R\)</span> contain a small overlap.</p>
 <div class="figure align-center" id="id1">
 <span id="fig-trianglesbvh"></span><a class="reference internal image-reference" href="_images/TrianglesBVH.png"><img alt="_images/TrianglesBVH.png" src="_images/TrianglesBVH.png" style="width: 480px;" /></a>
 <p class="caption"><span class="caption-number">Fig. 4 </span><span class="caption-text">Example of BVH partitioning for enclosing triangles. The regular node <span class="math notranslate nohighlight">\(P\)</span> contains two leaf nodes <span class="math notranslate nohighlight">\(L\)</span> and <span class="math notranslate nohighlight">\(R\)</span> which contain the primitives (triangles).</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
@@ -181,19 +188,18 @@ Here, <span class="math notranslate nohighlight">\(P\)</span> is a regular node 
 For example, analytic signed distance functions can also be embedded in BVHs, provided that we can construct a bounding volume that encloses the object.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>BVHs are not limited to binary trees.
-EBGeometry supports <span class="math notranslate nohighlight">\(k\)</span> -ary trees where each regular node has <span class="math notranslate nohighlight">\(k\)</span> children nodes.</p>
+<p>EBGeometry limited to binary trees, but supports <span class="math notranslate nohighlight">\(k\)</span> -ary trees where each regular node has <span class="math notranslate nohighlight">\(k\)</span> children nodes.</p>
 </div>
 </div>
 <div class="section" id="construction">
 <h2>Construction<a class="headerlink" href="#construction" title="Permalink to this headline">¶</a></h2>
 <p>BVHs have extremely flexible rules regarding their construction.
-Since they are hierarchical structures, the only requirement when dividing a leaf node is that each child node gets at least one primitive.</p>
-<p>Although the rules for BVH construction are flexible, performant BVHs are completely reliant on having balanced trees with the following heuristic properties:</p>
+For example, the child nodes <span class="math notranslate nohighlight">\(L\)</span> and <span class="math notranslate nohighlight">\(R\)</span> in <a class="reference internal" href="#fig-trianglesbvh"><span class="std std-numref">Fig. 4</span></a> could be partitioned in any number of ways, with the only requirement being that each child node gets at least one triangle.</p>
+<p>Although the rules for BVH construction are highly flexible, performant BVHs are completely reliant on having balanced trees with the following heuristic properties:</p>
 <ul class="simple">
-<li><p>Bounding volumes should enclose primitives as tightly as possible.</p></li>
-<li><p>There should be a minimal overlap between the bounding volumes.</p></li>
-<li><p>The BVH trees should be approximately <em>balanced</em>.</p></li>
+<li><p><strong>Tight bounding volumes</strong> that enclose the primitives as tightly as possible.</p></li>
+<li><p><strong>Minimal overlap</strong> between the bounding volumes.</p></li>
+<li><p><strong>Balanced</strong>, in the sense that the tree depth does not vary greatly through the tree, and there is approximately the same number of primitives in each leaf node.</p></li>
 </ul>
 <p>Construction of a BVH is usually done recursively, from top to bottom (so-called top-down construction).
 Alternative construction methods also exist, but are not used in EBGeometry.
@@ -201,7 +207,7 @@ In this case one can represent the BVH construction of a <span class="math notra
 <div class="math notranslate nohighlight">
 \[\textrm{Partition}\left(\vec{O}\right): \vec{O} \rightarrow \left(\vec{O}_1, \vec{O}_2, \ldots, \vec{O}_k\right),\]</div>
 <p>where <span class="math notranslate nohighlight">\(\vec{O}\)</span> is an input a list of objects/primitives, which is <em>partitioned</em> into <span class="math notranslate nohighlight">\(k\)</span> new list of primitives.
-Note that the lists <span class="math notranslate nohighlight">\(\vec{O}_i\)</span> do not contain duplicates.
+Note that the lists <span class="math notranslate nohighlight">\(\vec{O}_i\)</span> do not contain duplicates, there is a unique set of primitives associated in each new leaf node.
 Top-down construction can thus be illustrated as a recursive procedure:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>topDownConstruction(Objects):
    partitionedObjects = Partition(Objects)
@@ -213,7 +219,8 @@ Top-down construction can thus be illustrated as a recursive procedure:</p>
          child.topDownConstruction(child.objects)
 </pre></div>
 </div>
-<p>In practice, the above procedure is supplemented by more sophisticated criteria for terminating the recursion, as well as routines for creating the bounding volumes around the newly inserted nodes.</p>
+<p>In practice, the above procedure is supplemented by more sophisticated criteria for terminating the recursion, as well as routines for creating the bounding volumes around the newly inserted nodes.
+EBGeometry provides these by letting the top-down construction calls take polymorphic lambdas as arguments for partitioning, termination, and bounding volume construction.</p>
 </div>
 <div class="section" id="signed-distance-function">
 <h2>Signed distance function<a class="headerlink" href="#signed-distance-function" title="Permalink to this headline">¶</a></h2>
@@ -222,10 +229,11 @@ Consider the case in <a class="reference internal" href="#fig-treepruning"><span
 We consider the following steps:</p>
 <ul class="simple">
 <li><p>When descending from node <span class="math notranslate nohighlight">\(P\)</span> we determine that we first investigate the left subtree (node <span class="math notranslate nohighlight">\(A\)</span>) since its bounding volume is closer than the bounding volumes for the other subtree.
-The other subtree will be investigated later.</p></li>
-<li><p>Since <span class="math notranslate nohighlight">\(A\)</span> is a leaf node, we find the signed distance from <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the primitives in <span class="math notranslate nohighlight">\(A\)</span>.</p></li>
+The other subtree will is investigated after we have recursed to the bottom of the <span class="math notranslate nohighlight">\(A\)</span> subtree.</p></li>
+<li><p>Since <span class="math notranslate nohighlight">\(A\)</span> is a leaf node, we find the signed distance from <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the primitives in <span class="math notranslate nohighlight">\(A\)</span>.
+This requires us to iterate over all the triangles in <span class="math notranslate nohighlight">\(A\)</span>.</p></li>
 <li><p>When moving back to <span class="math notranslate nohighlight">\(P\)</span>, we find that the distance to the primitives in <span class="math notranslate nohighlight">\(A\)</span> is shorter than the distance from <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the bounding volume that encloses nodes <span class="math notranslate nohighlight">\(B\)</span> and <span class="math notranslate nohighlight">\(C\)</span>.
-Consequently, the entire subtree containing <span class="math notranslate nohighlight">\(B\)</span> and <span class="math notranslate nohighlight">\(C\)</span> can be pruned.</p></li>
+This immediately permits us to prune the entire subtree containing <span class="math notranslate nohighlight">\(B\)</span> and <span class="math notranslate nohighlight">\(C\)</span>.</p></li>
 </ul>
 <div class="figure align-center" id="id2">
 <span id="fig-treepruning"></span><a class="reference internal image-reference" href="_images/TreePruning.png"><img alt="_images/TreePruning.png" src="_images/TreePruning.png" style="width: 480px;" /></a>

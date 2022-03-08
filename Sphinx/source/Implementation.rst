@@ -30,7 +30,7 @@ It is templated as
 Most of EBGeometry is written as three-dimensional code, but ``Vec2T`` is needed for DCEL functionality when determining if a point projects onto the interior or exterior of a planar polygon, see :ref:`Chap:DCEL`. 
 ``Vec2T`` has "most" common arithmetic operators like the dot product, length, multiplication operators and so on.
 
-``Vec3T`` is a three-dimensional vector type with precision ``T``.
+``Vec3T`` is a three-dimensional Cartesian vector type with precision ``T``.
 It is templated as
 
 .. code-block:: c++
@@ -90,7 +90,7 @@ In EBGeometry we have encapsulated the concept of a signed distance function in 
 .. code-block:: c++
 
    template <class T>
-   class SignedDistanceFunction : {
+   class SignedDistanceFunction {
    public:
 
       void scale(const Vec3T<T>& a_scale) noexcept;
@@ -150,6 +150,14 @@ The following transformations are possible:
 * Rotation, which defines the operation :math:`\mathbf{x}^\prime = R\left(\mathbf{x}, \theta, a\right)` where :math:`\mathbf{x}` is rotated an angle :math:`\theta` around the coordinate axis :math:`a`.
 
 Transformations are applied sequentially.
+The API for rotations are as follows:
+
+.. code-block:: c++
+		
+  void scale(const Vec3T<T>& a_scale) noexcept;            // a_scale are scalings alonng the Cartesian axes. 
+  void translate(const Vec3T<T>& a_translation) noexcept;  // a_translation are Cartesian translations vector
+  void rotate(const T a_angle, const int a_axis) noexcept; // a_anglein degrees and a_axis being the Cartesian axis
+  
 E.g. the following code will first translate, then 90 degrees about the :math:`x`-axis. 
 
 .. code-block::
@@ -158,6 +166,8 @@ E.g. the following code will first translate, then 90 degrees about the :math:`x
 
    sdf.translate({1,0,0});
    sdf.rotate(90, 0);
+
+Note that if the transformations are to be applied, the implementation of ``signedDistance(...)`` must transform the input point (as in the examples above). 
 
 Analytic functions
 __________________

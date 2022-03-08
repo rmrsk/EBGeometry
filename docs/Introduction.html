@@ -93,6 +93,7 @@
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html">Basic concepts</a></li>
 <li class="toctree-l1"><a class="reference internal" href="DCEL.html">DCEL mesh structure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Implementation.html">Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
 </ul>
 
@@ -161,16 +162,17 @@
   <div class="section" id="introduction">
 <span id="chap-introduction"></span><h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
 <p>EBGeometry is a comparatively compact code for computing signed distance functions to watertight and orientable surface grids.
-Originally, it was written to be used used with embedded-boundary (EB) codes like Chombo or AMReX.</p>
+Originally, it was written to be used with embedded-boundary (EB) codes like Chombo or AMReX.</p>
 <div class="section" id="requirements">
 <h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>A C++ compiler which supports C++14.</p></li>
+<li><p>An analytic signed distance function, or a watertight and orientable surface grid.</p></li>
 </ul>
 </div>
 <div class="section" id="quickstart">
 <h2>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h2>
-<p>To obtained EBGeometry, clone the the code from <a class="reference external" href="https://github.com/rmrsk/EBGeometry">github</a></p>
+<p>To obtained EBGeometry, clone the code from <a class="reference external" href="https://github.com/rmrsk/EBGeometry">github</a>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git clone git@github.com:rmrsk/EBGeometry.git
 </pre></div>
 </div>
@@ -191,9 +193,9 @@ The following two examples show two usages of EBGeometry:</p>
 EBGeometry uses a doubly-connected edge list (DCEL) representation of the mesh.</p></li>
 <li><p>Straightforward implementations of bounding volume hierarchies (BVHs) for use as acceleration structures.
 The BVHs can be represented in full or compact (i.e., linearized) forms.</p></li>
-<li><p>Support for rudimentary signed distance calculations and transformations (rotations, translations, and scaling).</p></li>
-<li><p>Examples of how to couple EBGeometry to AMReX and Chombo.</p></li>
+<li><p>Support for signed distance calculations and transformations (rotations, translations, and scaling).</p></li>
 <li><p>Heavy use of metaprogramming, which exists e.g. in order to permit higher-order trees and flexibility in BVH partitioning.</p></li>
+<li><p>Examples of how to couple EBGeometry to AMReX and Chombo.</p></li>
 </ul>
 </div>
 </div>

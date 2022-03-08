@@ -43,12 +43,12 @@ An important difference between these is the Eikonal property in :eq:`Eikonal`, 
 
    For 2D applications, it is possible to slice the signed distance function through a plane.
    The resulting function is *an implicit function* rather than a signed distance function.
-
+   It is possible to obtain the signed distance field in 2D by first scaling the original distance function by a large number (in the slicing plane). 
 
 Transformations
 ---------------
 
-Signed distance functions retain the Eikonal property for the following set of group transformations:
+Signed distance functions retain the Eikonal property for the following set of transformations:
 
 * Rotations.
 * Translations.
@@ -59,8 +59,6 @@ Unions
 
 Unions of signed distance fields are also signed distance fields *provided that the objects do not intersect or touch*.
 For overlapping objects the signed distance function is not well-defined (since the interior and exterior are not well-defined).
-
-
 
 For non-overlapping objects represented as signed distance fields :math:`\left(S_1\left(\mathbf{x}\right), S_2\left(\mathbf{x}\right), \ldots\right)`, the composite signed distance field is
 
