@@ -7,10 +7,9 @@ Declaration of a various bounding volumes used for bounding volume hierarchy.
 
 {\ttfamily \#include $<$vector$>$}\newline
 {\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Vec.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Namespace\+Header.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Namespace\+Footer.\+hpp\char`\"{}}\newline
 {\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Bounding\+Volumes\+Implem.\+hpp\char`\"{}}\newline
-Include dependency graph for E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp\+:\nopagebreak
+Include dependency graph for E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp\+:
+\nopagebreak
 \begin{figure}[H]
 \begin{center}
 \leavevmode
@@ -21,31 +20,31 @@ This graph shows which files directly or indirectly include this file\+:\nopageb
 \begin{figure}[H]
 \begin{center}
 \leavevmode
-\includegraphics[width=232pt]{EBGeometry__BoundingVolumes_8hpp__dep__incl}
+\includegraphics[width=342pt]{EBGeometry__BoundingVolumes_8hpp__dep__incl}
 \end{center}
 \end{figure}
 \subsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
-class \hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+Volumes\+::\+Bounding\+Sphere\+T$<$ T $>$}
+class \hyperlink{classEBGeometry_1_1BoundingVolumes_1_1BoundingSphereT}{E\+B\+Geometry\+::\+Bounding\+Volumes\+::\+Bounding\+Sphere\+T$<$ T $>$}
 \begin{DoxyCompactList}\small\item\em Class which encloses a set of points using a bounding sphere. \end{DoxyCompactList}\item 
-class \hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+A\+A\+B\+B\+T$<$ T $>$}
+class \hyperlink{classEBGeometry_1_1BoundingVolumes_1_1AABBT}{E\+B\+Geometry\+::\+Bounding\+Volumes\+::\+A\+A\+B\+B\+T$<$ T $>$}
 \begin{DoxyCompactList}\small\item\em Axis-\/aligned bounding box as bounding volume. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \subsection*{Namespaces}
 \begin{DoxyCompactItemize}
 \item 
- \hyperlink{namespaceBoundingVolumes}{Bounding\+Volumes}
-\begin{DoxyCompactList}\small\item\em Namespace for encapsulating various bounding volumes for usage with B\+V\+Hs. \end{DoxyCompactList}\end{DoxyCompactItemize}
+ \hyperlink{namespaceEBGeometry}{E\+B\+Geometry}
+\begin{DoxyCompactList}\small\item\em Name space for all of \hyperlink{namespaceEBGeometry}{E\+B\+Geometry}. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \subsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
-{\footnotesize template$<$class T $>$ }\\bool \hyperlink{namespaceBoundingVolumes_af35f33c5f319a466550d9ad1040beced}{Bounding\+Volumes\+::intersects} (const Bounding\+SphereT$<$ T $>$ \&a\+\_\+u, const Bounding\+SphereT$<$ T $>$ \&a\+\_\+v) noexcept
+{\footnotesize template$<$class T $>$ }\\bool \hyperlink{EBGeometry__BoundingVolumes_8hpp_a337c2a40d533d65a84c6a51bab4f1335}{E\+B\+Geometry\+::\+Bounding\+Volumes\+::intersects} (const Bounding\+SphereT$<$ T $>$ \&a\+\_\+u, const Bounding\+SphereT$<$ T $>$ \&a\+\_\+v) noexcept
 \begin{DoxyCompactList}\small\item\em Intersection method for testing if two bounding spheres overlap. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\bool \hyperlink{namespaceBoundingVolumes_a5c360ccd42017c01acbe1caf2cfd1efe}{Bounding\+Volumes\+::intersects} (const A\+A\+B\+BT$<$ T $>$ \&a\+\_\+u, const A\+A\+B\+BT$<$ T $>$ \&a\+\_\+v) noexcept
+{\footnotesize template$<$class T $>$ }\\bool \hyperlink{EBGeometry__BoundingVolumes_8hpp_a45914efbffb3206cb00080f42c69acf7}{E\+B\+Geometry\+::\+Bounding\+Volumes\+::intersects} (const A\+A\+B\+BT$<$ T $>$ \&a\+\_\+u, const A\+A\+B\+BT$<$ T $>$ \&a\+\_\+v) noexcept
 \begin{DoxyCompactList}\small\item\em Intersection method for testing if two bounding boxes overlap. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\T \hyperlink{namespaceBoundingVolumes_a4f159289c317e02beedb4b38136ad692}{Bounding\+Volumes\+::get\+Overlapping\+Volume} (const Bounding\+SphereT$<$ T $>$ \&a\+\_\+u, const Bounding\+SphereT$<$ T $>$ \&a\+\_\+v) noexcept
+{\footnotesize template$<$class T $>$ }\\T \hyperlink{EBGeometry__BoundingVolumes_8hpp_acebdda0b912cc94d166372a793a50045}{E\+B\+Geometry\+::\+Bounding\+Volumes\+::get\+Overlapping\+Volume} (const Bounding\+SphereT$<$ T $>$ \&a\+\_\+u, const Bounding\+SphereT$<$ T $>$ \&a\+\_\+v) noexcept
 \begin{DoxyCompactList}\small\item\em Compute the overlapping volume between two bounding spheres. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\T \hyperlink{namespaceBoundingVolumes_ae5716e39e88aaeec0c204f453cac2acd}{Bounding\+Volumes\+::get\+Overlapping\+Volume} (const A\+A\+B\+BT$<$ T $>$ \&a\+\_\+u, const A\+A\+B\+BT$<$ T $>$ \&a\+\_\+v) noexcept
+{\footnotesize template$<$class T $>$ }\\T \hyperlink{EBGeometry__BoundingVolumes_8hpp_a594efd8ed979f2c289052ccbc4fdfed8}{E\+B\+Geometry\+::\+Bounding\+Volumes\+::get\+Overlapping\+Volume} (const A\+A\+B\+BT$<$ T $>$ \&a\+\_\+u, const A\+A\+B\+BT$<$ T $>$ \&a\+\_\+v) noexcept
 \begin{DoxyCompactList}\small\item\em Compute the overlapping volume between two bounding boxes. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
@@ -55,3 +54,78 @@ Declaration of a various bounding volumes used for bounding volume hierarchy.
 \begin{DoxyAuthor}{Author}
 Robert Marskar 
 \end{DoxyAuthor}
+
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{EBGeometry__BoundingVolumes_8hpp_file_acebdda0b912cc94d166372a793a50045}\label{EBGeometry__BoundingVolumes_8hpp_file_acebdda0b912cc94d166372a793a50045}} 
+\index{E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp@{E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp}!get\+Overlapping\+Volume@{get\+Overlapping\+Volume}}
+\index{get\+Overlapping\+Volume@{get\+Overlapping\+Volume}!E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp@{E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp}}
+\subsubsection{\texorpdfstring{get\+Overlapping\+Volume()}{getOverlappingVolume()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T E\+B\+Geometry\+::\+Bounding\+Volumes\+::get\+Overlapping\+Volume (\begin{DoxyParamCaption}\item[{const \hyperlink{classEBGeometry_1_1BoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}$<$ T $>$ \&}]{a\+\_\+u,  }\item[{const \hyperlink{classEBGeometry_1_1BoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}$<$ T $>$ \&}]{a\+\_\+v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Compute the overlapping volume between two bounding spheres. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+u} & One bounding sphere \\
+\hline
+\mbox{\tt in}  & {\em a\+\_\+v} & The other bounding sphere \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{EBGeometry__BoundingVolumes_8hpp_file_a594efd8ed979f2c289052ccbc4fdfed8}\label{EBGeometry__BoundingVolumes_8hpp_file_a594efd8ed979f2c289052ccbc4fdfed8}} 
+\index{E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp@{E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp}!get\+Overlapping\+Volume@{get\+Overlapping\+Volume}}
+\index{get\+Overlapping\+Volume@{get\+Overlapping\+Volume}!E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp@{E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp}}
+\subsubsection{\texorpdfstring{get\+Overlapping\+Volume()}{getOverlappingVolume()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T E\+B\+Geometry\+::\+Bounding\+Volumes\+::get\+Overlapping\+Volume (\begin{DoxyParamCaption}\item[{const \hyperlink{classEBGeometry_1_1BoundingVolumes_1_1AABBT}{A\+A\+B\+BT}$<$ T $>$ \&}]{a\+\_\+u,  }\item[{const \hyperlink{classEBGeometry_1_1BoundingVolumes_1_1AABBT}{A\+A\+B\+BT}$<$ T $>$ \&}]{a\+\_\+v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Compute the overlapping volume between two bounding boxes. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+u} & One bounding box \\
+\hline
+\mbox{\tt in}  & {\em a\+\_\+v} & The other bounding box \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{EBGeometry__BoundingVolumes_8hpp_file_a337c2a40d533d65a84c6a51bab4f1335}\label{EBGeometry__BoundingVolumes_8hpp_file_a337c2a40d533d65a84c6a51bab4f1335}} 
+\index{E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp@{E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp}!intersects@{intersects}}
+\index{intersects@{intersects}!E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp@{E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp}}
+\subsubsection{\texorpdfstring{intersects()}{intersects()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+bool E\+B\+Geometry\+::\+Bounding\+Volumes\+::intersects (\begin{DoxyParamCaption}\item[{const \hyperlink{classEBGeometry_1_1BoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}$<$ T $>$ \&}]{a\+\_\+u,  }\item[{const \hyperlink{classEBGeometry_1_1BoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}$<$ T $>$ \&}]{a\+\_\+v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Intersection method for testing if two bounding spheres overlap. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+u} & One bounding sphere \\
+\hline
+\mbox{\tt in}  & {\em a\+\_\+v} & The other bounding sphere \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{EBGeometry__BoundingVolumes_8hpp_file_a45914efbffb3206cb00080f42c69acf7}\label{EBGeometry__BoundingVolumes_8hpp_file_a45914efbffb3206cb00080f42c69acf7}} 
+\index{E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp@{E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp}!intersects@{intersects}}
+\index{intersects@{intersects}!E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp@{E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp}}
+\subsubsection{\texorpdfstring{intersects()}{intersects()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+bool E\+B\+Geometry\+::\+Bounding\+Volumes\+::intersects (\begin{DoxyParamCaption}\item[{const \hyperlink{classEBGeometry_1_1BoundingVolumes_1_1AABBT}{A\+A\+B\+BT}$<$ T $>$ \&}]{a\+\_\+u,  }\item[{const \hyperlink{classEBGeometry_1_1BoundingVolumes_1_1AABBT}{A\+A\+B\+BT}$<$ T $>$ \&}]{a\+\_\+v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Intersection method for testing if two bounding boxes overlap. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+u} & One bounding box \\
+\hline
+\mbox{\tt in}  & {\em a\+\_\+v} & The other bounding box \\
+\hline
+\end{DoxyParams}

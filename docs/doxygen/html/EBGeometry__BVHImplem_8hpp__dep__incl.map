@@ -1,4 +1,5 @@
 <map id="Source/EBGeometry_BVHImplem.hpp" name="Source/EBGeometry_BVHImplem.hpp">
 <area shape="rect" id="node2" href="$EBGeometry__BVH_8hpp.html" title="Declaration of a bounding volume hierarchy (BVH) class. " alt="" coords="27,80,229,107"/>
-<area shape="rect" id="node3" href="$EBGeometry__DcelBVH_8hpp.html" title="File which contains partitioners and lambdas for enclosing dcel_face in bounding volume heirarchies..." alt="" coords="13,155,243,181"/>
+<area shape="rect" id="node3" href="$EBGeometry_8hpp_source.html" title="EBGeometry.hpp" alt="" coords="67,229,189,256"/>
+<area shape="rect" id="node4" href="$EBGeometry__DcelBVH_8hpp.html" title="File which contains partitioners and lambdas for enclosing dcel_face in bounding volume heirarchies..." alt="" coords="89,155,319,181"/>
 </map>

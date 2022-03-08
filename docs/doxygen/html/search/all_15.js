@@ -1,7 +1,7 @@
 var searchData=
 [
-  ['_7eaabbt',['~AABBT',['../classBoundingVolumes_1_1AABBT.html#af0a2f67ce6f85f947849d199e6dee1aa',1,'BoundingVolumes::AABBT']]],
-  ['_7eboundingspheret',['~BoundingSphereT',['../classBoundingVolumes_1_1BoundingSphereT.html#a4495da5774e14f97c0e7579b37cfd60e',1,'BoundingVolumes::BoundingSphereT']]],
+  ['_7eaabbt',['~AABBT',['../classEBGeometry_1_1BoundingVolumes_1_1AABBT.html#a918cbae4494608b8dfebe07a1c595f08',1,'EBGeometry::BoundingVolumes::AABBT']]],
+  ['_7eboundingspheret',['~BoundingSphereT',['../classEBGeometry_1_1BoundingVolumes_1_1BoundingSphereT.html#a06db6d4588098bda148376ee71f51b91',1,'EBGeometry::BoundingVolumes::BoundingSphereT']]],
   ['_7eedget',['~EdgeT',['../classDcel_1_1EdgeT.html#a94083c72ec137f822fcb08fb600ddd87',1,'Dcel::EdgeT']]],
   ['_7efacet',['~FaceT',['../classDcel_1_1FaceT.html#a56988526e98a2626c644117e9298fd4b',1,'Dcel::FaceT']]],
   ['_7elinearbvh',['~LinearBVH',['../classBVH_1_1LinearBVH.html#a39a98014b81061b35604422cfab5c9b7',1,'BVH::LinearBVH']]],

@@ -12,3 +12,9 @@
 #include "Source/EBGeometry_Union.hpp"
 #include "Source/EBGeometry_UnionBVH.hpp"
 
+/*!
+  @brief Name space for all of EBGeometry
+*/
+namespace EBGeometry {
+
+}

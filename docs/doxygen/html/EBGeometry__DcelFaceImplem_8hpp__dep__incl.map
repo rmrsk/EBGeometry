@@ -1,14 +1,15 @@
 <map id="Source/EBGeometry_DcelFaceImplem.hpp" name="Source/EBGeometry_DcelFaceImplem.hpp">
-<area shape="rect" id="node2" href="$EBGeometry__DcelFace_8hpp.html" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations. " alt="" coords="380,95,610,121"/>
-<area shape="rect" id="node3" href="$EBGeometry__DcelBVH_8hpp.html" title="File which contains partitioners and lambdas for enclosing dcel_face in bounding volume heirarchies..." alt="" coords="203,169,432,196"/>
-<area shape="rect" id="node4" href="$EBGeometry__DcelVertex_8hpp.html" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations. " alt="" coords="558,169,797,196"/>
-<area shape="rect" id="node5" href="$EBGeometry__DcelVertexImplem_8hpp.html" title="Implementation of EBGeometry_DcelVertex.hpp. " alt="" coords="346,572,561,613"/>
-<area shape="rect" id="node6" href="$EBGeometry__DcelEdgeImplem_8hpp.html" title="Implementation of EBGeometry_DcelEdge.hpp. " alt="" coords="250,244,457,285"/>
-<area shape="rect" id="node7" href="$EBGeometry__DcelEdge_8hpp.html" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations. " alt="" coords="85,333,316,360"/>
-<area shape="rect" id="node8" href="$EBGeometry__DcelIteratorImplem_8hpp.html" title="Implementation of EBGeometry_DcelIterator.hpp. " alt="" coords="357,408,574,449"/>
-<area shape="rect" id="node10" href="$EBGeometry__DcelMeshImplem_8hpp.html" title="Implementation of EBGeometry_DcelMesh.hpp. " alt="" coords="114,572,322,613"/>
-<area shape="rect" id="node12" href="$EBGeometry__DcelParser_8hpp.html" title="Declaration of utilities for passing data into DCEL structures. " alt="" coords="524,825,762,852"/>
-<area shape="rect" id="node13" href="$EBGeometry__DcelParserImplem_8hpp.html" title="Implementation of EBGeometry_DcelParser.hpp. " alt="" coords="536,736,750,777"/>
-<area shape="rect" id="node9" href="$EBGeometry__DcelIterator_8hpp.html" title="Declaration of iterators for DCEL surface Tesselations. " alt="" coords="332,497,575,524"/>
-<area shape="rect" id="node11" href="$EBGeometry__DcelMesh_8hpp.html" title="Declaration of a mesh class which stores a DCEL mesh (with signed distance functions) ..." alt="" coords="221,661,454,688"/>
+<area shape="rect" id="node2" href="$EBGeometry__DcelFace_8hpp.html" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations. " alt="" coords="743,95,974,121"/>
+<area shape="rect" id="node3" href="$EBGeometry__DcelBVH_8hpp.html" title="File which contains partitioners and lambdas for enclosing dcel_face in bounding volume heirarchies..." alt="" coords="1123,251,1352,278"/>
+<area shape="rect" id="node4" href="$EBGeometry_8hpp_source.html" title="EBGeometry.hpp" alt="" coords="717,900,840,927"/>
+<area shape="rect" id="node5" href="$EBGeometry__DcelVertex_8hpp.html" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations. " alt="" coords="381,169,619,196"/>
+<area shape="rect" id="node6" href="$EBGeometry__DcelVertexImplem_8hpp.html" title="Implementation of EBGeometry_DcelVertex.hpp. " alt="" coords="62,572,277,613"/>
+<area shape="rect" id="node7" href="$EBGeometry__DcelEdgeImplem_8hpp.html" title="Implementation of EBGeometry_DcelEdge.hpp. " alt="" coords="563,244,770,285"/>
+<area shape="rect" id="node8" href="$EBGeometry__DcelEdge_8hpp.html" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations. " alt="" coords="665,333,895,360"/>
+<area shape="rect" id="node9" href="$EBGeometry__DcelIteratorImplem_8hpp.html" title="Implementation of EBGeometry_DcelIterator.hpp. " alt="" coords="219,408,437,449"/>
+<area shape="rect" id="node11" href="$EBGeometry__DcelMeshImplem_8hpp.html" title="Implementation of EBGeometry_DcelMesh.hpp. " alt="" coords="444,572,652,613"/>
+<area shape="rect" id="node13" href="$EBGeometry__DcelParser_8hpp.html" title="Declaration of utilities for passing data into DCEL structures. " alt="" coords="659,825,898,852"/>
+<area shape="rect" id="node14" href="$EBGeometry__DcelParserImplem_8hpp.html" title="Implementation of EBGeometry_DcelParser.hpp. " alt="" coords="627,736,842,777"/>
+<area shape="rect" id="node10" href="$EBGeometry__DcelIterator_8hpp.html" title="Declaration of iterators for DCEL surface Tesselations. " alt="" coords="219,497,461,524"/>
+<area shape="rect" id="node12" href="$EBGeometry__DcelMesh_8hpp.html" title="Declaration of a mesh class which stores a DCEL mesh (with signed distance functions) ..." alt="" coords="431,661,665,688"/>
 </map>

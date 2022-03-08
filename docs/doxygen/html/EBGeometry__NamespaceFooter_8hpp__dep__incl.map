@@ -1,33 +1,34 @@
 <map id="Source/EBGeometry_NamespaceFooter.hpp" name="Source/EBGeometry_NamespaceFooter.hpp">
-<area shape="rect" id="node2" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools..." alt="" coords="1817,95,2014,121"/>
-<area shape="rect" id="node3" href="$EBGeometry__TransformOps_8hpp.html" title="Declaration of transformation operators for signed distance fields. " alt="" coords="828,169,1036,211"/>
-<area shape="rect" id="node4" href="$EBGeometry__SignedDistanceFunction_8hpp.html" title="Abstract base class for representing a signed distance function. " alt="" coords="513,259,702,300"/>
-<area shape="rect" id="node5" href="$EBGeometry__AnalyticDistanceFunctions_8hpp.html" title="Declaration of various analytic distance functions. " alt="" coords="327,348,523,389"/>
-<area shape="rect" id="node6" href="$EBGeometry__SignedDistanceFunctionImplem_8hpp.html" title="Implementation of EBGeometry_SignedDistanceFunctionImplem.hpp. " alt="" coords="832,348,1024,389"/>
-<area shape="rect" id="node7" href="$EBGeometry__Union_8hpp.html" title="Declaration of a union operator for creating multi&#45;object scenes. " alt="" coords="44,355,252,382"/>
-<area shape="rect" id="node8" href="$EBGeometry__UnionImplem_8hpp.html" title="Implementation of EBGeometry_Union.hpp. " alt="" coords="22,445,273,471"/>
-<area shape="rect" id="node9" href="$EBGeometry__UnionBVH_8hpp.html" title="Declaration of a union operator for creating multi&#45;object scenes. " alt="" coords="571,355,807,382"/>
-<area shape="rect" id="node10" href="$EBGeometry__UnionBVHImplem_8hpp.html" title="Implementation of EBGeometry_UnionBVH.hpp. " alt="" coords="550,445,828,471"/>
-<area shape="rect" id="node11" href="$EBGeometry__TransformOpsImplem_8hpp.html" title="Implementation of EBGeometry_TransformOps.hpp. " alt="" coords="828,259,1036,300"/>
-<area shape="rect" id="node12" href="$EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp. " alt="" coords="1766,177,2006,203"/>
-<area shape="rect" id="node13" href="$EBGeometry__BoundingVolumes_8hpp.html" title="Declaration of a various bounding volumes used for bounding volume hierarchy. " alt="" coords="1161,169,1364,211"/>
-<area shape="rect" id="node14" href="$EBGeometry__BoundingVolumesImplem_8hpp.html" title="Implementation of EBGeometry_BoundingVolumes.hpp. " alt="" coords="1158,259,1361,300"/>
-<area shape="rect" id="node15" href="$EBGeometry__BVH_8hpp.html" title="Declaration of a bounding volume hierarchy (BVH) class. " alt="" coords="1388,177,1590,203"/>
-<area shape="rect" id="node16" href="$EBGeometry__BVHImplem_8hpp.html" title="Implementation of EBGeometry_BVH.hpp. " alt="" coords="1436,266,1681,293"/>
-<area shape="rect" id="node17" href="$EBGeometry__DcelBVH_8hpp.html" title="File which contains partitioners and lambdas for enclosing dcel_face in bounding volume heirarchies..." alt="" coords="1284,355,1513,382"/>
-<area shape="rect" id="node18" href="$EBGeometry__DcelFace_8hpp.html" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations. " alt="" coords="2030,266,2260,293"/>
-<area shape="rect" id="node19" href="$EBGeometry__DcelVertex_8hpp.html" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations. " alt="" coords="2743,355,2982,382"/>
-<area shape="rect" id="node20" href="$EBGeometry__DcelVertexImplem_8hpp.html" title="Implementation of EBGeometry_DcelVertex.hpp. " alt="" coords="2764,765,2979,807"/>
-<area shape="rect" id="node21" href="$EBGeometry__DcelEdgeImplem_8hpp.html" title="Implementation of EBGeometry_DcelEdge.hpp. " alt="" coords="2460,437,2667,479"/>
-<area shape="rect" id="node22" href="$EBGeometry__DcelEdge_8hpp.html" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations. " alt="" coords="2335,527,2566,553"/>
-<area shape="rect" id="node23" href="$EBGeometry__DcelIteratorImplem_8hpp.html" title="Implementation of EBGeometry_DcelIterator.hpp. " alt="" coords="2399,601,2616,643"/>
-<area shape="rect" id="node24" href="$EBGeometry__DcelIterator_8hpp.html" title="Declaration of iterators for DCEL surface Tesselations. " alt="" coords="2401,691,2644,717"/>
-<area shape="rect" id="node25" href="$EBGeometry__DcelFaceImplem_8hpp.html" title="Implementation of EBGeometry_DcelFace.hpp. " alt="" coords="1854,765,2060,807"/>
-<area shape="rect" id="node26" href="$EBGeometry__DcelMeshImplem_8hpp.html" title="Implementation of EBGeometry_DcelMesh.hpp. " alt="" coords="2084,765,2292,807"/>
-<area shape="rect" id="node27" href="$EBGeometry__DcelMesh_8hpp.html" title="Declaration of a mesh class which stores a DCEL mesh (with signed distance functions) ..." alt="" coords="2058,855,2291,881"/>
-<area shape="rect" id="node28" href="$EBGeometry__DcelParser_8hpp.html" title="Declaration of utilities for passing data into DCEL structures. " alt="" coords="2406,1019,2644,1045"/>
-<area shape="rect" id="node29" href="$EBGeometry__DcelParserImplem_8hpp.html" title="Implementation of EBGeometry_DcelParser.hpp. " alt="" coords="2418,929,2632,971"/>
-<area shape="rect" id="node30" href="$EBGeometry__DcelPolygon2D_8hpp.html" title="Declaration of a two&#45;dimensional polygon class for embedding 3D polygon faces. " alt="" coords="2183,169,2414,211"/>
-<area shape="rect" id="node31" href="$EBGeometry__DcelPolygon2DImplem_8hpp.html" title="Implementation of DcelPolygon.hpp. " alt="" coords="2284,259,2515,300"/>
-<area shape="rect" id="node32" href="$EBGeometry__Dcel_8hpp.html" title="Namespace documentation. " alt="" coords="2794,95,2995,121"/>
+<area shape="rect" id="node2" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools..." alt="" coords="1765,95,1962,121"/>
+<area shape="rect" id="node3" href="$EBGeometry__TransformOps_8hpp.html" title="Declaration of transformation operators for signed distance fields. " alt="" coords="1169,169,1377,211"/>
+<area shape="rect" id="node4" href="$EBGeometry__SignedDistanceFunction_8hpp.html" title="Abstract base class for representing a signed distance function. " alt="" coords="606,259,795,300"/>
+<area shape="rect" id="node5" href="$EBGeometry__AnalyticDistanceFunctions_8hpp.html" title="Declaration of various analytic distance functions. " alt="" coords="5,348,201,389"/>
+<area shape="rect" id="node7" href="$EBGeometry__SignedDistanceFunctionImplem_8hpp.html" title="Implementation of EBGeometry_SignedDistanceFunctionImplem.hpp. " alt="" coords="893,348,1085,389"/>
+<area shape="rect" id="node8" href="$EBGeometry__Union_8hpp.html" title="Declaration of a union operator for creating multi&#45;object scenes. " alt="" coords="301,355,509,382"/>
+<area shape="rect" id="node9" href="$EBGeometry__UnionImplem_8hpp.html" title="Implementation of EBGeometry_Union.hpp. " alt="" coords="162,445,413,471"/>
+<area shape="rect" id="node10" href="$EBGeometry__UnionBVH_8hpp.html" title="Declaration of a union operator for creating multi&#45;object scenes. " alt="" coords="583,355,819,382"/>
+<area shape="rect" id="node11" href="$EBGeometry__UnionBVHImplem_8hpp.html" title="Implementation of EBGeometry_UnionBVH.hpp. " alt="" coords="488,445,767,471"/>
+<area shape="rect" id="node12" href="$EBGeometry__TransformOpsImplem_8hpp.html" title="Implementation of EBGeometry_TransformOps.hpp. " alt="" coords="1291,259,1499,300"/>
+<area shape="rect" id="node13" href="$EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp. " alt="" coords="1553,177,1793,203"/>
+<area shape="rect" id="node15" href="$EBGeometry__BoundingVolumesImplem_8hpp.html" title="Implementation of EBGeometry_BoundingVolumes.hpp. " alt="" coords="1697,259,1899,300"/>
+<area shape="rect" id="node16" href="$EBGeometry__BVH_8hpp.html" title="Declaration of a bounding volume hierarchy (BVH) class. " alt="" coords="891,177,1094,203"/>
+<area shape="rect" id="node17" href="$EBGeometry__BVHImplem_8hpp.html" title="Implementation of EBGeometry_BVH.hpp. " alt="" coords="870,266,1115,293"/>
+<area shape="rect" id="node18" href="$EBGeometry__DcelBVH_8hpp.html" title="File which contains partitioners and lambdas for enclosing dcel_face in bounding volume heirarchies..." alt="" coords="1230,355,1459,382"/>
+<area shape="rect" id="node19" href="$EBGeometry__DcelFace_8hpp.html" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations. " alt="" coords="2093,266,2324,293"/>
+<area shape="rect" id="node20" href="$EBGeometry__DcelVertex_8hpp.html" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations. " alt="" coords="2857,355,3096,382"/>
+<area shape="rect" id="node21" href="$EBGeometry__DcelVertexImplem_8hpp.html" title="Implementation of EBGeometry_DcelVertex.hpp. " alt="" coords="2837,765,3052,807"/>
+<area shape="rect" id="node22" href="$EBGeometry__DcelEdgeImplem_8hpp.html" title="Implementation of EBGeometry_DcelEdge.hpp. " alt="" coords="2416,437,2623,479"/>
+<area shape="rect" id="node23" href="$EBGeometry__DcelEdge_8hpp.html" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations. " alt="" coords="2240,527,2471,553"/>
+<area shape="rect" id="node24" href="$EBGeometry__DcelIteratorImplem_8hpp.html" title="Implementation of EBGeometry_DcelIterator.hpp. " alt="" coords="2557,601,2775,643"/>
+<area shape="rect" id="node25" href="$EBGeometry__DcelIterator_8hpp.html" title="Declaration of iterators for DCEL surface Tesselations. " alt="" coords="2533,691,2775,717"/>
+<area shape="rect" id="node26" href="$EBGeometry__DcelFaceImplem_8hpp.html" title="Implementation of EBGeometry_DcelFace.hpp. " alt="" coords="1741,765,1946,807"/>
+<area shape="rect" id="node27" href="$EBGeometry__DcelMeshImplem_8hpp.html" title="Implementation of EBGeometry_DcelMesh.hpp. " alt="" coords="2021,765,2229,807"/>
+<area shape="rect" id="node28" href="$EBGeometry__DcelMesh_8hpp.html" title="Declaration of a mesh class which stores a DCEL mesh (with signed distance functions) ..." alt="" coords="1995,855,2228,881"/>
+<area shape="rect" id="node29" href="$EBGeometry__DcelParser_8hpp.html" title="Declaration of utilities for passing data into DCEL structures. " alt="" coords="2271,1019,2509,1045"/>
+<area shape="rect" id="node30" href="$EBGeometry__DcelParserImplem_8hpp.html" title="Implementation of EBGeometry_DcelParser.hpp. " alt="" coords="2355,929,2569,971"/>
+<area shape="rect" id="node31" href="$EBGeometry__DcelPolygon2D_8hpp.html" title="Declaration of a two&#45;dimensional polygon class for embedding 3D polygon faces. " alt="" coords="2247,169,2477,211"/>
+<area shape="rect" id="node32" href="$EBGeometry__DcelPolygon2DImplem_8hpp.html" title="Implementation of DcelPolygon.hpp. " alt="" coords="2348,259,2579,300"/>
+<area shape="rect" id="node33" href="$EBGeometry__Dcel_8hpp.html" title="Namespace documentation. " alt="" coords="2851,95,3052,121"/>
+<area shape="rect" id="node14" href="$EBGeometry__BoundingVolumes_8hpp.html" title="Declaration of a various bounding volumes used for bounding volume hierarchy. " alt="" coords="1817,169,2019,211"/>
+<area shape="rect" id="node6" href="$EBGeometry_8hpp_source.html" title="EBGeometry.hpp" alt="" coords="1490,1093,1613,1120"/>
 </map>
