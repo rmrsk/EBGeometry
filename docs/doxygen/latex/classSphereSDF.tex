@@ -1,0 +1,127 @@
+\hypertarget{classSphereSDF}{}\section{Sphere\+S\+DF$<$ T $>$ Class Template Reference}
+\label{classSphereSDF}\index{Sphere\+S\+D\+F$<$ T $>$@{Sphere\+S\+D\+F$<$ T $>$}}
+
+
+Signed distance field for sphere.  
+
+
+
+
+{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp$>$}
+
+
+
+Inheritance diagram for Sphere\+S\+DF$<$ T $>$\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=227pt]{classSphereSDF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Sphere\+S\+DF$<$ T $>$\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=227pt]{classSphereSDF__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classSphereSDF_a87b40869b91424d85692216a3268289b}\label{classSphereSDF_a87b40869b91424d85692216a3268289b}} 
+\hyperlink{classSphereSDF_a87b40869b91424d85692216a3268289b}{Sphere\+S\+DF} ()
+\begin{DoxyCompactList}\small\item\em Disallowed weak construction. Use one of the full constructors. \end{DoxyCompactList}\item 
+\hyperlink{classSphereSDF_a3e555062b1b20c1729a9f4ab6136add4}{Sphere\+S\+DF} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+center, const T \&a\+\_\+radius, const bool a\+\_\+flip\+Inside)
+\begin{DoxyCompactList}\small\item\em Default constructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classSphereSDF_a2c25f14a19fcb910cd4d48af7123185a}\label{classSphereSDF_a2c25f14a19fcb910cd4d48af7123185a}} 
+\hyperlink{classSphereSDF_a2c25f14a19fcb910cd4d48af7123185a}{Sphere\+S\+DF} (const \hyperlink{classSphereSDF}{Sphere\+S\+DF} \&a\+\_\+other)
+\begin{DoxyCompactList}\small\item\em Copy constructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classSphereSDF_ab5980286d17bb9da7425b4d9d4045850}\label{classSphereSDF_ab5980286d17bb9da7425b4d9d4045850}} 
+virtual \hyperlink{classSphereSDF_ab5980286d17bb9da7425b4d9d4045850}{$\sim$\+Sphere\+S\+DF} ()=default
+\begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classSphereSDF_a82922ae162a9b96279cc4d0d866b303d}\label{classSphereSDF_a82922ae162a9b96279cc4d0d866b303d}} 
+const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \& \hyperlink{classSphereSDF_a82922ae162a9b96279cc4d0d866b303d}{get\+Center} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get center. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classSphereSDF_a4f3a9220bfe2fc817131f655ce6f30cd}\label{classSphereSDF_a4f3a9220bfe2fc817131f655ce6f30cd}} 
+\hyperlink{classVec3T}{Vec3T}$<$ T $>$ \& \hyperlink{classSphereSDF_a4f3a9220bfe2fc817131f655ce6f30cd}{get\+Center} () noexcept
+\begin{DoxyCompactList}\small\item\em Get center. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classSphereSDF_a2cdc1f42f3de4c0ca017571910fbe72c}\label{classSphereSDF_a2cdc1f42f3de4c0ca017571910fbe72c}} 
+const T \& \hyperlink{classSphereSDF_a2cdc1f42f3de4c0ca017571910fbe72c}{get\+Radius} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get radius. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classSphereSDF_a09245289037ae77adf204160c0d5b9cc}\label{classSphereSDF_a09245289037ae77adf204160c0d5b9cc}} 
+T \& \hyperlink{classSphereSDF_a09245289037ae77adf204160c0d5b9cc}{get\+Radius} () noexcept
+\begin{DoxyCompactList}\small\item\em Get radius. \end{DoxyCompactList}\item 
+virtual T \hyperlink{classSphereSDF_a9b0c5f0b1af2c4b62bee1c873e0158e8}{signed\+Distance} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Signed distance function for sphere. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classSphereSDF_ab3caacb26a72b3ada01f09a248f5cb83}\label{classSphereSDF_ab3caacb26a72b3ada01f09a248f5cb83}} 
+\hyperlink{classVec3T}{Vec3T}$<$ T $>$ \hyperlink{classSphereSDF_ab3caacb26a72b3ada01f09a248f5cb83}{m\+\_\+center}
+\begin{DoxyCompactList}\small\item\em Sphere center. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classSphereSDF_ac4b0f786ea2b53530512ce3fa4e7bdbd}\label{classSphereSDF_ac4b0f786ea2b53530512ce3fa4e7bdbd}} 
+T \hyperlink{classSphereSDF_ac4b0f786ea2b53530512ce3fa4e7bdbd}{m\+\_\+radius}
+\begin{DoxyCompactList}\small\item\em Sphere radius. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classSphereSDF_a9a32a668648c166b41c5d1c3981c9579}\label{classSphereSDF_a9a32a668648c166b41c5d1c3981c9579}} 
+bool \hyperlink{classSphereSDF_a9a32a668648c166b41c5d1c3981c9579}{m\+\_\+flip\+Inside}
+\begin{DoxyCompactList}\small\item\em For flipping sign. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Sphere\+S\+D\+F$<$ T $>$}
+
+Signed distance field for sphere. 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classSphereSDF_a3e555062b1b20c1729a9f4ab6136add4}\label{classSphereSDF_a3e555062b1b20c1729a9f4ab6136add4}} 
+\index{Sphere\+S\+DF@{Sphere\+S\+DF}!Sphere\+S\+DF@{Sphere\+S\+DF}}
+\index{Sphere\+S\+DF@{Sphere\+S\+DF}!Sphere\+S\+DF@{Sphere\+S\+DF}}
+\subsubsection{\texorpdfstring{Sphere\+S\+D\+F()}{SphereSDF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\hyperlink{classSphereSDF}{Sphere\+S\+DF}$<$ T $>$\+::\hyperlink{classSphereSDF}{Sphere\+S\+DF} (\begin{DoxyParamCaption}\item[{const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&}]{a\+\_\+center,  }\item[{const T \&}]{a\+\_\+radius,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Default constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+center} & Sphere center \\
+\hline
+\mbox{\tt in}  & {\em a\+\_\+radius} & Sphere radius \\
+\hline
+\mbox{\tt in}  & {\em a\+\_\+flip\+Inside} & Flip inside or not \\
+\hline
+\end{DoxyParams}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classSphereSDF_a9b0c5f0b1af2c4b62bee1c873e0158e8}\label{classSphereSDF_a9b0c5f0b1af2c4b62bee1c873e0158e8}} 
+\index{Sphere\+S\+DF@{Sphere\+S\+DF}!signed\+Distance@{signed\+Distance}}
+\index{signed\+Distance@{signed\+Distance}!Sphere\+S\+DF@{Sphere\+S\+DF}}
+\subsubsection{\texorpdfstring{signed\+Distance()}{signedDistance()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+virtual T \hyperlink{classSphereSDF}{Sphere\+S\+DF}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Signed distance function for sphere. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+point} & Position. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{Signed\+Distance\+Function$<$ T $>$}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Source/\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp}{E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp}\end{DoxyCompactItemize}

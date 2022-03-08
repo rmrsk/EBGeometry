@@ -87,16 +87,13 @@ public:
   }
 
   /*!
-    @brief Signed distance function
+    @brief Signed distance function for sphere. 
+    @param[in] a_point Position.
   */
   virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override {
     const T sign = m_flipInside ? -1.0 : 1.0;
     
-    return sign * (m_radius - (a_point-m_center).length());
-  }
-
-  virtual T unsignedDistance2(const Vec3T<T>& a_point) const noexcept override {
-    return std::abs((a_point - m_center).length2() - m_radius*m_radius);
+    return sign * ((a_point - m_center).length() - m_radius);
   }
   
 protected:

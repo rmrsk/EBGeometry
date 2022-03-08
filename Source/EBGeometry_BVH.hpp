@@ -175,9 +175,9 @@ namespace BVH {
 
     /*!
       @brief Function for using top-down construction of the bounding volume hierarchy. 
-      @param[in] a_stopFunc Termination function which tells us when to stop the recursion. 
-      @param[in] a_partFunc Partitioning function. This is a polymorphic function which divides a set of primitives into two lists. 
-      @param[in] a_bvFunc   Polymorphic function which builds a bounding volume from a set of primitives. 
+      @param[in] a_bvConstructor Polymorphic function which builds a bounding volume from a set of primitives. 
+      @param[in] a_partitioner   Partitioning function. This is a polymorphic function which divides a set of primitives into two lists. 
+      @param[in] a_stopCrit      Termination function which tells us when to stop the recursion. 
       @details The rules for terminating the hierarchy construction, how to partition sets of primitives, and how to enclose them by bounding volumes are
       given in the input arguments (a_stopFunc, a_partFunc, a_bvFunc)
     */
@@ -209,8 +209,8 @@ namespace BVH {
 
     /*!
       @brief Function which computes the signed distance
-      @param[in] a_point 3D point in space
-      @param[in] a_whichPruning Pruning algorithm
+      @param[in] a_point   3D point in space
+      @param[in] a_pruning Pruning algorithm
       @return Signed distance to the input point
       @details This will select amongs the various implementations. 
     */
@@ -490,7 +490,7 @@ namespace BVH {
 
     /*!
       @brief Set the bounding volume
-      @param[in] a_bv Bounding volume for this node. 
+      @param[in] a_boundingVolume Bounding volume for this node. 
     */
     inline
     void setBoundingVolume(const BV& a_boundingVolume) noexcept;
@@ -651,7 +651,8 @@ namespace BVH {
 
     /*!
       @brief Function which computes the signed distance
-      @param[in] a_point 3D point in space
+      @param[in] a_point   3D point in space
+      @param[in] a_pruning Pruning algorithm. 
     */
     inline
     T signedDistance(const Vec3& a_point, const Prune a_pruning = Prune::Ordered2) const noexcept;    
