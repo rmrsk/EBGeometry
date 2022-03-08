@@ -4,7 +4,7 @@
  */
 
 /*!
-  @file   EBGeometry_BoundingVolumes.H
+  @file   EBGeometry_BoundingVolumes.hpp
   @brief  Declaration of a various bounding volumes used for bounding volume hierarchy. 
   @author Robert Marskar
 */
@@ -58,7 +58,7 @@ namespace BoundingVolumes {
 
     /*!
       @brief Full constructor. Constructs a bounding sphere that encloses all the other bounding spheres
-      @param[in] a_others Other bounding spheres.
+      @param[in] a_otherSpheres Other bounding spheres.
     */
     BoundingSphereT(const std::vector<BoundingSphereT<T> >& a_otherSpheres);
 
@@ -91,7 +91,7 @@ namespace BoundingVolumes {
     */
     template <class P>
     inline
-    void define(const std::vector<Vec3T<P> >& a_points, const BoundingVolumeAlgorithm& a_algorithm) noexcept;
+    void define(const std::vector<Vec3T<P> >& a_points, const BoundingVolumeAlgorithm& a_alg) noexcept;
 
     /*!
       @brief Check if this bounding sphere intersect another bounding sphere
@@ -219,7 +219,7 @@ namespace BoundingVolumes {
       @brief Constructor which creates an AABB which encloses a set of other AABBs. 
       @param[in] a_others Other bounding boxes
     */    
-    AABBT(const std::vector<AABBT>& a_others);
+    AABBT(const std::vector<AABBT<T> >& a_others);
 
     /*!
       @brief Destructor (does nothing)

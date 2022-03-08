@@ -1,0 +1,288 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>DCEL mesh structure &mdash; EBGeometry 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Bounding volume hierarchies" href="BVH.html" />
+    <link rel="prev" title="Basic concepts" href="Concepts.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> EBGeometry
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html">Basic concepts</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">DCEL mesh structure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basic-concept">Basic concept</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#signed-distance">Signed distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#normal-vectors">Normal vectors</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">EBGeometry</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>DCEL mesh structure</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/DCEL.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="dcel-mesh-structure">
+<span id="chap-dcel"></span><h1>DCEL mesh structure<a class="headerlink" href="#dcel-mesh-structure" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="basic-concept">
+<h2>Basic concept<a class="headerlink" href="#basic-concept" title="Permalink to this headline">¶</a></h2>
+<p>EBGeometry uses a doubly-connected edge list (DCEL) structure for storing surface meshes.
+The DCEL structures consist of the following objects:</p>
+<ul class="simple">
+<li><p>Planar polygons (facets)</p></li>
+<li><p>Half-edges</p></li>
+<li><p>Vertices</p></li>
+</ul>
+<p>As shown in <a class="reference internal" href="#fig-dcel"><span class="std std-numref">Fig. 1</span></a>, the half-edge is the most important data structure.
+Half-edges circulate the inside of the facet, with pointer-access to the previous and next half-edge.
+A half-edge also stores a reference to it’s starting vertex, as well as a reference to it’s pair-edge.
+From the DCEL structure we can easily obtain all edges or vertices belonging to a single facet, and also “jump” to a neighboring facet by fetching the pair edge.</p>
+<div class="figure align-center" id="id2">
+<span id="fig-dcel"></span><a class="reference internal image-reference" href="_images/DCEL.png"><img alt="_images/DCEL.png" src="_images/DCEL.png" style="width: 480px;" /></a>
+<p class="caption"><span class="caption-number">Fig. 1 </span><span class="caption-text">DCEL mesh structure. Each half-edge stores references to previous/next half-edges, the pair edge, and the starting vertex.
+Vertices store a coordinate as well as a reference to one of the outgoing half-edges.</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+</div>
+<p>In EBGeometry the half-edge data structure is implemented in it’s own namespace <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel</span></code>.
+This is a comparatively standard implementation of the DCEL structure, supplemented by functions that permit signed distance computations to various features on such a mesh.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>A signed distance field requires a <em>watertight and orientable</em> surface mesh.
+If the surface mesh consists of holes or flipped facets, the signed distance function does not exist.</p>
+</div>
+</div>
+<div class="section" id="signed-distance">
+<h2>Signed distance<a class="headerlink" href="#signed-distance" title="Permalink to this headline">¶</a></h2>
+<p>When computing the signed distance function, the closest point on the surface mesh can be one of the vertices, (half-) edges, or faces, see <a class="reference internal" href="#fig-polygonprojection"><span class="std std-numref">Fig. 2</span></a>.</p>
+<div class="figure align-center" id="id3">
+<span id="fig-polygonprojection"></span><a class="reference internal image-reference" href="_images/PolygonProjection.png"><img alt="_images/PolygonProjection.png" src="_images/PolygonProjection.png" style="width: 240px;" /></a>
+<p class="caption"><span class="caption-number">Fig. 2 </span><span class="caption-text">Possible closest-feature cases after projecting a point <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the plane of a polygon face.</span><a class="headerlink" href="#id3" title="Permalink to this image">¶</a></p>
+</div>
+<p>It is therefore necessary to distinguish between three cases:</p>
+<ol class="arabic">
+<li><p><strong>Facet/Polygon face</strong>.</p>
+<p>When computing the distance from a point <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the polygon face we first determine if the projection of <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the face’s plane lies inside or outside the face.
+This is more involved than one might think, and it is done by first computing the two-dimensional projection of the polygon face, ignoring one of the coordinates.
+Next, we determine, using 2D algorithms, if the projected point lies inside the embedded 2D representation of the polygon face.
+Various algorithms for this are available, such as computing the winding number, the crossing number, or the subtended angle between the point and the 2D polygon.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>EBGeometry uses the crossing number algorithm by default.</p>
+</div>
+<p>If the point projects to the inside of the face, the signed distance is just <span class="math notranslate nohighlight">\(d = \mathbf{n}_f\cdot\left(\mathbf{x} - \mathbf{x}_f\right)\)</span> where <span class="math notranslate nohighlight">\(\mathbf{n}_f\)</span> is the face normal and <span class="math notranslate nohighlight">\(\mathbf{x}_f\)</span> is a point on the face plane (e.g., a vertex).
+If the point projects to <em>outside</em> the polygon face, the closest feature is either an edge or a vertex.</p>
+</li>
+<li><p><strong>Edge</strong>.</p>
+<p>When computing the signed distance to an edge, the edge is parametrized as <span class="math notranslate nohighlight">\(\mathbf{e}(t) = \mathbf{x}_0 + \left(\mathbf{x}_1 - \mathbf{x}_0\right)t\)</span>, where <span class="math notranslate nohighlight">\(\mathbf{x}_0\)</span> and <span class="math notranslate nohighlight">\(\mathbf{x}_1\)</span> are the starting and ending vertex coordinates.
+The point <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> is projected to this line, and if the projection yields <span class="math notranslate nohighlight">\(t^\prime \in [0,1]\)</span> then the edge is the closest point.
+In that case the signed distance is the projected distance and the sign is given by the sign of <span class="math notranslate nohighlight">\(\mathbf{n}_e\cdot\left(\mathbf{x} - \mathbf{x}_0\right)\)</span> where <span class="math notranslate nohighlight">\(\mathbf{n}_e\)</span> is the pseudonormal vector of the edge.
+Otherwise, the closest point is one of the vertices.</p>
+</li>
+<li><p><strong>Vertex</strong>.</p>
+<p>If the closest point is a vertex then the signed distance is simply <span class="math notranslate nohighlight">\(\mathbf{n}_v\cdot\left(\mathbf{x}-\mathbf{x}_v\right)\)</span> where <span class="math notranslate nohighlight">\(\mathbf{n}_v\)</span> is the vertex pseudonormal and <span class="math notranslate nohighlight">\(\mathbf{x}_v\)</span> is the vertex position.</p>
+</li>
+</ol>
+</div>
+<div class="section" id="normal-vectors">
+<h2>Normal vectors<a class="headerlink" href="#normal-vectors" title="Permalink to this headline">¶</a></h2>
+<p>The normal vectors for edges (<span class="math notranslate nohighlight">\(\mathbf{n}_e\)</span>) and vertices (<span class="math notranslate nohighlight">\(\mathbf{n}_v\)</span>) are not uniquely defined.
+For both edges and vertices we use the pseudonormals from <span id="id1">[<a class="reference internal" href="ZZReferences.html#id2" title="J.A. Baerentzen and H. Aanaes. Signed distance computation using the angle weighted pseudonormal. IEEE Transactions on Visualization and Computer Graphics, 11(3):243-253, 2005. doi:10.1109/TVCG.2005.49.">1</a>]</span>:</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{n}_{e} = \frac{1}{2}\left(\mathbf{n}_{f} + \mathbf{n}_{f^\prime}\right).\]</div>
+<p>where <span class="math notranslate nohighlight">\(f\)</span> and <span class="math notranslate nohighlight">\(f^\prime\)</span> are the two faces connecting the edge.
+The vertex pseudonormal are given by</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{n}_{v} = \frac{\sum_i\alpha_i\mathbf{n}_{f_i}}{\left|\sum_i\alpha_i\right|},\]</div>
+<p>where the sum runs over all faces which share <span class="math notranslate nohighlight">\(v\)</span> as a vertex, and where <span class="math notranslate nohighlight">\(\alpha_i\)</span> is the subtended angle of the face <span class="math notranslate nohighlight">\(f_i\)</span>, see <a class="reference internal" href="#fig-pseudonormal"><span class="std std-numref">Fig. 3</span></a>.</p>
+<div class="figure align-center" id="id4">
+<span id="fig-pseudonormal"></span><a class="reference internal image-reference" href="_images/Pseudonormal.png"><img alt="_images/Pseudonormal.png" src="_images/Pseudonormal.png" style="width: 240px;" /></a>
+<p class="caption"><span class="caption-number">Fig. 3 </span><span class="caption-text">Edge and vertex pseudonormals.</span><a class="headerlink" href="#id4" title="Permalink to this image">¶</a></p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="BVH.html" class="btn btn-neutral float-right" title="Bounding volume hierarchies" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="Concepts.html" class="btn btn-neutral float-left" title="Basic concepts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2022, Robert Marskar
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

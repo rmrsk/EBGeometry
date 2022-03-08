@@ -104,9 +104,9 @@ int main() {
     for (int j = 0; j < Ny; j++){
       for (int k = 0; k < Nz; k++){
 
-	const T x = i * (2 * radius);      
-	const T y = j * (2 * radius);      
-	const T z = k * (2 * radius);
+	const T x = i * (3 * radius);
+	const T y = j * (3 * radius);
+	const T z = k * (3 * radius);
 
 	const Vec3 center(x,y,z);
 	

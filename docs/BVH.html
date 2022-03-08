@@ -1,0 +1,286 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Bounding volume hierarchies &mdash; EBGeometry 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Implementation" href="Implementation.html" />
+    <link rel="prev" title="DCEL mesh structure" href="DCEL.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> EBGeometry
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html">Basic concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DCEL.html">DCEL mesh structure</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Bounding volume hierarchies</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basic-concept">Basic concept</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#construction">Construction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#signed-distance-function">Signed distance function</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Implementation.html">Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">EBGeometry</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Bounding volume hierarchies</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/BVH.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="bounding-volume-hierarchies">
+<span id="chap-bvh"></span><h1>Bounding volume hierarchies<a class="headerlink" href="#bounding-volume-hierarchies" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="basic-concept">
+<h2>Basic concept<a class="headerlink" href="#basic-concept" title="Permalink to this headline">¶</a></h2>
+<p>Bounding Volume Hierarchies (BVHs) are comparatively simple data structures that can accelerate closest-point searches by orders of magnitude.
+BVHs are tree structures where the regular nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces) further down in the hierarchy.
+There are two types of nodes in a BVH:</p>
+<ul class="simple">
+<li><p><em>Regular nodes</em>, which do not contain any of the primitives/objects, but stores references to child nodes.</p></li>
+<li><p><em>Leaf nodes</em>, which contain a subset of the primitives.</p></li>
+</ul>
+<p>Both types of nodes contain a <em>bounding volume</em> which closes all geometric primitives in the subtree below the node.</p>
+<p><a class="reference internal" href="#fig-trianglesbvh"><span class="std std-numref">Fig. 4</span></a> shows a concept of BVH partitioning of a set of triangles.
+Here, <span class="math notranslate nohighlight">\(P\)</span> is a regular node whose bounding volume encloses all geometric primitives in it’s subtree.</p>
+<div class="figure align-center" id="id1">
+<span id="fig-trianglesbvh"></span><a class="reference internal image-reference" href="_images/TrianglesBVH.png"><img alt="_images/TrianglesBVH.png" src="_images/TrianglesBVH.png" style="width: 480px;" /></a>
+<p class="caption"><span class="caption-number">Fig. 4 </span><span class="caption-text">Example of BVH partitioning for enclosing triangles. The regular node <span class="math notranslate nohighlight">\(P\)</span> contains two leaf nodes <span class="math notranslate nohighlight">\(L\)</span> and <span class="math notranslate nohighlight">\(R\)</span> which contain the primitives (triangles).</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</div>
+<p>There is no fundamental limitation to what type of primitives/objects can be enclosed in BVHs, which makes BVHs useful beyond triangulated data sets.
+For example, analytic signed distance functions can also be embedded in BVHs, provided that we can construct a bounding volume that encloses the object.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>BVHs are not limited to binary trees.
+EBGeometry supports <span class="math notranslate nohighlight">\(k\)</span> -ary trees where each regular node has <span class="math notranslate nohighlight">\(k\)</span> children nodes.</p>
+</div>
+</div>
+<div class="section" id="construction">
+<h2>Construction<a class="headerlink" href="#construction" title="Permalink to this headline">¶</a></h2>
+<p>BVHs have extremely flexible rules regarding their construction.
+Since they are hierarchical structures, the only requirement when dividing a leaf node is that each child node gets at least one primitive.</p>
+<p>Although the rules for BVH construction are flexible, performant BVHs are completely reliant on having balanced trees with the following heuristic properties:</p>
+<ul class="simple">
+<li><p>Bounding volumes should enclose primitives as tightly as possible.</p></li>
+<li><p>There should be a minimal overlap between the bounding volumes.</p></li>
+<li><p>The BVH trees should be approximately <em>balanced</em>.</p></li>
+</ul>
+<p>Construction of a BVH is usually done recursively, from top to bottom (so-called top-down construction).
+Alternative construction methods also exist, but are not used in EBGeometry.
+In this case one can represent the BVH construction of a <span class="math notranslate nohighlight">\(k\)</span> -ary tree is done through a single function:</p>
+<div class="math notranslate nohighlight">
+\[\textrm{Partition}\left(\vec{O}\right): \vec{O} \rightarrow \left(\vec{O}_1, \vec{O}_2, \ldots, \vec{O}_k\right),\]</div>
+<p>where <span class="math notranslate nohighlight">\(\vec{O}\)</span> is an input a list of objects/primitives, which is <em>partitioned</em> into <span class="math notranslate nohighlight">\(k\)</span> new list of primitives.
+Note that the lists <span class="math notranslate nohighlight">\(\vec{O}_i\)</span> do not contain duplicates.
+Top-down construction can thus be illustrated as a recursive procedure:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>topDownConstruction(Objects):
+   partitionedObjects = Partition(Objects)
+
+   forall p in partitionedObjects:
+      child = insertChildNode(newObjects)
+
+      if(enoughPrimitives(child)):
+         child.topDownConstruction(child.objects)
+</pre></div>
+</div>
+<p>In practice, the above procedure is supplemented by more sophisticated criteria for terminating the recursion, as well as routines for creating the bounding volumes around the newly inserted nodes.</p>
+</div>
+<div class="section" id="signed-distance-function">
+<h2>Signed distance function<a class="headerlink" href="#signed-distance-function" title="Permalink to this headline">¶</a></h2>
+<p>When computing the signed distance function to objects embedded in a BVH, one takes advantage of the hierarcical embedding of the primitives.
+Consider the case in <a class="reference internal" href="#fig-treepruning"><span class="std std-numref">Fig. 5</span></a>, where the goal of the BVH traversal is to minimize the number of branches and nodes that are visited.
+We consider the following steps:</p>
+<ul class="simple">
+<li><p>When descending from node <span class="math notranslate nohighlight">\(P\)</span> we determine that we first investigate the left subtree (node <span class="math notranslate nohighlight">\(A\)</span>) since its bounding volume is closer than the bounding volumes for the other subtree.
+The other subtree will be investigated later.</p></li>
+<li><p>Since <span class="math notranslate nohighlight">\(A\)</span> is a leaf node, we find the signed distance from <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the primitives in <span class="math notranslate nohighlight">\(A\)</span>.</p></li>
+<li><p>When moving back to <span class="math notranslate nohighlight">\(P\)</span>, we find that the distance to the primitives in <span class="math notranslate nohighlight">\(A\)</span> is shorter than the distance from <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the bounding volume that encloses nodes <span class="math notranslate nohighlight">\(B\)</span> and <span class="math notranslate nohighlight">\(C\)</span>.
+Consequently, the entire subtree containing <span class="math notranslate nohighlight">\(B\)</span> and <span class="math notranslate nohighlight">\(C\)</span> can be pruned.</p></li>
+</ul>
+<div class="figure align-center" id="id2">
+<span id="fig-treepruning"></span><a class="reference internal image-reference" href="_images/TreePruning.png"><img alt="_images/TreePruning.png" src="_images/TreePruning.png" style="width: 480px;" /></a>
+<p class="caption"><span class="caption-number">Fig. 5 </span><span class="caption-text">Example of BVH tree pruning.</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Implementation.html" class="btn btn-neutral float-right" title="Implementation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="DCEL.html" class="btn btn-neutral float-left" title="DCEL mesh structure" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2022, Robert Marskar
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

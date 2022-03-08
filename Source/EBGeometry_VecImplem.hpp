@@ -438,12 +438,6 @@ Vec3T<T> operator*(const T& s, const Vec3T<T>& a_other) noexcept {
 
 template <class T>
 inline
-Vec3T<T> operator*(const Vec3T<T>& u, const Vec3T<T>& v) noexcept {
-  return u * v;
-}
-
-template <class T>
-inline
 Vec3T<T> operator/(const T& s, const Vec3T<T>& a_other) noexcept {
   return a_other/s;
 }
