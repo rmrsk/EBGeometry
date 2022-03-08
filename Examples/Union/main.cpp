@@ -104,9 +104,9 @@ int main() {
     for (int j = 0; j < Ny; j++){
       for (int k = 0; k < Nz; k++){
 
-	const T x = i * (2 * radius);      
-	const T y = j * (2 * radius);      
-	const T z = k * (2 * radius);
+	const T x = i * (3 * radius);
+	const T y = j * (3 * radius);
+	const T z = k * (3 * radius);
 
 	const Vec3 center(x,y,z);
 	
@@ -127,8 +127,8 @@ int main() {
     const Vec3& c = sph.getCenter();
     const T&    r = sph.getRadius();
     
-    const Vec3 lo = c - r*Vec3::one();
-    const Vec3 hi = c + r*Vec3::one();
+    const Vec3 lo = c - 1.001*r*Vec3::one();
+    const Vec3 hi = c + 1.001*r*Vec3::one();
 
     return AABB(lo, hi);
   };
