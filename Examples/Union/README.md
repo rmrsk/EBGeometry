@@ -32,3 +32,5 @@ Typical output
     Distance and time using standard union = -1, which took 26.7353 ms
     Distance and time using optimize union = -1, which took 0.003527 ms
     Speedup = 7580.19
+
+One can see that the optimized union took about 3.5 microseconds to compute, while the standard union (which iterates through every sphere) was about 7500 times slower.
