@@ -79,8 +79,6 @@ namespace Dcel {
       inline
       static void readASCII(Mesh& a_mesh, const std::string a_filename);
 
-
-
     protected:
 
       /*!
@@ -109,9 +107,11 @@ namespace Dcel {
 
       /*!
 	@brief Read ASCII faces and create mesh connectivity. 
-	@param[out] a_faces DCEL faces. Constructured in this routine. 
-	@param[out] a_edges DCEL edges. Constructured in this routine. 
-	@param[out] a_vertices DCEL edges. Constructured in readVerticesASCII. 
+	@param[out]   a_faces       DCEL faces. Constructured in this routine. 
+	@param[out]   a_edges       DCEL edges. Constructured in this routine. 
+	@param[out]   a_vertices    DCEL edges. Constructured in readVerticesASCII. 
+	@param[in]    a_numFaces    Total number of faces in mesh. 
+	@param[inout] a_inputStream Input stream
 	@note The next getline() from inputStream must read the first face, i.e. we assume that read_ascii_vertices was called IMMEDIATELY before this function. 
 	That function will center the fstream on the correct line in the input file. 
       */

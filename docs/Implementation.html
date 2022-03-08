@@ -1,0 +1,386 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Implementation &mdash; EBGeometry 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="References" href="ZZReferences.html" />
+    <link rel="prev" title="Bounding volume hierarchies" href="BVH.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> EBGeometry
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html">Basic concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DCEL.html">DCEL mesh structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Implementation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#vector-types">Vector types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#bounding-volume-hierarchy">Bounding volume hierarchy</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#bounding-volumes">Bounding volumes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#construction">Construction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#full-representation">Full representation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#compact-representation">Compact representation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#dcel">DCEL</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#file-parsers">File parsers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bvh-integration">BVH integration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#signed-distance-function">Signed distance function</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#transformations">Transformations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#analytic-functions">Analytic functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#unions">Unions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#standard-union">Standard union</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#accelerated-union">Accelerated union</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">EBGeometry</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Implementation</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/Implementation.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="implementation">
+<span id="chap-implementation"></span><h1>Implementation<a class="headerlink" href="#implementation" title="Permalink to this headline">¶</a></h1>
+<p>Here, we consider the basic EBGeometry API.
+EBGeometry is a header-only library, implemented under it’s own namespace <code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code>.
+Various major components, like BVHs and DCEL, are implemented under namespaces <code class="docutils literal notranslate"><span class="pre">EBGeometry::BVH</span></code> and <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel</span></code>.
+Below, we consider a brief introduction to the API and implementation details of EBGeometry.</p>
+<div class="section" id="vector-types">
+<h2>Vector types<a class="headerlink" href="#vector-types" title="Permalink to this headline">¶</a></h2>
+<p>EBGeometry runs it’s own vector types <code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> and <code class="docutils literal notranslate"><span class="pre">Vec3T</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> is a two-dimensional Cartesian vector.
+It is templated as</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span> <span class="n">EBGeometry</span> <span class="p">{</span>
+   <span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+   <span class="k">class</span> <span class="nc">Vec2T</span> <span class="p">{</span>
+   <span class="k">public</span><span class="o">:</span>
+      <span class="n">T</span> <span class="n">x</span><span class="p">;</span> <span class="c1">// First component.</span>
+      <span class="n">T</span> <span class="n">y</span><span class="p">;</span> <span class="c1">// Second component.</span>
+   <span class="p">};</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Most of EBGeometry is written as three-dimensional code, but <code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> is needed for DCEL functionality when determining if a point projects onto the interior or exterior of a planar polygon, see <a class="reference internal" href="DCEL.html#chap-dcel"><span class="std std-ref">DCEL mesh structure</span></a>.
+<code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> has “most” common arithmetic operators like the dot product, length, multiplication operators and so on.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Vec3T</span></code> is a three-dimensional vector type with precision <code class="docutils literal notranslate"><span class="pre">T</span></code>.
+It is templated as</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span> <span class="n">EBGeometry</span> <span class="p">{</span>
+   <span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+   <span class="k">class</span> <span class="nc">Vec3T</span> <span class="p">{</span>
+   <span class="k">public</span><span class="o">:</span>
+      <span class="n">T</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="n">x</span><span class="p">;</span>
+   <span class="p">};</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Like <code class="docutils literal notranslate"><span class="pre">Vec2T</span></code>, <code class="docutils literal notranslate"><span class="pre">Vec3T</span></code> has numerous routines for performing most vector-related operations like addition, subtraction, dot products and so on.</p>
+</div>
+<div class="section" id="bounding-volume-hierarchy">
+<h2>Bounding volume hierarchy<a class="headerlink" href="#bounding-volume-hierarchy" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="bounding-volumes">
+<h3>Bounding volumes<a class="headerlink" href="#bounding-volumes" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="construction">
+<h3>Construction<a class="headerlink" href="#construction" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="full-representation">
+<h3>Full representation<a class="headerlink" href="#full-representation" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="compact-representation">
+<h3>Compact representation<a class="headerlink" href="#compact-representation" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+<div class="section" id="dcel">
+<h2>DCEL<a class="headerlink" href="#dcel" title="Permalink to this headline">¶</a></h2>
+<p>The DCEL functionality exists under the namespace <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel</span></code> and contains the following functionality:</p>
+<ol class="arabic simple">
+<li><p>Fundamental data types like vertices, half-edges, polygons, and entire surface grids.</p></li>
+<li><p>Signed distance functionality for the above types.</p></li>
+<li><p>File parsers for reading files into DCEL structures.</p></li>
+<li><p>Partitioners for putting DCEL grids into bounding volume hierarchies.</p></li>
+</ol>
+<div class="section" id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="file-parsers">
+<h3>File parsers<a class="headerlink" href="#file-parsers" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="bvh-integration">
+<h3>BVH integration<a class="headerlink" href="#bvh-integration" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+<div class="section" id="signed-distance-function">
+<h2>Signed distance function<a class="headerlink" href="#signed-distance-function" title="Permalink to this headline">¶</a></h2>
+<p>In EBGeometry we have encapsulated the concept of a signed distance function in an abstract class</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">SignedDistanceFunction</span> <span class="o">:</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+
+   <span class="kt">void</span> <span class="n">scale</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_scale</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
+   <span class="kt">void</span> <span class="nf">translate</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_translation</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
+   <span class="kt">void</span> <span class="nf">rotate</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="n">a_angle</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">a_axis</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
+
+   <span class="n">T</span> <span class="nf">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="k">protected</span><span class="o">:</span>
+
+   <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">transformPoint</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<p>We point out that the BVH and DCEL functionalities are fundamentally also signed distance functions.
+The <code class="docutils literal notranslate"><span class="pre">SignedDistanceFunction</span></code> class exists so that we have a common entry point for performing distance field manipulations like rotations, scalings, and translations.
+When implementing the <code class="docutils literal notranslate"><span class="pre">signedDistance</span></code> function, one can transform the input point by first calling <code class="docutils literal notranslate"><span class="pre">transformPoint</span></code>.</p>
+<p>For example, in order to rotate a DCEL mesh (without using the BVH accelerator) we can implement the following signed distance function:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">MySignedDistanceFunction</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+   <span class="n">T</span> <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="k">override</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="n">m_mesh</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="k">this</span><span class="o">-&gt;</span><span class="n">transformPoint</span><span class="p">(</span><span class="n">a_point</span><span class="p">));</span>
+   <span class="p">}</span>
+
+<span class="k">protected</span><span class="o">:</span>
+   <span class="c1">// DCEL mesh object, must be constructed externally and supplied to MyDistanceFunction (e.g. through the constructor).</span>
+   <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">MeshT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">m_mesh</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<p>Alternatively, using a BVH structure:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">MySignedDistanceFunction</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+   <span class="n">T</span> <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="k">override</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="n">m_bvh</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="k">this</span><span class="o">-&gt;</span><span class="n">transformPoint</span><span class="p">(</span><span class="n">a_point</span><span class="p">));</span>
+   <span class="p">}</span>
+
+<span class="k">protected</span><span class="o">:</span>
+   <span class="c1">// BVH object, must be constructed externally and supplied to MyDistanceFunction (e.g. through the constructor).</span>
+   <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">LinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">m_bvh</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<div class="section" id="transformations">
+<h3>Transformations<a class="headerlink" href="#transformations" title="Permalink to this headline">¶</a></h3>
+<p>The following transformations are possible:</p>
+<ul class="simple">
+<li><p>Scaling, which defines the operation <span class="math notranslate nohighlight">\(\mathbf{x}^\prime = \mathbf{x}\mathbf{s}\)</span> where <span class="math notranslate nohighlight">\(\mathbf{s}\)</span> is an anisotropic scaling factor.</p></li>
+<li><p>Translation, which defines the operation <span class="math notranslate nohighlight">\(\mathbf{x}^\prime = \mathbf{x} - \mathbf{t}\)</span> where <span class="math notranslate nohighlight">\(\mathbf{t}\)</span> is a translation vector.</p></li>
+<li><p>Rotation, which defines the operation <span class="math notranslate nohighlight">\(\mathbf{x}^\prime = R\left(\mathbf{x}, \theta, a\right)\)</span> where <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> is rotated an angle <span class="math notranslate nohighlight">\(\theta\)</span> around the coordinate axis <span class="math notranslate nohighlight">\(a\)</span>.</p></li>
+</ul>
+<p>Transformations are applied sequentially.
+E.g. the following code will first translate, then 90 degrees about the <span class="math notranslate nohighlight">\(x\)</span>-axis.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">MySignedDistanceFunction</span><span class="o">&lt;</span><span class="nb">float</span><span class="o">&gt;</span> <span class="n">sdf</span><span class="p">;</span>
+
+<span class="n">sdf</span><span class="o">.</span><span class="n">translate</span><span class="p">({</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">});</span>
+<span class="n">sdf</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="mi">90</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="analytic-functions">
+<h3>Analytic functions<a class="headerlink" href="#analytic-functions" title="Permalink to this headline">¶</a></h3>
+<p>Above, we have shown how users can supply a DCEL or BVH structure to implement <code class="docutils literal notranslate"><span class="pre">SignedDistanceFunction</span></code>.
+In addition, the file <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_AnalyticSignedDistanceFunctions.hpp</span></code> defines various other analytic shapes (e.g, a sphere).</p>
+</div>
+</div>
+<div class="section" id="unions">
+<h2>Unions<a class="headerlink" href="#unions" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="standard-union">
+<h3>Standard union<a class="headerlink" href="#standard-union" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="accelerated-union">
+<h3>Accelerated union<a class="headerlink" href="#accelerated-union" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="ZZReferences.html" class="btn btn-neutral float-right" title="References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="BVH.html" class="btn btn-neutral float-left" title="Bounding volume hierarchies" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2022, Robert Marskar
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

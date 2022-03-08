@@ -25,6 +25,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -33,6 +34,7 @@
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="DCEL mesh structure" href="DCEL.html" />
@@ -85,11 +87,13 @@
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Basic concepts</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#signed-distance-fields">Signed distance fields</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#numerical-vector-types">Numerical vector types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#transformations">Transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#unions">Unions</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="DCEL.html">DCEL mesh structure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
 </ul>
 
             
@@ -158,25 +162,48 @@
 <span id="chap-concepts"></span><h1>Basic concepts<a class="headerlink" href="#basic-concepts" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="signed-distance-fields">
 <h2>Signed distance fields<a class="headerlink" href="#signed-distance-fields" title="Permalink to this headline">¶</a></h2>
+<p>The signed distance function is defined as a function <span class="math notranslate nohighlight">\(S: \mathbb{R}^3 \rightarrow \mathbb{R}\)</span>, and returns the <em>signed distance</em> to the object.
+The signed distance function has the additional property:</p>
+<div class="math notranslate nohighlight" id="equation-eikonal">
+<span class="eqno">(1)<a class="headerlink" href="#equation-eikonal" title="Permalink to this equation">¶</a></span>\[\left|\nabla S(\mathbf{x})\right| = 1 \quad\textrm{everywhere}.\]</div>
+<p>In EBGeometry we use the following convention:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}S(\mathbf{x}) =
+\begin{cases}
+&gt; 0, &amp; \textrm{for points outside the object}, \\
+&lt; 0, &amp; \textrm{for points inside the object}.
+\end{cases}\end{split}\]</div>
+<p>Signed distance functions are also <em>implicit functions</em> (but the reverse statement is not true).
+For example, the signed distance function for a sphere with center <span class="math notranslate nohighlight">\(\mathbf{x}_0\)</span> and radius <span class="math notranslate nohighlight">\(R\)</span> can be written</p>
+<div class="math notranslate nohighlight">
+\[S_{\textrm{sph}}\left(\mathbf{x}\right) = \left|\mathbf{x} - \mathbf{x}_0\right| - R.\]</div>
+<p>An example of an implicit function for the same sphere is</p>
+<div class="math notranslate nohighlight">
+\[I_{\textrm{sph}}\left(\mathbf{x}\right) = \left|\mathbf{x} - \mathbf{x}_0\right|^2 - R^2.\]</div>
+<p>An important difference between these is the Eikonal property in <a class="reference internal" href="#equation-eikonal">Eq. 1</a>, ensuring that the signed distance function always returns the exact distance to the object.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>For 2D applications, it is possible to slice the signed distance function through a plane.
+The resulting function is <em>an implicit function</em> rather than a signed distance function.</p>
 </div>
-<div class="section" id="numerical-vector-types">
-<h2>Numerical vector types<a class="headerlink" href="#numerical-vector-types" title="Permalink to this headline">¶</a></h2>
-<p>EBGeometry runs it’s own vector types, <code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> and <code class="docutils literal notranslate"><span class="pre">Vec3T</span></code>.</p>
-<p><code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> is a two-dimensional Cartesian vector.
-It is templated as</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span> <span class="n">EBGeometry</span> <span class="p">{</span>
-   <span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
-   <span class="k">class</span> <span class="nc">Vec2T</span> <span class="p">{</span>
-   <span class="k">public</span><span class="o">:</span>
-      <span class="n">T</span> <span class="n">x</span><span class="p">;</span> <span class="c1">// First component.</span>
-      <span class="n">T</span> <span class="n">y</span><span class="p">;</span> <span class="c1">// Second component.</span>
-   <span class="p">};</span>
-<span class="p">}</span>
-</pre></div>
 </div>
-<p>Most of EBGeometry is written as three-dimensional code, but <code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> is needed for DCEL functionality when determining if a point projects onto the interior or exterior of a planar polygon.
-<code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> has “most” common arithmetic operators like the dot product, length, multiplication operators and so on.</p>
-<p><code class="docutils literal notranslate"><span class="pre">Vec3T</span></code></p>
+<div class="section" id="transformations">
+<h2>Transformations<a class="headerlink" href="#transformations" title="Permalink to this headline">¶</a></h2>
+<p>Signed distance functions retain the Eikonal property for the following set of group transformations:</p>
+<ul class="simple">
+<li><p>Rotations.</p></li>
+<li><p>Translations.</p></li>
+<li><p>Scaling.</p></li>
+</ul>
+</div>
+<div class="section" id="unions">
+<h2>Unions<a class="headerlink" href="#unions" title="Permalink to this headline">¶</a></h2>
+<p>Unions of signed distance fields are also signed distance fields <em>provided that the objects do not intersect or touch</em>.
+For overlapping objects the signed distance function is not well-defined (since the interior and exterior are not well-defined).</p>
+<p>For non-overlapping objects represented as signed distance fields <span class="math notranslate nohighlight">\(\left(S_1\left(\mathbf{x}\right), S_2\left(\mathbf{x}\right), \ldots\right)\)</span>, the composite signed distance field is</p>
+<div class="math notranslate nohighlight">
+\[S\left(\mathbf{x}\right) = S_k\left(\mathbf{x}\right),\]</div>
+<p>where <span class="math notranslate nohighlight">\(k\)</span> is index of the closest object (which is found by evaluating <span class="math notranslate nohighlight">\(\left|S_i\left(\mathbf{x}\right)\right|\)</span>.</p>
 </div>
 </div>
 

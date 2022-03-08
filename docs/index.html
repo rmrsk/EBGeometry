@@ -25,6 +25,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -33,6 +34,7 @@
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Introduction" href="Introduction.html" /> 
@@ -85,6 +87,8 @@
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html">Basic concepts</a></li>
 <li class="toctree-l1"><a class="reference internal" href="DCEL.html">DCEL mesh structure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Implementation.html">Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
 </ul>
 
             
@@ -154,6 +158,8 @@
 <p>This is the developer documentation for EBGeometry.
 EBGeometry is a small C++ package for computing signed distance fields from surface tesselations.
 Although it is a self-contained package, it is was originally written for usage with embedded boundary (EB) codes.</p>
+<p>This documentation is the user documentation for EBGeometry.
+A separate Doxygen-generated API of EBGeometry is found <a class="reference external" href="doxygen/html/index.html">here</a>.</p>
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">Contents</span></p>
 <ul>
@@ -165,11 +171,50 @@ Although it is a self-contained package, it is was originally written for usage 
 </li>
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html">Basic concepts</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="Concepts.html#signed-distance-fields">Signed distance fields</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Concepts.html#numerical-vector-types">Numerical vector types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Concepts.html#transformations">Transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Concepts.html#unions">Unions</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="DCEL.html">DCEL mesh structure</a></li>
-<li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DCEL.html">DCEL mesh structure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="DCEL.html#basic-concept">Basic concept</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DCEL.html#signed-distance">Signed distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DCEL.html#normal-vectors">Normal vectors</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="BVH.html#basic-concept">Basic concept</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BVH.html#construction">Construction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BVH.html#signed-distance-function">Signed distance function</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Implementation.html">Implementation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Implementation.html#vector-types">Vector types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Implementation.html#bounding-volume-hierarchy">Bounding volume hierarchy</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Implementation.html#bounding-volumes">Bounding volumes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Implementation.html#construction">Construction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Implementation.html#full-representation">Full representation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Implementation.html#compact-representation">Compact representation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="Implementation.html#dcel">DCEL</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Implementation.html#classes">Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Implementation.html#file-parsers">File parsers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Implementation.html#bvh-integration">BVH integration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="Implementation.html#signed-distance-function">Signed distance function</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Implementation.html#transformations">Transformations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Implementation.html#analytic-functions">Analytic functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="Implementation.html#unions">Unions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Implementation.html#standard-union">Standard union</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Implementation.html#accelerated-union">Accelerated union</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
 </ul>
 </div>
 </div>

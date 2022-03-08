@@ -24,17 +24,21 @@ author = 'Robert Marskar'
 # The full version, including alpha/beta/rc tags
 release = '1.0'
 
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinx.ext.mathjax',
+    'sphinxcontrib.bibtex'    
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+
+# Bib file
+bibtex_bibfiles = ['references.bib']
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -49,7 +53,16 @@ exclude_patterns = []
 #
 html_theme = 'sphinx_rtd_theme'
 
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# Add CSS that fixes the sphinx_rtd_theme with equation number appearing above the equation. 
+def setup(app):
+    app.add_css_file('my_theme.css')
+
+numfig = True
+math_numfig = True
+math_eqref_format = "Eq. {number}"

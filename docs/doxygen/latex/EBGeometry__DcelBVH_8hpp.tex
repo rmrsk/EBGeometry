@@ -1,0 +1,51 @@
+\hypertarget{EBGeometry__DcelBVH_8hpp}{}\section{Source/\+E\+B\+Geometry\+\_\+\+Dcel\+B\+VH.hpp File Reference}
+\label{EBGeometry__DcelBVH_8hpp}\index{Source/\+E\+B\+Geometry\+\_\+\+Dcel\+B\+V\+H.\+hpp@{Source/\+E\+B\+Geometry\+\_\+\+Dcel\+B\+V\+H.\+hpp}}
+
+
+File which contains partitioners and lambdas for enclosing dcel\+\_\+face in bounding volume heirarchies.  
+
+
+{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+B\+V\+H.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Dcel\+Face.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Namespace\+Header.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Namespace\+Footer.\+hpp\char`\"{}}\newline
+Include dependency graph for E\+B\+Geometry\+\_\+\+Dcel\+B\+V\+H.\+hpp\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{EBGeometry__DcelBVH_8hpp__incl}
+\end{center}
+\end{figure}
+\subsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \hyperlink{namespaceDcel}{Dcel}
+\begin{DoxyCompactList}\small\item\em Namespace containing various double-\/connected edge list (D\+C\+EL) functionality. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespaceDcel_a69f60bf0111d66715bf4f7a8e22645e6}\label{namespaceDcel_a69f60bf0111d66715bf4f7a8e22645e6}} 
+{\footnotesize template$<$class T $>$ }\\using \hyperlink{namespaceDcel_a69f60bf0111d66715bf4f7a8e22645e6}{Dcel\+::\+Primitive\+List} = std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \hyperlink{classDcel_1_1FaceT}{Dcel\+::\+FaceT}$<$ T $>$ $>$ $>$
+\begin{DoxyCompactList}\small\item\em Alias for which primitives are used in the \hyperlink{namespaceBVH}{B\+VH}. For D\+C\+EL meshes the primitive is a polygon face. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespaceDcel_a4db11eb50441e7c4e6c3ae796a202024}\label{namespaceDcel_a4db11eb50441e7c4e6c3ae796a202024}} 
+constexpr int \hyperlink{namespaceDcel_a4db11eb50441e7c4e6c3ae796a202024}{Dcel\+::primitives\+Per\+Leaf\+Node} = 1
+\begin{DoxyCompactList}\small\item\em This is the lowest number of a primitives that a \hyperlink{namespaceBVH}{B\+VH} node is allowed to enclose. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , class BV $>$ }\\\hyperlink{namespaceBVH_a245702d7eff40cdaedb5dff68c25a88a}{B\+V\+H\+::\+B\+V\+ConstructorT}$<$ FaceT$<$ T $>$, BV $>$ \hyperlink{namespaceDcel_a628449c42ce3f2784ca018f2a3c88a11}{Dcel\+::default\+B\+V\+Constructor}
+\begin{DoxyCompactList}\small\item\em Bounding volume constructor for a D\+C\+EL face. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , class BV , int K$>$ }\\\hyperlink{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}{B\+V\+H\+::\+Stop\+FunctionT}$<$ T, FaceT$<$ T $>$, BV, K $>$ \hyperlink{namespaceDcel_a45e9f2554a8d9ea01164cd51f787f989}{Dcel\+::default\+Stop\+Function}
+\begin{DoxyCompactList}\small\item\em Default stop function. This function terminates the division process if a \hyperlink{namespaceBVH}{B\+VH} node has only one primitive. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , int K$>$ }\\\hyperlink{namespaceBVH_a7c33d54da9893d506709b2ca96b76f55}{B\+V\+H\+::\+PartitionerT}$<$ FaceT$<$ T $>$, K $>$ \hyperlink{namespaceDcel_ab4f869248e23d47bb01ad06c76288fef}{Dcel\+::spatial\+Split\+Partitioner}
+\begin{DoxyCompactList}\small\item\em Default partitioner function for subdividing into K sub-\/volumes. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , int K$>$ }\\\hyperlink{namespaceBVH_a7c33d54da9893d506709b2ca96b76f55}{B\+V\+H\+::\+PartitionerT}$<$ FaceT$<$ T $>$, K $>$ \hyperlink{namespaceDcel_a08217ffcd4cfc6f58a3b0b3f780fc611}{Dcel\+::spatial\+Split\+Binary\+Partitioner}
+\begin{DoxyCompactList}\small\item\em Binary partitioner based on spatial splits. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+File which contains partitioners and lambdas for enclosing dcel\+\_\+face in bounding volume heirarchies. 
+
+This file contains various useful \char`\"{}default\char`\"{} routines for determining how a D\+C\+EL mesh should be partitioned in a bounding volume hierarchy. This includes the required functions for 1) Constructing bounding volumes (default\+B\+V\+Constructor). 2) Stopping the sub-\/division process (default\+Stop\+Function) 3) Partitioning one bounding volume into subvolumes. These are the functions a) default\+Partition\+Function(...). This partitions the primitives into two half-\/spaces based on where the primitive centroids are located. b) partition\+Minimum\+Overlap(...). This splist the primitive list down the middle (ignoring centroids and element size) and selects the splitting direction where the sub-\/bounding volumes have the smallest overlap. 3) partition\+S\+AH(...). This implements the common \char`\"{}surface area heuristic\char`\"{} rule for constructing bounding volumes. \begin{DoxyAuthor}{Author}
+Robert Marskar 
+\end{DoxyAuthor}

@@ -1,0 +1,6 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$classSignedDistanceFunction.html" title="Abstract representation of a signed distance function. " alt="" coords="5,56,201,83"/>
+<area shape="rect" id="node2" href="$classSphereSDF.html" title="Signed distance field for sphere. " alt="" coords="267,5,390,32"/>
+<area shape="rect" id="node3" href="$classUnion.html" title="Distance function union. Computes the signed distance to the closest object of N non&#45;overlapping obje..." alt="" coords="285,56,373,83"/>
+<area shape="rect" id="node4" href="$classUnionBVH.html" title="Distance function union using BVHs. Computes the signed distance to the closest object of N non&#45;overl..." alt="" coords="249,107,408,133"/>
+</map>

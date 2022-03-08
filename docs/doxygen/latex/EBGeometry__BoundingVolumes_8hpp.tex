@@ -1,0 +1,57 @@
+\hypertarget{EBGeometry__BoundingVolumes_8hpp}{}\section{Source/\+E\+B\+Geometry\+\_\+\+Bounding\+Volumes.hpp File Reference}
+\label{EBGeometry__BoundingVolumes_8hpp}\index{Source/\+E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp@{Source/\+E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp}}
+
+
+Declaration of a various bounding volumes used for bounding volume hierarchy.  
+
+
+{\ttfamily \#include $<$vector$>$}\newline
+{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Vec.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Namespace\+Header.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Namespace\+Footer.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Bounding\+Volumes\+Implem.\+hpp\char`\"{}}\newline
+Include dependency graph for E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{EBGeometry__BoundingVolumes_8hpp__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=232pt]{EBGeometry__BoundingVolumes_8hpp__dep__incl}
+\end{center}
+\end{figure}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+Volumes\+::\+Bounding\+Sphere\+T$<$ T $>$}
+\begin{DoxyCompactList}\small\item\em Class which encloses a set of points using a bounding sphere. \end{DoxyCompactList}\item 
+class \hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+A\+A\+B\+B\+T$<$ T $>$}
+\begin{DoxyCompactList}\small\item\em Axis-\/aligned bounding box as bounding volume. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \hyperlink{namespaceBoundingVolumes}{Bounding\+Volumes}
+\begin{DoxyCompactList}\small\item\em Namespace for encapsulating various bounding volumes for usage with B\+V\+Hs. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$class T $>$ }\\bool \hyperlink{namespaceBoundingVolumes_af35f33c5f319a466550d9ad1040beced}{Bounding\+Volumes\+::intersects} (const Bounding\+SphereT$<$ T $>$ \&a\+\_\+u, const Bounding\+SphereT$<$ T $>$ \&a\+\_\+v) noexcept
+\begin{DoxyCompactList}\small\item\em Intersection method for testing if two bounding spheres overlap. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\bool \hyperlink{namespaceBoundingVolumes_a5c360ccd42017c01acbe1caf2cfd1efe}{Bounding\+Volumes\+::intersects} (const A\+A\+B\+BT$<$ T $>$ \&a\+\_\+u, const A\+A\+B\+BT$<$ T $>$ \&a\+\_\+v) noexcept
+\begin{DoxyCompactList}\small\item\em Intersection method for testing if two bounding boxes overlap. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\T \hyperlink{namespaceBoundingVolumes_a4f159289c317e02beedb4b38136ad692}{Bounding\+Volumes\+::get\+Overlapping\+Volume} (const Bounding\+SphereT$<$ T $>$ \&a\+\_\+u, const Bounding\+SphereT$<$ T $>$ \&a\+\_\+v) noexcept
+\begin{DoxyCompactList}\small\item\em Compute the overlapping volume between two bounding spheres. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\T \hyperlink{namespaceBoundingVolumes_ae5716e39e88aaeec0c204f453cac2acd}{Bounding\+Volumes\+::get\+Overlapping\+Volume} (const A\+A\+B\+BT$<$ T $>$ \&a\+\_\+u, const A\+A\+B\+BT$<$ T $>$ \&a\+\_\+v) noexcept
+\begin{DoxyCompactList}\small\item\em Compute the overlapping volume between two bounding boxes. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Declaration of a various bounding volumes used for bounding volume hierarchy. 
+
+\begin{DoxyAuthor}{Author}
+Robert Marskar 
+\end{DoxyAuthor}
