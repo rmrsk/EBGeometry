@@ -4,8 +4,6 @@ EBGeometry
 EBGeometry is a code for computing signed distance functions to watertight and orientable surface grids. 
 It was written to be used with embedded-boundary (EB) codes like Chombo or AMReX.
 
-<img src="example.png" width="400"/>
-
 Tesselations must consist of planar polygons (not necessarily triangles).
 Internally, the surface mesh is stored in a doubly-connected edge list (DCEL), i.e. a half-edge data structure. 
 On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can naively be computed in various ways:
@@ -19,6 +17,8 @@ Users can also embed entire objects (e.g., analytic functions) in the BVHs, e.g.
 BVHs can also be nested so that the BVH accelerator is used to embed objects that are themselves contained in a BVH. 
 For example, a scene consisting of many objects described by surface grids can be embedded as a BVH-of-BVH type of scene.
 In addition, EBGeometry provides standard operators for signed distance fields like rotations, translations, and scalings.
+
+<img src="example.png" width="400"/>
 
 Requirements
 ------------
