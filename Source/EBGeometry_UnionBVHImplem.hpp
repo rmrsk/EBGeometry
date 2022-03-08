@@ -78,8 +78,8 @@ void UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor) {
     // Vector sort. 
     std::sort(primsAndCentroids.begin(),
     	      primsAndCentroids.end(),
-    	      [=](const PC& sdf1, const PC& sdf2) -> bool {
-    		return sdf1.second < sdf2.second;
+    	      [splitDir](const PC& sdf1, const PC& sdf2) -> bool {
+    		return sdf1.second[splitDir] < sdf2.second[splitDir];
 	      });
 
     // Vector unpack. The input SDFs are not sorted based on their bounding volume centroids. 

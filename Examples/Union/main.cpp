@@ -21,88 +21,20 @@ using Sphere    = EBGeometry::SphereSDF<T>;
 
 using namespace std::chrono_literals;
 
-/*!
-  @brief Precise sleep function. Because std::this_thread::sleep_for well and truly stinks. 
-*/
-void preciseSleep(double seconds) {
-    using namespace std;
-    using namespace std::chrono;
-
-    static double estimate = 5e-3;
-    static double mean = 5e-3;
-    static double m2 = 0;
-    static int64_t count = 1;
-
-    while (seconds > estimate) {
-        auto start = high_resolution_clock::now();
-        this_thread::sleep_for(milliseconds(1));
-        auto end = high_resolution_clock::now();
-
-        double observed = (end - start).count() / 1e9;
-        seconds -= observed;
-
-        ++count;
-        double delta = observed - mean;
-        mean += delta / count;
-        m2   += delta * (observed - mean);
-        double stddev = sqrt(m2 / (count - 1));
-        estimate = mean + stddev;
-    }
-
-    // spin lock
-    auto start = high_resolution_clock::now();
-    while ((high_resolution_clock::now() - start).count() / 1e9 < seconds);
-}
-
-/*!
-  @brief Signed distance function class which, on purpose, takes a long time to call. This is done in order to shift
-  the computation time to the SDF itself rather than the BVH traversal. 
-*/
-class slowSphere : public EBGeometry::SphereSDF<T> {
-public:
-
-  // How many nanoseconds to wait when calling the functions. 
-  static constexpr int nsWait = 1000;
-
-  slowSphere() : EBGeometry::SphereSDF<T>() {}
-  slowSphere(const Vec3& a_center, const T& a_radius, const bool a_flipInside) : EBGeometry::SphereSDF<T> (a_center, a_radius, a_flipInside) {};
-  slowSphere(const slowSphere& a_other) {
-    this->m_center       = a_other.m_center;
-    this->m_radius       = a_other.m_radius;
-    this->m_flipInside   = a_other.m_flipInside;            
-    this->m_transformOps = a_other.m_transformOps;    
-  }
-  virtual ~slowSphere(){}
-
-  T signedDistance(const Vec3& a_point) const noexcept override final {
-    preciseSleep(nsWait * 1E-9);
-
-    return EBGeometry::SphereSDF<T>::signedDistance(a_point);
-  }
-
-  T unsignedDistance2(const Vec3& a_point) const noexcept override final {
-    preciseSleep(nsWait * 1E-9);    
-
-    return EBGeometry::SphereSDF<T>::unsignedDistance2(a_point);    
-  } 
-};
-
 int main() {
 
-  // Degree of bounding volume hierarchies. 
-  constexpr int K = 2;  
+  // Tree branching factor
+  constexpr int K = 4;  
 
   // Make a sphere array consisting of about 10^6 spheres. The distance between the spheres is 2*radius
   std::vector<std::shared_ptr<SDF> > spheres;
 
-  constexpr T radius = 0.1;
-  constexpr int Nx = 100;
-  constexpr int Ny = 100;
-  constexpr int Nz = 100;
+  constexpr T radius = 1.0;
+  constexpr int N  = 100;
 
-  for (int i = 0; i < Nx; i++){
-    for (int j = 0; j < Ny; j++){
-      for (int k = 0; k < Nz; k++){
+  for (int i = 0; i < N; i++){
+    for (int j = 0; j < N; j++){
+      for (int k = 0; k < N; k++){
 
 	const T x = i * (3 * radius);
 	const T y = j * (3 * radius);
@@ -110,7 +42,7 @@ int main() {
 
 	const Vec3 center(x,y,z);
 	
-	spheres.emplace_back(std::make_shared<slowSphere>( center, radius, false));
+	spheres.emplace_back(std::make_shared<Sphere>(center, radius, false));
       }
     }
   }
@@ -153,7 +85,8 @@ int main() {
   const std::chrono::duration<T, std::milli> fastTime = t4-t3;    
 
   std::cout << "Distance and time using standard union = " << slowDist << ", which took " << slowTime.count() << " ms\n";
-  std::cout << "Distance and time using optimize union = " << fastDist << ", which took " << fastTime.count() << " ms\n";  
+  std::cout << "Distance and time using optimize union = " << fastDist << ", which took " << fastTime.count() << " ms\n";
+  std::cout << "Speedup = " << (1.0 * slowTime.count())/(1.0*fastTime.count()) << "\n";
   
   return 0;
 }
