@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.13"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>EBGeometry class API: Source/EBGeometry_BoundingVolumes.hpp File Reference</title>
+<title>EBGeometry: Source/EBGeometry_BoundingVolumes.hpp File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -21,7 +21,7 @@
  <tbody>
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
-   <div id="projectname">EBGeometry class API
+   <div id="projectname">EBGeometry
    &#160;<span id="projectnumber">1.0</span>
    </div>
   </td>
@@ -76,17 +76,19 @@ $(function() {
 <a href="#details">More...</a></p>
 <div class="textblock"><code>#include &lt;vector&gt;</code><br />
 <code>#include &quot;<a class="el" href="EBGeometry__Vec_8hpp_source.html">EBGeometry_Vec.hpp</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="EBGeometry__NamespaceHeader_8hpp_source.html">EBGeometry_NamespaceHeader.hpp</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="EBGeometry__NamespaceFooter_8hpp_source.html">EBGeometry_NamespaceFooter.hpp</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="EBGeometry__BoundingVolumesImplem_8hpp_source.html">EBGeometry_BoundingVolumesImplem.hpp</a>&quot;</code><br />
 </div><div class="textblock"><div class="dynheader">
 Include dependency graph for EBGeometry_BoundingVolumes.hpp:</div>
 <div class="dyncontent">
 <div class="center"><img src="EBGeometry__BoundingVolumes_8hpp__incl.png" border="0" usemap="#Source_2EBGeometry__BoundingVolumes_8hpp" alt=""/></div>
 <map name="Source_2EBGeometry__BoundingVolumes_8hpp" id="Source_2EBGeometry__BoundingVolumes_8hpp">
-<area shape="rect" id="node3" href="EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools..." alt="" coords="262,102,414,129"/>
-<area shape="rect" id="node9" href="EBGeometry__BoundingVolumesImplem_8hpp.html" title="Implementation of EBGeometry_BoundingVolumes.hpp. " alt="" coords="439,95,648,136"/>
-<area shape="rect" id="node4" href="EBGeometry__NamespaceHeader_8hpp.html" title="Name space header. " alt="" coords="192,259,433,285"/>
+<area shape="rect" id="node3" href="EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools..." alt="" coords="275,102,427,129"/>
+<area shape="rect" id="node4" href="EBGeometry__NamespaceHeader_8hpp.html" title="Name space header. " alt="" coords="5,259,247,285"/>
 <area shape="rect" id="node5" href="EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer. " alt="" coords="457,259,693,285"/>
-<area shape="rect" id="node6" href="EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp. " alt="" coords="113,184,307,211"/>
+<area shape="rect" id="node9" href="EBGeometry__BoundingVolumesImplem_8hpp.html" title="Implementation of EBGeometry_BoundingVolumes.hpp. " alt="" coords="529,95,739,136"/>
+<area shape="rect" id="node6" href="EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp. " alt="" coords="254,184,449,211"/>
 </map>
 </div>
 </div><div class="textblock"><div class="dynheader">
@@ -103,231 +105,42 @@ This graph shows which files directly or indirectly include this file:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEBGeometry_1_1BoundingVolumes_1_1BoundingSphereT.html">EBGeometry::BoundingVolumes::BoundingSphereT&lt; T &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Class which encloses a set of points using a bounding sphere.  <a href="classEBGeometry_1_1BoundingVolumes_1_1BoundingSphereT.html#details">More...</a><br /></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingVolumes::BoundingSphereT&lt; T &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Class which encloses a set of points using a bounding sphere.  <a href="classBoundingVolumes_1_1BoundingSphereT.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEBGeometry_1_1BoundingVolumes_1_1AABBT.html">EBGeometry::BoundingVolumes::AABBT&lt; T &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Axis-aligned bounding box as bounding volume.  <a href="classEBGeometry_1_1BoundingVolumes_1_1AABBT.html#details">More...</a><br /></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBoundingVolumes_1_1AABBT.html">BoundingVolumes::AABBT&lt; T &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Axis-aligned bounding box as bounding volume.  <a href="classBoundingVolumes_1_1AABBT.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
 Namespaces</h2></td></tr>
-<tr class="memitem:namespaceEBGeometry"><td class="memItemLeft" align="right" valign="top"> &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceEBGeometry.html">EBGeometry</a></td></tr>
-<tr class="memdesc:namespaceEBGeometry"><td class="mdescLeft">&#160;</td><td class="mdescRight">Name space for all of <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry. ">EBGeometry</a>. <br /></td></tr>
+<tr class="memitem:namespaceBoundingVolumes"><td class="memItemLeft" align="right" valign="top"> &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceBoundingVolumes.html">BoundingVolumes</a></td></tr>
+<tr class="memdesc:namespaceBoundingVolumes"><td class="mdescLeft">&#160;</td><td class="mdescRight">Namespace for encapsulating various bounding volumes for usage with BVHs. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a337c2a40d533d65a84c6a51bab4f1335"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
-<tr class="memitem:a337c2a40d533d65a84c6a51bab4f1335"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__BoundingVolumes_8hpp.html#a337c2a40d533d65a84c6a51bab4f1335">EBGeometry::BoundingVolumes::intersects</a> (const BoundingSphereT&lt; T &gt; &amp;a_u, const BoundingSphereT&lt; T &gt; &amp;a_v) noexcept</td></tr>
-<tr class="memdesc:a337c2a40d533d65a84c6a51bab4f1335"><td class="mdescLeft">&#160;</td><td class="mdescRight">Intersection method for testing if two bounding spheres overlap.  <a href="EBGeometry__BoundingVolumes_8hpp.html#a337c2a40d533d65a84c6a51bab4f1335">More...</a><br /></td></tr>
-<tr class="separator:a337c2a40d533d65a84c6a51bab4f1335"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a45914efbffb3206cb00080f42c69acf7"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
-<tr class="memitem:a45914efbffb3206cb00080f42c69acf7"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__BoundingVolumes_8hpp.html#a45914efbffb3206cb00080f42c69acf7">EBGeometry::BoundingVolumes::intersects</a> (const AABBT&lt; T &gt; &amp;a_u, const AABBT&lt; T &gt; &amp;a_v) noexcept</td></tr>
-<tr class="memdesc:a45914efbffb3206cb00080f42c69acf7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Intersection method for testing if two bounding boxes overlap.  <a href="EBGeometry__BoundingVolumes_8hpp.html#a45914efbffb3206cb00080f42c69acf7">More...</a><br /></td></tr>
-<tr class="separator:a45914efbffb3206cb00080f42c69acf7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acebdda0b912cc94d166372a793a50045"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
-<tr class="memitem:acebdda0b912cc94d166372a793a50045"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__BoundingVolumes_8hpp.html#acebdda0b912cc94d166372a793a50045">EBGeometry::BoundingVolumes::getOverlappingVolume</a> (const BoundingSphereT&lt; T &gt; &amp;a_u, const BoundingSphereT&lt; T &gt; &amp;a_v) noexcept</td></tr>
-<tr class="memdesc:acebdda0b912cc94d166372a793a50045"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the overlapping volume between two bounding spheres.  <a href="EBGeometry__BoundingVolumes_8hpp.html#acebdda0b912cc94d166372a793a50045">More...</a><br /></td></tr>
-<tr class="separator:acebdda0b912cc94d166372a793a50045"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a594efd8ed979f2c289052ccbc4fdfed8"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
-<tr class="memitem:a594efd8ed979f2c289052ccbc4fdfed8"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__BoundingVolumes_8hpp.html#a594efd8ed979f2c289052ccbc4fdfed8">EBGeometry::BoundingVolumes::getOverlappingVolume</a> (const AABBT&lt; T &gt; &amp;a_u, const AABBT&lt; T &gt; &amp;a_v) noexcept</td></tr>
-<tr class="memdesc:a594efd8ed979f2c289052ccbc4fdfed8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the overlapping volume between two bounding boxes.  <a href="EBGeometry__BoundingVolumes_8hpp.html#a594efd8ed979f2c289052ccbc4fdfed8">More...</a><br /></td></tr>
-<tr class="separator:a594efd8ed979f2c289052ccbc4fdfed8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af35f33c5f319a466550d9ad1040beced"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
+<tr class="memitem:af35f33c5f319a466550d9ad1040beced"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBoundingVolumes.html#af35f33c5f319a466550d9ad1040beced">BoundingVolumes::intersects</a> (const BoundingSphereT&lt; T &gt; &amp;a_u, const BoundingSphereT&lt; T &gt; &amp;a_v) noexcept</td></tr>
+<tr class="memdesc:af35f33c5f319a466550d9ad1040beced"><td class="mdescLeft">&#160;</td><td class="mdescRight">Intersection method for testing if two bounding spheres overlap.  <a href="namespaceBoundingVolumes.html#af35f33c5f319a466550d9ad1040beced">More...</a><br /></td></tr>
+<tr class="separator:af35f33c5f319a466550d9ad1040beced"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5c360ccd42017c01acbe1caf2cfd1efe"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
+<tr class="memitem:a5c360ccd42017c01acbe1caf2cfd1efe"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBoundingVolumes.html#a5c360ccd42017c01acbe1caf2cfd1efe">BoundingVolumes::intersects</a> (const AABBT&lt; T &gt; &amp;a_u, const AABBT&lt; T &gt; &amp;a_v) noexcept</td></tr>
+<tr class="memdesc:a5c360ccd42017c01acbe1caf2cfd1efe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Intersection method for testing if two bounding boxes overlap.  <a href="namespaceBoundingVolumes.html#a5c360ccd42017c01acbe1caf2cfd1efe">More...</a><br /></td></tr>
+<tr class="separator:a5c360ccd42017c01acbe1caf2cfd1efe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4f159289c317e02beedb4b38136ad692"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
+<tr class="memitem:a4f159289c317e02beedb4b38136ad692"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBoundingVolumes.html#a4f159289c317e02beedb4b38136ad692">BoundingVolumes::getOverlappingVolume</a> (const BoundingSphereT&lt; T &gt; &amp;a_u, const BoundingSphereT&lt; T &gt; &amp;a_v) noexcept</td></tr>
+<tr class="memdesc:a4f159289c317e02beedb4b38136ad692"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the overlapping volume between two bounding spheres.  <a href="namespaceBoundingVolumes.html#a4f159289c317e02beedb4b38136ad692">More...</a><br /></td></tr>
+<tr class="separator:a4f159289c317e02beedb4b38136ad692"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae5716e39e88aaeec0c204f453cac2acd"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
+<tr class="memitem:ae5716e39e88aaeec0c204f453cac2acd"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBoundingVolumes.html#ae5716e39e88aaeec0c204f453cac2acd">BoundingVolumes::getOverlappingVolume</a> (const AABBT&lt; T &gt; &amp;a_u, const AABBT&lt; T &gt; &amp;a_v) noexcept</td></tr>
+<tr class="memdesc:ae5716e39e88aaeec0c204f453cac2acd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the overlapping volume between two bounding boxes.  <a href="namespaceBoundingVolumes.html#ae5716e39e88aaeec0c204f453cac2acd">More...</a><br /></td></tr>
+<tr class="separator:ae5716e39e88aaeec0c204f453cac2acd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Declaration of a various bounding volumes used for bounding volume hierarchy. </p>
 <dl class="section author"><dt>Author</dt><dd>Robert Marskar </dd></dl>
-</div><h2 class="groupheader">Function Documentation</h2>
-<a id="file_acebdda0b912cc94d166372a793a50045"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#file_acebdda0b912cc94d166372a793a50045">&#9670;&nbsp;</a></span>getOverlappingVolume() <span class="overload">[1/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class T &gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">T EBGeometry::BoundingVolumes::getOverlappingVolume </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="classEBGeometry_1_1BoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&lt; T &gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_u</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const <a class="el" href="classEBGeometry_1_1BoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&lt; T &gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_v</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Compute the overlapping volume between two bounding spheres. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_u</td><td>One bounding sphere </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_v</td><td>The other bounding sphere </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="file_a594efd8ed979f2c289052ccbc4fdfed8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#file_a594efd8ed979f2c289052ccbc4fdfed8">&#9670;&nbsp;</a></span>getOverlappingVolume() <span class="overload">[2/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class T &gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">T EBGeometry::BoundingVolumes::getOverlappingVolume </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="classEBGeometry_1_1BoundingVolumes_1_1AABBT.html">AABBT</a>&lt; T &gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_u</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const <a class="el" href="classEBGeometry_1_1BoundingVolumes_1_1AABBT.html">AABBT</a>&lt; T &gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_v</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Compute the overlapping volume between two bounding boxes. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_u</td><td>One bounding box </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_v</td><td>The other bounding box </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="file_a337c2a40d533d65a84c6a51bab4f1335"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#file_a337c2a40d533d65a84c6a51bab4f1335">&#9670;&nbsp;</a></span>intersects() <span class="overload">[1/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class T &gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool EBGeometry::BoundingVolumes::intersects </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="classEBGeometry_1_1BoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&lt; T &gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_u</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const <a class="el" href="classEBGeometry_1_1BoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&lt; T &gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_v</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Intersection method for testing if two bounding spheres overlap. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_u</td><td>One bounding sphere </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_v</td><td>The other bounding sphere </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="file_a45914efbffb3206cb00080f42c69acf7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#file_a45914efbffb3206cb00080f42c69acf7">&#9670;&nbsp;</a></span>intersects() <span class="overload">[2/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class T &gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool EBGeometry::BoundingVolumes::intersects </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="classEBGeometry_1_1BoundingVolumes_1_1AABBT.html">AABBT</a>&lt; T &gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_u</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const <a class="el" href="classEBGeometry_1_1BoundingVolumes_1_1AABBT.html">AABBT</a>&lt; T &gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_v</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Intersection method for testing if two bounding boxes overlap. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_u</td><td>One bounding box </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_v</td><td>The other bounding box </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-</div><!-- contents -->
+</div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">

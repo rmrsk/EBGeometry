@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.13"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>EBGeometry class API: Source/EBGeometry_BoundingVolumesImplem.hpp File Reference</title>
+<title>EBGeometry: Source/EBGeometry_BoundingVolumesImplem.hpp File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -21,7 +21,7 @@
  <tbody>
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
-   <div id="projectname">EBGeometry class API
+   <div id="projectname">EBGeometry
    &#160;<span id="projectnumber">1.0</span>
    </div>
   </td>
@@ -64,6 +64,7 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#namespaces">Namespaces</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">EBGeometry_BoundingVolumesImplem.hpp File Reference</div>  </div>
@@ -81,11 +82,11 @@ Include dependency graph for EBGeometry_BoundingVolumesImplem.hpp:</div>
 <div class="dyncontent">
 <div class="center"><img src="EBGeometry__BoundingVolumesImplem_8hpp__incl.png" border="0" usemap="#Source_2EBGeometry__BoundingVolumesImplem_8hpp" alt=""/></div>
 <map name="Source_2EBGeometry__BoundingVolumesImplem_8hpp" id="Source_2EBGeometry__BoundingVolumesImplem_8hpp">
-<area shape="rect" id="node3" href="EBGeometry__BoundingVolumes_8hpp.html" title="Declaration of a various bounding volumes used for bounding volume hierarchy. " alt="" coords="194,95,429,121"/>
-<area shape="rect" id="node6" href="EBGeometry__NamespaceHeader_8hpp.html" title="Name space header. " alt="" coords="451,319,692,345"/>
-<area shape="rect" id="node7" href="EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer. " alt="" coords="5,319,241,345"/>
-<area shape="rect" id="node5" href="EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools..." alt="" coords="293,169,445,196"/>
-<area shape="rect" id="node8" href="EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp. " alt="" coords="271,244,466,271"/>
+<area shape="rect" id="node3" href="EBGeometry__BoundingVolumes_8hpp.html" title="Declaration of a various bounding volumes used for bounding volume hierarchy. " alt="" coords="152,95,387,121"/>
+<area shape="rect" id="node6" href="EBGeometry__NamespaceHeader_8hpp.html" title="Name space header. " alt="" coords="454,319,695,345"/>
+<area shape="rect" id="node7" href="EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer. " alt="" coords="9,319,245,345"/>
+<area shape="rect" id="node5" href="EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools..." alt="" coords="285,169,437,196"/>
+<area shape="rect" id="node8" href="EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp. " alt="" coords="261,244,456,271"/>
 </map>
 </div>
 </div><div class="textblock"><div class="dynheader">
@@ -100,24 +101,30 @@ This graph shows which files directly or indirectly include this file:</div>
 </div>
 <p><a href="EBGeometry__BoundingVolumesImplem_8hpp_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
+Namespaces</h2></td></tr>
+<tr class="memitem:namespaceBoundingVolumes"><td class="memItemLeft" align="right" valign="top"> &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceBoundingVolumes.html">BoundingVolumes</a></td></tr>
+<tr class="memdesc:namespaceBoundingVolumes"><td class="mdescLeft">&#160;</td><td class="mdescRight">Namespace for encapsulating various bounding volumes for usage with BVHs. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a271df981f4ea91eb26302c18c732681e"><td class="memTemplParams" colspan="2"><a id="a271df981f4ea91eb26302c18c732681e"></a>
-template&lt;class T &gt; </td></tr>
-<tr class="memitem:a271df981f4ea91eb26302c18c732681e"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><b>BoundingVolumes::intersects</b> (const BoundingSphereT&lt; T &gt; &amp;u, const BoundingSphereT&lt; T &gt; &amp;v) noexcept</td></tr>
-<tr class="separator:a271df981f4ea91eb26302c18c732681e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aad8888cd49f48eb0eb12136c00cfb330"><td class="memTemplParams" colspan="2"><a id="aad8888cd49f48eb0eb12136c00cfb330"></a>
-template&lt;class T &gt; </td></tr>
-<tr class="memitem:aad8888cd49f48eb0eb12136c00cfb330"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><b>BoundingVolumes::intersects</b> (const AABBT&lt; T &gt; &amp;u, const AABBT&lt; T &gt; &amp;v) noexcept</td></tr>
-<tr class="separator:aad8888cd49f48eb0eb12136c00cfb330"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a187b5ad6e1a6aae5bc0c21667177205b"><td class="memTemplParams" colspan="2"><a id="a187b5ad6e1a6aae5bc0c21667177205b"></a>
-template&lt;class T &gt; </td></tr>
-<tr class="memitem:a187b5ad6e1a6aae5bc0c21667177205b"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><b>BoundingVolumes::getOverlappingVolume</b> (const BoundingSphereT&lt; T &gt; &amp;u, const BoundingSphereT&lt; T &gt; &amp;v) noexcept</td></tr>
-<tr class="separator:a187b5ad6e1a6aae5bc0c21667177205b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af87dbb235889da207683c36c19f2a594"><td class="memTemplParams" colspan="2"><a id="af87dbb235889da207683c36c19f2a594"></a>
-template&lt;class T &gt; </td></tr>
-<tr class="memitem:af87dbb235889da207683c36c19f2a594"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><b>BoundingVolumes::getOverlappingVolume</b> (const AABBT&lt; T &gt; &amp;u, const AABBT&lt; T &gt; &amp;v) noexcept</td></tr>
-<tr class="separator:af87dbb235889da207683c36c19f2a594"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af35f33c5f319a466550d9ad1040beced"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
+<tr class="memitem:af35f33c5f319a466550d9ad1040beced"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBoundingVolumes.html#af35f33c5f319a466550d9ad1040beced">BoundingVolumes::intersects</a> (const BoundingSphereT&lt; T &gt; &amp;a_u, const BoundingSphereT&lt; T &gt; &amp;a_v) noexcept</td></tr>
+<tr class="memdesc:af35f33c5f319a466550d9ad1040beced"><td class="mdescLeft">&#160;</td><td class="mdescRight">Intersection method for testing if two bounding spheres overlap.  <a href="namespaceBoundingVolumes.html#af35f33c5f319a466550d9ad1040beced">More...</a><br /></td></tr>
+<tr class="separator:af35f33c5f319a466550d9ad1040beced"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5c360ccd42017c01acbe1caf2cfd1efe"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
+<tr class="memitem:a5c360ccd42017c01acbe1caf2cfd1efe"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBoundingVolumes.html#a5c360ccd42017c01acbe1caf2cfd1efe">BoundingVolumes::intersects</a> (const AABBT&lt; T &gt; &amp;a_u, const AABBT&lt; T &gt; &amp;a_v) noexcept</td></tr>
+<tr class="memdesc:a5c360ccd42017c01acbe1caf2cfd1efe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Intersection method for testing if two bounding boxes overlap.  <a href="namespaceBoundingVolumes.html#a5c360ccd42017c01acbe1caf2cfd1efe">More...</a><br /></td></tr>
+<tr class="separator:a5c360ccd42017c01acbe1caf2cfd1efe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4f159289c317e02beedb4b38136ad692"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
+<tr class="memitem:a4f159289c317e02beedb4b38136ad692"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBoundingVolumes.html#a4f159289c317e02beedb4b38136ad692">BoundingVolumes::getOverlappingVolume</a> (const BoundingSphereT&lt; T &gt; &amp;a_u, const BoundingSphereT&lt; T &gt; &amp;a_v) noexcept</td></tr>
+<tr class="memdesc:a4f159289c317e02beedb4b38136ad692"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the overlapping volume between two bounding spheres.  <a href="namespaceBoundingVolumes.html#a4f159289c317e02beedb4b38136ad692">More...</a><br /></td></tr>
+<tr class="separator:a4f159289c317e02beedb4b38136ad692"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae5716e39e88aaeec0c204f453cac2acd"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
+<tr class="memitem:ae5716e39e88aaeec0c204f453cac2acd"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBoundingVolumes.html#ae5716e39e88aaeec0c204f453cac2acd">BoundingVolumes::getOverlappingVolume</a> (const AABBT&lt; T &gt; &amp;a_u, const AABBT&lt; T &gt; &amp;a_v) noexcept</td></tr>
+<tr class="memdesc:ae5716e39e88aaeec0c204f453cac2acd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the overlapping volume between two bounding boxes.  <a href="namespaceBoundingVolumes.html#ae5716e39e88aaeec0c204f453cac2acd">More...</a><br /></td></tr>
+<tr class="separator:ae5716e39e88aaeec0c204f453cac2acd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Implementation of <a class="el" href="EBGeometry__BoundingVolumes_8hpp.html" title="Declaration of a various bounding volumes used for bounding volume hierarchy. ">EBGeometry_BoundingVolumes.hpp</a>. </p>
