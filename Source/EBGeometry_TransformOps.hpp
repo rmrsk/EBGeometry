@@ -16,7 +16,9 @@
 #include "EBGeometry_Vec.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-// Parent class for transformation operator.
+/*!
+  @brief Base class for transformation operators. 
+*/
 template <class T>
 class TransformOp {
 public:
@@ -33,6 +35,8 @@ public:
 
   /*!
     @brief Transform input coordinate
+    @param[in] a_inputPoint Input point
+    @return Returns transformed point. 
   */
   virtual Vec3T<T> transform(const Vec3T<T>& a_inputPoint) const noexcept = 0;
 };

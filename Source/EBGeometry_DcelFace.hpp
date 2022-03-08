@@ -4,7 +4,7 @@
  */
 
 /*!
-  @file   EBGeometry_DcelFace.H
+  @file   EBGeometry_DcelFace.hpp
   @brief  Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations. 
   @author Robert Marskar
 */

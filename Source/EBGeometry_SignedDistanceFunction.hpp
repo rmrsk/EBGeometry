@@ -53,7 +53,7 @@ public:
 
   /*!
     @brief Scale signed distance function. 
-    @param[in] a_Scaling factor. 
+    @param[in] a_scale Scaling factor. 
   */
   inline
   void scale(const Vec3T<T>& a_scale) noexcept;

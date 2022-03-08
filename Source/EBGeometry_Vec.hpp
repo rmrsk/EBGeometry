@@ -31,7 +31,7 @@ public:
 
   /*!
     @brief Copy constructor
-    @param[in] a_u Other vector
+    @param[in] u Other vector
     @details Sets *this = u
   */
   Vec2T(const Vec2T& u);
@@ -72,19 +72,19 @@ public:
   static constexpr Vec2T<T> one() noexcept;
 
   /*!
-    @brief Return a vector with components x = y= -std::numeric_limits<T>::max()
+    @brief Return minimum possible representative vector. 
   */    
   inline
   static constexpr Vec2T<T> min() noexcept;
 
   /*!
-    @brief Return a vector with components x = y= std::numeric_limits<T>::max()
+    @brief Return maximum possible representative vector. 
   */    
   inline
   static constexpr Vec2T<T> max() noexcept;
   
   /*!
-    @brief Return a vector with components x = y= std::numeric_limits<T>::infinity()
+    @brief Return a vector with inf components. 
   */    
   inline
   static constexpr Vec2T<T> infinity() noexcept;
@@ -190,7 +190,7 @@ public:
 };
 
 /*!
-  @brief Multiplication operator in the form s*Vec2T<T>. 
+  @brief Multiplication operator in the form s*Vec2T
   @param[in] s Multiplication factor
   @param[in] a_other Other vector
   @return Returns a new vector with components x = s*a_other.x (and same for y)
@@ -200,7 +200,7 @@ inline
 Vec2T<T> operator*(const T& s, const Vec2T<T>& a_other) noexcept;
 
 /*!
-  @brief Division operator in the form s*Vec2T<T>. 
+  @brief Division operator in the form s*Vec2T.
   @param[in] s Division factor
   @param[in] a_other Other vector
   @return Returns a new vector with components x = (1/s)*a_other.x (and same for y)
@@ -259,33 +259,33 @@ public:
   static constexpr Vec3T<T> one() noexcept;
 
   /*!
-    @brief Return a vector with components x = y = z = -std::numeric_limits<T>::max()
+    @brief Return a vector with minimum representable components. 
   */    
   inline
   static constexpr Vec3T<T> min() noexcept;
 
   /*!
-    @brief Return a vector with components x = y = z = std::numeric_limits<T>::max()
+    @brief Return a vector with maximum representable components. 
   */    
   inline
   static constexpr Vec3T<T> max() noexcept;
 
   /*!
-    @brief Return a vector with components x = y = z = std::numeric_limits<T>::infinity()
+    @brief Return a vector with inf components. 
   */    
   inline
   static constexpr Vec3T<T> infinity() noexcept;
 
   /*!
     @brief Return component in vector. (i=0 => x and so on)
-    @param[in] a_i Index. Must be < 3
+    @param[in] i Index. Must be < 3
   */
   inline
   T& operator[](int i) noexcept;
 
   /*!
     @brief Return non-modifiable component in vector. (i=0 => x and so on)
-    @param[in] a_i Index. Must be < 3
+    @param[in] i Index. Must be < 3
   */
   inline
   const T& operator[](int i) const noexcept;
@@ -421,8 +421,6 @@ public:
   */
   inline
   Vec3T<T>& operator/=(const T& s) noexcept;
-
-
 
   /*!
     @brief Vector minimum function. Returns a new vector with componentwise minimums. 

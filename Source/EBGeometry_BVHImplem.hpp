@@ -53,7 +53,7 @@ namespace BVH {
 
   template <class T, class P, class BV, int K>
   inline
-  NodeT<T, P, BV, K>::NodeT(const PrimitiveList& a_primitives) : NodeT<T, P, BV, K>() {
+  NodeT<T, P, BV, K>::NodeT(const std::vector<std::shared_ptr<const P> >& a_primitives) : NodeT<T, P, BV, K>() {
     m_primitives = a_primitives;
   
     m_nodeType = NodeType::Leaf;

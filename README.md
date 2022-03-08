@@ -17,7 +17,7 @@ Users can also embed entire objects (e.g., analytic functions) in the BVHs, e.g.
 BVHs can also be nested so that the BVH accelerator is used to embed objects that are themselves described by a BVH.
 For example, a scene consisting of many objects described by surface grids can be embedded as a BVH-of-BVH type of scene.
 
-<img src="example.png" width="800"/>
+<img src="example.png" width="400"/>
 
 In addition, EBGeometry provides standard operators for signed distance fields like rotations, translations, and scalings.
 Multi-object scenes can be constructed with conventional unions, or with BVH-enabled unions (which can be orders of magnitudes faster).

@@ -4,7 +4,7 @@
  */
 
 /*!
-  @file   EBGeometry__DcelMesh.hpp
+  @file   EBGeometry_DcelMesh.hpp
   @brief  Declaration of a mesh class which stores a DCEL mesh (with signed distance functions)
   @author Robert Marskar
 */
