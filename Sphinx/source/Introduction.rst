@@ -1,19 +1,16 @@
 .. _Chap:Introduction:
 
-Introduction
-============
-
 EBGeometry is a comparatively compact code for computing signed distance functions to watertight and orientable surface grids. 
 Originally, it was written to be used with embedded-boundary (EB) codes like Chombo or AMReX.
 
 Requirements
-------------
+============
 
 * A C++ compiler which supports C++14.
 * An analytic signed distance function, or a watertight and orientable surface grid. 
 
 Quickstart
-----------
+==========
 
 To obtained EBGeometry, clone the code from `github <https://github.com/rmrsk/EBGeometry>`_:
 
@@ -31,7 +28,7 @@ The following two examples show two usages of EBGeometry:
 #. :file:`Examples/Union` shows how to create multi-object scenes and embed them in bounding volume hierarchies. 
 
 Features
---------
+========
 
 The basic features of EBGeometry are as follows:
 

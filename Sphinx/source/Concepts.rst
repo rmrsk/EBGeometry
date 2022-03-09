@@ -1,8 +1,5 @@
 .. _Chap:Concepts:
 
-Basic concepts
-==============
-
 Signed distance fields
 ----------------------
 

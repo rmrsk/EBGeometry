@@ -1,15 +1,12 @@
 .. _Chap:Implementation:
 
-Implementation
-==============
-
 Here, we consider the basic EBGeometry API.
 EBGeometry is a header-only library, implemented under it's own namespace ``EBGeometry``.
 Various major components, like BVHs and DCEL, are implemented under namespaces ``EBGeometry::BVH`` and ``EBGeometry::Dcel``.
-Below, we consider a brief introduction to the API and implementation details of EBGeometry. 
+Below, we consider a brief introduction to the API and implementation details of EBGeometry.
 
 Vector types
-------------
+============
 
 EBGeometry runs it's own vector types ``Vec2T`` and ``Vec3T``. 
 
@@ -28,7 +25,7 @@ It is templated as
    }
 
 Most of EBGeometry is written as three-dimensional code, but ``Vec2T`` is needed for DCEL functionality when determining if a point projects onto the interior or exterior of a planar polygon, see :ref:`Chap:DCEL`. 
-``Vec2T`` has "most" common arithmetic operators like the dot product, length, multiplication operators and so o>n.
+``Vec2T`` has "most" common arithmetic operators like the dot product, length, multiplication operators and so on.
 
 ``Vec3T`` is a three-dimensional Cartesian vector type with precision ``T``.
 It is templated as
@@ -46,7 +43,7 @@ It is templated as
 Like ``Vec2T``, ``Vec3T`` has numerous routines for performing most vector-related operations like addition, subtraction, dot products and so on.
 
 Bounding volume hierarchy
--------------------------
+=========================
 
 The BVH functionality is encapsulated in the namespace ``EBGeometry::BVH``.
 For the full API, see `the doxygen API <doxygen/html/namespaceBVH.html>`_
@@ -66,8 +63,8 @@ The above template parameters are:
 
 *  ``T`` Floating-point precision.
 *  ``P`` Primitive type to be partitioned.
-*  ``BV`` Bounding volume type.
-*  ``K`` BVH degree. ``K=2`` will yield a binary tree, ``K=3`` yields a tertiary tree and so on. 
+*  ``BV`` Bounding volume type.*
+  ``K`` BVH degree. ``K=2`` will yield a binary tree, ``K=3`` yields a tertiary tree and so on. 
 
 ``NodeT`` describes regular and leaf nodes in the BVH, and has member functions for setting primitives, bounding volumes, and so on.
 Importantly, ``NodeT`` is the BVH builder node, i.e. it is the class through which we recursively build the BVH, see :ref:`Chap:BVHConstruction`.
@@ -83,13 +80,13 @@ For getting the signed or unsigned distance, ``NodeT`` has provides the followin
 .. _Chap:BVHConstraints:
 
 Template constraints
-____________________
+--------------------
 
 *  The primitive type ``P`` must have the following functions:
   
    *  ``T signedDistance(const Vec3T<T>& x)``, which returns the signed distance to the primitive. 
    *  ``T unsignedDistance2(const Vec3T<T>& x)``, which returns the square distance to the primitive.
-     
+
    The function ``unsignedDistance2`` exists for performance reasons during the BVH traversal.
    Using the square distance during BVH traversal means that the square root and sign does not have to be obtained until the end of the traversal.
 
@@ -100,7 +97,7 @@ ____________________
      
    *  ``T getDistance2(const Vec3T<T>& x)`` which returns the square distance from the point ``x`` to the bounding volume.
       Again, if ``x`` lies within the bounding volume, the function should return a value of zero.
-     
+      
    *  A constructor ``BV(const std::vector<BV>& a_otherBVs)`` that permit creation of a bounding volume that encloses other bounding volumes of the same type.
      
 *  ``K`` should be greater or equal to 2.
@@ -114,7 +111,7 @@ Partitioning functions (which are, in principle, supplied by the user) may impos
    This means that objects that are themselves described by BVHs (such as triangulations) can be embedded in another BVH, permitting BVH-of-BVH type of scenes. 
 
 Bounding volumes
-________________
+----------------
 
 EBGeometry supports the following bounding volumes, which are defined in :file:`EBGeometry_BoundingVolumes.hpp``:
 
@@ -129,7 +126,7 @@ For full API details, see `the doxygen API <doxygen/html/namespaceBoundingVolume
 .. _Chap:BVHConstruction:
 
 Construction
-____________
+------------
 
 Constructing a BVH is done by
 
@@ -230,7 +227,7 @@ For the most part this will include the construction of their own bounding volum
 .. _Chap:LinearBVH:
 
 Compact form
-____________
+------------
 
 In addition to the standard BVH node ``NodeT<T, P, BV, K>``, EBGeometry provides a more compact formulation of the BVH hierarchy where the nodes are stored in depth-first order.
 The "linearized" BVH can be automatically constructed from the standard BVH but not vice versa.
@@ -312,7 +309,7 @@ Thus, once the compact BVH has been built, we can call the signed distance funct
    compactBVH->signedDistance(myPoint);
 
 DCEL
-----
+====
 
 The DCEL functionality exists under the namespace ``EBGeometry::Dcel`` and contains the following functionality:
 
@@ -326,7 +323,7 @@ The DCEL functionality exists under the namespace ``EBGeometry::Dcel`` and conta
    The DCEL functionality is *not* restricted to triangles, but supports N-sided polygons. 
 
 Classes
-_______
+-------
 
 The main DCEL functionality (vertices, edges, faces) is provided by the following classes:
 
@@ -394,7 +391,7 @@ See :ref:`Chap:BVHIntegration` for details regarding DCEL integration with BVHs.
 
 
 File parsers
-____________
+------------
 
 Routines for parsing surface files from grids into EBGeometry's DCEL grids are given in the namespace ``EBGeometry::Dcel::Parser``.
 Currently, this is limited to the following file formats:
@@ -425,14 +422,14 @@ Currently, this is limited to the following file formats:
 .. _Chap:BVHIntegration:
 
 BVH integration
-_______________
+---------------
 
 DCEL functionality can easily be embedded in BVHs.
 In this case it is the facets that are embedded in the BVHs, and we require that we can create bounding volumes that contain all the vertices in a facet.
 Moreover, partitioning functions that partition a set of polygon faces into ``K`` new sets of faces are also required.
 
 Construction methods
-^^^^^^^^^^^^^^^^^^^^
+____________________
 
 EBGeometry provides some simplistic functions that are needed (see :ref:`Chap:BVHConstruction`) when building BVHs for DCEL geometries .
 
@@ -463,7 +460,7 @@ For the partitioning function we include a simple function that partitions the p
    :lines: 74-78, 83-137
 
 Code example
-^^^^^^^^^^^^
+____________
 
 Constructing a compact BVH representation of polygon mesh is therefore done as follows:
 
@@ -493,7 +490,7 @@ Constructing a compact BVH representation of polygon mesh is therefore done as f
    root = nullptr;
 
 Signed distance function
-------------------------
+========================
 
 In EBGeometry we have encapsulated the concept of a signed distance function in an abstract class
 
@@ -555,7 +552,7 @@ Alternatively, using a BVH structure:
    };
 
 Transformations
-_______________
+---------------
 
 The following transformations are possible:
 
@@ -584,7 +581,7 @@ Note that if the transformations are to be applied, the implementation of ``sign
 .. _Chap:AnalyticSDF:
 
 Analytic functions
-__________________
+------------------
 
 Above, we have shown how users can supply a DCEL or BVH structure to implement ``SignedDistanceFunction``.
 In addition, the file :file:`Source/EBGeometry_AnalyticSignedDistanceFunctions.hpp` defines various other analytic shapes such as:
@@ -617,13 +614,54 @@ In addition, the file :file:`Source/EBGeometry_AnalyticSignedDistanceFunctions.h
      template<class T>
      class EBGeometry::CylinderSDF : public EBGeometry::SignedDistanceFunction<T>;
 
-
+.. _Chap:Union:
 
 Unions
-------
+======
+
+As discussed in :ref:`Chap:Concepts`, a union of signed distance fields can be created provided that the objects do not touch or overlap.
+EBGeometry provides two implementations:
+
+*  **Standard union** where one looks through every primitive in the union.
+*  **BVH-enabled union** where bounding volume hierarchies are used to find the closest object.
 
 Standard union
-______________
+--------------
 
-Accelerated union
-_________________
+The standard union is template as
+
+.. literalinclude:: ../../Source/EBGeometry_Union.hpp
+   :language: c++
+   :lines: 26-29,33-34,45
+
+Note that ``EBGeometry::Union`` inherits from ``EBGeometry::SignedDistanceFunction`` and thus provides a ``signedDistance(...)`` function.
+The implementation of the standard union is
+
+.. literalinclude:: ../../Source/EBGeometry_UnionImplem.hpp
+   :language: c++
+   :lines: 28-43
+   
+That is, it iterates through *all* the objects in order to find the signed distance. 
+
+BVH-enabled union
+-----------------
+
+The BVH-enabled union is implemented by ``EBGeometry::UnionBVH`` as follows:
+
+.. literalinclude:: ../../Source/EBGeometry_UnionBVH.hpp
+   :language: c++
+   :lines: 26-29,33-34,38-39,58-61,77-80, 94-95, 104, 115
+
+As always, the template parameter ``T`` indicates the precision, ``BV`` the bounding volume type and ``K`` the tree degree.
+``UnionBVH`` takes a bounding volume constructor in addition to the list of primitives, see :ref:`Chap:BVHConstruction`.
+
+Internally, ``UnionBVH`` defines its own partitioning function which is identical to the implementation for DCEL meshes (see :ref:`Chap:BVHIntegration`), with the exception that the partitioning is based on the centroids of the bounding volumes rather than the centroid of the primitives.
+After partitioning the primitives, the original BVH tree is flattened onto the compact representation.
+
+The implementation of the signed distance function for the BVH-enabled union is
+
+.. literalinclude:: ../../Source/EBGeometry_UnionBVHImplem.hpp
+   :language: c++
+   :lines: 144-149
+
+That is, it relies on pruning from the BVH functionality for finding the signed distance to the closest object.
