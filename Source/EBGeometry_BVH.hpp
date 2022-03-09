@@ -667,7 +667,7 @@ namespace BVH {
     /*!
       @brief Global list of primitives. Note that this is ALL primitives, sorted so that LinearNodeT can interface into it. 
     */
-    PrimitiveList m_primitives;
+    std::vector<std::shared_ptr<const P> > m_primitives;
   };
 }
 

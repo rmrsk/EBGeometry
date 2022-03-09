@@ -18,7 +18,7 @@ BVHs can also be nested so that the BVH accelerator is used to embed objects tha
 For example, a scene consisting of many objects described by surface grids can be embedded as a BVH-of-BVH type of scene.
 In addition, EBGeometry provides standard operators for signed distance fields like rotations, translations, and scalings.
 
-<img src="example.png" width="400"/>
+<img src="example2.png" width="400"/>
 
 Requirements
 ------------

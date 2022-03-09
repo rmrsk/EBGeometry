@@ -37,7 +37,7 @@
   <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="References" href="ZZReferences.html" />
+    <link rel="next" title="Guided examples" href="Examples.html" />
     <link rel="prev" title="Bounding volume hierarchies" href="BVH.html" /> 
 </head>
 
@@ -100,12 +100,17 @@
 <li class="toctree-l2"><a class="reference internal" href="#dcel">DCEL</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#file-parsers">File parsers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#bvh-integration">BVH integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bvh-integration">BVH integration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#construction-methods">Construction methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#code-example">Code example</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#signed-distance-function">Signed distance function</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#transformations">Transformations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#analytic-functions">Analytic functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#d-modifications">2D modifications</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#unions">Unions</a><ul>
@@ -115,6 +120,7 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">Guided examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
 </ul>
 
@@ -202,7 +208,7 @@ It is templated as</p>
 </pre></div>
 </div>
 <p>Most of EBGeometry is written as three-dimensional code, but <code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> is needed for DCEL functionality when determining if a point projects onto the interior or exterior of a planar polygon, see <a class="reference internal" href="DCEL.html#chap-dcel"><span class="std std-ref">DCEL mesh structure</span></a>.
-<code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> has “most” common arithmetic operators like the dot product, length, multiplication operators and so on.</p>
+<code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> has “most” common arithmetic operators like the dot product, length, multiplication operators and so o&gt;n.</p>
 <p><code class="docutils literal notranslate"><span class="pre">Vec3T</span></code> is a three-dimensional Cartesian vector type with precision <code class="docutils literal notranslate"><span class="pre">T</span></code>.
 It is templated as</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span> <span class="n">EBGeometry</span> <span class="p">{</span>
@@ -221,10 +227,10 @@ It is templated as</p>
 <p>The BVH functionality is encapsulated in the namespace <code class="docutils literal notranslate"><span class="pre">EBGeometry::BVH</span></code>.
 For the full API, see <a class="reference external" href="doxygen/html/namespaceBVH.html">the doxygen API</a>
 There are two types of BVHs supported.</p>
-<ol class="arabic simple">
+<ul class="simple">
 <li><p><strong>Direct BVHs</strong> where the nodes are stored in build order and contain references to their children, and the leaf holds primitives.</p></li>
 <li><p><strong>Compact BVHs</strong> where the nodes are stored in depth-first order and contain index offsets to children and primitives.</p></li>
-</ol>
+</ul>
 <p>The direct BVH is encapsulated by a class</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
 <span class="k">class</span> <span class="nc">NodeT</span><span class="p">;</span>
@@ -235,41 +241,47 @@ There are two types of BVHs supported.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">T</span></code> Floating-point precision.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">P</span></code> Primitive type to be partitioned.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">BV</span></code> Bounding volume type.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">K</span></code> BVH degree. <code class="docutils literal notranslate"><span class="pre">K=2</span></code> will yield a binary tree and so on.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">K</span></code> BVH degree. <code class="docutils literal notranslate"><span class="pre">K=2</span></code> will yield a binary tree, <code class="docutils literal notranslate"><span class="pre">K=3</span></code> yields a tertiary tree and so on.</p></li>
 </ul>
 <p><code class="docutils literal notranslate"><span class="pre">NodeT</span></code> describes regular and leaf nodes in the BVH, and has member functions for setting primitives, bounding volumes, and so on.
 Importantly, <code class="docutils literal notranslate"><span class="pre">NodeT</span></code> is the BVH builder node, i.e. it is the class through which we recursively build the BVH, see <a class="reference internal" href="#chap-bvhconstruction"><span class="std std-ref">Construction</span></a>.
 The compact BVH is discussed below in <a class="reference internal" href="#chap-linearbvh"><span class="std std-ref">Compact form</span></a>.</p>
+<p>For getting the signed or unsigned distance, <code class="docutils literal notranslate"><span class="pre">NodeT</span></code> has provides the following two member functions:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
+  <span class="k">class</span> <span class="nc">NodeT</span> <span class="p">{</span>
+  <span class="k">public</span><span class="o">:</span>
+    <span class="kr">inline</span>
+    <span class="n">T</span> <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3</span><span class="o">&amp;</span> <span class="n">a_point</span><span class="p">,</span> <span class="k">const</span> <span class="n">Prune</span> <span class="n">a_pruning</span> <span class="o">=</span> <span class="n">Prune</span><span class="o">::</span><span class="n">Ordered2</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>    
+</pre></div>
+</div>
 <div class="section" id="template-constraints">
-<h3>Template constraints<a class="headerlink" href="#template-constraints" title="Permalink to this headline">¶</a></h3>
+<span id="chap-bvhconstraints"></span><h3>Template constraints<a class="headerlink" href="#template-constraints" title="Permalink to this headline">¶</a></h3>
 <ul>
 <li><p>The primitive type <code class="docutils literal notranslate"><span class="pre">P</span></code> must have the following functions:</p>
-<blockquote>
-<div><ul class="simple">
+<ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">T</span> <span class="pre">signedDistance(const</span> <span class="pre">Vec3T&lt;T&gt;&amp;</span> <span class="pre">x)</span></code>, which returns the signed distance to the primitive.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">T</span> <span class="pre">unsignedDistance2(const</span> <span class="pre">Vec3T&lt;T&gt;&amp;</span> <span class="pre">x)</span></code>, which returns the square distance to the primitive.</p></li>
 </ul>
 <p>The function <code class="docutils literal notranslate"><span class="pre">unsignedDistance2</span></code> exists for performance reasons during the BVH traversal.
 Using the square distance during BVH traversal means that the square root and sign does not have to be obtained until the end of the traversal.</p>
-</div></blockquote>
 </li>
 <li><p>The bounding volume type <code class="docutils literal notranslate"><span class="pre">BV</span></code> must have the following functions:</p>
-<blockquote>
-<div><ul class="simple">
+<ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">T</span> <span class="pre">getDistance(const</span> <span class="pre">Vec3T&lt;T&gt;&amp;</span> <span class="pre">x)</span></code> which returns the distance from the point <code class="docutils literal notranslate"><span class="pre">x</span></code> to the bounding volume.
 Note that if <code class="docutils literal notranslate"><span class="pre">x</span></code> lies within the bounding volume, the function should return a value of zero.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">T</span> <span class="pre">getDistance2(const</span> <span class="pre">Vec3T&lt;T&gt;&amp;</span> <span class="pre">x)</span></code> which returns the square distance from the point <code class="docutils literal notranslate"><span class="pre">x</span></code> to the bounding volume.
 Again, if <code class="docutils literal notranslate"><span class="pre">x</span></code> lies within the bounding volume, the function should return a value of zero.</p></li>
 <li><p>A constructor <code class="docutils literal notranslate"><span class="pre">BV(const</span> <span class="pre">std::vector&lt;BV&gt;&amp;</span> <span class="pre">a_otherBVs)</span></code> that permit creation of a bounding volume that encloses other bounding volumes of the same type.</p></li>
 </ul>
-</div></blockquote>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">K</span></code> should be greater or equal to 2.</p></li>
 </ul>
+<p>Note that the above constraints apply only to the BVH itself.
+Partitioning functions (which are, in principle, supplied by the user) may impose extra constraints.</p>
 <div class="admonition important">
 <p class="admonition-title">Important</p>
-<p>The above constraints apply only to the BVH itself.
-Partitioning functions (which are, in principle, supplied by the user) may impose extra constraints.</p>
+<p>EBGeometry’s BVH implementations fulfill their own template requirements on the primitive type <code class="docutils literal notranslate"><span class="pre">P</span></code>.
+This means that objects that are themselves described by BVHs (such as triangulations) can be embedded in another BVH, permitting BVH-of-BVH type of scenes.</p>
 </div>
 </div>
 <div class="section" id="bounding-volumes">
@@ -433,25 +445,348 @@ For the most part this will include the construction of their own bounding volum
 <span id="chap-linearbvh"></span><h3>Compact form<a class="headerlink" href="#compact-form" title="Permalink to this headline">¶</a></h3>
 <p>In addition to the standard BVH node <code class="docutils literal notranslate"><span class="pre">NodeT&lt;T,</span> <span class="pre">P,</span> <span class="pre">BV,</span> <span class="pre">K&gt;</span></code>, EBGeometry provides a more compact formulation of the BVH hierarchy where the nodes are stored in depth-first order.
 The “linearized” BVH can be automatically constructed from the standard BVH but not vice versa.</p>
+<div class="figure align-center" id="id5">
+<a class="reference internal image-reference" href="_images/CompactBVH.png"><img alt="_images/CompactBVH.png" src="_images/CompactBVH.png" style="width: 240px;" /></a>
+<p class="caption"><span class="caption-number">Fig. 6 </span><span class="caption-text">Compact BVH representation.
+The original BVH is traversed from top-to-bottom along the branches and laid out in linear memory.
+Each interior node gets a reference (index offset) to their children nodes.</span><a class="headerlink" href="#id5" title="Permalink to this image">¶</a></p>
+</div>
+<p>The rationale for reorganizing the BVH in compact form is it’s tighter memory footprint and depth-first ordering which allows more efficient traversal downwards in the BVH tree.
+To encapsulate the compact BVH we provide two classes:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">LinearNodeT</span></code> which encapsulates a node, but rather than storing the primitives and pointers to child nodes it stores offsets along the 1D arrays.
+Just like <code class="docutils literal notranslate"><span class="pre">NodeT</span></code> the class is templated:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
+  <span class="k">class</span> <span class="nc">LinearNodeT</span> <span class="p">{</span>
+  <span class="k">public</span><span class="o">:</span>
+  <span class="k">protected</span><span class="o">:</span>
+
+    <span class="cm">/*!</span>
+<span class="cm">      @brief Bounding volume. </span>
+<span class="cm">    */</span>
+    <span class="n">BV</span> <span class="n">m_boundingVolume</span><span class="p">;</span>
+
+    <span class="cm">/*!</span>
+<span class="cm">      @brief Offset into primitives array</span>
+<span class="cm">    */</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">m_primitivesOffset</span><span class="p">;</span>    
+
+    <span class="cm">/*!</span>
+<span class="cm">      @brief Number of primitives</span>
+<span class="cm">    */</span>
+    <span class="kt">int</span> <span class="n">m_numPrimitives</span><span class="p">;</span>
+
+    <span class="cm">/*!</span>
+<span class="cm">      @brief Offset to child nodes. </span>
+<span class="cm">    */</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="n">m_childOffsets</span><span class="p">;</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">LinearNodeT</span></code> has a smaller memory footprint and should fit in one CPU word in floating-point precision and two CPU words in double point precision.
+The performance benefits of further memory alignment have not been investigated.</p>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">LinearNodeT</span></code> only stores offsets to child nodes and primitives, which are assumed to be stored (somewhere) as</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">LinearNodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">linearNodes</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">P</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">primitives</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Thus, for a given node we can check if it is a leaf node (<code class="docutils literal notranslate"><span class="pre">m_numPrimitives</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>) and if it is we can get the children through the <code class="docutils literal notranslate"><span class="pre">m_childOffsets</span></code> array.
+Primitives can likewise be obtained; they are stored in the primitives array from index <code class="docutils literal notranslate"><span class="pre">m_primitivesOffset</span></code> to <code class="docutils literal notranslate"><span class="pre">m_primitivesOffset</span> <span class="pre">+</span> <span class="pre">m_numPrimities</span> <span class="pre">-</span> <span class="pre">1</span></code>.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> which stores the compact BVH <em>and</em> primitives as class members.
+That is, <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> contains the nodes and primitives as class members.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
+  <span class="k">public</span><span class="o">:</span>
+    <span class="kr">inline</span>
+    <span class="n">LinearBVH</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">LinearNode</span><span class="o">&gt;&amp;</span> <span class="n">a_linearNodes</span><span class="p">,</span>
+	      <span class="k">const</span> <span class="n">PrimitiveList</span><span class="o">&amp;</span>           <span class="n">a_primitives</span><span class="p">);</span>
+  <span class="k">protected</span><span class="o">:</span>
+
+    <span class="cm">/*!</span>
+<span class="cm">      @brief List of linearly stored nodes</span>
+<span class="cm">    */</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">LinearNodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">m_linearNodes</span><span class="p">;</span>
+
+    <span class="cm">/*!</span>
+<span class="cm">      @brief Global list of primitives. Note that this is ALL primitives, sorted so that LinearNodeT can interface into it. </span>
+<span class="cm">    */</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">P</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">m_primitives</span><span class="p">;</span>
+  <span class="p">};</span>
+</pre></div>
+</div>
+<p>The root node is, of course, found at the front of the <code class="docutils literal notranslate"><span class="pre">m_linearNodes</span></code> vector.
+Note that the list of primitives <code class="docutils literal notranslate"><span class="pre">m_primitives</span></code> is stored in the order in which the leaf nodes appear in <code class="docutils literal notranslate"><span class="pre">m_linearNodes</span></code>.</p>
+</li>
+</ul>
+<p>Constructing the compact BVH is simply a matter of letting <code class="docutils literal notranslate"><span class="pre">NodeT</span></code> aggregate the nodes and primitives into arrays, and return a <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code>.
+This is done by calling the <code class="docutils literal notranslate"><span class="pre">NodeT</span></code> member function <code class="docutils literal notranslate"><span class="pre">flattenTree()</span></code>, which returns a pointer to a <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code>.
+For example:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// Assume that we have built the conventional BVH already</span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">NodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">builderBVH</span><span class="p">;</span>
+
+<span class="c1">// Flatten the tree.</span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">LinearBVH</span><span class="o">&gt;</span> <span class="n">compactBVH</span> <span class="o">=</span> <span class="n">builderBVH</span><span class="p">.</span><span class="n">flattenTree</span><span class="p">();</span>
+
+<span class="c1">// Release the original BVH.</span>
+<span class="n">builderBVH</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>When calling <code class="docutils literal notranslate"><span class="pre">flattenTree</span></code>, the original BVH tree is <em>not</em> destroyed.
+To release the memory, deallocate the original BVH tree.
+E.g., the set pointer to the root node to <code class="docutils literal notranslate"><span class="pre">nullptr</span></code> if using a smart pointer.</p>
+</div>
+<p>Note that the primitives live in <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> and not <code class="docutils literal notranslate"><span class="pre">LinearNodeT</span></code>, and the signed distance function is therefore implemented in the <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> member functions:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
+  <span class="k">class</span> <span class="nc">LinearBVH</span> <span class="p">{</span>
+  <span class="k">public</span><span class="o">:</span>
+    <span class="kr">inline</span>
+    <span class="n">T</span> <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3</span><span class="o">&amp;</span> <span class="n">a_point</span><span class="p">,</span> <span class="k">const</span> <span class="n">Prune</span> <span class="n">a_pruning</span> <span class="o">=</span> <span class="n">Prune</span><span class="o">::</span><span class="n">Ordered2</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>    
+</pre></div>
+</div>
+<p>Thus, once the compact BVH has been built, we can call the signed distance function as usual:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">myPoint</span><span class="p">;</span>
+
+<span class="n">compactBVH</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">myPoint</span><span class="p">);</span>
+</pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="dcel">
 <h2>DCEL<a class="headerlink" href="#dcel" title="Permalink to this headline">¶</a></h2>
 <p>The DCEL functionality exists under the namespace <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel</span></code> and contains the following functionality:</p>
-<ol class="arabic simple">
-<li><p>Fundamental data types like vertices, half-edges, polygons, and entire surface grids.</p></li>
-<li><p>Signed distance functionality for the above types.</p></li>
-<li><p>File parsers for reading files into DCEL structures.</p></li>
-<li><p>Partitioners for putting DCEL grids into bounding volume hierarchies.</p></li>
-</ol>
+<ul class="simple">
+<li><p><strong>Fundamental data types</strong> like vertices, half-edges, polygons, and entire surface grids.</p></li>
+<li><p><strong>Signed distance functionality</strong> for the above types.</p></li>
+<li><p><strong>File parsers for reading files</strong> into DCEL structures.</p></li>
+<li><p><strong>BVH functionality</strong> for putting DCEL grids into bounding volume hierarchies.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The DCEL functionality is <em>not</em> restricted to triangles, but supports N-sided polygons.</p>
+</div>
 <div class="section" id="classes">
 <h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+<p>The main DCEL functionality (vertices, edges, faces) is provided by the following classes:</p>
+<ul class="simple">
+<li><p><strong>Vertices</strong> are implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel::EdgeT</span></code></p></li>
+</ul>
+<blockquote>
+<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+  <span class="k">class</span> <span class="nc">VertexT</span> <span class="p">{</span>
+  <span class="k">public</span><span class="o">:</span>
+</pre></div>
+</div>
+<p>The DCEL vertex class stores the vertex position, normal vector, and the outgoing half-edge from the vertex.
+Note that the class has member functions for computing the vertex pseudonormal, see <a class="reference internal" href="DCEL.html#chap-normaldcel"><span class="std std-ref">Normal vectors</span></a>.</p>
+<p>The full API is given in the doxygen documentation <a class="reference external" href="doxygen/html/classDcel_1_1VertexT.html">here</a>.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p><strong>Edges</strong> are implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel::EdgeT</span></code></p></li>
+</ul>
+<blockquote>
+<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+  <span class="k">class</span> <span class="nc">EdgeT</span> <span class="p">{</span>
+  <span class="k">public</span><span class="o">:</span>
+</pre></div>
+</div>
+<p>The half-edges store a reference to their face, as well as pointers to the previous edge, next edge, pair edge, and starting vertex.
+For performance reasons, the edge also stores the length and inverse length of the edge.</p>
+<p>The full API is given in the doxygen documentation <a class="reference external" href="doxygen/html/classDcel_1_1EdgeT.html">here</a>.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p><strong>Faces</strong> are implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel::FaceT</span></code></p></li>
+</ul>
+<blockquote>
+<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+  <span class="k">class</span> <span class="nc">FaceT</span> <span class="p">{</span>
+  <span class="k">public</span><span class="o">:</span>
+</pre></div>
+</div>
+<p>For performance reasons, a polygon face stores all it’s half-edges (to avoid iteration when computing the signed distance).
+It also stores:</p>
+<ul class="simple">
+<li><p>The normal vector.</p></li>
+<li><p>A 2D embedding of the polygon face.</p></li>
+<li><p>Centroid position.</p></li>
+</ul>
+<p>The normal vector and 2D embedding of the facet exist because the signed distance computation requires them.
+The centroid position exists only because BVH partitioners will use it for partitioning the surface mesh.</p>
+<p>The full API is given in the doxygen documentation <a class="reference external" href="doxygen/html/classDcel_1_1FaceT.html">here</a>.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p><strong>Mesh</strong> is implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel::MeshT</span></code></p></li>
+</ul>
+<blockquote>
+<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+  <span class="k">class</span> <span class="nc">MeshT</span> <span class="p">{</span>
+  <span class="k">public</span><span class="o">:</span>
+</pre></div>
+</div>
+<p>The Mesh stores all the vertices, half-edges, and faces.
+For example, to obtain all the facets one can call <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel::MeshT&lt;T&gt;::getFaces()</span></code> which will return all the DCEL faces of the surface mesh.
+Typically, the mesh is not created by the user but automatically created when reading the mesh from an input file.</p>
+<p>The full API is given in the doxygen documentation <a class="reference external" href="doxygen/html/classDcel_1_1MeshT.html">here</a>.</p>
+</div></blockquote>
+<p>All of the above DCEL classes have member functions of the type:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">T</span> <span class="nf">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+<span class="n">T</span> <span class="nf">unsignedDistance2</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Thus, they fulfill the template requirements of the primitive type for the BVH implementation, see <a class="reference internal" href="#chap-bvhconstraints"><span class="std std-ref">Template constraints</span></a>.
+See <a class="reference internal" href="#chap-bvhintegration"><span class="std std-ref">BVH integration</span></a> for details regarding DCEL integration with BVHs.</p>
 </div>
 <div class="section" id="file-parsers">
 <h3>File parsers<a class="headerlink" href="#file-parsers" title="Permalink to this headline">¶</a></h3>
+<p>Routines for parsing surface files from grids into EBGeometry’s DCEL grids are given in the namespace <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel::Parser</span></code>.
+Currently, this is limited to the following file formats:</p>
+<ul>
+<li><p><strong>PLY</strong> Only ASCII formats currently supported, <a class="reference external" href="https://en.wikipedia.org/wiki/PLY_(file_format)">https://en.wikipedia.org/wiki/PLY_(file_format)</a>.</p>
+<p>When reading a PLY file into the DCEL data structures, it is sufficient to call the following static function:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="n">using</span> <span class="n">Mesh</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="p">::</span><span class="n">Dcel</span><span class="p">::</span><span class="n">MeshT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="n">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="n">std</span><span class="p">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Mesh</span><span class="o">&gt;</span> <span class="n">EBGeometry</span><span class="p">::</span><span class="n">Parser</span><span class="p">::</span><span class="n">PLY</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">::</span><span class="n">readASCII</span><span class="p">(</span><span class="n">const</span> <span class="n">std</span><span class="p">::</span><span class="n">string</span> <span class="n">a_filename</span><span class="p">);</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Although the parser will do it’s best to read files that contains holes or incomplete faces, success will fluctuate.
+Moreover, the signed distance function is not well-defined for such cases.</p>
+</div>
+<p>Calling the <code class="docutils literal notranslate"><span class="pre">readASCII</span></code> function will read the input file (which is assumed to be a PLY file) and create the DCEL data structures.</p>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the file format of your surface mesh file is not one of the above, consider either providing a new plugin or convert your file (e.g. to PLY) using MeshLab, Blender, etc.</p>
+</div>
 </div>
 <div class="section" id="bvh-integration">
-<h3>BVH integration<a class="headerlink" href="#bvh-integration" title="Permalink to this headline">¶</a></h3>
+<span id="chap-bvhintegration"></span><h3>BVH integration<a class="headerlink" href="#bvh-integration" title="Permalink to this headline">¶</a></h3>
+<p>DCEL functionality can easily be embedded in BVHs.
+In this case it is the facets that are embedded in the BVHs, and we require that we can create bounding volumes that contain all the vertices in a facet.
+Moreover, partitioning functions that partition a set of polygon faces into <code class="docutils literal notranslate"><span class="pre">K</span></code> new sets of faces are also required.</p>
+<div class="section" id="construction-methods">
+<h4>Construction methods<a class="headerlink" href="#construction-methods" title="Permalink to this headline">¶</a></h4>
+<p>EBGeometry provides some simplistic functions that are needed (see <a class="reference internal" href="#chap-bvhconstruction"><span class="std std-ref">Construction</span></a>) when building BVHs for DCEL geometries .</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The functions are defined in <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_DcelBVH.hpp</span></code>.</p>
+</div>
+<p>For the bounding volume constructor, we provide a function</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="o">&gt;</span>
+  <span class="n">BVH</span><span class="o">::</span><span class="n">BVConstructorT</span><span class="o">&lt;</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">BV</span><span class="o">&gt;</span> <span class="n">defaultBVConstructor</span> <span class="o">=</span> <span class="p">[](</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">a_primitive</span><span class="p">){</span>
+    <span class="k">return</span> <span class="n">BV</span><span class="p">(</span><span class="n">a_primitive</span><span class="o">-&gt;</span><span class="n">getAllVertexCoordinates</span><span class="p">());</span>
+  <span class="p">};</span>  
+</pre></div>
+</div>
+<p>Note the extra template constraint on the bounding volume type <code class="docutils literal notranslate"><span class="pre">BV</span></code>, which must be able to construct a bounding volume from a finite point set (the vertex coordinates).</p>
+<p>For the stop function we provide a simple function</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">primitivesPerLeafNode</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span> 
+  <span class="n">BVH</span><span class="o">::</span><span class="n">StopFunctionT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="n">defaultStopFunction</span> <span class="o">=</span> <span class="p">[](</span><span class="k">const</span> <span class="n">BVH</span><span class="o">::</span><span class="n">NodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;&amp;</span> <span class="n">a_node</span><span class="p">){</span>
+    <span class="k">const</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="n">primitives</span> <span class="o">=</span> <span class="n">a_node</span><span class="p">.</span><span class="n">getPrimitives</span><span class="p">();</span>
+    <span class="k">const</span> <span class="kt">int</span> <span class="n">numPrims</span>     <span class="o">=</span> <span class="n">primitives</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+    
+    <span class="k">return</span> <span class="n">numPrims</span> <span class="o">&lt;=</span> <span class="n">primitivesPerLeafNode</span> <span class="o">||</span> <span class="n">numPrims</span> <span class="o">&lt;</span> <span class="n">K</span><span class="p">;</span>
+  <span class="p">};</span>
+</pre></div>
+</div>
+<p>Note that this simply terminates the leaf partitioning if there are not enough primitives (polygon faces) available, or there are fewer than a pre-defined number of primitives.</p>
+<p>For the partitioning function we include a simple function that partitions the primites along the longest axis:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
+  <span class="n">BVH</span><span class="o">::</span><span class="n">PartitionerT</span><span class="o">&lt;</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="n">spatialSplitPartitioner</span> <span class="o">=</span> <span class="p">[](</span><span class="k">const</span> <span class="n">PrimitiveList</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_primitives</span><span class="p">){</span>
+
+    <span class="k">const</span> <span class="kt">int</span> <span class="n">numPrimitives</span> <span class="o">=</span> <span class="n">a_primitives</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+    
+    <span class="c1">// Compute the coordinate direction with the longest extent. This will be our splitting direction.  </span>
+    <span class="k">auto</span> <span class="n">lo</span> <span class="o">=</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">max</span><span class="p">();</span>
+    <span class="k">auto</span> <span class="n">hi</span> <span class="o">=</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">min</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(</span><span class="k">const</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">p</span> <span class="p">:</span> <span class="n">a_primitives</span><span class="p">){</span>
+      <span class="n">lo</span> <span class="o">=</span> <span class="n">min</span><span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">getCentroid</span><span class="p">());</span>
+      <span class="n">hi</span> <span class="o">=</span> <span class="n">max</span><span class="p">(</span><span class="n">hi</span><span class="p">,</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">getCentroid</span><span class="p">());</span>
+    <span class="p">}</span>
+    <span class="k">const</span> <span class="k">auto</span> <span class="n">delta</span>   <span class="o">=</span> <span class="p">(</span><span class="n">hi</span><span class="o">-</span><span class="n">lo</span><span class="p">);</span>
+    <span class="k">const</span> <span class="kt">int</span> <span class="n">splitDir</span> <span class="o">=</span> <span class="n">delta</span><span class="p">.</span><span class="n">maxDir</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+
+    <span class="c1">// Sort the primitives along the above coordinate direction. </span>
+    <span class="n">PrimitiveList</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">sortedPrimitives</span><span class="p">(</span><span class="n">a_primitives</span><span class="p">);</span>
+    
+    <span class="n">std</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span><span class="n">sortedPrimitives</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">sortedPrimitives</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span>
+	      <span class="p">[</span><span class="o">=</span><span class="p">](</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">f1</span><span class="p">,</span>
+		  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">f2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">bool</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="n">f1</span><span class="o">-&gt;</span><span class="n">getCentroid</span><span class="p">(</span><span class="n">splitDir</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">f2</span><span class="o">-&gt;</span><span class="n">getCentroid</span><span class="p">(</span><span class="n">splitDir</span><span class="p">);</span>
+	      <span class="p">});</span>
+
+
+    <span class="c1">// Figure out the indices in the vector where we do the splits. </span>
+    <span class="k">const</span> <span class="kt">int</span> <span class="n">almostEqualChunkSize</span> <span class="o">=</span> <span class="n">numPrimitives</span> <span class="o">/</span> <span class="n">K</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">remainder</span>                  <span class="o">=</span> <span class="n">numPrimitives</span> <span class="o">%</span> <span class="n">K</span><span class="p">;</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="n">startIndices</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="n">endIndices</span><span class="p">;</span>
+
+    <span class="n">startIndices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>   <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">endIndices</span>  <span class="p">[</span><span class="n">K</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">numPrimitives</span><span class="p">;</span>
+    
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">K</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+      <span class="n">startIndices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">startIndices</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">almostEqualChunkSize</span><span class="p">;</span>
+
+      <span class="k">if</span><span class="p">(</span><span class="n">remainder</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">){</span>
+	<span class="n">startIndices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">++</span><span class="p">;</span>
+	<span class="n">remainder</span><span class="o">--</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">K</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+      <span class="n">endIndices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">startIndices</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">];</span>
+    <span class="p">}</span>
+
+
+    <span class="c1">// Put the primitives in separate lists and return them back to the BVH node. </span>
+    <span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">PrimitiveList</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="n">subVolumePrimitives</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">K</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+      <span class="k">typename</span> <span class="n">PrimitiveList</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">const_iterator</span> <span class="n">first</span> <span class="o">=</span> <span class="n">sortedPrimitives</span><span class="p">.</span><span class="n">begin</span><span class="p">()</span> <span class="o">+</span> <span class="n">startIndices</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="k">typename</span> <span class="n">PrimitiveList</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">const_iterator</span> <span class="n">last</span>  <span class="o">=</span> <span class="n">sortedPrimitives</span><span class="p">.</span><span class="n">begin</span><span class="p">()</span> <span class="o">+</span> <span class="n">endIndices</span>  <span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      
+      <span class="n">subVolumePrimitives</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">PrimitiveList</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// Return as we must.</span>
+    <span class="k">return</span> <span class="n">subVolumePrimitives</span><span class="p">;</span>
+  <span class="p">};</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="code-example">
+<h4>Code example<a class="headerlink" href="#code-example" title="Permalink to this headline">¶</a></h4>
+<p>Constructing a compact BVH representation of polygon mesh is therefore done as follows:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">using</span> <span class="n">T</span>    <span class="o">=</span> <span class="kt">float</span><span class="p">;</span>
+<span class="k">using</span> <span class="n">BV</span>   <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BoundingVolumes</span><span class="o">::</span><span class="n">AABBT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="k">using</span> <span class="n">Vec3</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="k">using</span> <span class="n">Face</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="k">constexpr</span> <span class="kt">int</span> <span class="n">K</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
+
+<span class="c1">// Read the mesh from file and put it in a DCEL format.</span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">Mesh</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">mesh</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">Ply</span><span class="p">(</span><span class="s">&quot;MyFile.ply&quot;</span><span class="p">);</span>
+
+<span class="c1">// Make a BVH node and build the BVH.</span>
+<span class="k">auto</span> <span class="n">root</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">NodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Face</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="o">&gt;</span><span class="p">(</span><span class="n">mesh</span><span class="o">-&gt;</span><span class="n">getFaces</span><span class="p">());</span>
+
+<span class="c1">// Build the BVH hierarchy</span>
+<span class="n">root</span><span class="o">-&gt;</span><span class="n">topDownSortAndPartitionPrimitives</span><span class="p">(</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">defaultBVConstructor</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="o">&gt;</span><span class="p">,</span>
+                                        <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">spatialSplitPartitioner</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">,</span>
+                                        <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">defaultStopFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">);</span>
+
+<span class="c1">// Flatten the tree onto a tighter representation. Then delete the old tree.</span>
+<span class="k">auto</span> <span class="n">compactBVH</span> <span class="o">=</span> <span class="n">root</span><span class="o">-&gt;</span><span class="n">flattenTree</span><span class="p">();</span>
+
+<span class="n">root</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+</pre></div>
+</div>
+</div>
 </div>
 </div>
 <div class="section" id="signed-distance-function">
@@ -496,7 +831,7 @@ When implementing the <code class="docutils literal notranslate"><span class="pr
 <span class="k">class</span> <span class="nc">MySignedDistanceFunction</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
 <span class="k">public</span><span class="o">:</span>
    <span class="n">T</span> <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="k">override</span> <span class="p">{</span>
-      <span class="k">return</span> <span class="n">m_bvh</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="k">this</span><span class="o">-&gt;</span><span class="n">transformPoint</span><span class="p">(</span><span class="n">a_point</span><span class="p">));</span>
+  <span class="n">p</span>    <span class="k">return</span> <span class="n">m_bvh</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="k">this</span><span class="o">-&gt;</span><span class="n">transformPoint</span><span class="p">(</span><span class="n">a_point</span><span class="p">));</span>
    <span class="p">}</span>
 
 <span class="k">protected</span><span class="o">:</span>
@@ -541,7 +876,43 @@ In addition, the file <code class="file docutils literal notranslate"><span clas
 </pre></div>
 </div>
 </li>
+<li><p><strong>Torus</strong></p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">EBGeometry</span><span class="o">::</span><span class="nl">TorusSDF</span> <span class="p">:</span> <span class="k">public</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Cylinder</strong></p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">EBGeometry</span><span class="o">::</span><span class="nl">CylinderSDF</span> <span class="p">:</span> <span class="k">public</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Box</strong></p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">EBGeometry</span><span class="o">::</span><span class="nl">BoxSDF</span> <span class="p">:</span> <span class="k">public</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+</pre></div>
+</div>
+</li>
 </ul>
+</div>
+<div class="section" id="d-modifications">
+<h3>2D modifications<a class="headerlink" href="#d-modifications" title="Permalink to this headline">¶</a></h3>
+<p>For two-dimensional computations it may be required to reconstruct a 2D signed distance field from a 3D object.
+For cases where users want to obtain a 2D geometry as a slice of a 3D geometry, e.g.</p>
+<div class="math notranslate nohighlight">
+\[s_{2\textrm{D}}(x,y) = s_{\textrm{3D}}(x,y,z_0),\]</div>
+<p>where <span class="math notranslate nohighlight">\(z_0\)</span> is some fixed coordinate, the two-dimensional signed distance field will still be fundamentally 3D.</p>
+<div class="figure align-center" id="id6">
+<a class="reference internal image-reference" href="_images/CompactBVH.png"><img alt="_images/CompactBVH.png" src="_images/CompactBVH.png" style="width: 240px;" /></a>
+<p class="caption"><span class="caption-number">Fig. 7 </span><span class="caption-text">Example of signed distance function slicing with and without appropriate transformations.</span><a class="headerlink" href="#id6" title="Permalink to this image">¶</a></p>
+</div>
+<p>As an example, consider the geometry in <code class="xref std std-numref docutils literal notranslate"><span class="pre">Fig:SDFSlice</span></code> where the geometry consists of a cylinder situated between infinitely large half-planes.
+Depending on how the 2D geometry should be reconstructed, we can consider either the equation above, or the case where the infinitely large half-planes are moved to infinity.
+Thus, we can consider either:</p>
+<div class="math notranslate nohighlight">
+\[s_{2\textrm{D}}(x,y) = s_{\textrm{3D}}(x,y,z_0),\]</div>
+<p>or</p>
 </div>
 </div>
 <div class="section" id="unions">
@@ -563,7 +934,7 @@ In addition, the file <code class="file docutils literal notranslate"><span clas
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="ZZReferences.html" class="btn btn-neutral float-right" title="References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="Examples.html" class="btn btn-neutral float-right" title="Guided examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="BVH.html" class="btn btn-neutral float-left" title="Bounding volume hierarchies" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

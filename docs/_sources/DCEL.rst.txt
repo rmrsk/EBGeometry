@@ -73,6 +73,8 @@ It is therefore necessary to distinguish between three cases:
 
    If the closest point is a vertex then the signed distance is simply :math:`\mathbf{n}_v\cdot\left(\mathbf{x}-\mathbf{x}_v\right)` where :math:`\mathbf{n}_v` is the vertex pseudonormal and :math:`\mathbf{x}_v` is the vertex position.
 
+.. _Chap:NormalDCEL:
+
 Normal vectors
 --------------
 

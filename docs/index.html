@@ -88,6 +88,7 @@
 <li class="toctree-l1"><a class="reference internal" href="DCEL.html">DCEL mesh structure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Implementation.html">Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">Guided examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
 </ul>
 
@@ -158,6 +159,11 @@
 <p>This is the user documentation for EBGeometry, a small C++ package for computing signed distance fields from surface tesselations.
 Although EBGeometry is a self-contained package, it is was originally written for usage with embedded boundary (EB) and immersed boundary (IB) codes.
 A separate Doxygen-generated API of EBGeometry is found <a class="reference external" href="doxygen/html/index.html">here</a>.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>EBGeometry does not involve itself with the <em>discrete geometry generation</em>, i.e. the generation of cut-cells.
+It only takes care of the <em>geometry representation</em>, i.e. the creation of complex geometries as numerically efficient signed distance fields.</p>
+</div>
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">Contents</span></p>
 <ul>
@@ -203,6 +209,7 @@ A separate Doxygen-generated API of EBGeometry is found <a class="reference exte
 <li class="toctree-l2"><a class="reference internal" href="Implementation.html#signed-distance-function">Signed distance function</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="Implementation.html#transformations">Transformations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="Implementation.html#analytic-functions">Analytic functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Implementation.html#d-modifications">2D modifications</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="Implementation.html#unions">Unions</a><ul>
@@ -210,6 +217,13 @@ A separate Doxygen-generated API of EBGeometry is found <a class="reference exte
 <li class="toctree-l3"><a class="reference internal" href="Implementation.html#accelerated-union">Accelerated union</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">Guided examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Examples.html#using-analytic-functions">Using analytic functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Examples.html#standard-unions">Standard unions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Examples.html#integration-with-amrex">Integration with AMReX</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Examples.html#integration-with-chombo">Integration with Chombo</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
