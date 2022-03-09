@@ -8,15 +8,21 @@ Basic concept
 
 Bounding Volume Hierarchies (BVHs) are comparatively simple data structures that can accelerate closest-point searches by orders of magnitude.
 BVHs are tree structures where the regular nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces) further down in the hierarchy.
-There are two types of nodes in a BVH:
+This means that every node in a BVH is associated with a *bounding volume*.
+The bounding volume can, in principle, be any type of volume. 
+Moreover, there are two types of nodes in a BVH:
 
-* *Regular nodes*, which do not contain any of the primitives/objects, but stores references to child nodes.
-* *Leaf nodes*, which contain a subset of the primitives.
-
-Both types of nodes contain a *bounding volume* which closes all geometric primitives in the subtree below the node.
+* **Regular nodes.** These do not contain any of the primitives/objects.
+  They are also called interior nodes, and store references to their child nodes. 
+* **Leaf nodes.** These lie at the bottom of the BVH tree and each of them contain a subset of the geometric primitives.
 
 :numref:`Fig:TrianglesBVH` shows a concept of BVH partitioning of a set of triangles.
 Here, :math:`P` is a regular node whose bounding volume encloses all geometric primitives in it's subtree.
+It's bounding volume, an axis-aligned bounding box or AABB for short, is illustrated by a dashed rectangle.
+The interior node :math:`P` stores references to the leaf nodes :math:`L` and :math:`R`.
+As shown in :numref:`Fig:TrianglesBVH`, :math:`L` contains 5 triangles enclosed by another AABB.
+The other child node :math:`R` contains 6 triangles that are also enclosed by an AABB.
+Note that the bounding volume for :math:`P` encloses the bounding volumes of :math:`L` and :math:`R` and that the bounding volumes for :math:`L` and :math:`R` contain a small overlap. 
 
 .. _Fig:TrianglesBVH:
 .. figure:: /_static/TrianglesBVH.png
@@ -30,31 +36,31 @@ For example, analytic signed distance functions can also be embedded in BVHs, pr
 
 .. note::
    
-   BVHs are not limited to binary trees.
-   EBGeometry supports :math:`k` -ary trees where each regular node has :math:`k` children nodes. 
+   EBGeometry limited to binary trees, but supports :math:`k` -ary trees where each regular node has :math:`k` children nodes. 
 
 Construction
 ------------
 
 BVHs have extremely flexible rules regarding their construction.
-Since they are hierarchical structures, the only requirement when dividing a leaf node is that each child node gets at least one primitive.
+For example, the child nodes :math:`L` and :math:`R` in :numref:`Fig:TrianglesBVH` could be partitioned in any number of ways, with the only requirement being that each child node gets at least one triangle. 
 
-Although the rules for BVH construction are flexible, performant BVHs are completely reliant on having balanced trees with the following heuristic properties:
+Although the rules for BVH construction are highly flexible, performant BVHs are completely reliant on having balanced trees with the following heuristic properties:
 
-* Bounding volumes should enclose primitives as tightly as possible.
-* There should be a minimal overlap between the bounding volumes.
-* The BVH trees should be approximately *balanced*.
+* **Tight bounding volumes** that enclose the primitives as tightly as possible.
+* **Minimal overlap** between the bounding volumes.
+* **Balanced**, in the sense that the tree depth does not vary greatly through the tree, and there is approximately the same number of primitives in each leaf node. 
 
 Construction of a BVH is usually done recursively, from top to bottom (so-called top-down construction).
 Alternative construction methods also exist, but are not used in EBGeometry. 
 In this case one can represent the BVH construction of a :math:`k` -ary tree is done through a single function:
 
 .. math::
-
+   :label: Partition
+   
    \textrm{Partition}\left(\vec{O}\right): \vec{O} \rightarrow \left(\vec{O}_1, \vec{O}_2, \ldots, \vec{O}_k\right), 
    
 where :math:`\vec{O}` is an input a list of objects/primitives, which is *partitioned* into :math:`k` new list of primitives.
-Note that the lists :math:`\vec{O}_i` do not contain duplicates.
+Note that the lists :math:`\vec{O}_i` do not contain duplicates, there is a unique set of primitives associated in each new leaf node. 
 Top-down construction can thus be illustrated as a recursive procedure:
 
 .. code-block:: text
@@ -69,8 +75,7 @@ Top-down construction can thus be illustrated as a recursive procedure:
 	    child.topDownConstruction(child.objects)
 
 In practice, the above procedure is supplemented by more sophisticated criteria for terminating the recursion, as well as routines for creating the bounding volumes around the newly inserted nodes. 
-
-
+EBGeometry provides these by letting the top-down construction calls take polymorphic lambdas as arguments for partitioning, termination, and bounding volume construction. 
 
 Signed distance function
 ------------------------
@@ -80,10 +85,11 @@ Consider the case in :numref:`Fig:TreePruning`, where the goal of the BVH traver
 We consider the following steps:
 
 * When descending from node :math:`P` we determine that we first investigate the left subtree (node :math:`A`) since its bounding volume is closer than the bounding volumes for the other subtree.
-  The other subtree will be investigated later. 
+  The other subtree will is investigated after we have recursed to the bottom of the :math:`A` subtree. 
 * Since :math:`A` is a leaf node, we find the signed distance from :math:`\mathbf{x}` to the primitives in :math:`A`.
+  This requires us to iterate over all the triangles in :math:`A`. 
 * When moving back to :math:`P`, we find that the distance to the primitives in :math:`A` is shorter than the distance from :math:`\mathbf{x}` to the bounding volume that encloses nodes :math:`B` and :math:`C`.
-  Consequently, the entire subtree containing :math:`B` and :math:`C` can be pruned.
+  This immediately permits us to prune the entire subtree containing :math:`B` and :math:`C`.
 
 .. _Fig:TreePruning:
 .. figure:: /_static/TreePruning.png

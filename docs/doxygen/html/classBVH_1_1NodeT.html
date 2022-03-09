@@ -141,9 +141,12 @@ Public Member Functions</h2></td></tr>
 const BV &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a02cba4dcb065ebfaeea7e4d251b89d04">getBoundingVolume</a> () const noexcept</td></tr>
 <tr class="memdesc:a02cba4dcb065ebfaeea7e4d251b89d04"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get bounding volume. <br /></td></tr>
 <tr class="separator:a02cba4dcb065ebfaeea7e4d251b89d04"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aef7148b18296dce60853b5966c9f1e0d"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#aef7148b18296dce60853b5966c9f1e0d">signedDistance</a> (const <a class="el" href="classBVH_1_1NodeT.html#a6fbb4308c5c55ee170c5f992df7ae1d0">Vec3</a> &amp;a_point, const <a class="el" href="namespaceBVH.html#a3ddb7b34ac1deb3baed2f32d9eacbe5b">Prune</a> a_pruning=Prune::Ordered2) const noexcept</td></tr>
-<tr class="memdesc:aef7148b18296dce60853b5966c9f1e0d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function which computes the signed distance.  <a href="#aef7148b18296dce60853b5966c9f1e0d">More...</a><br /></td></tr>
-<tr class="separator:aef7148b18296dce60853b5966c9f1e0d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0fe074fbff56ac2d0a6ad113ed34d56b"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a0fe074fbff56ac2d0a6ad113ed34d56b">signedDistance</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point) const noexcept</td></tr>
+<tr class="memdesc:a0fe074fbff56ac2d0a6ad113ed34d56b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function which computes the signed distance.  <a href="#a0fe074fbff56ac2d0a6ad113ed34d56b">More...</a><br /></td></tr>
+<tr class="separator:a0fe074fbff56ac2d0a6ad113ed34d56b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9b2e3a1a296cc3f9f8de488755217432"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a9b2e3a1a296cc3f9f8de488755217432">unsignedDistance2</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point) const noexcept</td></tr>
+<tr class="memdesc:a9b2e3a1a296cc3f9f8de488755217432"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function which computes the signed distance.  <a href="#a9b2e3a1a296cc3f9f8de488755217432">More...</a><br /></td></tr>
+<tr class="separator:a9b2e3a1a296cc3f9f8de488755217432"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3aa6e9109897a573a46714278e0a79c6"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a3aa6e9109897a573a46714278e0a79c6">pruneOrdered</a> (const <a class="el" href="classBVH_1_1NodeT.html#a6fbb4308c5c55ee170c5f992df7ae1d0">Vec3</a> &amp;a_point) const noexcept</td></tr>
 <tr class="memdesc:a3aa6e9109897a573a46714278e0a79c6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function which computes the signed distance using ordered pruning along the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a> branches.  <a href="#a3aa6e9109897a573a46714278e0a79c6">More...</a><br /></td></tr>
 <tr class="separator:a3aa6e9109897a573a46714278e0a79c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -199,6 +202,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <tr class="memitem:a92db0ab2d61c76469600478fddd04edc"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a92db0ab2d61c76469600478fddd04edc">setParent</a> (const <a class="el" href="classBVH_1_1NodeT.html#a008f5c2c53adb1f5730d8478b48529b1">NodePtr</a> &amp;a_parent) noexcept</td></tr>
 <tr class="memdesc:a92db0ab2d61c76469600478fddd04edc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set parent node.  <a href="#a92db0ab2d61c76469600478fddd04edc">More...</a><br /></td></tr>
 <tr class="separator:a92db0ab2d61c76469600478fddd04edc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a445cc87e9934d8117514de455ef1de47"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a445cc87e9934d8117514de455ef1de47">signedDistanceAlg</a> (const <a class="el" href="classBVH_1_1NodeT.html#a6fbb4308c5c55ee170c5f992df7ae1d0">Vec3</a> &amp;a_point, const <a class="el" href="namespaceBVH.html#a3ddb7b34ac1deb3baed2f32d9eacbe5b">Prune</a> a_pruning=Prune::Ordered2) const noexcept</td></tr>
+<tr class="memdesc:a445cc87e9934d8117514de455ef1de47"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function which computes the signed distance.  <a href="#a445cc87e9934d8117514de455ef1de47">More...</a><br /></td></tr>
+<tr class="separator:a445cc87e9934d8117514de455ef1de47"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac4a3be457d66d2673f717f203e60fc08"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#ac4a3be457d66d2673f717f203e60fc08">pruneOrdered</a> (T &amp;a_closest, const <a class="el" href="classBVH_1_1NodeT.html#a6fbb4308c5c55ee170c5f992df7ae1d0">Vec3</a> &amp;a_point) const noexcept</td></tr>
 <tr class="memdesc:ac4a3be457d66d2673f717f203e60fc08"><td class="mdescLeft">&#160;</td><td class="mdescRight">Implementation function for pruneOrdered (it requires a different signature).  <a href="#ac4a3be457d66d2673f717f203e60fc08">More...</a><br /></td></tr>
 <tr class="separator:ac4a3be457d66d2673f717f203e60fc08"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1277,8 +1283,8 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 
 </div>
 </div>
-<a id="aef7148b18296dce60853b5966c9f1e0d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aef7148b18296dce60853b5966c9f1e0d">&#9670;&nbsp;</a></span>signedDistance()</h2>
+<a id="a0fe074fbff56ac2d0a6ad113ed34d56b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0fe074fbff56ac2d0a6ad113ed34d56b">&#9670;&nbsp;</a></span>signedDistance()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1290,6 +1296,43 @@ template&lt;class T , class P , class BV , int K&gt; </div>
       <table class="memname">
         <tr>
           <td class="memname">T <a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::signedDistance </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_point</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Function which computes the signed distance. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_point</td><td>3D point in space </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Signed distance to the input point </dd></dl>
+
+</div>
+</div>
+<a id="a445cc87e9934d8117514de455ef1de47"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a445cc87e9934d8117514de455ef1de47">&#9670;&nbsp;</a></span>signedDistanceAlg()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T , class P , class BV , int K&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">T <a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::signedDistanceAlg </td>
           <td>(</td>
           <td class="paramtype">const <a class="el" href="classBVH_1_1NodeT.html#a6fbb4308c5c55ee170c5f992df7ae1d0">Vec3</a> &amp;&#160;</td>
           <td class="paramname"><em>a_point</em>, </td>
@@ -1308,7 +1351,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">protected</span><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1378,6 +1421,43 @@ template&lt;class T , class P , class BV , int K&gt; </div>
   </dd>
 </dl>
 <p>The rules for terminating the hierarchy construction, how to partition sets of primitives, and how to enclose them by bounding volumes are given in the input arguments (a_stopFunc, a_partFunc, a_bvFunc) </p>
+
+</div>
+</div>
+<a id="a9b2e3a1a296cc3f9f8de488755217432"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9b2e3a1a296cc3f9f8de488755217432">&#9670;&nbsp;</a></span>unsignedDistance2()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T , class P , class BV , int K&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">T <a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::unsignedDistance2 </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_point</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Function which computes the signed distance. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_point</td><td>3D point in space </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Signed distance to the input point </dd></dl>
 
 </div>
 </div>

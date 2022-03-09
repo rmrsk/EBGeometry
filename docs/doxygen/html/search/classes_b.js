@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['union',['Union',['../classUnion.html',1,'']]],
-  ['unionbvh',['UnionBVH',['../classUnionBVH.html',1,'']]]
+  ['torussdf',['TorusSDF',['../classTorusSDF.html',1,'']]],
+  ['transformop',['TransformOp',['../classTransformOp.html',1,'']]],
+  ['translateop',['TranslateOp',['../classTranslateOp.html',1,'']]]
 ];

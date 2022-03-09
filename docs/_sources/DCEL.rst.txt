@@ -9,9 +9,9 @@ Basic concept
 EBGeometry uses a doubly-connected edge list (DCEL) structure for storing surface meshes.
 The DCEL structures consist of the following objects:
 
-* Planar polygons (facets)
-* Half-edges
-* Vertices
+* Planar polygons (facets).
+* Half-edges.
+* Vertices.
 
 As shown in :numref:`Fig:DCEL`, the half-edge is the most important data structure.
 Half-edges circulate the inside of the facet, with pointer-access to the previous and next half-edge.
@@ -53,7 +53,7 @@ It is therefore necessary to distinguish between three cases:
    When computing the distance from a point :math:`\mathbf{x}` to the polygon face we first determine if the projection of :math:`\mathbf{x}` to the face's plane lies inside or outside the face.
    This is more involved than one might think, and it is done by first computing the two-dimensional projection of the polygon face, ignoring one of the coordinates.
    Next, we determine, using 2D algorithms, if the projected point lies inside the embedded 2D representation of the polygon face. 
-   Various algorithms for this are available, such as computing the winding number, the crossing number, or the subtended angle between the point and the 2D polygon.
+   Various algorithms for this are available, such as computing the winding number, the crossing number, or the subtended angle between the projected point and the 2D polygon.
 
    .. note::
    
@@ -73,10 +73,12 @@ It is therefore necessary to distinguish between three cases:
 
    If the closest point is a vertex then the signed distance is simply :math:`\mathbf{n}_v\cdot\left(\mathbf{x}-\mathbf{x}_v\right)` where :math:`\mathbf{n}_v` is the vertex pseudonormal and :math:`\mathbf{x}_v` is the vertex position.
 
+.. _Chap:NormalDCEL:
+
 Normal vectors
 --------------
 
-The normal vectors for edges (:math:`\mathbf{n}_e`) and vertices (:math:`\mathbf{n}_v`) are not uniquely defined.
+The normal vectors for edges :math:`\mathbf{n}_e` and vertices :math:`\mathbf{n}_v` are, unlike the facet normal, not uniquely defined.
 For both edges and vertices we use the pseudonormals from :cite:`1407857`:
 
 .. math::

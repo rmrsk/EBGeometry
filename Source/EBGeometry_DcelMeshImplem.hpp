@@ -288,19 +288,42 @@ namespace Dcel {
 
   template <class T>  
   inline
+  T MeshT<T>::unsignedDistance2(const Vec3& a_point) const noexcept {
+    T minDist2 = std::numeric_limits<T>::max();
+
+    for (const auto& f : m_faces){
+      const T curDist2 = f->unsignedDistance2(a_point);
+
+      minDist2 = std::min(minDist2, curDist2);
+    }
+
+    return minDist2;
+  }  
+
+  template <class T>  
+  inline
   T MeshT<T>::signedDistance(const Vec3& a_point, SearchAlgorithm a_algorithm) const noexcept {
     T minDist = std::numeric_limits<T>::max();
   
     switch(a_algorithm){
     case SearchAlgorithm::Direct:
-      minDist = this->DirectSignedDistance(a_point);
-      break;
+      {
+	minDist = this->DirectSignedDistance(a_point);
+	
+	break;
+      }
     case SearchAlgorithm::Direct2:
-      minDist = this->DirectSignedDistance2(a_point);
-      break;
+      {
+	minDist = this->DirectSignedDistance2(a_point);
+	
+	break;
+      }
     default:
-      std::cerr << "Error in file 'CD_DcelMeshImplem.H' MeshT<T>::signedDistance unsupported algorithm requested\n";
-      break;
+      {
+	std::cerr << "Error in file 'CD_DcelMeshImplem.H' MeshT<T>::signedDistance unsupported algorithm requested\n";
+	
+	break;
+      }
     }
 
     return minDist;

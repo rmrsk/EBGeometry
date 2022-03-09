@@ -32,7 +32,14 @@ using \hyperlink{classBVH_1_1LinearBVH_a94ee5da1670e2ef85eeabf7cf6a2da92}{Primit
 \mbox{\Hypertarget{classBVH_1_1LinearBVH_a39a98014b81061b35604422cfab5c9b7}\label{classBVH_1_1LinearBVH_a39a98014b81061b35604422cfab5c9b7}} 
 virtual \hyperlink{classBVH_1_1LinearBVH_a39a98014b81061b35604422cfab5c9b7}{$\sim$\+Linear\+B\+VH} ()
 \begin{DoxyCompactList}\small\item\em Destructor. Does nothing. \end{DoxyCompactList}\item 
-T \hyperlink{classBVH_1_1LinearBVH_a383c6289251cf75ad9c4ed11cfb832ab}{signed\+Distance} (const \hyperlink{classBVH_1_1LinearBVH_a13b0083e8b7ff1a5e170d39d69e6a15a}{Vec3} \&a\+\_\+point, const \hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{Prune} a\+\_\+pruning=Prune\+::\+Ordered2) const noexcept
+T \hyperlink{classBVH_1_1LinearBVH_a8fb0c0cb9e8f5161ed78953237eb3c39}{signed\+Distance} (const \hyperlink{classBVH_1_1LinearBVH_a13b0083e8b7ff1a5e170d39d69e6a15a}{Vec3} \&a\+\_\+point) const noexcept
+\begin{DoxyCompactList}\small\item\em Function which computes the signed distance. This calls the other version. \end{DoxyCompactList}\item 
+T \hyperlink{classBVH_1_1LinearBVH_ab8d74df39cb226774c075da7d36eb3f4}{unsigned\+Distance2} (const \hyperlink{classBVH_1_1LinearBVH_a13b0083e8b7ff1a5e170d39d69e6a15a}{Vec3} \&a\+\_\+point) const noexcept
+\begin{DoxyCompactList}\small\item\em Function which computes the usigned distance squared. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+T \hyperlink{classBVH_1_1LinearBVH_a9eef70c91c5ba2608721ff3e3cb2cf56}{signed\+Distance\+Alg} (const \hyperlink{classBVH_1_1LinearBVH_a13b0083e8b7ff1a5e170d39d69e6a15a}{Vec3} \&a\+\_\+point, const \hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{Prune} a\+\_\+pruning) const noexcept
 \begin{DoxyCompactList}\small\item\em Function which computes the signed distance. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \subsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
@@ -40,8 +47,8 @@ T \hyperlink{classBVH_1_1LinearBVH_a383c6289251cf75ad9c4ed11cfb832ab}{signed\+Di
 \mbox{\Hypertarget{classBVH_1_1LinearBVH_aa6b833445964d75b5b560ece4548a044}\label{classBVH_1_1LinearBVH_aa6b833445964d75b5b560ece4548a044}} 
 std\+::vector$<$ \hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}$<$ T, P, BV, K $>$ $>$ \hyperlink{classBVH_1_1LinearBVH_aa6b833445964d75b5b560ece4548a044}{m\+\_\+linear\+Nodes}
 \begin{DoxyCompactList}\small\item\em List of linearly stored nodes. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_a82d8ebdc93553c7b02fe4da77329a4c2}\label{classBVH_1_1LinearBVH_a82d8ebdc93553c7b02fe4da77329a4c2}} 
-\hyperlink{classBVH_1_1LinearBVH_a94ee5da1670e2ef85eeabf7cf6a2da92}{Primitive\+List} \hyperlink{classBVH_1_1LinearBVH_a82d8ebdc93553c7b02fe4da77329a4c2}{m\+\_\+primitives}
+\mbox{\Hypertarget{classBVH_1_1LinearBVH_aa4f627615c40d7230139ec1744384322}\label{classBVH_1_1LinearBVH_aa4f627615c40d7230139ec1744384322}} 
+std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$ \hyperlink{classBVH_1_1LinearBVH_aa4f627615c40d7230139ec1744384322}{m\+\_\+primitives}
 \begin{DoxyCompactList}\small\item\em Global list of primitives. Note that this is A\+LL primitives, sorted so that \hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT} can interface into it. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
@@ -75,12 +82,28 @@ Full constructor. Associates the nodes and primitives.
 
 
 \subsection{Member Function Documentation}
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_a383c6289251cf75ad9c4ed11cfb832ab}\label{classBVH_1_1LinearBVH_a383c6289251cf75ad9c4ed11cfb832ab}} 
+\mbox{\Hypertarget{classBVH_1_1LinearBVH_a8fb0c0cb9e8f5161ed78953237eb3c39}\label{classBVH_1_1LinearBVH_a8fb0c0cb9e8f5161ed78953237eb3c39}} 
 \index{B\+V\+H\+::\+Linear\+B\+VH@{B\+V\+H\+::\+Linear\+B\+VH}!signed\+Distance@{signed\+Distance}}
 \index{signed\+Distance@{signed\+Distance}!B\+V\+H\+::\+Linear\+B\+VH@{B\+V\+H\+::\+Linear\+B\+VH}}
 \subsubsection{\texorpdfstring{signed\+Distance()}{signedDistance()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
-T \hyperlink{classBVH_1_1LinearBVH}{B\+V\+H\+::\+Linear\+B\+VH}$<$ T, P, BV, K $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \hyperlink{classBVH_1_1LinearBVH_a13b0083e8b7ff1a5e170d39d69e6a15a}{Vec3} \&}]{a\+\_\+point,  }\item[{const \hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{Prune}}]{a\+\_\+pruning = {\ttfamily Prune\+:\+:Ordered2} }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+T \hyperlink{classBVH_1_1LinearBVH}{B\+V\+H\+::\+Linear\+B\+VH}$<$ T, P, BV, K $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \hyperlink{classBVH_1_1LinearBVH_a13b0083e8b7ff1a5e170d39d69e6a15a}{Vec3} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Function which computes the signed distance. This calls the other version. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+point} & 3D point in space \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classBVH_1_1LinearBVH_a9eef70c91c5ba2608721ff3e3cb2cf56}\label{classBVH_1_1LinearBVH_a9eef70c91c5ba2608721ff3e3cb2cf56}} 
+\index{B\+V\+H\+::\+Linear\+B\+VH@{B\+V\+H\+::\+Linear\+B\+VH}!signed\+Distance\+Alg@{signed\+Distance\+Alg}}
+\index{signed\+Distance\+Alg@{signed\+Distance\+Alg}!B\+V\+H\+::\+Linear\+B\+VH@{B\+V\+H\+::\+Linear\+B\+VH}}
+\subsubsection{\texorpdfstring{signed\+Distance\+Alg()}{signedDistanceAlg()}}
+{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+T \hyperlink{classBVH_1_1LinearBVH}{B\+V\+H\+::\+Linear\+B\+VH}$<$ T, P, BV, K $>$\+::signed\+Distance\+Alg (\begin{DoxyParamCaption}\item[{const \hyperlink{classBVH_1_1LinearBVH_a13b0083e8b7ff1a5e170d39d69e6a15a}{Vec3} \&}]{a\+\_\+point,  }\item[{const \hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{Prune}}]{a\+\_\+pruning }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
@@ -91,6 +114,22 @@ Function which computes the signed distance.
 \mbox{\tt in}  & {\em a\+\_\+point} & 3D point in space \\
 \hline
 \mbox{\tt in}  & {\em a\+\_\+pruning} & Pruning algorithm. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classBVH_1_1LinearBVH_ab8d74df39cb226774c075da7d36eb3f4}\label{classBVH_1_1LinearBVH_ab8d74df39cb226774c075da7d36eb3f4}} 
+\index{B\+V\+H\+::\+Linear\+B\+VH@{B\+V\+H\+::\+Linear\+B\+VH}!unsigned\+Distance2@{unsigned\+Distance2}}
+\index{unsigned\+Distance2@{unsigned\+Distance2}!B\+V\+H\+::\+Linear\+B\+VH@{B\+V\+H\+::\+Linear\+B\+VH}}
+\subsubsection{\texorpdfstring{unsigned\+Distance2()}{unsignedDistance2()}}
+{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+T \hyperlink{classBVH_1_1LinearBVH}{B\+V\+H\+::\+Linear\+B\+VH}$<$ T, P, BV, K $>$\+::unsigned\+Distance2 (\begin{DoxyParamCaption}\item[{const \hyperlink{classBVH_1_1LinearBVH_a13b0083e8b7ff1a5e170d39d69e6a15a}{Vec3} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Function which computes the usigned distance squared. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+point} & 3D point in space \\
 \hline
 \end{DoxyParams}
 
