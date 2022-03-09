@@ -94,6 +94,7 @@
 <li class="toctree-l1"><a class="reference internal" href="DCEL.html">DCEL mesh structure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Implementation.html">Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">Guided examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
 </ul>
 
@@ -182,12 +183,6 @@ For example, the signed distance function for a sphere with center <span class="
 <div class="math notranslate nohighlight">
 \[I_{\textrm{sph}}\left(\mathbf{x}\right) = \left|\mathbf{x} - \mathbf{x}_0\right|^2 - R^2.\]</div>
 <p>An important difference between these is the Eikonal property in <a class="reference internal" href="#equation-eikonal">Eq. 1</a>, ensuring that the signed distance function always returns the exact distance to the object.</p>
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p>For 2D applications, it is possible to slice the signed distance function through a plane.
-The resulting function is <em>an implicit function</em> rather than a signed distance function.
-It is possible to obtain the signed distance field in 2D by first scaling the original distance function by a large number (in the slicing plane).</p>
-</div>
 </div>
 <div class="section" id="transformations">
 <h2>Transformations<a class="headerlink" href="#transformations" title="Permalink to this headline">¶</a></h2>
@@ -195,7 +190,6 @@ It is possible to obtain the signed distance field in 2D by first scaling the or
 <ul class="simple">
 <li><p>Rotations.</p></li>
 <li><p>Translations.</p></li>
-<li><p>Scaling.</p></li>
 </ul>
 </div>
 <div class="section" id="unions">

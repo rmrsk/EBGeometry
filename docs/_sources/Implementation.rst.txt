@@ -503,7 +503,6 @@ In EBGeometry we have encapsulated the concept of a signed distance function in 
    class SignedDistanceFunction {
    public:
 
-      void scale(const Vec3T<T>& a_scale) noexcept;
       void translate(const Vec3T<T>& a_translation) noexcept;
       void rotate(const T a_angle, const int a_axis) noexcept;
    
@@ -515,7 +514,10 @@ In EBGeometry we have encapsulated the concept of a signed distance function in 
    };
 
 We point out that the BVH and DCEL functionalities are fundamentally also signed distance functions.
-The ``SignedDistanceFunction`` class exists so that we have a common entry point for performing distance field manipulations like rotations, scalings, and translations.
+The ``SignedDistanceFunction`` class exists so that we have a common entry point for performing distance field manipulations like rotations and translations.
+
+.. note::
+
 When implementing the ``signedDistance`` function, one can transform the input point by first calling ``transformPoint``.
 
 For example, in order to rotate a DCEL mesh (without using the BVH accelerator) we can implement the following signed distance function:
@@ -543,7 +545,7 @@ Alternatively, using a BVH structure:
    class MySignedDistanceFunction : public SignedDistanceFunction<T> {
    public:
       T signedDistance(const Vec3T<T>& a_point) const noexcept override {
-     p    return m_bvh->signedDistance(this->transformPoint(a_point));
+         return m_bvh->signedDistance(this->transformPoint(a_point));
       }
 
    protected:
@@ -557,16 +559,14 @@ _______________
 
 The following transformations are possible:
 
-* Scaling, which defines the operation :math:`\mathbf{x}^\prime = \mathbf{x}\mathbf{s}` where :math:`\mathbf{s}` is an anisotropic scaling factor.
 * Translation, which defines the operation :math:`\mathbf{x}^\prime = \mathbf{x} - \mathbf{t}` where :math:`\mathbf{t}` is a translation vector.
 * Rotation, which defines the operation :math:`\mathbf{x}^\prime = R\left(\mathbf{x}, \theta, a\right)` where :math:`\mathbf{x}` is rotated an angle :math:`\theta` around the coordinate axis :math:`a`.
 
 Transformations are applied sequentially.
-The API for rotations are as follows:
+The APIs are as follows:
 
 .. code-block:: c++
 		
-  void scale(const Vec3T<T>& a_scale) noexcept;            // a_scale are scalings alonng the Cartesian axes. 
   void translate(const Vec3T<T>& a_translation) noexcept;  // a_translation are Cartesian translations vector
   void rotate(const T a_angle, const int a_axis) noexcept; // a_angle in degrees, and a_axis being the Cartesian axis
   
@@ -579,7 +579,7 @@ E.g. the following code will first translate, then 90 degrees about the :math:`x
    sdf.translate({1,0,0});
    sdf.rotate(90, 0);
 
-Note that if the transformations are to be applied, the implementation of ``signedDistance(...)`` must transform the input point (as in the examples above). 
+Note that if the transformations are to be applied, the implementation of ``signedDistance(...)`` must transform the input point, as shown in the examples above.
 
 .. _Chap:AnalyticSDF:
 
@@ -616,42 +616,6 @@ In addition, the file :file:`Source/EBGeometry_AnalyticSignedDistanceFunctions.h
 
      template<class T>
      class EBGeometry::BoxSDF : public EBGeometry::SignedDistanceFunction<T>;
-
-2D modifications
-________________
-
-For two-dimensional computations it may be required to reconstruct a 2D signed distance field from a 3D object.
-For cases where users want to obtain a 2D geometry as a slice of a 3D geometry, e.g.
-
-.. math::
-
-   s_{2\textrm{D}}(x,y) = s_{\textrm{3D}}(x,y,z_0),
-
-where :math:`z_0` is some fixed coordinate, the two-dimensional signed distance field will still be fundamentally 3D.
-
-.. figure:: /_static/CompactBVH.png
-   :width: 240px
-   :align: center
-
-   Example of signed distance function slicing with and without appropriate transformations.
-   
-As an example, consider the geometry in :numref:`Fig:SDFSlice` where the geometry consists of a cylinder situated between infinitely large half-planes.
-Depending on how the 2D geometry should be reconstructed, we can consider either the equation above, or the case where the infinitely large half-planes are moved to infinity.
-Thus, we can consider either:
-
-.. math::
-
-   S_{2\textrm{D}}(x,y) = S_{\textrm{3D}}(x,y,z_0),
-
-or
-
-.. math::
-
-   S_{2\textrm{D}}(x,y) = \left[\mathcal{S}(z\rightarrow \infty)\mathcal{T}(z_0) S_{\textrm{3D}}(x,y,z)\right](x,y,0).
-
-The latter definition differs from the former in the application of the two transformation operators that are applied to the original three-dimensional signed distance field.
-These transformation operators first translate the :math:`z` coordinate to the evaluation plane located at :math:`z_0`.
-Next, the signed distance field is simply scaled along the :math:`z` by a very large number, which allows us to obtain the "2D slice" of the signed distance field.
 
 Unions
 ------

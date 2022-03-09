@@ -110,7 +110,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#signed-distance-function">Signed distance function</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#transformations">Transformations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#analytic-functions">Analytic functions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#d-modifications">2D modifications</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#unions">Unions</a><ul>
@@ -796,8 +795,7 @@ Moreover, partitioning functions that partition a set of polygon faces into <cod
 <span class="k">class</span> <span class="nc">SignedDistanceFunction</span> <span class="p">{</span>
 <span class="k">public</span><span class="o">:</span>
 
-   <span class="kt">void</span> <span class="n">scale</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_scale</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
-   <span class="kt">void</span> <span class="nf">translate</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_translation</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
+   <span class="kt">void</span> <span class="n">translate</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_translation</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
    <span class="kt">void</span> <span class="nf">rotate</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="n">a_angle</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">a_axis</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
 
    <span class="n">T</span> <span class="nf">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
@@ -809,8 +807,8 @@ Moreover, partitioning functions that partition a set of polygon faces into <cod
 </pre></div>
 </div>
 <p>We point out that the BVH and DCEL functionalities are fundamentally also signed distance functions.
-The <code class="docutils literal notranslate"><span class="pre">SignedDistanceFunction</span></code> class exists so that we have a common entry point for performing distance field manipulations like rotations, scalings, and translations.
-When implementing the <code class="docutils literal notranslate"><span class="pre">signedDistance</span></code> function, one can transform the input point by first calling <code class="docutils literal notranslate"><span class="pre">transformPoint</span></code>.</p>
+The <code class="docutils literal notranslate"><span class="pre">SignedDistanceFunction</span></code> class exists so that we have a common entry point for performing distance field manipulations like rotations and translations.</p>
+<p>When implementing the <code class="docutils literal notranslate"><span class="pre">signedDistance</span></code> function, one can transform the input point by first calling <code class="docutils literal notranslate"><span class="pre">transformPoint</span></code>.</p>
 <p>For example, in order to rotate a DCEL mesh (without using the BVH accelerator) we can implement the following signed distance function:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
 <span class="k">class</span> <span class="nc">MySignedDistanceFunction</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
@@ -831,7 +829,7 @@ When implementing the <code class="docutils literal notranslate"><span class="pr
 <span class="k">class</span> <span class="nc">MySignedDistanceFunction</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
 <span class="k">public</span><span class="o">:</span>
    <span class="n">T</span> <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="k">override</span> <span class="p">{</span>
-  <span class="n">p</span>    <span class="k">return</span> <span class="n">m_bvh</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="k">this</span><span class="o">-&gt;</span><span class="n">transformPoint</span><span class="p">(</span><span class="n">a_point</span><span class="p">));</span>
+      <span class="k">return</span> <span class="n">m_bvh</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="k">this</span><span class="o">-&gt;</span><span class="n">transformPoint</span><span class="p">(</span><span class="n">a_point</span><span class="p">));</span>
    <span class="p">}</span>
 
 <span class="k">protected</span><span class="o">:</span>
@@ -845,14 +843,12 @@ When implementing the <code class="docutils literal notranslate"><span class="pr
 <h3>Transformations<a class="headerlink" href="#transformations" title="Permalink to this headline">¶</a></h3>
 <p>The following transformations are possible:</p>
 <ul class="simple">
-<li><p>Scaling, which defines the operation <span class="math notranslate nohighlight">\(\mathbf{x}^\prime = \mathbf{x}\mathbf{s}\)</span> where <span class="math notranslate nohighlight">\(\mathbf{s}\)</span> is an anisotropic scaling factor.</p></li>
 <li><p>Translation, which defines the operation <span class="math notranslate nohighlight">\(\mathbf{x}^\prime = \mathbf{x} - \mathbf{t}\)</span> where <span class="math notranslate nohighlight">\(\mathbf{t}\)</span> is a translation vector.</p></li>
 <li><p>Rotation, which defines the operation <span class="math notranslate nohighlight">\(\mathbf{x}^\prime = R\left(\mathbf{x}, \theta, a\right)\)</span> where <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> is rotated an angle <span class="math notranslate nohighlight">\(\theta\)</span> around the coordinate axis <span class="math notranslate nohighlight">\(a\)</span>.</p></li>
 </ul>
 <p>Transformations are applied sequentially.
-The API for rotations are as follows:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">scale</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_scale</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>            <span class="c1">// a_scale are scalings alonng the Cartesian axes.</span>
-<span class="kt">void</span> <span class="nf">translate</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_translation</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>  <span class="c1">// a_translation are Cartesian translations vector</span>
+The APIs are as follows:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">translate</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_translation</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>  <span class="c1">// a_translation are Cartesian translations vector</span>
 <span class="kt">void</span> <span class="nf">rotate</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="n">a_angle</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">a_axis</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span> <span class="c1">// a_angle in degrees, and a_axis being the Cartesian axis</span>
 </pre></div>
 </div>
@@ -863,7 +859,7 @@ The API for rotations are as follows:</p>
 <span class="n">sdf</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="mi">90</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </pre></div>
 </div>
-<p>Note that if the transformations are to be applied, the implementation of <code class="docutils literal notranslate"><span class="pre">signedDistance(...)</span></code> must transform the input point (as in the examples above).</p>
+<p>Note that if the transformations are to be applied, the implementation of <code class="docutils literal notranslate"><span class="pre">signedDistance(...)</span></code> must transform the input point, as shown in the examples above.</p>
 </div>
 <div class="section" id="analytic-functions">
 <span id="chap-analyticsdf"></span><h3>Analytic functions<a class="headerlink" href="#analytic-functions" title="Permalink to this headline">¶</a></h3>
@@ -895,29 +891,6 @@ In addition, the file <code class="file docutils literal notranslate"><span clas
 </div>
 </li>
 </ul>
-</div>
-<div class="section" id="d-modifications">
-<h3>2D modifications<a class="headerlink" href="#d-modifications" title="Permalink to this headline">¶</a></h3>
-<p>For two-dimensional computations it may be required to reconstruct a 2D signed distance field from a 3D object.
-For cases where users want to obtain a 2D geometry as a slice of a 3D geometry, e.g.</p>
-<div class="math notranslate nohighlight">
-\[s_{2\textrm{D}}(x,y) = s_{\textrm{3D}}(x,y,z_0),\]</div>
-<p>where <span class="math notranslate nohighlight">\(z_0\)</span> is some fixed coordinate, the two-dimensional signed distance field will still be fundamentally 3D.</p>
-<div class="figure align-center" id="id6">
-<a class="reference internal image-reference" href="_images/CompactBVH.png"><img alt="_images/CompactBVH.png" src="_images/CompactBVH.png" style="width: 240px;" /></a>
-<p class="caption"><span class="caption-number">Fig. 7 </span><span class="caption-text">Example of signed distance function slicing with and without appropriate transformations.</span><a class="headerlink" href="#id6" title="Permalink to this image">¶</a></p>
-</div>
-<p>As an example, consider the geometry in <code class="xref std std-numref docutils literal notranslate"><span class="pre">Fig:SDFSlice</span></code> where the geometry consists of a cylinder situated between infinitely large half-planes.
-Depending on how the 2D geometry should be reconstructed, we can consider either the equation above, or the case where the infinitely large half-planes are moved to infinity.
-Thus, we can consider either:</p>
-<div class="math notranslate nohighlight">
-\[S_{2\textrm{D}}(x,y) = S_{\textrm{3D}}(x,y,z_0),\]</div>
-<p>or</p>
-<div class="math notranslate nohighlight">
-\[S_{2\textrm{D}}(x,y) = \left[\mathcal{S}(z\rightarrow \infty)\mathcal{T}(z_0) S_{\textrm{3D}}(x,y,z)\right](x,y,0).\]</div>
-<p>The latter definition differs from the former in the application of the two transformation operators that are applied to the original three-dimensional signed distance field.
-These transformation operators first translate the <span class="math notranslate nohighlight">\(z\)</span> coordinate to the evaluation plane located at <span class="math notranslate nohighlight">\(z_0\)</span>.
-Next, the signed distance field is simply scaled along the <span class="math notranslate nohighlight">\(z\)</span> by a very large number, which allows us to obtain the “2D slice” of the signed distance field.</p>
 </div>
 </div>
 <div class="section" id="unions">

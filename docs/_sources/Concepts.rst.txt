@@ -39,12 +39,6 @@ An example of an implicit function for the same sphere is
 
 An important difference between these is the Eikonal property in :eq:`Eikonal`, ensuring that the signed distance function always returns the exact distance to the object.
 
-.. important::
-
-   For 2D applications, it is possible to slice the signed distance function through a plane.
-   The resulting function is *an implicit function* rather than a signed distance function.
-   It is possible to obtain the signed distance field in 2D by first scaling the original distance function by a large number (in the slicing plane). 
-
 Transformations
 ---------------
 
@@ -52,7 +46,6 @@ Signed distance functions retain the Eikonal property for the following set of t
 
 * Rotations.
 * Translations.
-* Scaling.
 
 Unions
 ------
