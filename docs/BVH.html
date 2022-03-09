@@ -204,8 +204,8 @@ For example, the child nodes <span class="math notranslate nohighlight">\(L\)</s
 <p>Construction of a BVH is usually done recursively, from top to bottom (so-called top-down construction).
 Alternative construction methods also exist, but are not used in EBGeometry.
 In this case one can represent the BVH construction of a <span class="math notranslate nohighlight">\(k\)</span> -ary tree is done through a single function:</p>
-<div class="math notranslate nohighlight">
-\[\textrm{Partition}\left(\vec{O}\right): \vec{O} \rightarrow \left(\vec{O}_1, \vec{O}_2, \ldots, \vec{O}_k\right),\]</div>
+<div class="math notranslate nohighlight" id="equation-partition">
+<span class="eqno">(2)<a class="headerlink" href="#equation-partition" title="Permalink to this equation">¶</a></span>\[\textrm{Partition}\left(\vec{O}\right): \vec{O} \rightarrow \left(\vec{O}_1, \vec{O}_2, \ldots, \vec{O}_k\right),\]</div>
 <p>where <span class="math notranslate nohighlight">\(\vec{O}\)</span> is an input a list of objects/primitives, which is <em>partitioned</em> into <span class="math notranslate nohighlight">\(k\)</span> new list of primitives.
 Note that the lists <span class="math notranslate nohighlight">\(\vec{O}_i\)</span> do not contain duplicates, there is a unique set of primitives associated in each new leaf node.
 Top-down construction can thus be illustrated as a recursive procedure:</p>

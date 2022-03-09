@@ -55,7 +55,8 @@ Alternative construction methods also exist, but are not used in EBGeometry.
 In this case one can represent the BVH construction of a :math:`k` -ary tree is done through a single function:
 
 .. math::
-
+   :label: Partition
+   
    \textrm{Partition}\left(\vec{O}\right): \vec{O} \rightarrow \left(\vec{O}_1, \vec{O}_2, \ldots, \vec{O}_k\right), 
    
 where :math:`\vec{O}` is an input a list of objects/primitives, which is *partitioned* into :math:`k` new list of primitives.
