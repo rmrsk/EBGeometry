@@ -185,6 +185,9 @@ const std::vector&lt; <a class="el" href="classDcel_1_1MeshT.html#a6c71642a9e6b3
 <tr class="memitem:a4fa40378fbd4c31cd50e77da70ef30fd"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDcel_1_1MeshT.html#a4fa40378fbd4c31cd50e77da70ef30fd">signedDistance</a> (const <a class="el" href="classDcel_1_1MeshT.html#a646c5d8f66b3079bca35fe4186493627">Vec3</a> &amp;a_x0, <a class="el" href="classDcel_1_1MeshT.html#abb4c3bb7a52804bb041c133f30151399">SearchAlgorithm</a> a_algorithm) const noexcept</td></tr>
 <tr class="memdesc:a4fa40378fbd4c31cd50e77da70ef30fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the signed distance from a point to this mesh.  <a href="#a4fa40378fbd4c31cd50e77da70ef30fd">More...</a><br /></td></tr>
 <tr class="separator:a4fa40378fbd4c31cd50e77da70ef30fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8be4c3d6f606b8bc8cc36820de773de1"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDcel_1_1MeshT.html#a8be4c3d6f606b8bc8cc36820de773de1">unsignedDistance2</a> (const <a class="el" href="classDcel_1_1MeshT.html#a646c5d8f66b3079bca35fe4186493627">Vec3</a> &amp;a_x0) const noexcept</td></tr>
+<tr class="memdesc:a8be4c3d6f606b8bc8cc36820de773de1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the unsigned square distance from a point to this mesh.  <a href="#a8be4c3d6f606b8bc8cc36820de773de1">More...</a><br /></td></tr>
+<tr class="separator:a8be4c3d6f606b8bc8cc36820de773de1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
@@ -853,6 +856,43 @@ template&lt;class T &gt; </div>
   </dd>
 </dl>
 <p>This function will iterate through ALL faces in the mesh and return the value with the smallest magnitude. This is horrendously slow, which is why this function is almost never called. Rather, MeshT&lt;T&gt; can be embedded in a bounding volume hierarchy for faster access. </p>
+
+</div>
+</div>
+<a id="a8be4c3d6f606b8bc8cc36820de773de1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8be4c3d6f606b8bc8cc36820de773de1">&#9670;&nbsp;</a></span>unsignedDistance2()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">T <a class="el" href="classDcel_1_1MeshT.html">Dcel::MeshT</a>&lt; T &gt;::unsignedDistance2 </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classDcel_1_1MeshT.html#a646c5d8f66b3079bca35fe4186493627">Vec3</a> &amp;&#160;</td>
+          <td class="paramname"><em>a_x0</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Compute the unsigned square distance from a point to this mesh. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_x0</td><td>3D point in space.</td></tr>
+  </table>
+  </dd>
+</dl>
+<p>This function will iterate through ALL faces in the mesh and return the value with the smallest magnitude. This is horrendously slow, which is why this function is almost never called. Rather, MeshT&lt;T&gt; can be embedded in a bounding volume hierarchy for faster access. </p><dl class="section note"><dt>Note</dt><dd>This will call the other version with the object's search algorithm. </dd></dl>
 
 </div>
 </div>

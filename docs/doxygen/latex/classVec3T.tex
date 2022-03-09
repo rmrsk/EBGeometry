@@ -69,6 +69,8 @@ bool \hyperlink{classVec3T_a3296f8319642088e08bd2d3e253fcd64}{operator$>$=} (con
 \begin{DoxyCompactList}\small\item\em Vector cross product. \end{DoxyCompactList}\item 
 T \hyperlink{classVec3T_ab4bebdfbdc863826a1a7e86cad130ff8}{dot} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&u) const noexcept
 \begin{DoxyCompactList}\small\item\em Vector dot product. \end{DoxyCompactList}\item 
+int \hyperlink{classVec3T_add4db9b06b01f85ce492742acae86545}{min\+Dir} (const bool a\+\_\+do\+Abs) const noexcept
+\begin{DoxyCompactList}\small\item\em Return the direction which has the smallest component (can be absolute) \end{DoxyCompactList}\item 
 int \hyperlink{classVec3T_a292391c1f72ca66e100e7e70512ff9b1}{max\+Dir} (const bool a\+\_\+do\+Abs) const noexcept
 \begin{DoxyCompactList}\small\item\em Return the direction which has the largest component (can be absolute) \end{DoxyCompactList}\item 
 T \hyperlink{classVec3T_a93c868b181e24a4f74702a8b8a36f815}{length} () const noexcept
@@ -274,6 +276,25 @@ Vector minimum function. Returns a new vector with componentwise minimums.
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
 Returns a new vector with X\mbox{[}0\mbox{]} = std\+::min(this-\/$>$X\mbox{[}0\mbox{]}, u.\+X\mbox{[}0\mbox{]}) (and same for the other components) 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classVec3T_add4db9b06b01f85ce492742acae86545}\label{classVec3T_add4db9b06b01f85ce492742acae86545}} 
+\index{Vec3T@{Vec3T}!min\+Dir@{min\+Dir}}
+\index{min\+Dir@{min\+Dir}!Vec3T@{Vec3T}}
+\subsubsection{\texorpdfstring{min\+Dir()}{minDir()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+int \hyperlink{classVec3T}{Vec3T}$<$ T $>$\+::min\+Dir (\begin{DoxyParamCaption}\item[{const bool}]{a\+\_\+do\+Abs }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Return the direction which has the smallest component (can be absolute) 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+do\+Abs} & If true, evaluate component magnitudes rather than values. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Direction with the biggest component 
 \end{DoxyReturn}
 \mbox{\Hypertarget{classVec3T_aa4768276707889db34a716e9e476b9f1}\label{classVec3T_aa4768276707889db34a716e9e476b9f1}} 
 \index{Vec3T@{Vec3T}!operator$\ast$@{operator$\ast$}}

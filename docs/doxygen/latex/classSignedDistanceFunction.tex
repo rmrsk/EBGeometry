@@ -11,7 +11,8 @@ Abstract representation of a signed distance function.
 
 
 
-Inheritance diagram for Signed\+Distance\+Function$<$ T $>$\+:\nopagebreak
+Inheritance diagram for Signed\+Distance\+Function$<$ T $>$\+:
+\nopagebreak
 \begin{figure}[H]
 \begin{center}
 \leavevmode
@@ -31,8 +32,6 @@ virtual T \hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d
 \begin{DoxyCompactList}\small\item\em Signed distance function. \end{DoxyCompactList}\item 
 virtual T \hyperlink{classSignedDistanceFunction_a2a3e72186725a4e931db0f8d4895bcb8}{unsigned\+Distance2} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+point) const noexcept
 \begin{DoxyCompactList}\small\item\em Unsigned distance function. Must return the distance$^\wedge$2. \end{DoxyCompactList}\item 
-void \hyperlink{classSignedDistanceFunction_a7855565ecca2d35de173161ecfbf19ae}{scale} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+scale) noexcept
-\begin{DoxyCompactList}\small\item\em Scale signed distance function. \end{DoxyCompactList}\item 
 void \hyperlink{classSignedDistanceFunction_add71ebc2e7f3fb5e85766898413482e7}{translate} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+translation) noexcept
 \begin{DoxyCompactList}\small\item\em Translate signed distance function. \end{DoxyCompactList}\item 
 void \hyperlink{classSignedDistanceFunction_ae8de697f4d0966290342bcf6383585ef}{rotate} (const T a\+\_\+angle, const int a\+\_\+axis) noexcept
@@ -78,22 +77,6 @@ Rotate the signed distance function around.
 \mbox{\tt in}  & {\em a\+\_\+axis} & Rotation axis. 0 = x, 1 = y etc. \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classSignedDistanceFunction_a7855565ecca2d35de173161ecfbf19ae}\label{classSignedDistanceFunction_a7855565ecca2d35de173161ecfbf19ae}} 
-\index{Signed\+Distance\+Function@{Signed\+Distance\+Function}!scale@{scale}}
-\index{scale@{scale}!Signed\+Distance\+Function@{Signed\+Distance\+Function}}
-\subsubsection{\texorpdfstring{scale()}{scale()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-void \hyperlink{classSignedDistanceFunction}{Signed\+Distance\+Function}$<$ T $>$\+::scale (\begin{DoxyParamCaption}\item[{const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&}]{a\+\_\+scale }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
-
-
-
-Scale signed distance function. 
-
-
-\begin{DoxyParams}[1]{Parameters}
-\mbox{\tt in}  & {\em a\+\_\+scale} & Scaling factor. \\
-\hline
-\end{DoxyParams}
 \mbox{\Hypertarget{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}\label{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}} 
 \index{Signed\+Distance\+Function@{Signed\+Distance\+Function}!signed\+Distance@{signed\+Distance}}
 \index{signed\+Distance@{signed\+Distance}!Signed\+Distance\+Function@{Signed\+Distance\+Function}}
@@ -112,7 +95,7 @@ Signed distance function.
 \end{DoxyParams}
 
 
-Implemented in \hyperlink{classSphereSDF_a9b0c5f0b1af2c4b62bee1c873e0158e8}{Sphere\+S\+D\+F$<$ T $>$}, \hyperlink{classUnionBVH_a9681fdc161e2e077a33caaddb78fb4ba}{Union\+B\+V\+H$<$ T, B\+V, K $>$}, and \hyperlink{classUnion_a08beffd354ca261e3d31bcb453951810}{Union$<$ T $>$}.
+Implemented in \hyperlink{classCylinderSDF_a082c08089b07402d55020ed8186cc992}{Cylinder\+S\+D\+F$<$ T $>$}, \hyperlink{classTorusSDF_a23b4d455de2b7b9988ce81833ccd5302}{Torus\+S\+D\+F$<$ T $>$}, \hyperlink{classBoxSDF_a6e7a72790061423e5c9ea47d9e26736f}{Box\+S\+D\+F$<$ T $>$}, \hyperlink{classSphereSDF_a9b0c5f0b1af2c4b62bee1c873e0158e8}{Sphere\+S\+D\+F$<$ T $>$}, \hyperlink{classUnionBVH_a9681fdc161e2e077a33caaddb78fb4ba}{Union\+B\+V\+H$<$ T, B\+V, K $>$}, and \hyperlink{classUnion_a08beffd354ca261e3d31bcb453951810}{Union$<$ T $>$}.
 
 \mbox{\Hypertarget{classSignedDistanceFunction_add71ebc2e7f3fb5e85766898413482e7}\label{classSignedDistanceFunction_add71ebc2e7f3fb5e85766898413482e7}} 
 \index{Signed\+Distance\+Function@{Signed\+Distance\+Function}!translate@{translate}}

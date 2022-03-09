@@ -1,0 +1,215 @@
+\hypertarget{classTorusSDF}{}\section{Torus\+S\+DF$<$ T $>$ Class Template Reference}
+\label{classTorusSDF}\index{Torus\+S\+D\+F$<$ T $>$@{Torus\+S\+D\+F$<$ T $>$}}
+
+
+Signed distance field for a torus.  
+
+
+
+
+{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp$>$}
+
+
+
+Inheritance diagram for Torus\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=227pt]{classTorusSDF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Torus\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=227pt]{classTorusSDF__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classTorusSDF_a4591d7c3cdbbed45fdbaf414f0d096ee}\label{classTorusSDF_a4591d7c3cdbbed45fdbaf414f0d096ee}} 
+\hyperlink{classTorusSDF_a4591d7c3cdbbed45fdbaf414f0d096ee}{Torus\+S\+DF} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
+\hyperlink{classTorusSDF_acf22c1b59605e93750a3a002fd5bc23a}{Torus\+S\+DF} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+center, const T \&a\+\_\+major\+Radius, const T \&a\+\_\+minor\+Radius, const bool a\+\_\+flip\+Inside)
+\begin{DoxyCompactList}\small\item\em Full constructor. Sets the low and high corner. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTorusSDF_a97178b72cbb9208b7dde0a6db1ab6e18}\label{classTorusSDF_a97178b72cbb9208b7dde0a6db1ab6e18}} 
+virtual \hyperlink{classTorusSDF_a97178b72cbb9208b7dde0a6db1ab6e18}{$\sim$\+Torus\+S\+DF} ()
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing). \end{DoxyCompactList}\item 
+const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \& \hyperlink{classTorusSDF_a0973ae5f9e4a023ae15728d0a5063b4d}{get\+Center} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get torus center. \end{DoxyCompactList}\item 
+\hyperlink{classVec3T}{Vec3T}$<$ T $>$ \& \hyperlink{classTorusSDF_ad4a6d109ff640e2cb003901bf6ac1c85}{get\+Center} () noexcept
+\begin{DoxyCompactList}\small\item\em Get torus center. \end{DoxyCompactList}\item 
+const T \& \hyperlink{classTorusSDF_acf871d02fb580a9c33d6c54517730036}{get\+Major\+Radius} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get major radius. \end{DoxyCompactList}\item 
+T \& \hyperlink{classTorusSDF_a81910ce83df61223ab3484c7de0747c7}{get\+Major\+Radius} () noexcept
+\begin{DoxyCompactList}\small\item\em Get major radius. \end{DoxyCompactList}\item 
+const T \& \hyperlink{classTorusSDF_a3af383d80c8d11ab9d39fc872d661a42}{get\+Minor\+Radius} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get minor radius. \end{DoxyCompactList}\item 
+T \& \hyperlink{classTorusSDF_a0eff8ed5c429c6f80580c9660ac9cdfa}{get\+Minor\+Radius} () noexcept
+\begin{DoxyCompactList}\small\item\em Get minor radius. \end{DoxyCompactList}\item 
+virtual T \hyperlink{classTorusSDF_a23b4d455de2b7b9988ce81833ccd5302}{signed\+Distance} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Signed distance function for a torus. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classTorusSDF_aa097ba79346768486083bf5269b20821}\label{classTorusSDF_aa097ba79346768486083bf5269b20821}} 
+\hyperlink{classVec3T}{Vec3T}$<$ T $>$ \hyperlink{classTorusSDF_aa097ba79346768486083bf5269b20821}{m\+\_\+center}
+\begin{DoxyCompactList}\small\item\em Torus center. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTorusSDF_a21d443b0a0f8af98856cdc7bce0363ba}\label{classTorusSDF_a21d443b0a0f8af98856cdc7bce0363ba}} 
+T \hyperlink{classTorusSDF_a21d443b0a0f8af98856cdc7bce0363ba}{m\+\_\+major\+Radius}
+\begin{DoxyCompactList}\small\item\em Major torus radius. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTorusSDF_afedc4aacff95c95b97d1d540dddd2e99}\label{classTorusSDF_afedc4aacff95c95b97d1d540dddd2e99}} 
+T \hyperlink{classTorusSDF_afedc4aacff95c95b97d1d540dddd2e99}{m\+\_\+minor\+Radius}
+\begin{DoxyCompactList}\small\item\em Minor torus radius. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTorusSDF_a41d7b8bbbf97d96d49432dcb1036573a}\label{classTorusSDF_a41d7b8bbbf97d96d49432dcb1036573a}} 
+bool \hyperlink{classTorusSDF_a41d7b8bbbf97d96d49432dcb1036573a}{m\+\_\+flip\+Inside}
+\begin{DoxyCompactList}\small\item\em Hook for making outside -\/$>$ inside. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Torus\+S\+D\+F$<$ T $>$}
+
+Signed distance field for a torus. 
+
+This is constructed such that the donut lies in the xy-\/plane. 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classTorusSDF_acf22c1b59605e93750a3a002fd5bc23a}\label{classTorusSDF_acf22c1b59605e93750a3a002fd5bc23a}} 
+\index{Torus\+S\+DF@{Torus\+S\+DF}!Torus\+S\+DF@{Torus\+S\+DF}}
+\index{Torus\+S\+DF@{Torus\+S\+DF}!Torus\+S\+DF@{Torus\+S\+DF}}
+\subsubsection{\texorpdfstring{Torus\+S\+D\+F()}{TorusSDF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\hyperlink{classTorusSDF}{Torus\+S\+DF}$<$ T $>$\+::\hyperlink{classTorusSDF}{Torus\+S\+DF} (\begin{DoxyParamCaption}\item[{const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&}]{a\+\_\+center,  }\item[{const T \&}]{a\+\_\+major\+Radius,  }\item[{const T \&}]{a\+\_\+minor\+Radius,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Full constructor. Sets the low and high corner. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+lo\+Corner} & Lower left corner \\
+\hline
+\mbox{\tt in}  & {\em a\+\_\+hi\+Corner} & Upper right corner \\
+\hline
+\mbox{\tt in}  & {\em a\+\_\+flip\+Inside} & Flip inside/outside. \\
+\hline
+\end{DoxyParams}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classTorusSDF_a0973ae5f9e4a023ae15728d0a5063b4d}\label{classTorusSDF_a0973ae5f9e4a023ae15728d0a5063b4d}} 
+\index{Torus\+S\+DF@{Torus\+S\+DF}!get\+Center@{get\+Center}}
+\index{get\+Center@{get\+Center}!Torus\+S\+DF@{Torus\+S\+DF}}
+\subsubsection{\texorpdfstring{get\+Center()}{getCenter()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const \hyperlink{classVec3T}{Vec3T}$<$T$>$\& \hyperlink{classTorusSDF}{Torus\+S\+DF}$<$ T $>$\+::get\+Center (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get torus center. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+center 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classTorusSDF_ad4a6d109ff640e2cb003901bf6ac1c85}\label{classTorusSDF_ad4a6d109ff640e2cb003901bf6ac1c85}} 
+\index{Torus\+S\+DF@{Torus\+S\+DF}!get\+Center@{get\+Center}}
+\index{get\+Center@{get\+Center}!Torus\+S\+DF@{Torus\+S\+DF}}
+\subsubsection{\texorpdfstring{get\+Center()}{getCenter()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\hyperlink{classVec3T}{Vec3T}$<$T$>$\& \hyperlink{classTorusSDF}{Torus\+S\+DF}$<$ T $>$\+::get\+Center (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get torus center. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+center 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classTorusSDF_acf871d02fb580a9c33d6c54517730036}\label{classTorusSDF_acf871d02fb580a9c33d6c54517730036}} 
+\index{Torus\+S\+DF@{Torus\+S\+DF}!get\+Major\+Radius@{get\+Major\+Radius}}
+\index{get\+Major\+Radius@{get\+Major\+Radius}!Torus\+S\+DF@{Torus\+S\+DF}}
+\subsubsection{\texorpdfstring{get\+Major\+Radius()}{getMajorRadius()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const T\& \hyperlink{classTorusSDF}{Torus\+S\+DF}$<$ T $>$\+::get\+Major\+Radius (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get major radius. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+major\+Radius 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classTorusSDF_a81910ce83df61223ab3484c7de0747c7}\label{classTorusSDF_a81910ce83df61223ab3484c7de0747c7}} 
+\index{Torus\+S\+DF@{Torus\+S\+DF}!get\+Major\+Radius@{get\+Major\+Radius}}
+\index{get\+Major\+Radius@{get\+Major\+Radius}!Torus\+S\+DF@{Torus\+S\+DF}}
+\subsubsection{\texorpdfstring{get\+Major\+Radius()}{getMajorRadius()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T\& \hyperlink{classTorusSDF}{Torus\+S\+DF}$<$ T $>$\+::get\+Major\+Radius (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get major radius. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+major\+Radius 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classTorusSDF_a3af383d80c8d11ab9d39fc872d661a42}\label{classTorusSDF_a3af383d80c8d11ab9d39fc872d661a42}} 
+\index{Torus\+S\+DF@{Torus\+S\+DF}!get\+Minor\+Radius@{get\+Minor\+Radius}}
+\index{get\+Minor\+Radius@{get\+Minor\+Radius}!Torus\+S\+DF@{Torus\+S\+DF}}
+\subsubsection{\texorpdfstring{get\+Minor\+Radius()}{getMinorRadius()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const T\& \hyperlink{classTorusSDF}{Torus\+S\+DF}$<$ T $>$\+::get\+Minor\+Radius (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get minor radius. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+minor\+Radius 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classTorusSDF_a0eff8ed5c429c6f80580c9660ac9cdfa}\label{classTorusSDF_a0eff8ed5c429c6f80580c9660ac9cdfa}} 
+\index{Torus\+S\+DF@{Torus\+S\+DF}!get\+Minor\+Radius@{get\+Minor\+Radius}}
+\index{get\+Minor\+Radius@{get\+Minor\+Radius}!Torus\+S\+DF@{Torus\+S\+DF}}
+\subsubsection{\texorpdfstring{get\+Minor\+Radius()}{getMinorRadius()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T\& \hyperlink{classTorusSDF}{Torus\+S\+DF}$<$ T $>$\+::get\+Minor\+Radius (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get minor radius. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+minor\+Radius 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classTorusSDF_a23b4d455de2b7b9988ce81833ccd5302}\label{classTorusSDF_a23b4d455de2b7b9988ce81833ccd5302}} 
+\index{Torus\+S\+DF@{Torus\+S\+DF}!signed\+Distance@{signed\+Distance}}
+\index{signed\+Distance@{signed\+Distance}!Torus\+S\+DF@{Torus\+S\+DF}}
+\subsubsection{\texorpdfstring{signed\+Distance()}{signedDistance()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+virtual T \hyperlink{classTorusSDF}{Torus\+S\+DF}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Signed distance function for a torus. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+point} & Position. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{Signed\+Distance\+Function$<$ T $>$}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Source/\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp}{E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp}\end{DoxyCompactItemize}
