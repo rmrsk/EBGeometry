@@ -1,8 +1,5 @@
 .. _Chap:Concepts:
 
-Basic concepts
-==============
-
 Signed distance fields
 ----------------------
 
@@ -39,28 +36,19 @@ An example of an implicit function for the same sphere is
 
 An important difference between these is the Eikonal property in :eq:`Eikonal`, ensuring that the signed distance function always returns the exact distance to the object.
 
-.. important::
-
-   For 2D applications, it is possible to slice the signed distance function through a plane.
-   The resulting function is *an implicit function* rather than a signed distance function.
-
-
 Transformations
 ---------------
 
-Signed distance functions retain the Eikonal property for the following set of group transformations:
+Signed distance functions retain the Eikonal property for the following set of transformations:
 
 * Rotations.
 * Translations.
-* Scaling.
 
 Unions
 ------
 
 Unions of signed distance fields are also signed distance fields *provided that the objects do not intersect or touch*.
 For overlapping objects the signed distance function is not well-defined (since the interior and exterior are not well-defined).
-
-
 
 For non-overlapping objects represented as signed distance fields :math:`\left(S_1\left(\mathbf{x}\right), S_2\left(\mathbf{x}\right), \ldots\right)`, the composite signed distance field is
 

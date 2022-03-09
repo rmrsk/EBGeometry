@@ -56,7 +56,9 @@ const \hyperlink{classBVH_1_1NodeT_a19cce6e7fbe85eccb4a3718dd69f49b7}{Primitive\
 \mbox{\Hypertarget{classBVH_1_1NodeT_a02cba4dcb065ebfaeea7e4d251b89d04}\label{classBVH_1_1NodeT_a02cba4dcb065ebfaeea7e4d251b89d04}} 
 const BV \& \hyperlink{classBVH_1_1NodeT_a02cba4dcb065ebfaeea7e4d251b89d04}{get\+Bounding\+Volume} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get bounding volume. \end{DoxyCompactList}\item 
-T \hyperlink{classBVH_1_1NodeT_aef7148b18296dce60853b5966c9f1e0d}{signed\+Distance} (const \hyperlink{classBVH_1_1NodeT_a6fbb4308c5c55ee170c5f992df7ae1d0}{Vec3} \&a\+\_\+point, const \hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{Prune} a\+\_\+pruning=Prune\+::\+Ordered2) const noexcept
+T \hyperlink{classBVH_1_1NodeT_a0fe074fbff56ac2d0a6ad113ed34d56b}{signed\+Distance} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+point) const noexcept
+\begin{DoxyCompactList}\small\item\em Function which computes the signed distance. \end{DoxyCompactList}\item 
+T \hyperlink{classBVH_1_1NodeT_a9b2e3a1a296cc3f9f8de488755217432}{unsigned\+Distance2} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+point) const noexcept
 \begin{DoxyCompactList}\small\item\em Function which computes the signed distance. \end{DoxyCompactList}\item 
 T \hyperlink{classBVH_1_1NodeT_a3aa6e9109897a573a46714278e0a79c6}{prune\+Ordered} (const \hyperlink{classBVH_1_1NodeT_a6fbb4308c5c55ee170c5f992df7ae1d0}{Vec3} \&a\+\_\+point) const noexcept
 \begin{DoxyCompactList}\small\item\em Function which computes the signed distance using ordered pruning along the \hyperlink{namespaceBVH}{B\+VH} branches. \end{DoxyCompactList}\item 
@@ -96,6 +98,8 @@ T \hyperlink{classBVH_1_1NodeT_a61dc7040d57f0a69984548eb4804244b}{get\+Distance\
 \begin{DoxyCompactList}\small\item\em Get the list of primitives in this node. \end{DoxyCompactList}\item 
 void \hyperlink{classBVH_1_1NodeT_a92db0ab2d61c76469600478fddd04edc}{set\+Parent} (const \hyperlink{classBVH_1_1NodeT_a008f5c2c53adb1f5730d8478b48529b1}{Node\+Ptr} \&a\+\_\+parent) noexcept
 \begin{DoxyCompactList}\small\item\em Set parent node. \end{DoxyCompactList}\item 
+T \hyperlink{classBVH_1_1NodeT_a445cc87e9934d8117514de455ef1de47}{signed\+Distance\+Alg} (const \hyperlink{classBVH_1_1NodeT_a6fbb4308c5c55ee170c5f992df7ae1d0}{Vec3} \&a\+\_\+point, const \hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{Prune} a\+\_\+pruning=Prune\+::\+Ordered2) const noexcept
+\begin{DoxyCompactList}\small\item\em Function which computes the signed distance. \end{DoxyCompactList}\item 
 void \hyperlink{classBVH_1_1NodeT_ac4a3be457d66d2673f717f203e60fc08}{prune\+Ordered} (T \&a\+\_\+closest, const \hyperlink{classBVH_1_1NodeT_a6fbb4308c5c55ee170c5f992df7ae1d0}{Vec3} \&a\+\_\+point) const noexcept
 \begin{DoxyCompactList}\small\item\em Implementation function for prune\+Ordered (it requires a different signature). \end{DoxyCompactList}\item 
 void \hyperlink{classBVH_1_1NodeT_a2887ad51251739359602dde8db6a5998}{prune\+Ordered2} (T \&a\+\_\+min\+Dist2, std\+::shared\+\_\+ptr$<$ const P $>$ \&a\+\_\+closest, const \hyperlink{classBVH_1_1NodeT_a6fbb4308c5c55ee170c5f992df7ae1d0}{Vec3} \&a\+\_\+point) const noexcept
@@ -632,12 +636,31 @@ Set to regular node.
 \begin{DoxyNote}{Note}
 This sets m\+\_\+node\+Type to regular and clears the primitives list 
 \end{DoxyNote}
-\mbox{\Hypertarget{classBVH_1_1NodeT_aef7148b18296dce60853b5966c9f1e0d}\label{classBVH_1_1NodeT_aef7148b18296dce60853b5966c9f1e0d}} 
+\mbox{\Hypertarget{classBVH_1_1NodeT_a0fe074fbff56ac2d0a6ad113ed34d56b}\label{classBVH_1_1NodeT_a0fe074fbff56ac2d0a6ad113ed34d56b}} 
 \index{B\+V\+H\+::\+NodeT@{B\+V\+H\+::\+NodeT}!signed\+Distance@{signed\+Distance}}
 \index{signed\+Distance@{signed\+Distance}!B\+V\+H\+::\+NodeT@{B\+V\+H\+::\+NodeT}}
 \subsubsection{\texorpdfstring{signed\+Distance()}{signedDistance()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
-T \hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}$<$ T, P, BV, K $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \hyperlink{classBVH_1_1NodeT_a6fbb4308c5c55ee170c5f992df7ae1d0}{Vec3} \&}]{a\+\_\+point,  }\item[{const \hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{Prune}}]{a\+\_\+pruning = {\ttfamily Prune\+:\+:Ordered2} }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+T \hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}$<$ T, P, BV, K $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Function which computes the signed distance. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+point} & 3D point in space \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Signed distance to the input point 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classBVH_1_1NodeT_a445cc87e9934d8117514de455ef1de47}\label{classBVH_1_1NodeT_a445cc87e9934d8117514de455ef1de47}} 
+\index{B\+V\+H\+::\+NodeT@{B\+V\+H\+::\+NodeT}!signed\+Distance\+Alg@{signed\+Distance\+Alg}}
+\index{signed\+Distance\+Alg@{signed\+Distance\+Alg}!B\+V\+H\+::\+NodeT@{B\+V\+H\+::\+NodeT}}
+\subsubsection{\texorpdfstring{signed\+Distance\+Alg()}{signedDistanceAlg()}}
+{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+T \hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}$<$ T, P, BV, K $>$\+::signed\+Distance\+Alg (\begin{DoxyParamCaption}\item[{const \hyperlink{classBVH_1_1NodeT_a6fbb4308c5c55ee170c5f992df7ae1d0}{Vec3} \&}]{a\+\_\+point,  }\item[{const \hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{Prune}}]{a\+\_\+pruning = {\ttfamily Prune\+:\+:Ordered2} }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
@@ -673,7 +696,26 @@ Function for using top-\/down construction of the bounding volume hierarchy.
 \mbox{\tt in}  & {\em a\+\_\+stop\+Crit} & Termination function which tells us when to stop the recursion.\\
 \hline
 \end{DoxyParams}
-The rules for terminating the hierarchy construction, how to partition sets of primitives, and how to enclose them by bounding volumes are given in the input arguments (a\+\_\+stop\+Func, a\+\_\+part\+Func, a\+\_\+bv\+Func) 
+The rules for terminating the hierarchy construction, how to partition sets of primitives, and how to enclose them by bounding volumes are given in the input arguments (a\+\_\+stop\+Func, a\+\_\+part\+Func, a\+\_\+bv\+Func) \mbox{\Hypertarget{classBVH_1_1NodeT_a9b2e3a1a296cc3f9f8de488755217432}\label{classBVH_1_1NodeT_a9b2e3a1a296cc3f9f8de488755217432}} 
+\index{B\+V\+H\+::\+NodeT@{B\+V\+H\+::\+NodeT}!unsigned\+Distance2@{unsigned\+Distance2}}
+\index{unsigned\+Distance2@{unsigned\+Distance2}!B\+V\+H\+::\+NodeT@{B\+V\+H\+::\+NodeT}}
+\subsubsection{\texorpdfstring{unsigned\+Distance2()}{unsignedDistance2()}}
+{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+T \hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}$<$ T, P, BV, K $>$\+::unsigned\+Distance2 (\begin{DoxyParamCaption}\item[{const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Function which computes the signed distance. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+point} & 3D point in space \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Signed distance to the input point 
+\end{DoxyReturn}
+
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 

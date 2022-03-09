@@ -89,7 +89,9 @@ const std\+::vector$<$ \hyperlink{classDcel_1_1MeshT_a6c71642a9e6b36f9d6ab602703
 T \hyperlink{classDcel_1_1MeshT_aa6f614aa0d93c3345c10150168347497}{signed\+Distance} (const \hyperlink{classDcel_1_1MeshT_a646c5d8f66b3079bca35fe4186493627}{Vec3} \&a\+\_\+x0) const noexcept
 \begin{DoxyCompactList}\small\item\em Compute the signed distance from a point to this mesh. \end{DoxyCompactList}\item 
 T \hyperlink{classDcel_1_1MeshT_a4fa40378fbd4c31cd50e77da70ef30fd}{signed\+Distance} (const \hyperlink{classDcel_1_1MeshT_a646c5d8f66b3079bca35fe4186493627}{Vec3} \&a\+\_\+x0, \hyperlink{classDcel_1_1MeshT_abb4c3bb7a52804bb041c133f30151399}{Search\+Algorithm} a\+\_\+algorithm) const noexcept
-\begin{DoxyCompactList}\small\item\em Compute the signed distance from a point to this mesh. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Compute the signed distance from a point to this mesh. \end{DoxyCompactList}\item 
+T \hyperlink{classDcel_1_1MeshT_a8be4c3d6f606b8bc8cc36820de773de1}{unsigned\+Distance2} (const \hyperlink{classDcel_1_1MeshT_a646c5d8f66b3079bca35fe4186493627}{Vec3} \&a\+\_\+x0) const noexcept
+\begin{DoxyCompactList}\small\item\em Compute the unsigned square distance from a point to this mesh. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \subsection*{Protected Member Functions}
 \begin{DoxyCompactItemize}
 \item 
@@ -412,7 +414,26 @@ Compute the signed distance from a point to this mesh.
 \mbox{\tt in}  & {\em a\+\_\+algorithm} & Search algorithm\\
 \hline
 \end{DoxyParams}
-This function will iterate through A\+LL faces in the mesh and return the value with the smallest magnitude. This is horrendously slow, which is why this function is almost never called. Rather, Mesh\+T$<$\+T$>$ can be embedded in a bounding volume hierarchy for faster access. 
+This function will iterate through A\+LL faces in the mesh and return the value with the smallest magnitude. This is horrendously slow, which is why this function is almost never called. Rather, Mesh\+T$<$\+T$>$ can be embedded in a bounding volume hierarchy for faster access. \mbox{\Hypertarget{classDcel_1_1MeshT_a8be4c3d6f606b8bc8cc36820de773de1}\label{classDcel_1_1MeshT_a8be4c3d6f606b8bc8cc36820de773de1}} 
+\index{Dcel\+::\+MeshT@{Dcel\+::\+MeshT}!unsigned\+Distance2@{unsigned\+Distance2}}
+\index{unsigned\+Distance2@{unsigned\+Distance2}!Dcel\+::\+MeshT@{Dcel\+::\+MeshT}}
+\subsubsection{\texorpdfstring{unsigned\+Distance2()}{unsignedDistance2()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \hyperlink{classDcel_1_1MeshT}{Dcel\+::\+MeshT}$<$ T $>$\+::unsigned\+Distance2 (\begin{DoxyParamCaption}\item[{const \hyperlink{classDcel_1_1MeshT_a646c5d8f66b3079bca35fe4186493627}{Vec3} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Compute the unsigned square distance from a point to this mesh. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+x0} & 3D point in space.\\
+\hline
+\end{DoxyParams}
+This function will iterate through A\+LL faces in the mesh and return the value with the smallest magnitude. This is horrendously slow, which is why this function is almost never called. Rather, Mesh\+T$<$\+T$>$ can be embedded in a bounding volume hierarchy for faster access. \begin{DoxyNote}{Note}
+This will call the other version with the object\textquotesingle{}s search algorithm. 
+\end{DoxyNote}
+
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 

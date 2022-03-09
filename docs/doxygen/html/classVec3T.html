@@ -160,6 +160,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ab4bebdfbdc863826a1a7e86cad130ff8"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVec3T.html#ab4bebdfbdc863826a1a7e86cad130ff8">dot</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;u) const noexcept</td></tr>
 <tr class="memdesc:ab4bebdfbdc863826a1a7e86cad130ff8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Vector dot product.  <a href="#ab4bebdfbdc863826a1a7e86cad130ff8">More...</a><br /></td></tr>
 <tr class="separator:ab4bebdfbdc863826a1a7e86cad130ff8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:add4db9b06b01f85ce492742acae86545"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVec3T.html#add4db9b06b01f85ce492742acae86545">minDir</a> (const bool a_doAbs) const noexcept</td></tr>
+<tr class="memdesc:add4db9b06b01f85ce492742acae86545"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the direction which has the smallest component (can be absolute)  <a href="#add4db9b06b01f85ce492742acae86545">More...</a><br /></td></tr>
+<tr class="separator:add4db9b06b01f85ce492742acae86545"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a292391c1f72ca66e100e7e70512ff9b1"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVec3T.html#a292391c1f72ca66e100e7e70512ff9b1">maxDir</a> (const bool a_doAbs) const noexcept</td></tr>
 <tr class="memdesc:a292391c1f72ca66e100e7e70512ff9b1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the direction which has the largest component (can be absolute)  <a href="#a292391c1f72ca66e100e7e70512ff9b1">More...</a><br /></td></tr>
 <tr class="separator:a292391c1f72ca66e100e7e70512ff9b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -542,6 +545,43 @@ template&lt;class T &gt; </div>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Returns a new vector with X[0] = std::min(this-&gt;X[0], u.X[0]) (and same for the other components) </dd></dl>
+
+</div>
+</div>
+<a id="add4db9b06b01f85ce492742acae86545"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#add4db9b06b01f85ce492742acae86545">&#9670;&nbsp;</a></span>minDir()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">int <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;::minDir </td>
+          <td>(</td>
+          <td class="paramtype">const bool&#160;</td>
+          <td class="paramname"><em>a_doAbs</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return the direction which has the smallest component (can be absolute) </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_doAbs</td><td>If true, evaluate component magnitudes rather than values. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Direction with the biggest component </dd></dl>
 
 </div>
 </div>

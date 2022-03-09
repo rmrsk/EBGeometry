@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['transformop',['TransformOp',['../classTransformOp.html',1,'']]],
-  ['translateop',['TranslateOp',['../classTranslateOp.html',1,'']]]
+  ['signeddistancefunction',['SignedDistanceFunction',['../classSignedDistanceFunction.html',1,'']]],
+  ['spheresdf',['SphereSDF',['../classSphereSDF.html',1,'']]]
 ];

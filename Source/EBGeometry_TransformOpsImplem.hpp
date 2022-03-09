@@ -32,21 +32,6 @@ Vec3T<T> TranslateOp<T>::transform(const Vec3T<T>& a_inputPoint) const noexcept 
 }
 
 template <class T>
-ScaleOp<T>::ScaleOp() {
-  m_scale = Vec3T<T>::unit();
-}
-
-template <class T>
-ScaleOp<T>::ScaleOp(const Vec3T<T>& a_translation) {
-  m_scale = a_translation;
-}
-
-template <class T>
-Vec3T<T> ScaleOp<T>::transform(const Vec3T<T>& a_inputPoint) const noexcept {
-  return a_inputPoint/m_scale;
-}
-
-template <class T>
 RotateOp<T>::RotateOp() {
   m_axis     = Vec3T<T>::unit();
   m_cosAngle = std::cos(T(0.0));

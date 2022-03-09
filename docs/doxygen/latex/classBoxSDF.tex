@@ -1,0 +1,178 @@
+\hypertarget{classBoxSDF}{}\section{Box\+S\+DF$<$ T $>$ Class Template Reference}
+\label{classBoxSDF}\index{Box\+S\+D\+F$<$ T $>$@{Box\+S\+D\+F$<$ T $>$}}
+
+
+Signed distance field for an axis-\/aligned box.  
+
+
+
+
+{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp$>$}
+
+
+
+Inheritance diagram for Box\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=227pt]{classBoxSDF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Box\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=227pt]{classBoxSDF__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classBoxSDF_a59b774b2a6fc27001e1a40662f49c5cb}\label{classBoxSDF_a59b774b2a6fc27001e1a40662f49c5cb}} 
+\hyperlink{classBoxSDF_a59b774b2a6fc27001e1a40662f49c5cb}{Box\+S\+DF} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed default constructor. \end{DoxyCompactList}\item 
+\hyperlink{classBoxSDF_a8cac002be3de6c478a6d68e6e88607d8}{Box\+S\+DF} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+lo\+Corner, const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+hi\+Corner, const bool a\+\_\+flip\+Inside)
+\begin{DoxyCompactList}\small\item\em Full constructor. Sets the low and high corner. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBoxSDF_aae169f61825b3235cbb44d299c36e268}\label{classBoxSDF_aae169f61825b3235cbb44d299c36e268}} 
+virtual \hyperlink{classBoxSDF_aae169f61825b3235cbb44d299c36e268}{$\sim$\+Box\+S\+DF} ()
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing). \end{DoxyCompactList}\item 
+const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \& \hyperlink{classBoxSDF_a564b5f203d6bec78be94da4b9119748a}{get\+Low\+Corner} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get lower-\/left corner. \end{DoxyCompactList}\item 
+\hyperlink{classVec3T}{Vec3T}$<$ T $>$ \& \hyperlink{classBoxSDF_aa4ce24307fa921d36527ae4a8d6c0b36}{get\+Low\+Corner} () noexcept
+\begin{DoxyCompactList}\small\item\em Get lower-\/left corner. \end{DoxyCompactList}\item 
+const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \& \hyperlink{classBoxSDF_a10f3d6859f29566cca0bf2e89d1142c3}{get\+High\+Corner} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get upper-\/right corner. \end{DoxyCompactList}\item 
+\hyperlink{classVec3T}{Vec3T}$<$ T $>$ \& \hyperlink{classBoxSDF_a624cf8fea66776ecce602039beb1059c}{get\+High\+Corner} () noexcept
+\begin{DoxyCompactList}\small\item\em Get upper-\/right corner. \end{DoxyCompactList}\item 
+virtual T \hyperlink{classBoxSDF_a6e7a72790061423e5c9ea47d9e26736f}{signed\+Distance} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Signed distance function for sphere. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classBoxSDF_a7286bfb7a6669127b4902b1b2e9a2c80}\label{classBoxSDF_a7286bfb7a6669127b4902b1b2e9a2c80}} 
+\hyperlink{classVec3T}{Vec3T}$<$ T $>$ \hyperlink{classBoxSDF_a7286bfb7a6669127b4902b1b2e9a2c80}{m\+\_\+lo\+Corner}
+\begin{DoxyCompactList}\small\item\em Low box corner. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBoxSDF_a96181447700a9106e937fa2ff73499b1}\label{classBoxSDF_a96181447700a9106e937fa2ff73499b1}} 
+\hyperlink{classVec3T}{Vec3T}$<$ T $>$ \hyperlink{classBoxSDF_a96181447700a9106e937fa2ff73499b1}{m\+\_\+hi\+Corner}
+\begin{DoxyCompactList}\small\item\em High box corner. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBoxSDF_aac14b4352ba92c067f70884a99c934bf}\label{classBoxSDF_aac14b4352ba92c067f70884a99c934bf}} 
+bool \hyperlink{classBoxSDF_aac14b4352ba92c067f70884a99c934bf}{m\+\_\+flip\+Inside}
+\begin{DoxyCompactList}\small\item\em Hook for making outside -\/$>$ inside. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Box\+S\+D\+F$<$ T $>$}
+
+Signed distance field for an axis-\/aligned box. 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classBoxSDF_a8cac002be3de6c478a6d68e6e88607d8}\label{classBoxSDF_a8cac002be3de6c478a6d68e6e88607d8}} 
+\index{Box\+S\+DF@{Box\+S\+DF}!Box\+S\+DF@{Box\+S\+DF}}
+\index{Box\+S\+DF@{Box\+S\+DF}!Box\+S\+DF@{Box\+S\+DF}}
+\subsubsection{\texorpdfstring{Box\+S\+D\+F()}{BoxSDF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\hyperlink{classBoxSDF}{Box\+S\+DF}$<$ T $>$\+::\hyperlink{classBoxSDF}{Box\+S\+DF} (\begin{DoxyParamCaption}\item[{const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&}]{a\+\_\+lo\+Corner,  }\item[{const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&}]{a\+\_\+hi\+Corner,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Full constructor. Sets the low and high corner. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+lo\+Corner} & Lower left corner \\
+\hline
+\mbox{\tt in}  & {\em a\+\_\+hi\+Corner} & Upper right corner \\
+\hline
+\mbox{\tt in}  & {\em a\+\_\+flip\+Inside} & Flip inside/outside. \\
+\hline
+\end{DoxyParams}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classBoxSDF_a10f3d6859f29566cca0bf2e89d1142c3}\label{classBoxSDF_a10f3d6859f29566cca0bf2e89d1142c3}} 
+\index{Box\+S\+DF@{Box\+S\+DF}!get\+High\+Corner@{get\+High\+Corner}}
+\index{get\+High\+Corner@{get\+High\+Corner}!Box\+S\+DF@{Box\+S\+DF}}
+\subsubsection{\texorpdfstring{get\+High\+Corner()}{getHighCorner()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const \hyperlink{classVec3T}{Vec3T}$<$T$>$\& \hyperlink{classBoxSDF}{Box\+S\+DF}$<$ T $>$\+::get\+High\+Corner (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get upper-\/right corner. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+hi\+Corner 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classBoxSDF_a624cf8fea66776ecce602039beb1059c}\label{classBoxSDF_a624cf8fea66776ecce602039beb1059c}} 
+\index{Box\+S\+DF@{Box\+S\+DF}!get\+High\+Corner@{get\+High\+Corner}}
+\index{get\+High\+Corner@{get\+High\+Corner}!Box\+S\+DF@{Box\+S\+DF}}
+\subsubsection{\texorpdfstring{get\+High\+Corner()}{getHighCorner()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\hyperlink{classVec3T}{Vec3T}$<$T$>$\& \hyperlink{classBoxSDF}{Box\+S\+DF}$<$ T $>$\+::get\+High\+Corner (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get upper-\/right corner. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+hi\+Corner 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classBoxSDF_a564b5f203d6bec78be94da4b9119748a}\label{classBoxSDF_a564b5f203d6bec78be94da4b9119748a}} 
+\index{Box\+S\+DF@{Box\+S\+DF}!get\+Low\+Corner@{get\+Low\+Corner}}
+\index{get\+Low\+Corner@{get\+Low\+Corner}!Box\+S\+DF@{Box\+S\+DF}}
+\subsubsection{\texorpdfstring{get\+Low\+Corner()}{getLowCorner()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const \hyperlink{classVec3T}{Vec3T}$<$T$>$\& \hyperlink{classBoxSDF}{Box\+S\+DF}$<$ T $>$\+::get\+Low\+Corner (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get lower-\/left corner. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+lo\+Corner 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classBoxSDF_aa4ce24307fa921d36527ae4a8d6c0b36}\label{classBoxSDF_aa4ce24307fa921d36527ae4a8d6c0b36}} 
+\index{Box\+S\+DF@{Box\+S\+DF}!get\+Low\+Corner@{get\+Low\+Corner}}
+\index{get\+Low\+Corner@{get\+Low\+Corner}!Box\+S\+DF@{Box\+S\+DF}}
+\subsubsection{\texorpdfstring{get\+Low\+Corner()}{getLowCorner()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\hyperlink{classVec3T}{Vec3T}$<$T$>$\& \hyperlink{classBoxSDF}{Box\+S\+DF}$<$ T $>$\+::get\+Low\+Corner (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get lower-\/left corner. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+lo\+Corner 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classBoxSDF_a6e7a72790061423e5c9ea47d9e26736f}\label{classBoxSDF_a6e7a72790061423e5c9ea47d9e26736f}} 
+\index{Box\+S\+DF@{Box\+S\+DF}!signed\+Distance@{signed\+Distance}}
+\index{signed\+Distance@{signed\+Distance}!Box\+S\+DF@{Box\+S\+DF}}
+\subsubsection{\texorpdfstring{signed\+Distance()}{signedDistance()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+virtual T \hyperlink{classBoxSDF}{Box\+S\+DF}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Signed distance function for sphere. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+point} & Position. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{Signed\+Distance\+Function$<$ T $>$}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Source/\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp}{E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp}\end{DoxyCompactItemize}

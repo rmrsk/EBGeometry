@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['facet',['FaceT',['../classDcel_1_1FaceT.html',1,'Dcel']]]
+  ['edgeiteratort',['EdgeIteratorT',['../classDcel_1_1EdgeIteratorT.html',1,'Dcel']]],
+  ['edget',['EdgeT',['../classDcel_1_1EdgeT.html',1,'Dcel']]]
 ];

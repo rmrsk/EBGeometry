@@ -22,11 +22,6 @@ T SignedDistanceFunction<T>::unsignedDistance2(const Vec3T<T>& a_point) const no
 }
 
 template <class T>
-void SignedDistanceFunction<T>::scale(const Vec3T<T>& a_scale) noexcept {
-  m_transformOps.emplace_back(std::make_shared<EBGeometry::ScaleOp<T> > (a_scale));
-}
-
-template <class T>
 void SignedDistanceFunction<T>::translate(const Vec3T<T>& a_translation) noexcept {
   m_transformOps.emplace_back(std::make_shared<EBGeometry::TranslateOp<T> > (a_translation));
 }
