@@ -74,7 +74,7 @@ For getting the signed or unsigned distance, ``NodeT`` has provides the followin
 
 .. literalinclude:: ../../Source/EBGeometry_BVH.hpp
    :language: c++
-   :lines: 103-105, 217-218
+   :lines: 103-105, 216, 224, 464
    
 
 .. _Chap:BVHConstraints:
@@ -248,7 +248,7 @@ To encapsulate the compact BVH we provide two classes:
 
    .. literalinclude:: ../../Source/EBGeometry_BVH.hpp
       :language: c++
-      :lines: 470-472,587-607
+      :lines: 487-488, 604-625
 
    ``LinearNodeT`` has a smaller memory footprint and should fit in one CPU word in floating-point precision and two CPU words in double point precision.
    The performance benefits of further memory alignment have not been investigated.
@@ -268,7 +268,7 @@ To encapsulate the compact BVH we provide two classes:
 
    .. literalinclude:: ../../Source/EBGeometry_BVH.hpp
       :language: c++
-      :lines: 613,615,642-644,660-671
+      :lines: 630-631,683-693,702
 
    The root node is, of course, found at the front of the ``m_linearNodes`` vector.
    Note that the list of primitives ``m_primitives`` is stored in the order in which the leaf nodes appear in ``m_linearNodes``. 
@@ -298,7 +298,7 @@ Note that the primitives live in ``LinearBVH`` and not ``LinearNodeT``, and the 
 
 .. literalinclude:: ../../Source/EBGeometry_BVH.hpp
    :language: c++
-   :lines: 613-615,657-658
+   :lines: 630-631,673-674,680-681,702
 
 Thus, once the compact BVH has been built, we can call the signed distance function as usual:
 

@@ -210,12 +210,19 @@ namespace BVH {
     /*!
       @brief Function which computes the signed distance
       @param[in] a_point   3D point in space
-      @param[in] a_pruning Pruning algorithm
       @return Signed distance to the input point
-      @details This will select amongs the various implementations. 
     */
     inline
-    T signedDistance(const Vec3& a_point, const Prune a_pruning = Prune::Ordered2) const noexcept;    
+    T signedDistance(const Vec3T<T>& a_point) const noexcept;
+
+    /*!
+      @brief Function which computes the signed distance
+      @param[in] a_point   3D point in space
+      @return Signed distance to the input point
+    */
+    inline
+    T unsignedDistance2(const Vec3T<T>& a_point) const noexcept;            
+
 
     /*!
       @brief Function which computes the signed distance using ordered pruning along the BVH branches. 
@@ -396,6 +403,16 @@ namespace BVH {
     */
     inline
     void setParent(const NodePtr& a_parent) noexcept;
+    
+    /*!
+      @brief Function which computes the signed distance
+      @param[in] a_point   3D point in space
+      @param[in] a_pruning Pruning algorithm
+      @return Signed distance to the input point
+      @details This will select amongs the various implementations. 
+    */
+    inline
+    T signedDistanceAlg(const Vec3& a_point, const Prune a_pruning = Prune::Ordered2) const noexcept;        
 
     /*!
       @brief Implementation function for pruneOrdered (it requires a different signature). 
@@ -650,12 +667,18 @@ namespace BVH {
     virtual ~LinearBVH();
 
     /*!
-      @brief Function which computes the signed distance
+      @brief Function which computes the signed distance. This calls the other version. 
       @param[in] a_point   3D point in space
-      @param[in] a_pruning Pruning algorithm. 
     */
     inline
-    T signedDistance(const Vec3& a_point, const Prune a_pruning = Prune::Ordered2) const noexcept;    
+    T signedDistance(const Vec3& a_point) const noexcept;
+
+    /*!
+      @brief Function which computes the usigned distance squared.
+      @param[in] a_point   3D point in space
+    */
+    inline
+    T unsignedDistance2(const Vec3& a_point) const noexcept;        
 
   protected:
 
@@ -668,6 +691,14 @@ namespace BVH {
       @brief Global list of primitives. Note that this is ALL primitives, sorted so that LinearNodeT can interface into it. 
     */
     std::vector<std::shared_ptr<const P> > m_primitives;
+
+    /*!
+      @brief Function which computes the signed distance
+      @param[in] a_point   3D point in space
+      @param[in] a_pruning Pruning algorithm. 
+    */
+    inline
+    T signedDistanceAlg(const Vec3& a_point, const Prune a_pruning) const noexcept;    
   };
 }
 

@@ -264,8 +264,9 @@ The compact BVH is discussed below in <a class="reference internal" href="#chap-
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
   <span class="k">class</span> <span class="nc">NodeT</span> <span class="p">{</span>
   <span class="k">public</span><span class="o">:</span>
-    <span class="kr">inline</span>
-    <span class="n">T</span> <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3</span><span class="o">&amp;</span> <span class="n">a_point</span><span class="p">,</span> <span class="k">const</span> <span class="n">Prune</span> <span class="n">a_pruning</span> <span class="o">=</span> <span class="n">Prune</span><span class="o">::</span><span class="n">Ordered2</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>    
+    <span class="n">T</span> <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+    <span class="n">T</span> <span class="nf">unsignedDistance2</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>            
+  <span class="p">};</span>
 </pre></div>
 </div>
 <div class="section" id="template-constraints">
@@ -472,7 +473,6 @@ To encapsulate the compact BVH we provide two classes:</p>
 Just like <code class="docutils literal notranslate"><span class="pre">NodeT</span></code> the class is templated:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
   <span class="k">class</span> <span class="nc">LinearNodeT</span> <span class="p">{</span>
-  <span class="k">public</span><span class="o">:</span>
   <span class="k">protected</span><span class="o">:</span>
 
     <span class="cm">/*!</span>
@@ -494,6 +494,7 @@ Just like <code class="docutils literal notranslate"><span class="pre">NodeT</sp
 <span class="cm">      @brief Offset to child nodes. </span>
 <span class="cm">    */</span>
     <span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="n">m_childOffsets</span><span class="p">;</span>
+  <span class="p">};</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">LinearNodeT</span></code> has a smaller memory footprint and should fit in one CPU word in floating-point precision and two CPU words in double point precision.
@@ -509,10 +510,7 @@ Primitives can likewise be obtained; they are stored in the primitives array fro
 <li><p><code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> which stores the compact BVH <em>and</em> primitives as class members.
 That is, <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> contains the nodes and primitives as class members.</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
-  <span class="k">public</span><span class="o">:</span>
-    <span class="kr">inline</span>
-    <span class="n">LinearBVH</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">LinearNode</span><span class="o">&gt;&amp;</span> <span class="n">a_linearNodes</span><span class="p">,</span>
-	      <span class="k">const</span> <span class="n">PrimitiveList</span><span class="o">&amp;</span>           <span class="n">a_primitives</span><span class="p">);</span>
+  <span class="k">class</span> <span class="nc">LinearBVH</span> <span class="p">{</span>
   <span class="k">protected</span><span class="o">:</span>
 
     <span class="cm">/*!</span>
@@ -553,9 +551,11 @@ E.g., the set pointer to the root node to <code class="docutils literal notransl
 <p>Note that the primitives live in <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> and not <code class="docutils literal notranslate"><span class="pre">LinearNodeT</span></code>, and the signed distance function is therefore implemented in the <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> member functions:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
   <span class="k">class</span> <span class="nc">LinearBVH</span> <span class="p">{</span>
-  <span class="k">public</span><span class="o">:</span>
     <span class="kr">inline</span>
-    <span class="n">T</span> <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3</span><span class="o">&amp;</span> <span class="n">a_point</span><span class="p">,</span> <span class="k">const</span> <span class="n">Prune</span> <span class="n">a_pruning</span> <span class="o">=</span> <span class="n">Prune</span><span class="o">::</span><span class="n">Ordered2</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>    
+    <span class="n">T</span> <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3</span><span class="o">&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+    <span class="kr">inline</span>
+    <span class="n">T</span> <span class="nf">unsignedDistance2</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3</span><span class="o">&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>        
+  <span class="p">};</span>
 </pre></div>
 </div>
 <p>Thus, once the compact BVH has been built, we can call the signed distance function as usual:</p>

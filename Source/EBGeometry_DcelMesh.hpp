@@ -231,6 +231,16 @@ namespace Dcel {
     inline
     T signedDistance(const Vec3& a_x0, SearchAlgorithm a_algorithm) const noexcept;
 
+    /*!
+      @brief Compute the unsigned square distance from a point to this mesh
+      @param[in] a_x0 3D point in space.
+      @details This function will iterate through ALL faces in the mesh and return the value with the smallest magnitude. This is horrendously slow, which is 
+      why this function is almost never called. Rather, MeshT<T> can be embedded in a bounding volume hierarchy for faster access. 
+      @note This will call the other version with the object's search algorithm. 
+    */
+    inline
+    T unsignedDistance2(const Vec3& a_x0) const noexcept;        
+
   protected:
 
     /*!
