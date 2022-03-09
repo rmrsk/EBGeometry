@@ -595,6 +595,13 @@ In addition, the file :file:`Source/EBGeometry_AnalyticSignedDistanceFunctions.h
 
      template<class T>
      class EBGeometry::SphereSDF : public EBGeometry::SignedDistanceFunction<T>;
+
+* **Box**
+
+  .. code-block:: c++
+
+     template<class T>
+     class EBGeometry::BoxSDF : public EBGeometry::SignedDistanceFunction<T>;     
      
 * **Torus**
 
@@ -610,12 +617,7 @@ In addition, the file :file:`Source/EBGeometry_AnalyticSignedDistanceFunctions.h
      template<class T>
      class EBGeometry::CylinderSDF : public EBGeometry::SignedDistanceFunction<T>;
 
-* **Box**
 
-  .. code-block:: c++
-
-     template<class T>
-     class EBGeometry::BoxSDF : public EBGeometry::SignedDistanceFunction<T>;
 
 Unions
 ------
