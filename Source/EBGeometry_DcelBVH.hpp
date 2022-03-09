@@ -94,7 +94,8 @@ namespace Dcel {
     PrimitiveList<T> sortedPrimitives(a_primitives);
     
     std::sort(sortedPrimitives.begin(), sortedPrimitives.end(),
-	      [=](const std::shared_ptr<const FaceT<T> >& f1, const std::shared_ptr<const FaceT<T> >& f2) -> bool {
+	      [=](const std::shared_ptr<const FaceT<T> >& f1,
+		  const std::shared_ptr<const FaceT<T> >& f2) -> bool {
 		return f1->getCentroid(splitDir) < f2->getCentroid(splitDir);
 	      });
 

@@ -213,7 +213,21 @@ namespace BVH {
 
   template <class T, class P, class BV, int K>
   inline
-  T NodeT<T, P, BV, K>::signedDistance(const Vec3& a_point, const Prune a_pruning) const noexcept {
+  T NodeT<T, P, BV, K>::signedDistance(const Vec3& a_point) const noexcept {
+    return this->signedDistanceAlg(a_point, Prune::Ordered2);
+  }
+
+  template <class T, class P, class BV, int K>
+  inline
+  T NodeT<T, P, BV, K>::unsignedDistance2(const Vec3& a_point) const noexcept {
+    const T d = this->signedDistance(a_point);
+    
+    return d*d;
+  }  
+
+  template <class T, class P, class BV, int K>
+  inline
+  T NodeT<T, P, BV, K>::signedDistanceAlg(const Vec3& a_point, const Prune a_pruning) const noexcept {
     T ret = std::numeric_limits<T>::infinity();
     
     switch(a_pruning){
@@ -735,7 +749,19 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, int K>
-  T LinearBVH<T, P, BV, K>::signedDistance(const Vec3& a_point, const Prune a_pruning) const noexcept {
+  T LinearBVH<T, P, BV, K>::signedDistance(const Vec3& a_point) const noexcept {
+    return this->signedDistanceAlg(a_point, BVH::Prune::Ordered2);
+  }
+
+  template <class T, class P, class BV, int K>
+  T LinearBVH<T, P, BV, K>::unsignedDistance2(const Vec3& a_point) const noexcept {
+    const T d = this->signedDistance(a_point);
+
+    return d*d;
+  }  
+
+  template <class T, class P, class BV, int K>
+  T LinearBVH<T, P, BV, K>::signedDistanceAlg(const Vec3& a_point, const Prune a_pruning) const noexcept {
     T minDist = std::numeric_limits<T>::infinity();
 
     switch(a_pruning){
@@ -755,8 +781,6 @@ namespace BVH {
 
     return minDist;
   }
-
-
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"

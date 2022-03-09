@@ -455,6 +455,14 @@ public:
   T dot(const Vec3T<T>& u) const noexcept;
 
   /*!
+    @brief Return the direction which has the smallest component (can be absolute)
+    @param[in] a_doAbs If true, evaluate component magnitudes rather than values. 
+    @return Direction with the biggest component
+  */
+  inline
+  int minDir(const bool a_doAbs) const noexcept;  
+
+  /*!
     @brief Return the direction which has the largest component (can be absolute)
     @param[in] a_doAbs If true, evaluate component magnitudes rather than values. 
     @return Direction with the biggest component

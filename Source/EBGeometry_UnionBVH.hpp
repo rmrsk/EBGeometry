@@ -55,7 +55,9 @@ public:
     @param[in] a_flipSign          Hook for turning inside to outside
     @param[in] a_bvConstructor     Bounding volume constructor. 
   */
-  UnionBVH(const std::vector<std::shared_ptr<SDF> >& a_distanceFunctions, const bool a_flipSign, const BVConstructor& a_bvConstructor);  
+  UnionBVH(const std::vector<std::shared_ptr<SDF> >& a_distanceFunctions,
+	   const bool                                a_flipSign,
+	   const BVConstructor&                      a_bvConstructor);  
 
   /*!
     @brief Build BVH tree for the input objects. User must supply a partitioner and a BV constructor for the SDF objects.

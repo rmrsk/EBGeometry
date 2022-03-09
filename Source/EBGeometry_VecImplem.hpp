@@ -362,6 +362,27 @@ Vec3T<T> Vec3T<T>::max(const Vec3T<T>& u) noexcept {
 
 template <class T>
 inline
+int Vec3T<T>::minDir(const bool a_doAbs) const noexcept {
+  int mDir = 0;
+    
+  for (int dir = 0; dir < 3; dir++){
+    if (a_doAbs){
+      if (std::abs(X[dir]) < std::abs(X[mDir])) {
+	mDir = dir;
+      }
+    }
+    else{
+      if (X[dir] < X[mDir]){
+	mDir = dir;
+      }
+    }
+  }
+    
+  return mDir;
+}
+
+template <class T>
+inline
 int Vec3T<T>::maxDir(const bool a_doAbs) const noexcept {
   int mDir = 0;
     

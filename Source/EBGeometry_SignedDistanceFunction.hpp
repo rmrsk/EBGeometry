@@ -52,13 +52,6 @@ public:
   virtual T unsignedDistance2(const Vec3T<T>& a_point) const noexcept;
 
   /*!
-    @brief Scale signed distance function. 
-    @param[in] a_scale Scaling factor. 
-  */
-  inline
-  void scale(const Vec3T<T>& a_scale) noexcept;
-
-  /*!
     @brief Translate signed distance function. 
     @param[in] a_translation Distance to translate the function. 
   */  

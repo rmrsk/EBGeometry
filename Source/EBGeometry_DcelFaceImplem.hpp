@@ -294,7 +294,7 @@ namespace Dcel {
       for (const auto& e : m_edges){ // Projects to outside so edge/vertex are closest. Check that distance. 
 	const T curDist = e->signedDistance(a_x0);
 
-	retval = (curDist*curDist < retval*retval) ? curDist : retval;
+	retval = (std::abs(curDist) < std::abs(retval)) ? curDist : retval;
       }
     }
 

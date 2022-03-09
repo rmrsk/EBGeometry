@@ -77,41 +77,6 @@ protected:
 };
 
 /*!
-  @brief Scale operator. Can also be used as a reflection operator. 
-*/
-template <class T>
-class ScaleOp : public TransformOp<T> {
-public:
-
-  /*!
-    @brief Default constructor.
-  */
-  ScaleOp();
-
-  /*!
-    @brief Full constructor
-  */
-  ScaleOp(const Vec3T<T>& a_scale);
-
-  /*!
-    @brief Destructor
-  */
-  virtual ~ScaleOp() = default;
-
-  /*!
-    @brief Transform input point. 
-  */
-  Vec3T<T> transform(const Vec3T<T>& a_inputPoint) const noexcept override;
-
-protected:
-
-  /*!
-    @brief Scaling of input point. 
-  */
-  Vec3T<T> m_scale;
-};
-
-/*!
   @brief Rotation operator. Can scale an input point. 
 */
 template <class T>
