@@ -641,13 +641,17 @@ Thus, we can consider either:
 
 .. math::
 
-   s_{2\textrm{D}}(x,y) = s_{\textrm{3D}}(x,y,z_0),
+   S_{2\textrm{D}}(x,y) = S_{\textrm{3D}}(x,y,z_0),
 
 or
 
+.. math::
 
+   S_{2\textrm{D}}(x,y) = \left[\mathcal{S}(z\rightarrow \infty)\mathcal{T}(z_0) S_{\textrm{3D}}(x,y,z)\right](x,y,0).
 
-
+The latter definition differs from the former in the application of the two transformation operators that are applied to the original three-dimensional signed distance field.
+These transformation operators first translate the :math:`z` coordinate to the evaluation plane located at :math:`z_0`.
+Next, the signed distance field is simply scaled along the :math:`z` by a very large number, which allows us to obtain the "2D slice" of the signed distance field.
 
 Unions
 ------

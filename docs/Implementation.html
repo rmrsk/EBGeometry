@@ -911,8 +911,13 @@ For cases where users want to obtain a 2D geometry as a slice of a 3D geometry, 
 Depending on how the 2D geometry should be reconstructed, we can consider either the equation above, or the case where the infinitely large half-planes are moved to infinity.
 Thus, we can consider either:</p>
 <div class="math notranslate nohighlight">
-\[s_{2\textrm{D}}(x,y) = s_{\textrm{3D}}(x,y,z_0),\]</div>
+\[S_{2\textrm{D}}(x,y) = S_{\textrm{3D}}(x,y,z_0),\]</div>
 <p>or</p>
+<div class="math notranslate nohighlight">
+\[S_{2\textrm{D}}(x,y) = \left[\mathcal{S}(z\rightarrow \infty)\mathcal{T}(z_0) S_{\textrm{3D}}(x,y,z)\right](x,y,0).\]</div>
+<p>The latter definition differs from the former in the application of the two transformation operators that are applied to the original three-dimensional signed distance field.
+These transformation operators first translate the <span class="math notranslate nohighlight">\(z\)</span> coordinate to the evaluation plane located at <span class="math notranslate nohighlight">\(z_0\)</span>.
+Next, the signed distance field is simply scaled along the <span class="math notranslate nohighlight">\(z\)</span> by a very large number, which allows us to obtain the “2D slice” of the signed distance field.</p>
 </div>
 </div>
 <div class="section" id="unions">
