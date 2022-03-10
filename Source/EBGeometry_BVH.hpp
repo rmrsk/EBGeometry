@@ -254,23 +254,11 @@ namespace BVH {
     std::array<std::shared_ptr<NodeT<T, P, BV, K> >, K> m_children;
 
     /*!
-      @brief Pointer to parent node
-    */
-    NodePtr m_parent;
-
-    /*!
-      @brief Insert a new node in the tree. 
-      @param[in] a_node       Node to insert
-      @param[in] a_primitives Primitives provided to a_node
-    */    
-    inline
-    void insertNode(NodePtr& a_node, const PrimitiveList& a_primitives) noexcept;
-
-    /*!
-      @brief Insert nodes with primitives
+      @brief Insert nodes with primitives.
+      @param[in] a_primitives Primitives for children. 
     */
     inline
-    void insertNodes(const std::array<PrimitiveList, K>& a_primitives) noexcept;
+    void insertChildren(const std::array<PrimitiveList, K>& a_primitives) noexcept;
 
     /*!
       @brief Set primitives in this node
@@ -288,7 +276,7 @@ namespace BVH {
     T getDistanceToBoundingVolume(const Vec3& a_point) const noexcept;
 
     /*!
-      @brief Compute the shortest distance to the primitives in this node
+      @brief Compute the shortest distance to the primitives in this node. 
       @param[in] a_point 3D point
       @return Returns the signed distance to the primitives.
     */
@@ -301,13 +289,6 @@ namespace BVH {
     */
     inline
     PrimitiveList& getPrimitives() noexcept;
-
-    /*!
-      @brief Set parent node
-      @param[in] a_parent Parent node
-    */
-    inline
-    void setParent(const NodePtr& a_parent) noexcept;
 
     /*!
       @brief Iterative ordered pruning along the BVH tree. 

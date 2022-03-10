@@ -117,7 +117,7 @@ namespace BVH {
 
       // Divide primitives into new partitions
       const auto& newPartitions = a_partitioner(m_primitives); // Divide this node's primitives into K new sub-volume primitives
-      this->insertNodes(newPartitions);                        // Insert the K new nodes into the tree. 
+      this->insertChildren(newPartitions);                        // Insert the K new nodes into the tree. 
 
       m_primitives.resize(0); // This node is no longer a leaf node. 
 
@@ -130,15 +130,7 @@ namespace BVH {
 
   template<class T, class P, class BV, int K>
   inline
-  void NodeT<T, P, BV, K>::insertNode(NodePtr& a_node, const PrimitiveList& a_primitives) noexcept {
-    a_node = std::make_shared<NodeT<T, P, BV, K> >();
-
-    a_node->setPrimitives(a_primitives);
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
-  void NodeT<T, P, BV, K>::insertNodes(const std::array<PrimitiveList, K>& a_primitives) noexcept {
+  void NodeT<T, P, BV, K>::insertChildren(const std::array<PrimitiveList, K>& a_primitives) noexcept {
     for (int l = 0; l < K; l++){
       m_children[l] = std::make_shared<NodeT<T, P, BV, K> >();
 
@@ -155,7 +147,7 @@ namespace BVH {
   template<class T, class P, class BV, int K>
   inline
   T NodeT<T, P, BV, K>::getDistanceToPrimitives(const Vec3& a_point) const noexcept {
-    T minDist = std::numeric_limits<T>::max();
+    T minDist = std::numeric_limits<T>::infinity();
 
     for (const auto& p : m_primitives){
       const auto curDist = p->signedDistance(a_point);
