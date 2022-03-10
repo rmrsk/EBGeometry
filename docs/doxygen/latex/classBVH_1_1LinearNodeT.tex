@@ -47,13 +47,8 @@ bool \hyperlink{classBVH_1_1LinearNodeT_aba361834e3d013725a92ec4b45633584}{is\+L
 \begin{DoxyCompactList}\small\item\em Is leaf or not. \end{DoxyCompactList}\item 
 T \hyperlink{classBVH_1_1LinearNodeT_a2bf5b1c514a20754d527b17e1c664630}{get\+Distance\+To\+Bounding\+Volume} (const \hyperlink{classBVH_1_1LinearNodeT_a073e87d51d44b4cc243c8f90690247a6}{Vec3} \&a\+\_\+point) const noexcept
 \begin{DoxyCompactList}\small\item\em Get the distance from a 3D point to the bounding volume. \end{DoxyCompactList}\item 
-T \hyperlink{classBVH_1_1LinearNodeT_a3e85605a1f0986b8440964ed0dbe90f6}{get\+Distance\+To\+Bounding\+Volume2} (const \hyperlink{classBVH_1_1LinearNodeT_a073e87d51d44b4cc243c8f90690247a6}{Vec3} \&a\+\_\+point) const noexcept
-\begin{DoxyCompactList}\small\item\em Get the unsigned square from a 3D point to the bounding volume. \end{DoxyCompactList}\item 
 T \hyperlink{classBVH_1_1LinearNodeT_a1a0a50ba8c1c0601f12ae02857246b1f}{get\+Distance\+To\+Primitives} (const \hyperlink{classBVH_1_1LinearNodeT_a073e87d51d44b4cc243c8f90690247a6}{Vec3} \&a\+\_\+point, const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$ \&a\+\_\+primitives) const noexcept
-\begin{DoxyCompactList}\small\item\em Compute signed distance to primitives. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBVH_1_1LinearNodeT_a5479cd8a3503d16bb3f09273971df24a}\label{classBVH_1_1LinearNodeT_a5479cd8a3503d16bb3f09273971df24a}} 
-void \hyperlink{classBVH_1_1LinearNodeT_a5479cd8a3503d16bb3f09273971df24a}{prune\+Ordered2} (T \&a\+\_\+shortest\+Square\+Distance\+So\+Far, unsigned long \&a\+\_\+closest\+Primitive\+So\+Far, const \hyperlink{classBVH_1_1LinearNodeT_a073e87d51d44b4cc243c8f90690247a6}{Vec3} \&a\+\_\+point, const std\+::vector$<$ \hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}$<$ T, P, BV, K $>$ $>$ \&a\+\_\+linear\+Nodes, const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$ \&a\+\_\+primitives) const noexcept
-\begin{DoxyCompactList}\small\item\em Pruning algorithm. This is the same algorithm as \hyperlink{classBVH_1_1NodeT_acb7fec40e06e97fcd42ec75169603e8b}{Node\+T\+::prune\+Ordered2}, except that the nodes and primitives come in as arguments (and the node has been collapsed onto one cache line). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Compute signed distance to primitives. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \subsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
 \item 
@@ -79,10 +74,12 @@ Forward declare linear node class.
 
 Node type for linearized (flattened) \hyperlink{namespaceBVH}{B\+VH}. This will be constructed from the other (conventional) \hyperlink{namespaceBVH}{B\+VH} type.
 
+T is the precision used in the \hyperlink{namespaceBVH}{B\+VH} computations, P is the enclosing primitive and BV is the bounding volume used in the \hyperlink{namespaceBVH}{B\+VH}. K is the tree degree.
+
 T is the precision for Vec3, P is the primitive type you want to enclose, BV is the bounding volume you use for it.
 
 \begin{DoxyNote}{Note}
-P M\+U\+ST supply function signed\+Distance(...) and unsigned\+Distance2(\+Vec3). BV must supply a function get\+Distance (had this been C++20, we would have use concepts to enforce this). Note that Linear\+Node is the result of a flattnened \hyperlink{namespaceBVH}{B\+VH} hierarchy where nodes are stored with depth-\/first ordering for improved cache-\/location in the downward traversal.
+P M\+U\+ST supply function signed\+Distance(...) BV must supply a function get\+Distance (had this been C++20, we would have use concepts to enforce this). Note that Linear\+Node is the result of a flattened \hyperlink{namespaceBVH}{B\+VH} hierarchy where nodes are stored with depth-\/first ordering for improved cache-\/location in the downward traversal.
 
 This class exists so that we can fit the nodes with a smaller memory footprint. The standard \hyperlink{namespaceBVH}{B\+VH} node (\hyperlink{classBVH_1_1NodeT}{NodeT}) is very useful when building the tree but less useful when traversing it since it stores references to the primitives in the node itself. It will span multiple cache lines. This node exists so that we can fit all the \hyperlink{namespaceBVH}{B\+VH} info onto fewer cache lines. The number of cache lines will depend on the tree degree, precision, and bounding volume that is chosen.
 \end{DoxyNote}
@@ -124,25 +121,6 @@ Get the distance from a 3D point to the bounding volume.
 \begin{DoxyReturn}{Returns}
 Returns distance to bounding volume. A zero distance implies that the input point is inside the bounding volume. 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classBVH_1_1LinearNodeT_a3e85605a1f0986b8440964ed0dbe90f6}\label{classBVH_1_1LinearNodeT_a3e85605a1f0986b8440964ed0dbe90f6}} 
-\index{B\+V\+H\+::\+Linear\+NodeT@{B\+V\+H\+::\+Linear\+NodeT}!get\+Distance\+To\+Bounding\+Volume2@{get\+Distance\+To\+Bounding\+Volume2}}
-\index{get\+Distance\+To\+Bounding\+Volume2@{get\+Distance\+To\+Bounding\+Volume2}!B\+V\+H\+::\+Linear\+NodeT@{B\+V\+H\+::\+Linear\+NodeT}}
-\subsubsection{\texorpdfstring{get\+Distance\+To\+Bounding\+Volume2()}{getDistanceToBoundingVolume2()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
-T \hyperlink{classBVH_1_1LinearNodeT}{B\+V\+H\+::\+Linear\+NodeT}$<$ T, P, BV, K $>$\+::get\+Distance\+To\+Bounding\+Volume2 (\begin{DoxyParamCaption}\item[{const \hyperlink{classBVH_1_1LinearNodeT_a073e87d51d44b4cc243c8f90690247a6}{Vec3} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
-
-
-
-Get the unsigned square from a 3D point to the bounding volume. 
-
-
-\begin{DoxyParams}[1]{Parameters}
-\mbox{\tt in}  & {\em a\+\_\+point} & 3D point \\
-\hline
-\end{DoxyParams}
-\begin{DoxyReturn}{Returns}
-Returns squared distance to bounding volume. A zero distance implies that the input point is inside the bounding volume. 
-\end{DoxyReturn}
 \mbox{\Hypertarget{classBVH_1_1LinearNodeT_a1a0a50ba8c1c0601f12ae02857246b1f}\label{classBVH_1_1LinearNodeT_a1a0a50ba8c1c0601f12ae02857246b1f}} 
 \index{B\+V\+H\+::\+Linear\+NodeT@{B\+V\+H\+::\+Linear\+NodeT}!get\+Distance\+To\+Primitives@{get\+Distance\+To\+Primitives}}
 \index{get\+Distance\+To\+Primitives@{get\+Distance\+To\+Primitives}!B\+V\+H\+::\+Linear\+NodeT@{B\+V\+H\+::\+Linear\+NodeT}}
@@ -154,6 +132,13 @@ T \hyperlink{classBVH_1_1LinearNodeT}{B\+V\+H\+::\+Linear\+NodeT}$<$ T, P, BV, K
 
 Compute signed distance to primitives. 
 
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em a\+\_\+point} & Point \\
+\hline
+\mbox{\tt in}  & {\em a\+\_\+primitives} & List of primitives \\
+\hline
+\end{DoxyParams}
 \begin{DoxyNote}{Note}
 Only call if this is a leaf node. 
 \end{DoxyNote}

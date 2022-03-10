@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['prune',['Prune',['../namespaceBVH.html#a3ddb7b34ac1deb3baed2f32d9eacbe5b',1,'BVH']]]
+  ['searchalgorithm',['SearchAlgorithm',['../classDcel_1_1MeshT.html#abb4c3bb7a52804bb041c133f30151399',1,'Dcel::MeshT']]]
 ];

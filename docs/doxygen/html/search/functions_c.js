@@ -4,8 +4,7 @@ var searchData=
   ['printwarnings',['printWarnings',['../classDcel_1_1MeshT.html#a7115bea1b9d776a5f9c82a1e4fe852a0',1,'Dcel::MeshT']]],
   ['projectpointintofaceplane',['projectPointIntoFacePlane',['../classDcel_1_1FaceT.html#af4116b8f72e0dfb797f79cd4f27a71e8',1,'Dcel::FaceT']]],
   ['projectpointtoedge',['projectPointToEdge',['../classDcel_1_1EdgeT.html#ab937dca20cefcae4083b3cf873d83265',1,'Dcel::EdgeT']]],
-  ['pruneordered',['pruneOrdered',['../classBVH_1_1NodeT.html#a3aa6e9109897a573a46714278e0a79c6',1,'BVH::NodeT::pruneOrdered(const Vec3 &amp;a_point) const noexcept'],['../classBVH_1_1NodeT.html#ac4a3be457d66d2673f717f203e60fc08',1,'BVH::NodeT::pruneOrdered(T &amp;a_closest, const Vec3 &amp;a_point) const noexcept']]],
-  ['pruneordered2',['pruneOrdered2',['../classBVH_1_1NodeT.html#acb7fec40e06e97fcd42ec75169603e8b',1,'BVH::NodeT::pruneOrdered2(const Vec3 &amp;a_point) const noexcept'],['../classBVH_1_1NodeT.html#a2887ad51251739359602dde8db6a5998',1,'BVH::NodeT::pruneOrdered2(T &amp;a_minDist2, std::shared_ptr&lt; const P &gt; &amp;a_closest, const Vec3 &amp;a_point) const noexcept'],['../classBVH_1_1LinearNodeT.html#a5479cd8a3503d16bb3f09273971df24a',1,'BVH::LinearNodeT::pruneOrdered2()']]],
-  ['pruneunordered',['pruneUnordered',['../classBVH_1_1NodeT.html#a27cfc030a9b7f9b0341e94dc6733b511',1,'BVH::NodeT::pruneUnordered(const Vec3 &amp;a_point) const noexcept'],['../classBVH_1_1NodeT.html#ad252aa451ca983750dfa0c24344253b2',1,'BVH::NodeT::pruneUnordered(T &amp;a_closest, const Vec3 &amp;a_point) const noexcept']]],
-  ['pruneunordered2',['pruneUnordered2',['../classBVH_1_1NodeT.html#aafa2f1f4f4f58296531723e9a6d7d13a',1,'BVH::NodeT::pruneUnordered2(const Vec3 &amp;a_point) const noexcept'],['../classBVH_1_1NodeT.html#a1079cba9ac1f114ad2cbc6cdea2eae49',1,'BVH::NodeT::pruneUnordered2(T &amp;a_minDist2, std::shared_ptr&lt; const P &gt; &amp;a_closest, const Vec3 &amp;a_point) const noexcept']]]
+  ['pruneordered',['pruneOrdered',['../classBVH_1_1NodeT.html#ac4a3be457d66d2673f717f203e60fc08',1,'BVH::NodeT']]],
+  ['prunestack',['pruneStack',['../classBVH_1_1NodeT.html#a6bd0a4dd5843f010dd579d59a289b4d8',1,'BVH::NodeT']]],
+  ['pruneunordered',['pruneUnordered',['../classBVH_1_1NodeT.html#ad252aa451ca983750dfa0c24344253b2',1,'BVH::NodeT']]]
 ];

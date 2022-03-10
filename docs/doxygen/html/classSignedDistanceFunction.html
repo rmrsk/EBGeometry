@@ -100,9 +100,6 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <tr class="memitem:af5912280ca51dc21a2d6949a30ec7d21"><td class="memItemLeft" align="right" valign="top">virtual T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#af5912280ca51dc21a2d6949a30ec7d21">signedDistance</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point) const noexcept=0</td></tr>
 <tr class="memdesc:af5912280ca51dc21a2d6949a30ec7d21"><td class="mdescLeft">&#160;</td><td class="mdescRight">Signed distance function.  <a href="#af5912280ca51dc21a2d6949a30ec7d21">More...</a><br /></td></tr>
 <tr class="separator:af5912280ca51dc21a2d6949a30ec7d21"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2a3e72186725a4e931db0f8d4895bcb8"><td class="memItemLeft" align="right" valign="top">virtual T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#a2a3e72186725a4e931db0f8d4895bcb8">unsignedDistance2</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point) const noexcept</td></tr>
-<tr class="memdesc:a2a3e72186725a4e931db0f8d4895bcb8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unsigned distance function. Must return the distance^2.  <a href="#a2a3e72186725a4e931db0f8d4895bcb8">More...</a><br /></td></tr>
-<tr class="separator:a2a3e72186725a4e931db0f8d4895bcb8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:add71ebc2e7f3fb5e85766898413482e7"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#add71ebc2e7f3fb5e85766898413482e7">translate</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_translation) noexcept</td></tr>
 <tr class="memdesc:add71ebc2e7f3fb5e85766898413482e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Translate signed distance function.  <a href="#add71ebc2e7f3fb5e85766898413482e7">More...</a><br /></td></tr>
 <tr class="separator:add71ebc2e7f3fb5e85766898413482e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -246,42 +243,6 @@ template&lt;class T &gt; </div>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">a_translation</td><td>Distance to translate the function. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="a2a3e72186725a4e931db0f8d4895bcb8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2a3e72186725a4e931db0f8d4895bcb8">&#9670;&nbsp;</a></span>unsignedDistance2()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class T &gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">T <a class="el" href="classSignedDistanceFunction.html">SignedDistanceFunction</a>&lt; T &gt;::unsignedDistance2 </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_point</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Unsigned distance function. Must return the distance^2. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_point</td><td>3D point. </td></tr>
   </table>
   </dd>
 </dl>

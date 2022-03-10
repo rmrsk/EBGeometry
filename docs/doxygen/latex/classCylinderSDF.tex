@@ -11,8 +11,7 @@ Signed distance field for a cylinder.
 
 
 
-Inheritance diagram for Cylinder\+S\+DF$<$ T $>$\+:
-\nopagebreak
+Inheritance diagram for Cylinder\+S\+DF$<$ T $>$\+:\nopagebreak
 \begin{figure}[H]
 \begin{center}
 \leavevmode
@@ -21,8 +20,7 @@ Inheritance diagram for Cylinder\+S\+DF$<$ T $>$\+:
 \end{figure}
 
 
-Collaboration diagram for Cylinder\+S\+DF$<$ T $>$\+:
-\nopagebreak
+Collaboration diagram for Cylinder\+S\+DF$<$ T $>$\+:\nopagebreak
 \begin{figure}[H]
 \begin{center}
 \leavevmode
@@ -36,7 +34,7 @@ Collaboration diagram for Cylinder\+S\+DF$<$ T $>$\+:
 \hyperlink{classCylinderSDF_a4cad4283fea40d7e4f865a29f6b5bb20}{Cylinder\+S\+DF} ()=delete
 \begin{DoxyCompactList}\small\item\em Disallowed weak construction. Use one of the full constructors. \end{DoxyCompactList}\item 
 \hyperlink{classCylinderSDF_a0c710e871e7e7eb37f379c79c3412607}{Cylinder\+S\+DF} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+center1, const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+center2, const T \&a\+\_\+radius, const bool a\+\_\+flip\+Inside)
-\begin{DoxyCompactList}\small\item\em Full constructor. Sets the low and high corner. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classCylinderSDF_a974c6b114bc5dbf88c171de5328dcaf6}\label{classCylinderSDF_a974c6b114bc5dbf88c171de5328dcaf6}} 
 virtual \hyperlink{classCylinderSDF_a974c6b114bc5dbf88c171de5328dcaf6}{$\sim$\+Cylinder\+S\+DF} ()
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing). \end{DoxyCompactList}\item 
@@ -91,13 +89,15 @@ Signed distance field for a cylinder.
 
 
 
-Full constructor. Sets the low and high corner. 
+Full constructor. 
 
 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\tt in}  & {\em a\+\_\+lo\+Corner} & Lower left corner \\
+\mbox{\tt in}  & {\em a\+\_\+center1} & One endpoint. \\
 \hline
-\mbox{\tt in}  & {\em a\+\_\+hi\+Corner} & Upper right corner \\
+\mbox{\tt in}  & {\em a\+\_\+center2} & Other endpoint. \\
+\hline
+\mbox{\tt in}  & {\em a\+\_\+radius} & Cylinder radius. \\
 \hline
 \mbox{\tt in}  & {\em a\+\_\+flip\+Inside} & Flip inside/outside. \\
 \hline
