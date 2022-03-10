@@ -194,6 +194,12 @@ namespace BVH {
     int getDepth() const noexcept;
 
     /*!
+      @brief Get node type
+    */
+    inline
+    bool isLeaf() const noexcept;
+
+    /*!
       @brief Get the primitives stored in this node. 
       @return List of primitives. 
     */
@@ -207,6 +213,13 @@ namespace BVH {
     const BV& getBoundingVolume() const noexcept;
 
     /*!
+      @brief Return this node's children
+      @return m_children.
+    */
+    inline
+    const std::array<NodePtr, K>& getChildren() const noexcept;    
+
+    /*!
       @brief Function which computes the signed distance
       @param[in] a_point   3D point in space
       @return Signed distance to the input point
@@ -215,7 +228,7 @@ namespace BVH {
     T signedDistance(const Vec3T<T>& a_point) const noexcept;
     
     /*!
-      @brief Function which computes the signed distance
+      @brief Function which computes the signed distance. This version allows the user to manuall select an algorithm.
       @param[in] a_point   3D point in space
       @param[in] a_pruning Pruning algorithm
       @return Signed distance to the input point
@@ -224,14 +237,12 @@ namespace BVH {
     inline
     T signedDistance(const Vec3& a_point, const Prune a_pruning) const noexcept;    
 
-
-
     /*!
       @brief Flatten everything beneath this node into a depth-first sorted BVH hierarchy. 
       @details This will compute the flattening of the standard BVH tree and return a pointer to the root node.
     */
     inline
-    std::shared_ptr<LinearBVH<T, P, BV, K> > flattenTree();    
+    std::shared_ptr<LinearBVH<T, P, BV, K> > flattenTree() const noexcept;    
 
   protected:
 
@@ -345,7 +356,15 @@ namespace BVH {
     void setParent(const NodePtr& a_parent) noexcept;
 
     /*!
-      @brief Implementation function for pruneOrdered (it requires a different signature). 
+      @brief Iterative ordered pruning along the BVH tree. 
+      @param[inout] a_closest Shortest distance to primitives. 
+      @param[inout] a_point   Input 3D point
+    */            
+    inline
+    T pruneStack(const Vec3& a_point) const noexcept;    
+
+    /*!
+      @brief Recursively ordered pruning along the BVH tree. 
       @param[inout] a_closest Shortest distance to primitives so far. 
       @param[inout] a_point   Input 3D point
     */            
@@ -353,7 +372,7 @@ namespace BVH {
     void pruneOrdered(T& a_closest, const Vec3& a_point) const noexcept;
 
     /*!
-      @brief Implementation function for pruneUnordered (it requires a different signature). 
+      @brief Recursive unordered pruning along the BVH tree. 
       @param[inout] a_closest Shortest distance to primitives so far. 
       @param[inout] a_point   Input 3D point
     */                    
@@ -494,14 +513,6 @@ namespace BVH {
     */
     inline
     T getDistanceToPrimitives(const Vec3& a_point, const std::vector<std::shared_ptr<const P> >& a_primitives) const noexcept;
-
-    /*!
-      @brief Compute the shortest unsigned square distance to the primitivets in this node. 
-      @param[in] a_point 3D point
-      @return Returns the signed distance to the primitives.
-    */
-    inline
-    T getUnsignedDistanceToPrimitives2(const Vec3& a_point, const std::vector<std::shared_ptr<const P> >& a_primitives) const noexcept;    
 
   protected:
 
