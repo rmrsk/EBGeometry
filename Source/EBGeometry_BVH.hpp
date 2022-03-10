@@ -593,6 +593,11 @@ namespace BVH {
     /*!
       @brief Pruning algorithm. This is the same algorithm as NodeT::pruneOrdered2, except that the nodes and primitives come in as arguments (and the node 
       has been collapsed onto one cache line). 
+      @param[inout] a_shortestDistanceSoFar  Shortest (unsigned) square distance we've found so far. 
+      @param[inout] a_closestPrimitiveSoFar  Closest primitive we've found so far. 
+      @param[in]    a_point                  Position.
+      @param[in]    a_linearNodes            Compact BVH nodes.
+      @param[in]    a_primitives             Primitives.
     */
     inline
     void pruneOrdered2(T& a_shortestSquareDistanceSoFar,
