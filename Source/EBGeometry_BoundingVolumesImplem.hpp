@@ -207,14 +207,6 @@ namespace BoundingVolumes {
 
   template <class T>
   inline
-  T BoundingSphereT<T>::getDistance2(const Vec3& a_x0) const noexcept {
-    const T d = this->getDistance(a_x0);
-
-    return d*d;
-  }
-
-  template <class T>
-  inline
   T BoundingSphereT<T>::getVolume() const noexcept {
     return 4.*M_PI*m_radius*m_radius*m_radius/3.0;
   }
@@ -355,18 +347,6 @@ namespace BoundingVolumes {
     const T retval = std::max(zero, max(Vec3::zero(), delta).length());
     
     return retval;
-  }
-
-  template <class T>
-  inline
-  T AABBT<T>::getDistance2(const Vec3& a_point) const noexcept {
-    const Vec3 u = Vec3(std::max(m_loCorner[0] - a_point[0], a_point[0] - m_hiCorner[0]),
-			std::max(m_loCorner[1] - a_point[1], a_point[1] - m_hiCorner[1]),
-			std::max(m_loCorner[2] - a_point[2], a_point[2] - m_hiCorner[2]));
-
-    const Vec3 v = max(Vec3::zero(), u);
-
-    return v.length2();
   }
 
   template <class T>
