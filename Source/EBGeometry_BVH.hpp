@@ -345,31 +345,6 @@ namespace BVH {
     void setParent(const NodePtr& a_parent) noexcept;
 
     /*!
-      @brief Function which computes the signed distance using ordered pruning along the BVH branches. 
-      @param[in] a_point 3D point in space
-      @return Signed distance to the input point
-      @details This routine computes the distance to a_point using ordered pruning. We begin at the top (root node of the tree) and descend downwards. This routine
-      first descends along the sub-branch with the shortest distance to its bounding volume. Once we hit leaf node we update the shortest distance 'd' found so far.
-      As we investigate more branches, they can be pruned if the distance 'd' is shorter than the distance to the node's bounding volume. 
-    */
-    inline
-    T pruneOrdered(const Vec3& a_point) const noexcept;
-
-    /*!
-      @brief Function which computes the signed distance using unordered pruning along the BVH branches. 
-      @param[in] a_point 3D point in space
-      @return Signed distance to the input point
-      @details This routine computes the distance to a_point using unordered pruning. We begin at the top (root node of the tree) and descend downwards. This routine
-      visits nodes in the order they were created. Once we hit leaf node we update the shortest distance 'd' found so far.
-      As we investigate more branches, they can be pruned if the distance 'd' is shorter than the distance to the node's bounding volume.
-      @note The difference between this and pruneOrdered(a_point) is that this routine always does the nodes in the order they were created. In almost all cases
-      this is more inefficient than pruneOrdered(a_point). 
-      @return Returns the signed distance from a_point to the primitives. 
-    */
-    inline
-    T pruneUnordered(const Vec3& a_point) const noexcept;
-
-    /*!
       @brief Implementation function for pruneOrdered (it requires a different signature). 
       @param[inout] a_closest Shortest distance to primitives so far. 
       @param[inout] a_point   Input 3D point

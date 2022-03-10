@@ -235,7 +235,7 @@ namespace BVH {
       }
     case Prune::Unordered:
       {
-	ret = this->pruneUnordered(a_point);
+	this->pruneUnordered(ret, a_point);
 	
 	break;
       }
@@ -244,19 +244,6 @@ namespace BVH {
     };
 
     return ret;
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
-  T NodeT<T, P, BV, K>::pruneOrdered(const Vec3& a_point) const noexcept {
-
-    // TLDR: This routine does a an ordered search through the tree, using the signed distance for pruning branches.
-    
-    T signedDistance = std::numeric_limits<T>::infinity();
-
-    this->pruneOrdered(signedDistance, a_point);
-
-    return signedDistance;
   }
 
   template<class T, class P, class BV, int K>
@@ -311,19 +298,6 @@ namespace BVH {
 	break;
       }
     }
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
-  T NodeT<T, P, BV, K>::pruneUnordered(const Vec3& a_point) const noexcept {
-    // TLDR: This routine does an unordered search through the BVH. It visits nodes in the order in which they were created. This is
-    //       way slower than an ordered search. This routine computes the signed distance and uses that in order to prune branches. 
-    
-    T signedDistance = std::numeric_limits<T>::infinity();
-
-    this->pruneUnordered(signedDistance, a_point);
-
-    return signedDistance;
   }
 
   template<class T, class P, class BV, int K>
