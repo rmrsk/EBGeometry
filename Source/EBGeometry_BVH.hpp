@@ -458,9 +458,9 @@ namespace BVH {
       @note When called from the root node, a_linearNodes and a_sortedPrimitives should be empty and a_offset=0UL.
     */
     inline
-    unsigned long flattenTree(std::vector<LinearNodeT<T, P, BV, K> >& a_linearNodes,
-			      std::vector<std::shared_ptr<const P> >& a_sortedPrimitives,
-			      unsigned long&                          a_offset) const noexcept;
+    unsigned long flattenTree(std::vector<std::shared_ptr<LinearNodeT<T, P, BV, K> > >& a_linearNodes,
+			      std::vector<std::shared_ptr<const P> >&                   a_sortedPrimitives,
+			      unsigned long&                                            a_offset) const noexcept;
   };
 
   /*!
@@ -598,8 +598,8 @@ namespace BVH {
     void pruneOrdered2(T& a_shortestSquareDistanceSoFar,
 		       unsigned long& a_closestPrimitiveSoFar,
 		       const Vec3& a_point,
-		       const std::vector<LinearNodeT<T, P, BV, K> >& a_linearNodes,		    
-		       const std::vector<std::shared_ptr<const P> >& a_primitives) const noexcept;    
+		       const std::vector<std::shared_ptr<const LinearNodeT<T, P, BV, K> > >& a_linearNodes,		    
+		       const std::vector<std::shared_ptr<const P> >&                         a_primitives) const noexcept;    
 
   protected:
 
@@ -657,8 +657,17 @@ namespace BVH {
       @param[in] a_primitives  Primitives. 
     */
     inline
-    LinearBVH(const std::vector<LinearNode>& a_linearNodes,
-	      const PrimitiveList&           a_primitives);
+    LinearBVH(const std::vector<std::shared_ptr<const LinearNodeT<T, P, BV, K> > >& a_linearNodes,
+	      const std::vector<std::shared_ptr<const P> >&                         a_primitives);
+
+    /*!
+      @brief Full constructor. Associates the nodes and primitives.
+      @param[in] a_linearNodes Linearized BVH nodes. 
+      @param[in] a_primitives  Primitives. 
+    */
+    inline
+    LinearBVH(const std::vector<std::shared_ptr<LinearNodeT<T, P, BV, K> > >& a_linearNodes,
+	      const std::vector<std::shared_ptr<const P> >&                   a_primitives);    
 
     /*!
       @brief Destructor. Does nothing
@@ -674,6 +683,13 @@ namespace BVH {
     T signedDistance(const Vec3& a_point) const noexcept;
 
     /*!
+      @brief Function which computes the signed distance. This calls the other version. 
+      @param[in] a_point   3D point in space
+    */
+    inline
+    T newSignedDistance(const Vec3& a_point) const noexcept;    
+
+    /*!
       @brief Function which computes the usigned distance squared.
       @param[in] a_point   3D point in space
     */
@@ -685,7 +701,7 @@ namespace BVH {
     /*!
       @brief List of linearly stored nodes
     */
-    std::vector<LinearNodeT<T, P, BV, K> > m_linearNodes;
+    std::vector<std::shared_ptr<const LinearNodeT<T, P, BV, K> > > m_linearNodes;
 
     /*!
       @brief Global list of primitives. Note that this is ALL primitives, sorted so that LinearNodeT can interface into it. 
