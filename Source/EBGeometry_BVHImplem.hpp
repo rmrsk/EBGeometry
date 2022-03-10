@@ -24,24 +24,11 @@ namespace BVH {
   template<class T, class P, class BV, int K>
   inline
   NodeT<T, P, BV, K>::NodeT() {
-    m_parent = nullptr;
-
     for (auto& c : m_children){
       c = nullptr;
     }
 
     m_primitives.resize(0);
-
-    m_depth    = 0;
-    m_nodeType = NodeType::Regular;
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
-  NodeT<T, P, BV, K>::NodeT(const NodePtr& a_parent) : NodeT<T, P, BV, K>() {
-    m_parent   = a_parent;
-    m_depth    = a_parent.m_depth + 1;
-    m_nodeType = NodeType::Leaf;
   }
 
   template<class T, class P, class BV, int K>
@@ -50,18 +37,20 @@ namespace BVH {
     for (const auto& p : a_primitives){
       m_primitives.emplace_back(p);
     }
-  
-    m_nodeType = NodeType::Leaf;
-    m_depth    = 0;
+
+    for (auto& c : m_children){
+      c = nullptr;
+    }    
   }
 
   template<class T, class P, class BV, int K>
   inline
   NodeT<T, P, BV, K>::NodeT(const std::vector<std::shared_ptr<const P> >& a_primitives) : NodeT<T, P, BV, K>() {
     m_primitives = a_primitives;
-  
-    m_nodeType = NodeType::Leaf;
-    m_depth    = 0;
+
+    for (auto& c : m_children){
+      c = nullptr;
+    }    
   }
 
   template<class T, class P, class BV, int K>
@@ -71,51 +60,14 @@ namespace BVH {
 
   template<class T, class P, class BV, int K>
   inline
-  void NodeT<T, P, BV, K>::setParent(const NodePtr& a_parent) noexcept {
-    m_parent = a_parent;
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
-  void NodeT<T, P, BV, K>::setNodeType(const NodeType a_nodeType) noexcept {
-    m_nodeType = a_nodeType;
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
-  void NodeT<T, P, BV, K>::setDepth(const int a_depth) noexcept {
-    m_depth = a_depth;
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
   void NodeT<T, P, BV, K>::setPrimitives(const PrimitiveList& a_primitives) noexcept {
     m_primitives = a_primitives;
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
-  void NodeT<T, P, BV, K>::setToRegularNode() noexcept {
-    m_nodeType = NodeType::Regular;
-    m_primitives.resize(0);
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
-  NodeType NodeT<T, P, BV, K>::getNodeType() const noexcept {
-    return m_nodeType;
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
-  int NodeT<T, P, BV, K>::getDepth() const noexcept {
-    return m_depth;
   }
 
   template<class T, class P, class BV, int K>  
   inline
   bool NodeT<T, P, BV, K>::isLeaf() const noexcept {
-    return m_nodeType == NodeType::Leaf;
+    return m_primitives.size() > 0;
   }
 
   template<class T, class P, class BV, int K>
@@ -123,6 +75,12 @@ namespace BVH {
   PrimitiveListT<P>& NodeT<T, P, BV, K>::getPrimitives() noexcept {
     return (m_primitives);
   }
+
+  template<class T, class P, class BV, int K>
+  inline
+  const PrimitiveListT<P>& NodeT<T, P, BV, K>::getPrimitives() const noexcept {
+    return (m_primitives);
+  }  
 
   template<class T, class P, class BV, int K>  
   inline
@@ -135,12 +93,6 @@ namespace BVH {
   const std::array<std::shared_ptr<NodeT<T, P, BV, K> >, K >& NodeT<T, P, BV, K>::getChildren() const noexcept {
     return (m_children);
   }  
-
-  template<class T, class P, class BV, int K>
-  inline
-  const PrimitiveListT<P>& NodeT<T, P, BV, K>::getPrimitives() const noexcept {
-    return (m_primitives);
-  }
 
   template<class T, class P, class BV, int K>
   inline
@@ -166,7 +118,8 @@ namespace BVH {
       // Divide primitives into new partitions
       const auto& newPartitions = a_partitioner(m_primitives); // Divide this node's primitives into K new sub-volume primitives
       this->insertNodes(newPartitions);                        // Insert the K new nodes into the tree. 
-      this->setToRegularNode();                                // This node is no longer a leaf node!
+
+      m_primitives.resize(0); // This node is no longer a leaf node. 
 
       // Partition children nodes further
       for (auto& c : m_children){
@@ -181,9 +134,6 @@ namespace BVH {
     a_node = std::make_shared<NodeT<T, P, BV, K> >();
 
     a_node->setPrimitives(a_primitives);
-    a_node->setParent(std::make_shared<NodeT<T, P, BV, K> >(*this));
-    a_node->setNodeType(NodeType::Leaf);
-    a_node->setDepth(m_depth+1);
   }
 
   template<class T, class P, class BV, int K>
@@ -193,9 +143,6 @@ namespace BVH {
       m_children[l] = std::make_shared<NodeT<T, P, BV, K> >();
 
       m_children[l]->setPrimitives(a_primitives[l]);
-      m_children[l]->setParent(std::make_shared<NodeT<T, P, BV, K> >(*this));
-      m_children[l]->setNodeType(NodeType::Leaf);
-      m_children[l]->setDepth(m_depth+1);
     }
   }
 
@@ -335,48 +282,42 @@ namespace BVH {
     //       to the bounding volume first. The other branch is investigated only after the full sub-tree beneath the first branch has completed. Since the shortest
     //       distance to primitives is updated underway, there is a decent chance that the secondary subtree can be pruned. Hence why this routine is more efficient
     //       than prunedUnordered.
-    switch(m_nodeType){
-    case NodeType::Leaf:
-      {
-	// Compute the shortest signed distance to the primitives in this leaf node. If this is shorter than a_shortestDistanceSoFar, update it. Recall
-	// that the comparison requires the absolute value since we're doing the SIGNED distance. 
-	const T primDist = this->getDistanceToPrimitives(a_point);
+    if(this->isLeaf()){
+      // Compute the shortest signed distance to the primitives in this leaf node. If this is shorter than a_shortestDistanceSoFar, update it. Recall
+      // that the comparison requires the absolute value since we're doing the SIGNED distance. 
+      const T primDist = this->getDistanceToPrimitives(a_point);
 
-	if(std::abs(primDist) < std::abs(a_shortestDistanceSoFar)){ 
-	  a_shortestDistanceSoFar = primDist;
-	}
-	break;
+      if(std::abs(primDist) < std::abs(a_shortestDistanceSoFar)){ 
+	a_shortestDistanceSoFar = primDist;
       }
-    case NodeType::Regular: 
-      {
-	// In this case we need to decide which subtree to move down. First, sort the children nodes by the distance between
-	// a_point and the children node's bounding volume. Shortest distance goes first. 
-	std::array<std::pair<T, NodePtr>, K> distancesAndNodes;
-	for (int i = 0; i < K; i++){
-	  distancesAndNodes[i] = std::make_pair(m_children[i]->getDistanceToBoundingVolume(a_point), m_children[i]);
-	}
+    }
+    else{
+      // In this case we need to decide which subtree to move down. First, sort the children nodes by the distance between
+      // a_point and the children node's bounding volume. Shortest distance goes first. 
+      std::array<std::pair<T, NodePtr>, K> distancesAndNodes;
+      for (int i = 0; i < K; i++){
+	distancesAndNodes[i] = std::make_pair(m_children[i]->getDistanceToBoundingVolume(a_point), m_children[i]);
+      }
 
-	// Comparator for sorting -- puts the node with the shortest distance to the bounding volume at the front of the vector. 
-	auto comparator = [](const std::pair<T, NodePtr>& a_node1, const std::pair<T, NodePtr>& a_node2) -> bool{
-	  return std::abs(a_node1.first) < std::abs(a_node2.first);
-	};
+      // Comparator for sorting -- puts the node with the shortest distance to the bounding volume at the front of the vector. 
+      auto comparator = [](const std::pair<T, NodePtr>& a_node1, const std::pair<T, NodePtr>& a_node2) -> bool{
+	return std::abs(a_node1.first) < std::abs(a_node2.first);
+      };
 
-	std::sort(distancesAndNodes.begin(), distancesAndNodes.end(), comparator);
+      std::sort(distancesAndNodes.begin(), distancesAndNodes.end(), comparator);
 
-	// Go through the children nodes -- closest node goes first. We prune branches
-	// if the distance to the node's bounding volume is longer than the shortest distance we've found so far. 
-	for (int i = 0; i < K; i++){
-	  const std::pair<T, NodePtr>& curChildNode = distancesAndNodes[i];
+      // Go through the children nodes -- closest node goes first. We prune branches
+      // if the distance to the node's bounding volume is longer than the shortest distance we've found so far. 
+      for (int i = 0; i < K; i++){
+	const std::pair<T, NodePtr>& curChildNode = distancesAndNodes[i];
 	  
-	  // a_shortestDistanceSoFar is the SIGNED distance, so we need the absolute value here. 
-	  if(std::abs(curChildNode.first) <= std::abs(a_shortestDistanceSoFar)){ 
-	    curChildNode.second->pruneOrdered(a_shortestDistanceSoFar, a_point);
-	  }
-	  else{ // Prune the rest of the children nodes. 
-	    break;
-	  }
+	// a_shortestDistanceSoFar is the SIGNED distance, so we need the absolute value here. 
+	if(std::abs(curChildNode.first) <= std::abs(a_shortestDistanceSoFar)){ 
+	  curChildNode.second->pruneOrdered(a_shortestDistanceSoFar, a_point);
 	}
-	break;
+	else{ // Prune the rest of the children nodes. 
+	  break;
+	}
       }
     }
   }
@@ -384,31 +325,24 @@ namespace BVH {
   template<class T, class P, class BV, int K>
   inline
   void NodeT<T, P, BV, K>::pruneUnordered(T& a_shortestDistanceSoFar, const Vec3& a_point) const noexcept  {
+    if(this->isLeaf()) {
+      // Check if the distance to the primitives in this leaf is shorter than a_shortestDistanceSoFar. If it is, update the
+      // shortest distance. 
+      const T curSignedDistance = this->getDistanceToPrimitives(a_point);
 
-    switch(m_nodeType){
-    case NodeType::Leaf:
-      {
-	// Check if the distance to the primitives in this leaf is shorter than a_shortestDistanceSoFar. If it is, update the
-	// shortest distance. 
-	const T curSignedDistance = this->getDistanceToPrimitives(a_point);
-
-	if(std::abs(curSignedDistance) < std::abs(a_shortestDistanceSoFar)){
-	  a_shortestDistanceSoFar = curSignedDistance;
-	}
-	break;
+      if(std::abs(curSignedDistance) < std::abs(a_shortestDistanceSoFar)){
+	a_shortestDistanceSoFar = curSignedDistance;
       }
-    case NodeType::Regular:
-      {
-	// Investigate subtrees. Prune subtrees if the distance to their bounding volumes are longer than the shortest distance
-	// we've found so far. 
-	for (const auto& child : m_children){
-	  const T distanceToChildBoundingVolume = child->getDistanceToBoundingVolume(a_point);
+    }
+    else {
+      // Investigate subtrees. Prune subtrees if the distance to their bounding volumes are longer than the shortest distance
+      // we've found so far. 
+      for (const auto& child : m_children){
+	const T distanceToChildBoundingVolume = child->getDistanceToBoundingVolume(a_point);
 
-	  if(std::abs(distanceToChildBoundingVolume) < std::abs(a_shortestDistanceSoFar)){
-	    child->pruneUnordered(a_shortestDistanceSoFar, a_point);
-	  }
+	if(std::abs(distanceToChildBoundingVolume) < std::abs(a_shortestDistanceSoFar)){
+	  child->pruneUnordered(a_shortestDistanceSoFar, a_point);
 	}
-	break;
       }
     }
   }
@@ -449,30 +383,22 @@ namespace BVH {
 
     a_offset++;        
 
-    switch(m_nodeType){
-    case NodeType::Leaf:
-      {
+    if(this->isLeaf()) {
 	// Insert primitives and offsets.
 	a_linearNodes[curNode]->setNumPrimitives   (m_primitives.      size());
 	a_linearNodes[curNode]->setPrimitivesOffset(a_sortedPrimitives.size());
 
 	a_sortedPrimitives.insert(a_sortedPrimitives.end(), m_primitives.begin(), m_primitives.end());
+    }
+    else {
+      a_linearNodes[curNode]->setNumPrimitives   (0  );
+      a_linearNodes[curNode]->setPrimitivesOffset(0UL);
 
-	break;
-      }
-    case NodeType::Regular:
-      {
-	a_linearNodes[curNode]->setNumPrimitives   (0  );
-	a_linearNodes[curNode]->setPrimitivesOffset(0UL);
-
-	// Go through the children nodes and 
-	for (int k = 0; k < K; k++){
-	  const int offset = m_children[k]->flattenTree(a_linearNodes, a_sortedPrimitives, a_offset);
+      // Go through the children nodes and 
+      for (int k = 0; k < K; k++){
+	const int offset = m_children[k]->flattenTree(a_linearNodes, a_sortedPrimitives, a_offset);
 	  
-	  a_linearNodes[curNode]->setChildOffset(offset, k);
-	}
-
-	break;
+	a_linearNodes[curNode]->setChildOffset(offset, k);
       }
     }
 

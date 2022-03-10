@@ -29,31 +29,39 @@ namespace BVH {
 
   /*!
     @brief Forward declare the BVH node since it is needed for the polymorphic lambdas. 
-    @details T is the precision used in the BVH computations, P is the enclosing primitive and BV is the bounding volume used in the BVH. 
+    @details T is the precision used in the BVH computations, P is the enclosing primitive and BV is the bounding volume 
+    used in the BVH. K is the tree degree. 
   */
   template <class T, class P, class BV, int K>
   class NodeT;
 
   /*!
-    @brief Forward declare linear node class
+    @brief Forward declare linear node class.
+    @details T is the precision used in the BVH computations, P is the enclosing primitive and BV is the bounding volume 
+    used in the BVH. K is the tree degree. 
   */
   template <class T, class P, class BV, int K>
   class LinearNodeT;
 
   /*!
     @brief Forward declare linear BVH class. 
+    @details T is the precision used in the BVH computations, P is the enclosing primitive and BV is the bounding volume 
+    used in the BVH. K is the tree degree. 
   */
   template <class T, class P, class BV, int K>
   class LinearBVH;
 
   /*!
     @brief Alias to cut down on typing. 
+    @details P is the primitive bounded by the BVH. 
   */
   template <class P>
   using PrimitiveListT = std::vector<std::shared_ptr<const P> >;
 
   /*!
-    @brief Stop function for deciding when a BVH node can't be divided into sub-volumes
+    @brief Stop function for deciding when a BVH node can't be divided into sub-volumes.
+    @details T is the precision used in the BVH computations, P is the enclosing primitive and BV is the bounding volume 
+    used in the BVH. K is the tree degree. 
     @param[in] a_node BVH node
     @return True if the node can't be divided into subvolumes and false otherwise. 
   */
@@ -62,6 +70,7 @@ namespace BVH {
 
   /*!
     @brief Polymorphic partitioner for splitting a list of primitives into K new lists of primitives
+    @details P is the primitive type bound in the BVH and K is the BVH degree. 
     @param[in] a_primitives List of primitives to be subdivided into sub-bounding volumes. 
     @return Returns a list (std::array) of new primitives which make up the new bounding volumes. 
   */
@@ -70,6 +79,7 @@ namespace BVH {
 
   /*!
     @brief Constructor method for creating bounding volumes from a list of primitives
+    @details P is the primitive type bound in the BVH and BV is the bounding volume type. 
     @param[in] a_primitives List of primitives. 
     @return Returns a new bounding volumes which is guaranteed to enclose all the input primitives.
   */
@@ -77,15 +87,10 @@ namespace BVH {
   using BVConstructorT = std::function<BV(const std::shared_ptr<const P>& a_primitive)>;
 
   /*!
-    @brief Enum for determining if a BVH node is a leaf or a regular node (only leaf nodes contain data)
-  */
-  enum class NodeType : bool {
-    Regular,
-    Leaf,
-  };
-
-  /*!
-    @brief Typename for identifying algorithms used in subtree pruning.
+    @brief Typename for identifying algorithms various algorithms during tree traversel.
+    @details Stack     => Use stack/priority queue (ordered traversal).
+             Ordered   => Use recursive ordered traversal.
+             Unordered => Use recursive unordered traversal.
   */
   enum class Prune {
     Stack,
@@ -95,27 +100,31 @@ namespace BVH {
 
   /*!
     @brief Class which encapsulates a node in a bounding volume hierarchy. 
-    @details T is the precision for Vec3, P is the primitive type you want to enclose, BV is the bounding volume you use for it. 
-    @note P MUST supply function signedDistance(...) . BV must supply a
-    function getDistance (had this been C++20, we would have use concepts to enforce this). 
+    @details T is the precision, P is the primitive type you want to enclose, BV is the bounding volume type used at the nodes. The
+    parameter K (which must be > 1) is the tree degree. K=2 is a binary tree, K=3 is a tertiary tree and so on.
+    @note Template constraints are as following:
+
+    P MUST supply function signedDistance(...) . 
+    BV MUST supply a function getDistance 
+
+    Had this been C++20, we would have use concepts to enforce this.
   */
   template <class T, class P, class BV, int K>
   class NodeT {
   public:
 
     /*!
-      @brief Alias for cutting down on typing. 
+      @brief Alias for cutting down on typing. This is a std::vector<std::shared_ptr<const P> >. 
     */
     using PrimitiveList = PrimitiveListT<P>;
 
     /*!
-      @brief Alias for cutting down on typing
+      @brief Alias for cutting down on typing. 
     */
     using Vec3 = Vec3T<T>;
 
     /*!
       @brief Alias for cutting down on typing. 
-      @details In the below, 'Node' is a class which uses precision T for computations and encloses primitives P using a bounding volume BV. 
     */    
     using Node = NodeT<T, P, BV, K>;
 
@@ -140,58 +149,41 @@ namespace BVH {
     using BVConstructor = BVConstructorT<P, BV>;
 
     /*!
-      @brief Default constructor which sets a regular node without any data (no parent/children and no depth)
+      @brief Default constructor which sets a regular node.
     */
     NodeT();
 
     /*!
-      @brief Construct node from parent
-      @param[in] a_parent Parent node. 
-      @details This sets the node's parent to be a_parent and the node's depth to be the parent's depth + 1.
-      @note This node becomes a leaf node. 
-    */
-    NodeT(const NodePtr& a_parent);
-
-    /*!
       @brief Construct node from a set of primitives. 
+      @details This node becomes a leaf node which contains the input primitives. 
       @param[in] a_primitives Input primitives. 
-      @details This sets the node's parent to be a_parent and the node's depth to be the parent's depth + 1.
-      @note This node becomes a leaf node with depth=0 and which contains the input primitives. 
     */    
     NodeT(const std::vector<std::shared_ptr<P> >& a_primitives);
 
     /*!
       @brief Construct node from a set of primitives. 
+      @details This node becomes a leaf node which contains the input primitives. 
       @param[in] a_primitives Input primitives. 
-      @note This node becomes a leaf node with depth=0 and which contains the input primitives. 
     */        
     NodeT(const std::vector<std::shared_ptr<const P> >& a_primitives);
 
     /*!
       @brief Destructor (does nothing)
     */
-    ~NodeT();
+    virtual ~NodeT();
 
     /*!
       @brief Function for using top-down construction of the bounding volume hierarchy. 
+      @details The rules for terminating the hierarchy construction, how to partition sets of primitives, and how to enclose them by bounding volumes are
+      given in the input arguments (a_stopFunc, a_partFunc, a_bvFunc)
       @param[in] a_bvConstructor Polymorphic function which builds a bounding volume from a set of primitives. 
       @param[in] a_partitioner   Partitioning function. This is a polymorphic function which divides a set of primitives into two lists. 
       @param[in] a_stopCrit      Termination function which tells us when to stop the recursion. 
-      @details The rules for terminating the hierarchy construction, how to partition sets of primitives, and how to enclose them by bounding volumes are
-      given in the input arguments (a_stopFunc, a_partFunc, a_bvFunc)
     */
     inline
     void topDownSortAndPartitionPrimitives(const BVConstructor& a_bvConstructor,
 					   const Partitioner&   a_partitioner,
 					   const StopFunction&  a_stopCrit) noexcept;
-
-
-    /*!
-      @brief Get the depth of the current node
-      @return Depth of current node
-    */
-    inline
-    int getDepth() const noexcept;
 
     /*!
       @brief Get node type
@@ -201,45 +193,45 @@ namespace BVH {
 
     /*!
       @brief Get the primitives stored in this node. 
-      @return List of primitives. 
+      @return m_primitives. 
     */
     inline
     const PrimitiveList& getPrimitives() const noexcept;
 
     /*!
       @brief Get bounding volume
+      @return m_bv
     */
     inline
     const BV& getBoundingVolume() const noexcept;
 
     /*!
-      @brief Return this node's children
+      @brief Return this node's children.
       @return m_children.
     */
     inline
-    const std::array<NodePtr, K>& getChildren() const noexcept;    
+    const std::array<std::shared_ptr<NodeT<T, P, BV, K> >, K>& getChildren() const noexcept;    
 
     /*!
       @brief Function which computes the signed distance
       @param[in] a_point   3D point in space
-      @return Signed distance to the input point
+      @return Signed distance to the input point.
     */
     inline
     T signedDistance(const Vec3T<T>& a_point) const noexcept;
     
     /*!
-      @brief Function which computes the signed distance. This version allows the user to manuall select an algorithm.
+      @brief Function which computes the signed distance. This version allows the user to manually select a traversal algorithm.
       @param[in] a_point   3D point in space
       @param[in] a_pruning Pruning algorithm
-      @return Signed distance to the input point
-      @details This will select amongs the various implementations. 
+      @return Signed distance to the input point.
     */
     inline
-    T signedDistance(const Vec3& a_point, const Prune a_pruning) const noexcept;    
+    T signedDistance(const Vec3T<T>& a_point, const Prune a_pruning) const noexcept;    
 
     /*!
       @brief Flatten everything beneath this node into a depth-first sorted BVH hierarchy. 
-      @details This will compute the flattening of the standard BVH tree and return a pointer to the root node.
+      @details This will compute the flattening of the standard BVH tree and return a pointer to the linear corresponding to the current node. 
     */
     inline
     std::shared_ptr<LinearBVH<T, P, BV, K> > flattenTree() const noexcept;    
@@ -247,48 +239,24 @@ namespace BVH {
   protected:
 
     /*!
-      @brief Bounding volume object
+      @brief Bounding volume object.
     */
     BV m_boundingVolume;
 
     /*!
-      @brief Node type (leaf or regular)
-    */
-    NodeType m_nodeType;
-
-    /*!
-      @brief Node depth
-    */
-    int m_depth;
-
-    /*!
       @brief Primitives list. This will be empty for regular nodes
     */
-    PrimitiveList m_primitives;
+    std::vector<std::shared_ptr<const P> > m_primitives;
 
     /*!
       @brief Children nodes
     */
-    std::array<NodePtr, K> m_children;
+    std::array<std::shared_ptr<NodeT<T, P, BV, K> >, K> m_children;
 
     /*!
       @brief Pointer to parent node
     */
     NodePtr m_parent;
-
-    /*!
-      @brief Set node type to leaf or regular
-      @param[in] a_nodeType Node type
-    */
-    inline
-    void setNodeType(const NodeType a_nodeType) noexcept;
-
-    /*!
-      @brief Set node depth
-      @param[in] a_depth Node depth
-    */
-    inline
-    void setDepth(const int a_depth) noexcept;
 
     /*!
       @brief Insert a new node in the tree. 
@@ -303,13 +271,6 @@ namespace BVH {
     */
     inline
     void insertNodes(const std::array<PrimitiveList, K>& a_primitives) noexcept;
-
-    /*!
-      @brief Set to regular node
-      @note This sets m_nodeType to regular and clears the primitives list
-    */
-    inline
-    void setToRegularNode() noexcept;
 
     /*!
       @brief Set primitives in this node
@@ -333,13 +294,6 @@ namespace BVH {
     */
     inline
     T getDistanceToPrimitives(const Vec3& a_point) const noexcept;
-
-    /*!
-      @brief Get the node type
-      @return Node type
-    */
-    inline
-    NodeType getNodeType() const noexcept;
 
     /*!
       @brief Get the list of primitives in this node. 
