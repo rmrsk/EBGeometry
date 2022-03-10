@@ -461,7 +461,7 @@ namespace BVH {
       @param[in] a_whichChild  Child index in m_childrenOffsets. Must be [0,K-1]
     */
     inline
-    void setChildOffset(const unsigned long a_childOffset, const  int a_whichChild) noexcept;    
+    void setChildOffset(const unsigned long a_childOffset, const int a_whichChild) noexcept;    
 
     /*!
       @brief Get the node bounding volume. 
