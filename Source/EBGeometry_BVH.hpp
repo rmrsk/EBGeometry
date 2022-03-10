@@ -88,16 +88,15 @@ namespace BVH {
     @brief Typename for identifying algorithms used in subtree pruning.
   */
   enum class Prune {
+    Stack,
     Ordered,
-    Ordered2,
     Unordered,
-    Unordered2,
   };  
 
   /*!
     @brief Class which encapsulates a node in a bounding volume hierarchy. 
     @details T is the precision for Vec3, P is the primitive type you want to enclose, BV is the bounding volume you use for it. 
-    @note P MUST supply function signedDistance(...) and unsignedDistance2(Vec3). BV must supply a
+    @note P MUST supply function signedDistance(...) . BV must supply a
     function getDistance (had this been C++20, we would have use concepts to enforce this). 
   */
   template <class T, class P, class BV, int K>
@@ -225,68 +224,7 @@ namespace BVH {
     inline
     T signedDistance(const Vec3& a_point, const Prune a_pruning) const noexcept;    
 
-    /*!
-      @brief Function which computes the signed distance
-      @param[in] a_point   3D point in space
-      @return Signed distance to the input point
-    */
-    inline
-    T unsignedDistance2(const Vec3T<T>& a_point) const noexcept;            
 
-
-    /*!
-      @brief Function which computes the signed distance using ordered pruning along the BVH branches. 
-      @param[in] a_point 3D point in space
-      @return Signed distance to the input point
-      @details This routine computes the distance to a_point using ordered pruning. We begin at the top (root node of the tree) and descend downwards. This routine
-      first descends along the sub-branch with the shortest distance to its bounding volume. Once we hit leaf node we update the shortest distance 'd' found so far.
-      As we investigate more branches, they can be pruned if the distance 'd' is shorter than the distance to the node's bounding volume. 
-    */
-    inline
-    T pruneOrdered(const Vec3& a_point) const noexcept;
-
-    /*!
-      @brief Function which computes the signed distance using ordered pruning along the BVH branches. 
-      @param[in] a_point 3D point in space
-      @return Signed distance to the input point
-      @details This routine computes the distance to a_point using ordered pruning. We begin at the top (root node of the tree) and descend downwards. This routine
-      first descends along the sub-branch with the shortest distance to its bounding volume. Once we hit leaf node we update the shortest distance 'd' found so far.
-      As we investigate more branches, they can be pruned if the distance 'd' is shorter than the distance to the node's bounding volume.
-      @note The difference between this and pruneOrdered(a_point) only consist of the fact that this routine uses the unsigned square distance to prune branches and
-      primitives. This is more efficient than pruneOrdered(a_point) because it does e.g. not involve an extra square root for computing the distance. 
-      @return Returns the signed distance from a_point to the primitives. 
-    */    
-    inline
-    T pruneOrdered2(const Vec3& a_point) const noexcept;
-
-    /*!
-      @brief Function which computes the signed distance using unordered pruning along the BVH branches. 
-      @param[in] a_point 3D point in space
-      @return Signed distance to the input point
-      @details This routine computes the distance to a_point using unordered pruning. We begin at the top (root node of the tree) and descend downwards. This routine
-      visits nodes in the order they were created. Once we hit leaf node we update the shortest distance 'd' found so far.
-      As we investigate more branches, they can be pruned if the distance 'd' is shorter than the distance to the node's bounding volume.
-      @note The difference between this and pruneOrdered(a_point) is that this routine always does the nodes in the order they were created. In almost all cases
-      this is more inefficient than pruneOrdered(a_point). 
-      @return Returns the signed distance from a_point to the primitives. 
-    */
-    inline
-    T pruneUnordered(const Vec3& a_point) const noexcept;
-
-    /*!
-      @brief Function which computes the signed distance using unordered pruning along the BVH branches. 
-      @param[in] a_point 3D point in space
-      @return Signed distance to the input point
-      @details This routine computes the distance to a_point using unordered pruning. We begin at the top (root node of the tree) and descend downwards. This routine
-      visits nodes in the order they were created. Once we hit leaf node we update the shortest distance 'd' found so far.
-      As we investigate more branches, they can be pruned if the distance 'd' is shorter than the distance to the node's bounding volume. The only difference between
-      this routine and pruneUnordered(a_point) is that this routine prunes based on the unsigned square distance first, and only computes the signed distance at the end.
-      @note The difference between this and pruneOrdered2(a_point) is that this routine always does nodes in the order they were created. In almost all cases
-      this is more inefficient than pruneOrdered2(a_point). 
-      @return Returns the signed distance from a_point to the primitives.     
-    */
-    inline
-    T pruneUnordered2(const Vec3& a_point) const noexcept;
 
     /*!
       @brief Flatten everything beneath this node into a depth-first sorted BVH hierarchy. 
@@ -378,14 +316,6 @@ namespace BVH {
     T getDistanceToBoundingVolume(const Vec3& a_point) const noexcept;
 
     /*!
-      @brief Get the unsigned square from a 3D point to the bounding volume 
-      @param[in] a_point 3D point
-      @return Returns squared distance to bounding volume. A zero distance implies that the input point is inside the bounding volume. 
-    */    
-    inline
-    T getDistanceToBoundingVolume2(const Vec3& a_point) const noexcept;
-
-    /*!
       @brief Compute the shortest distance to the primitives in this node
       @param[in] a_point 3D point
       @return Returns the signed distance to the primitives.
@@ -414,6 +344,30 @@ namespace BVH {
     inline
     void setParent(const NodePtr& a_parent) noexcept;
 
+    /*!
+      @brief Function which computes the signed distance using ordered pruning along the BVH branches. 
+      @param[in] a_point 3D point in space
+      @return Signed distance to the input point
+      @details This routine computes the distance to a_point using ordered pruning. We begin at the top (root node of the tree) and descend downwards. This routine
+      first descends along the sub-branch with the shortest distance to its bounding volume. Once we hit leaf node we update the shortest distance 'd' found so far.
+      As we investigate more branches, they can be pruned if the distance 'd' is shorter than the distance to the node's bounding volume. 
+    */
+    inline
+    T pruneOrdered(const Vec3& a_point) const noexcept;
+
+    /*!
+      @brief Function which computes the signed distance using unordered pruning along the BVH branches. 
+      @param[in] a_point 3D point in space
+      @return Signed distance to the input point
+      @details This routine computes the distance to a_point using unordered pruning. We begin at the top (root node of the tree) and descend downwards. This routine
+      visits nodes in the order they were created. Once we hit leaf node we update the shortest distance 'd' found so far.
+      As we investigate more branches, they can be pruned if the distance 'd' is shorter than the distance to the node's bounding volume.
+      @note The difference between this and pruneOrdered(a_point) is that this routine always does the nodes in the order they were created. In almost all cases
+      this is more inefficient than pruneOrdered(a_point). 
+      @return Returns the signed distance from a_point to the primitives. 
+    */
+    inline
+    T pruneUnordered(const Vec3& a_point) const noexcept;
 
     /*!
       @brief Implementation function for pruneOrdered (it requires a different signature). 
@@ -424,30 +378,12 @@ namespace BVH {
     void pruneOrdered(T& a_closest, const Vec3& a_point) const noexcept;
 
     /*!
-      @brief Implementation function for pruneOrdered2 (it requires a different signature). 
-      @param[inout] a_minDist2 Shortest square distance so far. 
-      @param[inout] a_closest  Closest primitive so far. 
-      @param[inout] a_point    Input 3D point
-    */                
-    inline
-    void pruneOrdered2(T& a_minDist2, std::shared_ptr<const P>& a_closest, const Vec3& a_point) const noexcept;
-
-    /*!
       @brief Implementation function for pruneUnordered (it requires a different signature). 
       @param[inout] a_closest Shortest distance to primitives so far. 
       @param[inout] a_point   Input 3D point
     */                    
     inline
     void pruneUnordered(T& a_closest, const Vec3& a_point) const noexcept;
-
-    /*!
-      @brief Implementation function for pruneUnordered2 (it requires a different signature). 
-      @param[inout] a_minDist2 Shortest square distance so far. 
-      @param[inout] a_closest  Closest primitive so far. 
-      @param[inout] a_point    Input 3D point    
-    */
-    inline
-    void pruneUnordered2(T& a_minDist2, std::shared_ptr<const P>& a_closest, const Vec3& a_point) const noexcept;
 
     /*!
       @brief Flatten tree method. 
@@ -469,10 +405,9 @@ namespace BVH {
 
     @details T is the precision for Vec3, P is the primitive type you want to enclose, BV is the bounding volume you use for it. 
 
-    @note P MUST supply function signedDistance(...) and unsignedDistance2(Vec3). BV must supply a
-    function getDistance (had this been C++20, we would have use concepts to enforce this). Note that LinearNode is the result
-    of a flattnened BVH hierarchy where nodes are stored with depth-first ordering for improved cache-location in the downward
-    traversal. 
+    @note P MUST supply function signedDistance(...) BV must supply a function getDistance (had this been C++20, we would have
+    use concepts to enforce this). Note that LinearNode is the result of a flattened BVH hierarchy where nodes are stored with depth-first
+    ordering for improved cache-location in the downward traversal. 
 
     @note This class exists so that we can fit the nodes with a smaller memory footprint. The standard BVH node (NodeT) is very useful
     when building the tree but less useful when traversing it since it stores references to the primitives in the node itself. It will span
@@ -577,14 +512,6 @@ namespace BVH {
     T getDistanceToBoundingVolume(const Vec3& a_point) const noexcept;
 
     /*!
-      @brief Get the unsigned square from a 3D point to the bounding volume 
-      @param[in] a_point 3D point
-      @return Returns squared distance to bounding volume. A zero distance implies that the input point is inside the bounding volume. 
-    */    
-    inline
-    T getDistanceToBoundingVolume2(const Vec3& a_point) const noexcept;    
-
-    /*!
       @brief Compute signed distance to primitives. 
       @param[in] a_point      Point
       @param[in] a_primitives List of primitives
@@ -592,7 +519,6 @@ namespace BVH {
     */
     inline
     T getDistanceToPrimitives(const Vec3& a_point, const std::vector<std::shared_ptr<const P> >& a_primitives) const noexcept;
-
 
     /*!
       @brief Compute the shortest unsigned square distance to the primitivets in this node. 
@@ -682,13 +608,6 @@ namespace BVH {
     */
     inline
     T signedDistance(const Vec3& a_point) const noexcept;
-
-    /*!
-      @brief Function which computes the usigned distance squared.
-      @param[in] a_point   3D point in space
-    */
-    inline
-    T unsignedDistance2(const Vec3& a_point) const noexcept;        
 
   protected:
 

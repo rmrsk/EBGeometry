@@ -195,12 +195,6 @@ namespace BVH {
 
   template<class T, class P, class BV, int K>
   inline
-  T NodeT<T, P, BV, K>::getDistanceToBoundingVolume2(const Vec3& a_point) const noexcept{
-    return m_boundingVolume.getDistance2(a_point);
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
   T NodeT<T, P, BV, K>::getDistanceToPrimitives(const Vec3& a_point) const noexcept {
     T minDist = std::numeric_limits<T>::max();
 
@@ -218,16 +212,8 @@ namespace BVH {
   template<class T, class P, class BV, int K>
   inline
   T NodeT<T, P, BV, K>::signedDistance(const Vec3& a_point) const noexcept {
-    return this->signedDistance(a_point, Prune::Ordered2);
+    return this->signedDistance(a_point, Prune::Ordered);
   }
-
-  template<class T, class P, class BV, int K>
-  inline
-  T NodeT<T, P, BV, K>::unsignedDistance2(const Vec3& a_point) const noexcept {
-    const T d = this->signedDistance(a_point);
-    
-    return d*d;
-  }  
 
   template<class T, class P, class BV, int K>
   inline
@@ -235,27 +221,21 @@ namespace BVH {
     T ret = std::numeric_limits<T>::infinity();
     
     switch(a_pruning){
+    case Prune::Stack:
+      {
+	this->pruneOrdered(ret, a_point);
+	
+	break;
+      }
     case Prune::Ordered:
       {
 	this->pruneOrdered(ret, a_point);
 	
 	break;
       }
-    case Prune::Ordered2:
-      {
-	ret = this->pruneOrdered2(a_point);
-	
-	break;
-      }
     case Prune::Unordered:
       {
 	ret = this->pruneUnordered(a_point);
-	
-	break;
-      }
-    case Prune::Unordered2:
-      {
-	ret = this->pruneUnordered2(a_point);
 	
 	break;
       }
@@ -335,82 +315,6 @@ namespace BVH {
 
   template<class T, class P, class BV, int K>
   inline
-  T NodeT<T, P, BV, K>::pruneOrdered2(const Vec3& a_point) const noexcept {
-
-    // TLDR: This routine does an ordered search through the tree, using the squared distance for pruning branches. This is slightly
-    //       more efficient than using the signed distance. 
-
-    T shortestSquareDistance = std::numeric_limits<T>::infinity(); // Our starting guess for the distance between a_point and the primitives. 
-    std::shared_ptr<const P> closestPrimitive = nullptr;           // This will be a reference to the closest primitive. We only take the signed distance at the end.     
-
-    // Move down the tree, pruning as we go along. This routine does all the comparison tests using the
-    // unsigned square distance. When it terminates, closestPrimitive is the primitive which has the shortest
-    // unsigned squared distance between itself and the point x. 
-    this->pruneOrdered2(shortestSquareDistance, closestPrimitive, a_point); 
-
-    // We have found the closest primitive -- return the signed distance
-    return closestPrimitive->signedDistance(a_point);
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
-  void NodeT<T, P, BV, K>::pruneOrdered2(T& a_shortestSquareDistanceSoFar2, std::shared_ptr<const P>& a_closestPrimitiveSoFar, const Vec3& a_point) const noexcept  {
-    // TLDR: Beginning at some node, this routine descends  branches in the tree. It always descends the branch with the shortest distance
-    //       to the bounding volume first. The other branches are investigated only after the full sub-tree beneath the first branch has completed. Since the shortest
-    //       distance to primitives is updated underway, there is a decent chance that the other subtrees can be pruned. Hence why this routine is more efficient
-    //       than prunedUnordered. 
-
-    switch(m_nodeType){
-    case NodeType::Leaf:
-      {
-	// If we are at a leaf ndoe, compute the shortest unsigned square distance to the primitives in the node. If this is shorter
-	// than a_shortestSquareDistanceSoFar, update the shortest distance and the closest primitive. 
-	for (const auto& curPrimitive : m_primitives){
-	  const auto curDist2 = curPrimitive->unsignedDistance2(a_point);
-
-	  if(curDist2 < a_shortestSquareDistanceSoFar2){
-	    a_shortestSquareDistanceSoFar2 = curDist2;
-	    a_closestPrimitiveSoFar        = curPrimitive;
-	  }
-	}
-	break;
-      }
-    case NodeType::Regular:
-      {
-	// In this case we are at a regular node, and we need to decide which subtree to move down. First, we sort
-	// the children nodes by the distance between a_point and the children node's bounding volume. Shortest
-	// distance goes first. 
-	std::array<std::pair<T, NodePtr>, K> distancesAndNodes;
-	for (int i = 0; i < K; i++){
-	  distancesAndNodes[i] = std::make_pair(m_children[i]->getDistanceToBoundingVolume2(a_point), m_children[i]);
-	}
-
-	// Sorting criterion. Closest node goes first. 
-	auto comparator = [](const std::pair<T, NodePtr>& a_node1, const std::pair<T, NodePtr>& a_node2) -> bool{
-	  return std::abs(a_node1.first) < std::abs(a_node2.first);
-	};
-
-	std::sort(distancesAndNodes.begin(), distancesAndNodes.end(), comparator);
-
-	// Next, we go through the children nodes -- closest node goes first. We prune branches
-	// if the distance to the node's bounding volume is longer than the shortest distance we've found so far. 
-	for (int i = 0; i < K; i++){
-	  const std::pair<T, NodePtr>& node = distancesAndNodes[i];
-
-	  if(node.first <= a_shortestSquareDistanceSoFar2){
-	    node.second->pruneOrdered2(a_shortestSquareDistanceSoFar2, a_closestPrimitiveSoFar, a_point);
-	  }
-	  else{ // Prune the other subtrees. 
-	    break;
-	  }
-	}
-	break;
-      }
-    }
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
   T NodeT<T, P, BV, K>::pruneUnordered(const Vec3& a_point) const noexcept {
     // TLDR: This routine does an unordered search through the BVH. It visits nodes in the order in which they were created. This is
     //       way slower than an ordered search. This routine computes the signed distance and uses that in order to prune branches. 
@@ -450,60 +354,6 @@ namespace BVH {
 	  }
 	}
 	break;
-      }
-    }
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
-  T NodeT<T, P, BV, K>::pruneUnordered2(const Vec3& a_point) const noexcept {
-
-    // TLDR: This routine does an unordered search through the BVH. It visits nodes in the order in which they were created. This is
-    //       way slower than an ordered search. This routine computes the unsigned square distance and uses that in order to prune branches.  
-
-    T shortestSquareDistance = std::numeric_limits<T>::infinity();   // Our initial guess for the shortest distance so far. 
-    std::shared_ptr<const P> closestPrimitive = nullptr;             // After pruneUnordered2 below, this will be the closest primitive. 
-
-    // Move down the tree, pruning as we go along. This routine does all the comparison tests using the
-    // unsigned square distance. When it terminates, closestPrimitive is the primitive which has the shortest
-    // unsigned squared distance between itself and the point x.     
-    this->pruneUnordered2(shortestSquareDistance, closestPrimitive, a_point);
-
-    // We now have the closest primitive -- return the signed distance to it. 
-    return closestPrimitive->signedDistance(a_point);
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
-  void NodeT<T, P, BV, K>::pruneUnordered2(T& a_shortestUnsignedSquareDistanceSoFar, std::shared_ptr<const P>& a_closestPrimitiveSoFar, const Vec3& a_point) const noexcept  {
-
-    switch(m_nodeType){
-    case NodeType::Leaf:
-      {
-	// Check if the squared distance to the primitives in this leaf is shorter than a_shortestUnsignedSquareDistanceSoFar. If it is, update the
-	// shortest distance and primitive. 
-	for (const auto& curPrim : m_primitives){
-	  const auto curUnsignedSquareDistance = curPrim->unsignedDistance2(a_point);
-
-	  if(curUnsignedSquareDistance < a_shortestUnsignedSquareDistanceSoFar){
-	    a_shortestUnsignedSquareDistanceSoFar = curUnsignedSquareDistance;
-	    a_closestPrimitiveSoFar  = curPrim;
-	  }
-	}
-	break;
-      }
-    case NodeType::Regular:
-      {
-	// Investigate subtrees. Prune subtrees if the distance to their bounding volumes are longer than the shortest distance
-	// we've found so far. 
-	for (const auto& child : m_children){
-	  const T squaredDistanceToChildBoundingVolume = child->getDistanceToBoundingVolume2(a_point);
-
-	  if(squaredDistanceToChildBoundingVolume < a_shortestUnsignedSquareDistanceSoFar){
-	    child->pruneUnordered2(a_shortestUnsignedSquareDistanceSoFar, a_closestPrimitiveSoFar, a_point);
-	  }
-	}
-	break;	
       }
     }
   }
@@ -655,12 +505,6 @@ namespace BVH {
 
   template<class T, class P, class BV, int K>
   inline
-  T LinearNodeT<T, P, BV, K>::getDistanceToBoundingVolume2(const Vec3& a_point) const noexcept{
-    return m_boundingVolume.getDistance2(a_point);
-  }  
-
-  template<class T, class P, class BV, int K>
-  inline
   T LinearNodeT<T, P, BV, K>::getDistanceToPrimitives(const Vec3T<T>& a_point, const std::vector<std::shared_ptr<const P> >& a_primitives) const noexcept {
     T minDist = std::numeric_limits<T>::infinity();
 
@@ -674,21 +518,6 @@ namespace BVH {
 
     return minDist;
   }
-
-  template<class T, class P, class BV, int K>
-  inline
-  T LinearNodeT<T, P, BV, K>::getUnsignedDistanceToPrimitives2(const Vec3T<T>& a_point, const std::vector<std::shared_ptr<const P> >& a_primitives) const noexcept {
-    T minDist = std::numeric_limits<T>::infinity();
-
-    for (unsigned int i = 0; i < m_numPrimitives; i++){
-      const T curDist = a_primitives[m_primitivesOffset + i]->unsignedDistance2(a_point);
-
-
-      minDist = std::min(curDist, minDist);
-    }
-
-    return minDist;
-  }  
 
   template<class T, class P, class BV, int K>
   inline
@@ -724,7 +553,7 @@ namespace BVH {
     //       throughout the hierarchy in order to find the leaf node with the closest primitive. 
 
     // Shortest unsigned square distance. Initialize to something big so
-    T minDist2 = std::numeric_limits<T>::infinity();
+    T minDist = std::numeric_limits<T>::infinity();
 
     // Index of closest leaf node. Initialize to -1 to shut up compiler. 
     unsigned long closest = -1;
@@ -732,31 +561,31 @@ namespace BVH {
     // Create temporary storage and and priority queue (our stack). 
     using NodeAndDist = std::pair<unsigned long, T>;
 
-    std::array<NodeAndDist, K> childsAndDistances;    
+    std::array<NodeAndDist, K> children;    
     std::stack<NodeAndDist> q;
 
     // Initialize the stack with the root node. 
-    q.emplace(0, m_linearNodes[0]->getDistanceToBoundingVolume2(a_point));
+    q.emplace(0, m_linearNodes[0]->getDistanceToBoundingVolume(a_point));
 
     // Stack loop -- always investigate the one at the top. 
     while(!(q.empty())){
 
       // Pop the top node off the stack. 
       const auto& curNode = (q.top()).first;
-      const auto& bvDist2 = (q.top()).second;
+      const auto& bvDist = (q.top()).second;
 
       q.pop();
 
       // See if we really need to process this node. We only need to do it if its BV is closer than the shortest distance we've found so far. Otherwise
       // we are guaranteed that the distance to the primitives is larger than the shortest distance we've found so far. 
-      if(bvDist2 <= minDist2){
+      if(bvDist <= std::abs(minDist)){
 
 	// If it's a leaf node, update the shortest distance so far. 
 	if(m_linearNodes[curNode]->isLeaf()){
-	  const T primDist2  = m_linearNodes[curNode]->getUnsignedDistanceToPrimitives2(a_point, m_primitives);
+	  const T primDist  = m_linearNodes[curNode]->getDistanceToPrimitives(a_point, m_primitives);
 	  
-	  if(primDist2 < minDist2) {
-	    minDist2 = primDist2;
+	  if(std::abs(primDist) < std::abs(minDist)) {
+	    minDist = primDist;
 	    closest  = curNode;
 	  }
 	}
@@ -764,24 +593,22 @@ namespace BVH {
 	  // Compute child indices and their BVH distance to a_point.
 	  for (int k = 0; k < K; k++){
 	    const unsigned long& curOff = m_linearNodes[curNode]->getChildOffsets()[k];
-	    const T        distanceToBV = m_linearNodes[curOff] ->getDistanceToBoundingVolume2(a_point);
+	    const T        distanceToBV = m_linearNodes[curOff] ->getDistanceToBoundingVolume(a_point);
 
-	    childsAndDistances[k] = std::make_pair(curOff, distanceToBV);
+	    children[k] = std::make_pair(curOff, distanceToBV);
 	  }
 
 	  // Sort the child nodes and put them on the stack. On the next iteration we do the closest node first. This sorting
 	  // is critical to the performance of the BVH. 
-	  std::sort(childsAndDistances.begin(),
-	  	    childsAndDistances.end(),
+	  std::sort(children.begin(),
+	  	    children.end(),
 	  	    [](const std::pair<unsigned long, T>& node1, const std::pair<unsigned long, T>& node2) -> bool {
 	  	      return node1.second > node2.second;
 	  	    });
 
-	  // Push onto stack if the BV is closer than minDist2.
-	  for (const auto& child : childsAndDistances) {
-	    if(child.second <= minDist2){
-	      q.push(child);
-	    }
+	  // Push onto stack if the BV is closer than minDist.
+	  for (const auto& child : children) {
+	    q.push(child);
 	  }
 	}
       }
@@ -789,14 +616,6 @@ namespace BVH {
 
     // Only at the end do we compute the SIGNED distance. 
     return m_linearNodes[closest]->getDistanceToPrimitives(a_point, m_primitives);
-  }
-
-  template<class T, class P, class BV, int K>
-  inline
-  T LinearBVH<T, P, BV, K>::unsignedDistance2(const Vec3& a_point) const noexcept {
-    const T d = this->signedDistance(a_point);
-
-    return d*d;
   }
 }
 
