@@ -12,6 +12,10 @@
 #ifndef EBGeometry_BVHImplem
 #define EBGeometry_BVHImplem
 
+// Std includes
+#include <stack>
+
+// Our includes
 #include "EBGeometry_BVH.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
@@ -214,7 +218,7 @@ namespace BVH {
   template<class T, class P, class BV, int K>
   inline
   T NodeT<T, P, BV, K>::signedDistance(const Vec3& a_point) const noexcept {
-    return this->signedDistanceAlg(a_point, Prune::Ordered2);
+    return this->signedDistance(a_point, Prune::Ordered2);
   }
 
   template<class T, class P, class BV, int K>
@@ -227,13 +231,13 @@ namespace BVH {
 
   template<class T, class P, class BV, int K>
   inline
-  T NodeT<T, P, BV, K>::signedDistanceAlg(const Vec3& a_point, const Prune a_pruning) const noexcept {
+  T NodeT<T, P, BV, K>::signedDistance(const Vec3& a_point, const Prune a_pruning) const noexcept {
     T ret = std::numeric_limits<T>::infinity();
     
     switch(a_pruning){
     case Prune::Ordered:
       {
-	ret = this->pruneOrdered(a_point);
+	this->pruneOrdered(ret, a_point);
 	
 	break;
       }
@@ -616,25 +620,25 @@ namespace BVH {
   template<class T, class P, class BV, int K>
   inline
   const BV& LinearNodeT<T, P, BV, K>::getBoundingVolume() const noexcept {
-    return m_boundingVolume;
+    return (m_boundingVolume);
   }
 
   template<class T, class P, class BV, int K>
   inline
   const unsigned long& LinearNodeT<T, P, BV, K>::getPrimitivesOffset() const noexcept {
-    return m_primitivesOffset;
+    return (m_primitivesOffset);
   }
 
   template<class T, class P, class BV, int K>
   inline
   const unsigned long& LinearNodeT<T, P, BV, K>::getNumPrimitives() const noexcept {
-    return m_numPrimitives;
+    return (m_numPrimitives);
   }
 
   template<class T, class P, class BV, int K>
   inline
   const std::array<unsigned long, K>& LinearNodeT<T, P, BV, K>::getChildOffsets() const noexcept {
-    return m_childOffsets;
+    return (m_childOffsets);
   }
 
   template<class T, class P, class BV, int K>
@@ -670,6 +674,21 @@ namespace BVH {
 
     return minDist;
   }
+
+  template<class T, class P, class BV, int K>
+  inline
+  T LinearNodeT<T, P, BV, K>::getUnsignedDistanceToPrimitives2(const Vec3T<T>& a_point, const std::vector<std::shared_ptr<const P> >& a_primitives) const noexcept {
+    T minDist = std::numeric_limits<T>::infinity();
+
+    for (unsigned int i = 0; i < m_numPrimitives; i++){
+      const T curDist = a_primitives[m_primitivesOffset + i]->unsignedDistance2(a_point);
+
+
+      minDist = std::min(curDist, minDist);
+    }
+
+    return minDist;
+  }  
 
   template<class T, class P, class BV, int K>
   inline
@@ -763,15 +782,76 @@ namespace BVH {
   template<class T, class P, class BV, int K>
   inline
   T LinearBVH<T, P, BV, K>::signedDistance(const Vec3& a_point) const noexcept {
-    return this->signedDistanceAlg(a_point, BVH::Prune::Ordered2);
-  }
+    // TLDR: This routine uses ordered traversal along the branches. Rather than calling itself recursively, it uses
+    //       a stack for investigating the branches and nodes. We compute the unsigned square distance (which can be slightly faster)
+    //       throughout the hierarchy in order to find the leaf node with the closest primitive. 
 
-  template<class T, class P, class BV, int K>
-  inline
-  T LinearBVH<T, P, BV, K>::newSignedDistance(const Vec3& a_point) const noexcept {
-    T d = std::numeric_limits<T>::infinity();
+    // Shortest unsigned square distance. Initialize to something big so
+    T minDist2 = std::numeric_limits<T>::infinity();
 
-    return d;
+    // Index of closest leaf node. Initialize to -1 to shut up compiler. 
+    unsigned long closest = -1;
+
+    // Create temporary storage and and priority queue (our stack). 
+    using NodeAndDist = std::pair<unsigned long, T>;
+
+    std::array<NodeAndDist, K> childsAndDistances;    
+    std::stack<NodeAndDist> q;
+
+    // Initialize the stack with the root node. 
+    q.emplace(0, m_linearNodes[0]->getDistanceToBoundingVolume2(a_point));
+
+    // Stack loop -- always investigate the one at the top. 
+    while(!(q.empty())){
+
+      // Pop the top node off the stack. 
+      const auto& curNode = (q.top()).first;
+      const auto& bvDist2 = (q.top()).second;
+
+      q.pop();
+
+      // See if we really need to process this node. We only need to do it if its BV is closer than the shortest distance we've found so far. Otherwise
+      // we are guaranteed that the distance to the primitives is larger than the shortest distance we've found so far. 
+      if(bvDist2 <= minDist2){
+
+	// If it's a leaf node, update the shortest distance so far. 
+	if(m_linearNodes[curNode]->isLeaf()){
+	  const T primDist2  = m_linearNodes[curNode]->getUnsignedDistanceToPrimitives2(a_point, m_primitives);
+	  
+	  if(primDist2 < minDist2) {
+	    minDist2 = primDist2;
+	    closest  = curNode;
+	  }
+	}
+	else{
+	  // Compute child indices and their BVH distance to a_point.
+	  for (int k = 0; k < K; k++){
+	    const unsigned long& curOff = m_linearNodes[curNode]->getChildOffsets()[k];
+	    const T        distanceToBV = m_linearNodes[curOff] ->getDistanceToBoundingVolume2(a_point);
+
+	    childsAndDistances[k] = std::make_pair(curOff, distanceToBV);
+	  }
+
+	  // Sort the child nodes and put them on the stack. On the next iteration we do the closest node first. This sorting
+	  // is critical to the performance of the BVH. 
+	  std::sort(childsAndDistances.begin(),
+	  	    childsAndDistances.end(),
+	  	    [](const std::pair<unsigned long, T>& node1, const std::pair<unsigned long, T>& node2) -> bool {
+	  	      return node1.second > node2.second;
+	  	    });
+
+	  // Push onto stack if the BV is closer than minDist2.
+	  for (const auto& child : childsAndDistances) {
+	    if(child.second <= minDist2){
+	      q.push(child);
+	    }
+	  }
+	}
+      }
+    }
+
+    // Only at the end do we compute the SIGNED distance. 
+    return m_linearNodes[closest]->getDistanceToPrimitives(a_point, m_primitives);
   }
 
   template<class T, class P, class BV, int K>
@@ -780,29 +860,6 @@ namespace BVH {
     const T d = this->signedDistance(a_point);
 
     return d*d;
-  }  
-
-  template<class T, class P, class BV, int K>
-  inline
-  T LinearBVH<T, P, BV, K>::signedDistanceAlg(const Vec3& a_point, const Prune a_pruning) const noexcept {
-    T minDist = std::numeric_limits<T>::infinity();
-
-    switch(a_pruning){
-    case Prune::Ordered2:
-      {
-	unsigned long closestPrimitiveSoFar = 0UL;
-
-	m_linearNodes[0]->pruneOrdered2(minDist, closestPrimitiveSoFar, a_point, m_linearNodes, m_primitives);
-
-	minDist = m_primitives[closestPrimitiveSoFar]->signedDistance(a_point);
-
-	break;
-      }
-    default:
-      std::cerr << "In file EBGeometry_BVHImplem.hpp function LinearBVH<T, P, BV, K>::signedDistance(Vec3, Prune) -- bad input enum for 'Prune'\n";
-    };
-
-    return minDist;
   }
 }
 
