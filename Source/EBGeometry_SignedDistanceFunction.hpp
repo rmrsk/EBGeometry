@@ -46,12 +46,6 @@ public:
   virtual T signedDistance(const Vec3T<T>& a_point) const noexcept = 0;
 
   /*!
-    @brief Unsigned distance function. Must return the distance^2. 
-    @param[in] a_point 3D point. 
-  */
-  virtual T unsignedDistance2(const Vec3T<T>& a_point) const noexcept;
-
-  /*!
     @brief Translate signed distance function. 
     @param[in] a_translation Distance to translate the function. 
   */  

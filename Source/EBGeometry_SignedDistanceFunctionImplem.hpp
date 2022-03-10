@@ -17,11 +17,6 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 template <class T>
-T SignedDistanceFunction<T>::unsignedDistance2(const Vec3T<T>& a_point) const noexcept {
-  return std::pow(this->signedDistance(a_point), 2);
-}
-
-template <class T>
 void SignedDistanceFunction<T>::translate(const Vec3T<T>& a_translation) noexcept {
   m_transformOps.emplace_back(std::make_shared<EBGeometry::TranslateOp<T> > (a_translation));
 }

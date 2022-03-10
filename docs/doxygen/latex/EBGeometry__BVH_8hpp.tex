@@ -50,7 +50,6 @@ class \hyperlink{classBVH_1_1LinearBVH}{B\+V\+H\+::\+Linear\+B\+V\+H$<$ T, P, B\
 \subsection*{Typedefs}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}\label{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}} 
 {\footnotesize template$<$class P $>$ }\\using \hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{B\+V\+H\+::\+Primitive\+ListT} = std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$
 \begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T , class P , class BV , int K$>$ }\\using \hyperlink{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}{B\+V\+H\+::\+Stop\+FunctionT} = std\+::function$<$ bool(const NodeT$<$ T, P, BV, K $>$ \&a\+\_\+node)$>$
@@ -62,17 +61,10 @@ class \hyperlink{classBVH_1_1LinearBVH}{B\+V\+H\+::\+Linear\+B\+V\+H$<$ T, P, B\
 \subsection*{Enumerations}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{namespaceBVH_a7613f83a60cfae9aba31861110bd9e54}\label{namespaceBVH_a7613f83a60cfae9aba31861110bd9e54}} 
-enum \hyperlink{namespaceBVH_a7613f83a60cfae9aba31861110bd9e54}{B\+V\+H\+::\+Node\+Type} \+: bool \{ {\bfseries Regular}, 
-{\bfseries Leaf}
- \}\begin{DoxyCompactList}\small\item\em Enum for determining if a \hyperlink{namespaceBVH}{B\+VH} node is a leaf or a regular node (only leaf nodes contain data) \end{DoxyCompactList}
-\item 
-\mbox{\Hypertarget{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}\label{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}} 
-enum \hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{B\+V\+H\+::\+Prune} \{ {\bfseries Ordered}, 
-{\bfseries Ordered2}, 
-{\bfseries Unordered}, 
-{\bfseries Unordered2}
- \}\begin{DoxyCompactList}\small\item\em Typename for identifying algorithms used in subtree pruning. \end{DoxyCompactList}
+enum \hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{B\+V\+H\+::\+Prune} \{ {\bfseries Stack}, 
+{\bfseries Ordered}, 
+{\bfseries Unordered}
+ \}\begin{DoxyCompactList}\small\item\em Typename for identifying algorithms various algorithms during tree traversel. \end{DoxyCompactList}
 \end{DoxyCompactItemize}
 
 

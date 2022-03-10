@@ -229,10 +229,11 @@ public:
   TorusSDF() = delete;
 
   /*!
-    @brief Full constructor. Sets the low and high corner
-    @param[in] a_loCorner   Lower left corner
-    @param[in] a_hiCorner   Upper right corner
-    @param[in] a_flipInside Flip inside/outside. 
+    @brief Full constructor. 
+    @param[in] a_center      Torus center. 
+    @param[in] a_majorRadius Major torus radius. 
+    @param[in] a_minorRadius Minor torus radius. 
+    @param[in] a_flipInside  Flip inside/outside. 
   */
   TorusSDF(const Vec3T<T>& a_center,
 	   const T&        a_majorRadius,
@@ -348,9 +349,10 @@ public:
   CylinderSDF()  = delete;
 
   /*!
-    @brief Full constructor. Sets the low and high corner
-    @param[in] a_loCorner   Lower left corner
-    @param[in] a_hiCorner   Upper right corner
+    @brief Full constructor. 
+    @param[in] a_center1    One endpoint.
+    @param[in] a_center2    Other endpoint.
+    @param[in] a_radius     Cylinder radius.
     @param[in] a_flipInside Flip inside/outside. 
   */
   CylinderSDF(const Vec3T<T>& a_center1,

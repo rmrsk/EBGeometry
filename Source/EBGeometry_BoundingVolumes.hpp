@@ -142,14 +142,6 @@ namespace BoundingVolumes {
     T getDistance(const Vec3& a_x0) const noexcept;
 
     /*!
-      @brief Get the squared distance to this bounding sphere (points inside the sphere have a zero distance)
-      @param[in] a_x0 3D point
-      @return Returns the squared distance to the sphere (a point inside has a zero distance)
-    */    
-    inline
-    T getDistance2(const Vec3& a_x0) const noexcept;
-
-    /*!
       @brief Get the sphere volume
       @return Sphere volume
     */
@@ -295,14 +287,6 @@ namespace BoundingVolumes {
     */
     inline
     T getDistance(const Vec3& a_x0) const noexcept;
-
-    /*!
-      @brief Get the squared distance to this bounding box (points inside the bounding box have a zero distance)
-      @param[in] a_x0 3D point
-      @return Returns the squared distance to the bounding box (a point inside has a zero distance)
-    */    
-    inline
-    T getDistance2(const Vec3& a_x0) const noexcept;
 
     /*!
       @brief Compute the bounding box volume

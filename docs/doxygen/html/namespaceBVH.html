@@ -85,10 +85,9 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
-<tr class="memitem:aa1e753bda451b85cd5b948722a2ad7c7"><td class="memTemplParams" colspan="2"><a id="aa1e753bda451b85cd5b948722a2ad7c7"></a>
-template&lt;class P &gt; </td></tr>
+<tr class="memitem:aa1e753bda451b85cd5b948722a2ad7c7"><td class="memTemplParams" colspan="2">template&lt;class P &gt; </td></tr>
 <tr class="memitem:aa1e753bda451b85cd5b948722a2ad7c7"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7">PrimitiveListT</a> = std::vector&lt; std::shared_ptr&lt; const P &gt; &gt;</td></tr>
-<tr class="memdesc:aa1e753bda451b85cd5b948722a2ad7c7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias to cut down on typing. <br /></td></tr>
+<tr class="memdesc:aa1e753bda451b85cd5b948722a2ad7c7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias to cut down on typing.  <a href="#aa1e753bda451b85cd5b948722a2ad7c7">More...</a><br /></td></tr>
 <tr class="separator:aa1e753bda451b85cd5b948722a2ad7c7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afef1c5979c34a11d23b756cc09654bf9"><td class="memTemplParams" colspan="2">template&lt;class T , class P , class BV , int K&gt; </td></tr>
 <tr class="memitem:afef1c5979c34a11d23b756cc09654bf9"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#afef1c5979c34a11d23b756cc09654bf9">StopFunctionT</a> = std::function&lt; bool(const <a class="el" href="classBVH_1_1NodeT.html">NodeT</a>&lt; T, P, BV, K &gt; &amp;a_node)&gt;</td></tr>
@@ -105,16 +104,10 @@ template&lt;class P &gt; </td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
-<tr class="memitem:a7613f83a60cfae9aba31861110bd9e54"><td class="memItemLeft" align="right" valign="top"><a id="a7613f83a60cfae9aba31861110bd9e54"></a>enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a7613f83a60cfae9aba31861110bd9e54">NodeType</a> : bool { <b>Regular</b>, 
-<b>Leaf</b>
- }<tr class="memdesc:a7613f83a60cfae9aba31861110bd9e54"><td class="mdescLeft">&#160;</td><td class="mdescRight">Enum for determining if a <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a> node is a leaf or a regular node (only leaf nodes contain data) <br /></td></tr>
-</td></tr>
-<tr class="separator:a7613f83a60cfae9aba31861110bd9e54"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3ddb7b34ac1deb3baed2f32d9eacbe5b"><td class="memItemLeft" align="right" valign="top"><a id="a3ddb7b34ac1deb3baed2f32d9eacbe5b"></a>enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a3ddb7b34ac1deb3baed2f32d9eacbe5b">Prune</a> { <b>Ordered</b>, 
-<b>Ordered2</b>, 
-<b>Unordered</b>, 
-<b>Unordered2</b>
- }<tr class="memdesc:a3ddb7b34ac1deb3baed2f32d9eacbe5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Typename for identifying algorithms used in subtree pruning. <br /></td></tr>
+<tr class="memitem:a3ddb7b34ac1deb3baed2f32d9eacbe5b"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a3ddb7b34ac1deb3baed2f32d9eacbe5b">Prune</a> { <b>Stack</b>, 
+<b>Ordered</b>, 
+<b>Unordered</b>
+ }<tr class="memdesc:a3ddb7b34ac1deb3baed2f32d9eacbe5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Typename for identifying algorithms various algorithms during tree traversel.  <a href="namespaceBVH.html#a3ddb7b34ac1deb3baed2f32d9eacbe5b">More...</a><br /></td></tr>
 </td></tr>
 <tr class="separator:a3ddb7b34ac1deb3baed2f32d9eacbe5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -136,7 +129,7 @@ template&lt;class P , class BV &gt; </div>
 </div><div class="memdoc">
 
 <p>Constructor method for creating bounding volumes from a list of primitives. </p>
-<dl class="params"><dt>Parameters</dt><dd>
+<p>P is the primitive type bound in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a> and BV is the bounding volume type. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">a_primitives</td><td>List of primitives. </td></tr>
   </table>
@@ -161,13 +154,32 @@ template&lt;class P , int K&gt; </div>
 </div><div class="memdoc">
 
 <p>Polymorphic partitioner for splitting a list of primitives into K new lists of primitives. </p>
-<dl class="params"><dt>Parameters</dt><dd>
+<p>P is the primitive type bound in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a> and K is the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a> degree. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">a_primitives</td><td>List of primitives to be subdivided into sub-bounding volumes. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Returns a list (std::array) of new primitives which make up the new bounding volumes. </dd></dl>
+
+</div>
+</div>
+<a id="aa1e753bda451b85cd5b948722a2ad7c7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa1e753bda451b85cd5b948722a2ad7c7">&#9670;&nbsp;</a></span>PrimitiveListT</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class P &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7">BVH::PrimitiveListT</a> = typedef std::vector&lt;std::shared_ptr&lt;const P&gt; &gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Alias to cut down on typing. </p>
+<p>P is the primitive bounded by the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a>. </p>
 
 </div>
 </div>
@@ -186,13 +198,39 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 </div><div class="memdoc">
 
 <p>Stop function for deciding when a <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a> node can't be divided into sub-volumes. </p>
-<dl class="params"><dt>Parameters</dt><dd>
+<p>T is the precision used in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a> computations, P is the enclosing primitive and BV is the bounding volume used in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a>. K is the tree degree. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">a_node</td><td><a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a> node </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>True if the node can't be divided into subvolumes and false otherwise. </dd></dl>
+
+</div>
+</div>
+<h2 class="groupheader">Enumeration Type Documentation</h2>
+<a id="a3ddb7b34ac1deb3baed2f32d9eacbe5b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3ddb7b34ac1deb3baed2f32d9eacbe5b">&#9670;&nbsp;</a></span>Prune</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="namespaceBVH.html#a3ddb7b34ac1deb3baed2f32d9eacbe5b">BVH::Prune</a></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Typename for identifying algorithms various algorithms during tree traversel. </p>
+<p>Stack =&gt; Use stack/priority queue (ordered traversal). Ordered =&gt; Use recursive ordered traversal. Unordered =&gt; Use recursive unordered traversal. </p>
 
 </div>
 </div>
