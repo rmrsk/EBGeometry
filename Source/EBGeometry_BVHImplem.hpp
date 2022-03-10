@@ -692,69 +692,6 @@ namespace BVH {
 
   template<class T, class P, class BV, int K>
   inline
-  void LinearNodeT<T, P, BV, K>::pruneOrdered2(T& a_shortestSquareDistanceSoFar,
-					       unsigned long& a_closestPrimitiveSoFar,
-					       const Vec3& a_point,
-					       const std::vector<std::shared_ptr<const LinearNodeT<T, P, BV, K> > >& a_linearNodes,
-					       const std::vector<std::shared_ptr<const P> >& a_primitives) const noexcept {
-
-    // If this is a leaf node, see if one of the primitives in this node is closer than the closest distance this far. If it is,
-    // update the closest primitive.
-
-    if(m_numPrimitives > 0){
-
-      // See if this node has primitives that are closer than the closest one we've found so far. 
-      for (unsigned int i = 0; i < m_numPrimitives; i++){
-	const std::shared_ptr<const P>& curPrim = a_primitives[m_primitivesOffset + i];
-
-	const T curDist2 = curPrim->unsignedDistance2(a_point);
-
-	if(curDist2 < a_shortestSquareDistanceSoFar){
-	  a_shortestSquareDistanceSoFar = curDist2;
-	  a_closestPrimitiveSoFar       = m_primitivesOffset + i;
-	}
-      }
-    }
-    else{
-      // In this case we are at a regular node and we need to determine which branch to descend first. One we've selected a branch we won't visit
-      // the other branch until we've drilled all the way down into the bottom of the tree, so this choice is critical. We assume that the closest
-      // bounding volume is more likely to also contain the closest primitive, so we sort the distance to the bounding volumes and take the closest
-      // bounding volume first.
-
-      // Compute the distance to the child node bounding volumes. 
-      std::array<std::pair<T, unsigned long>, K > distancesAndNodes;
-      for (int k = 0; k < K; k++){
-	const auto& childOffset = m_childOffsets[k];
-	const auto& childNode   = a_linearNodes[childOffset];
-	
-	distancesAndNodes[k] = std::make_pair(childNode->getDistanceToBoundingVolume2(a_point), childOffset);
-      }
-
-      // Sort, closest node goes first.
-      std::sort(distancesAndNodes.begin(),
-		distancesAndNodes.end(),
-		[](const std::pair<T, unsigned long>& node1, const std::pair<T, unsigned long>& node2){
-		  return node1.first < node2.first;
-		});
-
-
-      // Go through the child nodes and call this function again.
-      for (int k = 0; k < K; k++){
-	const auto& childOffset = distancesAndNodes[k].second;
-	const auto& childNode   = a_linearNodes[childOffset];
-
-	if(distancesAndNodes[k].first < a_shortestSquareDistanceSoFar){
-	  childNode->pruneOrdered2(a_shortestSquareDistanceSoFar, a_closestPrimitiveSoFar, a_point, a_linearNodes, a_primitives);
-	}
-	else{ // Prune the other subtree. 
-	  break;
-	}
-      }
-    }
-  }  
-
-  template<class T, class P, class BV, int K>
-  inline
   LinearBVH<T, P, BV, K>::LinearBVH(const std::vector<std::shared_ptr<const LinearNodeT<T, P, BV, K> > >& a_linearNodes,
 				    const std::vector<std::shared_ptr<const P> >&                         a_primitives) {
     m_linearNodes = a_linearNodes;
