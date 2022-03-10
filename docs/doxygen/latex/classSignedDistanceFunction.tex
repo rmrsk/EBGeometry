@@ -11,8 +11,7 @@ Abstract representation of a signed distance function.
 
 
 
-Inheritance diagram for Signed\+Distance\+Function$<$ T $>$\+:
-\nopagebreak
+Inheritance diagram for Signed\+Distance\+Function$<$ T $>$\+:\nopagebreak
 \begin{figure}[H]
 \begin{center}
 \leavevmode
@@ -30,8 +29,6 @@ virtual \hyperlink{classSignedDistanceFunction_ab47b289bd8351d7f323938c91b2bb92b
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
 virtual T \hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{signed\+Distance} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+point) const noexcept=0
 \begin{DoxyCompactList}\small\item\em Signed distance function. \end{DoxyCompactList}\item 
-virtual T \hyperlink{classSignedDistanceFunction_a2a3e72186725a4e931db0f8d4895bcb8}{unsigned\+Distance2} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+point) const noexcept
-\begin{DoxyCompactList}\small\item\em Unsigned distance function. Must return the distance$^\wedge$2. \end{DoxyCompactList}\item 
 void \hyperlink{classSignedDistanceFunction_add71ebc2e7f3fb5e85766898413482e7}{translate} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+translation) noexcept
 \begin{DoxyCompactList}\small\item\em Translate signed distance function. \end{DoxyCompactList}\item 
 void \hyperlink{classSignedDistanceFunction_ae8de697f4d0966290342bcf6383585ef}{rotate} (const T a\+\_\+angle, const int a\+\_\+axis) noexcept
@@ -111,22 +108,6 @@ Translate signed distance function.
 
 \begin{DoxyParams}[1]{Parameters}
 \mbox{\tt in}  & {\em a\+\_\+translation} & Distance to translate the function. \\
-\hline
-\end{DoxyParams}
-\mbox{\Hypertarget{classSignedDistanceFunction_a2a3e72186725a4e931db0f8d4895bcb8}\label{classSignedDistanceFunction_a2a3e72186725a4e931db0f8d4895bcb8}} 
-\index{Signed\+Distance\+Function@{Signed\+Distance\+Function}!unsigned\+Distance2@{unsigned\+Distance2}}
-\index{unsigned\+Distance2@{unsigned\+Distance2}!Signed\+Distance\+Function@{Signed\+Distance\+Function}}
-\subsubsection{\texorpdfstring{unsigned\+Distance2()}{unsignedDistance2()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-T \hyperlink{classSignedDistanceFunction}{Signed\+Distance\+Function}$<$ T $>$\+::unsigned\+Distance2 (\begin{DoxyParamCaption}\item[{const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [virtual]}, {\ttfamily [noexcept]}}
-
-
-
-Unsigned distance function. Must return the distance$^\wedge$2. 
-
-
-\begin{DoxyParams}[1]{Parameters}
-\mbox{\tt in}  & {\em a\+\_\+point} & 3D point. \\
 \hline
 \end{DoxyParams}
 

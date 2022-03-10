@@ -98,11 +98,11 @@
 </ul>
 <p class="caption"><span class="caption-text">Implementation</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="Implementation.html">Vector types</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Implementation.html#bounding-volume-hierarchy">Bounding volume hierarchy</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Implementation.html#dcel">DCEL</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Implementation.html#signed-distance-function">Signed distance function</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Implementation.html#unions">Unions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemVec.html">Vector types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">Bounding volume hierarchy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemSDF.html">Signed distance function</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemUnion.html">Unions</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Guided examples</span></p>
 <ul class="current">
@@ -188,8 +188,8 @@
 <p>This example is given in <code class="file docutils literal notranslate"><span class="pre">Examples/Union/main.cpp</span></code> and shows the following steps:</p>
 <ol class="arabic simple">
 <li><p>The creation of scene composed of an array of spheres.</p></li>
-<li><p>Instantiation of a standard union for the signed distance (see <a class="reference internal" href="Implementation.html#chap-union"><span class="std std-ref">Unions</span></a>).</p></li>
-<li><p>Instantiation of a BVH-enabled union for the signed distance (see <a class="reference internal" href="Implementation.html#chap-union"><span class="std std-ref">Unions</span></a>).</p></li>
+<li><p>Instantiation of a standard union for the signed distance (see <a class="reference internal" href="ImplemUnion.html#chap-union"><span class="std std-ref">Unions</span></a>).</p></li>
+<li><p>Instantiation of a BVH-enabled union for the signed distance (see <a class="reference internal" href="ImplemUnion.html#chap-union"><span class="std std-ref">Unions</span></a>).</p></li>
 </ol>
 <p>We focus on the following parts of the code:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
@@ -268,7 +268,7 @@
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Union</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">slowUnion</span><span class="p">(</span><span class="n">spheres</span><span class="p">,</span> <span class="nb">false</span><span class="p">);</span>
 </pre></div>
 </div>
-<p>For implementation details regarding the standard union, see <a class="reference internal" href="Implementation.html#chap-union"><span class="std std-ref">Unions</span></a>.</p>
+<p>For implementation details regarding the standard union, see <a class="reference internal" href="ImplemUnion.html#chap-union"><span class="std std-ref">Unions</span></a>.</p>
 </div>
 <div class="section" id="creating-bvh-enabled-union">
 <h2>Creating BVH-enabled union<a class="headerlink" href="#creating-bvh-enabled-union" title="Permalink to this headline">¶</a></h2>

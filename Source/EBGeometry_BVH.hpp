@@ -292,7 +292,6 @@ namespace BVH {
 
     /*!
       @brief Iterative ordered pruning along the BVH tree. 
-      @param[inout] a_closest Shortest distance to primitives. 
       @param[inout] a_point   Input 3D point
     */            
     inline

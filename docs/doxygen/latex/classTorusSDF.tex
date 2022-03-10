@@ -11,8 +11,7 @@ Signed distance field for a torus.
 
 
 
-Inheritance diagram for Torus\+S\+DF$<$ T $>$\+:
-\nopagebreak
+Inheritance diagram for Torus\+S\+DF$<$ T $>$\+:\nopagebreak
 \begin{figure}[H]
 \begin{center}
 \leavevmode
@@ -21,8 +20,7 @@ Inheritance diagram for Torus\+S\+DF$<$ T $>$\+:
 \end{figure}
 
 
-Collaboration diagram for Torus\+S\+DF$<$ T $>$\+:
-\nopagebreak
+Collaboration diagram for Torus\+S\+DF$<$ T $>$\+:\nopagebreak
 \begin{figure}[H]
 \begin{center}
 \leavevmode
@@ -36,7 +34,7 @@ Collaboration diagram for Torus\+S\+DF$<$ T $>$\+:
 \hyperlink{classTorusSDF_a4591d7c3cdbbed45fdbaf414f0d096ee}{Torus\+S\+DF} ()=delete
 \begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
 \hyperlink{classTorusSDF_acf22c1b59605e93750a3a002fd5bc23a}{Torus\+S\+DF} (const \hyperlink{classVec3T}{Vec3T}$<$ T $>$ \&a\+\_\+center, const T \&a\+\_\+major\+Radius, const T \&a\+\_\+minor\+Radius, const bool a\+\_\+flip\+Inside)
-\begin{DoxyCompactList}\small\item\em Full constructor. Sets the low and high corner. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classTorusSDF_a97178b72cbb9208b7dde0a6db1ab6e18}\label{classTorusSDF_a97178b72cbb9208b7dde0a6db1ab6e18}} 
 virtual \hyperlink{classTorusSDF_a97178b72cbb9208b7dde0a6db1ab6e18}{$\sim$\+Torus\+S\+DF} ()
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing). \end{DoxyCompactList}\item 
@@ -90,13 +88,15 @@ This is constructed such that the donut lies in the xy-\/plane.
 
 
 
-Full constructor. Sets the low and high corner. 
+Full constructor. 
 
 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\tt in}  & {\em a\+\_\+lo\+Corner} & Lower left corner \\
+\mbox{\tt in}  & {\em a\+\_\+center} & Torus center. \\
 \hline
-\mbox{\tt in}  & {\em a\+\_\+hi\+Corner} & Upper right corner \\
+\mbox{\tt in}  & {\em a\+\_\+major\+Radius} & Major torus radius. \\
+\hline
+\mbox{\tt in}  & {\em a\+\_\+minor\+Radius} & Minor torus radius. \\
 \hline
 \mbox{\tt in}  & {\em a\+\_\+flip\+Inside} & Flip inside/outside. \\
 \hline

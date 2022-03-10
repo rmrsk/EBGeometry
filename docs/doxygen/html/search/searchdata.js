@@ -7,7 +7,7 @@ var indexSectionsWithContent =
   4: "abcdefgilmnoprstuvz~",
   5: "dmpsxy",
   6: "beflmnpsv",
-  7: "binpsv",
+  7: "bipsv",
   8: "et"
 };
 

@@ -128,16 +128,9 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <tr class="memitem:a2bf5b1c514a20754d527b17e1c664630"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#a2bf5b1c514a20754d527b17e1c664630">getDistanceToBoundingVolume</a> (const <a class="el" href="classBVH_1_1LinearNodeT.html#a073e87d51d44b4cc243c8f90690247a6">Vec3</a> &amp;a_point) const noexcept</td></tr>
 <tr class="memdesc:a2bf5b1c514a20754d527b17e1c664630"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the distance from a 3D point to the bounding volume.  <a href="#a2bf5b1c514a20754d527b17e1c664630">More...</a><br /></td></tr>
 <tr class="separator:a2bf5b1c514a20754d527b17e1c664630"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3e85605a1f0986b8440964ed0dbe90f6"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#a3e85605a1f0986b8440964ed0dbe90f6">getDistanceToBoundingVolume2</a> (const <a class="el" href="classBVH_1_1LinearNodeT.html#a073e87d51d44b4cc243c8f90690247a6">Vec3</a> &amp;a_point) const noexcept</td></tr>
-<tr class="memdesc:a3e85605a1f0986b8440964ed0dbe90f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the unsigned square from a 3D point to the bounding volume.  <a href="#a3e85605a1f0986b8440964ed0dbe90f6">More...</a><br /></td></tr>
-<tr class="separator:a3e85605a1f0986b8440964ed0dbe90f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1a0a50ba8c1c0601f12ae02857246b1f"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#a1a0a50ba8c1c0601f12ae02857246b1f">getDistanceToPrimitives</a> (const <a class="el" href="classBVH_1_1LinearNodeT.html#a073e87d51d44b4cc243c8f90690247a6">Vec3</a> &amp;a_point, const std::vector&lt; std::shared_ptr&lt; const P &gt; &gt; &amp;a_primitives) const noexcept</td></tr>
 <tr class="memdesc:a1a0a50ba8c1c0601f12ae02857246b1f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute signed distance to primitives.  <a href="#a1a0a50ba8c1c0601f12ae02857246b1f">More...</a><br /></td></tr>
 <tr class="separator:a1a0a50ba8c1c0601f12ae02857246b1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5479cd8a3503d16bb3f09273971df24a"><td class="memItemLeft" align="right" valign="top"><a id="a5479cd8a3503d16bb3f09273971df24a"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#a5479cd8a3503d16bb3f09273971df24a">pruneOrdered2</a> (T &amp;a_shortestSquareDistanceSoFar, unsigned long &amp;a_closestPrimitiveSoFar, const <a class="el" href="classBVH_1_1LinearNodeT.html#a073e87d51d44b4cc243c8f90690247a6">Vec3</a> &amp;a_point, const std::vector&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>&lt; T, P, BV, K &gt; &gt; &amp;a_linearNodes, const std::vector&lt; std::shared_ptr&lt; const P &gt; &gt; &amp;a_primitives) const noexcept</td></tr>
-<tr class="memdesc:a5479cd8a3503d16bb3f09273971df24a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pruning algorithm. This is the same algorithm as <a class="el" href="classBVH_1_1NodeT.html#acb7fec40e06e97fcd42ec75169603e8b" title="Function which computes the signed distance using ordered pruning along the BVH branches. ">NodeT::pruneOrdered2</a>, except that the nodes and primitives come in as arguments (and the node has been collapsed onto one cache line). <br /></td></tr>
-<tr class="separator:a5479cd8a3503d16bb3f09273971df24a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
@@ -164,8 +157,9 @@ class BVH::LinearNodeT&lt; T, P, BV, K &gt;</h3>
 
 <p>Forward declare linear node class. </p>
 <p>Node type for linearized (flattened) <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a>. This will be constructed from the other (conventional) <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a> type.</p>
+<p>T is the precision used in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a> computations, P is the enclosing primitive and BV is the bounding volume used in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a>. K is the tree degree.</p>
 <p>T is the precision for Vec3, P is the primitive type you want to enclose, BV is the bounding volume you use for it.</p>
-<dl class="section note"><dt>Note</dt><dd>P MUST supply function signedDistance(...) and unsignedDistance2(Vec3). BV must supply a function getDistance (had this been C++20, we would have use concepts to enforce this). Note that LinearNode is the result of a flattnened <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a> hierarchy where nodes are stored with depth-first ordering for improved cache-location in the downward traversal.</dd>
+<dl class="section note"><dt>Note</dt><dd>P MUST supply function signedDistance(...) BV must supply a function getDistance (had this been C++20, we would have use concepts to enforce this). Note that LinearNode is the result of a flattened <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a> hierarchy where nodes are stored with depth-first ordering for improved cache-location in the downward traversal.</dd>
 <dd>
 This class exists so that we can fit the nodes with a smaller memory footprint. The standard <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a> node (<a class="el" href="classBVH_1_1NodeT.html" title="Forward declare the BVH node since it is needed for the polymorphic lambdas. ">NodeT</a>) is very useful when building the tree but less useful when traversing it since it stores references to the primitives in the node itself. It will span multiple cache lines. This node exists so that we can fit all the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality. ">BVH</a> info onto fewer cache lines. The number of cache lines will depend on the tree degree, precision, and bounding volume that is chosen.</dd></dl>
 <dl class="todo"><dt><b><a class="el" href="todo.html#_todo000001">Todo:</a></b></dt><dd>There's a minor optimization that can be made to the memory alignment, which is as follows: For a leaf node we never really need the m_childOffsets array, and for a regular node we never really need the m_primitivesOffset member. Moreover, m_childOffsets could be made into a K-1 sized array because we happen to know that the linearized hierarchy will store the first child node immediately after the regular node. We could shave off 16 bytes of storage, which would mean that a double-precision binary tree only takes up one word of CPU memory. </dd></dl>
@@ -237,43 +231,6 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 
 </div>
 </div>
-<a id="a3e85605a1f0986b8440964ed0dbe90f6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3e85605a1f0986b8440964ed0dbe90f6">&#9670;&nbsp;</a></span>getDistanceToBoundingVolume2()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">T <a class="el" href="classBVH_1_1LinearNodeT.html">BVH::LinearNodeT</a>&lt; T, P, BV, K &gt;::getDistanceToBoundingVolume2 </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="classBVH_1_1LinearNodeT.html#a073e87d51d44b4cc243c8f90690247a6">Vec3</a> &amp;&#160;</td>
-          <td class="paramname"><em>a_point</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Get the unsigned square from a 3D point to the bounding volume. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_point</td><td>3D point </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>Returns squared distance to bounding volume. A zero distance implies that the input point is inside the bounding volume. </dd></dl>
-
-</div>
-</div>
 <a id="a1a0a50ba8c1c0601f12ae02857246b1f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a1a0a50ba8c1c0601f12ae02857246b1f">&#9670;&nbsp;</a></span>getDistanceToPrimitives()</h2>
 
@@ -311,6 +268,13 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 </div><div class="memdoc">
 
 <p>Compute signed distance to primitives. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_point</td><td>Point </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_primitives</td><td>List of primitives </td></tr>
+  </table>
+  </dd>
+</dl>
 <dl class="section note"><dt>Note</dt><dd>Only call if this is a leaf node. </dd></dl>
 
 </div>
