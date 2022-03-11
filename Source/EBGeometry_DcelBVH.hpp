@@ -5,16 +5,12 @@
 
 /*!
   @file   EBGeometry_DcelBVH.hpp
-  @brief  File which contains partitioners and lambdas for enclosing dcel_face in bounding volume heirarchies
+  @brief  File which contains partitioners and lambdas for enclosing DCEL faces in bounding volume heirarchies
   @details This file contains various useful "default" routines for determining how a DCEL mesh should be partitioned in a bounding volume hierarchy. This includes
   the required functions for 
   1) Constructing bounding volumes (defaultBVConstructor).
   2) Stopping the sub-division process (defaultStopFunction)
-  3) Partitioning one bounding volume into subvolumes. These are the functions
-  a) defaultPartitionFunction(...). This partitions the primitives into two half-spaces based on where the primitive centroids are located.
-  b) partitionMinimumOverlap(...).  This splist the primitive list down the middle (ignoring centroids and element size) and selects the splitting direction where the
-  sub-bounding volumes have the smallest overlap. 
-  3) partitionSAH(...). This implements the common "surface area heuristic" rule for constructing bounding volumes. 
+  3) Partitioning one bounding volume into subvolumes. 
   @author Robert Marskar
 */
 
@@ -29,15 +25,10 @@
 namespace Dcel {
 
   /*!
-    @brief This is the lowest number of a primitives that a BVH node is allowed to enclose. 
-  */
-  constexpr int primitivesPerLeafNode = 1;
-
-  /*!
-    @brief Alias for which primitives are used in the BVH. For DCEL meshes the primitive is a polygon face.  
+    @brief Alias for vector of primitives.
   */
   template <class T>
-  using PrimitiveList = std::vector<std::shared_ptr<const Dcel::FaceT<T> > >;
+  using PrimitiveList = std::vector<std::shared_ptr<const EBGeometry::Dcel::FaceT<T> > >;
 
   /*!
     @brief Bounding volume constructor for a DCEL face. 
@@ -47,7 +38,7 @@ namespace Dcel {
     @return Returns a bounding volume which encloses the input face. 
   */
   template <class T, class BV>
-  BVH::BVConstructorT<FaceT<T>, BV> defaultBVConstructor = [](const std::shared_ptr<const FaceT<T> >& a_primitive){
+  EBGeometry::BVH::BVConstructorT<EBGeometry::Dcel::FaceT<T>, BV> defaultBVConstructor = [](const std::shared_ptr<const EBGeometry::Dcel::FaceT<T> >& a_primitive) -> BV {
     return BV(a_primitive->getAllVertexCoordinates());
   };  
 
@@ -59,11 +50,8 @@ namespace Dcel {
     @return Returns true if the bounding volume shouldn't be split more and false otherwise. 
   */
   template <class T, class BV, int K> 
-  BVH::StopFunctionT<T, FaceT<T>, BV, K> defaultStopFunction = [](const BVH::NodeT<T, FaceT<T>, BV, K>& a_node){
-    const auto& primitives = a_node.getPrimitives();
-    const int numPrims     = primitives.size();
-    
-    return numPrims <= primitivesPerLeafNode || numPrims < K;
+  EBGeometry::BVH::StopFunctionT<T, EBGeometry::Dcel::FaceT<T>, BV, K> defaultStopFunction = [](const BVH::NodeT<T, EBGeometry::Dcel::FaceT<T>, BV, K>& a_node) -> bool {
+    return (a_node.getPrimitives()).size() < K;
   };
 
   /*!
@@ -72,23 +60,15 @@ namespace Dcel {
     @details This is a very stupid partitioner which splits into equal chunks along the longest coordinate. 
   */
   template <class T, int K>
-  BVH::PartitionerT<FaceT<T>, K> spatialSplitPartitioner = [](const PrimitiveList<T>& a_primitives){
-
-    const int numPrimitives = a_primitives.size();
-    
-    if(numPrimitives < K){
-      std::cerr << "In file EBGeometry_DcelBVH.H function BVH::PartitionerT<FaceT<T>, K>::spatialSplitPartitioner -- not enough primitives to subdivide into subvolumes\n";
-    }
-    
-    // Compute the coordinate direction with the longest extent. This will be our splitting direction.  
-    auto lo = Vec3T<T>::max();
-    auto hi = Vec3T<T>::min();
+  EBGeometry::BVH::PartitionerT<EBGeometry::Dcel::FaceT<T>, K> equalChunkPartitioner = [](const PrimitiveList<T>& a_primitives) -> std::array<PrimitiveList<T>, K> {
+    Vec3T<T> lo =  Vec3T<T>::max();
+    Vec3T<T> hi = -Vec3T<T>::max();
     for (const auto& p : a_primitives){
       lo = min(lo, p->getCentroid());
       hi = max(hi, p->getCentroid());
     }
-    const auto delta   = (hi-lo);
-    const int splitDir = delta.maxDir(true);
+    
+    const int splitDir = (hi-lo).maxDir(true);
 
     // Sort the primitives along the above coordinate direction. 
     PrimitiveList<T> sortedPrimitives(a_primitives);
@@ -99,90 +79,31 @@ namespace Dcel {
 		return f1->getCentroid(splitDir) < f2->getCentroid(splitDir);
 	      });
 
+    // Put the sorted primitives into K equally sized chunks. 
+    size_t length = a_primitives.size() / K;
+    size_t remain = a_primitives.size() % K;
 
-    // Figure out the indices in the vector where we do the splits. 
-    const int almostEqualChunkSize = numPrimitives / K;
-    int remainder                  = numPrimitives % K;
+    size_t begin  = 0;
+    size_t end    = 0;
 
-    std::array<int, K> startIndices;
-    std::array<int, K> endIndices;
-
-    startIndices[0]   = 0;
-    endIndices  [K-1] = numPrimitives;
+    std::array<PrimitiveList<T>, K> chunks;
     
-    for (int i = 1; i < K; i++){
-      startIndices[i] = startIndices[i-1] + almostEqualChunkSize;
+    for (size_t k = 0; k < K; k++){
+      end += (remain > 0) ? (length + !!(remain--)) : length;      
 
-      if(remainder > 0){
-	startIndices[i]++;
-	remainder--;
-      }
-    }
-    for (int i = 0; i < K-1; i++){
-      endIndices[i] = startIndices[i+1];
+      chunks[k] = PrimitiveList<T>(sortedPrimitives.begin() + begin, sortedPrimitives.begin() + end);
+
+      begin = end;
     }
 
-
-    // Put the primitives in separate lists and return them back to the BVH node. 
-    std::array<PrimitiveList<T>, K> subVolumePrimitives;
-    for (int i = 0; i < K; i++){
-      typename PrimitiveList<T>::const_iterator first = sortedPrimitives.begin() + startIndices[i];
-      typename PrimitiveList<T>::const_iterator last  = sortedPrimitives.begin() + endIndices  [i];
-      
-      subVolumePrimitives[i] = PrimitiveList<T>(first, last);
-    }
-
-    // Return as we must.
-    return subVolumePrimitives;
+    return chunks;    
   };
 
   /*!
-    @brief Binary partitioner based on spatial splits. 
-    @param[in] a_primitives List of primitives to partition into sub-bounding volumes
-    @details This is a partitioner that calls the spatialSplitPartitioner in order to recursively subdivided volumes into 2^K subvolumes. 
-  */  
+    @brief Alias for default partitioner. 
+  */
   template <class T, int K>
-  BVH::PartitionerT<FaceT<T>, K> spatialSplitBinaryPartitioner = [](const PrimitiveList<T>& a_primitives){
-    const int numPrimitives = a_primitives.size();
-    
-    if(numPrimitives < K){
-      std::cerr << "In file EBGeometry_DcelBVH.H function BVH::PartitionerT<FaceT<T>, K>::spatialSplitBinaryPartitioner -- not enough primitives to subdivide into subvolumes\n";
-    }
-
-    // Error -- this is a binary partitioner!
-    constexpr bool isPowerOfTwo = (K > 0) && ((K & (K-1)) == 0);
-    if(!isPowerOfTwo){
-      std::cerr << "In file EBGeometry_DcelBVH.H function BVH::PartitionerT<FaceT<T>, K>::spatialSplitBinaryPartitioner -- template parameter K is not a factor of 2!!!";
-    }
-
-    // Initialize the list of subvolumes. 
-    std::vector<PrimitiveList<T> > subVolumeList(1);
-    subVolumeList[0] = a_primitives;
-
-    int numSubVolumes = 1;
-    while (numSubVolumes < K){
-
-      std::vector<PrimitiveList<T> > newSubVolumeList(0);
-      for (const auto& subVolume : subVolumeList){
-	const std::array<PrimitiveList<T>, 2>& binarySplit = spatialSplitPartitioner<T, 2>(subVolume);
-
-	newSubVolumeList.push_back(binarySplit[0]);
-	newSubVolumeList.push_back(binarySplit[1]);	
-      }
-
-      subVolumeList = newSubVolumeList;
-      
-      numSubVolumes *= 2;
-    }
-
-    // We have a vector but need an array:
-    std::array<PrimitiveList<T>, K> subVolumePrimitives;
-    for (int i = 0; i < K; i++){
-      subVolumePrimitives[i] = subVolumeList[i];
-    }
-
-    return subVolumePrimitives;
-  };
+  EBGeometry::BVH::PartitionerT<EBGeometry::Dcel::FaceT<T>, K> defaultPartitioner = EBGeometry::Dcel::equalChunkPartitioner<T, K>;
 
   /*!
     @brief Volume overlap partitioning function. 
@@ -229,74 +150,6 @@ namespace Dcel {
   // 	minOverlap = curOverlap;
 
   // 	ret = std::make_pair(lPrims, rPrims);
-  //     }
-  //   }
-
-  //   return ret;
-  // };
-
-  // /*!
-  //   @brief Surface area heuristic (SAH) partitioning function. 
-  //   @param[in] a_primitives List of primitives. 
-  //   @return Returns a pair of primitives. The first/second entry in the pair is the primitives contain in the left/right sub-bounding volumes
-  // */    
-  // template <class T, class BV>
-  // BVH::PartitionFunctionT<FaceT<T> > partitionSAH = [](const PrimitiveList<T>& a_primitives){
-  //   constexpr int DIM   = 3; 
-  //   constexpr int nBins = 16;
-  //   constexpr T invBins = 1./nBins;
-  //   constexpr T Ct      = 0.0;
-  //   constexpr T Ci      = 1.0;
-
-  //   const auto curBV   = defaultBVConstructor<T, BV>(a_primitives);
-  //   const auto curArea = curBV.getArea();
-
-  //   auto lo = Vec3T<T>::max();
-  //   auto hi = Vec3T<T>::min();
-  //   for (const auto& p : a_primitives){
-  //     lo = min(lo, p->getCentroid());
-  //     hi = max(hi, p->getCentroid());
-  //   }
-  //   const auto delta = (hi-lo)*invBins;
-
-  //   T minCost = std::numeric_limits<T>::max();
-
-  //   std::pair<PrimitiveList<T>, PrimitiveList<T> > ret;
-  
-  //   for (int dir = 0; dir < DIM; dir++){
-
-  //     for (int ibin = 0; ibin <= nBins; ibin++){
-  // 	const Vec3T<T> pos = lo + T(1.0*ibin)*delta;
-
-  // 	PrimitiveList<T> lPrims;
-  // 	PrimitiveList<T> rPrims;
-	
-  // 	for (const auto& p : a_primitives){
-  // 	  if(p->getCentroid()[dir] <= pos[dir]){
-  // 	    lPrims.emplace_back(p);
-  // 	  }
-  // 	  else{
-  // 	    rPrims.emplace_back(p);
-  // 	  }
-  // 	}
-
-  // 	const auto numLeft  = lPrims.size();
-  // 	const auto numRight = rPrims.size();
-	
-  // 	if(numLeft == 0 || numRight == 0) continue;
-
-  // 	const BV bvLeft  = defaultBVConstructor<T, BV>(lPrims);
-  // 	const BV bvRight = defaultBVConstructor<T, BV>(rPrims);
-
-  // 	const T leftArea  = bvLeft.getArea();
-  // 	const T rightArea = bvRight.getArea();
-
-  // 	const T C = Ct + (leftArea/curArea)*Ci*numLeft + (rightArea/curArea)*Ci*numRight;
-
-  // 	if(C < minCost){
-  // 	  minCost = C;
-  // 	  ret     = std::make_pair(lPrims, rPrims);
-  // 	}
   //     }
   //   }
 
