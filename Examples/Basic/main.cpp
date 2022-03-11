@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Partitioning BVH\n";    
   auto bvhSDF = std::make_shared<BVH::NodeT<T, FaceT<T>, BV, K> > (directSDF->getFaces());
   bvhSDF->topDownSortAndPartitionPrimitives(EBGeometry::Dcel::defaultBVConstructor<T, BV>,
-					    EBGeometry::Dcel::defaultPartitioner<T, K>,
+					    EBGeometry::Dcel::defaultPartitioner<T, BV, K>,
 					    EBGeometry::Dcel::defaultStopFunction<T, BV, K>);
 
   // Create the linear representation of the conventional BVH SDF above.
