@@ -82,7 +82,7 @@ Signed distance function
 
 When computing the signed distance function to objects embedded in a BVH, one takes advantage of the hierarcical embedding of the primitives.
 Consider the case in :numref:`Fig:TreePruning`, where the goal of the BVH traversal is to minimize the number of branches and nodes that are visited.
-We consider the following steps:
+For the traversal algorithm we consider the following steps:
 
 * When descending from node :math:`P` we determine that we first investigate the left subtree (node :math:`A`) since its bounding volume is closer than the bounding volumes for the other subtree.
   The other subtree will is investigated after we have recursed to the bottom of the :math:`A` subtree. 
@@ -96,4 +96,12 @@ We consider the following steps:
    :width: 480px
    :align: center
 
-   Example of BVH tree pruning. 
+   Example of BVH tree pruning.
+
+
+.. warning::
+   
+   Note that all BVH traversal algorithms become inefficient when the primitives are all at approximately the same distance from the query point.
+   For example, it is necessary to traverse almost the entire tree when one tries to compute the signed distance at the origin of a tesselated sphere.
+
+

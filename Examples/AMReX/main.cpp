@@ -54,7 +54,7 @@ namespace amrex {
 	// 2. Create a standard BVH hierarchy. This is not a compact ree. 
 	auto root = std::make_shared<BuilderNode>(mesh->getFaces());
 	root->topDownSortAndPartitionPrimitives(EBGeometry::Dcel::defaultBVConstructor<T, BV>,
-						EBGeometry::Dcel::spatialSplitPartitioner<T, K>,
+						EBGeometry::Dcel::defaultPartitioner<T, BV, K>,
 						EBGeometry::Dcel::defaultStopFunction<T, BV, K>);
 
 	// 3. Flatten the tree onto a tighter memory representation. 

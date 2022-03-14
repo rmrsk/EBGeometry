@@ -74,7 +74,7 @@ namespace BVH {
     @param[in] a_primitives List of primitives to be subdivided into sub-bounding volumes. 
     @return Returns a list (std::array) of new primitives which make up the new bounding volumes. 
   */
-  template <class P, int K>
+  template <class P, class BV, int K>
   using PartitionerT = std::function<std::array<PrimitiveListT<P>, K>(const PrimitiveListT<P>& a_primitives)>;
 
   /*!
@@ -141,7 +141,7 @@ namespace BVH {
     /*!
       @brief Alias for cutting down on typing
     */
-    using Partitioner = PartitionerT<P, K>;    
+    using Partitioner = PartitionerT<P, BV, K>;    
 
     /*!
       @brief Alias for cutting down on typing. 
