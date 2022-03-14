@@ -39,7 +39,7 @@ void UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor) {
   // This function is a partitioning function taking the input SDFs and partitioning them into K subvolumes. Since the SDFs don't themselves
   // have vertices, centroids, etc., we use their bounding volumes as criteria for subdividing them. We do this by computing the spatial centroid
   // of each bounding volume that encloses the SDFs. We then do a spatial subdivision along the longest coordinate into K almost-equal chunks. 
-  EBGeometry::BVH::PartitionerT<SDF, K> partitioner = [a_bvConstructor] (const SDFList& a_primitives) -> std::array<SDFList, K> {
+  EBGeometry::BVH::PartitionerT<SDF, BV, K> partitioner = [a_bvConstructor] (const SDFList& a_primitives) -> std::array<SDFList, K> {
     const int numPrimitives = a_primitives.size();
 
     if(numPrimitives < K){
