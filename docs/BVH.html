@@ -249,7 +249,7 @@ EBGeometry provides these by letting the top-down construction calls take polymo
 <h2>Signed distance function<a class="headerlink" href="#signed-distance-function" title="Permalink to this headline">¶</a></h2>
 <p>When computing the signed distance function to objects embedded in a BVH, one takes advantage of the hierarcical embedding of the primitives.
 Consider the case in <a class="reference internal" href="#fig-treepruning"><span class="std std-numref">Fig. 5</span></a>, where the goal of the BVH traversal is to minimize the number of branches and nodes that are visited.
-We consider the following steps:</p>
+For the traversal algorithm we consider the following steps:</p>
 <ul class="simple">
 <li><p>When descending from node <span class="math notranslate nohighlight">\(P\)</span> we determine that we first investigate the left subtree (node <span class="math notranslate nohighlight">\(A\)</span>) since its bounding volume is closer than the bounding volumes for the other subtree.
 The other subtree will is investigated after we have recursed to the bottom of the <span class="math notranslate nohighlight">\(A\)</span> subtree.</p></li>
@@ -261,6 +261,11 @@ This immediately permits us to prune the entire subtree containing <span class="
 <div class="figure align-center" id="id2">
 <span id="fig-treepruning"></span><a class="reference internal image-reference" href="_images/TreePruning.png"><img alt="_images/TreePruning.png" src="_images/TreePruning.png" style="width: 480px;" /></a>
 <p class="caption"><span class="caption-number">Fig. 5 </span><span class="caption-text">Example of BVH tree pruning.</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Note that all BVH traversal algorithms become inefficient when the primitives are all at approximately the same distance from the query point.
+For example, it is necessary to traverse almost the entire tree when one tries to compute the signed distance at the origin of a tesselated sphere.</p>
 </div>
 </div>
 </div>

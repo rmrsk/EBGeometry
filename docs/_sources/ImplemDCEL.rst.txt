@@ -133,7 +133,7 @@ For the bounding volume constructor, we provide a function
 
 .. literalinclude:: ../../Source/EBGeometry_DcelBVH.hpp
    :language: c++
-   :lines: 49-52
+   :lines: 40-43
 
 Note the extra template constraint on the bounding volume type ``BV``, which must be able to construct a bounding volume from a finite point set (the vertex coordinates).
 
@@ -141,7 +141,7 @@ For the stop function we provide a simple function
 
 .. literalinclude:: ../../Source/EBGeometry_DcelBVH.hpp
    :language: c++
-   :lines: 34, 61-67
+   :lines: 52-55
 
 Note that this simply terminates the leaf partitioning if there are not enough primitives (polygon faces) available, or there are fewer than a pre-defined number of primitives.
 
@@ -149,7 +149,10 @@ For the partitioning function we include a simple function that partitions the p
 
 .. literalinclude:: ../../Source/EBGeometry_DcelBVH.hpp
    :language: c++
-   :lines: 74-78, 83-137
+   :lines: 221-222
+
+Note that this function is just an alias for a different partitioner which splits the bounding volumes into equal-sized chunks.
+See :file:`Source/EBGeometry_DcelBVH.hpp` for details.
 
 Code example
 ____________
