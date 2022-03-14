@@ -53,6 +53,8 @@ Template constraints
      
 *  ``K`` should be greater or equal to 2.
 
+*  Currently, we do not support variable-sized trees (i.e., mixing branching ratios). 
+
 Note that the above constraints apply only to the BVH itself.
 Partitioning functions (which are, in principle, supplied by the user) may impose extra constraints.
 
@@ -159,18 +161,18 @@ Although seemingly complicated, the input arguments are simply polymorphic funct
 
 *  ``PartitionerT`` is the partitioner function when splitting a leaf node into ``K`` new leaves.
    The function takes an list of primitives which it partitions into ``K`` new list of primitives, i.e. it encapsulates :eq:`Partition`.
-   As an example, we include the *spatial split* partitioner that is provided for integrating BVH and DCEL functionality.
+   As an example, we include a partitioner that is provided for integrating BVH and DCEL functionality.
 
    .. literalinclude:: ../../Source/EBGeometry_DcelBVH.hpp
       :language: c++
-      :lines: 74-77, 82-137
+      :lines: 100-121
 
    In the above, we are taking a list of DCEL facets in the input argument (``PrimitiveList<T>`` expands to ``std::vector<std::shared_ptr<const FaceT<T> >``).
    We then compute the centroid locations of each facet and figure out along which coordinate axis we partition the objects (called ``splitDir`` above). 
    The input primitives are then sorted based on the facet centroid locations in the ``splitDir`` direction, and they are partitioned into ``K`` almost-equal chunks.
    These partitions are returned and become primitives in the new leaf nodes.
 
-   There is also en example of the same type of partitioning for the BVH-accelerated union, see `UnionBVH <doxygen/html/classUnionBVH.html>`_
+   There is also an example of the same type of partitioning for the BVH-accelerated union, see `UnionBVH <doxygen/html/classUnionBVH.html>`_
 
 In general, users are free to construct their BVHs in their own way if they choose.
 For the most part this will include the construction of their own bounding volumes and/or partitioners. 
@@ -219,7 +221,7 @@ To encapsulate the compact BVH we provide two classes:
 
    .. literalinclude:: ../../Source/EBGeometry_BVH.hpp
       :language: c++
-      :lines: 478-481,530-534,538,544
+      :lines: 477-480,529-533,537,544
 
    The root node is, of course, found at the front of the ``m_linearNodes`` vector.
    Note that the list of primitives ``m_primitives`` is stored in the order in which the leaf nodes appear in ``m_linearNodes``. 
@@ -229,7 +231,7 @@ This is done by calling the ``NodeT`` member function ``flattenTree()``:
 
 .. literalinclude:: ../../Source/EBGeometry_BVH.hpp
    :language: c++
-   :lines: 112-114,236-237,330
+   :lines: 112-114,236-237,329
 
 which returns a pointer to a ``LinearBVH``.
 For example:
