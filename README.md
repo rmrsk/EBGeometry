@@ -6,7 +6,7 @@ It was written to be used with embedded-boundary (EB) codes like Chombo or AMReX
 
 Tesselations must consist of planar polygons (not necessarily triangles).
 Internally, the surface mesh is stored in a doubly-connected edge list (DCEL), i.e. a half-edge data structure. 
-On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can naively be computed in various ways:
+On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can be computed in various ways:
 
 * Directly, by iterating through all facets.
 * With conventional bounding volume hierarchies (BVHs).
