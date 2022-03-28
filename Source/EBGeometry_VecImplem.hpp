@@ -214,6 +214,15 @@ constexpr Vec3T<T> Vec3T<T>::one() noexcept {
 
 template <class T>
 inline
+constexpr Vec3T<T> Vec3T<T>::unit(const int a_dir) noexcept {
+  Vec3T<T> v = Vec3T<T>::zero();
+  v[a_dir] = 1.0;
+
+  return v;
+}
+
+template <class T>
+inline
 constexpr Vec3T<T> Vec3T<T>::min() noexcept {
   return Vec3T<T>(-std::numeric_limits<T>::max(), -std::numeric_limits<T>::max(), -std::numeric_limits<T>::max());
 }

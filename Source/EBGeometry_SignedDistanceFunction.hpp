@@ -46,6 +46,15 @@ public:
   virtual T signedDistance(const Vec3T<T>& a_point) const noexcept = 0;
 
   /*!
+    @brief Signed distance normal vector.
+    @details Computed using finite differences with step a_delta
+    @param[in] a_point 3D point
+    @param[in] a_delta Finite difference step
+  */
+  inline
+  virtual Vec3T<T> normal(const Vec3T<T>& a_point, const T& a_delta) const noexcept;
+
+  /*!
     @brief Translate signed distance function. 
     @param[in] a_translation Distance to translate the function. 
   */  

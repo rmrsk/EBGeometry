@@ -259,6 +259,13 @@ public:
   static constexpr Vec3T<T> one() noexcept;
 
   /*!
+    @brief Return av vector with x = y = z = 1
+    @param[in] a_dir Dircetion
+  */
+  inline
+  static constexpr Vec3T<T> unit(const int a_dir) noexcept;  
+
+  /*!
     @brief Return a vector with minimum representable components. 
   */    
   inline
