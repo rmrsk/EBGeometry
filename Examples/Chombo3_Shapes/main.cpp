@@ -21,8 +21,6 @@ using Vec3 = EBGeometry::Vec3T<T>;
 class ChomboSDF : public BaseIF {
 public:
 
-
-
   ChomboSDF() = delete;
 
   ChomboSDF(std::shared_ptr<SDF>& a_sdf) {
@@ -60,15 +58,19 @@ int main(int argc, char* argv[]) {
 #endif
   
   // Set up domain. 
-  int nCells = 128;
-  ProblemDomain domain(IntVect::Zero, (nCells-1)*IntVect::Unit);
+
 
   // Parse input file
   char* inFile = argv[1];
-  ParmParse pp(argc-2,argv+2,NULL,inFile);  
+  ParmParse pp(argc-2,argv+2,NULL,inFile);
 
+  int nCells = 128;
   int whichGeom = 0;
-  pp.get("which_geom", whichGeom);
+  int gridSize = 16;
+  pp.query("which_geom", whichGeom);
+  pp.query("n_cells", nCells);
+  pp.query("grid_size", gridSize);  
+
 
   RealVect loCorner;
   RealVect hiCorner;
@@ -128,19 +130,34 @@ int main(int argc, char* argv[]) {
     hiCorner =  2*RealVect::Unit;
 
     sdf = std::make_shared<EBGeometry::InfiniteConeSDF<T> >(Vec3(0.0, 0.0, 1.0), 30.0, false);
-  }            
+  }
+  else if(whichGeom == 9){ // Finite cone. 
+    loCorner = -2*RealVect::Unit;
+    hiCorner =  2*RealVect::Unit;
 
-  // Set up the Chombo EB geometry. 
+    sdf = std::make_shared<EBGeometry::ConeSDF<T> >(Vec3(0.0, 0.0, 1.0), 2.0, 30, false);
+  }
+  if(whichGeom == 10){ // Spherical shell. 
+    loCorner = -RealVect::Unit;
+    hiCorner =  RealVect::Unit;
+
+    auto sphere = std::make_shared<EBGeometry::SphereSDF<T>> (Vec3::zero(), T(0.5), false);
+    sdf = std::make_shared<EBGeometry::AnnularSDF<T>> (sphere, 0.1);
+  }    
+  
+  
+  // Set up the Chombo EB geometry.
+  ProblemDomain domain(IntVect::Zero, (nCells-1)*IntVect::Unit);  
   const Real dx = (hiCorner[0] - loCorner[0])/nCells;;  
   auto impFunc = (BaseIF*) (new ChomboSDF(sdf));
-  GeometryShop workshop(*impFunc, -1, dx*RealVect::Unit);
+  GeometryShop workshop(*impFunc, -1, dx*RealVect::Zero);
   EBIndexSpace* ebisPtr = Chombo_EBIS::instance();
-  ebisPtr->define(domain, loCorner, dx, workshop, 16, -1);
+  ebisPtr->define(domain, loCorner, dx, workshop, gridSize, -1);
   
   // Set up the grids
   Vector<int> procs;
   Vector<Box> boxes;
-  domainSplit(domain, boxes, 16, 16);
+  domainSplit(domain, boxes, gridSize, gridSize);
   mortonOrdering(boxes);
   LoadBalance(procs, boxes);
   DisjointBoxLayout dbl(boxes, procs);
@@ -150,7 +167,7 @@ int main(int argc, char* argv[]) {
   ebisPtr->fillEBISLayout(ebisl, dbl, domain, 1);
 
   // Allocate some data that we can output
-  LevelData<EBCellFAB> data(dbl, 1, IntVect::Unit, EBCellFactory(ebisl));
+  LevelData<EBCellFAB> data(dbl, 1, IntVect::Zero, EBCellFactory(ebisl));
   for (DataIterator dit(dbl); dit.ok(); ++dit){
     EBCellFAB& fab = data[dit()];
     fab.setVal(0.0);

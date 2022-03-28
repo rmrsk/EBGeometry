@@ -84,6 +84,55 @@ protected:
 };
 
 /*!
+  @brief Annular signed distance function. Creates a shell out of an object.
+*/
+template <class T>
+class AnnularSDF : public SignedDistanceFunction<T> {
+public:
+
+  /*!
+    @brief Disallowed weak construction
+  */
+  AnnularSDF() = delete;
+
+  /*!
+    @brief Rounded SDF. Rounds the input SDF
+    @param[in] a_sdf  Input signed distance function.
+    @param[in] a_curv Rounding radius.
+  */
+  AnnularSDF(const std::shared_ptr<SignedDistanceFunction<T> > a_sdf, const T a_curv) {
+    m_sdf  = a_sdf;
+    m_curv = a_curv;    
+  }
+
+  /*!
+    @brief Destructor
+  */
+  virtual ~AnnularSDF(){
+
+  }
+
+  /*!
+    @brief Signed distance field.
+  */
+  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override {
+    return std::abs(m_sdf->signedDistance(a_point)) - m_curv;
+  }
+  
+protected:
+
+  /*!
+    @brief Original signed distance function
+  */
+  std::shared_ptr<const SignedDistanceFunction<T> > m_sdf;
+
+  /*!
+    @brief Rounding radius
+  */
+  T m_curv;
+};
+
+/*!
   @brief Scaled signed distance function.
 */
 template <class T>
@@ -833,6 +882,94 @@ protected:
     @brief Sine/cosine of angle
   */
   Vec2T<T> m_c;
+
+  /*!
+    @brief Hook for making inside -> outside.
+  */
+  bool m_flipInside;
+};
+
+/*!
+  @brief Signed distance field for an finite cone. Oriented along +z.
+*/
+template <class T>
+class ConeSDF : public SignedDistanceFunction<T> {
+public:
+
+  /*!
+    @brief Disallowed weak construction
+  */
+  ConeSDF() = delete;
+
+  /*!
+    @brief Finite cone function
+    @param[in] a_tip        Cone tip position
+    @param[in] a_height     Cone height, measured from top to bottom. 
+    @param[in] a_angle      Cone opening angle.
+    @param[in] a_flipInside Hook for making inside to outside.
+  */
+  ConeSDF(const Vec3T<T>& a_tip, const T& a_height, const T& a_angle, const bool a_flipInside) {
+    constexpr T pi = 3.14159265358979323846;
+    
+    m_tip        = a_tip;
+    m_height     = a_height;
+    m_c.x        = std::sin(0.5*a_angle*pi/180.0);
+    m_c.y        = std::cos(0.5*a_angle*pi/180.0);
+    m_flipInside = a_flipInside;
+  }
+
+  /*!
+    @brief Destructor -- does nothing
+  */
+  virtual ~ConeSDF() {
+
+  }
+
+  /*!
+    @brief Implementation of the signed distance function.
+    @param[in] a_point Position. 
+  */
+  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override {
+    const Vec3T<T> delta = a_point - m_tip;
+    const T dr = sqrt(delta[0]*delta[0] + delta[1]*delta[1]);
+    const T dz = delta[2];
+
+    constexpr T zero = T(0.0);
+    constexpr T one  = T(1.0);
+    
+    const Vec2T<T> q = m_height * Vec2T<T>(m_c.x/m_c.y,-1.0);
+    const Vec2T<T> w = Vec2T<T>(dr, dz);
+    const Vec2T<T> a = w - clamp(dot(w,q)/dot(q,q), zero, one) * q;
+    const Vec2T<T> b = w - Vec2T<T>(q.x*clamp( w.x/q.x, zero, one ), q.y);
+
+    auto sign = [](const T& x) {
+      return (x > zero) - (x < zero);
+    };
+    
+    const T k = sign(q.y);
+    const T d = std::min(dot(a,a), dot(b,b));
+    const T s = std::max(k*(w.x*q.y-w.y*q.x), k*(w.y-q.y));
+    const T flip = m_flipInside ? -one : one;
+    
+    return flip * sqrt(d) * sign(s);    
+  }
+
+protected:
+
+  /*!
+    @brief Tip position
+  */
+  Vec3T<T> m_tip;
+
+  /*!
+    @brief Sine/cosine of angle
+  */
+  Vec2T<T> m_c;
+
+  /*!
+    @brief Cone height
+  */
+  T m_height;
 
   /*!
     @brief Hook for making inside -> outside.
