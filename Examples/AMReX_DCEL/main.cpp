@@ -158,7 +158,7 @@ int main (int argc, char* argv[]) {
   }
 
   // Create our signed distance function. K is the tree degree while T is the EBGeometry precision. 
-  constexpr int K = 2;
+  constexpr int K = 4;
 	
   using T    = float;
   using Vec3 = EBGeometry::Vec3T<T>;
