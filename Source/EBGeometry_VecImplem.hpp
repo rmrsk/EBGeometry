@@ -479,6 +479,44 @@ Vec3T<T> max(const Vec3T<T>& u, const Vec3T<T>& v) noexcept {
 		  std::max(u[2], v[2]));
 }
 
+template <class T>
+inline
+T dot(const Vec3T<T>& u, const Vec3T<T>& v) noexcept {
+  return u.dot(v);
+}
+
+template <class T>
+inline
+T length(const Vec3T<T>& v) noexcept {
+  return v.length();
+}
+
+template <class T>
+inline
+Vec2T<T> min(const Vec2T<T>& u, const Vec2T<T>& v) noexcept {
+  return Vec2T<T>(std::min(u.x, v.x),
+		  std::min(u.y, v.y));
+}
+
+template <class T>
+inline
+Vec2T<T> max(const Vec2T<T>& u, const Vec2T<T>& v) noexcept {
+  return Vec2T<T>(std::max(u.x, v.x),
+		  std::max(u.y, v.y));
+}
+
+template <class T>
+inline
+T dot(const Vec2T<T>& u, const Vec2T<T>& v) noexcept {
+  return u.dot(v);
+}
+
+template <class T>
+inline
+T length(const Vec2T<T>& v) noexcept {
+  return v.length();
+}
+
 #include "EBGeometry_NamespaceFooter.hpp"
 
 #endif

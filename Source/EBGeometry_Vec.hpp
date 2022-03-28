@@ -513,7 +513,7 @@ inline
 Vec3T<T> operator/(const T& s, const Vec3T<T>& u) noexcept;
 
 /*!
-  @brief Minimum fucntion. Returns new vector with component-wise minimums. 
+  @brief Minimum function. Returns new vector with component-wise minimums. 
   @param[in] u Vector
   @param[in] v Other vector
   @return Returns new vector with components X[0] = std::min(u.X[0], v.X[0]) and so on
@@ -523,7 +523,7 @@ inline
 Vec3T<T> min(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
 /*!
-  @brief Minimum fucntion. Returns new vector with component-wise minimums. 
+  @brief Maximum function. Returns new vector with component-wise minimums. 
   @param[in] u Vector
   @param[in] v Other vector
   @return Returns new vector with components X[0] = std::max(u.X[0], v.X[0]) and so on
@@ -531,6 +531,60 @@ Vec3T<T> min(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 template <class T>
 inline
 Vec3T<T> max(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
+
+/*!
+  @brief Dot product function.
+  @param[in] u Vector
+  @param[in] v Other vector
+*/
+template <class T>
+inline
+T dot(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
+
+/*!
+  @brief Length function
+  @param[in] v Vector.
+*/
+template <class T>
+inline
+T length(const Vec3T<T>& v) noexcept;
+
+/*!
+  @brief Minimum function. Returns new vector with component-wise minimums. 
+  @param[in] u Vector
+  @param[in] v Other vector
+  @return Returns new vector with components x = std::min(u.x, v.x).
+*/
+template <class T>
+inline
+Vec2T<T> min(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
+
+/*!
+  @brief Maximum function. Returns new vector with component-wise minimums. 
+  @param[in] u Vector
+  @param[in] v Other vector
+  @return Returns new vector with components x = std::max(u.x, v.x).
+*/
+template <class T>
+inline
+Vec2T<T> max(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
+
+/*!
+  @brief Dot product function.
+  @param[in] u Vector
+  @param[in] v Other vector
+*/
+template <class T>
+inline
+T dot(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
+
+/*!
+  @brief Length function
+  @param[in] v Vector.
+*/
+template <class T>
+inline
+T length(const Vec2T<T>& v) noexcept;
 
 #include "EBGeometry_NamespaceFooter.hpp"
 
