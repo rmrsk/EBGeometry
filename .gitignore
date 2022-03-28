@@ -9,6 +9,9 @@ pout.*
 Examples/AMReX_DCEL/plt*
 Examples/AMReX_DCEL/tmp_build_dir
 Examples/AMReX_DCEL/Backtrace.*
+Examples/AMReX_Shapes/plt*
+Examples/AMReX_Shapes/tmp_build_dir
+Examples/AMReX_Shapes/Backtrace.*
 Examples/Chombo3_Shapes/d/**
 Examples/Chombo3_Shapes/o/**
 Examples/Chombo3_Shapes/f/**
