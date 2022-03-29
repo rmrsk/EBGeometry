@@ -1,6 +1,6 @@
 This folder contains some basic and advanced examples of using EBGeometry.
 
-* AMReX_DCEL - For using EBGeometry DCEL functionality with AMReX.
+* `AMReX_DCEL` - For using EBGeometry DCEL functionality with AMReX.
 * AMReX_Shapes - For using EBGeometry analytic signed distance functions with AMReX.
 * Chombo3_DCEL - For using EBGeometry DCEL functionality with Chombo3.
 * Chombo3_Shapes - For using EBGeometry analytic signed distance functions with Chombo3.
