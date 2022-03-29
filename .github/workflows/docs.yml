@@ -24,7 +24,7 @@ jobs:
       - name: Build doxygen
         run: |
           echo "Building doxygen documentation"
-          doxygen Doxyfile
+          doxygen doxyfile
           
       # - name: Deploy
       #   if: github.event_name == 'push' && github.repository == 'rmrsk/EBGeometry' && github.ref == 'refs/heads/main'
