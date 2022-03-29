@@ -32,9 +32,10 @@ jobs:
           make github
           
       - name: Deploy
+        if: github.event_name == 'push' && github.repository == 'rmrsk/EBGeometry' && github.ref == 'refs/heads/main'        
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: gh-pages
+          branch: main
           folder: docs
           clean: false
