@@ -1,4 +1,4 @@
-This example uses the embedded boundary grid generation from Chombo3.
+This example uses the embedded boundary grid generation from Chombo3, and shows how to use basic SDFs from EBGeometry. 
 To compile this application, first install Chombo somewhere and point the CHOMBO_HOME environment variable to it.
 
 Compiling
