@@ -81,6 +81,7 @@ Guided examples
    Example_Basic.rst
    Example_Union.rst
    Example_AMReX.rst
+   Example_Chombo3.rst   
 
 References
 **********

@@ -9,7 +9,13 @@ The signed distance function has the additional property:
 .. math::
    :label: Eikonal
 
-   \left|\nabla S(\mathbf{x})\right| = 1 \quad\textrm{everywhere}.   	   
+   \left|\nabla S(\mathbf{x})\right| = 1 \quad\textrm{everywhere}.
+
+Note that the normal vector is always
+
+.. math::
+
+   \mathbf{n} = \nabla S\left(\mathbf{x}\right).
    
 In EBGeometry we use the following convention: 
 
@@ -18,8 +24,10 @@ In EBGeometry we use the following convention:
    S(\mathbf{x}) =
    \begin{cases}
    > 0, & \textrm{for points outside the object}, \\
-   < 0, & \textrm{for points inside the object}.
+   < 0, & \textrm{for points inside the object},
    \end{cases}
+
+which means that the normal vector :math:`\mathbf{n}` points away from the object. 
 
 Signed distance functions are also *implicit functions* (but the reverse statement is not true).
 For example, the signed distance function for a sphere with center :math:`\mathbf{x}_0` and radius :math:`R` can be written
@@ -57,7 +65,3 @@ For non-overlapping objects represented as signed distance fields :math:`\left(S
    S\left(\mathbf{x}\right) = S_k\left(\mathbf{x}\right),
 
 where :math:`k` is index of the closest object (which is found by evaluating :math:`\left|S_i\left(\mathbf{x}\right)\right|`.
-
-.. important::
-
-   
