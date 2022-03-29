@@ -30,16 +30,9 @@ jobs:
         run: |
           cd Sphinx
           make github
-
           
-      # - name: Deploy
-      #   if: github.event_name == 'push' && github.repository == 'rmrsk/EBGeometry' && github.ref == 'refs/heads/main'
-      #   uses: JamesIves/github-pages-deploy-action@3.7.1
-      #   with:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     ACCESS_TOKEN: ${{ secrets.DEPLOY_DOCS }}
-      #     REPOSITORY_NAME: rmrsk/EBGeometry.github.io
-      #     BRANCH: main # The branch the action should deploy to.
-      #     FOLDER: build # The folder the action should deploy.
-      #     TARGET_FOLDER: amrex # The folder the action should deploy to.
-      #     CLEAN: false # Do not remove existing files from the deploy target.
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          branch: main
+          folder: docs
