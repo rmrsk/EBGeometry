@@ -17,7 +17,7 @@ jobs:
 
       - name: Dependencies
         run: |
-          python3 -m pip install doxygen
+          sudo apt install doxygen
           python3 -m pip install sphinx sphinx_rtd_theme
           python3 -m pip install -I docutils==0.16  # Downgrade docutils so that bullet points render properly with Sphinx
           
