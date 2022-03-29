@@ -1,0 +1,483 @@
+\hypertarget{classDcel_1_1EdgeT}{}\doxysection{Dcel\+::EdgeT$<$ T $>$ Class Template Reference}
+\label{classDcel_1_1EdgeT}\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+
+
+Class which represents a half-\/edge in a double-\/edge connected list (D\+C\+EL).  
+
+
+
+
+{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Dcel\+Edge.\+hpp$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a93b8679cea557c419af44385ca6d356a}\label{classDcel_1_1EdgeT_a93b8679cea557c419af44385ca6d356a}} 
+using \mbox{\hyperlink{classDcel_1_1EdgeT_a93b8679cea557c419af44385ca6d356a}{Vec3}} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a2409bc47d421bbea1c091fb6b15da271}\label{classDcel_1_1EdgeT_a2409bc47d421bbea1c091fb6b15da271}} 
+using \mbox{\hyperlink{classDcel_1_1EdgeT_a2409bc47d421bbea1c091fb6b15da271}{Vertex}} = \mbox{\hyperlink{classDcel_1_1VertexT}{VertexT}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a00184663a9d069d2c7a7e0a970f71fd5}\label{classDcel_1_1EdgeT_a00184663a9d069d2c7a7e0a970f71fd5}} 
+using \mbox{\hyperlink{classDcel_1_1EdgeT_a00184663a9d069d2c7a7e0a970f71fd5}{Edge}} = \mbox{\hyperlink{classDcel_1_1EdgeT}{EdgeT}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a46456b8f418abc6f09154e8e0d398e37}\label{classDcel_1_1EdgeT_a46456b8f418abc6f09154e8e0d398e37}} 
+using \mbox{\hyperlink{classDcel_1_1EdgeT_a46456b8f418abc6f09154e8e0d398e37}{Face}} = \mbox{\hyperlink{classDcel_1_1FaceT}{FaceT}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}\label{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}} 
+using \mbox{\hyperlink{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}{Vertex\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1EdgeT_a2409bc47d421bbea1c091fb6b15da271}{Vertex}} $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}\label{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}} 
+using \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1EdgeT_a00184663a9d069d2c7a7e0a970f71fd5}{Edge}} $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a97dd9849ea4a21223095f852e48e36e8}\label{classDcel_1_1EdgeT_a97dd9849ea4a21223095f852e48e36e8}} 
+using \mbox{\hyperlink{classDcel_1_1EdgeT_a97dd9849ea4a21223095f852e48e36e8}{Face\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1EdgeT_a46456b8f418abc6f09154e8e0d398e37}{Face}} $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_ad55f43bd1061c5ab99c80005861d5bcf}\label{classDcel_1_1EdgeT_ad55f43bd1061c5ab99c80005861d5bcf}} 
+using \mbox{\hyperlink{classDcel_1_1EdgeT_ad55f43bd1061c5ab99c80005861d5bcf}{Edge\+Iterator}} = \mbox{\hyperlink{classDcel_1_1EdgeIteratorT}{Edge\+IteratorT}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a2a9682fd036374aad598a50fe54b2c1f}\label{classDcel_1_1EdgeT_a2a9682fd036374aad598a50fe54b2c1f}} 
+\mbox{\hyperlink{classDcel_1_1EdgeT_a2a9682fd036374aad598a50fe54b2c1f}{EdgeT}} ()
+\begin{DoxyCompactList}\small\item\em Default constructor. Sets all pointers to zero and vectors to zero vectors. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classDcel_1_1EdgeT_abe96b4404fa1961df79ffa618a7e8633}{EdgeT}} (const \mbox{\hyperlink{classDcel_1_1EdgeT_a00184663a9d069d2c7a7e0a970f71fd5}{Edge}} \&a\+\_\+other\+Edge)
+\begin{DoxyCompactList}\small\item\em Copy constructor. Copies all information from the other half-\/edge. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classDcel_1_1EdgeT_a639b427e60ede1948f8344a41b9bfc32}{EdgeT}} (const \mbox{\hyperlink{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}{Vertex\+Ptr}} \&a\+\_\+vertex)
+\begin{DoxyCompactList}\small\item\em Partial constructor. Calls the default constructor but sets the starting vertex. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a94083c72ec137f822fcb08fb600ddd87}\label{classDcel_1_1EdgeT_a94083c72ec137f822fcb08fb600ddd87}} 
+\mbox{\hyperlink{classDcel_1_1EdgeT_a94083c72ec137f822fcb08fb600ddd87}{$\sim$\+EdgeT}} ()
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classDcel_1_1EdgeT_aa3257bd5d35041860b10e882e68b2c14}{define}} (const \mbox{\hyperlink{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}{Vertex\+Ptr}} \&a\+\_\+vertex, const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \&a\+\_\+pair\+Edge, const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \&a\+\_\+next\+Edge, const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \&a\+\_\+previous\+Edge, const \mbox{\hyperlink{classDcel_1_1EdgeT_a93b8679cea557c419af44385ca6d356a}{Vec3}} a\+\_\+normal) noexcept
+\begin{DoxyCompactList}\small\item\em Define function. Sets the starting vertex, edges, and normal vectors. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classDcel_1_1EdgeT_a2611a8e0ae581ab8822f677d6d69edbd}{set\+Vertex}} (const \mbox{\hyperlink{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}{Vertex\+Ptr}} \&a\+\_\+vertex) noexcept
+\begin{DoxyCompactList}\small\item\em Set the starting vertex. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classDcel_1_1EdgeT_ab9ef2366cf1d411444caf81d5159a3e1}{set\+Pair\+Edge}} (const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \&a\+\_\+pair\+Edge) noexcept
+\begin{DoxyCompactList}\small\item\em Set the pair edge. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classDcel_1_1EdgeT_aeeda5324a62f1d8b6e50d788907526bf}{set\+Next\+Edge}} (const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \&a\+\_\+next\+Edge) noexcept
+\begin{DoxyCompactList}\small\item\em Set the next edge. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classDcel_1_1EdgeT_af5aa7f27fe95ba4331259b4de927bb37}{set\+Previous\+Edge}} (const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \&a\+\_\+previous\+Edge) noexcept
+\begin{DoxyCompactList}\small\item\em Set the previous edge. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_adb65dd99901ed730354b17c59e46e1fb}\label{classDcel_1_1EdgeT_adb65dd99901ed730354b17c59e46e1fb}} 
+void \mbox{\hyperlink{classDcel_1_1EdgeT_adb65dd99901ed730354b17c59e46e1fb}{set\+Face}} (const \mbox{\hyperlink{classDcel_1_1EdgeT_a97dd9849ea4a21223095f852e48e36e8}{Face\+Ptr}} \&a\+\_\+face) noexcept
+\begin{DoxyCompactList}\small\item\em Set the pointer to this half-\/edge\textquotesingle{}s face. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_ac4aaf294fd41c84ef2f7f54a8024e6dd}\label{classDcel_1_1EdgeT_ac4aaf294fd41c84ef2f7f54a8024e6dd}} 
+void \mbox{\hyperlink{classDcel_1_1EdgeT_ac4aaf294fd41c84ef2f7f54a8024e6dd}{reconcile}} () noexcept
+\begin{DoxyCompactList}\small\item\em Compute edge normal and edge length (for performance reasons) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}{Vertex\+Ptr}} \& \mbox{\hyperlink{classDcel_1_1EdgeT_a21ffd6cdeb161ad029a4091588b701a6}{get\+Vertex}} () noexcept
+\begin{DoxyCompactList}\small\item\em Get modifiable starting vertex. \end{DoxyCompactList}\item 
+const \mbox{\hyperlink{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}{Vertex\+Ptr}} \& \mbox{\hyperlink{classDcel_1_1EdgeT_a0ab1f374fdf097c31d4bf89e9802c74e}{get\+Vertex}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get immutable starting vertex. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}{Vertex\+Ptr}} \& \mbox{\hyperlink{classDcel_1_1EdgeT_aee755532d666b7393e599bee2aa0c64f}{get\+Other\+Vertex}} () noexcept
+\begin{DoxyCompactList}\small\item\em Get modifiable end vertex. \end{DoxyCompactList}\item 
+const \mbox{\hyperlink{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}{Vertex\+Ptr}} \& \mbox{\hyperlink{classDcel_1_1EdgeT_a2281903221d8f4e73bb2596b733b4c23}{get\+Other\+Vertex}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get immutable end vertex. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \& \mbox{\hyperlink{classDcel_1_1EdgeT_a2606aadffb642797b615362881a69110}{get\+Pair\+Edge}} () noexcept
+\begin{DoxyCompactList}\small\item\em Get modifiable pair edge. \end{DoxyCompactList}\item 
+const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \& \mbox{\hyperlink{classDcel_1_1EdgeT_a7173076d4a6d9b92001df754dc01ca28}{get\+Pair\+Edge}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get immutable pair edge. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \& \mbox{\hyperlink{classDcel_1_1EdgeT_a4236992cdbc662a4ba97920ff94e4c2f}{get\+Previous\+Edge}} () noexcept
+\begin{DoxyCompactList}\small\item\em Get modifiable previous edge. \end{DoxyCompactList}\item 
+const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \& \mbox{\hyperlink{classDcel_1_1EdgeT_ae653165088f4d64e57b1c238cdf746b9}{get\+Previous\+Edge}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get immutable previous edge. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \& \mbox{\hyperlink{classDcel_1_1EdgeT_ac11f81681af8f23b49f0ac72ad67254b}{get\+Next\+Edge}} () noexcept
+\begin{DoxyCompactList}\small\item\em Get modifiable next edge. \end{DoxyCompactList}\item 
+const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \& \mbox{\hyperlink{classDcel_1_1EdgeT_a08f4b210527a087af743a1a5eacdacdb}{get\+Next\+Edge}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get immutable next edge. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_ac25506f271c0f8bb0065eaf58844b2e1}\label{classDcel_1_1EdgeT_ac25506f271c0f8bb0065eaf58844b2e1}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classDcel_1_1EdgeT_ac25506f271c0f8bb0065eaf58844b2e1}{get\+Normal}} () noexcept
+\begin{DoxyCompactList}\small\item\em Get modifiable half-\/edge normal vector. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a71f4abe61236ed2dc019e842bbc640a6}\label{classDcel_1_1EdgeT_a71f4abe61236ed2dc019e842bbc640a6}} 
+const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classDcel_1_1EdgeT_a71f4abe61236ed2dc019e842bbc640a6}{get\+Normal}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get immutable half-\/edge normal vector. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_ac4561f270bcdd1a1d97c5e9e22694493}\label{classDcel_1_1EdgeT_ac4561f270bcdd1a1d97c5e9e22694493}} 
+\mbox{\hyperlink{classDcel_1_1EdgeT_a97dd9849ea4a21223095f852e48e36e8}{Face\+Ptr}} \& \mbox{\hyperlink{classDcel_1_1EdgeT_ac4561f270bcdd1a1d97c5e9e22694493}{get\+Face}} () noexcept
+\begin{DoxyCompactList}\small\item\em Get modifiable half-\/edge face. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_adfacc7c0f09df4d1ae8863640e04a5d9}\label{classDcel_1_1EdgeT_adfacc7c0f09df4d1ae8863640e04a5d9}} 
+const \mbox{\hyperlink{classDcel_1_1EdgeT_a97dd9849ea4a21223095f852e48e36e8}{Face\+Ptr}} \& \mbox{\hyperlink{classDcel_1_1EdgeT_adfacc7c0f09df4d1ae8863640e04a5d9}{get\+Face}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get immutable half-\/edge face. \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classDcel_1_1EdgeT_adba2d72aed5f510997d06c2bc9e6e96c}{signed\+Distance}} (const \mbox{\hyperlink{classDcel_1_1EdgeT_a93b8679cea557c419af44385ca6d356a}{Vec3}} \&a\+\_\+x0) const noexcept
+\begin{DoxyCompactList}\small\item\em Get the signed distance to this half edge. \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classDcel_1_1EdgeT_a50345997f00af679875fda510b3e0607}{unsigned\+Distance2}} (const \mbox{\hyperlink{classDcel_1_1EdgeT_a93b8679cea557c419af44385ca6d356a}{Vec3}} \&a\+\_\+x0) const noexcept
+\begin{DoxyCompactList}\small\item\em Get the signed distance to this half edge. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+T \mbox{\hyperlink{classDcel_1_1EdgeT_ab937dca20cefcae4083b3cf873d83265}{project\+Point\+To\+Edge}} (const \mbox{\hyperlink{classDcel_1_1EdgeT_a93b8679cea557c419af44385ca6d356a}{Vec3}} \&a\+\_\+x0) const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the \char`\"{}projection\char`\"{} of a point to an edge. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_aae9ee7375ce72ddf5ef375fb18863e8f}\label{classDcel_1_1EdgeT_aae9ee7375ce72ddf5ef375fb18863e8f}} 
+void \mbox{\hyperlink{classDcel_1_1EdgeT_aae9ee7375ce72ddf5ef375fb18863e8f}{normalize\+Normal\+Vector}} () noexcept
+\begin{DoxyCompactList}\small\item\em Normalize the normal vector, ensuring it has length 1. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classDcel_1_1EdgeT_abddfe200f9af04cf49362d4ed1e8d37b}{compute\+Edge\+Length}} () noexcept
+\begin{DoxyCompactList}\small\item\em Compute the edge length. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_ad78566030a7781469035cc4b6ed3393b}\label{classDcel_1_1EdgeT_ad78566030a7781469035cc4b6ed3393b}} 
+void \mbox{\hyperlink{classDcel_1_1EdgeT_ad78566030a7781469035cc4b6ed3393b}{compute\+Normal}} () noexcept
+\begin{DoxyCompactList}\small\item\em Compute normal vector as average of face normals. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classDcel_1_1EdgeT_a93b8679cea557c419af44385ca6d356a}{Vec3}} \mbox{\hyperlink{classDcel_1_1EdgeT_af44c33f8b5b0a3d45cd4a83e6fde4db5}{m\+\_\+normal}}
+\begin{DoxyCompactList}\small\item\em Half-\/edge normal vector. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_af70e7b85effe62dd804638984b15695a}\label{classDcel_1_1EdgeT_af70e7b85effe62dd804638984b15695a}} 
+\mbox{\hyperlink{classDcel_1_1EdgeT_a93b8679cea557c419af44385ca6d356a}{Vec3}} \mbox{\hyperlink{classDcel_1_1EdgeT_af70e7b85effe62dd804638984b15695a}{m\+\_\+x2x1}}
+\begin{DoxyCompactList}\small\item\em Vector from the starting vertex to the end vertex. Exists for performance reasons. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a3689615754e3bdafb12109d5b82183a7}\label{classDcel_1_1EdgeT_a3689615754e3bdafb12109d5b82183a7}} 
+T \mbox{\hyperlink{classDcel_1_1EdgeT_a3689615754e3bdafb12109d5b82183a7}{m\+\_\+inv\+Len2}}
+\begin{DoxyCompactList}\small\item\em Squared inverse edge length. Exists for performance reasons. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a30813ecada33723cc466e0cd1d24abd4}\label{classDcel_1_1EdgeT_a30813ecada33723cc466e0cd1d24abd4}} 
+\mbox{\hyperlink{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}{Vertex\+Ptr}} \mbox{\hyperlink{classDcel_1_1EdgeT_a30813ecada33723cc466e0cd1d24abd4}{m\+\_\+vertex}}
+\begin{DoxyCompactList}\small\item\em Starting vertex. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a5c3bc15e1360b931231cac396493f5b6}\label{classDcel_1_1EdgeT_a5c3bc15e1360b931231cac396493f5b6}} 
+\mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \mbox{\hyperlink{classDcel_1_1EdgeT_a5c3bc15e1360b931231cac396493f5b6}{m\+\_\+pair\+Edge}}
+\begin{DoxyCompactList}\small\item\em Pair edge. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a77d21fbad704f8aa84aeddeaff1532fd}\label{classDcel_1_1EdgeT_a77d21fbad704f8aa84aeddeaff1532fd}} 
+\mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \mbox{\hyperlink{classDcel_1_1EdgeT_a77d21fbad704f8aa84aeddeaff1532fd}{m\+\_\+previous\+Edge}}
+\begin{DoxyCompactList}\small\item\em Previous edge. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a26de8e8184c0a6656a2cee2af1bc0230}\label{classDcel_1_1EdgeT_a26de8e8184c0a6656a2cee2af1bc0230}} 
+\mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \mbox{\hyperlink{classDcel_1_1EdgeT_a26de8e8184c0a6656a2cee2af1bc0230}{m\+\_\+next\+Edge}}
+\begin{DoxyCompactList}\small\item\em Next edge. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a47aaa6dbeeb6a56f1c7b6d73b2119761}\label{classDcel_1_1EdgeT_a47aaa6dbeeb6a56f1c7b6d73b2119761}} 
+\mbox{\hyperlink{classDcel_1_1EdgeT_a97dd9849ea4a21223095f852e48e36e8}{Face\+Ptr}} \mbox{\hyperlink{classDcel_1_1EdgeT_a47aaa6dbeeb6a56f1c7b6d73b2119761}{m\+\_\+face}}
+\begin{DoxyCompactList}\small\item\em Enclosing polygon face. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Dcel\+::\+Edge\+T$<$ T $>$}
+
+Class which represents a half-\/edge in a double-\/edge connected list (D\+C\+EL). 
+
+This class is used in D\+C\+EL functionality which stores polygonal surfaces in a mesh. The information contain in an \mbox{\hyperlink{classDcel_1_1EdgeT}{EdgeT}} object contains the necessary object for logically circulating the inside of a polygon face. This means that a polygon face has a double-\/connected list of half-\/edges which circulate the interior of the face. The \mbox{\hyperlink{classDcel_1_1EdgeT}{EdgeT}} object is such a half-\/edge; it represents the outgoing half-\/edge from a vertex, located such that it can be logically represented as a half edge on the \char`\"{}inside\char`\"{} of a polygon face. It contains pointers to the polygon face, next half edge, and the previous half edge. It also contains a pointer to the \char`\"{}pair\char`\"{} half edge, i.\+e. the corresponding half-\/edge on the other face that shares this edge. Since this class is used with D\+C\+EL functionality and signed distance fields, this class also has a signed distance function and thus a \char`\"{}normal vector\char`\"{}. For numericaly efficiency, some extra storage is also allocated (such as the vector between the starting vertex and the end vertex). \begin{DoxyNote}{Note}
+The normal vector is outgoing, i.\+e. a point x is \char`\"{}outside\char`\"{} if the dot product between n and (x -\/ x0) is positive. 
+\end{DoxyNote}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_abe96b4404fa1961df79ffa618a7e8633}\label{classDcel_1_1EdgeT_abe96b4404fa1961df79ffa618a7e8633}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!EdgeT@{EdgeT}}
+\index{EdgeT@{EdgeT}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{EdgeT()}{EdgeT()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::\mbox{\hyperlink{classDcel_1_1EdgeT}{EdgeT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDcel_1_1EdgeT_a00184663a9d069d2c7a7e0a970f71fd5}{Edge}} \&}]{a\+\_\+other\+Edge }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Copy constructor. Copies all information from the other half-\/edge. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+other\+Edge} & Other edge \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a639b427e60ede1948f8344a41b9bfc32}\label{classDcel_1_1EdgeT_a639b427e60ede1948f8344a41b9bfc32}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!EdgeT@{EdgeT}}
+\index{EdgeT@{EdgeT}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{EdgeT()}{EdgeT()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::\mbox{\hyperlink{classDcel_1_1EdgeT}{EdgeT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}{Vertex\+Ptr}} \&}]{a\+\_\+vertex }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Partial constructor. Calls the default constructor but sets the starting vertex. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+vertex} & Starting vertex. \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_abddfe200f9af04cf49362d4ed1e8d37b}\label{classDcel_1_1EdgeT_abddfe200f9af04cf49362d4ed1e8d37b}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!computeEdgeLength@{computeEdgeLength}}
+\index{computeEdgeLength@{computeEdgeLength}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{computeEdgeLength()}{computeEdgeLength()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::compute\+Edge\+Length\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+
+
+
+Compute the edge length. 
+
+This computes the vector m\+\_\+x2x1 (vector from starting vertex to end vertex) and the inverse length squared. \mbox{\Hypertarget{classDcel_1_1EdgeT_aa3257bd5d35041860b10e882e68b2c14}\label{classDcel_1_1EdgeT_aa3257bd5d35041860b10e882e68b2c14}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!define@{define}}
+\index{define@{define}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{define()}{define()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::define (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}{Vertex\+Ptr}} \&}]{a\+\_\+vertex,  }\item[{const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \&}]{a\+\_\+pair\+Edge,  }\item[{const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \&}]{a\+\_\+next\+Edge,  }\item[{const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \&}]{a\+\_\+previous\+Edge,  }\item[{const \mbox{\hyperlink{classDcel_1_1EdgeT_a93b8679cea557c419af44385ca6d356a}{Vec3}}}]{a\+\_\+normal }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Define function. Sets the starting vertex, edges, and normal vectors. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+vertex} & Starting vertex \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+pair\+Edge} & Pair half-\/edge \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+next\+Edge} & Next half-\/edge \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+previous\+Edge} & Previous half-\/edge \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+normal} & Edge normal vector \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a08f4b210527a087af743a1a5eacdacdb}\label{classDcel_1_1EdgeT_a08f4b210527a087af743a1a5eacdacdb}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!getNextEdge@{getNextEdge}}
+\index{getNextEdge@{getNextEdge}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getNextEdge()}{getNextEdge()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}}\& \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::get\+Next\+Edge (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get immutable next edge. 
+
+\begin{DoxyReturn}{Returns}
+Returns the next edge 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_ac11f81681af8f23b49f0ac72ad67254b}\label{classDcel_1_1EdgeT_ac11f81681af8f23b49f0ac72ad67254b}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!getNextEdge@{getNextEdge}}
+\index{getNextEdge@{getNextEdge}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getNextEdge()}{getNextEdge()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1EdgeT}{EdgeT}}$<$ T $>$ $>$ \& \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::get\+Next\+Edge\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get modifiable next edge. 
+
+\begin{DoxyReturn}{Returns}
+Returns the next edge 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a2281903221d8f4e73bb2596b733b4c23}\label{classDcel_1_1EdgeT_a2281903221d8f4e73bb2596b733b4c23}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!getOtherVertex@{getOtherVertex}}
+\index{getOtherVertex@{getOtherVertex}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getOtherVertex()}{getOtherVertex()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const \mbox{\hyperlink{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}{Vertex\+Ptr}}\& \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::get\+Other\+Vertex (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get immutable end vertex. 
+
+\begin{DoxyReturn}{Returns}
+Returns the next half-\/edge\textquotesingle{}s starting vertex 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_aee755532d666b7393e599bee2aa0c64f}\label{classDcel_1_1EdgeT_aee755532d666b7393e599bee2aa0c64f}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!getOtherVertex@{getOtherVertex}}
+\index{getOtherVertex@{getOtherVertex}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getOtherVertex()}{getOtherVertex()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1VertexT}{VertexT}}$<$ T $>$ $>$ \& \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::get\+Other\+Vertex\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get modifiable end vertex. 
+
+\begin{DoxyReturn}{Returns}
+Returns the next half-\/edge\textquotesingle{}s starting vertex 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a7173076d4a6d9b92001df754dc01ca28}\label{classDcel_1_1EdgeT_a7173076d4a6d9b92001df754dc01ca28}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!getPairEdge@{getPairEdge}}
+\index{getPairEdge@{getPairEdge}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getPairEdge()}{getPairEdge()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}}\& \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::get\+Pair\+Edge (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get immutable pair edge. 
+
+\begin{DoxyReturn}{Returns}
+Returns the pair edge 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a2606aadffb642797b615362881a69110}\label{classDcel_1_1EdgeT_a2606aadffb642797b615362881a69110}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!getPairEdge@{getPairEdge}}
+\index{getPairEdge@{getPairEdge}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getPairEdge()}{getPairEdge()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1EdgeT}{EdgeT}}$<$ T $>$ $>$ \& \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::get\+Pair\+Edge\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get modifiable pair edge. 
+
+\begin{DoxyReturn}{Returns}
+Returns the pair edge 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_ae653165088f4d64e57b1c238cdf746b9}\label{classDcel_1_1EdgeT_ae653165088f4d64e57b1c238cdf746b9}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!getPreviousEdge@{getPreviousEdge}}
+\index{getPreviousEdge@{getPreviousEdge}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getPreviousEdge()}{getPreviousEdge()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}}\& \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::get\+Previous\+Edge (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get immutable previous edge. 
+
+\begin{DoxyReturn}{Returns}
+Returns the previous edge 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a4236992cdbc662a4ba97920ff94e4c2f}\label{classDcel_1_1EdgeT_a4236992cdbc662a4ba97920ff94e4c2f}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!getPreviousEdge@{getPreviousEdge}}
+\index{getPreviousEdge@{getPreviousEdge}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getPreviousEdge()}{getPreviousEdge()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1EdgeT}{EdgeT}}$<$ T $>$ $>$ \& \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::get\+Previous\+Edge\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get modifiable previous edge. 
+
+\begin{DoxyReturn}{Returns}
+Returns the previous edge 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a0ab1f374fdf097c31d4bf89e9802c74e}\label{classDcel_1_1EdgeT_a0ab1f374fdf097c31d4bf89e9802c74e}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!getVertex@{getVertex}}
+\index{getVertex@{getVertex}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getVertex()}{getVertex()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const \mbox{\hyperlink{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}{Vertex\+Ptr}}\& \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::get\+Vertex (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get immutable starting vertex. 
+
+\begin{DoxyReturn}{Returns}
+Returns m\+\_\+vertex 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a21ffd6cdeb161ad029a4091588b701a6}\label{classDcel_1_1EdgeT_a21ffd6cdeb161ad029a4091588b701a6}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!getVertex@{getVertex}}
+\index{getVertex@{getVertex}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getVertex()}{getVertex()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1VertexT}{VertexT}}$<$ T $>$ $>$ \& \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::get\+Vertex\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get modifiable starting vertex. 
+
+\begin{DoxyReturn}{Returns}
+Returns m\+\_\+vertex 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_ab937dca20cefcae4083b3cf873d83265}\label{classDcel_1_1EdgeT_ab937dca20cefcae4083b3cf873d83265}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!projectPointToEdge@{projectPointToEdge}}
+\index{projectPointToEdge@{projectPointToEdge}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{projectPointToEdge()}{projectPointToEdge()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::project\+Point\+To\+Edge (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDcel_1_1EdgeT_a93b8679cea557c419af44385ca6d356a}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the \char`\"{}projection\char`\"{} of a point to an edge. 
+
+This function parametrizes the edge as x(t) = x0 + (x1-\/x0)$\ast$t and returns where on the this edge the point a\+\_\+x0 projects. If projects onto the edge if t = \mbox{[}0,1\mbox{]} and to one of the start/end vertices otherwise. \mbox{\Hypertarget{classDcel_1_1EdgeT_aeeda5324a62f1d8b6e50d788907526bf}\label{classDcel_1_1EdgeT_aeeda5324a62f1d8b6e50d788907526bf}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!setNextEdge@{setNextEdge}}
+\index{setNextEdge@{setNextEdge}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{setNextEdge()}{setNextEdge()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::set\+Next\+Edge (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \&}]{a\+\_\+next\+Edge }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Set the next edge. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+next\+Edge} & Next edge \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_ab9ef2366cf1d411444caf81d5159a3e1}\label{classDcel_1_1EdgeT_ab9ef2366cf1d411444caf81d5159a3e1}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!setPairEdge@{setPairEdge}}
+\index{setPairEdge@{setPairEdge}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{setPairEdge()}{setPairEdge()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::set\+Pair\+Edge (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \&}]{a\+\_\+pair\+Edge }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Set the pair edge. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+pair\+Edge} & Pair edge \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_af5aa7f27fe95ba4331259b4de927bb37}\label{classDcel_1_1EdgeT_af5aa7f27fe95ba4331259b4de927bb37}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!setPreviousEdge@{setPreviousEdge}}
+\index{setPreviousEdge@{setPreviousEdge}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{setPreviousEdge()}{setPreviousEdge()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::set\+Previous\+Edge (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDcel_1_1EdgeT_af525f4228d820f6b8b23fc02d937e4c8}{Edge\+Ptr}} \&}]{a\+\_\+previous\+Edge }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Set the previous edge. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+previous\+Edge} & Previous edge \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_a2611a8e0ae581ab8822f677d6d69edbd}\label{classDcel_1_1EdgeT_a2611a8e0ae581ab8822f677d6d69edbd}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!setVertex@{setVertex}}
+\index{setVertex@{setVertex}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{setVertex()}{setVertex()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::set\+Vertex (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDcel_1_1EdgeT_ab4ba57cfc6b2f90da43096eea87bb284}{Vertex\+Ptr}} \&}]{a\+\_\+vertex }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Set the starting vertex. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+vertex} & Starting vertex \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_adba2d72aed5f510997d06c2bc9e6e96c}\label{classDcel_1_1EdgeT_adba2d72aed5f510997d06c2bc9e6e96c}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!signedDistance@{signedDistance}}
+\index{signedDistance@{signedDistance}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDcel_1_1EdgeT_a93b8679cea557c419af44385ca6d356a}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the signed distance to this half edge. 
+
+This routine will check if the input point projects to the edge or one of the vertices. If it projectes to one of the vertices we compute the signed distance to the corresponding vertex. Otherwise we compute the projection to the edge and compute the sign from the normal vector. \mbox{\Hypertarget{classDcel_1_1EdgeT_a50345997f00af679875fda510b3e0607}\label{classDcel_1_1EdgeT_a50345997f00af679875fda510b3e0607}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!unsignedDistance2@{unsignedDistance2}}
+\index{unsignedDistance2@{unsignedDistance2}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{unsignedDistance2()}{unsignedDistance2()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::unsigned\+Distance2 (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDcel_1_1EdgeT_a93b8679cea557c419af44385ca6d356a}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the signed distance to this half edge. 
+
+This routine will check if the input point projects to the edge or one of the vertices. If it projectes to one of the vertices we compute the squared distance to the corresponding vertex. Otherwise we compute the squared distance of the projection to the edge. This is faster than \mbox{\hyperlink{classDcel_1_1EdgeT_adba2d72aed5f510997d06c2bc9e6e96c}{signed\+Distance()}} 
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{classDcel_1_1EdgeT_af44c33f8b5b0a3d45cd4a83e6fde4db5}\label{classDcel_1_1EdgeT_af44c33f8b5b0a3d45cd4a83e6fde4db5}} 
+\index{Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}!m\_normal@{m\_normal}}
+\index{m\_normal@{m\_normal}!Dcel::EdgeT$<$ T $>$@{Dcel::EdgeT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{m\_normal}{m\_normal}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classDcel_1_1EdgeT_a93b8679cea557c419af44385ca6d356a}{Vec3}} \mbox{\hyperlink{classDcel_1_1EdgeT}{Dcel\+::\+EdgeT}}$<$ T $>$\+::m\+\_\+normal\hspace{0.3cm}{\ttfamily [protected]}}
+
+
+
+Half-\/edge normal vector. 
+
+Computed in compute\+Normal which sets the normal vector to be the average of the normal vector of the connected faces 
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+Source/\mbox{\hyperlink{EBGeometry__DcelEdge_8hpp}{E\+B\+Geometry\+\_\+\+Dcel\+Edge.\+hpp}}\item 
+Source/\mbox{\hyperlink{EBGeometry__DcelEdgeImplem_8hpp}{E\+B\+Geometry\+\_\+\+Dcel\+Edge\+Implem.\+hpp}}\end{DoxyCompactItemize}

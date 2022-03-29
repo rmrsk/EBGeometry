@@ -1,0 +1,307 @@
+\hypertarget{EBGeometry__Vec_8hpp}{}\doxysection{Source/\+E\+B\+Geometry\+\_\+\+Vec.hpp File Reference}
+\label{EBGeometry__Vec_8hpp}\index{Source/EBGeometry\_Vec.hpp@{Source/EBGeometry\_Vec.hpp}}
+
+
+Declaration of 2D and 3D point/vector classes with templated precision. Used with D\+C\+EL tools.  
+
+
+{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Namespace\+Header.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Namespace\+Footer.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Vec\+Implem.\+hpp\char`\"{}}\newline
+Include dependency graph for E\+B\+Geometry\+\_\+\+Vec.\+hpp\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{EBGeometry__Vec_8hpp__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{EBGeometry__Vec_8hpp__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classVec2T}{Vec2\+T$<$ T $>$}}
+\begin{DoxyCompactList}\small\item\em Two-\/dimensional vector class with arithmetic operators. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classVec3T}{Vec3\+T$<$ T $>$}}
+\begin{DoxyCompactList}\small\item\em Three-\/dimensional vector class with arithmetic operators. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$class T $>$ }\\\mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{EBGeometry__Vec_8hpp_a011c551978bb37db35ea3520fb23bd00}{operator$\ast$}} (const T \&s, const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&a\+\_\+other) noexcept
+\begin{DoxyCompactList}\small\item\em Multiplication operator in the form s$\ast$\+Vec2T. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\\mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{EBGeometry__Vec_8hpp_a519f71e021376fe40b7d2f6e451fba02}{operator/}} (const T \&s, const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&a\+\_\+other) noexcept
+\begin{DoxyCompactList}\small\item\em Division operator in the form s$\ast$\+Vec2T. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{EBGeometry__Vec_8hpp_affba8fd8ad3fc6110fbba33be5ad6187}{operator$\ast$}} (const T \&s, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&u) noexcept
+\begin{DoxyCompactList}\small\item\em Multiplication operator. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{EBGeometry__Vec_8hpp_aeeeedd62e251ff33f2e37286e391a0f8}{operator/}} (const T \&s, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&u) noexcept
+\begin{DoxyCompactList}\small\item\em Division operator. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{EBGeometry__Vec_8hpp_a291f01622695ab94c0092c3af0a1f3ca}{min}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&u, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&v) noexcept
+\begin{DoxyCompactList}\small\item\em Minimum function. Returns new vector with component-\/wise minimums. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{EBGeometry__Vec_8hpp_a71f0bc32c9be501cf01a1b6c715dc0a9}{max}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&u, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&v) noexcept
+\begin{DoxyCompactList}\small\item\em Maximum function. Returns new vector with component-\/wise minimums. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\T \mbox{\hyperlink{EBGeometry__Vec_8hpp_a3f91a5c6f34c32789ab4760665810a9a}{dot}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&u, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&v) noexcept
+\begin{DoxyCompactList}\small\item\em Dot product function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\T \mbox{\hyperlink{EBGeometry__Vec_8hpp_aa7f7e15df344c873d1a27b30f77d0831}{length}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&v) noexcept
+\begin{DoxyCompactList}\small\item\em Length function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\\mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{EBGeometry__Vec_8hpp_af9ce43058d66582ec3736b13a7ca5dc2}{min}} (const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&u, const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&v) noexcept
+\begin{DoxyCompactList}\small\item\em Minimum function. Returns new vector with component-\/wise minimums. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\\mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{EBGeometry__Vec_8hpp_a49e4d83079ba2af66014b14d2cf9fffd}{max}} (const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&u, const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&v) noexcept
+\begin{DoxyCompactList}\small\item\em Maximum function. Returns new vector with component-\/wise minimums. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\T \mbox{\hyperlink{EBGeometry__Vec_8hpp_adfdac8ac7b17d6c165b7296d8f1b8780}{dot}} (const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&u, const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&v) noexcept
+\begin{DoxyCompactList}\small\item\em Dot product function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\T \mbox{\hyperlink{EBGeometry__Vec_8hpp_ac7cf88fcdf43f2f197b741a126274cab}{length}} (const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&v) noexcept
+\begin{DoxyCompactList}\small\item\em Length function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Declaration of 2D and 3D point/vector classes with templated precision. Used with D\+C\+EL tools. 
+
+\begin{DoxyAuthor}{Author}
+Robert Marskar 
+\end{DoxyAuthor}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{EBGeometry__Vec_8hpp_adfdac8ac7b17d6c165b7296d8f1b8780}\label{EBGeometry__Vec_8hpp_adfdac8ac7b17d6c165b7296d8f1b8780}} 
+\index{EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}!dot@{dot}}
+\index{dot@{dot}!EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}}
+\doxysubsubsection{\texorpdfstring{dot()}{dot()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T dot (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{u,  }\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Dot product function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em u} & Vector \\
+\hline
+\mbox{\texttt{ in}}  & {\em v} & Other vector \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{EBGeometry__Vec_8hpp_a3f91a5c6f34c32789ab4760665810a9a}\label{EBGeometry__Vec_8hpp_a3f91a5c6f34c32789ab4760665810a9a}} 
+\index{EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}!dot@{dot}}
+\index{dot@{dot}!EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}}
+\doxysubsubsection{\texorpdfstring{dot()}{dot()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T dot (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{u,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Dot product function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em u} & Vector \\
+\hline
+\mbox{\texttt{ in}}  & {\em v} & Other vector \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{EBGeometry__Vec_8hpp_ac7cf88fcdf43f2f197b741a126274cab}\label{EBGeometry__Vec_8hpp_ac7cf88fcdf43f2f197b741a126274cab}} 
+\index{EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}!length@{length}}
+\index{length@{length}!EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}}
+\doxysubsubsection{\texorpdfstring{length()}{length()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T length (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Length function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em v} & Vector. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{EBGeometry__Vec_8hpp_aa7f7e15df344c873d1a27b30f77d0831}\label{EBGeometry__Vec_8hpp_aa7f7e15df344c873d1a27b30f77d0831}} 
+\index{EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}!length@{length}}
+\index{length@{length}!EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}}
+\doxysubsubsection{\texorpdfstring{length()}{length()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T length (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Length function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em v} & Vector. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{EBGeometry__Vec_8hpp_a49e4d83079ba2af66014b14d2cf9fffd}\label{EBGeometry__Vec_8hpp_a49e4d83079ba2af66014b14d2cf9fffd}} 
+\index{EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}!max@{max}}
+\index{max@{max}!EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}}
+\doxysubsubsection{\texorpdfstring{max()}{max()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classVec2T}{Vec2T}}$<$T$>$ max (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{u,  }\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Maximum function. Returns new vector with component-\/wise minimums. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em u} & Vector \\
+\hline
+\mbox{\texttt{ in}}  & {\em v} & Other vector \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns new vector with components x = std\+::max(u.\+x, v.\+x). 
+\end{DoxyReturn}
+\mbox{\Hypertarget{EBGeometry__Vec_8hpp_a71f0bc32c9be501cf01a1b6c715dc0a9}\label{EBGeometry__Vec_8hpp_a71f0bc32c9be501cf01a1b6c715dc0a9}} 
+\index{EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}!max@{max}}
+\index{max@{max}!EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}}
+\doxysubsubsection{\texorpdfstring{max()}{max()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$ max (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{u,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Maximum function. Returns new vector with component-\/wise minimums. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em u} & Vector \\
+\hline
+\mbox{\texttt{ in}}  & {\em v} & Other vector \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns new vector with components X\mbox{[}0\mbox{]} = std\+::max(u.\+X\mbox{[}0\mbox{]}, v.\+X\mbox{[}0\mbox{]}) and so on 
+\end{DoxyReturn}
+\mbox{\Hypertarget{EBGeometry__Vec_8hpp_af9ce43058d66582ec3736b13a7ca5dc2}\label{EBGeometry__Vec_8hpp_af9ce43058d66582ec3736b13a7ca5dc2}} 
+\index{EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}!min@{min}}
+\index{min@{min}!EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}}
+\doxysubsubsection{\texorpdfstring{min()}{min()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classVec2T}{Vec2T}}$<$T$>$ min (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{u,  }\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Minimum function. Returns new vector with component-\/wise minimums. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em u} & Vector \\
+\hline
+\mbox{\texttt{ in}}  & {\em v} & Other vector \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns new vector with components x = std\+::min(u.\+x, v.\+x). 
+\end{DoxyReturn}
+\mbox{\Hypertarget{EBGeometry__Vec_8hpp_a291f01622695ab94c0092c3af0a1f3ca}\label{EBGeometry__Vec_8hpp_a291f01622695ab94c0092c3af0a1f3ca}} 
+\index{EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}!min@{min}}
+\index{min@{min}!EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}}
+\doxysubsubsection{\texorpdfstring{min()}{min()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$ min (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{u,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Minimum function. Returns new vector with component-\/wise minimums. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em u} & Vector \\
+\hline
+\mbox{\texttt{ in}}  & {\em v} & Other vector \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns new vector with components X\mbox{[}0\mbox{]} = std\+::min(u.\+X\mbox{[}0\mbox{]}, v.\+X\mbox{[}0\mbox{]}) and so on 
+\end{DoxyReturn}
+\mbox{\Hypertarget{EBGeometry__Vec_8hpp_a011c551978bb37db35ea3520fb23bd00}\label{EBGeometry__Vec_8hpp_a011c551978bb37db35ea3520fb23bd00}} 
+\index{EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}!operator$\ast$@{operator$\ast$}}
+\index{operator$\ast$@{operator$\ast$}!EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}}
+\doxysubsubsection{\texorpdfstring{operator$\ast$()}{operator*()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classVec2T}{Vec2T}}$<$T$>$ operator$\ast$ (\begin{DoxyParamCaption}\item[{const T \&}]{s,  }\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Multiplication operator in the form s$\ast$\+Vec2T. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em s} & Multiplication factor \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+other} & Other vector \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns a new vector with components x = s$\ast$a\+\_\+other.x (and same for y) 
+\end{DoxyReturn}
+\mbox{\Hypertarget{EBGeometry__Vec_8hpp_affba8fd8ad3fc6110fbba33be5ad6187}\label{EBGeometry__Vec_8hpp_affba8fd8ad3fc6110fbba33be5ad6187}} 
+\index{EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}!operator$\ast$@{operator$\ast$}}
+\index{operator$\ast$@{operator$\ast$}!EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}}
+\doxysubsubsection{\texorpdfstring{operator$\ast$()}{operator*()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$ operator$\ast$ (\begin{DoxyParamCaption}\item[{const T \&}]{s,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{u }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Multiplication operator. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em s} & Multiplication scalar \\
+\hline
+\mbox{\texttt{ in}}  & {\em u} & Vector \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns new vector with components X\mbox{[}0\mbox{]} = s$\ast$X\mbox{[}0\mbox{]} and so on. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{EBGeometry__Vec_8hpp_a519f71e021376fe40b7d2f6e451fba02}\label{EBGeometry__Vec_8hpp_a519f71e021376fe40b7d2f6e451fba02}} 
+\index{EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}!operator/@{operator/}}
+\index{operator/@{operator/}!EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}}
+\doxysubsubsection{\texorpdfstring{operator/()}{operator/()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classVec2T}{Vec2T}}$<$T$>$ operator/ (\begin{DoxyParamCaption}\item[{const T \&}]{s,  }\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Division operator in the form s$\ast$\+Vec2T. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em s} & Division factor \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+other} & Other vector \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns a new vector with components x = (1/s)$\ast$a\+\_\+other.x (and same for y) 
+\end{DoxyReturn}
+\mbox{\Hypertarget{EBGeometry__Vec_8hpp_aeeeedd62e251ff33f2e37286e391a0f8}\label{EBGeometry__Vec_8hpp_aeeeedd62e251ff33f2e37286e391a0f8}} 
+\index{EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}!operator/@{operator/}}
+\index{operator/@{operator/}!EBGeometry\_Vec.hpp@{EBGeometry\_Vec.hpp}}
+\doxysubsubsection{\texorpdfstring{operator/()}{operator/()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$ operator/ (\begin{DoxyParamCaption}\item[{const T \&}]{s,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{u }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Division operator. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em s} & Division scalar \\
+\hline
+\mbox{\texttt{ in}}  & {\em u} & Vector \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns new vector with components X\mbox{[}0\mbox{]} = X\mbox{[}0\mbox{]}/s and so on. 
+\end{DoxyReturn}

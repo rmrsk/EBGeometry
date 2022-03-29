@@ -1,0 +1,116 @@
+\hypertarget{classInfiniteCylinderSDF}{}\doxysection{Infinite\+Cylinder\+S\+DF$<$ T $>$ Class Template Reference}
+\label{classInfiniteCylinderSDF}\index{InfiniteCylinderSDF$<$ T $>$@{InfiniteCylinderSDF$<$ T $>$}}
+
+
+Inifinitely long cylinder class. Oriented along the y-\/axis.  
+
+
+
+
+{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp$>$}
+
+
+
+Inheritance diagram for Infinite\+Cylinder\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classInfiniteCylinderSDF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Infinite\+Cylinder\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classInfiniteCylinderSDF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classInfiniteCylinderSDF_abc81fa508a1a13fca1758709e0248271}\label{classInfiniteCylinderSDF_abc81fa508a1a13fca1758709e0248271}} 
+\mbox{\hyperlink{classInfiniteCylinderSDF_abc81fa508a1a13fca1758709e0248271}{Infinite\+Cylinder\+S\+DF}} ()=delete
+\begin{DoxyCompactList}\small\item\em No weak construction. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classInfiniteCylinderSDF_aaa0a9c54dfc487f872cdd88f8e541ea5}{Infinite\+Cylinder\+S\+DF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+center, const T \&a\+\_\+radius, const int a\+\_\+axis, const bool a\+\_\+flip\+Inside)
+\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
+virtual T \mbox{\hyperlink{classInfiniteCylinderSDF_a2481e68ea21c304c858878ae1d7fc031}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Signed distance function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classInfiniteCylinderSDF_a02b7b8fa4346f819552a3a5c2f5a0306}\label{classInfiniteCylinderSDF_a02b7b8fa4346f819552a3a5c2f5a0306}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classInfiniteCylinderSDF_a02b7b8fa4346f819552a3a5c2f5a0306}{m\+\_\+center}}
+\begin{DoxyCompactList}\small\item\em Cylinder center. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classInfiniteCylinderSDF_aa8442ccd669243ad7b71179816d0c422}\label{classInfiniteCylinderSDF_aa8442ccd669243ad7b71179816d0c422}} 
+T \mbox{\hyperlink{classInfiniteCylinderSDF_aa8442ccd669243ad7b71179816d0c422}{m\+\_\+radius}}
+\begin{DoxyCompactList}\small\item\em Cylinder radius. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classInfiniteCylinderSDF_a36b116fd51b909e3fb8e92d69671d7bc}\label{classInfiniteCylinderSDF_a36b116fd51b909e3fb8e92d69671d7bc}} 
+int \mbox{\hyperlink{classInfiniteCylinderSDF_a36b116fd51b909e3fb8e92d69671d7bc}{m\+\_\+axis}}
+\begin{DoxyCompactList}\small\item\em Axis. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classInfiniteCylinderSDF_a0b8b948474bef4db0f338a91a28a4326}\label{classInfiniteCylinderSDF_a0b8b948474bef4db0f338a91a28a4326}} 
+bool \mbox{\hyperlink{classInfiniteCylinderSDF_a0b8b948474bef4db0f338a91a28a4326}{m\+\_\+flip\+Inside}}
+\begin{DoxyCompactList}\small\item\em Hook for making outside -\/$>$ inside. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Infinite\+Cylinder\+S\+D\+F$<$ T $>$}
+
+Inifinitely long cylinder class. Oriented along the y-\/axis. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classInfiniteCylinderSDF_aaa0a9c54dfc487f872cdd88f8e541ea5}\label{classInfiniteCylinderSDF_aaa0a9c54dfc487f872cdd88f8e541ea5}} 
+\index{InfiniteCylinderSDF$<$ T $>$@{InfiniteCylinderSDF$<$ T $>$}!InfiniteCylinderSDF@{InfiniteCylinderSDF}}
+\index{InfiniteCylinderSDF@{InfiniteCylinderSDF}!InfiniteCylinderSDF$<$ T $>$@{InfiniteCylinderSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{InfiniteCylinderSDF()}{InfiniteCylinderSDF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classInfiniteCylinderSDF}{Infinite\+Cylinder\+S\+DF}}$<$ T $>$\+::\mbox{\hyperlink{classInfiniteCylinderSDF}{Infinite\+Cylinder\+S\+DF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+center,  }\item[{const T \&}]{a\+\_\+radius,  }\item[{const int}]{a\+\_\+axis,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Full constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+center} & Center point for the cylinder. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+radius} & Cylinder radius. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+axis} & Cylinder axis. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+flip\+Inside} & Hook for flipping inside/outside. \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classInfiniteCylinderSDF_a2481e68ea21c304c858878ae1d7fc031}\label{classInfiniteCylinderSDF_a2481e68ea21c304c858878ae1d7fc031}} 
+\index{InfiniteCylinderSDF$<$ T $>$@{InfiniteCylinderSDF$<$ T $>$}!signedDistance@{signedDistance}}
+\index{signedDistance@{signedDistance}!InfiniteCylinderSDF$<$ T $>$@{InfiniteCylinderSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+virtual T \mbox{\hyperlink{classInfiniteCylinderSDF}{Infinite\+Cylinder\+S\+DF}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Signed distance function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Position. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{Signed\+Distance\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Source/\mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp}{E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp}}\end{DoxyCompactItemize}

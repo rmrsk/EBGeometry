@@ -1,0 +1,13 @@
+<map id="Source/EBGeometry_DcelPolygon2D.hpp" name="Source/EBGeometry_DcelPolygon2D.hpp">
+<area shape="rect" id="node1" title="Declaration of a two&#45;dimensional polygon class for embedding 3D polygon faces." alt="" coords="328,5,576,47"/>
+<area shape="rect" id="node2" title=" " alt="" coords="5,95,83,121"/>
+<area shape="rect" id="node3" title=" " alt="" coords="107,95,170,121"/>
+<area shape="rect" id="node4" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="371,95,533,121"/>
+<area shape="rect" id="node5" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="78,244,341,271"/>
+<area shape="rect" id="node6" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="567,244,823,271"/>
+<area shape="rect" id="node10" href="$EBGeometry__DcelPolygon2DImplem_8hpp.html" title="Implementation of DcelPolygon.hpp." alt="" coords="619,95,907,121"/>
+<area shape="rect" id="node7" href="$EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp." alt="" coords="346,169,558,196"/>
+<area shape="rect" id="node8" title=" " alt="" coords="365,244,433,271"/>
+<area shape="rect" id="node9" title=" " alt="" coords="457,244,543,271"/>
+<area shape="rect" id="node11" title=" " alt="" coords="733,169,813,196"/>
+</map>

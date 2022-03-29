@@ -1,0 +1,5 @@
+<map id="TransformOp&lt; T &gt;" name="TransformOp&lt; T &gt;">
+<area shape="rect" id="node1" title="Base class for transformation operators." alt="" coords="71,5,213,32"/>
+<area shape="rect" id="node2" href="$classRotateOp.html" title="Rotation operator. Can scale an input point." alt="" coords="5,80,127,107"/>
+<area shape="rect" id="node3" href="$classTranslateOp.html" title="Translation operator. Can translate an input point." alt="" coords="151,80,288,107"/>
+</map>

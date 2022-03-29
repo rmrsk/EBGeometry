@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unions &mdash; EBGeometry 1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="&lt;no title&gt;" href="Examples.html" />
+    <link rel="prev" title="Signed distance function" href="ImplemSDF.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> EBGeometry
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html#features">Features</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html">Signed distance fields</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html#transformations">Transformations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html#unions">Unions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DCEL.html">DCEL mesh structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Implementation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="ImplemVec.html">Vector types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">Bounding volume hierarchy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemSDF.html">Signed distance function</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Unions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#standard-union">Standard union</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#bvh-enabled-union">BVH-enabled union</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Reading mesh files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Example_Union.html">Unions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Example_AMReX.html">Integration with AMReX</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">EBGeometry</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Unions</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/ImplemUnion.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="unions">
+<span id="chap-union"></span><h1>Unions<a class="headerlink" href="#unions" title="Permalink to this headline"></a></h1>
+<p>As discussed in <a class="reference internal" href="Concepts.html#chap-concepts"><span class="std std-ref">Signed distance fields</span></a>, a union of signed distance fields can be created provided that the objects do not touch or overlap.
+EBGeometry provides two implementations:</p>
+<ul class="simple">
+<li><p><strong>Standard union</strong> where one looks through every primitive in the union.</p></li>
+<li><p><strong>BVH-enabled union</strong> where bounding volume hierarchies are used to find the closest object.</p></li>
+</ul>
+<div class="section" id="standard-union">
+<h2>Standard union<a class="headerlink" href="#standard-union" title="Permalink to this headline"></a></h2>
+<p>The standard union is template as</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">Union</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+
+  <span class="k">using</span> <span class="n">SDF</span> <span class="o">=</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+
+  <span class="n">Union</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">SDF</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">a_distanceFunctions</span><span class="p">,</span> <span class="k">const</span> <span class="kt">bool</span> <span class="n">a_flipSign</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">EBGeometry::Union</span></code> inherits from <code class="docutils literal notranslate"><span class="pre">EBGeometry::SignedDistanceFunction</span></code> and thus provides a <code class="docutils literal notranslate"><span class="pre">signedDistance(...)</span></code> function.
+The implementation of the standard union is</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="n">T</span> <span class="n">Union</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="p">{</span>
+  <span class="k">const</span> <span class="kt">int</span> <span class="n">numDistanceFunctions</span> <span class="o">=</span> <span class="n">m_distanceFunctions</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+
+  <span class="n">T</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">infinity</span><span class="p">();</span>
+  
+  <span class="k">for</span> <span class="p">(</span><span class="k">const</span> <span class="k">auto</span> <span class="o">&amp;</span> <span class="nl">sdf</span> <span class="p">:</span> <span class="n">m_distanceFunctions</span><span class="p">){</span>
+    <span class="k">const</span> <span class="n">T</span> <span class="n">cur</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">a_point</span><span class="p">);</span>
+
+    <span class="n">ret</span> <span class="o">=</span> <span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">cur</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">ret</span><span class="p">))</span> <span class="o">?</span> <span class="nl">cur</span> <span class="p">:</span> <span class="n">ret</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">T</span> <span class="n">sign</span> <span class="o">=</span> <span class="p">(</span><span class="n">m_flipSign</span><span class="p">)</span> <span class="o">?</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">:</span> <span class="mf">1.0</span><span class="p">;</span>  
+  
+  <span class="k">return</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">ret</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>That is, it iterates through <em>all</em> the objects in order to find the signed distance.</p>
+</div>
+<div class="section" id="bvh-enabled-union">
+<h2>BVH-enabled union<a class="headerlink" href="#bvh-enabled-union" title="Permalink to this headline"></a></h2>
+<p>The BVH-enabled union is implemented by <code class="docutils literal notranslate"><span class="pre">EBGeometry::UnionBVH</span></code> as follows:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">UnionBVH</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+
+  <span class="k">using</span> <span class="n">SDF</span> <span class="o">=</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+
+  <span class="k">using</span> <span class="n">BVConstructor</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">BVConstructorT</span><span class="o">&lt;</span><span class="n">SDF</span><span class="p">,</span> <span class="n">BV</span><span class="o">&gt;</span><span class="p">;</span>
+
+  <span class="n">UnionBVH</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">SDF</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">a_distanceFunctions</span><span class="p">,</span>
+	   <span class="k">const</span> <span class="kt">bool</span>                                <span class="n">a_flipSign</span><span class="p">,</span>
+	   <span class="k">const</span> <span class="n">BVConstructor</span><span class="o">&amp;</span>                      <span class="n">a_bvConstructor</span><span class="p">);</span>  
+
+  <span class="n">T</span> <span class="nf">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="k">override</span><span class="p">;</span>  
+  
+<span class="k">protected</span><span class="o">:</span>
+
+  <span class="k">using</span> <span class="n">LinearNode</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">LinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">SDF</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">;</span>  
+
+  <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">LinearNode</span><span class="o">&gt;</span> <span class="n">m_rootNode</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<p>As always, the template parameter <code class="docutils literal notranslate"><span class="pre">T</span></code> indicates the precision, <code class="docutils literal notranslate"><span class="pre">BV</span></code> the bounding volume type and <code class="docutils literal notranslate"><span class="pre">K</span></code> the tree degree.
+<code class="docutils literal notranslate"><span class="pre">UnionBVH</span></code> takes a bounding volume constructor in addition to the list of primitives, see <a class="reference internal" href="ImplemBVH.html#chap-bvhconstruction"><span class="std std-ref">Construction</span></a>.</p>
+<p>Internally, <code class="docutils literal notranslate"><span class="pre">UnionBVH</span></code> defines its own partitioning function which is identical to the implementation for DCEL meshes (see <a class="reference internal" href="ImplemDCEL.html#chap-bvhintegration"><span class="std std-ref">BVH integration</span></a>), with the exception that the partitioning is based on the centroids of the bounding volumes rather than the centroid of the primitives.
+After partitioning the primitives, the original BVH tree is flattened onto the compact representation.</p>
+<p>The implementation of the signed distance function for the BVH-enabled union is</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
+<span class="n">T</span> <span class="n">UnionBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;::</span><span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="p">{</span>
+  <span class="k">const</span> <span class="n">T</span> <span class="n">sign</span> <span class="o">=</span> <span class="p">(</span><span class="n">m_flipSign</span><span class="p">)</span> <span class="o">?</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">:</span> <span class="mf">1.0</span><span class="p">;</span>
+
+  <span class="k">return</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">a_point</span><span class="p">);</span>  
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>That is, it relies on pruning from the BVH functionality for finding the signed distance to the closest object.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ImplemSDF.html" class="btn btn-neutral float-left" title="Signed distance function" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Examples.html" class="btn btn-neutral float-right" title="&lt;no title&gt;" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Robert Marskar.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,5 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$classTransformOp.html" title="Base class for transformation operators." alt="" coords="5,31,148,57"/>
+<area shape="rect" id="node2" href="$classRotateOp.html" title="Rotation operator. Can scale an input point." alt="" coords="204,5,325,32"/>
+<area shape="rect" id="node3" href="$classTranslateOp.html" title="Translation operator. Can translate an input point." alt="" coords="196,56,333,83"/>
+</map>

@@ -1,0 +1,92 @@
+\hypertarget{classRoundedSDF}{}\doxysection{Rounded\+S\+DF$<$ T $>$ Class Template Reference}
+\label{classRoundedSDF}\index{RoundedSDF$<$ T $>$@{RoundedSDF$<$ T $>$}}
+
+
+Rounded signed distance function.  
+
+
+
+
+{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp$>$}
+
+
+
+Inheritance diagram for Rounded\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classRoundedSDF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Rounded\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classRoundedSDF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classRoundedSDF_aa73420a1e3fb92c494d9c1a816a922df}\label{classRoundedSDF_aa73420a1e3fb92c494d9c1a816a922df}} 
+\mbox{\hyperlink{classRoundedSDF_aa73420a1e3fb92c494d9c1a816a922df}{Rounded\+S\+DF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classRoundedSDF_a43fab465f2292dbe4e36245f121c6317}{Rounded\+S\+DF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classSignedDistanceFunction}{Signed\+Distance\+Function}}$<$ T $>$ $>$ a\+\_\+sdf, const T a\+\_\+curv)
+\begin{DoxyCompactList}\small\item\em Rounded S\+DF. Rounds the input S\+DF. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRoundedSDF_aa0dcf33ab7a2d2ec9af1382b19b25ba5}\label{classRoundedSDF_aa0dcf33ab7a2d2ec9af1382b19b25ba5}} 
+virtual \mbox{\hyperlink{classRoundedSDF_aa0dcf33ab7a2d2ec9af1382b19b25ba5}{$\sim$\+Rounded\+S\+DF}} ()
+\begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRoundedSDF_a3e59b861e66c4398a7a0cc8ecda0e318}\label{classRoundedSDF_a3e59b861e66c4398a7a0cc8ecda0e318}} 
+virtual T \mbox{\hyperlink{classRoundedSDF_a3e59b861e66c4398a7a0cc8ecda0e318}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Signed distance field. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classRoundedSDF_af4d6d34f07b0361fd9d59e61eaf29fb2}\label{classRoundedSDF_af4d6d34f07b0361fd9d59e61eaf29fb2}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classSignedDistanceFunction}{Signed\+Distance\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{classRoundedSDF_af4d6d34f07b0361fd9d59e61eaf29fb2}{m\+\_\+sdf}}
+\begin{DoxyCompactList}\small\item\em Original signed distance function. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRoundedSDF_a14b74a40c596b4c15cae26b9a678200b}\label{classRoundedSDF_a14b74a40c596b4c15cae26b9a678200b}} 
+T \mbox{\hyperlink{classRoundedSDF_a14b74a40c596b4c15cae26b9a678200b}{m\+\_\+curv}}
+\begin{DoxyCompactList}\small\item\em Rounding radius. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Rounded\+S\+D\+F$<$ T $>$}
+
+Rounded signed distance function. 
+
+Rounded distance function -- returns the original distance function displaced by the specified rounding radius. \begin{DoxyNote}{Note}
+Users may need to scale their distance functions afterwards. 
+\end{DoxyNote}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classRoundedSDF_a43fab465f2292dbe4e36245f121c6317}\label{classRoundedSDF_a43fab465f2292dbe4e36245f121c6317}} 
+\index{RoundedSDF$<$ T $>$@{RoundedSDF$<$ T $>$}!RoundedSDF@{RoundedSDF}}
+\index{RoundedSDF@{RoundedSDF}!RoundedSDF$<$ T $>$@{RoundedSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{RoundedSDF()}{RoundedSDF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classRoundedSDF}{Rounded\+S\+DF}}$<$ T $>$\+::\mbox{\hyperlink{classRoundedSDF}{Rounded\+S\+DF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classSignedDistanceFunction}{Signed\+Distance\+Function}}$<$ T $>$ $>$}]{a\+\_\+sdf,  }\item[{const T}]{a\+\_\+curv }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Rounded S\+DF. Rounds the input S\+DF. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+sdf} & Input signed distance function. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+curv} & Rounding radius. \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Source/\mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp}{E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp}}\end{DoxyCompactItemize}

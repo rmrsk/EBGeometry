@@ -1,0 +1,69 @@
+\hypertarget{classTransformOp}{}\doxysection{Transform\+Op$<$ T $>$ Class Template Reference}
+\label{classTransformOp}\index{TransformOp$<$ T $>$@{TransformOp$<$ T $>$}}
+
+
+Base class for transformation operators.  
+
+
+
+
+{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Transform\+Ops.\+hpp$>$}
+
+
+
+Inheritance diagram for Transform\+Op$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=292pt]{classTransformOp__inherit__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classTransformOp_ab904cbdd373ca07e08b254163331b3b4}\label{classTransformOp_ab904cbdd373ca07e08b254163331b3b4}} 
+\mbox{\hyperlink{classTransformOp_ab904cbdd373ca07e08b254163331b3b4}{Transform\+Op}} ()=default
+\begin{DoxyCompactList}\small\item\em Default constructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTransformOp_a556cc7f5bbe70ce148a0791b883eb58c}\label{classTransformOp_a556cc7f5bbe70ce148a0791b883eb58c}} 
+virtual \mbox{\hyperlink{classTransformOp_a556cc7f5bbe70ce148a0791b883eb58c}{$\sim$\+Transform\+Op}} ()=default
+\begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
+virtual \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classTransformOp_a61c1920daa9f55fd2ea9095cbcfa18b8}{transform}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+input\+Point) const noexcept=0
+\begin{DoxyCompactList}\small\item\em Transform input coordinate. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Transform\+Op$<$ T $>$}
+
+Base class for transformation operators. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classTransformOp_a61c1920daa9f55fd2ea9095cbcfa18b8}\label{classTransformOp_a61c1920daa9f55fd2ea9095cbcfa18b8}} 
+\index{TransformOp$<$ T $>$@{TransformOp$<$ T $>$}!transform@{transform}}
+\index{transform@{transform}!TransformOp$<$ T $>$@{TransformOp$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{transform()}{transform()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+virtual \mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$ \mbox{\hyperlink{classTransformOp}{Transform\+Op}}$<$ T $>$\+::transform (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+input\+Point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [pure virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Transform input coordinate. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+input\+Point} & Input point \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns transformed point. 
+\end{DoxyReturn}
+
+
+Implemented in \mbox{\hyperlink{classRotateOp_aaffc25806ef6b9d7ea6651aa2bb9767c}{Rotate\+Op$<$ T $>$}}, and \mbox{\hyperlink{classTranslateOp_a16941d9e52b02d39f9c92f6b23f61af6}{Translate\+Op$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Source/\mbox{\hyperlink{EBGeometry__TransformOps_8hpp}{E\+B\+Geometry\+\_\+\+Transform\+Ops.\+hpp}}\end{DoxyCompactItemize}

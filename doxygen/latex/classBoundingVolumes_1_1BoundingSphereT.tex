@@ -1,0 +1,273 @@
+\hypertarget{classBoundingVolumes_1_1BoundingSphereT}{}\doxysection{Bounding\+Volumes\+::Bounding\+SphereT$<$ T $>$ Class Template Reference}
+\label{classBoundingVolumes_1_1BoundingSphereT}\index{BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}}
+
+
+Class which encloses a set of points using a bounding sphere.  
+
+
+
+
+{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}\label{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}} 
+enum \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}{Bounding\+Volume\+Algorithm}} \{ {\bfseries Ritter}
+ \}
+\begin{DoxyCompactList}\small\item\em Typename for possible algorithms that support the computation of a bounding sphere for a set of 3D points. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_ad89ed315255abcde216e9ca1de3068ab}\label{classBoundingVolumes_1_1BoundingSphereT_ad89ed315255abcde216e9ca1de3068ab}} 
+using \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ad89ed315255abcde216e9ca1de3068ab}{Vec3}} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a5616a743d8b53b11533ef47b3da281aa}\label{classBoundingVolumes_1_1BoundingSphereT_a5616a743d8b53b11533ef47b3da281aa}} 
+\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a5616a743d8b53b11533ef47b3da281aa}{Bounding\+SphereT}} ()
+\begin{DoxyCompactList}\small\item\em Default constructor. Leaves object in undefined state. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a9e81ed0ce76489225f5dbd57ed1abc8f}{Bounding\+SphereT}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+center, const T \&a\+\_\+radius)
+\begin{DoxyCompactList}\small\item\em Full constructor. Sets the center and radius of the bounding sphere. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_af9cd8b7e77ed36178073be298efd27f0}{Bounding\+SphereT}} (const std\+::vector$<$ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ T $>$ $>$ \&a\+\_\+other\+Spheres)
+\begin{DoxyCompactList}\small\item\em Full constructor. Constructs a bounding sphere that encloses all the other bounding spheres. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_afd5a1632d9ceef8a4fa3af59e562c7f8}{Bounding\+SphereT}} (const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}} \&a\+\_\+other)
+\begin{DoxyCompactList}\small\item\em Copy constructor. Sets the center and radius from the other sphere. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a4495da5774e14f97c0e7579b37cfd60e}\label{classBoundingVolumes_1_1BoundingSphereT_a4495da5774e14f97c0e7579b37cfd60e}} 
+virtual \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a4495da5774e14f97c0e7579b37cfd60e}{$\sim$\+Bounding\+SphereT}} ()
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing). \end{DoxyCompactList}\item 
+{\footnotesize template$<$class P $>$ }\\\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a88655edd39b6276b9bb58eb9bd6af82d}{Bounding\+SphereT}} (const std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ P $>$ $>$ \&a\+\_\+points, const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}{Bounding\+Volume\+Algorithm}} \&a\+\_\+alg=Bounding\+Volume\+Algorithm\+::\+Ritter)
+\begin{DoxyCompactList}\small\item\em Template constructor which takes a set of 3D points (mixed precision allowed). \end{DoxyCompactList}\item 
+{\footnotesize template$<$class P $>$ }\\void \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_aac21650a7d3f65081483512064cbcfa8}{define}} (const std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ P $>$ $>$ \&a\+\_\+points, const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}{Bounding\+Volume\+Algorithm}} \&a\+\_\+alg) noexcept
+\begin{DoxyCompactList}\small\item\em Template define function which takes a set of 3D points (mixed precision allowed). \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a90baad0c400aac7645a7e8c1ab13096a}{intersects}} (const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}} \&a\+\_\+other) const noexcept
+\begin{DoxyCompactList}\small\item\em Check if this bounding sphere intersect another bounding sphere. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_ab4c2ce5157e8d0ef1bca21b4961b87ca}\label{classBoundingVolumes_1_1BoundingSphereT_ab4c2ce5157e8d0ef1bca21b4961b87ca}} 
+T \& \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ab4c2ce5157e8d0ef1bca21b4961b87ca}{get\+Radius}} () noexcept
+\begin{DoxyCompactList}\small\item\em Get modifiable radius for this sphere. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a39505641b000388ea3d4deb9b3a77366}\label{classBoundingVolumes_1_1BoundingSphereT_a39505641b000388ea3d4deb9b3a77366}} 
+const T \& \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a39505641b000388ea3d4deb9b3a77366}{get\+Radius}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get immutable radius for this sphere. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a8261b0ed0924457fad8fad95bf0037b6}\label{classBoundingVolumes_1_1BoundingSphereT_a8261b0ed0924457fad8fad95bf0037b6}} 
+\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ad89ed315255abcde216e9ca1de3068ab}{Vec3}} \& \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a8261b0ed0924457fad8fad95bf0037b6}{get\+Centroid}} () noexcept
+\begin{DoxyCompactList}\small\item\em Get modifiable center for this sphere. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_aa4a9440bca3cbd568e1d245455866f32}\label{classBoundingVolumes_1_1BoundingSphereT_aa4a9440bca3cbd568e1d245455866f32}} 
+const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ad89ed315255abcde216e9ca1de3068ab}{Vec3}} \& \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_aa4a9440bca3cbd568e1d245455866f32}{get\+Centroid}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get immutable center for this sphere. \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a4581b87c7a3ccd3b58168bfdae9436cb}{get\+Overlapping\+Volume}} (const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ T $>$ \&a\+\_\+other) const noexcept
+\begin{DoxyCompactList}\small\item\em Compute the overlapping volume between this bounding sphere and another. \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a06ec858b7349e6a926ad476990c774cb}{get\+Distance}} (const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ad89ed315255abcde216e9ca1de3068ab}{Vec3}} \&a\+\_\+x0) const noexcept
+\begin{DoxyCompactList}\small\item\em Get the distance to this bounding sphere (points inside the sphere have a zero distance) \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a44e0069495c19069fced07aab8e614c6}{get\+Volume}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the sphere volume. \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a303fd50d1b8d27c7014c50ba0867a0b3}{get\+Area}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the sphere area. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_abea0326be2d1843f3ad7c6de1ebe2418}\label{classBoundingVolumes_1_1BoundingSphereT_abea0326be2d1843f3ad7c6de1ebe2418}} 
+{\footnotesize template$<$class P $>$ }\\void \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_abea0326be2d1843f3ad7c6de1ebe2418}{build\+Ritter}} (const std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ P $>$ $>$ \&a\+\_\+points) noexcept
+\begin{DoxyCompactList}\small\item\em Template function which computes the bounding sphere for a set of points (mixed precision allowed) using Ritter\textquotesingle{}s algorithm. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_adb424c867ed93cf5fdb62afe07a96a05}\label{classBoundingVolumes_1_1BoundingSphereT_adb424c867ed93cf5fdb62afe07a96a05}} 
+T \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_adb424c867ed93cf5fdb62afe07a96a05}{m\+\_\+radius}}
+\begin{DoxyCompactList}\small\item\em Sphere radius. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_ad65d5be68c4028651d959dc8b88fe944}\label{classBoundingVolumes_1_1BoundingSphereT_ad65d5be68c4028651d959dc8b88fe944}} 
+\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ad89ed315255abcde216e9ca1de3068ab}{Vec3}} \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ad65d5be68c4028651d959dc8b88fe944}{m\+\_\+center}}
+\begin{DoxyCompactList}\small\item\em Sphere center. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Bounding\+Volumes\+::\+Bounding\+Sphere\+T$<$ T $>$}
+
+Class which encloses a set of points using a bounding sphere. 
+
+The template parameter T is the floating-\/point precision which is used. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a9e81ed0ce76489225f5dbd57ed1abc8f}\label{classBoundingVolumes_1_1BoundingSphereT_a9e81ed0ce76489225f5dbd57ed1abc8f}} 
+\index{BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}!BoundingSphereT@{BoundingSphereT}}
+\index{BoundingSphereT@{BoundingSphereT}!BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{BoundingSphereT()}{BoundingSphereT()}\hspace{0.1cm}{\footnotesize\ttfamily [1/4]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+Volumes\+::\+Bounding\+SphereT}}$<$ T $>$\+::\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+center,  }\item[{const T \&}]{a\+\_\+radius }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Full constructor. Sets the center and radius of the bounding sphere. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+center} & Bounding sphere center \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+radius} & Bounding sphere radius \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_af9cd8b7e77ed36178073be298efd27f0}\label{classBoundingVolumes_1_1BoundingSphereT_af9cd8b7e77ed36178073be298efd27f0}} 
+\index{BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}!BoundingSphereT@{BoundingSphereT}}
+\index{BoundingSphereT@{BoundingSphereT}!BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{BoundingSphereT()}{BoundingSphereT()}\hspace{0.1cm}{\footnotesize\ttfamily [2/4]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+Volumes\+::\+Bounding\+SphereT}}$<$ T $>$\+::\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ T $>$ $>$ \&}]{a\+\_\+other\+Spheres }\end{DoxyParamCaption})}
+
+
+
+Full constructor. Constructs a bounding sphere that encloses all the other bounding spheres. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+other\+Spheres} & Other bounding spheres. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_afd5a1632d9ceef8a4fa3af59e562c7f8}\label{classBoundingVolumes_1_1BoundingSphereT_afd5a1632d9ceef8a4fa3af59e562c7f8}} 
+\index{BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}!BoundingSphereT@{BoundingSphereT}}
+\index{BoundingSphereT@{BoundingSphereT}!BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{BoundingSphereT()}{BoundingSphereT()}\hspace{0.1cm}{\footnotesize\ttfamily [3/4]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+Volumes\+::\+Bounding\+SphereT}}$<$ T $>$\+::\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption})}
+
+
+
+Copy constructor. Sets the center and radius from the other sphere. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+other} & Other sphere \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a88655edd39b6276b9bb58eb9bd6af82d}\label{classBoundingVolumes_1_1BoundingSphereT_a88655edd39b6276b9bb58eb9bd6af82d}} 
+\index{BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}!BoundingSphereT@{BoundingSphereT}}
+\index{BoundingSphereT@{BoundingSphereT}!BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{BoundingSphereT()}{BoundingSphereT()}\hspace{0.1cm}{\footnotesize\ttfamily [4/4]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+template$<$class P $>$ \\
+\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+Volumes\+::\+Bounding\+SphereT}}$<$ T $>$\+::\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ P $>$ $>$ \&}]{a\+\_\+points,  }\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}{Bounding\+Volume\+Algorithm}} \&}]{a\+\_\+alg = {\ttfamily BoundingVolumeAlgorithm\+:\+:Ritter} }\end{DoxyParamCaption})}
+
+
+
+Template constructor which takes a set of 3D points (mixed precision allowed). 
+
+This computes the bounding sphere using the supplied algorithm. 
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+points} & Set of 3D points \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+alg} & Bounding sphere algorithm. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+This calls the define(...) function. 
+\end{DoxyNote}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_aac21650a7d3f65081483512064cbcfa8}\label{classBoundingVolumes_1_1BoundingSphereT_aac21650a7d3f65081483512064cbcfa8}} 
+\index{BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}!define@{define}}
+\index{define@{define}!BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{define()}{define()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+template$<$class P $>$ \\
+void \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+Volumes\+::\+Bounding\+SphereT}}$<$ T $>$\+::define (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ P $>$ $>$ \&}]{a\+\_\+points,  }\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}{Bounding\+Volume\+Algorithm}} \&}]{a\+\_\+alg }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Template define function which takes a set of 3D points (mixed precision allowed). 
+
+This computes the bounding sphere using the supplied algorithm. 
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+points} & Set of 3D points \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+alg} & Bounding sphere algorithm. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a303fd50d1b8d27c7014c50ba0867a0b3}\label{classBoundingVolumes_1_1BoundingSphereT_a303fd50d1b8d27c7014c50ba0867a0b3}} 
+\index{BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}!getArea@{getArea}}
+\index{getArea@{getArea}!BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getArea()}{getArea()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+Volumes\+::\+Bounding\+SphereT}}$<$ T $>$\+::get\+Area\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the sphere area. 
+
+\begin{DoxyReturn}{Returns}
+Sphere area. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a06ec858b7349e6a926ad476990c774cb}\label{classBoundingVolumes_1_1BoundingSphereT_a06ec858b7349e6a926ad476990c774cb}} 
+\index{BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}!getDistance@{getDistance}}
+\index{getDistance@{getDistance}!BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getDistance()}{getDistance()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+Volumes\+::\+Bounding\+SphereT}}$<$ T $>$\+::get\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ad89ed315255abcde216e9ca1de3068ab}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the distance to this bounding sphere (points inside the sphere have a zero distance) 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+x0} & 3D point \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns the distance to the sphere (a point inside has a zero distance) 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a4581b87c7a3ccd3b58168bfdae9436cb}\label{classBoundingVolumes_1_1BoundingSphereT_a4581b87c7a3ccd3b58168bfdae9436cb}} 
+\index{BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}!getOverlappingVolume@{getOverlappingVolume}}
+\index{getOverlappingVolume@{getOverlappingVolume}!BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getOverlappingVolume()}{getOverlappingVolume()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+Volumes\+::\+Bounding\+SphereT}}$<$ T $>$\+::get\+Overlapping\+Volume (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Compute the overlapping volume between this bounding sphere and another. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+other} & Other bounding sphere \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+The overlapping volume, computing using standard expressions. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a44e0069495c19069fced07aab8e614c6}\label{classBoundingVolumes_1_1BoundingSphereT_a44e0069495c19069fced07aab8e614c6}} 
+\index{BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}!getVolume@{getVolume}}
+\index{getVolume@{getVolume}!BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getVolume()}{getVolume()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+Volumes\+::\+Bounding\+SphereT}}$<$ T $>$\+::get\+Volume\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the sphere volume. 
+
+\begin{DoxyReturn}{Returns}
+Sphere volume 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a90baad0c400aac7645a7e8c1ab13096a}\label{classBoundingVolumes_1_1BoundingSphereT_a90baad0c400aac7645a7e8c1ab13096a}} 
+\index{BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}!intersects@{intersects}}
+\index{intersects@{intersects}!BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{intersects()}{intersects()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+bool \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+Volumes\+::\+Bounding\+SphereT}}$<$ T $>$\+::intersects (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Check if this bounding sphere intersect another bounding sphere. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+other} & Other bounding sphere. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if the two sphere intersect. 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+Source/\mbox{\hyperlink{EBGeometry__BoundingVolumes_8hpp}{E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp}}\item 
+Source/\mbox{\hyperlink{EBGeometry__BoundingVolumesImplem_8hpp}{E\+B\+Geometry\+\_\+\+Bounding\+Volumes\+Implem.\+hpp}}\end{DoxyCompactItemize}

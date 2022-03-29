@@ -1,0 +1,240 @@
+\hypertarget{classDcel_1_1Parser_1_1PLY}{}\doxysection{Dcel\+::Parser\+::P\+LY$<$ T $>$ Class Template Reference}
+\label{classDcel_1_1Parser_1_1PLY}\index{Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}}
+
+
+Class for generation a Dcel\+::\+Mesh\+T$<$\+T$>$ from the Stanford \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{P\+LY}} file format.  
+
+
+
+
+{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Dcel\+Parser.\+hpp$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+using \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}{Vertex}} = \mbox{\hyperlink{classDcel_1_1VertexT}{VertexT}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias for cutting down on typing. \end{DoxyCompactList}\item 
+using \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_af3741c96a8a8434780665641912ff1d4}{Edge}} = \mbox{\hyperlink{classDcel_1_1EdgeT}{EdgeT}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias for cutting down on typing. \end{DoxyCompactList}\item 
+using \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_ac67854dee5613f4e877e8caddb4580f3}{Face}} = \mbox{\hyperlink{classDcel_1_1FaceT}{FaceT}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias for cutting down on typing. \end{DoxyCompactList}\item 
+using \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_a047f135a59b43a0fb84f3629a790bba4}{Mesh}} = \mbox{\hyperlink{classDcel_1_1MeshT}{MeshT}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias for cutting down on typing. \end{DoxyCompactList}\item 
+using \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_aa0a9888ee0a1539928e6c1ffdda299a8}{Edge\+Iterator}} = \mbox{\hyperlink{classDcel_1_1EdgeIteratorT}{Edge\+IteratorT}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias for cutting down on typing. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_a047f135a59b43a0fb84f3629a790bba4}{Mesh}} $>$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_aaf13b770fe4d9cfc4e419af7418fc35c}{read\+A\+S\+C\+II}} (const std\+::string a\+\_\+filename)
+\begin{DoxyCompactList}\small\item\em Static function which reads an A\+S\+C\+II .ply file and returns a D\+C\+EL mesh. \end{DoxyCompactList}\item 
+static void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_a280f083c1901248de1c69321783ad9d1}{read\+A\+S\+C\+II}} (\mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_a047f135a59b43a0fb84f3629a790bba4}{Mesh}} \&a\+\_\+mesh, const std\+::string a\+\_\+filename)
+\begin{DoxyCompactList}\small\item\em Static function which reads an A\+S\+C\+II .ply file and puts it in a mesh. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Static Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_aa8741e334f6c350e1269a42ee1022e57}{read\+Header\+A\+S\+C\+II}} (int \&a\+\_\+num\+Vertices, int \&a\+\_\+num\+Faces, std\+::ifstream \&a\+\_\+input\+Stream)
+\begin{DoxyCompactList}\small\item\em Read an A\+S\+C\+II header. \end{DoxyCompactList}\item 
+static void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_a755c28a17a836a05af31991a87212df0}{read\+Vertices\+A\+S\+C\+II}} (std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}{Vertex}} $>$ $>$ \&a\+\_\+vertices, const int a\+\_\+num\+Vertices, std\+::ifstream \&a\+\_\+input\+Stream)
+\begin{DoxyCompactList}\small\item\em Read A\+S\+C\+II vertices. \end{DoxyCompactList}\item 
+static void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_ae54284d1c7c18a584bd14678763a58e7}{read\+Faces\+A\+S\+C\+II}} (std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_ac67854dee5613f4e877e8caddb4580f3}{Face}} $>$ $>$ \&a\+\_\+faces, std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_af3741c96a8a8434780665641912ff1d4}{Edge}} $>$ $>$ \&a\+\_\+edges, const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}{Vertex}} $>$ $>$ \&a\+\_\+vertices, const int a\+\_\+num\+Faces, std\+::ifstream \&a\+\_\+input\+Stream)
+\begin{DoxyCompactList}\small\item\em Read A\+S\+C\+II faces and create mesh connectivity. \end{DoxyCompactList}\item 
+static void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_afaceb1664b12f30599fe68faba6ca725}{reconcile\+Pair\+Edges}} (std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_af3741c96a8a8434780665641912ff1d4}{Edge}} $>$ $>$ \&a\+\_\+edges)
+\begin{DoxyCompactList}\small\item\em Reconcile pair edges, i.\+e. find the pair edge for every constructed half-\/edge. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Dcel\+::\+Parser\+::\+P\+L\+Y$<$ T $>$}
+
+Class for generation a Dcel\+::\+Mesh\+T$<$\+T$>$ from the Stanford \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{P\+LY}} file format. 
+
+\begin{DoxyNote}{Note}
+T is the precision used for storing the mesh. 
+\end{DoxyNote}
+
+
+\doxysubsection{Member Typedef Documentation}
+\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_af3741c96a8a8434780665641912ff1d4}\label{classDcel_1_1Parser_1_1PLY_af3741c96a8a8434780665641912ff1d4}} 
+\index{Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}!Edge@{Edge}}
+\index{Edge@{Edge}!Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{Edge}{Edge}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+using \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::\mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_af3741c96a8a8434780665641912ff1d4}{Edge}} =  \mbox{\hyperlink{classDcel_1_1EdgeT}{EdgeT}}$<$T$>$}
+
+
+
+Alias for cutting down on typing. 
+
+\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_aa0a9888ee0a1539928e6c1ffdda299a8}\label{classDcel_1_1Parser_1_1PLY_aa0a9888ee0a1539928e6c1ffdda299a8}} 
+\index{Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}!EdgeIterator@{EdgeIterator}}
+\index{EdgeIterator@{EdgeIterator}!Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{EdgeIterator}{EdgeIterator}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+using \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::\mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_aa0a9888ee0a1539928e6c1ffdda299a8}{Edge\+Iterator}} =  \mbox{\hyperlink{classDcel_1_1EdgeIteratorT}{Edge\+IteratorT}}$<$T$>$}
+
+
+
+Alias for cutting down on typing. 
+
+\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_ac67854dee5613f4e877e8caddb4580f3}\label{classDcel_1_1Parser_1_1PLY_ac67854dee5613f4e877e8caddb4580f3}} 
+\index{Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}!Face@{Face}}
+\index{Face@{Face}!Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{Face}{Face}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+using \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::\mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_ac67854dee5613f4e877e8caddb4580f3}{Face}} =  \mbox{\hyperlink{classDcel_1_1FaceT}{FaceT}}$<$T$>$}
+
+
+
+Alias for cutting down on typing. 
+
+\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_a047f135a59b43a0fb84f3629a790bba4}\label{classDcel_1_1Parser_1_1PLY_a047f135a59b43a0fb84f3629a790bba4}} 
+\index{Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}!Mesh@{Mesh}}
+\index{Mesh@{Mesh}!Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{Mesh}{Mesh}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+using \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::\mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_a047f135a59b43a0fb84f3629a790bba4}{Mesh}} =  \mbox{\hyperlink{classDcel_1_1MeshT}{MeshT}}$<$T$>$}
+
+
+
+Alias for cutting down on typing. 
+
+\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}\label{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}} 
+\index{Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}!Vertex@{Vertex}}
+\index{Vertex@{Vertex}!Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{Vertex}{Vertex}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+using \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::\mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}{Vertex}} =  \mbox{\hyperlink{classDcel_1_1VertexT}{VertexT}}$<$T$>$}
+
+
+
+Alias for cutting down on typing. 
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_aaf13b770fe4d9cfc4e419af7418fc35c}\label{classDcel_1_1Parser_1_1PLY_aaf13b770fe4d9cfc4e419af7418fc35c}} 
+\index{Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}!readASCII@{readASCII}}
+\index{readASCII@{readASCII}!Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{readASCII()}{readASCII()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+std\+::shared\+\_\+ptr$<$ E\+B\+Geometry\+::\+Dcel\+::\+MeshT$<$ T $>$ $>$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::read\+A\+S\+C\+II (\begin{DoxyParamCaption}\item[{const std\+::string}]{a\+\_\+filename }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+
+
+Static function which reads an A\+S\+C\+II .ply file and returns a D\+C\+EL mesh. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+filename} & File name \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_a280f083c1901248de1c69321783ad9d1}\label{classDcel_1_1Parser_1_1PLY_a280f083c1901248de1c69321783ad9d1}} 
+\index{Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}!readASCII@{readASCII}}
+\index{readASCII@{readASCII}!Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{readASCII()}{readASCII()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::read\+A\+S\+C\+II (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_a047f135a59b43a0fb84f3629a790bba4}{Mesh}} \&}]{a\+\_\+mesh,  }\item[{const std\+::string}]{a\+\_\+filename }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+
+
+Static function which reads an A\+S\+C\+II .ply file and puts it in a mesh. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ out}}  & {\em a\+\_\+mesh} & D\+C\+EL mesh \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+filename} & File name \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_ae54284d1c7c18a584bd14678763a58e7}\label{classDcel_1_1Parser_1_1PLY_ae54284d1c7c18a584bd14678763a58e7}} 
+\index{Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}!readFacesASCII@{readFacesASCII}}
+\index{readFacesASCII@{readFacesASCII}!Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{readFacesASCII()}{readFacesASCII()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::read\+Faces\+A\+S\+C\+II (\begin{DoxyParamCaption}\item[{std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_ac67854dee5613f4e877e8caddb4580f3}{Face}} $>$ $>$ \&}]{a\+\_\+faces,  }\item[{std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_af3741c96a8a8434780665641912ff1d4}{Edge}} $>$ $>$ \&}]{a\+\_\+edges,  }\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}{Vertex}} $>$ $>$ \&}]{a\+\_\+vertices,  }\item[{const int}]{a\+\_\+num\+Faces,  }\item[{std\+::ifstream \&}]{a\+\_\+input\+Stream }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}}
+
+
+
+Read A\+S\+C\+II faces and create mesh connectivity. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ out}}  & {\em a\+\_\+faces} & D\+C\+EL faces. Constructured in this routine. \\
+\hline
+\mbox{\texttt{ out}}  & {\em a\+\_\+edges} & D\+C\+EL edges. Constructured in this routine. \\
+\hline
+\mbox{\texttt{ out}}  & {\em a\+\_\+vertices} & D\+C\+EL edges. Constructured in read\+Vertices\+A\+S\+C\+II. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+num\+Faces} & Total number of faces in mesh. \\
+\hline
+\mbox{\texttt{ in,out}}  & {\em a\+\_\+input\+Stream} & Input stream \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+The next getline() from input\+Stream must read the first face, i.\+e. we assume that read\+\_\+ascii\+\_\+vertices was called I\+M\+M\+E\+D\+I\+A\+T\+E\+LY before this function. That function will center the fstream on the correct line in the input file. 
+\end{DoxyNote}
+\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_aa8741e334f6c350e1269a42ee1022e57}\label{classDcel_1_1Parser_1_1PLY_aa8741e334f6c350e1269a42ee1022e57}} 
+\index{Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}!readHeaderASCII@{readHeaderASCII}}
+\index{readHeaderASCII@{readHeaderASCII}!Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{readHeaderASCII()}{readHeaderASCII()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::read\+Header\+A\+S\+C\+II (\begin{DoxyParamCaption}\item[{int \&}]{a\+\_\+num\+Vertices,  }\item[{int \&}]{a\+\_\+num\+Faces,  }\item[{std\+::ifstream \&}]{a\+\_\+input\+Stream }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}}
+
+
+
+Read an A\+S\+C\+II header. 
+
+This reads the number of vertices and faces in the \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{P\+LY}} file. Note that it only reads the header. 
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ out}}  & {\em a\+\_\+num\+Vertices} & Number of vertices \\
+\hline
+\mbox{\texttt{ out}}  & {\em a\+\_\+num\+Faces} & Number of faces \\
+\hline
+\mbox{\texttt{ in,out}}  & {\em a\+\_\+input\+Stream} & File stream. On output, the filestream is at the end of the \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{P\+LY}} header. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_a755c28a17a836a05af31991a87212df0}\label{classDcel_1_1Parser_1_1PLY_a755c28a17a836a05af31991a87212df0}} 
+\index{Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}!readVerticesASCII@{readVerticesASCII}}
+\index{readVerticesASCII@{readVerticesASCII}!Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{readVerticesASCII()}{readVerticesASCII()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::read\+Vertices\+A\+S\+C\+II (\begin{DoxyParamCaption}\item[{std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}{Vertex}} $>$ $>$ \&}]{a\+\_\+vertices,  }\item[{const int}]{a\+\_\+num\+Vertices,  }\item[{std\+::ifstream \&}]{a\+\_\+input\+Stream }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}}
+
+
+
+Read A\+S\+C\+II vertices. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ out}}  & {\em a\+\_\+vertices} & D\+C\+EL vertices. These are constructed in this routine. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+num\+Vertices} & Number of vertices to read \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+input\+Stream} & Input file stream. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+The next getline() from a\+\_\+input\+Stream must read the first vertex (i.\+e. don\textquotesingle{}t rewind the stream before entering this routine) 
+\end{DoxyNote}
+\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_afaceb1664b12f30599fe68faba6ca725}\label{classDcel_1_1Parser_1_1PLY_afaceb1664b12f30599fe68faba6ca725}} 
+\index{Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}!reconcilePairEdges@{reconcilePairEdges}}
+\index{reconcilePairEdges@{reconcilePairEdges}!Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{reconcilePairEdges()}{reconcilePairEdges()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::reconcile\+Pair\+Edges (\begin{DoxyParamCaption}\item[{std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_af3741c96a8a8434780665641912ff1d4}{Edge}} $>$ $>$ \&}]{a\+\_\+edges }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}}
+
+
+
+Reconcile pair edges, i.\+e. find the pair edge for every constructed half-\/edge. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in,out}}  & {\em a\+\_\+edges} & Half edges. \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+Source/\mbox{\hyperlink{EBGeometry__DcelParser_8hpp}{E\+B\+Geometry\+\_\+\+Dcel\+Parser.\+hpp}}\item 
+Source/\mbox{\hyperlink{EBGeometry__DcelParserImplem_8hpp}{E\+B\+Geometry\+\_\+\+Dcel\+Parser\+Implem.\+hpp}}\end{DoxyCompactItemize}

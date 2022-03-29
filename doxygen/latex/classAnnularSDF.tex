@@ -1,0 +1,87 @@
+\hypertarget{classAnnularSDF}{}\doxysection{Annular\+S\+DF$<$ T $>$ Class Template Reference}
+\label{classAnnularSDF}\index{AnnularSDF$<$ T $>$@{AnnularSDF$<$ T $>$}}
+
+
+Annular signed distance function. Creates a shell out of an object.  
+
+
+
+
+{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp$>$}
+
+
+
+Inheritance diagram for Annular\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classAnnularSDF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Annular\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classAnnularSDF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classAnnularSDF_a808fe016db5603708a20783bc22ac908}\label{classAnnularSDF_a808fe016db5603708a20783bc22ac908}} 
+\mbox{\hyperlink{classAnnularSDF_a808fe016db5603708a20783bc22ac908}{Annular\+S\+DF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classAnnularSDF_af8c176e7cfb26a021563a9302162b9e3}{Annular\+S\+DF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classSignedDistanceFunction}{Signed\+Distance\+Function}}$<$ T $>$ $>$ a\+\_\+sdf, const T a\+\_\+curv)
+\begin{DoxyCompactList}\small\item\em Rounded S\+DF. Rounds the input S\+DF. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classAnnularSDF_a5ced27a7840af35e8c8e0d0974e72b9b}\label{classAnnularSDF_a5ced27a7840af35e8c8e0d0974e72b9b}} 
+virtual \mbox{\hyperlink{classAnnularSDF_a5ced27a7840af35e8c8e0d0974e72b9b}{$\sim$\+Annular\+S\+DF}} ()
+\begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classAnnularSDF_ab933bf07072202ccc1e3bbb59bc49465}\label{classAnnularSDF_ab933bf07072202ccc1e3bbb59bc49465}} 
+virtual T \mbox{\hyperlink{classAnnularSDF_ab933bf07072202ccc1e3bbb59bc49465}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Signed distance field. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classAnnularSDF_a3c5594d91f78de8c9cd995b7bb0bc13e}\label{classAnnularSDF_a3c5594d91f78de8c9cd995b7bb0bc13e}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classSignedDistanceFunction}{Signed\+Distance\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{classAnnularSDF_a3c5594d91f78de8c9cd995b7bb0bc13e}{m\+\_\+sdf}}
+\begin{DoxyCompactList}\small\item\em Original signed distance function. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classAnnularSDF_a7b0f5cf810e2208b24dc25386a5996ed}\label{classAnnularSDF_a7b0f5cf810e2208b24dc25386a5996ed}} 
+T \mbox{\hyperlink{classAnnularSDF_a7b0f5cf810e2208b24dc25386a5996ed}{m\+\_\+curv}}
+\begin{DoxyCompactList}\small\item\em Rounding radius. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Annular\+S\+D\+F$<$ T $>$}
+
+Annular signed distance function. Creates a shell out of an object. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classAnnularSDF_af8c176e7cfb26a021563a9302162b9e3}\label{classAnnularSDF_af8c176e7cfb26a021563a9302162b9e3}} 
+\index{AnnularSDF$<$ T $>$@{AnnularSDF$<$ T $>$}!AnnularSDF@{AnnularSDF}}
+\index{AnnularSDF@{AnnularSDF}!AnnularSDF$<$ T $>$@{AnnularSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{AnnularSDF()}{AnnularSDF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classAnnularSDF}{Annular\+S\+DF}}$<$ T $>$\+::\mbox{\hyperlink{classAnnularSDF}{Annular\+S\+DF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classSignedDistanceFunction}{Signed\+Distance\+Function}}$<$ T $>$ $>$}]{a\+\_\+sdf,  }\item[{const T}]{a\+\_\+curv }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Rounded S\+DF. Rounds the input S\+DF. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+sdf} & Input signed distance function. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+curv} & Rounding radius. \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Source/\mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp}{E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp}}\end{DoxyCompactItemize}

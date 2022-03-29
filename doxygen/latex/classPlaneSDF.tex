@@ -1,0 +1,96 @@
+\hypertarget{classPlaneSDF}{}\doxysection{Plane\+S\+DF$<$ T $>$ Class Template Reference}
+\label{classPlaneSDF}\index{PlaneSDF$<$ T $>$@{PlaneSDF$<$ T $>$}}
+
+
+Inheritance diagram for Plane\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classPlaneSDF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Plane\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classPlaneSDF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classPlaneSDF_acbd51b3dace74b7fd8bc94ce6c8715c2}\label{classPlaneSDF_acbd51b3dace74b7fd8bc94ce6c8715c2}} 
+\mbox{\hyperlink{classPlaneSDF_acbd51b3dace74b7fd8bc94ce6c8715c2}{Plane\+S\+DF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classPlaneSDF_a43afe1acbf3b0ccc8fd6c0a6a7f48e57}{Plane\+S\+DF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+normal, const bool a\+\_\+flip\+Inside)
+\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
+virtual T \mbox{\hyperlink{classPlaneSDF_a75c2d73156caac10eefce9b431542d88}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Signed distance function for sphere. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classPlaneSDF_a55ad2cfd1d65504efd2c0bbdaca77a1f}\label{classPlaneSDF_a55ad2cfd1d65504efd2c0bbdaca77a1f}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classPlaneSDF_a55ad2cfd1d65504efd2c0bbdaca77a1f}{m\+\_\+point}}
+\begin{DoxyCompactList}\small\item\em Point on plane. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classPlaneSDF_a1d41c3df2c6eaa345cebd9734ae7d850}\label{classPlaneSDF_a1d41c3df2c6eaa345cebd9734ae7d850}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classPlaneSDF_a1d41c3df2c6eaa345cebd9734ae7d850}{m\+\_\+normal}}
+\begin{DoxyCompactList}\small\item\em Plane normal vector. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classPlaneSDF_a67f2334030779163860f6be3934216e1}\label{classPlaneSDF_a67f2334030779163860f6be3934216e1}} 
+bool \mbox{\hyperlink{classPlaneSDF_a67f2334030779163860f6be3934216e1}{m\+\_\+flip\+Inside}}
+\begin{DoxyCompactList}\small\item\em Inside to outside hook. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classPlaneSDF_a43afe1acbf3b0ccc8fd6c0a6a7f48e57}\label{classPlaneSDF_a43afe1acbf3b0ccc8fd6c0a6a7f48e57}} 
+\index{PlaneSDF$<$ T $>$@{PlaneSDF$<$ T $>$}!PlaneSDF@{PlaneSDF}}
+\index{PlaneSDF@{PlaneSDF}!PlaneSDF$<$ T $>$@{PlaneSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{PlaneSDF()}{PlaneSDF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classPlaneSDF}{Plane\+S\+DF}}$<$ T $>$\+::\mbox{\hyperlink{classPlaneSDF}{Plane\+S\+DF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+normal,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Full constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Point on the plane \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+normal} & Plane normal vector. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+flip\+Inside} & Hook for turning inside to outside. \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classPlaneSDF_a75c2d73156caac10eefce9b431542d88}\label{classPlaneSDF_a75c2d73156caac10eefce9b431542d88}} 
+\index{PlaneSDF$<$ T $>$@{PlaneSDF$<$ T $>$}!signedDistance@{signedDistance}}
+\index{signedDistance@{signedDistance}!PlaneSDF$<$ T $>$@{PlaneSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+virtual T \mbox{\hyperlink{classPlaneSDF}{Plane\+S\+DF}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Signed distance function for sphere. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Position. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{Signed\+Distance\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Source/\mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp}{E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp}}\end{DoxyCompactItemize}

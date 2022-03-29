@@ -1,0 +1,114 @@
+\hypertarget{classInfiniteConeSDF}{}\doxysection{Infinite\+Cone\+S\+DF$<$ T $>$ Class Template Reference}
+\label{classInfiniteConeSDF}\index{InfiniteConeSDF$<$ T $>$@{InfiniteConeSDF$<$ T $>$}}
+
+
+Signed distance field for an infinite cone. Oriented along +z.  
+
+
+
+
+{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp$>$}
+
+
+
+Inheritance diagram for Infinite\+Cone\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classInfiniteConeSDF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Infinite\+Cone\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classInfiniteConeSDF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classInfiniteConeSDF_a45ccd0929c04d3cd3c3f287609936c6d}\label{classInfiniteConeSDF_a45ccd0929c04d3cd3c3f287609936c6d}} 
+\mbox{\hyperlink{classInfiniteConeSDF_a45ccd0929c04d3cd3c3f287609936c6d}{Infinite\+Cone\+S\+DF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classInfiniteConeSDF_ae5e8dacfc424318089bb5f5a548dbb5f}{Infinite\+Cone\+S\+DF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+tip, const T \&a\+\_\+angle, const bool a\+\_\+flip\+Inside)
+\begin{DoxyCompactList}\small\item\em Infinite cone function. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classInfiniteConeSDF_ac33ec944efc7214c9516e4683a0d7e39}\label{classInfiniteConeSDF_ac33ec944efc7214c9516e4683a0d7e39}} 
+virtual \mbox{\hyperlink{classInfiniteConeSDF_ac33ec944efc7214c9516e4683a0d7e39}{$\sim$\+Infinite\+Cone\+S\+DF}} ()
+\begin{DoxyCompactList}\small\item\em Destructor -- does nothing. \end{DoxyCompactList}\item 
+virtual T \mbox{\hyperlink{classInfiniteConeSDF_a98232920c669d548b84493d9e55ddc0a}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Implementation of the signed distance function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classInfiniteConeSDF_af13a6b42eb0a8eae7d0f17041bc2ec52}\label{classInfiniteConeSDF_af13a6b42eb0a8eae7d0f17041bc2ec52}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classInfiniteConeSDF_af13a6b42eb0a8eae7d0f17041bc2ec52}{m\+\_\+tip}}
+\begin{DoxyCompactList}\small\item\em Tip position. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classInfiniteConeSDF_a35dd714fb6784f60e541a298e02ab937}\label{classInfiniteConeSDF_a35dd714fb6784f60e541a298e02ab937}} 
+\mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{classInfiniteConeSDF_a35dd714fb6784f60e541a298e02ab937}{m\+\_\+c}}
+\begin{DoxyCompactList}\small\item\em Sine/cosine of angle. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classInfiniteConeSDF_a5641f298cf15950f4b243fd53de7e8ef}\label{classInfiniteConeSDF_a5641f298cf15950f4b243fd53de7e8ef}} 
+bool \mbox{\hyperlink{classInfiniteConeSDF_a5641f298cf15950f4b243fd53de7e8ef}{m\+\_\+flip\+Inside}}
+\begin{DoxyCompactList}\small\item\em Hook for making inside -\/$>$ outside. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Infinite\+Cone\+S\+D\+F$<$ T $>$}
+
+Signed distance field for an infinite cone. Oriented along +z. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classInfiniteConeSDF_ae5e8dacfc424318089bb5f5a548dbb5f}\label{classInfiniteConeSDF_ae5e8dacfc424318089bb5f5a548dbb5f}} 
+\index{InfiniteConeSDF$<$ T $>$@{InfiniteConeSDF$<$ T $>$}!InfiniteConeSDF@{InfiniteConeSDF}}
+\index{InfiniteConeSDF@{InfiniteConeSDF}!InfiniteConeSDF$<$ T $>$@{InfiniteConeSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{InfiniteConeSDF()}{InfiniteConeSDF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classInfiniteConeSDF}{Infinite\+Cone\+S\+DF}}$<$ T $>$\+::\mbox{\hyperlink{classInfiniteConeSDF}{Infinite\+Cone\+S\+DF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+tip,  }\item[{const T \&}]{a\+\_\+angle,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Infinite cone function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+tip} & Cone tip position \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+angle} & Cone opening angle. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+flip\+Inside} & Hook for making inside to outside. \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classInfiniteConeSDF_a98232920c669d548b84493d9e55ddc0a}\label{classInfiniteConeSDF_a98232920c669d548b84493d9e55ddc0a}} 
+\index{InfiniteConeSDF$<$ T $>$@{InfiniteConeSDF$<$ T $>$}!signedDistance@{signedDistance}}
+\index{signedDistance@{signedDistance}!InfiniteConeSDF$<$ T $>$@{InfiniteConeSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+virtual T \mbox{\hyperlink{classInfiniteConeSDF}{Infinite\+Cone\+S\+DF}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Implementation of the signed distance function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Position. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{Signed\+Distance\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Source/\mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp}{E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp}}\end{DoxyCompactItemize}

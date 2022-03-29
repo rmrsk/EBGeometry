@@ -1,0 +1,4 @@
+<map id="CapsuleSDF&lt; T &gt;" name="CapsuleSDF&lt; T &gt;">
+<area shape="rect" id="node1" title="Capsulate/pill SDF. Basically a cylinder with spherical endcaps, oriented along the specified axis." alt="" coords="44,80,183,107"/>
+<area shape="rect" id="node2" href="$classSignedDistanceFunction.html" title="Abstract representation of a signed distance function." alt="" coords="5,5,221,32"/>
+</map>

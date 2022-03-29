@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Integration with AMReX &mdash; EBGeometry 1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="References" href="ZZReferences.html" />
+    <link rel="prev" title="Unions" href="Example_Union.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> EBGeometry
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html#features">Features</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html">Signed distance fields</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html#transformations">Transformations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html#unions">Unions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DCEL.html">DCEL mesh structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Implementation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ImplemVec.html">Vector types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">Bounding volume hierarchy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemSDF.html">Signed distance function</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemUnion.html">Unions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Reading mesh files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Example_Union.html">Unions</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Integration with AMReX</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#constructing-the-bvh">Constructing the BVH</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#exposing-signed-distance-functions">Exposing signed distance functions</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">EBGeometry</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Integration with AMReX</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/Example_AMReX.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="integration-with-amrex">
+<h1>Integration with AMReX<a class="headerlink" href="#integration-with-amrex" title="Permalink to this headline"></a></h1>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This example requires you to install <a class="reference external" href="https://github.com/AMReX-Codes/amrex">AMReX</a></p>
+</div>
+<p>This example is given in <code class="file docutils literal notranslate"><span class="pre">Examples/AMReX/main.cpp</span></code> and shows how to expose EBGeometry’s DCEL and BVH functionality to AMReX.</p>
+<p>We will focus on the following parts of the code:</p>
+<div class="section" id="constructing-the-bvh">
+<h2>Constructing the BVH<a class="headerlink" href="#constructing-the-bvh" title="Permalink to this headline"></a></h2>
+<p>When constructing the signed distance function we use the DCEL and BVH functionality directly in the constructor:</p>
+<p>Note that we are performing the following steps:</p>
+<ul class="simple">
+<li><p>Using the PLY parser for creating a DCEL mesh.</p></li>
+<li><p>Constructing a BVH for the DCEL faces.</p></li>
+<li><p>Flattening the BVH tree for performance.</p></li>
+</ul>
+</div>
+<div class="section" id="exposing-signed-distance-functions">
+<h2>Exposing signed distance functions<a class="headerlink" href="#exposing-signed-distance-functions" title="Permalink to this headline"></a></h2>
+<p>Next, we expose the signed distance function to AMReX by implementing the functions</p>
+<p>Note that the AMReX <code class="docutils literal notranslate"><span class="pre">DECL</span></code> macros expand to <code class="docutils literal notranslate"><span class="pre">(Real</span> <span class="pre">x,</span> <span class="pre">Real</span> <span class="pre">y)</span></code> in 2D, but here we assume that the user has compiled for 3D.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Example_Union.html" class="btn btn-neutral float-left" title="Unions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ZZReferences.html" class="btn btn-neutral float-right" title="References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Robert Marskar.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

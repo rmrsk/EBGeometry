@@ -1,0 +1,90 @@
+\hypertarget{classRotateOp}{}\doxysection{Rotate\+Op$<$ T $>$ Class Template Reference}
+\label{classRotateOp}\index{RotateOp$<$ T $>$@{RotateOp$<$ T $>$}}
+
+
+Rotation operator. Can scale an input point.  
+
+
+
+
+{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Transform\+Ops.\+hpp$>$}
+
+
+
+Inheritance diagram for Rotate\+Op$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=187pt]{classRotateOp__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Rotate\+Op$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=187pt]{classRotateOp__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classRotateOp_afac8d44cae4c9109c96d2c1ae47a1dc2}\label{classRotateOp_afac8d44cae4c9109c96d2c1ae47a1dc2}} 
+\mbox{\hyperlink{classRotateOp_afac8d44cae4c9109c96d2c1ae47a1dc2}{Rotate\+Op}} ()
+\begin{DoxyCompactList}\small\item\em Weak constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classRotateOp_a018f0a465bfaf271958ac975eb24b5bb}{Rotate\+Op}} (const T a\+\_\+angle, const int a\+\_\+axis) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRotateOp_aaa12091fe7937f5ed7e2d35e0632337b}\label{classRotateOp_aaa12091fe7937f5ed7e2d35e0632337b}} 
+virtual \mbox{\hyperlink{classRotateOp_aaa12091fe7937f5ed7e2d35e0632337b}{$\sim$\+Rotate\+Op}} ()=default
+\begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRotateOp_aaffc25806ef6b9d7ea6651aa2bb9767c}\label{classRotateOp_aaffc25806ef6b9d7ea6651aa2bb9767c}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classRotateOp_aaffc25806ef6b9d7ea6651aa2bb9767c}{transform}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+input\+Point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Transform input point. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classRotateOp_ae0f4b6879b2b86506b4a528d7e627255}\label{classRotateOp_ae0f4b6879b2b86506b4a528d7e627255}} 
+int \mbox{\hyperlink{classRotateOp_ae0f4b6879b2b86506b4a528d7e627255}{m\+\_\+axis}}
+\begin{DoxyCompactList}\small\item\em Rotation axis. 0 = x, 1=y etc. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRotateOp_a8eed86f336946618f1964056405b9ac4}\label{classRotateOp_a8eed86f336946618f1964056405b9ac4}} 
+T \mbox{\hyperlink{classRotateOp_a8eed86f336946618f1964056405b9ac4}{m\+\_\+cos\+Angle}}
+\begin{DoxyCompactList}\small\item\em Theta-\/rotation (degrees) \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRotateOp_ab0f3316357239d07fb1da64b7298d53f}\label{classRotateOp_ab0f3316357239d07fb1da64b7298d53f}} 
+T \mbox{\hyperlink{classRotateOp_ab0f3316357239d07fb1da64b7298d53f}{m\+\_\+sin\+Angle}}
+\begin{DoxyCompactList}\small\item\em Phi-\/rotation (degrees) \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Rotate\+Op$<$ T $>$}
+
+Rotation operator. Can scale an input point. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classRotateOp_a018f0a465bfaf271958ac975eb24b5bb}\label{classRotateOp_a018f0a465bfaf271958ac975eb24b5bb}} 
+\index{RotateOp$<$ T $>$@{RotateOp$<$ T $>$}!RotateOp@{RotateOp}}
+\index{RotateOp@{RotateOp}!RotateOp$<$ T $>$@{RotateOp$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{RotateOp()}{RotateOp()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classRotateOp}{Rotate\+Op}}$<$ T $>$\+::\mbox{\hyperlink{classRotateOp}{Rotate\+Op}} (\begin{DoxyParamCaption}\item[{const T}]{a\+\_\+angle,  }\item[{const int}]{a\+\_\+axis }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+angle} & Rotation angle \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+axis} & Rotation axis \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+Source/\mbox{\hyperlink{EBGeometry__TransformOps_8hpp}{E\+B\+Geometry\+\_\+\+Transform\+Ops.\+hpp}}\item 
+Source/\mbox{\hyperlink{EBGeometry__TransformOpsImplem_8hpp}{E\+B\+Geometry\+\_\+\+Transform\+Ops\+Implem.\+hpp}}\end{DoxyCompactItemize}

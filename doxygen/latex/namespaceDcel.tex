@@ -1,0 +1,250 @@
+\hypertarget{namespaceDcel}{}\doxysection{Dcel Namespace Reference}
+\label{namespaceDcel}\index{Dcel@{Dcel}}
+
+
+Namespace containing various double-\/connected edge list (D\+C\+EL) functionality.  
+
+
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespaceDcel_1_1Parser}{Parser}}
+\begin{DoxyCompactList}\small\item\em Namespace which encapsulates possible file parsers for building D\+C\+EL meshes. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classDcel_1_1EdgeIteratorT}{Edge\+IteratorT}}
+\begin{DoxyCompactList}\small\item\em Class which can iterate through edges and vertices around a D\+C\+EL polygon face. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classDcel_1_1EdgeT}{EdgeT}}
+\begin{DoxyCompactList}\small\item\em Class which represents a half-\/edge in a double-\/edge connected list (D\+C\+EL). \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classDcel_1_1FaceT}{FaceT}}
+\begin{DoxyCompactList}\small\item\em Class which represents a polygon face in a double-\/edge connected list (D\+C\+EL). \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classDcel_1_1MeshT}{MeshT}}
+\begin{DoxyCompactList}\small\item\em Mesh class which stores a full D\+C\+EL mesh (with signed distance functions) \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classDcel_1_1Polygon2D}{Polygon2D}}
+\begin{DoxyCompactList}\small\item\em Class for embedding a D\+C\+EL polygon face into 2D. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classDcel_1_1VertexT}{VertexT}}
+\begin{DoxyCompactList}\small\item\em Class which represents a vertex node in a double-\/edge connected list (D\+C\+EL). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespaceDcel_a16b519937528a1a2f50054e41e6e3d9c}\label{namespaceDcel_a16b519937528a1a2f50054e41e6e3d9c}} 
+{\footnotesize template$<$class T $>$ }\\using \mbox{\hyperlink{namespaceDcel_a16b519937528a1a2f50054e41e6e3d9c}{Primitive\+List}} = std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const E\+B\+Geometry\+::\+Dcel\+::\+FaceT$<$ T $>$ $>$ $>$
+\begin{DoxyCompactList}\small\item\em Alias for vector of primitives. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$class T , class BV $>$ }\\E\+B\+Geometry\+::\+B\+V\+H\+::\+B\+V\+ConstructorT$<$ E\+B\+Geometry\+::\+Dcel\+::\+FaceT$<$ T $>$, BV $>$ \mbox{\hyperlink{namespaceDcel_a40f67c7ec704c949871bb20810073e36}{default\+B\+V\+Constructor}}
+\begin{DoxyCompactList}\small\item\em Bounding volume constructor for a D\+C\+EL face. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , class BV , int K$>$ }\\E\+B\+Geometry\+::\+B\+V\+H\+::\+Stop\+FunctionT$<$ T, E\+B\+Geometry\+::\+Dcel\+::\+FaceT$<$ T $>$, BV, K $>$ \mbox{\hyperlink{namespaceDcel_a35ac140ca7f8cc44e7a7fbe584e26d8c}{default\+Stop\+Function}}
+\begin{DoxyCompactList}\small\item\em Default stop function. This function terminates the division process if a \mbox{\hyperlink{namespaceBVH}{B\+VH}} node has only one primitive. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , int K$>$ }\\auto \mbox{\hyperlink{namespaceDcel_aa49de2802787c5c9a25d95572f20b326}{valid\+Chunks}}
+\begin{DoxyCompactList}\small\item\em Function which checks that all chunks are valid (i.\+e., contain at least one primitive. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , int K$>$ }\\auto \mbox{\hyperlink{namespaceDcel_a31df12a614d7c38ca7f2b031213a59f7}{equal\+Counts}}
+\begin{DoxyCompactList}\small\item\em Function for partitioning an input list into K almost-\/equal-\/sized chunks. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , class BV , int K$>$ }\\E\+B\+Geometry\+::\+B\+V\+H\+::\+PartitionerT$<$ E\+B\+Geometry\+::\+Dcel\+::\+FaceT$<$ T $>$, BV, K $>$ \mbox{\hyperlink{namespaceDcel_a5613435b6c3b3ccee6616c01bcc0a8d8}{chunk\+Partitioner}}
+\begin{DoxyCompactList}\small\item\em Partitioner function for subdividing into K sub-\/volumes with approximately the same number of primitives. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , class BV , int K$>$ }\\E\+B\+Geometry\+::\+B\+V\+H\+::\+PartitionerT$<$ E\+B\+Geometry\+::\+Dcel\+::\+FaceT$<$ T $>$, BV, K $>$ \mbox{\hyperlink{namespaceDcel_a3e1f231f1a8aa751c6bbf8192149e07a}{bv\+Partitioner}}
+\begin{DoxyCompactList}\small\item\em Partitioner function for subdividing into K sub-\/volumes with approximately the same number of primitives. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , class BV , int K$>$ }\\E\+B\+Geometry\+::\+B\+V\+H\+::\+PartitionerT$<$ E\+B\+Geometry\+::\+Dcel\+::\+FaceT$<$ T $>$, BV, K $>$ \mbox{\hyperlink{namespaceDcel_aa64f98d30787c28369069696ef135459}{centroid\+Partitioner}}
+\begin{DoxyCompactList}\small\item\em Partitioner function for subdividing into K sub-\/volumes, partitioning on the primitive centroid midpoint(s). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{namespaceDcel_a4d5a5e045fea199e3f04a77ef160e432}\label{namespaceDcel_a4d5a5e045fea199e3f04a77ef160e432}} 
+{\footnotesize template$<$class T , class BV , int K$>$ }\\E\+B\+Geometry\+::\+B\+V\+H\+::\+PartitionerT$<$ E\+B\+Geometry\+::\+Dcel\+::\+FaceT$<$ T $>$, BV, K $>$ \mbox{\hyperlink{namespaceDcel_a4d5a5e045fea199e3f04a77ef160e432}{default\+Partitioner}} = E\+B\+Geometry\+::\+Dcel\+::chunk\+Partitioner$<$T, BV, K$>$
+\begin{DoxyCompactList}\small\item\em Alias for default partitioner. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Namespace containing various double-\/connected edge list (D\+C\+EL) functionality. 
+
+\doxysubsection{Variable Documentation}
+\mbox{\Hypertarget{namespaceDcel_a3e1f231f1a8aa751c6bbf8192149e07a}\label{namespaceDcel_a3e1f231f1a8aa751c6bbf8192149e07a}} 
+\index{Dcel@{Dcel}!bvPartitioner@{bvPartitioner}}
+\index{bvPartitioner@{bvPartitioner}!Dcel@{Dcel}}
+\doxysubsubsection{\texorpdfstring{bvPartitioner}{bvPartitioner}}
+{\footnotesize\ttfamily template$<$class T , class BV , int K$>$ \\
+E\+B\+Geometry\+::\+B\+V\+H\+::\+PartitionerT$<$E\+B\+Geometry\+::\+Dcel\+::\+FaceT$<$T$>$, BV, K$>$ Dcel\+::bv\+Partitioner}
+
+
+
+Partitioner function for subdividing into K sub-\/volumes with approximately the same number of primitives. 
+
+Basically the same as chunk\+Partitioner, except that the centroids are based on the bounding volumes\textquotesingle{} centroids. 
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & List of primitives to partition into sub-\/bounding volumes \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{namespaceDcel_aa64f98d30787c28369069696ef135459}\label{namespaceDcel_aa64f98d30787c28369069696ef135459}} 
+\index{Dcel@{Dcel}!centroidPartitioner@{centroidPartitioner}}
+\index{centroidPartitioner@{centroidPartitioner}!Dcel@{Dcel}}
+\doxysubsubsection{\texorpdfstring{centroidPartitioner}{centroidPartitioner}}
+{\footnotesize\ttfamily template$<$class T , class BV , int K$>$ \\
+E\+B\+Geometry\+::\+B\+V\+H\+::\+PartitionerT$<$E\+B\+Geometry\+::\+Dcel\+::\+FaceT$<$T$>$, BV, K$>$ Dcel\+::centroid\+Partitioner}
+
+
+
+Partitioner function for subdividing into K sub-\/volumes, partitioning on the primitive centroid midpoint(s). 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & List of primitives to partition into sub-\/bounding volumes \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{namespaceDcel_a5613435b6c3b3ccee6616c01bcc0a8d8}\label{namespaceDcel_a5613435b6c3b3ccee6616c01bcc0a8d8}} 
+\index{Dcel@{Dcel}!chunkPartitioner@{chunkPartitioner}}
+\index{chunkPartitioner@{chunkPartitioner}!Dcel@{Dcel}}
+\doxysubsubsection{\texorpdfstring{chunkPartitioner}{chunkPartitioner}}
+{\footnotesize\ttfamily template$<$class T , class BV , int K$>$ \\
+E\+B\+Geometry\+::\+B\+V\+H\+::\+PartitionerT$<$E\+B\+Geometry\+::\+Dcel\+::\+FaceT$<$T$>$, BV, K$>$ Dcel\+::chunk\+Partitioner}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= [](\textcolor{keyword}{const} PrimitiveList<T>\& a\_primitives) -\/> std::array<PrimitiveList<T>, K> \{}
+\DoxyCodeLine{    \mbox{\hyperlink{classVec3T}{Vec3T<T>}} lo =  \mbox{\hyperlink{classVec3T_af06b99bd905435060149a61a13f61546}{Vec3T<T>::max}}();}
+\DoxyCodeLine{    \mbox{\hyperlink{classVec3T}{Vec3T<T>}} hi = -\/\mbox{\hyperlink{classVec3T_af06b99bd905435060149a61a13f61546}{Vec3T<T>::max}}();}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keyword}{const} \textcolor{keyword}{auto}\& p : a\_primitives)\{}
+\DoxyCodeLine{      lo = \mbox{\hyperlink{EBGeometry__Vec_8hpp_a291f01622695ab94c0092c3af0a1f3ca}{min}}(lo, p-\/>getCentroid());}
+\DoxyCodeLine{      hi = \mbox{\hyperlink{EBGeometry__Vec_8hpp_a71f0bc32c9be501cf01a1b6c715dc0a9}{max}}(hi, p-\/>getCentroid());}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    }
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keywordtype}{int} splitDir = (hi-\/lo).maxDir(\textcolor{keyword}{true});}
+\DoxyCodeLine{}
+\DoxyCodeLine{    }
+\DoxyCodeLine{    PrimitiveList<T> sortedPrimitives(a\_primitives);}
+\DoxyCodeLine{    }
+\DoxyCodeLine{    std::sort(sortedPrimitives.begin(), sortedPrimitives.end(),}
+\DoxyCodeLine{          [splitDir](\textcolor{keyword}{const} std::shared\_ptr<\textcolor{keyword}{const} FaceT<T> >\& f1,}
+\DoxyCodeLine{             \textcolor{keyword}{const} std::shared\_ptr<\textcolor{keyword}{const} FaceT<T> >\& f2) -\/> \textcolor{keywordtype}{bool} \{}
+\DoxyCodeLine{        return f1-\/>getCentroid(splitDir) < f2-\/>getCentroid(splitDir);}
+\DoxyCodeLine{          \});}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} EBGeometry::Dcel::equalCounts<T, K>(sortedPrimitives);}
+\DoxyCodeLine{  \}}
+
+\end{DoxyCode}
+
+
+Partitioner function for subdividing into K sub-\/volumes with approximately the same number of primitives. 
+
+This partitioner splits along one of the axis coordinates and sorts the primitives along the centroid. 
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & List of primitives to partition into sub-\/bounding volumes \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{namespaceDcel_a40f67c7ec704c949871bb20810073e36}\label{namespaceDcel_a40f67c7ec704c949871bb20810073e36}} 
+\index{Dcel@{Dcel}!defaultBVConstructor@{defaultBVConstructor}}
+\index{defaultBVConstructor@{defaultBVConstructor}!Dcel@{Dcel}}
+\doxysubsubsection{\texorpdfstring{defaultBVConstructor}{defaultBVConstructor}}
+{\footnotesize\ttfamily template$<$class T , class BV $>$ \\
+E\+B\+Geometry\+::\+B\+V\+H\+::\+B\+V\+ConstructorT$<$E\+B\+Geometry\+::\+Dcel\+::\+FaceT$<$T$>$, BV$>$ Dcel\+::default\+B\+V\+Constructor}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= [](\textcolor{keyword}{const} std::shared\_ptr<const EBGeometry::Dcel::FaceT<T> >\& a\_primitive) -\/> BV \{}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} BV(a\_primitive-\/>getAllVertexCoordinates());}
+\DoxyCodeLine{  \}}
+
+\end{DoxyCode}
+
+
+Bounding volume constructor for a D\+C\+EL face. 
+
+With B\+V\+Hs and D\+C\+EL, the object to be bounded is the polygon face (e.\+g., triangle). We assume that our BV constructor can enclose points, so we return an object that encloses all the vertices of the polygon. 
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+primitive} & Primitive (facet) to be bounded. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns a bounding volume which encloses the input face. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{namespaceDcel_a35ac140ca7f8cc44e7a7fbe584e26d8c}\label{namespaceDcel_a35ac140ca7f8cc44e7a7fbe584e26d8c}} 
+\index{Dcel@{Dcel}!defaultStopFunction@{defaultStopFunction}}
+\index{defaultStopFunction@{defaultStopFunction}!Dcel@{Dcel}}
+\doxysubsubsection{\texorpdfstring{defaultStopFunction}{defaultStopFunction}}
+{\footnotesize\ttfamily template$<$class T , class BV , int K$>$ \\
+E\+B\+Geometry\+::\+B\+V\+H\+::\+Stop\+FunctionT$<$T, E\+B\+Geometry\+::\+Dcel\+::\+FaceT$<$T$>$, BV, K$>$ Dcel\+::default\+Stop\+Function}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= [](\textcolor{keyword}{const} \mbox{\hyperlink{classBVH_1_1NodeT}{BVH::NodeT<T, EBGeometry::Dcel::FaceT<T>}}, BV, K>\& a\_node) -\/> \textcolor{keywordtype}{bool} \{}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} (a\_node.getPrimitives()).size() < K;}
+\DoxyCodeLine{  \}}
+
+\end{DoxyCode}
+
+
+Default stop function. This function terminates the division process if a \mbox{\hyperlink{namespaceBVH}{B\+VH}} node has only one primitive. 
+
+In this function, \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$T, Face\+T$<$\+T$>$, \mbox{\hyperlink{namespaceBVH}{B\+VH}} $>$ is a \mbox{\hyperlink{namespaceBVH}{B\+VH}} node. The interpretation of the parameters are\+: T is the precision, Face\+T$<$\+T$>$ is the primitive type in the \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree, and BV is the bounding volume type. 
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+node} & Bounding volume hierarchy node. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns true if the bounding volume shouldn\textquotesingle{}t be split more and false otherwise. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{namespaceDcel_a31df12a614d7c38ca7f2b031213a59f7}\label{namespaceDcel_a31df12a614d7c38ca7f2b031213a59f7}} 
+\index{Dcel@{Dcel}!equalCounts@{equalCounts}}
+\index{equalCounts@{equalCounts}!Dcel@{Dcel}}
+\doxysubsubsection{\texorpdfstring{equalCounts}{equalCounts}}
+{\footnotesize\ttfamily template$<$class T , int K$>$ \\
+auto Dcel\+::equal\+Counts}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= [](\textcolor{keyword}{const} PrimitiveList<T>\& a\_primitives) -\/> std::array<PrimitiveList<T>, K> \{}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} \mbox{\hyperlink{EBGeometry__Vec_8hpp_aa7f7e15df344c873d1a27b30f77d0831}{length}} = a\_primitives.size() / K;}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} remain = a\_primitives.size() \% K;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} begin  = 0;}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} end    = 0;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::array<PrimitiveList<T>, K> chunks;}
+\DoxyCodeLine{    }
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} k = 0; k < K; k++)\{}
+\DoxyCodeLine{      end += (remain > 0) ? \mbox{\hyperlink{EBGeometry__Vec_8hpp_aa7f7e15df344c873d1a27b30f77d0831}{length}} + 1 : \mbox{\hyperlink{EBGeometry__Vec_8hpp_aa7f7e15df344c873d1a27b30f77d0831}{length}}; remain-\/-\/;}
+\DoxyCodeLine{}
+\DoxyCodeLine{      chunks[k] = PrimitiveList<T>(a\_primitives.begin() + begin, a\_primitives.begin() + end);}
+\DoxyCodeLine{}
+\DoxyCodeLine{      begin = end;}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} chunks;        }
+\DoxyCodeLine{  \}}
+
+\end{DoxyCode}
+
+
+Function for partitioning an input list into K almost-\/equal-\/sized chunks. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & Primitives to be partitioned. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{namespaceDcel_aa49de2802787c5c9a25d95572f20b326}\label{namespaceDcel_aa49de2802787c5c9a25d95572f20b326}} 
+\index{Dcel@{Dcel}!validChunks@{validChunks}}
+\index{validChunks@{validChunks}!Dcel@{Dcel}}
+\doxysubsubsection{\texorpdfstring{validChunks}{validChunks}}
+{\footnotesize\ttfamily template$<$class T , int K$>$ \\
+auto Dcel\+::valid\+Chunks}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= [](\textcolor{keyword}{const} std::array<PrimitiveList<T>, K>\& a\_chunks) -\/> \textcolor{keywordtype}{bool} \{}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keyword}{const} \textcolor{keyword}{auto}\& chunk : a\_chunks)\{}
+\DoxyCodeLine{      \textcolor{keywordflow}{if}(chunk.empty()) \textcolor{keywordflow}{return} \textcolor{keyword}{false};}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} \textcolor{keyword}{true};}
+\DoxyCodeLine{  \}}
+
+\end{DoxyCode}
+
+
+Function which checks that all chunks are valid (i.\+e., contain at least one primitive. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+chunks} & Chunks. \\
+\hline
+\end{DoxyParams}

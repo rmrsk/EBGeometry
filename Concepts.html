@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Signed distance fields &mdash; EBGeometry 1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="DCEL mesh structure" href="DCEL.html" />
+    <link rel="prev" title="Requirements" href="Introduction.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> EBGeometry
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html#features">Features</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Signed distance fields</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#transformations">Transformations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#unions">Unions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DCEL.html">DCEL mesh structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Implementation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ImplemVec.html">Vector types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">Bounding volume hierarchy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemSDF.html">Signed distance function</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemUnion.html">Unions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Reading mesh files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Example_Union.html">Unions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Example_AMReX.html">Integration with AMReX</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">EBGeometry</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Signed distance fields</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/Concepts.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="signed-distance-fields">
+<span id="chap-concepts"></span><h1>Signed distance fields<a class="headerlink" href="#signed-distance-fields" title="Permalink to this headline"></a></h1>
+<p>The signed distance function is defined as a function <span class="math notranslate nohighlight">\(S: \mathbb{R}^3 \rightarrow \mathbb{R}\)</span>, and returns the <em>signed distance</em> to the object.
+The signed distance function has the additional property:</p>
+<div class="math notranslate nohighlight" id="equation-eikonal">
+<span class="eqno">(1)<a class="headerlink" href="#equation-eikonal" title="Permalink to this equation"></a></span>\[\left|\nabla S(\mathbf{x})\right| = 1 \quad\textrm{everywhere}.\]</div>
+<p>In EBGeometry we use the following convention:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}S(\mathbf{x}) =
+\begin{cases}
+&gt; 0, &amp; \textrm{for points outside the object}, \\
+&lt; 0, &amp; \textrm{for points inside the object}.
+\end{cases}\end{split}\]</div>
+<p>Signed distance functions are also <em>implicit functions</em> (but the reverse statement is not true).
+For example, the signed distance function for a sphere with center <span class="math notranslate nohighlight">\(\mathbf{x}_0\)</span> and radius <span class="math notranslate nohighlight">\(R\)</span> can be written</p>
+<div class="math notranslate nohighlight">
+\[S_{\textrm{sph}}\left(\mathbf{x}\right) = \left|\mathbf{x} - \mathbf{x}_0\right| - R.\]</div>
+<p>An example of an implicit function for the same sphere is</p>
+<div class="math notranslate nohighlight">
+\[I_{\textrm{sph}}\left(\mathbf{x}\right) = \left|\mathbf{x} - \mathbf{x}_0\right|^2 - R^2.\]</div>
+<p>An important difference between these is the Eikonal property in <a class="reference internal" href="#equation-eikonal">Eq. 1</a>, ensuring that the signed distance function always returns the exact distance to the object.</p>
+</div>
+<div class="section" id="transformations">
+<h1>Transformations<a class="headerlink" href="#transformations" title="Permalink to this headline"></a></h1>
+<p>Signed distance functions retain the Eikonal property for the following set of transformations:</p>
+<ul class="simple">
+<li><p>Rotations.</p></li>
+<li><p>Translations.</p></li>
+</ul>
+</div>
+<div class="section" id="unions">
+<h1>Unions<a class="headerlink" href="#unions" title="Permalink to this headline"></a></h1>
+<p>Unions of signed distance fields are also signed distance fields <em>provided that the objects do not intersect or touch</em>.
+For overlapping objects the signed distance function is not well-defined (since the interior and exterior are not well-defined).</p>
+<p>For non-overlapping objects represented as signed distance fields <span class="math notranslate nohighlight">\(\left(S_1\left(\mathbf{x}\right), S_2\left(\mathbf{x}\right), \ldots\right)\)</span>, the composite signed distance field is</p>
+<div class="math notranslate nohighlight">
+\[S\left(\mathbf{x}\right) = S_k\left(\mathbf{x}\right),\]</div>
+<p>where <span class="math notranslate nohighlight">\(k\)</span> is index of the closest object (which is found by evaluating <span class="math notranslate nohighlight">\(\left|S_i\left(\mathbf{x}\right)\right|\)</span>.</p>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Introduction.html" class="btn btn-neutral float-left" title="Requirements" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="DCEL.html" class="btn btn-neutral float-right" title="DCEL mesh structure" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Robert Marskar.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

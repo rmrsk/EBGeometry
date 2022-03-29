@@ -1,0 +1,176 @@
+\hypertarget{classCylinderSDF}{}\doxysection{Cylinder\+S\+DF$<$ T $>$ Class Template Reference}
+\label{classCylinderSDF}\index{CylinderSDF$<$ T $>$@{CylinderSDF$<$ T $>$}}
+
+
+Signed distance field for a cylinder.  
+
+
+
+
+{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp$>$}
+
+
+
+Inheritance diagram for Cylinder\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classCylinderSDF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Cylinder\+S\+DF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classCylinderSDF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classCylinderSDF_a4cad4283fea40d7e4f865a29f6b5bb20}\label{classCylinderSDF_a4cad4283fea40d7e4f865a29f6b5bb20}} 
+\mbox{\hyperlink{classCylinderSDF_a4cad4283fea40d7e4f865a29f6b5bb20}{Cylinder\+S\+DF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed weak construction. Use one of the full constructors. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classCylinderSDF_a0c710e871e7e7eb37f379c79c3412607}{Cylinder\+S\+DF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+center1, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+center2, const T \&a\+\_\+radius, const bool a\+\_\+flip\+Inside)
+\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classCylinderSDF_a974c6b114bc5dbf88c171de5328dcaf6}\label{classCylinderSDF_a974c6b114bc5dbf88c171de5328dcaf6}} 
+virtual \mbox{\hyperlink{classCylinderSDF_a974c6b114bc5dbf88c171de5328dcaf6}{$\sim$\+Cylinder\+S\+DF}} ()
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing). \end{DoxyCompactList}\item 
+const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classCylinderSDF_a7f6134d1ef1fe08ffaf43ece08c84fe0}{get\+Center1}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get one endpoint. \end{DoxyCompactList}\item 
+const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classCylinderSDF_aa4188d330f841f04a3f7dba6d1ef9c8f}{get\+Center2}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the other endpoint. \end{DoxyCompactList}\item 
+const T \& \mbox{\hyperlink{classCylinderSDF_a545624c47a5a898b74059e95d44461b2}{get\+Radius}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get radius. \end{DoxyCompactList}\item 
+virtual T \mbox{\hyperlink{classCylinderSDF_a082c08089b07402d55020ed8186cc992}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Signed distance function for a torus. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classCylinderSDF_ac69f666234c9625306153be47295cdbc}\label{classCylinderSDF_ac69f666234c9625306153be47295cdbc}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classCylinderSDF_ac69f666234c9625306153be47295cdbc}{m\+\_\+center1}}
+\begin{DoxyCompactList}\small\item\em One endpoint. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classCylinderSDF_a02b8aea5350ad933ed53abea6cb58103}\label{classCylinderSDF_a02b8aea5350ad933ed53abea6cb58103}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classCylinderSDF_a02b8aea5350ad933ed53abea6cb58103}{m\+\_\+center2}}
+\begin{DoxyCompactList}\small\item\em The other endpoint. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classCylinderSDF_a38e901843de5889a3c3eee35bc2a534c}\label{classCylinderSDF_a38e901843de5889a3c3eee35bc2a534c}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classCylinderSDF_a38e901843de5889a3c3eee35bc2a534c}{m\+\_\+center}}
+\begin{DoxyCompactList}\small\item\em m\+\_\+\+Halfway between center1 and m\+\_\+center2 \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classCylinderSDF_a034a7baec832c8a19fd2cd33ec1358eb}\label{classCylinderSDF_a034a7baec832c8a19fd2cd33ec1358eb}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classCylinderSDF_a034a7baec832c8a19fd2cd33ec1358eb}{m\+\_\+axis}}
+\begin{DoxyCompactList}\small\item\em \char`\"{}\+Axis\char`\"{}, pointing from m\+\_\+center1 to m\+\_\+center2. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classCylinderSDF_a715c9888a921083d827bad94b4660626}\label{classCylinderSDF_a715c9888a921083d827bad94b4660626}} 
+T \mbox{\hyperlink{classCylinderSDF_a715c9888a921083d827bad94b4660626}{m\+\_\+length}}
+\begin{DoxyCompactList}\small\item\em Cylinder length. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classCylinderSDF_ad5ff6ceb3b872fcea0534f89d73f0268}\label{classCylinderSDF_ad5ff6ceb3b872fcea0534f89d73f0268}} 
+T \mbox{\hyperlink{classCylinderSDF_ad5ff6ceb3b872fcea0534f89d73f0268}{m\+\_\+radius}}
+\begin{DoxyCompactList}\small\item\em radius. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classCylinderSDF_a1c57a3a6464820197347bcdc5977f7ba}\label{classCylinderSDF_a1c57a3a6464820197347bcdc5977f7ba}} 
+bool \mbox{\hyperlink{classCylinderSDF_a1c57a3a6464820197347bcdc5977f7ba}{m\+\_\+flip\+Inside}}
+\begin{DoxyCompactList}\small\item\em Hook for making outside -\/$>$ inside. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Cylinder\+S\+D\+F$<$ T $>$}
+
+Signed distance field for a cylinder. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classCylinderSDF_a0c710e871e7e7eb37f379c79c3412607}\label{classCylinderSDF_a0c710e871e7e7eb37f379c79c3412607}} 
+\index{CylinderSDF$<$ T $>$@{CylinderSDF$<$ T $>$}!CylinderSDF@{CylinderSDF}}
+\index{CylinderSDF@{CylinderSDF}!CylinderSDF$<$ T $>$@{CylinderSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{CylinderSDF()}{CylinderSDF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classCylinderSDF}{Cylinder\+S\+DF}}$<$ T $>$\+::\mbox{\hyperlink{classCylinderSDF}{Cylinder\+S\+DF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+center1,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+center2,  }\item[{const T \&}]{a\+\_\+radius,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Full constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+center1} & One endpoint. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+center2} & Other endpoint. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+radius} & Cylinder radius. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+flip\+Inside} & Flip inside/outside. \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classCylinderSDF_a7f6134d1ef1fe08ffaf43ece08c84fe0}\label{classCylinderSDF_a7f6134d1ef1fe08ffaf43ece08c84fe0}} 
+\index{CylinderSDF$<$ T $>$@{CylinderSDF$<$ T $>$}!getCenter1@{getCenter1}}
+\index{getCenter1@{getCenter1}!CylinderSDF$<$ T $>$@{CylinderSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getCenter1()}{getCenter1()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$\& \mbox{\hyperlink{classCylinderSDF}{Cylinder\+S\+DF}}$<$ T $>$\+::get\+Center1 (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get one endpoint. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+center1 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classCylinderSDF_aa4188d330f841f04a3f7dba6d1ef9c8f}\label{classCylinderSDF_aa4188d330f841f04a3f7dba6d1ef9c8f}} 
+\index{CylinderSDF$<$ T $>$@{CylinderSDF$<$ T $>$}!getCenter2@{getCenter2}}
+\index{getCenter2@{getCenter2}!CylinderSDF$<$ T $>$@{CylinderSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getCenter2()}{getCenter2()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$\& \mbox{\hyperlink{classCylinderSDF}{Cylinder\+S\+DF}}$<$ T $>$\+::get\+Center2 (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the other endpoint. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+center2 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classCylinderSDF_a545624c47a5a898b74059e95d44461b2}\label{classCylinderSDF_a545624c47a5a898b74059e95d44461b2}} 
+\index{CylinderSDF$<$ T $>$@{CylinderSDF$<$ T $>$}!getRadius@{getRadius}}
+\index{getRadius@{getRadius}!CylinderSDF$<$ T $>$@{CylinderSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getRadius()}{getRadius()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+const T\& \mbox{\hyperlink{classCylinderSDF}{Cylinder\+S\+DF}}$<$ T $>$\+::get\+Radius (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get radius. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+radius. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classCylinderSDF_a082c08089b07402d55020ed8186cc992}\label{classCylinderSDF_a082c08089b07402d55020ed8186cc992}} 
+\index{CylinderSDF$<$ T $>$@{CylinderSDF$<$ T $>$}!signedDistance@{signedDistance}}
+\index{signedDistance@{signedDistance}!CylinderSDF$<$ T $>$@{CylinderSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+virtual T \mbox{\hyperlink{classCylinderSDF}{Cylinder\+S\+DF}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Signed distance function for a torus. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Position. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{Signed\+Distance\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Source/\mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp}{E\+B\+Geometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp}}\end{DoxyCompactItemize}

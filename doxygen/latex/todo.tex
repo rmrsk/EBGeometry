@@ -1,0 +1,9 @@
+
+\begin{DoxyRefList}
+\item[Class \mbox{\hyperlink{classBVH_1_1LinearNodeT}{B\+VH::Linear\+NodeT$<$ T, P, BV, K $>$}} ]\label{todo__todo000001}%
+\Hypertarget{todo__todo000001}%
+There\textquotesingle{}s a minor optimization that can be made to the memory alignment, which is as follows\+: For a leaf node we never really need the m\+\_\+child\+Offsets array, and for a regular node we never really need the m\+\_\+primitives\+Offset member. Moreover, m\+\_\+child\+Offsets could be made into a K-\/1 sized array because we happen to know that the linearized hierarchy will store the first child node immediately after the regular node. We could shave off 16 bytes of storage, which would mean that a double-\/precision binary tree only takes up one word of C\+PU memory.  
+\item[File \mbox{\hyperlink{EBGeometry__DcelEdgeImplem_8hpp}{E\+B\+Geometry\+\_\+\+Dcel\+Edge\+Implem.hpp}} ]\label{todo__todo000002}%
+\Hypertarget{todo__todo000002}%
+Include m\+\_\+face in constructors 
+\end{DoxyRefList}
