@@ -1,6 +1,6 @@
 name: Build and Deploy
 
-on: on: [push, pull_request]
+on: [push, pull_request]
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-docs
