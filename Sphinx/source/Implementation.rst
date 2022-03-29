@@ -1,5 +1,8 @@
 .. _Chap:Implementation:
 
+Overview
+========
+
 Here, we consider the basic EBGeometry API.
 EBGeometry is a header-only library, implemented under it's own namespace ``EBGeometry``.
 Various major components, like BVHs and DCEL, are implemented under namespaces ``EBGeometry::BVH`` and ``EBGeometry::Dcel``.
