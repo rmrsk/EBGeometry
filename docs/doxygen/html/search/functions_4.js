@@ -1,5 +1,0 @@
-var searchData=
-[
-  ['edgeiteratort',['EdgeIteratorT',['../classDcel_1_1EdgeIteratorT.html#a20ff352f5f61ce6297e82d5be43377ce',1,'Dcel::EdgeIteratorT::EdgeIteratorT()=delete'],['../classDcel_1_1EdgeIteratorT.html#aefe8b41b1b21825922096a45ce645149',1,'Dcel::EdgeIteratorT::EdgeIteratorT(Face &amp;a_face)'],['../classDcel_1_1EdgeIteratorT.html#a1e47d3f1320c6ce4f37e1772ed936451',1,'Dcel::EdgeIteratorT::EdgeIteratorT(const Face &amp;a_face)'],['../classDcel_1_1EdgeIteratorT.html#a0041cf8e8c4dcdda12a514aa64e295f7',1,'Dcel::EdgeIteratorT::EdgeIteratorT(Vertex &amp;a_vertex)'],['../classDcel_1_1EdgeIteratorT.html#abda0210d73dd861142c8e23b4d589bd0',1,'Dcel::EdgeIteratorT::EdgeIteratorT(const Vertex &amp;a_vertex)']]],
-  ['edget',['EdgeT',['../classDcel_1_1EdgeT.html#a2a9682fd036374aad598a50fe54b2c1f',1,'Dcel::EdgeT::EdgeT()'],['../classDcel_1_1EdgeT.html#abe96b4404fa1961df79ffa618a7e8633',1,'Dcel::EdgeT::EdgeT(const Edge &amp;a_otherEdge)'],['../classDcel_1_1EdgeT.html#a639b427e60ede1948f8344a41b9bfc32',1,'Dcel::EdgeT::EdgeT(const VertexPtr &amp;a_vertex)']]]
-];

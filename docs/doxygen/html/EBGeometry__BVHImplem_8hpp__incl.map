@@ -1,7 +1,0 @@
-<map id="Source/EBGeometry_BVHImplem.hpp" name="Source/EBGeometry_BVHImplem.hpp">
-<area shape="rect" id="node3" href="$EBGeometry__BVH_8hpp.html" title="Declaration of a bounding volume hierarchy (BVH) class. " alt="" coords="311,80,469,107"/>
-<area shape="rect" id="node9" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header. " alt="" coords="189,304,431,331"/>
-<area shape="rect" id="node10" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer. " alt="" coords="641,304,877,331"/>
-<area shape="rect" id="node8" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools..." alt="" coords="371,155,523,181"/>
-<area shape="rect" id="node11" href="$EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp. " alt="" coords="422,229,617,256"/>
-</map>
