@@ -54,11 +54,15 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Implementation</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Implementation.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemVec.html">Vector types</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">Bounding volume hierarchy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Signed distance function</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#normal-vector">Normal vector</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#transformations">Transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rounding">Rounding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scaling">Scaling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#analytic-functions">Analytic functions</a></li>
 </ul>
 </li>
@@ -66,9 +70,11 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Reading mesh files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Union.html">Unions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_AMReX.html">Integration with AMReX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Example_Chombo3.html">Integration with Chombo3</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">References</span></p>
 <ul>
@@ -106,21 +112,28 @@
 <span class="k">class</span> <span class="nc">SignedDistanceFunction</span> <span class="p">{</span>
 <span class="k">public</span><span class="o">:</span>
 
-   <span class="kt">void</span> <span class="n">translate</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_translation</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
-   <span class="kt">void</span> <span class="nf">rotate</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="n">a_angle</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">a_axis</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
+  <span class="k">virtual</span> <span class="n">T</span> <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 
-   <span class="n">T</span> <span class="nf">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="kr">inline</span>
+  <span class="k">virtual</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">normal</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">,</span> <span class="k">const</span> <span class="n">T</span><span class="o">&amp;</span> <span class="n">a_delta</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
 
-<span class="k">protected</span><span class="o">:</span>
+  <span class="kr">inline</span>
+  <span class="kt">void</span> <span class="nf">translate</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_translation</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
 
-   <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">transformPoint</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+  <span class="kr">inline</span>
+  <span class="kt">void</span> <span class="nf">rotate</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="n">a_angle</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">a_axis</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>    
+
+  <span class="kr">inline</span>
+  <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">transformPoint</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
 </div>
-<p>We point out that the BVH and DCEL functionalities are fundamentally also signed distance functions.
+<p>We point out that the BVH and DCEL functionalities are fundamentally also signed distance functions, even though they do not inherent from <code class="docutils literal notranslate"><span class="pre">EBGeometry::SignedDistanceFunction&lt;T&gt;</span></code>.
 The <code class="docutils literal notranslate"><span class="pre">SignedDistanceFunction</span></code> class exists so that we have a common entry point for performing distance field manipulations like rotations and translations.</p>
-<p>When implementing the <code class="docutils literal notranslate"><span class="pre">signedDistance</span></code> function, one can transform the input point by first calling <code class="docutils literal notranslate"><span class="pre">transformPoint</span></code>.</p>
-<p>For example, in order to rotate a DCEL mesh (without using the BVH accelerator) we can implement the following signed distance function:</p>
+<p>When implementing the <code class="docutils literal notranslate"><span class="pre">signedDistance</span></code> function, one can transform the input point by first calling <code class="docutils literal notranslate"><span class="pre">transformPoint</span></code>.
+The functions <code class="docutils literal notranslate"><span class="pre">translate</span></code> and <code class="docutils literal notranslate"><span class="pre">rotate</span></code> will translate or rotate the object.
+It is also possible to <em>scale</em> an object, but this is not simply a coordinate transform so it is implemented as a separate signed distance function.
+For example, in order to rotate a DCEL mesh (without using the BVH accelerator) we can implement the following signed distance function:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
 <span class="k">class</span> <span class="nc">MySignedDistanceFunction</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
 <span class="k">public</span><span class="o">:</span>
@@ -150,6 +163,14 @@ The <code class="docutils literal notranslate"><span class="pre">SignedDistanceF
 <span class="p">};</span>
 </pre></div>
 </div>
+<div class="section" id="normal-vector">
+<h2>Normal vector<a class="headerlink" href="#normal-vector" title="Permalink to this headline"></a></h2>
+<p>The normal vector of <code class="docutils literal notranslate"><span class="pre">EBGeometry::SignedDistanceFunction&lt;T&gt;</span></code> is computed using centered finite differences:</p>
+<div class="math notranslate nohighlight">
+\[n_i\left(\mathbf{x}\right) = \frac{1}{2\Delta}\left[S\left(\mathbf{x} + \Delta\mathbf{\hat{i}}\right) - S\left(\mathbf{x} - \Delta\mathbf{\hat{i}}\right)\right],\]</div>
+<p>where <span class="math notranslate nohighlight">\(i\)</span> is a coordinate direction and <span class="math notranslate nohighlight">\(\Delta &gt; 0\)</span>.
+This is done for each component, and the normalized vector is then returned.</p>
+</div>
 <div class="section" id="transformations">
 <h2>Transformations<a class="headerlink" href="#transformations" title="Permalink to this headline"></a></h2>
 <p>The following transformations are possible:</p>
@@ -172,32 +193,115 @@ The APIs are as follows:</p>
 </div>
 <p>Note that if the transformations are to be applied, the implementation of <code class="docutils literal notranslate"><span class="pre">signedDistance(...)</span></code> must transform the input point, as shown in the examples above.</p>
 </div>
+<div class="section" id="rounding">
+<h2>Rounding<a class="headerlink" href="#rounding" title="Permalink to this headline"></a></h2>
+<p>Distance functions can be rounded by displacing the SDF by a specified distance.
+For example, given a distance functions <span class="math notranslate nohighlight">\(S\left(\mathbf{x}\right)\)</span>, the rounded distance functions is</p>
+<div class="math notranslate nohighlight">
+\[S_r\left(\mathbf{x}\right) = S\left(\mathbf{x}\right) - r,\]</div>
+<p>where <span class="math notranslate nohighlight">\(r\)</span> is some rounding radius.
+Note that the rounding does not preserve the volume of the original SDF, so subsequent <em>scaling</em> of the object is usually necessary.</p>
+<p>The rounded SDF is implemented in <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_AnalyticDistanceFunctions.hpp</span></code></p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">RoundedSDF</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+
+  <span class="n">RoundedSDF</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">a_sdf</span><span class="p">,</span> <span class="k">const</span> <span class="n">T</span> <span class="n">a_curv</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">m_sdf</span>  <span class="o">=</span> <span class="n">a_sdf</span><span class="p">;</span>
+    <span class="n">m_curv</span> <span class="o">=</span> <span class="n">a_curv</span><span class="p">;</span>    
+  <span class="p">}</span>
+
+  <span class="k">virtual</span> <span class="n">T</span> <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="k">override</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">m_sdf</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">a_point</span><span class="p">)</span> <span class="o">-</span> <span class="n">m_curv</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<p>To use it, simply pass an SDF into the constructor and use the new distance function.</p>
+</div>
+<div class="section" id="scaling">
+<h2>Scaling<a class="headerlink" href="#scaling" title="Permalink to this headline"></a></h2>
+<p>Scaling of distance functions are possible through the transformation</p>
+<div class="math notranslate nohighlight">
+\[S_c\left(\mathbf{x}\right) = c S\left(\frac{\mathbf{x}}{c}\right),\]</div>
+<p>where <span class="math notranslate nohighlight">\(c\)</span> is a scaling factor.
+We point out that anisotropic stretching does not preserve the distance field.</p>
+<p>The rounded SDF is implemented in <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_AnalyticDistanceFunctions.hpp</span></code></p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">ScaledSDF</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+
+  <span class="cm">/*!</span>
+<span class="cm">    @brief Disallowed weak construction</span>
+<span class="cm">  */</span>
+  <span class="n">ScaledSDF</span><span class="p">()</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+
+  <span class="cm">/*!</span>
+<span class="cm">    @brief Scaled SDF. </span>
+<span class="cm">    @param[in] a_sdf   Input signed distance function.</span>
+<span class="cm">    @param[in] a_scale Scaling factor.</span>
+<span class="cm">  */</span>
+  <span class="n">ScaledSDF</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">a_sdf</span><span class="p">,</span> <span class="k">const</span> <span class="n">T</span> <span class="n">a_scale</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">m_sdf</span>   <span class="o">=</span> <span class="n">a_sdf</span><span class="p">;</span>
+    <span class="n">m_scale</span> <span class="o">=</span> <span class="n">a_scale</span><span class="p">;</span>    
+  <span class="p">}</span>
+  <span class="k">virtual</span> <span class="n">T</span> <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="k">override</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">m_sdf</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">a_point</span><span class="o">/</span><span class="n">m_scale</span><span class="p">))</span> <span class="o">*</span> <span class="n">m_scale</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+</div>
 <div class="section" id="analytic-functions">
 <span id="chap-analyticsdf"></span><h2>Analytic functions<a class="headerlink" href="#analytic-functions" title="Permalink to this headline"></a></h2>
 <p>Above, we have shown how users can supply a DCEL or BVH structure to implement <code class="docutils literal notranslate"><span class="pre">SignedDistanceFunction</span></code>.
 In addition, the file <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_AnalyticSignedDistanceFunctions.hpp</span></code> defines various other analytic shapes such as:</p>
 <ul>
 <li><p><strong>Sphere</strong></p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
-<span class="k">class</span> <span class="nc">EBGeometry</span><span class="o">::</span><span class="nl">SphereSDF</span> <span class="p">:</span> <span class="k">public</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">SphereSDF</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
 </pre></div>
 </div>
 </li>
 <li><p><strong>Box</strong></p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
-<span class="k">class</span> <span class="nc">EBGeometry</span><span class="o">::</span><span class="nl">BoxSDF</span> <span class="p">:</span> <span class="k">public</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">BoxSDF</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
 </pre></div>
 </div>
 </li>
 <li><p><strong>Torus</strong></p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
-<span class="k">class</span> <span class="nc">EBGeometry</span><span class="o">::</span><span class="nl">TorusSDF</span> <span class="p">:</span> <span class="k">public</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">TorusSDF</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
 </pre></div>
 </div>
 </li>
-<li><p><strong>Cylinder</strong></p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
-<span class="k">class</span> <span class="nc">EBGeometry</span><span class="o">::</span><span class="nl">CylinderSDF</span> <span class="p">:</span> <span class="k">public</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+<li><p><strong>Capped cylinder</strong></p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">CylinderSDF</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Infinite cylinder</strong></p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">InfiniteCylinderSDF</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Capsule/rounded cylinder</strong></p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">CapsuleSDF</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Infinite cone</strong></p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">InfiniteConeSDF</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Cone</strong></p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">ConeSDF</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
 </pre></div>
 </div>
 </li>

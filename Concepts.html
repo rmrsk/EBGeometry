@@ -54,6 +54,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Implementation</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="Implementation.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemVec.html">Vector types</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">Bounding volume hierarchy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
@@ -62,9 +63,11 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Reading mesh files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Union.html">Unions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_AMReX.html">Integration with AMReX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Example_Chombo3.html">Integration with Chombo3</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">References</span></p>
 <ul>
@@ -101,13 +104,17 @@
 The signed distance function has the additional property:</p>
 <div class="math notranslate nohighlight" id="equation-eikonal">
 <span class="eqno">(1)<a class="headerlink" href="#equation-eikonal" title="Permalink to this equation"></a></span>\[\left|\nabla S(\mathbf{x})\right| = 1 \quad\textrm{everywhere}.\]</div>
+<p>Note that the normal vector is always</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{n} = \nabla S\left(\mathbf{x}\right).\]</div>
 <p>In EBGeometry we use the following convention:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}S(\mathbf{x}) =
 \begin{cases}
 &gt; 0, &amp; \textrm{for points outside the object}, \\
-&lt; 0, &amp; \textrm{for points inside the object}.
+&lt; 0, &amp; \textrm{for points inside the object},
 \end{cases}\end{split}\]</div>
+<p>which means that the normal vector <span class="math notranslate nohighlight">\(\mathbf{n}\)</span> points away from the object.</p>
 <p>Signed distance functions are also <em>implicit functions</em> (but the reverse statement is not true).
 For example, the signed distance function for a sphere with center <span class="math notranslate nohighlight">\(\mathbf{x}_0\)</span> and radius <span class="math notranslate nohighlight">\(R\)</span> can be written</p>
 <div class="math notranslate nohighlight">

@@ -53,6 +53,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Implementation</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Implementation.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemVec.html">Vector types</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Bounding volume hierarchy</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#template-constraints">Template constraints</a></li>
@@ -68,9 +69,11 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Reading mesh files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Union.html">Unions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_AMReX.html">Integration with AMReX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Example_Chombo3.html">Integration with Chombo3</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">References</span></p>
 <ul>
@@ -104,7 +107,7 @@
   <div class="section" id="bounding-volume-hierarchy">
 <span id="chap-implembvh"></span><h1>Bounding volume hierarchy<a class="headerlink" href="#bounding-volume-hierarchy" title="Permalink to this headline"></a></h1>
 <p>The BVH functionality is encapsulated in the namespace <code class="docutils literal notranslate"><span class="pre">EBGeometry::BVH</span></code>.
-For the full API, see <a class="reference external" href="doxygen/html/namespaceBVH.html">the doxygen API</a>
+For the full API, see <a class="reference external" href="doxygen/html/namespaceBVH.html">the doxygen API</a>.
 There are two types of BVHs supported.</p>
 <ul class="simple">
 <li><p><strong>Direct BVHs</strong> where the nodes are stored in build order and contain references to their children, and the leaf holds primitives.</p></li>
@@ -283,11 +286,11 @@ For the most part this will include the construction of their own bounding volum
 <span id="chap-linearbvh"></span><h2>Compact form<a class="headerlink" href="#compact-form" title="Permalink to this headline"></a></h2>
 <p>In addition to the standard BVH node <code class="docutils literal notranslate"><span class="pre">NodeT&lt;T,</span> <span class="pre">P,</span> <span class="pre">BV,</span> <span class="pre">K&gt;</span></code>, EBGeometry provides a more compact formulation of the BVH hierarchy where the nodes are stored in depth-first order.
 The “linearized” BVH can be automatically constructed from the standard BVH but not vice versa.</p>
-<div class="figure align-center" id="id2">
+<div class="figure align-center" id="id1">
 <a class="reference internal image-reference" href="_images/CompactBVH.png"><img alt="_images/CompactBVH.png" src="_images/CompactBVH.png" style="width: 240px;" /></a>
 <p class="caption"><span class="caption-number">Fig. 6 </span><span class="caption-text">Compact BVH representation.
 The original BVH is traversed from top-to-bottom along the branches and laid out in linear memory.
-Each interior node gets a reference (index offset) to their children nodes.</span><a class="headerlink" href="#id2" title="Permalink to this image"></a></p>
+Each interior node gets a reference (index offset) to their children nodes.</span><a class="headerlink" href="#id1" title="Permalink to this image"></a></p>
 </div>
 <p>The rationale for reorganizing the BVH in compact form is it’s tighter memory footprint and depth-first ordering which allows more efficient traversal downwards in the BVH tree.
 To encapsulate the compact BVH we provide two classes:</p>
@@ -355,7 +358,15 @@ For example:</p>
 To release the memory, deallocate the original BVH tree.
 E.g., the set pointer to the root node to <code class="docutils literal notranslate"><span class="pre">nullptr</span></code> if using a smart pointer.</p>
 </div>
-<p>Note that the primitives live in <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> and not <code class="docutils literal notranslate"><span class="pre">LinearNodeT</span></code>, and the signed distance function is therefore implemented in the <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> member functions:</p>
+<p>Note that the primitives live in <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> and not <code class="docutils literal notranslate"><span class="pre">LinearNodeT</span></code>, and the signed distance function is therefore implemented in the <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> member function:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
+  <span class="k">class</span> <span class="nc">LinearBVH</span> <span class="p">{</span>
+  <span class="k">public</span><span class="o">:</span>
+    <span class="kr">inline</span>
+    <span class="n">T</span> <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3</span><span class="o">&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="signed-distance">
 <h2>Signed distance<a class="headerlink" href="#signed-distance" title="Permalink to this headline"></a></h2>

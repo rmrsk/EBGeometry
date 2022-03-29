@@ -18,7 +18,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="References" href="ZZReferences.html" />
+    <link rel="next" title="Integration with Chombo3" href="Example_Chombo3.html" />
     <link rel="prev" title="Unions" href="Example_Union.html" /> 
 </head>
 
@@ -53,6 +53,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Implementation</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="Implementation.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemVec.html">Vector types</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">Bounding volume hierarchy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
@@ -61,6 +62,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Reading mesh files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Union.html">Unions</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Integration with AMReX</a><ul>
@@ -68,6 +70,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#exposing-signed-distance-functions">Exposing signed distance functions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="Example_Chombo3.html">Integration with Chombo3</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">References</span></p>
 <ul>
@@ -104,11 +107,65 @@
 <p class="admonition-title">Warning</p>
 <p>This example requires you to install <a class="reference external" href="https://github.com/AMReX-Codes/amrex">AMReX</a></p>
 </div>
-<p>This example is given in <code class="file docutils literal notranslate"><span class="pre">Examples/AMReX/main.cpp</span></code> and shows how to expose EBGeometry’s DCEL and BVH functionality to AMReX.</p>
+<p>This example is given in <code class="file docutils literal notranslate"><span class="pre">Examples/AMReX_DCEL/main.cpp</span></code> and shows how to expose EBGeometry’s DCEL and BVH functionality to AMReX.</p>
 <p>We will focus on the following parts of the code:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span> <span class="n">amrex</span> <span class="p">{</span>
+  <span class="k">namespace</span> <span class="n">EB2</span> <span class="p">{</span>
+
+    <span class="cm">/*!</span>
+<span class="cm">      @brief This is an AMReX-capable version of the EBGeometry BVH accelerator. It is templated as T, BV, K which indicate</span>
+<span class="cm">      the EBGeometry precision, bounding volume, and tree degree. </span>
+<span class="cm">    */</span>
+    <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
+    <span class="k">class</span> <span class="nc">SignedDistanceBVH</span> <span class="p">{</span>
+    <span class="k">public</span><span class="o">:</span>
+
+      <span class="k">using</span> <span class="n">BuilderNode</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">NodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">;</span>
+      <span class="k">using</span> <span class="n">LinearNode</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">LinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">;</span>
+      <span class="k">using</span> <span class="n">Vec3</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+
+      <span class="n">SignedDistanceBVH</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">a_filename</span><span class="p">,</span> <span class="k">const</span> <span class="kt">bool</span> <span class="n">a_flipSign</span><span class="p">)</span> <span class="p">{</span>
+
+	<span class="c1">// 1. Read mesh from file. </span>
+	<span class="k">auto</span> <span class="n">mesh</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">PLY</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">readASCII</span><span class="p">(</span><span class="n">a_filename</span><span class="p">);</span>
+
+	<span class="c1">// 2. Create a standard BVH hierarchy. This is not a compact ree. </span>
+	<span class="k">auto</span> <span class="n">root</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">BuilderNode</span><span class="o">&gt;</span><span class="p">(</span><span class="n">mesh</span><span class="o">-&gt;</span><span class="n">getFaces</span><span class="p">());</span>
+	<span class="n">root</span><span class="o">-&gt;</span><span class="n">topDownSortAndPartitionPrimitives</span><span class="p">(</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">defaultBVConstructor</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="o">&gt;</span><span class="p">,</span>
+						<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">defaultPartitioner</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">,</span>
+						<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">defaultStopFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">);</span>
+
+	<span class="c1">// 3. Flatten the tree onto a tighter memory representation. </span>
+	<span class="n">m_rootNode</span> <span class="o">=</span> <span class="n">root</span><span class="o">-&gt;</span><span class="n">flattenTree</span><span class="p">();</span>
+      <span class="p">}</span>
+
+      <span class="n">Real</span> <span class="k">operator</span><span class="p">()</span> <span class="p">(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="n">Real</span> <span class="n">x</span><span class="p">,</span> <span class="n">Real</span> <span class="n">y</span><span class="p">,</span> <span class="n">Real</span> <span class="n">z</span><span class="p">))</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="p">{</span>
+	<span class="k">const</span> <span class="n">Real</span> <span class="n">sign</span> <span class="o">=</span> <span class="p">(</span><span class="n">m_flipSign</span><span class="p">)</span> <span class="o">?</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">:</span> <span class="mf">1.0</span><span class="p">;</span>
+
+	<span class="k">return</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">Vec3</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span><span class="p">));</span>
+      <span class="p">};</span>
+
+      <span class="kr">inline</span> <span class="n">Real</span> <span class="nf">operator</span><span class="p">()</span> <span class="p">(</span><span class="k">const</span> <span class="n">RealArray</span><span class="o">&amp;</span> <span class="n">p</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">this</span><span class="o">-&gt;</span><span class="k">operator</span><span class="p">()(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">]));</span>
+      <span class="p">}</span>
+
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 <div class="section" id="constructing-the-bvh">
 <h2>Constructing the BVH<a class="headerlink" href="#constructing-the-bvh" title="Permalink to this headline"></a></h2>
 <p>When constructing the signed distance function we use the DCEL and BVH functionality directly in the constructor:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>      <span class="n">SignedDistanceBVH</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">a_filename</span><span class="p">,</span> <span class="k">const</span> <span class="kt">bool</span> <span class="n">a_flipSign</span><span class="p">)</span> <span class="p">{</span>
+	<span class="k">auto</span> <span class="n">mesh</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">PLY</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">readASCII</span><span class="p">(</span><span class="n">a_filename</span><span class="p">);</span>
+	<span class="k">auto</span> <span class="n">root</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">BuilderNode</span><span class="o">&gt;</span><span class="p">(</span><span class="n">mesh</span><span class="o">-&gt;</span><span class="n">getFaces</span><span class="p">());</span>
+	<span class="n">root</span><span class="o">-&gt;</span><span class="n">topDownSortAndPartitionPrimitives</span><span class="p">(</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">defaultBVConstructor</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="o">&gt;</span><span class="p">,</span>
+						<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">defaultPartitioner</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">,</span>
+						<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">defaultStopFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">);</span>
+	<span class="n">m_rootNode</span> <span class="o">=</span> <span class="n">root</span><span class="o">-&gt;</span><span class="n">flattenTree</span><span class="p">();</span>
+      <span class="p">}</span>
+</pre></div>
+</div>
 <p>Note that we are performing the following steps:</p>
 <ul class="simple">
 <li><p>Using the PLY parser for creating a DCEL mesh.</p></li>
@@ -119,6 +176,17 @@
 <div class="section" id="exposing-signed-distance-functions">
 <h2>Exposing signed distance functions<a class="headerlink" href="#exposing-signed-distance-functions" title="Permalink to this headline"></a></h2>
 <p>Next, we expose the signed distance function to AMReX by implementing the functions</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>      <span class="n">Real</span> <span class="nf">operator</span><span class="p">()</span> <span class="p">(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="n">Real</span> <span class="n">x</span><span class="p">,</span> <span class="n">Real</span> <span class="n">y</span><span class="p">,</span> <span class="n">Real</span> <span class="n">z</span><span class="p">))</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="p">{</span>
+	<span class="k">const</span> <span class="n">Real</span> <span class="n">sign</span> <span class="o">=</span> <span class="p">(</span><span class="n">m_flipSign</span><span class="p">)</span> <span class="o">?</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">:</span> <span class="mf">1.0</span><span class="p">;</span>
+
+	<span class="k">return</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">Vec3</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span><span class="p">));</span>
+      <span class="p">};</span>
+
+      <span class="kr">inline</span> <span class="n">Real</span> <span class="nf">operator</span><span class="p">()</span> <span class="p">(</span><span class="k">const</span> <span class="n">RealArray</span><span class="o">&amp;</span> <span class="n">p</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">this</span><span class="o">-&gt;</span><span class="k">operator</span><span class="p">()(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">]));</span>
+      <span class="p">}</span>
+</pre></div>
+</div>
 <p>Note that the AMReX <code class="docutils literal notranslate"><span class="pre">DECL</span></code> macros expand to <code class="docutils literal notranslate"><span class="pre">(Real</span> <span class="pre">x,</span> <span class="pre">Real</span> <span class="pre">y)</span></code> in 2D, but here we assume that the user has compiled for 3D.</p>
 </div>
 </div>
@@ -128,7 +196,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="Example_Union.html" class="btn btn-neutral float-left" title="Unions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="ZZReferences.html" class="btn btn-neutral float-right" title="References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Example_Chombo3.html" class="btn btn-neutral float-right" title="Integration with Chombo3" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
