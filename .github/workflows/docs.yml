@@ -22,9 +22,9 @@ jobs:
           python3 -m pip install sphinx sphinx_rtd_theme sphinxcontrib-bibtex
           python3 -m pip install -I docutils==0.16  # Downgrade docutils so that bullet points render properly with Sphinx
           
-      # - name: Build doxygen
-      #   run: |
-      #     doxygen doxyfile
+      - name: Build doxygen
+        run: |
+          doxygen doxyfile
 
       - name: Build sphinx
         run: |
