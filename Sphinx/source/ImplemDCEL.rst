@@ -28,7 +28,7 @@ The main DCEL functionality (vertices, edges, faces) is provided by the followin
   The DCEL vertex class stores the vertex position, normal vector, and the outgoing half-edge from the vertex.
   Note that the class has member functions for computing the vertex pseudonormal, see :ref:`Chap:NormalDCEL`. 
   
-  The full API is given in the doxygen documentation `here <doxygen/html/classDcel_1_1VertexT.html>`_.
+  The full API is given in the doxygen documentation `here <doxygen/html/classDcel_1_1VertexT.html>`__.
 
 *  **Edges** are implemented as a template ``EBGeometry::Dcel::EdgeT``
 
@@ -39,7 +39,7 @@ The main DCEL functionality (vertices, edges, faces) is provided by the followin
   The half-edges store a reference to their face, as well as pointers to the previous edge, next edge, pair edge, and starting vertex.
   For performance reasons, the edge also stores the length and inverse length of the edge.
 
-  The full API is given in the doxygen documentation `here <doxygen/html/classDcel_1_1EdgeT.html>`_.
+  The full API is given in the doxygen documentation `here <doxygen/html/classDcel_1_1EdgeT.html>`__.
 
 *  **Faces** are implemented as a template ``EBGeometry::Dcel::FaceT``
 
@@ -57,7 +57,7 @@ The main DCEL functionality (vertices, edges, faces) is provided by the followin
   The normal vector and 2D embedding of the facet exist because the signed distance computation requires them.
   The centroid position exists only because BVH partitioners will use it for partitioning the surface mesh.
 
-  The full API is given in the doxygen documentation `here <doxygen/html/classDcel_1_1FaceT.html>`_.
+  The full API is given in the doxygen documentation `here <doxygen/html/classDcel_1_1FaceT.html>`__.
 
 *  **Mesh** is implemented as a template ``EBGeometry::Dcel::MeshT``
 
@@ -69,7 +69,7 @@ The main DCEL functionality (vertices, edges, faces) is provided by the followin
   For example, to obtain all the facets one can call ``EBGeometry::Dcel::MeshT<T>::getFaces()`` which will return all the DCEL faces of the surface mesh. 
   Typically, the mesh is not created by the user but automatically created when reading the mesh from an input file.
 
-  The full API is given in the doxygen documentation `here <doxygen/html/classDcel_1_1MeshT.html>`_.
+  The full API is given in the doxygen documentation `here <doxygen/html/classDcel_1_1MeshT.html>`__.
 
 All of the above DCEL classes have member functions of the type:
 

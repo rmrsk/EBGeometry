@@ -4,7 +4,7 @@ Bounding volume hierarchy
 =========================
 
 The BVH functionality is encapsulated in the namespace ``EBGeometry::BVH``.
-For the full API, see `the doxygen API <doxygen/html/namespaceBVH.html>`_
+For the full API, see `the doxygen API <doxygen/html/namespaceBVH.html>`__.
 There are two types of BVHs supported.
 
 *  **Direct BVHs** where the nodes are stored in build order and contain references to their children, and the leaf holds primitives.
@@ -253,11 +253,11 @@ For example:
    To release the memory, deallocate the original BVH tree.
    E.g., the set pointer to the root node to ``nullptr`` if using a smart pointer.
 
-Note that the primitives live in ``LinearBVH`` and not ``LinearNodeT``, and the signed distance function is therefore implemented in the ``LinearBVH`` member functions:
+Note that the primitives live in ``LinearBVH`` and not ``LinearNodeT``, and the signed distance function is therefore implemented in the ``LinearBVH`` member function:
 
 .. literalinclude:: ../../Source/EBGeometry_BVH.hpp
    :language: c++
-   :lines: 630-631,673-674,680-681,702
+   :lines: 477-479, 529-530, 544
 
 Signed distance
 ---------------
@@ -285,4 +285,4 @@ We point out that the compact BVH only supports:
 
 Out of these, the ordered traversals (discussed in :ref:`Chap:BVH`) are faster.
 
-The compact BVH only supports stack-based ordered traversal (which tends to be faster). 
+The compact BVH only supports stack-based ordered traversal (which tends to be faster).
