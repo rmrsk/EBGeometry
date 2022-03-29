@@ -15,9 +15,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Dependencies
+      - name: Install dependencies
         run: |
           sudo apt install doxygen
+          sudo apt install graphviz          
           python3 -m pip install sphinx sphinx_rtd_theme
           python3 -m pip install -I docutils==0.16  # Downgrade docutils so that bullet points render properly with Sphinx
           
@@ -25,6 +26,7 @@ jobs:
         run: |
           echo "Building doxygen documentation"
           doxygen doxyfile
+
           
       # - name: Deploy
       #   if: github.event_name == 'push' && github.repository == 'rmrsk/EBGeometry' && github.ref == 'refs/heads/main'
