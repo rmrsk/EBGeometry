@@ -1,0 +1,41 @@
+name: Build and Deploy
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-docs
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+
+      - name: Install dependencies
+        run: |
+          sudo apt install doxygen
+          sudo apt install graphviz          
+          python3 -m pip install sphinx sphinx_rtd_theme sphinxcontrib-bibtex
+          python3 -m pip install -I docutils==0.16  # Downgrade docutils so that bullet points render properly with Sphinx
+          
+      - name: Build doxygen
+        run: |
+          doxygen doxyfile
+
+      - name: Build sphinx
+        run: |
+          cd Sphinx
+          make github
+          
+      - name: Deploy
+        if: github.event_name == 'push' && github.repository == 'rmrsk/EBGeometry' && github.ref == 'refs/heads/main'        
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
+          folder: docs
+          clean: false
