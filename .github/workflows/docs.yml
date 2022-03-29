@@ -24,8 +24,12 @@ jobs:
           
       - name: Build doxygen
         run: |
-          echo "Building doxygen documentation"
           doxygen doxyfile
+
+      - name: Build sphinx
+        run: |
+          cd Sphinx
+          make github
 
           
       # - name: Deploy
