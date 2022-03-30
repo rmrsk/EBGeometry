@@ -145,9 +145,9 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <tr class="memitem:ac8df9e7b154186207263b8727e1084a8"><td class="memItemLeft" align="right" valign="top">const std::array&lt; std::shared_ptr&lt; <a class="el" href="classBVH_1_1NodeT.html">NodeT</a>&lt; T, P, BV, K &gt; &gt;, K &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#ac8df9e7b154186207263b8727e1084a8">getChildren</a> () const noexcept</td></tr>
 <tr class="memdesc:ac8df9e7b154186207263b8727e1084a8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return this node's children.  <a href="classBVH_1_1NodeT.html#ac8df9e7b154186207263b8727e1084a8">More...</a><br /></td></tr>
 <tr class="separator:ac8df9e7b154186207263b8727e1084a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0fe074fbff56ac2d0a6ad113ed34d56b"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a0fe074fbff56ac2d0a6ad113ed34d56b">signedDistance</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point) const noexcept</td></tr>
-<tr class="memdesc:a0fe074fbff56ac2d0a6ad113ed34d56b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function which computes the signed distance.  <a href="classBVH_1_1NodeT.html#a0fe074fbff56ac2d0a6ad113ed34d56b">More...</a><br /></td></tr>
-<tr class="separator:a0fe074fbff56ac2d0a6ad113ed34d56b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a94966b22b1f42ccc34af88c90b452a87"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a94966b22b1f42ccc34af88c90b452a87">signedDistance</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point) const noexcept override</td></tr>
+<tr class="memdesc:a94966b22b1f42ccc34af88c90b452a87"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function which computes the signed distance.  <a href="classBVH_1_1NodeT.html#a94966b22b1f42ccc34af88c90b452a87">More...</a><br /></td></tr>
+<tr class="separator:a94966b22b1f42ccc34af88c90b452a87"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1f9067b43b1a6962854f4a2b43325858"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a1f9067b43b1a6962854f4a2b43325858">signedDistance</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point, const <a class="el" href="namespaceBVH.html#a3ddb7b34ac1deb3baed2f32d9eacbe5b">Prune</a> a_pruning) const noexcept</td></tr>
 <tr class="memdesc:a1f9067b43b1a6962854f4a2b43325858"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function which computes the signed distance. This version allows the user to manually select a traversal algorithm.  <a href="classBVH_1_1NodeT.html#a1f9067b43b1a6962854f4a2b43325858">More...</a><br /></td></tr>
 <tr class="separator:a1f9067b43b1a6962854f4a2b43325858"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -753,8 +753,8 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 
 </div>
 </div>
-<a id="a0fe074fbff56ac2d0a6ad113ed34d56b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0fe074fbff56ac2d0a6ad113ed34d56b">&#9670;&nbsp;</a></span>signedDistance() <span class="overload">[1/2]</span></h2>
+<a id="a94966b22b1f42ccc34af88c90b452a87"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a94966b22b1f42ccc34af88c90b452a87">&#9670;&nbsp;</a></span>signedDistance() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -774,7 +774,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">override</span><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">

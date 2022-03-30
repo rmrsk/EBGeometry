@@ -9,6 +9,26 @@ Mesh class which stores a full D\+C\+EL mesh (with signed distance functions)
 
 {\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Dcel\+Mesh.\+hpp$>$}
 
+
+
+Inheritance diagram for Dcel\+::MeshT$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classDcel_1_1MeshT__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Dcel\+::MeshT$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classDcel_1_1MeshT__coll__graph}
+\end{center}
+\end{figure}
 \doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
@@ -86,7 +106,7 @@ std\+::vector$<$ \mbox{\hyperlink{classDcel_1_1MeshT_a6c71642a9e6b36f9d6ab602703
 \mbox{\Hypertarget{classDcel_1_1MeshT_a7f1891fc07bf4f353fb7251723f7fd46}\label{classDcel_1_1MeshT_a7f1891fc07bf4f353fb7251723f7fd46}} 
 const std\+::vector$<$ \mbox{\hyperlink{classDcel_1_1MeshT_a6c71642a9e6b36f9d6ab6027035625f0}{Face\+Ptr}} $>$ \& \mbox{\hyperlink{classDcel_1_1MeshT_a7f1891fc07bf4f353fb7251723f7fd46}{get\+Faces}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get immutable faces in this mesh. \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classDcel_1_1MeshT_aa6f614aa0d93c3345c10150168347497}{signed\+Distance}} (const \mbox{\hyperlink{classDcel_1_1MeshT_a646c5d8f66b3079bca35fe4186493627}{Vec3}} \&a\+\_\+x0) const noexcept
+T \mbox{\hyperlink{classDcel_1_1MeshT_a0e16e8fcf1a73342c87c35e3b5682dae}{signed\+Distance}} (const \mbox{\hyperlink{classDcel_1_1MeshT_a646c5d8f66b3079bca35fe4186493627}{Vec3}} \&a\+\_\+x0) const noexcept override
 \begin{DoxyCompactList}\small\item\em Compute the signed distance from a point to this mesh. \end{DoxyCompactList}\item 
 T \mbox{\hyperlink{classDcel_1_1MeshT_a4fa40378fbd4c31cd50e77da70ef30fd}{signed\+Distance}} (const \mbox{\hyperlink{classDcel_1_1MeshT_a646c5d8f66b3079bca35fe4186493627}{Vec3}} \&a\+\_\+x0, \mbox{\hyperlink{classDcel_1_1MeshT_abb4c3bb7a52804bb041c133f30151399}{Search\+Algorithm}} a\+\_\+algorithm) const noexcept
 \begin{DoxyCompactList}\small\item\em Compute the signed distance from a point to this mesh. \end{DoxyCompactList}\item 
@@ -377,12 +397,12 @@ Search algorithm for direct signed distance computations.
 \mbox{\texttt{ in}}  & {\em a\+\_\+algorithm} & Algorithm to use \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classDcel_1_1MeshT_aa6f614aa0d93c3345c10150168347497}\label{classDcel_1_1MeshT_aa6f614aa0d93c3345c10150168347497}} 
+\mbox{\Hypertarget{classDcel_1_1MeshT_a0e16e8fcf1a73342c87c35e3b5682dae}\label{classDcel_1_1MeshT_a0e16e8fcf1a73342c87c35e3b5682dae}} 
 \index{Dcel::MeshT$<$ T $>$@{Dcel::MeshT$<$ T $>$}!signedDistance@{signedDistance}}
 \index{signedDistance@{signedDistance}!Dcel::MeshT$<$ T $>$@{Dcel::MeshT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-T \mbox{\hyperlink{classDcel_1_1MeshT}{Dcel\+::\+MeshT}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDcel_1_1MeshT_a646c5d8f66b3079bca35fe4186493627}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+T \mbox{\hyperlink{classDcel_1_1MeshT}{Dcel\+::\+MeshT}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDcel_1_1MeshT_a646c5d8f66b3079bca35fe4186493627}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
 
 
 
@@ -396,6 +416,10 @@ Compute the signed distance from a point to this mesh.
 This function will iterate through A\+LL faces in the mesh and return the value with the smallest magnitude. This is horrendously slow, which is why this function is almost never called. Rather, Mesh\+T$<$\+T$>$ can be embedded in a bounding volume hierarchy for faster access. \begin{DoxyNote}{Note}
 This will call the other version with the object\textquotesingle{}s search algorithm. 
 \end{DoxyNote}
+
+
+Implements \mbox{\hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{Signed\+Distance\+Function$<$ T $>$}}.
+
 \mbox{\Hypertarget{classDcel_1_1MeshT_a4fa40378fbd4c31cd50e77da70ef30fd}\label{classDcel_1_1MeshT_a4fa40378fbd4c31cd50e77da70ef30fd}} 
 \index{Dcel::MeshT$<$ T $>$@{Dcel::MeshT$<$ T $>$}!signedDistance@{signedDistance}}
 \index{signedDistance@{signedDistance}!Dcel::MeshT$<$ T $>$@{Dcel::MeshT$<$ T $>$}}

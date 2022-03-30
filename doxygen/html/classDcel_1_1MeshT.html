@@ -81,6 +81,24 @@ $(function() {
  <a href="classDcel_1_1MeshT.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="EBGeometry__DcelMesh_8hpp_source.html">EBGeometry_DcelMesh.hpp</a>&gt;</code></p>
+<div class="dynheader">
+Inheritance diagram for Dcel::MeshT&lt; T &gt;:</div>
+<div class="dyncontent">
+<div class="center"><img src="classDcel_1_1MeshT__inherit__graph.png" border="0" usemap="#Dcel_1_1MeshT_3_01T_01_4_inherit__map" alt="Inheritance graph"/></div>
+<map name="Dcel_1_1MeshT_3_01T_01_4_inherit__map" id="Dcel_1_1MeshT_3_01T_01_4_inherit__map">
+<area shape="rect" title="Mesh class which stores a full DCEL mesh (with signed distance functions)" alt="" coords="43,80,183,107"/>
+<area shape="rect" href="classSignedDistanceFunction.html" title="Abstract representation of a signed distance function." alt="" coords="5,5,221,32"/>
+</map>
+<center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
+<div class="dynheader">
+Collaboration diagram for Dcel::MeshT&lt; T &gt;:</div>
+<div class="dyncontent">
+<div class="center"><img src="classDcel_1_1MeshT__coll__graph.png" border="0" usemap="#Dcel_1_1MeshT_3_01T_01_4_coll__map" alt="Collaboration graph"/></div>
+<map name="Dcel_1_1MeshT_3_01T_01_4_coll__map" id="Dcel_1_1MeshT_3_01T_01_4_coll__map">
+<area shape="rect" title="Mesh class which stores a full DCEL mesh (with signed distance functions)" alt="" coords="43,80,183,107"/>
+<area shape="rect" href="classSignedDistanceFunction.html" title="Abstract representation of a signed distance function." alt="" coords="5,5,221,32"/>
+</map>
+<center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
@@ -182,15 +200,33 @@ std::vector&lt; <a class="el" href="classDcel_1_1MeshT.html#a6c71642a9e6b36f9d6a
 const std::vector&lt; <a class="el" href="classDcel_1_1MeshT.html#a6c71642a9e6b36f9d6ab6027035625f0">FacePtr</a> &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDcel_1_1MeshT.html#a7f1891fc07bf4f353fb7251723f7fd46">getFaces</a> () const noexcept</td></tr>
 <tr class="memdesc:a7f1891fc07bf4f353fb7251723f7fd46"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get immutable faces in this mesh. <br /></td></tr>
 <tr class="separator:a7f1891fc07bf4f353fb7251723f7fd46"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa6f614aa0d93c3345c10150168347497"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDcel_1_1MeshT.html#aa6f614aa0d93c3345c10150168347497">signedDistance</a> (const <a class="el" href="classDcel_1_1MeshT.html#a646c5d8f66b3079bca35fe4186493627">Vec3</a> &amp;a_x0) const noexcept</td></tr>
-<tr class="memdesc:aa6f614aa0d93c3345c10150168347497"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the signed distance from a point to this mesh.  <a href="classDcel_1_1MeshT.html#aa6f614aa0d93c3345c10150168347497">More...</a><br /></td></tr>
-<tr class="separator:aa6f614aa0d93c3345c10150168347497"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0e16e8fcf1a73342c87c35e3b5682dae"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDcel_1_1MeshT.html#a0e16e8fcf1a73342c87c35e3b5682dae">signedDistance</a> (const <a class="el" href="classDcel_1_1MeshT.html#a646c5d8f66b3079bca35fe4186493627">Vec3</a> &amp;a_x0) const noexcept override</td></tr>
+<tr class="memdesc:a0e16e8fcf1a73342c87c35e3b5682dae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the signed distance from a point to this mesh.  <a href="classDcel_1_1MeshT.html#a0e16e8fcf1a73342c87c35e3b5682dae">More...</a><br /></td></tr>
+<tr class="separator:a0e16e8fcf1a73342c87c35e3b5682dae"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4fa40378fbd4c31cd50e77da70ef30fd"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDcel_1_1MeshT.html#a4fa40378fbd4c31cd50e77da70ef30fd">signedDistance</a> (const <a class="el" href="classDcel_1_1MeshT.html#a646c5d8f66b3079bca35fe4186493627">Vec3</a> &amp;a_x0, <a class="el" href="classDcel_1_1MeshT.html#abb4c3bb7a52804bb041c133f30151399">SearchAlgorithm</a> a_algorithm) const noexcept</td></tr>
 <tr class="memdesc:a4fa40378fbd4c31cd50e77da70ef30fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the signed distance from a point to this mesh.  <a href="classDcel_1_1MeshT.html#a4fa40378fbd4c31cd50e77da70ef30fd">More...</a><br /></td></tr>
 <tr class="separator:a4fa40378fbd4c31cd50e77da70ef30fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8be4c3d6f606b8bc8cc36820de773de1"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDcel_1_1MeshT.html#a8be4c3d6f606b8bc8cc36820de773de1">unsignedDistance2</a> (const <a class="el" href="classDcel_1_1MeshT.html#a646c5d8f66b3079bca35fe4186493627">Vec3</a> &amp;a_x0) const noexcept</td></tr>
 <tr class="memdesc:a8be4c3d6f606b8bc8cc36820de773de1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the unsigned square distance from a point to this mesh.  <a href="classDcel_1_1MeshT.html#a8be4c3d6f606b8bc8cc36820de773de1">More...</a><br /></td></tr>
 <tr class="separator:a8be4c3d6f606b8bc8cc36820de773de1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_methods_classSignedDistanceFunction"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classSignedDistanceFunction')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classSignedDistanceFunction.html">SignedDistanceFunction&lt; T &gt;</a></td></tr>
+<tr class="memitem:abfeeff9b3901e03ec6b73317dc9a722e inherit pub_methods_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top"><a id="abfeeff9b3901e03ec6b73317dc9a722e"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#abfeeff9b3901e03ec6b73317dc9a722e">SignedDistanceFunction</a> ()=default</td></tr>
+<tr class="memdesc:abfeeff9b3901e03ec6b73317dc9a722e inherit pub_methods_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Disallowed, use the full constructor. <br /></td></tr>
+<tr class="separator:abfeeff9b3901e03ec6b73317dc9a722e inherit pub_methods_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab47b289bd8351d7f323938c91b2bb92b inherit pub_methods_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top"><a id="ab47b289bd8351d7f323938c91b2bb92b"></a>
+virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#ab47b289bd8351d7f323938c91b2bb92b">~SignedDistanceFunction</a> ()=default</td></tr>
+<tr class="memdesc:ab47b289bd8351d7f323938c91b2bb92b inherit pub_methods_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor (does nothing) <br /></td></tr>
+<tr class="separator:ab47b289bd8351d7f323938c91b2bb92b inherit pub_methods_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae9f55561cebcd7b2eafc1e2e3ae44027 inherit pub_methods_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#ae9f55561cebcd7b2eafc1e2e3ae44027">normal</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point, const T &amp;a_delta) const noexcept</td></tr>
+<tr class="memdesc:ae9f55561cebcd7b2eafc1e2e3ae44027 inherit pub_methods_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Signed distance normal vector.  <a href="classSignedDistanceFunction.html#ae9f55561cebcd7b2eafc1e2e3ae44027">More...</a><br /></td></tr>
+<tr class="separator:ae9f55561cebcd7b2eafc1e2e3ae44027 inherit pub_methods_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:add71ebc2e7f3fb5e85766898413482e7 inherit pub_methods_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#add71ebc2e7f3fb5e85766898413482e7">translate</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_translation) noexcept</td></tr>
+<tr class="memdesc:add71ebc2e7f3fb5e85766898413482e7 inherit pub_methods_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Translate signed distance function.  <a href="classSignedDistanceFunction.html#add71ebc2e7f3fb5e85766898413482e7">More...</a><br /></td></tr>
+<tr class="separator:add71ebc2e7f3fb5e85766898413482e7 inherit pub_methods_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae8de697f4d0966290342bcf6383585ef inherit pub_methods_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#ae8de697f4d0966290342bcf6383585ef">rotate</a> (const T a_angle, const int a_axis) noexcept</td></tr>
+<tr class="memdesc:ae8de697f4d0966290342bcf6383585ef inherit pub_methods_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rotate the signed distance function around.  <a href="classSignedDistanceFunction.html#ae8de697f4d0966290342bcf6383585ef">More...</a><br /></td></tr>
+<tr class="separator:ae8de697f4d0966290342bcf6383585ef inherit pub_methods_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
@@ -220,6 +256,11 @@ std::vector&lt; <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &gt;&#
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDcel_1_1MeshT.html#a7115bea1b9d776a5f9c82a1e4fe852a0">printWarnings</a> (const std::map&lt; std::string, int &gt; &amp;a_warnings) const noexcept</td></tr>
 <tr class="memdesc:a7115bea1b9d776a5f9c82a1e4fe852a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print all warnings to std::cerr. <br /></td></tr>
 <tr class="separator:a7115bea1b9d776a5f9c82a1e4fe852a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pro_methods_classSignedDistanceFunction"><td colspan="2" onclick="javascript:toggleInherit('pro_methods_classSignedDistanceFunction')"><img src="closed.png" alt="-"/>&#160;Protected Member Functions inherited from <a class="el" href="classSignedDistanceFunction.html">SignedDistanceFunction&lt; T &gt;</a></td></tr>
+<tr class="memitem:af186f98f9ea4ac96fccb4add4ebf196d inherit pro_methods_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top"><a id="af186f98f9ea4ac96fccb4add4ebf196d"></a>
+<a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#af186f98f9ea4ac96fccb4add4ebf196d">transformPoint</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point) const noexcept</td></tr>
+<tr class="memdesc:af186f98f9ea4ac96fccb4add4ebf196d inherit pro_methods_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Apply transformation operators and move point. <br /></td></tr>
+<tr class="separator:af186f98f9ea4ac96fccb4add4ebf196d inherit pro_methods_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
@@ -239,6 +280,11 @@ std::vector&lt; <a class="el" href="classDcel_1_1MeshT.html#ab2b035530536a8bc56e
 std::vector&lt; <a class="el" href="classDcel_1_1MeshT.html#a6c71642a9e6b36f9d6ab6027035625f0">FacePtr</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDcel_1_1MeshT.html#a17e08b2ee4b5b7b1dc3df974e792ca5f">m_faces</a></td></tr>
 <tr class="memdesc:a17e08b2ee4b5b7b1dc3df974e792ca5f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Mesh faces. <br /></td></tr>
 <tr class="separator:a17e08b2ee4b5b7b1dc3df974e792ca5f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pro_attribs_classSignedDistanceFunction"><td colspan="2" onclick="javascript:toggleInherit('pro_attribs_classSignedDistanceFunction')"><img src="closed.png" alt="-"/>&#160;Protected Attributes inherited from <a class="el" href="classSignedDistanceFunction.html">SignedDistanceFunction&lt; T &gt;</a></td></tr>
+<tr class="memitem:af61e5e2ece6add9d2bcf8e5aa8cf2844 inherit pro_attribs_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top"><a id="af61e5e2ece6add9d2bcf8e5aa8cf2844"></a>
+std::deque&lt; std::shared_ptr&lt; <a class="el" href="classTransformOp.html">TransformOp</a>&lt; T &gt; &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#af61e5e2ece6add9d2bcf8e5aa8cf2844">m_transformOps</a></td></tr>
+<tr class="memdesc:af61e5e2ece6add9d2bcf8e5aa8cf2844 inherit pro_attribs_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">List of transformation operators for the signed distance field. <br /></td></tr>
+<tr class="separator:af61e5e2ece6add9d2bcf8e5aa8cf2844 inherit pro_attribs_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><h3>template&lt;class T&gt;<br />
@@ -768,8 +814,8 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="aa6f614aa0d93c3345c10150168347497"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa6f614aa0d93c3345c10150168347497">&#9670;&nbsp;</a></span>signedDistance() <span class="overload">[1/2]</span></h2>
+<a id="a0e16e8fcf1a73342c87c35e3b5682dae"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0e16e8fcf1a73342c87c35e3b5682dae">&#9670;&nbsp;</a></span>signedDistance() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -789,7 +835,7 @@ template&lt;class T &gt; </div>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">override</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -802,6 +848,8 @@ template&lt;class T &gt; </div>
   </dd>
 </dl>
 <p>This function will iterate through ALL faces in the mesh and return the value with the smallest magnitude. This is horrendously slow, which is why this function is almost never called. Rather, MeshT&lt;T&gt; can be embedded in a bounding volume hierarchy for faster access. </p><dl class="section note"><dt>Note</dt><dd>This will call the other version with the object's search algorithm. </dd></dl>
+
+<p>Implements <a class="el" href="classSignedDistanceFunction.html#af5912280ca51dc21a2d6949a30ec7d21">SignedDistanceFunction&lt; T &gt;</a>.</p>
 
 </div>
 </div>

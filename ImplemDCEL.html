@@ -173,7 +173,7 @@ The centroid position exists only because BVH partitioners will use it for parti
 </ul>
 <blockquote>
 <div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
-  <span class="k">class</span> <span class="nc">MeshT</span> <span class="p">{</span>
+  <span class="k">class</span> <span class="nc">MeshT</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
   <span class="k">public</span><span class="o">:</span>
 </pre></div>
 </div>

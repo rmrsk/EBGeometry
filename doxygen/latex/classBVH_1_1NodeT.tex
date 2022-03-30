@@ -57,7 +57,7 @@ const BV \& \mbox{\hyperlink{classBVH_1_1NodeT_a02cba4dcb065ebfaeea7e4d251b89d04
 \begin{DoxyCompactList}\small\item\em Get bounding volume. \end{DoxyCompactList}\item 
 const std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}$<$ T, P, BV, K $>$ $>$, K $>$ \& \mbox{\hyperlink{classBVH_1_1NodeT_ac8df9e7b154186207263b8727e1084a8}{get\+Children}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Return this node\textquotesingle{}s children. \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classBVH_1_1NodeT_a0fe074fbff56ac2d0a6ad113ed34d56b}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept
+T \mbox{\hyperlink{classBVH_1_1NodeT_a94966b22b1f42ccc34af88c90b452a87}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
 \begin{DoxyCompactList}\small\item\em Function which computes the signed distance. \end{DoxyCompactList}\item 
 T \mbox{\hyperlink{classBVH_1_1NodeT_a1f9067b43b1a6962854f4a2b43325858}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point, const \mbox{\hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{Prune}} a\+\_\+pruning) const noexcept
 \begin{DoxyCompactList}\small\item\em Function which computes the signed distance. This version allows the user to manually select a traversal algorithm. \end{DoxyCompactList}\item 
@@ -363,12 +363,12 @@ Set primitives in this node.
 \mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & Primitives \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classBVH_1_1NodeT_a0fe074fbff56ac2d0a6ad113ed34d56b}\label{classBVH_1_1NodeT_a0fe074fbff56ac2d0a6ad113ed34d56b}} 
+\mbox{\Hypertarget{classBVH_1_1NodeT_a94966b22b1f42ccc34af88c90b452a87}\label{classBVH_1_1NodeT_a94966b22b1f42ccc34af88c90b452a87}} 
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!signedDistance@{signedDistance}}
 \index{signedDistance@{signedDistance}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
-T \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+T \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [noexcept]}}
 
 
 
