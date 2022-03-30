@@ -110,7 +110,7 @@ namespace BVH {
     Had this been C++20, we would have use concepts to enforce this.
   */
   template <class T, class P, class BV, int K>
-  class NodeT {
+  class NodeT : public SignedDistanceFunction<T> {
   public:
 
     /*!
@@ -218,7 +218,7 @@ namespace BVH {
       @return Signed distance to the input point.
     */
     inline
-    T signedDistance(const Vec3T<T>& a_point) const noexcept;
+    T signedDistance(const Vec3T<T>& a_point) const noexcept override;
     
     /*!
       @brief Function which computes the signed distance. This version allows the user to manually select a traversal algorithm.
@@ -475,7 +475,7 @@ namespace BVH {
     @brief Linear root node for BVH hierarchy
   */
   template<class T, class P, class BV, int K>
-  class LinearBVH {
+  class LinearBVH : public SignedDistanceFunction<T> {
   public:
 
     /*!
@@ -527,7 +527,7 @@ namespace BVH {
       @param[in] a_point   3D point in space
     */
     inline
-    T signedDistance(const Vec3& a_point) const noexcept;
+    T signedDistance(const Vec3& a_point) const noexcept override;
 
   protected:
 
