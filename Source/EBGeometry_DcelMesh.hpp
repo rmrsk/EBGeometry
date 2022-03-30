@@ -40,7 +40,7 @@ namespace Dcel {
     from that. Do not try to build a MeshT object yourself, use file parsers!
   */
   template <class T>
-  class MeshT {
+  class MeshT : public SignedDistanceFunction<T> {
   public:
 
     /*!
@@ -219,7 +219,7 @@ namespace Dcel {
       @note This will call the other version with the object's search algorithm. 
     */
     inline
-    T signedDistance(const Vec3& a_x0) const noexcept;
+    T signedDistance(const Vec3& a_x0) const noexcept override;
 
     /*!
       @brief Compute the signed distance from a point to this mesh
