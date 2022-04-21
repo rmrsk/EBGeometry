@@ -18,6 +18,7 @@ constexpr int K = 4;
 
 int main(int argc, char *argv[]) {
 
+  int b = 5;
   std::string current_exec_name = argv[0]; // Name of the current exec program
   std::vector<std::string> all_args;
 
