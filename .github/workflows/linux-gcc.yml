@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      CI: ""
+      CI: true
     strategy:
       matrix:
         comp: [g++-7, g++-8, g++-9, g++-10]
