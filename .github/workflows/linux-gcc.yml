@@ -11,7 +11,7 @@ concurrency:
 jobs:
   GNU-DEBUG:
     if: github.event.pull_request.draft == false  
-    name: GNU debug build
+    name: Debug build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
@@ -52,7 +52,7 @@ jobs:
 
   GNU-OPT:
     if: github.event.pull_request.draft == false  
-    name: GNU optimize build
+    name: Optimized build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
