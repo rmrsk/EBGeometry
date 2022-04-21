@@ -17,7 +17,6 @@ jobs:
     strategy:
       matrix:
         comp: [g++-7, g++-8, g++-9, g++-10]
-        std: [c++14]
 
     steps:
       - name: Checkout EBGeometry
@@ -31,7 +30,7 @@ jobs:
       - name: DCEL example
         working-directory: Examples/EBGeometry_DCEL
         run: |
-          ${{ matrix.comp }} -std=${{ matrix.std }} \
+          ${{ matrix.comp }} -std=c++14 \
           -pedantic -Wall -Wextra  -Wcast-align  -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
           -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
           -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel \
@@ -42,7 +41,7 @@ jobs:
       - name: Union example
         working-directory: Examples/EBGeometry_Union
         run: |
-          ${{ matrix.comp }} -std=${{ matrix.std }} \
+          ${{ matrix.comp }} -std=c++14 \
           -pedantic -Wall -Wextra  -Wcast-align  -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
           -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
           -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel \
@@ -72,11 +71,11 @@ jobs:
       - name: DCEL example
         working-directory: Examples/EBGeometry_DCEL
         run: |
-          ${{ matrix.comp }} -std=${{ matrix.std }} -w -O3 main.cpp
+          ${{ matrix.comp }} -std=c++14 -w -O3 main.cpp
           ./a.out porsche.ply          
 
       - name: Union example
         working-directory: Examples/EBGeometry_Union
         run: |
-          ${{ matrix.comp }} -std=${{ matrix.std }} -w -O3 main.cpp          
+          ${{ matrix.comp }} -std=c++14 -w -O3 main.cpp          
           ./a.out                    
