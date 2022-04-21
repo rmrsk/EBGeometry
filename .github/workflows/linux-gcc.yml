@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  gcc-10:
+  GCC-10:
     if: github.event.pull_request.draft == false  
     name: GNU@10.0 C++14
     runs-on: ubuntu-latest
@@ -24,8 +24,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install g++10
 
-      - name: Run DCEL test
-        working-directory: Examples/EBGeometry_DCEL
+      - name: DCEL optimization
         run: |
       	   g++ -O3 -std=c++14 main.cpp
       	   ./a.out porsche.ply
