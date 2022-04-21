@@ -13,10 +13,10 @@ jobs:
     if: github.event.pull_request.draft == false  
     name: GNU@10.0 C++14
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 5
 
     steps:
-      - name: Checkout
+      - name: Checkout EBGeometry
         uses: actions/checkout@v2
 
       - name: Install dependencies
@@ -29,9 +29,3 @@ jobs:
         run: |
           g++ -O3 -std=c++14 main.cpp
           ./a.out porsche.ply
-
-      # - name: Run union test
-      # 	working-directory: Examples/EBGeometry_Union
-      #   run: |
-      # 	   g++ -O3 -std=c++14 main.cpp
-      # 	   ./a.out
