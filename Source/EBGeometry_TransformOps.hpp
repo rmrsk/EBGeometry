@@ -93,7 +93,7 @@ public:
     @param[in] a_angle  Rotation angle
     @param[in] a_axis   Rotation axis
   */
-  RotateOp(const T a_angle, const int a_axis) noexcept;
+  RotateOp(const T a_angle, const size_t a_axis) noexcept;
 
   /*!
     @brief Destructor
@@ -110,7 +110,7 @@ protected:
   /*!
     @brief Rotation axis. 0 = x, 1=y etc. 
   */
-  int m_axis;
+  size_t m_axis;
 
   /*!
     @brief Theta-rotation (degrees)

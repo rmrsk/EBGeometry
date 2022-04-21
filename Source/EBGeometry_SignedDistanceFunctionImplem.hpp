@@ -24,7 +24,7 @@ void SignedDistanceFunction<T>::translate(const Vec3T<T>& a_translation) noexcep
 
 template <class T>
 inline
-void SignedDistanceFunction<T>::rotate(const T a_angle, const int a_axis) noexcept {
+void SignedDistanceFunction<T>::rotate(const T a_angle, const size_t a_axis) noexcept {
   m_transformOps.emplace_back(std::make_shared<EBGeometry::RotateOp<T> >(a_angle, a_axis));
 }
 

@@ -23,7 +23,7 @@
   @brief Distance function union using BVHs. Computes the signed distance to the closest object of N non-overlapping objects. 
   @note This class only makes sense if the object do not overlap. 
 */
-template <class T, class BV, int K>
+template <class T, class BV, size_t K>
 class UnionBVH : public SignedDistanceFunction<T> {
 public:
 

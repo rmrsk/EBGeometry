@@ -67,7 +67,7 @@ public:
     @param[in] a_axis  Rotation axis. 0 = x, 1 = y etc. 
   */  
   inline
-  void rotate(const T a_angle, const int a_axis) noexcept;    
+  void rotate(const T a_angle, const size_t a_axis) noexcept;    
 
 protected:
 

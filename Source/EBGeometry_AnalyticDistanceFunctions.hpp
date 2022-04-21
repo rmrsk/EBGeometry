@@ -712,7 +712,7 @@ public:
     @param[in] a_axis       Cylinder axis. 
     @param[in] a_flipInside Hook for flipping inside/outside.
   */
-  InfiniteCylinderSDF(const Vec3T<T>& a_center, const T& a_radius, const int a_axis, const bool a_flipInside) {
+  InfiniteCylinderSDF(const Vec3T<T>& a_center, const T& a_radius, const size_t a_axis, const bool a_flipInside) {
     m_center     = a_center;
     m_radius     = a_radius;
     m_axis       = a_axis;
@@ -748,7 +748,7 @@ protected:
   /*!
     @brief Axis
   */
-  int m_axis;
+  size_t m_axis;
 
   /*!
     @brief Hook for making outside -> inside.

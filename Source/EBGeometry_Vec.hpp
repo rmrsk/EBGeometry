@@ -34,7 +34,7 @@ public:
     @param[in] u Other vector
     @details Sets *this = u
   */
-  Vec2T(const Vec2T& u);
+  Vec2T(const Vec2T& u) noexcept;
 
   /*!
     @brief Full constructor
@@ -230,7 +230,7 @@ public:
     @param[in] a_u Other vector
     @details Sets *this = u
   */    
-  Vec3T(const Vec3T<T>& a_u);
+  Vec3T(const Vec3T<T>& a_u) noexcept;
 
   /*!
     @brief Full constructor
@@ -263,7 +263,7 @@ public:
     @param[in] a_dir Dircetion
   */
   inline
-  static constexpr Vec3T<T> unit(const int a_dir) noexcept;  
+  static constexpr Vec3T<T> unit(const size_t a_dir) noexcept;  
 
   /*!
     @brief Return a vector with minimum representable components. 
@@ -288,14 +288,14 @@ public:
     @param[in] i Index. Must be < 3
   */
   inline
-  T& operator[](int i) noexcept;
+  T& operator[](size_t i) noexcept;
 
   /*!
     @brief Return non-modifiable component in vector. (i=0 => x and so on)
     @param[in] i Index. Must be < 3
   */
   inline
-  const T& operator[](int i) const noexcept;
+  const T& operator[](size_t i) const noexcept;
 
   /*!
     @brief Comparison operator. Returns true if all components are the same
@@ -467,7 +467,7 @@ public:
     @return Direction with the biggest component
   */
   inline
-  int minDir(const bool a_doAbs) const noexcept;  
+  size_t minDir(const bool a_doAbs) const noexcept;  
 
   /*!
     @brief Return the direction which has the largest component (can be absolute)
@@ -475,7 +475,7 @@ public:
     @return Direction with the biggest component
   */
   inline
-  int maxDir(const bool a_doAbs) const noexcept;
+  size_t maxDir(const bool a_doAbs) const noexcept;
 
   /*!
     @brief Compute vector length

@@ -110,17 +110,17 @@ namespace Dcel {
     /*!
       @brief 3D coordinate direction to ignore
     */
-    int m_ignoreDir;
+    size_t m_ignoreDir;
 
     /*!
       @brief The corresponding 2D x-direction.
     */
-    int m_xDir;
+    size_t m_xDir;
 
     /*!
       @brief The corresponding 2D y-direction.
     */
-    int m_yDir;
+    size_t m_yDir;
 
     /*!
       @brief Projected set of points in 2D
@@ -157,7 +157,7 @@ namespace Dcel {
       @return Returns crossing number. 
     */
     inline
-    int computeCrossingNumber(const Vec2& P) const noexcept;
+    size_t computeCrossingNumber(const Vec2& P) const noexcept;
 
     /*!
       @brief Compute the subtended angle for a point P with the 2D polygon

@@ -81,12 +81,22 @@ namespace Dcel {
   void EdgeIteratorT<T>::operator++() noexcept {
     switch(m_iterMode){
     case IterationMode::Faces:
-      m_curEdge = m_curEdge->getNextEdge();
-      break;
+      {
+	m_curEdge = m_curEdge->getNextEdge();
+	
+	break;
+      }
     case IterationMode::Vertices:
-      // For vertices, we want to compute the 
-      m_curEdge = m_curEdge->getPreviousEdge()->getPairEdge();
-      break;
+      {
+	// For vertices, we want to compute the 
+	m_curEdge = m_curEdge->getPreviousEdge()->getPairEdge();
+	
+	break;
+      }
+    default:
+      {
+	std::cerr << "In file 'EBGeometry_DcelIteratorImplem.hpp function EdgeIteratorT<T>::operator++ - logic bust\n";
+      }
     }
 
     m_fullLoop = (m_curEdge == m_startEdge);

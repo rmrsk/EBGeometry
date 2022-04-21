@@ -69,16 +69,16 @@ namespace Dcel {
   void Polygon2D<T>::define(const Vec3& a_normal, const std::vector<Vec3>& a_points) {
     m_ignoreDir = 0;
   
-    for (int dir = 1; dir < 3; dir++){
+    for (size_t dir = 1; dir < 3; dir++){
       if(std::abs(a_normal[dir]) > std::abs(a_normal[m_ignoreDir])) {
 	m_ignoreDir = dir;
       }
     }
 
-    m_xDir =  3;
-    m_yDir = -1;
+    m_xDir = 3;
+    m_yDir = 0;
   
-    for (int dir = 0; dir < 3; dir++){
+    for (size_t dir = 0; dir < 3; dir++){
       if(dir != m_ignoreDir){
 	m_xDir = std::min(m_xDir, dir);
 	m_yDir = std::max(m_yDir, dir);
@@ -95,14 +95,14 @@ namespace Dcel {
   int Polygon2D<T>::computeWindingNumber(const Vec2& P) const noexcept {
     int wn = 0;    // the  winding number counter
 
-    const int N = m_points.size();
+    const size_t N = m_points.size();
 
     auto isLeft = [](const Vec2& P0, const Vec2& P1, const Vec2& P2){
       return (P1.x - P0.x)*(P2.y - P0.y) - (P2.x -  P0.x)*(P1.y - P0.y);
     };
 
     // loop through all edges of the polygon
-    for (int i = 0; i < N; i++) {   // edge from V[i] to  V[i+1]
+    for (size_t i = 0; i < N; i++) {   // edge from V[i] to  V[i+1]
 
       const Vec2& P1 = m_points[i];
       const Vec2& P2 = m_points[(i+1)%N];
@@ -126,12 +126,12 @@ namespace Dcel {
 
   template <class T>
   inline
-  int Polygon2D<T>::computeCrossingNumber(const Vec2& P) const noexcept {
-    int cn = 0; 
+  size_t Polygon2D<T>::computeCrossingNumber(const Vec2& P) const noexcept {
+    size_t cn = 0; 
 
-    const int N = m_points.size();
+    const size_t N = m_points.size();
 
-    for (int i = 0; i < N; i++) {    // edge from V[i]  to V[i+1]
+    for (size_t i = 0; i < N; i++) {    // edge from V[i]  to V[i+1]
       const Vec2& P1 = m_points[i];
       const Vec2& P2 = m_points[(i+1)%N];
 
@@ -155,9 +155,9 @@ namespace Dcel {
   T Polygon2D<T>::computeSubtendedAngle(const Vec2& p) const noexcept {
     T sumTheta = 0.0;
   
-    const int N = m_points.size();
+    const size_t N = m_points.size();
   
-    for (int i = 0; i < N; i++){
+    for (size_t i = 0; i < N; i++){
       const Vec2 p1 = m_points[i]       - p;
       const Vec2 p2 = m_points[(i+1)%N] - p;
     
@@ -192,7 +192,7 @@ namespace Dcel {
   bool Polygon2D<T>::isPointInsidePolygonCrossingNumber(const Vec3& a_point) const noexcept {
     const Vec2 p = this->projectPoint(a_point);
   
-    const int cn  = this->computeCrossingNumber(p);
+    const size_t cn  = this->computeCrossingNumber(p);
     
     const bool ret = (cn&1);
 

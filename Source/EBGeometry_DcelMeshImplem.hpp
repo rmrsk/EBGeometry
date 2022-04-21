@@ -54,13 +54,13 @@ namespace Dcel {
 
   template <class T>
   inline
-  void MeshT<T>::incrementWarning(std::map<std::string, int>& a_warnings, const std::string& a_warn) const noexcept {
+  void MeshT<T>::incrementWarning(std::map<std::string, size_t>& a_warnings, const std::string& a_warn) const noexcept {
     a_warnings.at(a_warn) += 1;
   }
 
   template <class T>
   inline
-  void MeshT<T>::printWarnings(const std::map<std::string, int>& a_warnings) const noexcept {
+  void MeshT<T>::printWarnings(const std::map<std::string, size_t>& a_warnings) const noexcept {
     for (const auto& warn : a_warnings){
       if(warn.second > 0){
 	std::cerr << "In file 'CD_DcelMeshImplem.H' function MeshT<T>::sanityCheck() - warnings about error '" << warn.first << "' = " << warn.second << "\n";
@@ -89,7 +89,7 @@ namespace Dcel {
     const std::string v_null    = "nullptr vertex";
     const std::string v_noEdge  = "no referenced edge for vertex (unreferenced vertex)";
 
-    std::map<std::string, int> warnings = {
+    std::map<std::string, size_t> warnings = {
       {f_null,       0},
       {f_noEdge,     0},
       {f_degenerate, 0},

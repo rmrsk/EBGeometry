@@ -27,8 +27,6 @@ Union<T>::Union(const std::vector<std::shared_ptr<SDF> >& a_distanceFunctions, c
 
 template <class T>
 T Union<T>::signedDistance(const Vec3T<T>& a_point) const noexcept {
-  const int numDistanceFunctions = m_distanceFunctions.size();
-
   T ret = std::numeric_limits<T>::infinity();
   
   for (const auto & sdf : m_distanceFunctions){

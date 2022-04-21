@@ -1,0 +1,81 @@
+name: EBGeometry Linux-GNU
+
+on:
+  pull_request:
+    types: [push, opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-linux-gcc    
+  cancel-in-progress: true
+
+jobs:
+  GNU-DEBUG:
+    if: github.event.pull_request.draft == false  
+    name: Linux-GNU debug
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        comp: [g++-7, g++-8, g++-9, g++-10]
+
+    steps:
+      - name: Checkout EBGeometry
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install ${{ matrix.comp }}
+
+      - name: DCEL example
+        working-directory: Examples/EBGeometry_DCEL
+        run: |
+          ${{ matrix.comp }} -std=c++14 \
+          -pedantic -Wall -Wextra  -Wcast-align  -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
+          -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
+          -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel \
+          -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused \
+          main.cpp 
+          ./a.out porsche.ply          
+
+      - name: Union example
+        working-directory: Examples/EBGeometry_Union
+        run: |
+          ${{ matrix.comp }} -std=c++14 \
+          -pedantic -Wall -Wextra  -Wcast-align  -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
+          -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
+          -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel \
+          -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused \
+          main.cpp           
+          ./a.out
+
+  GNU-OPT:
+    if: github.event.pull_request.draft == false  
+    name: Linux-GNU opt
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        comp: [g++-7, g++-8, g++-9, g++-10]
+        std: [c++14]
+
+    steps:
+      - name: Checkout EBGeometry
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install ${{ matrix.comp }}
+
+      - name: DCEL example
+        working-directory: Examples/EBGeometry_DCEL
+        run: |
+          ${{ matrix.comp }} -std=c++14 -w -O3 main.cpp
+          ./a.out porsche.ply          
+
+      - name: Union example
+        working-directory: Examples/EBGeometry_Union
+        run: |
+          ${{ matrix.comp }} -std=c++14 -w -O3 main.cpp          
+          ./a.out                    

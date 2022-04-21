@@ -1,0 +1,343 @@
+In file included from ../../Source/EBGeometry_Vec.hpp:598,
+                 from ../../Source/EBGeometry_TransformOps.hpp:16,
+                 from ../../Source/EBGeometry_SignedDistanceFunction.hpp:19,
+                 from ../../Source/EBGeometry_AnalyticDistanceFunctions.hpp:21,
+                 from ../../EBGeometry.hpp:1,
+                 from main.cpp:10:
+/usr/include/c++/9/ext/new_allocator.h: In instantiation of ‘void __gnu_cxx::new_allocator<_Tp>::construct(_Up*, _Args&& ...) [with _Up = EBGeometry::Vec3T<float>; _Args = {EBGeometry::Vec3T<float>&}; _Tp = EBGeometry::Vec3T<float>]’:
+/usr/include/c++/9/bits/alloc_traits.h:482:2:   required from ‘static void std::allocator_traits<std::allocator<_CharT> >::construct(std::allocator_traits<std::allocator<_CharT> >::allocator_type&, _Up*, _Args&& ...) [with _Up = EBGeometry::Vec3T<float>; _Args = {EBGeometry::Vec3T<float>&}; _Tp = EBGeometry::Vec3T<float>; std::allocator_traits<std::allocator<_CharT> >::allocator_type = std::allocator<EBGeometry::Vec3T<float> >]’
+/usr/include/c++/9/bits/vector.tcc:115:30:   required from ‘void std::vector<_Tp, _Alloc>::emplace_back(_Args&& ...) [with _Args = {EBGeometry::Vec3T<float>&}; _Tp = EBGeometry::Vec3T<float>; _Alloc = std::allocator<EBGeometry::Vec3T<float> >]’
+../../Source/EBGeometry_DcelFaceImplem.hpp:235:7:   required from ‘std::vector<EBGeometry::Vec3T<T> > EBGeometry::Dcel::FaceT<T>::getAllVertexCoordinates() const [with T = float]’
+../../Source/EBGeometry_DcelBVH.hpp:42:12:   required from ‘EBGeometry::BVH::BVConstructorT<EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float> > EBGeometry::Dcel::defaultBVConstructor<float, EBGeometry::BoundingVolumes::AABBT<float> >’
+main.cpp:50:63:   required from here
+../../Source/EBGeometry_VecImplem.hpp:189:1: warning: but ‘EBGeometry::Vec3T<T>::Vec3T(const EBGeometry::Vec3T<T>&) [with T = float]’ does not throw; perhaps it should be declared ‘noexcept’ [-Wnoexcept]
+  189 | Vec3T<T>::Vec3T(const Vec3T<T>& u) {
+      | ^~~~~~~~
+/usr/include/c++/9/ext/new_allocator.h: In instantiation of ‘void __gnu_cxx::new_allocator<_Tp>::construct(_Up*, _Args&& ...) [with _Up = EBGeometry::Vec3T<float>; _Args = {EBGeometry::Vec3T<float>}; _Tp = EBGeometry::Vec3T<float>]’:
+/usr/include/c++/9/bits/alloc_traits.h:482:2:   required from ‘static void std::allocator_traits<std::allocator<_CharT> >::construct(std::allocator_traits<std::allocator<_CharT> >::allocator_type&, _Up*, _Args&& ...) [with _Up = EBGeometry::Vec3T<float>; _Args = {EBGeometry::Vec3T<float>}; _Tp = EBGeometry::Vec3T<float>; std::allocator_traits<std::allocator<_CharT> >::allocator_type = std::allocator<EBGeometry::Vec3T<float> >]’
+/usr/include/c++/9/bits/stl_uninitialized.h:906:67:   required from ‘void std::__relocate_object_a(_Tp*, _Up*, _Allocator&) [with _Tp = EBGeometry::Vec3T<float>; _Up = EBGeometry::Vec3T<float>; _Allocator = std::allocator<EBGeometry::Vec3T<float> >]’
+/usr/include/c++/9/bits/stl_uninitialized.h:938:47:   required from ‘_ForwardIterator std::__relocate_a_1(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = EBGeometry::Vec3T<float>*; _ForwardIterator = EBGeometry::Vec3T<float>*; _Allocator = std::allocator<EBGeometry::Vec3T<float> >]’
+/usr/include/c++/9/bits/stl_uninitialized.h:960:37:   required from ‘_ForwardIterator std::__relocate_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = EBGeometry::Vec3T<float>*; _ForwardIterator = EBGeometry::Vec3T<float>*; _Allocator = std::allocator<EBGeometry::Vec3T<float> >]’
+/usr/include/c++/9/bits/stl_vector.h:430:35:   required from ‘static constexpr bool std::vector<_Tp, _Alloc>::_S_nothrow_relocate(std::true_type) [with _Tp = EBGeometry::Vec3T<float>; _Alloc = std::allocator<EBGeometry::Vec3T<float> >; std::true_type = std::integral_constant<bool, true>]’
+/usr/include/c++/9/bits/stl_vector.h:446:28:   required from ‘void std::vector<_Tp, _Alloc>::_M_realloc_insert(std::vector<_Tp, _Alloc>::iterator, _Args&& ...) [with _Args = {EBGeometry::Vec3T<float>&}; _Tp = EBGeometry::Vec3T<float>; _Alloc = std::allocator<EBGeometry::Vec3T<float> >; std::vector<_Tp, _Alloc>::iterator = __gnu_cxx::__normal_iterator<EBGeometry::Vec3T<float>*, std::vector<EBGeometry::Vec3T<float>, std::allocator<EBGeometry::Vec3T<float> > > >; typename std::_Vector_base<_Tp, _Alloc>::pointer = EBGeometry::Vec3T<float>*]’
+/usr/include/c++/9/bits/vector.tcc:121:4:   required from ‘void std::vector<_Tp, _Alloc>::emplace_back(_Args&& ...) [with _Args = {EBGeometry::Vec3T<float>&}; _Tp = EBGeometry::Vec3T<float>; _Alloc = std::allocator<EBGeometry::Vec3T<float> >]’
+../../Source/EBGeometry_DcelFaceImplem.hpp:235:7:   required from ‘std::vector<EBGeometry::Vec3T<T> > EBGeometry::Dcel::FaceT<T>::getAllVertexCoordinates() const [with T = float]’
+../../Source/EBGeometry_DcelBVH.hpp:42:12:   required from ‘EBGeometry::BVH::BVConstructorT<EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float> > EBGeometry::Dcel::defaultBVConstructor<float, EBGeometry::BoundingVolumes::AABBT<float> >’
+main.cpp:50:63:   required from here
+/usr/include/c++/9/bits/vector.tcc:459:44:   in ‘constexpr’ expansion of ‘std::vector<EBGeometry::Vec3T<float>, std::allocator<EBGeometry::Vec3T<float> > >::_S_use_relocate()’
+../../Source/EBGeometry_VecImplem.hpp:189:1: warning: but ‘EBGeometry::Vec3T<T>::Vec3T(const EBGeometry::Vec3T<T>&) [with T = float]’ does not throw; perhaps it should be declared ‘noexcept’ [-Wnoexcept]
+In file included from ../../Source/EBGeometry_BVH.hpp:548,
+                 from ../../EBGeometry.hpp:3,
+                 from main.cpp:10:
+../../Source/EBGeometry_BVHImplem.hpp: In instantiation of ‘T EBGeometry::BVH::NodeT<T, P, BV, K>::pruneStack(const Vec3&) const [with T = float; P = EBGeometry::Dcel::FaceT<float>; BV = EBGeometry::BoundingVolumes::AABBT<float>; long unsigned int K = 4; EBGeometry::BVH::NodeT<T, P, BV, K>::Vec3 = EBGeometry::Vec3T<float>]’:
+../../Source/EBGeometry_BVHImplem.hpp:177:14:   required from ‘T EBGeometry::BVH::NodeT<T, P, BV, K>::signedDistance(const Vec3&, EBGeometry::BVH::Prune) const [with T = float; P = EBGeometry::Dcel::FaceT<float>; BV = EBGeometry::BoundingVolumes::AABBT<float>; long unsigned int K = 4; EBGeometry::BVH::NodeT<T, P, BV, K>::Vec3 = EBGeometry::Vec3T<float>]’
+../../Source/EBGeometry_BVHImplem.hpp:166:54:   required from ‘T EBGeometry::BVH::NodeT<T, P, BV, K>::signedDistance(const Vec3&) const [with T = float; P = EBGeometry::Dcel::FaceT<float>; BV = EBGeometry::BoundingVolumes::AABBT<float>; long unsigned int K = 4; EBGeometry::BVH::NodeT<T, P, BV, K>::Vec3 = EBGeometry::Vec3T<float>]’
+main.cpp:66:49:   required from here
+../../Source/EBGeometry_BVHImplem.hpp:232:5: error: base operand of ‘->’ has non-pointer type ‘const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>’
+  232 |  if(curNode->isLeaf()){
+      |     ^~~~~~~
+../../Source/EBGeometry_BVHImplem.hpp:233:24: error: base operand of ‘->’ has non-pointer type ‘const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>’
+  233 |    const T primDist  = curNode->getDistanceToPrimitives(a_point);
+      |                        ^~~~~~~
+../../Source/EBGeometry_BVHImplem.hpp:244:45: error: base operand of ‘->’ has non-pointer type ‘const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>’
+  244 |    const std::array<NodePtr, K>& children = curNode->getChildren();
+      |                                             ^~~~~~~
+../../Source/EBGeometry_BVHImplem.hpp:247:18: error: invalid initialization of reference of type ‘const Node&’ {aka ‘const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>&’} from expression of type ‘std::__shared_ptr_access<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, __gnu_cxx::_S_atomic, false, false>::element_type*’ {aka ‘EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>*’}
+  247 |      const Node& child = &(*children[k]);
+      |                  ^~~~~
+../../Source/EBGeometry_BVHImplem.hpp:249:54: error: base operand of ‘->’ has non-pointer type ‘const Node’ {aka ‘const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>’}
+  249 |      childrenAndDistances[k] = std::make_pair(child, child->getDistanceToBoundingVolume(a_point));
+      |                                                      ^~~~~
+In file included from /usr/include/x86_64-linux-gnu/c++/9/bits/c++allocator.h:33,
+                 from /usr/include/c++/9/bits/allocator.h:46,
+                 from /usr/include/c++/9/string:41,
+                 from main.cpp:6:
+/usr/include/c++/9/ext/new_allocator.h: In instantiation of ‘void __gnu_cxx::new_allocator<_Tp>::construct(_Up*, _Args&& ...) [with _Up = std::pair<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>; _Args = {const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>*, float}; _Tp = std::pair<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>]’:
+/usr/include/c++/9/bits/alloc_traits.h:482:2:   required from ‘static void std::allocator_traits<std::allocator<_CharT> >::construct(std::allocator_traits<std::allocator<_CharT> >::allocator_type&, _Up*, _Args&& ...) [with _Up = std::pair<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>; _Args = {const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>*, float}; _Tp = std::pair<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>; std::allocator_traits<std::allocator<_CharT> >::allocator_type = std::allocator<std::pair<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float> >]’
+/usr/include/c++/9/bits/deque.tcc:168:30:   required from ‘void std::deque<_Tp, _Alloc>::emplace_back(_Args&& ...) [with _Args = {const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>*, float}; _Tp = std::pair<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>; _Alloc = std::allocator<std::pair<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float> >]’
+/usr/include/c++/9/bits/stl_stack.h:250:4:   required from ‘void std::stack<_Tp, _Sequence>::emplace(_Args&& ...) [with _Args = {const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>*, float}; _Tp = std::pair<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>; _Sequence = std::deque<std::pair<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>, std::allocator<std::pair<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float> > >]’
+../../Source/EBGeometry_BVHImplem.hpp:217:5:   required from ‘T EBGeometry::BVH::NodeT<T, P, BV, K>::pruneStack(const Vec3&) const [with T = float; P = EBGeometry::Dcel::FaceT<float>; BV = EBGeometry::BoundingVolumes::AABBT<float>; long unsigned int K = 4; EBGeometry::BVH::NodeT<T, P, BV, K>::Vec3 = EBGeometry::Vec3T<float>]’
+../../Source/EBGeometry_BVHImplem.hpp:177:14:   required from ‘T EBGeometry::BVH::NodeT<T, P, BV, K>::signedDistance(const Vec3&, EBGeometry::BVH::Prune) const [with T = float; P = EBGeometry::Dcel::FaceT<float>; BV = EBGeometry::BoundingVolumes::AABBT<float>; long unsigned int K = 4; EBGeometry::BVH::NodeT<T, P, BV, K>::Vec3 = EBGeometry::Vec3T<float>]’
+../../Source/EBGeometry_BVHImplem.hpp:166:54:   required from ‘T EBGeometry::BVH::NodeT<T, P, BV, K>::signedDistance(const Vec3&) const [with T = float; P = EBGeometry::Dcel::FaceT<float>; BV = EBGeometry::BoundingVolumes::AABBT<float>; long unsigned int K = 4; EBGeometry::BVH::NodeT<T, P, BV, K>::Vec3 = EBGeometry::Vec3T<float>]’
+main.cpp:66:49:   required from here
+/usr/include/c++/9/ext/new_allocator.h:145:20: error: no matching function for call to ‘std::pair<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>::pair(const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>*, float)’
+  145 |  noexcept(noexcept(::new((void *)__p)
+      |                    ^~~~~~~~~~~~~~~~~~
+  146 |        _Up(std::forward<_Args>(__args)...)))
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/c++/9/bits/stl_algobase.h:64,
+                 from /usr/include/c++/9/bits/char_traits.h:39,
+                 from /usr/include/c++/9/string:40,
+                 from main.cpp:6:
+/usr/include/c++/9/bits/stl_pair.h:436:9: note: candidate: ‘template<class ... _Args1, long unsigned int ..._Indexes1, class ... _Args2, long unsigned int ..._Indexes2> std::pair<_T1, _T2>::pair(std::tuple<_Args1 ...>&, std::tuple<_Args2 ...>&, std::_Index_tuple<_Indexes1 ...>, std::_Index_tuple<_Indexes2 ...>)’
+  436 |         pair(tuple<_Args1...>&, tuple<_Args2...>&,
+      |         ^~~~
+/usr/include/c++/9/bits/stl_pair.h:436:9: note:   template argument deduction/substitution failed:
+In file included from /usr/include/x86_64-linux-gnu/c++/9/bits/c++allocator.h:33,
+                 from /usr/include/c++/9/bits/allocator.h:46,
+                 from /usr/include/c++/9/string:41,
+                 from main.cpp:6:
+/usr/include/c++/9/ext/new_allocator.h:145:20: note:   mismatched types ‘std::tuple<_Tps ...>’ and ‘const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>*’
+  145 |  noexcept(noexcept(::new((void *)__p)
+      |                    ^~~~~~~~~~~~~~~~~~
+  146 |        _Up(std::forward<_Args>(__args)...)))
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/c++/9/bits/stl_algobase.h:64,
+                 from /usr/include/c++/9/bits/char_traits.h:39,
+                 from /usr/include/c++/9/string:40,
+                 from main.cpp:6:
+/usr/include/c++/9/bits/stl_pair.h:375:9: note: candidate: ‘template<class ... _Args1, class ... _Args2> std::pair<_T1, _T2>::pair(std::piecewise_construct_t, std::tuple<_Args1 ...>, std::tuple<_Args2 ...>)’
+  375 |         pair(piecewise_construct_t, tuple<_Args1...>, tuple<_Args2...>);
+      |         ^~~~
+/usr/include/c++/9/bits/stl_pair.h:375:9: note:   template argument deduction/substitution failed:
+In file included from /usr/include/x86_64-linux-gnu/c++/9/bits/c++allocator.h:33,
+                 from /usr/include/c++/9/bits/allocator.h:46,
+                 from /usr/include/c++/9/string:41,
+                 from main.cpp:6:
+/usr/include/c++/9/ext/new_allocator.h:145:20: note:   mismatched types ‘std::tuple<_Tps ...>’ and ‘float’
+  145 |  noexcept(noexcept(::new((void *)__p)
+      |                    ^~~~~~~~~~~~~~~~~~
+  146 |        _Up(std::forward<_Args>(__args)...)))
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/c++/9/bits/stl_algobase.h:64,
+                 from /usr/include/c++/9/bits/char_traits.h:39,
+                 from /usr/include/c++/9/string:40,
+                 from main.cpp:6:
+/usr/include/c++/9/bits/stl_pair.h:370:21: note: candidate: ‘template<class _U1, class _U2, typename std::enable_if<(std::_PCC<((! std::is_same<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, _U1>::value) || (! std::is_same<float, _U2>::value)), EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>::_MoveConstructiblePair<_U1, _U2>() && (! std::_PCC<((! std::is_same<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, _U1>::value) || (! std::is_same<float, _U2>::value)), EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>::_ImplicitlyMoveConvertiblePair<_U1, _U2>())), bool>::type <anonymous> > constexpr std::pair<_T1, _T2>::pair(std::pair<_U1, _U2>&&)’
+  370 |  explicit constexpr pair(pair<_U1, _U2>&& __p)
+      |                     ^~~~
+/usr/include/c++/9/bits/stl_pair.h:370:21: note:   template argument deduction/substitution failed:
+In file included from /usr/include/x86_64-linux-gnu/c++/9/bits/c++allocator.h:33,
+                 from /usr/include/c++/9/bits/allocator.h:46,
+                 from /usr/include/c++/9/string:41,
+                 from main.cpp:6:
+/usr/include/c++/9/ext/new_allocator.h:145:20: note:   mismatched types ‘std::pair<_T1, _T2>’ and ‘const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>*’
+  145 |  noexcept(noexcept(::new((void *)__p)
+      |                    ^~~~~~~~~~~~~~~~~~
+  146 |        _Up(std::forward<_Args>(__args)...)))
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/c++/9/bits/stl_algobase.h:64,
+                 from /usr/include/c++/9/bits/char_traits.h:39,
+                 from /usr/include/c++/9/string:40,
+                 from main.cpp:6:
+/usr/include/c++/9/bits/stl_pair.h:360:12: note: candidate: ‘template<class _U1, class _U2, typename std::enable_if<(std::_PCC<((! std::is_same<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, _U1>::value) || (! std::is_same<float, _U2>::value)), EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>::_MoveConstructiblePair<_U1, _U2>() && std::_PCC<((! std::is_same<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, _U1>::value) || (! std::is_same<float, _U2>::value)), EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>::_ImplicitlyMoveConvertiblePair<_U1, _U2>()), bool>::type <anonymous> > constexpr std::pair<_T1, _T2>::pair(std::pair<_U1, _U2>&&)’
+  360 |  constexpr pair(pair<_U1, _U2>&& __p)
+      |            ^~~~
+/usr/include/c++/9/bits/stl_pair.h:360:12: note:   template argument deduction/substitution failed:
+In file included from /usr/include/x86_64-linux-gnu/c++/9/bits/c++allocator.h:33,
+                 from /usr/include/c++/9/bits/allocator.h:46,
+                 from /usr/include/c++/9/string:41,
+                 from main.cpp:6:
+/usr/include/c++/9/ext/new_allocator.h:145:20: note:   mismatched types ‘std::pair<_T1, _T2>’ and ‘const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>*’
+  145 |  noexcept(noexcept(::new((void *)__p)
+      |                    ^~~~~~~~~~~~~~~~~~
+  146 |        _Up(std::forward<_Args>(__args)...)))
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/c++/9/bits/stl_algobase.h:64,
+                 from /usr/include/c++/9/bits/char_traits.h:39,
+                 from /usr/include/c++/9/string:40,
+                 from main.cpp:6:
+/usr/include/c++/9/bits/stl_pair.h:350:21: note: candidate: ‘template<class _U1, class _U2, typename std::enable_if<(_MoveConstructiblePair<_U1, _U2>() && (! _ImplicitlyMoveConvertiblePair<_U1, _U2>())), bool>::type <anonymous> > constexpr std::pair<_T1, _T2>::pair(_U1&&, _U2&&)’
+  350 |  explicit constexpr pair(_U1&& __x, _U2&& __y)
+      |                     ^~~~
+/usr/include/c++/9/bits/stl_pair.h:350:21: note:   template argument deduction/substitution failed:
+/usr/include/c++/9/bits/stl_pair.h:349:38: error: no type named ‘type’ in ‘struct std::enable_if<false, bool>’
+  349 |                          bool>::type=false>
+      |                                      ^~~~~
+/usr/include/c++/9/bits/stl_pair.h:341:12: note: candidate: ‘template<class _U1, class _U2, typename std::enable_if<(_MoveConstructiblePair<_U1, _U2>() && _ImplicitlyMoveConvertiblePair<_U1, _U2>()), bool>::type <anonymous> > constexpr std::pair<_T1, _T2>::pair(_U1&&, _U2&&)’
+  341 |  constexpr pair(_U1&& __x, _U2&& __y)
+      |            ^~~~
+/usr/include/c++/9/bits/stl_pair.h:341:12: note:   template argument deduction/substitution failed:
+/usr/include/c++/9/bits/stl_pair.h:340:38: error: no type named ‘type’ in ‘struct std::enable_if<false, bool>’
+  340 |                          bool>::type=true>
+      |                                      ^~~~
+/usr/include/c++/9/bits/stl_pair.h:332:17: note: candidate: ‘template<class _U2, typename std::enable_if<_CopyMovePair<false, EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, _U2>(), bool>::type <anonymous> > std::pair<_T1, _T2>::pair(const _T1&, _U2&&)’
+  332 |        explicit pair(const _T1& __x, _U2&& __y)
+      |                 ^~~~
+/usr/include/c++/9/bits/stl_pair.h:332:17: note:   template argument deduction/substitution failed:
+/usr/include/c++/9/bits/stl_pair.h:331:38: error: no type named ‘type’ in ‘struct std::enable_if<false, bool>’
+  331 |                          bool>::type=false>
+      |                                      ^~~~~
+/usr/include/c++/9/bits/stl_pair.h:325:18: note: candidate: ‘template<class _U2, typename std::enable_if<_CopyMovePair<true, EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, _U2>(), bool>::type <anonymous> > constexpr std::pair<_T1, _T2>::pair(const _T1&, _U2&&)’
+  325 |        constexpr pair(const _T1& __x, _U2&& __y)
+      |                  ^~~~
+/usr/include/c++/9/bits/stl_pair.h:325:18: note:   template argument deduction/substitution failed:
+In file included from /usr/include/x86_64-linux-gnu/c++/9/bits/c++allocator.h:33,
+                 from /usr/include/c++/9/bits/allocator.h:46,
+                 from /usr/include/c++/9/string:41,
+                 from main.cpp:6:
+/usr/include/c++/9/ext/new_allocator.h:145:20: note:   cannot convert ‘std::forward<const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>*>((* & __args#0))’ (type ‘const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>*’) to type ‘const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>&’
+  145 |  noexcept(noexcept(::new((void *)__p)
+      |                    ^~~~~~~~~~~~~~~~~~
+  146 |        _Up(std::forward<_Args>(__args)...)))
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/c++/9/bits/stl_algobase.h:64,
+                 from /usr/include/c++/9/bits/char_traits.h:39,
+                 from /usr/include/c++/9/string:40,
+                 from main.cpp:6:
+/usr/include/c++/9/bits/stl_pair.h:318:27: note: candidate: ‘template<class _U1, typename std::enable_if<_MoveCopyPair<false, _U1, float>(), bool>::type <anonymous> > constexpr std::pair<_T1, _T2>::pair(_U1&&, const _T2&)’
+  318 |        explicit constexpr pair(_U1&& __x, const _T2& __y)
+      |                           ^~~~
+/usr/include/c++/9/bits/stl_pair.h:318:27: note:   template argument deduction/substitution failed:
+/usr/include/c++/9/bits/stl_pair.h:317:38: error: no type named ‘type’ in ‘struct std::enable_if<false, bool>’
+  317 |                          bool>::type=false>
+      |                                      ^~~~~
+/usr/include/c++/9/bits/stl_pair.h:311:18: note: candidate: ‘template<class _U1, typename std::enable_if<_MoveCopyPair<true, _U1, float>(), bool>::type <anonymous> > constexpr std::pair<_T1, _T2>::pair(_U1&&, const _T2&)’
+  311 |        constexpr pair(_U1&& __x, const _T2& __y)
+      |                  ^~~~
+/usr/include/c++/9/bits/stl_pair.h:311:18: note:   template argument deduction/substitution failed:
+/usr/include/c++/9/bits/stl_pair.h:310:38: error: no type named ‘type’ in ‘struct std::enable_if<false, bool>’
+  310 |                          bool>::type=true>
+      |                                      ^~~~
+/usr/include/c++/9/bits/stl_pair.h:304:17: note: candidate: ‘std::pair<_T1, _T2>::pair(std::pair<_T1, _T2>&&) [with _T1 = EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>; _T2 = float]’
+  304 |       constexpr pair(pair&&) = default;
+      |                 ^~~~
+/usr/include/c++/9/bits/stl_pair.h:304:17: note:   candidate expects 1 argument, 2 provided
+/usr/include/c++/9/bits/stl_pair.h:303:17: note: candidate: ‘std::pair<_T1, _T2>::pair(const std::pair<_T1, _T2>&) [with _T1 = EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>; _T2 = float]’
+  303 |       constexpr pair(const pair&) = default;
+      |                 ^~~~
+/usr/include/c++/9/bits/stl_pair.h:303:17: note:   candidate expects 1 argument, 2 provided
+/usr/include/c++/9/bits/stl_pair.h:300:21: note: candidate: ‘template<class _U1, class _U2, typename std::enable_if<(std::_PCC<((! std::is_same<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, _U1>::value) || (! std::is_same<float, _U2>::value)), EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>::_ConstructiblePair<_U1, _U2>() && (! std::_PCC<((! std::is_same<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, _U1>::value) || (! std::is_same<float, _U2>::value)), EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>::_ImplicitlyConvertiblePair<_U1, _U2>())), bool>::type <anonymous> > constexpr std::pair<_T1, _T2>::pair(const std::pair<_U1, _U2>&)’
+  300 |  explicit constexpr pair(const pair<_U1, _U2>& __p)
+      |                     ^~~~
+/usr/include/c++/9/bits/stl_pair.h:300:21: note:   template argument deduction/substitution failed:
+In file included from /usr/include/x86_64-linux-gnu/c++/9/bits/c++allocator.h:33,
+                 from /usr/include/c++/9/bits/allocator.h:46,
+                 from /usr/include/c++/9/string:41,
+                 from main.cpp:6:
+/usr/include/c++/9/ext/new_allocator.h:145:20: note:   mismatched types ‘const std::pair<_T1, _T2>’ and ‘const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>*’
+  145 |  noexcept(noexcept(::new((void *)__p)
+      |                    ^~~~~~~~~~~~~~~~~~
+  146 |        _Up(std::forward<_Args>(__args)...)))
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/c++/9/bits/stl_algobase.h:64,
+                 from /usr/include/c++/9/bits/char_traits.h:39,
+                 from /usr/include/c++/9/string:40,
+                 from main.cpp:6:
+/usr/include/c++/9/bits/stl_pair.h:291:19: note: candidate: ‘template<class _U1, class _U2, typename std::enable_if<(std::_PCC<((! std::is_same<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, _U1>::value) || (! std::is_same<float, _U2>::value)), EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>::_ConstructiblePair<_U1, _U2>() && std::_PCC<((! std::is_same<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, _U1>::value) || (! std::is_same<float, _U2>::value)), EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>::_ImplicitlyConvertiblePair<_U1, _U2>()), bool>::type <anonymous> > constexpr std::pair<_T1, _T2>::pair(const std::pair<_U1, _U2>&)’
+  291 |         constexpr pair(const pair<_U1, _U2>& __p)
+      |                   ^~~~
+/usr/include/c++/9/bits/stl_pair.h:291:19: note:   template argument deduction/substitution failed:
+In file included from /usr/include/x86_64-linux-gnu/c++/9/bits/c++allocator.h:33,
+                 from /usr/include/c++/9/bits/allocator.h:46,
+                 from /usr/include/c++/9/string:41,
+                 from main.cpp:6:
+/usr/include/c++/9/ext/new_allocator.h:145:20: note:   mismatched types ‘const std::pair<_T1, _T2>’ and ‘const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>*’
+  145 |  noexcept(noexcept(::new((void *)__p)
+      |                    ^~~~~~~~~~~~~~~~~~
+  146 |        _Up(std::forward<_Args>(__args)...)))
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/c++/9/bits/stl_algobase.h:64,
+                 from /usr/include/c++/9/bits/char_traits.h:39,
+                 from /usr/include/c++/9/string:40,
+                 from main.cpp:6:
+/usr/include/c++/9/bits/stl_pair.h:269:26: note: candidate: ‘template<class _U1, class _U2, typename std::enable_if<(_ConstructiblePair<_U1, _U2>() && (! _ImplicitlyConvertiblePair<_U1, _U2>())), bool>::type <anonymous> > constexpr std::pair<_T1, _T2>::pair(const _T1&, const _T2&)’
+  269 |       explicit constexpr pair(const _T1& __a, const _T2& __b)
+      |                          ^~~~
+/usr/include/c++/9/bits/stl_pair.h:269:26: note:   template argument deduction/substitution failed:
+/usr/include/c++/9/bits/stl_pair.h:268:38: error: no type named ‘type’ in ‘struct std::enable_if<false, bool>’
+  268 |                          bool>::type=false>
+      |                                      ^~~~~
+/usr/include/c++/9/bits/stl_pair.h:260:17: note: candidate: ‘template<class _U1, class _U2, typename std::enable_if<(_ConstructiblePair<_U1, _U2>() && _ImplicitlyConvertiblePair<_U1, _U2>()), bool>::type <anonymous> > constexpr std::pair<_T1, _T2>::pair(const _T1&, const _T2&)’
+  260 |       constexpr pair(const _T1& __a, const _T2& __b)
+      |                 ^~~~
+/usr/include/c++/9/bits/stl_pair.h:260:17: note:   template argument deduction/substitution failed:
+In file included from /usr/include/x86_64-linux-gnu/c++/9/bits/c++allocator.h:33,
+                 from /usr/include/c++/9/bits/allocator.h:46,
+                 from /usr/include/c++/9/string:41,
+                 from main.cpp:6:
+/usr/include/c++/9/ext/new_allocator.h:145:20: note:   cannot convert ‘std::forward<const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>*>((* & __args#0))’ (type ‘const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>*’) to type ‘const EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>&’
+  145 |  noexcept(noexcept(::new((void *)__p)
+      |                    ^~~~~~~~~~~~~~~~~~
+  146 |        _Up(std::forward<_Args>(__args)...)))
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/c++/9/bits/stl_algobase.h:64,
+                 from /usr/include/c++/9/bits/char_traits.h:39,
+                 from /usr/include/c++/9/string:40,
+                 from main.cpp:6:
+/usr/include/c++/9/bits/stl_pair.h:242:26: note: candidate: ‘template<class _U1, class _U2, typename std::enable_if<std::__and_<std::is_default_constructible<_Tp>, std::is_default_constructible<_Dp>, std::__not_<std::__and_<std::__is_implicitly_default_constructible<_U1>, std::__is_implicitly_default_constructible<_U2> > > >::value, bool>::type <anonymous> > constexpr std::pair<_T1, _T2>::pair()’
+  242 |       explicit constexpr pair()
+      |                          ^~~~
+/usr/include/c++/9/bits/stl_pair.h:242:26: note:   template argument deduction/substitution failed:
+In file included from /usr/include/x86_64-linux-gnu/c++/9/bits/c++allocator.h:33,
+                 from /usr/include/c++/9/bits/allocator.h:46,
+                 from /usr/include/c++/9/string:41,
+                 from main.cpp:6:
+/usr/include/c++/9/ext/new_allocator.h:145:20: note:   candidate expects 0 arguments, 2 provided
+  145 |  noexcept(noexcept(::new((void *)__p)
+      |                    ^~~~~~~~~~~~~~~~~~
+  146 |        _Up(std::forward<_Args>(__args)...)))
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/c++/9/bits/stl_algobase.h:64,
+                 from /usr/include/c++/9/bits/char_traits.h:39,
+                 from /usr/include/c++/9/string:40,
+                 from main.cpp:6:
+/usr/include/c++/9/bits/stl_pair.h:229:26: note: candidate: ‘template<class _U1, class _U2, typename std::enable_if<std::__and_<std::__is_implicitly_default_constructible<_U1>, std::__is_implicitly_default_constructible<_U2> >::value, bool>::type <anonymous> > constexpr std::pair<_T1, _T2>::pair()’
+  229 |       _GLIBCXX_CONSTEXPR pair()
+      |                          ^~~~
+/usr/include/c++/9/bits/stl_pair.h:229:26: note:   template argument deduction/substitution failed:
+In file included from /usr/include/x86_64-linux-gnu/c++/9/bits/c++allocator.h:33,
+                 from /usr/include/c++/9/bits/allocator.h:46,
+                 from /usr/include/c++/9/string:41,
+                 from main.cpp:6:
+/usr/include/c++/9/ext/new_allocator.h:145:20: note:   candidate expects 0 arguments, 2 provided
+  145 |  noexcept(noexcept(::new((void *)__p)
+      |                    ^~~~~~~~~~~~~~~~~~
+  146 |        _Up(std::forward<_Args>(__args)...)))
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from ../../Source/EBGeometry_DcelPolygon2D.hpp:174,
+                 from ../../Source/EBGeometry_DcelFace.hpp:23,
+                 from ../../Source/EBGeometry_DcelBVH.hpp:22,
+                 from ../../EBGeometry.hpp:4,
+                 from main.cpp:10:
+../../Source/EBGeometry_DcelPolygon2DImplem.hpp: In instantiation of ‘void EBGeometry::Dcel::Polygon2D<T>::define(const Vec3&, const std::vector<EBGeometry::Vec3T<T> >&) [with T = float; EBGeometry::Dcel::Polygon2D<T>::Vec3 = EBGeometry::Vec3T<float>]’:
+../../Source/EBGeometry_DcelPolygon2DImplem.hpp:27:11:   required from ‘EBGeometry::Dcel::Polygon2D<T>::Polygon2D(const Vec3&, const std::vector<EBGeometry::Vec3T<T> >&) [with T = float; EBGeometry::Dcel::Polygon2D<T>::Vec3 = EBGeometry::Vec3T<float>]’
+/usr/include/c++/9/ext/new_allocator.h:147:4:   required from ‘void __gnu_cxx::new_allocator<_Tp>::construct(_Up*, _Args&& ...) [with _Up = EBGeometry::Dcel::Polygon2D<float>; _Args = {EBGeometry::Vec3T<float>&, std::vector<EBGeometry::Vec3T<float>, std::allocator<EBGeometry::Vec3T<float> > >}; _Tp = EBGeometry::Dcel::Polygon2D<float>]’
+/usr/include/c++/9/bits/alloc_traits.h:484:4:   required from ‘static void std::allocator_traits<std::allocator<_CharT> >::construct(std::allocator_traits<std::allocator<_CharT> >::allocator_type&, _Up*, _Args&& ...) [with _Up = EBGeometry::Dcel::Polygon2D<float>; _Args = {EBGeometry::Vec3T<float>&, std::vector<EBGeometry::Vec3T<float>, std::allocator<EBGeometry::Vec3T<float> > >}; _Tp = EBGeometry::Dcel::Polygon2D<float>; std::allocator_traits<std::allocator<_CharT> >::allocator_type = std::allocator<EBGeometry::Dcel::Polygon2D<float> >]’
+/usr/include/c++/9/bits/shared_ptr_base.h:548:39:   required from ‘std::_Sp_counted_ptr_inplace<_Tp, _Alloc, _Lp>::_Sp_counted_ptr_inplace(_Alloc, _Args&& ...) [with _Args = {EBGeometry::Vec3T<float>&, std::vector<EBGeometry::Vec3T<float>, std::allocator<EBGeometry::Vec3T<float> > >}; _Tp = EBGeometry::Dcel::Polygon2D<float>; _Alloc = std::allocator<EBGeometry::Dcel::Polygon2D<float> >; __gnu_cxx::_Lock_policy _Lp = __gnu_cxx::_S_atomic]’
+/usr/include/c++/9/bits/shared_ptr_base.h:679:16:   required from ‘std::__shared_count<_Lp>::__shared_count(_Tp*&, std::_Sp_alloc_shared_tag<_Alloc>, _Args&& ...) [with _Tp = EBGeometry::Dcel::Polygon2D<float>; _Alloc = std::allocator<EBGeometry::Dcel::Polygon2D<float> >; _Args = {EBGeometry::Vec3T<float>&, std::vector<EBGeometry::Vec3T<float>, std::allocator<EBGeometry::Vec3T<float> > >}; __gnu_cxx::_Lock_policy _Lp = __gnu_cxx::_S_atomic]’
+/usr/include/c++/9/bits/shared_ptr_base.h:1344:71:   [ skipping 5 instantiation contexts, use -ftemplate-backtrace-limit=0 to disable ]
+../../Source/EBGeometry_DcelFaceImplem.hpp:62:11:   required from ‘void EBGeometry::Dcel::FaceT<T>::reconcile() [with T = float]’
+../../Source/EBGeometry_DcelMeshImplem.hpp:207:7:   required from ‘void EBGeometry::Dcel::MeshT<T>::reconcileFaces() [with T = float]’
+../../Source/EBGeometry_DcelMeshImplem.hpp:198:11:   required from ‘void EBGeometry::Dcel::MeshT<T>::reconcile(EBGeometry::Dcel::MeshT<T>::VertexNormalWeight) [with T = float]’
+../../Source/EBGeometry_DcelParserImplem.hpp:68:7:   required from ‘static void EBGeometry::Dcel::Parser::PLY<T>::readASCII(EBGeometry::Dcel::Parser::PLY<T>::Mesh&, std::string) [with T = float; EBGeometry::Dcel::Parser::PLY<T>::Mesh = EBGeometry::Dcel::MeshT<float>; std::string = std::__cxx11::basic_string<char>]’
+../../Source/EBGeometry_DcelParserImplem.hpp:37:14:   required from ‘static std::shared_ptr<EBGeometry::Dcel::MeshT<T> > EBGeometry::Dcel::Parser::PLY<T>::readASCII(std::string) [with T = float; std::string = std::__cxx11::basic_string<char>]’
+main.cpp:44:108:   required from here
+../../Source/EBGeometry_DcelPolygon2DImplem.hpp:79:14: warning: unsigned conversion from ‘int’ to ‘size_t’ {aka ‘long unsigned int’} changes value from ‘-1’ to ‘18446744073709551615’ [-Wsign-conversion]
+   79 |     m_yDir = -1;
+      |              ^~
+In file included from ../../Source/EBGeometry_Vec.hpp:598,
+                 from ../../Source/EBGeometry_TransformOps.hpp:16,
+                 from ../../Source/EBGeometry_SignedDistanceFunction.hpp:19,
+                 from ../../Source/EBGeometry_AnalyticDistanceFunctions.hpp:21,
+                 from ../../EBGeometry.hpp:1,
+                 from main.cpp:10:
+/usr/include/c++/9/ext/new_allocator.h: In instantiation of ‘void __gnu_cxx::new_allocator<_Tp>::construct(_Up*, _Args&& ...) [with _Up = EBGeometry::Vec2T<float>; _Args = {EBGeometry::Vec2T<float>}; _Tp = EBGeometry::Vec2T<float>]’:
+/usr/include/c++/9/bits/alloc_traits.h:482:2:   required from ‘static void std::allocator_traits<std::allocator<_CharT> >::construct(std::allocator_traits<std::allocator<_CharT> >::allocator_type&, _Up*, _Args&& ...) [with _Up = EBGeometry::Vec2T<float>; _Args = {EBGeometry::Vec2T<float>}; _Tp = EBGeometry::Vec2T<float>; std::allocator_traits<std::allocator<_CharT> >::allocator_type = std::allocator<EBGeometry::Vec2T<float> >]’
+/usr/include/c++/9/bits/vector.tcc:115:30:   required from ‘void std::vector<_Tp, _Alloc>::emplace_back(_Args&& ...) [with _Args = {EBGeometry::Vec2T<float>}; _Tp = EBGeometry::Vec2T<float>; _Alloc = std::allocator<EBGeometry::Vec2T<float> >]’
+../../Source/EBGeometry_DcelPolygon2DImplem.hpp:89:7:   required from ‘void EBGeometry::Dcel::Polygon2D<T>::define(const Vec3&, const std::vector<EBGeometry::Vec3T<T> >&) [with T = float; EBGeometry::Dcel::Polygon2D<T>::Vec3 = EBGeometry::Vec3T<float>]’
+../../Source/EBGeometry_DcelPolygon2DImplem.hpp:27:11:   required from ‘EBGeometry::Dcel::Polygon2D<T>::Polygon2D(const Vec3&, const std::vector<EBGeometry::Vec3T<T> >&) [with T = float; EBGeometry::Dcel::Polygon2D<T>::Vec3 = EBGeometry::Vec3T<float>]’
+/usr/include/c++/9/ext/new_allocator.h:147:4:   required from ‘void __gnu_cxx::new_allocator<_Tp>::construct(_Up*, _Args&& ...) [with _Up = EBGeometry::Dcel::Polygon2D<float>; _Args = {EBGeometry::Vec3T<float>&, std::vector<EBGeometry::Vec3T<float>, std::allocator<EBGeometry::Vec3T<float> > >}; _Tp = EBGeometry::Dcel::Polygon2D<float>]’
+/usr/include/c++/9/bits/alloc_traits.h:484:4:   [ skipping 8 instantiation contexts, use -ftemplate-backtrace-limit=0 to disable ]
+../../Source/EBGeometry_DcelFaceImplem.hpp:62:11:   required from ‘void EBGeometry::Dcel::FaceT<T>::reconcile() [with T = float]’
+../../Source/EBGeometry_DcelMeshImplem.hpp:207:7:   required from ‘void EBGeometry::Dcel::MeshT<T>::reconcileFaces() [with T = float]’
+../../Source/EBGeometry_DcelMeshImplem.hpp:198:11:   required from ‘void EBGeometry::Dcel::MeshT<T>::reconcile(EBGeometry::Dcel::MeshT<T>::VertexNormalWeight) [with T = float]’
+../../Source/EBGeometry_DcelParserImplem.hpp:68:7:   required from ‘static void EBGeometry::Dcel::Parser::PLY<T>::readASCII(EBGeometry::Dcel::Parser::PLY<T>::Mesh&, std::string) [with T = float; EBGeometry::Dcel::Parser::PLY<T>::Mesh = EBGeometry::Dcel::MeshT<float>; std::string = std::__cxx11::basic_string<char>]’
+../../Source/EBGeometry_DcelParserImplem.hpp:37:14:   required from ‘static std::shared_ptr<EBGeometry::Dcel::MeshT<T> > EBGeometry::Dcel::Parser::PLY<T>::readASCII(std::string) [with T = float; std::string = std::__cxx11::basic_string<char>]’
+main.cpp:44:108:   required from here
+../../Source/EBGeometry_VecImplem.hpp:31:1: warning: but ‘EBGeometry::Vec2T<T>::Vec2T(const EBGeometry::Vec2T<T>&) [with T = float]’ does not throw; perhaps it should be declared ‘noexcept’ [-Wnoexcept]
+   31 | Vec2T<T>::Vec2T(const Vec2T& u){
+      | ^~~~~~~~
+In file included from /usr/include/c++/9/algorithm:62,
+                 from ../../Source/EBGeometry_AnalyticDistanceFunctions.hpp:18,
+                 from ../../EBGeometry.hpp:1,
+                 from main.cpp:10:
+/usr/include/c++/9/bits/stl_algo.h:4887:5: error: ‘void std::sort(_RAIter, _RAIter, _Compare) [with _RAIter = std::pair<EBGeometry::BVH::NodeT<float, EBGeometry::Dcel::FaceT<float>, EBGeometry::BoundingVolumes::AABBT<float>, 4>, float>*; _Compare = EBGeometry::BVH::NodeT<T, P, BV, K>::pruneStack(const Vec3&) const [with T = float; P = EBGeometry::Dcel::FaceT<float>; BV = EBGeometry::BoundingVolumes::AABBT<float>; long unsigned int K = 4; EBGeometry::BVH::NodeT<T, P, BV, K>::Vec3 = EBGeometry::Vec3T<float>]::<lambda(const NodeAndDist&, const NodeAndDist&)>]’, declared using local type ‘EBGeometry::BVH::NodeT<T, P, BV, K>::pruneStack(const Vec3&) const [with T = float; P = EBGeometry::Dcel::FaceT<float>; BV = EBGeometry::BoundingVolumes::AABBT<float>; long unsigned int K = 4; EBGeometry::BVH::NodeT<T, P, BV, K>::Vec3 = EBGeometry::Vec3T<float>]::<lambda(const NodeAndDist&, const NodeAndDist&)>’, is used but never defined [-fpermissive]
+ 4887 |     sort(_RandomAccessIterator __first, _RandomAccessIterator __last,
+      |     ^~~~
+In file included from ../../Source/EBGeometry_BVH.hpp:548,
+                 from ../../EBGeometry.hpp:3,
+                 from main.cpp:10:
+../../Source/EBGeometry_BVHImplem.hpp:402:3: warning: but ‘EBGeometry::BVH::LinearNodeT<T, P, BV, K>::LinearNodeT() [with T = float; P = EBGeometry::Dcel::FaceT<float>; BV = EBGeometry::BoundingVolumes::AABBT<float>; long unsigned int K = 4]’ does not throw; perhaps it should be declared ‘noexcept’ [-Wnoexcept]
+  402 |   LinearNodeT<T, P, BV, K>::LinearNodeT() {
+      |   ^~~~~~~~~~~~~~~~~~~~~~~~
