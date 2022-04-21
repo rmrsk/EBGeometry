@@ -312,13 +312,13 @@ namespace Dcel {
       @param[in] a_warn     Current warning to increment by
     */
     inline
-    void incrementWarning(std::map<std::string, int>& a_warnings, const std::string& a_warn) const noexcept;
+    void incrementWarning(std::map<std::string, size_t>& a_warnings, const std::string& a_warn) const noexcept;
 
     /*!
       @brief Print all warnings to std::cerr
     */
     inline
-    void printWarnings(const std::map<std::string, int>& a_warnings) const noexcept;
+    void printWarnings(const std::map<std::string, size_t>& a_warnings) const noexcept;
   };
 }
 

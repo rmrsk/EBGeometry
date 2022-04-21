@@ -21,7 +21,7 @@
 
 namespace BVH {
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   NodeT<T, P, BV, K>::NodeT() {
     for (auto& c : m_children){
@@ -31,7 +31,7 @@ namespace BVH {
     m_primitives.resize(0);
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   NodeT<T, P, BV, K>::NodeT(const std::vector<std::shared_ptr<P> >& a_primitives) : NodeT<T, P, BV, K>() {
     for (const auto& p : a_primitives){
@@ -43,7 +43,7 @@ namespace BVH {
     }    
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   NodeT<T, P, BV, K>::NodeT(const std::vector<std::shared_ptr<const P> >& a_primitives) : NodeT<T, P, BV, K>() {
     m_primitives = a_primitives;
@@ -53,48 +53,48 @@ namespace BVH {
     }    
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   NodeT<T, P, BV, K>::~NodeT() {
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   void NodeT<T, P, BV, K>::setPrimitives(const PrimitiveList& a_primitives) noexcept {
     m_primitives = a_primitives;
   }
 
-  template<class T, class P, class BV, int K>  
+  template<class T, class P, class BV, size_t K>  
   inline
   bool NodeT<T, P, BV, K>::isLeaf() const noexcept {
     return m_primitives.size() > 0;
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   PrimitiveListT<P>& NodeT<T, P, BV, K>::getPrimitives() noexcept {
     return (m_primitives);
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   const PrimitiveListT<P>& NodeT<T, P, BV, K>::getPrimitives() const noexcept {
     return (m_primitives);
   }  
 
-  template<class T, class P, class BV, int K>  
+  template<class T, class P, class BV, size_t K>  
   inline
   const BV& NodeT<T, P, BV, K>::getBoundingVolume() const noexcept {
     return (m_boundingVolume);
   }
 
-  template<class T, class P, class BV, int K>  
+  template<class T, class P, class BV, size_t K>  
   inline
   const std::array<std::shared_ptr<NodeT<T, P, BV, K> >, K >& NodeT<T, P, BV, K>::getChildren() const noexcept {
     return (m_children);
   }  
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   void NodeT<T, P, BV, K>::topDownSortAndPartitionPrimitives(const BVConstructor& a_bvConstructor,
 							     const Partitioner&   a_partitioner,
@@ -128,23 +128,23 @@ namespace BVH {
     }
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   void NodeT<T, P, BV, K>::insertChildren(const std::array<PrimitiveList, K>& a_primitives) noexcept {
-    for (int l = 0; l < K; l++){
+    for (size_t l = 0; l < K; l++){
       m_children[l] = std::make_shared<NodeT<T, P, BV, K> >();
 
       m_children[l]->setPrimitives(a_primitives[l]);
     }
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   T NodeT<T, P, BV, K>::getDistanceToBoundingVolume(const Vec3& a_point) const noexcept{
     return m_boundingVolume.getDistance(a_point);
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   T NodeT<T, P, BV, K>::getDistanceToPrimitives(const Vec3& a_point) const noexcept {
     T minDist = std::numeric_limits<T>::infinity();
@@ -160,13 +160,13 @@ namespace BVH {
     return minDist;
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   T NodeT<T, P, BV, K>::signedDistance(const Vec3& a_point) const noexcept {
     return this->signedDistance(a_point, Prune::Stack);
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   T NodeT<T, P, BV, K>::signedDistance(const Vec3& a_point, const Prune a_pruning) const noexcept {
     T ret = std::numeric_limits<T>::infinity();
@@ -197,7 +197,7 @@ namespace BVH {
     return ret;
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   T NodeT<T, P, BV, K>::pruneStack(const Vec3& a_point) const noexcept {
     // TLDR: This routine uses ordered traversal along the branches. Rather than calling itself recursively, it uses
@@ -207,8 +207,8 @@ namespace BVH {
     T minDist = std::numeric_limits<T>::infinity();
 
     // Create temporary storage and and priority queue (our stack).
-    using Node        = const NodeT<T, P, BV, K>*;
-    using NodeAndDist = std::pair<Node, T>;
+    using RawNode     = const NodeT<T, P, BV, K>*;
+    using NodeAndDist = std::pair<RawNode, T>;
 
     std::array<NodeAndDist, K> childrenAndDistances;    
     std::stack<NodeAndDist> q;
@@ -243,8 +243,8 @@ namespace BVH {
 	  // Get the nodes's children.
 	  const std::array<NodePtr, K>& children = curNode->getChildren();
 	  
-	  for (int k = 0; k < K; k++) {
-	    const Node& child = &(*children[k]);
+	  for (size_t k = 0; k < K; k++) {
+	    const RawNode& child = &(*children[k]);
 	    
 	    childrenAndDistances[k] = std::make_pair(child, child->getDistanceToBoundingVolume(a_point));
 	  }
@@ -266,7 +266,7 @@ namespace BVH {
     return minDist;
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   void NodeT<T, P, BV, K>::pruneOrdered(T& a_shortestDistanceSoFar, const Vec3& a_point) const noexcept  {
 
@@ -287,7 +287,7 @@ namespace BVH {
       // In this case we need to decide which subtree to move down. First, sort the children nodes by the distance between
       // a_point and the children node's bounding volume. Shortest distance goes first. 
       std::array<std::pair<T, NodePtr>, K> distancesAndNodes;
-      for (int i = 0; i < K; i++){
+      for (size_t i = 0; i < K; i++){
 	distancesAndNodes[i] = std::make_pair(m_children[i]->getDistanceToBoundingVolume(a_point), m_children[i]);
       }
 
@@ -300,7 +300,7 @@ namespace BVH {
 
       // Go through the children nodes -- closest node goes first. We prune branches
       // if the distance to the node's bounding volume is longer than the shortest distance we've found so far. 
-      for (int i = 0; i < K; i++){
+      for (size_t i = 0; i < K; i++){
 	const std::pair<T, NodePtr>& curChildNode = distancesAndNodes[i];
 	  
 	// a_shortestDistanceSoFar is the SIGNED distance, so we need the absolute value here. 
@@ -314,7 +314,7 @@ namespace BVH {
     }
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   void NodeT<T, P, BV, K>::pruneUnordered(T& a_shortestDistanceSoFar, const Vec3& a_point) const noexcept  {
     if(this->isLeaf()) {
@@ -339,7 +339,7 @@ namespace BVH {
     }
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   std::shared_ptr<LinearBVH<T, P, BV, K> > NodeT<T, P, BV, K>::flattenTree() const noexcept {
 
@@ -348,7 +348,7 @@ namespace BVH {
     std::vector<std::shared_ptr<LinearNodeT<T, P, BV, K> > > linearNodes;
 
     // Track the offset into the linearized node array. 
-    unsigned long offset = 0;
+    size_t offset = 0;
 
     // Flatten recursively. 
     this->flattenTree(linearNodes, sortedPrimitives, offset);
@@ -357,11 +357,11 @@ namespace BVH {
     return std::make_shared<LinearBVH<T, P, BV, K> >(linearNodes, sortedPrimitives);
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
-  unsigned long NodeT<T, P, BV, K>::flattenTree(std::vector<std::shared_ptr<LinearNodeT<T, P, BV, K> > >& a_linearNodes,
+  size_t NodeT<T, P, BV, K>::flattenTree(std::vector<std::shared_ptr<LinearNodeT<T, P, BV, K> > >& a_linearNodes,
 						std::vector<std::shared_ptr<const P> >&                   a_sortedPrimitives,
-						unsigned long&                                            a_offset) const noexcept {
+						size_t&                                            a_offset) const noexcept {
 
     // TLDR: This is the main routine for flattening the hierarchy beneath the current node. When this is called we insert
     //       this node into a_linearNodes and associate the array offsets so that we can find the children in the linearized array.
@@ -387,8 +387,8 @@ namespace BVH {
       a_linearNodes[curNode]->setPrimitivesOffset(0UL);
 
       // Go through the children nodes and 
-      for (int k = 0; k < K; k++){
-	const int offset = m_children[k]->flattenTree(a_linearNodes, a_sortedPrimitives, a_offset);
+      for (size_t k = 0; k < K; k++){
+	const size_t offset = m_children[k]->flattenTree(a_linearNodes, a_sortedPrimitives, a_offset);
 	  
 	a_linearNodes[curNode]->setChildOffset(offset, k);
       }
@@ -397,9 +397,9 @@ namespace BVH {
     return curNode;
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
-  LinearNodeT<T, P, BV, K>::LinearNodeT() {
+  LinearNodeT<T, P, BV, K>::LinearNodeT() noexcept {
 
     // Initialize everything. 
     m_boundingVolume   = BV();
@@ -411,77 +411,77 @@ namespace BVH {
     }
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   LinearNodeT<T, P, BV, K>::~LinearNodeT() {
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   void LinearNodeT<T, P, BV, K>::setBoundingVolume(const BV& a_boundingVolume) noexcept {
     m_boundingVolume = a_boundingVolume;
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
-  void LinearNodeT<T, P, BV, K>::setPrimitivesOffset(const unsigned long a_primitivesOffset) noexcept {
+  void LinearNodeT<T, P, BV, K>::setPrimitivesOffset(const size_t a_primitivesOffset) noexcept {
     m_primitivesOffset = a_primitivesOffset;
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
-  void LinearNodeT<T, P, BV, K>::setNumPrimitives(const int a_numPrimitives) noexcept {
+  void LinearNodeT<T, P, BV, K>::setNumPrimitives(const size_t a_numPrimitives) noexcept {
     m_numPrimitives = a_numPrimitives;
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
-  void LinearNodeT<T, P, BV, K>::setChildOffset(const unsigned long a_childOffset, const int a_whichChild) noexcept {
+  void LinearNodeT<T, P, BV, K>::setChildOffset(const size_t a_childOffset, const size_t a_whichChild) noexcept {
     m_childOffsets[a_whichChild] = a_childOffset;
   }  
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   const BV& LinearNodeT<T, P, BV, K>::getBoundingVolume() const noexcept {
     return (m_boundingVolume);
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
-  const unsigned long& LinearNodeT<T, P, BV, K>::getPrimitivesOffset() const noexcept {
+  const size_t& LinearNodeT<T, P, BV, K>::getPrimitivesOffset() const noexcept {
     return (m_primitivesOffset);
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
-  const unsigned long& LinearNodeT<T, P, BV, K>::getNumPrimitives() const noexcept {
+  const size_t& LinearNodeT<T, P, BV, K>::getNumPrimitives() const noexcept {
     return (m_numPrimitives);
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
-  const std::array<unsigned long, K>& LinearNodeT<T, P, BV, K>::getChildOffsets() const noexcept {
+  const std::array<size_t, K>& LinearNodeT<T, P, BV, K>::getChildOffsets() const noexcept {
     return (m_childOffsets);
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   bool LinearNodeT<T, P, BV, K>::isLeaf() const noexcept {
     return m_numPrimitives > 0;
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   T LinearNodeT<T, P, BV, K>::getDistanceToBoundingVolume(const Vec3& a_point) const noexcept{
     return m_boundingVolume.getDistance(a_point);
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   T LinearNodeT<T, P, BV, K>::getDistanceToPrimitives(const Vec3T<T>& a_point, const std::vector<std::shared_ptr<const P> >& a_primitives) const noexcept {
     T minDist = std::numeric_limits<T>::infinity();
 
-    for (unsigned int i = 0; i < m_numPrimitives; i++){
+    for (size_t i = 0; i < m_numPrimitives; i++){
       const T curDist = a_primitives[m_primitivesOffset + i]->signedDistance(a_point);
 
       if(std::abs(curDist) < std::abs(minDist)){
@@ -492,7 +492,7 @@ namespace BVH {
     return minDist;
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   LinearBVH<T, P, BV, K>::LinearBVH(const std::vector<std::shared_ptr<const LinearNodeT<T, P, BV, K> > >& a_linearNodes,
 				    const std::vector<std::shared_ptr<const P> >&                         a_primitives) {
@@ -500,7 +500,7 @@ namespace BVH {
     m_primitives  = a_primitives;
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   LinearBVH<T, P, BV, K>::LinearBVH(const std::vector<std::shared_ptr<LinearNodeT<T, P, BV, K> > >& a_linearNodes,
 				    const std::vector<std::shared_ptr<const P> >&                   a_primitives) {
@@ -512,13 +512,13 @@ namespace BVH {
     m_primitives  = a_primitives;
   }  
 
-  template<class T, class P, class BV, int K>  
+  template<class T, class P, class BV, size_t K>  
   inline
   LinearBVH<T, P, BV, K>::~LinearBVH() {
 
   }
 
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   inline
   T LinearBVH<T, P, BV, K>::signedDistance(const Vec3& a_point) const noexcept {
     // TLDR: This routine uses ordered traversal along the branches. Rather than calling itself recursively, it uses
@@ -528,7 +528,7 @@ namespace BVH {
     T minDist = std::numeric_limits<T>::infinity();
 
     // Create temporary storage and and priority queue (our stack). 
-    using NodeAndDist = std::pair<unsigned long, T>;
+    using NodeAndDist = std::pair<size_t, T>;
 
     std::array<NodeAndDist, K> children;    
     std::stack<NodeAndDist> q;
@@ -559,8 +559,8 @@ namespace BVH {
 	}
 	else{
 	  // Compute child indices and their BVH distance to a_point.
-	  for (int k = 0; k < K; k++){
-	    const unsigned long& curOff = m_linearNodes[curNode]->getChildOffsets()[k];
+	  for (size_t k = 0; k < K; k++){
+	    const size_t& curOff = m_linearNodes[curNode]->getChildOffsets()[k];
 	    const T        distanceToBV = m_linearNodes[curOff] ->getDistanceToBoundingVolume(a_point);
 
 	    children[k] = std::make_pair(curOff, distanceToBV);
@@ -570,7 +570,7 @@ namespace BVH {
 	  // is critical to the performance of the BVH. 
 	  std::sort(children.begin(),
 	  	    children.end(),
-	  	    [](const std::pair<unsigned long, T>& node1, const std::pair<unsigned long, T>& node2) -> bool {
+	  	    [](const std::pair<size_t, T>& node1, const std::pair<size_t, T>& node2) -> bool {
 	  	      return node1.second > node2.second;
 	  	    });
 

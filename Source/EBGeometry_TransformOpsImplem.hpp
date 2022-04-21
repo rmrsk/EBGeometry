@@ -39,7 +39,7 @@ RotateOp<T>::RotateOp() {
 }
 
 template <class T>
-RotateOp<T>::RotateOp(const T a_angle, const int a_axis) noexcept {
+RotateOp<T>::RotateOp(const T a_angle, const size_t a_axis) noexcept {
   m_axis     = a_axis;
   m_cosAngle = std::cos(a_angle);
   m_sinAngle = std::sin(a_angle);

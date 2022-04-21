@@ -53,8 +53,8 @@ namespace Dcel {
       edges.resize(0);
       faces.resize(0);
 
-      int numVertices;  // Number of vertices
-      int numFaces;     // Number of faces
+      size_t numVertices;  // Number of vertices
+      size_t numFaces;     // Number of faces
 
       Dcel::Parser::PLY<T>::readHeaderASCII(numVertices, numFaces, filestream);
       Dcel::Parser::PLY<T>::readVerticesASCII(vertices, numVertices, filestream);
@@ -75,8 +75,8 @@ namespace Dcel {
 
   template <class T>
   inline
-  void Parser::PLY<T>::readHeaderASCII(int&           a_numVertices,
-				       int&           a_numFaces,
+  void Parser::PLY<T>::readHeaderASCII(size_t&        a_numVertices,
+				       size_t&        a_numFaces,
 				       std::ifstream& a_inputStream) {
 
     std::string str1;
@@ -120,7 +120,7 @@ namespace Dcel {
   template <class T>
   inline
   void Parser::PLY<T>::readVerticesASCII(std::vector<std::shared_ptr<Vertex> >& a_vertices,
-					 const int                              a_numVertices,
+					 const size_t                           a_numVertices,
 					 std::ifstream&                         a_inputStream) {
 
     Vec3T<T> pos;
@@ -133,7 +133,7 @@ namespace Dcel {
     T& ny = norm[1];
     T& nz = norm[2];
   
-    int num = 0;
+    size_t num = 0;
 
     std::string line;
     while(std::getline(a_inputStream, line)){
@@ -153,13 +153,13 @@ namespace Dcel {
   void Dcel::Parser::PLY<T>::readFacesASCII(std::vector<std::shared_ptr<Face> >&         a_faces,
 					    std::vector<std::shared_ptr<Edge> >&         a_edges,
 					    const std::vector<std::shared_ptr<Vertex> >& a_vertices,
-					    const int                                    a_numFaces,
+					    const size_t                                 a_numFaces,
 					    std::ifstream&                               a_inputStream) {
-    int numVertices;
-    std::vector<int> vertexIndices;
+    size_t numVertices;
+    std::vector<size_t> vertexIndices;
 
     std::string line;
-    int counter = 0;
+    size_t counter = 0;
     while(std::getline(a_inputStream, line)){
       counter++;
     
@@ -167,7 +167,7 @@ namespace Dcel {
 
       sstream >> numVertices;
       vertexIndices.resize(numVertices);
-      for (int i = 0; i < numVertices; i++){
+      for (size_t i = 0; i < numVertices; i++){
 	sstream >> vertexIndices[i];
       }
 
@@ -175,8 +175,8 @@ namespace Dcel {
     
       // Get the vertices that make up this face. 
       std::vector<std::shared_ptr<Vertex> > curVertices;
-      for (int i = 0; i < numVertices; i++){
-	const int vertexIndex = vertexIndices[i];
+      for (size_t i = 0; i < numVertices; i++){
+	const size_t vertexIndex = vertexIndices[i];
 	curVertices.emplace_back(a_vertices[vertexIndex]);
       }
 
@@ -192,7 +192,7 @@ namespace Dcel {
 
       // Associate next/previous for the half edges inside the current face. Wish we had a circular iterator
       // but this will have to do. 
-      for (unsigned int i = 0; i < halfEdges.size(); i++){
+      for (size_t i = 0; i < halfEdges.size(); i++){
 	auto& curEdge  = halfEdges[i];
 	auto& nextEdge = halfEdges[(i+1)%halfEdges.size()];
 
