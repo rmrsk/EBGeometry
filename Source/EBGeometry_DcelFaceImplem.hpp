@@ -99,7 +99,7 @@ namespace Dcel {
     // This computes the area of any N-side polygon. 
     const auto vertices = this->gatherVertices();
 
-    for (unsigned int i = 0; i < vertices.size() - 1; i++){
+    for (size_t i = 0; i < vertices.size() - 1; i++){
       const auto& v1 = vertices[i]  ->getPosition();
       const auto& v2 = vertices[i+1]->getPosition();
       m_area += m_normal.dot(v2.cross(v1));
@@ -127,11 +127,11 @@ namespace Dcel {
   void FaceT<T>::computeNormal() noexcept {
     const auto vertices = this->gatherVertices();
     
-    const int N = vertices.size();
+    const size_t N = vertices.size();
 
     // To compute the normal vector we find three vertices in this polygon face. They span a plane, and we just compute the
     // normal vector of that plane.
-    for (int i = 0; i < N; i++){
+    for (size_t i = 0; i < N; i++){
       const auto& x0 = vertices[i]      ->getPosition();
       const auto& x1 = vertices[(i+1)%N]->getPosition();
       const auto& x2 = vertices[(i+2)%N]->getPosition();
@@ -154,13 +154,13 @@ namespace Dcel {
 
   template <class T>
   inline
-  T& FaceT<T>::getCentroid(const int a_dir) noexcept {
+  T& FaceT<T>::getCentroid(const size_t a_dir) noexcept {
     return m_centroid[a_dir];
   }
 
   template <class T>
   inline
-  const T& FaceT<T>::getCentroid(const int a_dir) const noexcept {
+  const T& FaceT<T>::getCentroid(const size_t a_dir) const noexcept {
     return m_centroid[a_dir];
   }
 

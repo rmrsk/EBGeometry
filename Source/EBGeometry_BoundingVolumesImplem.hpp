@@ -76,10 +76,15 @@ namespace BoundingVolumes {
   void BoundingSphereT<T>::define(const std::vector<Vec3T<P> >& a_points, const BoundingVolumeAlgorithm& a_algorithm) noexcept {
     switch(a_algorithm) {
     case BoundingVolumeAlgorithm::Ritter:
-      this->buildRitter(a_points);
-      break;
+      {
+	this->buildRitter(a_points);
+	
+	break;
+      }
     default:
-      std::cerr << "BoundingSphereT::define - unsupported algorithm requested\n";
+      {
+	std::cerr << "BoundingSphereT::define - unsupported algorithm requested\n";
+      }
     }
   }
 
@@ -125,14 +130,14 @@ namespace BoundingVolumes {
 
     constexpr T half = 0.5;
 
-    constexpr int DIM = 3;
+    constexpr size_t DIM = 3;
 
     // INITIAL PASS
     std::vector<Vec3> min_coord(DIM, a_points[0]); // [0] = Minimum x, [1] = Minimum y, [2] = Minimum z
     std::vector<Vec3> max_coord(DIM, a_points[0]);
   
-    for (int i = 1; i < a_points.size(); i++){
-      for (int dir = 0; dir < DIM; dir++){
+    for (size_t i = 1; i < a_points.size(); i++){
+      for (size_t dir = 0; dir < DIM; dir++){
 	Vec3& min = min_coord[dir];
 	Vec3& max = max_coord[dir];
       
@@ -147,7 +152,7 @@ namespace BoundingVolumes {
 
     T dist = -1;
     Vec3 p1,p2;
-    for (int dir = 0; dir < DIM; dir++){
+    for (size_t dir = 0; dir < DIM; dir++){
       const T len = (max_coord[dir]-min_coord[dir]).length();
       if(len > dist ){
 	dist = len;
@@ -162,7 +167,7 @@ namespace BoundingVolumes {
 
 
     // SECOND PASS
-    for (int i = 0; i < a_points.size(); i++){
+    for (size_t i = 0; i < a_points.size(); i++){
       const T dist = (a_points[i]-m_center).length() - m_radius; 
       if(dist > 0){ // Point lies outside
 	const Vec3 v  = a_points[i] - m_center;
@@ -320,7 +325,7 @@ namespace BoundingVolumes {
     
     T ret = 1.0;
 
-    for (int dir = 0; dir < 3; dir++){
+    for (size_t dir = 0; dir < 3; dir++){
       const auto xL = m_loCorner[dir];
       const auto xH = m_hiCorner[dir];
 
@@ -355,7 +360,7 @@ namespace BoundingVolumes {
     const auto delta = m_hiCorner-m_loCorner;
 
     T ret = 1.0;
-    for (int dir = 0; dir < 3; dir++){
+    for (size_t dir = 0; dir < 3; dir++){
       ret *= delta[dir];
     }
 
@@ -365,15 +370,15 @@ namespace BoundingVolumes {
   template <class T>
   inline
   T AABBT<T>::getArea() const noexcept {
-    constexpr int DIM = 3;
+    constexpr size_t DIM = 3;
 
     T ret = 0.0;
 
     const auto delta = m_hiCorner - m_loCorner;
     
-    for (int dir = 0; dir < DIM; dir++){
-      const int otherDir1 = (dir+1)%DIM;
-      const int otherDir2 = (dir+2)%DIM;
+    for (size_t dir = 0; dir < DIM; dir++){
+      const size_t otherDir1 = (dir+1)%DIM;
+      const size_t otherDir2 = (dir+2)%DIM;
 
       ret += 2.0*delta[otherDir1]*delta[otherDir2];
     }

@@ -214,7 +214,7 @@ constexpr Vec3T<T> Vec3T<T>::one() noexcept {
 
 template <class T>
 inline
-constexpr Vec3T<T> Vec3T<T>::unit(const int a_dir) noexcept {
+constexpr Vec3T<T> Vec3T<T>::unit(const size_t a_dir) noexcept {
   Vec3T<T> v = Vec3T<T>::zero();
   v[a_dir] = 1.0;
 
@@ -339,13 +339,13 @@ Vec3T<T> Vec3T<T>::cross(const Vec3T<T>& u) const noexcept {
 
 template <class T>
 inline
-T& Vec3T<T>::operator[](int i) noexcept {
+T& Vec3T<T>::operator[](size_t i) noexcept {
   return X[i];
 }
 
 template <class T>
 inline
-const T& Vec3T<T>::operator[](int i) const noexcept {
+const T& Vec3T<T>::operator[](size_t i) const noexcept {
   return X[i];
 }
 
@@ -371,10 +371,10 @@ Vec3T<T> Vec3T<T>::max(const Vec3T<T>& u) noexcept {
 
 template <class T>
 inline
-int Vec3T<T>::minDir(const bool a_doAbs) const noexcept {
-  int mDir = 0;
+size_t Vec3T<T>::minDir(const bool a_doAbs) const noexcept {
+  size_t mDir = 0;
     
-  for (int dir = 0; dir < 3; dir++){
+  for (size_t dir = 0; dir < 3; dir++){
     if (a_doAbs){
       if (std::abs(X[dir]) < std::abs(X[mDir])) {
 	mDir = dir;
@@ -392,10 +392,10 @@ int Vec3T<T>::minDir(const bool a_doAbs) const noexcept {
 
 template <class T>
 inline
-int Vec3T<T>::maxDir(const bool a_doAbs) const noexcept {
-  int mDir = 0;
+size_t Vec3T<T>::maxDir(const bool a_doAbs) const noexcept {
+  size_t mDir = 0;
     
-  for (int dir = 0; dir < 3; dir++){
+  for (size_t dir = 0; dir < 3; dir++){
     if (a_doAbs){
       if (std::abs(X[dir]) > std::abs(X[mDir])) {
 	mDir = dir;

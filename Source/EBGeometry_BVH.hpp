@@ -32,7 +32,7 @@ namespace BVH {
     @details T is the precision used in the BVH computations, P is the enclosing primitive and BV is the bounding volume 
     used in the BVH. K is the tree degree. 
   */
-  template <class T, class P, class BV, int K>
+  template <class T, class P, class BV, size_t K>
   class NodeT;
 
   /*!
@@ -40,7 +40,7 @@ namespace BVH {
     @details T is the precision used in the BVH computations, P is the enclosing primitive and BV is the bounding volume 
     used in the BVH. K is the tree degree. 
   */
-  template <class T, class P, class BV, int K>
+  template <class T, class P, class BV, size_t K>
   class LinearNodeT;
 
   /*!
@@ -48,7 +48,7 @@ namespace BVH {
     @details T is the precision used in the BVH computations, P is the enclosing primitive and BV is the bounding volume 
     used in the BVH. K is the tree degree. 
   */
-  template <class T, class P, class BV, int K>
+  template <class T, class P, class BV, size_t K>
   class LinearBVH;
 
   /*!
@@ -65,7 +65,7 @@ namespace BVH {
     @param[in] a_node BVH node
     @return True if the node can't be divided into subvolumes and false otherwise. 
   */
-  template <class T, class P, class BV, int K>
+  template <class T, class P, class BV, size_t K>
   using StopFunctionT = std::function<bool(const NodeT<T, P, BV, K>& a_node)>;
 
   /*!
@@ -74,7 +74,7 @@ namespace BVH {
     @param[in] a_primitives List of primitives to be subdivided into sub-bounding volumes. 
     @return Returns a list (std::array) of new primitives which make up the new bounding volumes. 
   */
-  template <class P, class BV, int K>
+  template <class P, class BV, size_t K>
   using PartitionerT = std::function<std::array<PrimitiveListT<P>, K>(const PrimitiveListT<P>& a_primitives)>;
 
   /*!
@@ -109,7 +109,7 @@ namespace BVH {
 
     Had this been C++20, we would have use concepts to enforce this.
   */
-  template <class T, class P, class BV, int K>
+  template <class T, class P, class BV, size_t K>
   class NodeT : public SignedDistanceFunction<T> {
   public:
 
@@ -323,9 +323,9 @@ namespace BVH {
       @note When called from the root node, a_linearNodes and a_sortedPrimitives should be empty and a_offset=0UL.
     */
     inline
-    unsigned long flattenTree(std::vector<std::shared_ptr<LinearNodeT<T, P, BV, K> > >& a_linearNodes,
+    size_t flattenTree(std::vector<std::shared_ptr<LinearNodeT<T, P, BV, K> > >& a_linearNodes,
 			      std::vector<std::shared_ptr<const P> >&                   a_sortedPrimitives,
-			      unsigned long&                                            a_offset) const noexcept;
+			      size_t&                                            a_offset) const noexcept;
   };
 
   /*!
@@ -348,7 +348,7 @@ namespace BVH {
     the regular node. We could shave off 16 bytes of storage, which would mean that a double-precision binary tree only takes up one word
     of CPU memory. 
   */
-  template <class T, class P, class BV, int K>
+  template <class T, class P, class BV, size_t K>
   class LinearNodeT {
   public:
 
@@ -380,14 +380,14 @@ namespace BVH {
       @brief Set the offset into the primitives array. 
     */
     inline
-    void setPrimitivesOffset(const unsigned long a_primitivesOffset) noexcept;
+    void setPrimitivesOffset(const size_t a_primitivesOffset) noexcept;
 
     /*!
       @brief Set number of primitives.
       @param[in] a_numPrimitives Number of primitives. 
     */
     inline
-    void setNumPrimitives(const unsigned long a_numPrimitives) noexcept;
+    void setNumPrimitives(const size_t a_numPrimitives) noexcept;
 
     /*!
       @brief Set the child offsets. 
@@ -395,7 +395,7 @@ namespace BVH {
       @param[in] a_whichChild  Child index in m_childrenOffsets. Must be [0,K-1]
     */
     inline
-    void setChildOffset(const unsigned long a_childOffset, const int a_whichChild) noexcept;    
+    void setChildOffset(const size_t a_childOffset, const size_t a_whichChild) noexcept;    
 
     /*!
       @brief Get the node bounding volume. 
@@ -409,21 +409,21 @@ namespace BVH {
       @return Returns m_primitivesOffset
     */
     inline
-    const unsigned long& getPrimitivesOffset() const noexcept;
+    const size_t& getPrimitivesOffset() const noexcept;
 
     /*!
       @brief Get the number of primitives. 
       @return Returns m_numPrimitives
     */
     inline
-    const unsigned long& getNumPrimitives() const noexcept;
+    const size_t& getNumPrimitives() const noexcept;
 
     /*!
       @brief Get the child offsets
       @return Returns m_childOffsets
     */
     inline
-    const std::array<unsigned long, K>& getChildOffsets() const noexcept;    
+    const std::array<size_t, K>& getChildOffsets() const noexcept;    
 
     /*!
       @brief Is leaf or not
@@ -458,23 +458,23 @@ namespace BVH {
     /*!
       @brief Offset into primitives array
     */
-    unsigned long m_primitivesOffset;    
+    size_t m_primitivesOffset;    
 
     /*!
       @brief Number of primitives
     */
-    unsigned long m_numPrimitives;
+    size_t m_numPrimitives;
 
     /*!
       @brief Offset to child nodes. 
     */
-    std::array<unsigned long, K> m_childOffsets;
+    std::array<size_t, K> m_childOffsets;
   };
 
   /*!
     @brief Linear root node for BVH hierarchy
   */
-  template<class T, class P, class BV, int K>
+  template<class T, class P, class BV, size_t K>
   class LinearBVH : public SignedDistanceFunction<T> {
   public:
 

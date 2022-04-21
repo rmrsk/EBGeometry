@@ -166,14 +166,14 @@ namespace Dcel {
       @param[in] a_dir Coordinate direction
     */
     inline
-    T& getCentroid(const int a_dir) noexcept;
+    T& getCentroid(const size_t a_dir) noexcept;
 
     /*!
       @brief Get immutable centroid position in specified coordinate direction
       @param[in] a_dir Coordinate direction
     */
     inline
-    const T& getCentroid(const int a_dir) const noexcept;
+    const T& getCentroid(const size_t a_dir) const noexcept;
 
     /*!
       @brief Get modifiable normal vector
