@@ -4,12 +4,12 @@ on:
   pull_request:
     types: [push, opened, synchronize, reopened, ready_for_review]
 
-concurrency:
-  group: ${{ github.ref }}-${{ github.head_ref }}-linux-gcc    
-  cancel-in-progress: true
+# concurrency:
+#   group: ${{ github.ref }}-${{ github.head_ref }}-linux-gcc    
+#   cancel-in-progress: true
 
 jobs:
-  GCC-10:
+  gcc-ten:
     if: github.event.pull_request.draft == false  
     name: GNU@10.0 C++14
     runs-on: ubuntu-latest
