@@ -1,4 +1,4 @@
-name: Linux GCC
+name: EBGeometry basic
 
 on:
   pull_request:
@@ -9,9 +9,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  gcc:
+  GNU:
     if: github.event.pull_request.draft == false  
-    name: GNU C++14
+    name: GNU
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
@@ -32,12 +32,12 @@ jobs:
       - name: DCEL
         working-directory: Examples/EBGeometry_DCEL
         run: |
-          ${{ matrix.comp }} -${{ matrix.opt }} -std=${{ matrix.std }} main.cpp                              
+          ${{ matrix.comp }} ${{ matrix.opt }} -std=${{ matrix.std }} main.cpp                              
           ./a.out porsche.ply
 
       - name: Union
         working-directory: Examples/EBGeometry_Union
         run: |
-          ${{ matrix.comp }} -${{ matrix.opt }} -std=${{ matrix.std }} main.cpp                    
+          ${{ matrix.comp }} ${{ matrix.opt }} -std=${{ matrix.std }} main.cpp                    
           ./a.out
 
