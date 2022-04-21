@@ -29,16 +29,26 @@ jobs:
           sudo apt-get update
           sudo apt-get install ${{ matrix.comp }}
 
-      - name: DCEL
+      - name: Compile DCEL
         working-directory: Examples/EBGeometry_DCEL
         run: |
           ${{ matrix.comp }} ${{ matrix.opt }} -std=${{ matrix.std }} main.cpp >& compile_log.txt
-          echo compile_log.txt
-          ./a.out porsche.ply
+          if ! [ -s compile_log.txt ]; then cat compile_log.txt; fi          
 
-      - name: Union
+      - name: Compile Union
         working-directory: Examples/EBGeometry_Union
         run: |
-          ${{ matrix.comp }} ${{ matrix.opt }} -std=${{ matrix.std }} main.cpp                    
+          ${{ matrix.comp }} ${{ matrix.opt }} -std=${{ matrix.std }} main.cpp >& compile_log.txt
+
+      - name: Run DCEL
+        working-directory: Examples/EBGeometry_DCEL
+        run: |
+          ./a.out porsche.ply
+
+      - name: Run Union
+        working-directory: Examples/EBGeometry_Union
+        run: |
           ./a.out
+
+
 
