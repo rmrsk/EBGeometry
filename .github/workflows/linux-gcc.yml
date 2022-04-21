@@ -24,14 +24,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install g++10
 
-      - name: Run DCEL test
-      	working-directory: Examples/EBGeometry_DCEL
-        run: |
-	   g++ -O3 -std=c++14 main.cpp
-	   ./a.out porsche.ply
+      # - name: Run DCEL test
+      # 	working-directory: Examples/EBGeometry_DCEL
+      #   run: |
+      # 	   g++ -O3 -std=c++14 main.cpp
+      # 	   ./a.out porsche.ply
 
-      - name: Run union test
-      	working-directory: Examples/EBGeometry_Union
-        run: |
-	   g++ -O3 -std=c++14 main.cpp
-	   ./a.out
+      # - name: Run union test
+      # 	working-directory: Examples/EBGeometry_Union
+      #   run: |
+      # 	   g++ -O3 -std=c++14 main.cpp
+      # 	   ./a.out
