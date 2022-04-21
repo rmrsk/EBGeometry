@@ -13,7 +13,9 @@ jobs:
     if: github.event.pull_request.draft == false  
     name: GNU
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
+    env:
+      CI: ""
     strategy:
       matrix:
         comp: [g++-7, g++-8, g++-9, g++-10]
