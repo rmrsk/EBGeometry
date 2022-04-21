@@ -9,14 +9,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  gcc-10:
+  gcc:
     if: github.event.pull_request.draft == false  
-    name: GNU@10.0 C++14
+    name: GNU C++14
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
       matrix:
         comp: [g++-7, g++-8, g++-9, g++-10]
+        std: [c++14, c++17]
+        opt: [-O3, -O0 -Wall]
 
     steps:
       - name: Checkout EBGeometry
@@ -27,26 +29,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install ${{ matrix.comp }}
 
-      - name: DCEL optimization
+      - name: DCEL
         working-directory: Examples/EBGeometry_DCEL
         run: |
-          ${{ matrix.comp }} -O3 -std=c++14 main.cpp
+          ${{ matrix.comp }} -${{ matrix.opt }} -std=${{ matrix.std }} main.cpp                              
           ./a.out porsche.ply
 
-      - name: DCEL debug
-        working-directory: Examples/EBGeometry_DCEL
-        run: |
-          ${{ matrix.comp }} -O0 -std=c++14 main.cpp          
-          ./a.out porsche.ply
-
-      - name: Union optimization
+      - name: Union
         working-directory: Examples/EBGeometry_Union
         run: |
-          ${{ matrix.comp }} -O3 -std=c++14 main.cpp                    
+          ${{ matrix.comp }} -${{ matrix.opt }} -std=${{ matrix.std }} main.cpp                    
           ./a.out
 
-      - name: Union debug
-        working-directory: Examples/EBGeometry_Union
-        run: |
-          ${{ matrix.comp }} -O0 -std=c++14 main.cpp
-          ./a.out
