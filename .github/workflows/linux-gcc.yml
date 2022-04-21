@@ -11,15 +11,13 @@ concurrency:
 jobs:
   gcc-10:
     if: github.event.pull_request.draft == false  
-    name: GNU@10.0 C++14 serial without HDF5
+    name: GNU@10.0 C++14
     runs-on: ubuntu-latest
     timeout-minutes: 300
 
     steps:
-      - name: Checkout chombo-discharge
+      - name: Checkout
         uses: actions/checkout@v2
-        with:
-          submodules: true
 
       - name: Install dependencies
         run: |
