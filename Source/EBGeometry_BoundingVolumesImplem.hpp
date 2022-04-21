@@ -151,7 +151,7 @@ namespace BoundingVolumes {
     }
 
     T dist = -1;
-    Vec3 p1,p2;
+    Vec3 v, p1,p2;
     for (size_t dir = 0; dir < DIM; dir++){
       const T len = (max_coord[dir]-min_coord[dir]).length();
       if(len > dist ){
@@ -165,14 +165,13 @@ namespace BoundingVolumes {
     m_center = (p1+p2)*half;
     m_radius = half*(p2-p1).length();
 
-
     // SECOND PASS
     for (size_t i = 0; i < a_points.size(); i++){
-      const T dist = (a_points[i]-m_center).length() - m_radius; 
-      if(dist > 0){ // Point lies outside
-	const Vec3 v  = a_points[i] - m_center;
-	const Vec3 p1 = a_points[i];
-	const Vec3 p2 = m_center - m_radius*v/v.length();
+      dist = (a_points[i]-m_center).length() - m_radius; 
+      if(dist > 0.0){ // Point lies outside
+	v  = a_points[i] - m_center;
+	p1 = a_points[i];
+	p2 = m_center - m_radius*v/v.length();
 
 	m_center = half*(p2+p1);
 	m_radius = half*(p2-p1).length();

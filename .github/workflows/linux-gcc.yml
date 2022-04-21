@@ -11,14 +11,13 @@ concurrency:
 jobs:
   GNU:
     if: github.event.pull_request.draft == false  
-    name: GNU
+    name: GNU Debug build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
       matrix:
         comp: [g++-7, g++-8, g++-9, g++-10]
-        std: [c++14, c++17]
-        opt: [-O3 -Wall, -O0 -Wall -Wextra -Werror]
+        std: [c++14]
 
     steps:
       - name: Checkout EBGeometry
@@ -32,12 +31,16 @@ jobs:
       - name: DCEL example
         working-directory: Examples/EBGeometry_DCEL
         run: |
-          ${{ matrix.comp }} ${{ matrix.opt }} -std=${{ matrix.std }} main.cpp
-          if ! [ -s compile_log.txt ]; then cat compile_log.txt; fi
+          ${{ matrix.comp }} -std=${{ matrix.std }} \
+          -pedantic -Wall -Wextra  -Wcast-align  -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
+          -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
+          -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel \
+          -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused \
+          main.cpp 
           ./a.out porsche.ply          
 
       - name: Union example
         working-directory: Examples/EBGeometry_Union
         run: |
-          ${{ matrix.comp }} ${{ matrix.opt }} -std=${{ matrix.std }} main.cpp >& compile_log.txt
+          ${{ matrix.comp }} -std=${{ matrix.std }} main.cpp >& compile_log.txt
           ./a.out          

@@ -207,8 +207,8 @@ namespace BVH {
     T minDist = std::numeric_limits<T>::infinity();
 
     // Create temporary storage and and priority queue (our stack).
-    using Node        = const NodeT<T, P, BV, K>*;
-    using NodeAndDist = std::pair<Node, T>;
+    using RawNode     = const NodeT<T, P, BV, K>*;
+    using NodeAndDist = std::pair<RawNode, T>;
 
     std::array<NodeAndDist, K> childrenAndDistances;    
     std::stack<NodeAndDist> q;
@@ -244,7 +244,7 @@ namespace BVH {
 	  const std::array<NodePtr, K>& children = curNode->getChildren();
 	  
 	  for (size_t k = 0; k < K; k++) {
-	    const Node& child = &(*children[k]);
+	    const RawNode& child = &(*children[k]);
 	    
 	    childrenAndDistances[k] = std::make_pair(child, child->getDistanceToBoundingVolume(a_point));
 	  }
@@ -399,7 +399,7 @@ namespace BVH {
 
   template<class T, class P, class BV, size_t K>
   inline
-  LinearNodeT<T, P, BV, K>::LinearNodeT() {
+  LinearNodeT<T, P, BV, K>::LinearNodeT() noexcept {
 
     // Initialize everything. 
     m_boundingVolume   = BV();

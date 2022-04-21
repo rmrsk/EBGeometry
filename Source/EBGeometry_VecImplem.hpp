@@ -28,7 +28,7 @@ Vec2T<T>::Vec2T(){
 
 template <class T>
 inline
-Vec2T<T>::Vec2T(const Vec2T& u){
+Vec2T<T>::Vec2T(const Vec2T& u) noexcept {
   x = u.x;
   y = u.y;
 }
@@ -186,7 +186,7 @@ Vec3T<T>::Vec3T(){
 
 template <class T>
 inline
-Vec3T<T>::Vec3T(const Vec3T<T>& u) {
+Vec3T<T>::Vec3T(const Vec3T<T>& u) noexcept {
   X[0] = u[0];
   X[1] = u[1];
   X[2] = u[2];

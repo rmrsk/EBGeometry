@@ -114,8 +114,10 @@ void UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor) {
     // 5. Put the primitives in separate lists and return them like the API says. 
     std::array<SDFList, K> subVolumePrimitives;
     for (size_t i = 0; i < K; i++){
-      typename SDFList::const_iterator first = sortedPrimitives.begin() + startIndices[i];
-      typename SDFList::const_iterator last  = sortedPrimitives.begin() + endIndices  [i];
+
+      // God how I hate how the standard library handles iterator offsets. Fuck you, long/unsigned long conversion. 
+      typename SDFList::const_iterator first = sortedPrimitives.cbegin() + static_cast<typename SDFList::difference_type>(startIndices[i]);
+      typename SDFList::const_iterator last  = sortedPrimitives.cbegin() + static_cast<typename SDFList::difference_type>(endIndices  [i]);
       
       subVolumePrimitives[i] = SDFList(first, last);
     }  

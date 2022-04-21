@@ -75,8 +75,8 @@ namespace Dcel {
       }
     }
 
-    m_xDir =  3;
-    m_yDir = -1;
+    m_xDir = 3;
+    m_yDir = 0;
   
     for (size_t dir = 0; dir < 3; dir++){
       if(dir != m_ignoreDir){

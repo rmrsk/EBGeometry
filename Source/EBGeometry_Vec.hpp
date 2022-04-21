@@ -34,7 +34,7 @@ public:
     @param[in] u Other vector
     @details Sets *this = u
   */
-  Vec2T(const Vec2T& u);
+  Vec2T(const Vec2T& u) noexcept;
 
   /*!
     @brief Full constructor
@@ -230,7 +230,7 @@ public:
     @param[in] a_u Other vector
     @details Sets *this = u
   */    
-  Vec3T(const Vec3T<T>& a_u);
+  Vec3T(const Vec3T<T>& a_u) noexcept;
 
   /*!
     @brief Full constructor

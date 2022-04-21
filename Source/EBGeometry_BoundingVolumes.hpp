@@ -69,11 +69,6 @@ namespace BoundingVolumes {
     BoundingSphereT(const BoundingSphereT& a_other);
 
     /*!
-      @brief Destructor (does nothing). 
-    */
-    virtual ~BoundingSphereT();
-
-    /*!
       @brief Template constructor which takes a set of 3D points (mixed precision allowed).
       @details This computes the bounding sphere using the supplied algorithm. 
       @param[in] a_points Set of 3D points
@@ -82,6 +77,17 @@ namespace BoundingVolumes {
     */
     template <class P>
     BoundingSphereT(const std::vector<Vec3T<P> >& a_points, const BoundingVolumeAlgorithm& a_alg = BoundingVolumeAlgorithm::Ritter);
+
+    /*!
+      @brief Destructor (does nothing). 
+    */
+    virtual ~BoundingSphereT();
+
+    /*!
+      @brief Copy assignment operator
+      @param[in] a_other Other sphere
+    */    
+    BoundingSphereT operator=(const BoundingSphereT& a_other) = default;
 
     /*!
       @brief Template define function which takes a set of 3D points (mixed precision allowed).
@@ -214,17 +220,23 @@ namespace BoundingVolumes {
     AABBT(const std::vector<AABBT<T> >& a_others);
 
     /*!
-      @brief Destructor (does nothing)
-    */
-    virtual ~AABBT();
-
-    /*!
       @brief Template constructor (since mixed precision allowed) which creates an AABB that encloses a set of 3D points
       @param[in] a_points Set of 3D points
       @note Calls the define function
     */
     template <class P>
     AABBT(const std::vector<Vec3T<P> >& a_points);
+
+    /*!
+      @brief Destructor (does nothing)
+    */
+    virtual ~AABBT();    
+
+    /*!
+      @brief Copy assignment
+      @param[in] a_other Other bounding box
+    */
+    AABBT& operator=(const AABBT<T>& a_other) = default;
 
     /*!
       @brief Define function (since mixed precision allowed) which sets this AABB such that it encloses a set of 3D points

@@ -361,7 +361,7 @@ namespace BVH {
       @brief Constructor.
     */
     inline
-    LinearNodeT();
+    LinearNodeT() noexcept;
 
     /*!
       @brief Destructor.
