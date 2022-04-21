@@ -32,7 +32,7 @@ jobs:
       - name: Compile DCEL
         working-directory: Examples/EBGeometry_DCEL
         run: |
-          ${{ matrix.comp }} ${{ matrix.opt }} -std=${{ matrix.std }} main.cpp >& compile_log.txt
+          ${{ matrix.comp }} ${{ matrix.opt }} -std=${{ matrix.std }} main.cpp
           if ! [ -s compile_log.txt ]; then cat compile_log.txt; fi          
 
       - name: Compile Union
