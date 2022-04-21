@@ -89,8 +89,8 @@ namespace Dcel {
 	@param[inout] a_inputStream File stream. On output, the filestream is at the end of the PLY header. 
       */
       inline
-      static void readHeaderASCII(int&           a_numVertices,
-				  int&           a_numFaces,
+      static void readHeaderASCII(size_t&        a_numVertices,
+				  size_t&        a_numFaces,
 				  std::ifstream& a_inputStream);
 
       /*!
@@ -102,7 +102,7 @@ namespace Dcel {
       */
       inline
       static void readVerticesASCII(std::vector<std::shared_ptr<Vertex> >& a_vertices,
-				    const int                              a_numVertices,
+				    const size_t                           a_numVertices,
 				    std::ifstream&                         a_inputStream);
 
       /*!
@@ -119,7 +119,7 @@ namespace Dcel {
       static void readFacesASCII(std::vector<std::shared_ptr<Face> >&         a_faces,
 				 std::vector<std::shared_ptr<Edge> >&         a_edges,
 				 const std::vector<std::shared_ptr<Vertex> >& a_vertices,
-				 const int                                    a_numFaces,
+				 const size_t                                 a_numFaces,
 				 std::ifstream&                               a_inputStream);
 
       /*!
