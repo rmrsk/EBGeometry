@@ -1,0 +1,39 @@
+name: Linux GCC
+
+on:
+  pull_request:
+    types: [push, opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-linux-gcc    
+  cancel-in-progress: true
+
+jobs:
+  gcc-10
+    if: github.event.pull_request.draft == false  
+    name: GNU@10.0 C++14 serial without HDF5
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+
+    steps:
+      - name: Checkout chombo-discharge
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install g++10
+
+      - name: Run DCEL test
+      	working-directory: Examples/EBGeometry_DCEL
+        run: |
+	   g++ -O3 -std=c++14 main.cpp
+	   ./a.out porsche.ply
+
+      - name: Run union test
+      	working-directory: Examples/EBGeometry_Union
+        run: |
+	   g++ -O3 -std=c++14 main.cpp
+	   ./a.out
