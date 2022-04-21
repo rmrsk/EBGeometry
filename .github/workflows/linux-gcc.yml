@@ -4,12 +4,12 @@ on:
   pull_request:
     types: [push, opened, synchronize, reopened, ready_for_review]
 
-# concurrency:
-#   group: ${{ github.ref }}-${{ github.head_ref }}-linux-gcc    
-#   cancel-in-progress: true
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-linux-gcc    
+  cancel-in-progress: true
 
 jobs:
-  gcc-ten:
+  gcc-10:
     if: github.event.pull_request.draft == false  
     name: GNU@10.0 C++14
     runs-on: ubuntu-latest
@@ -29,3 +29,21 @@ jobs:
         run: |
           g++ -O3 -std=c++14 main.cpp
           ./a.out porsche.ply
+
+      - name: DCEL debug
+        working-directory: Examples/EBGeometry_DCEL
+        run: |
+          g++ -O0 -std=c++14 main.cpp
+          ./a.out porsche.ply
+
+      - name: Union optimization
+        working-directory: Examples/EBGeometry_Union
+        run: |
+          g++ -O3 -std=c++14 main.cpp
+          ./a.out
+
+      - name: Union debug
+        working-directory: Examples/EBGeometry_Union
+        run: |
+          g++ -O0 -std=c++14 main.cpp
+          ./a.out
