@@ -18,7 +18,7 @@ jobs:
       matrix:
         comp: [g++-7, g++-8, g++-9, g++-10]
         std: [c++14, c++17]
-        opt: [-O3 -Wall, -O0 -Wall]
+        opt: [-O3 -w, -O0 -Wall]
 
     steps:
       - name: Checkout EBGeometry
@@ -32,7 +32,8 @@ jobs:
       - name: Compile DCEL
         working-directory: Examples/EBGeometry_DCEL
         run: |
-          ${{ matrix.comp }} ${{ matrix.opt }} -std=${{ matrix.std }} main.cpp
+          ${{ matrix.comp }} ${{ matrix.opt }} -std=${{ matrix.std }} main.cpp >& compile_log.txt
+          ls -ahl
           if ! [ -s compile_log.txt ]; then cat compile_log.txt; fi          
 
       - name: Compile Union
