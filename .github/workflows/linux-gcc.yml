@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  gcc-10
+  gcc-10:
     if: github.event.pull_request.draft == false  
     name: GNU@10.0 C++14 serial without HDF5
     runs-on: ubuntu-latest
