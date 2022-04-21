@@ -83,9 +83,9 @@ Public Member Functions</h2></td></tr>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVec2T.html#a4aa6e0bd3922abd84449278429a03418">Vec2T</a> ()</td></tr>
 <tr class="memdesc:a4aa6e0bd3922abd84449278429a03418"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default constructor. Sets the vector to the zero vector. <br /></td></tr>
 <tr class="separator:a4aa6e0bd3922abd84449278429a03418"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a15e8a7710ad0a1de03a34660ae54e96e"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVec2T.html#a15e8a7710ad0a1de03a34660ae54e96e">Vec2T</a> (const <a class="el" href="classVec2T.html">Vec2T</a> &amp;u)</td></tr>
-<tr class="memdesc:a15e8a7710ad0a1de03a34660ae54e96e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy constructor.  <a href="classVec2T.html#a15e8a7710ad0a1de03a34660ae54e96e">More...</a><br /></td></tr>
-<tr class="separator:a15e8a7710ad0a1de03a34660ae54e96e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae58412c19542cb4c76553e53e74a1203"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVec2T.html#ae58412c19542cb4c76553e53e74a1203">Vec2T</a> (const <a class="el" href="classVec2T.html">Vec2T</a> &amp;u) noexcept</td></tr>
+<tr class="memdesc:ae58412c19542cb4c76553e53e74a1203"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy constructor.  <a href="classVec2T.html#ae58412c19542cb4c76553e53e74a1203">More...</a><br /></td></tr>
+<tr class="separator:ae58412c19542cb4c76553e53e74a1203"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0721d6450bab8361f76ee63826f9e8f4"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVec2T.html#a0721d6450bab8361f76ee63826f9e8f4">Vec2T</a> (const T &amp;a_x, const T &amp;a_y)</td></tr>
 <tr class="memdesc:a0721d6450bab8361f76ee63826f9e8f4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor.  <a href="classVec2T.html#a0721d6450bab8361f76ee63826f9e8f4">More...</a><br /></td></tr>
 <tr class="separator:a0721d6450bab8361f76ee63826f9e8f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -175,8 +175,8 @@ class Vec2T&lt; T &gt;</h3>
 <p>Two-dimensional vector class with arithmetic operators. </p>
 <p>The class has a public-only interface. To change it's components one can call the member functions, or set components directly, e.g. vec.x = 5.0 </p><dl class="section note"><dt>Note</dt><dd><a class="el" href="classVec2T.html" title="Two-dimensional vector class with arithmetic operators.">Vec2T</a> is a templated class primarily used with DCEL grids. </dd></dl>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a15e8a7710ad0a1de03a34660ae54e96e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a15e8a7710ad0a1de03a34660ae54e96e">&#9670;&nbsp;</a></span>Vec2T() <span class="overload">[1/2]</span></h2>
+<a id="ae58412c19542cb4c76553e53e74a1203"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae58412c19542cb4c76553e53e74a1203">&#9670;&nbsp;</a></span>Vec2T() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -196,7 +196,7 @@ template&lt;class T &gt; </div>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">

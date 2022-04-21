@@ -69,9 +69,9 @@ const \mbox{\hyperlink{classDcel_1_1FaceT_a0f3448c4cf108341e48029b8040c7cec}{Edg
 \mbox{\Hypertarget{classDcel_1_1FaceT_a5f45fb93ad50c5f401746a58d53937d5}\label{classDcel_1_1FaceT_a5f45fb93ad50c5f401746a58d53937d5}} 
 const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classDcel_1_1FaceT_a5f45fb93ad50c5f401746a58d53937d5}{get\+Centroid}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get immutable centroid. \end{DoxyCompactList}\item 
-T \& \mbox{\hyperlink{classDcel_1_1FaceT_a43e5b9aebe8736a42568ae0e6fbb6db3}{get\+Centroid}} (const int a\+\_\+dir) noexcept
+T \& \mbox{\hyperlink{classDcel_1_1FaceT_acbb834775cb05cf9735d6e3c374febf6}{get\+Centroid}} (const size\+\_\+t a\+\_\+dir) noexcept
 \begin{DoxyCompactList}\small\item\em Get modifiable centroid position in specified coordinate direction. \end{DoxyCompactList}\item 
-const T \& \mbox{\hyperlink{classDcel_1_1FaceT_ac835d260a630e303babd7f87eb7d5a1a}{get\+Centroid}} (const int a\+\_\+dir) const noexcept
+const T \& \mbox{\hyperlink{classDcel_1_1FaceT_a032b6b73389e3ade292a35466cad8004}{get\+Centroid}} (const size\+\_\+t a\+\_\+dir) const noexcept
 \begin{DoxyCompactList}\small\item\em Get immutable centroid position in specified coordinate direction. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDcel_1_1FaceT_a55a0d92c3c75f748c2d61fa57f25e8a1}\label{classDcel_1_1FaceT_a55a0d92c3c75f748c2d61fa57f25e8a1}} 
 \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classDcel_1_1FaceT_a55a0d92c3c75f748c2d61fa57f25e8a1}{get\+Normal}} () noexcept
@@ -232,12 +232,12 @@ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ $>$ \mbox{\hyperl
 
 Return the coordinates of all the vertices on this polygon. 
 
-This builds a list of all the vertex coordinates and returns it. \mbox{\Hypertarget{classDcel_1_1FaceT_ac835d260a630e303babd7f87eb7d5a1a}\label{classDcel_1_1FaceT_ac835d260a630e303babd7f87eb7d5a1a}} 
+This builds a list of all the vertex coordinates and returns it. \mbox{\Hypertarget{classDcel_1_1FaceT_a032b6b73389e3ade292a35466cad8004}\label{classDcel_1_1FaceT_a032b6b73389e3ade292a35466cad8004}} 
 \index{Dcel::FaceT$<$ T $>$@{Dcel::FaceT$<$ T $>$}!getCentroid@{getCentroid}}
 \index{getCentroid@{getCentroid}!Dcel::FaceT$<$ T $>$@{Dcel::FaceT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{getCentroid()}{getCentroid()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-const T \& \mbox{\hyperlink{classDcel_1_1FaceT}{Dcel\+::\+FaceT}}$<$ T $>$\+::get\+Centroid (\begin{DoxyParamCaption}\item[{const int}]{a\+\_\+dir }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+const T \& \mbox{\hyperlink{classDcel_1_1FaceT}{Dcel\+::\+FaceT}}$<$ T $>$\+::get\+Centroid (\begin{DoxyParamCaption}\item[{const size\+\_\+t}]{a\+\_\+dir }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -248,12 +248,12 @@ Get immutable centroid position in specified coordinate direction.
 \mbox{\texttt{ in}}  & {\em a\+\_\+dir} & Coordinate direction \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classDcel_1_1FaceT_a43e5b9aebe8736a42568ae0e6fbb6db3}\label{classDcel_1_1FaceT_a43e5b9aebe8736a42568ae0e6fbb6db3}} 
+\mbox{\Hypertarget{classDcel_1_1FaceT_acbb834775cb05cf9735d6e3c374febf6}\label{classDcel_1_1FaceT_acbb834775cb05cf9735d6e3c374febf6}} 
 \index{Dcel::FaceT$<$ T $>$@{Dcel::FaceT$<$ T $>$}!getCentroid@{getCentroid}}
 \index{getCentroid@{getCentroid}!Dcel::FaceT$<$ T $>$@{Dcel::FaceT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{getCentroid()}{getCentroid()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-T \& \mbox{\hyperlink{classDcel_1_1FaceT}{Dcel\+::\+FaceT}}$<$ T $>$\+::get\+Centroid (\begin{DoxyParamCaption}\item[{const int}]{a\+\_\+dir }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+T \& \mbox{\hyperlink{classDcel_1_1FaceT}{Dcel\+::\+FaceT}}$<$ T $>$\+::get\+Centroid (\begin{DoxyParamCaption}\item[{const size\+\_\+t}]{a\+\_\+dir }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 

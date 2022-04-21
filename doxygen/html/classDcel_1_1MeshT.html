@@ -224,9 +224,9 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <tr class="memitem:add71ebc2e7f3fb5e85766898413482e7 inherit pub_methods_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#add71ebc2e7f3fb5e85766898413482e7">translate</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_translation) noexcept</td></tr>
 <tr class="memdesc:add71ebc2e7f3fb5e85766898413482e7 inherit pub_methods_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Translate signed distance function.  <a href="classSignedDistanceFunction.html#add71ebc2e7f3fb5e85766898413482e7">More...</a><br /></td></tr>
 <tr class="separator:add71ebc2e7f3fb5e85766898413482e7 inherit pub_methods_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae8de697f4d0966290342bcf6383585ef inherit pub_methods_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#ae8de697f4d0966290342bcf6383585ef">rotate</a> (const T a_angle, const int a_axis) noexcept</td></tr>
-<tr class="memdesc:ae8de697f4d0966290342bcf6383585ef inherit pub_methods_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rotate the signed distance function around.  <a href="classSignedDistanceFunction.html#ae8de697f4d0966290342bcf6383585ef">More...</a><br /></td></tr>
-<tr class="separator:ae8de697f4d0966290342bcf6383585ef inherit pub_methods_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:add9701b76af9db88e4e748ae9248c938 inherit pub_methods_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#add9701b76af9db88e4e748ae9248c938">rotate</a> (const T a_angle, const size_t a_axis) noexcept</td></tr>
+<tr class="memdesc:add9701b76af9db88e4e748ae9248c938 inherit pub_methods_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rotate the signed distance function around.  <a href="classSignedDistanceFunction.html#add9701b76af9db88e4e748ae9248c938">More...</a><br /></td></tr>
+<tr class="separator:add9701b76af9db88e4e748ae9248c938 inherit pub_methods_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
@@ -249,13 +249,13 @@ std::vector&lt; <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &gt;&#
 <tr class="memitem:ac00a6da46649246a3a2db70b29bb2407"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDcel_1_1MeshT.html#ac00a6da46649246a3a2db70b29bb2407">DirectSignedDistance2</a> (const <a class="el" href="classDcel_1_1MeshT.html#a646c5d8f66b3079bca35fe4186493627">Vec3</a> &amp;a_point) const noexcept</td></tr>
 <tr class="memdesc:ac00a6da46649246a3a2db70b29bb2407"><td class="mdescLeft">&#160;</td><td class="mdescRight">Implementation of squared signed distance function which iterates through all faces.  <a href="classDcel_1_1MeshT.html#ac00a6da46649246a3a2db70b29bb2407">More...</a><br /></td></tr>
 <tr class="separator:ac00a6da46649246a3a2db70b29bb2407"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae13801eefa60ad08ff1da0df1da34784"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDcel_1_1MeshT.html#ae13801eefa60ad08ff1da0df1da34784">incrementWarning</a> (std::map&lt; std::string, int &gt; &amp;a_warnings, const std::string &amp;a_warn) const noexcept</td></tr>
-<tr class="memdesc:ae13801eefa60ad08ff1da0df1da34784"><td class="mdescLeft">&#160;</td><td class="mdescRight">Increment a warning. This is used in <a class="el" href="classDcel_1_1MeshT.html#a1814ba63c6e0d7a007ee78c24d6ea159" title="Perform a sanity check.">sanityCheck()</a> for locating holes or bad inputs in the mesh.  <a href="classDcel_1_1MeshT.html#ae13801eefa60ad08ff1da0df1da34784">More...</a><br /></td></tr>
-<tr class="separator:ae13801eefa60ad08ff1da0df1da34784"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7115bea1b9d776a5f9c82a1e4fe852a0"><td class="memItemLeft" align="right" valign="top"><a id="a7115bea1b9d776a5f9c82a1e4fe852a0"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDcel_1_1MeshT.html#a7115bea1b9d776a5f9c82a1e4fe852a0">printWarnings</a> (const std::map&lt; std::string, int &gt; &amp;a_warnings) const noexcept</td></tr>
-<tr class="memdesc:a7115bea1b9d776a5f9c82a1e4fe852a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print all warnings to std::cerr. <br /></td></tr>
-<tr class="separator:a7115bea1b9d776a5f9c82a1e4fe852a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad3ac1c6c70904bbc586e3b033583a0c8"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDcel_1_1MeshT.html#ad3ac1c6c70904bbc586e3b033583a0c8">incrementWarning</a> (std::map&lt; std::string, size_t &gt; &amp;a_warnings, const std::string &amp;a_warn) const noexcept</td></tr>
+<tr class="memdesc:ad3ac1c6c70904bbc586e3b033583a0c8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Increment a warning. This is used in <a class="el" href="classDcel_1_1MeshT.html#a1814ba63c6e0d7a007ee78c24d6ea159" title="Perform a sanity check.">sanityCheck()</a> for locating holes or bad inputs in the mesh.  <a href="classDcel_1_1MeshT.html#ad3ac1c6c70904bbc586e3b033583a0c8">More...</a><br /></td></tr>
+<tr class="separator:ad3ac1c6c70904bbc586e3b033583a0c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abd558a7ce2347b307da6fcb1079936d0"><td class="memItemLeft" align="right" valign="top"><a id="abd558a7ce2347b307da6fcb1079936d0"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDcel_1_1MeshT.html#abd558a7ce2347b307da6fcb1079936d0">printWarnings</a> (const std::map&lt; std::string, size_t &gt; &amp;a_warnings) const noexcept</td></tr>
+<tr class="memdesc:abd558a7ce2347b307da6fcb1079936d0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print all warnings to std::cerr. <br /></td></tr>
+<tr class="separator:abd558a7ce2347b307da6fcb1079936d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pro_methods_classSignedDistanceFunction"><td colspan="2" onclick="javascript:toggleInherit('pro_methods_classSignedDistanceFunction')"><img src="closed.png" alt="-"/>&#160;Protected Member Functions inherited from <a class="el" href="classSignedDistanceFunction.html">SignedDistanceFunction&lt; T &gt;</a></td></tr>
 <tr class="memitem:af186f98f9ea4ac96fccb4add4ebf196d inherit pro_methods_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top"><a id="af186f98f9ea4ac96fccb4add4ebf196d"></a>
 <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#af186f98f9ea4ac96fccb4add4ebf196d">transformPoint</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point) const noexcept</td></tr>
@@ -540,8 +540,8 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="ae13801eefa60ad08ff1da0df1da34784"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae13801eefa60ad08ff1da0df1da34784">&#9670;&nbsp;</a></span>incrementWarning()</h2>
+<a id="ad3ac1c6c70904bbc586e3b033583a0c8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad3ac1c6c70904bbc586e3b033583a0c8">&#9670;&nbsp;</a></span>incrementWarning()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -554,7 +554,7 @@ template&lt;class T &gt; </div>
         <tr>
           <td class="memname">void <a class="el" href="classDcel_1_1MeshT.html">Dcel::MeshT</a>&lt; T &gt;::incrementWarning </td>
           <td>(</td>
-          <td class="paramtype">std::map&lt; std::string, int &gt; &amp;&#160;</td>
+          <td class="paramtype">std::map&lt; std::string, size_t &gt; &amp;&#160;</td>
           <td class="paramname"><em>a_warnings</em>, </td>
         </tr>
         <tr>
@@ -738,7 +738,7 @@ template&lt;class T &gt; </div>
 </div><div class="memdoc">
 
 <p>Perform a sanity check. </p>
-<p>This will provide error messages if vertices are badly linked, faces are nullptr, and so on. These messages are logged by calling <a class="el" href="classDcel_1_1MeshT.html#ae13801eefa60ad08ff1da0df1da34784" title="Increment a warning. This is used in sanityCheck() for locating holes or bad inputs in the mesh.">incrementWarning()</a> which identifies types of errors that can occur, and how many of those errors have occured. </p>
+<p>This will provide error messages if vertices are badly linked, faces are nullptr, and so on. These messages are logged by calling <a class="el" href="classDcel_1_1MeshT.html#ad3ac1c6c70904bbc586e3b033583a0c8" title="Increment a warning. This is used in sanityCheck() for locating holes or bad inputs in the mesh.">incrementWarning()</a> which identifies types of errors that can occur, and how many of those errors have occured. </p>
 
 </div>
 </div>

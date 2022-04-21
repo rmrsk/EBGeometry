@@ -93,12 +93,12 @@ $(function() {
 <div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;    <span class="keywordflow">return</span> BV(a_primitive-&gt;getAllVertexCoordinates());</div>
 <div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;  };  </div>
 <div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160; </div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> BV, <span class="keywordtype">int</span> K&gt; </div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt; </div>
 <div class="line"><a name="l00053"></a><span class="lineno"><a class="line" href="namespaceDcel.html#a35ac140ca7f8cc44e7a7fbe584e26d8c">   53</a></span>&#160;  EBGeometry::BVH::StopFunctionT&lt;T, EBGeometry::Dcel::FaceT&lt;T&gt;, BV, K&gt; <a class="code" href="namespaceDcel.html#a35ac140ca7f8cc44e7a7fbe584e26d8c">defaultStopFunction</a> = [](<span class="keyword">const</span> <a class="code" href="classBVH_1_1NodeT.html">BVH::NodeT&lt;T, EBGeometry::Dcel::FaceT&lt;T&gt;</a>, BV, K&gt;&amp; a_node) -&gt; <span class="keywordtype">bool</span> {</div>
 <div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;    <span class="keywordflow">return</span> (a_node.getPrimitives()).size() &lt; K;</div>
 <div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;  };</div>
 <div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160; </div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;  <span class="keyword">template</span>&lt;<span class="keyword">class</span> T, <span class="keywordtype">int</span> K&gt;</div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;  <span class="keyword">template</span>&lt;<span class="keyword">class</span> T, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00062"></a><span class="lineno"><a class="line" href="namespaceDcel.html#aa49de2802787c5c9a25d95572f20b326">   62</a></span>&#160;  <span class="keyword">auto</span> <a class="code" href="namespaceDcel.html#aa49de2802787c5c9a25d95572f20b326">validChunks</a> = [](<span class="keyword">const</span> std::array&lt;PrimitiveList&lt;T&gt;, K&gt;&amp; a_chunks) -&gt; <span class="keywordtype">bool</span> {</div>
 <div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; chunk : a_chunks){</div>
 <div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;      <span class="keywordflow">if</span>(chunk.empty()) <span class="keywordflow">return</span> <span class="keyword">false</span>;</div>
@@ -107,7 +107,7 @@ $(function() {
 <div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;    <span class="keywordflow">return</span> <span class="keyword">true</span>;</div>
 <div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;  };</div>
 <div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160; </div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keywordtype">int</span> K&gt;</div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00075"></a><span class="lineno"><a class="line" href="namespaceDcel.html#a31df12a614d7c38ca7f2b031213a59f7">   75</a></span>&#160;  <span class="keyword">auto</span> <a class="code" href="namespaceDcel.html#a31df12a614d7c38ca7f2b031213a59f7">equalCounts</a> = [](<span class="keyword">const</span> <a class="code" href="namespaceDcel.html#a16b519937528a1a2f50054e41e6e3d9c">PrimitiveList&lt;T&gt;</a>&amp; a_primitives) -&gt; std::array&lt;<a class="code" href="namespaceDcel.html#a16b519937528a1a2f50054e41e6e3d9c">PrimitiveList&lt;T&gt;</a>, K&gt; {</div>
 <div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;    <span class="keywordtype">int</span> <a class="code" href="EBGeometry__Vec_8hpp.html#aa7f7e15df344c873d1a27b30f77d0831">length</a> = a_primitives.size() / K;</div>
 <div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;    <span class="keywordtype">int</span> remain = a_primitives.size() % K;</div>
@@ -117,7 +117,7 @@ $(function() {
 <div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160; </div>
 <div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;    std::array&lt;PrimitiveList&lt;T&gt;, K&gt; chunks;</div>
 <div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;    </div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> k = 0; k &lt; K; k++){</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> k = 0; k &lt; K; k++){</div>
 <div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;      end += (remain &gt; 0) ? <a class="code" href="EBGeometry__Vec_8hpp.html#aa7f7e15df344c873d1a27b30f77d0831">length</a> + 1 : <a class="code" href="EBGeometry__Vec_8hpp.html#aa7f7e15df344c873d1a27b30f77d0831">length</a>; remain--;</div>
 <div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160; </div>
 <div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;      chunks[k] = <a class="code" href="namespaceDcel.html#a16b519937528a1a2f50054e41e6e3d9c">PrimitiveList&lt;T&gt;</a>(a_primitives.begin() + begin, a_primitives.begin() + end);</div>
@@ -128,7 +128,7 @@ $(function() {
 <div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;    <span class="keywordflow">return</span> chunks;        </div>
 <div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;  };</div>
 <div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160; </div>
-<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> BV, <span class="keywordtype">int</span> K&gt;</div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00101"></a><span class="lineno"><a class="line" href="namespaceDcel.html#a5613435b6c3b3ccee6616c01bcc0a8d8">  101</a></span>&#160;  EBGeometry::BVH::PartitionerT&lt;EBGeometry::Dcel::FaceT&lt;T&gt;, BV, K&gt; <a class="code" href="namespaceDcel.html#a5613435b6c3b3ccee6616c01bcc0a8d8">chunkPartitioner</a> = [](<span class="keyword">const</span> <a class="code" href="namespaceDcel.html#a16b519937528a1a2f50054e41e6e3d9c">PrimitiveList&lt;T&gt;</a>&amp; a_primitives) -&gt; std::array&lt;<a class="code" href="namespaceDcel.html#a16b519937528a1a2f50054e41e6e3d9c">PrimitiveList&lt;T&gt;</a>, K&gt; {</div>
 <div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;    <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> lo =  <a class="code" href="classVec3T.html#af06b99bd905435060149a61a13f61546">Vec3T&lt;T&gt;::max</a>();</div>
 <div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;    <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> hi = -<a class="code" href="classVec3T.html#af06b99bd905435060149a61a13f61546">Vec3T&lt;T&gt;::max</a>();</div>
@@ -137,7 +137,7 @@ $(function() {
 <div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;      hi = <a class="code" href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">max</a>(hi, p-&gt;getCentroid());</div>
 <div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;    }</div>
 <div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;    </div>
-<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> splitDir = (hi-lo).maxDir(<span class="keyword">true</span>);</div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">size_t</span> splitDir = (hi-lo).maxDir(<span class="keyword">true</span>);</div>
 <div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160; </div>
 <div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;    <span class="comment">// Sort the primitives along the above coordinate direction. </span></div>
 <div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;    <a class="code" href="namespaceDcel.html#a16b519937528a1a2f50054e41e6e3d9c">PrimitiveList&lt;T&gt;</a> sortedPrimitives(a_primitives);</div>
@@ -151,7 +151,7 @@ $(function() {
 <div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;    <span class="keywordflow">return</span> EBGeometry::Dcel::equalCounts&lt;T, K&gt;(sortedPrimitives);</div>
 <div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;  };</div>
 <div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160; </div>
-<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> BV, <span class="keywordtype">int</span> K&gt;</div>
+<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00129"></a><span class="lineno"><a class="line" href="namespaceDcel.html#a3e1f231f1a8aa751c6bbf8192149e07a">  129</a></span>&#160;  EBGeometry::BVH::PartitionerT&lt;EBGeometry::Dcel::FaceT&lt;T&gt;, BV, K&gt; <a class="code" href="namespaceDcel.html#a3e1f231f1a8aa751c6bbf8192149e07a">bvPartitioner</a> = [](<span class="keyword">const</span> <a class="code" href="namespaceDcel.html#a16b519937528a1a2f50054e41e6e3d9c">PrimitiveList&lt;T&gt;</a>&amp; a_primitives) -&gt; std::array&lt;<a class="code" href="namespaceDcel.html#a16b519937528a1a2f50054e41e6e3d9c">PrimitiveList&lt;T&gt;</a>, K&gt; {</div>
 <div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;    <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> lo =  <a class="code" href="classVec3T.html#af06b99bd905435060149a61a13f61546">Vec3T&lt;T&gt;::max</a>();</div>
 <div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;    <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> hi = -<a class="code" href="classVec3T.html#af06b99bd905435060149a61a13f61546">Vec3T&lt;T&gt;::max</a>();</div>
@@ -170,7 +170,7 @@ $(function() {
 <div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160;      hi = <a class="code" href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">max</a>(hi, bv.getCentroid());</div>
 <div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160;    }</div>
 <div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160; </div>
-<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> splitDir = (hi-lo).maxDir(<span class="keyword">true</span>);</div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">size_t</span> splitDir = (hi-lo).maxDir(<span class="keyword">true</span>);</div>
 <div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160; </div>
 <div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;    <span class="comment">// Sort the primitives based on the centroid location of their BVs.</span></div>
 <div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;    std::sort(primsAndBVs.begin(), primsAndBVs.end(),</div>
@@ -189,7 +189,7 @@ $(function() {
 <div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;    <span class="keywordflow">return</span> EBGeometry::Dcel::equalCounts&lt;T, K&gt;(sortedPrimitives);</div>
 <div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;  };  </div>
 <div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160; </div>
-<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> BV, <span class="keywordtype">int</span> K&gt;</div>
+<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00171"></a><span class="lineno"><a class="line" href="namespaceDcel.html#aa64f98d30787c28369069696ef135459">  171</a></span>&#160;  EBGeometry::BVH::PartitionerT&lt;EBGeometry::Dcel::FaceT&lt;T&gt;, BV, K&gt; <a class="code" href="namespaceDcel.html#aa64f98d30787c28369069696ef135459">centroidPartitioner</a> = [](<span class="keyword">const</span> <a class="code" href="namespaceDcel.html#a16b519937528a1a2f50054e41e6e3d9c">PrimitiveList&lt;T&gt;</a>&amp; a_primitives) -&gt; std::array&lt;<a class="code" href="namespaceDcel.html#a16b519937528a1a2f50054e41e6e3d9c">PrimitiveList&lt;T&gt;</a>, K&gt; {</div>
 <div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;    <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> lo =  <a class="code" href="classVec3T.html#af06b99bd905435060149a61a13f61546">Vec3T&lt;T&gt;::max</a>();</div>
 <div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;    <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> hi = -<a class="code" href="classVec3T.html#af06b99bd905435060149a61a13f61546">Vec3T&lt;T&gt;::max</a>();</div>
@@ -198,20 +198,20 @@ $(function() {
 <div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;      hi = <a class="code" href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">max</a>(hi, p-&gt;getCentroid());</div>
 <div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;    }</div>
 <div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;    </div>
-<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> splitDir = (hi-lo).maxDir(<span class="keyword">true</span>);</div>
-<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;    <span class="keyword">const</span> T   delta    = (hi-lo)[splitDir]/K;</div>
+<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">size_t</span> splitDir = (hi-lo).maxDir(<span class="keyword">true</span>);</div>
+<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;    <span class="keyword">const</span> T      delta    = (hi-lo)[splitDir]/K;</div>
 <div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160; </div>
 <div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160;    std::array&lt;T, K&gt; boundsLo;</div>
 <div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;    std::array&lt;T, K&gt; boundsHi;</div>
 <div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160;    </div>
-<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> k = 0; k &lt; K; k++){</div>
+<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> k = 0; k &lt; K; k++){</div>
 <div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160;      boundsLo[k] = lo[splitDir] + delta*k;</div>
 <div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160;      boundsHi[k] = lo[splitDir] + delta*(k+1);</div>
 <div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;    }</div>
 <div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160; </div>
 <div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160;    <span class="comment">// Given coord, find the bin. </span></div>
-<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;    <span class="keyword">auto</span> getBin = [&amp;](<span class="keyword">const</span> T&amp; coord) -&gt; <span class="keywordtype">int</span> {</div>
-<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;      <span class="keywordflow">for</span> (<span class="keywordtype">int</span> k = 0; k &lt; K; k++) {</div>
+<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;    <span class="keyword">auto</span> getBin = [&amp;](<span class="keyword">const</span> T&amp; coord) -&gt; <span class="keywordtype">size_t</span> {</div>
+<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;      <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> k = 0; k &lt; K; k++) {</div>
 <div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;    <span class="keywordflow">if</span>(coord &gt;= boundsLo[k] &amp;&amp; coord &lt;= boundsHi[k]) {</div>
 <div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;      <span class="keywordflow">return</span> k;</div>
 <div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;    }</div>
@@ -224,7 +224,7 @@ $(function() {
 <div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160;    std::array&lt;PrimitiveList&lt;T&gt;, K&gt; chunks;</div>
 <div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160; </div>
 <div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; p : a_primitives){</div>
-<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160;      <span class="keyword">const</span> <span class="keywordtype">int</span> k = getBin(p-&gt;getCentroid()[splitDir]);</div>
+<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160;      <span class="keyword">const</span> <span class="keywordtype">size_t</span> k = getBin(p-&gt;getCentroid()[splitDir]);</div>
 <div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;      chunks[k].push_back(p);</div>
 <div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160;    }</div>
 <div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160; </div>
@@ -237,7 +237,7 @@ $(function() {
 <div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;    <span class="keywordflow">return</span> chunks;</div>
 <div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160;  };</div>
 <div class="line"><a name="l00217"></a><span class="lineno">  217</span>&#160; </div>
-<div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> BV, <span class="keywordtype">int</span> K&gt;</div>
+<div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00222"></a><span class="lineno"><a class="line" href="namespaceDcel.html#a4d5a5e045fea199e3f04a77ef160e432">  222</a></span>&#160;  EBGeometry::BVH::PartitionerT&lt;EBGeometry::Dcel::FaceT&lt;T&gt;, BV, K&gt; <a class="code" href="namespaceDcel.html#a4d5a5e045fea199e3f04a77ef160e432">defaultPartitioner</a> = EBGeometry::Dcel::chunkPartitioner&lt;T, BV, K&gt;;</div>
 <div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160;}</div>
 <div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160; </div>

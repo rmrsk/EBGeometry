@@ -147,27 +147,37 @@ $(function() {
 <div class="line"><a name="l00081"></a><span class="lineno"><a class="line" href="classDcel_1_1EdgeIteratorT.html#ae8dc40da0743b61725062646144b8f32">   81</a></span>&#160;  <span class="keywordtype">void</span> <a class="code" href="classDcel_1_1EdgeIteratorT.html#ae8dc40da0743b61725062646144b8f32">EdgeIteratorT&lt;T&gt;::operator++</a>() noexcept {</div>
 <div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;    <span class="keywordflow">switch</span>(m_iterMode){</div>
 <div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;    <span class="keywordflow">case</span> IterationMode::Faces:</div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;      m_curEdge = m_curEdge-&gt;getNextEdge();</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;      <span class="keywordflow">break</span>;</div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;    <span class="keywordflow">case</span> IterationMode::Vertices:</div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;      <span class="comment">// For vertices, we want to compute the </span></div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;      m_curEdge = m_curEdge-&gt;getPreviousEdge()-&gt;getPairEdge();</div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;      <span class="keywordflow">break</span>;</div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;    }</div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160; </div>
-<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;    m_fullLoop = (m_curEdge == m_startEdge);</div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;  }</div>
-<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160; </div>
-<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;  <span class="keyword">inline</span></div>
-<div class="line"><a name="l00097"></a><span class="lineno"><a class="line" href="classDcel_1_1EdgeIteratorT.html#a92bfca2d072bbf54c7be751f8fc4c098">   97</a></span>&#160;  <span class="keywordtype">bool</span> <a class="code" href="classDcel_1_1EdgeIteratorT.html#a92bfca2d072bbf54c7be751f8fc4c098">EdgeIteratorT&lt;T&gt;::ok</a>() const noexcept {</div>
-<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;    <span class="keywordflow">return</span> !m_fullLoop &amp;&amp; m_curEdge;</div>
-<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;  }</div>
-<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;}</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;      {</div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;    m_curEdge = m_curEdge-&gt;getNextEdge();</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;    </div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;    <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;      }</div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;    <span class="keywordflow">case</span> IterationMode::Vertices:</div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;      {</div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;    <span class="comment">// For vertices, we want to compute the </span></div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;    m_curEdge = m_curEdge-&gt;getPreviousEdge()-&gt;getPairEdge();</div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;    </div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;    <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;      }</div>
+<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;    <span class="keywordflow">default</span>:</div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;      {</div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;    std::cerr &lt;&lt; <span class="stringliteral">&quot;In file &#39;EBGeometry_DcelIteratorImplem.hpp function EdgeIteratorT&lt;T&gt;::operator++ - logic bust\n&quot;</span>;</div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;      }</div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;    }</div>
 <div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160; </div>
-<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a>&quot;</span></div>
-<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160; </div>
-<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;    m_fullLoop = (m_curEdge == m_startEdge);</div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;  }</div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160; </div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;  <span class="keyword">inline</span></div>
+<div class="line"><a name="l00107"></a><span class="lineno"><a class="line" href="classDcel_1_1EdgeIteratorT.html#a92bfca2d072bbf54c7be751f8fc4c098">  107</a></span>&#160;  <span class="keywordtype">bool</span> <a class="code" href="classDcel_1_1EdgeIteratorT.html#a92bfca2d072bbf54c7be751f8fc4c098">EdgeIteratorT&lt;T&gt;::ok</a>() const noexcept {</div>
+<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;    <span class="keywordflow">return</span> !m_fullLoop &amp;&amp; m_curEdge;</div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;  }</div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;}</div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160; </div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a>&quot;</span></div>
+<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160; </div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aclassDcel_1_1FaceT_html"><div class="ttname"><a href="classDcel_1_1FaceT.html">Dcel::FaceT</a></div><div class="ttdoc">Class which represents a polygon face in a double-edge connected list (DCEL).</div><div class="ttdef"><b>Definition:</b> EBGeometry_DcelEdge.hpp:29</div></div>
 <div class="ttc" id="aEBGeometry__DcelEdge_8hpp_html"><div class="ttname"><a href="EBGeometry__DcelEdge_8hpp.html">EBGeometry_DcelEdge.hpp</a></div><div class="ttdoc">Declaration of a half-edge class for use in DCEL descriptions of polygon tesselations.</div></div>
@@ -182,7 +192,7 @@ $(function() {
 <div class="ttc" id="aclassDcel_1_1VertexT_html"><div class="ttname"><a href="classDcel_1_1VertexT.html">Dcel::VertexT</a></div><div class="ttdoc">Class which represents a vertex node in a double-edge connected list (DCEL).</div><div class="ttdef"><b>Definition:</b> EBGeometry_DcelEdge.hpp:27</div></div>
 <div class="ttc" id="aEBGeometry__DcelVertex_8hpp_html"><div class="ttname"><a href="EBGeometry__DcelVertex_8hpp.html">EBGeometry_DcelVertex.hpp</a></div><div class="ttdoc">Declaration of a vertex class for use in DCEL descriptions of polygon tesselations.</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceFooter_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a></div><div class="ttdoc">Name space footer.</div></div>
-<div class="ttc" id="aclassDcel_1_1EdgeIteratorT_html_a92bfca2d072bbf54c7be751f8fc4c098"><div class="ttname"><a href="classDcel_1_1EdgeIteratorT.html#a92bfca2d072bbf54c7be751f8fc4c098">Dcel::EdgeIteratorT::ok</a></div><div class="ttdeci">bool ok() const noexcept</div><div class="ttdoc">Function which checks if the iteration can be continued.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DcelIteratorImplem.hpp:97</div></div>
+<div class="ttc" id="aclassDcel_1_1EdgeIteratorT_html_a92bfca2d072bbf54c7be751f8fc4c098"><div class="ttname"><a href="classDcel_1_1EdgeIteratorT.html#a92bfca2d072bbf54c7be751f8fc4c098">Dcel::EdgeIteratorT::ok</a></div><div class="ttdeci">bool ok() const noexcept</div><div class="ttdoc">Function which checks if the iteration can be continued.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DcelIteratorImplem.hpp:107</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceHeader_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceHeader_8hpp.html">EBGeometry_NamespaceHeader.hpp</a></div><div class="ttdoc">Name space header.</div></div>
 <div class="ttc" id="aclassDcel_1_1EdgeIteratorT_html_ae8dc40da0743b61725062646144b8f32"><div class="ttname"><a href="classDcel_1_1EdgeIteratorT.html#ae8dc40da0743b61725062646144b8f32">Dcel::EdgeIteratorT::operator++</a></div><div class="ttdeci">void operator++() noexcept</div><div class="ttdoc">Incrementation operator, bringing the iterator to the next half-edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DcelIteratorImplem.hpp:81</div></div>
 <!-- start footer part -->

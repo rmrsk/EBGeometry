@@ -181,9 +181,9 @@ Protected Member Functions</h2></td></tr>
 <tr class="memitem:ad252aa451ca983750dfa0c24344253b2"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#ad252aa451ca983750dfa0c24344253b2">pruneUnordered</a> (T &amp;a_closest, const <a class="el" href="classBVH_1_1NodeT.html#a6fbb4308c5c55ee170c5f992df7ae1d0">Vec3</a> &amp;a_point) const noexcept</td></tr>
 <tr class="memdesc:ad252aa451ca983750dfa0c24344253b2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Recursive unordered pruning along the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> tree.  <a href="classBVH_1_1NodeT.html#ad252aa451ca983750dfa0c24344253b2">More...</a><br /></td></tr>
 <tr class="separator:ad252aa451ca983750dfa0c24344253b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa01d6673b9e48735594b01bdcbefc63f"><td class="memItemLeft" align="right" valign="top">unsigned long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#aa01d6673b9e48735594b01bdcbefc63f">flattenTree</a> (std::vector&lt; std::shared_ptr&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>&lt; T, P, BV, K &gt; &gt; &gt; &amp;a_linearNodes, std::vector&lt; std::shared_ptr&lt; const P &gt; &gt; &amp;a_sortedPrimitives, unsigned long &amp;a_offset) const noexcept</td></tr>
-<tr class="memdesc:aa01d6673b9e48735594b01bdcbefc63f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flatten tree method.  <a href="classBVH_1_1NodeT.html#aa01d6673b9e48735594b01bdcbefc63f">More...</a><br /></td></tr>
-<tr class="separator:aa01d6673b9e48735594b01bdcbefc63f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9545c525e04690c973c0a4d9bd6e51af"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a9545c525e04690c973c0a4d9bd6e51af">flattenTree</a> (std::vector&lt; std::shared_ptr&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>&lt; T, P, BV, K &gt; &gt; &gt; &amp;a_linearNodes, std::vector&lt; std::shared_ptr&lt; const P &gt; &gt; &amp;a_sortedPrimitives, size_t &amp;a_offset) const noexcept</td></tr>
+<tr class="memdesc:a9545c525e04690c973c0a4d9bd6e51af"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flatten tree method.  <a href="classBVH_1_1NodeT.html#a9545c525e04690c973c0a4d9bd6e51af">More...</a><br /></td></tr>
+<tr class="separator:a9545c525e04690c973c0a4d9bd6e51af"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
@@ -201,7 +201,7 @@ std::array&lt; std::shared_ptr&lt; <a class="el" href="classBVH_1_1NodeT.html">N
 <tr class="separator:afaf556d6faa78c2cc2b27c82feb0145c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><h3>template&lt;class T, class P, class BV, int K&gt;<br />
+<div class="textblock"><h3>template&lt;class T, class P, class BV, size_t K&gt;<br />
 class BVH::NodeT&lt; T, P, BV, K &gt;</h3>
 
 <p>Forward declare the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> node since it is needed for the polymorphic lambdas. </p>
@@ -217,7 +217,7 @@ class BVH::NodeT&lt; T, P, BV, K &gt;</h3>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -253,7 +253,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -290,7 +290,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -311,19 +311,19 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 
 </div>
 </div>
-<a id="aa01d6673b9e48735594b01bdcbefc63f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa01d6673b9e48735594b01bdcbefc63f">&#9670;&nbsp;</a></span>flattenTree() <span class="overload">[2/2]</span></h2>
+<a id="a9545c525e04690c973c0a4d9bd6e51af"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9545c525e04690c973c0a4d9bd6e51af">&#9670;&nbsp;</a></span>flattenTree() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">unsigned long <a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::flattenTree </td>
+          <td class="memname">size_t <a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::flattenTree </td>
           <td>(</td>
           <td class="paramtype">std::vector&lt; std::shared_ptr&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>&lt; T, P, BV, K &gt; &gt; &gt; &amp;&#160;</td>
           <td class="paramname"><em>a_linearNodes</em>, </td>
@@ -337,7 +337,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">unsigned long &amp;&#160;</td>
+          <td class="paramtype">size_t &amp;&#160;</td>
           <td class="paramname"><em>a_offset</em>&#160;</td>
         </tr>
         <tr>
@@ -372,7 +372,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -399,7 +399,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -426,7 +426,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -463,7 +463,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -500,7 +500,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -527,7 +527,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -557,7 +557,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -593,7 +593,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -640,7 +640,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -676,7 +676,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -723,7 +723,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -759,7 +759,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -796,7 +796,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -844,7 +844,7 @@ template&lt;class T , class P , class BV , int K&gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class P , class BV , int K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">

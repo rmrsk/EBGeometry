@@ -135,16 +135,16 @@ $(function() {
 <div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;  <span class="keywordtype">void</span> Polygon2D&lt;T&gt;::define(<span class="keyword">const</span> Vec3&amp; a_normal, <span class="keyword">const</span> std::vector&lt;Vec3&gt;&amp; a_points) {</div>
 <div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;    m_ignoreDir = 0;</div>
 <div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;  </div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> dir = 1; dir &lt; 3; dir++){</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> dir = 1; dir &lt; 3; dir++){</div>
 <div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;      <span class="keywordflow">if</span>(std::abs(a_normal[dir]) &gt; std::abs(a_normal[m_ignoreDir])) {</div>
 <div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;    m_ignoreDir = dir;</div>
 <div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;      }</div>
 <div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;    }</div>
 <div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160; </div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;    m_xDir =  3;</div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;    m_yDir = -1;</div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;    m_xDir = 3;</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;    m_yDir = 0;</div>
 <div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;  </div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> dir = 0; dir &lt; 3; dir++){</div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> dir = 0; dir &lt; 3; dir++){</div>
 <div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;      <span class="keywordflow">if</span>(dir != m_ignoreDir){</div>
 <div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;    m_xDir = <a class="code" href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">std::min</a>(m_xDir, dir);</div>
 <div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;    m_yDir = <a class="code" href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">std::max</a>(m_yDir, dir);</div>
@@ -161,14 +161,14 @@ $(function() {
 <div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;  <span class="keywordtype">int</span> Polygon2D&lt;T&gt;::computeWindingNumber(<span class="keyword">const</span> Vec2&amp; P) <span class="keyword">const</span> noexcept {</div>
 <div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;    <span class="keywordtype">int</span> wn = 0;    <span class="comment">// the  winding number counter</span></div>
 <div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160; </div>
-<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> N = m_points.size();</div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">size_t</span> N = m_points.size();</div>
 <div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160; </div>
 <div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;    <span class="keyword">auto</span> isLeft = [](<span class="keyword">const</span> Vec2&amp; P0, <span class="keyword">const</span> Vec2&amp; P1, <span class="keyword">const</span> Vec2&amp; P2){</div>
 <div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;      <span class="keywordflow">return</span> (P1.x - P0.x)*(P2.y - P0.y) - (P2.x -  P0.x)*(P1.y - P0.y);</div>
 <div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;    };</div>
 <div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160; </div>
 <div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;    <span class="comment">// loop through all edges of the polygon</span></div>
-<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; N; i++) {   <span class="comment">// edge from V[i] to  V[i+1]</span></div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; N; i++) {   <span class="comment">// edge from V[i] to  V[i+1]</span></div>
 <div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160; </div>
 <div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;      <span class="keyword">const</span> Vec2&amp; P1 = m_points[i];</div>
 <div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;      <span class="keyword">const</span> Vec2&amp; P2 = m_points[(i+1)%N];</div>
@@ -192,12 +192,12 @@ $(function() {
 <div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160; </div>
 <div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
 <div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;  <span class="keyword">inline</span></div>
-<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;  <span class="keywordtype">int</span> Polygon2D&lt;T&gt;::computeCrossingNumber(<span class="keyword">const</span> Vec2&amp; P) <span class="keyword">const</span> noexcept {</div>
-<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;    <span class="keywordtype">int</span> cn = 0; </div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;  <span class="keywordtype">size_t</span> Polygon2D&lt;T&gt;::computeCrossingNumber(<span class="keyword">const</span> Vec2&amp; P) <span class="keyword">const</span> noexcept {</div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;    <span class="keywordtype">size_t</span> cn = 0; </div>
 <div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160; </div>
-<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> N = m_points.size();</div>
+<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">size_t</span> N = m_points.size();</div>
 <div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160; </div>
-<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; N; i++) {    <span class="comment">// edge from V[i]  to V[i+1]</span></div>
+<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; N; i++) {    <span class="comment">// edge from V[i]  to V[i+1]</span></div>
 <div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;      <span class="keyword">const</span> Vec2&amp; P1 = m_points[i];</div>
 <div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;      <span class="keyword">const</span> Vec2&amp; P2 = m_points[(i+1)%N];</div>
 <div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160; </div>
@@ -221,9 +221,9 @@ $(function() {
 <div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;  T Polygon2D&lt;T&gt;::computeSubtendedAngle(<span class="keyword">const</span> Vec2&amp; p) <span class="keyword">const</span> noexcept {</div>
 <div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;    T sumTheta = 0.0;</div>
 <div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;  </div>
-<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> N = m_points.size();</div>
+<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">size_t</span> N = m_points.size();</div>
 <div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;  </div>
-<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; N; i++){</div>
+<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; N; i++){</div>
 <div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;      <span class="keyword">const</span> Vec2 p1 = m_points[i]       - p;</div>
 <div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;      <span class="keyword">const</span> Vec2 p2 = m_points[(i+1)%N] - p;</div>
 <div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;    </div>
@@ -258,7 +258,7 @@ $(function() {
 <div class="line"><a name="l00192"></a><span class="lineno"><a class="line" href="classDcel_1_1Polygon2D.html#aa1edee7ad8913b35663792624e914aad">  192</a></span>&#160;  <span class="keywordtype">bool</span> <a class="code" href="classDcel_1_1Polygon2D.html#aa1edee7ad8913b35663792624e914aad">Polygon2D&lt;T&gt;::isPointInsidePolygonCrossingNumber</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a>&amp; a_point) <span class="keyword">const</span> noexcept {</div>
 <div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;    <span class="keyword">const</span> <a class="code" href="classVec2T.html">Vec2</a> p = this-&gt;projectPoint(a_point);</div>
 <div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;  </div>
-<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> cn  = this-&gt;computeCrossingNumber(p);</div>
+<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">size_t</span> cn  = this-&gt;computeCrossingNumber(p);</div>
 <div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;    </div>
 <div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">bool</span> ret = (cn&amp;1);</div>
 <div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160; </div>

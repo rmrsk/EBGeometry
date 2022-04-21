@@ -1,8 +1,8 @@
 var searchData=
 [
-  ['incrementwarning_121',['incrementWarning',['../classDcel_1_1MeshT.html#ae13801eefa60ad08ff1da0df1da34784',1,'Dcel::MeshT']]],
+  ['incrementwarning_121',['incrementWarning',['../classDcel_1_1MeshT.html#ad3ac1c6c70904bbc586e3b033583a0c8',1,'Dcel::MeshT']]],
   ['infiniteconesdf_122',['InfiniteConeSDF',['../classInfiniteConeSDF.html',1,'InfiniteConeSDF&lt; T &gt;'],['../classInfiniteConeSDF.html#a45ccd0929c04d3cd3c3f287609936c6d',1,'InfiniteConeSDF::InfiniteConeSDF()=delete'],['../classInfiniteConeSDF.html#ae5e8dacfc424318089bb5f5a548dbb5f',1,'InfiniteConeSDF::InfiniteConeSDF(const Vec3T&lt; T &gt; &amp;a_tip, const T &amp;a_angle, const bool a_flipInside)']]],
-  ['infinitecylindersdf_123',['InfiniteCylinderSDF',['../classInfiniteCylinderSDF.html',1,'InfiniteCylinderSDF&lt; T &gt;'],['../classInfiniteCylinderSDF.html#abc81fa508a1a13fca1758709e0248271',1,'InfiniteCylinderSDF::InfiniteCylinderSDF()=delete'],['../classInfiniteCylinderSDF.html#aaa0a9c54dfc487f872cdd88f8e541ea5',1,'InfiniteCylinderSDF::InfiniteCylinderSDF(const Vec3T&lt; T &gt; &amp;a_center, const T &amp;a_radius, const int a_axis, const bool a_flipInside)']]],
+  ['infinitecylindersdf_123',['InfiniteCylinderSDF',['../classInfiniteCylinderSDF.html',1,'InfiniteCylinderSDF&lt; T &gt;'],['../classInfiniteCylinderSDF.html#abc81fa508a1a13fca1758709e0248271',1,'InfiniteCylinderSDF::InfiniteCylinderSDF()=delete'],['../classInfiniteCylinderSDF.html#a6db3fb5e05656fff90bf47d8d073b440',1,'InfiniteCylinderSDF::InfiniteCylinderSDF(const Vec3T&lt; T &gt; &amp;a_center, const T &amp;a_radius, const size_t a_axis, const bool a_flipInside)']]],
   ['infinity_124',['infinity',['../classVec2T.html#a28b453ff4fd4ede74e401454b67f73d6',1,'Vec2T::infinity()'],['../classVec3T.html#ad88913a21fd56327b28092c2e39ebc3e',1,'Vec3T::infinity()']]],
   ['insertchildren_125',['insertChildren',['../classBVH_1_1NodeT.html#a83c128d1045ccc23000a8b26f75b3172',1,'BVH::NodeT']]],
   ['insideoutsidealgorithm_126',['InsideOutsideAlgorithm',['../classDcel_1_1Polygon2D.html#a1ec8170036eb8dd1cedbe1b4d31024b4',1,'Dcel::Polygon2D']]],

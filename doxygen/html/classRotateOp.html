@@ -100,9 +100,9 @@ Public Member Functions</h2></td></tr>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRotateOp.html#afac8d44cae4c9109c96d2c1ae47a1dc2">RotateOp</a> ()</td></tr>
 <tr class="memdesc:afac8d44cae4c9109c96d2c1ae47a1dc2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Weak constructor. <br /></td></tr>
 <tr class="separator:afac8d44cae4c9109c96d2c1ae47a1dc2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a018f0a465bfaf271958ac975eb24b5bb"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRotateOp.html#a018f0a465bfaf271958ac975eb24b5bb">RotateOp</a> (const T a_angle, const int a_axis) noexcept</td></tr>
-<tr class="memdesc:a018f0a465bfaf271958ac975eb24b5bb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor.  <a href="classRotateOp.html#a018f0a465bfaf271958ac975eb24b5bb">More...</a><br /></td></tr>
-<tr class="separator:a018f0a465bfaf271958ac975eb24b5bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9436aaf636bf136d9a80d91ae4a41659"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRotateOp.html#a9436aaf636bf136d9a80d91ae4a41659">RotateOp</a> (const T a_angle, const size_t a_axis) noexcept</td></tr>
+<tr class="memdesc:a9436aaf636bf136d9a80d91ae4a41659"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor.  <a href="classRotateOp.html#a9436aaf636bf136d9a80d91ae4a41659">More...</a><br /></td></tr>
+<tr class="separator:a9436aaf636bf136d9a80d91ae4a41659"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaa12091fe7937f5ed7e2d35e0632337b"><td class="memItemLeft" align="right" valign="top"><a id="aaa12091fe7937f5ed7e2d35e0632337b"></a>
 virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRotateOp.html#aaa12091fe7937f5ed7e2d35e0632337b">~RotateOp</a> ()=default</td></tr>
 <tr class="memdesc:aaa12091fe7937f5ed7e2d35e0632337b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor. <br /></td></tr>
@@ -123,10 +123,10 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
-<tr class="memitem:ae0f4b6879b2b86506b4a528d7e627255"><td class="memItemLeft" align="right" valign="top"><a id="ae0f4b6879b2b86506b4a528d7e627255"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRotateOp.html#ae0f4b6879b2b86506b4a528d7e627255">m_axis</a></td></tr>
-<tr class="memdesc:ae0f4b6879b2b86506b4a528d7e627255"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rotation axis. 0 = x, 1=y etc. <br /></td></tr>
-<tr class="separator:ae0f4b6879b2b86506b4a528d7e627255"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac1e23c3e185fe54f2e550c9eb52b1184"><td class="memItemLeft" align="right" valign="top"><a id="ac1e23c3e185fe54f2e550c9eb52b1184"></a>
+size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRotateOp.html#ac1e23c3e185fe54f2e550c9eb52b1184">m_axis</a></td></tr>
+<tr class="memdesc:ac1e23c3e185fe54f2e550c9eb52b1184"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rotation axis. 0 = x, 1=y etc. <br /></td></tr>
+<tr class="separator:ac1e23c3e185fe54f2e550c9eb52b1184"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8eed86f336946618f1964056405b9ac4"><td class="memItemLeft" align="right" valign="top"><a id="a8eed86f336946618f1964056405b9ac4"></a>
 T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRotateOp.html#a8eed86f336946618f1964056405b9ac4">m_cosAngle</a></td></tr>
 <tr class="memdesc:a8eed86f336946618f1964056405b9ac4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Theta-rotation (degrees) <br /></td></tr>
@@ -142,8 +142,8 @@ class RotateOp&lt; T &gt;</h3>
 
 <p>Rotation operator. Can scale an input point. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a018f0a465bfaf271958ac975eb24b5bb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a018f0a465bfaf271958ac975eb24b5bb">&#9670;&nbsp;</a></span>RotateOp()</h2>
+<a id="a9436aaf636bf136d9a80d91ae4a41659"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9436aaf636bf136d9a80d91ae4a41659">&#9670;&nbsp;</a></span>RotateOp()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -162,7 +162,7 @@ template&lt;class T &gt; </div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const int&#160;</td>
+          <td class="paramtype">const size_t&#160;</td>
           <td class="paramname"><em>a_axis</em>&#160;</td>
         </tr>
         <tr>

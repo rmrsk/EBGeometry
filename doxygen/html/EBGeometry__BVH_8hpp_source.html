@@ -90,22 +90,22 @@ $(function() {
 <div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160; </div>
 <div class="line"><a name="l00028"></a><span class="lineno"><a class="line" href="namespaceBVH.html">   28</a></span>&#160;<span class="keyword">namespace </span><a class="code" href="namespaceBVH.html">BVH</a> {</div>
 <div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160; </div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">int</span> K&gt;</div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00036"></a><span class="lineno"><a class="line" href="classBVH_1_1NodeT.html">   36</a></span>&#160;  <span class="keyword">class </span><a class="code" href="classBVH_1_1NodeT.html">NodeT</a>;</div>
 <div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160; </div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">int</span> K&gt;</div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00044"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearNodeT.html">   44</a></span>&#160;  <span class="keyword">class </span><a class="code" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>;</div>
 <div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160; </div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">int</span> K&gt;</div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00052"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearBVH.html">   52</a></span>&#160;  <span class="keyword">class </span><a class="code" href="classBVH_1_1LinearBVH.html">LinearBVH</a>;</div>
 <div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160; </div>
 <div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> P&gt;</div>
 <div class="line"><a name="l00059"></a><span class="lineno"><a class="line" href="namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7">   59</a></span>&#160;  <span class="keyword">using</span> <a class="code" href="namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7">PrimitiveListT</a> = std::vector&lt;std::shared_ptr&lt;const P&gt; &gt;;</div>
 <div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160; </div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">int</span> K&gt;</div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00069"></a><span class="lineno"><a class="line" href="namespaceBVH.html#afef1c5979c34a11d23b756cc09654bf9">   69</a></span>&#160;  <span class="keyword">using</span> <a class="code" href="namespaceBVH.html#afef1c5979c34a11d23b756cc09654bf9">StopFunctionT</a> = std::function&lt;bool(<span class="keyword">const</span> <a class="code" href="classBVH_1_1NodeT.html">NodeT&lt;T, P, BV, K&gt;</a>&amp; a_node)&gt;;</div>
 <div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160; </div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">int</span> K&gt;</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00078"></a><span class="lineno"><a class="line" href="namespaceBVH.html#a67de8088141156b6eaa225a635cc68c0">   78</a></span>&#160;  <span class="keyword">using</span> <a class="code" href="namespaceBVH.html#a67de8088141156b6eaa225a635cc68c0">PartitionerT</a> = std::function&lt;std::array&lt;PrimitiveListT&lt;P&gt;, K&gt;(<span class="keyword">const</span> <a class="code" href="namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7">PrimitiveListT&lt;P&gt;</a>&amp; a_primitives)&gt;;</div>
 <div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160; </div>
 <div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> P, <span class="keyword">class</span> BV&gt;</div>
@@ -117,7 +117,7 @@ $(function() {
 <div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;    Unordered,</div>
 <div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;  };  </div>
 <div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160; </div>
-<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">int</span> K&gt;</div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;  <span class="keyword">class </span>NodeT : <span class="keyword">public</span> <a class="code" href="classSignedDistanceFunction.html">SignedDistanceFunction</a>&lt;T&gt; {</div>
 <div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;  <span class="keyword">public</span>:</div>
 <div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160; </div>
@@ -202,46 +202,46 @@ $(function() {
 <div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classBVH_1_1NodeT.html#ad252aa451ca983750dfa0c24344253b2">pruneUnordered</a>(T&amp; a_closest, const <a class="code" href="classVec3T.html">Vec3</a>&amp; a_point) const noexcept;</div>
 <div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160; </div>
 <div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160;    inline</div>
-<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160;    <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <a class="code" href="classBVH_1_1NodeT.html#acb801f1e446a6472f5d330e85318bdb3">flattenTree</a>(std::vector&lt;std::shared_ptr&lt;<a class="code" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>&lt;T, P, BV, K&gt; &gt; &gt;&amp; a_linearNodes,</div>
+<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160;    <span class="keywordtype">size_t</span> <a class="code" href="classBVH_1_1NodeT.html#acb801f1e446a6472f5d330e85318bdb3">flattenTree</a>(std::vector&lt;std::shared_ptr&lt;<a class="code" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>&lt;T, P, BV, K&gt; &gt; &gt;&amp; a_linearNodes,</div>
 <div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160;                  std::vector&lt;std::shared_ptr&lt;const P&gt; &gt;&amp;                   a_sortedPrimitives,</div>
-<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;                  <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span>&amp;                                            a_offset) const noexcept;</div>
+<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;                  <span class="keywordtype">size_t</span>&amp;                                            a_offset) const noexcept;</div>
 <div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;  };</div>
 <div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160; </div>
-<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;  template &lt;class T, class P, class BV, <span class="keywordtype">int</span> K&gt;</div>
+<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;  template &lt;class T, class P, class BV, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160;  class <a class="code" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a> {</div>
 <div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160;  <span class="keyword">public</span>:</div>
 <div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160; </div>
 <div class="line"><a name="l00358"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearNodeT.html#a073e87d51d44b4cc243c8f90690247a6">  358</a></span>&#160;    <span class="keyword">using</span> <a class="code" href="classVec3T.html">Vec3</a> = <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>;</div>
 <div class="line"><a name="l00359"></a><span class="lineno">  359</span>&#160; </div>
 <div class="line"><a name="l00363"></a><span class="lineno">  363</span>&#160;    <span class="keyword">inline</span></div>
-<div class="line"><a name="l00364"></a><span class="lineno">  364</span>&#160;    <a class="code" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>();</div>
+<div class="line"><a name="l00364"></a><span class="lineno">  364</span>&#160;    <a class="code" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>() noexcept;</div>
 <div class="line"><a name="l00365"></a><span class="lineno">  365</span>&#160; </div>
-<div class="line"><a name="l00369"></a><span class="lineno">  369</span>&#160;    <span class="keyword">inline</span></div>
-<div class="line"><a name="l00370"></a><span class="lineno">  370</span>&#160;    <span class="keyword">virtual</span> ~<a class="code" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>();</div>
+<div class="line"><a name="l00369"></a><span class="lineno">  369</span>&#160;    inline</div>
+<div class="line"><a name="l00370"></a><span class="lineno">  370</span>&#160;    virtual ~<a class="code" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>();</div>
 <div class="line"><a name="l00371"></a><span class="lineno">  371</span>&#160; </div>
-<div class="line"><a name="l00376"></a><span class="lineno">  376</span>&#160;    <span class="keyword">inline</span></div>
-<div class="line"><a name="l00377"></a><span class="lineno">  377</span>&#160;    <span class="keywordtype">void</span> setBoundingVolume(<span class="keyword">const</span> BV&amp; a_boundingVolume) noexcept;</div>
+<div class="line"><a name="l00376"></a><span class="lineno">  376</span>&#160;    inline</div>
+<div class="line"><a name="l00377"></a><span class="lineno">  377</span>&#160;    <span class="keywordtype">void</span> setBoundingVolume(const BV&amp; a_boundingVolume) noexcept;</div>
 <div class="line"><a name="l00378"></a><span class="lineno">  378</span>&#160; </div>
-<div class="line"><a name="l00382"></a><span class="lineno">  382</span>&#160;    <span class="keyword">inline</span></div>
-<div class="line"><a name="l00383"></a><span class="lineno">  383</span>&#160;    <span class="keywordtype">void</span> setPrimitivesOffset(<span class="keyword">const</span> <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> a_primitivesOffset) noexcept;</div>
+<div class="line"><a name="l00382"></a><span class="lineno">  382</span>&#160;    inline</div>
+<div class="line"><a name="l00383"></a><span class="lineno">  383</span>&#160;    <span class="keywordtype">void</span> setPrimitivesOffset(const <span class="keywordtype">size_t</span> a_primitivesOffset) noexcept;</div>
 <div class="line"><a name="l00384"></a><span class="lineno">  384</span>&#160; </div>
-<div class="line"><a name="l00389"></a><span class="lineno">  389</span>&#160;    <span class="keyword">inline</span></div>
-<div class="line"><a name="l00390"></a><span class="lineno">  390</span>&#160;    <span class="keywordtype">void</span> setNumPrimitives(<span class="keyword">const</span> <span class="keywordtype">int</span> a_numPrimitives) noexcept;</div>
+<div class="line"><a name="l00389"></a><span class="lineno">  389</span>&#160;    inline</div>
+<div class="line"><a name="l00390"></a><span class="lineno">  390</span>&#160;    <span class="keywordtype">void</span> setNumPrimitives(const <span class="keywordtype">size_t</span> a_numPrimitives) noexcept;</div>
 <div class="line"><a name="l00391"></a><span class="lineno">  391</span>&#160; </div>
-<div class="line"><a name="l00397"></a><span class="lineno">  397</span>&#160;    <span class="keyword">inline</span></div>
-<div class="line"><a name="l00398"></a><span class="lineno">  398</span>&#160;    <span class="keywordtype">void</span> setChildOffset(<span class="keyword">const</span> <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> a_childOffset, <span class="keyword">const</span> <span class="keywordtype">int</span> a_whichChild) noexcept;    </div>
+<div class="line"><a name="l00397"></a><span class="lineno">  397</span>&#160;    inline</div>
+<div class="line"><a name="l00398"></a><span class="lineno">  398</span>&#160;    <span class="keywordtype">void</span> setChildOffset(const <span class="keywordtype">size_t</span> a_childOffset, const <span class="keywordtype">size_t</span> a_whichChild) noexcept;    </div>
 <div class="line"><a name="l00399"></a><span class="lineno">  399</span>&#160; </div>
-<div class="line"><a name="l00404"></a><span class="lineno">  404</span>&#160;    <span class="keyword">inline</span></div>
-<div class="line"><a name="l00405"></a><span class="lineno">  405</span>&#160;    <span class="keyword">const</span> BV&amp; <a class="code" href="classBVH_1_1NodeT.html#a02cba4dcb065ebfaeea7e4d251b89d04">getBoundingVolume</a>() const noexcept;    </div>
+<div class="line"><a name="l00404"></a><span class="lineno">  404</span>&#160;    inline</div>
+<div class="line"><a name="l00405"></a><span class="lineno">  405</span>&#160;    const BV&amp; <a class="code" href="classBVH_1_1NodeT.html#a02cba4dcb065ebfaeea7e4d251b89d04">getBoundingVolume</a>() const noexcept;    </div>
 <div class="line"><a name="l00406"></a><span class="lineno">  406</span>&#160; </div>
 <div class="line"><a name="l00411"></a><span class="lineno">  411</span>&#160;    inline</div>
-<div class="line"><a name="l00412"></a><span class="lineno">  412</span>&#160;    const <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span>&amp; getPrimitivesOffset() const noexcept;</div>
+<div class="line"><a name="l00412"></a><span class="lineno">  412</span>&#160;    const <span class="keywordtype">size_t</span>&amp; getPrimitivesOffset() const noexcept;</div>
 <div class="line"><a name="l00413"></a><span class="lineno">  413</span>&#160; </div>
 <div class="line"><a name="l00418"></a><span class="lineno">  418</span>&#160;    inline</div>
-<div class="line"><a name="l00419"></a><span class="lineno">  419</span>&#160;    const <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span>&amp; getNumPrimitives() const noexcept;</div>
+<div class="line"><a name="l00419"></a><span class="lineno">  419</span>&#160;    const <span class="keywordtype">size_t</span>&amp; getNumPrimitives() const noexcept;</div>
 <div class="line"><a name="l00420"></a><span class="lineno">  420</span>&#160; </div>
 <div class="line"><a name="l00425"></a><span class="lineno">  425</span>&#160;    inline</div>
-<div class="line"><a name="l00426"></a><span class="lineno">  426</span>&#160;    const std::array&lt;<span class="keywordtype">unsigned</span> <span class="keywordtype">long</span>, K&gt;&amp; getChildOffsets() const noexcept;    </div>
+<div class="line"><a name="l00426"></a><span class="lineno">  426</span>&#160;    const std::array&lt;<span class="keywordtype">size_t</span>, K&gt;&amp; getChildOffsets() const noexcept;    </div>
 <div class="line"><a name="l00427"></a><span class="lineno">  427</span>&#160; </div>
 <div class="line"><a name="l00431"></a><span class="lineno">  431</span>&#160;    inline</div>
 <div class="line"><a name="l00432"></a><span class="lineno">  432</span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBVH_1_1NodeT.html#a5c57552524601da9bf20e722e2433aa0">isLeaf</a>() const noexcept;</div>
@@ -256,14 +256,14 @@ $(function() {
 <div class="line"><a name="l00452"></a><span class="lineno">  452</span>&#160; </div>
 <div class="line"><a name="l00456"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearNodeT.html#acef96b811ea69cd649fda35da082b361">  456</a></span>&#160;    BV <a class="code" href="classBVH_1_1NodeT.html#a7f8720f2ab03ee9e81de114c479cb2e5">m_boundingVolume</a>;</div>
 <div class="line"><a name="l00457"></a><span class="lineno">  457</span>&#160; </div>
-<div class="line"><a name="l00461"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearNodeT.html#a05efc0076443c7131187adfadaad81ea">  461</a></span>&#160;    <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> m_primitivesOffset;    </div>
+<div class="line"><a name="l00461"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearNodeT.html#a649815b1fd49f9d390ed0a1f196aca25">  461</a></span>&#160;    <span class="keywordtype">size_t</span> m_primitivesOffset;    </div>
 <div class="line"><a name="l00462"></a><span class="lineno">  462</span>&#160; </div>
-<div class="line"><a name="l00466"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearNodeT.html#a59a4aff1eeac58606f4854e334e10a17">  466</a></span>&#160;    <span class="keywordtype">int</span> m_numPrimitives;</div>
+<div class="line"><a name="l00466"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearNodeT.html#ad15aa928c6838a112b9bf1f2fda9a4e9">  466</a></span>&#160;    <span class="keywordtype">size_t</span> m_numPrimitives;</div>
 <div class="line"><a name="l00467"></a><span class="lineno">  467</span>&#160; </div>
-<div class="line"><a name="l00471"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearNodeT.html#a2a160d04d0bea69de7eb949fd9d56dda">  471</a></span>&#160;    std::array&lt;<span class="keywordtype">unsigned</span> <span class="keywordtype">long</span>, K&gt; m_childOffsets;</div>
+<div class="line"><a name="l00471"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearNodeT.html#ae57a40743fdb239d496f8396030c83a9">  471</a></span>&#160;    std::array&lt;<span class="keywordtype">size_t</span>, K&gt; m_childOffsets;</div>
 <div class="line"><a name="l00472"></a><span class="lineno">  472</span>&#160;  };</div>
 <div class="line"><a name="l00473"></a><span class="lineno">  473</span>&#160; </div>
-<div class="line"><a name="l00477"></a><span class="lineno">  477</span>&#160;  template&lt;class T, class P, class BV, <span class="keywordtype">int</span> K&gt;</div>
+<div class="line"><a name="l00477"></a><span class="lineno">  477</span>&#160;  template&lt;class T, class P, class BV, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00478"></a><span class="lineno">  478</span>&#160;  class <a class="code" href="classBVH_1_1LinearBVH.html">LinearBVH</a> : public <a class="code" href="classSignedDistanceFunction.html">SignedDistanceFunction</a>&lt;T&gt; {</div>
 <div class="line"><a name="l00479"></a><span class="lineno">  479</span>&#160;  <span class="keyword">public</span>:</div>
 <div class="line"><a name="l00480"></a><span class="lineno">  480</span>&#160; </div>

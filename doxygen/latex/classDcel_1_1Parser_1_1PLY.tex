@@ -32,11 +32,11 @@ static void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_a280f083c1901248de1c6932
 \doxysubsection*{Static Protected Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-static void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_aa8741e334f6c350e1269a42ee1022e57}{read\+Header\+A\+S\+C\+II}} (int \&a\+\_\+num\+Vertices, int \&a\+\_\+num\+Faces, std\+::ifstream \&a\+\_\+input\+Stream)
+static void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_af10bf68a755691a3f9e9e710527732d1}{read\+Header\+A\+S\+C\+II}} (size\+\_\+t \&a\+\_\+num\+Vertices, size\+\_\+t \&a\+\_\+num\+Faces, std\+::ifstream \&a\+\_\+input\+Stream)
 \begin{DoxyCompactList}\small\item\em Read an A\+S\+C\+II header. \end{DoxyCompactList}\item 
-static void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_a755c28a17a836a05af31991a87212df0}{read\+Vertices\+A\+S\+C\+II}} (std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}{Vertex}} $>$ $>$ \&a\+\_\+vertices, const int a\+\_\+num\+Vertices, std\+::ifstream \&a\+\_\+input\+Stream)
+static void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_a46e6865647379ccae29f1b669da9e8f7}{read\+Vertices\+A\+S\+C\+II}} (std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}{Vertex}} $>$ $>$ \&a\+\_\+vertices, const size\+\_\+t a\+\_\+num\+Vertices, std\+::ifstream \&a\+\_\+input\+Stream)
 \begin{DoxyCompactList}\small\item\em Read A\+S\+C\+II vertices. \end{DoxyCompactList}\item 
-static void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_ae54284d1c7c18a584bd14678763a58e7}{read\+Faces\+A\+S\+C\+II}} (std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_ac67854dee5613f4e877e8caddb4580f3}{Face}} $>$ $>$ \&a\+\_\+faces, std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_af3741c96a8a8434780665641912ff1d4}{Edge}} $>$ $>$ \&a\+\_\+edges, const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}{Vertex}} $>$ $>$ \&a\+\_\+vertices, const int a\+\_\+num\+Faces, std\+::ifstream \&a\+\_\+input\+Stream)
+static void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_aeddbefb0b0d27bfdcafb661fd93cc30d}{read\+Faces\+A\+S\+C\+II}} (std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_ac67854dee5613f4e877e8caddb4580f3}{Face}} $>$ $>$ \&a\+\_\+faces, std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_af3741c96a8a8434780665641912ff1d4}{Edge}} $>$ $>$ \&a\+\_\+edges, const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}{Vertex}} $>$ $>$ \&a\+\_\+vertices, const size\+\_\+t a\+\_\+num\+Faces, std\+::ifstream \&a\+\_\+input\+Stream)
 \begin{DoxyCompactList}\small\item\em Read A\+S\+C\+II faces and create mesh connectivity. \end{DoxyCompactList}\item 
 static void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_afaceb1664b12f30599fe68faba6ca725}{reconcile\+Pair\+Edges}} (std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_af3741c96a8a8434780665641912ff1d4}{Edge}} $>$ $>$ \&a\+\_\+edges)
 \begin{DoxyCompactList}\small\item\em Reconcile pair edges, i.\+e. find the pair edge for every constructed half-\/edge. \end{DoxyCompactList}\end{DoxyCompactItemize}
@@ -146,12 +146,12 @@ Static function which reads an A\+S\+C\+II .ply file and puts it in a mesh.
 \mbox{\texttt{ in}}  & {\em a\+\_\+filename} & File name \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_ae54284d1c7c18a584bd14678763a58e7}\label{classDcel_1_1Parser_1_1PLY_ae54284d1c7c18a584bd14678763a58e7}} 
+\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_aeddbefb0b0d27bfdcafb661fd93cc30d}\label{classDcel_1_1Parser_1_1PLY_aeddbefb0b0d27bfdcafb661fd93cc30d}} 
 \index{Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}!readFacesASCII@{readFacesASCII}}
 \index{readFacesASCII@{readFacesASCII}!Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{readFacesASCII()}{readFacesASCII()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::read\+Faces\+A\+S\+C\+II (\begin{DoxyParamCaption}\item[{std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_ac67854dee5613f4e877e8caddb4580f3}{Face}} $>$ $>$ \&}]{a\+\_\+faces,  }\item[{std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_af3741c96a8a8434780665641912ff1d4}{Edge}} $>$ $>$ \&}]{a\+\_\+edges,  }\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}{Vertex}} $>$ $>$ \&}]{a\+\_\+vertices,  }\item[{const int}]{a\+\_\+num\+Faces,  }\item[{std\+::ifstream \&}]{a\+\_\+input\+Stream }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}}
+void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::read\+Faces\+A\+S\+C\+II (\begin{DoxyParamCaption}\item[{std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_ac67854dee5613f4e877e8caddb4580f3}{Face}} $>$ $>$ \&}]{a\+\_\+faces,  }\item[{std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_af3741c96a8a8434780665641912ff1d4}{Edge}} $>$ $>$ \&}]{a\+\_\+edges,  }\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}{Vertex}} $>$ $>$ \&}]{a\+\_\+vertices,  }\item[{const size\+\_\+t}]{a\+\_\+num\+Faces,  }\item[{std\+::ifstream \&}]{a\+\_\+input\+Stream }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}}
 
 
 
@@ -173,12 +173,12 @@ Read A\+S\+C\+II faces and create mesh connectivity.
 \begin{DoxyNote}{Note}
 The next getline() from input\+Stream must read the first face, i.\+e. we assume that read\+\_\+ascii\+\_\+vertices was called I\+M\+M\+E\+D\+I\+A\+T\+E\+LY before this function. That function will center the fstream on the correct line in the input file. 
 \end{DoxyNote}
-\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_aa8741e334f6c350e1269a42ee1022e57}\label{classDcel_1_1Parser_1_1PLY_aa8741e334f6c350e1269a42ee1022e57}} 
+\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_af10bf68a755691a3f9e9e710527732d1}\label{classDcel_1_1Parser_1_1PLY_af10bf68a755691a3f9e9e710527732d1}} 
 \index{Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}!readHeaderASCII@{readHeaderASCII}}
 \index{readHeaderASCII@{readHeaderASCII}!Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{readHeaderASCII()}{readHeaderASCII()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::read\+Header\+A\+S\+C\+II (\begin{DoxyParamCaption}\item[{int \&}]{a\+\_\+num\+Vertices,  }\item[{int \&}]{a\+\_\+num\+Faces,  }\item[{std\+::ifstream \&}]{a\+\_\+input\+Stream }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}}
+void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::read\+Header\+A\+S\+C\+II (\begin{DoxyParamCaption}\item[{size\+\_\+t \&}]{a\+\_\+num\+Vertices,  }\item[{size\+\_\+t \&}]{a\+\_\+num\+Faces,  }\item[{std\+::ifstream \&}]{a\+\_\+input\+Stream }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}}
 
 
 
@@ -193,12 +193,12 @@ This reads the number of vertices and faces in the \mbox{\hyperlink{classDcel_1_
 \mbox{\texttt{ in,out}}  & {\em a\+\_\+input\+Stream} & File stream. On output, the filestream is at the end of the \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{P\+LY}} header. \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_a755c28a17a836a05af31991a87212df0}\label{classDcel_1_1Parser_1_1PLY_a755c28a17a836a05af31991a87212df0}} 
+\mbox{\Hypertarget{classDcel_1_1Parser_1_1PLY_a46e6865647379ccae29f1b669da9e8f7}\label{classDcel_1_1Parser_1_1PLY_a46e6865647379ccae29f1b669da9e8f7}} 
 \index{Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}!readVerticesASCII@{readVerticesASCII}}
 \index{readVerticesASCII@{readVerticesASCII}!Dcel::Parser::PLY$<$ T $>$@{Dcel::Parser::PLY$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{readVerticesASCII()}{readVerticesASCII()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::read\+Vertices\+A\+S\+C\+II (\begin{DoxyParamCaption}\item[{std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}{Vertex}} $>$ $>$ \&}]{a\+\_\+vertices,  }\item[{const int}]{a\+\_\+num\+Vertices,  }\item[{std\+::ifstream \&}]{a\+\_\+input\+Stream }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}}
+void \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY}{Dcel\+::\+Parser\+::\+P\+LY}}$<$ T $>$\+::read\+Vertices\+A\+S\+C\+II (\begin{DoxyParamCaption}\item[{std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDcel_1_1Parser_1_1PLY_acbecc13804a702a6bf2687d9bf5d7989}{Vertex}} $>$ $>$ \&}]{a\+\_\+vertices,  }\item[{const size\+\_\+t}]{a\+\_\+num\+Vertices,  }\item[{std\+::ifstream \&}]{a\+\_\+input\+Stream }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}}
 
 
 

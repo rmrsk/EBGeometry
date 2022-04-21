@@ -35,7 +35,7 @@ Collaboration diagram for Infinite\+Cylinder\+S\+DF$<$ T $>$\+:
 \mbox{\Hypertarget{classInfiniteCylinderSDF_abc81fa508a1a13fca1758709e0248271}\label{classInfiniteCylinderSDF_abc81fa508a1a13fca1758709e0248271}} 
 \mbox{\hyperlink{classInfiniteCylinderSDF_abc81fa508a1a13fca1758709e0248271}{Infinite\+Cylinder\+S\+DF}} ()=delete
 \begin{DoxyCompactList}\small\item\em No weak construction. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classInfiniteCylinderSDF_aaa0a9c54dfc487f872cdd88f8e541ea5}{Infinite\+Cylinder\+S\+DF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+center, const T \&a\+\_\+radius, const int a\+\_\+axis, const bool a\+\_\+flip\+Inside)
+\mbox{\hyperlink{classInfiniteCylinderSDF_a6db3fb5e05656fff90bf47d8d073b440}{Infinite\+Cylinder\+S\+DF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+center, const T \&a\+\_\+radius, const size\+\_\+t a\+\_\+axis, const bool a\+\_\+flip\+Inside)
 \begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
 virtual T \mbox{\hyperlink{classInfiniteCylinderSDF_a2481e68ea21c304c858878ae1d7fc031}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
 \begin{DoxyCompactList}\small\item\em Signed distance function. \end{DoxyCompactList}\end{DoxyCompactItemize}
@@ -48,8 +48,8 @@ virtual T \mbox{\hyperlink{classInfiniteCylinderSDF_a2481e68ea21c304c858878ae1d7
 \mbox{\Hypertarget{classInfiniteCylinderSDF_aa8442ccd669243ad7b71179816d0c422}\label{classInfiniteCylinderSDF_aa8442ccd669243ad7b71179816d0c422}} 
 T \mbox{\hyperlink{classInfiniteCylinderSDF_aa8442ccd669243ad7b71179816d0c422}{m\+\_\+radius}}
 \begin{DoxyCompactList}\small\item\em Cylinder radius. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classInfiniteCylinderSDF_a36b116fd51b909e3fb8e92d69671d7bc}\label{classInfiniteCylinderSDF_a36b116fd51b909e3fb8e92d69671d7bc}} 
-int \mbox{\hyperlink{classInfiniteCylinderSDF_a36b116fd51b909e3fb8e92d69671d7bc}{m\+\_\+axis}}
+\mbox{\Hypertarget{classInfiniteCylinderSDF_acc7d841abcd49df2db5d0df5cfd2b024}\label{classInfiniteCylinderSDF_acc7d841abcd49df2db5d0df5cfd2b024}} 
+size\+\_\+t \mbox{\hyperlink{classInfiniteCylinderSDF_acc7d841abcd49df2db5d0df5cfd2b024}{m\+\_\+axis}}
 \begin{DoxyCompactList}\small\item\em Axis. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classInfiniteCylinderSDF_a0b8b948474bef4db0f338a91a28a4326}\label{classInfiniteCylinderSDF_a0b8b948474bef4db0f338a91a28a4326}} 
 bool \mbox{\hyperlink{classInfiniteCylinderSDF_a0b8b948474bef4db0f338a91a28a4326}{m\+\_\+flip\+Inside}}
@@ -64,12 +64,12 @@ class Infinite\+Cylinder\+S\+D\+F$<$ T $>$}
 Inifinitely long cylinder class. Oriented along the y-\/axis. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classInfiniteCylinderSDF_aaa0a9c54dfc487f872cdd88f8e541ea5}\label{classInfiniteCylinderSDF_aaa0a9c54dfc487f872cdd88f8e541ea5}} 
+\mbox{\Hypertarget{classInfiniteCylinderSDF_a6db3fb5e05656fff90bf47d8d073b440}\label{classInfiniteCylinderSDF_a6db3fb5e05656fff90bf47d8d073b440}} 
 \index{InfiniteCylinderSDF$<$ T $>$@{InfiniteCylinderSDF$<$ T $>$}!InfiniteCylinderSDF@{InfiniteCylinderSDF}}
 \index{InfiniteCylinderSDF@{InfiniteCylinderSDF}!InfiniteCylinderSDF$<$ T $>$@{InfiniteCylinderSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{InfiniteCylinderSDF()}{InfiniteCylinderSDF()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classInfiniteCylinderSDF}{Infinite\+Cylinder\+S\+DF}}$<$ T $>$\+::\mbox{\hyperlink{classInfiniteCylinderSDF}{Infinite\+Cylinder\+S\+DF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+center,  }\item[{const T \&}]{a\+\_\+radius,  }\item[{const int}]{a\+\_\+axis,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+\mbox{\hyperlink{classInfiniteCylinderSDF}{Infinite\+Cylinder\+S\+DF}}$<$ T $>$\+::\mbox{\hyperlink{classInfiniteCylinderSDF}{Infinite\+Cylinder\+S\+DF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+center,  }\item[{const T \&}]{a\+\_\+radius,  }\item[{const size\+\_\+t}]{a\+\_\+axis,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 

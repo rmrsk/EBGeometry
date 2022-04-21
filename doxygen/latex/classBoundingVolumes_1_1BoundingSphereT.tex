@@ -31,11 +31,13 @@ using \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ad89ed315255abcde
 \begin{DoxyCompactList}\small\item\em Full constructor. Constructs a bounding sphere that encloses all the other bounding spheres. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_afd5a1632d9ceef8a4fa3af59e562c7f8}{Bounding\+SphereT}} (const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}} \&a\+\_\+other)
 \begin{DoxyCompactList}\small\item\em Copy constructor. Sets the center and radius from the other sphere. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class P $>$ }\\\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a88655edd39b6276b9bb58eb9bd6af82d}{Bounding\+SphereT}} (const std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ P $>$ $>$ \&a\+\_\+points, const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}{Bounding\+Volume\+Algorithm}} \&a\+\_\+alg=Bounding\+Volume\+Algorithm\+::\+Ritter)
+\begin{DoxyCompactList}\small\item\em Template constructor which takes a set of 3D points (mixed precision allowed). \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a4495da5774e14f97c0e7579b37cfd60e}\label{classBoundingVolumes_1_1BoundingSphereT_a4495da5774e14f97c0e7579b37cfd60e}} 
 virtual \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a4495da5774e14f97c0e7579b37cfd60e}{$\sim$\+Bounding\+SphereT}} ()
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing). \end{DoxyCompactList}\item 
-{\footnotesize template$<$class P $>$ }\\\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a88655edd39b6276b9bb58eb9bd6af82d}{Bounding\+SphereT}} (const std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ P $>$ $>$ \&a\+\_\+points, const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}{Bounding\+Volume\+Algorithm}} \&a\+\_\+alg=Bounding\+Volume\+Algorithm\+::\+Ritter)
-\begin{DoxyCompactList}\small\item\em Template constructor which takes a set of 3D points (mixed precision allowed). \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}} \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a5ad8c97d8804825094d7a0d044e35f77}{operator=}} (const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}} \&a\+\_\+other)=default
+\begin{DoxyCompactList}\small\item\em Copy assignment operator. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class P $>$ }\\void \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_aac21650a7d3f65081483512064cbcfa8}{define}} (const std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ P $>$ $>$ \&a\+\_\+points, const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}{Bounding\+Volume\+Algorithm}} \&a\+\_\+alg) noexcept
 \begin{DoxyCompactList}\small\item\em Template define function which takes a set of 3D points (mixed precision allowed). \end{DoxyCompactList}\item 
 bool \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a90baad0c400aac7645a7e8c1ab13096a}{intersects}} (const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}} \&a\+\_\+other) const noexcept
@@ -265,6 +267,22 @@ Check if this bounding sphere intersect another bounding sphere.
 \begin{DoxyReturn}{Returns}
 True if the two sphere intersect. 
 \end{DoxyReturn}
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a5ad8c97d8804825094d7a0d044e35f77}\label{classBoundingVolumes_1_1BoundingSphereT_a5ad8c97d8804825094d7a0d044e35f77}} 
+\index{BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}!operator=@{operator=}}
+\index{operator=@{operator=}!BoundingVolumes::BoundingSphereT$<$ T $>$@{BoundingVolumes::BoundingSphereT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}} \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+Volumes\+::\+Bounding\+SphereT}}$<$ T $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [default]}}
+
+
+
+Copy assignment operator. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+other} & Other sphere \\
+\hline
+\end{DoxyParams}
 
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}

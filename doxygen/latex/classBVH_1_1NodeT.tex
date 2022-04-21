@@ -82,7 +82,7 @@ void \mbox{\hyperlink{classBVH_1_1NodeT_ac4a3be457d66d2673f717f203e60fc08}{prune
 \begin{DoxyCompactList}\small\item\em Recursively ordered pruning along the \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classBVH_1_1NodeT_ad252aa451ca983750dfa0c24344253b2}{prune\+Unordered}} (T \&a\+\_\+closest, const \mbox{\hyperlink{classBVH_1_1NodeT_a6fbb4308c5c55ee170c5f992df7ae1d0}{Vec3}} \&a\+\_\+point) const noexcept
 \begin{DoxyCompactList}\small\item\em Recursive unordered pruning along the \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree. \end{DoxyCompactList}\item 
-unsigned long \mbox{\hyperlink{classBVH_1_1NodeT_aa01d6673b9e48735594b01bdcbefc63f}{flatten\+Tree}} (std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ T, P, BV, K $>$ $>$ $>$ \&a\+\_\+linear\+Nodes, std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$ \&a\+\_\+sorted\+Primitives, unsigned long \&a\+\_\+offset) const noexcept
+size\+\_\+t \mbox{\hyperlink{classBVH_1_1NodeT_a9545c525e04690c973c0a4d9bd6e51af}{flatten\+Tree}} (std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ T, P, BV, K $>$ $>$ $>$ \&a\+\_\+linear\+Nodes, std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$ \&a\+\_\+sorted\+Primitives, size\+\_\+t \&a\+\_\+offset) const noexcept
 \begin{DoxyCompactList}\small\item\em Flatten tree method. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
@@ -99,7 +99,7 @@ std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1NodeT}{No
 
 
 \doxysubsection{Detailed Description}
-\subsubsection*{template$<$class T, class P, class BV, int K$>$\newline
+\subsubsection*{template$<$class T, class P, class BV, size\+\_\+t K$>$\newline
 class B\+V\+H\+::\+Node\+T$<$ T, P, B\+V, K $>$}
 
 Forward declare the \mbox{\hyperlink{namespaceBVH}{B\+VH}} node since it is needed for the polymorphic lambdas. 
@@ -120,7 +120,7 @@ Had this been C++20, we would have use concepts to enforce this.
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!NodeT@{NodeT}}
 \index{NodeT@{NodeT}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{NodeT()}{NodeT()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$ $>$ \&}]{a\+\_\+primitives }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
@@ -136,7 +136,7 @@ This node becomes a leaf node which contains the input primitives.
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!NodeT@{NodeT}}
 \index{NodeT@{NodeT}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{NodeT()}{NodeT()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$ \&}]{a\+\_\+primitives }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
@@ -155,19 +155,19 @@ This node becomes a leaf node which contains the input primitives.
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!flattenTree@{flattenTree}}
 \index{flattenTree@{flattenTree}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{flattenTree()}{flattenTree()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1LinearBVH}{Linear\+B\+VH}}$<$ T, P, BV, K $>$ $>$ \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::flatten\+Tree\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
 Flatten everything beneath this node into a depth-\/first sorted \mbox{\hyperlink{namespaceBVH}{B\+VH}} hierarchy. 
 
-This will compute the flattening of the standard \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree and return a pointer to the linear corresponding to the current node. \mbox{\Hypertarget{classBVH_1_1NodeT_aa01d6673b9e48735594b01bdcbefc63f}\label{classBVH_1_1NodeT_aa01d6673b9e48735594b01bdcbefc63f}} 
+This will compute the flattening of the standard \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree and return a pointer to the linear corresponding to the current node. \mbox{\Hypertarget{classBVH_1_1NodeT_a9545c525e04690c973c0a4d9bd6e51af}\label{classBVH_1_1NodeT_a9545c525e04690c973c0a4d9bd6e51af}} 
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!flattenTree@{flattenTree}}
 \index{flattenTree@{flattenTree}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{flattenTree()}{flattenTree()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
-unsigned long \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::flatten\+Tree (\begin{DoxyParamCaption}\item[{std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ T, P, BV, K $>$ $>$ $>$ \&}]{a\+\_\+linear\+Nodes,  }\item[{std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$ \&}]{a\+\_\+sorted\+Primitives,  }\item[{unsigned long \&}]{a\+\_\+offset }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
+size\+\_\+t \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::flatten\+Tree (\begin{DoxyParamCaption}\item[{std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ T, P, BV, K $>$ $>$ $>$ \&}]{a\+\_\+linear\+Nodes,  }\item[{std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$ \&}]{a\+\_\+sorted\+Primitives,  }\item[{size\+\_\+t \&}]{a\+\_\+offset }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
@@ -189,7 +189,7 @@ When called from the root node, a\+\_\+linear\+Nodes and a\+\_\+sorted\+Primitiv
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!getBoundingVolume@{getBoundingVolume}}
 \index{getBoundingVolume@{getBoundingVolume}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getBoundingVolume()}{getBoundingVolume()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 const BV \& \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Bounding\+Volume\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
@@ -203,7 +203,7 @@ m\+\_\+bv
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!getChildren@{getChildren}}
 \index{getChildren@{getChildren}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getChildren()}{getChildren()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 const std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}$<$ T, P, BV, K $>$ $>$, K $>$ \& \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Children\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
@@ -217,7 +217,7 @@ m\+\_\+children.
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!getDistanceToBoundingVolume@{getDistanceToBoundingVolume}}
 \index{getDistanceToBoundingVolume@{getDistanceToBoundingVolume}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getDistanceToBoundingVolume()}{getDistanceToBoundingVolume()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 T \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Distance\+To\+Bounding\+Volume (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBVH_1_1NodeT_a6fbb4308c5c55ee170c5f992df7ae1d0}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
@@ -236,7 +236,7 @@ Returns distance to bounding volume. A zero distance implies that the input poin
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!getDistanceToPrimitives@{getDistanceToPrimitives}}
 \index{getDistanceToPrimitives@{getDistanceToPrimitives}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getDistanceToPrimitives()}{getDistanceToPrimitives()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 T \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Distance\+To\+Primitives (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBVH_1_1NodeT_a6fbb4308c5c55ee170c5f992df7ae1d0}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
@@ -255,7 +255,7 @@ Returns the signed distance to the primitives.
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!getPrimitives@{getPrimitives}}
 \index{getPrimitives@{getPrimitives}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getPrimitives()}{getPrimitives()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 const \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}}$<$ P $>$ \& \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Primitives\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
@@ -269,7 +269,7 @@ m\+\_\+primitives.
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!getPrimitives@{getPrimitives}}
 \index{getPrimitives@{getPrimitives}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getPrimitives()}{getPrimitives()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 \mbox{\hyperlink{classBVH_1_1NodeT_a19cce6e7fbe85eccb4a3718dd69f49b7}{Primitive\+List}}\& \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Primitives (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
@@ -283,7 +283,7 @@ Primitives list
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!insertChildren@{insertChildren}}
 \index{insertChildren@{insertChildren}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{insertChildren()}{insertChildren()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 void \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::insert\+Children (\begin{DoxyParamCaption}\item[{const std\+::array$<$ \mbox{\hyperlink{classBVH_1_1NodeT_a19cce6e7fbe85eccb4a3718dd69f49b7}{Primitive\+List}}, K $>$ \&}]{a\+\_\+primitives }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
@@ -299,7 +299,7 @@ Insert nodes with primitives.
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!pruneOrdered@{pruneOrdered}}
 \index{pruneOrdered@{pruneOrdered}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{pruneOrdered()}{pruneOrdered()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 void \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::prune\+Ordered (\begin{DoxyParamCaption}\item[{T \&}]{a\+\_\+closest,  }\item[{const \mbox{\hyperlink{classBVH_1_1NodeT_a6fbb4308c5c55ee170c5f992df7ae1d0}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
@@ -317,7 +317,7 @@ Recursively ordered pruning along the \mbox{\hyperlink{namespaceBVH}{B\+VH}} tre
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!pruneStack@{pruneStack}}
 \index{pruneStack@{pruneStack}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{pruneStack()}{pruneStack()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 T \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::prune\+Stack (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBVH_1_1NodeT_a6fbb4308c5c55ee170c5f992df7ae1d0}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
@@ -333,7 +333,7 @@ Iterative ordered pruning along the \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree.
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!pruneUnordered@{pruneUnordered}}
 \index{pruneUnordered@{pruneUnordered}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{pruneUnordered()}{pruneUnordered()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 void \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::prune\+Unordered (\begin{DoxyParamCaption}\item[{T \&}]{a\+\_\+closest,  }\item[{const \mbox{\hyperlink{classBVH_1_1NodeT_a6fbb4308c5c55ee170c5f992df7ae1d0}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
@@ -351,7 +351,7 @@ Recursive unordered pruning along the \mbox{\hyperlink{namespaceBVH}{B\+VH}} tre
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!setPrimitives@{setPrimitives}}
 \index{setPrimitives@{setPrimitives}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{setPrimitives()}{setPrimitives()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 void \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::set\+Primitives (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBVH_1_1NodeT_a19cce6e7fbe85eccb4a3718dd69f49b7}{Primitive\+List}} \&}]{a\+\_\+primitives }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
@@ -367,7 +367,7 @@ Set primitives in this node.
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!signedDistance@{signedDistance}}
 \index{signedDistance@{signedDistance}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 T \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [noexcept]}}
 
 
@@ -386,7 +386,7 @@ Signed distance to the input point.
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!signedDistance@{signedDistance}}
 \index{signedDistance@{signedDistance}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 T \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point,  }\item[{const \mbox{\hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{Prune}}}]{a\+\_\+pruning }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
@@ -407,7 +407,7 @@ Signed distance to the input point.
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!topDownSortAndPartitionPrimitives@{topDownSortAndPartitionPrimitives}}
 \index{topDownSortAndPartitionPrimitives@{topDownSortAndPartitionPrimitives}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{topDownSortAndPartitionPrimitives()}{topDownSortAndPartitionPrimitives()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , int K$>$ \\
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
 void \mbox{\hyperlink{classBVH_1_1NodeT}{B\+V\+H\+::\+NodeT}}$<$ T, P, BV, K $>$\+::top\+Down\+Sort\+And\+Partition\+Primitives (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBVH_1_1NodeT_a2340f2466ed5b6eebab4bdc72004858e}{B\+V\+Constructor}} \&}]{a\+\_\+bv\+Constructor,  }\item[{const \mbox{\hyperlink{classBVH_1_1NodeT_ab3b7afb83f7ecf97d1985c3c5ade2f0a}{Partitioner}} \&}]{a\+\_\+partitioner,  }\item[{const \mbox{\hyperlink{classBVH_1_1NodeT_acbe56195affc439febe8aca84db308e3}{Stop\+Function}} \&}]{a\+\_\+stop\+Crit }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 

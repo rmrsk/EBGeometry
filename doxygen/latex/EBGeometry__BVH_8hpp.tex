@@ -54,9 +54,9 @@ class \mbox{\hyperlink{classBVH_1_1LinearBVH}{B\+V\+H\+::\+Linear\+B\+V\+H$<$ T,
 \item 
 {\footnotesize template$<$class P $>$ }\\using \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{B\+V\+H\+::\+Primitive\+ListT}} = std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$
 \begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P , class BV , int K$>$ }\\using \mbox{\hyperlink{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}{B\+V\+H\+::\+Stop\+FunctionT}} = std\+::function$<$ bool(const NodeT$<$ T, P, BV, K $>$ \&a\+\_\+node)$>$
+{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}{B\+V\+H\+::\+Stop\+FunctionT}} = std\+::function$<$ bool(const NodeT$<$ T, P, BV, K $>$ \&a\+\_\+node)$>$
 \begin{DoxyCompactList}\small\item\em Stop function for deciding when a \mbox{\hyperlink{namespaceBVH}{B\+VH}} node can\textquotesingle{}t be divided into sub-\/volumes. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class P , class BV , int K$>$ }\\using \mbox{\hyperlink{namespaceBVH_a67de8088141156b6eaa225a635cc68c0}{B\+V\+H\+::\+PartitionerT}} = std\+::function$<$ std\+::array$<$ Primitive\+ListT$<$ P $>$, K $>$(const Primitive\+ListT$<$ P $>$ \&a\+\_\+primitives)$>$
+{\footnotesize template$<$class P , class BV , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_a67de8088141156b6eaa225a635cc68c0}{B\+V\+H\+::\+PartitionerT}} = std\+::function$<$ std\+::array$<$ Primitive\+ListT$<$ P $>$, K $>$(const Primitive\+ListT$<$ P $>$ \&a\+\_\+primitives)$>$
 \begin{DoxyCompactList}\small\item\em Polymorphic partitioner for splitting a list of primitives into K new lists of primitives. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class P , class BV $>$ }\\using \mbox{\hyperlink{namespaceBVH_a245702d7eff40cdaedb5dff68c25a88a}{B\+V\+H\+::\+B\+V\+ConstructorT}} = std\+::function$<$ BV(const std\+::shared\+\_\+ptr$<$ const P $>$ \&a\+\_\+primitive)$>$
 \begin{DoxyCompactList}\small\item\em Constructor method for creating bounding volumes from a list of primitives. \end{DoxyCompactList}\end{DoxyCompactItemize}

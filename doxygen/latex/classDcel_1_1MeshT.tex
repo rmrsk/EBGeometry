@@ -128,10 +128,10 @@ T \mbox{\hyperlink{classDcel_1_1MeshT_ada074ff3b1a612e46098f4ba6ca0bda2}{Direct\
 \begin{DoxyCompactList}\small\item\em Implementation of signed distance function which iterates through all faces. \end{DoxyCompactList}\item 
 T \mbox{\hyperlink{classDcel_1_1MeshT_ac00a6da46649246a3a2db70b29bb2407}{Direct\+Signed\+Distance2}} (const \mbox{\hyperlink{classDcel_1_1MeshT_a646c5d8f66b3079bca35fe4186493627}{Vec3}} \&a\+\_\+point) const noexcept
 \begin{DoxyCompactList}\small\item\em Implementation of squared signed distance function which iterates through all faces. \end{DoxyCompactList}\item 
-void \mbox{\hyperlink{classDcel_1_1MeshT_ae13801eefa60ad08ff1da0df1da34784}{increment\+Warning}} (std\+::map$<$ std\+::string, int $>$ \&a\+\_\+warnings, const std\+::string \&a\+\_\+warn) const noexcept
+void \mbox{\hyperlink{classDcel_1_1MeshT_ad3ac1c6c70904bbc586e3b033583a0c8}{increment\+Warning}} (std\+::map$<$ std\+::string, size\+\_\+t $>$ \&a\+\_\+warnings, const std\+::string \&a\+\_\+warn) const noexcept
 \begin{DoxyCompactList}\small\item\em Increment a warning. This is used in \mbox{\hyperlink{classDcel_1_1MeshT_a1814ba63c6e0d7a007ee78c24d6ea159}{sanity\+Check()}} for locating holes or bad inputs in the mesh. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDcel_1_1MeshT_a7115bea1b9d776a5f9c82a1e4fe852a0}\label{classDcel_1_1MeshT_a7115bea1b9d776a5f9c82a1e4fe852a0}} 
-void \mbox{\hyperlink{classDcel_1_1MeshT_a7115bea1b9d776a5f9c82a1e4fe852a0}{print\+Warnings}} (const std\+::map$<$ std\+::string, int $>$ \&a\+\_\+warnings) const noexcept
+\mbox{\Hypertarget{classDcel_1_1MeshT_abd558a7ce2347b307da6fcb1079936d0}\label{classDcel_1_1MeshT_abd558a7ce2347b307da6fcb1079936d0}} 
+void \mbox{\hyperlink{classDcel_1_1MeshT_abd558a7ce2347b307da6fcb1079936d0}{print\+Warnings}} (const std\+::map$<$ std\+::string, size\+\_\+t $>$ \&a\+\_\+warnings) const noexcept
 \begin{DoxyCompactList}\small\item\em Print all warnings to std\+::cerr. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
@@ -273,12 +273,12 @@ This first find the face with the smallest unsigned square distance, and the ret
 \mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classDcel_1_1MeshT_ae13801eefa60ad08ff1da0df1da34784}\label{classDcel_1_1MeshT_ae13801eefa60ad08ff1da0df1da34784}} 
+\mbox{\Hypertarget{classDcel_1_1MeshT_ad3ac1c6c70904bbc586e3b033583a0c8}\label{classDcel_1_1MeshT_ad3ac1c6c70904bbc586e3b033583a0c8}} 
 \index{Dcel::MeshT$<$ T $>$@{Dcel::MeshT$<$ T $>$}!incrementWarning@{incrementWarning}}
 \index{incrementWarning@{incrementWarning}!Dcel::MeshT$<$ T $>$@{Dcel::MeshT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{incrementWarning()}{incrementWarning()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-void \mbox{\hyperlink{classDcel_1_1MeshT}{Dcel\+::\+MeshT}}$<$ T $>$\+::increment\+Warning (\begin{DoxyParamCaption}\item[{std\+::map$<$ std\+::string, int $>$ \&}]{a\+\_\+warnings,  }\item[{const std\+::string \&}]{a\+\_\+warn }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+void \mbox{\hyperlink{classDcel_1_1MeshT}{Dcel\+::\+MeshT}}$<$ T $>$\+::increment\+Warning (\begin{DoxyParamCaption}\item[{std\+::map$<$ std\+::string, size\+\_\+t $>$ \&}]{a\+\_\+warnings,  }\item[{const std\+::string \&}]{a\+\_\+warn }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
@@ -365,7 +365,7 @@ void \mbox{\hyperlink{classDcel_1_1MeshT}{Dcel\+::\+MeshT}}$<$ T $>$\+::sanity\+
 
 Perform a sanity check. 
 
-This will provide error messages if vertices are badly linked, faces are nullptr, and so on. These messages are logged by calling \mbox{\hyperlink{classDcel_1_1MeshT_ae13801eefa60ad08ff1da0df1da34784}{increment\+Warning()}} which identifies types of errors that can occur, and how many of those errors have occured. \mbox{\Hypertarget{classDcel_1_1MeshT_a1e46a744a2526e451229e2f2e4830ca5}\label{classDcel_1_1MeshT_a1e46a744a2526e451229e2f2e4830ca5}} 
+This will provide error messages if vertices are badly linked, faces are nullptr, and so on. These messages are logged by calling \mbox{\hyperlink{classDcel_1_1MeshT_ad3ac1c6c70904bbc586e3b033583a0c8}{increment\+Warning()}} which identifies types of errors that can occur, and how many of those errors have occured. \mbox{\Hypertarget{classDcel_1_1MeshT_a1e46a744a2526e451229e2f2e4830ca5}\label{classDcel_1_1MeshT_a1e46a744a2526e451229e2f2e4830ca5}} 
 \index{Dcel::MeshT$<$ T $>$@{Dcel::MeshT$<$ T $>$}!setInsideOutsideAlgorithm@{setInsideOutsideAlgorithm}}
 \index{setInsideOutsideAlgorithm@{setInsideOutsideAlgorithm}!Dcel::MeshT$<$ T $>$@{Dcel::MeshT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{setInsideOutsideAlgorithm()}{setInsideOutsideAlgorithm()}}

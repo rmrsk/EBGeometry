@@ -125,8 +125,6 @@ EBGeometry provides two implementations:</p>
 The implementation of the standard union is</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
 <span class="n">T</span> <span class="n">Union</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="p">{</span>
-  <span class="k">const</span> <span class="kt">int</span> <span class="n">numDistanceFunctions</span> <span class="o">=</span> <span class="n">m_distanceFunctions</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
-
   <span class="n">T</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">infinity</span><span class="p">();</span>
   
   <span class="k">for</span> <span class="p">(</span><span class="k">const</span> <span class="k">auto</span> <span class="o">&amp;</span> <span class="nl">sdf</span> <span class="p">:</span> <span class="n">m_distanceFunctions</span><span class="p">){</span>
@@ -139,6 +137,8 @@ The implementation of the standard union is</p>
   
   <span class="k">return</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">ret</span><span class="p">;</span>
 <span class="p">}</span>
+
+<span class="cp">#include</span> <span class="cpf">&quot;EBGeometry_NamespaceFooter.hpp&quot;</span><span class="cp"></span>
 </pre></div>
 </div>
 <p>That is, it iterates through <em>all</em> the objects in order to find the signed distance.</p>
@@ -146,7 +146,7 @@ The implementation of the standard union is</p>
 <div class="section" id="bvh-enabled-union">
 <h2>BVH-enabled union<a class="headerlink" href="#bvh-enabled-union" title="Permalink to this headline"></a></h2>
 <p>The BVH-enabled union is implemented by <code class="docutils literal notranslate"><span class="pre">EBGeometry::UnionBVH</span></code> as follows:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">K</span><span class="o">&gt;</span>
 <span class="k">class</span> <span class="nc">UnionBVH</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
 <span class="k">public</span><span class="o">:</span>
 
@@ -173,12 +173,11 @@ The implementation of the standard union is</p>
 <p>Internally, <code class="docutils literal notranslate"><span class="pre">UnionBVH</span></code> defines its own partitioning function which is identical to the implementation for DCEL meshes (see <a class="reference internal" href="ImplemDCEL.html#chap-bvhintegration"><span class="std std-ref">BVH integration</span></a>), with the exception that the partitioning is based on the centroids of the bounding volumes rather than the centroid of the primitives.
 After partitioning the primitives, the original BVH tree is flattened onto the compact representation.</p>
 <p>The implementation of the signed distance function for the BVH-enabled union is</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="p">}</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">K</span><span class="o">&gt;</span>
 <span class="n">T</span> <span class="n">UnionBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;::</span><span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="p">{</span>
   <span class="k">const</span> <span class="n">T</span> <span class="n">sign</span> <span class="o">=</span> <span class="p">(</span><span class="n">m_flipSign</span><span class="p">)</span> <span class="o">?</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">:</span> <span class="mf">1.0</span><span class="p">;</span>
-
-  <span class="k">return</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">a_point</span><span class="p">);</span>  
-<span class="p">}</span>
 </pre></div>
 </div>
 <p>That is, it relies on pruning from the BVH functionality for finding the signed distance to the closest object.</p>
