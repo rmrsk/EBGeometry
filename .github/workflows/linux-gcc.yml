@@ -1,4 +1,4 @@
-name: EBGeometry basic
+name: EBGeometry GNU
 
 on:
   pull_request:

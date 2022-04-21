@@ -430,7 +430,7 @@ namespace BVH {
 
   template<class T, class P, class BV, int K>
   inline
-  void LinearNodeT<T, P, BV, K>::setNumPrimitives(const int a_numPrimitives) noexcept {
+  void LinearNodeT<T, P, BV, K>::setNumPrimitives(const unsigned long a_numPrimitives) noexcept {
     m_numPrimitives = a_numPrimitives;
   }
 

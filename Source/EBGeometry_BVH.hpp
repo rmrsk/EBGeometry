@@ -387,7 +387,7 @@ namespace BVH {
       @param[in] a_numPrimitives Number of primitives. 
     */
     inline
-    void setNumPrimitives(const int a_numPrimitives) noexcept;
+    void setNumPrimitives(const unsigned long a_numPrimitives) noexcept;
 
     /*!
       @brief Set the child offsets. 
@@ -463,7 +463,7 @@ namespace BVH {
     /*!
       @brief Number of primitives
     */
-    int m_numPrimitives;
+    unsigned long m_numPrimitives;
 
     /*!
       @brief Offset to child nodes. 
