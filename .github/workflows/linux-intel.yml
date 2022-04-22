@@ -19,7 +19,7 @@ jobs:
       - name: Checkout EBGeometry
         uses: actions/checkout@v2
 
-      - name: Install Intel compilers/MPI
+      - name: Install Intel oneAPI
         working-directory: /tmp        
         run: |
           wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
@@ -39,4 +39,45 @@ jobs:
         run: |
           source /opt/intel/oneapi/setvars.sh          
           icpc -std=c++14 -w -O3 main.cpp          
-          ./a.out                    
+          ./a.out
+
+
+  Intel-DEBUG:
+    if: github.event.pull_request.draft == false  
+    name: Linux-Intel debug
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout EBGeometry
+        uses: actions/checkout@v2
+
+      - name: Install Intel oneAPI
+        working-directory: /tmp        
+        run: |
+          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"
+          sudo apt-get -y install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+
+      - name: DCEL example
+        working-directory: Examples/EBGeometry_DCEL
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          icpc -std=c++14 -O0
+          -Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
+          -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
+          -Wunused-variable -Wwrite-strings -Werror \
+          main.cpp
+          ./a.out porsche.ply          
+
+      - name: Union example
+        working-directory: Examples/EBGeometry_Union
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          icpc -std=c++14 -O0
+          -Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
+          -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
+          -Wunused-variable -Wwrite-strings -Werror \
+          main.cpp
+          ./a.out
