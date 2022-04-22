@@ -1,0 +1,44 @@
+name: EBGeometry Linux-GNU
+
+on:
+  pull_request:
+    types: [push, opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-linux-gcc    
+  cancel-in-progress: true
+
+jobs:
+  Intel-OPT:
+    if: github.event.pull_request.draft == false  
+    name: Linux-Intel opt
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout EBGeometry
+        uses: actions/checkout@v2
+
+      - name: Install Intel compilers/MPI
+        working-directory: /tmp        
+        run: |
+          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"
+          sudo apt-get -y install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-compiler-fortran intel-oneapi-mkl intel-oneapi-mpi intel-oneapi-mpi-devel intel-oneapi-openmp
+      
+      - name: Setup compilers
+        run: |
+          source /opt/intel/oneapi/setvars.sh          
+
+      - name: DCEL example
+        working-directory: Examples/EBGeometry_DCEL
+        run: |
+          icpc -std=c++14 -w -O3 main.cpp
+          ./a.out porsche.ply          
+
+      - name: Union example
+        working-directory: Examples/EBGeometry_Union
+        run: |
+          icpc -std=c++14 -w -O3 main.cpp          
+          ./a.out                    
