@@ -231,7 +231,7 @@ $(function() {
 <div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160;    <span class="comment">// The centroid-based partitioner can end up with no primitives in one of the leaves (a rare case). Use a different partitioner in</span></div>
 <div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;    <span class="comment">// that case. </span></div>
 <div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160;    <span class="keywordflow">if</span>(!(EBGeometry::Dcel::validChunks&lt;T, K&gt;(chunks))) {</div>
-<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160;      chunks = EBGeometry::Dcel::chunkPartitioner&lt;T, K&gt;(a_primitives);</div>
+<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160;      chunks = EBGeometry::Dcel::chunkPartitioner&lt;T, BV, K&gt;(a_primitives);</div>
 <div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;    }</div>
 <div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160; </div>
 <div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;    <span class="keywordflow">return</span> chunks;</div>
