@@ -64,7 +64,7 @@ jobs:
         working-directory: Examples/EBGeometry_DCEL
         run: |
           source /opt/intel/oneapi/setvars.sh
-          icpc -std=c++14 -O0
+          icpc -std=c++14 -O0 \
           -Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
           -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
           -Wunused-variable -Wwrite-strings -Werror \
@@ -75,7 +75,7 @@ jobs:
         working-directory: Examples/EBGeometry_Union
         run: |
           source /opt/intel/oneapi/setvars.sh
-          icpc -std=c++14 -O0
+          icpc -std=c++14 -O0 \
           -Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
           -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
           -Wunused-variable -Wwrite-strings -Werror \
