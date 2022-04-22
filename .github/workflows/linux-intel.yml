@@ -1,4 +1,4 @@
-name: EBGeometry Linux-GNU
+name: EBGeometry Linux-Intel
 
 on:
   pull_request:
