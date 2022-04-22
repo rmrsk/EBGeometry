@@ -87,7 +87,7 @@ namespace BoundingVolumes {
       @brief Copy assignment operator
       @param[in] a_other Other sphere
     */    
-    BoundingSphereT operator=(const BoundingSphereT& a_other) = default;
+    BoundingSphereT& operator=(const BoundingSphereT& a_other) = default;
 
     /*!
       @brief Template define function which takes a set of 3D points (mixed precision allowed).

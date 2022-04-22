@@ -209,7 +209,7 @@ namespace Dcel {
     // The centroid-based partitioner can end up with no primitives in one of the leaves (a rare case). Use a different partitioner in
     // that case. 
     if(!(EBGeometry::Dcel::validChunks<T, K>(chunks))) {
-      chunks = EBGeometry::Dcel::chunkPartitioner<T, K>(a_primitives);
+      chunks = EBGeometry::Dcel::chunkPartitioner<T, BV, K>(a_primitives);
     }
 
     return chunks;
