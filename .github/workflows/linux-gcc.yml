@@ -39,7 +39,7 @@ jobs:
 
       - name: Run DCEL example
         working-directory: Examples/EBGeometry_DCEL
-        run:
+        run: |
           ./a.out porsche.ply
           echo $?
 
