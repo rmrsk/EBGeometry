@@ -82,14 +82,26 @@ jobs:
           sudo apt-get update
           sudo apt-get install ${{ matrix.comp }}
 
-      - name: DCEL example
+      - name: Compile DCEL example
         working-directory: Examples/EBGeometry_DCEL
+        if: always()        
         run: |
           ${{ matrix.comp }} -std=c++14 -w -O3 main.cpp
-          ./a.out porsche.ply
 
-      - name: Union example
+      - name: Run DCEL example
+        working-directory: Examples/EBGeometry_DCEL
+        run: |
+          ./a.out porsche.ply
+          if [[ $? == 1 ]]; then exit 0; else exit 1; fi                    
+
+      - name: Compile union example
         working-directory: Examples/EBGeometry_Union
+        if: always()
         run: |
           ${{ matrix.comp }} -std=c++14 -w -O3 main.cpp          
-          ./a.out                    
+
+      - name: Run union example
+        working-directory: Examples/EBGeometry_Union
+        run: |
+          ./a.out
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
