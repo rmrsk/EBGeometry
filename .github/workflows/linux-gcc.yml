@@ -39,9 +39,9 @@ jobs:
 
       - name: Run DCEL example
         working-directory: Examples/EBGeometry_DCEL
-        needs: Compile DCEL example
         run:
-          ./a.out porsche.ply          
+          ./a.out porsche.ply
+          echo $?
 
       - name: Union example
         working-directory: Examples/EBGeometry_Union
