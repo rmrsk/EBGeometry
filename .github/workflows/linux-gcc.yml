@@ -29,6 +29,7 @@ jobs:
 
       - name: Compile DCEL example
         working-directory: Examples/EBGeometry_DCEL
+        if: always()        
         run: |
           ${{ matrix.comp }} -std=c++14 \
           -pedantic -Wall -Wextra  -Wcast-align  -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
@@ -39,20 +40,28 @@ jobs:
 
       - name: Run DCEL example
         working-directory: Examples/EBGeometry_DCEL
+        if: always()        
         run: |
           ./a.out porsche.ply
-          if [[ $? == 1 ]]; then exit 0; else exit 1; fi          
+          if [[ $? == 1 ]]; then exit 0; else exit 1; fi
 
-      - name: Union example
+      - name: Compile union example
         working-directory: Examples/EBGeometry_Union
+        if: always()
         run: |
           ${{ matrix.comp }} -std=c++14 \
           -pedantic -Wall -Wextra  -Wcast-align  -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
           -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
           -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel \
           -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused \
-          main.cpp           
+          main.cpp                     
+
+      - name: Run union example
+        working-directory: Examples/EBGeometry_Union
+        if: always()        
+        run: |
           ./a.out
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
 
   GNU-OPT:
     if: github.event.pull_request.draft == false  
