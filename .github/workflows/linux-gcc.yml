@@ -92,7 +92,7 @@ jobs:
         working-directory: Examples/EBGeometry_DCEL
         run: |
           ./a.out porsche.ply
-          if [[ $? == 1 ]]; then exit 0; else exit 1; fi                    
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi                    
 
       - name: Compile union example
         working-directory: Examples/EBGeometry_Union
@@ -102,6 +102,7 @@ jobs:
 
       - name: Run union example
         working-directory: Examples/EBGeometry_Union
+        if: always()
         run: |
           ./a.out
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
