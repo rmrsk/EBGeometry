@@ -41,7 +41,7 @@ jobs:
         working-directory: Examples/EBGeometry_DCEL
         run: |
           ./a.out porsche.ply
-          echo $?
+          if [[ $? == 1 ]]; then exit 0; else exit 1; fi          
 
       - name: Union example
         working-directory: Examples/EBGeometry_Union
