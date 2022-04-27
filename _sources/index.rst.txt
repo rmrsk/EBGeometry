@@ -13,7 +13,8 @@ It only takes care of the *geometry representation*, i.e. the creation of comple
 
 .. important::
 
-   A separate Doxygen-generated API of EBGeometry is found `here <doxygen/html/index.html>`_.   
+   The EBGeometry source code is found `here <https://github.com/rmrsk/EBGeometry>`_.
+   A separate Doxygen-generated API of EBGeometry is available `here <doxygen/html/index.html>`_.   
 
 .. This is for getting rid of the TOC in html view. 
 .. raw:: html
