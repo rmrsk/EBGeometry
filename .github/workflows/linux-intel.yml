@@ -27,19 +27,35 @@ jobs:
           sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"
           sudo apt-get -y install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
 
-      - name: DCEL example
+      - name: Compile DCEL example
         working-directory: Examples/EBGeometry_DCEL
+        if: always()
         run: |
           source /opt/intel/oneapi/setvars.sh
           icpc -std=c++14 -w -O3 main.cpp
-          ./a.out porsche.ply          
 
-      - name: Union example
+      - name: Run DCEL example
+        working-directory: Examples/EBGeometry_DCEL
+        if: always()
+        run: |
+          source /opt/intel/oneapi/setvars.sh          
+          ./a.out porsche.ply
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
+
+      - name: Compile union example
         working-directory: Examples/EBGeometry_Union
+        if: always()
         run: |
           source /opt/intel/oneapi/setvars.sh          
           icpc -std=c++14 -w -O3 main.cpp          
+
+      - name: Run union example
+        working-directory: Examples/EBGeometry_Union
+        if: always()
+        run: |
+          source /opt/intel/oneapi/setvars.sh          
           ./a.out
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
 
 
   Intel-DEBUG:
@@ -60,8 +76,9 @@ jobs:
           sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"
           sudo apt-get -y install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
 
-      - name: DCEL example
+      - name: Compile DCEL example
         working-directory: Examples/EBGeometry_DCEL
+        if: always()
         run: |
           source /opt/intel/oneapi/setvars.sh
           icpc -std=c++14 -O0 \
@@ -69,10 +86,18 @@ jobs:
           -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
           -Wunused-variable -Wwrite-strings -Werror \
           main.cpp
-          ./a.out porsche.ply          
 
-      - name: Union example
+      - name: Run DCEL example
+        working-directory: Examples/EBGeometry_DCEL
+        if: always()
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          ./a.out porsche.ply
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
+
+      - name: Compile union example
         working-directory: Examples/EBGeometry_Union
+        if: always()
         run: |
           source /opt/intel/oneapi/setvars.sh
           icpc -std=c++14 -O0 \
@@ -80,4 +105,11 @@ jobs:
           -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
           -Wunused-variable -Wwrite-strings -Werror \
           main.cpp
+
+      - name: Run union example
+        working-directory: Examples/EBGeometry_Union
+        if: always()
+        run: |
+          source /opt/intel/oneapi/setvars.sh
           ./a.out
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
