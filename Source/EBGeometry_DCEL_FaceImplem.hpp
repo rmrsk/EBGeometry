@@ -147,8 +147,9 @@ FaceT<T>::computeNormal() noexcept
 
     m_normal = (x2 - x1).cross(x2 - x0);
 
-    if (m_normal.length() > 0.0)
+    if (m_normal.length() > 0.0) {
       break; // Found one.
+    }
   }
 
   this->normalizeNormalVector();
@@ -158,8 +159,6 @@ template <class T>
 inline void
 FaceT<T>::computePolygon2D() noexcept
 {
-
-  // See CD_DCELPoly.H to see how the 2D embedding operates.
   m_poly2 = std::make_shared<Polygon2D<T>>(m_normal, this->getAllVertexCoordinates());
 }
 
@@ -318,7 +317,8 @@ FaceT<T>::signedDistance(const Vec3& a_x0) const noexcept
   if (inside) { // Projects to inside so distance and sign are straightforward
                 // to compute.
     retval = m_normal.dot(a_x0 - m_centroid);
-  } else {
+  }
+  else {
     for (const auto& e : m_edges) { // Projects to outside so edge/vertex are
                                     // closest. Check that distance.
       const T curDist = e->signedDistance(a_x0);
@@ -343,7 +343,8 @@ FaceT<T>::unsignedDistance2(const Vec3& a_x0) const noexcept
     const T normDist = m_normal.dot(a_x0 - m_centroid);
 
     retval = normDist * normDist;
-  } else {
+  }
+  else {
     for (const auto& e : m_edges) { // Projects to outside so edge/vertex are closest.
       const T curDist2 = e->unsignedDistance2(a_x0);
 

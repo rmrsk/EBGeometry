@@ -269,9 +269,11 @@ EdgeT<T>::signedDistance(const Vec3& a_x0) const noexcept
   T retval;
   if (t <= 0.0) { // Closest point is the starting vertex
     retval = this->getVertex()->signedDistance(a_x0);
-  } else if (t >= 1.0) { // Closest point is the end vertex
+  }
+  else if (t >= 1.0) { // Closest point is the end vertex
     retval = this->getOtherVertex()->signedDistance(a_x0);
-  } else { // Closest point is the edge itself.
+  }
+  else { // Closest point is the edge itself.
     const Vec3 linePoint = m_vertex->getPosition() + t * m_x2x1;
     const Vec3 delta = a_x0 - linePoint;
     const T dot = m_normal.dot(delta);

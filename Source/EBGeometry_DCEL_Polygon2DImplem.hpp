@@ -115,7 +115,8 @@ Polygon2D<T>::computeWindingNumber(const Vec2& P) const noexcept
       if (P2.y > P.y)  // an upward crossing
         if (res > 0.)  // P left of  edge
           ++wn;        // have  a valid up intersect
-    } else {           // start y > P.y (no test needed)
+    }
+    else {             // start y > P.y (no test needed)
       if (P2.y <= P.y) // a downward crossing
         if (res < 0.)  // P right of  edge
           --wn;        // have  a valid down intersect

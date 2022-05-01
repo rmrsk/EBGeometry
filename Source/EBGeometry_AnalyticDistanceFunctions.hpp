@@ -687,12 +687,15 @@ public:
 
       if (w <= zero && h <= zero) { // Inside cylinder
         d = (std::abs(w) < std::abs(h)) ? w : h;
-      } else if (w <= zero && h > zero) { // Above one of the endcaps.
+      }
+      else if (w <= zero && h > zero) { // Above one of the endcaps.
         d = h;
-      } else if (w > zero && h < zero) { // Outside radius but between the
-                                         // endcaps.
+      }
+      else if (w > zero && h < zero) { // Outside radius but between the
+                                       // endcaps.
         d = w;
-      } else {
+      }
+      else {
         d = sqrt(w * w + h * h);
       }
     }

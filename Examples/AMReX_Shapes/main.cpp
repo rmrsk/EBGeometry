@@ -90,40 +90,49 @@ main(int argc, char* argv[])
   if (whichGeom == 0) { // Sphere.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
     func = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5), false);
-  } else if (whichGeom == 1) { // Plane.
+  }
+  else if (whichGeom == 1) { // Plane.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
     func = std::make_shared<EBGeometry::PlaneSDF<T>>(Vec3::zero(), Vec3::one(), false);
-  } else if (whichGeom == 2) { // Infinite cylinder.
+  }
+  else if (whichGeom == 2) { // Infinite cylinder.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
     func = std::make_shared<EBGeometry::InfiniteCylinderSDF<T>>(Vec3::zero(), T(0.1), 2, false);
-  } else if (whichGeom == 3) { // Finite cylinder.
+  }
+  else if (whichGeom == 3) { // Finite cylinder.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
     func = std::make_shared<EBGeometry::CylinderSDF<T>>(-Vec3::one(), Vec3::one(), 0.25, false);
-  } else if (whichGeom == 4) { // Capsule.
+  }
+  else if (whichGeom == 4) { // Capsule.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
     func = std::make_shared<EBGeometry::CapsuleSDF<T>>(-Vec3::one(), Vec3::one(), 0.25, false);
-  } else if (whichGeom == 5) { // Box.
+  }
+  else if (whichGeom == 5) { // Box.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
     func = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one(), false);
-  } else if (whichGeom == 6) { // Rounded box.
+  }
+  else if (whichGeom == 6) { // Rounded box.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
     auto box = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one(), false);
     func = std::make_shared<EBGeometry::RoundedSDF<T>>(box, 0.25);
-  } else if (whichGeom == 7) { // Torus.
+  }
+  else if (whichGeom == 7) { // Torus.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
     func = std::make_shared<EBGeometry::TorusSDF<T>>(Vec3::zero(), 1.0, 0.25, false);
-  } else if (whichGeom == 8) { // Infinite cone.
+  }
+  else if (whichGeom == 8) { // Infinite cone.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
     func = std::make_shared<EBGeometry::InfiniteConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 30.0, false);
-  } else if (whichGeom == 9) { // Finite cone.
+  }
+  else if (whichGeom == 9) { // Finite cone.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
     func = std::make_shared<EBGeometry::ConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 2.0, 30, false);

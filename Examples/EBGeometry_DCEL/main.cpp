@@ -28,7 +28,8 @@ main(int argc, char* argv[])
   // Read the input file.
   if (argc == 2) {
     file = "../PLY/" + std::string(argv[1]);
-  } else {
+  }
+  else {
     std::cerr << "Missing file name. Use ./a.out 'filename' where 'filename' "
                  "is one of the files in ../PLY\n";
   }

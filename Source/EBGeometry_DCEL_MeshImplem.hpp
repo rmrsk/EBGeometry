@@ -108,7 +108,8 @@ MeshT<T>::sanityCheck() const noexcept
 
     if (f == nullptr) {
       incrementWarning(warnings, f_null);
-    } else if (halfEdge == nullptr) {
+    }
+    else if (halfEdge == nullptr) {
       incrementWarning(warnings, f_noEdge);
     }
     if (!noDuplicates) {
@@ -126,24 +127,31 @@ MeshT<T>::sanityCheck() const noexcept
     // Check basic points for current edge.
     if (e == nullptr) {
       incrementWarning(warnings, e_null);
-    } else if (e->getVertex() == e->getOtherVertex()) {
+    }
+    else if (e->getVertex() == e->getOtherVertex()) {
       incrementWarning(warnings, e_degenerate);
-    } else if (pairEdge == nullptr) {
+    }
+    else if (pairEdge == nullptr) {
       incrementWarning(warnings, e_noPairEdge);
-    } else if (nextEdge == nullptr) {
+    }
+    else if (nextEdge == nullptr) {
       incrementWarning(warnings, e_noNextEdge);
-    } else if (prevEdge == nullptr) {
+    }
+    else if (prevEdge == nullptr) {
       incrementWarning(warnings, e_noPrevEdge);
-    } else if (curVertex == nullptr) {
+    }
+    else if (curVertex == nullptr) {
       incrementWarning(warnings, e_noOrigVert);
-    } else if (curFace == nullptr) {
+    }
+    else if (curFace == nullptr) {
       incrementWarning(warnings, e_noFace);
     }
 
     // Check that the next edge's previous edge is this edge.
     if (prevEdge->getNextEdge() != e) {
       incrementWarning(warnings, e_noPrevNext);
-    } else if (nextEdge->getPreviousEdge() != e) {
+    }
+    else if (nextEdge->getPreviousEdge() != e) {
       incrementWarning(warnings, e_noNextPrev);
     }
   }
@@ -152,7 +160,8 @@ MeshT<T>::sanityCheck() const noexcept
   for (const auto& v : m_vertices) {
     if (v == nullptr) {
       incrementWarning(warnings, v_null);
-    } else if (v->getOutgoingEdge() == nullptr) {
+    }
+    else if (v->getOutgoingEdge() == nullptr) {
       incrementWarning(warnings, v_noEdge);
     }
   }

@@ -249,7 +249,8 @@ NodeT<T, P, BV, K>::pruneStack(const Vec3& a_point) const noexcept
         if (std::abs(primDist) < std::abs(minDist)) {
           minDist = primDist;
         }
-      } else {
+      }
+      else {
         // If it's a regular node, sort the child nodes and put them on the
         // stack. On the next iteration we do the closest node first. This
         // sorting is critical to the performance of the BVH.
@@ -300,7 +301,8 @@ NodeT<T, P, BV, K>::pruneOrdered(T& a_shortestDistanceSoFar, const Vec3& a_point
     if (std::abs(primDist) < std::abs(a_shortestDistanceSoFar)) {
       a_shortestDistanceSoFar = primDist;
     }
-  } else {
+  }
+  else {
     // In this case we need to decide which subtree to move down. First, sort
     // the children nodes by the distance between a_point and the children
     // node's bounding volume. Shortest distance goes first.
@@ -327,7 +329,8 @@ NodeT<T, P, BV, K>::pruneOrdered(T& a_shortestDistanceSoFar, const Vec3& a_point
       // value here.
       if (std::abs(curChildNode.first) <= std::abs(a_shortestDistanceSoFar)) {
         curChildNode.second->pruneOrdered(a_shortestDistanceSoFar, a_point);
-      } else { // Prune the rest of the children nodes.
+      }
+      else { // Prune the rest of the children nodes.
         break;
       }
     }
@@ -346,7 +349,8 @@ NodeT<T, P, BV, K>::pruneUnordered(T& a_shortestDistanceSoFar, const Vec3& a_poi
     if (std::abs(curSignedDistance) < std::abs(a_shortestDistanceSoFar)) {
       a_shortestDistanceSoFar = curSignedDistance;
     }
-  } else {
+  }
+  else {
     // Investigate subtrees. Prune subtrees if the distance to their bounding
     // volumes are longer than the shortest distance we've found so far.
     for (const auto& child : m_children) {
@@ -407,7 +411,8 @@ NodeT<T, P, BV, K>::flattenTree(
     a_linearNodes[curNode]->setPrimitivesOffset(a_sortedPrimitives.size());
 
     a_sortedPrimitives.insert(a_sortedPrimitives.end(), m_primitives.begin(), m_primitives.end());
-  } else {
+  }
+  else {
     a_linearNodes[curNode]->setNumPrimitives(0);
     a_linearNodes[curNode]->setPrimitivesOffset(0UL);
 
@@ -598,7 +603,8 @@ LinearBVH<T, P, BV, K>::signedDistance(const Vec3& a_point) const noexcept
         if (std::abs(primDist) < std::abs(minDist)) {
           minDist = primDist;
         }
-      } else {
+      }
+      else {
         // Compute child indices and their BVH distance to a_point.
         for (size_t k = 0; k < K; k++) {
           const size_t& curOff = m_linearNodes[curNode]->getChildOffsets()[k];

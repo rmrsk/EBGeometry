@@ -421,7 +421,8 @@ Vec3T<T>::minDir(const bool a_doAbs) const noexcept
       if (std::abs(X[dir]) < std::abs(X[mDir])) {
         mDir = dir;
       }
-    } else {
+    }
+    else {
       if (X[dir] < X[mDir]) {
         mDir = dir;
       }
@@ -442,7 +443,8 @@ Vec3T<T>::maxDir(const bool a_doAbs) const noexcept
       if (std::abs(X[dir]) > std::abs(X[mDir])) {
         mDir = dir;
       }
-    } else {
+    }
+    else {
       if (X[dir] > X[mDir]) {
         mDir = dir;
       }

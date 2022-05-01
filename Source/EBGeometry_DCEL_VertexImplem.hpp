@@ -173,9 +173,11 @@ VertexT<T>::computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a_faces
       if (v1 == originVertex || v2 == originVertex) {
         if (v1 == originVertex) {
           inoutVertices.emplace_back(v2);
-        } else if (v2 == originVertex) {
+        }
+        else if (v2 == originVertex) {
           inoutVertices.emplace_back(v1);
-        } else {
+        }
+        else {
           std::cerr << "In file 'CD_DCELVertexImplem.H' function "
                        "vertexT<T>::computeVertexNormalAngleWeighted() - logic bust.\n";
         }

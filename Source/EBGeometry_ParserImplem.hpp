@@ -66,7 +66,8 @@ Parser::PLY<T>::readIntoDCEL(Mesh& a_mesh, const std::string a_filename)
     filestream.close();
 
     a_mesh.reconcile(EBGeometry::DCEL::MeshT<T>::VertexNormalWeight::Angle);
-  } else {
+  }
+  else {
     const std::string error = "Parser::PLY::readIntoDCEL - ERROR! Could not open file " + a_filename;
     std::cerr << error + "\n";
   }
