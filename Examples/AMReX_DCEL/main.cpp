@@ -29,12 +29,12 @@ namespace amrex {
       /*!
 	@brief Alias for builder node, for encapsulating a "standard" BVH node
       */
-      using BuilderNode = EBGeometry::BVH::NodeT<T, EBGeometry::Dcel::FaceT<T>, BV, K>;
+      using BuilderNode = EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>;
 
       /*!
 	@brief Alias for linearized BVH node
       */
-      using LinearNode = EBGeometry::BVH::LinearBVH<T, EBGeometry::Dcel::FaceT<T>, BV, K>;
+      using LinearNode = EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>;
 
       /*!
 	@brief Alias for always-3D vector
@@ -49,13 +49,13 @@ namespace amrex {
       SignedDistanceBVH(const std::string a_filename, const bool a_flipSign) {
 
 	// 1. Read mesh from file. 
-	auto mesh = EBGeometry::Dcel::Parser::PLY<T>::readASCII(a_filename);
+	auto mesh = EBGeometry::Parser::PLY<T>::readASCII(a_filename);
 
 	// 2. Create a standard BVH hierarchy. This is not a compact ree. 
 	auto root = std::make_shared<BuilderNode>(mesh->getFaces());
-	root->topDownSortAndPartitionPrimitives(EBGeometry::Dcel::defaultBVConstructor<T, BV>,
-						EBGeometry::Dcel::defaultPartitioner<T, BV, K>,
-						EBGeometry::Dcel::defaultStopFunction<T, BV, K>);
+	root->topDownSortAndPartitionPrimitives(EBGeometry::DCEL::defaultBVConstructor<T, BV>,
+						EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
+						EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
 
 	// 3. Flatten the tree onto a tighter memory representation. 
 	m_rootNode = root->flattenTree();

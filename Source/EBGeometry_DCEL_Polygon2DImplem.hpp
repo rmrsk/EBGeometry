@@ -4,22 +4,22 @@
  */
 
 /*!
-  @file   EBGeometry_DcelPolygon2DImplem.hpp
-  @brief  Implementation of DcelPolygon.hpp
+  @file   EBGeometry_Polygon2DImplem.hpp
+  @brief  Implementation of DCELPolygon.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DcelPolygon2DImplem
-#define EBGeometry_DcelPolygon2DImplem
+#ifndef EBGeometry_Polygon2DImplem
+#define EBGeometry_Polygon2DImplem
 
 // Std includes
 #include <iostream>
 
 // Our includes
-#include "EBGeometry_DcelPolygon2D.hpp"
+#include "EBGeometry_Polygon2D.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-namespace Dcel {
+namespace DCEL {
 
   template <class T>
   inline
@@ -52,7 +52,7 @@ namespace Dcel {
 	break;
       }
     default:
-      std::cerr << "In file 'CD_DcelPolygon2DImplem.H' function Dcel::Polygon2D<T>::isPointInside - logic bust.\n";
+      std::cerr << "In file 'CD_DCELPolygon2DImplem.H' function Polygon2D<T>::isPointInside - logic bust.\n";
     }
 
     return ret;

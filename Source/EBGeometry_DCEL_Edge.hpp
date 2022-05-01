@@ -4,13 +4,13 @@
  */
 
 /*!
-  @file   EBGeometry_DcelEdge.hpp
+  @file   EBGeometry_DCEL_Edge.hpp
   @brief  Declaration of a half-edge class for use in DCEL descriptions of polygon tesselations. 
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DcelEdge
-#define EBGeometry_DcelEdge
+#ifndef EBGeometry_DCEL_Edge
+#define EBGeometry_DCEL_Edge
 
 // Std includes
 #include <vector>
@@ -18,10 +18,10 @@
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
-#include "EBGeometry_DcelFace.hpp"
+#include "EBGeometry_DCEL_Face.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-namespace Dcel {
+namespace DCEL {
 
   // Forward declare classes. 
   template <class T> class VertexT;
@@ -347,6 +347,6 @@ namespace Dcel {
 
 #include "EBGeometry_NamespaceFooter.hpp"
 
-#include "EBGeometry_DcelEdgeImplem.hpp"
+#include "EBGeometry_DCEL_EdgeImplem.hpp"
 
 #endif

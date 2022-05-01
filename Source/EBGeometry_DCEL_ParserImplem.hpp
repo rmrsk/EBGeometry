@@ -4,13 +4,13 @@
  */
 
 /*!
-  @file   EBGeometry_DcelParserImplem.hpp
-  @brief  Implementation of EBGeometry_DcelParser.hpp
+  @file   EBGeometry_DCELParserImplem.hpp
+  @brief  Implementation of EBGeometry_DCELParser.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DcelParserImplem
-#define EBGeometry_DcelParserImplem
+#ifndef EBGeometry_DCEL.arserImplem
+#define EBGeometry_DCEL.arserImplem
 
 // Std includes
 #include <iostream>
@@ -19,19 +19,19 @@
 #include <sstream>
 
 // Our includes
-#include "EBGeometry_DcelParser.hpp"
-#include "EBGeometry_DcelVertex.hpp"
-#include "EBGeometry_DcelEdge.hpp"
-#include "EBGeometry_DcelFace.hpp"
-#include "EBGeometry_DcelMesh.hpp"
-#include "EBGeometry_DcelIterator.hpp"
+#include "EBGeometry_DCEL.arser.hpp"
+#include "EBGeometry_DCEL.ertex.hpp"
+#include "EBGeometry_DCEL.dge.hpp"
+#include "EBGeometry_DCEL.ace.hpp"
+#include "EBGeometry_DCEL.esh.hpp"
+#include "EBGeometry_DCEL.terator.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-namespace Dcel {
+namespace DCEL {
 
   template <class T>
   inline
-  std::shared_ptr<EBGeometry::Dcel::MeshT<T> > Parser::PLY<T>::readASCII(const std::string a_filename) {
+  std::shared_ptr<EBGeometry::DCEL::MeshT<T> > Parser::PLY<T>::readASCII(const std::string a_filename) {
     auto mesh = std::make_shared<Mesh>();
 
     readASCII(*mesh, a_filename);
@@ -56,19 +56,19 @@ namespace Dcel {
       size_t numVertices;  // Number of vertices
       size_t numFaces;     // Number of faces
 
-      Dcel::Parser::PLY<T>::readHeaderASCII(numVertices, numFaces, filestream);
-      Dcel::Parser::PLY<T>::readVerticesASCII(vertices, numVertices, filestream);
-      Dcel::Parser::PLY<T>::readFacesASCII(faces, edges, vertices, numFaces, filestream);
-      Dcel::Parser::PLY<T>::reconcilePairEdges(edges);
+      Parser::PLY<T>::readHeaderASCII(numVertices, numFaces, filestream);
+      Parser::PLY<T>::readVerticesASCII(vertices, numVertices, filestream);
+      Parser::PLY<T>::readFacesASCII(faces, edges, vertices, numFaces, filestream);
+      Parser::PLY<T>::reconcilePairEdges(edges);
 
       a_mesh.sanityCheck();
     
       filestream.close();
 
-      a_mesh.reconcile(EBGeometry::Dcel::MeshT<T>::VertexNormalWeight::Angle);
+      a_mesh.reconcile(EBGeometry::DCEL::MeshT<T>::VertexNormalWeight::Angle);
     }
     else{
-      const std::string error = "Dcel::Parser::PLY::readASCII - ERROR! Could not open file " + a_filename;
+      const std::string error = "Parser::PLY::readASCII - ERROR! Could not open file " + a_filename;
       std::cerr << error + "\n";
     }
   }
@@ -150,7 +150,7 @@ namespace Dcel {
 
   template <class T>
   inline
-  void Dcel::Parser::PLY<T>::readFacesASCII(std::vector<std::shared_ptr<Face> >&         a_faces,
+  void Parser::PLY<T>::readFacesASCII(std::vector<std::shared_ptr<Face> >&         a_faces,
 					    std::vector<std::shared_ptr<Edge> >&         a_edges,
 					    const std::vector<std::shared_ptr<Vertex> >& a_vertices,
 					    const size_t                                 a_numFaces,
@@ -171,7 +171,7 @@ namespace Dcel {
 	sstream >> vertexIndices[i];
       }
 
-      if(numVertices < 3) std::cerr << "Dcel::Parser::PLY::readFacesASCII - a face must have at least three vertices!\n";
+      if(numVertices < 3) std::cerr << "Parser::PLY::readFacesASCII - a face must have at least three vertices!\n";
     
       // Get the vertices that make up this face. 
       std::vector<std::shared_ptr<Vertex> > curVertices;

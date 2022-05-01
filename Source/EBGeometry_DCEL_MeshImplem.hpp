@@ -4,23 +4,23 @@
  */
 
 /*!
-  @file   EBGeometry_DcelMeshImplem.hpp
-  @brief  Implementation of EBGeometry_DcelMesh.hpp
+  @file   EBGeometry_DCEL_MeshImplem.hpp
+  @brief  Implementation of EBGeometry_DCEL_Mesh.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DcelMeshImplem
-#define EBGeometry_DcelMeshImplem
+#ifndef EBGeometry_DCEL_MeshImplem
+#define EBGeometry_DCEL_MeshImplem
 
 // Our includes
-#include "EBGeometry_DcelMesh.hpp"
-#include "EBGeometry_DcelIterator.hpp"
-#include "EBGeometry_DcelVertex.hpp"
-#include "EBGeometry_DcelEdge.hpp"
-#include "EBGeometry_DcelFace.hpp"
+#include "EBGeometry_DCEL_Mesh.hpp"
+#include "EBGeometry_DCEL_Iterator.hpp"
+#include "EBGeometry_DCEL_Vertex.hpp"
+#include "EBGeometry_DCEL_Edge.hpp"
+#include "EBGeometry_DCEL_Face.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-namespace Dcel {
+namespace DCEL {
 
   template <class T>
   inline
@@ -63,7 +63,7 @@ namespace Dcel {
   void MeshT<T>::printWarnings(const std::map<std::string, size_t>& a_warnings) const noexcept {
     for (const auto& warn : a_warnings){
       if(warn.second > 0){
-	std::cerr << "In file 'CD_DcelMeshImplem.H' function MeshT<T>::sanityCheck() - warnings about error '" << warn.first << "' = " << warn.second << "\n";
+	std::cerr << "In file 'CD_DCELMeshImplem.H' function MeshT<T>::sanityCheck() - warnings about error '" << warn.first << "' = " << warn.second << "\n";
       }
     }
   }
@@ -186,7 +186,7 @@ namespace Dcel {
 
   template <class T>
   inline
-  void MeshT<T>::setInsideOutsideAlgorithm(typename Dcel::Polygon2D<T>::InsideOutsideAlgorithm a_algorithm) noexcept {
+  void MeshT<T>::setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm a_algorithm) noexcept {
     for (auto& f : m_faces){
       f->setInsideOutsideAlgorithm(a_algorithm);
     }
@@ -194,7 +194,7 @@ namespace Dcel {
 
   template <class T>
   inline
-  void MeshT<T>::reconcile(typename Dcel::MeshT<T>::VertexNormalWeight a_weight) noexcept {
+  void MeshT<T>::reconcile(typename DCEL::MeshT<T>::VertexNormalWeight a_weight) noexcept {
     this->reconcileFaces();
     this->reconcileEdges();
     this->reconcileVertices(a_weight);
@@ -218,7 +218,7 @@ namespace Dcel {
 
   template <class T>
   inline
-  void MeshT<T>::reconcileVertices(typename Dcel::MeshT<T>::VertexNormalWeight a_weight) noexcept {
+  void MeshT<T>::reconcileVertices(typename DCEL::MeshT<T>::VertexNormalWeight a_weight) noexcept {
     for (auto& v : m_vertices){
       switch(a_weight) {
       case VertexNormalWeight::None:
@@ -228,7 +228,7 @@ namespace Dcel {
 	v->computeVertexNormalAngleWeighted();
 	break;
       default:
-	std::cerr << "In file 'CD_DcelMeshImplem.H' function Dcel::MeshT<T>::reconcileVertices(VertexNormalWeighting) - unsupported algorithm requested\n";
+	std::cerr << "In file 'CD_DCELMeshImplem.H' function DCEL::MeshT<T>::reconcileVertices(VertexNormalWeighting) - unsupported algorithm requested\n";
       }
     }
   }
@@ -320,7 +320,7 @@ namespace Dcel {
       }
     default:
       {
-	std::cerr << "Error in file 'CD_DcelMeshImplem.H' MeshT<T>::signedDistance unsupported algorithm requested\n";
+	std::cerr << "Error in file 'CD_DCELMeshImplem.H' MeshT<T>::signedDistance unsupported algorithm requested\n";
 	
 	break;
       }

@@ -4,23 +4,23 @@
  */
 
 /*!
-  @file   EBGeometry_DcelEdgeImplem.hpp
-  @brief  Implementation of EBGeometry_DcelEdge.hpp
+  @file   EBGeometry_DCEL_EdgeImplem.hpp
+  @brief  Implementation of EBGeometry_DCEL_Edge.hpp
   @author Robert Marskar
   @todo   Include m_face in constructors
 */
 
-#ifndef CD_DcelEdgeImplem
-#define CD_DcelEdgeImplem
+#ifndef CD_DCELEdgeImplem
+#define CD_DCELEdgeImplem
 
 // Our includes
-#include "EBGeometry_DcelVertex.hpp"
-#include "EBGeometry_DcelEdge.hpp"
-#include "EBGeometry_DcelFace.hpp"
-#include "EBGeometry_DcelIterator.hpp"
+#include "EBGeometry_DCEL_Vertex.hpp"
+#include "EBGeometry_DCEL_Edge.hpp"
+#include "EBGeometry_DCEL_Face.hpp"
+#include "EBGeometry_DCEL_Iterator.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-namespace Dcel {
+namespace DCEL {
 
   template <class T>
   inline

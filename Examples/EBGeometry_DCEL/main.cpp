@@ -10,7 +10,7 @@
 #include "../../EBGeometry.hpp"
 
 using namespace EBGeometry;
-using namespace EBGeometry::Dcel;
+using namespace EBGeometry::DCEL;
 
 // Degree of bounding volume hierarchies. We use a 4-ary tree here, where each
 // regular node has four children. 
@@ -41,15 +41,15 @@ int main(int argc, char *argv[]) {
   // Parse the mesh from file. One can call the signed distance function directly on the mesh, but it will
   // iterate through every facet. 
   std::cout << "Parsing input file\n";  
-  std::shared_ptr<EBGeometry::Dcel::MeshT<T> > directSDF = EBGeometry::Dcel::Parser::PLY<T>::readASCII(file);
+  std::shared_ptr<EBGeometry::DCEL::MeshT<T> > directSDF = EBGeometry::Parser::PLY<T>::readASCII(file);
 
   // Create a bounding-volume hierarchy of the same mesh type. We begin by create the root node and supplying all the mesh faces to it. Here,
   // our bounding volume hierarchy bounds the facets in a binary tree.
   std::cout << "Partitioning BVH\n";    
   auto bvhSDF = std::make_shared<BVH::NodeT<T, FaceT<T>, BV, K> > (directSDF->getFaces());
-  bvhSDF->topDownSortAndPartitionPrimitives(EBGeometry::Dcel::defaultBVConstructor<T, BV>,
-					    EBGeometry::Dcel::defaultPartitioner<T, BV, K>,
-					    EBGeometry::Dcel::defaultStopFunction<T, BV, K>);
+  bvhSDF->topDownSortAndPartitionPrimitives(EBGeometry::DCEL::defaultBVConstructor<T, BV>,
+					    EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
+					    EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
 
   // Create the linear representation of the conventional BVH SDF above.
   std::cout << "Flattening BVH tree\n";      

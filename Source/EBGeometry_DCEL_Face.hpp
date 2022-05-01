@@ -4,13 +4,13 @@
  */
 
 /*!
-  @file   EBGeometry_DcelFace.hpp
+  @file   EBGeometry_DCEL_Face.hpp
   @brief  Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations. 
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DcelFace
-#define EBGeometry_DcelFace
+#ifndef EBGeometry_DCEL_Face
+#define EBGeometry_DCEL_Face
 
 // Std includes
 #include <memory>
@@ -18,12 +18,12 @@
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
-#include "EBGeometry_DcelVertex.hpp"
-#include "EBGeometry_DcelEdge.hpp"
-#include "EBGeometry_DcelPolygon2D.hpp"
+#include "EBGeometry_DCEL_Vertex.hpp"
+#include "EBGeometry_DCEL_Edge.hpp"
+#include "EBGeometry_Polygon2D.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-namespace Dcel {
+namespace DCEL {
 
   // Forward declarations of other DCEL functionality. 
   template <class T> class VertexT;
@@ -39,7 +39,7 @@ namespace Dcel {
     by projecting it along the cardinal direction of its normal vector. To be fully consistent with a DCEL structure the class stores a reference to one of its half edges,
     but for performance reasons it also stores references to the other half edges. 
     @note To compute the distance from a point to the face one must determine if the point projects "inside" or "outside" the polygon. There are several algorithms for this,
-    and by default this class uses a crossing number algorithm. Other algorithms can be set in setInsideOutsideAlgorithm (see CD_DcelAlgorithms.H)
+    and by default this class uses a crossing number algorithm. Other algorithms can be set in setInsideOutsideAlgorithm (see CD_DCELAlgorithms.H)
   */
   template <class T>
   class FaceT {
@@ -132,10 +132,10 @@ namespace Dcel {
     /*!
       @brief Set the inside/outside algorithm when determining if a point projects to the inside or outside of the polygon. 
       @param[in] a_algorithm Desired algorithm
-      @note See CD_DcelAlgorithms.H for options (and CD_DcelPolyImplem.H for how the algorithms operate). 
+      @note See CD_DCELAlgorithms.H for options (and CD_DCELPolyImplem.H for how the algorithms operate). 
     */
     inline
-    void setInsideOutsideAlgorithm(typename Dcel::Polygon2D<T>::InsideOutsideAlgorithm& a_algorithm) noexcept;
+    void setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm& a_algorithm) noexcept;
 
     /*!
       @brief Get modifiable half-edge
@@ -335,6 +335,6 @@ namespace Dcel {
 
 #include "EBGeometry_NamespaceFooter.hpp"
 
-#include "EBGeometry_DcelFaceImplem.hpp"
+#include "EBGeometry_DCEL_FaceImplem.hpp"
 
 #endif

@@ -4,13 +4,13 @@
  */
 
 /*!
-  @file   EBGeometry_DcelVertex.hpp
+  @file   EBGeometry_DCEL_Vertex.hpp
   @brief  Declaration of a vertex class for use in DCEL descriptions of polygon tesselations. 
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DcelVertex
-#define EBGeometry_DcelVertex
+#ifndef EBGeometry_DCEL_Vertex
+#define EBGeometry_DCEL_Vertex
 
 // Std includes
 #include <vector>
@@ -18,11 +18,11 @@
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
-#include "EBGeometry_Dcel.hpp"
-#include "EBGeometry_DcelFace.hpp"
+#include "EBGeometry_DCEL.hpp"
+#include "EBGeometry_DCEL_Face.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-namespace Dcel {
+namespace DCEL {
 
   // Forward declare classes. 
   template <class T> class VertexT;
@@ -281,6 +281,6 @@ namespace Dcel {
 
 #include "EBGeometry_NamespaceFooter.hpp"
 
-#include "EBGeometry_DcelVertexImplem.hpp"
+#include "EBGeometry_DCEL_VertexImplem.hpp"
 
 #endif

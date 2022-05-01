@@ -4,13 +4,13 @@
  */
 
 /*!
-  @file   EBGeometry_DcelIterator.hpp
+  @file   EBGeometry_DCEL_Iterator.hpp
   @brief  Declaration of iterators for DCEL surface Tesselations
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DcelIterator
-#define EBGeometry_DcelIterator
+#ifndef EBGeometry_DCEL_Iterator
+#define EBGeometry_DCEL_Iterator
 
 // Std includes
 #include <memory>
@@ -18,7 +18,7 @@
 // Our includes
 #include "EBGeometry_NamespaceHeader.hpp"
 
-namespace Dcel {
+namespace DCEL {
 
   // Forward declare classes.
   template <class T> class VertexT;
@@ -162,6 +162,6 @@ namespace Dcel {
 
 #include "EBGeometry_NamespaceFooter.hpp"
 
-#include "EBGeometry_DcelIteratorImplem.hpp"
+#include "EBGeometry_DCEL_IteratorImplem.hpp"
 
 #endif

@@ -4,13 +4,13 @@
  */
 
 /*!
-  @file   EBGeometry_DcelParser.hpp
+  @file   EBGeometry_DCELParser.hpp
   @brief  Declaration of utilities for passing data into DCEL structures. 
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DcelParser
-#define EBGeometry_DcelParser
+#ifndef EBGeometry_DCEL.arser
+#define EBGeometry_DCEL.arser
 
 // Std includes
 #include <vector>
@@ -18,13 +18,13 @@
 #include <map>
 
 // Our includes
-#include "EBGeometry_DcelVertex.hpp"
-#include "EBGeometry_DcelEdge.hpp"
-#include "EBGeometry_DcelFace.hpp"
-#include "EBGeometry_DcelMesh.hpp"
+#include "EBGeometry_DCEL.ertex.hpp"
+#include "EBGeometry_DCEL.dge.hpp"
+#include "EBGeometry_DCEL.ace.hpp"
+#include "EBGeometry_DCEL.esh.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-namespace Dcel {
+namespace DCEL {
 
   /*!
     @brief Namespace which encapsulates possible file parsers for building DCEL meshes
@@ -32,7 +32,7 @@ namespace Dcel {
   namespace Parser {
   
     /*!
-      @brief Class for generation a Dcel::MeshT<T> from the Stanford PLY file format
+      @brief Class for generation a DCEL::MeshT<T> from the Stanford PLY file format
       @note T is the precision used for storing the mesh. 
     */
     template <class T>
@@ -134,6 +134,6 @@ namespace Dcel {
 
 #include "EBGeometry_NamespaceFooter.hpp"
 
-#include "EBGeometry_DcelParserImplem.hpp"
+#include "EBGeometry_DCEL.arserImplem.hpp"
 
 #endif

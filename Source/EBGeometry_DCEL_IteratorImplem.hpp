@@ -4,22 +4,22 @@
  */
 
 /*!
-  @file   EBGeometry_DcelIteratorImplem.hpp
-  @brief  Implementation of EBGeometry_DcelIterator.hpp
+  @file   EBGeometry_DCEL_IteratorImplem.hpp
+  @brief  Implementation of EBGeometry_DCEL_Iterator.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DcelIteratorImplem
-#define EBGeometry_DcelIteratorImplem
+#ifndef EBGeometry_DCEL_IteratorImplem
+#define EBGeometry_DCEL_IteratorImplem
 
 // Our includes
-#include "EBGeometry_DcelVertex.hpp"
-#include "EBGeometry_DcelEdge.hpp"
-#include "EBGeometry_DcelFace.hpp"
-#include "EBGeometry_DcelIterator.hpp"
+#include "EBGeometry_DCEL_Vertex.hpp"
+#include "EBGeometry_DCEL_Edge.hpp"
+#include "EBGeometry_DCEL_Face.hpp"
+#include "EBGeometry_DCEL_Iterator.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-namespace Dcel {
+namespace DCEL {
 
   template <class T>
   inline
@@ -95,7 +95,7 @@ namespace Dcel {
       }
     default:
       {
-	std::cerr << "In file 'EBGeometry_DcelIteratorImplem.hpp function EdgeIteratorT<T>::operator++ - logic bust\n";
+	std::cerr << "In file 'EBGeometry_DCEL_IteratorImplem.hpp function EdgeIteratorT<T>::operator++ - logic bust\n";
       }
     }
 

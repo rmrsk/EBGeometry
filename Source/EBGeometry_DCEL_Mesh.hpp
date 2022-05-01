@@ -4,13 +4,13 @@
  */
 
 /*!
-  @file   EBGeometry_DcelMesh.hpp
+  @file   EBGeometry_DCEL_Mesh.hpp
   @brief  Declaration of a mesh class which stores a DCEL mesh (with signed distance functions)
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DcelMesh
-#define EBGeometry_DcelMesh
+#ifndef EBGeometry_DCEL_Mesh
+#define EBGeometry_DCEL_Mesh
 
 // Std includes
 #include <vector>
@@ -19,16 +19,17 @@
 #include <map>
 
 // Our includes
-#include "EBGeometry_DcelPolygon2D.hpp"
+#include "EBGeometry_Polygon2D.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-namespace Dcel {
+template <class T> class Polygon2D;
+
+namespace DCEL {
 
   // Forward declare classes.
   template <class T> class VertexT;
   template <class T> class EdgeT;
   template <class T> class FaceT;
-  template <class T> class Polygon2D;
 
   /*!
     @brief Mesh class which stores a full DCEL mesh (with signed distance functions)
@@ -44,7 +45,7 @@ namespace Dcel {
   public:
 
     /*!
-      @brief Possible search algorithms for Dcel::MeshT
+      @brief Possible search algorithms for DCEL::MeshT
       @details Direct means compute the signed distance for all primitives, Direct2 means compute the squared signed distance for all primitives.
     */
     enum class SearchAlgorithm{
@@ -165,7 +166,7 @@ namespace Dcel {
       @param[in] a_algorithm Algorithm to use
     */
     inline
-    void setInsideOutsideAlgorithm(typename Dcel::Polygon2D<T>::InsideOutsideAlgorithm a_algorithm) noexcept;
+    void setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm a_algorithm) noexcept;
 
     /*!
       @brief Reconcile function which computes the internal parameters in vertices, edges, and faces for use with signed distance functionality
@@ -173,7 +174,7 @@ namespace Dcel {
       @details This will reconcile faces, edges, and vertices, e.g. computing the area and normal vector for faces
     */
     inline
-    void reconcile(typename Dcel::MeshT<T>::VertexNormalWeight a_weight = VertexNormalWeight::Angle) noexcept;
+    void reconcile(typename DCEL::MeshT<T>::VertexNormalWeight a_weight = VertexNormalWeight::Angle) noexcept;
 
     /*!
       @brief Get modifiable vertices in this mesh
@@ -271,14 +272,14 @@ namespace Dcel {
 
     /*!
       @brief Function which computes internal things for the polygon faces. 
-      @note This calls Dcel::FaceT<T>::reconcile()
+      @note This calls DCEL::FaceT<T>::reconcile()
     */
     inline
     void reconcileFaces() noexcept;
 
     /*!
       @brief Function which computes internal things for the half-edges
-      @note This calls Dcel::EdgeT<T>::reconcile()
+      @note This calls DCEL::EdgeT<T>::reconcile()
     */
     inline
     void reconcileEdges() noexcept;
@@ -286,10 +287,10 @@ namespace Dcel {
     /*!
       @brief Function which computes internal things for the vertices
       @param[in] a_weight Vertex angle weighting
-      @note This calls Dcel::VertexT<T>::computeVertexNormalAverage() or Dcel::VertexT<T>::computeVertexNormalAngleWeighted()
+      @note This calls DCEL::VertexT<T>::computeVertexNormalAverage() or DCEL::VertexT<T>::computeVertexNormalAngleWeighted()
     */    
     inline
-    void reconcileVertices(typename Dcel::MeshT<T>::VertexNormalWeight a_weight) noexcept;
+    void reconcileVertices(typename DCEL::MeshT<T>::VertexNormalWeight a_weight) noexcept;
 
     /*!
       @brief Implementation of signed distance function which iterates through all faces
@@ -324,6 +325,6 @@ namespace Dcel {
 
 #include "EBGeometry_NamespaceFooter.hpp"
 
-#include "EBGeometry_DcelMeshImplem.hpp"
+#include "EBGeometry_DCEL_MeshImplem.hpp"
 
 #endif

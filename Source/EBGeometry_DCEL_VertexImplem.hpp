@@ -4,22 +4,22 @@
  */
 
 /*!
-  @file   EBGeometry_DcelVertexImplem.hpp
-  @brief  Implementation of EBGeometry_DcelVertex.hpp
+  @file   EBGeometry_DCEL_VertexImplem.hpp
+  @brief  Implementation of EBGeometry_DCEL_Vertex.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DcelVertexImplem
-#define EBGeometry_DcelVertexImplem
+#ifndef EBGeometry_DCEL_VertexImplem
+#define EBGeometry_DCEL_VertexImplem
 
 // Our includes
-#include "EBGeometry_DcelVertex.hpp"
-#include "EBGeometry_DcelEdge.hpp"
-#include "EBGeometry_DcelFace.hpp"
-#include "EBGeometry_DcelIterator.hpp"
+#include "EBGeometry_DCEL_Vertex.hpp"
+#include "EBGeometry_DCEL_Edge.hpp"
+#include "EBGeometry_DCEL_Face.hpp"
+#include "EBGeometry_DCEL_Iterator.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-namespace Dcel {
+namespace DCEL {
 
   template <class T>
   inline
@@ -162,13 +162,13 @@ namespace Dcel {
 	    inoutVertices.emplace_back(v1);
 	  }
 	  else{
-	    std::cerr << "In file 'CD_DcelVertexImplem.H' function vertexT<T>::computeVertexNormalAngleWeighted() - logic bust.\n";
+	    std::cerr << "In file 'CD_DCELVertexImplem.H' function vertexT<T>::computeVertexNormalAngleWeighted() - logic bust.\n";
 	  }
 	}
       }
 
       if(inoutVertices.size() != 2) {
-	std::cerr << "In file 'CD_DcelVertexImplem.H' function vertexT<T>::computeVertexNormalAngleWeighted() - logic bust 2.\n";
+	std::cerr << "In file 'CD_DCELVertexImplem.H' function vertexT<T>::computeVertexNormalAngleWeighted() - logic bust 2.\n";
       }
 
       const Vec3& x0 = originVertex    ->getPosition();
@@ -176,7 +176,7 @@ namespace Dcel {
       const Vec3& x2 = inoutVertices[1]->getPosition();
 
       if(x0 == x1 || x0 == x2 || x1 == x2){
-	std::cerr << "In file 'CD_DcelVertexImplem.H' function vertexT<T>::computeVertexNormalAngleWeighted() - logic bust 3.\n";
+	std::cerr << "In file 'CD_DCELVertexImplem.H' function vertexT<T>::computeVertexNormalAngleWeighted() - logic bust 3.\n";
       }
 
       Vec3 v1 = x1-x0;

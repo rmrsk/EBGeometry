@@ -4,20 +4,20 @@
  */
 
 /*!
-  @file   EBGeometry_DcelFaceImplem.hpp
-  @brief  Implementation of EBGeometry_DcelFace.hpp
+  @file   EBGeometry_DCEL_FaceImplem.hpp
+  @brief  Implementation of EBGeometry_DCEL_Face.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DcelFaceImplem
-#define EBGeometry_DcelFaceImplem
+#ifndef EBGeometry_DCEL_FaceImplem
+#define EBGeometry_DCEL_FaceImplem
 
 // Our includes
-#include "EBGeometry_DcelFace.hpp"
-#include "EBGeometry_DcelIterator.hpp"
+#include "EBGeometry_DCEL_Face.hpp"
+#include "EBGeometry_DCEL_Iterator.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-namespace Dcel {
+namespace DCEL {
 
   template <class T>
   inline
@@ -87,7 +87,7 @@ namespace Dcel {
 
   template <class T>
   inline
-  void FaceT<T>::setInsideOutsideAlgorithm(typename Dcel::Polygon2D<T>::InsideOutsideAlgorithm& a_algorithm) noexcept {
+  void FaceT<T>::setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm& a_algorithm) noexcept {
     m_poly2Algorithm = a_algorithm;
   }
 
@@ -148,7 +148,7 @@ namespace Dcel {
   inline
   void FaceT<T>::computePolygon2D() noexcept{
 
-    // See CD_DcelPoly.H to see how the 2D embedding operates. 
+    // See CD_DCELPoly.H to see how the 2D embedding operates. 
     m_poly2 = std::make_shared<Polygon2D<T> >(m_normal, this->getAllVertexCoordinates());
   }
 

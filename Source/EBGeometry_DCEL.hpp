@@ -4,21 +4,21 @@
  */
 
 /*!
-  @file   EBGeometry_Dcel.hpp
+  @file   EBGeometry_DCEL.hpp
   @brief  Namespace documentation
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_Dcel
-#define EBGeometry_Dcel
+#ifndef EBGeometry_DCEL_
+#define EBGeometry_DCEL_
 
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
-  @namespace Dcel
+  @namespace DCEL
   @brief Namespace containing various double-connected edge list (DCEL) functionality.
 */
-namespace Dcel {
+namespace DCEL {
 
 }
 

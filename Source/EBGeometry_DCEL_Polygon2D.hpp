@@ -3,13 +3,13 @@
  * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
  */
 /*!
-  @file   EBGeometry_DcelPolygon2D.hpp
+  @file   EBGeometry_Polygon2D.hpp
   @brief  Declaration of a two-dimensional polygon class for embedding 3D polygon faces
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DcelPolygon2D
-#define EBGeometry_DcelPolygon2D
+#ifndef EBGeometry_Polygon2D
+#define EBGeometry_Polygon2D
 
 // Std includes
 #include <memory>
@@ -19,7 +19,7 @@
 #include "EBGeometry_Vec.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-namespace Dcel {
+namespace DCEL {
 
   /*!
     @brief Class for embedding a DCEL polygon face into 2D. 
@@ -171,6 +171,6 @@ namespace Dcel {
 
 #include "EBGeometry_NamespaceFooter.hpp"
 
-#include "EBGeometry_DcelPolygon2DImplem.hpp"
+#include "EBGeometry_Polygon2DImplem.hpp"
 
 #endif
