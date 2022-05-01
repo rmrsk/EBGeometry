@@ -75,25 +75,31 @@ Contributing
 
    ```
    git add .
-   git commit -m "my commit message
+   git commit -m "my commit message"
    ```
 
-   If relevant, also add Sphinx and doxygen documentation. 
+   If relevant, add Sphinx and doxygen documentation. 
 
 
-3. Format the code using ```clang-format```:
+3. Format the source and example codes using ```clang-format```:
 
    ```
    find Source Examples \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +
    ```
 
-4. Push the changes to GitHub
+4. For safety, run [codespell](https://github.com/codespell-project/codespell) on the source, examples, and documentation directories:
+
+   ```
+   codespell Source Examples Sphinx --skip "*.png,*.log,*.pdf"
+   ```
+
+5. Push the changes to GitHub
 
    ```
    git push --set-upstream my_feature
    ```
    
-5. Create a pull request and make sure the GitHub continuous integration tests passes.
+6. Create a pull request and make sure the GitHub continuous integration tests pass.
 
 License
 -------
