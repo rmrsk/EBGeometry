@@ -174,13 +174,13 @@ main(int argc, char* argv[])
   // Put some data
   MultiFab mf;
   {
-    BoxArray ba(geom.Domain());
-    ba.maxSize(max_grid_size);
-    DistributionMapping dm{ba};
+    BoxArray boxArray(geom.Domain());
+    boxArray.maxSize(max_grid_size);
+    DistributionMapping dm{boxArray};
 
-    std::unique_ptr<EBFArrayBoxFactory> factory = amrex::makeEBFabFactory(geom, ba, dm, {2, 2, 2}, EBSupport::full);
+    std::unique_ptr<EBFArrayBoxFactory> factory = amrex::makeEBFabFactory(geom, boxArray, dm, {2, 2, 2}, EBSupport::full);
 
-    mf.define(ba, dm, 1, 0, MFInfo(), *factory);
+    mf.define(boxArray, dm, 1, 0, MFInfo(), *factory);
     mf.setVal(1.0);
   }
 
