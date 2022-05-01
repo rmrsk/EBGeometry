@@ -28,6 +28,7 @@ jobs:
         if: always()        
         run: |
           find Source Examples \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +
+          git diff
 
       - name: File check
         id: git-check
