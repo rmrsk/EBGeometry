@@ -62,12 +62,28 @@ Contributing
 ------------
 
 1. Create a branch for the new feature.
+
+   ```git checkout main```
+   ```git pull```
+   ```git checkout -b my_feature```
+   
 2. Develop the feature.
+
+   ```git add .```
+   ```git commit -m "my commit message```
+
+   If relevant, also add Sphinx and doxygen documentation. 
+
+
 3. Format the code using ```clang-format```:
 
    ```find Source Examples \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +```
+
+4. Push the changes to GitHub
+
+   ```git push --set-upstream my_feature```
    
-4. Make sure the GitHub continuous integration tests passes.
+5. Create a pull request and make sure the GitHub continuous integration tests passes.
 
 License
 -------
