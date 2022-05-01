@@ -1,0 +1,33 @@
+name: EBGeometry code format
+
+on:
+  pull_request:
+    types: [push, opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-linux-gcc    
+  cancel-in-progress: true
+
+jobs:
+  clang-format:
+    if: github.event.pull_request.draft == false  
+    name: Linux-GNU debug
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        comp: [g++-7, g++-8, g++-9, g++-10]
+
+    steps:
+      - name: Checkout EBGeometry
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install clang-format
+
+      - name: Run clang-format
+        if: always()        
+        run: |
+          find Source Examples \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +
