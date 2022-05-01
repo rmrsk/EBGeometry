@@ -80,7 +80,7 @@ EBGeometry provides these by letting the top-down construction calls take polymo
 Signed distance function
 ------------------------
 
-When computing the signed distance function to objects embedded in a BVH, one takes advantage of the hierarcical embedding of the primitives.
+When computing the signed distance function to objects embedded in a BVH, one takes advantage of the hierarchical embedding of the primitives.
 Consider the case in :numref:`Fig:TreePruning`, where the goal of the BVH traversal is to minimize the number of branches and nodes that are visited.
 For the traversal algorithm we consider the following steps:
 
@@ -102,6 +102,6 @@ For the traversal algorithm we consider the following steps:
 .. warning::
    
    Note that all BVH traversal algorithms become inefficient when the primitives are all at approximately the same distance from the query point.
-   For example, it is necessary to traverse almost the entire tree when one tries to compute the signed distance at the origin of a tesselated sphere.
+   For example, it is necessary to traverse almost the entire tree when one tries to compute the signed distance at the origin of a tessellated sphere.
 
 
