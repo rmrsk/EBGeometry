@@ -40,9 +40,11 @@ Various examples are given in the Examples folder.
 To run one of the examples, navigate to the example and compile and run it.
 E.g.,
 
-    cd Examples/Basic
-    g++ -O3 -std=c++14 main.cpp
-    ./a.out porsche.ply
+```
+cd Examples/Basic
+g++ -O3 -std=c++14 main.cpp
+./a.out porsche.ply
+```
 
 The examples take the following steps that are specific to EBGeometry:
 
@@ -57,6 +59,47 @@ Advanced usage
 
 For more advanced usage, users can supply their own file parsers (only PLY files are currently supported), provide their own bounding volumes, or their own BVH partitioners.
 EBGeometry is not too strict about these things, and uses rigorous templating for ensuring that the EBGeometry functionality can be extended.
+
+Contributing
+------------
+
+1. Create a branch for the new feature.
+
+   ```
+   git checkout main
+   git pull
+   git checkout -b my_feature
+   ```
+   
+2. Develop the feature.
+
+   ```
+   git add .
+   git commit -m "my commit message"
+   ```
+
+   If relevant, add Sphinx and doxygen documentation. 
+
+
+3. Format the source and example codes using ```clang-format```:
+
+   ```
+   find Source Examples \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +
+   ```
+
+4. For safety, run [codespell](https://github.com/codespell-project/codespell) on the source, examples, and documentation directories:
+
+   ```
+   codespell Source Examples Sphinx --skip "*.png,*.log,*.pdf"
+   ```
+
+5. Push the changes to GitHub
+
+   ```
+   git push --set-upstream my_feature
+   ```
+   
+6. Create a pull request and make sure the GitHub continuous integration tests pass.
 
 License
 -------

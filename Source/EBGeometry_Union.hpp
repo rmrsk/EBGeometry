@@ -5,7 +5,7 @@
 
 /*!
   @file   EBGeometry_Union.hpp
-  @brief  Declaration of a union operator for creating multi-object scenes. 
+  @brief  Declaration of a union operator for creating multi-object scenes.
   @author Robert Marskar
 */
 
@@ -20,15 +20,16 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
-  @brief Distance function union. Computes the signed distance to the closest object of N non-overlapping objects. 
-  @note This class only makes sense if the object do not overlap. 
+  @brief Distance function union. Computes the signed distance to the closest
+  object of N non-overlapping objects.
+  @note This class only makes sense if the object do not overlap.
 */
 template <class T>
-class Union : public SignedDistanceFunction<T> {
+class Union : public SignedDistanceFunction<T>
+{
 public:
-
   /*!
-    @brief Alias for cutting down on typing. 
+    @brief Alias for cutting down on typing.
   */
   using SDF = SignedDistanceFunction<T>;
 
@@ -38,11 +39,11 @@ public:
   Union() = delete;
 
   /*!
-    @brief Full constructor. Computes the signed distance 
+    @brief Full constructor. Computes the signed distance
     @param[in] a_distanceFunctions Distance functions
     @param[in] a_flipSign          Hook for turning inside to outside
   */
-  Union(const std::vector<std::shared_ptr<SDF> >& a_distanceFunctions, const bool a_flipSign);
+  Union(const std::vector<std::shared_ptr<SDF>>& a_distanceFunctions, const bool a_flipSign);
 
   /*!
     @brief Destructor (does nothing)
@@ -51,16 +52,16 @@ public:
 
   /*!
     @brief Value function
-    @param[in] a_point 3D point. 
+    @param[in] a_point 3D point.
   */
-  T signedDistance(const Vec3T<T>& a_point) const noexcept override;  
-  
-protected:
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
+protected:
   /*!
     @brief List of distance functions
   */
-  std::vector<std::shared_ptr<const SDF> > m_distanceFunctions;
+  std::vector<std::shared_ptr<const SDF>> m_distanceFunctions;
 
   /*!
     @brief Hook for turning inside to outside

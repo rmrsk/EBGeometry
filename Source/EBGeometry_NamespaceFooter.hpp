@@ -5,8 +5,7 @@
 
 /*!
   @file   EBGeometry_NamespaceFooter.hpp
-  @brief  Name space footer. 
+  @brief  Name space footer.
   @author Robert Marskar
 */
-
 }
