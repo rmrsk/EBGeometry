@@ -11,7 +11,7 @@ concurrency:
 jobs:
   source-format:
     if: github.event.pull_request.draft == false  
-    name: Source format
+    name: Format source
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -28,7 +28,7 @@ jobs:
       - name: Run clang-format
         if: always()        
         run: |
-          find Source Examples \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +
+          find Source \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +
 
       - name: Check for modified files
         if: always()
@@ -36,21 +36,48 @@ jobs:
           git diff-index --quiet HEAD
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi
 
-      - name: Codespell Source
+      - name: Codespell source
         if: always()
         run: |
           codespell Source
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi
 
-      - name: Codespell Examples
+  examples-format:
+    if: github.event.pull_request.draft == false  
+    name: Format examples
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout EBGeometry
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install clang-format
+          pip install codespell
+
+      - name: Run clang-format
+        if: always()        
+        run: |
+          find Examples \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +
+
+      - name: Check for modified files
+        if: always()
+        run: |
+          git diff-index --quiet HEAD
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
+
+      - name: Codespell examples
         if: always()
         run: |
           codespell Examples --skip "*.png"
-          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
 
   docs-format:
     if: github.event.pull_request.draft == false  
-    name: Documentation format
+    name: Codespell documentation
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
