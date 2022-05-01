@@ -23,6 +23,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install clang-format
+          pip install codespell
 
       - name: Run clang-format
         if: always()        
@@ -34,4 +35,12 @@ jobs:
         run: |
           git diff-index --quiet HEAD
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi
+
+      - name: Codespell Source
+        if: always()
+        working-directory: Source
+        run: |
+          codespell
+
+      
 
