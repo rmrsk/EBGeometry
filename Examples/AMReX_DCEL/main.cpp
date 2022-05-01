@@ -16,95 +16,95 @@
 using namespace amrex;
 
 namespace amrex {
-namespace EB2 {
+  namespace EB2 {
 
-/*!
-  @brief This is an AMReX-capable version of the EBGeometry BVH accelerator. It
-  is templated as T, BV, K which indicate the EBGeometry precision, bounding
-  volume, and tree degree.
-*/
-template <class T, class BV, int K>
-class SignedDistanceBVH
-{
-public:
-  /*!
-@brief Alias for builder node, for encapsulating a "standard" BVH node
-  */
-  using BuilderNode = EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>;
+    /*!
+      @brief This is an AMReX-capable version of the EBGeometry BVH accelerator. It
+      is templated as T, BV, K which indicate the EBGeometry precision, bounding
+      volume, and tree degree.
+    */
+    template <class T, class BV, int K>
+    class SignedDistanceBVH
+    {
+    public:
+      /*!
+	@brief Alias for builder node, for encapsulating a "standard" BVH node
+      */
+      using BuilderNode = EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>;
 
-  /*!
-@brief Alias for linearized BVH node
-  */
-  using LinearNode = EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>;
+      /*!
+	@brief Alias for linearized BVH node
+      */
+      using LinearNode = EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>;
 
-  /*!
-@brief Alias for always-3D vector
-  */
-  using Vec3 = EBGeometry::Vec3T<T>;
+      /*!
+	@brief Alias for always-3D vector
+      */
+      using Vec3 = EBGeometry::Vec3T<T>;
 
-  /*!
-@brief Full constructor.
-@param[in] a_filename File name. Must be a PLY file and will be parser by the
-PLY parser.
-@param[in] a_flipSign Hook for swapping inside/outside.
-  */
-  SignedDistanceBVH(const std::string a_filename, const bool a_flipSign)
-  {
+      /*!
+	@brief Full constructor.
+	@param[in] a_filename File name. Must be a PLY file and will be parser by the
+	PLY parser.
+	@param[in] a_flipSign Hook for swapping inside/outside.
+      */
+      SignedDistanceBVH(const std::string a_filename, const bool a_flipSign)
+      {
 
-    // 1. Read mesh from file.
-    auto mesh = EBGeometry::Parser::PLY<T>::readIntoDCEL(a_filename);
+	// 1. Read mesh from file.
+	auto mesh = EBGeometry::Parser::PLY<T>::readIntoDCEL(a_filename);
 
-    // 2. Create a standard BVH hierarchy. This is not a compact ree.
-    auto root = std::make_shared<BuilderNode>(mesh->getFaces());
-    root->topDownSortAndPartitionPrimitives(
-      EBGeometry::DCEL::defaultBVConstructor<T, BV>, EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
-      EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
+	// 2. Create a standard BVH hierarchy. This is not a compact ree.
+	auto root = std::make_shared<BuilderNode>(mesh->getFaces());
+	root->topDownSortAndPartitionPrimitives(
+						EBGeometry::DCEL::defaultBVConstructor<T, BV>, EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
+						EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
 
-    // 3. Flatten the tree onto a tighter memory representation.
-    m_rootNode = root->flattenTree();
-  }
+	// 3. Flatten the tree onto a tighter memory representation.
+	m_rootNode = root->flattenTree();
+      }
 
-  /*!
-@brief Copy constructor.
-@param[in] a_other Other SDF.
-  */
-  SignedDistanceBVH(const SignedDistanceBVH& a_other)
-  {
-    this->m_rootNode = a_other.m_rootNode;
-    this->m_flipSign = a_other.m_flipSign;
-  }
+      /*!
+	@brief Copy constructor.
+	@param[in] a_other Other SDF.
+      */
+      SignedDistanceBVH(const SignedDistanceBVH& a_other)
+      {
+	this->m_rootNode = a_other.m_rootNode;
+	this->m_flipSign = a_other.m_flipSign;
+      }
 
-  /*!
-@brief AMReX's implicit function definition.
-  */
-  Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
-  {
-    const Real sign = (m_flipSign) ? -1.0 : 1.0;
+      /*!
+	@brief AMReX's implicit function definition.
+      */
+      Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+      {
+	const Real sign = (m_flipSign) ? -1.0 : 1.0;
 
-    return sign * m_rootNode->signedDistance(Vec3(x, y, z));
-  };
+	return sign * m_rootNode->signedDistance(Vec3(x, y, z));
+      };
 
-  /*!
-@brief Also an AMReX implicit function implementation
-  */
-  inline Real
-  operator()(const RealArray& p) const noexcept
-  {
-    return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
-  }
+      /*!
+	@brief Also an AMReX implicit function implementation
+      */
+      inline Real
+      operator()(const RealArray& p) const noexcept
+      {
+	return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
+      }
 
-protected:
-  /*!
-@brief Root node of the linearized BVH hierarchy.
-  */
-  std::shared_ptr<LinearNode> m_rootNode;
+    protected:
+      /*!
+	@brief Root node of the linearized BVH hierarchy.
+      */
+      std::shared_ptr<LinearNode> m_rootNode;
 
-  /*!
-@brief Hook for flipping the sign
-  */
-  bool m_flipSign;
-};
-} // namespace EB2
+      /*!
+	@brief Hook for flipping the sign
+      */
+      bool m_flipSign;
+    };
+  } // namespace EB2
 } // namespace amrex
 
 int

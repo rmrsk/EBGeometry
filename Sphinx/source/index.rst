@@ -69,7 +69,8 @@ Implementation
    ImplemBVH.rst
    ImplemDCEL.rst
    ImplemSDF.rst
-   ImplemUnion.rst            
+   ImplemUnion.rst
+   Parsers.rst
 
 Guided examples
 ***************  
