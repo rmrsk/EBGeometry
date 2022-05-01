@@ -33,5 +33,5 @@ jobs:
         if: always()
         run: |
           git diff-index --quiet HEAD
-          if [[ $?git diff-index --quiet HEAD == 0 ]]; then exit 0; else exit 1; fi
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
 
