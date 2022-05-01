@@ -1,4 +1,4 @@
-name: Code format
+name: Code integrity
 
 on:
   pull_request:

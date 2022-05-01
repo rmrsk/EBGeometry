@@ -46,7 +46,8 @@ class EdgeIteratorT;
   the dot product between n and (x - x0) is positive.
 */
 template <class T>
-class VertexT{
+class VertexT
+{
 public:
   /*!
     @brief Alias to cut down on typing
