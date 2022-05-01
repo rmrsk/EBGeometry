@@ -7,7 +7,7 @@
   @file    EBGeometry_AnalyticDistanceFunctions.hpp
   @brief   Declaration of various analytic distance functions.
   @details This file contains various analytic signed distance fields. Some of these also include member function for fetching parameters,
-           and users are free to add such functions also to other shapes. 
+  and users are free to add such functions also to other shapes. 
   @author  Robert Marskar
 */
 

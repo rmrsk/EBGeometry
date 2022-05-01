@@ -67,7 +67,7 @@ namespace Parser {
       @param[in]  a_filename File name
     */
     inline
-    static std::shared_ptr<Mesh> readASCII(const std::string a_filename);      
+    static std::shared_ptr<Mesh> readIntoDCEL(const std::string a_filename);      
 
     /*!
       @brief Static function which reads an ASCII .ply file and puts it in a mesh. 
@@ -75,7 +75,7 @@ namespace Parser {
       @param[in]  a_filename File name
     */
     inline
-    static void readASCII(Mesh& a_mesh, const std::string a_filename);
+    static void readIntoDCEL(Mesh& a_mesh, const std::string a_filename);
 
   protected:
 

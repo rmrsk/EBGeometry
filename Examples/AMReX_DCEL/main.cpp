@@ -49,7 +49,7 @@ namespace amrex {
       SignedDistanceBVH(const std::string a_filename, const bool a_flipSign) {
 
 	// 1. Read mesh from file. 
-	auto mesh = EBGeometry::Parser::PLY<T>::readASCII(a_filename);
+	auto mesh = EBGeometry::Parser::PLY<T>::readIntoDCEL(a_filename);
 
 	// 2. Create a standard BVH hierarchy. This is not a compact ree. 
 	auto root = std::make_shared<BuilderNode>(mesh->getFaces());

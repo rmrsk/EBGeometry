@@ -29,17 +29,17 @@
 
 template <class T>
 inline
-std::shared_ptr<EBGeometry::DCEL::MeshT<T> > Parser::PLY<T>::readASCII(const std::string a_filename) {
+std::shared_ptr<EBGeometry::DCEL::MeshT<T> > Parser::PLY<T>::readIntoDCEL(const std::string a_filename) {
   auto mesh = std::make_shared<Mesh>();
 
-  readASCII(*mesh, a_filename);
+  readIntoDCEL(*mesh, a_filename);
 
   return mesh;
 }
 
 template <class T>
 inline
-void Parser::PLY<T>::readASCII(Mesh& a_mesh, const std::string a_filename) {
+void Parser::PLY<T>::readIntoDCEL(Mesh& a_mesh, const std::string a_filename) {
   std::ifstream filestream(a_filename);
 
   if(filestream.is_open()){
@@ -66,7 +66,7 @@ void Parser::PLY<T>::readASCII(Mesh& a_mesh, const std::string a_filename) {
     a_mesh.reconcile(EBGeometry::DCEL::MeshT<T>::VertexNormalWeight::Angle);
   }
   else{
-    const std::string error = "Parser::PLY::readASCII - ERROR! Could not open file " + a_filename;
+    const std::string error = "Parser::PLY::readIntoDCEL - ERROR! Could not open file " + a_filename;
     std::cerr << error + "\n";
   }
 }
