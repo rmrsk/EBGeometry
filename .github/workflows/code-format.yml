@@ -93,7 +93,7 @@ jobs:
       - name: Codespell documentation
         if: always()
         run: |
-          codespell Sphinx --skip "*.png,*.log",*.pdf"
+          codespell Sphinx --skip "*.png,*.log,*.pdf"
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
 
       

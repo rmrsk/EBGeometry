@@ -840,11 +840,11 @@ public:
   virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
-    const Vec3T<T> pa = a_point - m_center1;
-    const Vec3T<T> ba = m_center2 - m_center1;
+    const Vec3T<T> v1 = a_point - m_center1;
+    const Vec3T<T> v2 = m_center2 - m_center1;
 
-    const T h = clamp(dot(pa, ba) / dot(ba, ba), T(0.0), T(1.0));
-    const T d = length(pa - h * ba) - m_radius;
+    const T h = clamp(dot(v1, v2) / dot(v2, v2), T(0.0), T(1.0));
+    const T d = length(v1 - h * v2) - m_radius;
     const T sign = m_flipInside ? -1.0 : 1.0;
 
     return sign * d;
