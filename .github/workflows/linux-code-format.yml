@@ -32,6 +32,6 @@ jobs:
       - name: Check for modified files
         if: always()
         run: |
-          git diff
-          if [[ git diff-index --quiet HEAD == 0 ]]; then exit 0; else exit 1; fi
+          git diff-index --quiet HEAD
+          if [[ $?git diff-index --quiet HEAD == 0 ]]; then exit 0; else exit 1; fi
 
