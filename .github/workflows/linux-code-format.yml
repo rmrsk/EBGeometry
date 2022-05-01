@@ -9,9 +9,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  clang-format:
+  source-format:
     if: github.event.pull_request.draft == false  
-    name: clang-format
+    name: Source format
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
