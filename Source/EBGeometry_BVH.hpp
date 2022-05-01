@@ -312,23 +312,23 @@ protected:
 
   /*!
     @brief Iterative ordered pruning along the BVH tree.
-    @param[inout] a_point   Input 3D point
+    @param[in,out] a_point   Input 3D point
   */
   inline T
   pruneStack(const Vec3& a_point) const noexcept;
 
   /*!
     @brief Recursively ordered pruning along the BVH tree.
-    @param[inout] a_closest Shortest distance to primitives so far.
-    @param[inout] a_point   Input 3D point
+    @param[in,out] a_closest Shortest distance to primitives so far.
+    @param[in,out] a_point   Input 3D point
   */
   inline void
   pruneOrdered(T& a_closest, const Vec3& a_point) const noexcept;
 
   /*!
     @brief Recursive unordered pruning along the BVH tree.
-    @param[inout] a_closest Shortest distance to primitives so far.
-    @param[inout] a_point   Input 3D point
+    @param[in,out] a_closest Shortest distance to primitives so far.
+    @param[in,out] a_point   Input 3D point
   */
   inline void
   pruneUnordered(T& a_closest, const Vec3& a_point) const noexcept;
@@ -338,9 +338,9 @@ protected:
     @details This function will flatten everything beneath the current node and
     linearize all the nodes and primitives beneath it to a_linearNodes and
     a_sortedPrimitives. This function is called recursively.
-    @param[inout] a_linearNodes      BVH nodes, linearized onto a vector.
-    @param[inout] a_sortedPrimitives Sorted primitives (in leaf node order).
-    @param[inout] a_offset           Supporting integer for figuring out where
+    @param[in,out] a_linearNodes      BVH nodes, linearized onto a vector.
+    @param[in,out] a_sortedPrimitives Sorted primitives (in leaf node order).
+    @param[in,out] a_offset           Supporting integer for figuring out where
     in the tree we are.
     @note When called from the root node, a_linearNodes and a_sortedPrimitives
     should be empty and a_offset=0UL.

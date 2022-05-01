@@ -87,7 +87,7 @@ protected:
     that it only reads the header.
     @param[out]   a_numVertices Number of vertices
     @param[out]   a_numFaces    Number of faces
-    @param[inout] a_inputStream File stream. On output, the filestream is at the
+    @param[in,out] a_inputStream File stream. On output, the filestream is at the
     end of the PLY header.
   */
   inline static void
@@ -112,7 +112,7 @@ protected:
     @param[out]   a_vertices    DCEL edges. Constructured in
     readVerticesIntoDCEL.
     @param[in]    a_numFaces    Total number of faces in mesh.
-    @param[inout] a_inputStream Input stream
+    @param[in,out] a_inputStream Input stream
     @note The next getline() from inputStream must read the first face, i.e. we
     assume that read_ascii_vertices was called IMMEDIATELY before this function.
     That function will center the fstream on the correct line in the input file.
@@ -128,7 +128,7 @@ protected:
   /*!
     @brief Reconcile pair edges, i.e. find the pair edge for every constructed
     half-edge
-    @param[inout] a_edges Half edges.
+    @param[in,out] a_edges Half edges.
   */
   inline static void
   reconcilePairEdgesDCEL(std::vector<std::shared_ptr<Edge>>& a_edges);
