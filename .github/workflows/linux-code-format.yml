@@ -28,3 +28,7 @@ jobs:
         if: always()        
         run: |
           find Source Examples \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +
+
+      - name: File check
+        id: git-check
+        run: echo ::set-output name=modified::$(if git diff-index --quiet HEAD --; then exit 0; else exit 1; fi)
