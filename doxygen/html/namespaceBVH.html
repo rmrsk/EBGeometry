@@ -71,19 +71,19 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 
-<p>Namespace for various bounding volume heirarchy (<a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a>) functionality.  
+<p>Namespace for various bounding volume hierarchy (<a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>) functionality.  
 <a href="namespaceBVH.html#details">More...</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearBVH.html">LinearBVH</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Forward declare linear <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> class.  <a href="classBVH_1_1LinearBVH.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Forward declare linear <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> class.  <a href="classBVH_1_1LinearBVH.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Forward declare linear node class.  <a href="classBVH_1_1LinearNodeT.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html">NodeT</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Forward declare the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> node since it is needed for the polymorphic lambdas.  <a href="classBVH_1_1NodeT.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Forward declare the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> node since it is needed for the polymorphic lambdas.  <a href="classBVH_1_1NodeT.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
@@ -94,7 +94,7 @@ Typedefs</h2></td></tr>
 <tr class="separator:aa1e753bda451b85cd5b948722a2ad7c7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afef1c5979c34a11d23b756cc09654bf9"><td class="memTemplParams" colspan="2">template&lt;class T , class P , class BV , size_t K&gt; </td></tr>
 <tr class="memitem:afef1c5979c34a11d23b756cc09654bf9"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#afef1c5979c34a11d23b756cc09654bf9">StopFunctionT</a> = std::function&lt; bool(const <a class="el" href="classBVH_1_1NodeT.html">NodeT</a>&lt; T, P, BV, K &gt; &amp;a_node)&gt;</td></tr>
-<tr class="memdesc:afef1c5979c34a11d23b756cc09654bf9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Stop function for deciding when a <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> node can't be divided into sub-volumes.  <a href="namespaceBVH.html#afef1c5979c34a11d23b756cc09654bf9">More...</a><br /></td></tr>
+<tr class="memdesc:afef1c5979c34a11d23b756cc09654bf9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Stop function for deciding when a <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> node can't be divided into sub-volumes.  <a href="namespaceBVH.html#afef1c5979c34a11d23b756cc09654bf9">More...</a><br /></td></tr>
 <tr class="separator:afef1c5979c34a11d23b756cc09654bf9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a67de8088141156b6eaa225a635cc68c0"><td class="memTemplParams" colspan="2">template&lt;class P , class BV , size_t K&gt; </td></tr>
 <tr class="memitem:a67de8088141156b6eaa225a635cc68c0"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a67de8088141156b6eaa225a635cc68c0">PartitionerT</a> = std::function&lt; std::array&lt; <a class="el" href="namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7">PrimitiveListT</a>&lt; P &gt;, K &gt;(const <a class="el" href="namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7">PrimitiveListT</a>&lt; P &gt; &amp;a_primitives)&gt;</td></tr>
@@ -115,7 +115,7 @@ Enumerations</h2></td></tr>
 <tr class="separator:a3ddb7b34ac1deb3baed2f32d9eacbe5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Namespace for various bounding volume heirarchy (<a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a>) functionality. </p>
+<div class="textblock"><p>Namespace for various bounding volume hierarchy (<a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>) functionality. </p>
 </div><h2 class="groupheader">Typedef Documentation</h2>
 <a id="a245702d7eff40cdaedb5dff68c25a88a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a245702d7eff40cdaedb5dff68c25a88a">&#9670;&nbsp;</a></span>BVConstructorT</h2>
@@ -132,7 +132,7 @@ template&lt;class P , class BV &gt; </div>
 </div><div class="memdoc">
 
 <p>Constructor method for creating bounding volumes from a list of primitives. </p>
-<p>P is the primitive type bound in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> and BV is the bounding volume type. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>P is the primitive type bound in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> and BV is the bounding volume type. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">a_primitives</td><td>List of primitives. </td></tr>
   </table>
@@ -157,7 +157,7 @@ template&lt;class P , class BV , size_t K&gt; </div>
 </div><div class="memdoc">
 
 <p>Polymorphic partitioner for splitting a list of primitives into K new lists of primitives. </p>
-<p>P is the primitive type bound in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> and K is the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> degree. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>P is the primitive type bound in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> and K is the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> degree. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">a_primitives</td><td>List of primitives to be subdivided into sub-bounding volumes. </td></tr>
   </table>
@@ -182,7 +182,7 @@ template&lt;class P &gt; </div>
 </div><div class="memdoc">
 
 <p>Alias to cut down on typing. </p>
-<p>P is the primitive bounded by the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a>. </p>
+<p>P is the primitive bounded by the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>. </p>
 
 </div>
 </div>
@@ -200,10 +200,10 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p>Stop function for deciding when a <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> node can't be divided into sub-volumes. </p>
-<p>T is the precision used in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> computations, P is the enclosing primitive and BV is the bounding volume used in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a>. K is the tree degree. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>Stop function for deciding when a <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> node can't be divided into sub-volumes. </p>
+<p>T is the precision used in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> computations, P is the enclosing primitive and BV is the bounding volume used in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>. K is the tree degree. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_node</td><td><a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> node </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_node</td><td><a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> node </td></tr>
   </table>
   </dd>
 </dl>

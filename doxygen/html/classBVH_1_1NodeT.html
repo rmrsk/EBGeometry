@@ -77,7 +77,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 
-<p>Forward declare the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> node since it is needed for the polymorphic lambdas.  
+<p>Forward declare the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> node since it is needed for the polymorphic lambdas.  
  <a href="classBVH_1_1NodeT.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="EBGeometry__BVH_8hpp_source.html">EBGeometry_BVH.hpp</a>&gt;</code></p>
@@ -119,12 +119,12 @@ Public Member Functions</h2></td></tr>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a960d0972bec81cf782b36e57f87da1f1">NodeT</a> ()</td></tr>
 <tr class="memdesc:a960d0972bec81cf782b36e57f87da1f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default constructor which sets a regular node. <br /></td></tr>
 <tr class="separator:a960d0972bec81cf782b36e57f87da1f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6da86ccc8e4a0c556cd67ca59af983dc"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a6da86ccc8e4a0c556cd67ca59af983dc">NodeT</a> (const std::vector&lt; std::shared_ptr&lt; P &gt; &gt; &amp;a_primitives)</td></tr>
-<tr class="memdesc:a6da86ccc8e4a0c556cd67ca59af983dc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct node from a set of primitives.  <a href="classBVH_1_1NodeT.html#a6da86ccc8e4a0c556cd67ca59af983dc">More...</a><br /></td></tr>
-<tr class="separator:a6da86ccc8e4a0c556cd67ca59af983dc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6312ce04f70c2e1a860ce380298909b6"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a6312ce04f70c2e1a860ce380298909b6">NodeT</a> (const std::vector&lt; std::shared_ptr&lt; const P &gt; &gt; &amp;a_primitives)</td></tr>
-<tr class="memdesc:a6312ce04f70c2e1a860ce380298909b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct node from a set of primitives.  <a href="classBVH_1_1NodeT.html#a6312ce04f70c2e1a860ce380298909b6">More...</a><br /></td></tr>
-<tr class="separator:a6312ce04f70c2e1a860ce380298909b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac5b0e8e32d6160601bca0a4a9dba781a"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#ac5b0e8e32d6160601bca0a4a9dba781a">NodeT</a> (const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;a_primitives)</td></tr>
+<tr class="memdesc:ac5b0e8e32d6160601bca0a4a9dba781a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct node from a set of primitives.  <a href="classBVH_1_1NodeT.html#ac5b0e8e32d6160601bca0a4a9dba781a">More...</a><br /></td></tr>
+<tr class="separator:ac5b0e8e32d6160601bca0a4a9dba781a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a42538439c8df2ef5bdbafe609b31d44d"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a42538439c8df2ef5bdbafe609b31d44d">NodeT</a> (const std::vector&lt; std::shared_ptr&lt; const P &gt;&gt; &amp;a_primitives)</td></tr>
+<tr class="memdesc:a42538439c8df2ef5bdbafe609b31d44d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct node from a set of primitives.  <a href="classBVH_1_1NodeT.html#a42538439c8df2ef5bdbafe609b31d44d">More...</a><br /></td></tr>
+<tr class="separator:a42538439c8df2ef5bdbafe609b31d44d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5bc328f2381b6babe37496758ea4b583"><td class="memItemLeft" align="right" valign="top"><a id="a5bc328f2381b6babe37496758ea4b583"></a>
 virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a5bc328f2381b6babe37496758ea4b583">~NodeT</a> ()</td></tr>
 <tr class="memdesc:a5bc328f2381b6babe37496758ea4b583"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor (does nothing) <br /></td></tr>
@@ -152,7 +152,7 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <tr class="memdesc:a1f9067b43b1a6962854f4a2b43325858"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function which computes the signed distance. This version allows the user to manually select a traversal algorithm.  <a href="classBVH_1_1NodeT.html#a1f9067b43b1a6962854f4a2b43325858">More...</a><br /></td></tr>
 <tr class="separator:a1f9067b43b1a6962854f4a2b43325858"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acb801f1e446a6472f5d330e85318bdb3"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classBVH_1_1LinearBVH.html">LinearBVH</a>&lt; T, P, BV, K &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#acb801f1e446a6472f5d330e85318bdb3">flattenTree</a> () const noexcept</td></tr>
-<tr class="memdesc:acb801f1e446a6472f5d330e85318bdb3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flatten everything beneath this node into a depth-first sorted <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> hierarchy.  <a href="classBVH_1_1NodeT.html#acb801f1e446a6472f5d330e85318bdb3">More...</a><br /></td></tr>
+<tr class="memdesc:acb801f1e446a6472f5d330e85318bdb3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flatten everything beneath this node into a depth-first sorted <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> hierarchy.  <a href="classBVH_1_1NodeT.html#acb801f1e446a6472f5d330e85318bdb3">More...</a><br /></td></tr>
 <tr class="separator:acb801f1e446a6472f5d330e85318bdb3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-methods"></a>
@@ -173,17 +173,17 @@ Protected Member Functions</h2></td></tr>
 <tr class="memdesc:ae4d94382126f1e9f29a58cd6583782b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the list of primitives in this node.  <a href="classBVH_1_1NodeT.html#ae4d94382126f1e9f29a58cd6583782b6">More...</a><br /></td></tr>
 <tr class="separator:ae4d94382126f1e9f29a58cd6583782b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6bd0a4dd5843f010dd579d59a289b4d8"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a6bd0a4dd5843f010dd579d59a289b4d8">pruneStack</a> (const <a class="el" href="classBVH_1_1NodeT.html#a6fbb4308c5c55ee170c5f992df7ae1d0">Vec3</a> &amp;a_point) const noexcept</td></tr>
-<tr class="memdesc:a6bd0a4dd5843f010dd579d59a289b4d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Iterative ordered pruning along the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> tree.  <a href="classBVH_1_1NodeT.html#a6bd0a4dd5843f010dd579d59a289b4d8">More...</a><br /></td></tr>
+<tr class="memdesc:a6bd0a4dd5843f010dd579d59a289b4d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Iterative ordered pruning along the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree.  <a href="classBVH_1_1NodeT.html#a6bd0a4dd5843f010dd579d59a289b4d8">More...</a><br /></td></tr>
 <tr class="separator:a6bd0a4dd5843f010dd579d59a289b4d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac4a3be457d66d2673f717f203e60fc08"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#ac4a3be457d66d2673f717f203e60fc08">pruneOrdered</a> (T &amp;a_closest, const <a class="el" href="classBVH_1_1NodeT.html#a6fbb4308c5c55ee170c5f992df7ae1d0">Vec3</a> &amp;a_point) const noexcept</td></tr>
-<tr class="memdesc:ac4a3be457d66d2673f717f203e60fc08"><td class="mdescLeft">&#160;</td><td class="mdescRight">Recursively ordered pruning along the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> tree.  <a href="classBVH_1_1NodeT.html#ac4a3be457d66d2673f717f203e60fc08">More...</a><br /></td></tr>
+<tr class="memdesc:ac4a3be457d66d2673f717f203e60fc08"><td class="mdescLeft">&#160;</td><td class="mdescRight">Recursively ordered pruning along the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree.  <a href="classBVH_1_1NodeT.html#ac4a3be457d66d2673f717f203e60fc08">More...</a><br /></td></tr>
 <tr class="separator:ac4a3be457d66d2673f717f203e60fc08"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad252aa451ca983750dfa0c24344253b2"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#ad252aa451ca983750dfa0c24344253b2">pruneUnordered</a> (T &amp;a_closest, const <a class="el" href="classBVH_1_1NodeT.html#a6fbb4308c5c55ee170c5f992df7ae1d0">Vec3</a> &amp;a_point) const noexcept</td></tr>
-<tr class="memdesc:ad252aa451ca983750dfa0c24344253b2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Recursive unordered pruning along the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> tree.  <a href="classBVH_1_1NodeT.html#ad252aa451ca983750dfa0c24344253b2">More...</a><br /></td></tr>
+<tr class="memdesc:ad252aa451ca983750dfa0c24344253b2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Recursive unordered pruning along the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree.  <a href="classBVH_1_1NodeT.html#ad252aa451ca983750dfa0c24344253b2">More...</a><br /></td></tr>
 <tr class="separator:ad252aa451ca983750dfa0c24344253b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9545c525e04690c973c0a4d9bd6e51af"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a9545c525e04690c973c0a4d9bd6e51af">flattenTree</a> (std::vector&lt; std::shared_ptr&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>&lt; T, P, BV, K &gt; &gt; &gt; &amp;a_linearNodes, std::vector&lt; std::shared_ptr&lt; const P &gt; &gt; &amp;a_sortedPrimitives, size_t &amp;a_offset) const noexcept</td></tr>
-<tr class="memdesc:a9545c525e04690c973c0a4d9bd6e51af"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flatten tree method.  <a href="classBVH_1_1NodeT.html#a9545c525e04690c973c0a4d9bd6e51af">More...</a><br /></td></tr>
-<tr class="separator:a9545c525e04690c973c0a4d9bd6e51af"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a950e1bcd16baa78ede8f6559754a639d"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a950e1bcd16baa78ede8f6559754a639d">flattenTree</a> (std::vector&lt; std::shared_ptr&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>&lt; T, P, BV, K &gt;&gt;&gt; &amp;a_linearNodes, std::vector&lt; std::shared_ptr&lt; const P &gt;&gt; &amp;a_sortedPrimitives, size_t &amp;a_offset) const noexcept</td></tr>
+<tr class="memdesc:a950e1bcd16baa78ede8f6559754a639d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flatten tree method.  <a href="classBVH_1_1NodeT.html#a950e1bcd16baa78ede8f6559754a639d">More...</a><br /></td></tr>
+<tr class="separator:a950e1bcd16baa78ede8f6559754a639d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
@@ -204,15 +204,18 @@ std::array&lt; std::shared_ptr&lt; <a class="el" href="classBVH_1_1NodeT.html">N
 <div class="textblock"><h3>template&lt;class T, class P, class BV, size_t K&gt;<br />
 class BVH::NodeT&lt; T, P, BV, K &gt;</h3>
 
-<p>Forward declare the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> node since it is needed for the polymorphic lambdas. </p>
+<p>Forward declare the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> node since it is needed for the polymorphic lambdas. </p>
 <p>Class which encapsulates a node in a bounding volume hierarchy.</p>
-<p>T is the precision used in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> computations, P is the enclosing primitive and BV is the bounding volume used in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a>. K is the tree degree.</p>
-<p>T is the precision, P is the primitive type you want to enclose, BV is the bounding volume type used at the nodes. The parameter K (which must be &gt; 1) is the tree degree. K=2 is a binary tree, K=3 is a tertiary tree and so on. </p><dl class="section note"><dt>Note</dt><dd>Template constraints are as following:</dd></dl>
+<p>T is the precision used in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> computations, P is the enclosing primitive and BV is the bounding volume used in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>. K is the tree degree.</p>
+<p>T is the precision, P is the primitive type you want to enclose, BV is the bounding volume type used at the nodes. The parameter K (which must be </p><blockquote class="doxtable">
+<p>1) is the tree degree. K=2 is a binary tree, K=3 is a tertiary tree and so </p>
+</blockquote>
+<p>on. </p><dl class="section note"><dt>Note</dt><dd>Template constraints are as following:</dd></dl>
 <p>P MUST supply function signedDistance(...) . BV MUST supply a function getDistance</p>
 <p>Had this been C++20, we would have use concepts to enforce this. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a6da86ccc8e4a0c556cd67ca59af983dc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6da86ccc8e4a0c556cd67ca59af983dc">&#9670;&nbsp;</a></span>NodeT() <span class="overload">[1/2]</span></h2>
+<a id="ac5b0e8e32d6160601bca0a4a9dba781a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac5b0e8e32d6160601bca0a4a9dba781a">&#9670;&nbsp;</a></span>NodeT() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -225,7 +228,7 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
         <tr>
           <td class="memname"><a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::<a class="el" href="classBVH_1_1NodeT.html">NodeT</a> </td>
           <td>(</td>
-          <td class="paramtype">const std::vector&lt; std::shared_ptr&lt; P &gt; &gt; &amp;&#160;</td>
+          <td class="paramtype">const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;&#160;</td>
           <td class="paramname"><em>a_primitives</em></td><td>)</td>
           <td></td>
         </tr>
@@ -247,8 +250,8 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 
 </div>
 </div>
-<a id="a6312ce04f70c2e1a860ce380298909b6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6312ce04f70c2e1a860ce380298909b6">&#9670;&nbsp;</a></span>NodeT() <span class="overload">[2/2]</span></h2>
+<a id="a42538439c8df2ef5bdbafe609b31d44d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a42538439c8df2ef5bdbafe609b31d44d">&#9670;&nbsp;</a></span>NodeT() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -261,7 +264,7 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
         <tr>
           <td class="memname"><a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::<a class="el" href="classBVH_1_1NodeT.html">NodeT</a> </td>
           <td>(</td>
-          <td class="paramtype">const std::vector&lt; std::shared_ptr&lt; const P &gt; &gt; &amp;&#160;</td>
+          <td class="paramtype">const std::vector&lt; std::shared_ptr&lt; const P &gt;&gt; &amp;&#160;</td>
           <td class="paramname"><em>a_primitives</em></td><td>)</td>
           <td></td>
         </tr>
@@ -306,13 +309,13 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Flatten everything beneath this node into a depth-first sorted <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> hierarchy. </p>
-<p>This will compute the flattening of the standard <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> tree and return a pointer to the linear corresponding to the current node. </p>
+<p>Flatten everything beneath this node into a depth-first sorted <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> hierarchy. </p>
+<p>This will compute the flattening of the standard <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree and return a pointer to the linear corresponding to the current node. </p>
 
 </div>
 </div>
-<a id="a9545c525e04690c973c0a4d9bd6e51af"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9545c525e04690c973c0a4d9bd6e51af">&#9670;&nbsp;</a></span>flattenTree() <span class="overload">[2/2]</span></h2>
+<a id="a950e1bcd16baa78ede8f6559754a639d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a950e1bcd16baa78ede8f6559754a639d">&#9670;&nbsp;</a></span>flattenTree() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -325,13 +328,13 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
         <tr>
           <td class="memname">size_t <a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::flattenTree </td>
           <td>(</td>
-          <td class="paramtype">std::vector&lt; std::shared_ptr&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>&lt; T, P, BV, K &gt; &gt; &gt; &amp;&#160;</td>
+          <td class="paramtype">std::vector&lt; std::shared_ptr&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>&lt; T, P, BV, K &gt;&gt;&gt; &amp;&#160;</td>
           <td class="paramname"><em>a_linearNodes</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">std::vector&lt; std::shared_ptr&lt; const P &gt; &gt; &amp;&#160;</td>
+          <td class="paramtype">std::vector&lt; std::shared_ptr&lt; const P &gt;&gt; &amp;&#160;</td>
           <td class="paramname"><em>a_sortedPrimitives</em>, </td>
         </tr>
         <tr>
@@ -356,7 +359,7 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 <p>Flatten tree method. </p>
 <p>This function will flatten everything beneath the current node and linearize all the nodes and primitives beneath it to a_linearNodes and a_sortedPrimitives. This function is called recursively. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in,out]</td><td class="paramname">a_linearNodes</td><td><a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> nodes, linearized onto a vector. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">a_linearNodes</td><td><a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> nodes, linearized onto a vector. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">a_sortedPrimitives</td><td>Sorted primitives (in leaf node order). </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">a_offset</td><td>Supporting integer for figuring out where in the tree we are. </td></tr>
   </table>
@@ -623,7 +626,7 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Recursively ordered pruning along the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> tree. </p>
+<p>Recursively ordered pruning along the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in,out]</td><td class="paramname">a_closest</td><td>Shortest distance to primitives so far. </td></tr>
@@ -660,7 +663,7 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Iterative ordered pruning along the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> tree. </p>
+<p>Iterative ordered pruning along the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in,out]</td><td class="paramname">a_point</td><td>Input 3D point </td></tr>
@@ -706,7 +709,7 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Recursive unordered pruning along the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume heirarchy (BVH) functionality.">BVH</a> tree. </p>
+<p>Recursive unordered pruning along the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in,out]</td><td class="paramname">a_closest</td><td>Shortest distance to primitives so far. </td></tr>

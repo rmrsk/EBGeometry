@@ -168,7 +168,7 @@ EBGeometry provides these by letting the top-down construction calls take polymo
 </div>
 <div class="section" id="signed-distance-function">
 <h2>Signed distance function<a class="headerlink" href="#signed-distance-function" title="Permalink to this headline"></a></h2>
-<p>When computing the signed distance function to objects embedded in a BVH, one takes advantage of the hierarcical embedding of the primitives.
+<p>When computing the signed distance function to objects embedded in a BVH, one takes advantage of the hierarchical embedding of the primitives.
 Consider the case in <a class="reference internal" href="#fig-treepruning"><span class="std std-numref">Fig. 5</span></a>, where the goal of the BVH traversal is to minimize the number of branches and nodes that are visited.
 For the traversal algorithm we consider the following steps:</p>
 <ul class="simple">
@@ -186,7 +186,7 @@ This immediately permits us to prune the entire subtree containing <span class="
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Note that all BVH traversal algorithms become inefficient when the primitives are all at approximately the same distance from the query point.
-For example, it is necessary to traverse almost the entire tree when one tries to compute the signed distance at the origin of a tesselated sphere.</p>
+For example, it is necessary to traverse almost the entire tree when one tries to compute the signed distance at the origin of a tessellated sphere.</p>
 </div>
 </div>
 </div>

@@ -5,7 +5,7 @@
 <area shape="rect" id="node4" href="$classCapsuleSDF.html" title="Capsulate/pill SDF. Basically a cylinder with spherical endcaps, oriented along the specified axis." alt="" coords="293,107,431,133"/>
 <area shape="rect" id="node5" href="$classConeSDF.html" title="Signed distance field for an finite cone. Oriented along +z." alt="" coords="303,157,421,184"/>
 <area shape="rect" id="node6" href="$classCylinderSDF.html" title="Signed distance field for a cylinder." alt="" coords="292,208,432,235"/>
-<area shape="rect" id="node7" href="$classDcel_1_1MeshT.html" title="Mesh class which stores a full DCEL mesh (with signed distance functions)" alt="" coords="292,259,432,285"/>
+<area shape="rect" id="node7" href="$classDCEL_1_1MeshT.html" title="Mesh class which stores a full DCEL mesh (with signed distance functions)" alt="" coords="289,259,435,285"/>
 <area shape="rect" id="node8" href="$classInfiniteConeSDF.html" title="Signed distance field for an infinite cone. Oriented along +z." alt="" coords="280,309,444,336"/>
 <area shape="rect" id="node9" href="$classInfiniteCylinderSDF.html" title="Inifinitely long cylinder class. Oriented along the y&#45;axis." alt="" coords="269,360,455,387"/>
 <area shape="rect" id="node10" href="$classPlaneSDF.html" title=" " alt="" coords="301,411,423,437"/>

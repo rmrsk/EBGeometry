@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['searchalgorithm_687',['SearchAlgorithm',['../classDcel_1_1MeshT.html#abb4c3bb7a52804bb041c133f30151399',1,'Dcel::MeshT']]]
+  ['searchalgorithm_687',['SearchAlgorithm',['../classDCEL_1_1MeshT.html#a2c124d7a678adb956790418f3dd237e9',1,'DCEL::MeshT']]]
 ];

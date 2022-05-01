@@ -126,12 +126,7 @@
 <li><p><strong>Vertices</strong> are implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel::EdgeT</span></code></p></li>
 </ul>
 <blockquote>
-<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
-  <span class="k">class</span> <span class="nc">VertexT</span> <span class="p">{</span>
-  <span class="k">public</span><span class="o">:</span>
-</pre></div>
-</div>
-<p>The DCEL vertex class stores the vertex position, normal vector, and the outgoing half-edge from the vertex.
+<div><p>The DCEL vertex class stores the vertex position, normal vector, and the outgoing half-edge from the vertex.
 Note that the class has member functions for computing the vertex pseudonormal, see <a class="reference internal" href="DCEL.html#chap-normaldcel"><span class="std std-ref">Normal vectors</span></a>.</p>
 <p>The full API is given in the doxygen documentation <a class="reference external" href="doxygen/html/classDcel_1_1VertexT.html">here</a>.</p>
 </div></blockquote>
@@ -139,12 +134,7 @@ Note that the class has member functions for computing the vertex pseudonormal, 
 <li><p><strong>Edges</strong> are implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel::EdgeT</span></code></p></li>
 </ul>
 <blockquote>
-<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
-  <span class="k">class</span> <span class="nc">EdgeT</span> <span class="p">{</span>
-  <span class="k">public</span><span class="o">:</span>
-</pre></div>
-</div>
-<p>The half-edges store a reference to their face, as well as pointers to the previous edge, next edge, pair edge, and starting vertex.
+<div><p>The half-edges store a reference to their face, as well as pointers to the previous edge, next edge, pair edge, and starting vertex.
 For performance reasons, the edge also stores the length and inverse length of the edge.</p>
 <p>The full API is given in the doxygen documentation <a class="reference external" href="doxygen/html/classDcel_1_1EdgeT.html">here</a>.</p>
 </div></blockquote>
@@ -152,12 +142,7 @@ For performance reasons, the edge also stores the length and inverse length of t
 <li><p><strong>Faces</strong> are implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel::FaceT</span></code></p></li>
 </ul>
 <blockquote>
-<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
-  <span class="k">class</span> <span class="nc">FaceT</span> <span class="p">{</span>
-  <span class="k">public</span><span class="o">:</span>
-</pre></div>
-</div>
-<p>For performance reasons, a polygon face stores all it’s half-edges (to avoid iteration when computing the signed distance).
+<div><p>For performance reasons, a polygon face stores all it’s half-edges (to avoid iteration when computing the signed distance).
 It also stores:</p>
 <ul class="simple">
 <li><p>The normal vector.</p></li>
@@ -172,12 +157,7 @@ The centroid position exists only because BVH partitioners will use it for parti
 <li><p><strong>Mesh</strong> is implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel::MeshT</span></code></p></li>
 </ul>
 <blockquote>
-<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
-  <span class="k">class</span> <span class="nc">MeshT</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
-  <span class="k">public</span><span class="o">:</span>
-</pre></div>
-</div>
-<p>The Mesh stores all the vertices, half-edges, and faces.
+<div><p>The Mesh stores all the vertices, half-edges, and faces.
 For example, to obtain all the facets one can call <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel::MeshT&lt;T&gt;::getFaces()</span></code> which will return all the DCEL faces of the surface mesh.
 Typically, the mesh is not created by the user but automatically created when reading the mesh from an input file.</p>
 <p>The full API is given in the doxygen documentation <a class="reference external" href="doxygen/html/classDcel_1_1MeshT.html">here</a>.</p>
@@ -230,26 +210,10 @@ Moreover, partitioning functions that partition a set of polygon faces into <cod
 <p>The functions are defined in <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_DcelBVH.hpp</span></code>.</p>
 </div>
 <p>For the bounding volume constructor, we provide a function</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="o">&gt;</span>
-  <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">BVConstructorT</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">BV</span><span class="o">&gt;</span> <span class="n">defaultBVConstructor</span> <span class="o">=</span> <span class="p">[](</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">&gt;&amp;</span> <span class="n">a_primitive</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BV</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="n">BV</span><span class="p">(</span><span class="n">a_primitive</span><span class="o">-&gt;</span><span class="n">getAllVertexCoordinates</span><span class="p">());</span>
-  <span class="p">};</span>  
-</pre></div>
-</div>
 <p>Note the extra template constraint on the bounding volume type <code class="docutils literal notranslate"><span class="pre">BV</span></code>, which must be able to construct a bounding volume from a finite point set (the vertex coordinates).</p>
 <p>For the stop function we provide a simple function</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">K</span><span class="o">&gt;</span> 
-  <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">StopFunctionT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="n">defaultStopFunction</span> <span class="o">=</span> <span class="p">[](</span><span class="k">const</span> <span class="n">BVH</span><span class="o">::</span><span class="n">NodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;&amp;</span> <span class="n">a_node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">bool</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">a_node</span><span class="p">.</span><span class="n">getPrimitives</span><span class="p">()).</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">K</span><span class="p">;</span>
-  <span class="p">};</span>
-</pre></div>
-</div>
 <p>Note that this simply terminates the leaf partitioning if there are not enough primitives (polygon faces) available, or there are fewer than a pre-defined number of primitives.</p>
 <p>For the partitioning function we include a simple function that partitions the primites along the longest axis:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">K</span><span class="o">&gt;</span>
-  <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">PartitionerT</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="n">defaultPartitioner</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Dcel</span><span class="o">::</span><span class="n">chunkPartitioner</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">;</span>
-</pre></div>
-</div>
 <p>Note that this function is just an alias for a different partitioner which splits the bounding volumes into equal-sized chunks.
 See <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_DcelBVH.hpp</span></code> for details.</p>
 </div>

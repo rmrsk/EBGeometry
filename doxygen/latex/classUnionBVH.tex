@@ -44,9 +44,9 @@ using \mbox{\hyperlink{classUnionBVH_a09561e026cd6a7da1a7dbdbad5eea2c2}{B\+V\+Co
 \mbox{\Hypertarget{classUnionBVH_aa2d9a2e95e58a0d7dfb2b92283626cac}\label{classUnionBVH_aa2d9a2e95e58a0d7dfb2b92283626cac}} 
 \mbox{\hyperlink{classUnionBVH_aa2d9a2e95e58a0d7dfb2b92283626cac}{Union\+B\+VH}} ()=delete
 \begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classUnionBVH_a6a0a50fcddc59dbb1c9b9444b0fce117}{Union\+B\+VH}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classUnionBVH_a5d1d64d7cabf1000fc1a804d06e103cc}{S\+DF}} $>$ $>$ \&a\+\_\+distance\+Functions, const bool a\+\_\+flip\+Sign)
+\mbox{\hyperlink{classUnionBVH_ab56dd603f45f3908be3386fd295d9ffc}{Union\+B\+VH}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classUnionBVH_a5d1d64d7cabf1000fc1a804d06e103cc}{S\+DF}} $>$$>$ \&a\+\_\+distance\+Functions, const bool a\+\_\+flip\+Sign)
 \begin{DoxyCompactList}\small\item\em Partial constructor. Associates distance functions but does not build \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classUnionBVH_a9eb2c19a0fdc645e068c09398d3dd0f3}{Union\+B\+VH}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classUnionBVH_a5d1d64d7cabf1000fc1a804d06e103cc}{S\+DF}} $>$ $>$ \&a\+\_\+distance\+Functions, const bool a\+\_\+flip\+Sign, const \mbox{\hyperlink{classUnionBVH_a09561e026cd6a7da1a7dbdbad5eea2c2}{B\+V\+Constructor}} \&a\+\_\+bv\+Constructor)
+\mbox{\hyperlink{classUnionBVH_adc951cd9eb51c029a25e33e275e74f25}{Union\+B\+VH}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classUnionBVH_a5d1d64d7cabf1000fc1a804d06e103cc}{S\+DF}} $>$$>$ \&a\+\_\+distance\+Functions, const bool a\+\_\+flip\+Sign, const \mbox{\hyperlink{classUnionBVH_a09561e026cd6a7da1a7dbdbad5eea2c2}{B\+V\+Constructor}} \&a\+\_\+bv\+Constructor)
 \begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classUnionBVH_a97769f4c449610b681a70b93c99a40ca}{build\+Tree}} (const \mbox{\hyperlink{classUnionBVH_a09561e026cd6a7da1a7dbdbad5eea2c2}{B\+V\+Constructor}} \&a\+\_\+bv\+Constructor)
 \begin{DoxyCompactList}\small\item\em Build \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree for the input objects. User must supply a partitioner and a BV constructor for the S\+DF objects. \end{DoxyCompactList}\item 
@@ -97,12 +97,12 @@ This class only makes sense if the object do not overlap.
 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classUnionBVH_a6a0a50fcddc59dbb1c9b9444b0fce117}\label{classUnionBVH_a6a0a50fcddc59dbb1c9b9444b0fce117}} 
+\mbox{\Hypertarget{classUnionBVH_ab56dd603f45f3908be3386fd295d9ffc}\label{classUnionBVH_ab56dd603f45f3908be3386fd295d9ffc}} 
 \index{UnionBVH$<$ T, BV, K $>$@{UnionBVH$<$ T, BV, K $>$}!UnionBVH@{UnionBVH}}
 \index{UnionBVH@{UnionBVH}!UnionBVH$<$ T, BV, K $>$@{UnionBVH$<$ T, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{UnionBVH()}{UnionBVH()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$class T , class BV , size\+\_\+t K$>$ \\
-\mbox{\hyperlink{classUnionBVH}{Union\+B\+VH}}$<$ T, BV, K $>$\+::\mbox{\hyperlink{classUnionBVH}{Union\+B\+VH}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classUnionBVH_a5d1d64d7cabf1000fc1a804d06e103cc}{S\+DF}} $>$ $>$ \&}]{a\+\_\+distance\+Functions,  }\item[{const bool}]{a\+\_\+flip\+Sign }\end{DoxyParamCaption})}
+\mbox{\hyperlink{classUnionBVH}{Union\+B\+VH}}$<$ T, BV, K $>$\+::\mbox{\hyperlink{classUnionBVH}{Union\+B\+VH}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classUnionBVH_a5d1d64d7cabf1000fc1a804d06e103cc}{S\+DF}} $>$$>$ \&}]{a\+\_\+distance\+Functions,  }\item[{const bool}]{a\+\_\+flip\+Sign }\end{DoxyParamCaption})}
 
 
 
@@ -115,12 +115,12 @@ Partial constructor. Associates distance functions but does not build \mbox{\hyp
 \mbox{\texttt{ in}}  & {\em a\+\_\+flip\+Sign} & Hook for turning inside to outside \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classUnionBVH_a9eb2c19a0fdc645e068c09398d3dd0f3}\label{classUnionBVH_a9eb2c19a0fdc645e068c09398d3dd0f3}} 
+\mbox{\Hypertarget{classUnionBVH_adc951cd9eb51c029a25e33e275e74f25}\label{classUnionBVH_adc951cd9eb51c029a25e33e275e74f25}} 
 \index{UnionBVH$<$ T, BV, K $>$@{UnionBVH$<$ T, BV, K $>$}!UnionBVH@{UnionBVH}}
 \index{UnionBVH@{UnionBVH}!UnionBVH$<$ T, BV, K $>$@{UnionBVH$<$ T, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{UnionBVH()}{UnionBVH()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
 {\footnotesize\ttfamily template$<$class T , class BV , size\+\_\+t K$>$ \\
-\mbox{\hyperlink{classUnionBVH}{Union\+B\+VH}}$<$ T, BV, K $>$\+::\mbox{\hyperlink{classUnionBVH}{Union\+B\+VH}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classUnionBVH_a5d1d64d7cabf1000fc1a804d06e103cc}{S\+DF}} $>$ $>$ \&}]{a\+\_\+distance\+Functions,  }\item[{const bool}]{a\+\_\+flip\+Sign,  }\item[{const \mbox{\hyperlink{classUnionBVH_a09561e026cd6a7da1a7dbdbad5eea2c2}{B\+V\+Constructor}} \&}]{a\+\_\+bv\+Constructor }\end{DoxyParamCaption})}
+\mbox{\hyperlink{classUnionBVH}{Union\+B\+VH}}$<$ T, BV, K $>$\+::\mbox{\hyperlink{classUnionBVH}{Union\+B\+VH}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classUnionBVH_a5d1d64d7cabf1000fc1a804d06e103cc}{S\+DF}} $>$$>$ \&}]{a\+\_\+distance\+Functions,  }\item[{const bool}]{a\+\_\+flip\+Sign,  }\item[{const \mbox{\hyperlink{classUnionBVH_a09561e026cd6a7da1a7dbdbad5eea2c2}{B\+V\+Constructor}} \&}]{a\+\_\+bv\+Constructor }\end{DoxyParamCaption})}
 
 
 

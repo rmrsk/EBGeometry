@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['centroidpartitioner_594',['centroidPartitioner',['../namespaceDcel.html#aa64f98d30787c28369069696ef135459',1,'Dcel']]],
-  ['chunkpartitioner_595',['chunkPartitioner',['../namespaceDcel.html#a5613435b6c3b3ccee6616c01bcc0a8d8',1,'Dcel']]]
+  ['centroidpartitioner_594',['centroidPartitioner',['../namespaceDCEL.html#a73030e63595de076507525cf66fa2265',1,'DCEL']]],
+  ['chunkpartitioner_595',['chunkPartitioner',['../namespaceDCEL.html#a63e3a028830d8f77944c3b521f7d8e47',1,'DCEL']]]
 ];

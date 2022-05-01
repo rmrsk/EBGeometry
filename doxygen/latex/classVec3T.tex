@@ -39,9 +39,9 @@ bool \mbox{\hyperlink{classVec3T_a3296f8319642088e08bd2d3e253fcd64}{operator$>$=
 \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classVec3T_a34681a81b55b4e7ae818e01b5f27a3e0}{operator=}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&u) noexcept
 \begin{DoxyCompactList}\small\item\em Assignment operator. Sets components equal to the argument vector\textquotesingle{}s components. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classVec3T_af1ab895de89a1a3143f58d2ce5d78bc2}{operator+}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&u) const noexcept
-\begin{DoxyCompactList}\small\item\em Addition operator. Returns a new vector with added compoments. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Addition operator. Returns a new vector with added components. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classVec3T_ac00a70e55a93ecd8c60d29a129f8fbf3}{operator-\/}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&u) const noexcept
-\begin{DoxyCompactList}\small\item\em Subtraction operator. Returns a new vector with subtracted compoments. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Subtraction operator. Returns a new vector with subtracted components. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classVec3T_a2d32936bb5a9ddc22152d301723bc3e0}\label{classVec3T_a2d32936bb5a9ddc22152d301723bc3e0}} 
 \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classVec3T_a2d32936bb5a9ddc22152d301723bc3e0}{operator-\/}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Negation operator. Returns a vector with negated components. \end{DoxyCompactList}\item 
@@ -112,7 +112,7 @@ class Vec3\+T$<$ T $>$}
 Three-\/dimensional vector class with arithmetic operators. 
 
 The class has a public-\/only interface. To change it\textquotesingle{}s components one can call the member functions, or set components directly, e.\+g. vec.\+x = 5.\+0 \begin{DoxyNote}{Note}
-\mbox{\hyperlink{classVec3T}{Vec3T}} is a templated class primarily used with D\+C\+EL grids. It is always 3D, i.\+e. independent of Chombo configuration settings. This lets one use D\+C\+EL functionality even though the simulation might only be 2D. 
+\mbox{\hyperlink{classVec3T}{Vec3T}} is a templated class primarily used with \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} grids. It is always 3D, i.\+e. independent of Chombo configuration settings. This lets one use \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} functionality even though the simulation might only be 2D. 
 \end{DoxyNote}
 
 
@@ -353,7 +353,7 @@ Vector multiplication operator.
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
-Returns ($\ast$this) with multiplied compoments, e.\+g. this-\/$>$X\mbox{[}0\mbox{]} = this-\/$>$X\mbox{[}0\mbox{]} $\ast$ s 
+Returns ($\ast$this) with multiplied components, e.\+g. this-\/$>$X\mbox{[}0\mbox{]} = this-\/$>$X\mbox{[}0\mbox{]} $\ast$ s 
 \end{DoxyReturn}
 \mbox{\Hypertarget{classVec3T_af1ab895de89a1a3143f58d2ce5d78bc2}\label{classVec3T_af1ab895de89a1a3143f58d2ce5d78bc2}} 
 \index{Vec3T$<$ T $>$@{Vec3T$<$ T $>$}!operator+@{operator+}}
@@ -364,7 +364,7 @@ Returns ($\ast$this) with multiplied compoments, e.\+g. this-\/$>$X\mbox{[}0\mbo
 
 
 
-Addition operator. Returns a new vector with added compoments. 
+Addition operator. Returns a new vector with added components. 
 
 \begin{DoxyReturn}{Returns}
 Returns a new vector with x = this-\/$>$x -\/ u.\+x and so on. 
@@ -391,7 +391,7 @@ Vector addition operator.
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
-Returns ($\ast$this) with incremented compoments, e.\+g. this-\/$>$X\mbox{[}0\mbox{]} = this-\/$>$X\mbox{[}0\mbox{]} + u.\+X\mbox{[}0\mbox{]} 
+Returns ($\ast$this) with incremented components, e.\+g. this-\/$>$X\mbox{[}0\mbox{]} = this-\/$>$X\mbox{[}0\mbox{]} + u.\+X\mbox{[}0\mbox{]} 
 \end{DoxyReturn}
 \mbox{\Hypertarget{classVec3T_ac00a70e55a93ecd8c60d29a129f8fbf3}\label{classVec3T_ac00a70e55a93ecd8c60d29a129f8fbf3}} 
 \index{Vec3T$<$ T $>$@{Vec3T$<$ T $>$}!operator-\/@{operator-\/}}
@@ -402,7 +402,7 @@ Returns ($\ast$this) with incremented compoments, e.\+g. this-\/$>$X\mbox{[}0\mb
 
 
 
-Subtraction operator. Returns a new vector with subtracted compoments. 
+Subtraction operator. Returns a new vector with subtracted components. 
 
 \begin{DoxyReturn}{Returns}
 Returns a new vector with x = this-\/$>$x -\/ u.\+x and so on. 
@@ -429,7 +429,7 @@ Vector subtraction operator.
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
-Returns ($\ast$this) with subtracted compoments, e.\+g. this-\/$>$X\mbox{[}0\mbox{]} = this-\/$>$X\mbox{[}0\mbox{]} -\/ u.\+X\mbox{[}0\mbox{]} 
+Returns ($\ast$this) with subtracted components, e.\+g. this-\/$>$X\mbox{[}0\mbox{]} = this-\/$>$X\mbox{[}0\mbox{]} -\/ u.\+X\mbox{[}0\mbox{]} 
 \end{DoxyReturn}
 \mbox{\Hypertarget{classVec3T_acc5973c1c82e51c597b47ba39870f528}\label{classVec3T_acc5973c1c82e51c597b47ba39870f528}} 
 \index{Vec3T$<$ T $>$@{Vec3T$<$ T $>$}!operator/@{operator/}}
@@ -486,7 +486,7 @@ Vector division operator.
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
-Returns ($\ast$this) with multiplied compoments, e.\+g. this-\/$>$X\mbox{[}0\mbox{]} = this-\/$>$X\mbox{[}0\mbox{]} / s 
+Returns ($\ast$this) with multiplied components, e.\+g. this-\/$>$X\mbox{[}0\mbox{]} = this-\/$>$X\mbox{[}0\mbox{]} / s 
 \end{DoxyReturn}
 \mbox{\Hypertarget{classVec3T_aba830919c5020bb060f39fe9df6b7ca1}\label{classVec3T_aba830919c5020bb060f39fe9df6b7ca1}} 
 \index{Vec3T$<$ T $>$@{Vec3T$<$ T $>$}!operator$<$@{operator$<$}}

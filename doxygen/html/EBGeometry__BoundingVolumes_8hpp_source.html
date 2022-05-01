@@ -75,188 +75,194 @@ $(function() {
 <div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment"> * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.</span></div>
 <div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment"> */</span></div>
 <div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160; </div>
-<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="preprocessor">#ifndef EBGeometry_BoundingVolumes_H</span></div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="preprocessor">#define EBGeometry_BoundingVolumes_H</span></div>
-<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
-<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="comment">// Std includes</span></div>
-<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="preprocessor">#include &lt;vector&gt;</span></div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160; </div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="comment">// Our includes</span></div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__Vec_8hpp.html">EBGeometry_Vec.hpp</a>&quot;</span></div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceHeader_8hpp.html">EBGeometry_NamespaceHeader.hpp</a>&quot;</span></div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160; </div>
-<div class="line"><a name="l00025"></a><span class="lineno"><a class="line" href="namespaceBoundingVolumes.html">   25</a></span>&#160;<span class="keyword">namespace </span><a class="code" href="namespaceBoundingVolumes.html">BoundingVolumes</a> {</div>
-<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;  </div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00032"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1BoundingSphereT.html">   32</a></span>&#160;  <span class="keyword">class </span><a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a> {</div>
-<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;  <span class="keyword">public</span>:</div>
-<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160; </div>
-<div class="line"><a name="l00038"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1BoundingSphereT.html#ae98cd00c8e45c93a0fc4fbabec63b007">   38</a></span>&#160;    <span class="keyword">enum class</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#ae98cd00c8e45c93a0fc4fbabec63b007">BoundingVolumeAlgorithm</a> {</div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;      Ritter,</div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;    };</div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160; </div>
-<div class="line"><a name="l00045"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1BoundingSphereT.html#ad89ed315255abcde216e9ca1de3068ab">   45</a></span>&#160;    <span class="keyword">using</span> <a class="code" href="classVec3T.html">Vec3</a> = <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>;</div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="preprocessor">#ifndef EBGeometry_BoundingVolumes_H</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="preprocessor">#define EBGeometry_BoundingVolumes_H</span></div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160; </div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="comment">// Std includes</span></div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#include &lt;vector&gt;</span></div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160; </div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="comment">// Our includes</span></div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__Vec_8hpp.html">EBGeometry_Vec.hpp</a>&quot;</span></div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceHeader_8hpp.html">EBGeometry_NamespaceHeader.hpp</a>&quot;</span></div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160; </div>
+<div class="line"><a name="l00027"></a><span class="lineno"><a class="line" href="namespaceBoundingVolumes.html">   27</a></span>&#160;<span class="keyword">namespace </span><a class="code" href="namespaceBoundingVolumes.html">BoundingVolumes</a> {</div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160; </div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00035"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1BoundingSphereT.html">   35</a></span>&#160;<span class="keyword">class </span><a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a></div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;{</div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00042"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1BoundingSphereT.html#ae98cd00c8e45c93a0fc4fbabec63b007">   42</a></span>&#160;  <span class="keyword">enum class</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#ae98cd00c8e45c93a0fc4fbabec63b007">BoundingVolumeAlgorithm</a></div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;  {</div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;    Ritter,</div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;  };</div>
 <div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160; </div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;    <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a5616a743d8b53b11533ef47b3da281aa">BoundingSphereT</a>();</div>
+<div class="line"><a name="l00050"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1BoundingSphereT.html#ad89ed315255abcde216e9ca1de3068ab">   50</a></span>&#160;  <span class="keyword">using</span> <a class="code" href="classVec3T.html">Vec3</a> = <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>;</div>
 <div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160; </div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;    <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a5616a743d8b53b11533ef47b3da281aa">BoundingSphereT</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_center, <span class="keyword">const</span> T&amp; a_radius);</div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160; </div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;    <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a5616a743d8b53b11533ef47b3da281aa">BoundingSphereT</a>(<span class="keyword">const</span> std::vector&lt;<a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT&lt;T&gt;</a> &gt;&amp; a_otherSpheres);</div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160; </div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;    <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a5616a743d8b53b11533ef47b3da281aa">BoundingSphereT</a>(<span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&amp; a_other);</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a5616a743d8b53b11533ef47b3da281aa">BoundingSphereT</a>();</div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160; </div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a5616a743d8b53b11533ef47b3da281aa">BoundingSphereT</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_center, <span class="keyword">const</span> T&amp; a_radius);</div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160; </div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a5616a743d8b53b11533ef47b3da281aa">BoundingSphereT</a>(<span class="keyword">const</span> std::vector&lt;<a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT&lt;T&gt;</a>&gt;&amp; a_otherSpheres);</div>
 <div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160; </div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> P&gt;</div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;    <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a5616a743d8b53b11533ef47b3da281aa">BoundingSphereT</a>(<span class="keyword">const</span> std::vector&lt;<a class="code" href="classVec3T.html">Vec3T&lt;P&gt;</a> &gt;&amp; a_points, <span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#ae98cd00c8e45c93a0fc4fbabec63b007">BoundingVolumeAlgorithm</a>&amp; a_alg = BoundingVolumeAlgorithm::Ritter);</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160; </div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;    <span class="keyword">virtual</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a4495da5774e14f97c0e7579b37cfd60e">~BoundingSphereT</a>();</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160; </div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;    <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&amp; <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#afe83b2eb359c0850d31e15d46273d7af">operator=</a>(<span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&amp; a_other) = <span class="keywordflow">default</span>;</div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160; </div>
-<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> P&gt;</div>
-<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;    <span class="keyword">inline</span></div>
-<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#aac21650a7d3f65081483512064cbcfa8">define</a>(<span class="keyword">const</span> std::vector&lt;<a class="code" href="classVec3T.html">Vec3T&lt;P&gt;</a> &gt;&amp; a_points, <span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#ae98cd00c8e45c93a0fc4fbabec63b007">BoundingVolumeAlgorithm</a>&amp; a_alg) noexcept;</div>
-<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160; </div>
-<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;    <span class="keyword">inline</span></div>
-<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a90baad0c400aac7645a7e8c1ab13096a">intersects</a>(<span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&amp; a_other) <span class="keyword">const</span> noexcept;</div>
-<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160; </div>
-<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;    <span class="keyword">inline</span></div>
-<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;    T&amp; <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#ab4c2ce5157e8d0ef1bca21b4961b87ca">getRadius</a>() noexcept;</div>
-<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160; </div>
-<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;    inline</div>
-<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;    const T&amp; <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#ab4c2ce5157e8d0ef1bca21b4961b87ca">getRadius</a>() const noexcept;</div>
-<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160; </div>
-<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;    inline</div>
-<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;    <a class="code" href="classVec3T.html">Vec3</a>&amp; <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a8261b0ed0924457fad8fad95bf0037b6">getCentroid</a>() noexcept;</div>
-<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160; </div>
-<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;    inline</div>
-<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;    const <a class="code" href="classVec3T.html">Vec3</a>&amp; <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a8261b0ed0924457fad8fad95bf0037b6">getCentroid</a>() const noexcept;</div>
-<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160; </div>
-<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160;    inline</div>
-<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160;    T <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a4581b87c7a3ccd3b58168bfdae9436cb">getOverlappingVolume</a>(const <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&lt;T&gt;&amp; a_other) const noexcept;</div>
-<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160; </div>
-<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;    inline</div>
-<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;    T <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a06ec858b7349e6a926ad476990c774cb">getDistance</a>(const <a class="code" href="classVec3T.html">Vec3</a>&amp; a_x0) const noexcept;</div>
-<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160; </div>
-<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;    inline</div>
-<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;    T <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a44e0069495c19069fced07aab8e614c6">getVolume</a>() const noexcept;</div>
-<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160; </div>
-<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;    inline</div>
-<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;    T <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a303fd50d1b8d27c7014c50ba0867a0b3">getArea</a>() const noexcept;</div>
-<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160; </div>
-<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;  protected:</div>
-<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160; </div>
-<div class="line"><a name="l00169"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1BoundingSphereT.html#adb424c867ed93cf5fdb62afe07a96a05">  169</a></span>&#160;    T <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#adb424c867ed93cf5fdb62afe07a96a05">m_radius</a>;</div>
-<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160; </div>
-<div class="line"><a name="l00174"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1BoundingSphereT.html#ad65d5be68c4028651d959dc8b88fe944">  174</a></span>&#160;    <a class="code" href="classVec3T.html">Vec3</a> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#ad65d5be68c4028651d959dc8b88fe944">m_center</a>;</div>
-<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160; </div>
-<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;    template &lt;class P&gt;</div>
-<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;    inline</div>
-<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#abea0326be2d1843f3ad7c6de1ebe2418">buildRitter</a>(const std::vector&lt;<a class="code" href="classVec3T.html">Vec3T</a>&lt;P&gt; &gt;&amp; a_points) noexcept;</div>
-<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160;  };</div>
-<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160; </div>
-<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160;  template &lt;class T&gt;</div>
-<div class="line"><a name="l00190"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1AABBT.html">  190</a></span>&#160;  class <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a> {</div>
-<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;  <span class="keyword">public</span>:</div>
-<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160; </div>
-<div class="line"><a name="l00196"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1AABBT.html#aa968c6b21a7f02e1cbfc03d26c7e67b4">  196</a></span>&#160;    <span class="keyword">using</span> <a class="code" href="classVec3T.html">Vec3</a> = <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>;</div>
-<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160; </div>
-<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;    <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>();</div>
-<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160; </div>
-<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;    <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_lo, <span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_hi);</div>
-<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160; </div>
-<div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160;    <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>(<span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&amp; a_other);</div>
-<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160; </div>
-<div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160;    <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>(<span class="keyword">const</span> std::vector&lt;<a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT&lt;T&gt;</a> &gt;&amp; a_others);</div>
-<div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160; </div>
-<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> P&gt;</div>
-<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;    <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>(<span class="keyword">const</span> std::vector&lt;<a class="code" href="classVec3T.html">Vec3T&lt;P&gt;</a> &gt;&amp; a_points);</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a5616a743d8b53b11533ef47b3da281aa">BoundingSphereT</a>(<span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&amp; a_other);</div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160; </div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> P&gt;</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a5616a743d8b53b11533ef47b3da281aa">BoundingSphereT</a>(</div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;    <span class="keyword">const</span> std::vector&lt;<a class="code" href="classVec3T.html">Vec3T&lt;P&gt;</a>&gt;&amp; a_points, <span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#ae98cd00c8e45c93a0fc4fbabec63b007">BoundingVolumeAlgorithm</a>&amp; a_alg = BoundingVolumeAlgorithm::Ritter);</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160; </div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;  <span class="keyword">virtual</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a4495da5774e14f97c0e7579b37cfd60e">~BoundingSphereT</a>();</div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160; </div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&amp;</div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#afe83b2eb359c0850d31e15d46273d7af">operator=</a>(<span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&amp; a_other) = <span class="keywordflow">default</span>;</div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160; </div>
+<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> P&gt;</div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;  <span class="keyword">inline</span> <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#aa7a26cea52e9cd8d8f52272b5baf2995">define</a>(<span class="keyword">const</span> std::vector&lt;<a class="code" href="classVec3T.html">Vec3T&lt;P&gt;</a>&gt;&amp; a_points, <span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#ae98cd00c8e45c93a0fc4fbabec63b007">BoundingVolumeAlgorithm</a>&amp; a_alg) noexcept;</div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160; </div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;  <span class="keyword">inline</span> <span class="keywordtype">bool</span></div>
+<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a90baad0c400aac7645a7e8c1ab13096a">intersects</a>(<span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&amp; a_other) <span class="keyword">const</span> noexcept;</div>
+<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160; </div>
+<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;  <span class="keyword">inline</span> T&amp;</div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#ab4c2ce5157e8d0ef1bca21b4961b87ca">getRadius</a>() noexcept;</div>
+<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160; </div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;  inline const T&amp;</div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#ab4c2ce5157e8d0ef1bca21b4961b87ca">getRadius</a>() const noexcept;</div>
+<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160; </div>
+<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;  inline <a class="code" href="classVec3T.html">Vec3</a>&amp;</div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a8261b0ed0924457fad8fad95bf0037b6">getCentroid</a>() noexcept;</div>
+<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160; </div>
+<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160;  inline const <a class="code" href="classVec3T.html">Vec3</a>&amp;</div>
+<div class="line"><a name="l00142"></a><span class="lineno">  142</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a8261b0ed0924457fad8fad95bf0037b6">getCentroid</a>() const noexcept;</div>
+<div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160; </div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;  inline T</div>
+<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a4581b87c7a3ccd3b58168bfdae9436cb">getOverlappingVolume</a>(const <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&lt;T&gt;&amp; a_other) const noexcept;</div>
+<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160; </div>
+<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;  inline T</div>
+<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a06ec858b7349e6a926ad476990c774cb">getDistance</a>(const <a class="code" href="classVec3T.html">Vec3</a>&amp; a_x0) const noexcept;</div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160; </div>
+<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;  inline T</div>
+<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a44e0069495c19069fced07aab8e614c6">getVolume</a>() const noexcept;</div>
+<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160; </div>
+<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;  inline T</div>
+<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a303fd50d1b8d27c7014c50ba0867a0b3">getArea</a>() const noexcept;</div>
+<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160; </div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;protected:</div>
+<div class="line"><a name="l00181"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1BoundingSphereT.html#adb424c867ed93cf5fdb62afe07a96a05">  181</a></span>&#160;  T <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#adb424c867ed93cf5fdb62afe07a96a05">m_radius</a>;</div>
+<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160; </div>
+<div class="line"><a name="l00186"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1BoundingSphereT.html#ad65d5be68c4028651d959dc8b88fe944">  186</a></span>&#160;  <a class="code" href="classVec3T.html">Vec3</a> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#ad65d5be68c4028651d959dc8b88fe944">m_center</a>;</div>
+<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160; </div>
+<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;  template &lt;class P&gt;</div>
+<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;  inline <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a1ef1194b92d8cebf1303cd462f2b4163">buildRitter</a>(const std::vector&lt;<a class="code" href="classVec3T.html">Vec3T</a>&lt;P&gt;&gt;&amp; a_points) noexcept;</div>
+<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;};</div>
+<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160; </div>
+<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;template &lt;class T&gt;</div>
+<div class="line"><a name="l00204"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1AABBT.html">  204</a></span>&#160;class <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a></div>
+<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160;{</div>
+<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00210"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1AABBT.html#aa968c6b21a7f02e1cbfc03d26c7e67b4">  210</a></span>&#160;  <span class="keyword">using</span> <a class="code" href="classVec3T.html">Vec3</a> = <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>;</div>
+<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160; </div>
+<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;  <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>();</div>
+<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160; </div>
+<div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160;  <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_lo, <span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_hi);</div>
+<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160; </div>
+<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;  <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>(<span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&amp; a_other);</div>
 <div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160; </div>
-<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160;    <span class="keyword">virtual</span> ~<a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>();    </div>
-<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160; </div>
-<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160;    <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&amp; <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#afe83b2eb359c0850d31e15d46273d7af">operator=</a>(<span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT&lt;T&gt;</a>&amp; a_other) = <span class="keywordflow">default</span>;</div>
-<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160; </div>
-<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> P&gt;</div>
-<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160;    <span class="keyword">inline</span></div>
-<div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#aac21650a7d3f65081483512064cbcfa8">define</a>(<span class="keyword">const</span> std::vector&lt;<a class="code" href="classVec3T.html">Vec3T&lt;P&gt;</a> &gt;&amp; a_points) noexcept;</div>
-<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160; </div>
-<div class="line"><a name="l00254"></a><span class="lineno">  254</span>&#160;    <span class="keyword">inline</span></div>
-<div class="line"><a name="l00255"></a><span class="lineno">  255</span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a90baad0c400aac7645a7e8c1ab13096a">intersects</a>(<span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&amp; a_other) <span class="keyword">const</span> noexcept;</div>
-<div class="line"><a name="l00256"></a><span class="lineno">  256</span>&#160; </div>
-<div class="line"><a name="l00260"></a><span class="lineno">  260</span>&#160;    <span class="keyword">inline</span></div>
-<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;    <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; getLowCorner() noexcept;</div>
-<div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160; </div>
-<div class="line"><a name="l00266"></a><span class="lineno">  266</span>&#160;    inline</div>
-<div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160;    const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; getLowCorner() const noexcept;</div>
-<div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160; </div>
-<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160;    inline</div>
-<div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160;    <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; getHighCorner() noexcept;</div>
+<div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160;  <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>(<span class="keyword">const</span> std::vector&lt;<a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT&lt;T&gt;</a>&gt;&amp; a_others);</div>
+<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160; </div>
+<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> P&gt;</div>
+<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160;  <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>(<span class="keyword">const</span> std::vector&lt;<a class="code" href="classVec3T.html">Vec3T&lt;P&gt;</a>&gt;&amp; a_points);</div>
+<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160; </div>
+<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160;  <span class="keyword">virtual</span> ~<a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>();</div>
+<div class="line"><a name="l00250"></a><span class="lineno">  250</span>&#160; </div>
+<div class="line"><a name="l00255"></a><span class="lineno">  255</span>&#160;  <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&amp;</div>
+<div class="line"><a name="l00256"></a><span class="lineno">  256</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#afe83b2eb359c0850d31e15d46273d7af">operator=</a>(<span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT&lt;T&gt;</a>&amp; a_other) = <span class="keywordflow">default</span>;</div>
+<div class="line"><a name="l00257"></a><span class="lineno">  257</span>&#160; </div>
+<div class="line"><a name="l00263"></a><span class="lineno">  263</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> P&gt;</div>
+<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160;  <span class="keyword">inline</span> <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00265"></a><span class="lineno">  265</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#aa7a26cea52e9cd8d8f52272b5baf2995">define</a>(<span class="keyword">const</span> std::vector&lt;<a class="code" href="classVec3T.html">Vec3T&lt;P&gt;</a>&gt;&amp; a_points) noexcept;</div>
+<div class="line"><a name="l00266"></a><span class="lineno">  266</span>&#160; </div>
+<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160;  <span class="keyword">inline</span> <span class="keywordtype">bool</span></div>
+<div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a90baad0c400aac7645a7e8c1ab13096a">intersects</a>(<span class="keyword">const</span> <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&amp; a_other) <span class="keyword">const</span> noexcept;</div>
 <div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160; </div>
-<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160;    inline</div>
-<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160;    const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; getHighCorner() const noexcept;</div>
+<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160;  <span class="keyword">inline</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp;</div>
+<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160;  getLowCorner() noexcept;</div>
 <div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160; </div>
-<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160;    inline</div>
-<div class="line"><a name="l00285"></a><span class="lineno">  285</span>&#160;    <a class="code" href="classVec3T.html">Vec3</a> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a8261b0ed0924457fad8fad95bf0037b6">getCentroid</a>() const noexcept;</div>
+<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160;  inline const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp;</div>
+<div class="line"><a name="l00285"></a><span class="lineno">  285</span>&#160;  getLowCorner() const noexcept;</div>
 <div class="line"><a name="l00286"></a><span class="lineno">  286</span>&#160; </div>
-<div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160;    inline</div>
-<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;    T <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a4581b87c7a3ccd3b58168bfdae9436cb">getOverlappingVolume</a>(const <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&lt;T&gt;&amp; a_other) const noexcept;</div>
-<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160; </div>
-<div class="line"><a name="l00300"></a><span class="lineno">  300</span>&#160;    inline</div>
-<div class="line"><a name="l00301"></a><span class="lineno">  301</span>&#160;    T <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a06ec858b7349e6a926ad476990c774cb">getDistance</a>(const <a class="code" href="classVec3T.html">Vec3</a>&amp; a_x0) const noexcept;</div>
-<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160; </div>
-<div class="line"><a name="l00306"></a><span class="lineno">  306</span>&#160;    inline</div>
-<div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160;    T <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a44e0069495c19069fced07aab8e614c6">getVolume</a>() const noexcept;</div>
-<div class="line"><a name="l00308"></a><span class="lineno">  308</span>&#160; </div>
-<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160;    inline</div>
-<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;    T <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a303fd50d1b8d27c7014c50ba0867a0b3">getArea</a>() const noexcept;</div>
-<div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160;    </div>
-<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;  protected:</div>
-<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160; </div>
-<div class="line"><a name="l00320"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1AABBT.html#a5cbd0ee374c62951aa58644bc09f70cf">  320</a></span>&#160;    <a class="code" href="classVec3T.html">Vec3</a> m_loCorner;</div>
-<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160; </div>
-<div class="line"><a name="l00325"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1AABBT.html#a35f9498191e406b3f48f7454bfdf0cf7">  325</a></span>&#160;    <a class="code" href="classVec3T.html">Vec3</a> m_hiCorner;</div>
-<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160;  };</div>
-<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160; </div>
-<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160;  template &lt;class T&gt;</div>
-<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;  <span class="keywordtype">bool</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a90baad0c400aac7645a7e8c1ab13096a">intersects</a>(const <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&lt;T&gt;&amp; a_u, const <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&lt;T&gt;&amp; a_v) noexcept;</div>
-<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160; </div>
-<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;  template &lt;class T&gt;</div>
-<div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160;  <span class="keywordtype">bool</span> <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a90baad0c400aac7645a7e8c1ab13096a">intersects</a>(const <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&lt;T&gt;&amp; a_u, const <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&lt;T&gt;&amp; a_v) noexcept;</div>
-<div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160; </div>
-<div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160;  template &lt;class T&gt;</div>
-<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160;  T <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a4581b87c7a3ccd3b58168bfdae9436cb">getOverlappingVolume</a>(const <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&lt;T&gt;&amp; a_u, const <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&lt;T&gt;&amp; a_v) noexcept;</div>
-<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160; </div>
-<div class="line"><a name="l00357"></a><span class="lineno">  357</span>&#160;  template &lt;class T&gt;</div>
-<div class="line"><a name="l00358"></a><span class="lineno">  358</span>&#160;  T <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a4581b87c7a3ccd3b58168bfdae9436cb">getOverlappingVolume</a>(const <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&lt;T&gt;&amp; a_u, const <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&lt;T&gt;&amp; a_v) noexcept;</div>
-<div class="line"><a name="l00359"></a><span class="lineno">  359</span>&#160;}</div>
-<div class="line"><a name="l00360"></a><span class="lineno">  360</span>&#160; </div>
-<div class="line"><a name="l00361"></a><span class="lineno">  361</span>&#160;<span class="preprocessor">#include &quot;EBGeometry_NamespaceFooter.hpp&quot;</span></div>
-<div class="line"><a name="l00362"></a><span class="lineno">  362</span>&#160; </div>
-<div class="line"><a name="l00363"></a><span class="lineno">  363</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__BoundingVolumesImplem_8hpp.html">EBGeometry_BoundingVolumesImplem.hpp</a>&quot;</span></div>
+<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160;  inline <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp;</div>
+<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160;  getHighCorner() noexcept;</div>
+<div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160; </div>
+<div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160;  inline const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp;</div>
+<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160;  getHighCorner() const noexcept;</div>
+<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160; </div>
+<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160;  inline <a class="code" href="classVec3T.html">Vec3</a></div>
+<div class="line"><a name="l00303"></a><span class="lineno">  303</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a8261b0ed0924457fad8fad95bf0037b6">getCentroid</a>() const noexcept;</div>
+<div class="line"><a name="l00304"></a><span class="lineno">  304</span>&#160; </div>
+<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;  inline T</div>
+<div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a4581b87c7a3ccd3b58168bfdae9436cb">getOverlappingVolume</a>(const <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&lt;T&gt;&amp; a_other) const noexcept;</div>
+<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160; </div>
+<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;  inline T</div>
+<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a06ec858b7349e6a926ad476990c774cb">getDistance</a>(const <a class="code" href="classVec3T.html">Vec3</a>&amp; a_x0) const noexcept;</div>
+<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160; </div>
+<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160;  inline T</div>
+<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a44e0069495c19069fced07aab8e614c6">getVolume</a>() const noexcept;</div>
+<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160; </div>
+<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;  inline T</div>
+<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160;  <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a303fd50d1b8d27c7014c50ba0867a0b3">getArea</a>() const noexcept;</div>
+<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160; </div>
+<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;protected:</div>
+<div class="line"><a name="l00339"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1AABBT.html#a5cbd0ee374c62951aa58644bc09f70cf">  339</a></span>&#160;  <a class="code" href="classVec3T.html">Vec3</a> m_loCorner;</div>
+<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160; </div>
+<div class="line"><a name="l00344"></a><span class="lineno"><a class="line" href="classBoundingVolumes_1_1AABBT.html#a35f9498191e406b3f48f7454bfdf0cf7">  344</a></span>&#160;  <a class="code" href="classVec3T.html">Vec3</a> m_hiCorner;</div>
+<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160;};</div>
+<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160; </div>
+<div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160;template &lt;class T&gt;</div>
+<div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160;<span class="keywordtype">bool</span></div>
+<div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160;<a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a90baad0c400aac7645a7e8c1ab13096a">intersects</a>(const <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&lt;T&gt;&amp; a_u, const <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&lt;T&gt;&amp; a_v) noexcept;</div>
+<div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160; </div>
+<div class="line"><a name="l00361"></a><span class="lineno">  361</span>&#160;template &lt;class T&gt;</div>
+<div class="line"><a name="l00362"></a><span class="lineno">  362</span>&#160;<span class="keywordtype">bool</span></div>
+<div class="line"><a name="l00363"></a><span class="lineno">  363</span>&#160;<a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a90baad0c400aac7645a7e8c1ab13096a">intersects</a>(const <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&lt;T&gt;&amp; a_u, const <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&lt;T&gt;&amp; a_v) noexcept;</div>
 <div class="line"><a name="l00364"></a><span class="lineno">  364</span>&#160; </div>
-<div class="line"><a name="l00365"></a><span class="lineno">  365</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00370"></a><span class="lineno">  370</span>&#160;template &lt;class T&gt;</div>
+<div class="line"><a name="l00371"></a><span class="lineno">  371</span>&#160;T</div>
+<div class="line"><a name="l00372"></a><span class="lineno">  372</span>&#160;<a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a4581b87c7a3ccd3b58168bfdae9436cb">getOverlappingVolume</a>(const <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&lt;T&gt;&amp; a_u, const <a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingSphereT</a>&lt;T&gt;&amp; a_v) noexcept;</div>
+<div class="line"><a name="l00373"></a><span class="lineno">  373</span>&#160; </div>
+<div class="line"><a name="l00379"></a><span class="lineno">  379</span>&#160;template &lt;class T&gt;</div>
+<div class="line"><a name="l00380"></a><span class="lineno">  380</span>&#160;T</div>
+<div class="line"><a name="l00381"></a><span class="lineno">  381</span>&#160;<a class="code" href="classBoundingVolumes_1_1BoundingSphereT.html#a4581b87c7a3ccd3b58168bfdae9436cb">getOverlappingVolume</a>(const <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&lt;T&gt;&amp; a_u, const <a class="code" href="classBoundingVolumes_1_1AABBT.html">AABBT</a>&lt;T&gt;&amp; a_v) noexcept;</div>
+<div class="line"><a name="l00382"></a><span class="lineno">  382</span>&#160;} <span class="comment">// namespace BoundingVolumes</span></div>
+<div class="line"><a name="l00383"></a><span class="lineno">  383</span>&#160; </div>
+<div class="line"><a name="l00384"></a><span class="lineno">  384</span>&#160;<span class="preprocessor">#include &quot;EBGeometry_NamespaceFooter.hpp&quot;</span></div>
+<div class="line"><a name="l00385"></a><span class="lineno">  385</span>&#160; </div>
+<div class="line"><a name="l00386"></a><span class="lineno">  386</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__BoundingVolumesImplem_8hpp.html">EBGeometry_BoundingVolumesImplem.hpp</a>&quot;</span></div>
+<div class="line"><a name="l00387"></a><span class="lineno">  387</span>&#160; </div>
+<div class="line"><a name="l00388"></a><span class="lineno">  388</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
-<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a8261b0ed0924457fad8fad95bf0037b6"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a8261b0ed0924457fad8fad95bf0037b6">BoundingVolumes::BoundingSphereT::getCentroid</a></div><div class="ttdeci">Vec3 &amp; getCentroid() noexcept</div><div class="ttdoc">Get modifiable center for this sphere.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:114</div></div>
-<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_adb424c867ed93cf5fdb62afe07a96a05"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#adb424c867ed93cf5fdb62afe07a96a05">BoundingVolumes::BoundingSphereT::m_radius</a></div><div class="ttdeci">T m_radius</div><div class="ttdoc">Sphere radius.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumes.hpp:169</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a8261b0ed0924457fad8fad95bf0037b6"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a8261b0ed0924457fad8fad95bf0037b6">BoundingVolumes::BoundingSphereT::getCentroid</a></div><div class="ttdeci">Vec3 &amp; getCentroid() noexcept</div><div class="ttdoc">Get modifiable center for this sphere.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:121</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_adb424c867ed93cf5fdb62afe07a96a05"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#adb424c867ed93cf5fdb62afe07a96a05">BoundingVolumes::BoundingSphereT::m_radius</a></div><div class="ttdeci">T m_radius</div><div class="ttdoc">Sphere radius.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumes.hpp:181</div></div>
 <div class="ttc" id="aEBGeometry__Vec_8hpp_html"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html">EBGeometry_Vec.hpp</a></div><div class="ttdoc">Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools.</div></div>
-<div class="ttc" id="aclassVec3T_html"><div class="ttname"><a href="classVec3T.html">Vec3T</a></div><div class="ttdoc">Three-dimensional vector class with arithmetic operators.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Vec.hpp:220</div></div>
-<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingVolumes::BoundingSphereT</a></div><div class="ttdoc">Class which encloses a set of points using a bounding sphere.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumes.hpp:32</div></div>
-<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a5616a743d8b53b11533ef47b3da281aa"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a5616a743d8b53b11533ef47b3da281aa">BoundingVolumes::BoundingSphereT::BoundingSphereT</a></div><div class="ttdeci">BoundingSphereT()</div><div class="ttdoc">Default constructor. Leaves object in undefined state.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:26</div></div>
+<div class="ttc" id="aclassVec3T_html"><div class="ttname"><a href="classVec3T.html">Vec3T</a></div><div class="ttdoc">Three-dimensional vector class with arithmetic operators.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Vec.hpp:234</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html">BoundingVolumes::BoundingSphereT</a></div><div class="ttdoc">Class which encloses a set of points using a bounding sphere.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumes.hpp:35</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a5616a743d8b53b11533ef47b3da281aa"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a5616a743d8b53b11533ef47b3da281aa">BoundingVolumes::BoundingSphereT::BoundingSphereT</a></div><div class="ttdeci">BoundingSphereT()</div><div class="ttdoc">Default constructor. Leaves object in undefined state.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:25</div></div>
 <div class="ttc" id="aEBGeometry__BoundingVolumesImplem_8hpp_html"><div class="ttname"><a href="EBGeometry__BoundingVolumesImplem_8hpp.html">EBGeometry_BoundingVolumesImplem.hpp</a></div><div class="ttdoc">Implementation of EBGeometry_BoundingVolumes.hpp.</div></div>
-<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a4495da5774e14f97c0e7579b37cfd60e"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a4495da5774e14f97c0e7579b37cfd60e">BoundingVolumes::BoundingSphereT::~BoundingSphereT</a></div><div class="ttdeci">virtual ~BoundingSphereT()</div><div class="ttdoc">Destructor (does nothing).</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:69</div></div>
-<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_ab4c2ce5157e8d0ef1bca21b4961b87ca"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#ab4c2ce5157e8d0ef1bca21b4961b87ca">BoundingVolumes::BoundingSphereT::getRadius</a></div><div class="ttdeci">T &amp; getRadius() noexcept</div><div class="ttdoc">Get modifiable radius for this sphere.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:102</div></div>
-<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_abea0326be2d1843f3ad7c6de1ebe2418"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#abea0326be2d1843f3ad7c6de1ebe2418">BoundingVolumes::BoundingSphereT::buildRitter</a></div><div class="ttdeci">void buildRitter(const std::vector&lt; Vec3T&lt; P &gt; &gt; &amp;a_points) noexcept</div><div class="ttdoc">Template function which computes the bounding sphere for a set of points (mixed precision allowed) us...</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:127</div></div>
-<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a4581b87c7a3ccd3b58168bfdae9436cb"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a4581b87c7a3ccd3b58168bfdae9436cb">BoundingVolumes::BoundingSphereT::getOverlappingVolume</a></div><div class="ttdeci">T getOverlappingVolume(const BoundingSphereT&lt; T &gt; &amp;a_other) const noexcept</div><div class="ttdoc">Compute the overlapping volume between this bounding sphere and another.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:187</div></div>
-<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_ae98cd00c8e45c93a0fc4fbabec63b007"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#ae98cd00c8e45c93a0fc4fbabec63b007">BoundingVolumes::BoundingSphereT::BoundingVolumeAlgorithm</a></div><div class="ttdeci">BoundingVolumeAlgorithm</div><div class="ttdoc">Typename for possible algorithms that support the computation of a bounding sphere for a set of 3D po...</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumes.hpp:38</div></div>
-<div class="ttc" id="aclassBoundingVolumes_1_1AABBT_html"><div class="ttname"><a href="classBoundingVolumes_1_1AABBT.html">BoundingVolumes::AABBT</a></div><div class="ttdoc">Axis-aligned bounding box as bounding volume.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumes.hpp:190</div></div>
-<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_ad65d5be68c4028651d959dc8b88fe944"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#ad65d5be68c4028651d959dc8b88fe944">BoundingVolumes::BoundingSphereT::m_center</a></div><div class="ttdeci">Vec3 m_center</div><div class="ttdoc">Sphere center.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumes.hpp:174</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a1ef1194b92d8cebf1303cd462f2b4163"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a1ef1194b92d8cebf1303cd462f2b4163">BoundingVolumes::BoundingSphereT::buildRitter</a></div><div class="ttdeci">void buildRitter(const std::vector&lt; Vec3T&lt; P &gt;&gt; &amp;a_points) noexcept</div><div class="ttdoc">Template function which computes the bounding sphere for a set of points (mixed precision allowed) us...</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:136</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a4495da5774e14f97c0e7579b37cfd60e"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a4495da5774e14f97c0e7579b37cfd60e">BoundingVolumes::BoundingSphereT::~BoundingSphereT</a></div><div class="ttdeci">virtual ~BoundingSphereT()</div><div class="ttdoc">Destructor (does nothing).</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:74</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_aa7a26cea52e9cd8d8f52272b5baf2995"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#aa7a26cea52e9cd8d8f52272b5baf2995">BoundingVolumes::BoundingSphereT::define</a></div><div class="ttdeci">void define(const std::vector&lt; Vec3T&lt; P &gt;&gt; &amp;a_points, const BoundingVolumeAlgorithm &amp;a_alg) noexcept</div><div class="ttdoc">Template define function which takes a set of 3D points (mixed precision allowed).</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:81</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_ab4c2ce5157e8d0ef1bca21b4961b87ca"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#ab4c2ce5157e8d0ef1bca21b4961b87ca">BoundingVolumes::BoundingSphereT::getRadius</a></div><div class="ttdeci">T &amp; getRadius() noexcept</div><div class="ttdoc">Get modifiable radius for this sphere.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:107</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a4581b87c7a3ccd3b58168bfdae9436cb"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a4581b87c7a3ccd3b58168bfdae9436cb">BoundingVolumes::BoundingSphereT::getOverlappingVolume</a></div><div class="ttdeci">T getOverlappingVolume(const BoundingSphereT&lt; T &gt; &amp;a_other) const noexcept</div><div class="ttdoc">Compute the overlapping volume between this bounding sphere and another.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:198</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_ae98cd00c8e45c93a0fc4fbabec63b007"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#ae98cd00c8e45c93a0fc4fbabec63b007">BoundingVolumes::BoundingSphereT::BoundingVolumeAlgorithm</a></div><div class="ttdeci">BoundingVolumeAlgorithm</div><div class="ttdoc">Typename for possible algorithms that support the computation of a bounding sphere for a set of 3D po...</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumes.hpp:42</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1AABBT_html"><div class="ttname"><a href="classBoundingVolumes_1_1AABBT.html">BoundingVolumes::AABBT</a></div><div class="ttdoc">Axis-aligned bounding box as bounding volume.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumes.hpp:204</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_ad65d5be68c4028651d959dc8b88fe944"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#ad65d5be68c4028651d959dc8b88fe944">BoundingVolumes::BoundingSphereT::m_center</a></div><div class="ttdeci">Vec3 m_center</div><div class="ttdoc">Sphere center.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumes.hpp:186</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceHeader_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceHeader_8hpp.html">EBGeometry_NamespaceHeader.hpp</a></div><div class="ttdoc">Name space header.</div></div>
-<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a303fd50d1b8d27c7014c50ba0867a0b3"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a303fd50d1b8d27c7014c50ba0867a0b3">BoundingVolumes::BoundingSphereT::getArea</a></div><div class="ttdeci">T getArea() const noexcept</div><div class="ttdoc">Get the sphere area.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:220</div></div>
-<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a44e0069495c19069fced07aab8e614c6"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a44e0069495c19069fced07aab8e614c6">BoundingVolumes::BoundingSphereT::getVolume</a></div><div class="ttdeci">T getVolume() const noexcept</div><div class="ttdoc">Get the sphere volume.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:214</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a303fd50d1b8d27c7014c50ba0867a0b3"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a303fd50d1b8d27c7014c50ba0867a0b3">BoundingVolumes::BoundingSphereT::getArea</a></div><div class="ttdeci">T getArea() const noexcept</div><div class="ttdoc">Get the sphere area.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:234</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a44e0069495c19069fced07aab8e614c6"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a44e0069495c19069fced07aab8e614c6">BoundingVolumes::BoundingSphereT::getVolume</a></div><div class="ttdeci">T getVolume() const noexcept</div><div class="ttdoc">Get the sphere volume.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:227</div></div>
 <div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_afe83b2eb359c0850d31e15d46273d7af"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#afe83b2eb359c0850d31e15d46273d7af">BoundingVolumes::BoundingSphereT::operator=</a></div><div class="ttdeci">BoundingSphereT &amp; operator=(const BoundingSphereT &amp;a_other)=default</div><div class="ttdoc">Copy assignment operator.</div></div>
-<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a06ec858b7349e6a926ad476990c774cb"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a06ec858b7349e6a926ad476990c774cb">BoundingVolumes::BoundingSphereT::getDistance</a></div><div class="ttdeci">T getDistance(const Vec3 &amp;a_x0) const noexcept</div><div class="ttdoc">Get the distance to this bounding sphere (points inside the sphere have a zero distance)</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:206</div></div>
-<div class="ttc" id="anamespaceBoundingVolumes_html"><div class="ttname"><a href="namespaceBoundingVolumes.html">BoundingVolumes</a></div><div class="ttdoc">Namespace for encapsulating various bounding volumes for usage with BVHs.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumes.hpp:25</div></div>
-<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a90baad0c400aac7645a7e8c1ab13096a"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a90baad0c400aac7645a7e8c1ab13096a">BoundingVolumes::BoundingSphereT::intersects</a></div><div class="ttdeci">bool intersects(const BoundingSphereT &amp;a_other) const noexcept</div><div class="ttdoc">Check if this bounding sphere intersect another bounding sphere.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:93</div></div>
-<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_aac21650a7d3f65081483512064cbcfa8"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#aac21650a7d3f65081483512064cbcfa8">BoundingVolumes::BoundingSphereT::define</a></div><div class="ttdeci">void define(const std::vector&lt; Vec3T&lt; P &gt; &gt; &amp;a_points, const BoundingVolumeAlgorithm &amp;a_alg) noexcept</div><div class="ttdoc">Template define function which takes a set of 3D points (mixed precision allowed).</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:76</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a06ec858b7349e6a926ad476990c774cb"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a06ec858b7349e6a926ad476990c774cb">BoundingVolumes::BoundingSphereT::getDistance</a></div><div class="ttdeci">T getDistance(const Vec3 &amp;a_x0) const noexcept</div><div class="ttdoc">Get the distance to this bounding sphere (points inside the sphere have a zero distance)</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:218</div></div>
+<div class="ttc" id="anamespaceBoundingVolumes_html"><div class="ttname"><a href="namespaceBoundingVolumes.html">BoundingVolumes</a></div><div class="ttdoc">Namespace for encapsulating various bounding volumes for usage with BVHs.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumes.hpp:27</div></div>
+<div class="ttc" id="aclassBoundingVolumes_1_1BoundingSphereT_html_a90baad0c400aac7645a7e8c1ab13096a"><div class="ttname"><a href="classBoundingVolumes_1_1BoundingSphereT.html#a90baad0c400aac7645a7e8c1ab13096a">BoundingVolumes::BoundingSphereT::intersects</a></div><div class="ttdeci">bool intersects(const BoundingSphereT &amp;a_other) const noexcept</div><div class="ttdoc">Check if this bounding sphere intersect another bounding sphere.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BoundingVolumesImplem.hpp:97</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">

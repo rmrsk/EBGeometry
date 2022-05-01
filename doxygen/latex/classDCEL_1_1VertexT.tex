@@ -1,0 +1,373 @@
+\hypertarget{classDCEL_1_1VertexT}{}\doxysection{D\+C\+EL\+::VertexT$<$ T $>$ Class Template Reference}
+\label{classDCEL_1_1VertexT}\index{DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}}
+
+
+Class which represents a vertex node in a double-\/edge connected list (\mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}}).  
+
+
+
+
+{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+D\+C\+E\+L\+\_\+\+Vertex.\+hpp$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}\label{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}} 
+using \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_ab87027bf97a69e948d088b22c353123f}\label{classDCEL_1_1VertexT_ab87027bf97a69e948d088b22c353123f}} 
+using \mbox{\hyperlink{classDCEL_1_1VertexT_ab87027bf97a69e948d088b22c353123f}{Vertex}} = \mbox{\hyperlink{classDCEL_1_1VertexT}{VertexT}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a1f1e2b6cd2ae4be976376c26cd59425d}\label{classDCEL_1_1VertexT_a1f1e2b6cd2ae4be976376c26cd59425d}} 
+using \mbox{\hyperlink{classDCEL_1_1VertexT_a1f1e2b6cd2ae4be976376c26cd59425d}{Edge}} = \mbox{\hyperlink{classDCEL_1_1EdgeT}{EdgeT}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a35bcfb5a11e3fa50364d0f251d85a9ca}\label{classDCEL_1_1VertexT_a35bcfb5a11e3fa50364d0f251d85a9ca}} 
+using \mbox{\hyperlink{classDCEL_1_1VertexT_a35bcfb5a11e3fa50364d0f251d85a9ca}{Face}} = \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a33af2de9003af71ce212ecb034e76d05}\label{classDCEL_1_1VertexT_a33af2de9003af71ce212ecb034e76d05}} 
+using \mbox{\hyperlink{classDCEL_1_1VertexT_a33af2de9003af71ce212ecb034e76d05}{Vertex\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1VertexT_ab87027bf97a69e948d088b22c353123f}{Vertex}} $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. Note that this is std\+::shared\+\_\+ptr$<$Vertex\+T$<$\+T$>$ $>$ \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a418c6b41b10228a5e78c562e693c6096}\label{classDCEL_1_1VertexT_a418c6b41b10228a5e78c562e693c6096}} 
+using \mbox{\hyperlink{classDCEL_1_1VertexT_a418c6b41b10228a5e78c562e693c6096}{Edge\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1VertexT_a1f1e2b6cd2ae4be976376c26cd59425d}{Edge}} $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. Note that this is std\+::shared\+\_\+ptr$<$Edge\+T$<$\+T$>$ $>$ \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a1771a0ec5905a1a27ba30f1c6d125c2c}\label{classDCEL_1_1VertexT_a1771a0ec5905a1a27ba30f1c6d125c2c}} 
+using \mbox{\hyperlink{classDCEL_1_1VertexT_a1771a0ec5905a1a27ba30f1c6d125c2c}{Face\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1VertexT_a35bcfb5a11e3fa50364d0f251d85a9ca}{Face}} $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. Note that this is std\+::shared\+\_\+ptr$<$Face\+T$<$\+T$>$ $>$ \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a8a66e6ac547f34a3fb7d06c0d29b7073}\label{classDCEL_1_1VertexT_a8a66e6ac547f34a3fb7d06c0d29b7073}} 
+using \mbox{\hyperlink{classDCEL_1_1VertexT_a8a66e6ac547f34a3fb7d06c0d29b7073}{Edge\+Iterator}} = \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{Edge\+IteratorT}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. Note that this is std\+::shared\+\_\+ptr$<$Edge\+Iterator\+T$<$\+T$>$ $>$ \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classDCEL_1_1VertexT_a0d7364a3c7375078ce6d7f0f2ac5de5b}{VertexT}} ()
+\begin{DoxyCompactList}\small\item\em Default constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classDCEL_1_1VertexT_a91aa980d60f80ab8a537cf3a1a88629f}{VertexT}} (const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&a\+\_\+position)
+\begin{DoxyCompactList}\small\item\em Partial constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classDCEL_1_1VertexT_ab84227202aa872ed53f399dfa629cf59}{VertexT}} (const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&a\+\_\+position, const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&a\+\_\+normal)
+\begin{DoxyCompactList}\small\item\em Constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classDCEL_1_1VertexT_ada055711179affd206ce733e8791278c}{VertexT}} (const \mbox{\hyperlink{classDCEL_1_1VertexT_ab87027bf97a69e948d088b22c353123f}{Vertex}} \&a\+\_\+other\+Vertex)
+\begin{DoxyCompactList}\small\item\em Full copy constructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_ab7f2a372e6bce5ba1e4006c133bc27be}\label{classDCEL_1_1VertexT_ab7f2a372e6bce5ba1e4006c133bc27be}} 
+\mbox{\hyperlink{classDCEL_1_1VertexT_ab7f2a372e6bce5ba1e4006c133bc27be}{$\sim$\+VertexT}} ()
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classDCEL_1_1VertexT_adcd025ae27e834002de81b451c11cf59}{define}} (const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&a\+\_\+position, const \mbox{\hyperlink{classDCEL_1_1VertexT_a418c6b41b10228a5e78c562e693c6096}{Edge\+Ptr}} \&a\+\_\+edge, const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&a\+\_\+normal) noexcept
+\begin{DoxyCompactList}\small\item\em Define function. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classDCEL_1_1VertexT_a724d755b487126bf0cbad611e1d6cb57}{set\+Position}} (const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&a\+\_\+position) noexcept
+\begin{DoxyCompactList}\small\item\em Set the vertex position. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classDCEL_1_1VertexT_abcaa942a7881bf20082addb2361b52f9}{set\+Normal}} (const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&a\+\_\+normal) noexcept
+\begin{DoxyCompactList}\small\item\em Set the vertex normal vector. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classDCEL_1_1VertexT_acaf52648b3a2cd0dcdf0984f6ad63514}{set\+Edge}} (const \mbox{\hyperlink{classDCEL_1_1VertexT_a418c6b41b10228a5e78c562e693c6096}{Edge\+Ptr}} \&a\+\_\+edge) noexcept
+\begin{DoxyCompactList}\small\item\em Set the reference to the outgoing edge. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classDCEL_1_1VertexT_a6cbefecb8bb470cf510a437d2913d9da}{add\+Face}} (const \mbox{\hyperlink{classDCEL_1_1VertexT_a1771a0ec5905a1a27ba30f1c6d125c2c}{Face\+Ptr}} \&a\+\_\+face) noexcept
+\begin{DoxyCompactList}\small\item\em Add a face to the polygon face list. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_ab89189b81e5f7b1cd57cd5cf4767f353}\label{classDCEL_1_1VertexT_ab89189b81e5f7b1cd57cd5cf4767f353}} 
+void \mbox{\hyperlink{classDCEL_1_1VertexT_ab89189b81e5f7b1cd57cd5cf4767f353}{normalize\+Normal\+Vector}} () noexcept
+\begin{DoxyCompactList}\small\item\em Normalize the normal vector, ensuring its length is 1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a5b29a30c9c3829650023f43a7bbfcd4a}\label{classDCEL_1_1VertexT_a5b29a30c9c3829650023f43a7bbfcd4a}} 
+void \mbox{\hyperlink{classDCEL_1_1VertexT_a5b29a30c9c3829650023f43a7bbfcd4a}{compute\+Vertex\+Normal\+Average}} () noexcept
+\begin{DoxyCompactList}\small\item\em Compute the vertex normal, using an average the normal vector in this vertex\textquotesingle{}s face list (m\+\_\+faces) \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classDCEL_1_1VertexT_a8c2729caa6b963930c725c46d01b6990}{compute\+Vertex\+Normal\+Average}} (const std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1VertexT_a1771a0ec5905a1a27ba30f1c6d125c2c}{Face\+Ptr}} $>$ \&a\+\_\+faces) noexcept
+\begin{DoxyCompactList}\small\item\em Compute the vertex normal, using an average of the normal vectors in the input face list. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classDCEL_1_1VertexT_a7a1f421e1bb2f51770fff8cac81af367}{compute\+Vertex\+Normal\+Angle\+Weighted}} () noexcept
+\begin{DoxyCompactList}\small\item\em Compute the vertex normal, using the pseudonormal algorithm which weights the normal with the subtended angle to each connected face. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classDCEL_1_1VertexT_a49591aa1b0b4af1e876b3a47702420ff}{compute\+Vertex\+Normal\+Angle\+Weighted}} (const std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1VertexT_a1771a0ec5905a1a27ba30f1c6d125c2c}{Face\+Ptr}} $>$ \&a\+\_\+faces) noexcept
+\begin{DoxyCompactList}\small\item\em Compute the vertex normal, using the pseudonormal algorithm which weights the normal with the subtended angle to each connected face. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a07d9ea1cf4fe72388e780b4feff2b8c3}\label{classDCEL_1_1VertexT_a07d9ea1cf4fe72388e780b4feff2b8c3}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classDCEL_1_1VertexT_a07d9ea1cf4fe72388e780b4feff2b8c3}{get\+Position}} () noexcept
+\begin{DoxyCompactList}\small\item\em Return modifiable vertex position. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a2b23b1c318548c6754b6a869b04511f0}\label{classDCEL_1_1VertexT_a2b23b1c318548c6754b6a869b04511f0}} 
+const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classDCEL_1_1VertexT_a2b23b1c318548c6754b6a869b04511f0}{get\+Position}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Return immutable vertex position. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a19886be09be2d36fe1a76e036a9339aa}\label{classDCEL_1_1VertexT_a19886be09be2d36fe1a76e036a9339aa}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classDCEL_1_1VertexT_a19886be09be2d36fe1a76e036a9339aa}{get\+Normal}} () noexcept
+\begin{DoxyCompactList}\small\item\em Return modifiable vertex normal vector. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_aed4afdfa493cc5b8898db89a16fe96f1}\label{classDCEL_1_1VertexT_aed4afdfa493cc5b8898db89a16fe96f1}} 
+const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classDCEL_1_1VertexT_aed4afdfa493cc5b8898db89a16fe96f1}{get\+Normal}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Return immutable vertex normal vector. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a8b81a76f0c46d30be49ec5d885d2cb2d}\label{classDCEL_1_1VertexT_a8b81a76f0c46d30be49ec5d885d2cb2d}} 
+\mbox{\hyperlink{classDCEL_1_1VertexT_a418c6b41b10228a5e78c562e693c6096}{Edge\+Ptr}} \& \mbox{\hyperlink{classDCEL_1_1VertexT_a8b81a76f0c46d30be49ec5d885d2cb2d}{get\+Outgoing\+Edge}} () noexcept
+\begin{DoxyCompactList}\small\item\em Return modifiable pointer to outgoing edge. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_ae8db279e152171922020b5e429571b94}\label{classDCEL_1_1VertexT_ae8db279e152171922020b5e429571b94}} 
+const \mbox{\hyperlink{classDCEL_1_1VertexT_a418c6b41b10228a5e78c562e693c6096}{Edge\+Ptr}} \& \mbox{\hyperlink{classDCEL_1_1VertexT_ae8db279e152171922020b5e429571b94}{get\+Outgoing\+Edge}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Return immutable pointer to outgoing edge. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a4aa3167f201c969b37e54850bb50688e}\label{classDCEL_1_1VertexT_a4aa3167f201c969b37e54850bb50688e}} 
+std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1VertexT_a1771a0ec5905a1a27ba30f1c6d125c2c}{Face\+Ptr}} $>$ \& \mbox{\hyperlink{classDCEL_1_1VertexT_a4aa3167f201c969b37e54850bb50688e}{get\+Faces}} () noexcept
+\begin{DoxyCompactList}\small\item\em Get modifiable polygon face list for this vertex. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a9b212201dd0c5267c2991f26baeea068}\label{classDCEL_1_1VertexT_a9b212201dd0c5267c2991f26baeea068}} 
+const std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1VertexT_a1771a0ec5905a1a27ba30f1c6d125c2c}{Face\+Ptr}} $>$ \& \mbox{\hyperlink{classDCEL_1_1VertexT_a9b212201dd0c5267c2991f26baeea068}{get\+Faces}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get immutable polygon face list for this vertex. \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classDCEL_1_1VertexT_ac45b8a4c1b815ab0333f1c2fb8fa694d}{signed\+Distance}} (const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&a\+\_\+x0) const noexcept
+\begin{DoxyCompactList}\small\item\em Get the signed distance to this vertex. \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classDCEL_1_1VertexT_a4249842bb5de33c22e54b43e8b813e1f}{unsigned\+Distance2}} (const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&a\+\_\+x0) const noexcept
+\begin{DoxyCompactList}\small\item\em Get the squared unsigned distance to this vertex. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a0308e133b59414d52e5e225423a0c99d}\label{classDCEL_1_1VertexT_a0308e133b59414d52e5e225423a0c99d}} 
+\mbox{\hyperlink{classDCEL_1_1VertexT_a418c6b41b10228a5e78c562e693c6096}{Edge\+Ptr}} \mbox{\hyperlink{classDCEL_1_1VertexT_a0308e133b59414d52e5e225423a0c99d}{m\+\_\+outgoing\+Edge}}
+\begin{DoxyCompactList}\small\item\em Pointer to an outgoing edge from this vertex. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a655f8b4adc82227af837f5f04e386a98}\label{classDCEL_1_1VertexT_a655f8b4adc82227af837f5f04e386a98}} 
+\mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \mbox{\hyperlink{classDCEL_1_1VertexT_a655f8b4adc82227af837f5f04e386a98}{m\+\_\+position}}
+\begin{DoxyCompactList}\small\item\em Vertex position. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_af85c2efe08d9f0556928d4f4cc4e9ca4}\label{classDCEL_1_1VertexT_af85c2efe08d9f0556928d4f4cc4e9ca4}} 
+\mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \mbox{\hyperlink{classDCEL_1_1VertexT_af85c2efe08d9f0556928d4f4cc4e9ca4}{m\+\_\+normal}}
+\begin{DoxyCompactList}\small\item\em Vertex normal vector. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a00dd037412432be24277994f7324c2c8}\label{classDCEL_1_1VertexT_a00dd037412432be24277994f7324c2c8}} 
+std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1VertexT_a1771a0ec5905a1a27ba30f1c6d125c2c}{Face\+Ptr}} $>$ \mbox{\hyperlink{classDCEL_1_1VertexT_a00dd037412432be24277994f7324c2c8}{m\+\_\+faces}}
+\begin{DoxyCompactList}\small\item\em List of faces connected to this vertex (these must be \char`\"{}manually\char`\"{} added) \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class D\+C\+E\+L\+::\+Vertex\+T$<$ T $>$}
+
+Class which represents a vertex node in a double-\/edge connected list (\mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}}). 
+
+This class is used in \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} functionality which stores polygonal surfaces in a mesh. The \mbox{\hyperlink{classDCEL_1_1VertexT}{VertexT}} class has a position, a normal vector, and a pointer to one of the outgoing edges from the vertex. For performance reasons we also include pointers to all the polygon faces that share this vertex. \begin{DoxyNote}{Note}
+The normal vector is outgoing, i.\+e. a point x is \char`\"{}outside\char`\"{} the vertex if the dot product between n and (x -\/ x0) is positive. 
+\end{DoxyNote}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a0d7364a3c7375078ce6d7f0f2ac5de5b}\label{classDCEL_1_1VertexT_a0d7364a3c7375078ce6d7f0f2ac5de5b}} 
+\index{DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}!VertexT@{VertexT}}
+\index{VertexT@{VertexT}!DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{VertexT()}{VertexT()}\hspace{0.1cm}{\footnotesize\ttfamily [1/4]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classDCEL_1_1VertexT}{D\+C\+E\+L\+::\+VertexT}}$<$ T $>$\+::\mbox{\hyperlink{classDCEL_1_1VertexT}{VertexT}}\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Default constructor. 
+
+This initializes the position and the normal vector to zero vectors, and the polygon face list is empty \mbox{\Hypertarget{classDCEL_1_1VertexT_a91aa980d60f80ab8a537cf3a1a88629f}\label{classDCEL_1_1VertexT_a91aa980d60f80ab8a537cf3a1a88629f}} 
+\index{DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}!VertexT@{VertexT}}
+\index{VertexT@{VertexT}!DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{VertexT()}{VertexT()}\hspace{0.1cm}{\footnotesize\ttfamily [2/4]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classDCEL_1_1VertexT}{D\+C\+E\+L\+::\+VertexT}}$<$ T $>$\+::\mbox{\hyperlink{classDCEL_1_1VertexT}{VertexT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&}]{a\+\_\+position }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Partial constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+position} & Vertex position\\
+\hline
+\end{DoxyParams}
+This initializes the position to a\+\_\+position and the normal vector to the zero vector. The polygon face list is empty. \mbox{\Hypertarget{classDCEL_1_1VertexT_ab84227202aa872ed53f399dfa629cf59}\label{classDCEL_1_1VertexT_ab84227202aa872ed53f399dfa629cf59}} 
+\index{DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}!VertexT@{VertexT}}
+\index{VertexT@{VertexT}!DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{VertexT()}{VertexT()}\hspace{0.1cm}{\footnotesize\ttfamily [3/4]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classDCEL_1_1VertexT}{D\+C\+E\+L\+::\+VertexT}}$<$ T $>$\+::\mbox{\hyperlink{classDCEL_1_1VertexT}{VertexT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&}]{a\+\_\+position,  }\item[{const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&}]{a\+\_\+normal }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+position} & Vertex position \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+normal} & Vertex normal vector\\
+\hline
+\end{DoxyParams}
+This initializes the position to a\+\_\+position and the normal vector to a\+\_\+normal. The polygon face list is empty. \mbox{\Hypertarget{classDCEL_1_1VertexT_ada055711179affd206ce733e8791278c}\label{classDCEL_1_1VertexT_ada055711179affd206ce733e8791278c}} 
+\index{DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}!VertexT@{VertexT}}
+\index{VertexT@{VertexT}!DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{VertexT()}{VertexT()}\hspace{0.1cm}{\footnotesize\ttfamily [4/4]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classDCEL_1_1VertexT}{D\+C\+E\+L\+::\+VertexT}}$<$ T $>$\+::\mbox{\hyperlink{classDCEL_1_1VertexT}{VertexT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1VertexT_ab87027bf97a69e948d088b22c353123f}{Vertex}} \&}]{a\+\_\+other\+Vertex }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Full copy constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+other\+Vertex} & Other vertex\\
+\hline
+\end{DoxyParams}
+This copies the position, normal vector, and outgoing edge pointer from the other vertex. The polygon face list. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a6cbefecb8bb470cf510a437d2913d9da}\label{classDCEL_1_1VertexT_a6cbefecb8bb470cf510a437d2913d9da}} 
+\index{DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}!addFace@{addFace}}
+\index{addFace@{addFace}!DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{addFace()}{addFace()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDCEL_1_1VertexT}{D\+C\+E\+L\+::\+VertexT}}$<$ T $>$\+::add\+Face (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1VertexT_a1771a0ec5905a1a27ba30f1c6d125c2c}{Face\+Ptr}} \&}]{a\+\_\+face }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Add a face to the polygon face list. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+face} & Pointer to face. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a7a1f421e1bb2f51770fff8cac81af367}\label{classDCEL_1_1VertexT_a7a1f421e1bb2f51770fff8cac81af367}} 
+\index{DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}!computeVertexNormalAngleWeighted@{computeVertexNormalAngleWeighted}}
+\index{computeVertexNormalAngleWeighted@{computeVertexNormalAngleWeighted}!DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{computeVertexNormalAngleWeighted()}{computeVertexNormalAngleWeighted()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDCEL_1_1VertexT}{D\+C\+E\+L\+::\+VertexT}}$<$ T $>$\+::compute\+Vertex\+Normal\+Angle\+Weighted\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Compute the vertex normal, using the pseudonormal algorithm which weights the normal with the subtended angle to each connected face. 
+
+This calls the other version with a\+\_\+faces = m\+\_\+faces \begin{DoxyNote}{Note}
+This computes the normal vector using the pseudnormal algorithm from Baerentzen and Aanes in \char`\"{}\+Signed distance computation using the angle
+weighted pseudonormal\char`\"{} (D\+OI\+: 10.\+1109/\+T\+V\+CG.2005.\+49) 
+\end{DoxyNote}
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a49591aa1b0b4af1e876b3a47702420ff}\label{classDCEL_1_1VertexT_a49591aa1b0b4af1e876b3a47702420ff}} 
+\index{DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}!computeVertexNormalAngleWeighted@{computeVertexNormalAngleWeighted}}
+\index{computeVertexNormalAngleWeighted@{computeVertexNormalAngleWeighted}!DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{computeVertexNormalAngleWeighted()}{computeVertexNormalAngleWeighted()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDCEL_1_1VertexT}{D\+C\+E\+L\+::\+VertexT}}$<$ T $>$\+::compute\+Vertex\+Normal\+Angle\+Weighted (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1VertexT_a1771a0ec5905a1a27ba30f1c6d125c2c}{Face\+Ptr}} $>$ \&}]{a\+\_\+faces }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Compute the vertex normal, using the pseudonormal algorithm which weights the normal with the subtended angle to each connected face. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+faces} & Faces to use for computation. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+This computes the normal vector using the pseudnormal algorithm from Baerentzen and Aanes in \char`\"{}\+Signed distance computation using the angle
+weighted pseudonormal\char`\"{} (D\+OI\+: 10.\+1109/\+T\+V\+CG.2005.\+49) 
+\end{DoxyNote}
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a8c2729caa6b963930c725c46d01b6990}\label{classDCEL_1_1VertexT_a8c2729caa6b963930c725c46d01b6990}} 
+\index{DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}!computeVertexNormalAverage@{computeVertexNormalAverage}}
+\index{computeVertexNormalAverage@{computeVertexNormalAverage}!DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{computeVertexNormalAverage()}{computeVertexNormalAverage()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDCEL_1_1VertexT}{D\+C\+E\+L\+::\+VertexT}}$<$ T $>$\+::compute\+Vertex\+Normal\+Average (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1VertexT_a1771a0ec5905a1a27ba30f1c6d125c2c}{Face\+Ptr}} $>$ \&}]{a\+\_\+faces }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Compute the vertex normal, using an average of the normal vectors in the input face list. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+faces} & Faces \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+This computes the vertex normal as n = sum(normal(face))/num(faces) 
+\end{DoxyNote}
+\mbox{\Hypertarget{classDCEL_1_1VertexT_adcd025ae27e834002de81b451c11cf59}\label{classDCEL_1_1VertexT_adcd025ae27e834002de81b451c11cf59}} 
+\index{DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}!define@{define}}
+\index{define@{define}!DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{define()}{define()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDCEL_1_1VertexT}{D\+C\+E\+L\+::\+VertexT}}$<$ T $>$\+::define (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&}]{a\+\_\+position,  }\item[{const \mbox{\hyperlink{classDCEL_1_1VertexT_a418c6b41b10228a5e78c562e693c6096}{Edge\+Ptr}} \&}]{a\+\_\+edge,  }\item[{const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&}]{a\+\_\+normal }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Define function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+position} & Vertex position \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+edge} & Pointer to outgoing edge \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+normal} & Vertex normal vector\\
+\hline
+\end{DoxyParams}
+This sets the position, normal vector, and edge pointer. \mbox{\Hypertarget{classDCEL_1_1VertexT_acaf52648b3a2cd0dcdf0984f6ad63514}\label{classDCEL_1_1VertexT_acaf52648b3a2cd0dcdf0984f6ad63514}} 
+\index{DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}!setEdge@{setEdge}}
+\index{setEdge@{setEdge}!DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{setEdge()}{setEdge()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDCEL_1_1VertexT}{D\+C\+E\+L\+::\+VertexT}}$<$ T $>$\+::set\+Edge (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1VertexT_a418c6b41b10228a5e78c562e693c6096}{Edge\+Ptr}} \&}]{a\+\_\+edge }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Set the reference to the outgoing edge. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+edge} & Pointer to an outgoing edge \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classDCEL_1_1VertexT_abcaa942a7881bf20082addb2361b52f9}\label{classDCEL_1_1VertexT_abcaa942a7881bf20082addb2361b52f9}} 
+\index{DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}!setNormal@{setNormal}}
+\index{setNormal@{setNormal}!DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{setNormal()}{setNormal()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDCEL_1_1VertexT}{D\+C\+E\+L\+::\+VertexT}}$<$ T $>$\+::set\+Normal (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&}]{a\+\_\+normal }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Set the vertex normal vector. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+normal} & Vertex normal vector \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a724d755b487126bf0cbad611e1d6cb57}\label{classDCEL_1_1VertexT_a724d755b487126bf0cbad611e1d6cb57}} 
+\index{DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}!setPosition@{setPosition}}
+\index{setPosition@{setPosition}!DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{setPosition()}{setPosition()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDCEL_1_1VertexT}{D\+C\+E\+L\+::\+VertexT}}$<$ T $>$\+::set\+Position (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&}]{a\+\_\+position }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Set the vertex position. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+position} & Vertex position \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classDCEL_1_1VertexT_ac45b8a4c1b815ab0333f1c2fb8fa694d}\label{classDCEL_1_1VertexT_ac45b8a4c1b815ab0333f1c2fb8fa694d}} 
+\index{DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}!signedDistance@{signedDistance}}
+\index{signedDistance@{signedDistance}!DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classDCEL_1_1VertexT}{D\+C\+E\+L\+::\+VertexT}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the signed distance to this vertex. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+x0} & Position in space. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+The returned distance is $\vert$a\+\_\+x0 -\/ m\+\_\+position$\vert$ and the sign is given by the sign of m\+\_\+normal $\ast$ $\vert$a\+\_\+x0 -\/ m\+\_\+position$\vert$. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classDCEL_1_1VertexT_a4249842bb5de33c22e54b43e8b813e1f}\label{classDCEL_1_1VertexT_a4249842bb5de33c22e54b43e8b813e1f}} 
+\index{DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}!unsignedDistance2@{unsignedDistance2}}
+\index{unsignedDistance2@{unsignedDistance2}!DCEL::VertexT$<$ T $>$@{DCEL::VertexT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{unsignedDistance2()}{unsignedDistance2()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classDCEL_1_1VertexT}{D\+C\+E\+L\+::\+VertexT}}$<$ T $>$\+::unsigned\+Distance2 (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1VertexT_a68c88cdf277a80399c86fe227f694fe6}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the squared unsigned distance to this vertex. 
+
+This is faster to compute than signed\+Distance, and might be preferred for some algorithms. \begin{DoxyReturn}{Returns}
+Returns the vector length of (a\+\_\+x -\/ m\+\_\+position) 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+Source/\mbox{\hyperlink{EBGeometry__DCEL__Edge_8hpp}{E\+B\+Geometry\+\_\+\+D\+C\+E\+L\+\_\+\+Edge.\+hpp}}\item 
+Source/\mbox{\hyperlink{EBGeometry__DCEL__Vertex_8hpp}{E\+B\+Geometry\+\_\+\+D\+C\+E\+L\+\_\+\+Vertex.\+hpp}}\item 
+Source/\mbox{\hyperlink{EBGeometry__DCEL__VertexImplem_8hpp}{E\+B\+Geometry\+\_\+\+D\+C\+E\+L\+\_\+\+Vertex\+Implem.\+hpp}}\end{DoxyCompactItemize}

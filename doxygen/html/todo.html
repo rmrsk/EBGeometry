@@ -69,7 +69,7 @@ $(function() {
 <div class="textblock"><dl class="reflist">
 <dt>Class <a class="el" href="classBVH_1_1LinearNodeT.html">BVH::LinearNodeT&lt; T, P, BV, K &gt;</a>  </dt>
 <dd><a class="anchor" id="_todo000001"></a>There's a minor optimization that can be made to the memory alignment, which is as follows: For a leaf node we never really need the m_childOffsets array, and for a regular node we never really need the m_primitivesOffset member. Moreover, m_childOffsets could be made into a K-1 sized array because we happen to know that the linearized hierarchy will store the first child node immediately after the regular node. We could shave off 16 bytes of storage, which would mean that a double-precision binary tree only takes up one word of CPU memory.  </dd>
-<dt>File <a class="el" href="EBGeometry__DcelEdgeImplem_8hpp.html">EBGeometry_DcelEdgeImplem.hpp</a>  </dt>
+<dt>File <a class="el" href="EBGeometry__DCEL__EdgeImplem_8hpp.html">EBGeometry_DCEL_EdgeImplem.hpp</a>  </dt>
 <dd><a class="anchor" id="_todo000002"></a>Include m_face in constructors </dd>
 </dl>
 </div></div><!-- contents -->

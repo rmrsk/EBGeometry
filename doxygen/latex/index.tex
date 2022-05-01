@@ -1,6 +1,6 @@
 \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} is a code for computing signed distance functions to watertight and orientable surface grids. It was written to be used with embedded-\/boundary (EB) codes like Chombo or A\+M\+ReX.
 
-Tesselations must consist of planar polygons (not necessarily triangles). Internally, the surface mesh is stored in a doubly-\/connected edge list (D\+C\+EL), i.\+e. a half-\/edge data structure. On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can be computed in various ways\+:
+Tesselations must consist of planar polygons (not necessarily triangles). Internally, the surface mesh is stored in a doubly-\/connected edge list (\mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}}), i.\+e. a half-\/edge data structure. On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can be computed in various ways\+:
 
 
 \begin{DoxyItemize}
@@ -29,17 +29,21 @@ To clone \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}}\+: \begin{DoxyVe
 \end{DoxyVerb}
 
 
-Various examples are given in the Examples folder. To run one of the examples, navigate to the example and compile and run it. E.\+g., \begin{DoxyVerb}cd Examples/Basic
-g++ -O3 -std=c++14 main.cpp
-./a.out porsche.ply
-\end{DoxyVerb}
+Various examples are given in the Examples folder. To run one of the examples, navigate to the example and compile and run it. E.\+g.,
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{cd Examples/Basic}
+\DoxyCodeLine{g++ -\/O3 -\/std=c++14 main.cpp}
+\DoxyCodeLine{./a.out porsche.ply}
+\end{DoxyCode}
 
 
 The examples take the following steps that are specific to \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}}\+:
 
 
 \begin{DoxyEnumerate}
-\item Define an analytic signed distance function or parse a surface mesh into a D\+C\+EL mesh object.
+\item Define an analytic signed distance function or parse a surface mesh into a \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} mesh object.
 \item Partition using B\+V\+Hs.
 \item Compute the signed distance function.
 \end{DoxyEnumerate}
@@ -49,6 +53,73 @@ More complex examples that use Chombo or A\+M\+ReX will also include application
 \doxysection*{Advanced usage }
 
 For more advanced usage, users can supply their own file parsers (only P\+LY files are currently supported), provide their own bounding volumes, or their own \mbox{\hyperlink{namespaceBVH}{B\+VH}} partitioners. \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} is not too strict about these things, and uses rigorous templating for ensuring that the \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} functionality can be extended.
+
+\doxysection*{Contributing }
+
+
+\begin{DoxyEnumerate}
+\item Create a branch for the new feature.
+\end{DoxyEnumerate}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{git checkout main}
+\DoxyCodeLine{git pull}
+\DoxyCodeLine{git checkout -\/b my\_feature}
+\end{DoxyCode}
+
+
+
+\begin{DoxyEnumerate}
+\item Develop the feature.
+\end{DoxyEnumerate}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{git add .}
+\DoxyCodeLine{git commit -\/m "my commit message"}
+\end{DoxyCode}
+
+
+If relevant, add Sphinx and doxygen documentation.
+
+
+\begin{DoxyEnumerate}
+\item Format the source and example codes using {\ttfamily clang-\/format}\+:
+\end{DoxyEnumerate}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{find Source Examples \(\backslash\)( -\/name "*.hpp" -\/o -\/name "*.cpp" \(\backslash\)) -\/exec clang-\/format -\/i \{\} +}
+\end{DoxyCode}
+
+
+
+\begin{DoxyEnumerate}
+\item For safety, run \href{https://github.com/codespell-project/codespell}{\texttt{ codespell}} on the source, examples, and documentation directories\+:
+\end{DoxyEnumerate}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{codespell Source Examples Sphinx -\/-\/skip "*.png,*.log,*.pdf"}
+\end{DoxyCode}
+
+
+
+\begin{DoxyEnumerate}
+\item Push the changes to Git\+Hub
+\end{DoxyEnumerate}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{git push -\/-\/set-\/upstream my\_feature}
+\end{DoxyCode}
+
+
+
+\begin{DoxyEnumerate}
+\item Create a pull request and make sure the Git\+Hub continuous integration tests pass.
+\end{DoxyEnumerate}
 
 \doxysection*{License }
 

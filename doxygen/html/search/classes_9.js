@@ -1,6 +1,6 @@
 var searchData=
 [
   ['planesdf_346',['PlaneSDF',['../classPlaneSDF.html',1,'']]],
-  ['ply_347',['PLY',['../classDcel_1_1Parser_1_1PLY.html',1,'Dcel::Parser']]],
-  ['polygon2d_348',['Polygon2D',['../classDcel_1_1Polygon2D.html',1,'Dcel']]]
+  ['ply_347',['PLY',['../classParser_1_1PLY.html',1,'Parser']]],
+  ['polygon2d_348',['Polygon2D',['../classPolygon2D.html',1,'Polygon2D&lt; T &gt;'],['../classDCEL_1_1Polygon2D.html',1,'DCEL::Polygon2D&lt; T &gt;']]]
 ];

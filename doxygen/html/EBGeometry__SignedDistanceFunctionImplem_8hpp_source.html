@@ -83,62 +83,66 @@ $(function() {
 <div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceHeader_8hpp.html">EBGeometry_NamespaceHeader.hpp</a>&quot;</span></div>
 <div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160; </div>
 <div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">inline</span></div>
-<div class="line"><a name="l00021"></a><span class="lineno"><a class="line" href="classSignedDistanceFunction.html#add71ebc2e7f3fb5e85766898413482e7">   21</a></span>&#160;<span class="keywordtype">void</span> <a class="code" href="classSignedDistanceFunction.html#add71ebc2e7f3fb5e85766898413482e7">SignedDistanceFunction&lt;T&gt;::translate</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_translation) noexcept {</div>
-<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;  m_transformOps.emplace_back(std::make_shared&lt;EBGeometry::TranslateOp&lt;T&gt; &gt; (a_translation));</div>
-<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;}</div>
-<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160; </div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;<span class="keyword">inline</span></div>
-<div class="line"><a name="l00027"></a><span class="lineno"><a class="line" href="classSignedDistanceFunction.html#add9701b76af9db88e4e748ae9248c938">   27</a></span>&#160;<span class="keywordtype">void</span> <a class="code" href="classSignedDistanceFunction.html#add9701b76af9db88e4e748ae9248c938">SignedDistanceFunction&lt;T&gt;::rotate</a>(<span class="keyword">const</span> T a_angle, <span class="keyword">const</span> <span class="keywordtype">size_t</span> a_axis) noexcept {</div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;  m_transformOps.emplace_back(std::make_shared&lt;EBGeometry::RotateOp&lt;T&gt; &gt;(a_angle, a_axis));</div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;}</div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160; </div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;<span class="keyword">inline</span></div>
-<div class="line"><a name="l00033"></a><span class="lineno"><a class="line" href="classSignedDistanceFunction.html#af186f98f9ea4ac96fccb4add4ebf196d">   33</a></span>&#160;<a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> <a class="code" href="classSignedDistanceFunction.html#af186f98f9ea4ac96fccb4add4ebf196d">SignedDistanceFunction&lt;T&gt;::transformPoint</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_point) <span class="keyword">const</span> noexcept {</div>
-<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;  <span class="keyword">auto</span> p = a_point;</div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;  </div>
-<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;  <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; op : m_transformOps){</div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;    p = op-&gt;transform(p);</div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;  }</div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160; </div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;  <span class="keywordflow">return</span> p;</div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;}</div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">inline</span> <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00021"></a><span class="lineno"><a class="line" href="classSignedDistanceFunction.html#add71ebc2e7f3fb5e85766898413482e7">   21</a></span>&#160;<a class="code" href="classSignedDistanceFunction.html#add71ebc2e7f3fb5e85766898413482e7">SignedDistanceFunction&lt;T&gt;::translate</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_translation) noexcept</div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;{</div>
+<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;  m_transformOps.emplace_back(std::make_shared&lt;EBGeometry::TranslateOp&lt;T&gt;&gt;(a_translation));</div>
+<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;}</div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160; </div>
+<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;<span class="keyword">inline</span> <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00028"></a><span class="lineno"><a class="line" href="classSignedDistanceFunction.html#add9701b76af9db88e4e748ae9248c938">   28</a></span>&#160;<a class="code" href="classSignedDistanceFunction.html#add9701b76af9db88e4e748ae9248c938">SignedDistanceFunction&lt;T&gt;::rotate</a>(<span class="keyword">const</span> T a_angle, <span class="keyword">const</span> <span class="keywordtype">size_t</span> a_axis) noexcept</div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;{</div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;  m_transformOps.emplace_back(std::make_shared&lt;EBGeometry::RotateOp&lt;T&gt;&gt;(a_angle, a_axis));</div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;}</div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160; </div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;<span class="keyword">inline</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a></div>
+<div class="line"><a name="l00035"></a><span class="lineno"><a class="line" href="classSignedDistanceFunction.html#af186f98f9ea4ac96fccb4add4ebf196d">   35</a></span>&#160;<a class="code" href="classSignedDistanceFunction.html#af186f98f9ea4ac96fccb4add4ebf196d">SignedDistanceFunction&lt;T&gt;::transformPoint</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_point) <span class="keyword">const</span> noexcept</div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;{</div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;  <span class="keyword">auto</span> p = a_point;</div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160; </div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;  <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; op : m_transformOps) {</div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;    p = op-&gt;transform(p);</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;  }</div>
 <div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160; </div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="keyword">inline</span></div>
-<div class="line"><a name="l00045"></a><span class="lineno"><a class="line" href="classSignedDistanceFunction.html#ae9f55561cebcd7b2eafc1e2e3ae44027">   45</a></span>&#160;<a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> <a class="code" href="classSignedDistanceFunction.html#ae9f55561cebcd7b2eafc1e2e3ae44027">SignedDistanceFunction&lt;T&gt;::normal</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_point, <span class="keyword">const</span> T&amp; a_delta) <span class="keyword">const</span> noexcept {</div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160; </div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;  <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> n = <a class="code" href="classVec3T.html#af438ba5c8990b07e566bf7e48dcbcfb2">Vec3T&lt;T&gt;::zero</a>();</div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160; </div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;  <span class="keyword">const</span> T <span class="keywordtype">id</span> = 1./(2*a_delta);</div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;  </div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;  <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> dir = 0; dir &lt; 3; dir++){</div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;    <span class="keyword">const</span> T hi  = this-&gt;signedDistance(a_point + a_delta * <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;::unit</a>(dir));</div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;    <span class="keyword">const</span> T lo  = this-&gt;signedDistance(a_point - a_delta * <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;::unit</a>(dir));</div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;  <span class="keywordflow">return</span> p;</div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;}</div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160; </div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="keyword">inline</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a></div>
+<div class="line"><a name="l00048"></a><span class="lineno"><a class="line" href="classSignedDistanceFunction.html#ae9f55561cebcd7b2eafc1e2e3ae44027">   48</a></span>&#160;<a class="code" href="classSignedDistanceFunction.html#ae9f55561cebcd7b2eafc1e2e3ae44027">SignedDistanceFunction&lt;T&gt;::normal</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_point, <span class="keyword">const</span> T&amp; a_delta) <span class="keyword">const</span> noexcept</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;{</div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160; </div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;  <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> n = <a class="code" href="classVec3T.html#af438ba5c8990b07e566bf7e48dcbcfb2">Vec3T&lt;T&gt;::zero</a>();</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160; </div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;  <span class="keyword">const</span> T <span class="keywordtype">id</span> = 1. / (2 * a_delta);</div>
 <div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160; </div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;    n[dir] = (hi - lo)/<span class="keywordtype">id</span>;</div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;  }</div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160; </div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;  n /= n.<a class="code" href="classVec3T.html#a93c868b181e24a4f74702a8b8a36f815">length</a>();</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160; </div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;  <span class="keywordflow">return</span> n;</div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;}</div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160; </div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a>&quot;</span></div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160; </div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;  <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> dir = 0; dir &lt; 3; dir++) {</div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;    <span class="keyword">const</span> T hi = this-&gt;signedDistance(a_point + a_delta * <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;::unit</a>(dir));</div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;    <span class="keyword">const</span> T lo = this-&gt;signedDistance(a_point - a_delta * <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;::unit</a>(dir));</div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160; </div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;    n[dir] = (hi - lo) / <span class="keywordtype">id</span>;</div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;  }</div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160; </div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;  n /= n.<a class="code" href="classVec3T.html#a93c868b181e24a4f74702a8b8a36f815">length</a>();</div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160; </div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;  <span class="keywordflow">return</span> n;</div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;}</div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160; </div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a>&quot;</span></div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160; </div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
-<div class="ttc" id="aclassVec3T_html"><div class="ttname"><a href="classVec3T.html">Vec3T</a></div><div class="ttdoc">Three-dimensional vector class with arithmetic operators.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Vec.hpp:220</div></div>
+<div class="ttc" id="aclassVec3T_html"><div class="ttname"><a href="classVec3T.html">Vec3T</a></div><div class="ttdoc">Three-dimensional vector class with arithmetic operators.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Vec.hpp:234</div></div>
 <div class="ttc" id="aEBGeometry__SignedDistanceFunction_8hpp_html"><div class="ttname"><a href="EBGeometry__SignedDistanceFunction_8hpp.html">EBGeometry_SignedDistanceFunction.hpp</a></div><div class="ttdoc">Abstract base class for representing a signed distance function.</div></div>
-<div class="ttc" id="aclassSignedDistanceFunction_html_add9701b76af9db88e4e748ae9248c938"><div class="ttname"><a href="classSignedDistanceFunction.html#add9701b76af9db88e4e748ae9248c938">SignedDistanceFunction::rotate</a></div><div class="ttdeci">void rotate(const T a_angle, const size_t a_axis) noexcept</div><div class="ttdoc">Rotate the signed distance function around.</div><div class="ttdef"><b>Definition:</b> EBGeometry_SignedDistanceFunctionImplem.hpp:27</div></div>
-<div class="ttc" id="aclassVec3T_html_af438ba5c8990b07e566bf7e48dcbcfb2"><div class="ttname"><a href="classVec3T.html#af438ba5c8990b07e566bf7e48dcbcfb2">Vec3T::zero</a></div><div class="ttdeci">static constexpr Vec3T&lt; T &gt; zero() noexcept</div><div class="ttdoc">Return av vector with x = y = z = 0.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:205</div></div>
-<div class="ttc" id="aclassSignedDistanceFunction_html_ae9f55561cebcd7b2eafc1e2e3ae44027"><div class="ttname"><a href="classSignedDistanceFunction.html#ae9f55561cebcd7b2eafc1e2e3ae44027">SignedDistanceFunction::normal</a></div><div class="ttdeci">virtual Vec3T&lt; T &gt; normal(const Vec3T&lt; T &gt; &amp;a_point, const T &amp;a_delta) const noexcept</div><div class="ttdoc">Signed distance normal vector.</div><div class="ttdef"><b>Definition:</b> EBGeometry_SignedDistanceFunctionImplem.hpp:45</div></div>
-<div class="ttc" id="aclassSignedDistanceFunction_html_af186f98f9ea4ac96fccb4add4ebf196d"><div class="ttname"><a href="classSignedDistanceFunction.html#af186f98f9ea4ac96fccb4add4ebf196d">SignedDistanceFunction::transformPoint</a></div><div class="ttdeci">Vec3T&lt; T &gt; transformPoint(const Vec3T&lt; T &gt; &amp;a_point) const noexcept</div><div class="ttdoc">Apply transformation operators and move point.</div><div class="ttdef"><b>Definition:</b> EBGeometry_SignedDistanceFunctionImplem.hpp:33</div></div>
+<div class="ttc" id="aclassSignedDistanceFunction_html_add9701b76af9db88e4e748ae9248c938"><div class="ttname"><a href="classSignedDistanceFunction.html#add9701b76af9db88e4e748ae9248c938">SignedDistanceFunction::rotate</a></div><div class="ttdeci">void rotate(const T a_angle, const size_t a_axis) noexcept</div><div class="ttdoc">Rotate the signed distance function around.</div><div class="ttdef"><b>Definition:</b> EBGeometry_SignedDistanceFunctionImplem.hpp:28</div></div>
+<div class="ttc" id="aclassVec3T_html_af438ba5c8990b07e566bf7e48dcbcfb2"><div class="ttname"><a href="classVec3T.html#af438ba5c8990b07e566bf7e48dcbcfb2">Vec3T::zero</a></div><div class="ttdeci">static constexpr Vec3T&lt; T &gt; zero() noexcept</div><div class="ttdoc">Return av vector with x = y = z = 0.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:225</div></div>
+<div class="ttc" id="aclassSignedDistanceFunction_html_ae9f55561cebcd7b2eafc1e2e3ae44027"><div class="ttname"><a href="classSignedDistanceFunction.html#ae9f55561cebcd7b2eafc1e2e3ae44027">SignedDistanceFunction::normal</a></div><div class="ttdeci">virtual Vec3T&lt; T &gt; normal(const Vec3T&lt; T &gt; &amp;a_point, const T &amp;a_delta) const noexcept</div><div class="ttdoc">Signed distance normal vector.</div><div class="ttdef"><b>Definition:</b> EBGeometry_SignedDistanceFunctionImplem.hpp:48</div></div>
+<div class="ttc" id="aclassSignedDistanceFunction_html_af186f98f9ea4ac96fccb4add4ebf196d"><div class="ttname"><a href="classSignedDistanceFunction.html#af186f98f9ea4ac96fccb4add4ebf196d">SignedDistanceFunction::transformPoint</a></div><div class="ttdeci">Vec3T&lt; T &gt; transformPoint(const Vec3T&lt; T &gt; &amp;a_point) const noexcept</div><div class="ttdoc">Apply transformation operators and move point.</div><div class="ttdef"><b>Definition:</b> EBGeometry_SignedDistanceFunctionImplem.hpp:35</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceFooter_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a></div><div class="ttdoc">Name space footer.</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceHeader_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceHeader_8hpp.html">EBGeometry_NamespaceHeader.hpp</a></div><div class="ttdoc">Name space header.</div></div>
-<div class="ttc" id="aclassVec3T_html_a93c868b181e24a4f74702a8b8a36f815"><div class="ttname"><a href="classVec3T.html#a93c868b181e24a4f74702a8b8a36f815">Vec3T::length</a></div><div class="ttdeci">T length() const noexcept</div><div class="ttdoc">Compute vector length.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:453</div></div>
+<div class="ttc" id="aclassVec3T_html_a93c868b181e24a4f74702a8b8a36f815"><div class="ttname"><a href="classVec3T.html#a93c868b181e24a4f74702a8b8a36f815">Vec3T::length</a></div><div class="ttdeci">T length() const noexcept</div><div class="ttdoc">Compute vector length.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:500</div></div>
 <div class="ttc" id="aclassSignedDistanceFunction_html_add71ebc2e7f3fb5e85766898413482e7"><div class="ttname"><a href="classSignedDistanceFunction.html#add71ebc2e7f3fb5e85766898413482e7">SignedDistanceFunction::translate</a></div><div class="ttdeci">void translate(const Vec3T&lt; T &gt; &amp;a_translation) noexcept</div><div class="ttdoc">Translate signed distance function.</div><div class="ttdef"><b>Definition:</b> EBGeometry_SignedDistanceFunctionImplem.hpp:21</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

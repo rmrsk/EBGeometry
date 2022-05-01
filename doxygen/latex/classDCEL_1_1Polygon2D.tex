@@ -1,0 +1,158 @@
+\hypertarget{classDCEL_1_1Polygon2D}{}\doxysection{D\+C\+EL\+::Polygon2D$<$ T $>$ Class Template Reference}
+\label{classDCEL_1_1Polygon2D}\index{DCEL::Polygon2D$<$ T $>$@{DCEL::Polygon2D$<$ T $>$}}
+
+
+Class for embedding a \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} polygon face into 2D.  
+
+
+
+
+{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+D\+C\+E\+L\+\_\+\+Polygon2\+D.\+hpp$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDCEL_1_1Polygon2D_af939383f3adf9f4982a87eda949d301d}\label{classDCEL_1_1Polygon2D_af939383f3adf9f4982a87eda949d301d}} 
+enum \mbox{\hyperlink{classDCEL_1_1Polygon2D_af939383f3adf9f4982a87eda949d301d}{Inside\+Outside\+Algorithm}} \{ {\bfseries Subtended\+Angle}, 
+{\bfseries Crossing\+Number}, 
+{\bfseries Winding\+Number}
+ \}
+\begin{DoxyCompactList}\small\item\em Supported algorithms for performing inside/outside tests when checking if a point projects to the inside or outside of a polygon face. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1Polygon2D_aa4879eec4b4372f008439d1be8082f5c}\label{classDCEL_1_1Polygon2D_aa4879eec4b4372f008439d1be8082f5c}} 
+using \mbox{\hyperlink{classDCEL_1_1Polygon2D_aa4879eec4b4372f008439d1be8082f5c}{Vec2}} = \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1Polygon2D_afa715a8b68e47f9161e65c9dadd1ea30}\label{classDCEL_1_1Polygon2D_afa715a8b68e47f9161e65c9dadd1ea30}} 
+using \mbox{\hyperlink{classDCEL_1_1Polygon2D_afa715a8b68e47f9161e65c9dadd1ea30}{Vec3}} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDCEL_1_1Polygon2D_a1824aa077818bb75df24a001cb708cb9}\label{classDCEL_1_1Polygon2D_a1824aa077818bb75df24a001cb708cb9}} 
+\mbox{\hyperlink{classDCEL_1_1Polygon2D_a1824aa077818bb75df24a001cb708cb9}{Polygon2D}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed constructor, use the one with the normal vector and points. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classDCEL_1_1Polygon2D_adf4ae9b914197276beb7cc3925ad24f0}{Polygon2D}} (const \mbox{\hyperlink{classDCEL_1_1Polygon2D_afa715a8b68e47f9161e65c9dadd1ea30}{Vec3}} \&a\+\_\+normal, const std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1Polygon2D_afa715a8b68e47f9161e65c9dadd1ea30}{Vec3}} $>$ \&a\+\_\+points)
+\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1Polygon2D_a9159954c0f3bf382a3698df617768023}\label{classDCEL_1_1Polygon2D_a9159954c0f3bf382a3698df617768023}} 
+\mbox{\hyperlink{classDCEL_1_1Polygon2D_a9159954c0f3bf382a3698df617768023}{$\sim$\+Polygon2D}} ()=default
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classDCEL_1_1Polygon2D_a55bada055bc746026235acd900be5b00}{is\+Point\+Inside}} (const \mbox{\hyperlink{classDCEL_1_1Polygon2D_afa715a8b68e47f9161e65c9dadd1ea30}{Vec3}} \&a\+\_\+point, const \mbox{\hyperlink{classDCEL_1_1Polygon2D_af939383f3adf9f4982a87eda949d301d}{Inside\+Outside\+Algorithm}} a\+\_\+algorithm) const noexcept
+\begin{DoxyCompactList}\small\item\em Check if a point is inside or outside the 2D polygon. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classDCEL_1_1Polygon2D_ac6f795b6861a53f39ddc2cc5a9af11b3}{is\+Point\+Inside\+Polygon\+Winding\+Number}} (const \mbox{\hyperlink{classDCEL_1_1Polygon2D_afa715a8b68e47f9161e65c9dadd1ea30}{Vec3}} \&a\+\_\+point) const noexcept
+\begin{DoxyCompactList}\small\item\em Check if a point is inside a 2D polygon, using the winding number algorithm. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classDCEL_1_1Polygon2D_a16f21b4f3000ff991f85b27b2945e0dd}{is\+Point\+Inside\+Polygon\+Subtend}} (const \mbox{\hyperlink{classDCEL_1_1Polygon2D_afa715a8b68e47f9161e65c9dadd1ea30}{Vec3}} \&a\+\_\+point) const noexcept
+\begin{DoxyCompactList}\small\item\em Check if a point is inside a 2D polygon, using the subtended angles. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classDCEL_1_1Polygon2D_afa903d20e99611868a4328429466f4a0}{is\+Point\+Inside\+Polygon\+Crossing\+Number}} (const \mbox{\hyperlink{classDCEL_1_1Polygon2D_afa715a8b68e47f9161e65c9dadd1ea30}{Vec3}} \&a\+\_\+point) const noexcept
+\begin{DoxyCompactList}\small\item\em Check if a point is inside a 2D polygon, by computing the number of times a ray crosses the polygon edges. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class D\+C\+E\+L\+::\+Polygon2\+D$<$ T $>$}
+
+Class for embedding a \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} polygon face into 2D. 
+
+This class is required for determining whether or not a 3D point projected to the plane of an N-\/sided polygon lies inside or outside the polygon face. To do this we compute the 2D embedding of the polygon face, reducing the problem to a tractable dimension where we can use well-\/tested algorithm. The 2D embedding of a polygon occurs by taking a set of 3D points and a corresponding normal vector, and projecting those points along one of the 3D Cartesian axes such that the polygon has the largest area. In essence, we simply find the direction with the smallest normal vector component and ignore that. Once the 2D embedding is computed, we can use well-\/known algorithms for checking if a point lies inside or outside. The supported algorithms are 1) The winding number algorithm (computing the winding number), 2) Computing the subtended angle of the point with the edges of the polygon (sums to 360 degrees if the point is inside), or computing the crossing number which checks how many times a ray cast from the point crosses the edges of the polygon. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classDCEL_1_1Polygon2D_adf4ae9b914197276beb7cc3925ad24f0}\label{classDCEL_1_1Polygon2D_adf4ae9b914197276beb7cc3925ad24f0}} 
+\index{DCEL::Polygon2D$<$ T $>$@{DCEL::Polygon2D$<$ T $>$}!Polygon2D@{Polygon2D}}
+\index{Polygon2D@{Polygon2D}!DCEL::Polygon2D$<$ T $>$@{DCEL::Polygon2D$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{Polygon2D()}{Polygon2D()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classDCEL_1_1Polygon2D}{Polygon2D}}$<$ T $>$\+::\mbox{\hyperlink{classDCEL_1_1Polygon2D}{Polygon2D}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1Polygon2D_afa715a8b68e47f9161e65c9dadd1ea30}{Vec3}} \&}]{a\+\_\+normal,  }\item[{const std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1Polygon2D_afa715a8b68e47f9161e65c9dadd1ea30}{Vec3}} $>$ \&}]{a\+\_\+points }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Full constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+normal} & Normal vector of the 3D polygon face \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+points} & Vertex coordinates of the 3D polygon face \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classDCEL_1_1Polygon2D_a55bada055bc746026235acd900be5b00}\label{classDCEL_1_1Polygon2D_a55bada055bc746026235acd900be5b00}} 
+\index{DCEL::Polygon2D$<$ T $>$@{DCEL::Polygon2D$<$ T $>$}!isPointInside@{isPointInside}}
+\index{isPointInside@{isPointInside}!DCEL::Polygon2D$<$ T $>$@{DCEL::Polygon2D$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{isPointInside()}{isPointInside()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+bool \mbox{\hyperlink{classDCEL_1_1Polygon2D}{Polygon2D}}$<$ T $>$\+::is\+Point\+Inside (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1Polygon2D_afa715a8b68e47f9161e65c9dadd1ea30}{Vec3}} \&}]{a\+\_\+point,  }\item[{const \mbox{\hyperlink{classDCEL_1_1Polygon2D_af939383f3adf9f4982a87eda949d301d}{Inside\+Outside\+Algorithm}}}]{a\+\_\+algorithm }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Check if a point is inside or outside the 2D polygon. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point coordinates \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+algorithm} & Inside/outside algorithm\\
+\hline
+\end{DoxyParams}
+This will call the function corresponding to a\+\_\+algorithm. \mbox{\Hypertarget{classDCEL_1_1Polygon2D_afa903d20e99611868a4328429466f4a0}\label{classDCEL_1_1Polygon2D_afa903d20e99611868a4328429466f4a0}} 
+\index{DCEL::Polygon2D$<$ T $>$@{DCEL::Polygon2D$<$ T $>$}!isPointInsidePolygonCrossingNumber@{isPointInsidePolygonCrossingNumber}}
+\index{isPointInsidePolygonCrossingNumber@{isPointInsidePolygonCrossingNumber}!DCEL::Polygon2D$<$ T $>$@{DCEL::Polygon2D$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{isPointInsidePolygonCrossingNumber()}{isPointInsidePolygonCrossingNumber()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+bool \mbox{\hyperlink{classDCEL_1_1Polygon2D}{Polygon2D}}$<$ T $>$\+::is\+Point\+Inside\+Polygon\+Crossing\+Number (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1Polygon2D_afa715a8b68e47f9161e65c9dadd1ea30}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Check if a point is inside a 2D polygon, by computing the number of times a ray crosses the polygon edges. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point coordinates \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns true if the 3D point projects to the inside of the 2D polygon 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classDCEL_1_1Polygon2D_a16f21b4f3000ff991f85b27b2945e0dd}\label{classDCEL_1_1Polygon2D_a16f21b4f3000ff991f85b27b2945e0dd}} 
+\index{DCEL::Polygon2D$<$ T $>$@{DCEL::Polygon2D$<$ T $>$}!isPointInsidePolygonSubtend@{isPointInsidePolygonSubtend}}
+\index{isPointInsidePolygonSubtend@{isPointInsidePolygonSubtend}!DCEL::Polygon2D$<$ T $>$@{DCEL::Polygon2D$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{isPointInsidePolygonSubtend()}{isPointInsidePolygonSubtend()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+bool \mbox{\hyperlink{classDCEL_1_1Polygon2D}{Polygon2D}}$<$ T $>$\+::is\+Point\+Inside\+Polygon\+Subtend (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1Polygon2D_afa715a8b68e47f9161e65c9dadd1ea30}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Check if a point is inside a 2D polygon, using the subtended angles. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point coordinates \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns true if the 3D point projects to the inside of the 2D polygon 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classDCEL_1_1Polygon2D_ac6f795b6861a53f39ddc2cc5a9af11b3}\label{classDCEL_1_1Polygon2D_ac6f795b6861a53f39ddc2cc5a9af11b3}} 
+\index{DCEL::Polygon2D$<$ T $>$@{DCEL::Polygon2D$<$ T $>$}!isPointInsidePolygonWindingNumber@{isPointInsidePolygonWindingNumber}}
+\index{isPointInsidePolygonWindingNumber@{isPointInsidePolygonWindingNumber}!DCEL::Polygon2D$<$ T $>$@{DCEL::Polygon2D$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{isPointInsidePolygonWindingNumber()}{isPointInsidePolygonWindingNumber()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+bool \mbox{\hyperlink{classDCEL_1_1Polygon2D}{Polygon2D}}$<$ T $>$\+::is\+Point\+Inside\+Polygon\+Winding\+Number (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1Polygon2D_afa715a8b68e47f9161e65c9dadd1ea30}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Check if a point is inside a 2D polygon, using the winding number algorithm. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point coordinates \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns true if the 3D point projects to the inside of the 2D polygon 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+Source/E\+B\+Geometry\+\_\+\+D\+C\+E\+L\+\_\+\+Polygon2\+D.\+hpp\item 
+Source/E\+B\+Geometry\+\_\+\+D\+C\+E\+L\+\_\+\+Polygon2\+D\+Implem.\+hpp\end{DoxyCompactItemize}
