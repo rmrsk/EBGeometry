@@ -40,9 +40,11 @@ Various examples are given in the Examples folder.
 To run one of the examples, navigate to the example and compile and run it.
 E.g.,
 
-    cd Examples/Basic
-    g++ -O3 -std=c++14 main.cpp
-    ./a.out porsche.ply
+```
+cd Examples/Basic
+g++ -O3 -std=c++14 main.cpp
+./a.out porsche.ply
+```
 
 The examples take the following steps that are specific to EBGeometry:
 
@@ -71,20 +73,25 @@ Contributing
    
 2. Develop the feature.
 
-   ```git add .```
-   
-   ```git commit -m "my commit message```
+   ```
+   git add .
+   git commit -m "my commit message
+   ```
 
    If relevant, also add Sphinx and doxygen documentation. 
 
 
 3. Format the code using ```clang-format```:
 
-   ```find Source Examples \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +```
+   ```
+   find Source Examples \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +
+   ```
 
 4. Push the changes to GitHub
 
-   ```git push --set-upstream my_feature```
+   ```
+   git push --set-upstream my_feature
+   ```
    
 5. Create a pull request and make sure the GitHub continuous integration tests passes.
 
