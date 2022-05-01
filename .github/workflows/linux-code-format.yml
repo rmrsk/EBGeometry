@@ -28,8 +28,13 @@ jobs:
         if: always()        
         run: |
           find Source Examples \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +
-          git diff
 
-      - name: File check
+      - name: Check for modified files
         id: git-check
-        run: echo ::set-output name=modified::$(if git diff-index --quiet HEAD --; then exit 0; else exit 1; fi)
+        run: echo ::set-output name=modified::$(if git diff-index --quiet HEAD --; then echo "false"; else echo "true"; fi)
+        
+      - name: Accept or reject
+        if: steps.git-check.outputs.modified == 'true'
+        run: |
+          exit 1
+
