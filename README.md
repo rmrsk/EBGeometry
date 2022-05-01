@@ -63,11 +63,11 @@ Contributing
 
 1. Create a branch for the new feature.
 
-   ```git checkout main```
-   
-   ```git pull```
-   
-   ```git checkout -b my_feature```
+   ```
+   git checkout main
+   git pull
+   git checkout -b my_feature
+   ```
    
 2. Develop the feature.
 
