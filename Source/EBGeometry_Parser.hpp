@@ -99,33 +99,33 @@ namespace Parser {
       @note The next getline() from a_inputStream must read the first vertex (i.e. don't rewind the stream before entering this routine)
     */
     inline
-    static void readVerticesASCII(std::vector<std::shared_ptr<Vertex> >& a_vertices,
-				  const size_t                           a_numVertices,
-				  std::ifstream&                         a_inputStream);
+    static void readVerticesIntoDCEL(std::vector<std::shared_ptr<Vertex> >& a_vertices,
+				     const size_t                           a_numVertices,
+				     std::ifstream&                         a_inputStream);
 
     /*!
       @brief Read ASCII faces and create mesh connectivity. 
       @param[out]   a_faces       DCEL faces. Constructured in this routine. 
       @param[out]   a_edges       DCEL edges. Constructured in this routine. 
-      @param[out]   a_vertices    DCEL edges. Constructured in readVerticesASCII. 
+      @param[out]   a_vertices    DCEL edges. Constructured in readVerticesIntoDCEL. 
       @param[in]    a_numFaces    Total number of faces in mesh. 
       @param[inout] a_inputStream Input stream
       @note The next getline() from inputStream must read the first face, i.e. we assume that read_ascii_vertices was called IMMEDIATELY before this function. 
       That function will center the fstream on the correct line in the input file. 
     */
     inline
-    static void readFacesASCII(std::vector<std::shared_ptr<Face> >&         a_faces,
-			       std::vector<std::shared_ptr<Edge> >&         a_edges,
-			       const std::vector<std::shared_ptr<Vertex> >& a_vertices,
-			       const size_t                                 a_numFaces,
-			       std::ifstream&                               a_inputStream);
+    static void readFacesIntoDCEL(std::vector<std::shared_ptr<Face> >&         a_faces,
+				  std::vector<std::shared_ptr<Edge> >&         a_edges,
+				  const std::vector<std::shared_ptr<Vertex> >& a_vertices,
+				  const size_t                                 a_numFaces,
+				  std::ifstream&                               a_inputStream);
 
     /*!
       @brief Reconcile pair edges, i.e. find the pair edge for every constructed half-edge
       @param[inout] a_edges Half edges. 
     */
     inline
-    static void reconcilePairEdges(std::vector<std::shared_ptr<Edge> >& a_edges);
+    static void reconcilePairEdgesDCEL(std::vector<std::shared_ptr<Edge> >& a_edges);
   };
 }
 

@@ -55,9 +55,9 @@ void Parser::PLY<T>::readIntoDCEL(Mesh& a_mesh, const std::string a_filename) {
     size_t numFaces;     // Number of faces
 
     Parser::PLY<T>::readHeaderASCII(numVertices, numFaces, filestream);
-    Parser::PLY<T>::readVerticesASCII(vertices, numVertices, filestream);
-    Parser::PLY<T>::readFacesASCII(faces, edges, vertices, numFaces, filestream);
-    Parser::PLY<T>::reconcilePairEdges(edges);
+    Parser::PLY<T>::readVerticesIntoDCEL(vertices, numVertices, filestream);
+    Parser::PLY<T>::readFacesIntoDCEL(faces, edges, vertices, numFaces, filestream);
+    Parser::PLY<T>::reconcilePairEdgesDCEL(edges);
 
     a_mesh.sanityCheck();
     
@@ -117,9 +117,9 @@ void Parser::PLY<T>::readHeaderASCII(size_t&        a_numVertices,
 
 template <class T>
 inline
-void Parser::PLY<T>::readVerticesASCII(std::vector<std::shared_ptr<Vertex> >& a_vertices,
-				       const size_t                           a_numVertices,
-				       std::ifstream&                         a_inputStream) {
+void Parser::PLY<T>::readVerticesIntoDCEL(std::vector<std::shared_ptr<Vertex> >& a_vertices,
+					  const size_t                           a_numVertices,
+					  std::ifstream&                         a_inputStream) {
 
   Vec3T<T> pos;
   T& x = pos[0];
@@ -148,11 +148,11 @@ void Parser::PLY<T>::readVerticesASCII(std::vector<std::shared_ptr<Vertex> >& a_
 
 template <class T>
 inline
-void Parser::PLY<T>::readFacesASCII(std::vector<std::shared_ptr<Face> >&         a_faces,
-				    std::vector<std::shared_ptr<Edge> >&         a_edges,
-				    const std::vector<std::shared_ptr<Vertex> >& a_vertices,
-				    const size_t                                 a_numFaces,
-				    std::ifstream&                               a_inputStream) {
+void Parser::PLY<T>::readFacesIntoDCEL(std::vector<std::shared_ptr<Face> >&         a_faces,
+				       std::vector<std::shared_ptr<Edge> >&         a_edges,
+				       const std::vector<std::shared_ptr<Vertex> >& a_vertices,
+				       const size_t                                 a_numFaces,
+				       std::ifstream&                               a_inputStream) {
   size_t numVertices;
   std::vector<size_t> vertexIndices;
 
@@ -169,7 +169,7 @@ void Parser::PLY<T>::readFacesASCII(std::vector<std::shared_ptr<Face> >&        
       sstream >> vertexIndices[i];
     }
 
-    if(numVertices < 3) std::cerr << "Parser::PLY::readFacesASCII - a face must have at least three vertices!\n";
+    if(numVertices < 3) std::cerr << "Parser::PLY::readFacesIntoDCEL - a face must have at least three vertices!\n";
     
     // Get the vertices that make up this face. 
     std::vector<std::shared_ptr<Vertex> > curVertices;
@@ -219,7 +219,7 @@ void Parser::PLY<T>::readFacesASCII(std::vector<std::shared_ptr<Face> >&        
 
 template <class T>
 inline
-void Parser::PLY<T>::reconcilePairEdges(std::vector<std::shared_ptr<Edge> >& a_edges) {
+void Parser::PLY<T>::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<Edge> >& a_edges) {
   for (auto& curEdge : a_edges){
     const auto& nextEdge = curEdge->getNextEdge();
     
