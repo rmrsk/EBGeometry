@@ -163,7 +163,7 @@ public:
     @details This will provide error messages if vertices are badly linked,
     faces are nullptr, and so on. These messages are logged by calling
     incrementWarning() which identifies types of errors that can occur, and how
-    many of those errors have occured.
+    many of those errors have occurred.
   */
   inline void
   sanityCheck() const noexcept;

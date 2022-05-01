@@ -6,7 +6,7 @@
 /*!
   @file   EBGeometry_DCEL_BVH.hpp
   @brief  File which contains partitioners and lambdas for enclosing DCEL faces
-  in bounding volume heirarchies
+  in bounding volume hierarchies
   @details This file contains various useful "default" routines for determining
   how a DCEL mesh should be partitioned in a bounding volume hierarchy. This
   includes the required functions for 1) Constructing bounding volumes

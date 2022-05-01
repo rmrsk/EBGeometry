@@ -23,7 +23,7 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
-  @brief Namespace for various bounding volume heirarchy (BVH) functionality.
+  @brief Namespace for various bounding volume hierarchy (BVH) functionality.
 */
 namespace BVH {
 

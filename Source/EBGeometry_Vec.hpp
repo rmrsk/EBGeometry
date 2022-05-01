@@ -362,7 +362,7 @@ public:
   operator=(const Vec3T<T>& u) noexcept;
 
   /*!
-    @brief Addition operator. Returns a new vector with added compoments
+    @brief Addition operator. Returns a new vector with added components
     @return Returns a new vector with x = this->x - u.x and so on.
     @param[in] u Other vector
   */
@@ -370,7 +370,7 @@ public:
   operator+(const Vec3T<T>& u) const noexcept;
 
   /*!
-    @brief Subtraction operator. Returns a new vector with subtracted compoments
+    @brief Subtraction operator. Returns a new vector with subtracted components
     @return Returns a new vector with x = this->x - u.x and so on.
     @param[in] u Other vector
   */
@@ -420,7 +420,7 @@ public:
   /*!
     @brief Vector addition operator.
     @param[in] u Vector to add
-    @return Returns (*this) with incremented compoments, e.g. this->X[0] =
+    @return Returns (*this) with incremented components, e.g. this->X[0] =
     this->X[0] + u.X[0]
   */
   inline Vec3T<T>&
@@ -429,7 +429,7 @@ public:
   /*!
     @brief Vector subtraction operator.
     @param[in] u Vector to subtraction
-    @return Returns (*this) with subtracted compoments, e.g. this->X[0] =
+    @return Returns (*this) with subtracted components, e.g. this->X[0] =
     this->X[0] - u.X[0]
   */
   inline Vec3T<T>&
@@ -438,7 +438,7 @@ public:
   /*!
     @brief Vector multiplication operator.
     @param[in] s Scalar to multiply by
-    @return Returns (*this) with multiplied compoments, e.g. this->X[0] =
+    @return Returns (*this) with multiplied components, e.g. this->X[0] =
     this->X[0] * s
   */
   inline Vec3T<T>&
@@ -447,7 +447,7 @@ public:
   /*!
     @brief Vector division operator.
     @param[in] s Scalar to divide by
-    @return Returns (*this) with multiplied compoments, e.g. this->X[0] =
+    @return Returns (*this) with multiplied components, e.g. this->X[0] =
     this->X[0] / s
   */
   inline Vec3T<T>&
