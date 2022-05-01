@@ -54,7 +54,8 @@ public:
     @brief Value function
     @param[in] a_point 3D point.
   */
-  T signedDistance(const Vec3T<T>& a_point) const noexcept override;
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
   /*!

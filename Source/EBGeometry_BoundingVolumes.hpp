@@ -95,7 +95,8 @@ public:
     @brief Copy assignment operator
     @param[in] a_other Other sphere
   */
-  BoundingSphereT& operator=(const BoundingSphereT& a_other) = default;
+  BoundingSphereT&
+  operator=(const BoundingSphereT& a_other) = default;
 
   /*!
     @brief Template define function which takes a set of 3D points (mixed
@@ -105,34 +106,40 @@ public:
     @param[in] a_alg    Bounding sphere algorithm.
   */
   template <class P>
-  inline void define(const std::vector<Vec3T<P>>& a_points, const BoundingVolumeAlgorithm& a_alg) noexcept;
+  inline void
+  define(const std::vector<Vec3T<P>>& a_points, const BoundingVolumeAlgorithm& a_alg) noexcept;
 
   /*!
     @brief Check if this bounding sphere intersect another bounding sphere
     @param[in] a_other Other bounding sphere.
     @return True if the two sphere intersect.
   */
-  inline bool intersects(const BoundingSphereT& a_other) const noexcept;
+  inline bool
+  intersects(const BoundingSphereT& a_other) const noexcept;
 
   /*!
     @brief Get modifiable radius for this sphere
   */
-  inline T& getRadius() noexcept;
+  inline T&
+  getRadius() noexcept;
 
   /*!
     @brief Get immutable radius for this sphere
   */
-  inline const T& getRadius() const noexcept;
+  inline const T&
+  getRadius() const noexcept;
 
   /*!
     @brief Get modifiable center for this sphere
   */
-  inline Vec3& getCentroid() noexcept;
+  inline Vec3&
+  getCentroid() noexcept;
 
   /*!
     @brief Get immutable center for this sphere
   */
-  inline const Vec3& getCentroid() const noexcept;
+  inline const Vec3&
+  getCentroid() const noexcept;
 
   /*!
     @brief Compute the overlapping volume between this bounding sphere and
@@ -140,7 +147,8 @@ public:
     @param[in] a_other Other bounding sphere
     @return The overlapping volume, computing using standard expressions.
   */
-  inline T getOverlappingVolume(const BoundingSphereT<T>& a_other) const noexcept;
+  inline T
+  getOverlappingVolume(const BoundingSphereT<T>& a_other) const noexcept;
 
   /*!
     @brief Get the distance to this bounding sphere (points inside the sphere
@@ -149,19 +157,22 @@ public:
     @return Returns the distance to the sphere (a point inside has a zero
     distance)
   */
-  inline T getDistance(const Vec3& a_x0) const noexcept;
+  inline T
+  getDistance(const Vec3& a_x0) const noexcept;
 
   /*!
     @brief Get the sphere volume
     @return Sphere volume
   */
-  inline T getVolume() const noexcept;
+  inline T
+  getVolume() const noexcept;
 
   /*!
     @brief Get the sphere area
     @return Sphere area.
   */
-  inline T getArea() const noexcept;
+  inline T
+  getArea() const noexcept;
 
 protected:
   /*!
@@ -179,7 +190,8 @@ protected:
     points (mixed precision allowed) using Ritter's algorithm
   */
   template <class P>
-  inline void buildRitter(const std::vector<Vec3T<P>>& a_points) noexcept;
+  inline void
+  buildRitter(const std::vector<Vec3T<P>>& a_points) noexcept;
 };
 
 /*!
@@ -240,7 +252,8 @@ public:
     @brief Copy assignment
     @param[in] a_other Other bounding box
   */
-  AABBT& operator=(const AABBT<T>& a_other) = default;
+  AABBT&
+  operator=(const AABBT<T>& a_other) = default;
 
   /*!
     @brief Define function (since mixed precision allowed) which sets this AABB
@@ -248,46 +261,54 @@ public:
     @param[in] a_points Set of 3D points
   */
   template <class P>
-  inline void define(const std::vector<Vec3T<P>>& a_points) noexcept;
+  inline void
+  define(const std::vector<Vec3T<P>>& a_points) noexcept;
 
   /*!
     @brief Check if this AABB intersects another AABB
     @param[in] a_other The other AABB
     @return True if they intersect and false otherwise.
   */
-  inline bool intersects(const AABBT& a_other) const noexcept;
+  inline bool
+  intersects(const AABBT& a_other) const noexcept;
 
   /*!
     @brief Get the modifiable lower-left corner of the AABB
   */
-  inline Vec3T<T>& getLowCorner() noexcept;
+  inline Vec3T<T>&
+  getLowCorner() noexcept;
 
   /*!
     @brief Get the immutable lower-left corner of the AABB
   */
-  inline const Vec3T<T>& getLowCorner() const noexcept;
+  inline const Vec3T<T>&
+  getLowCorner() const noexcept;
 
   /*!
     @brief Get the modifiable upper-right corner of the AABB
   */
-  inline Vec3T<T>& getHighCorner() noexcept;
+  inline Vec3T<T>&
+  getHighCorner() noexcept;
 
   /*!
     @brief Get the immutable upper-right corner of the AABB
   */
-  inline const Vec3T<T>& getHighCorner() const noexcept;
+  inline const Vec3T<T>&
+  getHighCorner() const noexcept;
 
   /*!
     @brief Get bounding volume centroid.
   */
-  inline Vec3 getCentroid() const noexcept;
+  inline Vec3
+  getCentroid() const noexcept;
 
   /*!
     @brief Compute the overlapping volume between this AABB and another AABB.
     @param[in] a_other The other AABB
     @return Returns overlapping volume
   */
-  inline T getOverlappingVolume(const AABBT<T>& a_other) const noexcept;
+  inline T
+  getOverlappingVolume(const AABBT<T>& a_other) const noexcept;
 
   /*!
     @brief Get the distance to this AABB (points inside the bounding box have a
@@ -296,17 +317,20 @@ public:
     @return Returns the distance to the bounding box (a point inside has a zero
     distance)
   */
-  inline T getDistance(const Vec3& a_x0) const noexcept;
+  inline T
+  getDistance(const Vec3& a_x0) const noexcept;
 
   /*!
     @brief Compute the bounding box volume
   */
-  inline T getVolume() const noexcept;
+  inline T
+  getVolume() const noexcept;
 
   /*!
     @brief Compute the bounding box area
   */
-  inline T getArea() const noexcept;
+  inline T
+  getArea() const noexcept;
 
 protected:
   /*!
@@ -326,7 +350,8 @@ protected:
   @param[in] a_v The other bounding sphere
 */
 template <class T>
-bool intersects(const BoundingSphereT<T>& a_u, const BoundingSphereT<T>& a_v) noexcept;
+bool
+intersects(const BoundingSphereT<T>& a_u, const BoundingSphereT<T>& a_v) noexcept;
 
 /*!
   @brief Intersection method for testing if two bounding boxes overlap
@@ -334,7 +359,8 @@ bool intersects(const BoundingSphereT<T>& a_u, const BoundingSphereT<T>& a_v) no
   @param[in] a_v The other bounding box
 */
 template <class T>
-bool intersects(const AABBT<T>& a_u, const AABBT<T>& a_v) noexcept;
+bool
+intersects(const AABBT<T>& a_u, const AABBT<T>& a_v) noexcept;
 
 /*!
   @brief Compute the overlapping volume between two bounding spheres
@@ -342,7 +368,8 @@ bool intersects(const AABBT<T>& a_u, const AABBT<T>& a_v) noexcept;
   @param[in] a_v The other bounding sphere
 */
 template <class T>
-T getOverlappingVolume(const BoundingSphereT<T>& a_u, const BoundingSphereT<T>& a_v) noexcept;
+T
+getOverlappingVolume(const BoundingSphereT<T>& a_u, const BoundingSphereT<T>& a_v) noexcept;
 
 /*!
   @brief Compute the overlapping volume between two bounding boxes
@@ -350,7 +377,8 @@ T getOverlappingVolume(const BoundingSphereT<T>& a_u, const BoundingSphereT<T>& 
   @param[in] a_v The other bounding box
 */
 template <class T>
-T getOverlappingVolume(const AABBT<T>& a_u, const AABBT<T>& a_v) noexcept;
+T
+getOverlappingVolume(const AABBT<T>& a_u, const AABBT<T>& a_v) noexcept;
 } // namespace BoundingVolumes
 
 #include "EBGeometry_NamespaceFooter.hpp"

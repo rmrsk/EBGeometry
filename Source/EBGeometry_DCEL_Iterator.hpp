@@ -112,23 +112,27 @@ public:
   /*!
     @brief Operator returning a pointer to the current half-edge
   */
-  inline EdgePtr& operator()() noexcept;
+  inline EdgePtr&
+  operator()() noexcept;
 
   /*!
     @brief Operator returning a pointer to the current half-edge
   */
-  inline const EdgePtr& operator()() const noexcept;
+  inline const EdgePtr&
+  operator()() const noexcept;
 
   /*!
     @brief Reset function for the iterator. This resets the iterator so that it
     begins from the starting half-edge
   */
-  inline void reset() noexcept;
+  inline void
+  reset() noexcept;
 
   /*!
     @brief Incrementation operator, bringing the iterator to the next half-edge
   */
-  inline void operator++() noexcept;
+  inline void
+  operator++() noexcept;
 
   /*!
     @brief Function which checks if the iteration can be continued.
@@ -136,7 +140,8 @@ public:
     broken polygon face) OR a full loop has been made around the polygon face
     (i.e. all half-edges have been visited)
   */
-  inline bool ok() const noexcept;
+  inline bool
+  ok() const noexcept;
 
 protected:
   /*!

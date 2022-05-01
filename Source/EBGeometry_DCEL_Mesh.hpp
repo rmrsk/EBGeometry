@@ -165,13 +165,15 @@ public:
     incrementWarning() which identifies types of errors that can occur, and how
     many of those errors have occured.
   */
-  inline void sanityCheck() const noexcept;
+  inline void
+  sanityCheck() const noexcept;
 
   /*!
     @brief Search algorithm for direct signed distance computations
     @param[in] a_algorithm Algorithm to use
   */
-  inline void setSearchAlgorithm(const SearchAlgorithm a_algorithm) noexcept;
+  inline void
+  setSearchAlgorithm(const SearchAlgorithm a_algorithm) noexcept;
 
   /*!
     @brief Set the inside/outside algorithm to use when computing the signed
@@ -181,7 +183,8 @@ public:
     There are multiple algorithms to use here.
     @param[in] a_algorithm Algorithm to use
   */
-  inline void setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm a_algorithm) noexcept;
+  inline void
+  setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm a_algorithm) noexcept;
 
   /*!
     @brief Reconcile function which computes the internal parameters in
@@ -192,37 +195,44 @@ public:
     @details This will reconcile faces, edges, and vertices, e.g. computing the
     area and normal vector for faces
   */
-  inline void reconcile(typename DCEL::MeshT<T>::VertexNormalWeight a_weight = VertexNormalWeight::Angle) noexcept;
+  inline void
+  reconcile(typename DCEL::MeshT<T>::VertexNormalWeight a_weight = VertexNormalWeight::Angle) noexcept;
 
   /*!
     @brief Get modifiable vertices in this mesh
   */
-  inline std::vector<VertexPtr>& getVertices() noexcept;
+  inline std::vector<VertexPtr>&
+  getVertices() noexcept;
 
   /*!
     @brief Get immutable vertices in this mesh
   */
-  inline const std::vector<VertexPtr>& getVertices() const noexcept;
+  inline const std::vector<VertexPtr>&
+  getVertices() const noexcept;
 
   /*!
     @brief Get modifiable half-edges in this mesh
   */
-  inline std::vector<EdgePtr>& getEdges() noexcept;
+  inline std::vector<EdgePtr>&
+  getEdges() noexcept;
 
   /*!
     @brief Get immutable half-edges in this mesh
   */
-  inline const std::vector<EdgePtr>& getEdges() const noexcept;
+  inline const std::vector<EdgePtr>&
+  getEdges() const noexcept;
 
   /*!
     @brief Get modifiable faces in this mesh
   */
-  inline std::vector<FacePtr>& getFaces() noexcept;
+  inline std::vector<FacePtr>&
+  getFaces() noexcept;
 
   /*!
     @brief Get immutable faces in this mesh
   */
-  inline const std::vector<FacePtr>& getFaces() const noexcept;
+  inline const std::vector<FacePtr>&
+  getFaces() const noexcept;
 
   /*!
     @brief Compute the signed distance from a point to this mesh
@@ -233,7 +243,8 @@ public:
     in a bounding volume hierarchy for faster access.
     @note This will call the other version with the object's search algorithm.
   */
-  inline T signedDistance(const Vec3& a_x0) const noexcept override;
+  inline T
+  signedDistance(const Vec3& a_x0) const noexcept override;
 
   /*!
     @brief Compute the signed distance from a point to this mesh
@@ -244,7 +255,8 @@ public:
     why this function is almost never called. Rather, MeshT<T> can be embedded
     in a bounding volume hierarchy for faster access.
   */
-  inline T signedDistance(const Vec3& a_x0, SearchAlgorithm a_algorithm) const noexcept;
+  inline T
+  signedDistance(const Vec3& a_x0, SearchAlgorithm a_algorithm) const noexcept;
 
   /*!
     @brief Compute the unsigned square distance from a point to this mesh
@@ -255,7 +267,8 @@ public:
     in a bounding volume hierarchy for faster access.
     @note This will call the other version with the object's search algorithm.
   */
-  inline T unsignedDistance2(const Vec3& a_x0) const noexcept;
+  inline T
+  unsignedDistance2(const Vec3& a_x0) const noexcept;
 
 protected:
   /*!
@@ -281,19 +294,22 @@ protected:
   /*!
     @brief Return all vertex coordinates in the mesh.
   */
-  inline std::vector<Vec3T<T>> getAllVertexCoordinates() const noexcept;
+  inline std::vector<Vec3T<T>>
+  getAllVertexCoordinates() const noexcept;
 
   /*!
     @brief Function which computes internal things for the polygon faces.
     @note This calls DCEL::FaceT<T>::reconcile()
   */
-  inline void reconcileFaces() noexcept;
+  inline void
+  reconcileFaces() noexcept;
 
   /*!
     @brief Function which computes internal things for the half-edges
     @note This calls DCEL::EdgeT<T>::reconcile()
   */
-  inline void reconcileEdges() noexcept;
+  inline void
+  reconcileEdges() noexcept;
 
   /*!
     @brief Function which computes internal things for the vertices
@@ -301,14 +317,16 @@ protected:
     @note This calls DCEL::VertexT<T>::computeVertexNormalAverage() or
     DCEL::VertexT<T>::computeVertexNormalAngleWeighted()
   */
-  inline void reconcileVertices(typename DCEL::MeshT<T>::VertexNormalWeight a_weight) noexcept;
+  inline void
+  reconcileVertices(typename DCEL::MeshT<T>::VertexNormalWeight a_weight) noexcept;
 
   /*!
     @brief Implementation of signed distance function which iterates through all
     faces
     @param[in] a_point 3D point
   */
-  inline T DirectSignedDistance(const Vec3& a_point) const noexcept;
+  inline T
+  DirectSignedDistance(const Vec3& a_point) const noexcept;
 
   /*!
     @brief Implementation of squared signed distance function which iterates
@@ -318,7 +336,8 @@ protected:
     than the other version).
     @param[in] a_point 3D point
   */
-  inline T DirectSignedDistance2(const Vec3& a_point) const noexcept;
+  inline T
+  DirectSignedDistance2(const Vec3& a_point) const noexcept;
 
   /*!
     @brief Increment a warning. This is used in sanityCheck() for locating holes
@@ -326,12 +345,14 @@ protected:
     @param[in] a_warnings Map of all registered warnings
     @param[in] a_warn     Current warning to increment by
   */
-  inline void incrementWarning(std::map<std::string, size_t>& a_warnings, const std::string& a_warn) const noexcept;
+  inline void
+  incrementWarning(std::map<std::string, size_t>& a_warnings, const std::string& a_warn) const noexcept;
 
   /*!
     @brief Print all warnings to std::cerr
   */
-  inline void printWarnings(const std::map<std::string, size_t>& a_warnings) const noexcept;
+  inline void
+  printWarnings(const std::map<std::string, size_t>& a_warnings) const noexcept;
 };
 } // namespace DCEL
 

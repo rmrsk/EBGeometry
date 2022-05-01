@@ -45,7 +45,8 @@ public:
     @brief Signed distance function.
     @param[in] a_point 3D point.
   */
-  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept = 0;
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept = 0;
 
   /*!
     @brief Signed distance normal vector.
@@ -53,20 +54,23 @@ public:
     @param[in] a_point 3D point
     @param[in] a_delta Finite difference step
   */
-  inline virtual Vec3T<T> normal(const Vec3T<T>& a_point, const T& a_delta) const noexcept;
+  inline virtual Vec3T<T>
+  normal(const Vec3T<T>& a_point, const T& a_delta) const noexcept;
 
   /*!
     @brief Translate signed distance function.
     @param[in] a_translation Distance to translate the function.
   */
-  inline void translate(const Vec3T<T>& a_translation) noexcept;
+  inline void
+  translate(const Vec3T<T>& a_translation) noexcept;
 
   /*!
     @brief Rotate the signed distance function around.
     @param[in] a_angle Rotation angle
     @param[in] a_axis  Rotation axis. 0 = x, 1 = y etc.
   */
-  inline void rotate(const T a_angle, const size_t a_axis) noexcept;
+  inline void
+  rotate(const T a_angle, const size_t a_axis) noexcept;
 
 protected:
   /*!
@@ -77,7 +81,8 @@ protected:
   /*!
     @brief Apply transformation operators and move point.
   */
-  inline Vec3T<T> transformPoint(const Vec3T<T>& a_point) const noexcept;
+  inline Vec3T<T>
+  transformPoint(const Vec3T<T>& a_point) const noexcept;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

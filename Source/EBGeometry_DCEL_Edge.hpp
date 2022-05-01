@@ -130,7 +130,8 @@ public:
     @param[in] a_previousEdge Previous half-edge
     @param[in] a_normal       Edge normal vector
   */
-  inline void define(
+  inline void
+  define(
     const VertexPtr& a_vertex,
     const EdgePtr& a_pairEdge,
     const EdgePtr& a_nextEdge,
@@ -141,115 +142,135 @@ public:
     @brief Set the starting vertex
     @param[in] a_vertex Starting vertex
   */
-  inline void setVertex(const VertexPtr& a_vertex) noexcept;
+  inline void
+  setVertex(const VertexPtr& a_vertex) noexcept;
 
   /*!
     @brief Set the pair edge
     @param[in] a_pairEdge Pair edge
   */
-  inline void setPairEdge(const EdgePtr& a_pairEdge) noexcept;
+  inline void
+  setPairEdge(const EdgePtr& a_pairEdge) noexcept;
 
   /*!
     @brief Set the next edge
     @param[in] a_nextEdge Next edge
   */
-  inline void setNextEdge(const EdgePtr& a_nextEdge) noexcept;
+  inline void
+  setNextEdge(const EdgePtr& a_nextEdge) noexcept;
 
   /*!
     @brief Set the previous edge
     @param[in] a_previousEdge Previous edge
   */
-  inline void setPreviousEdge(const EdgePtr& a_previousEdge) noexcept;
+  inline void
+  setPreviousEdge(const EdgePtr& a_previousEdge) noexcept;
 
   /*!
     @brief Set the pointer to this half-edge's face.
   */
-  inline void setFace(const FacePtr& a_face) noexcept;
+  inline void
+  setFace(const FacePtr& a_face) noexcept;
 
   /*!
     @brief Compute edge normal and edge length (for performance reasons)
   */
-  inline void reconcile() noexcept;
+  inline void
+  reconcile() noexcept;
 
   /*!
     @brief Get modifiable starting vertex
     @return Returns m_vertex
   */
-  inline VertexPtr& getVertex() noexcept;
+  inline VertexPtr&
+  getVertex() noexcept;
 
   /*!
     @brief Get immutable starting vertex
     @return Returns m_vertex
   */
-  inline const VertexPtr& getVertex() const noexcept;
+  inline const VertexPtr&
+  getVertex() const noexcept;
 
   /*!
     @brief Get modifiable end vertex
     @return Returns the next half-edge's starting vertex
   */
-  inline VertexPtr& getOtherVertex() noexcept;
+  inline VertexPtr&
+  getOtherVertex() noexcept;
 
   /*!
     @brief Get immutable end vertex
     @return Returns the next half-edge's starting vertex
   */
-  inline const VertexPtr& getOtherVertex() const noexcept;
+  inline const VertexPtr&
+  getOtherVertex() const noexcept;
 
   /*!
     @brief Get modifiable pair edge
     @return Returns the pair edge
   */
-  inline EdgePtr& getPairEdge() noexcept;
+  inline EdgePtr&
+  getPairEdge() noexcept;
 
   /*!
     @brief Get immutable pair edge
     @return Returns the pair edge
   */
-  inline const EdgePtr& getPairEdge() const noexcept;
+  inline const EdgePtr&
+  getPairEdge() const noexcept;
 
   /*!
     @brief Get modifiable previous edge
     @return Returns the previous edge
   */
-  inline EdgePtr& getPreviousEdge() noexcept;
+  inline EdgePtr&
+  getPreviousEdge() noexcept;
 
   /*!
     @brief Get immutable previous edge
     @return Returns the previous edge
   */
-  inline const EdgePtr& getPreviousEdge() const noexcept;
+  inline const EdgePtr&
+  getPreviousEdge() const noexcept;
 
   /*!
     @brief Get modifiable next edge
     @return Returns the next edge
   */
-  inline EdgePtr& getNextEdge() noexcept;
+  inline EdgePtr&
+  getNextEdge() noexcept;
 
   /*!
     @brief Get immutable next edge
     @return Returns the next edge
   */
-  inline const EdgePtr& getNextEdge() const noexcept;
+  inline const EdgePtr&
+  getNextEdge() const noexcept;
 
   /*!
     @brief Get modifiable half-edge normal vector
   */
-  inline Vec3T<T>& getNormal() noexcept;
+  inline Vec3T<T>&
+  getNormal() noexcept;
 
   /*!
     @brief Get immutable half-edge normal vector
   */
-  inline const Vec3T<T>& getNormal() const noexcept;
+  inline const Vec3T<T>&
+  getNormal() const noexcept;
 
   /*!
     @brief Get modifiable half-edge face
   */
-  inline FacePtr& getFace() noexcept;
+  inline FacePtr&
+  getFace() noexcept;
 
   /*!
     @brief Get immutable half-edge face
   */
-  inline const FacePtr& getFace() const noexcept;
+  inline const FacePtr&
+  getFace() const noexcept;
 
   /*!
     @brief Get the signed distance to this half edge
@@ -258,7 +279,8 @@ public:
     signed distance to the corresponding vertex. Otherwise we compute the
     projection to the edge and compute the sign from the normal vector.
   */
-  inline T signedDistance(const Vec3& a_x0) const noexcept;
+  inline T
+  signedDistance(const Vec3& a_x0) const noexcept;
 
   /*!
     @brief Get the signed distance to this half edge
@@ -268,7 +290,8 @@ public:
     squared distance of the projection to the edge. This is faster than
     signedDistance()
   */
-  inline T unsignedDistance2(const Vec3& a_x0) const noexcept;
+  inline T
+  unsignedDistance2(const Vec3& a_x0) const noexcept;
 
 protected:
   /*!
@@ -320,24 +343,28 @@ protected:
     returns where on the this edge the point a_x0 projects. If projects onto the
     edge if t = [0,1] and to one of the start/end vertices otherwise.
   */
-  inline T projectPointToEdge(const Vec3& a_x0) const noexcept;
+  inline T
+  projectPointToEdge(const Vec3& a_x0) const noexcept;
 
   /*!
     @brief Normalize the normal vector, ensuring it has length 1
   */
-  inline void normalizeNormalVector() noexcept;
+  inline void
+  normalizeNormalVector() noexcept;
 
   /*!
     @brief Compute the edge length.
     @details This computes the vector m_x2x1 (vector from starting vertex to end
     vertex) and the inverse length squared.
   */
-  inline void computeEdgeLength() noexcept;
+  inline void
+  computeEdgeLength() noexcept;
 
   /*!
     @brief Compute normal vector as average of face normals
   */
-  inline void computeNormal() noexcept;
+  inline void
+  computeNormal() noexcept;
 };
 } // namespace DCEL
 

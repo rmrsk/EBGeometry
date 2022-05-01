@@ -86,7 +86,8 @@ public:
     @param[in] a_algorithm Inside/outside algorithm
     @details This will call the function corresponding to a_algorithm.
   */
-  inline bool isPointInside(const Vec3& a_point, const InsideOutsideAlgorithm a_algorithm) const noexcept;
+  inline bool
+  isPointInside(const Vec3& a_point, const InsideOutsideAlgorithm a_algorithm) const noexcept;
 
   /*!
     @brief Check if a point is inside a 2D polygon, using the winding number
@@ -95,7 +96,8 @@ public:
     @return Returns true if the 3D point projects to the inside of the 2D
     polygon
   */
-  inline bool isPointInsidePolygonWindingNumber(const Vec3& a_point) const noexcept;
+  inline bool
+  isPointInsidePolygonWindingNumber(const Vec3& a_point) const noexcept;
 
   /*!
     @brief Check if a point is inside a 2D polygon, using the subtended angles
@@ -103,7 +105,8 @@ public:
     @return Returns true if the 3D point projects to the inside of the 2D
     polygon
   */
-  inline bool isPointInsidePolygonSubtend(const Vec3& a_point) const noexcept;
+  inline bool
+  isPointInsidePolygonSubtend(const Vec3& a_point) const noexcept;
 
   /*!
     @brief Check if a point is inside a 2D polygon, by computing the number of
@@ -112,7 +115,8 @@ public:
     @return Returns true if the 3D point projects to the inside of the 2D
     polygon
   */
-  inline bool isPointInsidePolygonCrossingNumber(const Vec3& a_point) const noexcept;
+  inline bool
+  isPointInsidePolygonCrossingNumber(const Vec3& a_point) const noexcept;
 
 private:
   /*!
@@ -141,7 +145,8 @@ private:
     @param[in] a_poitn 3D point
     @return 2D point, ignoring one of the coordinate directions.
   */
-  inline Vec2 projectPoint(const Vec3& a_point) const noexcept;
+  inline Vec2
+  projectPoint(const Vec3& a_point) const noexcept;
 
   /*!
     @brief Define function. This find the direction to ignore and then computes
@@ -149,28 +154,32 @@ private:
     @param[in] a_normal Normal vector for polygon face
     @param[in] a_points Vertex coordinates for polygon face.
   */
-  inline void define(const Vec3& a_normal, const std::vector<Vec3>& a_points);
+  inline void
+  define(const Vec3& a_normal, const std::vector<Vec3>& a_points);
 
   /*!
     @brief Compute the winding number for a point P with the 2D polygon
     @param[in] P 2D point
     @return Returns winding number.
   */
-  inline int computeWindingNumber(const Vec2& P) const noexcept;
+  inline int
+  computeWindingNumber(const Vec2& P) const noexcept;
 
   /*!
     @brief Compute the crossing number for a point P with the 2D polygon
     @param[in] P 2D point
     @return Returns crossing number.
   */
-  inline size_t computeCrossingNumber(const Vec2& P) const noexcept;
+  inline size_t
+  computeCrossingNumber(const Vec2& P) const noexcept;
 
   /*!
     @brief Compute the subtended angle for a point P with the 2D polygon
     @param[in] P 2D point
     @return Returns subtended angle.
   */
-  inline T computeSubtendedAngle(const Vec2& P) const noexcept;
+  inline T
+  computeSubtendedAngle(const Vec2& P) const noexcept;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

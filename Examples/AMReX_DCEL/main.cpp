@@ -87,7 +87,11 @@ PLY parser.
   /*!
 @brief Also an AMReX implicit function implementation
   */
-  inline Real operator()(const RealArray& p) const noexcept { return this->operator()(AMREX_D_DECL(p[0], p[1], p[2])); }
+  inline Real
+  operator()(const RealArray& p) const noexcept
+  {
+    return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
+  }
 
 protected:
   /*!

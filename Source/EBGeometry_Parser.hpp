@@ -69,14 +69,16 @@ public:
     mesh.
     @param[in]  a_filename File name
   */
-  inline static std::shared_ptr<Mesh> readIntoDCEL(const std::string a_filename);
+  inline static std::shared_ptr<Mesh>
+  readIntoDCEL(const std::string a_filename);
 
   /*!
     @brief Static function which reads an ASCII .ply file and puts it in a mesh.
     @param[out] a_mesh     DCEL mesh
     @param[in]  a_filename File name
   */
-  inline static void readIntoDCEL(Mesh& a_mesh, const std::string a_filename);
+  inline static void
+  readIntoDCEL(Mesh& a_mesh, const std::string a_filename);
 
 protected:
   /*!
@@ -88,7 +90,8 @@ protected:
     @param[inout] a_inputStream File stream. On output, the filestream is at the
     end of the PLY header.
   */
-  inline static void readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::ifstream& a_inputStream);
+  inline static void
+  readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::ifstream& a_inputStream);
 
   /*!
     @brief Read ASCII vertices.
@@ -98,7 +101,8 @@ protected:
     @note The next getline() from a_inputStream must read the first vertex (i.e.
     don't rewind the stream before entering this routine)
   */
-  inline static void readVerticesIntoDCEL(
+  inline static void
+  readVerticesIntoDCEL(
     std::vector<std::shared_ptr<Vertex>>& a_vertices, const size_t a_numVertices, std::ifstream& a_inputStream);
 
   /*!
@@ -113,7 +117,8 @@ protected:
     assume that read_ascii_vertices was called IMMEDIATELY before this function.
     That function will center the fstream on the correct line in the input file.
   */
-  inline static void readFacesIntoDCEL(
+  inline static void
+  readFacesIntoDCEL(
     std::vector<std::shared_ptr<Face>>& a_faces,
     std::vector<std::shared_ptr<Edge>>& a_edges,
     const std::vector<std::shared_ptr<Vertex>>& a_vertices,
@@ -125,7 +130,8 @@ protected:
     half-edge
     @param[inout] a_edges Half edges.
   */
-  inline static void reconcilePairEdgesDCEL(std::vector<std::shared_ptr<Edge>>& a_edges);
+  inline static void
+  reconcilePairEdgesDCEL(std::vector<std::shared_ptr<Edge>>& a_edges);
 };
 } // namespace Parser
 

@@ -69,7 +69,8 @@ public:
     @param[in] a_bvConstructor Constructor for building a bounding volume that
     encloses an object.
   */
-  void buildTree(const BVConstructor& a_bvConstructor);
+  void
+  buildTree(const BVConstructor& a_bvConstructor);
 
   /*!
     @brief Destructor (does nothing)
@@ -80,7 +81,8 @@ public:
     @brief Value function
     @param[in] a_point 3D point.
   */
-  T signedDistance(const Vec3T<T>& a_point) const noexcept override;
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
   /*!

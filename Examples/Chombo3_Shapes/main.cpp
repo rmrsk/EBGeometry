@@ -27,7 +27,8 @@ public:
 
   ChomboSDF(const ChomboSDF& a_other) { m_sdf = a_other.m_sdf; }
 
-  Real value(const RealVect& a_point) const override final
+  Real
+  value(const RealVect& a_point) const override final
   {
 #if CH_SPACEDIM == 2
     Vec3 p(a_point[0], a_point[1], 0.0);
@@ -39,7 +40,11 @@ public:
     return Real(m_sdf->signedDistance(p));
   }
 
-  BaseIF* newImplicitFunction() const { return (BaseIF*)(new ChomboSDF(*this)); }
+  BaseIF*
+  newImplicitFunction() const
+  {
+    return (BaseIF*)(new ChomboSDF(*this));
+  }
 
 protected:
   std::shared_ptr<SDF> m_sdf;

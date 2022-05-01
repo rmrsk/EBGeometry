@@ -137,42 +137,49 @@ public:
     @param[in] a_normal Vertex normal vector
     @details This sets the position, normal vector, and edge pointer.
   */
-  inline void define(const Vec3& a_position, const EdgePtr& a_edge, const Vec3& a_normal) noexcept;
+  inline void
+  define(const Vec3& a_position, const EdgePtr& a_edge, const Vec3& a_normal) noexcept;
 
   /*!
     @brief Set the vertex position
     @param[in] a_position Vertex position
   */
-  inline void setPosition(const Vec3& a_position) noexcept;
+  inline void
+  setPosition(const Vec3& a_position) noexcept;
 
   /*!
     @brief Set the vertex normal vector
     @param[in] a_normal Vertex normal vector
   */
-  inline void setNormal(const Vec3& a_normal) noexcept;
+  inline void
+  setNormal(const Vec3& a_normal) noexcept;
 
   /*!
     @brief Set the reference to the outgoing edge
     @param[in] a_edge Pointer to an outgoing edge
   */
-  inline void setEdge(const EdgePtr& a_edge) noexcept;
+  inline void
+  setEdge(const EdgePtr& a_edge) noexcept;
 
   /*!
     @brief Add a face to the polygon face list.
     @param[in] a_face Pointer to face.
   */
-  inline void addFace(const FacePtr& a_face) noexcept;
+  inline void
+  addFace(const FacePtr& a_face) noexcept;
 
   /*!
     @brief Normalize the normal vector, ensuring its length is 1
   */
-  inline void normalizeNormalVector() noexcept;
+  inline void
+  normalizeNormalVector() noexcept;
 
   /*!
     @brief Compute the vertex normal, using an average the normal vector in this
     vertex's face list (m_faces)
   */
-  inline void computeVertexNormalAverage() noexcept;
+  inline void
+  computeVertexNormalAverage() noexcept;
 
   /*!
     @brief Compute the vertex normal, using an average of the normal vectors in
@@ -180,7 +187,8 @@ public:
     @param[in] a_faces Faces
     @note This computes the vertex normal as n = sum(normal(face))/num(faces)
   */
-  inline void computeVertexNormalAverage(const std::vector<FacePtr>& a_faces) noexcept;
+  inline void
+  computeVertexNormalAverage(const std::vector<FacePtr>& a_faces) noexcept;
 
   /*!
     @brief Compute the vertex normal, using the pseudonormal algorithm which
@@ -190,7 +198,8 @@ public:
     Baerentzen and Aanes in "Signed distance computation using the angle
     weighted pseudonormal" (DOI: 10.1109/TVCG.2005.49)
   */
-  inline void computeVertexNormalAngleWeighted() noexcept;
+  inline void
+  computeVertexNormalAngleWeighted() noexcept;
 
   /*!
     @brief Compute the vertex normal, using the pseudonormal algorithm which
@@ -200,47 +209,56 @@ public:
     Baerentzen and Aanes in "Signed distance computation using the angle
     weighted pseudonormal" (DOI: 10.1109/TVCG.2005.49)
   */
-  inline void computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a_faces) noexcept;
+  inline void
+  computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a_faces) noexcept;
 
   /*!
     @brief Return modifiable vertex position.
   */
-  inline Vec3T<T>& getPosition() noexcept;
+  inline Vec3T<T>&
+  getPosition() noexcept;
 
   /*!
     @brief Return immutable vertex position.
   */
-  inline const Vec3T<T>& getPosition() const noexcept;
+  inline const Vec3T<T>&
+  getPosition() const noexcept;
 
   /*!
     @brief Return modifiable vertex normal vector.
   */
-  inline Vec3T<T>& getNormal() noexcept;
+  inline Vec3T<T>&
+  getNormal() noexcept;
 
   /*!
     @brief Return immutable vertex normal vector.
   */
-  inline const Vec3T<T>& getNormal() const noexcept;
+  inline const Vec3T<T>&
+  getNormal() const noexcept;
 
   /*!
     @brief Return modifiable pointer to outgoing edge.
   */
-  inline EdgePtr& getOutgoingEdge() noexcept;
+  inline EdgePtr&
+  getOutgoingEdge() noexcept;
 
   /*!
     @brief Return immutable pointer to outgoing edge.
   */
-  inline const EdgePtr& getOutgoingEdge() const noexcept;
+  inline const EdgePtr&
+  getOutgoingEdge() const noexcept;
 
   /*!
     @brief Get modifiable polygon face list for this vertex.
   */
-  inline std::vector<FacePtr>& getFaces() noexcept;
+  inline std::vector<FacePtr>&
+  getFaces() noexcept;
 
   /*!
     @brief Get immutable polygon face list for this vertex.
   */
-  inline const std::vector<FacePtr>& getFaces() const noexcept;
+  inline const std::vector<FacePtr>&
+  getFaces() const noexcept;
 
   /*!
     @brief Get the signed distance to this vertex
@@ -248,7 +266,8 @@ public:
     @return The returned distance is |a_x0 - m_position| and the sign is given
     by the sign of m_normal * |a_x0 - m_position|.
   */
-  inline T signedDistance(const Vec3& a_x0) const noexcept;
+  inline T
+  signedDistance(const Vec3& a_x0) const noexcept;
 
   /*!
     @brief Get the squared unsigned distance to this vertex
@@ -256,7 +275,8 @@ public:
     preferred for some algorithms.
     @return Returns the vector length of (a_x - m_position)
   */
-  inline T unsignedDistance2(const Vec3& a_x0) const noexcept;
+  inline T
+  unsignedDistance2(const Vec3& a_x0) const noexcept;
 
 protected:
   /*!

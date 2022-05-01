@@ -198,38 +198,44 @@ public:
     @param[in] a_stopCrit      Termination function which tells us when to stop
     the recursion.
   */
-  inline void topDownSortAndPartitionPrimitives(
+  inline void
+  topDownSortAndPartitionPrimitives(
     const BVConstructor& a_bvConstructor, const Partitioner& a_partitioner, const StopFunction& a_stopCrit) noexcept;
 
   /*!
     @brief Get node type
   */
-  inline bool isLeaf() const noexcept;
+  inline bool
+  isLeaf() const noexcept;
 
   /*!
     @brief Get the primitives stored in this node.
     @return m_primitives.
   */
-  inline const PrimitiveList& getPrimitives() const noexcept;
+  inline const PrimitiveList&
+  getPrimitives() const noexcept;
 
   /*!
     @brief Get bounding volume
     @return m_bv
   */
-  inline const BV& getBoundingVolume() const noexcept;
+  inline const BV&
+  getBoundingVolume() const noexcept;
 
   /*!
     @brief Return this node's children.
     @return m_children.
   */
-  inline const std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K>& getChildren() const noexcept;
+  inline const std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K>&
+  getChildren() const noexcept;
 
   /*!
     @brief Function which computes the signed distance
     @param[in] a_point   3D point in space
     @return Signed distance to the input point.
   */
-  inline T signedDistance(const Vec3T<T>& a_point) const noexcept override;
+  inline T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
   /*!
     @brief Function which computes the signed distance. This version allows the
@@ -238,7 +244,8 @@ public:
     @param[in] a_pruning Pruning algorithm
     @return Signed distance to the input point.
   */
-  inline T signedDistance(const Vec3T<T>& a_point, const Prune a_pruning) const noexcept;
+  inline T
+  signedDistance(const Vec3T<T>& a_point, const Prune a_pruning) const noexcept;
 
   /*!
     @brief Flatten everything beneath this node into a depth-first sorted BVH
@@ -246,7 +253,8 @@ public:
     @details This will compute the flattening of the standard BVH tree and
     return a pointer to the linear corresponding to the current node.
   */
-  inline std::shared_ptr<LinearBVH<T, P, BV, K>> flattenTree() const noexcept;
+  inline std::shared_ptr<LinearBVH<T, P, BV, K>>
+  flattenTree() const noexcept;
 
 protected:
   /*!
@@ -268,13 +276,15 @@ protected:
     @brief Insert nodes with primitives.
     @param[in] a_primitives Primitives for children.
   */
-  inline void insertChildren(const std::array<PrimitiveList, K>& a_primitives) noexcept;
+  inline void
+  insertChildren(const std::array<PrimitiveList, K>& a_primitives) noexcept;
 
   /*!
     @brief Set primitives in this node
     @param[in] a_primitives Primitives
   */
-  inline void setPrimitives(const PrimitiveList& a_primitives) noexcept;
+  inline void
+  setPrimitives(const PrimitiveList& a_primitives) noexcept;
 
   /*!
     @brief Get the distance from a 3D point to the bounding volume
@@ -282,40 +292,46 @@ protected:
     @return Returns distance to bounding volume. A zero distance implies that
     the input point is inside the bounding volume.
   */
-  inline T getDistanceToBoundingVolume(const Vec3& a_point) const noexcept;
+  inline T
+  getDistanceToBoundingVolume(const Vec3& a_point) const noexcept;
 
   /*!
     @brief Compute the shortest distance to the primitives in this node.
     @param[in] a_point 3D point
     @return Returns the signed distance to the primitives.
   */
-  inline T getDistanceToPrimitives(const Vec3& a_point) const noexcept;
+  inline T
+  getDistanceToPrimitives(const Vec3& a_point) const noexcept;
 
   /*!
     @brief Get the list of primitives in this node.
     @return Primitives list
   */
-  inline PrimitiveList& getPrimitives() noexcept;
+  inline PrimitiveList&
+  getPrimitives() noexcept;
 
   /*!
     @brief Iterative ordered pruning along the BVH tree.
     @param[inout] a_point   Input 3D point
   */
-  inline T pruneStack(const Vec3& a_point) const noexcept;
+  inline T
+  pruneStack(const Vec3& a_point) const noexcept;
 
   /*!
     @brief Recursively ordered pruning along the BVH tree.
     @param[inout] a_closest Shortest distance to primitives so far.
     @param[inout] a_point   Input 3D point
   */
-  inline void pruneOrdered(T& a_closest, const Vec3& a_point) const noexcept;
+  inline void
+  pruneOrdered(T& a_closest, const Vec3& a_point) const noexcept;
 
   /*!
     @brief Recursive unordered pruning along the BVH tree.
     @param[inout] a_closest Shortest distance to primitives so far.
     @param[inout] a_point   Input 3D point
   */
-  inline void pruneUnordered(T& a_closest, const Vec3& a_point) const noexcept;
+  inline void
+  pruneUnordered(T& a_closest, const Vec3& a_point) const noexcept;
 
   /*!
     @brief Flatten tree method.
@@ -329,7 +345,8 @@ protected:
     @note When called from the root node, a_linearNodes and a_sortedPrimitives
     should be empty and a_offset=0UL.
   */
-  inline size_t flattenTree(
+  inline size_t
+  flattenTree(
     std::vector<std::shared_ptr<LinearNodeT<T, P, BV, K>>>& a_linearNodes,
     std::vector<std::shared_ptr<const P>>& a_sortedPrimitives,
     size_t& a_offset) const noexcept;
@@ -388,54 +405,63 @@ public:
     @brief Set the bounding volume
     @param[in] a_boundingVolume Bounding volume for this node.
   */
-  inline void setBoundingVolume(const BV& a_boundingVolume) noexcept;
+  inline void
+  setBoundingVolume(const BV& a_boundingVolume) noexcept;
 
   /*!
     @brief Set the offset into the primitives array.
   */
-  inline void setPrimitivesOffset(const size_t a_primitivesOffset) noexcept;
+  inline void
+  setPrimitivesOffset(const size_t a_primitivesOffset) noexcept;
 
   /*!
     @brief Set number of primitives.
     @param[in] a_numPrimitives Number of primitives.
   */
-  inline void setNumPrimitives(const size_t a_numPrimitives) noexcept;
+  inline void
+  setNumPrimitives(const size_t a_numPrimitives) noexcept;
 
   /*!
     @brief Set the child offsets.
     @param[in] a_childOffset Offset in node array.
     @param[in] a_whichChild  Child index in m_childrenOffsets. Must be [0,K-1]
   */
-  inline void setChildOffset(const size_t a_childOffset, const size_t a_whichChild) noexcept;
+  inline void
+  setChildOffset(const size_t a_childOffset, const size_t a_whichChild) noexcept;
 
   /*!
     @brief Get the node bounding volume.
     return m_boundingVolume
   */
-  inline const BV& getBoundingVolume() const noexcept;
+  inline const BV&
+  getBoundingVolume() const noexcept;
 
   /*!
     @brief Get the primitives offset
     @return Returns m_primitivesOffset
   */
-  inline const size_t& getPrimitivesOffset() const noexcept;
+  inline const size_t&
+  getPrimitivesOffset() const noexcept;
 
   /*!
     @brief Get the number of primitives.
     @return Returns m_numPrimitives
   */
-  inline const size_t& getNumPrimitives() const noexcept;
+  inline const size_t&
+  getNumPrimitives() const noexcept;
 
   /*!
     @brief Get the child offsets
     @return Returns m_childOffsets
   */
-  inline const std::array<size_t, K>& getChildOffsets() const noexcept;
+  inline const std::array<size_t, K>&
+  getChildOffsets() const noexcept;
 
   /*!
     @brief Is leaf or not
   */
-  inline bool isLeaf() const noexcept;
+  inline bool
+  isLeaf() const noexcept;
 
   /*!
     @brief Get the distance from a 3D point to the bounding volume
@@ -443,7 +469,8 @@ public:
     @return Returns distance to bounding volume. A zero distance implies that
     the input point is inside the bounding volume.
   */
-  inline T getDistanceToBoundingVolume(const Vec3& a_point) const noexcept;
+  inline T
+  getDistanceToBoundingVolume(const Vec3& a_point) const noexcept;
 
   /*!
     @brief Compute signed distance to primitives.
@@ -451,7 +478,8 @@ public:
     @param[in] a_primitives List of primitives
     @note Only call if this is a leaf node.
   */
-  inline T getDistanceToPrimitives(
+  inline T
+  getDistanceToPrimitives(
     const Vec3& a_point, const std::vector<std::shared_ptr<const P>>& a_primitives) const noexcept;
 
 protected:
@@ -531,7 +559,8 @@ public:
     version.
     @param[in] a_point   3D point in space
   */
-  inline T signedDistance(const Vec3& a_point) const noexcept override;
+  inline T
+  signedDistance(const Vec3& a_point) const noexcept override;
 
 protected:
   /*!

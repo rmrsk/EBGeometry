@@ -38,7 +38,8 @@ public:
     @param[in] a_inputPoint Input point
     @return Returns transformed point.
   */
-  virtual Vec3T<T> transform(const Vec3T<T>& a_inputPoint) const noexcept = 0;
+  virtual Vec3T<T>
+  transform(const Vec3T<T>& a_inputPoint) const noexcept = 0;
 };
 
 /*!
@@ -66,7 +67,8 @@ public:
   /*!
     @brief Transform input point.
   */
-  Vec3T<T> transform(const Vec3T<T>& a_inputPoint) const noexcept override;
+  Vec3T<T>
+  transform(const Vec3T<T>& a_inputPoint) const noexcept override;
 
 protected:
   /*!
@@ -102,7 +104,8 @@ public:
   /*!
     @brief Transform input point.
   */
-  Vec3T<T> transform(const Vec3T<T>& a_inputPoint) const noexcept override;
+  Vec3T<T>
+  transform(const Vec3T<T>& a_inputPoint) const noexcept override;
 
 protected:
   /*!

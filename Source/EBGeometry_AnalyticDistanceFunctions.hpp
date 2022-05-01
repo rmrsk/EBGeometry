@@ -70,7 +70,8 @@ public:
   /*!
     @brief Signed distance field.
   */
-  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     return m_sdf->signedDistance(a_point) - m_curv;
   }
@@ -118,7 +119,8 @@ public:
   /*!
     @brief Signed distance field.
   */
-  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     return std::abs(m_sdf->signedDistance(a_point)) - m_curv;
   }
@@ -167,7 +169,8 @@ public:
     @brief Signed distance field.
     @param[in] a_point Input point.
   */
-  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     return (m_sdf->signedDistance(a_point / m_scale)) * m_scale;
   }
@@ -212,7 +215,8 @@ public:
     @brief Signed distance function for sphere.
     @param[in] a_point Position.
   */
-  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     const T sign = m_flipInside ? -1.0 : 1.0;
 
@@ -280,28 +284,45 @@ public:
   /*!
     @brief Get center
   */
-  const Vec3T<T>& getCenter() const noexcept { return m_center; }
+  const Vec3T<T>&
+  getCenter() const noexcept
+  {
+    return m_center;
+  }
 
   /*!
     @brief Get center
   */
-  Vec3T<T>& getCenter() noexcept { return m_center; }
+  Vec3T<T>&
+  getCenter() noexcept
+  {
+    return m_center;
+  }
 
   /*!
     @brief Get radius
   */
-  const T& getRadius() const noexcept { return m_radius; }
+  const T&
+  getRadius() const noexcept
+  {
+    return m_radius;
+  }
 
   /*!
     @brief Get radius
   */
-  T& getRadius() noexcept { return m_radius; }
+  T&
+  getRadius() noexcept
+  {
+    return m_radius;
+  }
 
   /*!
     @brief Signed distance function for sphere.
     @param[in] a_point Position.
   */
-  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     const T sign = m_flipInside ? -1.0 : 1.0;
 
@@ -359,31 +380,48 @@ public:
     @brief Get lower-left corner
     @return m_loCorner
   */
-  const Vec3T<T>& getLowCorner() const noexcept { return m_loCorner; }
+  const Vec3T<T>&
+  getLowCorner() const noexcept
+  {
+    return m_loCorner;
+  }
 
   /*!
     @brief Get lower-left corner
     @return m_loCorner
   */
-  Vec3T<T>& getLowCorner() noexcept { return m_loCorner; }
+  Vec3T<T>&
+  getLowCorner() noexcept
+  {
+    return m_loCorner;
+  }
 
   /*!
     @brief Get upper-right corner
     @return m_hiCorner
   */
-  const Vec3T<T>& getHighCorner() const noexcept { return m_hiCorner; }
+  const Vec3T<T>&
+  getHighCorner() const noexcept
+  {
+    return m_hiCorner;
+  }
 
   /*!
     @brief Get upper-right corner
     @return m_hiCorner
   */
-  Vec3T<T>& getHighCorner() noexcept { return m_hiCorner; }
+  Vec3T<T>&
+  getHighCorner() noexcept
+  {
+    return m_hiCorner;
+  }
 
   /*!
     @brief Signed distance function for sphere.
     @param[in] a_point Position.
   */
-  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     // For each coordinate direction, we have delta[dir] if a_point[dir] falls
     // between xLo and xHi. In this case delta[dir] will be the signed distance
@@ -466,42 +504,67 @@ public:
     @brief Get torus center.
     @return m_center
   */
-  const Vec3T<T>& getCenter() const noexcept { return m_center; }
+  const Vec3T<T>&
+  getCenter() const noexcept
+  {
+    return m_center;
+  }
 
   /*!
     @brief Get torus center.
     @return m_center
   */
-  Vec3T<T>& getCenter() noexcept { return m_center; }
+  Vec3T<T>&
+  getCenter() noexcept
+  {
+    return m_center;
+  }
 
   /*!
     @brief Get major radius.
     @return m_majorRadius
   */
-  const T& getMajorRadius() const noexcept { return m_majorRadius; }
+  const T&
+  getMajorRadius() const noexcept
+  {
+    return m_majorRadius;
+  }
 
   /*!
     @brief Get major radius.
     @return m_majorRadius
   */
-  T& getMajorRadius() noexcept { return m_majorRadius; }
+  T&
+  getMajorRadius() noexcept
+  {
+    return m_majorRadius;
+  }
 
   /*!
     @brief Get minor radius.
     @return m_minorRadius
   */
-  const T& getMinorRadius() const noexcept { return m_minorRadius; }
+  const T&
+  getMinorRadius() const noexcept
+  {
+    return m_minorRadius;
+  }
 
   /*!
     @brief Get minor radius.
     @return m_minorRadius
   */
-  T& getMinorRadius() noexcept { return m_minorRadius; }
+  T&
+  getMinorRadius() noexcept
+  {
+    return m_minorRadius;
+  }
   /*!
     @brief Signed distance function for a torus.
     @param[in] a_point Position.
   */
-  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     const Vec3T<T> p = a_point - m_center;
     const T rho = sqrt(p[0] * p[0] + p[1] * p[1]) - m_majorRadius;
@@ -575,25 +638,38 @@ public:
     @brief Get one endpoint
     @return m_center1
   */
-  const Vec3T<T>& getCenter1() const noexcept { return m_center1; }
+  const Vec3T<T>&
+  getCenter1() const noexcept
+  {
+    return m_center1;
+  }
 
   /*!
     @brief Get the other endpoint
     @return m_center2
   */
-  const Vec3T<T>& getCenter2() const noexcept { return m_center2; }
+  const Vec3T<T>&
+  getCenter2() const noexcept
+  {
+    return m_center2;
+  }
 
   /*!
     @brief Get radius.
     @return m_radius.
   */
-  const T& getRadius() const noexcept { return m_radius; }
+  const T&
+  getRadius() const noexcept
+  {
+    return m_radius;
+  }
 
   /*!
     @brief Signed distance function for a torus.
     @param[in] a_point Position.
   */
-  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     T d = std::numeric_limits<T>::infinity();
 
@@ -694,7 +770,8 @@ public:
     @brief Signed distance function.
     @param[in] a_point Position.
   */
-  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     Vec3T<T> delta = a_point - m_center;
     delta[m_axis] = 0.0;
@@ -760,7 +837,8 @@ public:
     @brief Implementation of the signed distance function.
     @param[in] a_point Position.
   */
-  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     const Vec3T<T> pa = a_point - m_center1;
     const Vec3T<T> ba = m_center2 - m_center1;
@@ -831,7 +909,8 @@ public:
     @brief Implementation of the signed distance function.
     @param[in] a_point Position.
   */
-  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     const Vec3T<T> delta = a_point - m_tip;
     const Vec2T<T> q(sqrt(delta[0] * delta[0] + delta[1] * delta[1]), -delta[2]);
@@ -900,7 +979,8 @@ public:
     @brief Implementation of the signed distance function.
     @param[in] a_point Position.
   */
-  virtual T signedDistance(const Vec3T<T>& a_point) const noexcept override
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     const Vec3T<T> delta = a_point - m_tip;
     const T dr = sqrt(delta[0] * delta[0] + delta[1] * delta[1]);

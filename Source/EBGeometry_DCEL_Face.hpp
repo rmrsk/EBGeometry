@@ -129,7 +129,8 @@ public:
     @param[in] a_normal Normal vector
     @param[in] a_edge   Half edge
   */
-  inline void define(const Vec3& a_normal, const EdgePtr& a_edge) noexcept;
+  inline void
+  define(const Vec3& a_normal, const EdgePtr& a_edge) noexcept;
 
   /*!
     @brief Reconcile face. This will compute the normal vector, area, centroid,
@@ -137,13 +138,15 @@ public:
     @note "Everything" must be set before doing this, i.e. the face must be
     complete with half edges and there can be no dangling edges.
   */
-  inline void reconcile() noexcept;
+  inline void
+  reconcile() noexcept;
 
   /*!
     @brief Set the half edge
     @param[in] a_halfEdge Half edge
   */
-  inline void setHalfEdge(const EdgePtr& a_halfEdge) noexcept;
+  inline void
+  setHalfEdge(const EdgePtr& a_halfEdge) noexcept;
 
   /*!
     @brief Set the inside/outside algorithm when determining if a point projects
@@ -152,49 +155,58 @@ public:
     @note See CD_DCELAlgorithms.H for options (and CD_DCELPolyImplem.H for how
     the algorithms operate).
   */
-  inline void setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm& a_algorithm) noexcept;
+  inline void
+  setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm& a_algorithm) noexcept;
 
   /*!
     @brief Get modifiable half-edge
   */
-  inline EdgePtr& getHalfEdge() noexcept;
+  inline EdgePtr&
+  getHalfEdge() noexcept;
 
   /*!
     @brief Get immutable half-edge
   */
-  inline const EdgePtr& getHalfEdge() const noexcept;
+  inline const EdgePtr&
+  getHalfEdge() const noexcept;
 
   /*!
     @brief Get modifiable centroid
   */
-  inline Vec3T<T>& getCentroid() noexcept;
+  inline Vec3T<T>&
+  getCentroid() noexcept;
 
   /*!
     @brief Get immutable centroid
   */
-  inline const Vec3T<T>& getCentroid() const noexcept;
+  inline const Vec3T<T>&
+  getCentroid() const noexcept;
 
   /*!
     @brief Get modifiable centroid position in specified coordinate direction
     @param[in] a_dir Coordinate direction
   */
-  inline T& getCentroid(const size_t a_dir) noexcept;
+  inline T&
+  getCentroid(const size_t a_dir) noexcept;
 
   /*!
     @brief Get immutable centroid position in specified coordinate direction
     @param[in] a_dir Coordinate direction
   */
-  inline const T& getCentroid(const size_t a_dir) const noexcept;
+  inline const T&
+  getCentroid(const size_t a_dir) const noexcept;
 
   /*!
     @brief Get modifiable normal vector
   */
-  inline Vec3T<T>& getNormal() noexcept;
+  inline Vec3T<T>&
+  getNormal() noexcept;
 
   /*!
     @brief Get immutable normal vector
   */
-  inline const Vec3T<T>& getNormal() const noexcept;
+  inline const Vec3T<T>&
+  getNormal() const noexcept;
 
   /*!
     @brief Compute the signed distance to a point.
@@ -204,7 +216,8 @@ public:
     projected distance onto the polygon plane and the sign is well-defined.
     Otherwise, we check the distance to the edges of the polygon.
   */
-  inline T signedDistance(const Vec3& a_x0) const noexcept;
+  inline T
+  signedDistance(const Vec3& a_x0) const noexcept;
 
   /*!
     @brief Compute the unsigned squared distance to a point.
@@ -214,29 +227,34 @@ public:
     projected distance onto the polygon plane. Otherwise, we check the distance
     to the edges of the polygon.
   */
-  inline T unsignedDistance2(const Vec3& a_x0) const noexcept;
+  inline T
+  unsignedDistance2(const Vec3& a_x0) const noexcept;
 
   /*!
     @brief Return the coordinates of all the vertices on this polygon.
     @details This builds a list of all the vertex coordinates and returns it.
   */
-  inline std::vector<Vec3T<T>> getAllVertexCoordinates() const noexcept;
+  inline std::vector<Vec3T<T>>
+  getAllVertexCoordinates() const noexcept;
 
   /*!
     @brief Return all the vertices on this polygon
     @details This builds a list of all the vertices and returns it.
   */
-  inline std::vector<VertexPtr> gatherVertices() const noexcept;
+  inline std::vector<VertexPtr>
+  gatherVertices() const noexcept;
 
   /*!
     @brief Get the lower-left-most coordinate of this polygon face
   */
-  inline Vec3T<T> getSmallestCoordinate() const noexcept;
+  inline Vec3T<T>
+  getSmallestCoordinate() const noexcept;
 
   /*!
     @brief Get the upper-right-most coordinate of this polygon face
   */
-  inline Vec3T<T> getHighestCoordinate() const noexcept;
+  inline Vec3T<T>
+  getHighestCoordinate() const noexcept;
 
 protected:
   /*!
@@ -279,48 +297,57 @@ protected:
   /*!
     @brief Compute the area of this polygon
   */
-  inline void computeArea() noexcept;
+  inline void
+  computeArea() noexcept;
 
   /*!
     @brief Compute the centroid position of this polygon
   */
-  inline void computeCentroid() noexcept;
+  inline void
+  computeCentroid() noexcept;
 
   /*!
     @brief Compute the normal position of this polygon
   */
-  inline void computeNormal() noexcept;
+  inline void
+  computeNormal() noexcept;
 
   /*!
     @brief Compute the 2D embedding of this polygon
   */
-  inline void computePolygon2D() noexcept;
+  inline void
+  computePolygon2D() noexcept;
 
   /*!
     @brief Normalize the normal vector, ensuring it has a length of 1
   */
-  inline void normalizeNormalVector() noexcept;
+  inline void
+  normalizeNormalVector() noexcept;
 
   /*!
     @brief Get the area of this polygon face
   */
-  inline T getArea() noexcept;
+  inline T
+  getArea() noexcept;
 
   /*!
     @brief Get the area of this polygon face
   */
-  inline T getArea() const noexcept;
+  inline T
+  getArea() const noexcept;
 
   /*!
     @brief Compute and store all the half-edges around this polygon face
   */
-  inline void computeAndStoreEdges() noexcept;
+  inline void
+  computeAndStoreEdges() noexcept;
 
   /*!
     @brief Compute the projection of a point onto the polygon face plane
     @param[in] a_p Point in space
   */
-  inline Vec3T<T> projectPointIntoFacePlane(const Vec3& a_p) const noexcept;
+  inline Vec3T<T>
+  projectPointIntoFacePlane(const Vec3& a_p) const noexcept;
 
   /*!
     @brief Check if a point projects to inside or outside the polygon face
@@ -328,7 +355,8 @@ protected:
     @return Returns true if a_p projects to inside the polygon and false
     otherwise.
   */
-  inline bool isPointInsideFace(const Vec3& a_p) const noexcept;
+  inline bool
+  isPointInsideFace(const Vec3& a_p) const noexcept;
 };
 } // namespace DCEL
 
