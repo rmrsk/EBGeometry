@@ -178,7 +178,8 @@ main(int argc, char* argv[])
     boxArray.maxSize(max_grid_size);
     DistributionMapping dm{boxArray};
 
-    std::unique_ptr<EBFArrayBoxFactory> factory = amrex::makeEBFabFactory(geom, boxArray, dm, {2, 2, 2}, EBSupport::full);
+    std::unique_ptr<EBFArrayBoxFactory> factory =
+      amrex::makeEBFabFactory(geom, boxArray, dm, {2, 2, 2}, EBSupport::full);
 
     mf.define(boxArray, dm, 1, 0, MFInfo(), *factory);
     mf.setVal(1.0);
