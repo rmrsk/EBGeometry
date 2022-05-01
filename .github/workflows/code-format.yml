@@ -38,9 +38,36 @@ jobs:
 
       - name: Codespell Source
         if: always()
-        working-directory: Source
         run: |
-          codespell
+          codespell Source
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
+
+      - name: Codespell Examples
+        if: always()
+        run: |
+          codespell Examples --skip "*.png"
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
+
+  docs-format:
+    if: github.event.pull_request.draft == false  
+    name: Documentation format
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout EBGeometry
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          pip install codespell
+
+      - name: Codespell documentation
+        if: always()
+        run: |
+          codespell Sphinx --skip "*.png"
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
 
       
 
