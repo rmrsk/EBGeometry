@@ -5,7 +5,7 @@
 
 /*!
   @file   EBGeometry_TransformOps.hpp
-  @brief  Declaration of transformation operators for signed distance fields. 
+  @brief  Declaration of transformation operators for signed distance fields.
   @author Robert Marskar
 */
 
@@ -17,12 +17,12 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
-  @brief Base class for transformation operators. 
+  @brief Base class for transformation operators.
 */
 template <class T>
-class TransformOp {
+class TransformOp
+{
 public:
-
   /*!
     @brief Default constructor
   */
@@ -36,7 +36,7 @@ public:
   /*!
     @brief Transform input coordinate
     @param[in] a_inputPoint Input point
-    @return Returns transformed point. 
+    @return Returns transformed point.
   */
   virtual Vec3T<T> transform(const Vec3T<T>& a_inputPoint) const noexcept = 0;
 };
@@ -45,9 +45,9 @@ public:
   @brief Translation operator. Can translate an input point
 */
 template <class T>
-class TranslateOp : public TransformOp<T> {
+class TranslateOp : public TransformOp<T>
+{
 public:
-
   /*!
     @brief Default constructor.
   */
@@ -64,12 +64,11 @@ public:
   virtual ~TranslateOp() = default;
 
   /*!
-    @brief Transform input point. 
+    @brief Transform input point.
   */
   Vec3T<T> transform(const Vec3T<T>& a_inputPoint) const noexcept override;
 
 protected:
-
   /*!
     @brief Translation of input point
   */
@@ -77,14 +76,14 @@ protected:
 };
 
 /*!
-  @brief Rotation operator. Can scale an input point. 
+  @brief Rotation operator. Can scale an input point.
 */
 template <class T>
-class RotateOp : public TransformOp<T> {
+class RotateOp : public TransformOp<T>
+{
 public:
-
   /*!
-    @brief Weak constructor. 
+    @brief Weak constructor.
   */
   RotateOp();
 
@@ -101,14 +100,13 @@ public:
   virtual ~RotateOp() = default;
 
   /*!
-    @brief Transform input point. 
+    @brief Transform input point.
   */
   Vec3T<T> transform(const Vec3T<T>& a_inputPoint) const noexcept override;
 
 protected:
-
   /*!
-    @brief Rotation axis. 0 = x, 1=y etc. 
+    @brief Rotation axis. 0 = x, 1=y etc.
   */
   size_t m_axis;
 
@@ -120,7 +118,7 @@ protected:
   /*!
     @brief Phi-rotation (degrees)
   */
-  T m_sinAngle;  
+  T m_sinAngle;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

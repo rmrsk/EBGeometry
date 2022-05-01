@@ -58,6 +58,17 @@ Advanced usage
 For more advanced usage, users can supply their own file parsers (only PLY files are currently supported), provide their own bounding volumes, or their own BVH partitioners.
 EBGeometry is not too strict about these things, and uses rigorous templating for ensuring that the EBGeometry functionality can be extended.
 
+Contributing
+------------
+
+1. Create a branch for the new feature.
+2. Develop the feature.
+3. Format the code using ```clang-format```:
+
+   ```find Source Examples \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +```
+   
+4. Make sure the GitHub continuous integration tests passes.
+
 License
 -------
 

@@ -16,7 +16,8 @@
 
 /*!
   @namespace DCEL
-  @brief Namespace containing various double-connected edge list (DCEL) functionality.
+  @brief Namespace containing various double-connected edge list (DCEL)
+  functionality.
 */
 namespace DCEL {
 
