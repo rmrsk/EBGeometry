@@ -167,8 +167,8 @@ namespace DCEL {
 
     // Sort the primitives based on the centroid location of their BVs.
     std::sort(primsAndBVs.begin(), primsAndBVs.end(), [splitDir](const P& p1, const P& p2) {
-	return (p1.second).getCentroid()[splitDir] < (p2.second).getCentroid()[splitDir];
-      });
+      return (p1.second).getCentroid()[splitDir] < (p2.second).getCentroid()[splitDir];
+    });
 
     // Unpack the vector and partition into equal counts.
     PrimitiveList<T> sortedPrimitives;

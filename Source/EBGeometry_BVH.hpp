@@ -102,11 +102,11 @@ namespace BVH {
     Unordered => Use recursive unordered traversal.
   */
   enum class Prune
-    {
-      Stack,
-      Ordered,
-      Unordered,
-    };
+  {
+    Stack,
+    Ordered,
+    Unordered,
+  };
 
   /*!
     @brief Class which encapsulates a node in a bounding volume hierarchy.

@@ -149,10 +149,10 @@ namespace DCEL {
       (face- or vertex-based iteration)
     */
     enum class IterationMode
-      {
-	Vertices,
-	Faces
-      };
+    {
+      Vertices,
+      Faces
+    };
 
     /*!
       @brief If true, a full loop has been made around the polygon face

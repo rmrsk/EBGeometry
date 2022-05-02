@@ -40,9 +40,9 @@ namespace BoundingVolumes {
       bounding sphere for a set of 3D points.
     */
     enum class BoundingVolumeAlgorithm
-      {
-	Ritter,
-      };
+    {
+      Ritter,
+    };
 
     /*!
       @brief Alias to cut down on typing

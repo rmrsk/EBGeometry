@@ -263,7 +263,7 @@ inline constexpr Vec3T<T>
 Vec3T<T>::infinity() noexcept
 {
   return Vec3T<T>(
-		  std::numeric_limits<T>::infinity(), std::numeric_limits<T>::infinity(), std::numeric_limits<T>::infinity());
+    std::numeric_limits<T>::infinity(), std::numeric_limits<T>::infinity(), std::numeric_limits<T>::infinity());
 }
 
 template <class T>

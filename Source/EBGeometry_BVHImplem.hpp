@@ -200,7 +200,7 @@ namespace BVH {
     }
     default:
       std::cerr << "In file EBGeometry_BVHImplem.hpp function NodeT<T, P, BV, "
-	"K>::signedDistance(Vec3, Prune) -- bad input enum for 'Prune'\n";
+                   "K>::signedDistance(Vec3, Prune) -- bad input enum for 'Prune'\n";
     };
 
     return ret;
@@ -265,9 +265,9 @@ namespace BVH {
           }
 
           std::sort(
-		    childrenAndDistances.begin(),
-		    childrenAndDistances.end(),
-		    [](const NodeAndDist& node1, const NodeAndDist& node2) -> bool { return node1.second > node2.second; });
+            childrenAndDistances.begin(),
+            childrenAndDistances.end(),
+            [](const NodeAndDist& node1, const NodeAndDist& node2) -> bool { return node1.second > node2.second; });
 
           // Push the children onto the stack.
           for (const auto& child : childrenAndDistances) {
@@ -518,7 +518,7 @@ namespace BVH {
   template <class T, class P, class BV, size_t K>
   inline T
   LinearNodeT<T, P, BV, K>::getDistanceToPrimitives(
-						    const Vec3T<T>& a_point, const std::vector<std::shared_ptr<const P>>& a_primitives) const noexcept
+    const Vec3T<T>& a_point, const std::vector<std::shared_ptr<const P>>& a_primitives) const noexcept
   {
     T minDist = std::numeric_limits<T>::infinity();
 
@@ -535,8 +535,8 @@ namespace BVH {
 
   template <class T, class P, class BV, size_t K>
   inline LinearBVH<T, P, BV, K>::LinearBVH(
-					   const std::vector<std::shared_ptr<const LinearNodeT<T, P, BV, K>>>& a_linearNodes,
-					   const std::vector<std::shared_ptr<const P>>&                        a_primitives)
+    const std::vector<std::shared_ptr<const LinearNodeT<T, P, BV, K>>>& a_linearNodes,
+    const std::vector<std::shared_ptr<const P>>&                        a_primitives)
   {
     m_linearNodes = a_linearNodes;
     m_primitives  = a_primitives;

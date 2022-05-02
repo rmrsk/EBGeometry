@@ -61,19 +61,19 @@ namespace DCEL {
       Direct2 means compute the squared signed distance for all primitives.
     */
     enum class SearchAlgorithm
-      {
-	Direct,
-	Direct2,
-      };
+    {
+      Direct,
+      Direct2,
+    };
 
     /*!
       @brief How to weight vertex normal
     */
     enum class VertexNormalWeight
-      {
-	None,
-	Angle,
-      };
+    {
+      None,
+      Angle,
+    };
 
     /*!
       @brief Alias to cut down on the typing

@@ -49,7 +49,7 @@ Polygon2D<T>::isPointInside(const Vec3& a_point, const InsideOutsideAlgorithm a_
   }
   default:
     std::cerr << "In file 'EBGeometry_Polygon2DImplem.hpp' function "
-      "Polygon2D<T>::isPointInside - logic bust.\n";
+                 "Polygon2D<T>::isPointInside - logic bust.\n";
   }
 
   return ret;

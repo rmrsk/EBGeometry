@@ -54,7 +54,7 @@ UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor)
 
     if (numPrimitives < K) {
       std::cerr << "UnionBVH<T, BV, K>::buildTree -- not enough primitives to "
-	"partition into K new nodes\n";
+                   "partition into K new nodes\n";
     }
 
     // 1. Compute the bounding volume centroids for each input SDF.
@@ -90,8 +90,8 @@ UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor)
 
     // Vector sort.
     std::sort(primsAndCentroids.begin(), primsAndCentroids.end(), [splitDir](const PC& sdf1, const PC& sdf2) -> bool {
-	return sdf1.second[splitDir] < sdf2.second[splitDir];
-      });
+      return sdf1.second[splitDir] < sdf2.second[splitDir];
+    });
 
     // Vector unpack. The input SDFs are not sorted based on their bounding
     // volume centroids.
