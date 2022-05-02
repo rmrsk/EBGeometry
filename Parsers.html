@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Overview &mdash; EBGeometry 1.0 documentation</title>
+  <title>File parsers &mdash; EBGeometry 1.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
@@ -18,8 +18,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Reading mesh files" href="Example_Basic.html" />
-    <link rel="prev" title="File parsers" href="Parsers.html" /> 
+    <link rel="next" title="Overview" href="Examples.html" />
+    <link rel="prev" title="Unions" href="ImplemUnion.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -52,18 +52,21 @@
 <li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Implementation</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Implementation.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemVec.html">Vector types</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">Bounding volume hierarchy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemSDF.html">Signed distance function</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemUnion.html">Unions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Parsers.html">File parsers</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">File parsers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#read-into-dcel">Read into DCEL</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a></li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Reading mesh files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Union.html">Unions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_AMReX.html">Integration with AMReX</a></li>
@@ -88,9 +91,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Overview</li>
+      <li>File parsers</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/Examples.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/Parsers.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -98,19 +101,44 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="overview">
-<span id="chap-examples"></span><h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h1>
-<p>Below, we consider a few examples that show how to use EBGeometry.
-All the examples are located in the examples folder.
-For instructions on how to compile and run the examples, refer to the README file in the example folder.</p>
+  <div class="section" id="file-parsers">
+<span id="chap-parsers"></span><h1>File parsers<a class="headerlink" href="#file-parsers" title="Permalink to this headline"></a></h1>
+<p>Routines for parsing surface files from grids into EBGeometry’s DCEL grids are given in the namespace <code class="docutils literal notranslate"><span class="pre">EBGeometry::Parser</span></code>.
+The source code is implemented in <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_Parser.hpp</span></code>.</p>
+<div class="section" id="read-into-dcel">
+<h2>Read into DCEL<a class="headerlink" href="#read-into-dcel" title="Permalink to this headline"></a></h2>
+<p>Currently, this is limited to the following file formats:</p>
+<ul>
+<li><p><strong>PLY</strong> Only ASCII formats currently supported, <a class="reference external" href="https://en.wikipedia.org/wiki/PLY_(file_format)">https://en.wikipedia.org/wiki/PLY_(file_format)</a>.</p>
+<p>When reading a PLY file into the DCEL data structures, it is sufficient to call the following static function:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="n">using</span> <span class="n">Mesh</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="p">::</span><span class="n">DCEL</span><span class="p">::</span><span class="n">MeshT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="n">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="n">std</span><span class="p">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Mesh</span><span class="o">&gt;</span> <span class="n">EBGeometry</span><span class="p">::</span><span class="n">Parser</span><span class="p">::</span><span class="n">PLY</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">::</span><span class="n">readASCII</span><span class="p">(</span><span class="n">const</span> <span class="n">std</span><span class="p">::</span><span class="n">string</span> <span class="n">a_filename</span><span class="p">);</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Although the parser will do it’s best to read files that contains holes or incomplete faces, success will fluctuate.
+Moreover, the signed distance function is not well-defined for such cases.</p>
+</div>
+<p>Calling the <code class="docutils literal notranslate"><span class="pre">readASCII</span></code> function will read the input file (which is assumed to be a PLY file) and create the DCEL data structures.</p>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the file format of your surface mesh file is not one of the above, consider either providing a new plugin or convert your file (e.g. to PLY) using MeshLab, Blender, etc.</p>
+</div>
+</div>
 </div>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="Parsers.html" class="btn btn-neutral float-left" title="File parsers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="Example_Basic.html" class="btn btn-neutral float-right" title="Reading mesh files" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="ImplemUnion.html" class="btn btn-neutral float-left" title="Unions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Examples.html" class="btn btn-neutral float-right" title="Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

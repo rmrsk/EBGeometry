@@ -13,7 +13,7 @@ var searchData=
   ['_7elinearnodet_313',['~LinearNodeT',['../classBVH_1_1LinearNodeT.html#a4b5dd392397794113ad3b5bb2ed5003a',1,'BVH::LinearNodeT']]],
   ['_7emesht_314',['~MeshT',['../classDCEL_1_1MeshT.html#adbc37687291b622a0d23c959a76c6d00',1,'DCEL::MeshT']]],
   ['_7enodet_315',['~NodeT',['../classBVH_1_1NodeT.html#a5bc328f2381b6babe37496758ea4b583',1,'BVH::NodeT']]],
-  ['_7epolygon2d_316',['~Polygon2D',['../classDCEL_1_1Polygon2D.html#a9159954c0f3bf382a3698df617768023',1,'DCEL::Polygon2D::~Polygon2D()'],['../classPolygon2D.html#acb7943d6adc578c3e4c099c06d431bd5',1,'Polygon2D::~Polygon2D()']]],
+  ['_7epolygon2d_316',['~Polygon2D',['../classPolygon2D.html#acb7943d6adc578c3e4c099c06d431bd5',1,'Polygon2D']]],
   ['_7erotateop_317',['~RotateOp',['../classRotateOp.html#aaa12091fe7937f5ed7e2d35e0632337b',1,'RotateOp']]],
   ['_7eroundedsdf_318',['~RoundedSDF',['../classRoundedSDF.html#aa0dcf33ab7a2d2ec9af1382b19b25ba5',1,'RoundedSDF']]],
   ['_7escaledsdf_319',['~ScaledSDF',['../classScaledSDF.html#a9c67f4930af10eb5fe413ebdefe61507',1,'ScaledSDF']]],

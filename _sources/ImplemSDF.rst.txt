@@ -5,12 +5,11 @@ Signed distance function
 
 In EBGeometry we have encapsulated the concept of a signed distance function in an abstract class
 
-.. literalinclude:: ../../Source/EBGeometry_SignedDistanceFunction.hpp
+.. literalinclude:: ../../Source/EBGeometry_SignedDistanceFunction.hpp   
    :language: c++
-   :lines: 28-31, 46-47, 54-56, 61-63, 69-71, 82-84
 
-We point out that the BVH and DCEL functionalities are fundamentally also signed distance functions, even though they do not inherent from ``EBGeometry::SignedDistanceFunction<T>``.
-The ``SignedDistanceFunction`` class exists so that we have a common entry point for performing distance field manipulations like rotations and translations.
+We point out that the BVH and DCEL classes are fundamentally also signed distance functions, and they also inherit from ``SignedDistanceFunction``.
+The ``SignedDistanceFunction`` class also exists so that we have a common entry point for performing distance field manipulations like rotations and translations.
 
 When implementing the ``signedDistance`` function, one can transform the input point by first calling ``transformPoint``.
 The functions ``translate`` and ``rotate`` will translate or rotate the object.
@@ -105,7 +104,7 @@ The rounded SDF is implemented in :file:`Source/EBGeometry_AnalyticDistanceFunct
 
 .. literalinclude:: ../../Source/EBGeometry_AnalyticDistanceFunctions.hpp
    :language: c++
-   :lines: 40-43, 54-58, 69-71, 84
+   :lines: 45-89
 
 To use it, simply pass an SDF into the constructor and use the new distance function.
 
@@ -125,8 +124,7 @@ The rounded SDF is implemented in :file:`Source/EBGeometry_AnalyticDistanceFunct
 
 .. literalinclude:: ../../Source/EBGeometry_AnalyticDistanceFunctions.hpp
    :language: c++
-   :lines: 138-151, 152-155, 168-170, 183
-
+   :lines: 143-188
 
 .. _Chap:AnalyticSDF:
 
@@ -138,49 +136,56 @@ In addition, the file :file:`Source/EBGeometry_AnalyticSignedDistanceFunctions.h
 
 * **Sphere**
 
-  .. literalinclude:: ../../Source/EBGeometry_AnalyticDistanceFunctions.hpp
-     :language: c++
-     :lines: 239-240
+  .. code-block:: c++
+
+     template <class T>
+     class SphereSDF : public SignedDistanceFunction<T>		
 
 * **Box**
 
-  .. literalinclude:: ../../Source/EBGeometry_AnalyticDistanceFunctions.hpp
-     :language: c++
-     :lines: 334-335
+  .. code-block:: c++
+
+     template <class T>
+     class BoxSDF : public SignedDistanceFunction<T>		  
 
 * **Torus**
 
-  .. literalinclude:: ../../Source/EBGeometry_AnalyticDistanceFunctions.hpp
-     :language: c++
-     :lines: 440-441
+  .. code-block:: c++
+
+     template <class T>
+     class TorusSDF : public SignedDistanceFunction<T>		  
 
 * **Capped cylinder**
 
-  .. literalinclude:: ../../Source/EBGeometry_AnalyticDistanceFunctions.hpp
-     :language: c++
-     :lines: 560-561
+  .. code-block:: c++
+
+     template <class T>
+     class CylinderSDF : public SignedDistanceFunction<T>
 
 * **Infinite cylinder**
 
-  .. literalinclude:: ../../Source/EBGeometry_AnalyticDistanceFunctions.hpp
-     :language: c++
-     :lines: 699-700
+  .. code-block:: c++
+
+     template <class T>
+     class InfiniteCylinderSDF : public SignedDistanceFunction<T>
 
 * **Capsule/rounded cylinder**
 
-  .. literalinclude:: ../../Source/EBGeometry_AnalyticDistanceFunctions.hpp
-     :language: c++
-     :lines: 762-763
+  .. code-block:: c++
+
+     template <class T>
+     class CapsuleSDF : public SignedDistanceFunction<T>  
 
 * **Infinite cone**
 
-  .. literalinclude:: ../../Source/EBGeometry_AnalyticDistanceFunctions.hpp
-     :language: c++
-     :lines: 827-828
+  .. code-block:: c++
+
+     template <class T>
+     class InfiniteConeSDF : public SignedDistanceFunction<T>    
 
 * **Cone**
 
-  .. literalinclude:: ../../Source/EBGeometry_AnalyticDistanceFunctions.hpp
-     :language: c++
-     :lines: 895-896
+  .. code-block:: c++
 
+     template <class T>
+     class ConeSDF : public SignedDistanceFunction<T>      

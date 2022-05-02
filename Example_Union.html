@@ -59,6 +59,7 @@
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemSDF.html">Signed distance function</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemUnion.html">Unions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Parsers.html">File parsers</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
 <ul class="current">
@@ -120,8 +121,8 @@
   <span class="c1">// the spheres is 2*radius</span>
   <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">SDF</span><span class="o">&gt;&gt;</span> <span class="n">spheres</span><span class="p">;</span>
 
-  <span class="k">constexpr</span> <span class="n">T</span> <span class="n">radius</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
-  <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">N</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+  <span class="k">constexpr</span> <span class="n">T</span>   <span class="n">radius</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
+  <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">N</span>      <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
 
   <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
@@ -150,7 +151,7 @@
     <span class="k">const</span> <span class="n">Sphere</span><span class="o">&amp;</span> <span class="n">sph</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">Sphere</span><span class="o">&amp;&gt;</span><span class="p">(</span><span class="o">*</span><span class="n">a_prim</span><span class="p">);</span>
 
     <span class="k">const</span> <span class="n">Vec3</span><span class="o">&amp;</span> <span class="n">c</span> <span class="o">=</span> <span class="n">sph</span><span class="p">.</span><span class="n">getCenter</span><span class="p">();</span>
-    <span class="k">const</span> <span class="n">T</span><span class="o">&amp;</span> <span class="n">r</span> <span class="o">=</span> <span class="n">sph</span><span class="p">.</span><span class="n">getRadius</span><span class="p">();</span>
+    <span class="k">const</span> <span class="n">T</span><span class="o">&amp;</span>    <span class="n">r</span> <span class="o">=</span> <span class="n">sph</span><span class="p">.</span><span class="n">getRadius</span><span class="p">();</span>
 
     <span class="k">const</span> <span class="n">Vec3</span> <span class="n">lo</span> <span class="o">=</span> <span class="n">c</span> <span class="o">-</span> <span class="n">r</span> <span class="o">*</span> <span class="n">Vec3</span><span class="o">::</span><span class="n">one</span><span class="p">();</span>
 
@@ -166,8 +167,8 @@
   <span class="c1">// the spheres is 2*radius</span>
   <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">SDF</span><span class="o">&gt;&gt;</span> <span class="n">spheres</span><span class="p">;</span>
 
-  <span class="k">constexpr</span> <span class="n">T</span> <span class="n">radius</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
-  <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">N</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+  <span class="k">constexpr</span> <span class="n">T</span>   <span class="n">radius</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
+  <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">N</span>      <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
 
   <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
@@ -203,7 +204,7 @@ To do so, we must first provide a function which can create bounding volumes aro
     <span class="k">const</span> <span class="n">Sphere</span><span class="o">&amp;</span> <span class="n">sph</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">Sphere</span><span class="o">&amp;&gt;</span><span class="p">(</span><span class="o">*</span><span class="n">a_prim</span><span class="p">);</span>
 
     <span class="k">const</span> <span class="n">Vec3</span><span class="o">&amp;</span> <span class="n">c</span> <span class="o">=</span> <span class="n">sph</span><span class="p">.</span><span class="n">getCenter</span><span class="p">();</span>
-    <span class="k">const</span> <span class="n">T</span><span class="o">&amp;</span> <span class="n">r</span> <span class="o">=</span> <span class="n">sph</span><span class="p">.</span><span class="n">getRadius</span><span class="p">();</span>
+    <span class="k">const</span> <span class="n">T</span><span class="o">&amp;</span>    <span class="n">r</span> <span class="o">=</span> <span class="n">sph</span><span class="p">.</span><span class="n">getRadius</span><span class="p">();</span>
 </pre></div>
 </div>
 <p>Here, we use axis-aligned boxes but we could also have used other types of bounding volumes.</p>

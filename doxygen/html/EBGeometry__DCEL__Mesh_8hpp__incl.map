@@ -9,7 +9,7 @@
 <area shape="rect" id="node9" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="244,707,500,733"/>
 <area shape="rect" id="node15" href="$EBGeometry__DCEL__MeshImplem_8hpp.html" title="Implementation of EBGeometry_DCEL_Mesh.hpp." alt="" coords="1371,95,1637,121"/>
 <area shape="rect" id="node7" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="579,468,741,495"/>
-<area shape="rect" id="node13" href="$EBGeometry__Polygon2DImplem_8hpp.html" title="Implementation of DCELPolygon.hpp." alt="" coords="245,468,504,495"/>
+<area shape="rect" id="node13" href="$EBGeometry__Polygon2DImplem_8hpp.html" title="Implementation of EBGeometry_Polygon2D.hpp." alt="" coords="245,468,504,495"/>
 <area shape="rect" id="node10" href="$EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp." alt="" coords="551,543,763,569"/>
 <area shape="rect" id="node11" title=" " alt="" coords="511,625,579,651"/>
 <area shape="rect" id="node12" title=" " alt="" coords="604,625,689,651"/>

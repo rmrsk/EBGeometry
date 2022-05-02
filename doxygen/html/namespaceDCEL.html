@@ -88,9 +88,6 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1MeshT.html">MeshT</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Mesh class which stores a full <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> mesh (with signed distance functions)  <a href="classDCEL_1_1MeshT.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1Polygon2D.html">Polygon2D</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Class for embedding a <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> polygon face into 2D.  <a href="classDCEL_1_1Polygon2D.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1VertexT.html">VertexT</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Class which represents a vertex node in a double-edge connected list (<a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a>).  <a href="classDCEL_1_1VertexT.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -203,27 +200,27 @@ template&lt;class T , class BV , size_t K&gt; </div>
       </table>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">=</div>
-<div class="line">  [](<span class="keyword">const</span> PrimitiveList&lt;T&gt;&amp; a_primitives) -&gt; std::array&lt;PrimitiveList&lt;T&gt;, K&gt; {</div>
-<div class="line">  <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> lo = <a class="code" href="classVec3T.html#af06b99bd905435060149a61a13f61546">Vec3T&lt;T&gt;::max</a>();</div>
-<div class="line">  <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> hi = -<a class="code" href="classVec3T.html#af06b99bd905435060149a61a13f61546">Vec3T&lt;T&gt;::max</a>();</div>
-<div class="line">  <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; p : a_primitives) {</div>
-<div class="line">    lo = <a class="code" href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">min</a>(lo, p-&gt;getCentroid());</div>
-<div class="line">    hi = <a class="code" href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">max</a>(hi, p-&gt;getCentroid());</div>
+<div class="line">    [](<span class="keyword">const</span> PrimitiveList&lt;T&gt;&amp; a_primitives) -&gt; std::array&lt;PrimitiveList&lt;T&gt;, K&gt; {</div>
+<div class="line">    <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> lo = <a class="code" href="classVec3T.html#af06b99bd905435060149a61a13f61546">Vec3T&lt;T&gt;::max</a>();</div>
+<div class="line">    <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> hi = -<a class="code" href="classVec3T.html#af06b99bd905435060149a61a13f61546">Vec3T&lt;T&gt;::max</a>();</div>
+<div class="line">    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; p : a_primitives) {</div>
+<div class="line">      lo = <a class="code" href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">min</a>(lo, p-&gt;getCentroid());</div>
+<div class="line">      hi = <a class="code" href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">max</a>(hi, p-&gt;getCentroid());</div>
+<div class="line">    }</div>
+<div class="line"> </div>
+<div class="line">    <span class="keyword">const</span> <span class="keywordtype">size_t</span> splitDir = (hi - lo).maxDir(<span class="keyword">true</span>);</div>
+<div class="line"> </div>
+<div class="line">    </div>
+<div class="line">    PrimitiveList&lt;T&gt; sortedPrimitives(a_primitives);</div>
+<div class="line"> </div>
+<div class="line">    std::sort(sortedPrimitives.begin(),</div>
+<div class="line">              sortedPrimitives.end(),</div>
+<div class="line">              [splitDir](<span class="keyword">const</span> std::shared_ptr&lt;<span class="keyword">const</span> FaceT&lt;T&gt;&gt;&amp; f1, <span class="keyword">const</span> std::shared_ptr&lt;<span class="keyword">const</span> FaceT&lt;T&gt;&gt;&amp; f2) -&gt; <span class="keywordtype">bool</span> {</div>
+<div class="line">                return f1-&gt;getCentroid(splitDir) &lt; f2-&gt;getCentroid(splitDir);</div>
+<div class="line">              });</div>
+<div class="line"> </div>
+<div class="line">    <span class="keywordflow">return</span> EBGeometry::DCEL::equalCounts&lt;T, K&gt;(sortedPrimitives);</div>
 <div class="line">  }</div>
-<div class="line"> </div>
-<div class="line">  <span class="keyword">const</span> <span class="keywordtype">size_t</span> splitDir = (hi - lo).maxDir(<span class="keyword">true</span>);</div>
-<div class="line"> </div>
-<div class="line">  </div>
-<div class="line">  PrimitiveList&lt;T&gt; sortedPrimitives(a_primitives);</div>
-<div class="line"> </div>
-<div class="line">  std::sort(</div>
-<div class="line">    sortedPrimitives.begin(), sortedPrimitives.end(),</div>
-<div class="line">    [splitDir](<span class="keyword">const</span> std::shared_ptr&lt;<span class="keyword">const</span> FaceT&lt;T&gt;&gt;&amp; f1, <span class="keyword">const</span> std::shared_ptr&lt;<span class="keyword">const</span> FaceT&lt;T&gt;&gt;&amp; f2) -&gt; <span class="keywordtype">bool</span> {</div>
-<div class="line">      return f1-&gt;getCentroid(splitDir) &lt; f2-&gt;getCentroid(splitDir);</div>
-<div class="line">    });</div>
-<div class="line"> </div>
-<div class="line">  <span class="keywordflow">return</span> EBGeometry::DCEL::equalCounts&lt;T, K&gt;(sortedPrimitives);</div>
-<div class="line">}</div>
 </div><!-- fragment -->
 <p>Partitioner function for subdividing into K sub-volumes with approximately the same number of primitives. </p>
 <p>This partitioner splits along one of the axis coordinates and sorts the primitives along the centroid. </p><dl class="params"><dt>Parameters</dt><dd>
@@ -249,9 +246,9 @@ template&lt;class T , class BV &gt; </div>
       </table>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">=</div>
-<div class="line">  [](<span class="keyword">const</span> std::shared_ptr&lt;const EBGeometry::DCEL::FaceT&lt;T&gt;&gt;&amp; a_primitive) -&gt; BV {</div>
-<div class="line">  <span class="keywordflow">return</span> BV(a_primitive-&gt;getAllVertexCoordinates());</div>
-<div class="line">}</div>
+<div class="line">    [](<span class="keyword">const</span> std::shared_ptr&lt;const EBGeometry::DCEL::FaceT&lt;T&gt;&gt;&amp; a_primitive) -&gt; BV {</div>
+<div class="line">    <span class="keywordflow">return</span> BV(a_primitive-&gt;getAllVertexCoordinates());</div>
+<div class="line">  }</div>
 </div><!-- fragment -->
 <p>Bounding volume constructor for a <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> face. </p>
 <p>With BVHs and <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a>, the object to be bounded is the polygon face (e.g., triangle). We assume that our BV constructor can enclose points, so we return an object that encloses all the vertices of the polygon. </p><dl class="params"><dt>Parameters</dt><dd>
@@ -278,7 +275,7 @@ template&lt;class T , class BV , size_t K&gt; </div>
       </table>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">=</div>
-<div class="line">  EBGeometry::DCEL::chunkPartitioner&lt;T, BV, K&gt;</div>
+<div class="line">    EBGeometry::DCEL::chunkPartitioner&lt;T, BV, K&gt;</div>
 </div><!-- fragment -->
 <p>Alias for default partitioner. </p>
 
@@ -298,9 +295,9 @@ template&lt;class T , class BV , size_t K&gt; </div>
       </table>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">=</div>
-<div class="line">  [](<span class="keyword">const</span> <a class="code" href="classBVH_1_1NodeT.html">BVH::NodeT&lt;T, EBGeometry::DCEL::FaceT&lt;T&gt;</a>, BV, K&gt;&amp; a_node) -&gt; <span class="keywordtype">bool</span> {</div>
-<div class="line">  <span class="keywordflow">return</span> (a_node.getPrimitives()).size() &lt; K;</div>
-<div class="line">}</div>
+<div class="line">    [](<span class="keyword">const</span> <a class="code" href="classBVH_1_1NodeT.html">BVH::NodeT&lt;T, EBGeometry::DCEL::FaceT&lt;T&gt;</a>, BV, K&gt;&amp; a_node) -&gt; <span class="keywordtype">bool</span> {</div>
+<div class="line">    <span class="keywordflow">return</span> (a_node.getPrimitives()).size() &lt; K;</div>
+<div class="line">  }</div>
 </div><!-- fragment -->
 <p>Default stop function. This function terminates the division process if a <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> node has only one primitive. </p>
 <p>In this function, <a class="el" href="classBVH_1_1NodeT.html" title="Forward declare the BVH node since it is needed for the polymorphic lambdas.">BVH::NodeT</a>&lt;T, FaceT&lt;T&gt;, <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> &gt; is a <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> node. The interpretation of the parameters are: T is the precision, FaceT&lt;T&gt; is the primitive type in the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree, and BV is the bounding volume type. </p><dl class="params"><dt>Parameters</dt><dd>
@@ -327,25 +324,25 @@ template&lt;class T , size_t K&gt; </div>
       </table>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">= [](<span class="keyword">const</span> PrimitiveList&lt;T&gt;&amp; a_primitives) -&gt; std::array&lt;PrimitiveList&lt;T&gt;, K&gt; {</div>
-<div class="line">  <span class="keywordtype">int</span> <a class="code" href="EBGeometry__Vec_8hpp.html#aa7f7e15df344c873d1a27b30f77d0831">length</a> = a_primitives.size() / K;</div>
-<div class="line">  <span class="keywordtype">int</span> remain = a_primitives.size() % K;</div>
+<div class="line">    <span class="keywordtype">int</span> <a class="code" href="EBGeometry__Vec_8hpp.html#aa7f7e15df344c873d1a27b30f77d0831">length</a> = a_primitives.size() / K;</div>
+<div class="line">    <span class="keywordtype">int</span> remain = a_primitives.size() % K;</div>
 <div class="line"> </div>
-<div class="line">  <span class="keywordtype">int</span> begin = 0;</div>
-<div class="line">  <span class="keywordtype">int</span> end = 0;</div>
+<div class="line">    <span class="keywordtype">int</span> begin = 0;</div>
+<div class="line">    <span class="keywordtype">int</span> end   = 0;</div>
 <div class="line"> </div>
-<div class="line">  std::array&lt;PrimitiveList&lt;T&gt;, K&gt; chunks;</div>
+<div class="line">    std::array&lt;PrimitiveList&lt;T&gt;, K&gt; chunks;</div>
 <div class="line"> </div>
-<div class="line">  <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> k = 0; k &lt; K; k++) {</div>
-<div class="line">    end += (remain &gt; 0) ? <a class="code" href="EBGeometry__Vec_8hpp.html#aa7f7e15df344c873d1a27b30f77d0831">length</a> + 1 : <a class="code" href="EBGeometry__Vec_8hpp.html#aa7f7e15df344c873d1a27b30f77d0831">length</a>;</div>
-<div class="line">    remain--;</div>
+<div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> k = 0; k &lt; K; k++) {</div>
+<div class="line">      end += (remain &gt; 0) ? <a class="code" href="EBGeometry__Vec_8hpp.html#aa7f7e15df344c873d1a27b30f77d0831">length</a> + 1 : <a class="code" href="EBGeometry__Vec_8hpp.html#aa7f7e15df344c873d1a27b30f77d0831">length</a>;</div>
+<div class="line">      remain--;</div>
 <div class="line"> </div>
-<div class="line">    chunks[k] = PrimitiveList&lt;T&gt;(a_primitives.begin() + begin, a_primitives.begin() + end);</div>
+<div class="line">      chunks[k] = PrimitiveList&lt;T&gt;(a_primitives.begin() + begin, a_primitives.begin() + end);</div>
 <div class="line"> </div>
-<div class="line">    begin = end;</div>
+<div class="line">      begin = end;</div>
+<div class="line">    }</div>
+<div class="line"> </div>
+<div class="line">    <span class="keywordflow">return</span> chunks;</div>
 <div class="line">  }</div>
-<div class="line"> </div>
-<div class="line">  <span class="keywordflow">return</span> chunks;</div>
-<div class="line">}</div>
 </div><!-- fragment -->
 <p>Function for partitioning an input list into K almost-equal-sized chunks. </p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -371,13 +368,13 @@ template&lt;class T , size_t K&gt; </div>
       </table>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">= [](<span class="keyword">const</span> std::array&lt;PrimitiveList&lt;T&gt;, K&gt;&amp; a_chunks) -&gt; <span class="keywordtype">bool</span> {</div>
-<div class="line">  <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; chunk : a_chunks) {</div>
-<div class="line">    <span class="keywordflow">if</span> (chunk.empty())</div>
-<div class="line">      <span class="keywordflow">return</span> <span class="keyword">false</span>;</div>
-<div class="line">  }</div>
+<div class="line">    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; chunk : a_chunks) {</div>
+<div class="line">      <span class="keywordflow">if</span> (chunk.empty())</div>
+<div class="line">        <span class="keywordflow">return</span> <span class="keyword">false</span>;</div>
+<div class="line">    }</div>
 <div class="line"> </div>
-<div class="line">  <span class="keywordflow">return</span> <span class="keyword">true</span>;</div>
-<div class="line">}</div>
+<div class="line">    <span class="keywordflow">return</span> <span class="keyword">true</span>;</div>
+<div class="line">  }</div>
 </div><!-- fragment -->
 <p>Function which checks that all chunks are valid (i.e., contain at least one primitive. </p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -392,10 +389,10 @@ template&lt;class T , size_t K&gt; </div>
 </div><!-- contents -->
 <div class="ttc" id="aclassVec3T_html"><div class="ttname"><a href="classVec3T.html">Vec3T</a></div><div class="ttdoc">Three-dimensional vector class with arithmetic operators.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Vec.hpp:234</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html"><div class="ttname"><a href="classBVH_1_1NodeT.html">BVH::NodeT</a></div><div class="ttdoc">Forward declare the BVH node since it is needed for the polymorphic lambdas.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:37</div></div>
-<div class="ttc" id="aEBGeometry__Vec_8hpp_html_aa7f7e15df344c873d1a27b30f77d0831"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#aa7f7e15df344c873d1a27b30f77d0831">length</a></div><div class="ttdeci">T length(const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Length function.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:549</div></div>
-<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a71f0bc32c9be501cf01a1b6c715dc0a9"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">max</a></div><div class="ttdeci">Vec3T&lt; T &gt; max(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Maximum function. Returns new vector with component-wise minimums.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:535</div></div>
+<div class="ttc" id="aEBGeometry__Vec_8hpp_html_aa7f7e15df344c873d1a27b30f77d0831"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#aa7f7e15df344c873d1a27b30f77d0831">length</a></div><div class="ttdeci">T length(const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Length function.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:551</div></div>
+<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a71f0bc32c9be501cf01a1b6c715dc0a9"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">max</a></div><div class="ttdeci">Vec3T&lt; T &gt; max(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Maximum function. Returns new vector with component-wise minimums.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:537</div></div>
 <div class="ttc" id="aclassVec3T_html_af06b99bd905435060149a61a13f61546"><div class="ttname"><a href="classVec3T.html#af06b99bd905435060149a61a13f61546">Vec3T::max</a></div><div class="ttdeci">static constexpr Vec3T&lt; T &gt; max() noexcept</div><div class="ttdoc">Return a vector with maximum representable components.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:256</div></div>
-<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a291f01622695ab94c0092c3af0a1f3ca"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">min</a></div><div class="ttdeci">Vec3T&lt; T &gt; min(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Minimum function. Returns new vector with component-wise minimums.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:528</div></div>
+<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a291f01622695ab94c0092c3af0a1f3ca"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">min</a></div><div class="ttdeci">Vec3T&lt; T &gt; min(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Minimum function. Returns new vector with component-wise minimums.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:530</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">

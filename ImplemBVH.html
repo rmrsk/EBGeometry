@@ -66,6 +66,7 @@
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemSDF.html">Signed distance function</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemUnion.html">Unions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Parsers.html">File parsers</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
 <ul>
@@ -128,16 +129,15 @@ There are two types of BVHs supported.</p>
 <p><code class="docutils literal notranslate"><span class="pre">NodeT</span></code> describes regular and leaf nodes in the BVH, and has member functions for setting primitives, bounding volumes, and so on.
 Importantly, <code class="docutils literal notranslate"><span class="pre">NodeT</span></code> is the BVH builder node, i.e. it is the class through which we recursively build the BVH, see <a class="reference internal" href="#chap-bvhconstruction"><span class="std std-ref">Construction</span></a>.
 The compact BVH is discussed below in <a class="reference internal" href="#chap-linearbvh"><span class="std std-ref">Compact form</span></a>.</p>
-<p>For getting the signed distance, <code class="docutils literal notranslate"><span class="pre">NodeT</span></code> has provides the following function:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  @brief Class which encapsulates a node in a bounding volume hierarchy.
-  @details T is the precision, P is the primitive type you want to enclose, BV
-  is the bounding volume type used at the nodes. The parameter K (which must be
-  &gt; 1) is the tree degree. K=2 is a binary tree, K=3 is a tertiary tree and so
-    @return m_bv
-  */
-    @param[in,out] a_closest Shortest distance to primitives so far.
+<p>For getting the signed distance, <code class="docutils literal notranslate"><span class="pre">NodeT</span></code> has provide the following functions:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kr">inline</span> <span class="n">T</span>
+<span class="nf">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="k">override</span><span class="p">;</span>
+
+<span class="kr">inline</span> <span class="n">T</span>
+<span class="nf">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">,</span> <span class="k">const</span> <span class="n">Prune</span> <span class="n">a_pruning</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
 </pre></div>
 </div>
+<p>The first version simply calls the other version with a stack-based pruning algorithm for the tree traversal.</p>
 <div class="section" id="template-constraints">
 <span id="chap-bvhconstraints"></span><h2>Template constraints<a class="headerlink" href="#template-constraints" title="Permalink to this headline"></a></h2>
 <ul class="simple">
@@ -249,6 +249,31 @@ with AABB bounding volumes as;</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">PartitionerT</span></code> is the partitioner function when splitting a leaf node into <code class="docutils literal notranslate"><span class="pre">K</span></code> new leaves.
 The function takes an list of primitives which it partitions into <code class="docutils literal notranslate"><span class="pre">K</span></code> new list of primitives, i.e. it encapsulates <a class="reference internal" href="BVH.html#equation-partition">Eq. 2</a>.
 As an example, we include a partitioner that is provided for integrating BVH and DCEL functionality.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">K</span><span class="o">&gt;</span>
+<span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">PartitionerT</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="n">chunkPartitioner</span> <span class="o">=</span>
+<span class="p">[](</span><span class="k">const</span> <span class="n">PrimitiveList</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_primitives</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">PrimitiveList</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="p">{</span>
+  <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">lo</span> <span class="o">=</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">max</span><span class="p">();</span>
+  <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">hi</span> <span class="o">=</span> <span class="o">-</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">max</span><span class="p">();</span>
+  <span class="k">for</span> <span class="p">(</span><span class="k">const</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">p</span> <span class="p">:</span> <span class="n">a_primitives</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">lo</span> <span class="o">=</span> <span class="n">min</span><span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">getCentroid</span><span class="p">());</span>
+    <span class="n">hi</span> <span class="o">=</span> <span class="n">max</span><span class="p">(</span><span class="n">hi</span><span class="p">,</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">getCentroid</span><span class="p">());</span>
+  <span class="p">}</span>
+
+  <span class="k">const</span> <span class="kt">size_t</span> <span class="n">splitDir</span> <span class="o">=</span> <span class="p">(</span><span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span><span class="p">).</span><span class="n">maxDir</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+
+  <span class="c1">// Sort the primitives along the above coordinate direction.</span>
+  <span class="n">PrimitiveList</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">sortedPrimitives</span><span class="p">(</span><span class="n">a_primitives</span><span class="p">);</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span>
+    <span class="n">sortedPrimitives</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">sortedPrimitives</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span>
+    <span class="p">[</span><span class="n">splitDir</span><span class="p">](</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span> <span class="n">f1</span><span class="p">,</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span> <span class="n">f2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">bool</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">f1</span><span class="o">-&gt;</span><span class="n">getCentroid</span><span class="p">(</span><span class="n">splitDir</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">f2</span><span class="o">-&gt;</span><span class="n">getCentroid</span><span class="p">(</span><span class="n">splitDir</span><span class="p">);</span>
+    <span class="p">});</span>
+
+  <span class="k">return</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">equalCounts</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">(</span><span class="n">sortedPrimitives</span><span class="p">);</span>
+<span class="p">};</span>
+</pre></div>
+</div>
 <p>In the above, we are taking a list of DCEL facets in the input argument (<code class="docutils literal notranslate"><span class="pre">PrimitiveList&lt;T&gt;</span></code> expands to <code class="docutils literal notranslate"><span class="pre">std::vector&lt;std::shared_ptr&lt;const</span> <span class="pre">FaceT&lt;T&gt;</span> <span class="pre">&gt;</span></code>).
 We then compute the centroid locations of each facet and figure out along which coordinate axis we partition the objects (called <code class="docutils literal notranslate"><span class="pre">splitDir</span></code> above).
 The input primitives are then sorted based on the facet centroid locations in the <code class="docutils literal notranslate"><span class="pre">splitDir</span></code> direction, and they are partitioned into <code class="docutils literal notranslate"><span class="pre">K</span></code> almost-equal chunks.
@@ -274,10 +299,8 @@ To encapsulate the compact BVH we provide two classes:</p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">LinearNodeT</span></code> which encapsulates a node, but rather than storing the primitives and pointers to child nodes it stores offsets along the 1D arrays.
 Just like <code class="docutils literal notranslate"><span class="pre">NodeT</span></code> the class is templated:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>    <span class="kt">size_t</span><span class="o">&amp;</span> <span class="n">a_offset</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
-<span class="p">};</span>
-
-  <span class="n">getDistanceToBoundingVolume</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3</span><span class="o">&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">K</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">LinearNodeT</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">LinearNodeT</span></code> has a smaller memory footprint and should fit in one CPU word in floating-point precision and two CPU words in double point precision.
@@ -292,17 +315,16 @@ Primitives can likewise be obtained; they are stored in the primitives array fro
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> which stores the compact BVH <em>and</em> primitives as class members.
 That is, <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> contains the nodes and primitives as class members.</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>    @param[in] a_point      Point
-    @param[in] a_primitives List of primitives
-    @note Only call if this is a leaf node.
-  */
-  /*!
-    @brief Disallowed. Use the full constructor please.
-  */
-  LinearBVH() = delete;
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">K</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">LinearBVH</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span>
+<span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
 
-    @param[in] a_primitives  Primitives.
-    @brief Full constructor. Associates the nodes and primitives.
+<span class="k">protected</span><span class="o">:</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">LinearNodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;&gt;&gt;</span> <span class="n">m_linearNodes</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">P</span><span class="o">&gt;&gt;</span> <span class="n">m_primitives</span><span class="p">;</span>
+<span class="p">};</span>
 </pre></div>
 </div>
 <p>The root node is, of course, found at the front of the <code class="docutils literal notranslate"><span class="pre">m_linearNodes</span></code> vector.
@@ -311,12 +333,14 @@ Note that the list of primitives <code class="docutils literal notranslate"><spa
 </ul>
 <p>Constructing the compact BVH is simply a matter of letting <code class="docutils literal notranslate"><span class="pre">NodeT</span></code> aggregate the nodes and primitives into arrays, and return a <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code>.
 This is done by calling the <code class="docutils literal notranslate"><span class="pre">NodeT</span></code> member function <code class="docutils literal notranslate"><span class="pre">flattenTree()</span></code>:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  @brief Class which encapsulates a node in a bounding volume hierarchy.
-  @details T is the precision, P is the primitive type you want to enclose, BV
-  is the bounding volume type used at the nodes. The parameter K (which must be
-  */
-  inline T
-    @brief Recursive unordered pruning along the BVH tree.
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">K</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">NodeT</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span>
+<span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+
+  <span class="kr">inline</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">LinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;&gt;</span>
+  <span class="n">flattenTree</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+<span class="p">};</span>
 </pre></div>
 </div>
 <p>which returns a pointer to a <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code>.
@@ -338,12 +362,14 @@ To release the memory, deallocate the original BVH tree.
 E.g., the set pointer to the root node to <code class="docutils literal notranslate"><span class="pre">nullptr</span></code> if using a smart pointer.</p>
 </div>
 <p>Note that the primitives live in <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> and not <code class="docutils literal notranslate"><span class="pre">LinearNodeT</span></code>, and the signed distance function is therefore implemented in the <code class="docutils literal notranslate"><span class="pre">LinearBVH</span></code> member function:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>    @param[in] a_point      Point
-    @param[in] a_primitives List of primitives
-    @note Only call if this is a leaf node.
-  /*!
-    @brief Disallowed. Use the full constructor please.
-    @brief Full constructor. Associates the nodes and primitives.
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">K</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">LinearBVH</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span>
+<span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+
+  <span class="kr">inline</span> <span class="n">T</span>
+  <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3</span><span class="o">&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="k">override</span><span class="p">;</span>
+<span class="p">};</span>
 </pre></div>
 </div>
 </div>

@@ -55,7 +55,7 @@ void \mbox{\hyperlink{classDCEL_1_1FaceT_afe1573197f96e1035070e9e246f2ffb4}{reco
 \begin{DoxyCompactList}\small\item\em Reconcile face. This will compute the normal vector, area, centroid, and the 2D embedding of the polygon. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classDCEL_1_1FaceT_a35f92e48ed1633e379f30f36886061b2}{set\+Half\+Edge}} (const \mbox{\hyperlink{classDCEL_1_1FaceT_a093d002d920273591d221c3d8187e95c}{Edge\+Ptr}} \&a\+\_\+half\+Edge) noexcept
 \begin{DoxyCompactList}\small\item\em Set the half edge. \end{DoxyCompactList}\item 
-void \mbox{\hyperlink{classDCEL_1_1FaceT_a0c7794b9517c3de3d239d6776aad5bf6}{set\+Inside\+Outside\+Algorithm}} (typename \mbox{\hyperlink{classDCEL_1_1Polygon2D}{Polygon2D}}$<$ T $>$\+::Inside\+Outside\+Algorithm \&a\+\_\+algorithm) noexcept
+void \mbox{\hyperlink{classDCEL_1_1FaceT_a0c7794b9517c3de3d239d6776aad5bf6}{set\+Inside\+Outside\+Algorithm}} (typename \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ T $>$\+::Inside\+Outside\+Algorithm \&a\+\_\+algorithm) noexcept
 \begin{DoxyCompactList}\small\item\em Set the inside/outside algorithm when determining if a point projects to the inside or outside of the polygon. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1FaceT_aa064b948f26e34a15680fe56ce343768}\label{classDCEL_1_1FaceT_aa064b948f26e34a15680fe56ce343768}} 
 \mbox{\hyperlink{classDCEL_1_1FaceT_a093d002d920273591d221c3d8187e95c}{Edge\+Ptr}} \& \mbox{\hyperlink{classDCEL_1_1FaceT_aa064b948f26e34a15680fe56ce343768}{get\+Half\+Edge}} () noexcept
@@ -143,10 +143,10 @@ T \mbox{\hyperlink{classDCEL_1_1FaceT_a3109b989ce8208fb6613fb1816f7e999}{m\+\_\+
 \mbox{\hyperlink{classDCEL_1_1FaceT_aec068c567e83c11f12d1d9d535eb016a}{Vec3}} \mbox{\hyperlink{classDCEL_1_1FaceT_ac1aea223d6dcb6ace627704dec8d6278}{m\+\_\+centroid}}
 \begin{DoxyCompactList}\small\item\em Polygon face centroid position. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1FaceT_a037cf55d6b9e1188203e9bec87c7d588}\label{classDCEL_1_1FaceT_a037cf55d6b9e1188203e9bec87c7d588}} 
-std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1Polygon2D}{Polygon2D}}$<$ T $>$ $>$ \mbox{\hyperlink{classDCEL_1_1FaceT_a037cf55d6b9e1188203e9bec87c7d588}{m\+\_\+poly2}}
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ T $>$ $>$ \mbox{\hyperlink{classDCEL_1_1FaceT_a037cf55d6b9e1188203e9bec87c7d588}{m\+\_\+poly2}}
 \begin{DoxyCompactList}\small\item\em 2D embedding of this polygon. This is the 2D view of the current object projected along its normal vector cardinal. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1FaceT_a163ba3c75cacf57175be2e5d009bce7a}\label{classDCEL_1_1FaceT_a163ba3c75cacf57175be2e5d009bce7a}} 
-\mbox{\hyperlink{classDCEL_1_1Polygon2D}{Polygon2D}}$<$ T $>$\+::Inside\+Outside\+Algorithm \mbox{\hyperlink{classDCEL_1_1FaceT_a163ba3c75cacf57175be2e5d009bce7a}{m\+\_\+poly2\+Algorithm}}
+\mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ T $>$\+::Inside\+Outside\+Algorithm \mbox{\hyperlink{classDCEL_1_1FaceT_a163ba3c75cacf57175be2e5d009bce7a}{m\+\_\+poly2\+Algorithm}}
 \begin{DoxyCompactList}\small\item\em Algorithm for inside/outside tests. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
@@ -334,7 +334,7 @@ Set the half edge.
 \index{setInsideOutsideAlgorithm@{setInsideOutsideAlgorithm}!DCEL::FaceT$<$ T $>$@{DCEL::FaceT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{setInsideOutsideAlgorithm()}{setInsideOutsideAlgorithm()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-void \mbox{\hyperlink{classDCEL_1_1FaceT}{D\+C\+E\+L\+::\+FaceT}}$<$ T $>$\+::set\+Inside\+Outside\+Algorithm (\begin{DoxyParamCaption}\item[{typename \mbox{\hyperlink{classDCEL_1_1Polygon2D}{Polygon2D}}$<$ T $>$\+::Inside\+Outside\+Algorithm \&}]{a\+\_\+algorithm }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+void \mbox{\hyperlink{classDCEL_1_1FaceT}{D\+C\+E\+L\+::\+FaceT}}$<$ T $>$\+::set\+Inside\+Outside\+Algorithm (\begin{DoxyParamCaption}\item[{typename \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ T $>$\+::Inside\+Outside\+Algorithm \&}]{a\+\_\+algorithm }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 

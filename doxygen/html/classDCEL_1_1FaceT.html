@@ -142,7 +142,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a35f92e48ed1633e379f30f36886061b2"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1FaceT.html#a35f92e48ed1633e379f30f36886061b2">setHalfEdge</a> (const <a class="el" href="classDCEL_1_1FaceT.html#a093d002d920273591d221c3d8187e95c">EdgePtr</a> &amp;a_halfEdge) noexcept</td></tr>
 <tr class="memdesc:a35f92e48ed1633e379f30f36886061b2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the half edge.  <a href="classDCEL_1_1FaceT.html#a35f92e48ed1633e379f30f36886061b2">More...</a><br /></td></tr>
 <tr class="separator:a35f92e48ed1633e379f30f36886061b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0c7794b9517c3de3d239d6776aad5bf6"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1FaceT.html#a0c7794b9517c3de3d239d6776aad5bf6">setInsideOutsideAlgorithm</a> (typename <a class="el" href="classDCEL_1_1Polygon2D.html">Polygon2D</a>&lt; T &gt;::InsideOutsideAlgorithm &amp;a_algorithm) noexcept</td></tr>
+<tr class="memitem:a0c7794b9517c3de3d239d6776aad5bf6"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1FaceT.html#a0c7794b9517c3de3d239d6776aad5bf6">setInsideOutsideAlgorithm</a> (typename <a class="el" href="classPolygon2D.html">Polygon2D</a>&lt; T &gt;::InsideOutsideAlgorithm &amp;a_algorithm) noexcept</td></tr>
 <tr class="memdesc:a0c7794b9517c3de3d239d6776aad5bf6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the inside/outside algorithm when determining if a point projects to the inside or outside of the polygon.  <a href="classDCEL_1_1FaceT.html#a0c7794b9517c3de3d239d6776aad5bf6">More...</a><br /></td></tr>
 <tr class="separator:a0c7794b9517c3de3d239d6776aad5bf6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa064b948f26e34a15680fe56ce343768"><td class="memItemLeft" align="right" valign="top"><a id="aa064b948f26e34a15680fe56ce343768"></a>
@@ -260,11 +260,11 @@ T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDC
 <tr class="memdesc:ac1aea223d6dcb6ace627704dec8d6278"><td class="mdescLeft">&#160;</td><td class="mdescRight">Polygon face centroid position. <br /></td></tr>
 <tr class="separator:ac1aea223d6dcb6ace627704dec8d6278"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a037cf55d6b9e1188203e9bec87c7d588"><td class="memItemLeft" align="right" valign="top"><a id="a037cf55d6b9e1188203e9bec87c7d588"></a>
-std::shared_ptr&lt; <a class="el" href="classDCEL_1_1Polygon2D.html">Polygon2D</a>&lt; T &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1FaceT.html#a037cf55d6b9e1188203e9bec87c7d588">m_poly2</a></td></tr>
+std::shared_ptr&lt; <a class="el" href="classPolygon2D.html">Polygon2D</a>&lt; T &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1FaceT.html#a037cf55d6b9e1188203e9bec87c7d588">m_poly2</a></td></tr>
 <tr class="memdesc:a037cf55d6b9e1188203e9bec87c7d588"><td class="mdescLeft">&#160;</td><td class="mdescRight">2D embedding of this polygon. This is the 2D view of the current object projected along its normal vector cardinal. <br /></td></tr>
 <tr class="separator:a037cf55d6b9e1188203e9bec87c7d588"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a163ba3c75cacf57175be2e5d009bce7a"><td class="memItemLeft" align="right" valign="top"><a id="a163ba3c75cacf57175be2e5d009bce7a"></a>
-<a class="el" href="classDCEL_1_1Polygon2D.html">Polygon2D</a>&lt; T &gt;::InsideOutsideAlgorithm&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1FaceT.html#a163ba3c75cacf57175be2e5d009bce7a">m_poly2Algorithm</a></td></tr>
+<a class="el" href="classPolygon2D.html">Polygon2D</a>&lt; T &gt;::InsideOutsideAlgorithm&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1FaceT.html#a163ba3c75cacf57175be2e5d009bce7a">m_poly2Algorithm</a></td></tr>
 <tr class="memdesc:a163ba3c75cacf57175be2e5d009bce7a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Algorithm for inside/outside tests. <br /></td></tr>
 <tr class="separator:a163ba3c75cacf57175be2e5d009bce7a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -666,7 +666,7 @@ template&lt;class T &gt; </div>
         <tr>
           <td class="memname">void <a class="el" href="classDCEL_1_1FaceT.html">DCEL::FaceT</a>&lt; T &gt;::setInsideOutsideAlgorithm </td>
           <td>(</td>
-          <td class="paramtype">typename <a class="el" href="classDCEL_1_1Polygon2D.html">Polygon2D</a>&lt; T &gt;::InsideOutsideAlgorithm &amp;&#160;</td>
+          <td class="paramtype">typename <a class="el" href="classPolygon2D.html">Polygon2D</a>&lt; T &gt;::InsideOutsideAlgorithm &amp;&#160;</td>
           <td class="paramname"><em>a_algorithm</em></td><td>)</td>
           <td></td>
         </tr>

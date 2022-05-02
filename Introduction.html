@@ -59,6 +59,7 @@
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemSDF.html">Signed distance function</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemUnion.html">Unions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Parsers.html">File parsers</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
 <ul>
@@ -103,7 +104,6 @@ Originally, it was written to be used with embedded-boundary (EB) codes like Cho
 <h1>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline"></a></h1>
 <ul class="simple">
 <li><p>A C++ compiler which supports C++14.</p></li>
-<li><p>An analytic signed distance function, or a watertight and orientable surface grid.</p></li>
 </ul>
 </div>
 <div class="section" id="quickstart">
@@ -112,14 +112,18 @@ Originally, it was written to be used with embedded-boundary (EB) codes like Cho
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git clone git@github.com:rmrsk/EBGeometry.git
 </pre></div>
 </div>
-<p>EBGeometry is a header-only library and is simple to use.
+<p>EBGeometry is a header-only library and is comparatively simple to set up and use.
 To use it, make <code class="file docutils literal notranslate"><span class="pre">EBGeometry.hpp</span></code> (stored at the top level) visible to your code and include it.</p>
 <p>To compile the examples, navigate to the examples folder.
-The following two examples show two usages of EBGeometry:</p>
-<ol class="arabic simple">
-<li><p><code class="file docutils literal notranslate"><span class="pre">Examples/Basic</span></code> shows how to construct signed distance fields from surface grids, and how to perform signed distance calculations.</p></li>
-<li><p><code class="file docutils literal notranslate"><span class="pre">Examples/Union</span></code> shows how to create multi-object scenes and embed them in bounding volume hierarchies.</p></li>
-</ol>
+Examples that begin by <em>EBGeometry_</em> are pure <code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> examples.
+Other examples that begin with e.g. <code class="docutils literal notranslate"><span class="pre">AMReX_</span></code> or <code class="docutils literal notranslate"><span class="pre">Chombo3_</span></code> are application code examples.
+These examples require the user to install additional third-party software.</p>
+<p>To run the EBGeometry examples, navigate to e.g. <code class="file docutils literal notranslate"><span class="pre">Examples/EBGeometry_DCEL</span></code> and compile and run the application code as follows:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>g++ -O3 -std<span class="o">=</span>c++14 main.cpp
+./a.out porsche.ply
+</pre></div>
+</div>
+<p>This will read <code class="file docutils literal notranslate"><span class="pre">porsche.ply</span></code> (stored under <code class="file docutils literal notranslate"><span class="pre">Examples/PLY</span></code>) and create a signed distance function from it.</p>
 </div>
 <div class="section" id="features">
 <h1>Features<a class="headerlink" href="#features" title="Permalink to this headline"></a></h1>
@@ -127,10 +131,10 @@ The following two examples show two usages of EBGeometry:</p>
 <ul class="simple">
 <li><p>Representation of water-tight surface grids as signed distance fields.
 EBGeometry uses a doubly-connected edge list (DCEL) representation of the mesh.</p></li>
-<li><p>Straightforward implementations of bounding volume hierarchies (BVHs) for use as acceleration structures.
+<li><p>Various analytic distance functions.</p></li>
+<li><p>Bounding volume hierarchies (BVHs) for use as acceleration structures.
 The BVHs can be represented in full or compact (i.e., linearized) forms.</p></li>
-<li><p>Support for signed distance calculations and transformations (rotations, translations, and scaling).</p></li>
-<li><p>Heavy use of metaprogramming, which exists e.g. in order to permit higher-order trees and flexibility in BVH partitioning.</p></li>
+<li><p>Use of metaprogramming, which exists e.g. in order to permit higher-order trees and flexibility in BVH partitioning.</p></li>
 <li><p>Examples of how to couple EBGeometry to AMReX and Chombo.</p></li>
 </ul>
 </div>

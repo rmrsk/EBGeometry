@@ -7,7 +7,6 @@ Requirements
 ============
 
 * A C++ compiler which supports C++14.
-* An analytic signed distance function, or a watertight and orientable surface grid. 
 
 Quickstart
 ==========
@@ -18,14 +17,23 @@ To obtained EBGeometry, clone the code from `github <https://github.com/rmrsk/EB
 
    git clone git@github.com:rmrsk/EBGeometry.git
 
-EBGeometry is a header-only library and is simple to use. 
+EBGeometry is a header-only library and is comparatively simple to set up and use. 
 To use it, make :file:`EBGeometry.hpp` (stored at the top level) visible to your code and include it.
 
 To compile the examples, navigate to the examples folder.
-The following two examples show two usages of EBGeometry:
+Examples that begin by *EBGeometry_* are pure ``EBGeometry`` examples.
+Other examples that begin with e.g. ``AMReX_`` or ``Chombo3_`` are application code examples.
+These examples require the user to install additional third-party software.
 
-#. :file:`Examples/Basic` shows how to construct signed distance fields from surface grids, and how to perform signed distance calculations.
-#. :file:`Examples/Union` shows how to create multi-object scenes and embed them in bounding volume hierarchies. 
+To run the EBGeometry examples, navigate to e.g. :file:`Examples/EBGeometry_DCEL` and compile and run the application code as follows:
+
+.. code-block:: bash
+
+   g++ -O3 -std=c++14 main.cpp
+   ./a.out porsche.ply
+
+This will read :file:`porsche.ply` (stored under :file:`Examples/PLY`) and create a signed distance function from it. 
+
 
 Features
 ========
@@ -34,8 +42,8 @@ The basic features of EBGeometry are as follows:
 
 * Representation of water-tight surface grids as signed distance fields.
   EBGeometry uses a doubly-connected edge list (DCEL) representation of the mesh.
-* Straightforward implementations of bounding volume hierarchies (BVHs) for use as acceleration structures.
+* Various analytic distance functions. 
+* Bounding volume hierarchies (BVHs) for use as acceleration structures.
   The BVHs can be represented in full or compact (i.e., linearized) forms.
-* Support for signed distance calculations and transformations (rotations, translations, and scaling).
-* Heavy use of metaprogramming, which exists e.g. in order to permit higher-order trees and flexibility in BVH partitioning.
+* Use of metaprogramming, which exists e.g. in order to permit higher-order trees and flexibility in BVH partitioning.
 * Examples of how to couple EBGeometry to AMReX and Chombo.  

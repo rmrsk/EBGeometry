@@ -104,7 +104,7 @@ $(function() {
 <div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
 <div class="line"><a name="l00039"></a><span class="lineno"><a class="line" href="classRotateOp.html#afac8d44cae4c9109c96d2c1ae47a1dc2">   39</a></span>&#160;<a class="code" href="classRotateOp.html#afac8d44cae4c9109c96d2c1ae47a1dc2">RotateOp&lt;T&gt;::RotateOp</a>()</div>
 <div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;{</div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;  m_axis = <a class="code" href="classVec3T.html#a1d428f249948d20d2c992e59d17df833">Vec3T&lt;T&gt;::unit</a>();</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;  m_axis     = <a class="code" href="classVec3T.html#a1d428f249948d20d2c992e59d17df833">Vec3T&lt;T&gt;::unit</a>();</div>
 <div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;  m_cosAngle = std::cos(T(0.0));</div>
 <div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;  m_sinAngle = std::sin(T(0.0));</div>
 <div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;}</div>
@@ -112,7 +112,7 @@ $(function() {
 <div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
 <div class="line"><a name="l00047"></a><span class="lineno"><a class="line" href="classRotateOp.html#a9436aaf636bf136d9a80d91ae4a41659">   47</a></span>&#160;<a class="code" href="classRotateOp.html#afac8d44cae4c9109c96d2c1ae47a1dc2">RotateOp&lt;T&gt;::RotateOp</a>(<span class="keyword">const</span> T a_angle, <span class="keyword">const</span> <span class="keywordtype">size_t</span> a_axis) noexcept</div>
 <div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;{</div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;  m_axis = a_axis;</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;  m_axis     = a_axis;</div>
 <div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;  m_cosAngle = std::cos(a_angle);</div>
 <div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;  m_sinAngle = std::sin(a_angle);</div>
 <div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;}</div>

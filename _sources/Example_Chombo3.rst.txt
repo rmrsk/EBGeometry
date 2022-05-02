@@ -9,17 +9,11 @@ We will focus on the following parts of the code:
 
 .. literalinclude:: ../../Examples/Chombo3_DCEL/main.cpp
    :language: c++
-   :lines: 22-25, 29-30, 34-35, 38,40,43-46,49,50, 55-64, 73
 
 Constructing the BVH
 --------------------
 
-When constructing the signed distance function we use the DCEL and BVH functionality directly in the constructor:
-
-.. literalinclude:: ../../Examples/Chombo3_DCEL/main.cpp
-   :language: c++
-   :lines: 38-50
-
+When constructing the signed distance function we use the DCEL and BVH functionality directly in the constructor.
 Note that we are performing the following steps:
 
 *  Using the PLY parser for creating a DCEL mesh.
@@ -31,8 +25,20 @@ Exposing signed distance functions
 
 Next, we expose the signed distance function to Chombo3 by implementing the functions
 
-.. literalinclude:: ../../Examples/Chombo3_DCEL/main.cpp
-   :language: c++
-   :lines: 56-64
+.. code-block:: c++
+
+  Real
+  value(const RealVect& a_point) const override final
+  {
+  #if CH_SPACEDIM == 2
+    Vec3 p(a_point[0], a_point[1], 0.0);
+  #else
+    Vec3 p(a_point[0], a_point[1], a_point[2]);
+  #endif
+
+    return Real(m_rootNode->signedDistance(p));
+  }
+
+   
 
 Note that because Chombo3 can be compiled in either 2D or 3D, we put a Chombo preprocessor flag ``CH_SPACEDIM`` in order to translate the Chombo ``RealVect`` to EBGeometry's inherent 3D vector structure.

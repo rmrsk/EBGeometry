@@ -28,11 +28,17 @@ The above template parameters are:
 Importantly, ``NodeT`` is the BVH builder node, i.e. it is the class through which we recursively build the BVH, see :ref:`Chap:BVHConstruction`.
 The compact BVH is discussed below in :ref:`Chap:LinearBVH`.
 
-For getting the signed distance, ``NodeT`` has provides the following function:
+For getting the signed distance, ``NodeT`` has provide the following functions:
 
-.. literalinclude:: ../../Source/EBGeometry_BVH.hpp
-   :language: c++
-   :lines: 112-115,220-221,330
+.. code-block:: c++
+
+   inline T
+   signedDistance(const Vec3T<T>& a_point) const noexcept override;
+
+   inline T
+   signedDistance(const Vec3T<T>& a_point, const Prune a_pruning) const noexcept;
+
+The first version simply calls the other version with a stack-based pruning algorithm for the tree traversal.
    
 
 .. _Chap:BVHConstraints:
@@ -163,9 +169,31 @@ Although seemingly complicated, the input arguments are simply polymorphic funct
    The function takes an list of primitives which it partitions into ``K`` new list of primitives, i.e. it encapsulates :eq:`Partition`.
    As an example, we include a partitioner that is provided for integrating BVH and DCEL functionality.
 
-   .. literalinclude:: ../../Source/EBGeometry_DcelBVH.hpp
-      :language: c++
-      :lines: 100-121
+   .. code-block:: c++
+		   
+      template <class T, class BV, size_t K>
+      EBGeometry::BVH::PartitionerT<EBGeometry::DCEL::FaceT<T>, BV, K> chunkPartitioner =
+      [](const PrimitiveList<T>& a_primitives) -> std::array<PrimitiveList<T>, K> {
+        Vec3T<T> lo = Vec3T<T>::max();
+	Vec3T<T> hi = -Vec3T<T>::max();
+	for (const auto& p : a_primitives) {
+	  lo = min(lo, p->getCentroid());
+	  hi = max(hi, p->getCentroid());
+	}
+
+	const size_t splitDir = (hi - lo).maxDir(true);
+
+	// Sort the primitives along the above coordinate direction.
+	PrimitiveList<T> sortedPrimitives(a_primitives);
+
+	std::sort(
+	  sortedPrimitives.begin(), sortedPrimitives.end(),
+	  [splitDir](const std::shared_ptr<const FaceT<T>>& f1, const std::shared_ptr<const FaceT<T>>& f2) -> bool {
+          return f1->getCentroid(splitDir) < f2->getCentroid(splitDir);
+	  });
+
+	return EBGeometry::DCEL::equalCounts<T, K>(sortedPrimitives);
+      };
 
    In the above, we are taking a list of DCEL facets in the input argument (``PrimitiveList<T>`` expands to ``std::vector<std::shared_ptr<const FaceT<T> >``).
    We then compute the centroid locations of each facet and figure out along which coordinate axis we partition the objects (called ``splitDir`` above). 
@@ -199,9 +227,10 @@ To encapsulate the compact BVH we provide two classes:
 *  ``LinearNodeT`` which encapsulates a node, but rather than storing the primitives and pointers to child nodes it stores offsets along the 1D arrays.
    Just like ``NodeT`` the class is templated:
 
-   .. literalinclude:: ../../Source/EBGeometry_BVH.hpp
-      :language: c++
-      :lines: 352-354, 473
+   .. code-block:: c++
+		   
+      template <class T, class P, class BV, size_t K>
+      class LinearNodeT		       
 
    ``LinearNodeT`` has a smaller memory footprint and should fit in one CPU word in floating-point precision and two CPU words in double point precision.
    The performance benefits of further memory alignment have not been investigated.
@@ -219,9 +248,18 @@ To encapsulate the compact BVH we provide two classes:
 *  ``LinearBVH`` which stores the compact BVH *and* primitives as class members.
    That is, ``LinearBVH`` contains the nodes and primitives as class members.
 
-   .. literalinclude:: ../../Source/EBGeometry_BVH.hpp
-      :language: c++
-      :lines: 477-480,529-533,537,544
+   .. code-block:: c++
+
+      template <class T, class P, class BV, size_t K>
+      class LinearBVH : public SignedDistanceFunction<T>
+      {
+      public:
+
+      protected:
+
+        std::vector<std::shared_ptr<const LinearNodeT<T, P, BV, K>>> m_linearNodes;
+	std::vector<std::shared_ptr<const P>> m_primitives;	
+      };
 
    The root node is, of course, found at the front of the ``m_linearNodes`` vector.
    Note that the list of primitives ``m_primitives`` is stored in the order in which the leaf nodes appear in ``m_linearNodes``. 
@@ -229,9 +267,16 @@ To encapsulate the compact BVH we provide two classes:
 Constructing the compact BVH is simply a matter of letting ``NodeT`` aggregate the nodes and primitives into arrays, and return a ``LinearBVH``.
 This is done by calling the ``NodeT`` member function ``flattenTree()``:
 
-.. literalinclude:: ../../Source/EBGeometry_BVH.hpp
-   :language: c++
-   :lines: 112-114,236-237,329
+.. code-block:: c++
+
+   template <class T, class P, class BV, size_t K>
+   class NodeT : public SignedDistanceFunction<T>
+   {
+   public:
+   
+     inline std::shared_ptr<LinearBVH<T, P, BV, K>>
+     flattenTree() const noexcept;
+   };
 
 which returns a pointer to a ``LinearBVH``.
 For example:
@@ -255,9 +300,16 @@ For example:
 
 Note that the primitives live in ``LinearBVH`` and not ``LinearNodeT``, and the signed distance function is therefore implemented in the ``LinearBVH`` member function:
 
-.. literalinclude:: ../../Source/EBGeometry_BVH.hpp
-   :language: c++
-   :lines: 477-479, 529-530, 544
+.. code-block:: c++
+		
+   template <class T, class P, class BV, size_t K>
+   class LinearBVH : public SignedDistanceFunction<T>
+   {
+   public:
+
+     inline T
+     signedDistance(const Vec3& a_point) const noexcept override;
+   };
 
 Signed distance
 ---------------

@@ -87,284 +87,284 @@ $(function() {
 <div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160; </div>
 <div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespaceDCEL.html">DCEL</a> {</div>
 <div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160; </div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00026"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a1d09a46a696336651b726df879fae828">   26</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classDCEL_1_1EdgeT.html#a1d09a46a696336651b726df879fae828">EdgeT&lt;T&gt;::EdgeT</a>()</div>
-<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;{</div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;  m_face = <span class="keyword">nullptr</span>;</div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;  m_vertex = <span class="keyword">nullptr</span>;</div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;  m_pairEdge = <span class="keyword">nullptr</span>;</div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;  m_nextEdge = <span class="keyword">nullptr</span>;</div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;  m_previousEdge = <span class="keyword">nullptr</span>;</div>
-<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;  m_normal = Vec3::zero();</div>
-<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;  m_x2x1 = Vec3::zero();</div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;  m_invLen2 = 0.0;</div>
-<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;}</div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00026"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a1d09a46a696336651b726df879fae828">   26</a></span>&#160;  <span class="keyword">inline</span> <a class="code" href="classDCEL_1_1EdgeT.html#a1d09a46a696336651b726df879fae828">EdgeT&lt;T&gt;::EdgeT</a>()</div>
+<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;  {</div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;    m_face         = <span class="keyword">nullptr</span>;</div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;    m_vertex       = <span class="keyword">nullptr</span>;</div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;    m_pairEdge     = <span class="keyword">nullptr</span>;</div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;    m_nextEdge     = <span class="keyword">nullptr</span>;</div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;    m_previousEdge = <span class="keyword">nullptr</span>;</div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;    m_normal       = Vec3::zero();</div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;    m_x2x1         = Vec3::zero();</div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;    m_invLen2      = 0.0;</div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;  }</div>
 <div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160; </div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00039"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a22348f1a0b084dd984dd3b2a501d485a">   39</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classDCEL_1_1EdgeT.html#a1d09a46a696336651b726df879fae828">EdgeT&lt;T&gt;::EdgeT</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a>&amp; a_vertex) : <a class="code" href="classDCEL_1_1EdgeT.html">EdgeT</a>&lt;T&gt;()</div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;{</div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a53ac2f18c3b35dd9ce9a6bc27063e75a">m_vertex</a> = a_vertex;</div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;}</div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00039"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a22348f1a0b084dd984dd3b2a501d485a">   39</a></span>&#160;  <span class="keyword">inline</span> <a class="code" href="classDCEL_1_1EdgeT.html#a1d09a46a696336651b726df879fae828">EdgeT&lt;T&gt;::EdgeT</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a>&amp; a_vertex) : <a class="code" href="classDCEL_1_1EdgeT.html">EdgeT</a>&lt;T&gt;()</div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;  {</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;    <a class="code" href="classDCEL_1_1EdgeT.html#a53ac2f18c3b35dd9ce9a6bc27063e75a">m_vertex</a> = a_vertex;</div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;  }</div>
 <div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160; </div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00045"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a483a66bf406e38074083ea14af52800c">   45</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classDCEL_1_1EdgeT.html#a1d09a46a696336651b726df879fae828">EdgeT&lt;T&gt;::EdgeT</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html">Edge</a>&amp; a_otherEdge) : <a class="code" href="classDCEL_1_1EdgeT.html">EdgeT</a>&lt;T&gt;()</div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;{</div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#aea50c2f1be02917cd517778fa53b0584">m_face</a> = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#aea50c2f1be02917cd517778fa53b0584">m_face</a>;</div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a53ac2f18c3b35dd9ce9a6bc27063e75a">m_vertex</a> = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#a53ac2f18c3b35dd9ce9a6bc27063e75a">m_vertex</a>;</div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#ae90cc2bf7a4e44d70de58433fc505413">m_pairEdge</a> = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#ae90cc2bf7a4e44d70de58433fc505413">m_pairEdge</a>;</div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#afe2f21d7aee79d1ebf93d73282fdbfcd">m_nextEdge</a> = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#afe2f21d7aee79d1ebf93d73282fdbfcd">m_nextEdge</a>;</div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a57266fdf2f1c37a1b72a74ae59c588b7">m_previousEdge</a> = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#a57266fdf2f1c37a1b72a74ae59c588b7">m_previousEdge</a>;</div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a93c04beec0547743780d4382c21bd5fa">m_normal</a> = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#a93c04beec0547743780d4382c21bd5fa">m_normal</a>;</div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a3e9c3fd77021047ed85dcbe231f77aff">m_x2x1</a> = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#a3e9c3fd77021047ed85dcbe231f77aff">m_x2x1</a>;</div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a051f940b04cae1c75b401acd67fa1498">m_invLen2</a> = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#a051f940b04cae1c75b401acd67fa1498">m_invLen2</a>;</div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;}</div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00045"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a483a66bf406e38074083ea14af52800c">   45</a></span>&#160;  <span class="keyword">inline</span> <a class="code" href="classDCEL_1_1EdgeT.html#a1d09a46a696336651b726df879fae828">EdgeT&lt;T&gt;::EdgeT</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html">Edge</a>&amp; a_otherEdge) : <a class="code" href="classDCEL_1_1EdgeT.html">EdgeT</a>&lt;T&gt;()</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;  {</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;    <a class="code" href="classDCEL_1_1EdgeT.html#aea50c2f1be02917cd517778fa53b0584">m_face</a>         = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#aea50c2f1be02917cd517778fa53b0584">m_face</a>;</div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;    <a class="code" href="classDCEL_1_1EdgeT.html#a53ac2f18c3b35dd9ce9a6bc27063e75a">m_vertex</a>       = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#a53ac2f18c3b35dd9ce9a6bc27063e75a">m_vertex</a>;</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;    <a class="code" href="classDCEL_1_1EdgeT.html#ae90cc2bf7a4e44d70de58433fc505413">m_pairEdge</a>     = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#ae90cc2bf7a4e44d70de58433fc505413">m_pairEdge</a>;</div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;    <a class="code" href="classDCEL_1_1EdgeT.html#afe2f21d7aee79d1ebf93d73282fdbfcd">m_nextEdge</a>     = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#afe2f21d7aee79d1ebf93d73282fdbfcd">m_nextEdge</a>;</div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;    <a class="code" href="classDCEL_1_1EdgeT.html#a57266fdf2f1c37a1b72a74ae59c588b7">m_previousEdge</a> = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#a57266fdf2f1c37a1b72a74ae59c588b7">m_previousEdge</a>;</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;    <a class="code" href="classDCEL_1_1EdgeT.html#a93c04beec0547743780d4382c21bd5fa">m_normal</a>       = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#a93c04beec0547743780d4382c21bd5fa">m_normal</a>;</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;    <a class="code" href="classDCEL_1_1EdgeT.html#a3e9c3fd77021047ed85dcbe231f77aff">m_x2x1</a>         = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#a3e9c3fd77021047ed85dcbe231f77aff">m_x2x1</a>;</div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;    <a class="code" href="classDCEL_1_1EdgeT.html#a051f940b04cae1c75b401acd67fa1498">m_invLen2</a>      = a_otherEdge.<a class="code" href="classDCEL_1_1EdgeT.html#a051f940b04cae1c75b401acd67fa1498">m_invLen2</a>;</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;  }</div>
 <div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160; </div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00058"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#acd765464e6c977e0a230c517be858185">   58</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classDCEL_1_1EdgeT.html#acd765464e6c977e0a230c517be858185">EdgeT&lt;T&gt;::~EdgeT</a>()</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;{</div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;}</div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160; </div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;<span class="keyword">inline</span> <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00064"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a86575fb71bf59bb7ac222d86dcc8412c">   64</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#a86575fb71bf59bb7ac222d86dcc8412c">EdgeT&lt;T&gt;::define</a>(</div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;  <span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a>&amp; a_vertex,</div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;  <span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp; a_pairEdge,</div>
-<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;  <span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp; a_nextEdge,</div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;  <span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp; a_previousEdge,</div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;  <span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a> a_normal) noexcept</div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;{</div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;  m_vertex = a_vertex;</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;  m_pairEdge = a_pairEdge;</div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;  m_nextEdge = a_nextEdge;</div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;  m_previousEdge = a_previousEdge;</div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;  m_normal = a_normal;</div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;}</div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160; </div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;<span class="keyword">inline</span> <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00080"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#ab439e26a598ae3337ae2b69285059667">   80</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#ab439e26a598ae3337ae2b69285059667">EdgeT&lt;T&gt;::setVertex</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a>&amp; a_vertex) noexcept</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;{</div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;  m_vertex = a_vertex;</div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;}</div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160; </div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;<span class="keyword">inline</span> <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00087"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a91b996c2569dfea4689508f6038226aa">   87</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#a91b996c2569dfea4689508f6038226aa">EdgeT&lt;T&gt;::setPairEdge</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp; a_pairEdge) noexcept</div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;{</div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;  m_pairEdge = a_pairEdge;</div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;}</div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160; </div>
-<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;<span class="keyword">inline</span> <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00094"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#afcedb51849b8a2976a689b5d41591d5c">   94</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#afcedb51849b8a2976a689b5d41591d5c">EdgeT&lt;T&gt;::setNextEdge</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp; a_nextEdge) noexcept</div>
-<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;{</div>
-<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;  m_nextEdge = a_nextEdge;</div>
-<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;}</div>
-<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160; </div>
-<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;<span class="keyword">inline</span> <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00101"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#aa9053eaf54fcd0c128de1aba2b2fa409">  101</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#aa9053eaf54fcd0c128de1aba2b2fa409">EdgeT&lt;T&gt;::setPreviousEdge</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp; a_previousEdge) noexcept</div>
-<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;{</div>
-<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;  m_previousEdge = a_previousEdge;</div>
-<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;}</div>
-<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160; </div>
-<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;<span class="keyword">inline</span> <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00108"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#aed89e0450331d54b98c857fc25f0a38c">  108</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#aed89e0450331d54b98c857fc25f0a38c">EdgeT&lt;T&gt;::setFace</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#ae3cb3bfc7d976cab10edafdb73341c3b">FacePtr</a>&amp; a_face) noexcept</div>
-<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;{</div>
-<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;  m_face = a_face;</div>
-<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;}</div>
-<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160; </div>
-<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;<span class="keyword">inline</span> <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00115"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#af23afd2f40e4e34c515fba649b249939">  115</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#af23afd2f40e4e34c515fba649b249939">EdgeT&lt;T&gt;::normalizeNormalVector</a>() noexcept</div>
-<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;{</div>
-<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;  m_normal = m_normal / m_normal.length();</div>
-<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;}</div>
-<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160; </div>
-<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;<span class="keyword">inline</span> <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00122"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a3af6e4f7e6f75907f3ae3148e32eb029">  122</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#a3af6e4f7e6f75907f3ae3148e32eb029">EdgeT&lt;T&gt;::computeEdgeLength</a>() noexcept</div>
-<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;{</div>
-<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;  <span class="keyword">const</span> <span class="keyword">auto</span>&amp; x1 = this-&gt;getVertex()-&gt;getPosition();</div>
-<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;  <span class="keyword">const</span> <span class="keyword">auto</span>&amp; x2 = this-&gt;getOtherVertex()-&gt;getPosition();</div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00058"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#acd765464e6c977e0a230c517be858185">   58</a></span>&#160;  <span class="keyword">inline</span> <a class="code" href="classDCEL_1_1EdgeT.html#acd765464e6c977e0a230c517be858185">EdgeT&lt;T&gt;::~EdgeT</a>()</div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;  {}</div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160; </div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;  <span class="keyword">inline</span> <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00063"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a86575fb71bf59bb7ac222d86dcc8412c">   63</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a86575fb71bf59bb7ac222d86dcc8412c">EdgeT&lt;T&gt;::define</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a>&amp; a_vertex,</div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;                   <span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp;   a_pairEdge,</div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;                   <span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp;   a_nextEdge,</div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;                   <span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp;   a_previousEdge,</div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;                   <span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a>       a_normal) noexcept</div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;  {</div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;    m_vertex       = a_vertex;</div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;    m_pairEdge     = a_pairEdge;</div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;    m_nextEdge     = a_nextEdge;</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;    m_previousEdge = a_previousEdge;</div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;    m_normal       = a_normal;</div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;  }</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160; </div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;  <span class="keyword">inline</span> <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00078"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#ab439e26a598ae3337ae2b69285059667">   78</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#ab439e26a598ae3337ae2b69285059667">EdgeT&lt;T&gt;::setVertex</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a>&amp; a_vertex) noexcept</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;  {</div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;    m_vertex = a_vertex;</div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;  }</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160; </div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;  <span class="keyword">inline</span> <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00085"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a91b996c2569dfea4689508f6038226aa">   85</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a91b996c2569dfea4689508f6038226aa">EdgeT&lt;T&gt;::setPairEdge</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp; a_pairEdge) noexcept</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;  {</div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;    m_pairEdge = a_pairEdge;</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;  }</div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160; </div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;  <span class="keyword">inline</span> <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00092"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#afcedb51849b8a2976a689b5d41591d5c">   92</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#afcedb51849b8a2976a689b5d41591d5c">EdgeT&lt;T&gt;::setNextEdge</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp; a_nextEdge) noexcept</div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;  {</div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;    m_nextEdge = a_nextEdge;</div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;  }</div>
+<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160; </div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;  <span class="keyword">inline</span> <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00099"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#aa9053eaf54fcd0c128de1aba2b2fa409">   99</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#aa9053eaf54fcd0c128de1aba2b2fa409">EdgeT&lt;T&gt;::setPreviousEdge</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp; a_previousEdge) noexcept</div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;  {</div>
+<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;    m_previousEdge = a_previousEdge;</div>
+<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;  }</div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160; </div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;  <span class="keyword">inline</span> <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00106"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#aed89e0450331d54b98c857fc25f0a38c">  106</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#aed89e0450331d54b98c857fc25f0a38c">EdgeT&lt;T&gt;::setFace</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1EdgeT.html#ae3cb3bfc7d976cab10edafdb73341c3b">FacePtr</a>&amp; a_face) noexcept</div>
+<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;  {</div>
+<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;    m_face = a_face;</div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;  }</div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160; </div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;  <span class="keyword">inline</span> <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00113"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#af23afd2f40e4e34c515fba649b249939">  113</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#af23afd2f40e4e34c515fba649b249939">EdgeT&lt;T&gt;::normalizeNormalVector</a>() noexcept</div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;  {</div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;    m_normal = m_normal / m_normal.length();</div>
+<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;  }</div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160; </div>
+<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;  <span class="keyword">inline</span> <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00120"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a3af6e4f7e6f75907f3ae3148e32eb029">  120</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a3af6e4f7e6f75907f3ae3148e32eb029">EdgeT&lt;T&gt;::computeEdgeLength</a>() noexcept</div>
+<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;  {</div>
+<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;    <span class="keyword">const</span> <span class="keyword">auto</span>&amp; x1 = this-&gt;getVertex()-&gt;getPosition();</div>
+<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;    <span class="keyword">const</span> <span class="keyword">auto</span>&amp; x2 = this-&gt;getOtherVertex()-&gt;getPosition();</div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160; </div>
+<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;    m_x2x1 = x2 - x1;</div>
 <div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160; </div>
-<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;  m_x2x1 = x2 - x1;</div>
+<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;    <span class="keyword">const</span> <span class="keyword">auto</span> len2 = m_x2x1.dot(m_x2x1);</div>
 <div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160; </div>
-<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;  <span class="keyword">const</span> <span class="keyword">auto</span> len2 = m_x2x1.dot(m_x2x1);</div>
-<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160; </div>
-<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;  m_invLen2 = 1. / len2;</div>
-<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;}</div>
-<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160; </div>
-<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;<span class="keyword">inline</span> <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00136"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a11756579a2bcca0134fdaabb32987858">  136</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#a11756579a2bcca0134fdaabb32987858">EdgeT&lt;T&gt;::computeNormal</a>() noexcept</div>
-<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;{</div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;    m_invLen2 = 1. / len2;</div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;  }</div>
+<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160; </div>
+<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;  <span class="keyword">inline</span> <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00134"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a11756579a2bcca0134fdaabb32987858">  134</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a11756579a2bcca0134fdaabb32987858">EdgeT&lt;T&gt;::computeNormal</a>() noexcept</div>
+<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;  {</div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160; </div>
+<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;    m_normal = m_face-&gt;getNormal();</div>
 <div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160; </div>
-<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160;  m_normal = m_face-&gt;getNormal();</div>
-<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160; </div>
-<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160;  <span class="keywordflow">if</span> (m_pairEdge) {</div>
-<div class="line"><a name="l00142"></a><span class="lineno">  142</span>&#160;    m_normal += m_pairEdge-&gt;getFace()-&gt;getNormal();</div>
-<div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160;  }</div>
-<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160; </div>
-<div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160;  this-&gt;normalizeNormalVector();</div>
-<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160;}</div>
-<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160; </div>
-<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;<span class="keyword">inline</span> <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00150"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#af205c6581568dafe9daa31d693550127">  150</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#af205c6581568dafe9daa31d693550127">EdgeT&lt;T&gt;::reconcile</a>() noexcept</div>
-<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;{</div>
-<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;  this-&gt;computeNormal();</div>
-<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;  this-&gt;computeEdgeLength();</div>
-<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;}</div>
-<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160; </div>
-<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;<span class="keyword">inline</span> std::shared_ptr&lt;VertexT&lt;T&gt;&gt;&amp;</div>
-<div class="line"><a name="l00158"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a0afc8cc1c8cc2f257d8ed91d2a04f1d3">  158</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#a0afc8cc1c8cc2f257d8ed91d2a04f1d3">EdgeT&lt;T&gt;::getVertex</a>() noexcept</div>
-<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;{</div>
-<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;  <span class="keywordflow">return</span> (m_vertex);</div>
-<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;}</div>
-<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160; </div>
-<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> std::shared_ptr&lt;VertexT&lt;T&gt;&gt;&amp;</div>
-<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#a0afc8cc1c8cc2f257d8ed91d2a04f1d3">EdgeT&lt;T&gt;::getVertex</a>() const noexcept</div>
-<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;{</div>
-<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;  <span class="keywordflow">return</span> (m_vertex);</div>
-<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;}</div>
-<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160; </div>
-<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;<span class="keyword">inline</span> std::shared_ptr&lt;VertexT&lt;T&gt;&gt;&amp;</div>
-<div class="line"><a name="l00172"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a4e57db5b8a0f5139ac672b9ffc569879">  172</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#a4e57db5b8a0f5139ac672b9ffc569879">EdgeT&lt;T&gt;::getOtherVertex</a>() noexcept</div>
-<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;{</div>
-<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;  <span class="keywordflow">return</span> (m_nextEdge-&gt;getVertex());</div>
-<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;}</div>
-<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160; </div>
-<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> std::shared_ptr&lt;VertexT&lt;T&gt;&gt;&amp;</div>
-<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#a4e57db5b8a0f5139ac672b9ffc569879">EdgeT&lt;T&gt;::getOtherVertex</a>() const noexcept</div>
-<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;{</div>
-<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;  <span class="keywordflow">return</span> (m_nextEdge-&gt;getVertex());</div>
-<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160;}</div>
-<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160; </div>
-<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;<span class="keyword">inline</span> std::shared_ptr&lt;EdgeT&lt;T&gt;&gt;&amp;</div>
-<div class="line"><a name="l00186"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a1dbd07e735aa0209c7ec853856ef3cb8">  186</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#a1dbd07e735aa0209c7ec853856ef3cb8">EdgeT&lt;T&gt;::getPairEdge</a>() noexcept</div>
-<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160;{</div>
-<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;  <span class="keywordflow">return</span> (m_pairEdge);</div>
-<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160;}</div>
-<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160; </div>
-<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> std::shared_ptr&lt;EdgeT&lt;T&gt;&gt;&amp;</div>
-<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#a1dbd07e735aa0209c7ec853856ef3cb8">EdgeT&lt;T&gt;::getPairEdge</a>() const noexcept</div>
-<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;{</div>
-<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;  <span class="keywordflow">return</span> (m_pairEdge);</div>
-<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;}</div>
-<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160; </div>
-<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160;<span class="keyword">inline</span> std::shared_ptr&lt;EdgeT&lt;T&gt;&gt;&amp;</div>
-<div class="line"><a name="l00200"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#ae6d8cbfd0d089987691b7837ec377bf8">  200</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#ae6d8cbfd0d089987691b7837ec377bf8">EdgeT&lt;T&gt;::getPreviousEdge</a>() noexcept</div>
-<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;{</div>
-<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160;  <span class="keywordflow">return</span> (m_previousEdge);</div>
-<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;}</div>
-<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160; </div>
-<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> std::shared_ptr&lt;EdgeT&lt;T&gt;&gt;&amp;</div>
-<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#ae6d8cbfd0d089987691b7837ec377bf8">EdgeT&lt;T&gt;::getPreviousEdge</a>() const noexcept</div>
-<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;{</div>
-<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160;  <span class="keywordflow">return</span> (m_previousEdge);</div>
-<div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;}</div>
-<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160; </div>
-<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;<span class="keyword">inline</span> std::shared_ptr&lt;EdgeT&lt;T&gt;&gt;&amp;</div>
-<div class="line"><a name="l00214"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#acb492fe0e884f810ec30500f9934d04c">  214</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#acb492fe0e884f810ec30500f9934d04c">EdgeT&lt;T&gt;::getNextEdge</a>() noexcept</div>
-<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;{</div>
-<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160;  <span class="keywordflow">return</span> (m_nextEdge);</div>
-<div class="line"><a name="l00217"></a><span class="lineno">  217</span>&#160;}</div>
-<div class="line"><a name="l00218"></a><span class="lineno">  218</span>&#160; </div>
-<div class="line"><a name="l00219"></a><span class="lineno">  219</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> std::shared_ptr&lt;EdgeT&lt;T&gt;&gt;&amp;</div>
-<div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#acb492fe0e884f810ec30500f9934d04c">EdgeT&lt;T&gt;::getNextEdge</a>() const noexcept</div>
-<div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160;{</div>
-<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160;  <span class="keywordflow">return</span> (m_nextEdge);</div>
-<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;}</div>
-<div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160; </div>
-<div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;<span class="keyword">inline</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp;</div>
-<div class="line"><a name="l00228"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#abc86603f37020f08056f52b4db8b95ae">  228</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#abc86603f37020f08056f52b4db8b95ae">EdgeT&lt;T&gt;::getNormal</a>() noexcept</div>
-<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160;{</div>
-<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160;  <span class="keywordflow">return</span> (m_normal);</div>
-<div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160;}</div>
-<div class="line"><a name="l00232"></a><span class="lineno">  232</span>&#160; </div>
-<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp;</div>
-<div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#abc86603f37020f08056f52b4db8b95ae">EdgeT&lt;T&gt;::getNormal</a>() const noexcept</div>
-<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160;{</div>
-<div class="line"><a name="l00237"></a><span class="lineno">  237</span>&#160;  <span class="keywordflow">return</span> (m_normal);</div>
-<div class="line"><a name="l00238"></a><span class="lineno">  238</span>&#160;}</div>
-<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160; </div>
-<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160;<span class="keyword">inline</span> std::shared_ptr&lt;FaceT&lt;T&gt;&gt;&amp;</div>
-<div class="line"><a name="l00242"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a51ff4fd40b5519a918c5fa00420f8125">  242</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#a51ff4fd40b5519a918c5fa00420f8125">EdgeT&lt;T&gt;::getFace</a>() noexcept</div>
-<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160;{</div>
-<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160;  <span class="keywordflow">return</span> (m_face);</div>
-<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160;}</div>
-<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160; </div>
-<div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> std::shared_ptr&lt;FaceT&lt;T&gt;&gt;&amp;</div>
-<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#a51ff4fd40b5519a918c5fa00420f8125">EdgeT&lt;T&gt;::getFace</a>() const noexcept</div>
-<div class="line"><a name="l00250"></a><span class="lineno">  250</span>&#160;{</div>
-<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160;  <span class="keywordflow">return</span> (m_face);</div>
-<div class="line"><a name="l00252"></a><span class="lineno">  252</span>&#160;}</div>
-<div class="line"><a name="l00253"></a><span class="lineno">  253</span>&#160; </div>
-<div class="line"><a name="l00254"></a><span class="lineno">  254</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00255"></a><span class="lineno">  255</span>&#160;<span class="keyword">inline</span> T</div>
-<div class="line"><a name="l00256"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#ad3d93918b8ccbbdfba50d74107f162d7">  256</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#ad3d93918b8ccbbdfba50d74107f162d7">EdgeT&lt;T&gt;::projectPointToEdge</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a>&amp; a_x0) <span class="keyword">const</span> noexcept</div>
-<div class="line"><a name="l00257"></a><span class="lineno">  257</span>&#160;{</div>
-<div class="line"><a name="l00258"></a><span class="lineno">  258</span>&#160;  <span class="keyword">const</span> <span class="keyword">auto</span> p = a_x0 - m_vertex-&gt;getPosition();</div>
-<div class="line"><a name="l00259"></a><span class="lineno">  259</span>&#160; </div>
-<div class="line"><a name="l00260"></a><span class="lineno">  260</span>&#160;  <span class="keywordflow">return</span> p.dot(m_x2x1) * m_invLen2;</div>
-<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;}</div>
-<div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160; </div>
-<div class="line"><a name="l00263"></a><span class="lineno">  263</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160;<span class="keyword">inline</span> T</div>
-<div class="line"><a name="l00265"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a18ff0a6a6ff7ddfda2d2e5c67268e590">  265</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#a18ff0a6a6ff7ddfda2d2e5c67268e590">EdgeT&lt;T&gt;::signedDistance</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a>&amp; a_x0) <span class="keyword">const</span> noexcept</div>
-<div class="line"><a name="l00266"></a><span class="lineno">  266</span>&#160;{</div>
-<div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160;  <span class="keyword">const</span> T t = this-&gt;projectPointToEdge(a_x0);</div>
-<div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160; </div>
-<div class="line"><a name="l00269"></a><span class="lineno">  269</span>&#160;  T retval;</div>
-<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160;  <span class="keywordflow">if</span> (t &lt;= 0.0) { <span class="comment">// Closest point is the starting vertex</span></div>
-<div class="line"><a name="l00271"></a><span class="lineno">  271</span>&#160;    retval = this-&gt;getVertex()-&gt;signedDistance(a_x0);</div>
-<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160;  } <span class="keywordflow">else</span> <span class="keywordflow">if</span> (t &gt;= 1.0) { <span class="comment">// Closest point is the end vertex</span></div>
-<div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160;    retval = this-&gt;getOtherVertex()-&gt;signedDistance(a_x0);</div>
-<div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160;  } <span class="keywordflow">else</span> { <span class="comment">// Closest point is the edge itself.</span></div>
-<div class="line"><a name="l00275"></a><span class="lineno">  275</span>&#160;    <span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a> linePoint = m_vertex-&gt;getPosition() + t * m_x2x1;</div>
-<div class="line"><a name="l00276"></a><span class="lineno">  276</span>&#160;    <span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a> delta = a_x0 - linePoint;</div>
-<div class="line"><a name="l00277"></a><span class="lineno">  277</span>&#160;    <span class="keyword">const</span> T <a class="code" href="EBGeometry__Vec_8hpp.html#a3f91a5c6f34c32789ab4760665810a9a">dot</a> = m_normal.dot(delta);</div>
+<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160;    <span class="keywordflow">if</span> (m_pairEdge) {</div>
+<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160;      m_normal += m_pairEdge-&gt;getFace()-&gt;getNormal();</div>
+<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160;    }</div>
+<div class="line"><a name="l00142"></a><span class="lineno">  142</span>&#160; </div>
+<div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160;    this-&gt;normalizeNormalVector();</div>
+<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160;  }</div>
+<div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160; </div>
+<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;  <span class="keyword">inline</span> <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00148"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#af205c6581568dafe9daa31d693550127">  148</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#af205c6581568dafe9daa31d693550127">EdgeT&lt;T&gt;::reconcile</a>() noexcept</div>
+<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;  {</div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;    this-&gt;computeNormal();</div>
+<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;    this-&gt;computeEdgeLength();</div>
+<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;  }</div>
+<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160; </div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;  <span class="keyword">inline</span> std::shared_ptr&lt;VertexT&lt;T&gt;&gt;&amp;</div>
+<div class="line"><a name="l00156"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a0afc8cc1c8cc2f257d8ed91d2a04f1d3">  156</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a0afc8cc1c8cc2f257d8ed91d2a04f1d3">EdgeT&lt;T&gt;::getVertex</a>() noexcept</div>
+<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;  {</div>
+<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;    <span class="keywordflow">return</span> (m_vertex);</div>
+<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;  }</div>
+<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160; </div>
+<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;  <span class="keyword">inline</span> <span class="keyword">const</span> std::shared_ptr&lt;VertexT&lt;T&gt;&gt;&amp;</div>
+<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a0afc8cc1c8cc2f257d8ed91d2a04f1d3">EdgeT&lt;T&gt;::getVertex</a>() const noexcept</div>
+<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;  {</div>
+<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;    <span class="keywordflow">return</span> (m_vertex);</div>
+<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;  }</div>
+<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160; </div>
+<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;  <span class="keyword">inline</span> std::shared_ptr&lt;VertexT&lt;T&gt;&gt;&amp;</div>
+<div class="line"><a name="l00170"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a4e57db5b8a0f5139ac672b9ffc569879">  170</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a4e57db5b8a0f5139ac672b9ffc569879">EdgeT&lt;T&gt;::getOtherVertex</a>() noexcept</div>
+<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;  {</div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;    <span class="keywordflow">return</span> (m_nextEdge-&gt;getVertex());</div>
+<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;  }</div>
+<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160; </div>
+<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;  <span class="keyword">inline</span> <span class="keyword">const</span> std::shared_ptr&lt;VertexT&lt;T&gt;&gt;&amp;</div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a4e57db5b8a0f5139ac672b9ffc569879">EdgeT&lt;T&gt;::getOtherVertex</a>() const noexcept</div>
+<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;  {</div>
+<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;    <span class="keywordflow">return</span> (m_nextEdge-&gt;getVertex());</div>
+<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;  }</div>
+<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160; </div>
+<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;  <span class="keyword">inline</span> std::shared_ptr&lt;EdgeT&lt;T&gt;&gt;&amp;</div>
+<div class="line"><a name="l00184"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a1dbd07e735aa0209c7ec853856ef3cb8">  184</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a1dbd07e735aa0209c7ec853856ef3cb8">EdgeT&lt;T&gt;::getPairEdge</a>() noexcept</div>
+<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;  {</div>
+<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160;    <span class="keywordflow">return</span> (m_pairEdge);</div>
+<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160;  }</div>
+<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160; </div>
+<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160;  <span class="keyword">inline</span> <span class="keyword">const</span> std::shared_ptr&lt;EdgeT&lt;T&gt;&gt;&amp;</div>
+<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a1dbd07e735aa0209c7ec853856ef3cb8">EdgeT&lt;T&gt;::getPairEdge</a>() const noexcept</div>
+<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;  {</div>
+<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;    <span class="keywordflow">return</span> (m_pairEdge);</div>
+<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;  }</div>
+<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160; </div>
+<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;  <span class="keyword">inline</span> std::shared_ptr&lt;EdgeT&lt;T&gt;&gt;&amp;</div>
+<div class="line"><a name="l00198"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#ae6d8cbfd0d089987691b7837ec377bf8">  198</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#ae6d8cbfd0d089987691b7837ec377bf8">EdgeT&lt;T&gt;::getPreviousEdge</a>() noexcept</div>
+<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160;  {</div>
+<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160;    <span class="keywordflow">return</span> (m_previousEdge);</div>
+<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;  }</div>
+<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160; </div>
+<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;  <span class="keyword">inline</span> <span class="keyword">const</span> std::shared_ptr&lt;EdgeT&lt;T&gt;&gt;&amp;</div>
+<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#ae6d8cbfd0d089987691b7837ec377bf8">EdgeT&lt;T&gt;::getPreviousEdge</a>() const noexcept</div>
+<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;  {</div>
+<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160;    <span class="keywordflow">return</span> (m_previousEdge);</div>
+<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;  }</div>
+<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160; </div>
+<div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160;  <span class="keyword">inline</span> std::shared_ptr&lt;EdgeT&lt;T&gt;&gt;&amp;</div>
+<div class="line"><a name="l00212"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#acb492fe0e884f810ec30500f9934d04c">  212</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#acb492fe0e884f810ec30500f9934d04c">EdgeT&lt;T&gt;::getNextEdge</a>() noexcept</div>
+<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;  {</div>
+<div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160;    <span class="keywordflow">return</span> (m_nextEdge);</div>
+<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;  }</div>
+<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160; </div>
+<div class="line"><a name="l00217"></a><span class="lineno">  217</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00218"></a><span class="lineno">  218</span>&#160;  <span class="keyword">inline</span> <span class="keyword">const</span> std::shared_ptr&lt;EdgeT&lt;T&gt;&gt;&amp;</div>
+<div class="line"><a name="l00219"></a><span class="lineno">  219</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#acb492fe0e884f810ec30500f9934d04c">EdgeT&lt;T&gt;::getNextEdge</a>() const noexcept</div>
+<div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160;  {</div>
+<div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160;    <span class="keywordflow">return</span> (m_nextEdge);</div>
+<div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160;  }</div>
+<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160; </div>
+<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160;  <span class="keyword">inline</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp;</div>
+<div class="line"><a name="l00226"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#abc86603f37020f08056f52b4db8b95ae">  226</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#abc86603f37020f08056f52b4db8b95ae">EdgeT&lt;T&gt;::getNormal</a>() noexcept</div>
+<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;  {</div>
+<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;    <span class="keywordflow">return</span> (m_normal);</div>
+<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160;  }</div>
+<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160; </div>
+<div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00232"></a><span class="lineno">  232</span>&#160;  <span class="keyword">inline</span> <span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp;</div>
+<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#abc86603f37020f08056f52b4db8b95ae">EdgeT&lt;T&gt;::getNormal</a>() const noexcept</div>
+<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160;  {</div>
+<div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160;    <span class="keywordflow">return</span> (m_normal);</div>
+<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160;  }</div>
+<div class="line"><a name="l00237"></a><span class="lineno">  237</span>&#160; </div>
+<div class="line"><a name="l00238"></a><span class="lineno">  238</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160;  <span class="keyword">inline</span> std::shared_ptr&lt;FaceT&lt;T&gt;&gt;&amp;</div>
+<div class="line"><a name="l00240"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a51ff4fd40b5519a918c5fa00420f8125">  240</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a51ff4fd40b5519a918c5fa00420f8125">EdgeT&lt;T&gt;::getFace</a>() noexcept</div>
+<div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160;  {</div>
+<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160;    <span class="keywordflow">return</span> (m_face);</div>
+<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160;  }</div>
+<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160; </div>
+<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160;  <span class="keyword">inline</span> <span class="keyword">const</span> std::shared_ptr&lt;FaceT&lt;T&gt;&gt;&amp;</div>
+<div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a51ff4fd40b5519a918c5fa00420f8125">EdgeT&lt;T&gt;::getFace</a>() const noexcept</div>
+<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160;  {</div>
+<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160;    <span class="keywordflow">return</span> (m_face);</div>
+<div class="line"><a name="l00250"></a><span class="lineno">  250</span>&#160;  }</div>
+<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160; </div>
+<div class="line"><a name="l00252"></a><span class="lineno">  252</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00253"></a><span class="lineno">  253</span>&#160;  <span class="keyword">inline</span> T</div>
+<div class="line"><a name="l00254"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#ad3d93918b8ccbbdfba50d74107f162d7">  254</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#ad3d93918b8ccbbdfba50d74107f162d7">EdgeT&lt;T&gt;::projectPointToEdge</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a>&amp; a_x0) <span class="keyword">const</span> noexcept</div>
+<div class="line"><a name="l00255"></a><span class="lineno">  255</span>&#160;  {</div>
+<div class="line"><a name="l00256"></a><span class="lineno">  256</span>&#160;    <span class="keyword">const</span> <span class="keyword">auto</span> p = a_x0 - m_vertex-&gt;getPosition();</div>
+<div class="line"><a name="l00257"></a><span class="lineno">  257</span>&#160; </div>
+<div class="line"><a name="l00258"></a><span class="lineno">  258</span>&#160;    <span class="keywordflow">return</span> p.dot(m_x2x1) * m_invLen2;</div>
+<div class="line"><a name="l00259"></a><span class="lineno">  259</span>&#160;  }</div>
+<div class="line"><a name="l00260"></a><span class="lineno">  260</span>&#160; </div>
+<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160;  <span class="keyword">inline</span> T</div>
+<div class="line"><a name="l00263"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#a18ff0a6a6ff7ddfda2d2e5c67268e590">  263</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#a18ff0a6a6ff7ddfda2d2e5c67268e590">EdgeT&lt;T&gt;::signedDistance</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a>&amp; a_x0) <span class="keyword">const</span> noexcept</div>
+<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160;  {</div>
+<div class="line"><a name="l00265"></a><span class="lineno">  265</span>&#160;    <span class="keyword">const</span> T t = this-&gt;projectPointToEdge(a_x0);</div>
+<div class="line"><a name="l00266"></a><span class="lineno">  266</span>&#160; </div>
+<div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160;    T retval;</div>
+<div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160;    <span class="keywordflow">if</span> (t &lt;= 0.0) { <span class="comment">// Closest point is the starting vertex</span></div>
+<div class="line"><a name="l00269"></a><span class="lineno">  269</span>&#160;      retval = this-&gt;getVertex()-&gt;signedDistance(a_x0);</div>
+<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160;    }</div>
+<div class="line"><a name="l00271"></a><span class="lineno">  271</span>&#160;    <span class="keywordflow">else</span> <span class="keywordflow">if</span> (t &gt;= 1.0) { <span class="comment">// Closest point is the end vertex</span></div>
+<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160;      retval = this-&gt;getOtherVertex()-&gt;signedDistance(a_x0);</div>
+<div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160;    }</div>
+<div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160;    <span class="keywordflow">else</span> { <span class="comment">// Closest point is the edge itself.</span></div>
+<div class="line"><a name="l00275"></a><span class="lineno">  275</span>&#160;      <span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a> linePoint = m_vertex-&gt;getPosition() + t * m_x2x1;</div>
+<div class="line"><a name="l00276"></a><span class="lineno">  276</span>&#160;      <span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a> delta     = a_x0 - linePoint;</div>
+<div class="line"><a name="l00277"></a><span class="lineno">  277</span>&#160;      <span class="keyword">const</span> T    <a class="code" href="EBGeometry__Vec_8hpp.html#a3f91a5c6f34c32789ab4760665810a9a">dot</a>       = m_normal.dot(delta);</div>
 <div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160; </div>
-<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> sgn = (<a class="code" href="EBGeometry__Vec_8hpp.html#a3f91a5c6f34c32789ab4760665810a9a">dot</a> &gt; 0.0) ? 1 : -1;</div>
+<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160;      <span class="keyword">const</span> <span class="keywordtype">int</span> sgn = (<a class="code" href="EBGeometry__Vec_8hpp.html#a3f91a5c6f34c32789ab4760665810a9a">dot</a> &gt; 0.0) ? 1 : -1;</div>
 <div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160; </div>
-<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;    retval = sgn * delta.<a class="code" href="classVec3T.html#a93c868b181e24a4f74702a8b8a36f815">length</a>();</div>
-<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;  }</div>
+<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;      retval = sgn * delta.<a class="code" href="classVec3T.html#a93c868b181e24a4f74702a8b8a36f815">length</a>();</div>
+<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;    }</div>
 <div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160; </div>
-<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160;  <span class="keywordflow">return</span> retval;</div>
-<div class="line"><a name="l00285"></a><span class="lineno">  285</span>&#160;}</div>
+<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160;    <span class="keywordflow">return</span> retval;</div>
+<div class="line"><a name="l00285"></a><span class="lineno">  285</span>&#160;  }</div>
 <div class="line"><a name="l00286"></a><span class="lineno">  286</span>&#160; </div>
-<div class="line"><a name="l00287"></a><span class="lineno">  287</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00288"></a><span class="lineno">  288</span>&#160;<span class="keyword">inline</span> T</div>
-<div class="line"><a name="l00289"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#ae1b52396099535d6eb4038172adb0ade">  289</a></span>&#160;<a class="code" href="classDCEL_1_1EdgeT.html#ae1b52396099535d6eb4038172adb0ade">EdgeT&lt;T&gt;::unsignedDistance2</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a>&amp; a_x0) <span class="keyword">const</span> noexcept</div>
-<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160;{</div>
-<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160;  T t = this-&gt;projectPointToEdge(a_x0);</div>
+<div class="line"><a name="l00287"></a><span class="lineno">  287</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00288"></a><span class="lineno">  288</span>&#160;  <span class="keyword">inline</span> T</div>
+<div class="line"><a name="l00289"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeT.html#ae1b52396099535d6eb4038172adb0ade">  289</a></span>&#160;  <a class="code" href="classDCEL_1_1EdgeT.html#ae1b52396099535d6eb4038172adb0ade">EdgeT&lt;T&gt;::unsignedDistance2</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a>&amp; a_x0) <span class="keyword">const</span> noexcept</div>
+<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160;  {</div>
+<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160;    T t = this-&gt;projectPointToEdge(a_x0);</div>
 <div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160; </div>
-<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;  constexpr T zero = 0.0;</div>
-<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160;  constexpr T one = 1.0;</div>
+<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;    constexpr T zero = 0.0;</div>
+<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160;    constexpr T one  = 1.0;</div>
 <div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160; </div>
-<div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160;  t = <a class="code" href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">std::min</a>(<a class="code" href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">std::max</a>(zero, t), one); <span class="comment">// Edge is on t=[0,1].</span></div>
+<div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160;    t = <a class="code" href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">std::min</a>(<a class="code" href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">std::max</a>(zero, t), one); <span class="comment">// Edge is on t=[0,1].</span></div>
 <div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160; </div>
-<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;  <span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> linePoint = m_vertex-&gt;getPosition() + t * m_x2x1;</div>
-<div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160;  <span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> delta = a_x0 - linePoint;</div>
+<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;    <span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> linePoint = m_vertex-&gt;getPosition() + t * m_x2x1;</div>
+<div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160;    <span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> delta     = a_x0 - linePoint;</div>
 <div class="line"><a name="l00300"></a><span class="lineno">  300</span>&#160; </div>
-<div class="line"><a name="l00301"></a><span class="lineno">  301</span>&#160;  <span class="keywordflow">return</span> delta.<a class="code" href="classVec3T.html#ab4bebdfbdc863826a1a7e86cad130ff8">dot</a>(delta);</div>
-<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160;}</div>
+<div class="line"><a name="l00301"></a><span class="lineno">  301</span>&#160;    <span class="keywordflow">return</span> delta.<a class="code" href="classVec3T.html#ab4bebdfbdc863826a1a7e86cad130ff8">dot</a>(delta);</div>
+<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160;  }</div>
 <div class="line"><a name="l00303"></a><span class="lineno">  303</span>&#160;} <span class="comment">// namespace DCEL</span></div>
 <div class="line"><a name="l00304"></a><span class="lineno">  304</span>&#160; </div>
 <div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a>&quot;</span></div>
@@ -372,51 +372,51 @@ $(function() {
 <div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aclassDCEL_1_1EdgeT_html_acfa5d7602f5c3b4cc4812c0a8c5132fd"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">DCEL::EdgeT::EdgePtr</a></div><div class="ttdeci">std::shared_ptr&lt; Edge &gt; EdgePtr</div><div class="ttdoc">Alias to cut down on typing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:89</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a57266fdf2f1c37a1b72a74ae59c588b7"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a57266fdf2f1c37a1b72a74ae59c588b7">DCEL::EdgeT::m_previousEdge</a></div><div class="ttdeci">EdgePtr m_previousEdge</div><div class="ttdoc">Previous edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:328</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a3af6e4f7e6f75907f3ae3148e32eb029"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a3af6e4f7e6f75907f3ae3148e32eb029">DCEL::EdgeT::computeEdgeLength</a></div><div class="ttdeci">void computeEdgeLength() noexcept</div><div class="ttdoc">Compute the edge length.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:122</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_abc86603f37020f08056f52b4db8b95ae"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#abc86603f37020f08056f52b4db8b95ae">DCEL::EdgeT::getNormal</a></div><div class="ttdeci">Vec3T&lt; T &gt; &amp; getNormal() noexcept</div><div class="ttdoc">Get modifiable half-edge normal vector.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:228</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a57266fdf2f1c37a1b72a74ae59c588b7"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a57266fdf2f1c37a1b72a74ae59c588b7">DCEL::EdgeT::m_previousEdge</a></div><div class="ttdeci">EdgePtr m_previousEdge</div><div class="ttdoc">Previous edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:327</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a3af6e4f7e6f75907f3ae3148e32eb029"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a3af6e4f7e6f75907f3ae3148e32eb029">DCEL::EdgeT::computeEdgeLength</a></div><div class="ttdeci">void computeEdgeLength() noexcept</div><div class="ttdoc">Compute the edge length.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:120</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_abc86603f37020f08056f52b4db8b95ae"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#abc86603f37020f08056f52b4db8b95ae">DCEL::EdgeT::getNormal</a></div><div class="ttdeci">Vec3T&lt; T &gt; &amp; getNormal() noexcept</div><div class="ttdoc">Get modifiable half-edge normal vector.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:226</div></div>
 <div class="ttc" id="aclassDCEL_1_1EdgeT_html_aee30f15b2c4e37ee4d09c1bb36fa146b"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">DCEL::EdgeT::VertexPtr</a></div><div class="ttdeci">std::shared_ptr&lt; Vertex &gt; VertexPtr</div><div class="ttdoc">Alias to cut down on typing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:84</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a1dbd07e735aa0209c7ec853856ef3cb8"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a1dbd07e735aa0209c7ec853856ef3cb8">DCEL::EdgeT::getPairEdge</a></div><div class="ttdeci">EdgePtr &amp; getPairEdge() noexcept</div><div class="ttdoc">Get modifiable pair edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:186</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_ad3d93918b8ccbbdfba50d74107f162d7"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#ad3d93918b8ccbbdfba50d74107f162d7">DCEL::EdgeT::projectPointToEdge</a></div><div class="ttdeci">T projectPointToEdge(const Vec3 &amp;a_x0) const noexcept</div><div class="ttdoc">Returns the &quot;projection&quot; of a point to an edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:256</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a1dbd07e735aa0209c7ec853856ef3cb8"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a1dbd07e735aa0209c7ec853856ef3cb8">DCEL::EdgeT::getPairEdge</a></div><div class="ttdeci">EdgePtr &amp; getPairEdge() noexcept</div><div class="ttdoc">Get modifiable pair edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:184</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_ad3d93918b8ccbbdfba50d74107f162d7"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#ad3d93918b8ccbbdfba50d74107f162d7">DCEL::EdgeT::projectPointToEdge</a></div><div class="ttdeci">T projectPointToEdge(const Vec3 &amp;a_x0) const noexcept</div><div class="ttdoc">Returns the &quot;projection&quot; of a point to an edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:254</div></div>
 <div class="ttc" id="aclassDCEL_1_1EdgeT_html_a1d09a46a696336651b726df879fae828"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a1d09a46a696336651b726df879fae828">DCEL::EdgeT::EdgeT</a></div><div class="ttdeci">EdgeT()</div><div class="ttdoc">Default constructor. Sets all pointers to zero and vectors to zero vectors.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:26</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a18ff0a6a6ff7ddfda2d2e5c67268e590"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a18ff0a6a6ff7ddfda2d2e5c67268e590">DCEL::EdgeT::signedDistance</a></div><div class="ttdeci">T signedDistance(const Vec3 &amp;a_x0) const noexcept</div><div class="ttdoc">Get the signed distance to this half edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:265</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a18ff0a6a6ff7ddfda2d2e5c67268e590"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a18ff0a6a6ff7ddfda2d2e5c67268e590">DCEL::EdgeT::signedDistance</a></div><div class="ttdeci">T signedDistance(const Vec3 &amp;a_x0) const noexcept</div><div class="ttdoc">Get the signed distance to this half edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:263</div></div>
 <div class="ttc" id="aclassDCEL_1_1EdgeT_html_ae3cb3bfc7d976cab10edafdb73341c3b"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#ae3cb3bfc7d976cab10edafdb73341c3b">DCEL::EdgeT::FacePtr</a></div><div class="ttdeci">std::shared_ptr&lt; Face &gt; FacePtr</div><div class="ttdoc">Alias to cut down on typing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:94</div></div>
 <div class="ttc" id="aclassVec3T_html"><div class="ttname"><a href="classVec3T.html">Vec3T</a></div><div class="ttdoc">Three-dimensional vector class with arithmetic operators.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Vec.hpp:234</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a93c04beec0547743780d4382c21bd5fa"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a93c04beec0547743780d4382c21bd5fa">DCEL::EdgeT::m_normal</a></div><div class="ttdeci">Vec3 m_normal</div><div class="ttdoc">Half-edge normal vector.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:302</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a93c04beec0547743780d4382c21bd5fa"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a93c04beec0547743780d4382c21bd5fa">DCEL::EdgeT::m_normal</a></div><div class="ttdeci">Vec3 m_normal</div><div class="ttdoc">Half-edge normal vector.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:301</div></div>
 <div class="ttc" id="aEBGeometry__DCEL__Edge_8hpp_html"><div class="ttname"><a href="EBGeometry__DCEL__Edge_8hpp.html">EBGeometry_DCEL_Edge.hpp</a></div><div class="ttdoc">Declaration of a half-edge class for use in DCEL descriptions of polygon tesselations.</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a4e57db5b8a0f5139ac672b9ffc569879"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a4e57db5b8a0f5139ac672b9ffc569879">DCEL::EdgeT::getOtherVertex</a></div><div class="ttdeci">VertexPtr &amp; getOtherVertex() noexcept</div><div class="ttdoc">Get modifiable end vertex.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:172</div></div>
-<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a71f0bc32c9be501cf01a1b6c715dc0a9"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">max</a></div><div class="ttdeci">Vec3T&lt; T &gt; max(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Maximum function. Returns new vector with component-wise minimums.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:535</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_af23afd2f40e4e34c515fba649b249939"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#af23afd2f40e4e34c515fba649b249939">DCEL::EdgeT::normalizeNormalVector</a></div><div class="ttdeci">void normalizeNormalVector() noexcept</div><div class="ttdoc">Normalize the normal vector, ensuring it has length 1.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:115</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a0afc8cc1c8cc2f257d8ed91d2a04f1d3"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a0afc8cc1c8cc2f257d8ed91d2a04f1d3">DCEL::EdgeT::getVertex</a></div><div class="ttdeci">VertexPtr &amp; getVertex() noexcept</div><div class="ttdoc">Get modifiable starting vertex.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:158</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_ab439e26a598ae3337ae2b69285059667"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#ab439e26a598ae3337ae2b69285059667">DCEL::EdgeT::setVertex</a></div><div class="ttdeci">void setVertex(const VertexPtr &amp;a_vertex) noexcept</div><div class="ttdoc">Set the starting vertex.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:80</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_afe2f21d7aee79d1ebf93d73282fdbfcd"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#afe2f21d7aee79d1ebf93d73282fdbfcd">DCEL::EdgeT::m_nextEdge</a></div><div class="ttdeci">EdgePtr m_nextEdge</div><div class="ttdoc">Next edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:333</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a4e57db5b8a0f5139ac672b9ffc569879"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a4e57db5b8a0f5139ac672b9ffc569879">DCEL::EdgeT::getOtherVertex</a></div><div class="ttdeci">VertexPtr &amp; getOtherVertex() noexcept</div><div class="ttdoc">Get modifiable end vertex.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:170</div></div>
+<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a71f0bc32c9be501cf01a1b6c715dc0a9"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">max</a></div><div class="ttdeci">Vec3T&lt; T &gt; max(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Maximum function. Returns new vector with component-wise minimums.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:537</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_af23afd2f40e4e34c515fba649b249939"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#af23afd2f40e4e34c515fba649b249939">DCEL::EdgeT::normalizeNormalVector</a></div><div class="ttdeci">void normalizeNormalVector() noexcept</div><div class="ttdoc">Normalize the normal vector, ensuring it has length 1.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:113</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a0afc8cc1c8cc2f257d8ed91d2a04f1d3"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a0afc8cc1c8cc2f257d8ed91d2a04f1d3">DCEL::EdgeT::getVertex</a></div><div class="ttdeci">VertexPtr &amp; getVertex() noexcept</div><div class="ttdoc">Get modifiable starting vertex.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:156</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_ab439e26a598ae3337ae2b69285059667"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#ab439e26a598ae3337ae2b69285059667">DCEL::EdgeT::setVertex</a></div><div class="ttdeci">void setVertex(const VertexPtr &amp;a_vertex) noexcept</div><div class="ttdoc">Set the starting vertex.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:78</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_afe2f21d7aee79d1ebf93d73282fdbfcd"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#afe2f21d7aee79d1ebf93d73282fdbfcd">DCEL::EdgeT::m_nextEdge</a></div><div class="ttdeci">EdgePtr m_nextEdge</div><div class="ttdoc">Next edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:332</div></div>
 <div class="ttc" id="anamespaceDCEL_html"><div class="ttname"><a href="namespaceDCEL.html">DCEL</a></div><div class="ttdoc">Namespace containing various double-connected edge list (DCEL) functionality.</div></div>
 <div class="ttc" id="aEBGeometry__DCEL__Iterator_8hpp_html"><div class="ttname"><a href="EBGeometry__DCEL__Iterator_8hpp.html">EBGeometry_DCEL_Iterator.hpp</a></div><div class="ttdoc">Declaration of iterators for DCEL surface Tesselations.</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_acb492fe0e884f810ec30500f9934d04c"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#acb492fe0e884f810ec30500f9934d04c">DCEL::EdgeT::getNextEdge</a></div><div class="ttdeci">EdgePtr &amp; getNextEdge() noexcept</div><div class="ttdoc">Get modifiable next edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:214</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a051f940b04cae1c75b401acd67fa1498"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a051f940b04cae1c75b401acd67fa1498">DCEL::EdgeT::m_invLen2</a></div><div class="ttdeci">T m_invLen2</div><div class="ttdoc">Squared inverse edge length. Exists for performance reasons.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:313</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_aed89e0450331d54b98c857fc25f0a38c"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#aed89e0450331d54b98c857fc25f0a38c">DCEL::EdgeT::setFace</a></div><div class="ttdeci">void setFace(const FacePtr &amp;a_face) noexcept</div><div class="ttdoc">Set the pointer to this half-edge's face.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:108</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_af205c6581568dafe9daa31d693550127"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#af205c6581568dafe9daa31d693550127">DCEL::EdgeT::reconcile</a></div><div class="ttdeci">void reconcile() noexcept</div><div class="ttdoc">Compute edge normal and edge length (for performance reasons)</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:150</div></div>
-<div class="ttc" id="aclassVec3T_html_ab4bebdfbdc863826a1a7e86cad130ff8"><div class="ttname"><a href="classVec3T.html#ab4bebdfbdc863826a1a7e86cad130ff8">Vec3T::dot</a></div><div class="ttdeci">T dot(const Vec3T&lt; T &gt; &amp;u) const noexcept</div><div class="ttdoc">Vector dot product.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:493</div></div>
-<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a3f91a5c6f34c32789ab4760665810a9a"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a3f91a5c6f34c32789ab4760665810a9a">dot</a></div><div class="ttdeci">T dot(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Dot product function.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:542</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a53ac2f18c3b35dd9ce9a6bc27063e75a"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a53ac2f18c3b35dd9ce9a6bc27063e75a">DCEL::EdgeT::m_vertex</a></div><div class="ttdeci">VertexPtr m_vertex</div><div class="ttdoc">Starting vertex.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:318</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a86575fb71bf59bb7ac222d86dcc8412c"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a86575fb71bf59bb7ac222d86dcc8412c">DCEL::EdgeT::define</a></div><div class="ttdeci">void define(const VertexPtr &amp;a_vertex, const EdgePtr &amp;a_pairEdge, const EdgePtr &amp;a_nextEdge, const EdgePtr &amp;a_previousEdge, const Vec3 a_normal) noexcept</div><div class="ttdoc">Define function. Sets the starting vertex, edges, and normal vectors.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:64</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_ae6d8cbfd0d089987691b7837ec377bf8"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#ae6d8cbfd0d089987691b7837ec377bf8">DCEL::EdgeT::getPreviousEdge</a></div><div class="ttdeci">EdgePtr &amp; getPreviousEdge() noexcept</div><div class="ttdoc">Get modifiable previous edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:200</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_ae90cc2bf7a4e44d70de58433fc505413"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#ae90cc2bf7a4e44d70de58433fc505413">DCEL::EdgeT::m_pairEdge</a></div><div class="ttdeci">EdgePtr m_pairEdge</div><div class="ttdoc">Pair edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:323</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a51ff4fd40b5519a918c5fa00420f8125"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a51ff4fd40b5519a918c5fa00420f8125">DCEL::EdgeT::getFace</a></div><div class="ttdeci">FacePtr &amp; getFace() noexcept</div><div class="ttdoc">Get modifiable half-edge face.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:242</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_acb492fe0e884f810ec30500f9934d04c"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#acb492fe0e884f810ec30500f9934d04c">DCEL::EdgeT::getNextEdge</a></div><div class="ttdeci">EdgePtr &amp; getNextEdge() noexcept</div><div class="ttdoc">Get modifiable next edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:212</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a051f940b04cae1c75b401acd67fa1498"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a051f940b04cae1c75b401acd67fa1498">DCEL::EdgeT::m_invLen2</a></div><div class="ttdeci">T m_invLen2</div><div class="ttdoc">Squared inverse edge length. Exists for performance reasons.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:312</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_aed89e0450331d54b98c857fc25f0a38c"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#aed89e0450331d54b98c857fc25f0a38c">DCEL::EdgeT::setFace</a></div><div class="ttdeci">void setFace(const FacePtr &amp;a_face) noexcept</div><div class="ttdoc">Set the pointer to this half-edge's face.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:106</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_af205c6581568dafe9daa31d693550127"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#af205c6581568dafe9daa31d693550127">DCEL::EdgeT::reconcile</a></div><div class="ttdeci">void reconcile() noexcept</div><div class="ttdoc">Compute edge normal and edge length (for performance reasons)</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:148</div></div>
+<div class="ttc" id="aclassVec3T_html_ab4bebdfbdc863826a1a7e86cad130ff8"><div class="ttname"><a href="classVec3T.html#ab4bebdfbdc863826a1a7e86cad130ff8">Vec3T::dot</a></div><div class="ttdeci">T dot(const Vec3T&lt; T &gt; &amp;u) const noexcept</div><div class="ttdoc">Vector dot product.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:495</div></div>
+<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a3f91a5c6f34c32789ab4760665810a9a"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a3f91a5c6f34c32789ab4760665810a9a">dot</a></div><div class="ttdeci">T dot(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Dot product function.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:544</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a53ac2f18c3b35dd9ce9a6bc27063e75a"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a53ac2f18c3b35dd9ce9a6bc27063e75a">DCEL::EdgeT::m_vertex</a></div><div class="ttdeci">VertexPtr m_vertex</div><div class="ttdoc">Starting vertex.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:317</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a86575fb71bf59bb7ac222d86dcc8412c"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a86575fb71bf59bb7ac222d86dcc8412c">DCEL::EdgeT::define</a></div><div class="ttdeci">void define(const VertexPtr &amp;a_vertex, const EdgePtr &amp;a_pairEdge, const EdgePtr &amp;a_nextEdge, const EdgePtr &amp;a_previousEdge, const Vec3 a_normal) noexcept</div><div class="ttdoc">Define function. Sets the starting vertex, edges, and normal vectors.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:63</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_ae6d8cbfd0d089987691b7837ec377bf8"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#ae6d8cbfd0d089987691b7837ec377bf8">DCEL::EdgeT::getPreviousEdge</a></div><div class="ttdeci">EdgePtr &amp; getPreviousEdge() noexcept</div><div class="ttdoc">Get modifiable previous edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:198</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_ae90cc2bf7a4e44d70de58433fc505413"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#ae90cc2bf7a4e44d70de58433fc505413">DCEL::EdgeT::m_pairEdge</a></div><div class="ttdeci">EdgePtr m_pairEdge</div><div class="ttdoc">Pair edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:322</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a51ff4fd40b5519a918c5fa00420f8125"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a51ff4fd40b5519a918c5fa00420f8125">DCEL::EdgeT::getFace</a></div><div class="ttdeci">FacePtr &amp; getFace() noexcept</div><div class="ttdoc">Get modifiable half-edge face.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:240</div></div>
 <div class="ttc" id="aEBGeometry__DCEL__Vertex_8hpp_html"><div class="ttname"><a href="EBGeometry__DCEL__Vertex_8hpp.html">EBGeometry_DCEL_Vertex.hpp</a></div><div class="ttdoc">Declaration of a vertex class for use in DCEL descriptions of polygon tesselations.</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_aa9053eaf54fcd0c128de1aba2b2fa409"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#aa9053eaf54fcd0c128de1aba2b2fa409">DCEL::EdgeT::setPreviousEdge</a></div><div class="ttdeci">void setPreviousEdge(const EdgePtr &amp;a_previousEdge) noexcept</div><div class="ttdoc">Set the previous edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:101</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_aa9053eaf54fcd0c128de1aba2b2fa409"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#aa9053eaf54fcd0c128de1aba2b2fa409">DCEL::EdgeT::setPreviousEdge</a></div><div class="ttdeci">void setPreviousEdge(const EdgePtr &amp;a_previousEdge) noexcept</div><div class="ttdoc">Set the previous edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:99</div></div>
 <div class="ttc" id="aEBGeometry__DCEL__Face_8hpp_html"><div class="ttname"><a href="EBGeometry__DCEL__Face_8hpp.html">EBGeometry_DCEL_Face.hpp</a></div><div class="ttdoc">Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations.</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceFooter_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a></div><div class="ttdoc">Name space footer.</div></div>
 <div class="ttc" id="aclassDCEL_1_1EdgeT_html"><div class="ttname"><a href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a></div><div class="ttdoc">Class which represents a half-edge in a double-edge connected list (DCEL).</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:31</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceHeader_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceHeader_8hpp.html">EBGeometry_NamespaceHeader.hpp</a></div><div class="ttdoc">Name space header.</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a3e9c3fd77021047ed85dcbe231f77aff"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a3e9c3fd77021047ed85dcbe231f77aff">DCEL::EdgeT::m_x2x1</a></div><div class="ttdeci">Vec3 m_x2x1</div><div class="ttdoc">Vector from the starting vertex to the end vertex. Exists for performance reasons.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:308</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a3e9c3fd77021047ed85dcbe231f77aff"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a3e9c3fd77021047ed85dcbe231f77aff">DCEL::EdgeT::m_x2x1</a></div><div class="ttdeci">Vec3 m_x2x1</div><div class="ttdoc">Vector from the starting vertex to the end vertex. Exists for performance reasons.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:307</div></div>
 <div class="ttc" id="aclassDCEL_1_1EdgeT_html_ae1b52396099535d6eb4038172adb0ade"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#ae1b52396099535d6eb4038172adb0ade">DCEL::EdgeT::unsignedDistance2</a></div><div class="ttdeci">T unsignedDistance2(const Vec3 &amp;a_x0) const noexcept</div><div class="ttdoc">Get the signed distance to this half edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:289</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_aea50c2f1be02917cd517778fa53b0584"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#aea50c2f1be02917cd517778fa53b0584">DCEL::EdgeT::m_face</a></div><div class="ttdeci">FacePtr m_face</div><div class="ttdoc">Enclosing polygon face.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:338</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a11756579a2bcca0134fdaabb32987858"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a11756579a2bcca0134fdaabb32987858">DCEL::EdgeT::computeNormal</a></div><div class="ttdeci">void computeNormal() noexcept</div><div class="ttdoc">Compute normal vector as average of face normals.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:136</div></div>
-<div class="ttc" id="aclassVec3T_html_a93c868b181e24a4f74702a8b8a36f815"><div class="ttname"><a href="classVec3T.html#a93c868b181e24a4f74702a8b8a36f815">Vec3T::length</a></div><div class="ttdeci">T length() const noexcept</div><div class="ttdoc">Compute vector length.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:500</div></div>
-<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a291f01622695ab94c0092c3af0a1f3ca"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">min</a></div><div class="ttdeci">Vec3T&lt; T &gt; min(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Minimum function. Returns new vector with component-wise minimums.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:528</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a91b996c2569dfea4689508f6038226aa"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a91b996c2569dfea4689508f6038226aa">DCEL::EdgeT::setPairEdge</a></div><div class="ttdeci">void setPairEdge(const EdgePtr &amp;a_pairEdge) noexcept</div><div class="ttdoc">Set the pair edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:87</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html_afcedb51849b8a2976a689b5d41591d5c"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#afcedb51849b8a2976a689b5d41591d5c">DCEL::EdgeT::setNextEdge</a></div><div class="ttdeci">void setNextEdge(const EdgePtr &amp;a_nextEdge) noexcept</div><div class="ttdoc">Set the next edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:94</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_aea50c2f1be02917cd517778fa53b0584"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#aea50c2f1be02917cd517778fa53b0584">DCEL::EdgeT::m_face</a></div><div class="ttdeci">FacePtr m_face</div><div class="ttdoc">Enclosing polygon face.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:337</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a11756579a2bcca0134fdaabb32987858"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a11756579a2bcca0134fdaabb32987858">DCEL::EdgeT::computeNormal</a></div><div class="ttdeci">void computeNormal() noexcept</div><div class="ttdoc">Compute normal vector as average of face normals.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:134</div></div>
+<div class="ttc" id="aclassVec3T_html_a93c868b181e24a4f74702a8b8a36f815"><div class="ttname"><a href="classVec3T.html#a93c868b181e24a4f74702a8b8a36f815">Vec3T::length</a></div><div class="ttdeci">T length() const noexcept</div><div class="ttdoc">Compute vector length.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:502</div></div>
+<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a291f01622695ab94c0092c3af0a1f3ca"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">min</a></div><div class="ttdeci">Vec3T&lt; T &gt; min(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Minimum function. Returns new vector with component-wise minimums.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:530</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_a91b996c2569dfea4689508f6038226aa"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#a91b996c2569dfea4689508f6038226aa">DCEL::EdgeT::setPairEdge</a></div><div class="ttdeci">void setPairEdge(const EdgePtr &amp;a_pairEdge) noexcept</div><div class="ttdoc">Set the pair edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:85</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeT_html_afcedb51849b8a2976a689b5d41591d5c"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#afcedb51849b8a2976a689b5d41591d5c">DCEL::EdgeT::setNextEdge</a></div><div class="ttdeci">void setNextEdge(const EdgePtr &amp;a_nextEdge) noexcept</div><div class="ttdoc">Set the next edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:92</div></div>
 <div class="ttc" id="aclassDCEL_1_1EdgeT_html_acd765464e6c977e0a230c517be858185"><div class="ttname"><a href="classDCEL_1_1EdgeT.html#acd765464e6c977e0a230c517be858185">DCEL::EdgeT::~EdgeT</a></div><div class="ttdeci">~EdgeT()</div><div class="ttdoc">Destructor (does nothing)</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_EdgeImplem.hpp:58</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

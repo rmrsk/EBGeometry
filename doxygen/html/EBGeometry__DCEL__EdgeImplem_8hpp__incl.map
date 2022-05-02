@@ -16,7 +16,7 @@
 <area shape="rect" id="node10" title=" " alt="" coords="855,781,940,808"/>
 <area shape="rect" id="node14" href="$EBGeometry__Polygon2D_8hpp.html" title="Declaration of a two&#45;dimensional polygon class for embedding 3D polygon faces." alt="" coords="499,557,709,584"/>
 <area shape="rect" id="node17" href="$EBGeometry__DCEL__FaceImplem_8hpp.html" title="Implementation of EBGeometry_DCEL_Face.hpp." alt="" coords="448,319,707,345"/>
-<area shape="rect" id="node15" href="$EBGeometry__Polygon2DImplem_8hpp.html" title="Implementation of DCELPolygon.hpp." alt="" coords="524,632,783,659"/>
+<area shape="rect" id="node15" href="$EBGeometry__Polygon2DImplem_8hpp.html" title="Implementation of EBGeometry_Polygon2D.hpp." alt="" coords="524,632,783,659"/>
 <area shape="rect" id="node16" title=" " alt="" coords="536,707,616,733"/>
 <area shape="rect" id="node19" href="$EBGeometry__DCEL__IteratorImplem_8hpp.html" title="Implementation of EBGeometry_DCEL_Iterator.hpp." alt="" coords="807,468,1007,509"/>
 </map>

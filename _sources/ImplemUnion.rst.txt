@@ -16,14 +16,14 @@ The standard union is template as
 
 .. literalinclude:: ../../Source/EBGeometry_Union.hpp
    :language: c++
-   :lines: 26-29,33-34,45
+   :lines: 27-70
 
 Note that ``EBGeometry::Union`` inherits from ``EBGeometry::SignedDistanceFunction`` and thus provides a ``signedDistance(...)`` function.
 The implementation of the standard union is
 
 .. literalinclude:: ../../Source/EBGeometry_UnionImplem.hpp
    :language: c++
-   :lines: 28-43
+   :lines: 20-44
    
 That is, it iterates through *all* the objects in order to find the signed distance. 
 
@@ -34,7 +34,7 @@ The BVH-enabled union is implemented by ``EBGeometry::UnionBVH`` as follows:
 
 .. literalinclude:: ../../Source/EBGeometry_UnionBVH.hpp
    :language: c++
-   :lines: 26-29,33-34,38-39,58-61,77-80, 94-95, 104, 115
+   :lines: 27-122
 
 As always, the template parameter ``T`` indicates the precision, ``BV`` the bounding volume type and ``K`` the tree degree.
 ``UnionBVH`` takes a bounding volume constructor in addition to the list of primitives, see :ref:`Chap:BVHConstruction`.
@@ -46,6 +46,6 @@ The implementation of the signed distance function for the BVH-enabled union is
 
 .. literalinclude:: ../../Source/EBGeometry_UnionBVHImplem.hpp
    :language: c++
-   :lines: 144-149
+   :lines: 163-170
 
 That is, it relies on pruning from the BVH functionality for finding the signed distance to the closest object.

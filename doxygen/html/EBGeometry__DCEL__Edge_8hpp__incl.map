@@ -17,6 +17,6 @@
 <area shape="rect" id="node13" href="$EBGeometry__DCEL__VertexImplem_8hpp.html" title="Implementation of EBGeometry_DCEL_Vertex.hpp." alt="" coords="1274,557,1546,584"/>
 <area shape="rect" id="node14" href="$EBGeometry__DCEL__Iterator_8hpp.html" title="Declaration of iterators for DCEL surface Tesselations." alt="" coords="1194,319,1420,345"/>
 <area shape="rect" id="node15" href="$EBGeometry__DCEL__IteratorImplem_8hpp.html" title="Implementation of EBGeometry_DCEL_Iterator.hpp." alt="" coords="1346,393,1546,435"/>
-<area shape="rect" id="node17" href="$EBGeometry__Polygon2DImplem_8hpp.html" title="Implementation of DCELPolygon.hpp." alt="" coords="242,557,500,584"/>
+<area shape="rect" id="node17" href="$EBGeometry__Polygon2DImplem_8hpp.html" title="Implementation of EBGeometry_Polygon2D.hpp." alt="" coords="242,557,500,584"/>
 <area shape="rect" id="node18" title=" " alt="" coords="431,632,511,659"/>
 </map>
