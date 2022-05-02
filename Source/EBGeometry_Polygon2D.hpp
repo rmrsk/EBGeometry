@@ -47,11 +47,11 @@ public:
     checking if a point projects to the inside or outside of a polygon face.
   */
   enum class InsideOutsideAlgorithm
-  {
-    SubtendedAngle,
-    CrossingNumber,
-    WindingNumber
-  };
+    {
+      SubtendedAngle,
+      CrossingNumber,
+      WindingNumber
+    };
 
   /*!
     @brief Alias to cut down on typing

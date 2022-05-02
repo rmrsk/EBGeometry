@@ -178,14 +178,14 @@ namespace DCEL {
           }
           else {
             std::cerr << "In file 'CD_DCELVertexImplem.H' function "
-                         "vertexT<T>::computeVertexNormalAngleWeighted() - logic bust.\n";
+	      "vertexT<T>::computeVertexNormalAngleWeighted() - logic bust.\n";
           }
         }
       }
 
       if (inoutVertices.size() != 2) {
         std::cerr << "In file 'CD_DCELVertexImplem.H' function "
-                     "vertexT<T>::computeVertexNormalAngleWeighted() - logic bust 2.\n";
+	  "vertexT<T>::computeVertexNormalAngleWeighted() - logic bust 2.\n";
       }
 
       const Vec3& x0 = originVertex->getPosition();
@@ -194,7 +194,7 @@ namespace DCEL {
 
       if (x0 == x1 || x0 == x2 || x1 == x2) {
         std::cerr << "In file 'CD_DCELVertexImplem.H' function "
-                     "vertexT<T>::computeVertexNormalAngleWeighted() - logic bust 3.\n";
+	  "vertexT<T>::computeVertexNormalAngleWeighted() - logic bust 3.\n";
       }
 
       Vec3 v1 = x1 - x0;

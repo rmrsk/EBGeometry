@@ -66,7 +66,7 @@ namespace DCEL {
     for (const auto& warn : a_warnings) {
       if (warn.second > 0) {
         std::cerr << "In file 'CD_DCELMeshImplem.H' function "
-                     "MeshT<T>::sanityCheck() - warnings about error '"
+	  "MeshT<T>::sanityCheck() - warnings about error '"
                   << warn.first << "' = " << warn.second << "\n";
       }
     }
@@ -238,8 +238,8 @@ namespace DCEL {
         break;
       default:
         std::cerr << "In file 'CD_DCELMeshImplem.H' function "
-                     "DCEL::MeshT<T>::reconcileVertices(VertexNormalWeighting) - "
-                     "unsupported algorithm requested\n";
+	  "DCEL::MeshT<T>::reconcileVertices(VertexNormalWeighting) - "
+	  "unsupported algorithm requested\n";
       }
     }
   }
@@ -339,7 +339,7 @@ namespace DCEL {
     }
     default: {
       std::cerr << "Error in file 'CD_DCELMeshImplem.H' MeshT<T>::signedDistance "
-                   "unsupported algorithm requested\n";
+	"unsupported algorithm requested\n";
 
       break;
     }

@@ -97,7 +97,7 @@ namespace DCEL {
     }
     default: {
       std::cerr << "In file 'EBGeometry_DCEL_IteratorImplem.hpp function "
-                   "EdgeIteratorT<T>::operator++ - logic bust\n";
+	"EdgeIteratorT<T>::operator++ - logic bust\n";
     }
     }
 

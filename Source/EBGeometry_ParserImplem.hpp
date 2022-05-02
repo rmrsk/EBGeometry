@@ -176,7 +176,7 @@ Parser::PLY<T>::readFacesIntoDCEL(std::vector<std::shared_ptr<Face>>&         a_
 
     if (numVertices < 3)
       std::cerr << "Parser::PLY::readFacesIntoDCEL - a face must have at least "
-                   "three vertices!\n";
+	"three vertices!\n";
 
     // Get the vertices that make up this face.
     std::vector<std::shared_ptr<Vertex>> curVertices;

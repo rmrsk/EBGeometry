@@ -31,7 +31,7 @@ main(int argc, char* argv[])
   }
   else {
     std::cerr << "Missing file name. Use ./a.out 'filename' where 'filename' "
-                 "is one of the files in ../PLY\n";
+      "is one of the files in ../PLY\n";
   }
 
   // Declare the precision T as float.

@@ -23,37 +23,37 @@ namespace amrex {
   namespace EB2 {
 
     /*!
-  @brief This is just an EBGeometry-exposed signed distance field usable with
-  AMReX.
-*/
+      @brief This is just an EBGeometry-exposed signed distance field usable with
+      AMReX.
+    */
     class AMReXSDF
     {
     public:
       /*!
-@brief Full constructor.
-@param[in] a_filename File name. Must be a PLY file and will be parser by the
-PLY parser.
-@param[in] a_flipSign Hook for swapping inside/outside.
-  */
+	@brief Full constructor.
+	@param[in] a_filename File name. Must be a PLY file and will be parser by the
+	PLY parser.
+	@param[in] a_flipSign Hook for swapping inside/outside.
+      */
       AMReXSDF(std::shared_ptr<SDF>& a_sdf) { m_sdf = a_sdf; }
 
       /*!
-@brief Copy constructor.
-@param[in] a_other Other SDF.
-  */
+	@brief Copy constructor.
+	@param[in] a_other Other SDF.
+      */
       AMReXSDF(const AMReXSDF& a_other) { this->m_sdf = a_other.m_sdf; }
 
       /*!
-@brief AMReX's implicit function definition.
-  */
+	@brief AMReX's implicit function definition.
+      */
       Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
       {
         return m_sdf->signedDistance(Vec3(x, y, z));
       };
 
       /*!
-@brief Also an AMReX implicit function implementation
-  */
+	@brief Also an AMReX implicit function implementation
+      */
       inline Real
       operator()(const RealArray& p) const noexcept
       {
@@ -62,8 +62,8 @@ PLY parser.
 
     protected:
       /*!
-@brief EBGeometry signed distance function.
-  */
+	@brief EBGeometry signed distance function.
+      */
       std::shared_ptr<SDF> m_sdf;
     };
   } // namespace EB2

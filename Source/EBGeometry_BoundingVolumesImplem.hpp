@@ -302,8 +302,8 @@ namespace BoundingVolumes {
     const Vec3& otherHi = a_other.getHighCorner();
 
     return (m_loCorner[0] < otherHi[0] && m_hiCorner[0] > otherLo[0]) &&
-           (m_loCorner[1] < otherHi[1] && m_hiCorner[1] > otherLo[1]) &&
-           (m_loCorner[2] < otherHi[2] && m_hiCorner[2] > otherLo[2]);
+      (m_loCorner[1] < otherHi[1] && m_hiCorner[1] > otherLo[1]) &&
+      (m_loCorner[2] < otherHi[2] && m_hiCorner[2] > otherLo[2]);
   }
 
   template <class T>

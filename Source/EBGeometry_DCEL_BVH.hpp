@@ -26,19 +26,19 @@
 namespace DCEL {
 
   /*!
-  @brief Alias for vector of primitives.
-*/
+    @brief Alias for vector of primitives.
+  */
   template <class T>
   using PrimitiveList = std::vector<std::shared_ptr<const EBGeometry::DCEL::FaceT<T>>>;
 
   /*!
-  @brief Bounding volume constructor for a DCEL face.
-  @details With BVHs and DCEL, the object to be bounded is the polygon face
-  (e.g., triangle). We assume that our BV constructor can enclose points, so we
-  return an object that encloses all the vertices of the polygon.
-  @param[in] a_primitive Primitive (facet) to be bounded.
-  @return Returns a bounding volume which encloses the input face.
-*/
+    @brief Bounding volume constructor for a DCEL face.
+    @details With BVHs and DCEL, the object to be bounded is the polygon face
+    (e.g., triangle). We assume that our BV constructor can enclose points, so we
+    return an object that encloses all the vertices of the polygon.
+    @param[in] a_primitive Primitive (facet) to be bounded.
+    @return Returns a bounding volume which encloses the input face.
+  */
   template <class T, class BV>
   EBGeometry::BVH::BVConstructorT<EBGeometry::DCEL::FaceT<T>, BV> defaultBVConstructor =
     [](const std::shared_ptr<const EBGeometry::DCEL::FaceT<T>>& a_primitive) -> BV {
@@ -46,15 +46,15 @@ namespace DCEL {
   };
 
   /*!
-  @brief Default stop function. This function terminates the division process if
-  a BVH node has only one primitive.
-  @details In this function, BVH::NodeT<T, FaceT<T>, BVH > is a BVH node. The
-  interpretation of the parameters are: T is the precision, FaceT<T> is the
-  primitive type in the BVH tree, and BV is the bounding volume type.
-  @param[in] a_node Bounding volume hierarchy node.
-  @return Returns true if the bounding volume shouldn't be split more and false
-  otherwise.
-*/
+    @brief Default stop function. This function terminates the division process if
+    a BVH node has only one primitive.
+    @details In this function, BVH::NodeT<T, FaceT<T>, BVH > is a BVH node. The
+    interpretation of the parameters are: T is the precision, FaceT<T> is the
+    primitive type in the BVH tree, and BV is the bounding volume type.
+    @param[in] a_node Bounding volume hierarchy node.
+    @return Returns true if the bounding volume shouldn't be split more and false
+    otherwise.
+  */
   template <class T, class BV, size_t K>
   EBGeometry::BVH::StopFunctionT<T, EBGeometry::DCEL::FaceT<T>, BV, K> defaultStopFunction =
     [](const BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>& a_node) -> bool {
@@ -62,10 +62,10 @@ namespace DCEL {
   };
 
   /*!
-  @brief Function which checks that all chunks are valid (i.e., contain at least
-  one primitive
-  @param[in] a_chunks Chunks.
-*/
+    @brief Function which checks that all chunks are valid (i.e., contain at least
+    one primitive
+    @param[in] a_chunks Chunks.
+  */
   template <class T, size_t K>
   auto validChunks = [](const std::array<PrimitiveList<T>, K>& a_chunks) -> bool {
     for (const auto& chunk : a_chunks) {
@@ -77,10 +77,10 @@ namespace DCEL {
   };
 
   /*!
-  @brief Function for partitioning an input list into K almost-equal-sized
-  chunks
-  @param[in] a_primitives Primitives to be partitioned.
-*/
+    @brief Function for partitioning an input list into K almost-equal-sized
+    chunks
+    @param[in] a_primitives Primitives to be partitioned.
+  */
   template <class T, size_t K>
   auto equalCounts = [](const PrimitiveList<T>& a_primitives) -> std::array<PrimitiveList<T>, K> {
     int length = a_primitives.size() / K;
@@ -104,13 +104,13 @@ namespace DCEL {
   };
 
   /*!
-  @brief Partitioner function for subdividing into K sub-volumes with
-  approximately the same number of primitives.
-  @details This partitioner splits along one of the axis coordinates and sorts
-  the primitives along the centroid.
-  @param[in] a_primitives List of primitives to partition into sub-bounding
-  volumes
-*/
+    @brief Partitioner function for subdividing into K sub-volumes with
+    approximately the same number of primitives.
+    @details This partitioner splits along one of the axis coordinates and sorts
+    the primitives along the centroid.
+    @param[in] a_primitives List of primitives to partition into sub-bounding
+    volumes
+  */
   template <class T, class BV, size_t K>
   EBGeometry::BVH::PartitionerT<EBGeometry::DCEL::FaceT<T>, BV, K> chunkPartitioner =
     [](const PrimitiveList<T>& a_primitives) -> std::array<PrimitiveList<T>, K> {
@@ -136,13 +136,13 @@ namespace DCEL {
   };
 
   /*!
-  @brief Partitioner function for subdividing into K sub-volumes with
-  approximately the same number of primitives.
-  @details Basically the same as chunkPartitioner, except that the centroids are
-  based on the bounding volumes' centroids.
-  @param[in] a_primitives List of primitives to partition into sub-bounding
-  volumes
-*/
+    @brief Partitioner function for subdividing into K sub-volumes with
+    approximately the same number of primitives.
+    @details Basically the same as chunkPartitioner, except that the centroids are
+    based on the bounding volumes' centroids.
+    @param[in] a_primitives List of primitives to partition into sub-bounding
+    volumes
+  */
   template <class T, class BV, size_t K>
   EBGeometry::BVH::PartitionerT<EBGeometry::DCEL::FaceT<T>, BV, K> bvPartitioner =
     [](const PrimitiveList<T>& a_primitives) -> std::array<PrimitiveList<T>, K> {
@@ -167,8 +167,8 @@ namespace DCEL {
 
     // Sort the primitives based on the centroid location of their BVs.
     std::sort(primsAndBVs.begin(), primsAndBVs.end(), [splitDir](const P& p1, const P& p2) {
-      return (p1.second).getCentroid()[splitDir] < (p2.second).getCentroid()[splitDir];
-    });
+	return (p1.second).getCentroid()[splitDir] < (p2.second).getCentroid()[splitDir];
+      });
 
     // Unpack the vector and partition into equal counts.
     PrimitiveList<T> sortedPrimitives;
@@ -182,11 +182,11 @@ namespace DCEL {
   };
 
   /*!
-  @brief Partitioner function for subdividing into K sub-volumes, partitioning
-  on the primitive centroid midpoint(s).
-  @param[in] a_primitives List of primitives to partition into sub-bounding
-  volumes
-*/
+    @brief Partitioner function for subdividing into K sub-volumes, partitioning
+    on the primitive centroid midpoint(s).
+    @param[in] a_primitives List of primitives to partition into sub-bounding
+    volumes
+  */
   template <class T, class BV, size_t K>
   EBGeometry::BVH::PartitionerT<EBGeometry::DCEL::FaceT<T>, BV, K> centroidPartitioner =
     [](const PrimitiveList<T>& a_primitives) -> std::array<PrimitiveList<T>, K> {
@@ -237,8 +237,8 @@ namespace DCEL {
   };
 
   /*!
-  @brief Alias for default partitioner.
-*/
+    @brief Alias for default partitioner.
+  */
   template <class T, class BV, size_t K>
   EBGeometry::BVH::PartitionerT<EBGeometry::DCEL::FaceT<T>, BV, K> defaultPartitioner =
     EBGeometry::DCEL::chunkPartitioner<T, BV, K>;
