@@ -68,7 +68,7 @@ Contributing
    ```
    git checkout main
    git pull
-   git checkout -b my_feature
+   git checkout -b my_branch
    ```
    
 2. Develop the feature.
@@ -96,7 +96,7 @@ Contributing
 5. Push the changes to GitHub
 
    ```
-   git push --set-upstream my_feature
+   git push --set-upstream origin my_branch
    ```
    
 6. Create a pull request and make sure the GitHub continuous integration tests pass.

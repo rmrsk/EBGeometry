@@ -46,8 +46,8 @@ Parser::PLY<T>::readIntoDCEL(Mesh& a_mesh, const std::string a_filename)
 
   if (filestream.is_open()) {
     std::vector<std::shared_ptr<Vertex>>& vertices = a_mesh.getVertices();
-    std::vector<std::shared_ptr<Edge>>& edges = a_mesh.getEdges();
-    std::vector<std::shared_ptr<Face>>& faces = a_mesh.getFaces();
+    std::vector<std::shared_ptr<Edge>>&   edges    = a_mesh.getEdges();
+    std::vector<std::shared_ptr<Face>>&   faces    = a_mesh.getFaces();
 
     vertices.resize(0);
     edges.resize(0);
@@ -66,7 +66,8 @@ Parser::PLY<T>::readIntoDCEL(Mesh& a_mesh, const std::string a_filename)
     filestream.close();
 
     a_mesh.reconcile(EBGeometry::DCEL::MeshT<T>::VertexNormalWeight::Angle);
-  } else {
+  }
+  else {
     const std::string error = "Parser::PLY::readIntoDCEL - ERROR! Could not open file " + a_filename;
     std::cerr << error + "\n";
   }
@@ -117,19 +118,20 @@ Parser::PLY<T>::readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::
 
 template <class T>
 inline void
-Parser::PLY<T>::readVerticesIntoDCEL(
-  std::vector<std::shared_ptr<Vertex>>& a_vertices, const size_t a_numVertices, std::ifstream& a_inputStream)
+Parser::PLY<T>::readVerticesIntoDCEL(std::vector<std::shared_ptr<Vertex>>& a_vertices,
+                                     const size_t                          a_numVertices,
+                                     std::ifstream&                        a_inputStream)
 {
 
   Vec3T<T> pos;
-  T& x = pos[0];
-  T& y = pos[1];
-  T& z = pos[2];
+  T&       x = pos[0];
+  T&       y = pos[1];
+  T&       z = pos[2];
 
   Vec3T<T> norm;
-  T& nx = norm[0];
-  T& ny = norm[1];
-  T& nz = norm[2];
+  T&       nx = norm[0];
+  T&       ny = norm[1];
+  T&       nz = norm[2];
 
   size_t num = 0;
 
@@ -150,18 +152,17 @@ Parser::PLY<T>::readVerticesIntoDCEL(
 
 template <class T>
 inline void
-Parser::PLY<T>::readFacesIntoDCEL(
-  std::vector<std::shared_ptr<Face>>& a_faces,
-  std::vector<std::shared_ptr<Edge>>& a_edges,
-  const std::vector<std::shared_ptr<Vertex>>& a_vertices,
-  const size_t a_numFaces,
-  std::ifstream& a_inputStream)
+Parser::PLY<T>::readFacesIntoDCEL(std::vector<std::shared_ptr<Face>>&         a_faces,
+                                  std::vector<std::shared_ptr<Edge>>&         a_edges,
+                                  const std::vector<std::shared_ptr<Vertex>>& a_vertices,
+                                  const size_t                                a_numFaces,
+                                  std::ifstream&                              a_inputStream)
 {
-  size_t numVertices;
+  size_t              numVertices;
   std::vector<size_t> vertexIndices;
 
   std::string line;
-  size_t counter = 0;
+  size_t      counter = 0;
   while (std::getline(a_inputStream, line)) {
     counter++;
 
@@ -198,7 +199,7 @@ Parser::PLY<T>::readFacesIntoDCEL(
     // Associate next/previous for the half edges inside the current face. Wish
     // we had a circular iterator but this will have to do.
     for (size_t i = 0; i < halfEdges.size(); i++) {
-      auto& curEdge = halfEdges[i];
+      auto& curEdge  = halfEdges[i];
       auto& nextEdge = halfEdges[(i + 1) % halfEdges.size()];
 
       curEdge->setNextEdge(nextEdge);
@@ -233,15 +234,15 @@ Parser::PLY<T>::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<Edge>>& a_edg
     const auto& nextEdge = curEdge->getNextEdge();
 
     const auto& vertexStart = curEdge->getVertex();
-    const auto& vertexEnd = nextEdge->getVertex();
+    const auto& vertexEnd   = nextEdge->getVertex();
 
     for (const auto& p : vertexStart->getFaces()) {
       for (EdgeIterator edgeIt(*p); edgeIt.ok(); ++edgeIt) {
-        const auto& polyCurEdge = edgeIt();
+        const auto& polyCurEdge  = edgeIt();
         const auto& polyNextEdge = polyCurEdge->getNextEdge();
 
         const auto& polyVertexStart = polyCurEdge->getVertex();
-        const auto& polyVertexEnd = polyNextEdge->getVertex();
+        const auto& polyVertexEnd   = polyNextEdge->getVertex();
 
         if (vertexStart == polyVertexEnd && polyVertexStart == vertexEnd) { // Found the pair edge
           curEdge->setPairEdge(polyCurEdge);

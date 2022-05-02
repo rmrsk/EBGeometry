@@ -235,8 +235,8 @@ class Vec3T
 {
 public:
   /*!
-  @brief Default constructor. Sets the vector to the zero vector.
-*/
+    @brief Default constructor. Sets the vector to the zero vector.
+  */
   Vec3T();
 
   /*!

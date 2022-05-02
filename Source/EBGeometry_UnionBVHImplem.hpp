@@ -24,14 +24,13 @@ UnionBVH<T, BV, K>::UnionBVH(const std::vector<std::shared_ptr<SDF>>& a_distance
   }
 
   m_flipSign = a_flipSign;
-  m_isGood = false;
+  m_isGood   = false;
 }
 
 template <class T, class BV, size_t K>
-UnionBVH<T, BV, K>::UnionBVH(
-  const std::vector<std::shared_ptr<SDF>>& a_distanceFunctions,
-  const bool a_flipSign,
-  const BVConstructor& a_bvConstructor)
+UnionBVH<T, BV, K>::UnionBVH(const std::vector<std::shared_ptr<SDF>>& a_distanceFunctions,
+                             const bool                               a_flipSign,
+                             const BVConstructor&                     a_bvConstructor)
   : UnionBVH<T, BV, K>(a_distanceFunctions, a_flipSign)
 {
 
@@ -80,8 +79,8 @@ UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor)
     // volumes. We do this by packing the SDFs and their BV centroids
     //    in a vector which we sort (I love C++).
     using Primitive = std::shared_ptr<const SDF>;
-    using Centroid = Vec3T<T>;
-    using PC = std::pair<Primitive, Centroid>;
+    using Centroid  = Vec3T<T>;
+    using PC        = std::pair<Primitive, Centroid>;
 
     // Vector pack.
     std::vector<PC> primsAndCentroids;
@@ -104,12 +103,12 @@ UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor)
     // 4. Figure out where along the PC vector we should do our spatial splits.
     // We try to balance the chunks.
     const size_t almostEqualChunkSize = numPrimitives / K;
-    size_t remainder = numPrimitives % K;
+    size_t       remainder            = numPrimitives % K;
 
     std::array<size_t, K> startIndices;
     std::array<size_t, K> endIndices;
 
-    startIndices[0] = 0;
+    startIndices[0]   = 0;
     endIndices[K - 1] = numPrimitives;
 
     for (size_t i = 1; i < K; i++) {
