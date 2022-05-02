@@ -14,9 +14,9 @@
 using T = double;
 
 // Aliases for cutting down on typing.
-using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
-using Vec3 = EBGeometry::Vec3T<T>;
-using SDF = EBGeometry::SignedDistanceFunction<T>;
+using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
+using Vec3   = EBGeometry::Vec3T<T>;
+using SDF    = EBGeometry::SignedDistanceFunction<T>;
 using Sphere = EBGeometry::SphereSDF<T>;
 
 using namespace std::chrono_literals;
@@ -32,8 +32,8 @@ main()
   // the spheres is 2*radius
   std::vector<std::shared_ptr<SDF>> spheres;
 
-  constexpr T radius = 1.0;
-  constexpr int N = 100;
+  constexpr T   radius = 1.0;
+  constexpr int N      = 100;
 
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < N; j++) {
@@ -62,7 +62,7 @@ main()
     const Sphere& sph = static_cast<const Sphere&>(*a_prim);
 
     const Vec3& c = sph.getCenter();
-    const T& r = sph.getRadius();
+    const T&    r = sph.getRadius();
 
     const Vec3 lo = c - r * Vec3::one();
     const Vec3 hi = c + r * Vec3::one();
@@ -77,14 +77,14 @@ main()
   const Vec3 point = Vec3::zero();
 
   std::cout << "Computing distance with slow union\n";
-  const auto t1 = std::chrono::high_resolution_clock::now();
-  const T slowDist = slowUnion.signedDistance(point);
-  const auto t2 = std::chrono::high_resolution_clock::now();
+  const auto t1       = std::chrono::high_resolution_clock::now();
+  const T    slowDist = slowUnion.signedDistance(point);
+  const auto t2       = std::chrono::high_resolution_clock::now();
 
   std::cout << "Computing distance with fast union\n";
-  const auto t3 = std::chrono::high_resolution_clock::now();
-  const T fastDist = fastUnion.signedDistance(point);
-  const auto t4 = std::chrono::high_resolution_clock::now();
+  const auto t3       = std::chrono::high_resolution_clock::now();
+  const T    fastDist = fastUnion.signedDistance(point);
+  const auto t4       = std::chrono::high_resolution_clock::now();
 
   const std::chrono::duration<T, std::milli> slowTime = t2 - t1;
   const std::chrono::duration<T, std::milli> fastTime = t4 - t3;

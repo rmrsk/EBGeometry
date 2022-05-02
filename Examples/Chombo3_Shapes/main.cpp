@@ -13,8 +13,8 @@
 // Our includes
 #include "EBGeometry.hpp"
 
-using T = float;
-using SDF = EBGeometry::SignedDistanceFunction<T>;
+using T    = float;
+using SDF  = EBGeometry::SignedDistanceFunction<T>;
 using Vec3 = EBGeometry::Vec3T<T>;
 
 // Binding for exposing EBGeometry's signed distance functions to Chombo
@@ -61,12 +61,12 @@ main(int argc, char* argv[])
   // Set up domain.
 
   // Parse input file
-  char* inFile = argv[1];
+  char*     inFile = argv[1];
   ParmParse pp(argc - 2, argv + 2, NULL, inFile);
 
-  int nCells = 128;
+  int nCells    = 128;
   int whichGeom = 0;
-  int gridSize = 16;
+  int gridSize  = 16;
   pp.query("which_geom", whichGeom);
   pp.query("n_cells", nCells);
   pp.query("grid_size", gridSize);
@@ -80,48 +80,57 @@ main(int argc, char* argv[])
     hiCorner = RealVect::Unit;
 
     sdf = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5), false);
-  } else if (whichGeom == 1) { // Plane.
+  }
+  else if (whichGeom == 1) { // Plane.
     loCorner = -RealVect::Unit;
     hiCorner = RealVect::Unit;
 
     sdf = std::make_shared<EBGeometry::PlaneSDF<T>>(Vec3::zero(), Vec3::one(), false);
-  } else if (whichGeom == 2) { // Infinite cylinder.
+  }
+  else if (whichGeom == 2) { // Infinite cylinder.
     loCorner = -RealVect::Unit;
     hiCorner = RealVect::Unit;
 
     sdf = std::make_shared<EBGeometry::InfiniteCylinderSDF<T>>(Vec3::zero(), T(0.1), 2, false);
-  } else if (whichGeom == 3) { // Finite cylinder.
+  }
+  else if (whichGeom == 3) { // Finite cylinder.
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
     sdf = std::make_shared<EBGeometry::CylinderSDF<T>>(-Vec3::one(), Vec3::one(), 0.25, false);
-  } else if (whichGeom == 4) { // Capsule.
+  }
+  else if (whichGeom == 4) { // Capsule.
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
     sdf = std::make_shared<EBGeometry::CapsuleSDF<T>>(-Vec3::one(), Vec3::one(), 0.25, false);
-  } else if (whichGeom == 5) { // Box.
+  }
+  else if (whichGeom == 5) { // Box.
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
     sdf = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one(), false);
-  } else if (whichGeom == 6) { // Rounded box.
+  }
+  else if (whichGeom == 6) { // Rounded box.
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
     auto box = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one(), false);
-    sdf = std::make_shared<EBGeometry::RoundedSDF<T>>(box, 0.25);
-  } else if (whichGeom == 7) { // Torus.
+    sdf      = std::make_shared<EBGeometry::RoundedSDF<T>>(box, 0.25);
+  }
+  else if (whichGeom == 7) { // Torus.
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
     sdf = std::make_shared<EBGeometry::TorusSDF<T>>(Vec3::zero(), 1.0, 0.25, false);
-  } else if (whichGeom == 8) { // Infinite cone.
+  }
+  else if (whichGeom == 8) { // Infinite cone.
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
     sdf = std::make_shared<EBGeometry::InfiniteConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 30.0, false);
-  } else if (whichGeom == 9) { // Finite cone.
+  }
+  else if (whichGeom == 9) { // Finite cone.
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
@@ -132,15 +141,15 @@ main(int argc, char* argv[])
     hiCorner = RealVect::Unit;
 
     auto sphere = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5), false);
-    sdf = std::make_shared<EBGeometry::AnnularSDF<T>>(sphere, 0.1);
+    sdf         = std::make_shared<EBGeometry::AnnularSDF<T>>(sphere, 0.1);
   }
 
   // Set up the Chombo EB geometry.
   ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);
-  const Real dx = (hiCorner[0] - loCorner[0]) / nCells;
+  const Real    dx = (hiCorner[0] - loCorner[0]) / nCells;
   ;
-  auto impFunc = (BaseIF*)(new ChomboSDF(sdf));
-  GeometryShop workshop(*impFunc, -1, dx * RealVect::Zero);
+  auto          impFunc = (BaseIF*)(new ChomboSDF(sdf));
+  GeometryShop  workshop(*impFunc, -1, dx * RealVect::Zero);
   EBIndexSpace* ebisPtr = Chombo_EBIS::instance();
   ebisPtr->define(domain, loCorner, dx, workshop, gridSize, -1);
 
@@ -166,7 +175,7 @@ main(int argc, char* argv[])
     for (BoxIterator bit(region); bit.ok(); ++bit) {
       const IntVect iv = bit();
 
-      const RealVect pos = loCorner + (iv + 0.5 * RealVect::Unit) * dx;
+      const RealVect pos        = loCorner + (iv + 0.5 * RealVect::Unit) * dx;
       fab.getFArrayBox()(iv, 0) = impFunc->value(pos);
     }
   }
