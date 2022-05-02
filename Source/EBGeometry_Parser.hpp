@@ -31,57 +31,57 @@
 */
 namespace Parser {
 
-/*!
+  /*!
   @brief Class for reading Stanford PLY files.
   @note T is the precision used for storing the mesh.
 */
-template <class T>
-class PLY
-{
-public:
-  /*!
+  template <class T>
+  class PLY
+  {
+  public:
+    /*!
     @brief Alias for cutting down on typing
   */
-  using Vertex = DCEL::VertexT<T>;
+    using Vertex = DCEL::VertexT<T>;
 
-  /*!
+    /*!
     @brief Alias for cutting down on typing
   */
-  using Edge = DCEL::EdgeT<T>;
+    using Edge = DCEL::EdgeT<T>;
 
-  /*!
+    /*!
     @brief Alias for cutting down on typing
   */
-  using Face = DCEL::FaceT<T>;
+    using Face = DCEL::FaceT<T>;
 
-  /*!
+    /*!
     @brief Alias for cutting down on typing
   */
-  using Mesh = DCEL::MeshT<T>;
+    using Mesh = DCEL::MeshT<T>;
 
-  /*!
+    /*!
     @brief Alias for cutting down on typing
   */
-  using EdgeIterator = DCEL::EdgeIteratorT<T>;
+    using EdgeIterator = DCEL::EdgeIteratorT<T>;
 
-  /*!
+    /*!
     @brief Static function which reads an ASCII .ply file and returns a DCEL
     mesh.
     @param[in]  a_filename File name
   */
-  inline static std::shared_ptr<Mesh>
-  readIntoDCEL(const std::string a_filename);
+    inline static std::shared_ptr<Mesh>
+    readIntoDCEL(const std::string a_filename);
 
-  /*!
+    /*!
     @brief Static function which reads an ASCII .ply file and puts it in a mesh.
     @param[out] a_mesh     DCEL mesh
     @param[in]  a_filename File name
   */
-  inline static void
-  readIntoDCEL(Mesh& a_mesh, const std::string a_filename);
+    inline static void
+    readIntoDCEL(Mesh& a_mesh, const std::string a_filename);
 
-protected:
-  /*!
+  protected:
+    /*!
     @brief Read an ASCII header
     @details This reads the number of vertices and faces in the PLY file. Note
     that it only reads the header.
@@ -90,10 +90,10 @@ protected:
     @param[in,out] a_inputStream File stream. On output, the filestream is at the
     end of the PLY header.
   */
-  inline static void
-  readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::ifstream& a_inputStream);
+    inline static void
+    readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::ifstream& a_inputStream);
 
-  /*!
+    /*!
     @brief Read ASCII vertices.
     @param[out] a_vertices DCEL vertices. These are constructed in this routine.
     @param[in]  a_numVertices Number of vertices to read
@@ -101,11 +101,12 @@ protected:
     @note The next getline() from a_inputStream must read the first vertex (i.e.
     don't rewind the stream before entering this routine)
   */
-  inline static void
-  readVerticesIntoDCEL(
-    std::vector<std::shared_ptr<Vertex>>& a_vertices, const size_t a_numVertices, std::ifstream& a_inputStream);
+    inline static void
+    readVerticesIntoDCEL(std::vector<std::shared_ptr<Vertex>>& a_vertices,
+                         const size_t                          a_numVertices,
+                         std::ifstream&                        a_inputStream);
 
-  /*!
+    /*!
     @brief Read ASCII faces and create mesh connectivity.
     @param[out]   a_faces       DCEL faces. Constructured in this routine.
     @param[out]   a_edges       DCEL edges. Constructured in this routine.
@@ -117,22 +118,21 @@ protected:
     assume that read_ascii_vertices was called IMMEDIATELY before this function.
     That function will center the fstream on the correct line in the input file.
   */
-  inline static void
-  readFacesIntoDCEL(
-    std::vector<std::shared_ptr<Face>>& a_faces,
-    std::vector<std::shared_ptr<Edge>>& a_edges,
-    const std::vector<std::shared_ptr<Vertex>>& a_vertices,
-    const size_t a_numFaces,
-    std::ifstream& a_inputStream);
+    inline static void
+    readFacesIntoDCEL(std::vector<std::shared_ptr<Face>>&         a_faces,
+                      std::vector<std::shared_ptr<Edge>>&         a_edges,
+                      const std::vector<std::shared_ptr<Vertex>>& a_vertices,
+                      const size_t                                a_numFaces,
+                      std::ifstream&                              a_inputStream);
 
-  /*!
+    /*!
     @brief Reconcile pair edges, i.e. find the pair edge for every constructed
     half-edge
     @param[in,out] a_edges Half edges.
   */
-  inline static void
-  reconcilePairEdgesDCEL(std::vector<std::shared_ptr<Edge>>& a_edges);
-};
+    inline static void
+    reconcilePairEdgesDCEL(std::vector<std::shared_ptr<Edge>>& a_edges);
+  };
 } // namespace Parser
 
 #include "EBGeometry_NamespaceFooter.hpp"

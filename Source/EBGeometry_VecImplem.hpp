@@ -239,7 +239,7 @@ inline constexpr Vec3T<T>
 Vec3T<T>::unit(const size_t a_dir) noexcept
 {
   Vec3T<T> v = Vec3T<T>::zero();
-  v[a_dir] = 1.0;
+  v[a_dir]   = 1.0;
 
   return v;
 }

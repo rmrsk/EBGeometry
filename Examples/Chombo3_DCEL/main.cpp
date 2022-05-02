@@ -13,10 +13,10 @@
 // Our includes
 #include "EBGeometry.hpp"
 
-using T = float;
-using SDF = EBGeometry::SignedDistanceFunction<T>;
+using T    = float;
+using SDF  = EBGeometry::SignedDistanceFunction<T>;
 using Vec3 = EBGeometry::Vec3T<T>;
-using BV = EBGeometry::BoundingVolumes::AABBT<T>;
+using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 
 // Binding for exposing EBGeometry's signed distance functions to Chombo
 template <class T, class BV, int K>
@@ -42,9 +42,9 @@ public:
 
     // 2. Create standard BVH hierarchy. This is not a compact tree.
     auto root = std::make_shared<BuilderNode>(mesh->getFaces());
-    root->topDownSortAndPartitionPrimitives(
-      EBGeometry::DCEL::defaultBVConstructor<T, BV>, EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
-      EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
+    root->topDownSortAndPartitionPrimitives(EBGeometry::DCEL::defaultBVConstructor<T, BV>,
+                                            EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
+                                            EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
 
     // 3. Flatten the tree onto a tighter memory representation.
     m_rootNode = root->flattenTree();
@@ -85,18 +85,18 @@ main(int argc, char* argv[])
   // Set up domain.
 
   // Parse input file
-  char* inFile = argv[1];
+  char*     inFile = argv[1];
   ParmParse pp(argc - 2, argv + 2, NULL, inFile);
 
-  int nCells = 128;
+  int nCells    = 128;
   int whichGeom = 0;
-  int gridSize = 16;
+  int gridSize  = 16;
   pp.query("which_geom", whichGeom);
   pp.query("n_cells", nCells);
   pp.query("grid_size", gridSize);
 
-  RealVect loCorner;
-  RealVect hiCorner;
+  RealVect    loCorner;
+  RealVect    hiCorner;
   std::string filename;
 
   if (whichGeom == 0) { // Airfoil
@@ -143,15 +143,15 @@ main(int argc, char* argv[])
   }
 
   //
-  constexpr int K = 4;
-  auto impFunc = (BaseIF*)(new ChomboSDF<T, BV, K>(filename));
+  constexpr int K       = 4;
+  auto          impFunc = (BaseIF*)(new ChomboSDF<T, BV, K>(filename));
 
   // Set up the Chombo EB geometry.
   ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);
-  const Real dx = (hiCorner[0] - loCorner[0]) / nCells;
+  const Real    dx = (hiCorner[0] - loCorner[0]) / nCells;
   ;
 
-  GeometryShop workshop(*impFunc, -1, dx * RealVect::Zero);
+  GeometryShop  workshop(*impFunc, -1, dx * RealVect::Zero);
   EBIndexSpace* ebisPtr = Chombo_EBIS::instance();
   ebisPtr->define(domain, loCorner, dx, workshop, gridSize, -1);
 
@@ -177,7 +177,7 @@ main(int argc, char* argv[])
     for (BoxIterator bit(region); bit.ok(); ++bit) {
       const IntVect iv = bit();
 
-      const RealVect pos = loCorner + (iv + 0.5 * RealVect::Unit) * dx;
+      const RealVect pos        = loCorner + (iv + 0.5 * RealVect::Unit) * dx;
       fab.getFArrayBox()(iv, 0) = impFunc->value(pos);
     }
   }

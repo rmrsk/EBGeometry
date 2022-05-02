@@ -51,17 +51,17 @@ namespace amrex {
       SignedDistanceBVH(const std::string a_filename, const bool a_flipSign)
       {
 
-	// 1. Read mesh from file.
-	auto mesh = EBGeometry::Parser::PLY<T>::readIntoDCEL(a_filename);
+        // 1. Read mesh from file.
+        auto mesh = EBGeometry::Parser::PLY<T>::readIntoDCEL(a_filename);
 
-	// 2. Create a standard BVH hierarchy. This is not a compact ree.
-	auto root = std::make_shared<BuilderNode>(mesh->getFaces());
-	root->topDownSortAndPartitionPrimitives(
-						EBGeometry::DCEL::defaultBVConstructor<T, BV>, EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
-						EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
+        // 2. Create a standard BVH hierarchy. This is not a compact ree.
+        auto root = std::make_shared<BuilderNode>(mesh->getFaces());
+        root->topDownSortAndPartitionPrimitives(EBGeometry::DCEL::defaultBVConstructor<T, BV>,
+                                                EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
+                                                EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
 
-	// 3. Flatten the tree onto a tighter memory representation.
-	m_rootNode = root->flattenTree();
+        // 3. Flatten the tree onto a tighter memory representation.
+        m_rootNode = root->flattenTree();
       }
 
       /*!
@@ -70,8 +70,8 @@ namespace amrex {
       */
       SignedDistanceBVH(const SignedDistanceBVH& a_other)
       {
-	this->m_rootNode = a_other.m_rootNode;
-	this->m_flipSign = a_other.m_flipSign;
+        this->m_rootNode = a_other.m_rootNode;
+        this->m_flipSign = a_other.m_flipSign;
       }
 
       /*!
@@ -79,9 +79,9 @@ namespace amrex {
       */
       Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
       {
-	const Real sign = (m_flipSign) ? -1.0 : 1.0;
+        const Real sign = (m_flipSign) ? -1.0 : 1.0;
 
-	return sign * m_rootNode->signedDistance(Vec3(x, y, z));
+        return sign * m_rootNode->signedDistance(Vec3(x, y, z));
       };
 
       /*!
@@ -90,7 +90,7 @@ namespace amrex {
       inline Real
       operator()(const RealArray& p) const noexcept
       {
-	return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
+        return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
       }
 
     protected:
@@ -112,9 +112,9 @@ main(int argc, char* argv[])
 {
   amrex::Initialize(argc, argv);
 
-  int n_cell = 128;
+  int n_cell        = 128;
   int max_grid_size = 32;
-  int which_geom = 0;
+  int which_geom    = 0;
 
   std::string filename;
 
@@ -129,32 +129,32 @@ main(int argc, char* argv[])
     RealBox rb;
 
     if (which_geom == 0) { // Airfoil case
-      rb = RealBox({-100, -100, -75}, {400, 100, 125});
+      rb       = RealBox({-100, -100, -75}, {400, 100, 125});
       filename = "../PLY/airfoil.ply";
     }
     else if (which_geom == 1) { // Sphere case
-      rb = RealBox({-400, -400, -400}, {400, 400, 400});
+      rb       = RealBox({-400, -400, -400}, {400, 400, 400});
       filename = "../PLY/sphere.ply";
     }
     else if (which_geom == 2) { // Dodecahedron
-      rb = RealBox({-2., -2., -2.}, {2., 2., 2.});
+      rb       = RealBox({-2., -2., -2.}, {2., 2., 2.});
       filename = "../PLY/dodecahedron.ply";
     }
     else if (which_geom == 3) { // Horse
-      rb = RealBox({-0.12, -0.12, -0.12}, {0.12, 0.12, 0.12});
+      rb       = RealBox({-0.12, -0.12, -0.12}, {0.12, 0.12, 0.12});
       filename = "../PLY/horse.ply";
     }
     else if (which_geom == 4) { // Car
       //	    rb = RealBox({-20,-20,-20}, {20,20,20}); // Doesn't work.
-      rb = RealBox({-10, -5, -5}, {10, 5, 5}); // Works.
+      rb       = RealBox({-10, -5, -5}, {10, 5, 5}); // Works.
       filename = "../PLY/porsche.ply";
     }
     else if (which_geom == 5) { // Orion
-      rb = RealBox({-10, -5, -10}, {10, 10, 10});
+      rb       = RealBox({-10, -5, -10}, {10, 10, 10});
       filename = "../PLY/orion.ply";
     }
     else if (which_geom == 6) { // Armadillo
-      rb = RealBox({-100, -75, -100}, {100, 125, 100});
+      rb       = RealBox({-100, -75, -100}, {100, 125, 100});
       filename = "../PLY/armadillo.ply";
     }
 
@@ -168,9 +168,9 @@ main(int argc, char* argv[])
   // EBGeometry precision.
   constexpr int K = 4;
 
-  using T = float;
+  using T    = float;
   using Vec3 = EBGeometry::Vec3T<T>;
-  using BV = EBGeometry::BoundingVolumes::AABBT<T>;
+  using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 
   EB2::SignedDistanceBVH<T, BV, K> sdf(filename, false);
 

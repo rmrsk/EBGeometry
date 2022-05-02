@@ -20,7 +20,7 @@ int
 main(int argc, char* argv[])
 {
 
-  std::string current_exec_name = argv[0]; // Name of the current exec program
+  std::string              current_exec_name = argv[0]; // Name of the current exec program
   std::vector<std::string> all_args;
 
   std::string file;
@@ -38,7 +38,7 @@ main(int argc, char* argv[])
   using T = float;
 
   // Aliases for cutting down on typing.
-  using BV = BoundingVolumes::AABBT<T>;
+  using BV   = BoundingVolumes::AABBT<T>;
   using Vec3 = Vec3T<T>;
 
   // Parse the mesh from file. One can call the signed distance function
@@ -51,9 +51,9 @@ main(int argc, char* argv[])
   // bounding volume hierarchy bounds the facets in a binary tree.
   std::cout << "Partitioning BVH\n";
   auto bvhSDF = std::make_shared<BVH::NodeT<T, FaceT<T>, BV, K>>(directSDF->getFaces());
-  bvhSDF->topDownSortAndPartitionPrimitives(
-    EBGeometry::DCEL::defaultBVConstructor<T, BV>, EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
-    EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
+  bvhSDF->topDownSortAndPartitionPrimitives(EBGeometry::DCEL::defaultBVConstructor<T, BV>,
+                                            EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
+                                            EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
 
   // Create the linear representation of the conventional BVH SDF above.
   std::cout << "Flattening BVH tree\n";
@@ -62,27 +62,27 @@ main(int argc, char* argv[])
   // Compute signed distance for this position and time all SDF representations.
   const Vec3 point = Vec3::one();
 
-  const auto t1 = std::chrono::high_resolution_clock::now();
-  const T directDist = directSDF->signedDistance(point);
-  const auto t2 = std::chrono::high_resolution_clock::now();
+  const auto t1         = std::chrono::high_resolution_clock::now();
+  const T    directDist = directSDF->signedDistance(point);
+  const auto t2         = std::chrono::high_resolution_clock::now();
 
-  const auto t3 = std::chrono::high_resolution_clock::now();
-  const T bvhDist = bvhSDF->signedDistance(point);
-  const auto t4 = std::chrono::high_resolution_clock::now();
+  const auto t3      = std::chrono::high_resolution_clock::now();
+  const T    bvhDist = bvhSDF->signedDistance(point);
+  const auto t4      = std::chrono::high_resolution_clock::now();
 
-  const auto t5 = std::chrono::high_resolution_clock::now();
-  const T linDist = linSDF->signedDistance(point);
-  const auto t6 = std::chrono::high_resolution_clock::now();
+  const auto t5      = std::chrono::high_resolution_clock::now();
+  const T    linDist = linSDF->signedDistance(point);
+  const auto t6      = std::chrono::high_resolution_clock::now();
 
   // Kill all the SDF representations.
   directSDF = nullptr;
-  bvhSDF = nullptr;
-  linSDF = nullptr;
+  bvhSDF    = nullptr;
+  linSDF    = nullptr;
 
   // Get the timings.
   const std::chrono::duration<T, std::micro> directTime = t2 - t1;
-  const std::chrono::duration<T, std::micro> bvhTime = t4 - t3;
-  const std::chrono::duration<T, std::micro> linTime = t6 - t5;
+  const std::chrono::duration<T, std::micro> bvhTime    = t4 - t3;
+  const std::chrono::duration<T, std::micro> linTime    = t6 - t5;
 
   std::cout << "Distance and time using direct query     = " << directDist << ", which took " << directTime.count()
             << " us\n";

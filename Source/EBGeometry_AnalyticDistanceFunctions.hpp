@@ -58,7 +58,7 @@ public:
   */
   RoundedSDF(const std::shared_ptr<SignedDistanceFunction<T>> a_sdf, const T a_curv)
   {
-    m_sdf = a_sdf;
+    m_sdf  = a_sdf;
     m_curv = a_curv;
   }
 
@@ -107,7 +107,7 @@ public:
   */
   AnnularSDF(const std::shared_ptr<SignedDistanceFunction<T>> a_sdf, const T a_curv)
   {
-    m_sdf = a_sdf;
+    m_sdf  = a_sdf;
     m_curv = a_curv;
   }
 
@@ -156,7 +156,7 @@ public:
   */
   ScaledSDF(const std::shared_ptr<SignedDistanceFunction<T>> a_sdf, const T a_scale)
   {
-    m_sdf = a_sdf;
+    m_sdf   = a_sdf;
     m_scale = a_scale;
   }
 
@@ -204,8 +204,8 @@ public:
   */
   PlaneSDF(const Vec3T<T>& a_point, const Vec3T<T>& a_normal, const bool a_flipInside)
   {
-    m_point = a_point;
-    m_normal = a_normal;
+    m_point      = a_point;
+    m_normal     = a_normal;
     m_flipInside = a_flipInside;
 
     m_normal /= m_normal.length();
@@ -260,8 +260,8 @@ public:
   */
   SphereSDF(const Vec3T<T>& a_center, const T& a_radius, const bool a_flipInside)
   {
-    this->m_center = a_center;
-    this->m_radius = a_radius;
+    this->m_center     = a_center;
+    this->m_radius     = a_radius;
     this->m_flipInside = a_flipInside;
   }
 
@@ -270,9 +270,9 @@ public:
   */
   SphereSDF(const SphereSDF& a_other)
   {
-    this->m_center = a_other.m_center;
-    this->m_radius = a_other.m_radius;
-    this->m_flipInside = a_other.m_flipInside;
+    this->m_center       = a_other.m_center;
+    this->m_radius       = a_other.m_radius;
+    this->m_flipInside   = a_other.m_flipInside;
     this->m_transformOps = a_other.m_transformOps;
   }
 
@@ -366,8 +366,8 @@ public:
   */
   BoxSDF(const Vec3T<T>& a_loCorner, const Vec3T<T>& a_hiCorner, const bool a_flipInside)
   {
-    this->m_loCorner = a_loCorner;
-    this->m_hiCorner = a_hiCorner;
+    this->m_loCorner   = a_loCorner;
+    this->m_hiCorner   = a_hiCorner;
     this->m_flipInside = a_flipInside;
   }
 
@@ -427,16 +427,12 @@ public:
     // between xLo and xHi. In this case delta[dir] will be the signed distance
     // to the closest box face in the dir-direction. Otherwise, if a_point[dir]
     // is outside the corner we have delta[dir] > 0.
-    const Vec3T<T> delta(
-      std::max(
-        m_loCorner[0] - a_point[0],
-        a_point[0] - m_hiCorner[0]), // < 0 if point falls between xLo and xHi.
-      std::max(
-        m_loCorner[1] - a_point[1],
-        a_point[1] - m_hiCorner[1]), // < 0 if point falls between yLo and yHi.
-      std::max(
-        m_loCorner[2] - a_point[2],
-        a_point[2] - m_hiCorner[2])); // < 0 if point falls between zLo and zHi.
+    const Vec3T<T> delta(std::max(m_loCorner[0] - a_point[0],
+                                  a_point[0] - m_hiCorner[0]), // < 0 if point falls between xLo and xHi.
+                         std::max(m_loCorner[1] - a_point[1],
+                                  a_point[1] - m_hiCorner[1]), // < 0 if point falls between yLo and yHi.
+                         std::max(m_loCorner[2] - a_point[2],
+                                  a_point[2] - m_hiCorner[2])); // < 0 if point falls between zLo and zHi.
 
     // Note: max is max(Vec3T<T>, Vec3T<T>) and not std::max. It returns a
     // vector with coordinate-wise largest components. Note that the first part
@@ -489,10 +485,10 @@ public:
   */
   TorusSDF(const Vec3T<T>& a_center, const T& a_majorRadius, const T& a_minorRadius, const bool a_flipInside)
   {
-    this->m_center = a_center;
+    this->m_center      = a_center;
     this->m_majorRadius = a_majorRadius;
     this->m_minorRadius = a_minorRadius;
-    this->m_flipInside = a_flipInside;
+    this->m_flipInside  = a_flipInside;
   }
 
   /*!
@@ -566,9 +562,9 @@ public:
   virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
-    const Vec3T<T> p = a_point - m_center;
-    const T rho = sqrt(p[0] * p[0] + p[1] * p[1]) - m_majorRadius;
-    const T d = sqrt(rho * rho + p[2] * p[2]) - m_minorRadius;
+    const Vec3T<T> p   = a_point - m_center;
+    const T        rho = sqrt(p[0] * p[0] + p[1] * p[1]) - m_majorRadius;
+    const T        d   = sqrt(rho * rho + p[2] * p[2]) - m_minorRadius;
 
     const T sign = m_flipInside ? -1.0 : 1.0;
 
@@ -618,15 +614,15 @@ public:
   */
   CylinderSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T& a_radius, const bool a_flipInside)
   {
-    this->m_center1 = a_center1;
-    this->m_center2 = a_center2;
-    this->m_radius = a_radius;
+    this->m_center1    = a_center1;
+    this->m_center2    = a_center2;
+    this->m_radius     = a_radius;
     this->m_flipInside = a_flipInside;
 
     // Some derived quantities that are needed for SDF computations.
     m_center = (m_center2 + m_center1) * 0.5;
     m_length = (m_center2 - m_center1).length();
-    m_axis = (m_center2 - m_center1) / m_length;
+    m_axis   = (m_center2 - m_center1) / m_length;
   }
 
   /*!
@@ -675,7 +671,7 @@ public:
 
     if (m_length > 0.0 && m_radius > 0.0) {
       const Vec3T<T> point = a_point - m_center;
-      const T para = dot(point, m_axis);
+      const T        para  = dot(point, m_axis);
       const Vec3T<T> ortho = point - para * m_axis; // Distance from cylinder axis.
 
       const T w = ortho.length() - m_radius;       // Distance from cylinder wall. < 0
@@ -763,9 +759,9 @@ public:
   */
   InfiniteCylinderSDF(const Vec3T<T>& a_center, const T& a_radius, const size_t a_axis, const bool a_flipInside)
   {
-    m_center = a_center;
-    m_radius = a_radius;
-    m_axis = a_axis;
+    m_center     = a_center;
+    m_radius     = a_radius;
+    m_axis       = a_axis;
     m_flipInside = a_flipInside;
   }
 
@@ -777,9 +773,9 @@ public:
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     Vec3T<T> delta = a_point - m_center;
-    delta[m_axis] = 0.0;
+    delta[m_axis]  = 0.0;
 
-    const T d = delta.length() - m_radius;
+    const T d    = delta.length() - m_radius;
     const T sign = m_flipInside ? -1.0 : 1.0;
 
     return sign * d;
@@ -830,10 +826,10 @@ public:
   CapsuleSDF(const Vec3T<T>& a_tip1, const Vec3T<T> a_tip2, const T& a_radius, const bool a_flipInside)
   {
     const Vec3T<T> axis = (a_tip2 - a_tip1) / length(a_tip2 - a_tip1);
-    m_center1 = a_tip1 + a_radius * axis;
-    m_center2 = a_tip2 - a_radius * axis;
-    m_radius = a_radius;
-    m_flipInside = a_flipInside;
+    m_center1           = a_tip1 + a_radius * axis;
+    m_center2           = a_tip2 - a_radius * axis;
+    m_radius            = a_radius;
+    m_flipInside        = a_flipInside;
   }
 
   /*!
@@ -846,8 +842,8 @@ public:
     const Vec3T<T> v1 = a_point - m_center1;
     const Vec3T<T> v2 = m_center2 - m_center1;
 
-    const T h = clamp(dot(v1, v2) / dot(v2, v2), T(0.0), T(1.0));
-    const T d = length(v1 - h * v2) - m_radius;
+    const T h    = clamp(dot(v1, v2) / dot(v2, v2), T(0.0), T(1.0));
+    const T d    = length(v1 - h * v2) - m_radius;
     const T sign = m_flipInside ? -1.0 : 1.0;
 
     return sign * d;
@@ -897,9 +893,9 @@ public:
   {
     constexpr T pi = 3.14159265358979323846;
 
-    m_tip = a_tip;
-    m_c.x = std::sin(0.5 * a_angle * pi / 180.0);
-    m_c.y = std::cos(0.5 * a_angle * pi / 180.0);
+    m_tip        = a_tip;
+    m_c.x        = std::sin(0.5 * a_angle * pi / 180.0);
+    m_c.y        = std::cos(0.5 * a_angle * pi / 180.0);
     m_flipInside = a_flipInside;
   }
 
@@ -966,10 +962,10 @@ public:
   {
     constexpr T pi = 3.14159265358979323846;
 
-    m_tip = a_tip;
-    m_height = a_height;
-    m_c.x = std::sin(0.5 * a_angle * pi / 180.0);
-    m_c.y = std::cos(0.5 * a_angle * pi / 180.0);
+    m_tip        = a_tip;
+    m_height     = a_height;
+    m_c.x        = std::sin(0.5 * a_angle * pi / 180.0);
+    m_c.y        = std::cos(0.5 * a_angle * pi / 180.0);
     m_flipInside = a_flipInside;
   }
 
@@ -986,11 +982,11 @@ public:
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     const Vec3T<T> delta = a_point - m_tip;
-    const T dr = sqrt(delta[0] * delta[0] + delta[1] * delta[1]);
-    const T dz = delta[2];
+    const T        dr    = sqrt(delta[0] * delta[0] + delta[1] * delta[1]);
+    const T        dz    = delta[2];
 
     constexpr T zero = T(0.0);
-    constexpr T one = T(1.0);
+    constexpr T one  = T(1.0);
 
     const Vec2T<T> q = m_height * Vec2T<T>(m_c.x / m_c.y, -1.0);
     const Vec2T<T> w = Vec2T<T>(dr, dz);
@@ -999,9 +995,9 @@ public:
 
     auto sign = [](const T& x) { return (x > zero) - (x < zero); };
 
-    const T k = sign(q.y);
-    const T d = std::min(dot(a, a), dot(b, b));
-    const T s = std::max(k * (w.x * q.y - w.y * q.x), k * (w.y - q.y));
+    const T k    = sign(q.y);
+    const T d    = std::min(dot(a, a), dot(b, b));
+    const T s    = std::max(k * (w.x * q.y - w.y * q.x), k * (w.y - q.y));
     const T flip = m_flipInside ? -one : one;
 
     return flip * sqrt(d) * sign(s);

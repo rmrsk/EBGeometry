@@ -15,55 +15,58 @@
 
 using namespace amrex;
 
-using T = float;
-using SDF = EBGeometry::SignedDistanceFunction<T>;
+using T    = float;
+using SDF  = EBGeometry::SignedDistanceFunction<T>;
 using Vec3 = EBGeometry::Vec3T<T>;
 
 namespace amrex {
-namespace EB2 {
+  namespace EB2 {
 
-/*!
+    /*!
   @brief This is just an EBGeometry-exposed signed distance field usable with
   AMReX.
 */
-class AMReXSDF
-{
-public:
-  /*!
+    class AMReXSDF
+    {
+    public:
+      /*!
 @brief Full constructor.
 @param[in] a_filename File name. Must be a PLY file and will be parser by the
 PLY parser.
 @param[in] a_flipSign Hook for swapping inside/outside.
   */
-  AMReXSDF(std::shared_ptr<SDF>& a_sdf) { m_sdf = a_sdf; }
+      AMReXSDF(std::shared_ptr<SDF>& a_sdf) { m_sdf = a_sdf; }
 
-  /*!
+      /*!
 @brief Copy constructor.
 @param[in] a_other Other SDF.
   */
-  AMReXSDF(const AMReXSDF& a_other) { this->m_sdf = a_other.m_sdf; }
+      AMReXSDF(const AMReXSDF& a_other) { this->m_sdf = a_other.m_sdf; }
 
-  /*!
+      /*!
 @brief AMReX's implicit function definition.
   */
-  Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept { return m_sdf->signedDistance(Vec3(x, y, z)); };
+      Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+      {
+        return m_sdf->signedDistance(Vec3(x, y, z));
+      };
 
-  /*!
+      /*!
 @brief Also an AMReX implicit function implementation
   */
-  inline Real
-  operator()(const RealArray& p) const noexcept
-  {
-    return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
-  }
+      inline Real
+      operator()(const RealArray& p) const noexcept
+      {
+        return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
+      }
 
-protected:
-  /*!
+    protected:
+      /*!
 @brief EBGeometry signed distance function.
   */
-  std::shared_ptr<SDF> m_sdf;
-};
-} // namespace EB2
+      std::shared_ptr<SDF> m_sdf;
+    };
+  } // namespace EB2
 } // namespace amrex
 
 int
@@ -71,9 +74,9 @@ main(int argc, char* argv[])
 {
   amrex::Initialize(argc, argv);
 
-  int n_cell = 128;
+  int n_cell        = 128;
   int max_grid_size = 32;
-  int whichGeom = 0;
+  int whichGeom     = 0;
 
   std::string filename;
 
@@ -84,11 +87,11 @@ main(int argc, char* argv[])
   pp.query("which_geom", whichGeom);
 
   Geometry geom;
-  RealBox rb;
+  RealBox  rb;
 
   std::shared_ptr<SDF> func;
   if (whichGeom == 0) { // Sphere.
-    rb = RealBox({-1, -1, -1}, {1, 1, 1});
+    rb   = RealBox({-1, -1, -1}, {1, 1, 1});
     func = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5), false);
   }
   else if (whichGeom == 1) { // Plane.
@@ -120,7 +123,7 @@ main(int argc, char* argv[])
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
     auto box = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one(), false);
-    func = std::make_shared<EBGeometry::RoundedSDF<T>>(box, 0.25);
+    func     = std::make_shared<EBGeometry::RoundedSDF<T>>(box, 0.25);
   }
   else if (whichGeom == 7) { // Torus.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
@@ -141,7 +144,7 @@ main(int argc, char* argv[])
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
     auto sphere = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5), false);
-    func = std::make_shared<EBGeometry::AnnularSDF<T>>(sphere, 0.1);
+    func        = std::make_shared<EBGeometry::AnnularSDF<T>>(sphere, 0.1);
   }
 
   Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};
