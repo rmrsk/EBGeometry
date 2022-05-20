@@ -46,9 +46,9 @@ RotateOp<T>::RotateOp()
 template <class T>
 RotateOp<T>::RotateOp(const T a_angle, const size_t a_axis) noexcept
 {
-  const T theta = a_angle*M_PI/180.0;
+  const T theta = a_angle * M_PI / 180.0;
 
-  m_axis     = a_axis;  
+  m_axis     = a_axis;
   m_cosAngle = std::cos(theta);
   m_sinAngle = std::sin(theta);
 }

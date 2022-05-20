@@ -77,15 +77,13 @@ public:
     @param[in] a_point Point to transform
   */
   inline Vec3T<T>
-  transformPoint(const Vec3T<T>& a_point) const noexcept;  
+  transformPoint(const Vec3T<T>& a_point) const noexcept;
 
 protected:
   /*!
     @brief List of transformation operators for the signed distance field.
   */
   std::deque<std::shared_ptr<TransformOp<T>>> m_transformOps;
-
-
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"
