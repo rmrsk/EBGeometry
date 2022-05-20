@@ -46,16 +46,17 @@ RotateOp<T>::RotateOp()
 template <class T>
 RotateOp<T>::RotateOp(const T a_angle, const size_t a_axis) noexcept
 {
+  const T theta = a_angle * M_PI / 180.0;
+
   m_axis     = a_axis;
-  m_cosAngle = std::cos(a_angle);
-  m_sinAngle = std::sin(a_angle);
+  m_cosAngle = std::cos(theta);
+  m_sinAngle = std::sin(theta);
 }
 
 template <class T>
 Vec3T<T>
 RotateOp<T>::transform(const Vec3T<T>& a_inputPoint) const noexcept
 {
-
   const T& x = a_inputPoint[0];
   const T& y = a_inputPoint[1];
   const T& z = a_inputPoint[2];
