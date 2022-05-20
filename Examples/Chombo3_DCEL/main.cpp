@@ -61,7 +61,7 @@ public:
     Vec3 p(a_point[0], a_point[1], a_point[2]);
 #endif
 
-    return Real(m_rootNode->signedDistance(p));
+    return Real(m_rootNode->signedDistance(m_rootNode->transformPoint(p)));
   }
 
   BaseIF*

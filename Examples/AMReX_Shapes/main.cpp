@@ -48,7 +48,7 @@ namespace amrex {
       */
       Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
       {
-        return m_sdf->signedDistance(Vec3(x, y, z));
+        return m_sdf->signedDistance(m_sdf->transformPoint(Vec3(x, y, z)));
       };
 
       /*!

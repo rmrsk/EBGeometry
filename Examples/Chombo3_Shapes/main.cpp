@@ -37,7 +37,7 @@ public:
 
 #endif
 
-    return Real(m_sdf->signedDistance(p));
+    return Real(m_sdf->signedDistance(m_sdf->transformPoint(p)));
   }
 
   BaseIF*
