@@ -20,7 +20,6 @@
   functionality.
 */
 namespace DCEL {
-
 }
 
 #endif

@@ -81,7 +81,7 @@ namespace amrex {
       {
         const Real sign = (m_flipSign) ? -1.0 : 1.0;
 
-        return sign * m_rootNode->signedDistance(Vec3(x, y, z));
+        return sign * m_rootNode->signedDistance(m_rootNode->transformPoint(Vec3(x, y, z)));
       };
 
       /*!
