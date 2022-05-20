@@ -72,17 +72,20 @@ public:
   inline void
   rotate(const T a_angle, const size_t a_axis) noexcept;
 
+  /*!
+    @brief Apply transformation operators and move point.
+    @param[in] a_point Point to transform
+  */
+  inline Vec3T<T>
+  transformPoint(const Vec3T<T>& a_point) const noexcept;  
+
 protected:
   /*!
     @brief List of transformation operators for the signed distance field.
   */
   std::deque<std::shared_ptr<TransformOp<T>>> m_transformOps;
 
-  /*!
-    @brief Apply transformation operators and move point.
-  */
-  inline Vec3T<T>
-  transformPoint(const Vec3T<T>& a_point) const noexcept;
+
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"
