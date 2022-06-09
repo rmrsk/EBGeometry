@@ -28,7 +28,7 @@ jobs:
 
       - name: Build sphinx
         run: |
-          cd Sphinx
+          cd Docs/Sphinx
           make github
           
       - name: Deploy
@@ -37,5 +37,5 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: gh-pages
-          folder: docs
+          folder: Docs
           clean: false
