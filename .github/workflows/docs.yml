@@ -33,7 +33,6 @@ jobs:
       - name: Build HTML documentation
         working-directory: ${{ github.workspace }}/Docs/Sphinx        
         run: |
-          cd Docs/Sphinx
           make html
           mv build/html/* ${{ github.workspace }}/Docs
 
