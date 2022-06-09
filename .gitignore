@@ -18,3 +18,8 @@ Examples/Chombo3_Shapes/o/**
 Examples/Chombo3_Shapes/f/**
 Examples/Chombo3_Shapes/d/**
 
+Docs/*
+!Docs/.nojekyll
+!Docs/Sphi9nx
+!Docs/doxyfile
+!Docs/README.md
