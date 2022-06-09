@@ -40,7 +40,7 @@ jobs:
         working-directory: ${{ github.workspace }}/Docs/Sphinx
         run: |
           make latexpdf
-          mv ebgeometry.pdf ${{ github.workspace }}/Docs
+          mv build/latex/ebgeometry.pdf ${{ github.workspace }}/Docs
           
       - name: Deploy
         if: github.event_name == 'push' && github.repository == 'rmrsk/EBGeometry' && github.ref == 'refs/heads/main'        
