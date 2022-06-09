@@ -5,7 +5,7 @@ Signed distance function
 
 In EBGeometry we have encapsulated the concept of a signed distance function in an abstract class
 
-.. literalinclude:: ../../Source/EBGeometry_SignedDistanceFunction.hpp   
+.. literalinclude:: ../../../Source/EBGeometry_SignedDistanceFunction.hpp   
    :language: c++
 
 We point out that the BVH and DCEL classes are fundamentally also signed distance functions, and they also inherit from ``SignedDistanceFunction``.
@@ -102,7 +102,7 @@ Note that the rounding does not preserve the volume of the original SDF, so subs
 
 The rounded SDF is implemented in :file:`Source/EBGeometry_AnalyticDistanceFunctions.hpp` 
 
-.. literalinclude:: ../../Source/EBGeometry_AnalyticDistanceFunctions.hpp
+.. literalinclude:: ../../../Source/EBGeometry_AnalyticDistanceFunctions.hpp
    :language: c++
    :lines: 45-89
 
@@ -122,7 +122,7 @@ We point out that anisotropic stretching does not preserve the distance field.
 
 The rounded SDF is implemented in :file:`Source/EBGeometry_AnalyticDistanceFunctions.hpp`
 
-.. literalinclude:: ../../Source/EBGeometry_AnalyticDistanceFunctions.hpp
+.. literalinclude:: ../../../Source/EBGeometry_AnalyticDistanceFunctions.hpp
    :language: c++
    :lines: 143-188
 

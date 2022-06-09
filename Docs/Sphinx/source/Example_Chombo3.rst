@@ -7,7 +7,7 @@ This example is given in :file:`Examples/Chombo_DCEL/main.cpp` and shows how to 
 
 We will focus on the following parts of the code:
 
-.. literalinclude:: ../../Examples/Chombo3_DCEL/main.cpp
+.. literalinclude:: ../../../Examples/Chombo3_DCEL/main.cpp
    :language: c++
 
 Constructing the BVH
