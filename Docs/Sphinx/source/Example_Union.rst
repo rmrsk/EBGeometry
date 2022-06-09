@@ -11,7 +11,7 @@ This example is given in :file:`Examples/EBGeometry_Union/main.cpp` and shows th
 
 We focus on the following parts of the code:
 
-.. literalinclude:: ../../Examples/EBGeometry_Union/main.cpp
+.. literalinclude:: ../../../Examples/EBGeometry_Union/main.cpp
    :language: c++
    :lines: 24-25, 29-67,69-70
 
@@ -20,7 +20,7 @@ Creating the spheres
 
 In the first block of code we are defining one million spheres that lie on a three-dimensional lattice, where each sphere has a radius of one:
 
-.. literalinclude:: ../../Examples/EBGeometry_Union/main.cpp
+.. literalinclude:: ../../../Examples/EBGeometry_Union/main.cpp
    :language: c++
    :lines: 29-48
 
@@ -29,7 +29,7 @@ Creating standard union
 
 In the second block of code we are simply creating a standard signed distance function union:
 
-.. literalinclude:: ../../Examples/EBGeometry_Union/main.cpp
+.. literalinclude:: ../../../Examples/EBGeometry_Union/main.cpp
    :language: c++
    :lines: 52
 
@@ -41,7 +41,7 @@ Creating BVH-enabled union
 In the third block of code we create a BVH-enabled union.
 To do so, we must first provide a function which can create bounding volumes around each object:
 
-.. literalinclude:: ../../Examples/EBGeometry_Union/main.cpp
+.. literalinclude:: ../../../Examples/EBGeometry_Union/main.cpp
    :language: c++
    :lines: 56-66
 
