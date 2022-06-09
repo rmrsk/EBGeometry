@@ -14,14 +14,14 @@ Standard union
 
 The standard union is template as
 
-.. literalinclude:: ../../Source/EBGeometry_Union.hpp
+.. literalinclude:: ../../../Source/EBGeometry_Union.hpp
    :language: c++
    :lines: 27-70
 
 Note that ``EBGeometry::Union`` inherits from ``EBGeometry::SignedDistanceFunction`` and thus provides a ``signedDistance(...)`` function.
 The implementation of the standard union is
 
-.. literalinclude:: ../../Source/EBGeometry_UnionImplem.hpp
+.. literalinclude:: ../../../Source/EBGeometry_UnionImplem.hpp
    :language: c++
    :lines: 20-44
    
@@ -32,7 +32,7 @@ BVH-enabled union
 
 The BVH-enabled union is implemented by ``EBGeometry::UnionBVH`` as follows:
 
-.. literalinclude:: ../../Source/EBGeometry_UnionBVH.hpp
+.. literalinclude:: ../../../Source/EBGeometry_UnionBVH.hpp
    :language: c++
    :lines: 27-122
 
@@ -44,7 +44,7 @@ After partitioning the primitives, the original BVH tree is flattened onto the c
 
 The implementation of the signed distance function for the BVH-enabled union is
 
-.. literalinclude:: ../../Source/EBGeometry_UnionBVHImplem.hpp
+.. literalinclude:: ../../../Source/EBGeometry_UnionBVHImplem.hpp
    :language: c++
    :lines: 163-170
 
