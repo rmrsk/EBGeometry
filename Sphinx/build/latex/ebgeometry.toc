@@ -1,0 +1,61 @@
+\babel@toc {english}{}
+\contentsline {chapter}{\numberline {1}Introduction}{3}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Requirements}{3}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Quickstart}{3}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Features}{3}{section.1.3}%
+\contentsline {chapter}{\numberline {2}Concepts}{5}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Signed distance fields}{5}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Transformations}{5}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Unions}{6}{section.2.3}%
+\contentsline {section}{\numberline {2.4}DCEL mesh structure}{6}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Basic concept}{6}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Signed distance}{6}{subsection.2.4.2}%
+\contentsline {subsection}{\numberline {2.4.3}Normal vectors}{8}{subsection.2.4.3}%
+\contentsline {section}{\numberline {2.5}Bounding volume hierarchies}{8}{section.2.5}%
+\contentsline {subsection}{\numberline {2.5.1}Basic concept}{8}{subsection.2.5.1}%
+\contentsline {subsection}{\numberline {2.5.2}Construction}{10}{subsection.2.5.2}%
+\contentsline {subsection}{\numberline {2.5.3}Signed distance function}{11}{subsection.2.5.3}%
+\contentsline {chapter}{\numberline {3}Implementation}{13}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Overview}{13}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Vector types}{13}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Bounding volume hierarchy}{14}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Template constraints}{14}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Bounding volumes}{15}{subsection.3.3.2}%
+\contentsline {subsection}{\numberline {3.3.3}Construction}{15}{subsection.3.3.3}%
+\contentsline {subsection}{\numberline {3.3.4}Compact form}{17}{subsection.3.3.4}%
+\contentsline {subsection}{\numberline {3.3.5}Signed distance}{19}{subsection.3.3.5}%
+\contentsline {section}{\numberline {3.4}DCEL}{20}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Classes}{20}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}BVH integration}{21}{subsection.3.4.2}%
+\contentsline {subsection}{\numberline {3.4.3}Code example}{22}{subsection.3.4.3}%
+\contentsline {section}{\numberline {3.5}Signed distance function}{23}{section.3.5}%
+\contentsline {subsection}{\numberline {3.5.1}Normal vector}{25}{subsection.3.5.1}%
+\contentsline {subsection}{\numberline {3.5.2}Transformations}{26}{subsection.3.5.2}%
+\contentsline {subsection}{\numberline {3.5.3}Rounding}{26}{subsection.3.5.3}%
+\contentsline {subsection}{\numberline {3.5.4}Scaling}{27}{subsection.3.5.4}%
+\contentsline {subsection}{\numberline {3.5.5}Analytic functions}{28}{subsection.3.5.5}%
+\contentsline {section}{\numberline {3.6}Unions}{29}{section.3.6}%
+\contentsline {subsection}{\numberline {3.6.1}Standard union}{29}{subsection.3.6.1}%
+\contentsline {subsection}{\numberline {3.6.2}BVH\sphinxhyphen {}enabled union}{31}{subsection.3.6.2}%
+\contentsline {section}{\numberline {3.7}File parsers}{33}{section.3.7}%
+\contentsline {subsection}{\numberline {3.7.1}Read into DCEL}{33}{subsection.3.7.1}%
+\contentsline {chapter}{\numberline {4}Guided examples}{35}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Overview}{35}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Reading mesh files}{35}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Reading the surface mesh}{36}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Constructing the BVH}{36}{subsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.2.3}Summary}{36}{subsection.4.2.3}%
+\contentsline {section}{\numberline {4.3}Unions}{36}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Creating the spheres}{37}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}Creating standard union}{38}{subsection.4.3.2}%
+\contentsline {subsection}{\numberline {4.3.3}Creating BVH\sphinxhyphen {}enabled union}{38}{subsection.4.3.3}%
+\contentsline {subsection}{\numberline {4.3.4}Typical output}{39}{subsection.4.3.4}%
+\contentsline {section}{\numberline {4.4}Integration with AMReX}{39}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}Constructing the BVH}{43}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Exposing signed distance functions}{43}{subsection.4.4.2}%
+\contentsline {section}{\numberline {4.5}Integration with Chombo3}{43}{section.4.5}%
+\contentsline {subsection}{\numberline {4.5.1}Constructing the BVH}{47}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}Exposing signed distance functions}{48}{subsection.4.5.2}%
+\contentsline {chapter}{\numberline {5}References}{49}{chapter.5}%
+\contentsline {section}{\numberline {5.1}References}{49}{section.5.1}%
+\contentsline {chapter}{Bibliography}{51}{chapter*.4}%

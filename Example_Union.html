@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -105,7 +106,7 @@
            <div itemprop="articleBody">
              
   <div class="section" id="unions">
-<span id="chap-exampleunion"></span><h1>Unions<a class="headerlink" href="#unions" title="Permalink to this headline"></a></h1>
+<span id="chap-exampleunion"></span><h1>Unions<a class="headerlink" href="#unions" title="Permalink to this heading"></a></h1>
 <p>This example is given in <code class="file docutils literal notranslate"><span class="pre">Examples/EBGeometry_Union/main.cpp</span></code> and shows the following steps:</p>
 <ol class="arabic simple">
 <li><p>The creation of scene composed of an array of spheres.</p></li>
@@ -159,7 +160,7 @@
 </pre></div>
 </div>
 <div class="section" id="creating-the-spheres">
-<h2>Creating the spheres<a class="headerlink" href="#creating-the-spheres" title="Permalink to this headline"></a></h2>
+<h2>Creating the spheres<a class="headerlink" href="#creating-the-spheres" title="Permalink to this heading"></a></h2>
 <p>In the first block of code we are defining one million spheres that lie on a three-dimensional lattice, where each sphere has a radius of one:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">K</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
 
@@ -185,7 +186,7 @@
 </div>
 </div>
 <div class="section" id="creating-standard-union">
-<h2>Creating standard union<a class="headerlink" href="#creating-standard-union" title="Permalink to this headline"></a></h2>
+<h2>Creating standard union<a class="headerlink" href="#creating-standard-union" title="Permalink to this heading"></a></h2>
 <p>In the second block of code we are simply creating a standard signed distance function union:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>
 </pre></div>
@@ -193,7 +194,7 @@
 <p>For implementation details regarding the standard union, see <a class="reference internal" href="ImplemUnion.html#chap-union"><span class="std std-ref">Unions</span></a>.</p>
 </div>
 <div class="section" id="creating-bvh-enabled-union">
-<h2>Creating BVH-enabled union<a class="headerlink" href="#creating-bvh-enabled-union" title="Permalink to this headline"></a></h2>
+<h2>Creating BVH-enabled union<a class="headerlink" href="#creating-bvh-enabled-union" title="Permalink to this heading"></a></h2>
 <p>In the third block of code we create a BVH-enabled union.
 To do so, we must first provide a function which can create bounding volumes around each object:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="c1">// Make a fast union. To do this we must have the SDF objects (our vector of</span>
@@ -210,7 +211,7 @@ To do so, we must first provide a function which can create bounding volumes aro
 <p>Here, we use axis-aligned boxes but we could also have used other types of bounding volumes.</p>
 </div>
 <div class="section" id="typical-output">
-<h2>Typical output<a class="headerlink" href="#typical-output" title="Permalink to this headline"></a></h2>
+<h2>Typical output<a class="headerlink" href="#typical-output" title="Permalink to this heading"></a></h2>
 <p>The above example shows two methods of creating unions.
 When running the example the typical output is something like:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Partitioning spheres

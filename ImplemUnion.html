@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -103,7 +104,7 @@
            <div itemprop="articleBody">
              
   <div class="section" id="unions">
-<span id="chap-union"></span><h1>Unions<a class="headerlink" href="#unions" title="Permalink to this headline"></a></h1>
+<span id="chap-union"></span><h1>Unions<a class="headerlink" href="#unions" title="Permalink to this heading"></a></h1>
 <p>As discussed in <a class="reference internal" href="Concepts.html#chap-concepts"><span class="std std-ref">Signed distance fields</span></a>, a union of signed distance fields can be created provided that the objects do not touch or overlap.
 EBGeometry provides two implementations:</p>
 <ul class="simple">
@@ -111,7 +112,7 @@ EBGeometry provides two implementations:</p>
 <li><p><strong>BVH-enabled union</strong> where bounding volume hierarchies are used to find the closest object.</p></li>
 </ul>
 <div class="section" id="standard-union">
-<h2>Standard union<a class="headerlink" href="#standard-union" title="Permalink to this headline"></a></h2>
+<h2>Standard union<a class="headerlink" href="#standard-union" title="Permalink to this heading"></a></h2>
 <p>The standard union is template as</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
 <span class="k">class</span> <span class="nc">Union</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span>
@@ -191,7 +192,7 @@ The implementation of the standard union is</p>
 <p>That is, it iterates through <em>all</em> the objects in order to find the signed distance.</p>
 </div>
 <div class="section" id="bvh-enabled-union">
-<h2>BVH-enabled union<a class="headerlink" href="#bvh-enabled-union" title="Permalink to this headline"></a></h2>
+<h2>BVH-enabled union<a class="headerlink" href="#bvh-enabled-union" title="Permalink to this heading"></a></h2>
 <p>The BVH-enabled union is implemented by <code class="docutils literal notranslate"><span class="pre">EBGeometry::UnionBVH</span></code> as follows:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">K</span><span class="o">&gt;</span>
 <span class="k">class</span> <span class="nc">UnionBVH</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span>

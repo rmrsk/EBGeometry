@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -105,9 +106,9 @@
            <div itemprop="articleBody">
              
   <div class="section" id="dcel-mesh-structure">
-<span id="chap-dcel"></span><h1>DCEL mesh structure<a class="headerlink" href="#dcel-mesh-structure" title="Permalink to this headline"></a></h1>
+<span id="chap-dcel"></span><h1>DCEL mesh structure<a class="headerlink" href="#dcel-mesh-structure" title="Permalink to this heading"></a></h1>
 <div class="section" id="basic-concept">
-<h2>Basic concept<a class="headerlink" href="#basic-concept" title="Permalink to this headline"></a></h2>
+<h2>Basic concept<a class="headerlink" href="#basic-concept" title="Permalink to this heading"></a></h2>
 <p>EBGeometry uses a doubly-connected edge list (DCEL) structure for storing surface meshes.
 The DCEL structures consist of the following objects:</p>
 <ul class="simple">
@@ -133,7 +134,7 @@ If the surface mesh consists of holes or flipped facets, the signed distance fun
 </div>
 </div>
 <div class="section" id="signed-distance">
-<h2>Signed distance<a class="headerlink" href="#signed-distance" title="Permalink to this headline"></a></h2>
+<h2>Signed distance<a class="headerlink" href="#signed-distance" title="Permalink to this heading"></a></h2>
 <p>When computing the signed distance function, the closest point on the surface mesh can be one of the vertices, (half-) edges, or faces, see <a class="reference internal" href="#fig-polygonprojection"><span class="std std-numref">Fig. 2</span></a>.</p>
 <div class="figure align-center" id="id3">
 <span id="fig-polygonprojection"></span><a class="reference internal image-reference" href="_images/PolygonProjection.png"><img alt="_images/PolygonProjection.png" src="_images/PolygonProjection.png" style="width: 240px;" /></a>
@@ -165,7 +166,7 @@ Otherwise, the closest point is one of the vertices.</p>
 </ol>
 </div>
 <div class="section" id="normal-vectors">
-<span id="chap-normaldcel"></span><h2>Normal vectors<a class="headerlink" href="#normal-vectors" title="Permalink to this headline"></a></h2>
+<span id="chap-normaldcel"></span><h2>Normal vectors<a class="headerlink" href="#normal-vectors" title="Permalink to this heading"></a></h2>
 <p>The normal vectors for edges <span class="math notranslate nohighlight">\(\mathbf{n}_e\)</span> and vertices <span class="math notranslate nohighlight">\(\mathbf{n}_v\)</span> are, unlike the facet normal, not uniquely defined.
 For both edges and vertices we use the pseudonormals from <span id="id1">[<a class="reference internal" href="ZZReferences.html#id2" title="J.A. Baerentzen and H. Aanaes. Signed distance computation using the angle weighted pseudonormal. IEEE Transactions on Visualization and Computer Graphics, 11(3):243-253, 2005. doi:10.1109/TVCG.2005.49.">1</a>]</span>:</p>
 <div class="math notranslate nohighlight">

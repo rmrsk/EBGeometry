@@ -1,126 +1,48 @@
-\mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} is a code for computing signed distance functions to watertight and orientable surface grids. It was written to be used with embedded-\/boundary (EB) codes like Chombo or A\+M\+ReX.
+\doxysection*{Doxygen documentation}
 
-Tesselations must consist of planar polygons (not necessarily triangles). Internally, the surface mesh is stored in a doubly-\/connected edge list (\mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}}), i.\+e. a half-\/edge data structure. On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can be computed in various ways\+:
-
-
-\begin{DoxyItemize}
-\item Directly, by iterating through all facets.
-\item With conventional bounding volume hierarchies (B\+V\+Hs).
-\item With compact (linearized) B\+V\+Hs.
-\end{DoxyItemize}
-
-The B\+V\+Hs in \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} are not limited to facets. Users can also embed entire objects (e.\+g., analytic functions) in the B\+V\+Hs, e.\+g. the \mbox{\hyperlink{namespaceBVH}{B\+VH}} accelerator can be used to accelerate the signed distance computation when geometries contain many objects. B\+V\+Hs can also be nested so that the \mbox{\hyperlink{namespaceBVH}{B\+VH}} accelerator is used to embed objects that are themselves contained in a \mbox{\hyperlink{namespaceBVH}{B\+VH}}. For example, a scene consisting of many objects described by surface grids can be embedded as a B\+V\+H-\/of-\/\+B\+VH type of scene. In addition, \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} provides standard operators for signed distance fields like rotations, translations, and scalings.
-
-
-
-\doxysection*{Requirements }
-
-
-\begin{DoxyItemize}
-\item A C++ compiler which supports C++14.
-\item An analytic signed distance function or a Watertight and orientable surface (only P\+LY files currently supported).
-\end{DoxyItemize}
-
-\doxysection*{Basic usage }
-
-\mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} is a header-\/only library in C++. To use it, simply make \mbox{\hyperlink{EBGeometry_8hpp_source}{E\+B\+Geometry.\+hpp}} visible to your code and include it.
-
-To clone \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}}\+: \begin{DoxyVerb}git clone git@github.com:rmrsk/EBGeometry.git
-\end{DoxyVerb}
-
-
-Various examples are given in the Examples folder. To run one of the examples, navigate to the example and compile and run it. E.\+g.,
+To build the doxygen documentation locally, run
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{cd Examples/Basic}
-\DoxyCodeLine{g++ -\/O3 -\/std=c++14 main.cpp}
-\DoxyCodeLine{./a.out porsche.ply}
+\DoxyCodeLine{doxygen doxyfile}
 \end{DoxyCode}
 
 
-The examples take the following steps that are specific to \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}}\+:
+in this folder. This will install the doxygen documentation in the {\ttfamily doxygen} subfolder.
 
+\doxysection*{Manual build}
 
-\begin{DoxyEnumerate}
-\item Define an analytic signed distance function or parse a surface mesh into a \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} mesh object.
-\item Partition using B\+V\+Hs.
-\item Compute the signed distance function.
-\end{DoxyEnumerate}
-
-More complex examples that use Chombo or A\+M\+ReX will also include application-\/specific code.
-
-\doxysection*{Advanced usage }
-
-For more advanced usage, users can supply their own file parsers (only P\+LY files are currently supported), provide their own bounding volumes, or their own \mbox{\hyperlink{namespaceBVH}{B\+VH}} partitioners. \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} is not too strict about these things, and uses rigorous templating for ensuring that the \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} functionality can be extended.
-
-\doxysection*{Contributing }
-
-
-\begin{DoxyEnumerate}
-\item Create a branch for the new feature.
-\end{DoxyEnumerate}
+We use Sphinx with re\+Structured text for building the user documentation. To build the documentation locally, navigate to the Sphinx subfolder and run
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{git checkout main}
-\DoxyCodeLine{git pull}
-\DoxyCodeLine{git checkout -\/b my\_branch}
+\DoxyCodeLine{cd Sphinx}
+\DoxyCodeLine{make html}
 \end{DoxyCode}
 
 
-
-\begin{DoxyEnumerate}
-\item Develop the feature.
-\end{DoxyEnumerate}
+for the H\+T\+ML documentation and
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{git add .}
-\DoxyCodeLine{git commit -\/m "my commit message"}
+\DoxyCodeLine{cd Sphinx}
+\DoxyCodeLine{make latexpdf}
 \end{DoxyCode}
 
 
-If relevant, add Sphinx and doxygen documentation.
+for the La\+Te\+X/\+P\+DF documentation.
 
+Source files will end up in {\ttfamily Sphinx/build/html} and {\ttfamily Sphinx/build/latex}, respectively.
 
-\begin{DoxyEnumerate}
-\item Format the source and example codes using {\ttfamily clang-\/format}\+:
-\end{DoxyEnumerate}
+\doxysection*{Adding Sphinx changes.}
+
+To add changes to the Sphinx documentation, make the changes in the relevant Sphinx/source files. To build the documentation, either build it locally as above or put Sphinx in auto-\/build mode\+:
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{find Source Examples \(\backslash\)( -\/name "*.hpp" -\/o -\/name "*.cpp" \(\backslash\)) -\/exec clang-\/format -\/i \{\} +}
+\DoxyCodeLine{cd Sphinx}
+\DoxyCodeLine{sphinx-\/autobuild source/ build/html}
 \end{DoxyCode}
 
 
-
-\begin{DoxyEnumerate}
-\item For safety, run \href{https://github.com/codespell-project/codespell}{\texttt{ codespell}} on the source, examples, and documentation directories\+:
-\end{DoxyEnumerate}
-
-
-\begin{DoxyCode}{0}
-\DoxyCodeLine{codespell Source Examples Sphinx -\/-\/skip "*.png,*.log,*.pdf"}
-\end{DoxyCode}
-
-
-
-\begin{DoxyEnumerate}
-\item Push the changes to Git\+Hub
-\end{DoxyEnumerate}
-
-
-\begin{DoxyCode}{0}
-\DoxyCodeLine{git push -\/-\/set-\/upstream origin my\_branch}
-\end{DoxyCode}
-
-
-
-\begin{DoxyEnumerate}
-\item Create a pull request and make sure the Git\+Hub continuous integration tests pass.
-\end{DoxyEnumerate}
-
-\doxysection*{License }
-
-See L\+I\+C\+E\+N\+SE and Copyright.\+txt for redistribution rights. 
+This will start a server at \href{http://127.0.0.1:8000}{\texttt{ http\+://127.\+0.\+0.\+1\+:8000}} and start watching for changes in the {\ttfamily source} directory. When a change is detected, the documentation is rebuilt and any open browser windows are reloaded automatically. {\ttfamily Keyboard\+Interrupt} ({\ttfamily ctrl}+{\ttfamily c}) will stop the server. 

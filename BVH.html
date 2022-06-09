@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -105,9 +106,9 @@
            <div itemprop="articleBody">
              
   <div class="section" id="bounding-volume-hierarchies">
-<span id="chap-bvh"></span><h1>Bounding volume hierarchies<a class="headerlink" href="#bounding-volume-hierarchies" title="Permalink to this headline"></a></h1>
+<span id="chap-bvh"></span><h1>Bounding volume hierarchies<a class="headerlink" href="#bounding-volume-hierarchies" title="Permalink to this heading"></a></h1>
 <div class="section" id="basic-concept">
-<h2>Basic concept<a class="headerlink" href="#basic-concept" title="Permalink to this headline"></a></h2>
+<h2>Basic concept<a class="headerlink" href="#basic-concept" title="Permalink to this heading"></a></h2>
 <p>Bounding Volume Hierarchies (BVHs) are comparatively simple data structures that can accelerate closest-point searches by orders of magnitude.
 BVHs are tree structures where the regular nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces) further down in the hierarchy.
 This means that every node in a BVH is associated with a <em>bounding volume</em>.
@@ -137,7 +138,7 @@ For example, analytic signed distance functions can also be embedded in BVHs, pr
 </div>
 </div>
 <div class="section" id="construction">
-<h2>Construction<a class="headerlink" href="#construction" title="Permalink to this headline"></a></h2>
+<h2>Construction<a class="headerlink" href="#construction" title="Permalink to this heading"></a></h2>
 <p>BVHs have extremely flexible rules regarding their construction.
 For example, the child nodes <span class="math notranslate nohighlight">\(L\)</span> and <span class="math notranslate nohighlight">\(R\)</span> in <a class="reference internal" href="#fig-trianglesbvh"><span class="std std-numref">Fig. 4</span></a> could be partitioned in any number of ways, with the only requirement being that each child node gets at least one triangle.</p>
 <p>Although the rules for BVH construction are highly flexible, performant BVHs are completely reliant on having balanced trees with the following heuristic properties:</p>
@@ -168,7 +169,7 @@ Top-down construction can thus be illustrated as a recursive procedure:</p>
 EBGeometry provides these by letting the top-down construction calls take polymorphic lambdas as arguments for partitioning, termination, and bounding volume construction.</p>
 </div>
 <div class="section" id="signed-distance-function">
-<h2>Signed distance function<a class="headerlink" href="#signed-distance-function" title="Permalink to this headline"></a></h2>
+<h2>Signed distance function<a class="headerlink" href="#signed-distance-function" title="Permalink to this heading"></a></h2>
 <p>When computing the signed distance function to objects embedded in a BVH, one takes advantage of the hierarchical embedding of the primitives.
 Consider the case in <a class="reference internal" href="#fig-treepruning"><span class="std std-numref">Fig. 5</span></a>, where the goal of the BVH traversal is to minimize the number of branches and nodes that are visited.
 For the traversal algorithm we consider the following steps:</p>

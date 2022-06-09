@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -107,7 +108,7 @@
            <div itemprop="articleBody">
              
   <div class="section" id="signed-distance-function">
-<span id="chap-implemsdf"></span><h1>Signed distance function<a class="headerlink" href="#signed-distance-function" title="Permalink to this headline"></a></h1>
+<span id="chap-implemsdf"></span><h1>Signed distance function<a class="headerlink" href="#signed-distance-function" title="Permalink to this heading"></a></h1>
 <p>In EBGeometry we have encapsulated the concept of a signed distance function in an abstract class</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cm">/* EBGeometry</span>
 <span class="cm"> * Copyright © 2022 Robert Marskar</span>
@@ -240,7 +241,7 @@ For example, in order to rotate a DCEL mesh (without using the BVH accelerator) 
 </pre></div>
 </div>
 <div class="section" id="normal-vector">
-<h2>Normal vector<a class="headerlink" href="#normal-vector" title="Permalink to this headline"></a></h2>
+<h2>Normal vector<a class="headerlink" href="#normal-vector" title="Permalink to this heading"></a></h2>
 <p>The normal vector of <code class="docutils literal notranslate"><span class="pre">EBGeometry::SignedDistanceFunction&lt;T&gt;</span></code> is computed using centered finite differences:</p>
 <div class="math notranslate nohighlight">
 \[n_i\left(\mathbf{x}\right) = \frac{1}{2\Delta}\left[S\left(\mathbf{x} + \Delta\mathbf{\hat{i}}\right) - S\left(\mathbf{x} - \Delta\mathbf{\hat{i}}\right)\right],\]</div>
@@ -248,7 +249,7 @@ For example, in order to rotate a DCEL mesh (without using the BVH accelerator) 
 This is done for each component, and the normalized vector is then returned.</p>
 </div>
 <div class="section" id="transformations">
-<h2>Transformations<a class="headerlink" href="#transformations" title="Permalink to this headline"></a></h2>
+<h2>Transformations<a class="headerlink" href="#transformations" title="Permalink to this heading"></a></h2>
 <p>The following transformations are possible:</p>
 <ul class="simple">
 <li><p>Translation, which defines the operation <span class="math notranslate nohighlight">\(\mathbf{x}^\prime = \mathbf{x} - \mathbf{t}\)</span> where <span class="math notranslate nohighlight">\(\mathbf{t}\)</span> is a translation vector.</p></li>
@@ -270,7 +271,7 @@ The APIs are as follows:</p>
 <p>Note that if the transformations are to be applied, the implementation of <code class="docutils literal notranslate"><span class="pre">signedDistance(...)</span></code> must transform the input point, as shown in the examples above.</p>
 </div>
 <div class="section" id="rounding">
-<h2>Rounding<a class="headerlink" href="#rounding" title="Permalink to this headline"></a></h2>
+<h2>Rounding<a class="headerlink" href="#rounding" title="Permalink to this heading"></a></h2>
 <p>Distance functions can be rounded by displacing the SDF by a specified distance.
 For example, given a distance functions <span class="math notranslate nohighlight">\(S\left(\mathbf{x}\right)\)</span>, the rounded distance functions is</p>
 <div class="math notranslate nohighlight">
@@ -328,7 +329,7 @@ Note that the rounding does not preserve the volume of the original SDF, so subs
 <p>To use it, simply pass an SDF into the constructor and use the new distance function.</p>
 </div>
 <div class="section" id="scaling">
-<h2>Scaling<a class="headerlink" href="#scaling" title="Permalink to this headline"></a></h2>
+<h2>Scaling<a class="headerlink" href="#scaling" title="Permalink to this heading"></a></h2>
 <p>Scaling of distance functions are possible through the transformation</p>
 <div class="math notranslate nohighlight">
 \[S_c\left(\mathbf{x}\right) = c S\left(\frac{\mathbf{x}}{c}\right),\]</div>
@@ -385,7 +386,7 @@ We point out that anisotropic stretching does not preserve the distance field.</
 </div>
 </div>
 <div class="section" id="analytic-functions">
-<span id="chap-analyticsdf"></span><h2>Analytic functions<a class="headerlink" href="#analytic-functions" title="Permalink to this headline"></a></h2>
+<span id="chap-analyticsdf"></span><h2>Analytic functions<a class="headerlink" href="#analytic-functions" title="Permalink to this heading"></a></h2>
 <p>Above, we have shown how users can supply a DCEL or BVH structure to implement <code class="docutils literal notranslate"><span class="pre">SignedDistanceFunction</span></code>.
 In addition, the file <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_AnalyticSignedDistanceFunctions.hpp</span></code> defines various other analytic shapes such as:</p>
 <ul>

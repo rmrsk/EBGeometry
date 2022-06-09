@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -100,7 +101,7 @@
            <div itemprop="articleBody">
              
   <div class="section" id="signed-distance-fields">
-<span id="chap-concepts"></span><h1>Signed distance fields<a class="headerlink" href="#signed-distance-fields" title="Permalink to this headline"></a></h1>
+<span id="chap-concepts"></span><h1>Signed distance fields<a class="headerlink" href="#signed-distance-fields" title="Permalink to this heading"></a></h1>
 <p>The signed distance function is defined as a function <span class="math notranslate nohighlight">\(S: \mathbb{R}^3 \rightarrow \mathbb{R}\)</span>, and returns the <em>signed distance</em> to the object.
 The signed distance function has the additional property:</p>
 <div class="math notranslate nohighlight" id="equation-eikonal">
@@ -126,7 +127,7 @@ For example, the signed distance function for a sphere with center <span class="
 <p>An important difference between these is the Eikonal property in <a class="reference internal" href="#equation-eikonal">Eq. 1</a>, ensuring that the signed distance function always returns the exact distance to the object.</p>
 </div>
 <div class="section" id="transformations">
-<h1>Transformations<a class="headerlink" href="#transformations" title="Permalink to this headline"></a></h1>
+<h1>Transformations<a class="headerlink" href="#transformations" title="Permalink to this heading"></a></h1>
 <p>Signed distance functions retain the Eikonal property for the following set of transformations:</p>
 <ul class="simple">
 <li><p>Rotations.</p></li>
@@ -134,7 +135,7 @@ For example, the signed distance function for a sphere with center <span class="
 </ul>
 </div>
 <div class="section" id="unions">
-<h1>Unions<a class="headerlink" href="#unions" title="Permalink to this headline"></a></h1>
+<h1>Unions<a class="headerlink" href="#unions" title="Permalink to this heading"></a></h1>
 <p>Unions of signed distance fields are also signed distance fields <em>provided that the objects do not intersect or touch</em>.
 For overlapping objects the signed distance function is not well-defined (since the interior and exterior are not well-defined).</p>
 <p>For non-overlapping objects represented as signed distance fields <span class="math notranslate nohighlight">\(\left(S_1\left(\mathbf{x}\right), S_2\left(\mathbf{x}\right), \ldots\right)\)</span>, the composite signed distance field is</p>

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['ebgeometry_689',['EBGeometry',['../index.html',1,'']]]
+  ['documentation_20quickstart_1',['Documentation quickstart',['../index.html',1,'']]]
 ];

@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -103,7 +104,7 @@
            <div itemprop="articleBody">
              
   <div class="section" id="integration-with-chombo3">
-<h1>Integration with Chombo3<a class="headerlink" href="#integration-with-chombo3" title="Permalink to this headline"></a></h1>
+<h1>Integration with Chombo3<a class="headerlink" href="#integration-with-chombo3" title="Permalink to this heading"></a></h1>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>This example requires you to install <a class="reference external" href="https://github.com/applied-numerical-algorithms-group-lbnl/Chombo_3.2">Chombo3</a>.</p>
@@ -307,7 +308,7 @@
 </pre></div>
 </div>
 <div class="section" id="constructing-the-bvh">
-<h2>Constructing the BVH<a class="headerlink" href="#constructing-the-bvh" title="Permalink to this headline"></a></h2>
+<h2>Constructing the BVH<a class="headerlink" href="#constructing-the-bvh" title="Permalink to this heading"></a></h2>
 <p>When constructing the signed distance function we use the DCEL and BVH functionality directly in the constructor.
 Note that we are performing the following steps:</p>
 <ul class="simple">
@@ -317,7 +318,7 @@ Note that we are performing the following steps:</p>
 </ul>
 </div>
 <div class="section" id="exposing-signed-distance-functions">
-<h2>Exposing signed distance functions<a class="headerlink" href="#exposing-signed-distance-functions" title="Permalink to this headline"></a></h2>
+<h2>Exposing signed distance functions<a class="headerlink" href="#exposing-signed-distance-functions" title="Permalink to this heading"></a></h2>
 <p>Next, we expose the signed distance function to Chombo3 by implementing the functions</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">Real</span>
 <span class="nf">value</span><span class="p">(</span><span class="k">const</span> <span class="n">RealVect</span><span class="o">&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">override</span> <span class="k">final</span>
