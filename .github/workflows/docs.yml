@@ -18,18 +18,29 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt install doxygen
-          sudo apt install graphviz          
+          sudo apt install graphviz
+          sudo apt install texlive
+          sudo apt install texlive-latex-extra
+          sudo apt install latexmk          
           python3 -m pip install sphinx sphinx_rtd_theme sphinxcontrib-bibtex
           python3 -m pip install -I docutils==0.16  # Downgrade docutils so that bullet points render properly with Sphinx
           
       - name: Build doxygen
+        working-directory: ${{ github.workspace }}/Docs
         run: |
           doxygen doxyfile
 
-      - name: Build sphinx
+      - name: Build HTML documentation
+        working-directory: ${{ github.workspace }}/Docs/Sphinx        
         run: |
-          cd Sphinx
-          make github
+          make html
+          mv build/html/* ${{ github.workspace }}/Docs
+
+      - name: Build PDF documentation
+        working-directory: ${{ github.workspace }}/Docs/Sphinx
+        run: |
+          make latexpdf
+          mv build/latex/ebgeometry.pdf ${{ github.workspace }}/Docs
           
       - name: Deploy
         if: github.event_name == 'push' && github.repository == 'rmrsk/EBGeometry' && github.ref == 'refs/heads/main'        
@@ -37,5 +48,5 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: gh-pages
-          folder: docs
+          folder: Docs
           clean: false
