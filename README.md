@@ -29,7 +29,7 @@ Requirements
 Documentation
 -------------
 
-User documentation is available as [HTML](https://rmrsk.github.io/ebgeometry/) or as a [PDF](https://github.com/rmrsk/EBGeometry/raw/gh-pages/ebgeometry.pdf).
+User documentation is available as [HTML](https://rmrsk.github.io/EBGeometry/) or as a [PDF](https://github.com/rmrsk/EBGeometry/raw/gh-pages/ebgeometry.pdf).
 A doxygen-generated API is [also available](https://rmrsk.github.io/EBGeometry/doxygen/html/index.html).
 
 Basic usage
