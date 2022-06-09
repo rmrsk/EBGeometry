@@ -7,7 +7,7 @@ This example is given in :file:`Examples/AMReX_DCEL/main.cpp` and shows how to e
 
 We will focus on the following parts of the code:
 
-.. literalinclude:: ../../Examples/AMReX_DCEL/main.cpp
+.. literalinclude:: ../../../Examples/AMReX_DCEL/main.cpp
    :language: c++
 
 Constructing the BVH
