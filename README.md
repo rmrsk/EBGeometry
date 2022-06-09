@@ -26,6 +26,12 @@ Requirements
 * A C++ compiler which supports C++14.
 * An analytic signed distance function or a Watertight and orientable surface (only PLY files currently supported).
 
+Documentation
+-------------
+
+User documentation is available as [HTML](https://rmrsk.github.io/ebgeometry/) or as a [PDF](https://github.com/rmrsk/EBGeometry/raw/gh-pages/ebgeometry.pdf).
+A doxygen-generated API is [also available](https://rmrsk.github.io/EBGeometry/doxygen/html/index.html).
+
 Basic usage
 -----------
 
@@ -46,13 +52,13 @@ g++ -O3 -std=c++14 main.cpp
 ./a.out porsche.ply
 ```
 
-The examples take the following steps that are specific to EBGeometry:
+The examples take the following steps that are mostly specific to EBGeometry:
 
 1. Define an analytic signed distance function or parse a surface mesh into a DCEL mesh object.
 2. Partition using BVHs. 
 3. Compute the signed distance function. 
 
-More complex examples that use Chombo or AMReX will also include application-specific code. 
+More complex examples that use Chombo or AMReX will also include application-specific code.
 
 Advanced usage
 --------------
