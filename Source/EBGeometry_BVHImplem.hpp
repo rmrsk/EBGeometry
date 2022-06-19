@@ -572,43 +572,22 @@ namespace BVH {
 
     // For SDF we select the one that is closest, i.e. the object with the
     // smallest absolute value.
-    Comparator sdfComparator = [](const T& curDist, const T& minDist) -> T {
+    Comparator<T> sdfComparator = [](const T& curDist, const T& minDist) -> T {
       return std::abs(curDist) < std::abs(minDist) ? curDist : minDist;
     };
 
     // If the distance to the BV is shorter than the smallest distance so far,
     // then we need to check the node.
-    Pruner sdfPruner = [](const T& bvDist, const T& minDist) -> bool { return bvDist <= std::abs(minDist); };
+    Pruner<T> sdfPruner = [](const T& bvDist, const T& minDist) -> bool { return bvDist <= std::abs(minDist); };
 
     return this->stackPrune(a_point, sdfComparator, sdfPruner);
   }
 
   template <class T, class P, class BV, size_t K>
   inline T
-  LinearBVH<T, P, BV, K>::csgUnion(const Vec3& a_point) const noexcept
-  {
-
-    // For the CSG union we select the smallest value. This means that if a
-    // point is inside one object but outside another one, we choose the
-    // inside value.
-    Comparator unionComparator = [](const T& curDist, const T& minDist) -> T { return std::min(curDist, minDist); };
-
-    // If we fall inside a node then we need to check that node. Otherwise
-    // we only need to check nodes if the BV is closer than the minimum distance
-    // fond so far AND the minimum distance found so far is on the "outside" of
-    // an object.
-    Pruner unionPruner = [](const T& bvDist, const T& minDist) -> bool {
-      return bvDist <= 0.0 || (bvDist <= minDist && minDist > 0.0);
-    };
-
-    return this->stackPrune(a_point, unionComparator, unionPruner);
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline T
-  LinearBVH<T, P, BV, K>::stackPrune(const Vec3&       a_point,
-                                     const Comparator& a_comparator,
-                                     const Pruner&     a_pruner) const noexcept
+  LinearBVH<T, P, BV, K>::stackPrune(const Vec3&          a_point,
+                                     const Comparator<T>& a_comparator,
+                                     const Pruner<T>&     a_pruner) const noexcept
   {
     // TLDR: This routine uses ordered traversal along the branches. This differs for
     //       SDF traversal and CSG union traversal, but not enough that I'm willing

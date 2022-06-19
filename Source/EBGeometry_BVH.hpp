@@ -95,6 +95,22 @@ namespace BVH {
   using BVConstructorT = std::function<BV(const std::shared_ptr<const P>& a_primitive)>;
 
   /*!
+    @brief Comparator for LinearBVH::stackPrune
+    @param[in] primDist Current distance to current
+    @param[in] minDist  Shortest distance to primitives found so far. 
+  */
+  template <class T>
+  using Comparator = std::function<T(const T& primDist, const T& minDist)>;
+
+  /*!
+    @brief Pruner for LinearBVH::stackPrune
+    @param[in] Distance to current bounding volume. 
+    @param[in] minDist  Shortest "distance" to primitives found so far. 
+  */
+  template <class T>
+  using Pruner = std::function<bool(const T& bvDist, const T& minDist)>;      
+
+  /*!
     @brief Typename for identifying algorithms various algorithms during tree
     traversel.
     @details Stack     => Use stack/priority queue (ordered traversal).
@@ -577,16 +593,19 @@ namespace BVH {
     inline T
     csgUnion(const Vec3& a_point) const noexcept;
 
-  protected:
     /*!
-      @brief Comparator for treePrune
+      @brief Stack-based pruning algorithm (recursion-less).
+      @details This will iterate through the BVH and visit all nodes where a_pruner evalutes to true. If
+      the node is a leaf node, we update the "distance", which will be the closest object for signed
+      distance, or the one with the smallest value for the constructive solid geometry union. 
+      @param[in] a_point      3D point in space
+      @param[in] a_comparator Comparator for how to select the "output" when comparing two distances.
+      @param[in] a_pruner     Comparator for whether to visit the node or not. 
     */
-    using Comparator = std::function<T(const T& primDist, const T& minDist)>;
+    inline T
+    stackPrune(const Vec3& a_point, const BVH::Comparator<T>& a_comparator, const BVH::Pruner<T>& a_pruner) const noexcept;
 
-    /*!
-      @brief Pruner for treePrune.
-    */
-    using Pruner = std::function<bool(const T& bvDist, const T& minDist)>;
+  protected:
 
     /*!
       @brief List of linearly stored nodes
@@ -599,17 +618,6 @@ namespace BVH {
     */
     std::vector<std::shared_ptr<const P>> m_primitives;
 
-    /*!
-      @brief Stack-based pruning algorithm (recursion-less).
-      @details This will iterate through the BVH and visit all nodes where a_pruner evalutes to true. If
-      the node is a leaf node, we update the "distance", which will be the closest object for signed
-      distance, or the one with the smallest value for the constructive solid geometry union. 
-      @param[in] a_point      3D point in space
-      @param[in] a_comparator Comparator for how to select the "output" when comparing two distances.
-      @param[in] a_pruner     Comparator for whether to visit the node or not. 
-    */
-    inline T
-    stackPrune(const Vec3& a_point, const Comparator& a_comparator, const Pruner& a_pruner) const noexcept;
   };
 } // namespace BVH
 

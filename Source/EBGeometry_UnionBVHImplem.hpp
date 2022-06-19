@@ -161,11 +161,33 @@ UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor)
 
 template <class T, class BV, size_t K>
 T
-UnionBVH<T, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
+UnionBVH<T, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 {
   const T sign = (m_flipSign) ? -1.0 : 1.0;
 
-  return sign * m_rootNode->signedDistance(a_point);
+  // For the CSG union we select the smallest value. This means that if a
+  // point is inside one object but outside another one, we choose the
+  // inside value. By design, LinearNode is a signed distance object, but the
+  // BVH accelerator is still a valid accelerator that permits us to do all
+  // kinds of accelerated traversal. For overlapping objects there is not signed
+  // distance but there is still a CSG union, and the BVH is still a useful thing.
+  // So, we can't use LinearNode::signedDistanceFunction because it returns the
+  // closest object and not the object with the smallest value function.
+  //
+  // Fortunately, when I wrote the LinearNode accelerator such that we can determine
+  // how to update the "shortest" distance using externally supplied criteria.
+  // So, we just update this as f = min(f1,f2,f3) etc, and prune nodes accordingly.
+  // The criteria for that are below...
+
+  BVH::Comparator<T> unionComparator = [](const T& curDist, const T& minDist) -> T { return std::min(curDist, minDist); };
+
+  BVH::Pruner<T> unionPruner = [](const T& bvDist, const T& minDist) -> bool {
+    return bvDist <= 0.0 || (bvDist <= minDist && minDist > 0.0);
+  };
+
+  const T value = m_rootNode->stackPrune(a_point, unionComparator, unionPruner);
+
+  return sign * value;
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"

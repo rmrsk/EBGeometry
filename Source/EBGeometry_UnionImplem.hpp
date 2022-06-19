@@ -17,10 +17,20 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 template <class T>
+Union<T>::Union(const std::vector<std::shared_ptr<ImpFunc>>& a_implicitFunctions, const bool a_flipSign)
+{
+  for (const auto& impFunc : a_implicitFunctions) {
+    m_implicitFunctions.emplace_back(impFunc);
+  }
+
+  m_flipSign = a_flipSign;
+}
+
+template <class T>
 Union<T>::Union(const std::vector<std::shared_ptr<SDF>>& a_distanceFunctions, const bool a_flipSign)
 {
   for (const auto& sdf : a_distanceFunctions) {
-    m_distanceFunctions.emplace_back(sdf);
+    m_implicitFunctions.emplace_back(sdf);
   }
 
   m_flipSign = a_flipSign;
@@ -28,14 +38,12 @@ Union<T>::Union(const std::vector<std::shared_ptr<SDF>>& a_distanceFunctions, co
 
 template <class T>
 T
-Union<T>::signedDistance(const Vec3T<T>& a_point) const noexcept
+Union<T>::value(const Vec3T<T>& a_point) const noexcept
 {
   T ret = std::numeric_limits<T>::infinity();
 
-  for (const auto& sdf : m_distanceFunctions) {
-    const T cur = sdf->signedDistance(a_point);
-
-    ret = (std::abs(cur) < std::abs(ret)) ? cur : ret;
+  for (const auto& impFunc : m_implicitFunctions) {
+    ret = std::min(ret, impFunc->value(a_point));
   }
 
   T sign = (m_flipSign) ? -1.0 : 1.0;

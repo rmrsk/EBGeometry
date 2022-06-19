@@ -78,12 +78,12 @@ main()
 
   std::cout << "Computing distance with slow union\n";
   const auto t1       = std::chrono::high_resolution_clock::now();
-  const T    slowDist = slowUnion.signedDistance(point);
+  const T    slowDist = slowUnion.value(point);
   const auto t2       = std::chrono::high_resolution_clock::now();
 
   std::cout << "Computing distance with fast union\n";
   const auto t3       = std::chrono::high_resolution_clock::now();
-  const T    fastDist = fastUnion.signedDistance(point);
+  const T    fastDist = fastUnion.value(point);
   const auto t4       = std::chrono::high_resolution_clock::now();
 
   const std::chrono::duration<T, std::milli> slowTime = t2 - t1;
