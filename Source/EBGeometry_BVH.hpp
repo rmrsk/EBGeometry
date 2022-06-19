@@ -595,7 +595,7 @@ namespace BVH {
 
     /*!
       @brief Stack-based pruning algorithm (recursion-less).
-      @details This will iterate through the BVH and visit all nodes where a_pruner evalutes to true. If
+      @details This will iterate through the BVH and visit all nodes where a_pruner evaluates to true. If
       the node is a leaf node, we update the "distance", which will be the closest object for signed
       distance, or the one with the smallest value for the constructive solid geometry union. 
       @param[in] a_point      3D point in space
