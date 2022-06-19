@@ -559,12 +559,62 @@ namespace BVH {
   {}
 
   template <class T, class P, class BV, size_t K>
+  inline const BV&
+  LinearBVH<T, P, BV, K>::getBoundingVolume()
+  {
+    return m_linearNodes.front()->getBoundingVolume();
+  }
+
+  template <class T, class P, class BV, size_t K>
   inline T
   LinearBVH<T, P, BV, K>::signedDistance(const Vec3& a_point) const noexcept
   {
-    // TLDR: This routine uses ordered traversal along the branches. Rather than
-    // calling itself recursively, it uses
-    //       a stack for investigating the branches and nodes.
+
+    // For SDF we select the one that is closest, i.e. the object with the
+    // smallest absolute value.
+    Comparator sdfComparator = [](const T& curDist, const T& minDist) -> T {
+      return std::abs(curDist) < std::abs(minDist) ? curDist : minDist;
+    };
+
+    // If the distance to the BV is shorter than the smallest distance so far,
+    // then we need to check the node.
+    Pruner sdfPruner = [](const T& bvDist, const T& minDist) -> bool { return bvDist <= std::abs(minDist); };
+
+    return this->stackPrune(a_point, sdfComparator, sdfPruner);
+  }
+
+  template <class T, class P, class BV, size_t K>
+  inline T
+  LinearBVH<T, P, BV, K>::csgUnion(const Vec3& a_point) const noexcept
+  {
+
+    // For the CSG union we select the smallest value. This means that if a
+    // point is inside one object but outside another one, we choose the
+    // inside value.
+    Comparator unionComparator = [](const T& curDist, const T& minDist) -> T { return std::min(curDist, minDist); };
+
+    // If we fall inside a node then we need to check that node. Otherwise
+    // we only need to check nodes if the BV is closer than the minimum distance
+    // fond so far AND the minimum distance found so far is on the "outside" of
+    // an object.
+    Pruner unionPruner = [](const T& bvDist, const T& minDist) -> bool {
+      return bvDist <= 0.0 || (bvDist <= minDist && minDist > 0.0);
+    };
+
+    return this->stackPrune(a_point, unionComparator, unionPruner);
+  }
+
+  template <class T, class P, class BV, size_t K>
+  inline T
+  LinearBVH<T, P, BV, K>::stackPrune(const Vec3&       a_point,
+                                     const Comparator& a_comparator,
+                                     const Pruner&     a_pruner) const noexcept
+  {
+    // TLDR: This routine uses ordered traversal along the branches. This differs for
+    //       SDF traversal and CSG union traversal, but not enough that I'm willing
+    //       to write separate algorithms for this. Instead, the incoming lambdas are
+    //       sufficient for updating the distance and determining if we need to visit
+    //       the BVH node or not.
 
     // Shortest unsigned square distance. Initialize to something big.
     T minDist = std::numeric_limits<T>::infinity();
@@ -587,22 +637,26 @@ namespace BVH {
 
       q.pop();
 
-      // See if we really need to process this node. We only need to do it if its
-      // BV is closer than the shortest distance we've found so far. Otherwise we
-      // are guaranteed that the distance to the primitives is larger than the
-      // shortest distance we've found so far.
-      if (bvDist <= std::abs(minDist)) {
+      // See if we really need to process this node. This is checked by the pruner.
+      //
+      // 1. For SDFs We only need to do it if its BV is closer than the shortest
+      //    distance we've found so far. Otherwise we are guaranteed that the
+      //    distance to the primitives is larger than the the shortest distance
+      //    we've found so far.
+      //
+      // 2. For CSG unions we compute min(f1, f2, f3) and so on. If the distance to the BV
+      //    is D <= 0.0 we always need to check. Otherwise we only have to check if
+      //    the distance is D < d and d > 0.0.
+      if (a_pruner(bvDist, minDist)) {
 
-        // If it's a leaf node, update the shortest distance so far.
+        // If it's a leaf node, update the distance to our desired primitive.
         if (m_linearNodes[curNode]->isLeaf()) {
           const T primDist = m_linearNodes[curNode]->getDistanceToPrimitives(a_point, m_primitives);
 
-          if (std::abs(primDist) < std::abs(minDist)) {
-            minDist = primDist;
-          }
+          minDist = a_comparator(primDist, minDist);
         }
         else {
-          // Compute child indices and their BVH distance to a_point.
+          // Compute child indices and their BVH distance to a_point
           for (size_t k = 0; k < K; k++) {
             const size_t& curOff       = m_linearNodes[curNode]->getChildOffsets()[k];
             const T       distanceToBV = m_linearNodes[curOff]->getDistanceToBoundingVolume(a_point);

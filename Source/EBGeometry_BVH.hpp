@@ -553,14 +553,41 @@ namespace BVH {
     inline virtual ~LinearBVH();
 
     /*!
-      @brief Function which computes the signed distance. This calls the other
-      version.
-      @param[in] a_point   3D point in space
+      @brief Get the bounding volume for this BVH. 
+    */
+    inline const BV&
+    getBoundingVolume();
+
+    /*!
+      @brief Function which computes the signed distance.
+      @param[in] a_point 3D point in space
+      @note If the objects overlap this routine makes no sense. In that case
+      there is no signed distance, but there IS a CSG union (csgUnion).
     */
     inline T
     signedDistance(const Vec3& a_point) const noexcept override;
 
+    /*!
+      @brief Function which computes the CSG union of the input objects. 
+      @details This is the one that one will use if creating composite geometries of 
+      signed distance functions that overlap. 
+      @note If the objects overlap, the returned value is NOT a signed distance function. 
+      @param[in] a_point 3D point in space
+    */
+    inline T
+    csgUnion(const Vec3& a_point) const noexcept;
+
   protected:
+    /*!
+      @brief Comparator for treePrune
+    */
+    using Comparator = std::function<T(const T& primDist, const T& minDist)>;
+
+    /*!
+      @brief Pruner for treePrune.
+    */
+    using Pruner = std::function<bool(const T& bvDist, const T& minDist)>;
+
     /*!
       @brief List of linearly stored nodes
     */
@@ -571,6 +598,18 @@ namespace BVH {
       so that LinearNodeT can interface into it.
     */
     std::vector<std::shared_ptr<const P>> m_primitives;
+
+    /*!
+      @brief Stack-based pruning algorithm (recursion-less).
+      @details This will iterate through the BVH and visit all nodes where a_pruner evalutes to true. If
+      the node is a leaf node, we update the "distance", which will be the closest object for signed
+      distance, or the one with the smallest value for the constructive solid geometry union. 
+      @param[in] a_point      3D point in space
+      @param[in] a_comparator Comparator for how to select the "output" when comparing two distances.
+      @param[in] a_pruner     Comparator for whether to visit the node or not. 
+    */
+    inline T
+    stackPrune(const Vec3& a_point, const Comparator& a_comparator, const Pruner& a_pruner) const noexcept;
   };
 } // namespace BVH
 
