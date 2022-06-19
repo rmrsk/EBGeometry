@@ -18,7 +18,8 @@
 
 template <class T>
 inline T
-SignedDistanceFunction<T>::value(const Vec3T<T>& a_point) const noexcept {
+SignedDistanceFunction<T>::value(const Vec3T<T>& a_point) const noexcept
+{
   return this->signedDistance(a_point);
 }
 

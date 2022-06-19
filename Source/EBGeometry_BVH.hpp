@@ -108,7 +108,7 @@ namespace BVH {
     @param[in] minDist  Shortest "distance" to primitives found so far. 
   */
   template <class T>
-  using Pruner = std::function<bool(const T& bvDist, const T& minDist)>;      
+  using Pruner = std::function<bool(const T& bvDist, const T& minDist)>;
 
   /*!
     @brief Typename for identifying algorithms various algorithms during tree
@@ -603,10 +603,11 @@ namespace BVH {
       @param[in] a_pruner     Comparator for whether to visit the node or not. 
     */
     inline T
-    stackPrune(const Vec3& a_point, const BVH::Comparator<T>& a_comparator, const BVH::Pruner<T>& a_pruner) const noexcept;
+    stackPrune(const Vec3&               a_point,
+               const BVH::Comparator<T>& a_comparator,
+               const BVH::Pruner<T>&     a_pruner) const noexcept;
 
   protected:
-
     /*!
       @brief List of linearly stored nodes
     */
@@ -617,7 +618,6 @@ namespace BVH {
       so that LinearNodeT can interface into it.
     */
     std::vector<std::shared_ptr<const P>> m_primitives;
-
   };
 } // namespace BVH
 
