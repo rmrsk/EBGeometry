@@ -495,8 +495,7 @@ namespace BVH {
       @note Only call if this is a leaf node.
     */
     inline std::vector<T>
-    getDistances(const Vec3&                                  a_point,
-		 const std::vector<std::shared_ptr<const P>>& a_primitives) const noexcept;
+    getDistances(const Vec3& a_point, const std::vector<std::shared_ptr<const P>>& a_primitives) const noexcept;
 
   protected:
     /*!

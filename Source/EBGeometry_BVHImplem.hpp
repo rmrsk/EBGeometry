@@ -517,8 +517,8 @@ namespace BVH {
 
   template <class T, class P, class BV, size_t K>
   inline std::vector<T>
-  LinearNodeT<T, P, BV, K>::getDistances(
-    const Vec3T<T>& a_point, const std::vector<std::shared_ptr<const P>>& a_primitives) const noexcept
+  LinearNodeT<T, P, BV, K>::getDistances(const Vec3T<T>&                              a_point,
+                                         const std::vector<std::shared_ptr<const P>>& a_primitives) const noexcept
   {
     std::vector<T> distances;
 
@@ -574,9 +574,9 @@ namespace BVH {
       T d = dmin;
 
       for (const auto& primDist : primDistances) {
-	d = std::abs(primDist) < std::abs(d) ? primDist : d;
+        d = std::abs(primDist) < std::abs(d) ? primDist : d;
       }
-      
+
       return d;
     };
 
@@ -633,9 +633,9 @@ namespace BVH {
       if (a_pruner(bvDist, minDist)) {
 
         // If it's a leaf node, update the distance to our desired primitive. Again, this will
-	// differ based on whether or not we're computing the signed distance or the union. 
+        // differ based on whether or not we're computing the signed distance or the union.
         if (m_linearNodes[curNode]->isLeaf()) {
-	  const std::vector<T> primDistances = m_linearNodes[curNode]->getDistances(a_point, m_primitives);
+          const std::vector<T> primDistances = m_linearNodes[curNode]->getDistances(a_point, m_primitives);
 
           minDist = a_comparator(minDist, primDistances);
         }
