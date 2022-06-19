@@ -179,8 +179,14 @@ UnionBVH<T, BV, K>::value(const Vec3T<T>& a_point) const noexcept
   // So, we just update this as f = min(f1,f2,f3) etc, and prune nodes accordingly.
   // The criteria for that are below...
 
-  BVH::Comparator<T> unionComparator = [](const T& curDist, const T& minDist) -> T {
-    return std::min(curDist, minDist);
+  BVH::Comparator<T> unionComparator = [](const T& dmin, const std::vector<T>& primDistances) -> T {
+    T d = dmin;
+
+    for (const auto& primDist : primDistances) {
+      d = std::min(d, primDist);
+    }
+
+    return d;
   };
 
   BVH::Pruner<T> unionPruner = [](const T& bvDist, const T& minDist) -> bool {

@@ -96,11 +96,11 @@ namespace BVH {
 
   /*!
     @brief Comparator for LinearBVH::stackPrune
-    @param[in] primDist Current distance to current
-    @param[in] minDist  Shortest distance to primitives found so far. 
+    @param[in] minDist       Minium distance found so far
+    @param[in] primDistances Distance to primitives in the leaf node. 
   */
   template <class T>
-  using Comparator = std::function<T(const T& primDist, const T& minDist)>;
+  using Comparator = std::function<T(const T& minDist, const std::vector<T>& primDistances)>;
 
   /*!
     @brief Pruner for LinearBVH::stackPrune
@@ -494,9 +494,9 @@ namespace BVH {
       @param[in] a_primitives List of primitives
       @note Only call if this is a leaf node.
     */
-    inline T
-    getDistanceToPrimitives(const Vec3&                                  a_point,
-                            const std::vector<std::shared_ptr<const P>>& a_primitives) const noexcept;
+    inline std::vector<T>
+    getDistances(const Vec3&                                  a_point,
+		 const std::vector<std::shared_ptr<const P>>& a_primitives) const noexcept;
 
   protected:
     /*!
@@ -582,16 +582,6 @@ namespace BVH {
     */
     inline T
     signedDistance(const Vec3& a_point) const noexcept override;
-
-    /*!
-      @brief Function which computes the CSG union of the input objects. 
-      @details This is the one that one will use if creating composite geometries of 
-      signed distance functions that overlap. 
-      @note If the objects overlap, the returned value is NOT a signed distance function. 
-      @param[in] a_point 3D point in space
-    */
-    inline T
-    csgUnion(const Vec3& a_point) const noexcept;
 
     /*!
       @brief Stack-based pruning algorithm (recursion-less).

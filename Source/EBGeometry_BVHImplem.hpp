@@ -516,21 +516,19 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
-  inline T
-  LinearNodeT<T, P, BV, K>::getDistanceToPrimitives(
+  inline std::vector<T>
+  LinearNodeT<T, P, BV, K>::getDistances(
     const Vec3T<T>& a_point, const std::vector<std::shared_ptr<const P>>& a_primitives) const noexcept
   {
-    T minDist = std::numeric_limits<T>::infinity();
+    std::vector<T> distances;
 
     for (size_t i = 0; i < m_numPrimitives; i++) {
       const T curDist = a_primitives[m_primitivesOffset + i]->signedDistance(a_point);
 
-      if (std::abs(curDist) < std::abs(minDist)) {
-        minDist = curDist;
-      }
+      distances.emplace_back(curDist);
     }
 
-    return minDist;
+    return distances;
   }
 
   template <class T, class P, class BV, size_t K>
@@ -572,8 +570,14 @@ namespace BVH {
 
     // For SDF we select the one that is closest, i.e. the object with the
     // smallest absolute value.
-    Comparator<T> sdfComparator = [](const T& curDist, const T& minDist) -> T {
-      return std::abs(curDist) < std::abs(minDist) ? curDist : minDist;
+    Comparator<T> sdfComparator = [](const T& dmin, const std::vector<T>& primDistances) -> T {
+      T d = dmin;
+
+      for (const auto& primDist : primDistances) {
+	d = std::abs(primDist) < std::abs(d) ? primDist : d;
+      }
+      
+      return d;
     };
 
     // If the distance to the BV is shorter than the smallest distance so far,
@@ -628,11 +632,12 @@ namespace BVH {
       //    the distance is D < d and d > 0.0.
       if (a_pruner(bvDist, minDist)) {
 
-        // If it's a leaf node, update the distance to our desired primitive.
+        // If it's a leaf node, update the distance to our desired primitive. Again, this will
+	// differ based on whether or not we're computing the signed distance or the union. 
         if (m_linearNodes[curNode]->isLeaf()) {
-          const T primDist = m_linearNodes[curNode]->getDistanceToPrimitives(a_point, m_primitives);
+	  const std::vector<T> primDistances = m_linearNodes[curNode]->getDistances(a_point, m_primitives);
 
-          minDist = a_comparator(primDist, minDist);
+          minDist = a_comparator(minDist, primDistances);
         }
         else {
           // Compute child indices and their BVH distance to a_point
