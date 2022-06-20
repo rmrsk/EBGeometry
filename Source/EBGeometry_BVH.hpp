@@ -96,7 +96,7 @@ namespace BVH {
 
   /*!
     @brief Comparator for LinearBVH::stackPrune
-    @param[in] minDist       Minium distance found so far
+    @param[in] minDist       Minimum distance found so far
     @param[in] primDistances Distance to primitives in the leaf node. 
   */
   template <class T>
