@@ -544,7 +544,12 @@ namespace BVH {
     /*!
       @brief Disallowed. Use the full constructor please.
     */
-    LinearBVH() = delete;
+    inline LinearBVH() = default;
+
+    /*!
+      @brief Copy constructor
+    */
+    inline LinearBVH(const LinearBVH&) = default;
 
     /*!
       @brief Full constructor. Associates the nodes and primitives.
@@ -588,7 +593,7 @@ namespace BVH {
       the node is a leaf node, we update the "distance", which will be the closest object for signed
       distance, or the one with the smallest value for the constructive solid geometry union. 
       @param[in] a_point      3D point in space
-      @param[in] a_comparator Comparator for how to select the "output" when comparing two distances.
+      @param[in] a_comparator Comparator for how to select the "output" when comparing various distances. 
       @param[in] a_pruner     Comparator for whether to visit the node or not. 
     */
     inline T
