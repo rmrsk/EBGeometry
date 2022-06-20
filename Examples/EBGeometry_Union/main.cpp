@@ -6,6 +6,7 @@
 #include <string>
 #include <chrono>
 #include <thread>
+#include <random>
 #include <math.h>
 
 #include "../../EBGeometry.hpp"
@@ -24,26 +25,34 @@ using namespace std::chrono_literals;
 int
 main()
 {
-
   // Tree branching factor
   constexpr int K = 4;
 
-  // Make a sphere array consisting of about 10^6 spheres. The distance between
-  // the spheres is 2*radius
+  // Make a sphere array consisting of about M^3 spheres. We assume
+  // that the domain is x,y,z \in [-1,1] and set the number of spheres
+  // and their radii.
   std::vector<std::shared_ptr<SDF>> spheres;
 
-  constexpr T   radius = 1.0;
-  constexpr int N      = 100;
+  constexpr T   radius = 0.02;
+  constexpr int M      = 40;
+  constexpr int Nsamp  = 100;
+  constexpr T   delta  = (2.0 - 2 * M * radius)/(M+1);
 
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      for (int k = 0; k < N; k++) {
+  if(delta < 0.0) {
+    std::cerr << "Error: 'delta < 0.0'" << std::endl;
+    
+    return 1;
+  }
 
-        const T x = i * (3 * radius);
-        const T y = j * (3 * radius);
-        const T z = k * (3 * radius);
+  for (int i = 1; i <= M; i++) {
+    for (int j = 1; j <= M; j++) {
+      for (int k = 1; k <= M; k++) {
 
-        const Vec3 center(x, y, z);
+	const T x = -1. + i * (delta + 2*radius) - radius;
+        const T y = -1. + j * (delta + 2*radius) - radius;
+        const T z = -1. + k * (delta + 2*radius) - radius;
+
+	Vec3 center(x,y,z);
 
         spheres.emplace_back(std::make_shared<Sphere>(center, radius, false));
       }
@@ -73,27 +82,33 @@ main()
   std::cout << "Partitioning spheres" << std::endl;
   EBGeometry::UnionBVH<T, AABB, K> fastUnion(spheres, false, aabbConstructor);
 
-  // Time the computation distance using both the slow and fast unions.
-  const Vec3 point = Vec3::zero();
+  for (size_t i = 0; i < Nsamp; i++) {
+    // Time the computation distance using both the slow and fast unions.
+    const Vec3 point = Vec3::one();
 
-  std::cout << "Computing distance with slow union\n";
-  const auto t1       = std::chrono::high_resolution_clock::now();
-  const T    slowDist = slowUnion.value(point);
-  const auto t2       = std::chrono::high_resolution_clock::now();
+    const auto t1       = std::chrono::high_resolution_clock::now();
+    const T    slowDist = slowUnion.value(point);
+    const auto t2       = std::chrono::high_resolution_clock::now();
 
-  std::cout << "Computing distance with fast union\n";
-  const auto t3       = std::chrono::high_resolution_clock::now();
-  const T    fastDist = fastUnion.value(point);
-  const auto t4       = std::chrono::high_resolution_clock::now();
+    const auto t3       = std::chrono::high_resolution_clock::now();
+    const T    fastDist = fastUnion.value(point);
+    const auto t4       = std::chrono::high_resolution_clock::now();
 
-  const std::chrono::duration<T, std::milli> slowTime = t2 - t1;
-  const std::chrono::duration<T, std::milli> fastTime = t4 - t3;
+    if(fastDist != slowDist) {
+      std::cerr << "Got wrong distance!" << std::endl;
 
-  std::cout << "Distance and time using standard union = " << slowDist << ", which took " << slowTime.count()
-            << " ms\n";
-  std::cout << "Distance and time using optimize union = " << fastDist << ", which took " << fastTime.count()
-            << " ms\n";
-  std::cout << "Speedup = " << (1.0 * slowTime.count()) / (1.0 * fastTime.count()) << "\n";
+      return 2;
+    }
+
+    const std::chrono::duration<T, std::milli> slowTime = t2 - t1;
+    const std::chrono::duration<T, std::milli> fastTime = t4 - t3;    
+  }
+
+  // std::cout << "Distance and time using standard union = " << slowDist << ", which took " << slowTime.count()
+  //           << " ms\n";
+  // std::cout << "Distance and time using optimize union = " << fastDist << ", which took " << fastTime.count()
+  //           << " ms\n";
+  // std::cout << "Speedup = " << (1.0 * slowTime.count()) / (1.0 * fastTime.count()) << "\n";
 
   return 0;
 }
