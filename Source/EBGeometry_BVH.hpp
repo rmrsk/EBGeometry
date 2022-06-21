@@ -95,6 +95,22 @@ namespace BVH {
   using BVConstructorT = std::function<BV(const std::shared_ptr<const P>& a_primitive)>;
 
   /*!
+    @brief Comparator for LinearBVH::stackPrune
+    @param[in] minDist       Minimum distance found so far
+    @param[in] primDistances Distance to primitives in the leaf node. 
+  */
+  template <class T>
+  using Comparator = std::function<T(const T& minDist, const std::vector<T>& primDistances)>;
+
+  /*!
+    @brief Pruner for LinearBVH::stackPrune
+    @param[in] Distance to current bounding volume. 
+    @param[in] minDist  Shortest "distance" to primitives found so far. 
+  */
+  template <class T>
+  using Pruner = std::function<bool(const T& bvDist, const T& minDist)>;
+
+  /*!
     @brief Typename for identifying algorithms various algorithms during tree
     traversel.
     @details Stack     => Use stack/priority queue (ordered traversal).
@@ -478,9 +494,8 @@ namespace BVH {
       @param[in] a_primitives List of primitives
       @note Only call if this is a leaf node.
     */
-    inline T
-    getDistanceToPrimitives(const Vec3&                                  a_point,
-                            const std::vector<std::shared_ptr<const P>>& a_primitives) const noexcept;
+    inline std::vector<T>
+    getDistances(const Vec3& a_point, const std::vector<std::shared_ptr<const P>>& a_primitives) const noexcept;
 
   protected:
     /*!
@@ -529,7 +544,12 @@ namespace BVH {
     /*!
       @brief Disallowed. Use the full constructor please.
     */
-    LinearBVH() = delete;
+    inline LinearBVH() = default;
+
+    /*!
+      @brief Copy constructor
+    */
+    inline LinearBVH(const LinearBVH&) = default;
 
     /*!
       @brief Full constructor. Associates the nodes and primitives.
@@ -553,12 +573,33 @@ namespace BVH {
     inline virtual ~LinearBVH();
 
     /*!
-      @brief Function which computes the signed distance. This calls the other
-      version.
-      @param[in] a_point   3D point in space
+      @brief Get the bounding volume for this BVH. 
+    */
+    inline const BV&
+    getBoundingVolume();
+
+    /*!
+      @brief Function which computes the signed distance.
+      @param[in] a_point 3D point in space
+      @note If the objects overlap this routine makes no sense. In that case
+      there is no signed distance, but there IS a CSG union (csgUnion).
     */
     inline T
     signedDistance(const Vec3& a_point) const noexcept override;
+
+    /*!
+      @brief Stack-based pruning algorithm (recursion-less).
+      @details This will iterate through the BVH and visit all nodes where a_pruner evaluates to true. If
+      the node is a leaf node, we update the "distance", which will be the closest object for signed
+      distance, or the one with the smallest value for the constructive solid geometry union. 
+      @param[in] a_point      3D point in space
+      @param[in] a_comparator Comparator for how to select the "output" when comparing various distances. 
+      @param[in] a_pruner     Comparator for whether to visit the node or not. 
+    */
+    inline T
+    stackPrune(const Vec3&               a_point,
+               const BVH::Comparator<T>& a_comparator,
+               const BVH::Pruner<T>&     a_pruner) const noexcept;
 
   protected:
     /*!

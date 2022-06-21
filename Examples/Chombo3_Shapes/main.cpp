@@ -23,9 +23,15 @@ class ChomboSDF : public BaseIF
 public:
   ChomboSDF() = delete;
 
-  ChomboSDF(std::shared_ptr<SDF>& a_sdf) { m_sdf = a_sdf; }
+  ChomboSDF(std::shared_ptr<SDF>& a_sdf)
+  {
+    m_sdf = a_sdf;
+  }
 
-  ChomboSDF(const ChomboSDF& a_other) { m_sdf = a_other.m_sdf; }
+  ChomboSDF(const ChomboSDF& a_other)
+  {
+    m_sdf = a_other.m_sdf;
+  }
 
   Real
   value(const RealVect& a_point) const override final

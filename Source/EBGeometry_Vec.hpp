@@ -538,9 +538,9 @@ protected:
   @param[in] u Vector
   @return Returns new vector with components X[0] = s*X[0] and so on.
 */
-template <class T>
+template <class R, class T>
 inline Vec3T<T>
-operator*(const T& s, const Vec3T<T>& u) noexcept;
+operator*(const R& s, const Vec3T<T>& u) noexcept;
 
 /*!
   @brief Division operator.
@@ -548,9 +548,9 @@ operator*(const T& s, const Vec3T<T>& u) noexcept;
   @param[in] u Vector
   @return Returns new vector with components X[0] = X[0]/s and so on.
 */
-template <class T>
+template <class R, class T>
 inline Vec3T<T>
-operator/(const T& s, const Vec3T<T>& u) noexcept;
+operator/(const R& s, const Vec3T<T>& u) noexcept;
 
 /*!
   @brief Minimum function. Returns new vector with component-wise minimums.

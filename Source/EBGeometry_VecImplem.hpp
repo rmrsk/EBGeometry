@@ -511,16 +511,16 @@ Vec3T<T>::length2() const noexcept
   return X[0] * X[0] + X[1] * X[1] + X[2] * X[2];
 }
 
-template <class T>
+template <class R, class T>
 inline Vec3T<T>
-operator*(const T& s, const Vec3T<T>& a_other) noexcept
+operator*(const R& s, const Vec3T<T>& a_other) noexcept
 {
   return a_other * s;
 }
 
-template <class T>
+template <class R, class T>
 inline Vec3T<T>
-operator/(const T& s, const Vec3T<T>& a_other) noexcept
+operator/(const R& s, const Vec3T<T>& a_other) noexcept
 {
   return a_other / s;
 }
