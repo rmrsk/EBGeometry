@@ -65,12 +65,20 @@ namespace Parser {
       @param[out] a_lastLine   Line number in a_filename containing the 'endsolid' identifier. 
     */
     inline static void
-    readTriangleSoupASCII(std::vector<Vec3>& vertices,
-			  std::vector<std::vector<size_t>>& facets,
+    readTriangleSoupASCII(std::vector<Vec3>& a_vertices,
+			  std::vector<std::vector<size_t>>& a_facets,
 			  std::string& a_objectName,
 			  const std::vector<std::string>& a_fileContents,
 			  const size_t a_firstLine,
 			  const size_t a_lastLine);
+
+    /*!
+      @brief Compress STL triangle soup (removes duplicate vertices)
+      @param[out] a_vertices   Vertices
+      @param[out] a_facets     STL facets
+    */
+    inline static void
+    compress(std::vector<Vec3>& a_vertices, std::vector<std::vector<size_t> >& a_facets);
   };
 
   /*!

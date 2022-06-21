@@ -17,6 +17,7 @@
 #include <fstream>
 #include <iterator>
 #include <sstream>
+#include <set>
 
 // Our includes
 #include "EBGeometry_Parser.hpp"
@@ -72,14 +73,14 @@ Parser::STL<T>::readASCII(const std::string a_filename)
     const size_t firstLine = fl.first;
     const size_t lastLine  = fl.second;
 
-    // Read triangle soup.     
+    // Read triangle soup and compress it.    
     std::vector<Vec3> vertices;
     std::vector<std::vector<size_t>> facets;
     std::string objectName;
     
     Parser::STL<T>::readTriangleSoupASCII(vertices, facets, objectName, fileContents, firstLine, lastLine);
-
-    // Compress the duplicate vertices. 
+    Parser::STL<T>::compress(vertices, facets);
+    
   }
   
 
@@ -133,6 +134,37 @@ Parser::STL<T>::readTriangleSoupASCII(std::vector<Vec3>& a_vertices,
       }
     }
   }
+}
+
+template <typename T>
+inline void
+Parser::STL<T>::compress(std::vector<Vec3>& a_vertices, std::vector<std::vector<size_t> >& a_facets) {
+
+  // TLDR: a_vertices contains many duplicate vertices; we need to remove the duplicates and also
+  //       update a_facets such that each facet references the new vertices.
+
+
+  std::vector<std::pair<Vec3, size_t> > indexMap;
+  for (size_t i = 0; i < a_vertices.size(); i++) {
+    indexMap.emplace_back(a_vertices[i], i);
+  }
+
+  // Sort these in lexicographically increasing order. 
+  std::sort(indexMap.begin(), indexMap.end(), [](const std::pair<Vec3, size_t> A, const std::pair<Vec3, size_t> B) {
+      bool ret = false;
+
+      const Vec3 a = A.first;
+      const Vec3 b = B.first;
+
+      return a.lessLX(b);
+    });
+
+  size_t numDupes = 0;
+  for (size_t i = 1; i < a_vertices.size(); i++) {
+    if(indexMap[i].first == indexMap[i-1].first) numDupes++;
+  }
+
+  std::cout << "num vertices = " << a_vertices.size() - numDupes << std::endl;
 }
 
 template <typename T>

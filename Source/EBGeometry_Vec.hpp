@@ -22,7 +22,7 @@
   can call the member functions, or set components directly, e.g. vec.x = 5.0
   @note Vec2T is a templated class primarily used with DCEL grids.
 */
-template <class T>
+template <typename T>
 class Vec2T
 {
 public:
@@ -207,7 +207,7 @@ public:
   @param[in] a_other Other vector
   @return Returns a new vector with components x = s*a_other.x (and same for y)
 */
-template <class T>
+template <typename T>
 inline Vec2T<T>
 operator*(const T& s, const Vec2T<T>& a_other) noexcept;
 
@@ -218,7 +218,7 @@ operator*(const T& s, const Vec2T<T>& a_other) noexcept;
   @return Returns a new vector with components x = (1/s)*a_other.x (and same for
   y)
 */
-template <class T>
+template <typename T>
 inline Vec2T<T>
 operator/(const T& s, const Vec2T<T>& a_other) noexcept;
 
@@ -230,7 +230,7 @@ operator/(const T& s, const Vec2T<T>& a_other) noexcept;
   3D, i.e. independent of Chombo configuration settings. This lets one use DCEL
   functionality even though the simulation might only be 2D.
 */
-template <class T>
+template <typename T>
 class Vec3T
 {
 public:
@@ -296,6 +296,14 @@ public:
   */
   inline static constexpr Vec3T<T>
   infinity() noexcept;
+
+  /*!
+    @brief Lexicographical comparison operator. 
+    This returns to true 
+    @param[in] u Other vector. 
+  */
+  inline bool
+  lessLX(const Vec3T<T>& u) const noexcept;
 
   /*!
     @brief Return component in vector. (i=0 => x and so on)
@@ -538,7 +546,7 @@ protected:
   @param[in] u Vector
   @return Returns new vector with components X[0] = s*X[0] and so on.
 */
-template <class R, class T>
+template <class R, typename T>
 inline Vec3T<T>
 operator*(const R& s, const Vec3T<T>& u) noexcept;
 
@@ -548,7 +556,7 @@ operator*(const R& s, const Vec3T<T>& u) noexcept;
   @param[in] u Vector
   @return Returns new vector with components X[0] = X[0]/s and so on.
 */
-template <class R, class T>
+template <class R, typename T>
 inline Vec3T<T>
 operator/(const R& s, const Vec3T<T>& u) noexcept;
 
@@ -559,7 +567,7 @@ operator/(const R& s, const Vec3T<T>& u) noexcept;
   @return Returns new vector with components X[0] = std::min(u.X[0], v.X[0]) and
   so on
 */
-template <class T>
+template <typename T>
 inline Vec3T<T>
 min(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
@@ -570,7 +578,7 @@ min(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
   @return Returns new vector with components X[0] = std::max(u.X[0], v.X[0]) and
   so on
 */
-template <class T>
+template <typename T>
 inline Vec3T<T>
 max(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
@@ -579,7 +587,7 @@ max(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
   @param[in] u Vector
   @param[in] v Other vector
 */
-template <class T>
+template <typename T>
 inline T
 dot(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
@@ -587,7 +595,7 @@ dot(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
   @brief Length function
   @param[in] v Vector.
 */
-template <class T>
+template <typename T>
 inline T
 length(const Vec3T<T>& v) noexcept;
 
@@ -597,7 +605,7 @@ length(const Vec3T<T>& v) noexcept;
   @param[in] v Other vector
   @return Returns new vector with components x = std::min(u.x, v.x).
 */
-template <class T>
+template <typename T>
 inline Vec2T<T>
 min(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
 
@@ -607,7 +615,7 @@ min(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
   @param[in] v Other vector
   @return Returns new vector with components x = std::max(u.x, v.x).
 */
-template <class T>
+template <typename T>
 inline Vec2T<T>
 max(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
 
@@ -616,7 +624,7 @@ max(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
   @param[in] u Vector
   @param[in] v Other vector
 */
-template <class T>
+template <typename T>
 inline T
 dot(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
 
@@ -624,7 +632,7 @@ dot(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
   @brief Length function
   @param[in] v Vector.
 */
-template <class T>
+template <typename T>
 inline T
 length(const Vec2T<T>& v) noexcept;
 
