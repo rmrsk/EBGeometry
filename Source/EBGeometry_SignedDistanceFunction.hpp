@@ -16,7 +16,7 @@
 #include <deque>
 
 // Our includes
-#include "EBGeometry_TransformOps.hpp"
+#include "EBGeometry_ImplicitFunction.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
@@ -28,7 +28,7 @@
   by calling transformPoint on the input coordinate.
 */
 template <class T>
-class SignedDistanceFunction
+class SignedDistanceFunction : public ImplicitFunction<T>
 {
 public:
   /*!
@@ -40,6 +40,13 @@ public:
     @brief Destructor (does nothing)
   */
   virtual ~SignedDistanceFunction() = default;
+
+  /*!
+    @brief Implementation of ImplicitFunction::value
+    @param[in] a_point 3D point.
+  */
+  virtual T
+  value(const Vec3T<T>& a_point) const noexcept override final;
 
   /*!
     @brief Signed distance function.
@@ -56,34 +63,6 @@ public:
   */
   inline virtual Vec3T<T>
   normal(const Vec3T<T>& a_point, const T& a_delta) const noexcept;
-
-  /*!
-    @brief Translate signed distance function.
-    @param[in] a_translation Distance to translate the function.
-  */
-  inline void
-  translate(const Vec3T<T>& a_translation) noexcept;
-
-  /*!
-    @brief Rotate the signed distance function around.
-    @param[in] a_angle Rotation angle
-    @param[in] a_axis  Rotation axis. 0 = x, 1 = y etc.
-  */
-  inline void
-  rotate(const T a_angle, const size_t a_axis) noexcept;
-
-  /*!
-    @brief Apply transformation operators and move point.
-    @param[in] a_point Point to transform
-  */
-  inline Vec3T<T>
-  transformPoint(const Vec3T<T>& a_point) const noexcept;
-
-protected:
-  /*!
-    @brief List of transformation operators for the signed distance field.
-  */
-  std::deque<std::shared_ptr<TransformOp<T>>> m_transformOps;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

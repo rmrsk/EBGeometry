@@ -116,6 +116,7 @@ namespace DCEL {
     [](const PrimitiveList<T>& a_primitives) -> std::array<PrimitiveList<T>, K> {
     Vec3T<T> lo = Vec3T<T>::max();
     Vec3T<T> hi = -Vec3T<T>::max();
+
     for (const auto& p : a_primitives) {
       lo = min(lo, p->getCentroid());
       hi = max(hi, p->getCentroid());
@@ -192,6 +193,7 @@ namespace DCEL {
     [](const PrimitiveList<T>& a_primitives) -> std::array<PrimitiveList<T>, K> {
     Vec3T<T> lo = Vec3T<T>::max();
     Vec3T<T> hi = -Vec3T<T>::max();
+
     for (const auto& p : a_primitives) {
       lo = min(lo, p->getCentroid());
       hi = max(hi, p->getCentroid());
