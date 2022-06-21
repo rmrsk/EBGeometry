@@ -27,7 +27,66 @@
 #include "EBGeometry_DCEL_Iterator.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-template <class T>
+template <typename T>
+inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
+Parser::STL<T>::readSingleASCII(const std::string a_filename)
+{
+  auto mesh = std::make_shared<Mesh>();
+
+  Parser::STL<T>::readSingleASCII(mesh, a_filename);
+
+  return mesh;
+}
+
+template <typename T>
+inline void
+Parser::STL<T>::readSingleASCII(std::shared_ptr<Mesh>& a_mesh, const std::string a_filename)
+{
+
+  std::ifstream filestream(a_filename);
+
+  // Should already be allocated.
+  if (!a_mesh) {
+    std::cerr << "Parser::STL::readSingleASCII - ERROR! Input mesh is nullptr\n";
+  }
+
+  if (filestream.is_open()) {
+    std::cout << "got it" << std::endl;
+
+    // Storage for facets and vertices.
+    std::vector<Vec3>                vertices;
+    std::vector<std::vector<size_t>> facets;
+    std::string                      line;
+
+    // Identifiers in ASCII STL files.
+    const std::string solidName   = "solid";
+    const std::string facetNormal = "facet normal";
+    const std::string outerLoop   = "outer loop";
+    const std::string endLoop     = "endloop";
+    const std::string endFacet    = "endfacet";
+    const std::string endSolid    = "endsolid";
+
+    // Get number of vertices
+    filestream.clear();
+    filestream.seekg(0);
+    while (std::getline(filestream, line)) {
+      std::cout << line << std::endl;
+      // std::stringstream sstream(line);
+      // sstream >> str1 >> str2 >> a_numVertices;
+      // if (str1 == "element" && str2 == "vertex") {
+      // 	break;
+      // }
+    }
+
+    // size_t numVertices;
+    // size_t numFaces;
+  }
+  else {
+    std::cerr << "Parser::STL::readSingleASCII - ERROR! Could not open file " + a_filename + "\n";
+  }
+}
+
+template <typename T>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
 Parser::PLY<T>::readIntoDCEL(const std::string a_filename)
 {
@@ -38,7 +97,7 @@ Parser::PLY<T>::readIntoDCEL(const std::string a_filename)
   return mesh;
 }
 
-template <class T>
+template <typename T>
 inline void
 Parser::PLY<T>::readIntoDCEL(Mesh& a_mesh, const std::string a_filename)
 {
@@ -73,7 +132,7 @@ Parser::PLY<T>::readIntoDCEL(Mesh& a_mesh, const std::string a_filename)
   }
 }
 
-template <class T>
+template <typename T>
 inline void
 Parser::PLY<T>::readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::ifstream& a_inputStream)
 {
@@ -116,7 +175,7 @@ Parser::PLY<T>::readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::
   }
 }
 
-template <class T>
+template <typename T>
 inline void
 Parser::PLY<T>::readVerticesIntoDCEL(std::vector<std::shared_ptr<Vertex>>& a_vertices,
                                      const size_t                          a_numVertices,
@@ -150,7 +209,7 @@ Parser::PLY<T>::readVerticesIntoDCEL(std::vector<std::shared_ptr<Vertex>>& a_ver
   }
 }
 
-template <class T>
+template <typename T>
 inline void
 Parser::PLY<T>::readFacesIntoDCEL(std::vector<std::shared_ptr<Face>>&         a_faces,
                                   std::vector<std::shared_ptr<Edge>>&         a_edges,
@@ -226,7 +285,7 @@ Parser::PLY<T>::readFacesIntoDCEL(std::vector<std::shared_ptr<Face>>&         a_
   }
 }
 
-template <class T>
+template <typename T>
 inline void
 Parser::PLY<T>::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<Edge>>& a_edges)
 {

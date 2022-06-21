@@ -46,6 +46,9 @@ main(int argc, char* argv[])
   std::cout << "Parsing input file\n";
   std::shared_ptr<EBGeometry::DCEL::MeshT<T>> directSDF = EBGeometry::Parser::PLY<T>::readIntoDCEL(file);
 
+  std::shared_ptr<EBGeometry::DCEL::MeshT<T>> stlSTL =
+    EBGeometry::Parser::STL<T>::readSingleASCII("../Scenes/STL/sphere.stl");
+
   // Create a bounding-volume hierarchy of the same mesh type. We begin by
   // create the root node and supplying all the mesh faces to it. Here, our
   // bounding volume hierarchy bounds the facets in a binary tree.

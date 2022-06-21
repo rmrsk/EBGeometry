@@ -32,36 +32,57 @@
 namespace Parser {
 
   /*!
+    @brief Class for reading STL files.
+    @note T is the precision used when storing the mesh. 
+  */
+  template <typename T>
+  class STL
+  {
+  public:
+    using Vec3         = Vec3T<T>;
+    using Vertex       = DCEL::VertexT<T>;
+    using Edge         = DCEL::EdgeT<T>;
+    using Face         = DCEL::FaceT<T>;
+    using Mesh         = DCEL::MeshT<T>;
+    using EdgeIterator = DCEL::EdgeIteratorT<T>;
+
+    /*!
+      @brief ASCII reader for reading a single STL object into a DCEL mesh
+      @param[in] a_filename Input filename
+    */
+    inline static std::shared_ptr<Mesh>
+    readSingleASCII(const std::string a_filename);
+
+    /*!
+      @brief ASCII reader for reading a single STL object into a DCEL mesh
+      @param[out] a_mesh     DCEL mesh
+      @param[in]  a_filename Input filename
+    */
+    inline static void
+    readSingleASCII(std::shared_ptr<Mesh>& a_mesh, const std::string a_filename);
+
+    /*!
+      @brief ASCII reader for reading an STL file containing multiple objects. Each object becomes a DCEL mesh
+      @param[in] a_filename Input filename
+    */
+    inline static std::vector<std::shared_ptr<Mesh>, std::string>
+    readMultiASCII(const std::string a_filename);
+
+  protected:
+  };
+
+  /*!
     @brief Class for reading Stanford PLY files.
     @note T is the precision used for storing the mesh.
   */
-  template <class T>
+  template <typename T>
   class PLY
   {
   public:
-    /*!
-      @brief Alias for cutting down on typing
-    */
-    using Vertex = DCEL::VertexT<T>;
-
-    /*!
-      @brief Alias for cutting down on typing
-    */
-    using Edge = DCEL::EdgeT<T>;
-
-    /*!
-      @brief Alias for cutting down on typing
-    */
-    using Face = DCEL::FaceT<T>;
-
-    /*!
-      @brief Alias for cutting down on typing
-    */
-    using Mesh = DCEL::MeshT<T>;
-
-    /*!
-      @brief Alias for cutting down on typing
-    */
+    using Vertex       = DCEL::VertexT<T>;
+    using Edge         = DCEL::EdgeT<T>;
+    using Face         = DCEL::FaceT<T>;
+    using Mesh         = DCEL::MeshT<T>;
     using EdgeIterator = DCEL::EdgeIteratorT<T>;
 
     /*!
