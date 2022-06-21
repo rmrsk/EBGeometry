@@ -143,28 +143,24 @@ Parser::STL<T>::compress(std::vector<Vec3>& a_vertices, std::vector<std::vector<
   // TLDR: a_vertices contains many duplicate vertices; we need to remove the duplicates and also
   //       update a_facets such that each facet references the new vertices.
 
-  std::vector<std::pair<Vec3, size_t>> indexMap;
+  // Create a "map" of the vertices, storing their original indices. 
+  std::vector<std::pair<Vec3, size_t>> vertexMap;
   for (size_t i = 0; i < a_vertices.size(); i++) {
-    indexMap.emplace_back(a_vertices[i], i);
+    vertexMap.emplace_back(a_vertices[i], i);
   }
 
-  // Sort these in lexicographically increasing order.
-  std::sort(indexMap.begin(), indexMap.end(), [](const std::pair<Vec3, size_t> A, const std::pair<Vec3, size_t> B) {
-    bool ret = false;
-
+  std::sort(vertexMap.begin(), vertexMap.end(), [](const std::pair<Vec3, size_t> A, const std::pair<Vec3, size_t> B) {
     const Vec3 a = A.first;
     const Vec3 b = B.first;
 
     return a.lessLX(b);
   });
 
-  size_t numDupes = 0;
-  for (size_t i = 1; i < a_vertices.size(); i++) {
-    if (indexMap[i].first == indexMap[i - 1].first)
-      numDupes++;
+  // Now create a map of the old indices to the new indices.
+  std::map<size_t, size_t> indexMap;
+  for (size_t i = 0; i < vertexMap.size(); i++) {
+    indexMap.emplace(i, vertexMap[i].second);
   }
-
-  std::cout << "num vertices = " << a_vertices.size() - numDupes << std::endl;
 }
 
 template <typename T>
