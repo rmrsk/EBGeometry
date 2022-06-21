@@ -35,24 +35,27 @@ main()
 
   constexpr T   radius = 0.02;
   constexpr int M      = 40;
-  constexpr int Nsamp  = 100;
-  constexpr T   delta  = (2.0 - 2 * M * radius)/(M+1);
+  constexpr int Nsamp  = 10000;
+  constexpr T   delta  = (2.0 - 2 * M * radius) / (M + 1);
 
-  if(delta < 0.0) {
+  if (delta < 0.0) {
     std::cerr << "Error: 'delta < 0.0'" << std::endl;
-    
+
     return 1;
+  }
+  else {
+    std::cout << "delta = " << delta << std::endl;
   }
 
   for (int i = 1; i <= M; i++) {
     for (int j = 1; j <= M; j++) {
       for (int k = 1; k <= M; k++) {
 
-	const T x = -1. + i * (delta + 2*radius) - radius;
-        const T y = -1. + j * (delta + 2*radius) - radius;
-        const T z = -1. + k * (delta + 2*radius) - radius;
+        const T x = -1. + i * (delta + 2 * radius) - radius;
+        const T y = -1. + j * (delta + 2 * radius) - radius;
+        const T z = -1. + k * (delta + 2 * radius) - radius;
 
-	Vec3 center(x,y,z);
+        Vec3 center(x, y, z);
 
         spheres.emplace_back(std::make_shared<Sphere>(center, radius, false));
       }
@@ -82,33 +85,42 @@ main()
   std::cout << "Partitioning spheres" << std::endl;
   EBGeometry::UnionBVH<T, AABB, K> fastUnion(spheres, false, aabbConstructor);
 
+  std::mt19937_64                   rng(std::chrono::system_clock::now().time_since_epoch().count());
+  std::uniform_real_distribution<T> dist(-1.0, 1.0);
+
+  std::chrono::duration<T, std::micro> slowTime(0.0);
+  std::chrono::duration<T, std::micro> fastTime(0.0);
+
+  std::vector<Vec3> ranPoints;
   for (size_t i = 0; i < Nsamp; i++) {
-    // Time the computation distance using both the slow and fast unions.
-    const Vec3 point = Vec3::one();
-
-    const auto t1       = std::chrono::high_resolution_clock::now();
-    const T    slowDist = slowUnion.value(point);
-    const auto t2       = std::chrono::high_resolution_clock::now();
-
-    const auto t3       = std::chrono::high_resolution_clock::now();
-    const T    fastDist = fastUnion.value(point);
-    const auto t4       = std::chrono::high_resolution_clock::now();
-
-    if(fastDist != slowDist) {
-      std::cerr << "Got wrong distance!" << std::endl;
-
-      return 2;
-    }
-
-    const std::chrono::duration<T, std::milli> slowTime = t2 - t1;
-    const std::chrono::duration<T, std::milli> fastTime = t4 - t3;    
+    ranPoints.emplace_back(Vec3(dist(rng), dist(rng), dist(rng)));
   }
 
-  // std::cout << "Distance and time using standard union = " << slowDist << ", which took " << slowTime.count()
-  //           << " ms\n";
-  // std::cout << "Distance and time using optimize union = " << fastDist << ", which took " << fastTime.count()
-  //           << " ms\n";
-  // std::cout << "Speedup = " << (1.0 * slowTime.count()) / (1.0 * fastTime.count()) << "\n";
+  T sumSlow = 0.0;
+  T sumFast = 0.0;
+
+  const auto t1 = std::chrono::high_resolution_clock::now();
+  for (const auto& x : ranPoints) {
+    sumSlow += slowUnion.value(x);
+  }
+  const auto t2 = std::chrono::high_resolution_clock::now();
+  for (const auto& x : ranPoints) {
+    sumFast += fastUnion.value(x);
+  }
+  const auto t3 = std::chrono::high_resolution_clock::now();
+
+  if (sumSlow != sumFast) {
+    std::cerr << "Got wrong distance!" << std::endl;
+
+    return 2;
+  }
+
+  slowTime += (t2 - t1);
+  fastTime += (t3 - t2);
+
+  std::cout << "Time using slow union (us) = " << slowTime.count() / Nsamp << "\n";
+  std::cout << "Time using fast union (us) = " << fastTime.count() / Nsamp << "\n";
+  std::cout << "Average speedup = " << (1.0 * slowTime.count()) / (1.0 * fastTime.count()) << "\n";
 
   return 0;
 }
