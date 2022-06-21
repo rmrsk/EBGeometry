@@ -35,7 +35,7 @@ main()
 
   constexpr T   radius = 0.02;
   constexpr int M      = 40;
-  constexpr int Nsamp  = 10000;
+  constexpr int Nsamp  = 1000;
   constexpr T   delta  = (2.0 - 2 * M * radius) / (M + 1);
 
   if (delta < 0.0) {
