@@ -30,7 +30,7 @@
 \contentsline {subsection}{\numberline {3.4.3}Code example}{22}{subsection.3.4.3}%
 \contentsline {section}{\numberline {3.5}Signed distance function}{23}{section.3.5}%
 \contentsline {subsection}{\numberline {3.5.1}Normal vector}{25}{subsection.3.5.1}%
-\contentsline {subsection}{\numberline {3.5.2}Transformations}{26}{subsection.3.5.2}%
+\contentsline {subsection}{\numberline {3.5.2}Transformations}{25}{subsection.3.5.2}%
 \contentsline {subsection}{\numberline {3.5.3}Rounding}{26}{subsection.3.5.3}%
 \contentsline {subsection}{\numberline {3.5.4}Scaling}{27}{subsection.3.5.4}%
 \contentsline {subsection}{\numberline {3.5.5}Analytic functions}{28}{subsection.3.5.5}%
@@ -54,7 +54,7 @@
 \contentsline {subsection}{\numberline {4.4.1}Constructing the BVH}{43}{subsection.4.4.1}%
 \contentsline {subsection}{\numberline {4.4.2}Exposing signed distance functions}{43}{subsection.4.4.2}%
 \contentsline {section}{\numberline {4.5}Integration with Chombo3}{43}{section.4.5}%
-\contentsline {subsection}{\numberline {4.5.1}Constructing the BVH}{47}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.1}Constructing the BVH}{48}{subsection.4.5.1}%
 \contentsline {subsection}{\numberline {4.5.2}Exposing signed distance functions}{48}{subsection.4.5.2}%
 \contentsline {chapter}{\numberline {5}References}{49}{chapter.5}%
 \contentsline {section}{\numberline {5.1}References}{49}{section.5.1}%

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2022.6.9)  9 JUN 2022 08:37
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2022.6.21)  21 JUN 2022 19:42
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -857,74 +857,70 @@ Package pdftex.def Info: CompactBVH.png  used on input line 877.
 LaTeX Font Info:    Font shape `TS1/txtt/m/it' in size <10> not available
 (Font)              Font shape `TS1/txtt/m/sl' tried instead on input line 1295
 .
- [23] [24]
-Underfull \hbox (badness 5667) in paragraph at lines 1393--1398
+ [23]
+Underfull \hbox (badness 5667) in paragraph at lines 1372--1377
 []\T1/qtm/m/n/10 When im-ple-ment-ing the \T1/txtt/m/n/10 signedDistance \T1/qt
 m/m/n/10 func-tion, one can trans-form the in-put point by first call-ing
  []
 
-[25] [26] [27] [28] [29] [30] [31]
-Underfull \vbox (badness 10000) detected at line 1903
+[24] [25] [26] [27] [28] [29] [30]
+Underfull \vbox (badness 1112) detected at line 1881
  []
 
+[31] [32] [33] [34
 
-Underfull \vbox (badness 10000) detected at line 1903
- []
-
-[32] [33] [34]
+]
 Chapter 4.
-[35
-
-] [36] [37] [38]
-Overfull \vbox (1.66618pt too high) detected at line 2464
+[35] [36] [37] [38]
+Overfull \vbox (1.66618pt too high) detected at line 2444
  []
 
 [39]
-Underfull \vbox (badness 10000) detected at line 2464
+Underfull \vbox (badness 10000) detected at line 2444
  []
 
 
-Underfull \vbox (badness 10000) detected at line 2464
+Underfull \vbox (badness 10000) detected at line 2444
  []
 
 [40]
-Underfull \vbox (badness 10000) detected at line 2464
+Underfull \vbox (badness 10000) detected at line 2444
  []
 
 
-Underfull \vbox (badness 10000) detected at line 2464
+Underfull \vbox (badness 10000) detected at line 2444
  []
 
 [41]
-Underfull \vbox (badness 10000) detected at line 2464
+Underfull \vbox (badness 10000) detected at line 2444
  []
 
 
-Underfull \vbox (badness 10000) detected at line 2464
+Underfull \vbox (badness 10000) detected at line 2444
  []
 
 [42] [43]
-Underfull \vbox (badness 10000) detected at line 2711
+Underfull \vbox (badness 10000) detected at line 2694
  []
 
 
-Overfull \vbox (3.52196pt too high) detected at line 2711
+Overfull \vbox (3.52196pt too high) detected at line 2694
  []
 
 [44]
-Underfull \vbox (badness 10000) detected at line 2711
+Underfull \vbox (badness 10000) detected at line 2694
  []
 
 
-Underfull \vbox (badness 10000) detected at line 2711
+Underfull \vbox (badness 10000) detected at line 2694
  []
 
 [45]
-Underfull \vbox (badness 10000) detected at line 2711
+Underfull \vbox (badness 10000) detected at line 2694
  []
 
 
-Underfull \vbox (badness 10000) detected at line 2711
+Underfull \vbox (badness 10000) detected at line 2694
  []
 
 [46] [47] [48]
@@ -934,23 +930,23 @@ Chapter 5.
 ] [50
 
 ] (./ebgeometry.ind)
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 2775.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 2758.
  [51
 
 ]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 2775.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 2758.
  (./ebgeometry.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 2775.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 2775.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 2758.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 2758.
 
 Package rerunfilecheck Info: File `ebgeometry.out' has not changed.
 (rerunfilecheck)             Checksum: BDF68AB6295E0C01CD1904DB3AF3BBD4;8219.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 2775.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 2758.
  ) 
 Here is how much of TeX's memory you used:
  14126 strings out of 483183
- 201964 string characters out of 5966293
- 675014 words of memory out of 5000000
+ 201964 string characters out of 5966292
+ 675029 words of memory out of 5000000
  28619 multiletter control sequences out of 15000+600000
  596385 words of font info for 76 fonts, out of 8000000 for 9000
  15 hyphenation exceptions out of 8191
@@ -976,7 +972,7 @@ fonts/type1/public/txfonts/t1xbtt.pfb></usr/share/texlive/texmf-dist/fonts/type
 1/public/txfonts/t1xtt.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/tx
 fonts/t1xtt.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/txfonts/tcxtt
 .pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb>
-Output written on ebgeometry.pdf (55 pages, 1001305 bytes).
+Output written on ebgeometry.pdf (55 pages, 1000130 bytes).
 PDF statistics:
  755 PDF objects out of 1000 (max. 8388607)
  652 compressed objects within 7 object streams

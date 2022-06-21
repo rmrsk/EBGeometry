@@ -128,7 +128,7 @@
 <span class="cp">#include</span> <span class="cpf">&lt;deque&gt;</span><span class="cp"></span>
 
 <span class="c1">// Our includes</span>
-<span class="cp">#include</span> <span class="cpf">&quot;EBGeometry_TransformOps.hpp&quot;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;EBGeometry_ImplicitFunction.hpp&quot;</span><span class="cp"></span>
 <span class="cp">#include</span> <span class="cpf">&quot;EBGeometry_NamespaceHeader.hpp&quot;</span><span class="cp"></span>
 
 <span class="cm">/*!</span>
@@ -140,7 +140,7 @@
 <span class="cm">  by calling transformPoint on the input coordinate.</span>
 <span class="cm">*/</span>
 <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
-<span class="k">class</span> <span class="nc">SignedDistanceFunction</span>
+<span class="k">class</span> <span class="nc">SignedDistanceFunction</span> <span class="o">:</span> <span class="k">public</span> <span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span>
 <span class="p">{</span>
 <span class="k">public</span><span class="o">:</span>
   <span class="cm">/*!</span>
@@ -152,6 +152,13 @@
 <span class="cm">    @brief Destructor (does nothing)</span>
 <span class="cm">  */</span>
   <span class="k">virtual</span> <span class="o">~</span><span class="n">SignedDistanceFunction</span><span class="p">()</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+
+  <span class="cm">/*!</span>
+<span class="cm">    @brief Implementation of ImplicitFunction::value</span>
+<span class="cm">    @param[in] a_point 3D point.</span>
+<span class="cm">  */</span>
+  <span class="k">virtual</span> <span class="n">T</span>
+  <span class="nf">value</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="k">override</span> <span class="k">final</span><span class="p">;</span>
 
   <span class="cm">/*!</span>
 <span class="cm">    @brief Signed distance function.</span>
@@ -168,34 +175,6 @@
 <span class="cm">  */</span>
   <span class="kr">inline</span> <span class="k">virtual</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span>
   <span class="n">normal</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">,</span> <span class="k">const</span> <span class="n">T</span><span class="o">&amp;</span> <span class="n">a_delta</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
-
-  <span class="cm">/*!</span>
-<span class="cm">    @brief Translate signed distance function.</span>
-<span class="cm">    @param[in] a_translation Distance to translate the function.</span>
-<span class="cm">  */</span>
-  <span class="kr">inline</span> <span class="kt">void</span>
-  <span class="nf">translate</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_translation</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
-
-  <span class="cm">/*!</span>
-<span class="cm">    @brief Rotate the signed distance function around.</span>
-<span class="cm">    @param[in] a_angle Rotation angle</span>
-<span class="cm">    @param[in] a_axis  Rotation axis. 0 = x, 1 = y etc.</span>
-<span class="cm">  */</span>
-  <span class="kr">inline</span> <span class="kt">void</span>
-  <span class="nf">rotate</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="n">a_angle</span><span class="p">,</span> <span class="k">const</span> <span class="kt">size_t</span> <span class="n">a_axis</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
-
-  <span class="cm">/*!</span>
-<span class="cm">    @brief Apply transformation operators and move point.</span>
-<span class="cm">    @param[in] a_point Point to transform</span>
-<span class="cm">  */</span>
-  <span class="kr">inline</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span>
-  <span class="n">transformPoint</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
-
-<span class="k">protected</span><span class="o">:</span>
-  <span class="cm">/*!</span>
-<span class="cm">    @brief List of transformation operators for the signed distance field.</span>
-<span class="cm">  */</span>
-  <span class="n">std</span><span class="o">::</span><span class="n">deque</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">TransformOp</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&gt;</span> <span class="n">m_transformOps</span><span class="p">;</span>
 <span class="p">};</span>
 
 <span class="cp">#include</span> <span class="cpf">&quot;EBGeometry_NamespaceFooter.hpp&quot;</span><span class="cp"></span>
@@ -302,7 +281,8 @@ Note that the rounding does not preserve the volume of the original SDF, so subs
   <span class="cm">/*!</span>
 <span class="cm">    @brief Destructor</span>
 <span class="cm">  */</span>
-  <span class="k">virtual</span> <span class="o">~</span><span class="n">RoundedSDF</span><span class="p">()</span> <span class="p">{}</span>
+  <span class="k">virtual</span> <span class="o">~</span><span class="n">RoundedSDF</span><span class="p">()</span>
+  <span class="p">{}</span>
 
   <span class="cm">/*!</span>
 <span class="cm">    @brief Signed distance field.</span>
@@ -323,7 +303,6 @@ Note that the rounding does not preserve the volume of the original SDF, so subs
 <span class="cm">    @brief Rounding radius</span>
 <span class="cm">  */</span>
   <span class="n">T</span> <span class="n">m_curv</span><span class="p">;</span>
-<span class="p">};</span>
 </pre></div>
 </div>
 <p>To use it, simply pass an SDF into the constructor and use the new distance function.</p>
@@ -336,52 +315,52 @@ Note that the rounding does not preserve the volume of the original SDF, so subs
 <p>where <span class="math notranslate nohighlight">\(c\)</span> is a scaling factor.
 We point out that anisotropic stretching does not preserve the distance field.</p>
 <p>The rounded SDF is implemented in <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_AnalyticDistanceFunctions.hpp</span></code></p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
-<span class="k">class</span> <span class="nc">ScaledSDF</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span>
-<span class="p">{</span>
-<span class="k">public</span><span class="o">:</span>
-  <span class="cm">/*!</span>
-<span class="cm">    @brief Disallowed weak construction</span>
-<span class="cm">  */</span>
-  <span class="n">ScaledSDF</span><span class="p">()</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  @brief Scaled signed distance function.
+*/
+template &lt;class T&gt;
+class ScaledSDF : public SignedDistanceFunction&lt;T&gt;
+{
+public:
+  /*!
+    @brief Disallowed weak construction
+  */
+  ScaledSDF() = delete;
 
-  <span class="cm">/*!</span>
-<span class="cm">    @brief Scaled SDF.</span>
-<span class="cm">    @param[in] a_sdf   Input signed distance function.</span>
-<span class="cm">    @param[in] a_scale Scaling factor.</span>
-<span class="cm">  */</span>
-  <span class="n">ScaledSDF</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="n">a_sdf</span><span class="p">,</span> <span class="k">const</span> <span class="n">T</span> <span class="n">a_scale</span><span class="p">)</span>
-  <span class="p">{</span>
-    <span class="n">m_sdf</span>   <span class="o">=</span> <span class="n">a_sdf</span><span class="p">;</span>
-    <span class="n">m_scale</span> <span class="o">=</span> <span class="n">a_scale</span><span class="p">;</span>
-  <span class="p">}</span>
+  /*!
+    @brief Scaled SDF.
+    @param[in] a_sdf   Input signed distance function.
+    @param[in] a_scale Scaling factor.
+  */
+  ScaledSDF(const std::shared_ptr&lt;SignedDistanceFunction&lt;T&gt;&gt; a_sdf, const T a_scale)
+  {
+    m_sdf   = a_sdf;
+    m_scale = a_scale;
+  }
 
-  <span class="cm">/*!</span>
-<span class="cm">    @brief Destructor</span>
-<span class="cm">  */</span>
-  <span class="k">virtual</span> <span class="o">~</span><span class="n">ScaledSDF</span><span class="p">()</span> <span class="p">{}</span>
+  /*!
+    @brief Destructor
+  */
+  virtual ~ScaledSDF()
+  {}
 
-  <span class="cm">/*!</span>
-<span class="cm">    @brief Signed distance field.</span>
-<span class="cm">    @param[in] a_point Input point.</span>
-<span class="cm">  */</span>
-  <span class="k">virtual</span> <span class="n">T</span>
-  <span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="k">override</span>
-  <span class="p">{</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">m_sdf</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">a_point</span> <span class="o">/</span> <span class="n">m_scale</span><span class="p">))</span> <span class="o">*</span> <span class="n">m_scale</span><span class="p">;</span>
-  <span class="p">}</span>
+  /*!
+    @brief Signed distance field.
+    @param[in] a_point Input point.
+  */
+  virtual T
+  signedDistance(const Vec3T&lt;T&gt;&amp; a_point) const noexcept override
+  {
+    return (m_sdf-&gt;signedDistance(a_point / m_scale)) * m_scale;
+  }
 
-<span class="k">protected</span><span class="o">:</span>
-  <span class="cm">/*!</span>
-<span class="cm">    @brief Original signed distance function</span>
-<span class="cm">  */</span>
-  <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="n">m_sdf</span><span class="p">;</span>
+protected:
+  /*!
+    @brief Original signed distance function
+  */
+  std::shared_ptr&lt;const SignedDistanceFunction&lt;T&gt;&gt; m_sdf;
 
-  <span class="cm">/*!</span>
-<span class="cm">    @brief Scaling factor.</span>
-<span class="cm">  */</span>
-  <span class="n">T</span> <span class="n">m_scale</span><span class="p">;</span>
-<span class="p">};</span>
+  /*!
+    @brief Scaling factor.
 </pre></div>
 </div>
 </div>

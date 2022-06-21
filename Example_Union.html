@@ -115,25 +115,36 @@
 </ol>
 <p>We focus on the following parts of the code:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span>
-<span class="nf">main</span><span class="p">()</span>
   <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">K</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
 
-  <span class="c1">// Make a sphere array consisting of about 10^6 spheres. The distance between</span>
-  <span class="c1">// the spheres is 2*radius</span>
+  <span class="c1">// Make a sphere array consisting of about M^3 spheres. We assume</span>
+  <span class="c1">// that the domain is x,y,z \in [-1,1] and set the number of spheres</span>
+  <span class="c1">// and their radii.</span>
   <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">SDF</span><span class="o">&gt;&gt;</span> <span class="n">spheres</span><span class="p">;</span>
 
-  <span class="k">constexpr</span> <span class="n">T</span>   <span class="n">radius</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
-  <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">N</span>      <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+  <span class="k">constexpr</span> <span class="n">T</span>   <span class="n">radius</span> <span class="o">=</span> <span class="mf">0.02</span><span class="p">;</span>
+  <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">M</span>      <span class="o">=</span> <span class="mi">40</span><span class="p">;</span>
+  <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">Nsamp</span>  <span class="o">=</span> <span class="mi">1000</span><span class="p">;</span>
+  <span class="k">constexpr</span> <span class="n">T</span>   <span class="n">delta</span>  <span class="o">=</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">M</span> <span class="o">*</span> <span class="n">radius</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">M</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
 
-  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">delta</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Error: &#39;delta &lt; 0.0&#39;&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
 
-        <span class="k">const</span> <span class="n">T</span> <span class="n">x</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">radius</span><span class="p">);</span>
-        <span class="k">const</span> <span class="n">T</span> <span class="n">y</span> <span class="o">=</span> <span class="n">j</span> <span class="o">*</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">radius</span><span class="p">);</span>
-        <span class="k">const</span> <span class="n">T</span> <span class="n">z</span> <span class="o">=</span> <span class="n">k</span> <span class="o">*</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">radius</span><span class="p">);</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">else</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;delta = &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">delta</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="p">}</span>
 
-        <span class="k">const</span> <span class="n">Vec3</span> <span class="nf">center</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">M</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;=</span> <span class="n">M</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">k</span> <span class="o">&lt;=</span> <span class="n">M</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+        <span class="k">const</span> <span class="n">T</span> <span class="n">x</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="p">(</span><span class="n">delta</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">radius</span><span class="p">)</span> <span class="o">-</span> <span class="n">radius</span><span class="p">;</span>
+        <span class="k">const</span> <span class="n">T</span> <span class="n">y</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.</span> <span class="o">+</span> <span class="n">j</span> <span class="o">*</span> <span class="p">(</span><span class="n">delta</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">radius</span><span class="p">)</span> <span class="o">-</span> <span class="n">radius</span><span class="p">;</span>
+        <span class="k">const</span> <span class="n">T</span> <span class="n">z</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.</span> <span class="o">+</span> <span class="n">k</span> <span class="o">*</span> <span class="p">(</span><span class="n">delta</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">radius</span><span class="p">)</span> <span class="o">-</span> <span class="n">radius</span><span class="p">;</span>
+
+        <span class="n">Vec3</span> <span class="nf">center</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">);</span>
 
         <span class="n">spheres</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">Sphere</span><span class="o">&gt;</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="nb">false</span><span class="p">));</span>
       <span class="p">}</span>
@@ -143,20 +154,8 @@
   <span class="c1">// Make a standard union of these spheres. This is the union object which</span>
   <span class="c1">// iterates through each and every object in the scene.</span>
   <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Union</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">slowUnion</span><span class="p">(</span><span class="n">spheres</span><span class="p">,</span> <span class="nb">false</span><span class="p">);</span>
-
   <span class="c1">// Make a fast union. To do this we must have the SDF objects (our vector of</span>
   <span class="c1">// spheres) as well as a way for enclosing these objects. We need to define</span>
-  <span class="c1">// ourselves a lambda that creates an appropriate bounding volumes for each</span>
-  <span class="c1">// SDF.</span>
-  <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">BVConstructorT</span><span class="o">&lt;</span><span class="n">SDF</span><span class="p">,</span> <span class="n">AABB</span><span class="o">&gt;</span> <span class="n">aabbConstructor</span> <span class="o">=</span> <span class="p">[](</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">SDF</span><span class="o">&gt;&amp;</span> <span class="n">a_prim</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">const</span> <span class="n">Sphere</span><span class="o">&amp;</span> <span class="n">sph</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">Sphere</span><span class="o">&amp;&gt;</span><span class="p">(</span><span class="o">*</span><span class="n">a_prim</span><span class="p">);</span>
-
-    <span class="k">const</span> <span class="n">Vec3</span><span class="o">&amp;</span> <span class="n">c</span> <span class="o">=</span> <span class="n">sph</span><span class="p">.</span><span class="n">getCenter</span><span class="p">();</span>
-    <span class="k">const</span> <span class="n">T</span><span class="o">&amp;</span>    <span class="n">r</span> <span class="o">=</span> <span class="n">sph</span><span class="p">.</span><span class="n">getRadius</span><span class="p">();</span>
-
-    <span class="k">const</span> <span class="n">Vec3</span> <span class="n">lo</span> <span class="o">=</span> <span class="n">c</span> <span class="o">-</span> <span class="n">r</span> <span class="o">*</span> <span class="n">Vec3</span><span class="o">::</span><span class="n">one</span><span class="p">();</span>
-
-    <span class="k">return</span> <span class="nf">AABB</span><span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">);</span>
 </pre></div>
 </div>
 <div class="section" id="creating-the-spheres">
@@ -164,31 +163,31 @@
 <p>In the first block of code we are defining one million spheres that lie on a three-dimensional lattice, where each sphere has a radius of one:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">K</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
 
-  <span class="c1">// Make a sphere array consisting of about 10^6 spheres. The distance between</span>
-  <span class="c1">// the spheres is 2*radius</span>
+  <span class="c1">// Make a sphere array consisting of about M^3 spheres. We assume</span>
+  <span class="c1">// that the domain is x,y,z \in [-1,1] and set the number of spheres</span>
+  <span class="c1">// and their radii.</span>
   <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">SDF</span><span class="o">&gt;&gt;</span> <span class="n">spheres</span><span class="p">;</span>
 
-  <span class="k">constexpr</span> <span class="n">T</span>   <span class="n">radius</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
-  <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">N</span>      <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+  <span class="k">constexpr</span> <span class="n">T</span>   <span class="n">radius</span> <span class="o">=</span> <span class="mf">0.02</span><span class="p">;</span>
+  <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">M</span>      <span class="o">=</span> <span class="mi">40</span><span class="p">;</span>
+  <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">Nsamp</span>  <span class="o">=</span> <span class="mi">1000</span><span class="p">;</span>
+  <span class="k">constexpr</span> <span class="n">T</span>   <span class="n">delta</span>  <span class="o">=</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">M</span> <span class="o">*</span> <span class="n">radius</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">M</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
 
-  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">delta</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Error: &#39;delta &lt; 0.0&#39;&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
 
-        <span class="k">const</span> <span class="n">T</span> <span class="n">x</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">radius</span><span class="p">);</span>
-        <span class="k">const</span> <span class="n">T</span> <span class="n">y</span> <span class="o">=</span> <span class="n">j</span> <span class="o">*</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">radius</span><span class="p">);</span>
-        <span class="k">const</span> <span class="n">T</span> <span class="n">z</span> <span class="o">=</span> <span class="n">k</span> <span class="o">*</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">radius</span><span class="p">);</span>
-
-        <span class="k">const</span> <span class="n">Vec3</span> <span class="nf">center</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">);</span>
-
-        <span class="n">spheres</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">Sphere</span><span class="o">&gt;</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="nb">false</span><span class="p">));</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">else</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;delta = &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">delta</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="p">}</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="creating-standard-union">
 <h2>Creating standard union<a class="headerlink" href="#creating-standard-union" title="Permalink to this heading"></a></h2>
 <p>In the second block of code we are simply creating a standard signed distance function union:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">k</span> <span class="o">&lt;=</span> <span class="n">M</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
 </pre></div>
 </div>
 <p>For implementation details regarding the standard union, see <a class="reference internal" href="ImplemUnion.html#chap-union"><span class="std std-ref">Unions</span></a>.</p>
@@ -197,15 +196,17 @@
 <h2>Creating BVH-enabled union<a class="headerlink" href="#creating-bvh-enabled-union" title="Permalink to this heading"></a></h2>
 <p>In the third block of code we create a BVH-enabled union.
 To do so, we must first provide a function which can create bounding volumes around each object:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="c1">// Make a fast union. To do this we must have the SDF objects (our vector of</span>
-  <span class="c1">// spheres) as well as a way for enclosing these objects. We need to define</span>
-  <span class="c1">// ourselves a lambda that creates an appropriate bounding volumes for each</span>
-  <span class="c1">// SDF.</span>
-  <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">BVConstructorT</span><span class="o">&lt;</span><span class="n">SDF</span><span class="p">,</span> <span class="n">AABB</span><span class="o">&gt;</span> <span class="n">aabbConstructor</span> <span class="o">=</span> <span class="p">[](</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">SDF</span><span class="o">&gt;&amp;</span> <span class="n">a_prim</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">const</span> <span class="n">Sphere</span><span class="o">&amp;</span> <span class="n">sph</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">Sphere</span><span class="o">&amp;&gt;</span><span class="p">(</span><span class="o">*</span><span class="n">a_prim</span><span class="p">);</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>        <span class="k">const</span> <span class="n">T</span> <span class="n">z</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.</span> <span class="o">+</span> <span class="n">k</span> <span class="o">*</span> <span class="p">(</span><span class="n">delta</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">radius</span><span class="p">)</span> <span class="o">-</span> <span class="n">radius</span><span class="p">;</span>
 
-    <span class="k">const</span> <span class="n">Vec3</span><span class="o">&amp;</span> <span class="n">c</span> <span class="o">=</span> <span class="n">sph</span><span class="p">.</span><span class="n">getCenter</span><span class="p">();</span>
-    <span class="k">const</span> <span class="n">T</span><span class="o">&amp;</span>    <span class="n">r</span> <span class="o">=</span> <span class="n">sph</span><span class="p">.</span><span class="n">getRadius</span><span class="p">();</span>
+        <span class="n">Vec3</span> <span class="nf">center</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">);</span>
+
+        <span class="n">spheres</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">Sphere</span><span class="o">&gt;</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="nb">false</span><span class="p">));</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="c1">// Make a standard union of these spheres. This is the union object which</span>
+  <span class="c1">// iterates through each and every object in the scene.</span>
 </pre></div>
 </div>
 <p>Here, we use axis-aligned boxes but we could also have used other types of bounding volumes.</p>

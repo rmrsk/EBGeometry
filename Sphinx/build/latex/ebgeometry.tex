@@ -61,7 +61,7 @@
 
 
 \title{EBGeometry}
-\date{Jun 09, 2022}
+\date{Jun 21, 2022}
 \release{1.0}
 \author{Robert Marskar}
 \newcommand{\sphinxlogo}{\vbox{}}
@@ -1309,7 +1309,7 @@ In EBGeometry we have encapsulated the concept of a signed distance function in 
 \PYG{c+cp}{\PYGZsh{}}\PYG{c+cp}{include} \PYG{c+cpf}{\PYGZlt{}deque\PYGZgt{}}
 
 \PYG{c+c1}{// Our includes}
-\PYG{c+cp}{\PYGZsh{}}\PYG{c+cp}{include} \PYG{c+cpf}{\PYGZdq{}EBGeometry\PYGZus{}TransformOps.hpp\PYGZdq{}}
+\PYG{c+cp}{\PYGZsh{}}\PYG{c+cp}{include} \PYG{c+cpf}{\PYGZdq{}EBGeometry\PYGZus{}ImplicitFunction.hpp\PYGZdq{}}
 \PYG{c+cp}{\PYGZsh{}}\PYG{c+cp}{include} \PYG{c+cpf}{\PYGZdq{}EBGeometry\PYGZus{}NamespaceHeader.hpp\PYGZdq{}}
 
 \PYG{c+cm}{/*!}
@@ -1321,7 +1321,7 @@ In EBGeometry we have encapsulated the concept of a signed distance function in 
 \PYG{c+cm}{  by calling transformPoint on the input coordinate.}
 \PYG{c+cm}{*/}
 \PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{o}{\PYGZgt{}}
-\PYG{k}{class} \PYG{n+nc}{SignedDistanceFunction}
+\PYG{k}{class} \PYG{n+nc}{SignedDistanceFunction} \PYG{o}{:} \PYG{k}{public} \PYG{n}{ImplicitFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}
 \PYG{p}{\PYGZob{}}
 \PYG{k}{public}\PYG{o}{:}
   \PYG{c+cm}{/*!}
@@ -1333,6 +1333,13 @@ In EBGeometry we have encapsulated the concept of a signed distance function in 
 \PYG{c+cm}{    @brief Destructor (does nothing)}
 \PYG{c+cm}{  */}
   \PYG{k}{virtual} \PYG{o}{\PYGZti{}}\PYG{n}{SignedDistanceFunction}\PYG{p}{(}\PYG{p}{)} \PYG{o}{=} \PYG{k}{default}\PYG{p}{;}
+
+  \PYG{c+cm}{/*!}
+\PYG{c+cm}{    @brief Implementation of ImplicitFunction::value}
+\PYG{c+cm}{    @param[in] a\PYGZus{}point 3D point.}
+\PYG{c+cm}{  */}
+  \PYG{k}{virtual} \PYG{n}{T}
+  \PYG{n+nf}{value}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept} \PYG{k}{override} \PYG{k}{final}\PYG{p}{;}
 
   \PYG{c+cm}{/*!}
 \PYG{c+cm}{    @brief Signed distance function.}
@@ -1349,34 +1356,6 @@ In EBGeometry we have encapsulated the concept of a signed distance function in 
 \PYG{c+cm}{  */}
   \PYG{k+kr}{inline} \PYG{k}{virtual} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}
   \PYG{n}{normal}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{,} \PYG{k}{const} \PYG{n}{T}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}delta}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept}\PYG{p}{;}
-
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Translate signed distance function.}
-\PYG{c+cm}{    @param[in] a\PYGZus{}translation Distance to translate the function.}
-\PYG{c+cm}{  */}
-  \PYG{k+kr}{inline} \PYG{k+kt}{void}
-  \PYG{n+nf}{translate}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}translation}\PYG{p}{)} \PYG{k}{noexcept}\PYG{p}{;}
-
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Rotate the signed distance function around.}
-\PYG{c+cm}{    @param[in] a\PYGZus{}angle Rotation angle}
-\PYG{c+cm}{    @param[in] a\PYGZus{}axis  Rotation axis. 0 = x, 1 = y etc.}
-\PYG{c+cm}{  */}
-  \PYG{k+kr}{inline} \PYG{k+kt}{void}
-  \PYG{n+nf}{rotate}\PYG{p}{(}\PYG{k}{const} \PYG{n}{T} \PYG{n}{a\PYGZus{}angle}\PYG{p}{,} \PYG{k}{const} \PYG{k+kt}{size\PYGZus{}t} \PYG{n}{a\PYGZus{}axis}\PYG{p}{)} \PYG{k}{noexcept}\PYG{p}{;}
-
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Apply transformation operators and move point.}
-\PYG{c+cm}{    @param[in] a\PYGZus{}point Point to transform}
-\PYG{c+cm}{  */}
-  \PYG{k+kr}{inline} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}
-  \PYG{n}{transformPoint}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept}\PYG{p}{;}
-
-\PYG{k}{protected}\PYG{o}{:}
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief List of transformation operators for the signed distance field.}
-\PYG{c+cm}{  */}
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{deque}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{TransformOp}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{m\PYGZus{}transformOps}\PYG{p}{;}
 \PYG{p}{\PYGZcb{}}\PYG{p}{;}
 
 \PYG{c+cp}{\PYGZsh{}}\PYG{c+cp}{include} \PYG{c+cpf}{\PYGZdq{}EBGeometry\PYGZus{}NamespaceFooter.hpp\PYGZdq{}}
@@ -1519,7 +1498,8 @@ The rounded SDF is implemented in \sphinxcode{\sphinxupquote{Source/EBGeometry\_
   \PYG{c+cm}{/*!}
 \PYG{c+cm}{    @brief Destructor}
 \PYG{c+cm}{  */}
-  \PYG{k}{virtual} \PYG{o}{\PYGZti{}}\PYG{n}{RoundedSDF}\PYG{p}{(}\PYG{p}{)} \PYG{p}{\PYGZob{}}\PYG{p}{\PYGZcb{}}
+  \PYG{k}{virtual} \PYG{o}{\PYGZti{}}\PYG{n}{RoundedSDF}\PYG{p}{(}\PYG{p}{)}
+  \PYG{p}{\PYGZob{}}\PYG{p}{\PYGZcb{}}
 
   \PYG{c+cm}{/*!}
 \PYG{c+cm}{    @brief Signed distance field.}
@@ -1540,7 +1520,6 @@ The rounded SDF is implemented in \sphinxcode{\sphinxupquote{Source/EBGeometry\_
 \PYG{c+cm}{    @brief Rounding radius}
 \PYG{c+cm}{  */}
   \PYG{n}{T} \PYG{n}{m\PYGZus{}curv}\PYG{p}{;}
-\PYG{p}{\PYGZcb{}}\PYG{p}{;}
 \end{sphinxVerbatim}
 
 \sphinxAtStartPar
@@ -1562,52 +1541,52 @@ We point out that anisotropic stretching does not preserve the distance field.
 The rounded SDF is implemented in \sphinxcode{\sphinxupquote{Source/EBGeometry\_AnalyticDistanceFunctions.hpp}}
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
-\PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{o}{\PYGZgt{}}
-\PYG{k}{class} \PYG{n+nc}{ScaledSDF} \PYG{o}{:} \PYG{k}{public} \PYG{n}{SignedDistanceFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}
-\PYG{p}{\PYGZob{}}
-\PYG{k}{public}\PYG{o}{:}
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Disallowed weak construction}
-\PYG{c+cm}{  */}
-  \PYG{n}{ScaledSDF}\PYG{p}{(}\PYG{p}{)} \PYG{o}{=} \PYG{k}{delete}\PYG{p}{;}
+  @brief Scaled signed distance function.
+*/
+template \PYGZlt{}class T\PYGZgt{}
+class ScaledSDF : public SignedDistanceFunction\PYGZlt{}T\PYGZgt{}
+\PYGZob{}
+public:
+  /*!
+    @brief Disallowed weak construction
+  */
+  ScaledSDF() = delete;
 
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Scaled SDF.}
-\PYG{c+cm}{    @param[in] a\PYGZus{}sdf   Input signed distance function.}
-\PYG{c+cm}{    @param[in] a\PYGZus{}scale Scaling factor.}
-\PYG{c+cm}{  */}
-  \PYG{n}{ScaledSDF}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{SignedDistanceFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{a\PYGZus{}sdf}\PYG{p}{,} \PYG{k}{const} \PYG{n}{T} \PYG{n}{a\PYGZus{}scale}\PYG{p}{)}
-  \PYG{p}{\PYGZob{}}
-    \PYG{n}{m\PYGZus{}sdf}   \PYG{o}{=} \PYG{n}{a\PYGZus{}sdf}\PYG{p}{;}
-    \PYG{n}{m\PYGZus{}scale} \PYG{o}{=} \PYG{n}{a\PYGZus{}scale}\PYG{p}{;}
-  \PYG{p}{\PYGZcb{}}
+  /*!
+    @brief Scaled SDF.
+    @param[in] a\PYGZus{}sdf   Input signed distance function.
+    @param[in] a\PYGZus{}scale Scaling factor.
+  */
+  ScaledSDF(const std::shared\PYGZus{}ptr\PYGZlt{}SignedDistanceFunction\PYGZlt{}T\PYGZgt{}\PYGZgt{} a\PYGZus{}sdf, const T a\PYGZus{}scale)
+  \PYGZob{}
+    m\PYGZus{}sdf   = a\PYGZus{}sdf;
+    m\PYGZus{}scale = a\PYGZus{}scale;
+  \PYGZcb{}
 
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Destructor}
-\PYG{c+cm}{  */}
-  \PYG{k}{virtual} \PYG{o}{\PYGZti{}}\PYG{n}{ScaledSDF}\PYG{p}{(}\PYG{p}{)} \PYG{p}{\PYGZob{}}\PYG{p}{\PYGZcb{}}
+  /*!
+    @brief Destructor
+  */
+  virtual \PYGZti{}ScaledSDF()
+  \PYGZob{}\PYGZcb{}
 
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Signed distance field.}
-\PYG{c+cm}{    @param[in] a\PYGZus{}point Input point.}
-\PYG{c+cm}{  */}
-  \PYG{k}{virtual} \PYG{n}{T}
-  \PYG{n}{signedDistance}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept} \PYG{k}{override}
-  \PYG{p}{\PYGZob{}}
-    \PYG{k}{return} \PYG{p}{(}\PYG{n}{m\PYGZus{}sdf}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{signedDistance}\PYG{p}{(}\PYG{n}{a\PYGZus{}point} \PYG{o}{/} \PYG{n}{m\PYGZus{}scale}\PYG{p}{)}\PYG{p}{)} \PYG{o}{*} \PYG{n}{m\PYGZus{}scale}\PYG{p}{;}
-  \PYG{p}{\PYGZcb{}}
+  /*!
+    @brief Signed distance field.
+    @param[in] a\PYGZus{}point Input point.
+  */
+  virtual T
+  signedDistance(const Vec3T\PYGZlt{}T\PYGZgt{}\PYGZam{} a\PYGZus{}point) const noexcept override
+  \PYGZob{}
+    return (m\PYGZus{}sdf\PYGZhy{}\PYGZgt{}signedDistance(a\PYGZus{}point / m\PYGZus{}scale)) * m\PYGZus{}scale;
+  \PYGZcb{}
 
-\PYG{k}{protected}\PYG{o}{:}
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Original signed distance function}
-\PYG{c+cm}{  */}
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{k}{const} \PYG{n}{SignedDistanceFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{m\PYGZus{}sdf}\PYG{p}{;}
+protected:
+  /*!
+    @brief Original signed distance function
+  */
+  std::shared\PYGZus{}ptr\PYGZlt{}const SignedDistanceFunction\PYGZlt{}T\PYGZgt{}\PYGZgt{} m\PYGZus{}sdf;
 
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Scaling factor.}
-\PYG{c+cm}{  */}
-  \PYG{n}{T} \PYG{n}{m\PYGZus{}scale}\PYG{p}{;}
-\PYG{p}{\PYGZcb{}}\PYG{p}{;}
+  /*!
+    @brief Scaling factor.
 \end{sphinxVerbatim}
 
 
@@ -1718,12 +1697,11 @@ The standard union is template as
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
 \PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{o}{\PYGZgt{}}
-\PYG{k}{class} \PYG{n+nc}{Union} \PYG{o}{:} \PYG{k}{public} \PYG{n}{SignedDistanceFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}
+\PYG{k}{class} \PYG{n+nc}{Union} \PYG{o}{:} \PYG{k}{public} \PYG{n}{ImplicitFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}
 \PYG{p}{\PYGZob{}}
 \PYG{k}{public}\PYG{o}{:}
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Alias for cutting down on typing.}
-\PYG{c+cm}{  */}
+  \PYG{k}{using} \PYG{n}{ImpFunc} \PYG{o}{=} \PYG{n}{ImplicitFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
+
   \PYG{k}{using} \PYG{n}{SDF} \PYG{o}{=} \PYG{n}{SignedDistanceFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
 
   \PYG{c+cm}{/*!}
@@ -1732,9 +1710,16 @@ The standard union is template as
   \PYG{n}{Union}\PYG{p}{(}\PYG{p}{)} \PYG{o}{=} \PYG{k}{delete}\PYG{p}{;}
 
   \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Full constructor. Computes the signed distance}
-\PYG{c+cm}{    @param[in] a\PYGZus{}distanceFunctions Distance functions}
-\PYG{c+cm}{    @param[in] a\PYGZus{}flipSign          Hook for turning inside to outside}
+\PYG{c+cm}{    @brief Full constructor. Computes the CSG union}
+\PYG{c+cm}{    @param[in] a\PYGZus{}implictFunctions Implicit functions}
+\PYG{c+cm}{    @param[in] a\PYGZus{}flipSign         Hook for turning inside to outside}
+\PYG{c+cm}{  */}
+  \PYG{n}{Union}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{ImpFunc}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}implicitFunctions}\PYG{p}{,} \PYG{k}{const} \PYG{k+kt}{bool} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{)}\PYG{p}{;}
+
+  \PYG{c+cm}{/*!}
+\PYG{c+cm}{    @brief Full constructor. }
+\PYG{c+cm}{    @param[in] a\PYGZus{}implictFunctions Implicit functions}
+\PYG{c+cm}{    @param[in] a\PYGZus{}flipSign         Hook for turning inside to outside}
 \PYG{c+cm}{  */}
   \PYG{n}{Union}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{SDF}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}distanceFunctions}\PYG{p}{,} \PYG{k}{const} \PYG{k+kt}{bool} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{)}\PYG{p}{;}
 
@@ -1748,19 +1733,13 @@ The standard union is template as
 \PYG{c+cm}{    @param[in] a\PYGZus{}point 3D point.}
 \PYG{c+cm}{  */}
   \PYG{n}{T}
-  \PYG{n+nf}{signedDistance}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept} \PYG{k}{override}\PYG{p}{;}
+  \PYG{n+nf}{value}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept} \PYG{k}{override}\PYG{p}{;}
 
 \PYG{k}{protected}\PYG{o}{:}
   \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief List of distance functions}
+\PYG{c+cm}{    @brief List of implicit functions}
 \PYG{c+cm}{  */}
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{k}{const} \PYG{n}{SDF}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{m\PYGZus{}distanceFunctions}\PYG{p}{;}
-
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Hook for turning inside to outside}
-\PYG{c+cm}{  */}
-  \PYG{k+kt}{bool} \PYG{n}{m\PYGZus{}flipSign}\PYG{p}{;}
-\PYG{p}{\PYGZcb{}}\PYG{p}{;}
+  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{k}{const} \PYG{n}{ImpFunc}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{m\PYGZus{}implicitFunctions}\PYG{p}{;}
 \end{sphinxVerbatim}
 
 \sphinxAtStartPar
@@ -1768,10 +1747,20 @@ Note that \sphinxcode{\sphinxupquote{EBGeometry::Union}} inherits from \sphinxco
 The implementation of the standard union is
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{n}{Union}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Union}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{ImpFunc}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}implicitFunctions}\PYG{p}{,} \PYG{k}{const} \PYG{k+kt}{bool} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{)}
+\PYG{p}{\PYGZob{}}
+  \PYG{k}{for} \PYG{p}{(}\PYG{k}{const} \PYG{k}{auto}\PYG{o}{\PYGZam{}} \PYG{n+nl}{impFunc} \PYG{p}{:} \PYG{n}{a\PYGZus{}implicitFunctions}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+    \PYG{n}{m\PYGZus{}implicitFunctions}\PYG{p}{.}\PYG{n}{emplace\PYGZus{}back}\PYG{p}{(}\PYG{n}{impFunc}\PYG{p}{)}\PYG{p}{;}
+  \PYG{p}{\PYGZcb{}}
+
+  \PYG{n}{m\PYGZus{}flipSign} \PYG{o}{=} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{o}{\PYGZgt{}}
 \PYG{n}{Union}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Union}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{SDF}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}distanceFunctions}\PYG{p}{,} \PYG{k}{const} \PYG{k+kt}{bool} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{)}
 \PYG{p}{\PYGZob{}}
   \PYG{k}{for} \PYG{p}{(}\PYG{k}{const} \PYG{k}{auto}\PYG{o}{\PYGZam{}} \PYG{n+nl}{sdf} \PYG{p}{:} \PYG{n}{a\PYGZus{}distanceFunctions}\PYG{p}{)} \PYG{p}{\PYGZob{}}
-    \PYG{n}{m\PYGZus{}distanceFunctions}\PYG{p}{.}\PYG{n}{emplace\PYGZus{}back}\PYG{p}{(}\PYG{n}{sdf}\PYG{p}{)}\PYG{p}{;}
+    \PYG{n}{m\PYGZus{}implicitFunctions}\PYG{p}{.}\PYG{n}{emplace\PYGZus{}back}\PYG{p}{(}\PYG{n}{sdf}\PYG{p}{)}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
 
   \PYG{n}{m\PYGZus{}flipSign} \PYG{o}{=} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{;}
@@ -1779,20 +1768,9 @@ The implementation of the standard union is
 
 \PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{o}{\PYGZgt{}}
 \PYG{n}{T}
-\PYG{n}{Union}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{signedDistance}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept}
+\PYG{n}{Union}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{value}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept}
 \PYG{p}{\PYGZob{}}
   \PYG{n}{T} \PYG{n}{ret} \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{numeric\PYGZus{}limits}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{infinity}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
-
-  \PYG{k}{for} \PYG{p}{(}\PYG{k}{const} \PYG{k}{auto}\PYG{o}{\PYGZam{}} \PYG{n+nl}{sdf} \PYG{p}{:} \PYG{n}{m\PYGZus{}distanceFunctions}\PYG{p}{)} \PYG{p}{\PYGZob{}}
-    \PYG{k}{const} \PYG{n}{T} \PYG{n}{cur} \PYG{o}{=} \PYG{n}{sdf}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{signedDistance}\PYG{p}{(}\PYG{n}{a\PYGZus{}point}\PYG{p}{)}\PYG{p}{;}
-
-    \PYG{n}{ret} \PYG{o}{=} \PYG{p}{(}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{abs}\PYG{p}{(}\PYG{n}{cur}\PYG{p}{)} \PYG{o}{\PYGZlt{}} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{abs}\PYG{p}{(}\PYG{n}{ret}\PYG{p}{)}\PYG{p}{)} \PYG{o}{?} \PYG{n+nl}{cur} \PYG{p}{:} \PYG{n}{ret}\PYG{p}{;}
-  \PYG{p}{\PYGZcb{}}
-
-  \PYG{n}{T} \PYG{n}{sign} \PYG{o}{=} \PYG{p}{(}\PYG{n}{m\PYGZus{}flipSign}\PYG{p}{)} \PYG{o}{?} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{1.0} \PYG{o}{:} \PYG{l+m+mf}{1.0}\PYG{p}{;}
-
-  \PYG{k}{return} \PYG{n}{sign} \PYG{o}{*} \PYG{n}{ret}\PYG{p}{;}
-\PYG{p}{\PYGZcb{}}
 \end{sphinxVerbatim}
 
 \sphinxAtStartPar
@@ -1806,7 +1784,7 @@ The BVH\sphinxhyphen{}enabled union is implemented by \sphinxcode{\sphinxupquote
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
 \PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{p}{,} \PYG{k}{class} \PYG{n+nc}{BV}\PYG{p}{,} \PYG{k+kt}{size\PYGZus{}t} \PYG{n}{K}\PYG{o}{\PYGZgt{}}
-\PYG{k}{class} \PYG{n+nc}{UnionBVH} \PYG{o}{:} \PYG{k}{public} \PYG{n}{SignedDistanceFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}
+\PYG{k}{class} \PYG{n+nc}{UnionBVH} \PYG{o}{:} \PYG{k}{public} \PYG{n}{ImplicitFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}
 \PYG{p}{\PYGZob{}}
 \PYG{k}{public}\PYG{o}{:}
   \PYG{c+cm}{/*!}
@@ -1862,7 +1840,7 @@ The BVH\sphinxhyphen{}enabled union is implemented by \sphinxcode{\sphinxupquote
 \PYG{c+cm}{    @param[in] a\PYGZus{}point 3D point.}
 \PYG{c+cm}{  */}
   \PYG{n}{T}
-  \PYG{n+nf}{signedDistance}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept} \PYG{k}{override}\PYG{p}{;}
+  \PYG{n+nf}{value}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept} \PYG{k}{override}\PYG{p}{;}
 
 \PYG{k}{protected}\PYG{o}{:}
   \PYG{c+cm}{/*!}
@@ -1878,7 +1856,7 @@ The BVH\sphinxhyphen{}enabled union is implemented by \sphinxcode{\sphinxupquote
   \PYG{c+cm}{/*!}
 \PYG{c+cm}{    @brief Node type in BVH tree. We use a flattened tree.}
 \PYG{c+cm}{  */}
-  \PYG{k}{using} \PYG{n}{LinearNode} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{LinearBVH}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{SDF}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
+  \PYG{k}{using} \PYG{n}{RootNode} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{LinearBVH}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{SDF}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
 
   \PYG{c+cm}{/*!}
 \PYG{c+cm}{    @brief List of distance functions}
@@ -1888,7 +1866,7 @@ The BVH\sphinxhyphen{}enabled union is implemented by \sphinxcode{\sphinxupquote
   \PYG{c+cm}{/*!}
 \PYG{c+cm}{    @brief Root node for BVH tree}
 \PYG{c+cm}{  */}
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{LinearNode}\PYG{o}{\PYGZgt{}} \PYG{n}{m\PYGZus{}rootNode}\PYG{p}{;}
+  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{RootNode}\PYG{o}{\PYGZgt{}} \PYG{n}{m\PYGZus{}rootNode}\PYG{p}{;}
 
   \PYG{c+cm}{/*!}
 \PYG{c+cm}{    @brief Is good or not}
@@ -1915,12 +1893,13 @@ The implementation of the signed distance function for the BVH\sphinxhyphen{}ena
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
 \PYG{n}{T}
-\PYG{n}{UnionBVH}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{signedDistance}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept}
+\PYG{n}{UnionBVH}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{value}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept}
 \PYG{p}{\PYGZob{}}
   \PYG{k}{const} \PYG{n}{T} \PYG{n}{sign} \PYG{o}{=} \PYG{p}{(}\PYG{n}{m\PYGZus{}flipSign}\PYG{p}{)} \PYG{o}{?} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{1.0} \PYG{o}{:} \PYG{l+m+mf}{1.0}\PYG{p}{;}
 
-  \PYG{k}{return} \PYG{n}{sign} \PYG{o}{*} \PYG{n}{m\PYGZus{}rootNode}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{signedDistance}\PYG{p}{(}\PYG{n}{a\PYGZus{}point}\PYG{p}{)}\PYG{p}{;}
-\PYG{p}{\PYGZcb{}}
+  \PYG{c+c1}{// For the CSG union we select the smallest value. This means that if a}
+  \PYG{c+c1}{// point is inside one object but outside another one, we choose the}
+  \PYG{c+c1}{// inside value. By design, LinearNode is a signed distance object, but the}
 \end{sphinxVerbatim}
 
 \sphinxAtStartPar
@@ -2120,25 +2099,36 @@ We focus on the following parts of the code:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
 \PYG{k+kt}{int}
-\PYG{n+nf}{main}\PYG{p}{(}\PYG{p}{)}
   \PYG{k}{constexpr} \PYG{k+kt}{int} \PYG{n}{K} \PYG{o}{=} \PYG{l+m+mi}{4}\PYG{p}{;}
 
-  \PYG{c+c1}{// Make a sphere array consisting of about 10\PYGZca{}6 spheres. The distance between}
-  \PYG{c+c1}{// the spheres is 2*radius}
+  \PYG{c+c1}{// Make a sphere array consisting of about M\PYGZca{}3 spheres. We assume}
+  \PYG{c+c1}{// that the domain is x,y,z \PYGZbs{}in [\PYGZhy{}1,1] and set the number of spheres}
+  \PYG{c+c1}{// and their radii.}
   \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{SDF}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{spheres}\PYG{p}{;}
 
-  \PYG{k}{constexpr} \PYG{n}{T}   \PYG{n}{radius} \PYG{o}{=} \PYG{l+m+mf}{1.0}\PYG{p}{;}
-  \PYG{k}{constexpr} \PYG{k+kt}{int} \PYG{n}{N}      \PYG{o}{=} \PYG{l+m+mi}{100}\PYG{p}{;}
+  \PYG{k}{constexpr} \PYG{n}{T}   \PYG{n}{radius} \PYG{o}{=} \PYG{l+m+mf}{0.02}\PYG{p}{;}
+  \PYG{k}{constexpr} \PYG{k+kt}{int} \PYG{n}{M}      \PYG{o}{=} \PYG{l+m+mi}{40}\PYG{p}{;}
+  \PYG{k}{constexpr} \PYG{k+kt}{int} \PYG{n}{Nsamp}  \PYG{o}{=} \PYG{l+m+mi}{1000}\PYG{p}{;}
+  \PYG{k}{constexpr} \PYG{n}{T}   \PYG{n}{delta}  \PYG{o}{=} \PYG{p}{(}\PYG{l+m+mf}{2.0} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{2} \PYG{o}{*} \PYG{n}{M} \PYG{o}{*} \PYG{n}{radius}\PYG{p}{)} \PYG{o}{/} \PYG{p}{(}\PYG{n}{M} \PYG{o}{+} \PYG{l+m+mi}{1}\PYG{p}{)}\PYG{p}{;}
 
-  \PYG{k}{for} \PYG{p}{(}\PYG{k+kt}{int} \PYG{n}{i} \PYG{o}{=} \PYG{l+m+mi}{0}\PYG{p}{;} \PYG{n}{i} \PYG{o}{\PYGZlt{}} \PYG{n}{N}\PYG{p}{;} \PYG{n}{i}\PYG{o}{+}\PYG{o}{+}\PYG{p}{)} \PYG{p}{\PYGZob{}}
-    \PYG{k}{for} \PYG{p}{(}\PYG{k+kt}{int} \PYG{n}{j} \PYG{o}{=} \PYG{l+m+mi}{0}\PYG{p}{;} \PYG{n}{j} \PYG{o}{\PYGZlt{}} \PYG{n}{N}\PYG{p}{;} \PYG{n}{j}\PYG{o}{+}\PYG{o}{+}\PYG{p}{)} \PYG{p}{\PYGZob{}}
-      \PYG{k}{for} \PYG{p}{(}\PYG{k+kt}{int} \PYG{n}{k} \PYG{o}{=} \PYG{l+m+mi}{0}\PYG{p}{;} \PYG{n}{k} \PYG{o}{\PYGZlt{}} \PYG{n}{N}\PYG{p}{;} \PYG{n}{k}\PYG{o}{+}\PYG{o}{+}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+  \PYG{k}{if} \PYG{p}{(}\PYG{n}{delta} \PYG{o}{\PYGZlt{}} \PYG{l+m+mf}{0.0}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+    \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{cerr} \PYG{o}{\PYGZlt{}}\PYG{o}{\PYGZlt{}} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{Error: \PYGZsq{}delta \PYGZlt{} 0.0\PYGZsq{}}\PYG{l+s}{\PYGZdq{}} \PYG{o}{\PYGZlt{}}\PYG{o}{\PYGZlt{}} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{endl}\PYG{p}{;}
 
-        \PYG{k}{const} \PYG{n}{T} \PYG{n}{x} \PYG{o}{=} \PYG{n}{i} \PYG{o}{*} \PYG{p}{(}\PYG{l+m+mi}{3} \PYG{o}{*} \PYG{n}{radius}\PYG{p}{)}\PYG{p}{;}
-        \PYG{k}{const} \PYG{n}{T} \PYG{n}{y} \PYG{o}{=} \PYG{n}{j} \PYG{o}{*} \PYG{p}{(}\PYG{l+m+mi}{3} \PYG{o}{*} \PYG{n}{radius}\PYG{p}{)}\PYG{p}{;}
-        \PYG{k}{const} \PYG{n}{T} \PYG{n}{z} \PYG{o}{=} \PYG{n}{k} \PYG{o}{*} \PYG{p}{(}\PYG{l+m+mi}{3} \PYG{o}{*} \PYG{n}{radius}\PYG{p}{)}\PYG{p}{;}
+    \PYG{k}{return} \PYG{l+m+mi}{1}\PYG{p}{;}
+  \PYG{p}{\PYGZcb{}}
+  \PYG{k}{else} \PYG{p}{\PYGZob{}}
+    \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{cout} \PYG{o}{\PYGZlt{}}\PYG{o}{\PYGZlt{}} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{delta = }\PYG{l+s}{\PYGZdq{}} \PYG{o}{\PYGZlt{}}\PYG{o}{\PYGZlt{}} \PYG{n}{delta} \PYG{o}{\PYGZlt{}}\PYG{o}{\PYGZlt{}} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{endl}\PYG{p}{;}
+  \PYG{p}{\PYGZcb{}}
 
-        \PYG{k}{const} \PYG{n}{Vec3} \PYG{n+nf}{center}\PYG{p}{(}\PYG{n}{x}\PYG{p}{,} \PYG{n}{y}\PYG{p}{,} \PYG{n}{z}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{for} \PYG{p}{(}\PYG{k+kt}{int} \PYG{n}{i} \PYG{o}{=} \PYG{l+m+mi}{1}\PYG{p}{;} \PYG{n}{i} \PYG{o}{\PYGZlt{}}\PYG{o}{=} \PYG{n}{M}\PYG{p}{;} \PYG{n}{i}\PYG{o}{+}\PYG{o}{+}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+    \PYG{k}{for} \PYG{p}{(}\PYG{k+kt}{int} \PYG{n}{j} \PYG{o}{=} \PYG{l+m+mi}{1}\PYG{p}{;} \PYG{n}{j} \PYG{o}{\PYGZlt{}}\PYG{o}{=} \PYG{n}{M}\PYG{p}{;} \PYG{n}{j}\PYG{o}{+}\PYG{o}{+}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+      \PYG{k}{for} \PYG{p}{(}\PYG{k+kt}{int} \PYG{n}{k} \PYG{o}{=} \PYG{l+m+mi}{1}\PYG{p}{;} \PYG{n}{k} \PYG{o}{\PYGZlt{}}\PYG{o}{=} \PYG{n}{M}\PYG{p}{;} \PYG{n}{k}\PYG{o}{+}\PYG{o}{+}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+
+        \PYG{k}{const} \PYG{n}{T} \PYG{n}{x} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{1.} \PYG{o}{+} \PYG{n}{i} \PYG{o}{*} \PYG{p}{(}\PYG{n}{delta} \PYG{o}{+} \PYG{l+m+mi}{2} \PYG{o}{*} \PYG{n}{radius}\PYG{p}{)} \PYG{o}{\PYGZhy{}} \PYG{n}{radius}\PYG{p}{;}
+        \PYG{k}{const} \PYG{n}{T} \PYG{n}{y} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{1.} \PYG{o}{+} \PYG{n}{j} \PYG{o}{*} \PYG{p}{(}\PYG{n}{delta} \PYG{o}{+} \PYG{l+m+mi}{2} \PYG{o}{*} \PYG{n}{radius}\PYG{p}{)} \PYG{o}{\PYGZhy{}} \PYG{n}{radius}\PYG{p}{;}
+        \PYG{k}{const} \PYG{n}{T} \PYG{n}{z} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{1.} \PYG{o}{+} \PYG{n}{k} \PYG{o}{*} \PYG{p}{(}\PYG{n}{delta} \PYG{o}{+} \PYG{l+m+mi}{2} \PYG{o}{*} \PYG{n}{radius}\PYG{p}{)} \PYG{o}{\PYGZhy{}} \PYG{n}{radius}\PYG{p}{;}
+
+        \PYG{n}{Vec3} \PYG{n+nf}{center}\PYG{p}{(}\PYG{n}{x}\PYG{p}{,} \PYG{n}{y}\PYG{p}{,} \PYG{n}{z}\PYG{p}{)}\PYG{p}{;}
 
         \PYG{n}{spheres}\PYG{p}{.}\PYG{n}{emplace\PYGZus{}back}\PYG{p}{(}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{make\PYGZus{}shared}\PYG{o}{\PYGZlt{}}\PYG{n}{Sphere}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{center}\PYG{p}{,} \PYG{n}{radius}\PYG{p}{,} \PYG{n+nb}{false}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
       \PYG{p}{\PYGZcb{}}
@@ -2148,20 +2138,8 @@ We focus on the following parts of the code:
   \PYG{c+c1}{// Make a standard union of these spheres. This is the union object which}
   \PYG{c+c1}{// iterates through each and every object in the scene.}
   \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Union}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}} \PYG{n}{slowUnion}\PYG{p}{(}\PYG{n}{spheres}\PYG{p}{,} \PYG{n+nb}{false}\PYG{p}{)}\PYG{p}{;}
-
   \PYG{c+c1}{// Make a fast union. To do this we must have the SDF objects (our vector of}
   \PYG{c+c1}{// spheres) as well as a way for enclosing these objects. We need to define}
-  \PYG{c+c1}{// ourselves a lambda that creates an appropriate bounding volumes for each}
-  \PYG{c+c1}{// SDF.}
-  \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVConstructorT}\PYG{o}{\PYGZlt{}}\PYG{n}{SDF}\PYG{p}{,} \PYG{n}{AABB}\PYG{o}{\PYGZgt{}} \PYG{n}{aabbConstructor} \PYG{o}{=} \PYG{p}{[}\PYG{p}{]}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{k}{const} \PYG{n}{SDF}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}prim}\PYG{p}{)} \PYG{p}{\PYGZob{}}
-    \PYG{k}{const} \PYG{n}{Sphere}\PYG{o}{\PYGZam{}} \PYG{n}{sph} \PYG{o}{=} \PYG{k}{static\PYGZus{}cast}\PYG{o}{\PYGZlt{}}\PYG{k}{const} \PYG{n}{Sphere}\PYG{o}{\PYGZam{}}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{o}{*}\PYG{n}{a\PYGZus{}prim}\PYG{p}{)}\PYG{p}{;}
-
-    \PYG{k}{const} \PYG{n}{Vec3}\PYG{o}{\PYGZam{}} \PYG{n}{c} \PYG{o}{=} \PYG{n}{sph}\PYG{p}{.}\PYG{n}{getCenter}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
-    \PYG{k}{const} \PYG{n}{T}\PYG{o}{\PYGZam{}}    \PYG{n}{r} \PYG{o}{=} \PYG{n}{sph}\PYG{p}{.}\PYG{n}{getRadius}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
-
-    \PYG{k}{const} \PYG{n}{Vec3} \PYG{n}{lo} \PYG{o}{=} \PYG{n}{c} \PYG{o}{\PYGZhy{}} \PYG{n}{r} \PYG{o}{*} \PYG{n}{Vec3}\PYG{o}{:}\PYG{o}{:}\PYG{n}{one}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
-
-    \PYG{k}{return} \PYG{n+nf}{AABB}\PYG{p}{(}\PYG{n}{lo}\PYG{p}{,} \PYG{n}{hi}\PYG{p}{)}\PYG{p}{;}
 \end{sphinxVerbatim}
 
 
@@ -2173,24 +2151,24 @@ In the first block of code we are defining one million spheres that lie on a thr
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
   \PYG{k}{constexpr} \PYG{k+kt}{int} \PYG{n}{K} \PYG{o}{=} \PYG{l+m+mi}{4}\PYG{p}{;}
 
-  \PYG{c+c1}{// Make a sphere array consisting of about 10\PYGZca{}6 spheres. The distance between}
-  \PYG{c+c1}{// the spheres is 2*radius}
+  \PYG{c+c1}{// Make a sphere array consisting of about M\PYGZca{}3 spheres. We assume}
+  \PYG{c+c1}{// that the domain is x,y,z \PYGZbs{}in [\PYGZhy{}1,1] and set the number of spheres}
+  \PYG{c+c1}{// and their radii.}
   \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{SDF}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{spheres}\PYG{p}{;}
 
-  \PYG{k}{constexpr} \PYG{n}{T}   \PYG{n}{radius} \PYG{o}{=} \PYG{l+m+mf}{1.0}\PYG{p}{;}
-  \PYG{k}{constexpr} \PYG{k+kt}{int} \PYG{n}{N}      \PYG{o}{=} \PYG{l+m+mi}{100}\PYG{p}{;}
+  \PYG{k}{constexpr} \PYG{n}{T}   \PYG{n}{radius} \PYG{o}{=} \PYG{l+m+mf}{0.02}\PYG{p}{;}
+  \PYG{k}{constexpr} \PYG{k+kt}{int} \PYG{n}{M}      \PYG{o}{=} \PYG{l+m+mi}{40}\PYG{p}{;}
+  \PYG{k}{constexpr} \PYG{k+kt}{int} \PYG{n}{Nsamp}  \PYG{o}{=} \PYG{l+m+mi}{1000}\PYG{p}{;}
+  \PYG{k}{constexpr} \PYG{n}{T}   \PYG{n}{delta}  \PYG{o}{=} \PYG{p}{(}\PYG{l+m+mf}{2.0} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{2} \PYG{o}{*} \PYG{n}{M} \PYG{o}{*} \PYG{n}{radius}\PYG{p}{)} \PYG{o}{/} \PYG{p}{(}\PYG{n}{M} \PYG{o}{+} \PYG{l+m+mi}{1}\PYG{p}{)}\PYG{p}{;}
 
-  \PYG{k}{for} \PYG{p}{(}\PYG{k+kt}{int} \PYG{n}{i} \PYG{o}{=} \PYG{l+m+mi}{0}\PYG{p}{;} \PYG{n}{i} \PYG{o}{\PYGZlt{}} \PYG{n}{N}\PYG{p}{;} \PYG{n}{i}\PYG{o}{+}\PYG{o}{+}\PYG{p}{)} \PYG{p}{\PYGZob{}}
-    \PYG{k}{for} \PYG{p}{(}\PYG{k+kt}{int} \PYG{n}{j} \PYG{o}{=} \PYG{l+m+mi}{0}\PYG{p}{;} \PYG{n}{j} \PYG{o}{\PYGZlt{}} \PYG{n}{N}\PYG{p}{;} \PYG{n}{j}\PYG{o}{+}\PYG{o}{+}\PYG{p}{)} \PYG{p}{\PYGZob{}}
-      \PYG{k}{for} \PYG{p}{(}\PYG{k+kt}{int} \PYG{n}{k} \PYG{o}{=} \PYG{l+m+mi}{0}\PYG{p}{;} \PYG{n}{k} \PYG{o}{\PYGZlt{}} \PYG{n}{N}\PYG{p}{;} \PYG{n}{k}\PYG{o}{+}\PYG{o}{+}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+  \PYG{k}{if} \PYG{p}{(}\PYG{n}{delta} \PYG{o}{\PYGZlt{}} \PYG{l+m+mf}{0.0}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+    \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{cerr} \PYG{o}{\PYGZlt{}}\PYG{o}{\PYGZlt{}} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{Error: \PYGZsq{}delta \PYGZlt{} 0.0\PYGZsq{}}\PYG{l+s}{\PYGZdq{}} \PYG{o}{\PYGZlt{}}\PYG{o}{\PYGZlt{}} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{endl}\PYG{p}{;}
 
-        \PYG{k}{const} \PYG{n}{T} \PYG{n}{x} \PYG{o}{=} \PYG{n}{i} \PYG{o}{*} \PYG{p}{(}\PYG{l+m+mi}{3} \PYG{o}{*} \PYG{n}{radius}\PYG{p}{)}\PYG{p}{;}
-        \PYG{k}{const} \PYG{n}{T} \PYG{n}{y} \PYG{o}{=} \PYG{n}{j} \PYG{o}{*} \PYG{p}{(}\PYG{l+m+mi}{3} \PYG{o}{*} \PYG{n}{radius}\PYG{p}{)}\PYG{p}{;}
-        \PYG{k}{const} \PYG{n}{T} \PYG{n}{z} \PYG{o}{=} \PYG{n}{k} \PYG{o}{*} \PYG{p}{(}\PYG{l+m+mi}{3} \PYG{o}{*} \PYG{n}{radius}\PYG{p}{)}\PYG{p}{;}
-
-        \PYG{k}{const} \PYG{n}{Vec3} \PYG{n+nf}{center}\PYG{p}{(}\PYG{n}{x}\PYG{p}{,} \PYG{n}{y}\PYG{p}{,} \PYG{n}{z}\PYG{p}{)}\PYG{p}{;}
-
-        \PYG{n}{spheres}\PYG{p}{.}\PYG{n}{emplace\PYGZus{}back}\PYG{p}{(}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{make\PYGZus{}shared}\PYG{o}{\PYGZlt{}}\PYG{n}{Sphere}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{center}\PYG{p}{,} \PYG{n}{radius}\PYG{p}{,} \PYG{n+nb}{false}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
+    \PYG{k}{return} \PYG{l+m+mi}{1}\PYG{p}{;}
+  \PYG{p}{\PYGZcb{}}
+  \PYG{k}{else} \PYG{p}{\PYGZob{}}
+    \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{cout} \PYG{o}{\PYGZlt{}}\PYG{o}{\PYGZlt{}} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{delta = }\PYG{l+s}{\PYGZdq{}} \PYG{o}{\PYGZlt{}}\PYG{o}{\PYGZlt{}} \PYG{n}{delta} \PYG{o}{\PYGZlt{}}\PYG{o}{\PYGZlt{}} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{endl}\PYG{p}{;}
+  \PYG{p}{\PYGZcb{}}
 \end{sphinxVerbatim}
 
 
@@ -2200,7 +2178,7 @@ In the first block of code we are defining one million spheres that lie on a thr
 In the second block of code we are simply creating a standard signed distance function union:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
-
+      \PYG{k}{for} \PYG{p}{(}\PYG{k+kt}{int} \PYG{n}{k} \PYG{o}{=} \PYG{l+m+mi}{1}\PYG{p}{;} \PYG{n}{k} \PYG{o}{\PYGZlt{}}\PYG{o}{=} \PYG{n}{M}\PYG{p}{;} \PYG{n}{k}\PYG{o}{+}\PYG{o}{+}\PYG{p}{)} \PYG{p}{\PYGZob{}}
 \end{sphinxVerbatim}
 
 \sphinxAtStartPar
@@ -2214,15 +2192,17 @@ In the third block of code we create a BVH\sphinxhyphen{}enabled union.
 To do so, we must first provide a function which can create bounding volumes around each object:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
-  \PYG{c+c1}{// Make a fast union. To do this we must have the SDF objects (our vector of}
-  \PYG{c+c1}{// spheres) as well as a way for enclosing these objects. We need to define}
-  \PYG{c+c1}{// ourselves a lambda that creates an appropriate bounding volumes for each}
-  \PYG{c+c1}{// SDF.}
-  \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVConstructorT}\PYG{o}{\PYGZlt{}}\PYG{n}{SDF}\PYG{p}{,} \PYG{n}{AABB}\PYG{o}{\PYGZgt{}} \PYG{n}{aabbConstructor} \PYG{o}{=} \PYG{p}{[}\PYG{p}{]}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{k}{const} \PYG{n}{SDF}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}prim}\PYG{p}{)} \PYG{p}{\PYGZob{}}
-    \PYG{k}{const} \PYG{n}{Sphere}\PYG{o}{\PYGZam{}} \PYG{n}{sph} \PYG{o}{=} \PYG{k}{static\PYGZus{}cast}\PYG{o}{\PYGZlt{}}\PYG{k}{const} \PYG{n}{Sphere}\PYG{o}{\PYGZam{}}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{o}{*}\PYG{n}{a\PYGZus{}prim}\PYG{p}{)}\PYG{p}{;}
+        \PYG{k}{const} \PYG{n}{T} \PYG{n}{z} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{1.} \PYG{o}{+} \PYG{n}{k} \PYG{o}{*} \PYG{p}{(}\PYG{n}{delta} \PYG{o}{+} \PYG{l+m+mi}{2} \PYG{o}{*} \PYG{n}{radius}\PYG{p}{)} \PYG{o}{\PYGZhy{}} \PYG{n}{radius}\PYG{p}{;}
 
-    \PYG{k}{const} \PYG{n}{Vec3}\PYG{o}{\PYGZam{}} \PYG{n}{c} \PYG{o}{=} \PYG{n}{sph}\PYG{p}{.}\PYG{n}{getCenter}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
-    \PYG{k}{const} \PYG{n}{T}\PYG{o}{\PYGZam{}}    \PYG{n}{r} \PYG{o}{=} \PYG{n}{sph}\PYG{p}{.}\PYG{n}{getRadius}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+        \PYG{n}{Vec3} \PYG{n+nf}{center}\PYG{p}{(}\PYG{n}{x}\PYG{p}{,} \PYG{n}{y}\PYG{p}{,} \PYG{n}{z}\PYG{p}{)}\PYG{p}{;}
+
+        \PYG{n}{spheres}\PYG{p}{.}\PYG{n}{emplace\PYGZus{}back}\PYG{p}{(}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{make\PYGZus{}shared}\PYG{o}{\PYGZlt{}}\PYG{n}{Sphere}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{center}\PYG{p}{,} \PYG{n}{radius}\PYG{p}{,} \PYG{n+nb}{false}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
+      \PYG{p}{\PYGZcb{}}
+    \PYG{p}{\PYGZcb{}}
+  \PYG{p}{\PYGZcb{}}
+
+  \PYG{c+c1}{// Make a standard union of these spheres. This is the union object which}
+  \PYG{c+c1}{// iterates through each and every object in the scene.}
 \end{sphinxVerbatim}
 
 \sphinxAtStartPar
@@ -2566,7 +2546,10 @@ We will focus on the following parts of the code:
     \PYG{n}{m\PYGZus{}rootNode} \PYG{o}{=} \PYG{n}{root}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{flattenTree}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
 
-  \PYG{n}{ChomboSDF}\PYG{p}{(}\PYG{k}{const} \PYG{n}{ChomboSDF}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}other}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{n}{m\PYGZus{}rootNode} \PYG{o}{=} \PYG{n}{a\PYGZus{}other}\PYG{p}{.}\PYG{n}{m\PYGZus{}rootNode}\PYG{p}{;} \PYG{p}{\PYGZcb{}}
+  \PYG{n}{ChomboSDF}\PYG{p}{(}\PYG{k}{const} \PYG{n}{ChomboSDF}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}other}\PYG{p}{)}
+  \PYG{p}{\PYGZob{}}
+    \PYG{n}{m\PYGZus{}rootNode} \PYG{o}{=} \PYG{n}{a\PYGZus{}other}\PYG{p}{.}\PYG{n}{m\PYGZus{}rootNode}\PYG{p}{;}
+  \PYG{p}{\PYGZcb{}}
 
   \PYG{n}{Real}
   \PYG{n}{value}\PYG{p}{(}\PYG{k}{const} \PYG{n}{RealVect}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{override} \PYG{k}{final}

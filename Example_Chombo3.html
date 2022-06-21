@@ -163,7 +163,10 @@
     <span class="n">m_rootNode</span> <span class="o">=</span> <span class="n">root</span><span class="o">-&gt;</span><span class="n">flattenTree</span><span class="p">();</span>
   <span class="p">}</span>
 
-  <span class="n">ChomboSDF</span><span class="p">(</span><span class="k">const</span> <span class="n">ChomboSDF</span><span class="o">&amp;</span> <span class="n">a_other</span><span class="p">)</span> <span class="p">{</span> <span class="n">m_rootNode</span> <span class="o">=</span> <span class="n">a_other</span><span class="p">.</span><span class="n">m_rootNode</span><span class="p">;</span> <span class="p">}</span>
+  <span class="n">ChomboSDF</span><span class="p">(</span><span class="k">const</span> <span class="n">ChomboSDF</span><span class="o">&amp;</span> <span class="n">a_other</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">m_rootNode</span> <span class="o">=</span> <span class="n">a_other</span><span class="p">.</span><span class="n">m_rootNode</span><span class="p">;</span>
+  <span class="p">}</span>
 
   <span class="n">Real</span>
   <span class="n">value</span><span class="p">(</span><span class="k">const</span> <span class="n">RealVect</span><span class="o">&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">override</span> <span class="k">final</span>
