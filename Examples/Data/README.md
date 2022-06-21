@@ -7,4 +7,4 @@ This folder contains various PLY surface grids and remarks on where the data was
 | Dodecahedron  | <img src="img/dodecahedron.png" width="200"/> | [.ply](dodecahedron.ply) | [John Burkardt](https://people.sc.fsu.edu/~jburkardt/data/ply/ply.html)  |                           |
 | Horse         | <img src="img/horse.png"        width="200"/> | [.ply](horse.ply)        | [Alec Jacobson](https://github.com/alecjacobson/common-3d-test-models)   | Repaired using MeshLab    |
 | Orion         | <img src="img/orion.png"        width="200"/> | [.ply](orion.ply)        | [NASA](https://nasa3d.arc.nasa.gov/detail/orion-capsule)                 |                           |
-| Sphere        | <img src="img/sphere.png"       width="200"/> | [.ply](../PLY/sphere.ply)       | [John Burkardt](https://people.sc.fsu.edu/~jburkardt/data/ply/ply.html)  |                           |
+| Sphere        | <img src="img/sphere.png"       width="200"/> | [.ply](PLY/sphere.ply)       | [John Burkardt](https://people.sc.fsu.edu/~jburkardt/data/ply/ply.html)  |                           |
