@@ -32,35 +32,35 @@ template <typename T>
 inline std::map<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>
 Parser::STL<T>::readASCII(const std::string a_filename)
 {
-  std::map<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>  objectsDCEL;
+  std::map<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string> objectsDCEL;
 
   // Storage for full ASCII file and line numbers indicating where STL objects start/end
-  std::vector<std::string> fileContents;
-  std::vector<std::pair<size_t, size_t> > firstLast;
+  std::vector<std::string>               fileContents;
+  std::vector<std::pair<size_t, size_t>> firstLast;
 
-  // Read the entire file and figure out where objects begin and end. 
-  std::ifstream filestream(a_filename);    
+  // Read the entire file and figure out where objects begin and end.
+  std::ifstream filestream(a_filename);
   if (filestream.is_open()) {
-    std::string line;    
+    std::string line;
 
     size_t curLine = -1;
     size_t first;
-    size_t last;    
+    size_t last;
     while (std::getline(filestream, line)) {
       curLine++;
       fileContents.emplace_back(line);
-      
-      std::string str;
-      std::stringstream sstream(line);      
+
+      std::string       str;
+      std::stringstream sstream(line);
       sstream >> str;
 
-      if(str == "solid") {
-	first == curLine;
+      if (str == "solid") {
+        first == curLine;
       }
-      else if(str == "endsolid"){
-	last = curLine;
+      else if (str == "endsolid") {
+        last = curLine;
 
-	firstLast.emplace_back(first, last);
+        firstLast.emplace_back(first, last);
       }
     }
   }
@@ -68,33 +68,32 @@ Parser::STL<T>::readASCII(const std::string a_filename)
     std::cerr << "Parser::STL::readASCII - ERROR! Could not open file " + a_filename + "\n";
   }
 
-  // Read STL objects into triangle soups and then turn the soup into DCEL objects. 
+  // Read STL objects into triangle soups and then turn the soup into DCEL objects.
   for (const auto& fl : firstLast) {
     const size_t firstLine = fl.first;
     const size_t lastLine  = fl.second;
 
-    // Read triangle soup and compress it.    
-    std::vector<Vec3> vertices;
+    // Read triangle soup and compress it.
+    std::vector<Vec3>                vertices;
     std::vector<std::vector<size_t>> facets;
-    std::string objectName;
-    
+    std::string                      objectName;
+
     Parser::STL<T>::readTriangleSoupASCII(vertices, facets, objectName, fileContents, firstLine, lastLine);
     Parser::STL<T>::compress(vertices, facets);
-    
   }
-  
 
   return objectsDCEL;
 }
 
 template <typename T>
 inline void
-Parser::STL<T>::readTriangleSoupASCII(std::vector<Vec3>& a_vertices,
-				      std::vector<std::vector<size_t>>& a_facets,
-				      std::string& a_objectName,
-				      const std::vector<std::string>& a_fileContents,				      
-				      const size_t a_firstLine,
-				      const size_t a_lastLine) {
+Parser::STL<T>::readTriangleSoupASCII(std::vector<Vec3>&                a_vertices,
+                                      std::vector<std::vector<size_t>>& a_facets,
+                                      std::string&                      a_objectName,
+                                      const std::vector<std::string>&   a_fileContents,
+                                      const size_t                      a_firstLine,
+                                      const size_t                      a_lastLine)
+{
 
   // First line just holds the object name.
   std::stringstream ss(a_fileContents[a_firstLine]);
@@ -108,29 +107,29 @@ Parser::STL<T>::readTriangleSoupASCII(std::vector<Vec3>& a_vertices,
   a_objectName = str2;
 
   std::vector<size_t>* curFacet = nullptr;
-  
-  // Read facets and vertices. 
+
+  // Read facets and vertices.
   for (size_t line = a_firstLine + 1; line < a_lastLine; line++) {
     ss = std::stringstream(a_fileContents[line]);
 
     ss >> str;
-    
+
     if (str == "facet") {
       a_facets.emplace_back(std::vector<size_t>());
       curFacet = &a_facets.back();
     }
-    else if(str == "vertex") {
-      T x,y,z;
-      
+    else if (str == "vertex") {
+      T x, y, z;
+
       ss >> x >> y >> z;
 
-      a_vertices.emplace_back(Vec3(x,y,z));
+      a_vertices.emplace_back(Vec3(x, y, z));
       curFacet->emplace_back(a_vertices.size());
 
       // Throw an error if we end up creating more than 100 vertices -- in this case the 'endloop'
       // or 'endfacet' are missing
-      if(curFacet->size() > 100) {
-	std::cerr << "In EBGeometry::Parser::STL::readTriangleSoupASCII -- logic bust\n";
+      if (curFacet->size() > 100) {
+        std::cerr << "In EBGeometry::Parser::STL::readTriangleSoupASCII -- logic bust\n";
       }
     }
   }
@@ -138,30 +137,31 @@ Parser::STL<T>::readTriangleSoupASCII(std::vector<Vec3>& a_vertices,
 
 template <typename T>
 inline void
-Parser::STL<T>::compress(std::vector<Vec3>& a_vertices, std::vector<std::vector<size_t> >& a_facets) {
+Parser::STL<T>::compress(std::vector<Vec3>& a_vertices, std::vector<std::vector<size_t>>& a_facets)
+{
 
   // TLDR: a_vertices contains many duplicate vertices; we need to remove the duplicates and also
   //       update a_facets such that each facet references the new vertices.
 
-
-  std::vector<std::pair<Vec3, size_t> > indexMap;
+  std::vector<std::pair<Vec3, size_t>> indexMap;
   for (size_t i = 0; i < a_vertices.size(); i++) {
     indexMap.emplace_back(a_vertices[i], i);
   }
 
-  // Sort these in lexicographically increasing order. 
+  // Sort these in lexicographically increasing order.
   std::sort(indexMap.begin(), indexMap.end(), [](const std::pair<Vec3, size_t> A, const std::pair<Vec3, size_t> B) {
-      bool ret = false;
+    bool ret = false;
 
-      const Vec3 a = A.first;
-      const Vec3 b = B.first;
+    const Vec3 a = A.first;
+    const Vec3 b = B.first;
 
-      return a.lessLX(b);
-    });
+    return a.lessLX(b);
+  });
 
   size_t numDupes = 0;
   for (size_t i = 1; i < a_vertices.size(); i++) {
-    if(indexMap[i].first == indexMap[i-1].first) numDupes++;
+    if (indexMap[i].first == indexMap[i - 1].first)
+      numDupes++;
   }
 
   std::cout << "num vertices = " << a_vertices.size() - numDupes << std::endl;
@@ -316,7 +316,7 @@ Parser::PLY<T>::readFacesIntoDCEL(std::vector<std::shared_ptr<Face>>&         a_
 
     if (numVertices < 3)
       std::cerr << "Parser::PLY::readFacesIntoDCEL - a face must have at least "
-	"three vertices!\n";
+                   "three vertices!\n";
 
     // Get the vertices that make up this face.
     std::vector<std::shared_ptr<Vertex>> curVertices;

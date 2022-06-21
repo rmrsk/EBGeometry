@@ -54,7 +54,6 @@ namespace Parser {
     readASCII(const std::string a_filename);
 
   protected:
-
     /*!
       @brief Read an STL object as a triangle soup into a raw vertices and facets
       @param[out] a_vertices   Vertices
@@ -65,12 +64,12 @@ namespace Parser {
       @param[out] a_lastLine   Line number in a_filename containing the 'endsolid' identifier. 
     */
     inline static void
-    readTriangleSoupASCII(std::vector<Vec3>& a_vertices,
-			  std::vector<std::vector<size_t>>& a_facets,
-			  std::string& a_objectName,
-			  const std::vector<std::string>& a_fileContents,
-			  const size_t a_firstLine,
-			  const size_t a_lastLine);
+    readTriangleSoupASCII(std::vector<Vec3>&                a_vertices,
+                          std::vector<std::vector<size_t>>& a_facets,
+                          std::string&                      a_objectName,
+                          const std::vector<std::string>&   a_fileContents,
+                          const size_t                      a_firstLine,
+                          const size_t                      a_lastLine);
 
     /*!
       @brief Compress STL triangle soup (removes duplicate vertices)
@@ -78,7 +77,7 @@ namespace Parser {
       @param[out] a_facets     STL facets
     */
     inline static void
-    compress(std::vector<Vec3>& a_vertices, std::vector<std::vector<size_t> >& a_facets);
+    compress(std::vector<Vec3>& a_vertices, std::vector<std::vector<size_t>>& a_facets);
   };
 
   /*!

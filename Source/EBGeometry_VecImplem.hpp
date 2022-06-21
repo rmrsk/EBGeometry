@@ -268,19 +268,20 @@ Vec3T<T>::infinity() noexcept
 
 template <typename T>
 inline bool
-Vec3T<T>::lessLX(const Vec3T<T>& u) const noexcept {
+Vec3T<T>::lessLX(const Vec3T<T>& u) const noexcept
+{
   bool ret = false;
 
-  if(X[0] < u[0]) {
+  if (X[0] < u[0]) {
     ret = true;
   }
-  else if(X[0] == u[0]){
-    if(X[1] < u[1]){
+  else if (X[0] == u[0]) {
+    if (X[1] < u[1]) {
       ret = true;
     }
-    else if(X[1] == u[1]){
-      if(X[2] < u[2]){
-	ret = true;
+    else if (X[1] == u[1]) {
+      if (X[2] < u[2]) {
+        ret = true;
       }
     }
   }
