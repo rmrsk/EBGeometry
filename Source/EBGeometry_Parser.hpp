@@ -47,28 +47,30 @@ namespace Parser {
     using EdgeIterator = DCEL::EdgeIteratorT<T>;
 
     /*!
-      @brief ASCII reader for reading a single STL object into a DCEL mesh
+      @brief ASCII reader for reading an STL file, possibly containing multiple objects. Each object becomes a DCEL mesh
       @param[in] a_filename Input filename
     */
-    inline static std::shared_ptr<Mesh>
-    readSingleASCII(const std::string a_filename);
-
-    /*!
-      @brief ASCII reader for reading a single STL object into a DCEL mesh
-      @param[out] a_mesh     DCEL mesh
-      @param[in]  a_filename Input filename
-    */
-    inline static void
-    readSingleASCII(std::shared_ptr<Mesh>& a_mesh, const std::string a_filename);
-
-    /*!
-      @brief ASCII reader for reading an STL file containing multiple objects. Each object becomes a DCEL mesh
-      @param[in] a_filename Input filename
-    */
-    inline static std::vector<std::shared_ptr<Mesh>, std::string>
-    readMultiASCII(const std::string a_filename);
+    inline static std::map<std::shared_ptr<Mesh>, std::string>
+    readASCII(const std::string a_filename);
 
   protected:
+
+    /*!
+      @brief Read an STL object as a triangle soup into a raw vertices and facets
+      @param[out] a_vertices   Vertices
+      @param[out] a_facets     STL facets
+      @param[out] a_objectName Object name
+      @param[out] a_filename   File name 
+      @param[out] a_firstLine  Line number in a_filename containing the 'solid' identifier. 
+      @param[out] a_lastLine   Line number in a_filename containing the 'endsolid' identifier. 
+    */
+    inline static void
+    readTriangleSoupASCII(std::vector<Vec3>& vertices,
+			  std::vector<std::vector<size_t>>& facets,
+			  std::string& a_objectName,
+			  const std::vector<std::string>& a_fileContents,
+			  const size_t a_firstLine,
+			  const size_t a_lastLine);
   };
 
   /*!

@@ -28,61 +28,110 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 template <typename T>
-inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-Parser::STL<T>::readSingleASCII(const std::string a_filename)
+inline std::map<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>
+Parser::STL<T>::readASCII(const std::string a_filename)
 {
-  auto mesh = std::make_shared<Mesh>();
+  std::map<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>  objectsDCEL;
 
-  Parser::STL<T>::readSingleASCII(mesh, a_filename);
+  // Storage for full ASCII file and line numbers indicating where STL objects start/end
+  std::vector<std::string> fileContents;
+  std::vector<std::pair<size_t, size_t> > firstLast;
 
-  return mesh;
+  // Read the entire file and figure out where objects begin and end. 
+  std::ifstream filestream(a_filename);    
+  if (filestream.is_open()) {
+    std::string line;    
+
+    size_t curLine = -1;
+    size_t first;
+    size_t last;    
+    while (std::getline(filestream, line)) {
+      curLine++;
+      fileContents.emplace_back(line);
+      
+      std::string str;
+      std::stringstream sstream(line);      
+      sstream >> str;
+
+      if(str == "solid") {
+	first == curLine;
+      }
+      else if(str == "endsolid"){
+	last = curLine;
+
+	firstLast.emplace_back(first, last);
+      }
+    }
+  }
+  else {
+    std::cerr << "Parser::STL::readASCII - ERROR! Could not open file " + a_filename + "\n";
+  }
+
+  // Read STL objects into triangle soups and then turn the soup into DCEL objects. 
+  for (const auto& fl : firstLast) {
+    const size_t firstLine = fl.first;
+    const size_t lastLine  = fl.second;
+
+    // Read triangle soup.     
+    std::vector<Vec3> vertices;
+    std::vector<std::vector<size_t>> facets;
+    std::string objectName;
+    
+    Parser::STL<T>::readTriangleSoupASCII(vertices, facets, objectName, fileContents, firstLine, lastLine);
+
+    // Compress the duplicate vertices. 
+  }
+  
+
+  return objectsDCEL;
 }
 
 template <typename T>
 inline void
-Parser::STL<T>::readSingleASCII(std::shared_ptr<Mesh>& a_mesh, const std::string a_filename)
-{
+Parser::STL<T>::readTriangleSoupASCII(std::vector<Vec3>& a_vertices,
+				      std::vector<std::vector<size_t>>& a_facets,
+				      std::string& a_objectName,
+				      const std::vector<std::string>& a_fileContents,				      
+				      const size_t a_firstLine,
+				      const size_t a_lastLine) {
 
-  std::ifstream filestream(a_filename);
+  // First line just holds the object name.
+  std::stringstream ss(a_fileContents[a_firstLine]);
 
-  // Should already be allocated.
-  if (!a_mesh) {
-    std::cerr << "Parser::STL::readSingleASCII - ERROR! Input mesh is nullptr\n";
-  }
+  std::string str;
+  std::string str1;
+  std::string str2;
 
-  if (filestream.is_open()) {
-    std::cout << "got it" << std::endl;
+  ss >> str1 >> str2;
 
-    // Storage for facets and vertices.
-    std::vector<Vec3>                vertices;
-    std::vector<std::vector<size_t>> facets;
-    std::string                      line;
+  a_objectName = str2;
 
-    // Identifiers in ASCII STL files.
-    const std::string solidName   = "solid";
-    const std::string facetNormal = "facet normal";
-    const std::string outerLoop   = "outer loop";
-    const std::string endLoop     = "endloop";
-    const std::string endFacet    = "endfacet";
-    const std::string endSolid    = "endsolid";
+  std::vector<size_t>* curFacet = nullptr;
+  
+  // Read facets and vertices. 
+  for (size_t line = a_firstLine + 1; line < a_lastLine; line++) {
+    ss = std::stringstream(a_fileContents[line]);
 
-    // Get number of vertices
-    filestream.clear();
-    filestream.seekg(0);
-    while (std::getline(filestream, line)) {
-      std::cout << line << std::endl;
-      // std::stringstream sstream(line);
-      // sstream >> str1 >> str2 >> a_numVertices;
-      // if (str1 == "element" && str2 == "vertex") {
-      // 	break;
-      // }
+    ss >> str;
+    
+    if (str == "facet") {
+      a_facets.emplace_back(std::vector<size_t>());
+      curFacet = &a_facets.back();
     }
+    else if(str == "vertex") {
+      T x,y,z;
+      
+      ss >> x >> y >> z;
 
-    // size_t numVertices;
-    // size_t numFaces;
-  }
-  else {
-    std::cerr << "Parser::STL::readSingleASCII - ERROR! Could not open file " + a_filename + "\n";
+      a_vertices.emplace_back(Vec3(x,y,z));
+      curFacet->emplace_back(a_vertices.size());
+
+      // Throw an error if we end up creating more than 100 vertices -- in this case the 'endloop'
+      // or 'endfacet' are missing
+      if(curFacet->size() > 100) {
+	std::cerr << "In EBGeometry::Parser::STL::readTriangleSoupASCII -- logic bust\n";
+      }
+    }
   }
 }
 
@@ -235,7 +284,7 @@ Parser::PLY<T>::readFacesIntoDCEL(std::vector<std::shared_ptr<Face>>&         a_
 
     if (numVertices < 3)
       std::cerr << "Parser::PLY::readFacesIntoDCEL - a face must have at least "
-                   "three vertices!\n";
+	"three vertices!\n";
 
     // Get the vertices that make up this face.
     std::vector<std::shared_ptr<Vertex>> curVertices;
