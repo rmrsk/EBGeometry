@@ -35,13 +35,19 @@ namespace amrex {
 	PLY parser.
 	@param[in] a_flipSign Hook for swapping inside/outside.
       */
-      AMReXSDF(std::shared_ptr<SDF>& a_sdf) { m_sdf = a_sdf; }
+      AMReXSDF(std::shared_ptr<SDF>& a_sdf)
+      {
+        m_sdf = a_sdf;
+      }
 
       /*!
 	@brief Copy constructor.
 	@param[in] a_other Other SDF.
       */
-      AMReXSDF(const AMReXSDF& a_other) { this->m_sdf = a_other.m_sdf; }
+      AMReXSDF(const AMReXSDF& a_other)
+      {
+        this->m_sdf = a_other.m_sdf;
+      }
 
       /*!
 	@brief AMReX's implicit function definition.

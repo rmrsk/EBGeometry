@@ -17,30 +17,10 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 template <class T>
-inline void
-SignedDistanceFunction<T>::translate(const Vec3T<T>& a_translation) noexcept
+inline T
+SignedDistanceFunction<T>::value(const Vec3T<T>& a_point) const noexcept
 {
-  m_transformOps.emplace_back(std::make_shared<EBGeometry::TranslateOp<T>>(a_translation));
-}
-
-template <class T>
-inline void
-SignedDistanceFunction<T>::rotate(const T a_angle, const size_t a_axis) noexcept
-{
-  m_transformOps.emplace_back(std::make_shared<EBGeometry::RotateOp<T>>(a_angle, a_axis));
-}
-
-template <class T>
-inline Vec3T<T>
-SignedDistanceFunction<T>::transformPoint(const Vec3T<T>& a_point) const noexcept
-{
-  auto p = a_point;
-
-  for (const auto& op : m_transformOps) {
-    p = op->transform(p);
-  }
-
-  return p;
+  return this->signedDistance(a_point);
 }
 
 template <class T>

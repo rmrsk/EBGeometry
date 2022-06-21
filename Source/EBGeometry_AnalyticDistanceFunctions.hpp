@@ -65,7 +65,8 @@ public:
   /*!
     @brief Destructor
   */
-  virtual ~RoundedSDF() {}
+  virtual ~RoundedSDF()
+  {}
 
   /*!
     @brief Signed distance field.
@@ -114,7 +115,8 @@ public:
   /*!
     @brief Destructor
   */
-  virtual ~AnnularSDF() {}
+  virtual ~AnnularSDF()
+  {}
 
   /*!
     @brief Signed distance field.
@@ -163,7 +165,8 @@ public:
   /*!
     @brief Destructor
   */
-  virtual ~ScaledSDF() {}
+  virtual ~ScaledSDF()
+  {}
 
   /*!
     @brief Signed distance field.
@@ -374,7 +377,8 @@ public:
   /*!
     @brief Destructor (does nothing).
   */
-  virtual ~BoxSDF() {}
+  virtual ~BoxSDF()
+  {}
 
   /*!
     @brief Get lower-left corner
@@ -494,7 +498,8 @@ public:
   /*!
     @brief Destructor (does nothing).
   */
-  virtual ~TorusSDF() {}
+  virtual ~TorusSDF()
+  {}
 
   /*!
     @brief Get torus center.
@@ -628,7 +633,8 @@ public:
   /*!
     @brief Destructor (does nothing).
   */
-  virtual ~CylinderSDF() {}
+  virtual ~CylinderSDF()
+  {}
 
   /*!
     @brief Get one endpoint
@@ -902,7 +908,8 @@ public:
   /*!
     @brief Destructor -- does nothing
   */
-  virtual ~InfiniteConeSDF() {}
+  virtual ~InfiniteConeSDF()
+  {}
 
   /*!
     @brief Implementation of the signed distance function.
@@ -972,7 +979,8 @@ public:
   /*!
     @brief Destructor -- does nothing
   */
-  virtual ~ConeSDF() {}
+  virtual ~ConeSDF()
+  {}
 
   /*!
     @brief Implementation of the signed distance function.

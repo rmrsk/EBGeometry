@@ -16,21 +16,20 @@
 #include <vector>
 
 // Our includes
-#include "EBGeometry_SignedDistanceFunction.hpp"
+#include "EBGeometry_ImplicitFunction.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
-  @brief Distance function union. Computes the signed distance to the closest
-  object of N non-overlapping objects.
-  @note This class only makes sense if the object do not overlap.
+  @brief CSG union. Computes the minimum of all input implicit functions. This
+  is defined also when objects in the scene overlap one another. It will also
+  be well-defined for signed distance functions.
 */
 template <class T>
-class Union : public SignedDistanceFunction<T>
+class Union : public ImplicitFunction<T>
 {
 public:
-  /*!
-    @brief Alias for cutting down on typing.
-  */
+  using ImpFunc = ImplicitFunction<T>;
+
   using SDF = SignedDistanceFunction<T>;
 
   /*!
@@ -39,9 +38,16 @@ public:
   Union() = delete;
 
   /*!
-    @brief Full constructor. Computes the signed distance
-    @param[in] a_distanceFunctions Distance functions
-    @param[in] a_flipSign          Hook for turning inside to outside
+    @brief Full constructor. Computes the CSG union
+    @param[in] a_implictFunctions Implicit functions
+    @param[in] a_flipSign         Hook for turning inside to outside
+  */
+  Union(const std::vector<std::shared_ptr<ImpFunc>>& a_implicitFunctions, const bool a_flipSign);
+
+  /*!
+    @brief Full constructor. 
+    @param[in] a_implictFunctions Implicit functions
+    @param[in] a_flipSign         Hook for turning inside to outside
   */
   Union(const std::vector<std::shared_ptr<SDF>>& a_distanceFunctions, const bool a_flipSign);
 
@@ -55,13 +61,13 @@ public:
     @param[in] a_point 3D point.
   */
   T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override;
+  value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
   /*!
-    @brief List of distance functions
+    @brief List of implicit functions
   */
-  std::vector<std::shared_ptr<const SDF>> m_distanceFunctions;
+  std::vector<std::shared_ptr<const ImpFunc>> m_implicitFunctions;
 
   /*!
     @brief Hook for turning inside to outside

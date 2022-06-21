@@ -21,11 +21,11 @@
 
 /*!
   @brief Distance function union using BVHs. Computes the signed distance to the
-  closest object of N non-overlapping objects.
-  @note This class only makes sense if the object do not overlap.
+  closest object of possibly overlapping SDF objects. If the SDFs do not overlap
+  then this object is also an SDF. 
 */
 template <class T, class BV, size_t K>
-class UnionBVH : public SignedDistanceFunction<T>
+class UnionBVH : public ImplicitFunction<T>
 {
 public:
   /*!
@@ -81,7 +81,7 @@ public:
     @param[in] a_point 3D point.
   */
   T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override;
+  value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
   /*!
@@ -97,7 +97,7 @@ protected:
   /*!
     @brief Node type in BVH tree. We use a flattened tree.
   */
-  using LinearNode = EBGeometry::BVH::LinearBVH<T, SDF, BV, K>;
+  using RootNode = EBGeometry::BVH::LinearBVH<T, SDF, BV, K>;
 
   /*!
     @brief List of distance functions
@@ -107,7 +107,7 @@ protected:
   /*!
     @brief Root node for BVH tree
   */
-  std::shared_ptr<LinearNode> m_rootNode;
+  std::shared_ptr<RootNode> m_rootNode;
 
   /*!
     @brief Is good or not

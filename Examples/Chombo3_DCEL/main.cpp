@@ -50,7 +50,10 @@ public:
     m_rootNode = root->flattenTree();
   }
 
-  ChomboSDF(const ChomboSDF& a_other) { m_rootNode = a_other.m_rootNode; }
+  ChomboSDF(const ChomboSDF& a_other)
+  {
+    m_rootNode = a_other.m_rootNode;
+  }
 
   Real
   value(const RealVect& a_point) const override final
