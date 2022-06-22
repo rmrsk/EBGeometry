@@ -38,7 +38,7 @@ public:
   ChomboSDF(const std::string a_filename)
   {
     // 1. Read mesh from file.
-    auto mesh = EBGeometry::Parser::readASCII<T>(a_filename);
+    auto mesh = EBGeometry::Parser::read<T>(a_filename);
 
     // 2. Create standard BVH hierarchy. This is not a compact tree.
     auto root = std::make_shared<BuilderNode>(mesh->getFaces());

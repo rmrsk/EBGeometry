@@ -44,9 +44,7 @@ main(int argc, char* argv[])
   // Parse the mesh from file. One can call the signed distance function
   // directly on the mesh, but it will iterate through every facet.
   std::cout << "Parsing input file\n";
-  std::shared_ptr<EBGeometry::DCEL::MeshT<T>> directSDF = EBGeometry::Parser::PLY<T>::readSingleASCII(file);
-
-  auto stl = EBGeometry::Parser::STL<T>::readSingle("../Scenes/STL/sphere.stl");
+  std::shared_ptr<EBGeometry::DCEL::MeshT<T>> directSDF = EBGeometry::Parser::read<T>(file);
 
   // Create a bounding-volume hierarchy of the same mesh type. We begin by
   // create the root node and supplying all the mesh faces to it. Here, our

@@ -34,7 +34,7 @@ namespace Parser {
   /*!
     @brief Simple enum for separating ASCII and binary files
   */
-  enum class FileType
+  enum class Encoding
   {
     ASCII,
     Binary,
@@ -42,11 +42,28 @@ namespace Parser {
   };
 
   /*!
+    @brief Various supported file types
+  */
+  enum class FileType
+    {
+     STL,
+     PLY,
+     Unsupported
+    };
+
+  /*!
     @brief A parser which reads a file containing a single object. Returns a DCEL mesh if possible. 
   */
   template <typename T>
   inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-  readASCII(const std::string a_filename) noexcept;
+  read(const std::string a_filename) noexcept;
+
+  /*!
+    @brief Get file type
+    @param[in] a_filename
+  */
+  inline static Parser::FileType
+  getFileType(const std::string a_filename) noexcept;
 
   /*!
     @brief Check if triangle soup contains degenerate polygons
@@ -121,10 +138,10 @@ namespace Parser {
     /*!
       @brief Check if the input STLfile is an ASCII file or a binary
       @param[in] a_filename File name
-      @return Returns FileType::ASCII or FileType::Binary,
+      @return Returns Encoding::ASCII or Encoding::Binary,
     */
-    inline static FileType
-    getFileType(const std::string a_filename) noexcept;
+    inline static Encoding
+    getEncoding(const std::string a_filename) noexcept;
 
     /*!
       @brief ASCII reader STL files, possibly containing multiple objects. Each object becomes a DCEL mesh
@@ -179,15 +196,7 @@ namespace Parser {
       @param[in]  a_filename File name
     */
     inline static std::shared_ptr<Mesh>
-    readSingleASCII(const std::string a_filename) noexcept;
-
-    /*!
-      @brief Static function which reads an ASCII .ply file and puts it in a mesh.
-      @param[out] a_mesh     DCEL mesh
-      @param[in]  a_filename File name
-    */
-    inline static void
-    readSingleASCII(Mesh& a_mesh, const std::string a_filename) noexcept;
+    read(const std::string a_filename) noexcept;
 
   protected:
     /*!

@@ -52,7 +52,7 @@ namespace amrex {
       {
 
         // 1. Read mesh from file.
-        auto mesh = EBGeometry::Parser::readASCII<T>(a_filename);
+        auto mesh = EBGeometry::Parser::read<T>(a_filename);
 
         // 2. Create a standard BVH hierarchy. This is not a compact ree.
         auto root = std::make_shared<BuilderNode>(mesh->getFaces());

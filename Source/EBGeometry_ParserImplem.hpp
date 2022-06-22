@@ -30,22 +30,57 @@
 
 template <typename T>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-Parser::readASCII(const std::string a_filename) noexcept
+Parser::read(const std::string a_filename) noexcept
 {
-  const std::string ext = a_filename.substr(a_filename.find_last_of(".") + 1);
-
   auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T>>();
-  if (ext == "stl") {
-    mesh = Parser::STL<T>::readSingleASCII(a_filename);
-  }
-  else if (ext == "ply") {
-    mesh = Parser::PLY<T>::readSingleASCII(a_filename);
-  }
-  else {
-    std::cerr << "Parser::readASCII (file = " + a_filename + ") - ." + ext + " files are not supported\n";
+
+  const auto ft = Parser::getFileType(a_filename);
+
+  switch(ft) {
+  case Parser::FileType::STL:
+    {
+      mesh = Parser::STL<T>::readSingle(a_filename);
+
+      break;
+    }
+  case Parser::FileType::PLY:
+    {
+      mesh = Parser::PLY<T>::read(a_filename);
+
+      break;
+    }
+  case Parser::FileType::Unsupported:
+    {
+      std::cerr << "Parser::read - file type unsupported for '" + a_filename + "'\n";
+      
+      break;
+    }
+  default:
+    {
+      std::cerr << "Parser::read - logic bust\n";
+
+      break;
+    }
   }
 
   return mesh;
+}
+
+inline Parser::FileType
+Parser::getFileType(const std::string a_filename) noexcept
+{
+  auto ft = Parser::FileType::Unsupported;
+  
+  const std::string ext = a_filename.substr(a_filename.find_last_of(".") + 1);
+
+  if (ext == "stl" || ext == "STL") {
+    ft = Parser::FileType::STL;    
+  }
+  else if (ext == "ply" || ext == "PLY") {
+    ft = Parser::FileType::PLY;
+  }
+
+  return ft;
 }
 
 template <typename T>
@@ -237,10 +272,10 @@ Parser::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::Edg
 }
 
 template <typename T>
-inline Parser::FileType
-Parser::STL<T>::getFileType(const std::string a_filename) noexcept
+inline Parser::Encoding
+Parser::STL<T>::getEncoding(const std::string a_filename) noexcept
 {
-  Parser::FileType ft = Parser::FileType::Unknown;
+  Parser::Encoding ft = Parser::Encoding::Unknown;
 
   std::ifstream is(a_filename, std::istringstream::in | std::ios::binary);
   if (is.good()) {
@@ -251,14 +286,14 @@ Parser::STL<T>::getFileType(const std::string a_filename) noexcept
     is.read(header, 5);
 
     if (strcmp(header, "solid") == 0) {
-      ft = Parser::FileType::ASCII;
+      ft = Parser::Encoding::ASCII;
     }
     else {
-      ft = Parser::FileType::Binary;
+      ft = Parser::Encoding::Binary;
     }
   }
   else {
-    std::cerr << "Parser::STL::getFileType -- could not open file '" + a_filename + "'\n";
+    std::cerr << "Parser::STL::getEncoding -- could not open file '" + a_filename + "'\n";
   }
 
   return ft;
@@ -275,17 +310,17 @@ template <typename T>
 inline std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>>
 Parser::STL<T>::readMulti(const std::string a_filename) noexcept
 {
-  const Parser::FileType ft = Parser::STL<T>::getFileType(a_filename);
+  const Parser::Encoding ft = Parser::STL<T>::getEncoding(a_filename);
 
   std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>> objectsDCEL;
 
   switch (ft) {
-  case Parser::FileType::ASCII: {
+  case Parser::Encoding::ASCII: {
     objectsDCEL = Parser::STL<T>::readASCII(a_filename);
 
     break;
   }
-  case Parser::FileType::Binary: {
+  case Parser::Encoding::Binary: {
     objectsDCEL = Parser::STL<T>::readBinary(a_filename);
 
     std::cerr << "Parser::STL<T>::readMulti (possibly called through forwarding) - binary not supported\n";
@@ -434,19 +469,10 @@ Parser::STL<T>::readBinary(const std::string a_filename) noexcept
 
 template <typename T>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-Parser::PLY<T>::readSingleASCII(const std::string a_filename) noexcept
+Parser::PLY<T>::read(const std::string a_filename) noexcept
 {
   auto mesh = std::make_shared<Mesh>();
 
-  readSingleASCII(*mesh, a_filename);
-
-  return mesh;
-}
-
-template <typename T>
-inline void
-Parser::PLY<T>::readSingleASCII(Mesh& a_mesh, const std::string a_filename) noexcept
-{
   std::ifstream filestream(a_filename);
 
   if (filestream.is_open()) {
@@ -454,14 +480,16 @@ Parser::PLY<T>::readSingleASCII(Mesh& a_mesh, const std::string a_filename) noex
     std::vector<std::vector<size_t>> faces;
 
     Parser::PLY<T>::readPLYSoupASCII(vertices, faces, filestream);
-    Parser::soupToDCEL(a_mesh, vertices, faces);
+    Parser::soupToDCEL(*mesh, vertices, faces);
 
     filestream.close();
   }
   else {
-    const std::string error = "Parser::PLY::readSingleASCII - ERROR! Could not open file " + a_filename;
+    const std::string error = "Parser::PLY::read - ERROR! Could not open file " + a_filename;
     std::cerr << error + "\n";
-  }
+  }  
+
+  return mesh;
 }
 
 template <typename T>
