@@ -44,7 +44,7 @@ main(int argc, char* argv[])
   // Parse the mesh from file. One can call the signed distance function
   // directly on the mesh, but it will iterate through every facet.
   std::cout << "Parsing input file\n";
-  std::shared_ptr<EBGeometry::DCEL::MeshT<T>> directSDF = EBGeometry::Parser::PLY<T>::readIntoDCEL(file);
+  std::shared_ptr<EBGeometry::DCEL::MeshT<T>> directSDF = EBGeometry::Parser::PLY<T>::readSingleASCII(file);
 
   auto stl = EBGeometry::Parser::STL<T>::readASCII("../Scenes/STL/sphere.stl");
 

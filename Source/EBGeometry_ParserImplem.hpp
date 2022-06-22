@@ -120,7 +120,7 @@ Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std:
 
 template <typename T>
 inline void
-Parser::soupToDCEL(std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_mesh,
+Parser::soupToDCEL(EBGeometry::DCEL::MeshT<T>& a_mesh,
                    const std::vector<EBGeometry::Vec3T<T>>&     a_vertices,
                    const std::vector<std::vector<size_t>>&      a_facets)
 {
@@ -131,13 +131,9 @@ Parser::soupToDCEL(std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_mesh,
   using Face   = EBGeometry::DCEL::FaceT<T>;
   using Mesh   = EBGeometry::DCEL::MeshT<T>;
 
-  if (!a_mesh) {
-    a_mesh = std::make_shared<Mesh>();
-  }
-
-  std::vector<std::shared_ptr<Vertex>>& vertices = a_mesh->getVertices();
-  std::vector<std::shared_ptr<Edge>>&   edges    = a_mesh->getEdges();
-  std::vector<std::shared_ptr<Face>>&   faces    = a_mesh->getFaces();
+  std::vector<std::shared_ptr<Vertex>>& vertices = a_mesh.getVertices();
+  std::vector<std::shared_ptr<Edge>>&   edges    = a_mesh.getEdges();
+  std::vector<std::shared_ptr<Face>>&   faces    = a_mesh.getFaces();
 
   // Build the vertex vectors from the input vertices.
   for (const auto& v : a_vertices) {
@@ -189,9 +185,9 @@ Parser::soupToDCEL(std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_mesh,
   // Reconcile the pair edges and run a sanity check.
   Parser::reconcilePairEdgesDCEL(edges);
 
-  a_mesh->sanityCheck();
+  a_mesh.sanityCheck();
 
-  a_mesh->reconcile(EBGeometry::DCEL::MeshT<T>::VertexNormalWeight::Angle);
+  a_mesh.reconcile(EBGeometry::DCEL::MeshT<T>::VertexNormalWeight::Angle);
 }
 
 template <typename T>
@@ -225,7 +221,6 @@ template <typename T>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
 Parser::STL<T>::readSingleASCII(const std::string a_filename) noexcept
 {
-
   auto allSTL = Parser::STL<T>::readASCII(a_filename);
 
   return (allSTL.front()).first;
@@ -235,7 +230,6 @@ template <typename T>
 inline std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>>
 Parser::STL<T>::readASCII(const std::string a_filename) noexcept
 {
-
   std::vector<std::pair<std::shared_ptr<Mesh>, std::string>> objectsDCEL;
 
   // Storage for full ASCII file and line numbers indicating where STL objects start/end
@@ -292,7 +286,7 @@ Parser::STL<T>::readASCII(const std::string a_filename) noexcept
 
     // Turn soup into DCEL mesh and pack in into our return vector.
     std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
-    Parser::soupToDCEL(mesh, vertices, facets);
+    Parser::soupToDCEL(*mesh, vertices, facets);
 
     objectsDCEL.emplace_back(mesh, objectName);
   }
@@ -309,7 +303,6 @@ Parser::STL<T>::readSTLSoupASCII(std::vector<Vec3>&                a_vertices,
                                  const size_t                      a_firstLine,
                                  const size_t                      a_lastLine)
 {
-
   // First line just holds the object name.
   std::stringstream ss(a_fileContents[a_firstLine]);
 
@@ -354,46 +347,37 @@ Parser::STL<T>::readSTLSoupASCII(std::vector<Vec3>&                a_vertices,
 
 template <typename T>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-Parser::PLY<T>::readIntoDCEL(const std::string a_filename)
+Parser::PLY<T>::readSingleASCII(const std::string a_filename)
 {
   auto mesh = std::make_shared<Mesh>();
 
-  readIntoDCEL(*mesh, a_filename);
+  readSingleASCII(*mesh, a_filename);
 
   return mesh;
 }
 
 template <typename T>
 inline void
-Parser::PLY<T>::readIntoDCEL(Mesh& a_mesh, const std::string a_filename)
+Parser::PLY<T>::readSingleASCII(Mesh& a_mesh, const std::string a_filename)
 {
   std::ifstream filestream(a_filename);
 
   if (filestream.is_open()) {
-    std::vector<std::shared_ptr<Vertex>>& vertices = a_mesh.getVertices();
-    std::vector<std::shared_ptr<Edge>>&   edges    = a_mesh.getEdges();
-    std::vector<std::shared_ptr<Face>>&   faces    = a_mesh.getFaces();
-
-    vertices.resize(0);
-    edges.resize(0);
-    faces.resize(0);
-
     size_t numVertices; // Number of vertices
     size_t numFaces;    // Number of faces
 
-    Parser::PLY<T>::readHeaderASCII(numVertices, numFaces, filestream);
-    Parser::PLY<T>::readVerticesIntoDCEL(vertices, numVertices, filestream);
-    Parser::PLY<T>::readFacesIntoDCEL(faces, edges, vertices, numFaces, filestream);
-    Parser::reconcilePairEdgesDCEL(edges);
+    std::vector<Vec3> vertices;
+    std::vector<std::vector<size_t> > faces;
 
-    a_mesh.sanityCheck();
+    // Soup and turn it into a proper DCEL grid. 
+    Parser::PLY<T>::readHeaderASCII(numVertices, numFaces, filestream);
+    Parser::PLY<T>::readPLYSoupASCII(vertices, faces, filestream, numVertices, numFaces);
+    Parser::soupToDCEL(a_mesh, vertices, faces);
 
     filestream.close();
-
-    a_mesh.reconcile(EBGeometry::DCEL::MeshT<T>::VertexNormalWeight::Angle);
   }
   else {
-    const std::string error = "Parser::PLY::readIntoDCEL - ERROR! Could not open file " + a_filename;
+    const std::string error = "Parser::PLY::readSingleASCII - ERROR! Could not open file " + a_filename;
     std::cerr << error + "\n";
   }
 }
@@ -402,7 +386,6 @@ template <typename T>
 inline void
 Parser::PLY<T>::readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::ifstream& a_inputStream)
 {
-
   std::string str1;
   std::string str2;
   std::string line;
@@ -410,7 +393,7 @@ Parser::PLY<T>::readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::
   // Get number of vertices
   a_inputStream.clear();
   a_inputStream.seekg(0);
-  while (getline(a_inputStream, line)) {
+  while (std::getline(a_inputStream, line)) {
     std::stringstream sstream(line);
     sstream >> str1 >> str2 >> a_numVertices;
     if (str1 == "element" && str2 == "vertex") {
@@ -421,7 +404,7 @@ Parser::PLY<T>::readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::
   // Get number of faces
   a_inputStream.clear();
   a_inputStream.seekg(0);
-  while (getline(a_inputStream, line)) {
+  while (std::getline(a_inputStream, line)) {
     std::stringstream sstream(line);
     sstream >> str1 >> str2 >> a_numFaces;
     if (str1 == "element" && str2 == "face") {
@@ -432,7 +415,7 @@ Parser::PLY<T>::readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::
   // Find the line # containing "end_header" halt the input stream there
   a_inputStream.clear();
   a_inputStream.seekg(0);
-  while (getline(a_inputStream, line)) {
+  while (std::getline(a_inputStream, line)) {
     std::stringstream sstream(line);
     sstream >> str1;
     if (str1 == "end_header") {
@@ -443,111 +426,44 @@ Parser::PLY<T>::readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::
 
 template <typename T>
 inline void
-Parser::PLY<T>::readVerticesIntoDCEL(std::vector<std::shared_ptr<Vertex>>& a_vertices,
-                                     const size_t                          a_numVertices,
-                                     std::ifstream&                        a_inputStream)
+Parser::PLY<T>::readPLYSoupASCII(std::vector<EBGeometry::Vec3T<T> >& a_vertices,
+				 std::vector<std::vector<size_t>>&   a_faces,
+				 std::ifstream&                      a_inputStream,
+				 const size_t                        a_numVertices,
+				 const size_t                        a_numFaces)
 {
+  T x;
+  T y;
+  T z;
 
-  Vec3T<T> pos;
-  T&       x = pos[0];
-  T&       y = pos[1];
-  T&       z = pos[2];
+  size_t numProcessed;
+  size_t numVertInPoly;  
 
-  Vec3T<T> norm;
-  T&       nx = norm[0];
-  T&       ny = norm[1];
-  T&       nz = norm[2];
+  std::string line;  
+  
+  std::vector<size_t> faceVertices;
 
-  size_t num = 0;
+  numProcessed = 0;
+  while(std::getline(a_inputStream, line)) {// && numProcessed < (a_numVertices + a_numFaces)) {
+    std::stringstream ss(line);
 
-  std::string line;
-  while (std::getline(a_inputStream, line)) {
-    std::stringstream sstream(line);
-    sstream >> x >> y >> z >> nx >> ny >> nz;
+    if(numProcessed < a_numVertices) {
+      ss >> x >> y >> z;
 
-    a_vertices.emplace_back(std::make_shared<Vertex>(pos, norm));
+      a_vertices.emplace_back(EBGeometry::Vec3T<T>(x,y,z));
+    }
+    else{
+      ss >> numVertInPoly;
 
-    // We have read all the vertices we should read. Exit now -- after this the
-    // inputStream will begin reading faces.
-    num++;
-    if (num == a_numVertices)
-      break;
-  }
-}
-
-template <typename T>
-inline void
-Parser::PLY<T>::readFacesIntoDCEL(std::vector<std::shared_ptr<Face>>&         a_faces,
-                                  std::vector<std::shared_ptr<Edge>>&         a_edges,
-                                  const std::vector<std::shared_ptr<Vertex>>& a_vertices,
-                                  const size_t                                a_numFaces,
-                                  std::ifstream&                              a_inputStream)
-{
-  size_t              numVertices;
-  std::vector<size_t> vertexIndices;
-
-  std::string line;
-  size_t      counter = 0;
-  while (std::getline(a_inputStream, line)) {
-    counter++;
-
-    std::stringstream sstream(line);
-
-    sstream >> numVertices;
-    vertexIndices.resize(numVertices);
-    for (size_t i = 0; i < numVertices; i++) {
-      sstream >> vertexIndices[i];
+      faceVertices.resize(numVertInPoly);
+      for (size_t i = 0; i < numVertInPoly; i++) {
+	ss >> faceVertices[i];
+      }
+    
+      a_faces.emplace_back(faceVertices);
     }
 
-    if (numVertices < 3)
-      std::cerr << "Parser::PLY::readFacesIntoDCEL - a face must have at least "
-                   "three vertices!\n";
-
-    // Get the vertices that make up this face.
-    std::vector<std::shared_ptr<Vertex>> curVertices;
-    for (size_t i = 0; i < numVertices; i++) {
-      const size_t vertexIndex = vertexIndices[i];
-      curVertices.emplace_back(a_vertices[vertexIndex]);
-    }
-
-    // Build inside half edges and give each vertex an outgoing half edge. This
-    // may get overwritten later, but the outgoing edge is not unique so it
-    // doesn't matter.
-    std::vector<std::shared_ptr<Edge>> halfEdges;
-    for (const auto& v : curVertices) {
-      halfEdges.emplace_back(std::make_shared<Edge>(v));
-      v->setEdge(halfEdges.back());
-    }
-
-    a_edges.insert(a_edges.end(), halfEdges.begin(), halfEdges.end());
-
-    // Associate next/previous for the half edges inside the current face. Wish
-    // we had a circular iterator but this will have to do.
-    for (size_t i = 0; i < halfEdges.size(); i++) {
-      auto& curEdge  = halfEdges[i];
-      auto& nextEdge = halfEdges[(i + 1) % halfEdges.size()];
-
-      curEdge->setNextEdge(nextEdge);
-      nextEdge->setPreviousEdge(curEdge);
-    }
-
-    // Construct a new face
-    a_faces.emplace_back(std::make_shared<Face>(halfEdges.front()));
-    auto& curFace = a_faces.back();
-
-    // Half edges get a reference to the currently created face
-    for (auto& e : halfEdges) {
-      e->setFace(curFace);
-    }
-
-    // Must give vertices access to all faces associated with them since PLY
-    // files do not give any edge association.
-    for (auto& v : curVertices) {
-      v->addFace(curFace);
-    }
-
-    if (counter == a_numFaces)
-      break;
+    numProcessed++;
   }
 }
 
