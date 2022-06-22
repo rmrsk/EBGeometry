@@ -261,30 +261,7 @@ Parser::STL<T>::readTriangleSoupASCII(std::vector<Vec3>&                a_vertic
       }
     }
   }
-
-#if 1 // Debug
-  for (size_t n = 0; n < a_facets.size(); n++) {
-
-    
-    const std::vector<size_t> facet = a_facets[n];
-
-    bool duplicateVertex = false;    
-    for (size_t i = 1; i < facet.size(); i++){
-      const size_t v1 = facet[i-1];
-      const size_t v2 = facet[i];
-
-      if(a_vertices[v1] == a_vertices[v2]) {
-	duplicateVertex = true;
-      }
-    }
-
-    if(duplicateVertex) {
-      std::cout << "Facet #" << n << " is degenerate" << std::endl;
-    }
-  }
-#endif
 }
-
 
 template <typename T>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
