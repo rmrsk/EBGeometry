@@ -29,6 +29,26 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 template <typename T>
+inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
+Parser::readASCII(const std::string a_filename) noexcept
+{
+  const std::string ext = a_filename.substr(a_filename.find_last_of(".") + 1);
+
+  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T>>();
+  if(ext == "stl") {
+    mesh = Parser::STL<T>::readSingleASCII(a_filename);
+  }
+  else if(ext == "ply") {
+    mesh = Parser::PLY<T>::readSingleASCII(a_filename);
+  }
+  else {
+    std::cerr << "Parser::readASCII (file = " + a_filename + ") - ." + ext + " files are not supported\n";
+  }
+
+  return mesh;
+}
+
+template <typename T>
 inline bool
 Parser::containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
                                    const std::vector<std::vector<size_t>>&  a_facets) noexcept

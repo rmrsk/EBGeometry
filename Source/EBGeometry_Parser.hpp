@@ -32,7 +32,15 @@
 namespace Parser {
 
   /*!
-    @brief A parser which reads a file containing a single object. 
+    @brief Simple enum for separating ASCII and binary files
+  */
+  enum class FileType {
+    ASCII,
+    Binary
+  };
+
+  /*!
+    @brief A parser which reads a file containing a single object. Returns a DCEL mesh if possible. 
   */
   template <typename T>
   inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
