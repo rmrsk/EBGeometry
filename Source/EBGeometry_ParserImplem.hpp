@@ -88,61 +88,34 @@ Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std:
     return a.lessLX(b);
   });
 
+  // Compress the vertex vector. While doing so we should build up the old-to-new index map  
   a_vertices.resize(0);
 
-
-  // Compress the vertex vector. While doing so we should build up the old-to-new index map
   std::map<size_t, size_t> indexMap;
 
   a_vertices.emplace_back(vertexMap.front().first);
+  indexMap.emplace(vertexMap.front().second, 0);
 
-  for (size_t i = 0; i < vertexMap.size(); i++) {
+  for (size_t i = 1; i < vertexMap.size(); i++) {
     const size_t oldIndex = vertexMap[i].second;
 
-    indexMap.emplace(oldIndex, a_vertices.size()-1);    
+    const auto& cur  = vertexMap[i].first;
+    const auto& prev = vertexMap[i-1].first;
 
-    if(i > 0) {
-      const auto& cur  = vertexMap[i].first;
-      const auto& prev = vertexMap[i-1].first;
-
-      if(cur != prev) {
-	a_vertices.emplace_back(cur);
-      }
+    if(cur != prev) {
+      a_vertices.emplace_back(cur);
     }
+
+    indexMap.emplace(oldIndex, a_vertices.size()-1);        
   }
 
-#if 1 // debug
-  for (size_t i = 1; i < a_vertices.size(); i++) {
-    if(a_vertices[i] == a_vertices[i-1]) std::cout << "degenerate vetices" << std::endl;
-  }
-#endif
-
-  // Now patch up the facet indices.
+  // Fix facet indicing. 
   for (size_t n = 0; n < a_facets.size(); n++) {
     std::vector<size_t>& facet = a_facets[n];
     
-    for (size_t i = 0; i < facet.size(); i++) {
-      facet[i] = indexMap.at(facet[i]);
+    for (size_t ivert = 0; ivert < facet.size(); ivert++) {
+      facet[ivert] = indexMap.at(facet[ivert]);
     }
-
-#if 1 // Debug
-    std::vector<size_t> facetCopy = facet;
-    std::sort(facetCopy.begin(), facetCopy.end());
-
-    bool duplicate = false;
-    for (size_t i = 1; i < facetCopy.size(); i++){
-      if(facetCopy[i] == facetCopy[i-1])
-	duplicate = true;
-    }
-
-    if(duplicate) {
-      std::cout << "facet #" << n << "\t";
-      for (size_t i = 0; i < facet.size(); i++) {
-	std::cout << facet[i] << "\t";
-      }
-      std::cout << std::endl;
-    }
-#endif
   }
 }
 
@@ -231,8 +204,9 @@ Parser::STL<T>::readASCII(const std::string a_filename)
     
     Parser::compress(vertices, facets);
 
+    // Issue a warning if compression failed. 
     if(Parser::hasDegenerates(vertices, facets)) {
-      std::cerr << "Parser::STL::readASCII - input STL has degenerate faces\n";
+      std::cerr << "Parser::STL::readASCII - input STL has degenerate faces after compression.\n";
     }    
   }
 
