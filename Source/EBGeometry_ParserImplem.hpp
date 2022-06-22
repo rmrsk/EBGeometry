@@ -30,8 +30,8 @@
 
 template <typename T>
 inline bool
-Parser::hasDegenerates(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-                       const std::vector<std::vector<size_t>>&  a_facets)
+Parser::containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
+                                   const std::vector<std::vector<size_t>>&  a_facets) noexcept
 {
   using Vec3 = EBGeometry::Vec3T<T>;
 
@@ -66,7 +66,7 @@ Parser::hasDegenerates(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
 
 template <typename T>
 inline void
-Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets)
+Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets) noexcept
 {
   using Vec3 = EBGeometry::Vec3T<T>;
 
@@ -81,11 +81,11 @@ Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std:
   }
 
   std::sort(vertexMap.begin(), vertexMap.end(), [](const std::pair<Vec3, size_t> A, const std::pair<Vec3, size_t> B) {
-    const Vec3& a = A.first;
-    const Vec3& b = B.first;
+      const Vec3& a = A.first;
+      const Vec3& b = B.first;
 
-    return a.lessLX(b);
-  });
+      return a.lessLX(b);
+    });
 
   // Compress the vertex vector. While doing so we should build up the old-to-new index map
   a_vertices.resize(0);
@@ -122,7 +122,7 @@ template <typename T>
 inline void
 Parser::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
                    const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-                   const std::vector<std::vector<size_t>>&  a_facets)
+                   const std::vector<std::vector<size_t>>&  a_facets) noexcept
 {
 
   using Vec3   = EBGeometry::Vec3T<T>;
@@ -192,7 +192,7 @@ Parser::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
 
 template <typename T>
 inline void
-Parser::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T>>>& a_edges)
+Parser::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T>>>& a_edges) noexcept
 {
   for (auto& curEdge : a_edges) {
     const auto& nextEdge = curEdge->getNextEdge();
@@ -278,7 +278,7 @@ Parser::STL<T>::readASCII(const std::string a_filename) noexcept
 
     Parser::STL<T>::readSTLSoupASCII(vertices, facets, objectName, fileContents, firstLine, lastLine);
 
-    if (Parser::hasDegenerates(vertices, facets)) {
+    if (Parser::containsDegeneratePolygons(vertices, facets)) {
       std::cerr << "Parser::STL::readASCII - input STL has degenerate faces\n";
     }
 
@@ -301,7 +301,7 @@ Parser::STL<T>::readSTLSoupASCII(std::vector<Vec3>&                a_vertices,
                                  std::string&                      a_objectName,
                                  const std::vector<std::string>&   a_fileContents,
                                  const size_t                      a_firstLine,
-                                 const size_t                      a_lastLine)
+                                 const size_t                      a_lastLine) noexcept
 {
   // First line just holds the object name.
   std::stringstream ss(a_fileContents[a_firstLine]);
@@ -347,7 +347,7 @@ Parser::STL<T>::readSTLSoupASCII(std::vector<Vec3>&                a_vertices,
 
 template <typename T>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-Parser::PLY<T>::readSingleASCII(const std::string a_filename)
+Parser::PLY<T>::readSingleASCII(const std::string a_filename) noexcept
 {
   auto mesh = std::make_shared<Mesh>();
 
@@ -358,7 +358,7 @@ Parser::PLY<T>::readSingleASCII(const std::string a_filename)
 
 template <typename T>
 inline void
-Parser::PLY<T>::readSingleASCII(Mesh& a_mesh, const std::string a_filename)
+Parser::PLY<T>::readSingleASCII(Mesh& a_mesh, const std::string a_filename) noexcept
 {
   std::ifstream filestream(a_filename);
 
@@ -384,7 +384,7 @@ template <typename T>
 inline void
 Parser::PLY<T>::readPLYSoupASCII(std::vector<EBGeometry::Vec3T<T>>& a_vertices,
                                  std::vector<std::vector<size_t>>&  a_faces,
-                                 std::ifstream&                     a_inputStream)
+                                 std::ifstream&                     a_inputStream) noexcept
 {
   T x;
   T y;
@@ -436,7 +436,7 @@ Parser::PLY<T>::readPLYSoupASCII(std::vector<EBGeometry::Vec3T<T>>& a_vertices,
 
   // Now read the vertices and faces.
   numProcessed = 0;
-  while (std::getline(a_inputStream, line)) { // && numProcessed < (a_numVertices + a_numFaces)) {
+  while (std::getline(a_inputStream, line)) {
     std::stringstream ss(line);
 
     if (numProcessed < numVertices) {

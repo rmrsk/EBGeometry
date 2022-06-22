@@ -32,13 +32,21 @@
 namespace Parser {
 
   /*!
+    @brief A parser which reads a file containing a single object. 
+  */
+  template <typename T>
+  inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
+  readASCII(const std::string a_filename) noexcept;
+
+  /*!
     @brief Check if triangle soup contains degenerate polygons
     @param[out] a_vertices Vertices
     @param[out] a_facets   Facets
   */
   template <typename T>
   inline static bool
-  hasDegenerates(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std::vector<std::vector<size_t>>& a_facets);
+  containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
+                             const std::vector<std::vector<size_t>>&  a_facets) noexcept;
 
   /*!
     @brief Compress triangle soup (removes duplicate vertices)
@@ -47,7 +55,7 @@ namespace Parser {
   */
   template <typename T>
   inline static void
-  compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets);
+  compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets) noexcept;
 
   /*!
     @brief Turn raw vertices into DCEL vertices. Does not include vertex normal vectors. 
@@ -58,7 +66,7 @@ namespace Parser {
   inline static void
   soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
              const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-             const std::vector<std::vector<size_t>>&  a_facets);
+             const std::vector<std::vector<size_t>>&  a_facets) noexcept;
 
   /*!
     @brief Reconcile pair edges, i.e. find the pair edge for every constructed
@@ -67,7 +75,7 @@ namespace Parser {
   */
   template <typename T>
   inline static void
-  reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T>>>& a_edges);
+  reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T>>>& a_edges) noexcept;
 
   /*!
     @brief Class for reading STL files.
@@ -114,7 +122,7 @@ namespace Parser {
                      std::string&                      a_objectName,
                      const std::vector<std::string>&   a_fileContents,
                      const size_t                      a_firstLine,
-                     const size_t                      a_lastLine);
+                     const size_t                      a_lastLine) noexcept;
   };
 
   /*!
@@ -138,7 +146,7 @@ namespace Parser {
       @param[in]  a_filename File name
     */
     inline static std::shared_ptr<Mesh>
-    readSingleASCII(const std::string a_filename);
+    readSingleASCII(const std::string a_filename) noexcept;
 
     /*!
       @brief Static function which reads an ASCII .ply file and puts it in a mesh.
@@ -146,7 +154,7 @@ namespace Parser {
       @param[in]  a_filename File name
     */
     inline static void
-    readSingleASCII(Mesh& a_mesh, const std::string a_filename);
+    readSingleASCII(Mesh& a_mesh, const std::string a_filename) noexcept;
 
   protected:
     /*!
@@ -159,7 +167,7 @@ namespace Parser {
     inline static void
     readPLYSoupASCII(std::vector<Vec3>&                a_vertices,
                      std::vector<std::vector<size_t>>& a_faces,
-                     std::ifstream&                    a_fileStream);
+                     std::ifstream&                    a_fileStream) noexcept;
   };
 } // namespace Parser
 
