@@ -28,6 +28,81 @@
 #include "EBGeometry_DCEL_Iterator.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
+
+template <typename T>
+inline void
+Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets)
+{
+
+  using Vec3 = EBGeometry::Vec3T<T>;
+  
+  // TLDR: Because it's an STL file, a_vertices contains many duplicate vertices. We need to remove
+  //       them and also update a_facets such that each facet references the compressed vertex vector.
+
+  // Create a "map" of the vertices, storing their original indices. Then sort
+  // the map lexicographically.
+  std::vector<std::pair<Vec3, size_t>> vertexMap;
+  for (size_t i = 0; i < a_vertices.size(); i++) {
+    vertexMap.emplace_back(a_vertices[i], i);
+  }
+
+  std::sort(vertexMap.begin(), vertexMap.end(), [](const std::pair<Vec3, size_t> A, const std::pair<Vec3, size_t> B) {
+    const Vec3& a = A.first;
+    const Vec3& b = B.first;
+
+    return a.lessLX(b);
+  });
+
+  a_vertices.resize(0);
+
+
+  // Compress the vertex vector. While doing so we should build up the old-to-new index map
+  std::map<size_t, size_t> indexMap;
+
+  for (size_t i = 0; i < vertexMap.size(); i++) {
+    const size_t oldIndex = vertexMap[i].second;
+
+    indexMap.emplace(oldIndex, a_vertices.size());    
+
+    if(i > 0) {
+      const auto& cur  = vertexMap[i].first;
+      const auto& prev = vertexMap[i-1].first;
+
+      if(cur != prev) {
+	a_vertices.emplace_back(cur);
+      }
+    }
+  }
+
+  // Now patch up the facet indices.
+  for (size_t n = 0; n < a_facets.size(); n++) {
+    auto& facet = a_facets[n];
+    
+    for (size_t i = 0; i < facet.size(); i++) {
+      facet[i] = indexMap.at(facet[i]);
+    }
+
+#if 1 // Debug
+    std::vector<size_t> v = facet;
+    std::sort(v.begin(), v.end());
+
+    bool duplicate = false;
+    for (size_t i = 1; i < v.size(); i++){
+      if(v[i] == v[i-1])
+	duplicate = true;
+    }
+
+    if(duplicate) {
+      std::cout << "facet #" << n << "\t";
+      for (size_t i = 0; i < facet.size(); i++) {
+	std::cout << facet[i] << "\t";
+      }
+      std::cout << std::endl;
+    }
+#endif
+  }
+}
+
 template <typename T>
 inline std::map<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>
 Parser::STL<T>::readASCII(const std::string a_filename)
@@ -79,7 +154,7 @@ Parser::STL<T>::readASCII(const std::string a_filename)
     std::string                      objectName;
 
     Parser::STL<T>::readTriangleSoupASCII(vertices, facets, objectName, fileContents, firstLine, lastLine);
-    Parser::STL<T>::compress(vertices, facets);
+    Parser::compress(vertices, facets);
   }
 
   return objectsDCEL;
@@ -124,7 +199,7 @@ Parser::STL<T>::readTriangleSoupASCII(std::vector<Vec3>&                a_vertic
       ss >> x >> y >> z;
 
       a_vertices.emplace_back(Vec3(x, y, z));
-      curFacet->emplace_back(a_vertices.size());
+      curFacet->emplace_back(a_vertices.size()-1);
 
       // Throw an error if we end up creating more than 100 vertices -- in this case the 'endloop'
       // or 'endfacet' are missing
@@ -135,33 +210,6 @@ Parser::STL<T>::readTriangleSoupASCII(std::vector<Vec3>&                a_vertic
   }
 }
 
-template <typename T>
-inline void
-Parser::STL<T>::compress(std::vector<Vec3>& a_vertices, std::vector<std::vector<size_t>>& a_facets)
-{
-
-  // TLDR: a_vertices contains many duplicate vertices; we need to remove the duplicates and also
-  //       update a_facets such that each facet references the new vertices.
-
-  // Create a "map" of the vertices, storing their original indices. 
-  std::vector<std::pair<Vec3, size_t>> vertexMap;
-  for (size_t i = 0; i < a_vertices.size(); i++) {
-    vertexMap.emplace_back(a_vertices[i], i);
-  }
-
-  std::sort(vertexMap.begin(), vertexMap.end(), [](const std::pair<Vec3, size_t> A, const std::pair<Vec3, size_t> B) {
-    const Vec3 a = A.first;
-    const Vec3 b = B.first;
-
-    return a.lessLX(b);
-  });
-
-  // Now create a map of the old indices to the new indices.
-  std::map<size_t, size_t> indexMap;
-  for (size_t i = 0; i < vertexMap.size(); i++) {
-    indexMap.emplace(i, vertexMap[i].second);
-  }
-}
 
 template <typename T>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>

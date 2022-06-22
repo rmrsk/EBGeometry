@@ -327,6 +327,13 @@ public:
   operator==(const Vec3T<T>& u) const noexcept;
 
   /*!
+    @brief Comparison operator. Returns false if all components are the same
+    @param[in] u Other vector
+  */  
+  inline bool
+  operator!=(const Vec3T<T>& u) const noexcept;
+
+  /*!
     @brief "Smaller than" operator.
     @details Returns true if this->x < u.x AND this->y < u.y AND this->z < u.z
     and false otherwise

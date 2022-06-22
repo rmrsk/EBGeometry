@@ -32,6 +32,15 @@
 namespace Parser {
 
   /*!
+    @brief Compress triangle soup (removes duplicate vertices)
+    @param[out] a_vertices   Vertices
+    @param[out] a_facets     STL facets
+  */
+  template <typename T>
+  inline static void
+  compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets);  
+
+  /*!
     @brief Class for reading STL files.
     @note T is the precision used when storing the mesh. 
   */
@@ -71,13 +80,7 @@ namespace Parser {
                           const size_t                      a_firstLine,
                           const size_t                      a_lastLine);
 
-    /*!
-      @brief Compress STL triangle soup (removes duplicate vertices)
-      @param[out] a_vertices   Vertices
-      @param[out] a_facets     STL facets
-    */
-    inline static void
-    compress(std::vector<Vec3>& a_vertices, std::vector<std::vector<size_t>>& a_facets);
+
   };
 
   /*!

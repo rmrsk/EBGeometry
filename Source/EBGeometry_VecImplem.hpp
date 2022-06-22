@@ -486,6 +486,13 @@ Vec3T<T>::operator==(const Vec3T<T>& u) const noexcept
 
 template <typename T>
 inline bool
+Vec3T<T>::operator!=(const Vec3T<T>& u) const noexcept
+{
+  return !(*this == u);
+}
+
+template <typename T>
+inline bool
 Vec3T<T>::operator<(const Vec3T<T>& u) const noexcept
 {
   return (X[0] < u[0] && X[1] < u[1] && X[2] < u[2]);
