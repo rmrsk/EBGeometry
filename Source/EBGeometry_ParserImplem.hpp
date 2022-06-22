@@ -28,12 +28,47 @@
 #include "EBGeometry_DCEL_Iterator.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
+template <typename T>
+inline bool
+Parser::hasDegenerates(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std::vector<std::vector<size_t>>& a_facets)
+{
+  using Vec3 = EBGeometry::Vec3T<T>;
+
+  for (const auto& facet : a_facets) {
+
+    if(facet.size() >= 3) {
+
+      // Build the vertex vector. 
+      std::vector<Vec3> vertices;
+      for (const auto& ind : facet) {
+	vertices.emplace_back(a_vertices[ind]);
+      }
+
+      std::sort(vertices.begin(), vertices.end(), [](const Vec3& a, const Vec3& b) {
+	  return a.lessLX(b);
+	});
+      
+      for (size_t i = 1; i < vertices.size(); i++) {
+	const Vec3 cur = vertices[i];
+	const Vec3 pre = vertices[i-1];
+
+	if(cur == pre) {
+	  return true;
+	}
+      }
+    }
+    else {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 template <typename T>
 inline void
 Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets)
 {
-
   using Vec3 = EBGeometry::Vec3T<T>;
   
   // TLDR: Because it's an STL file, a_vertices contains many duplicate vertices. We need to remove
@@ -59,10 +94,12 @@ Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std:
   // Compress the vertex vector. While doing so we should build up the old-to-new index map
   std::map<size_t, size_t> indexMap;
 
+  a_vertices.emplace_back(vertexMap.front().first);
+
   for (size_t i = 0; i < vertexMap.size(); i++) {
     const size_t oldIndex = vertexMap[i].second;
 
-    indexMap.emplace(oldIndex, a_vertices.size());    
+    indexMap.emplace(oldIndex, a_vertices.size()-1);    
 
     if(i > 0) {
       const auto& cur  = vertexMap[i].first;
@@ -74,21 +111,27 @@ Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std:
     }
   }
 
+#if 1 // debug
+  for (size_t i = 1; i < a_vertices.size(); i++) {
+    if(a_vertices[i] == a_vertices[i-1]) std::cout << "degenerate vetices" << std::endl;
+  }
+#endif
+
   // Now patch up the facet indices.
   for (size_t n = 0; n < a_facets.size(); n++) {
-    auto& facet = a_facets[n];
+    std::vector<size_t>& facet = a_facets[n];
     
     for (size_t i = 0; i < facet.size(); i++) {
       facet[i] = indexMap.at(facet[i]);
     }
 
 #if 1 // Debug
-    std::vector<size_t> v = facet;
-    std::sort(v.begin(), v.end());
+    std::vector<size_t> facetCopy = facet;
+    std::sort(facetCopy.begin(), facetCopy.end());
 
     bool duplicate = false;
-    for (size_t i = 1; i < v.size(); i++){
-      if(v[i] == v[i-1])
+    for (size_t i = 1; i < facetCopy.size(); i++){
+      if(facetCopy[i] == facetCopy[i-1])
 	duplicate = true;
     }
 
@@ -100,6 +143,33 @@ Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std:
       std::cout << std::endl;
     }
 #endif
+  }
+}
+
+template <typename T>
+inline void
+Parser::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T>>>& a_edges)
+{
+  for (auto& curEdge : a_edges) {
+    const auto& nextEdge = curEdge->getNextEdge();
+
+    const auto& vertexStart = curEdge->getVertex();
+    const auto& vertexEnd   = nextEdge->getVertex();
+
+    for (const auto& p : vertexStart->getFaces()) {
+      for (EBGeometry::DCEL::EdgeIteratorT<T> edgeIt(*p); edgeIt.ok(); ++edgeIt) {
+        const auto& polyCurEdge  = edgeIt();
+        const auto& polyNextEdge = polyCurEdge->getNextEdge();
+
+        const auto& polyVertexStart = polyCurEdge->getVertex();
+        const auto& polyVertexEnd   = polyNextEdge->getVertex();
+
+        if (vertexStart == polyVertexEnd && polyVertexStart == vertexEnd) { // Found the pair edge
+          curEdge->setPairEdge(polyCurEdge);
+          polyCurEdge->setPairEdge(curEdge);
+        }
+      }
+    }
   }
 }
 
@@ -154,7 +224,16 @@ Parser::STL<T>::readASCII(const std::string a_filename)
     std::string                      objectName;
 
     Parser::STL<T>::readTriangleSoupASCII(vertices, facets, objectName, fileContents, firstLine, lastLine);
+
+    if(Parser::hasDegenerates(vertices, facets)) {
+      std::cerr << "Parser::STL::readASCII - input STL has degenerate faces\n";
+    }
+    
     Parser::compress(vertices, facets);
+
+    if(Parser::hasDegenerates(vertices, facets)) {
+      std::cerr << "Parser::STL::readASCII - input STL has degenerate faces\n";
+    }    
   }
 
   return objectsDCEL;
@@ -208,6 +287,28 @@ Parser::STL<T>::readTriangleSoupASCII(std::vector<Vec3>&                a_vertic
       }
     }
   }
+
+#if 1 // Debug
+  for (size_t n = 0; n < a_facets.size(); n++) {
+
+    
+    const std::vector<size_t> facet = a_facets[n];
+
+    bool duplicateVertex = false;    
+    for (size_t i = 1; i < facet.size(); i++){
+      const size_t v1 = facet[i-1];
+      const size_t v2 = facet[i];
+
+      if(a_vertices[v1] == a_vertices[v2]) {
+	duplicateVertex = true;
+      }
+    }
+
+    if(duplicateVertex) {
+      std::cout << "Facet #" << n << " is degenerate" << std::endl;
+    }
+  }
+#endif
 }
 
 
@@ -243,7 +344,7 @@ Parser::PLY<T>::readIntoDCEL(Mesh& a_mesh, const std::string a_filename)
     Parser::PLY<T>::readHeaderASCII(numVertices, numFaces, filestream);
     Parser::PLY<T>::readVerticesIntoDCEL(vertices, numVertices, filestream);
     Parser::PLY<T>::readFacesIntoDCEL(faces, edges, vertices, numFaces, filestream);
-    Parser::PLY<T>::reconcilePairEdgesDCEL(edges);
+    Parser::reconcilePairEdgesDCEL(edges);
 
     a_mesh.sanityCheck();
 
@@ -410,32 +511,7 @@ Parser::PLY<T>::readFacesIntoDCEL(std::vector<std::shared_ptr<Face>>&         a_
   }
 }
 
-template <typename T>
-inline void
-Parser::PLY<T>::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<Edge>>& a_edges)
-{
-  for (auto& curEdge : a_edges) {
-    const auto& nextEdge = curEdge->getNextEdge();
 
-    const auto& vertexStart = curEdge->getVertex();
-    const auto& vertexEnd   = nextEdge->getVertex();
-
-    for (const auto& p : vertexStart->getFaces()) {
-      for (EdgeIterator edgeIt(*p); edgeIt.ok(); ++edgeIt) {
-        const auto& polyCurEdge  = edgeIt();
-        const auto& polyNextEdge = polyCurEdge->getNextEdge();
-
-        const auto& polyVertexStart = polyCurEdge->getVertex();
-        const auto& polyVertexEnd   = polyNextEdge->getVertex();
-
-        if (vertexStart == polyVertexEnd && polyVertexStart == vertexEnd) { // Found the pair edge
-          curEdge->setPairEdge(polyCurEdge);
-          polyCurEdge->setPairEdge(curEdge);
-        }
-      }
-    }
-  }
-}
 
 #include "EBGeometry_NamespaceFooter.hpp"
 

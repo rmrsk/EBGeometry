@@ -32,13 +32,31 @@
 namespace Parser {
 
   /*!
+    @brief Check if triangle soup contains degenerate polygons
+    @param[out] a_vertices Vertices
+    @param[out] a_facets   Facets
+  */
+  template <typename T>
+  inline static bool
+  hasDegenerates(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std::vector<std::vector<size_t>>& a_facets);    
+
+  /*!
     @brief Compress triangle soup (removes duplicate vertices)
     @param[out] a_vertices   Vertices
     @param[out] a_facets     STL facets
   */
   template <typename T>
   inline static void
-  compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets);  
+  compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets);
+
+  /*!
+    @brief Reconcile pair edges, i.e. find the pair edge for every constructed
+    half-edge
+    @param[in,out] a_edges Half edges.
+  */
+  template <typename T>
+  inline static void
+  reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T>>>& a_edges);  
 
   /*!
     @brief Class for reading STL files.
@@ -158,13 +176,7 @@ namespace Parser {
                       const size_t                                a_numFaces,
                       std::ifstream&                              a_inputStream);
 
-    /*!
-      @brief Reconcile pair edges, i.e. find the pair edge for every constructed
-      half-edge
-      @param[in,out] a_edges Half edges.
-    */
-    inline static void
-    reconcilePairEdgesDCEL(std::vector<std::shared_ptr<Edge>>& a_edges);
+
   };
 } // namespace Parser
 
