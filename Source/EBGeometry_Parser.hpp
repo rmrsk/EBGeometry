@@ -45,11 +45,11 @@ namespace Parser {
     @brief Various supported file types
   */
   enum class FileType
-    {
-     STL,
-     PLY,
-     Unsupported
-    };
+  {
+    STL,
+    PLY,
+    Unsupported
+  };
 
   /*!
     @brief A parser which reads a file containing a single object. Returns a DCEL mesh if possible. 
@@ -136,7 +136,7 @@ namespace Parser {
 
   protected:
     /*!
-      @brief Check if the input STLfile is an ASCII file or a binary
+      @brief Check if the input STL file is an ASCII file or a binary
       @param[in] a_filename File name
       @return Returns Encoding::ASCII or Encoding::Binary,
     */
@@ -200,6 +200,14 @@ namespace Parser {
 
   protected:
     /*!
+      @brief Check if the input PLY file is an ASCII file or a binary
+      @param[in] a_filename File name
+      @return Returns Encoding::ASCII or Encoding::Binary,
+    */
+    inline static Encoding
+    getEncoding(const std::string a_filename) noexcept;
+
+    /*!
       @brief Read an ASCII PLY file into a triangle soup. 
       @details 
       @param[out]   a_vertices Raw vertices
@@ -210,6 +218,18 @@ namespace Parser {
     readPLYSoupASCII(std::vector<Vec3>&                a_vertices,
                      std::vector<std::vector<size_t>>& a_faces,
                      std::ifstream&                    a_fileStream) noexcept;
+
+    /*!
+      @brief Read a binary PLY file into a triangle soup. 
+      @details 
+      @param[out]   a_vertices Raw vertices
+      @param[out]   a_faces    Raw polygon faces
+      @param[in]    a_filename File name
+    */
+    inline static void
+    readPLYSoupBinary(std::vector<Vec3>&                a_vertices,
+                      std::vector<std::vector<size_t>>& a_faces,
+                      std::ifstream&                    a_fileStream) noexcept;
   };
 } // namespace Parser
 

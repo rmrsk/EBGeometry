@@ -36,31 +36,27 @@ Parser::read(const std::string a_filename) noexcept
 
   const auto ft = Parser::getFileType(a_filename);
 
-  switch(ft) {
-  case Parser::FileType::STL:
-    {
-      mesh = Parser::STL<T>::readSingle(a_filename);
+  switch (ft) {
+  case Parser::FileType::STL: {
+    mesh = Parser::STL<T>::readSingle(a_filename);
 
-      break;
-    }
-  case Parser::FileType::PLY:
-    {
-      mesh = Parser::PLY<T>::read(a_filename);
+    break;
+  }
+  case Parser::FileType::PLY: {
+    mesh = Parser::PLY<T>::read(a_filename);
 
-      break;
-    }
-  case Parser::FileType::Unsupported:
-    {
-      std::cerr << "Parser::read - file type unsupported for '" + a_filename + "'\n";
-      
-      break;
-    }
-  default:
-    {
-      std::cerr << "Parser::read - logic bust\n";
+    break;
+  }
+  case Parser::FileType::Unsupported: {
+    std::cerr << "Parser::read - file type unsupported for '" + a_filename + "'\n";
 
-      break;
-    }
+    break;
+  }
+  default: {
+    std::cerr << "Parser::read - logic bust\n";
+
+    break;
+  }
   }
 
   return mesh;
@@ -70,11 +66,11 @@ inline Parser::FileType
 Parser::getFileType(const std::string a_filename) noexcept
 {
   auto ft = Parser::FileType::Unsupported;
-  
+
   const std::string ext = a_filename.substr(a_filename.find_last_of(".") + 1);
 
   if (ext == "stl" || ext == "STL") {
-    ft = Parser::FileType::STL;    
+    ft = Parser::FileType::STL;
   }
   else if (ext == "ply" || ext == "PLY") {
     ft = Parser::FileType::PLY;
@@ -468,10 +464,50 @@ Parser::STL<T>::readBinary(const std::string a_filename) noexcept
 }
 
 template <typename T>
+inline Parser::Encoding
+Parser::PLY<T>::getEncoding(const std::string a_filename) noexcept
+{
+  Parser::Encoding ft = Parser::Encoding::Unknown;
+
+  std::ifstream is(a_filename, std::istringstream::in | std::ios::binary);
+  if (is.good()) {
+
+    std::string line;
+    std::string str1;
+    std::string str2;
+
+    // Ignore first line.
+    std::getline(is, line);
+    std::getline(is, line);
+
+    std::stringstream ss(line);
+
+    ss >> str1 >> str2;
+
+    if (str2 == "ascii") {
+      ft = Parser::Encoding::ASCII;
+    }
+    else if (str2 == "binary_little_endian") {
+      ft = Parser::Encoding::Binary;
+    }
+    else if (str2 == "binary_big_endian") {
+      ft = Parser::Encoding::Binary;
+    }
+  }
+  else {
+    std::cerr << "Parser::PLY::getEncoding -- could not open file '" + a_filename + "'\n";
+  }
+
+  return ft;
+}
+
+template <typename T>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
 Parser::PLY<T>::read(const std::string a_filename) noexcept
 {
   auto mesh = std::make_shared<Mesh>();
+
+  const auto encoding = Parser::PLY<T>::getEncoding(a_filename);
 
   std::ifstream filestream(a_filename);
 
@@ -479,15 +515,25 @@ Parser::PLY<T>::read(const std::string a_filename) noexcept
     std::vector<Vec3>                vertices;
     std::vector<std::vector<size_t>> faces;
 
-    Parser::PLY<T>::readPLYSoupASCII(vertices, faces, filestream);
-    Parser::soupToDCEL(*mesh, vertices, faces);
+    switch (encoding) {
+    case Parser::Encoding::ASCII: {
+      Parser::PLY<T>::readPLYSoupASCII(vertices, faces, filestream);
 
-    filestream.close();
+      break;
+    }
+    case Parser::Encoding::Binary: {
+      Parser::PLY<T>::readPLYSoupBinary(vertices, faces, filestream);
+
+      break;
+    }
+    }
+
+    Parser::soupToDCEL(*mesh, vertices, faces);
   }
   else {
     const std::string error = "Parser::PLY::read - ERROR! Could not open file " + a_filename;
     std::cerr << error + "\n";
-  }  
+  }
 
   return mesh;
 }
@@ -569,6 +615,15 @@ Parser::PLY<T>::readPLYSoupASCII(std::vector<EBGeometry::Vec3T<T>>& a_vertices,
 
     numProcessed++;
   }
+}
+
+template <typename T>
+inline void
+Parser::PLY<T>::readPLYSoupBinary(std::vector<EBGeometry::Vec3T<T>>& a_vertices,
+                                  std::vector<std::vector<size_t>>&  a_faces,
+                                  std::ifstream&                     a_fileStream) noexcept
+{
+  std::cerr << "Parser::PLY<T>::readPLYSoupBinary -- not implemented\n";
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"
