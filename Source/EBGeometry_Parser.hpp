@@ -31,6 +31,8 @@
 */
 namespace Parser {
 
+
+
   /*!
     @brief Check if triangle soup contains degenerate polygons
     @param[out] a_vertices Vertices
@@ -50,13 +52,24 @@ namespace Parser {
   compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets);
 
   /*!
+    @brief Turn raw vertices into DCEL vertices. Does not include vertex normal vectors. 
+    @param[out] a_verticesDCEL DCEL vertices
+    @param[in]  a_verticesRaw  Raw vertices
+  */
+  template <typename T>
+  inline static void
+  soupToDCEL(std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_mesh,
+	     const std::vector<EBGeometry::Vec3T<T> >& a_vertices,
+	     const std::vector<std::vector<size_t> >& a_facets);  
+
+  /*!
     @brief Reconcile pair edges, i.e. find the pair edge for every constructed
     half-edge
     @param[in,out] a_edges Half edges.
   */
   template <typename T>
   inline static void
-  reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T>>>& a_edges);  
+  reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T>>>& a_edges);
 
   /*!
     @brief Class for reading STL files.
@@ -66,18 +79,19 @@ namespace Parser {
   class STL
   {
   public:
-    using Vec3         = Vec3T<T>;
-    using Vertex       = DCEL::VertexT<T>;
-    using Edge         = DCEL::EdgeT<T>;
-    using Face         = DCEL::FaceT<T>;
-    using Mesh         = DCEL::MeshT<T>;
-    using EdgeIterator = DCEL::EdgeIteratorT<T>;
+
+    using Vec3 = EBGeometry::Vec3T<T>;
+    using Vertex       = EBGeometry::DCEL::VertexT<T>;
+    using Edge         = EBGeometry::DCEL::EdgeT<T>;
+    using Face         = EBGeometry::DCEL::FaceT<T>;
+    using Mesh         = EBGeometry::DCEL::MeshT<T>;
+    using EdgeIterator = EBGeometry::DCEL::EdgeIteratorT<T>;      
 
     /*!
       @brief ASCII reader for reading an STL file, possibly containing multiple objects. Each object becomes a DCEL mesh
       @param[in] a_filename Input filename
     */
-    inline static std::map<std::shared_ptr<Mesh>, std::string>
+    inline static std::vector<std::pair<std::shared_ptr<Mesh>, std::string>>
     readASCII(const std::string a_filename);
 
   protected:
@@ -91,7 +105,7 @@ namespace Parser {
       @param[out] a_lastLine   Line number in a_filename containing the 'endsolid' identifier. 
     */
     inline static void
-    readTriangleSoupASCII(std::vector<Vec3>&                a_vertices,
+    readSTLSoupASCII(std::vector<Vec3>&                a_vertices,
                           std::vector<std::vector<size_t>>& a_facets,
                           std::string&                      a_objectName,
                           const std::vector<std::string>&   a_fileContents,

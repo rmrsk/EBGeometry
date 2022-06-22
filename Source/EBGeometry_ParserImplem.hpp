@@ -82,11 +82,11 @@ Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std:
   }
 
   std::sort(vertexMap.begin(), vertexMap.end(), [](const std::pair<Vec3, size_t> A, const std::pair<Vec3, size_t> B) {
-    const Vec3& a = A.first;
-    const Vec3& b = B.first;
+      const Vec3& a = A.first;
+      const Vec3& b = B.first;
 
-    return a.lessLX(b);
-  });
+      return a.lessLX(b);
+    });
 
   // Compress the vertex vector. While doing so we should build up the old-to-new index map  
   a_vertices.resize(0);
@@ -121,6 +121,81 @@ Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std:
 
 template <typename T>
 inline void
+Parser::soupToDCEL(std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_mesh,
+		   const std::vector<EBGeometry::Vec3T<T> >& a_vertices,
+		   const std::vector<std::vector<size_t> >& a_facets) {
+
+  using Vec3   = EBGeometry::Vec3T<T>;
+  using Vertex = EBGeometry::DCEL::VertexT<T>;
+  using Edge   = EBGeometry::DCEL::EdgeT<T>;
+  using Face   = EBGeometry::DCEL::FaceT<T>;
+  using Mesh   = EBGeometry::DCEL::MeshT<T>;
+
+  if(!a_mesh) {
+    a_mesh = std::make_shared<Mesh>();
+  }
+
+  std::vector<std::shared_ptr<Vertex>>& vertices = a_mesh->getVertices();
+  std::vector<std::shared_ptr<Edge>>& edges = a_mesh->getEdges();
+  std::vector<std::shared_ptr<Face>>& faces = a_mesh->getFaces();
+
+  // Build the vertex vectors from the input vertices.
+  for (const auto& v : a_vertices) {
+    vertices.emplace_back(std::make_shared<Vertex>(v, Vec3::zero()));
+  }
+
+  // Now build the faces.
+  for (const auto& curFacet : a_facets) {
+    if(curFacet.size() < 3) {
+      std::cerr << "Parser::soupToDCEL -- not enough vertices in face\n";
+    }
+
+    // Figure out which vertices are involved here. 
+    std::vector<std::shared_ptr<Vertex>> faceVertices;
+    for (size_t i = 0; i < curFacet.size(); i++) {
+      faceVertices.emplace_back(vertices[curFacet[i]]);
+    }
+
+    // Build the half-edges for this polygon. 
+    std::vector<std::shared_ptr<Edge>> halfEdges;
+    for (const auto& v : faceVertices) {
+      halfEdges.emplace_back(std::make_shared<Edge>(v));
+      v->setEdge(halfEdges.back());
+    }
+
+    for (size_t i = 0; i < halfEdges.size(); i++) {
+      auto& curEdge = halfEdges[i];
+      auto& nextEdge = halfEdges[(i+1)%halfEdges.size()];
+
+      curEdge->setNextEdge(nextEdge);
+      nextEdge->setPreviousEdge(curEdge);
+    }
+
+    edges.insert(edges.end(), halfEdges.begin(), halfEdges.end());    
+
+    faces.emplace_back(std::make_shared<Face>(halfEdges.front()));
+    auto& curFace = faces.back();
+
+    for (auto& e : halfEdges) {
+      e->setFace(curFace);
+    }
+
+    // Must give vertices access to all faces associated them.
+    for (const auto& v : faceVertices) {
+      v->addFace(curFace);
+    }
+  }
+
+  // Reconcile the pair edges and run a sanity check.
+  Parser::reconcilePairEdgesDCEL(edges);
+
+  a_mesh->sanityCheck();
+
+  a_mesh->reconcile(EBGeometry::DCEL::MeshT<T>::VertexNormalWeight::Angle);
+}
+
+template <typename T>
+inline void
 Parser::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T>>>& a_edges)
 {
   for (auto& curEdge : a_edges) {
@@ -147,10 +222,11 @@ Parser::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::Edg
 }
 
 template <typename T>
-inline std::map<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>
+inline std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>>
 Parser::STL<T>::readASCII(const std::string a_filename)
 {
-  std::map<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string> objectsDCEL;
+
+  std::vector<std::pair<std::shared_ptr<Mesh>, std::string>> objectsDCEL;
 
   // Storage for full ASCII file and line numbers indicating where STL objects start/end
   std::vector<std::string>               fileContents;
@@ -196,7 +272,7 @@ Parser::STL<T>::readASCII(const std::string a_filename)
     std::vector<std::vector<size_t>> facets;
     std::string                      objectName;
 
-    Parser::STL<T>::readTriangleSoupASCII(vertices, facets, objectName, fileContents, firstLine, lastLine);
+    Parser::STL<T>::readSTLSoupASCII(vertices, facets, objectName, fileContents, firstLine, lastLine);
 
     if(Parser::hasDegenerates(vertices, facets)) {
       std::cerr << "Parser::STL::readASCII - input STL has degenerate faces\n";
@@ -204,10 +280,11 @@ Parser::STL<T>::readASCII(const std::string a_filename)
     
     Parser::compress(vertices, facets);
 
-    // Issue a warning if compression failed. 
-    if(Parser::hasDegenerates(vertices, facets)) {
-      std::cerr << "Parser::STL::readASCII - input STL has degenerate faces after compression.\n";
-    }    
+    // Turn soup into DCEL mesh and pack in into our return vector. 
+    std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
+    Parser::soupToDCEL(mesh, vertices, facets);
+
+    objectsDCEL.emplace_back(mesh, objectName);
   }
 
   return objectsDCEL;
@@ -215,12 +292,12 @@ Parser::STL<T>::readASCII(const std::string a_filename)
 
 template <typename T>
 inline void
-Parser::STL<T>::readTriangleSoupASCII(std::vector<Vec3>&                a_vertices,
-                                      std::vector<std::vector<size_t>>& a_facets,
-                                      std::string&                      a_objectName,
-                                      const std::vector<std::string>&   a_fileContents,
-                                      const size_t                      a_firstLine,
-                                      const size_t                      a_lastLine)
+Parser::STL<T>::readSTLSoupASCII(std::vector<Vec3>&                a_vertices,
+				 std::vector<std::vector<size_t>>& a_facets,
+				 std::string&                      a_objectName,
+				 const std::vector<std::string>&   a_fileContents,
+				 const size_t                      a_firstLine,
+				 const size_t                      a_lastLine)
 {
 
   // First line just holds the object name.
@@ -257,7 +334,9 @@ Parser::STL<T>::readTriangleSoupASCII(std::vector<Vec3>&                a_vertic
       // Throw an error if we end up creating more than 100 vertices -- in this case the 'endloop'
       // or 'endfacet' are missing
       if (curFacet->size() > 100) {
-        std::cerr << "In EBGeometry::Parser::STL::readTriangleSoupASCII -- logic bust\n";
+        std::cerr << "In EBGeometry::Parser::STL::readSTLSoupASCII -- logic bust\n";
+
+	break;
       }
     }
   }
@@ -412,7 +491,7 @@ Parser::PLY<T>::readFacesIntoDCEL(std::vector<std::shared_ptr<Face>>&         a_
 
     if (numVertices < 3)
       std::cerr << "Parser::PLY::readFacesIntoDCEL - a face must have at least "
-                   "three vertices!\n";
+	"three vertices!\n";
 
     // Get the vertices that make up this face.
     std::vector<std::shared_ptr<Vertex>> curVertices;
@@ -461,8 +540,6 @@ Parser::PLY<T>::readFacesIntoDCEL(std::vector<std::shared_ptr<Face>>&         a_
       break;
   }
 }
-
-
 
 #include "EBGeometry_NamespaceFooter.hpp"
 
