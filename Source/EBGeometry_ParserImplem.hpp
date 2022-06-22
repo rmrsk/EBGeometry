@@ -30,31 +30,30 @@
 
 template <typename T>
 inline bool
-Parser::hasDegenerates(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std::vector<std::vector<size_t>>& a_facets)
+Parser::hasDegenerates(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
+                       const std::vector<std::vector<size_t>>&  a_facets)
 {
   using Vec3 = EBGeometry::Vec3T<T>;
 
   for (const auto& facet : a_facets) {
 
-    if(facet.size() >= 3) {
+    if (facet.size() >= 3) {
 
-      // Build the vertex vector. 
+      // Build the vertex vector.
       std::vector<Vec3> vertices;
       for (const auto& ind : facet) {
-	vertices.emplace_back(a_vertices[ind]);
+        vertices.emplace_back(a_vertices[ind]);
       }
 
-      std::sort(vertices.begin(), vertices.end(), [](const Vec3& a, const Vec3& b) {
-	  return a.lessLX(b);
-	});
-      
-      for (size_t i = 1; i < vertices.size(); i++) {
-	const Vec3 cur = vertices[i];
-	const Vec3 pre = vertices[i-1];
+      std::sort(vertices.begin(), vertices.end(), [](const Vec3& a, const Vec3& b) { return a.lessLX(b); });
 
-	if(cur == pre) {
-	  return true;
-	}
+      for (size_t i = 1; i < vertices.size(); i++) {
+        const Vec3 cur = vertices[i];
+        const Vec3 pre = vertices[i - 1];
+
+        if (cur == pre) {
+          return true;
+        }
       }
     }
     else {
@@ -70,7 +69,7 @@ inline void
 Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets)
 {
   using Vec3 = EBGeometry::Vec3T<T>;
-  
+
   // TLDR: Because it's an STL file, a_vertices contains many duplicate vertices. We need to remove
   //       them and also update a_facets such that each facet references the compressed vertex vector.
 
@@ -82,13 +81,13 @@ Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std:
   }
 
   std::sort(vertexMap.begin(), vertexMap.end(), [](const std::pair<Vec3, size_t> A, const std::pair<Vec3, size_t> B) {
-      const Vec3& a = A.first;
-      const Vec3& b = B.first;
+    const Vec3& a = A.first;
+    const Vec3& b = B.first;
 
-      return a.lessLX(b);
-    });
+    return a.lessLX(b);
+  });
 
-  // Compress the vertex vector. While doing so we should build up the old-to-new index map  
+  // Compress the vertex vector. While doing so we should build up the old-to-new index map
   a_vertices.resize(0);
 
   std::map<size_t, size_t> indexMap;
@@ -100,19 +99,19 @@ Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std:
     const size_t oldIndex = vertexMap[i].second;
 
     const auto& cur  = vertexMap[i].first;
-    const auto& prev = vertexMap[i-1].first;
+    const auto& prev = vertexMap[i - 1].first;
 
-    if(cur != prev) {
+    if (cur != prev) {
       a_vertices.emplace_back(cur);
     }
 
-    indexMap.emplace(oldIndex, a_vertices.size()-1);        
+    indexMap.emplace(oldIndex, a_vertices.size() - 1);
   }
 
-  // Fix facet indicing. 
+  // Fix facet indicing.
   for (size_t n = 0; n < a_facets.size(); n++) {
     std::vector<size_t>& facet = a_facets[n];
-    
+
     for (size_t ivert = 0; ivert < facet.size(); ivert++) {
       facet[ivert] = indexMap.at(facet[ivert]);
     }
@@ -122,8 +121,9 @@ Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std:
 template <typename T>
 inline void
 Parser::soupToDCEL(std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_mesh,
-		   const std::vector<EBGeometry::Vec3T<T> >& a_vertices,
-		   const std::vector<std::vector<size_t> >& a_facets) {
+                   const std::vector<EBGeometry::Vec3T<T>>&     a_vertices,
+                   const std::vector<std::vector<size_t>>&      a_facets)
+{
 
   using Vec3   = EBGeometry::Vec3T<T>;
   using Vertex = EBGeometry::DCEL::VertexT<T>;
@@ -131,13 +131,13 @@ Parser::soupToDCEL(std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_mesh,
   using Face   = EBGeometry::DCEL::FaceT<T>;
   using Mesh   = EBGeometry::DCEL::MeshT<T>;
 
-  if(!a_mesh) {
+  if (!a_mesh) {
     a_mesh = std::make_shared<Mesh>();
   }
 
   std::vector<std::shared_ptr<Vertex>>& vertices = a_mesh->getVertices();
-  std::vector<std::shared_ptr<Edge>>& edges = a_mesh->getEdges();
-  std::vector<std::shared_ptr<Face>>& faces = a_mesh->getFaces();
+  std::vector<std::shared_ptr<Edge>>&   edges    = a_mesh->getEdges();
+  std::vector<std::shared_ptr<Face>>&   faces    = a_mesh->getFaces();
 
   // Build the vertex vectors from the input vertices.
   for (const auto& v : a_vertices) {
@@ -146,17 +146,17 @@ Parser::soupToDCEL(std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_mesh,
 
   // Now build the faces.
   for (const auto& curFacet : a_facets) {
-    if(curFacet.size() < 3) {
+    if (curFacet.size() < 3) {
       std::cerr << "Parser::soupToDCEL -- not enough vertices in face\n";
     }
 
-    // Figure out which vertices are involved here. 
+    // Figure out which vertices are involved here.
     std::vector<std::shared_ptr<Vertex>> faceVertices;
     for (size_t i = 0; i < curFacet.size(); i++) {
       faceVertices.emplace_back(vertices[curFacet[i]]);
     }
 
-    // Build the half-edges for this polygon. 
+    // Build the half-edges for this polygon.
     std::vector<std::shared_ptr<Edge>> halfEdges;
     for (const auto& v : faceVertices) {
       halfEdges.emplace_back(std::make_shared<Edge>(v));
@@ -164,14 +164,14 @@ Parser::soupToDCEL(std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_mesh,
     }
 
     for (size_t i = 0; i < halfEdges.size(); i++) {
-      auto& curEdge = halfEdges[i];
-      auto& nextEdge = halfEdges[(i+1)%halfEdges.size()];
+      auto& curEdge  = halfEdges[i];
+      auto& nextEdge = halfEdges[(i + 1) % halfEdges.size()];
 
       curEdge->setNextEdge(nextEdge);
       nextEdge->setPreviousEdge(curEdge);
     }
 
-    edges.insert(edges.end(), halfEdges.begin(), halfEdges.end());    
+    edges.insert(edges.end(), halfEdges.begin(), halfEdges.end());
 
     faces.emplace_back(std::make_shared<Face>(halfEdges.front()));
     auto& curFace = faces.back();
@@ -223,7 +223,8 @@ Parser::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::Edg
 
 template <typename T>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-Parser::STL<T>::readSingleASCII(const std::string a_filename) noexcept {
+Parser::STL<T>::readSingleASCII(const std::string a_filename) noexcept
+{
 
   auto allSTL = Parser::STL<T>::readASCII(a_filename);
 
@@ -283,13 +284,13 @@ Parser::STL<T>::readASCII(const std::string a_filename) noexcept
 
     Parser::STL<T>::readSTLSoupASCII(vertices, facets, objectName, fileContents, firstLine, lastLine);
 
-    if(Parser::hasDegenerates(vertices, facets)) {
+    if (Parser::hasDegenerates(vertices, facets)) {
       std::cerr << "Parser::STL::readASCII - input STL has degenerate faces\n";
     }
-    
+
     Parser::compress(vertices, facets);
 
-    // Turn soup into DCEL mesh and pack in into our return vector. 
+    // Turn soup into DCEL mesh and pack in into our return vector.
     std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
     Parser::soupToDCEL(mesh, vertices, facets);
 
@@ -302,11 +303,11 @@ Parser::STL<T>::readASCII(const std::string a_filename) noexcept
 template <typename T>
 inline void
 Parser::STL<T>::readSTLSoupASCII(std::vector<Vec3>&                a_vertices,
-				 std::vector<std::vector<size_t>>& a_facets,
-				 std::string&                      a_objectName,
-				 const std::vector<std::string>&   a_fileContents,
-				 const size_t                      a_firstLine,
-				 const size_t                      a_lastLine)
+                                 std::vector<std::vector<size_t>>& a_facets,
+                                 std::string&                      a_objectName,
+                                 const std::vector<std::string>&   a_fileContents,
+                                 const size_t                      a_firstLine,
+                                 const size_t                      a_lastLine)
 {
 
   // First line just holds the object name.
@@ -338,14 +339,14 @@ Parser::STL<T>::readSTLSoupASCII(std::vector<Vec3>&                a_vertices,
       ss >> x >> y >> z;
 
       a_vertices.emplace_back(Vec3(x, y, z));
-      curFacet->emplace_back(a_vertices.size()-1);
+      curFacet->emplace_back(a_vertices.size() - 1);
 
       // Throw an error if we end up creating more than 100 vertices -- in this case the 'endloop'
       // or 'endfacet' are missing
       if (curFacet->size() > 100) {
         std::cerr << "In EBGeometry::Parser::STL::readSTLSoupASCII -- logic bust\n";
 
-	break;
+        break;
       }
     }
   }
@@ -500,7 +501,7 @@ Parser::PLY<T>::readFacesIntoDCEL(std::vector<std::shared_ptr<Face>>&         a_
 
     if (numVertices < 3)
       std::cerr << "Parser::PLY::readFacesIntoDCEL - a face must have at least "
-	"three vertices!\n";
+                   "three vertices!\n";
 
     // Get the vertices that make up this face.
     std::vector<std::shared_ptr<Vertex>> curVertices;

@@ -31,8 +31,6 @@
 */
 namespace Parser {
 
-
-
   /*!
     @brief Check if triangle soup contains degenerate polygons
     @param[out] a_vertices Vertices
@@ -40,7 +38,7 @@ namespace Parser {
   */
   template <typename T>
   inline static bool
-  hasDegenerates(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std::vector<std::vector<size_t>>& a_facets);    
+  hasDegenerates(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std::vector<std::vector<size_t>>& a_facets);
 
   /*!
     @brief Compress triangle soup (removes duplicate vertices)
@@ -59,8 +57,8 @@ namespace Parser {
   template <typename T>
   inline static void
   soupToDCEL(std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_mesh,
-	     const std::vector<EBGeometry::Vec3T<T> >& a_vertices,
-	     const std::vector<std::vector<size_t> >& a_facets);  
+             const std::vector<EBGeometry::Vec3T<T>>&     a_vertices,
+             const std::vector<std::vector<size_t>>&      a_facets);
 
   /*!
     @brief Reconcile pair edges, i.e. find the pair edge for every constructed
@@ -79,8 +77,7 @@ namespace Parser {
   class STL
   {
   public:
-
-    using Vec3 = EBGeometry::Vec3T<T>;
+    using Vec3         = EBGeometry::Vec3T<T>;
     using Vertex       = EBGeometry::DCEL::VertexT<T>;
     using Edge         = EBGeometry::DCEL::EdgeT<T>;
     using Face         = EBGeometry::DCEL::FaceT<T>;
@@ -113,13 +110,11 @@ namespace Parser {
     */
     inline static void
     readSTLSoupASCII(std::vector<Vec3>&                a_vertices,
-		     std::vector<std::vector<size_t>>& a_facets,
-		     std::string&                      a_objectName,
-		     const std::vector<std::string>&   a_fileContents,
-		     const size_t                      a_firstLine,
-		     const size_t                      a_lastLine);
-
-
+                     std::vector<std::vector<size_t>>& a_facets,
+                     std::string&                      a_objectName,
+                     const std::vector<std::string>&   a_fileContents,
+                     const size_t                      a_firstLine,
+                     const size_t                      a_lastLine);
   };
 
   /*!
@@ -196,8 +191,6 @@ namespace Parser {
                       const std::vector<std::shared_ptr<Vertex>>& a_vertices,
                       const size_t                                a_numFaces,
                       std::ifstream&                              a_inputStream);
-
-
   };
 } // namespace Parser
 

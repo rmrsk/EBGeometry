@@ -329,7 +329,7 @@ public:
   /*!
     @brief Comparison operator. Returns false if all components are the same
     @param[in] u Other vector
-  */  
+  */
   inline bool
   operator!=(const Vec3T<T>& u) const noexcept;
 
