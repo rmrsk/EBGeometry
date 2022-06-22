@@ -17,7 +17,7 @@
 #include <fstream>
 #include <iterator>
 #include <sstream>
-#include <set>
+#include <cstring>
 
 // Our includes
 #include "EBGeometry_Parser.hpp"
@@ -35,10 +35,10 @@ Parser::readASCII(const std::string a_filename) noexcept
   const std::string ext = a_filename.substr(a_filename.find_last_of(".") + 1);
 
   auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T>>();
-  if(ext == "stl") {
+  if (ext == "stl") {
     mesh = Parser::STL<T>::readSingleASCII(a_filename);
   }
-  else if(ext == "ply") {
+  else if (ext == "ply") {
     mesh = Parser::PLY<T>::readSingleASCII(a_filename);
   }
   else {
@@ -101,11 +101,11 @@ Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std:
   }
 
   std::sort(vertexMap.begin(), vertexMap.end(), [](const std::pair<Vec3, size_t> A, const std::pair<Vec3, size_t> B) {
-      const Vec3& a = A.first;
-      const Vec3& b = B.first;
+    const Vec3& a = A.first;
+    const Vec3& b = B.first;
 
-      return a.lessLX(b);
-    });
+    return a.lessLX(b);
+  });
 
   // Compress the vertex vector. While doing so we should build up the old-to-new index map
   a_vertices.resize(0);
@@ -149,7 +149,6 @@ Parser::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
   using Vertex = EBGeometry::DCEL::VertexT<T>;
   using Edge   = EBGeometry::DCEL::EdgeT<T>;
   using Face   = EBGeometry::DCEL::FaceT<T>;
-  using Mesh   = EBGeometry::DCEL::MeshT<T>;
 
   std::vector<std::shared_ptr<Vertex>>& vertices = a_mesh.getVertices();
   std::vector<std::shared_ptr<Edge>>&   edges    = a_mesh.getEdges();
@@ -238,12 +237,69 @@ Parser::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::Edg
 }
 
 template <typename T>
-inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-Parser::STL<T>::readSingleASCII(const std::string a_filename) noexcept
+inline Parser::FileType
+Parser::STL<T>::getFileType(const std::string a_filename) noexcept
 {
-  auto allSTL = Parser::STL<T>::readASCII(a_filename);
+  Parser::FileType ft = Parser::FileType::Unknown;
 
-  return (allSTL.front()).first;
+  std::ifstream is(a_filename, std::istringstream::in | std::ios::binary);
+  if (is.good()) {
+
+    // If it's an ASCII file it begins with 'solid <something>' so we just
+    // check if the first 6 characters are 'solid'
+    char header[5];
+    is.read(header, 5);
+
+    if (strcmp(header, "solid") == 0) {
+      ft = Parser::FileType::ASCII;
+    }
+    else {
+      ft = Parser::FileType::Binary;
+    }
+  }
+  else {
+    std::cerr << "Parser::STL::getFileType -- could not open file '" + a_filename + "'\n";
+  }
+
+  return ft;
+}
+
+template <typename T>
+inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
+Parser::STL<T>::readSingle(const std::string a_filename) noexcept
+{
+  return ((Parser::STL<T>::readMulti(a_filename)).front()).first;
+}
+
+template <typename T>
+inline std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>>
+Parser::STL<T>::readMulti(const std::string a_filename) noexcept
+{
+  const Parser::FileType ft = Parser::STL<T>::getFileType(a_filename);
+
+  std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>> objectsDCEL;
+
+  switch (ft) {
+  case Parser::FileType::ASCII: {
+    objectsDCEL = Parser::STL<T>::readASCII(a_filename);
+
+    break;
+  }
+  case Parser::FileType::Binary: {
+    objectsDCEL = Parser::STL<T>::readBinary(a_filename);
+
+    std::cerr << "Parser::STL<T>::readMulti (possibly called through forwarding) - binary not supported\n";
+
+    break;
+  }
+  default: {
+    std::cerr << "Parser::STL<T>::readSingle - unknown STL file format\n";
+
+    break;
+  }
+  }
+
+  return objectsDCEL;
 }
 
 template <typename T>
@@ -273,7 +329,7 @@ Parser::STL<T>::readASCII(const std::string a_filename) noexcept
       sstream >> str;
 
       if (str == "solid") {
-        first == curLine;
+        first = curLine;
       }
       else if (str == "endsolid") {
         last = curLine;
@@ -366,6 +422,17 @@ Parser::STL<T>::readSTLSoupASCII(std::vector<Vec3>&                a_vertices,
 }
 
 template <typename T>
+inline std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>>
+Parser::STL<T>::readBinary(const std::string a_filename) noexcept
+{
+  std::vector<std::pair<std::shared_ptr<Mesh>, std::string>> objectsDCEL;
+
+  std::cerr << "Parser::STL::readBinary -- not supported (yet)\n";
+
+  return objectsDCEL;
+}
+
+template <typename T>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
 Parser::PLY<T>::readSingleASCII(const std::string a_filename) noexcept
 {
@@ -383,9 +450,6 @@ Parser::PLY<T>::readSingleASCII(Mesh& a_mesh, const std::string a_filename) noex
   std::ifstream filestream(a_filename);
 
   if (filestream.is_open()) {
-    size_t numVertices; // Number of vertices
-    size_t numFaces;    // Number of faces
-
     std::vector<Vec3>                vertices;
     std::vector<std::vector<size_t>> faces;
 

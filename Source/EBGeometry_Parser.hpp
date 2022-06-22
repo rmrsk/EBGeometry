@@ -34,9 +34,11 @@ namespace Parser {
   /*!
     @brief Simple enum for separating ASCII and binary files
   */
-  enum class FileType {
+  enum class FileType
+  {
     ASCII,
-    Binary
+    Binary,
+    Unknown
   };
 
   /*!
@@ -101,20 +103,43 @@ namespace Parser {
     using EdgeIterator = EBGeometry::DCEL::EdgeIteratorT<T>;
 
     /*!
-      @brief Build ASCII file. Use this one if you are sure your STL file only contains one object.
+      @brief Read a single STL object from the input file. The file can be binary or ASCII. 
+      If the STL file contains multiple solids, this routine returns the first one. 
       @param[in] a_filename STL file name. 
     */
     inline static std::shared_ptr<Mesh>
-    readSingleASCII(const std::string a_filename) noexcept;
+    readSingle(const std::string a_filename) noexcept;
 
     /*!
-      @brief ASCII reader for reading an STL file, possibly containing multiple objects. Each object becomes a DCEL mesh
+      @brief Read a single STL object from the input file. The file can be binary or ASCII. 
+      @param[in] a_filename STL file name. 
+    */
+    inline static std::vector<std::pair<std::shared_ptr<Mesh>, std::string>>
+    readMulti(const std::string a_filename) noexcept;
+
+  protected:
+    /*!
+      @brief Check if the input STLfile is an ASCII file or a binary
+      @param[in] a_filename File name
+      @return Returns FileType::ASCII or FileType::Binary,
+    */
+    inline static FileType
+    getFileType(const std::string a_filename) noexcept;
+
+    /*!
+      @brief ASCII reader STL files, possibly containing multiple objects. Each object becomes a DCEL mesh
       @param[in] a_filename Input filename
     */
     inline static std::vector<std::pair<std::shared_ptr<Mesh>, std::string>>
     readASCII(const std::string a_filename) noexcept;
 
-  protected:
+    /*!
+      @brief Binary reader for STL files, possibly containing multiple objects. Each object becomes a DCEL mesh
+      @param[in] a_filename Input filename
+    */
+    inline static std::vector<std::pair<std::shared_ptr<Mesh>, std::string>>
+    readBinary(const std::string a_filename) noexcept;
+
     /*!
       @brief Read an STL object as a triangle soup into a raw vertices and facets
       @param[out] a_vertices   Vertices
