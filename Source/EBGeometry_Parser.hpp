@@ -56,9 +56,9 @@ namespace Parser {
   */
   template <typename T>
   inline static void
-  soupToDCEL(EBGeometry::DCEL::MeshT<T>& a_mesh,
-             const std::vector<EBGeometry::Vec3T<T>>&     a_vertices,
-             const std::vector<std::vector<size_t>>&      a_facets);
+  soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
+             const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
+             const std::vector<std::vector<size_t>>&  a_facets);
 
   /*!
     @brief Reconcile pair edges, i.e. find the pair edge for every constructed
@@ -125,7 +125,6 @@ namespace Parser {
   class PLY
   {
   public:
-
     using Vec3         = EBGeometry::Vec3T<T>;
     using Vertex       = EBGeometry::DCEL::VertexT<T>;
     using Edge         = EBGeometry::DCEL::EdgeT<T>;
@@ -151,32 +150,16 @@ namespace Parser {
 
   protected:
     /*!
-      @brief Read an ASCII header
-      @details This reads the number of vertices and faces in the PLY file. Note
-      that it only reads the header.
-      @param[out]   a_numVertices Number of vertices
-      @param[out]   a_numFaces    Number of faces
-      @param[in,out] a_inputStream File stream. On output, the filestream is at the
-      end of the PLY header and is ready to read vertices/faces. 
-    */
-    inline static void
-    readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::ifstream& a_inputStream);
-
-    /*!
       @brief Read an ASCII PLY file into a triangle soup. 
       @details 
       @param[out]   a_vertices Raw vertices
-      @param[out]   a_faces Raw polygon faces
-      @param[inout] a_inputStream File stream. Must start on line right after head ends.
-      @param[in]    a_numVertices Number of vertices
-      @param[in]    a_numFaces    Number of faces. 
+      @param[out]   a_faces    Raw polygon faces
+      @param[in]    a_filename File name
     */
     inline static void
     readPLYSoupASCII(std::vector<Vec3>&                a_vertices,
                      std::vector<std::vector<size_t>>& a_faces,
-		     std::ifstream&                    a_inputStream,
-                     const size_t                      a_numVertices,
-                     const size_t                      a_numFacets);
+                     std::ifstream&                    a_fileStream);
   };
 } // namespace Parser
 

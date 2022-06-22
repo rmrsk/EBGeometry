@@ -120,9 +120,9 @@ Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std:
 
 template <typename T>
 inline void
-Parser::soupToDCEL(EBGeometry::DCEL::MeshT<T>& a_mesh,
-                   const std::vector<EBGeometry::Vec3T<T>>&     a_vertices,
-                   const std::vector<std::vector<size_t>>&      a_facets)
+Parser::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
+                   const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
+                   const std::vector<std::vector<size_t>>&  a_facets)
 {
 
   using Vec3   = EBGeometry::Vec3T<T>;
@@ -366,12 +366,10 @@ Parser::PLY<T>::readSingleASCII(Mesh& a_mesh, const std::string a_filename)
     size_t numVertices; // Number of vertices
     size_t numFaces;    // Number of faces
 
-    std::vector<Vec3> vertices;
-    std::vector<std::vector<size_t> > faces;
+    std::vector<Vec3>                vertices;
+    std::vector<std::vector<size_t>> faces;
 
-    // Soup and turn it into a proper DCEL grid. 
-    Parser::PLY<T>::readHeaderASCII(numVertices, numFaces, filestream);
-    Parser::PLY<T>::readPLYSoupASCII(vertices, faces, filestream, numVertices, numFaces);
+    Parser::PLY<T>::readPLYSoupASCII(vertices, faces, filestream);
     Parser::soupToDCEL(a_mesh, vertices, faces);
 
     filestream.close();
@@ -384,18 +382,31 @@ Parser::PLY<T>::readSingleASCII(Mesh& a_mesh, const std::string a_filename)
 
 template <typename T>
 inline void
-Parser::PLY<T>::readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::ifstream& a_inputStream)
+Parser::PLY<T>::readPLYSoupASCII(std::vector<EBGeometry::Vec3T<T>>& a_vertices,
+                                 std::vector<std::vector<size_t>>&  a_faces,
+                                 std::ifstream&                     a_inputStream)
 {
+  T x;
+  T y;
+  T z;
+
+  size_t numVertices;
+  size_t numFaces;
+  size_t numProcessed;
+  size_t numVertInPoly;
+
   std::string str1;
   std::string str2;
   std::string line;
+
+  std::vector<size_t> faceVertices;
 
   // Get number of vertices
   a_inputStream.clear();
   a_inputStream.seekg(0);
   while (std::getline(a_inputStream, line)) {
     std::stringstream sstream(line);
-    sstream >> str1 >> str2 >> a_numVertices;
+    sstream >> str1 >> str2 >> numVertices;
     if (str1 == "element" && str2 == "vertex") {
       break;
     }
@@ -406,13 +417,13 @@ Parser::PLY<T>::readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::
   a_inputStream.seekg(0);
   while (std::getline(a_inputStream, line)) {
     std::stringstream sstream(line);
-    sstream >> str1 >> str2 >> a_numFaces;
+    sstream >> str1 >> str2 >> numFaces;
     if (str1 == "element" && str2 == "face") {
       break;
     }
   }
 
-  // Find the line # containing "end_header" halt the input stream there
+  // Find the line # containing "end_header" and halt the input stream there
   a_inputStream.clear();
   a_inputStream.seekg(0);
   while (std::getline(a_inputStream, line)) {
@@ -422,44 +433,25 @@ Parser::PLY<T>::readHeaderASCII(size_t& a_numVertices, size_t& a_numFaces, std::
       break;
     }
   }
-}
 
-template <typename T>
-inline void
-Parser::PLY<T>::readPLYSoupASCII(std::vector<EBGeometry::Vec3T<T> >& a_vertices,
-				 std::vector<std::vector<size_t>>&   a_faces,
-				 std::ifstream&                      a_inputStream,
-				 const size_t                        a_numVertices,
-				 const size_t                        a_numFaces)
-{
-  T x;
-  T y;
-  T z;
-
-  size_t numProcessed;
-  size_t numVertInPoly;  
-
-  std::string line;  
-  
-  std::vector<size_t> faceVertices;
-
+  // Now read the vertices and faces.
   numProcessed = 0;
-  while(std::getline(a_inputStream, line)) {// && numProcessed < (a_numVertices + a_numFaces)) {
+  while (std::getline(a_inputStream, line)) { // && numProcessed < (a_numVertices + a_numFaces)) {
     std::stringstream ss(line);
 
-    if(numProcessed < a_numVertices) {
+    if (numProcessed < numVertices) {
       ss >> x >> y >> z;
 
-      a_vertices.emplace_back(EBGeometry::Vec3T<T>(x,y,z));
+      a_vertices.emplace_back(EBGeometry::Vec3T<T>(x, y, z));
     }
-    else{
+    else {
       ss >> numVertInPoly;
 
       faceVertices.resize(numVertInPoly);
       for (size_t i = 0; i < numVertInPoly; i++) {
-	ss >> faceVertices[i];
+        ss >> faceVertices[i];
       }
-    
+
       a_faces.emplace_back(faceVertices);
     }
 
