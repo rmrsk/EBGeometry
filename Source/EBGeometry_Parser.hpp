@@ -85,14 +85,21 @@ namespace Parser {
     using Edge         = EBGeometry::DCEL::EdgeT<T>;
     using Face         = EBGeometry::DCEL::FaceT<T>;
     using Mesh         = EBGeometry::DCEL::MeshT<T>;
-    using EdgeIterator = EBGeometry::DCEL::EdgeIteratorT<T>;      
+    using EdgeIterator = EBGeometry::DCEL::EdgeIteratorT<T>;
+
+    /*!
+      @brief Build ASCII file. Use this one if you are sure your STL file only contains one object.
+      @param[in] a_filename STL file name. 
+    */
+    inline static std::shared_ptr<Mesh>
+    readSingleASCII(const std::string a_filename) noexcept;
 
     /*!
       @brief ASCII reader for reading an STL file, possibly containing multiple objects. Each object becomes a DCEL mesh
       @param[in] a_filename Input filename
     */
     inline static std::vector<std::pair<std::shared_ptr<Mesh>, std::string>>
-    readASCII(const std::string a_filename);
+    readASCII(const std::string a_filename) noexcept;
 
   protected:
     /*!
@@ -106,11 +113,11 @@ namespace Parser {
     */
     inline static void
     readSTLSoupASCII(std::vector<Vec3>&                a_vertices,
-                          std::vector<std::vector<size_t>>& a_facets,
-                          std::string&                      a_objectName,
-                          const std::vector<std::string>&   a_fileContents,
-                          const size_t                      a_firstLine,
-                          const size_t                      a_lastLine);
+		     std::vector<std::vector<size_t>>& a_facets,
+		     std::string&                      a_objectName,
+		     const std::vector<std::string>&   a_fileContents,
+		     const size_t                      a_firstLine,
+		     const size_t                      a_lastLine);
 
 
   };

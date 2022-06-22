@@ -222,8 +222,17 @@ Parser::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::Edg
 }
 
 template <typename T>
+inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
+Parser::STL<T>::readSingleASCII(const std::string a_filename) noexcept {
+
+  auto allSTL = Parser::STL<T>::readASCII(a_filename);
+
+  return (allSTL.front()).first;
+}
+
+template <typename T>
 inline std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>>
-Parser::STL<T>::readASCII(const std::string a_filename)
+Parser::STL<T>::readASCII(const std::string a_filename) noexcept
 {
 
   std::vector<std::pair<std::shared_ptr<Mesh>, std::string>> objectsDCEL;
