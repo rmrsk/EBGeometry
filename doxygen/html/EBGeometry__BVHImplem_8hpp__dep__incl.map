@@ -1,6 +1,6 @@
-<map id="Source/EBGeometry_BVHImplem.hpp" name="Source/EBGeometry_BVHImplem.hpp">
-<area shape="rect" id="node1" title="Implementation of EBGeometry_BVH.hpp." alt="" coords="5,5,271,32"/>
-<area shape="rect" id="node2" href="$EBGeometry__BVH_8hpp.html" title="Declaration of a bounding volume hierarchy (BVH) class." alt="" coords="31,80,245,107"/>
-<area shape="rect" id="node3" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="73,244,203,271"/>
-<area shape="rect" id="node4" href="$EBGeometry__DCEL__BVH_8hpp.html" title="File which contains partitioners and lambdas for enclosing DCEL faces in bounding volume hierarchies." alt="" coords="109,155,303,196"/>
+<map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_BVHImplem.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_BVHImplem.hpp">
+<area shape="rect" id="node1" title="Implementation of EBGeometry_BVH.hpp." alt="" coords="5,5,248,61"/>
+<area shape="rect" id="node2" href="$EBGeometry__BVH_8hpp.html" title="Declaration of a bounding volume hierarchy (BVH) class." alt="" coords="5,109,248,165"/>
+<area shape="rect" id="node3" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="11,317,242,359"/>
+<area shape="rect" id="node4" href="$EBGeometry__DCEL__BVH_8hpp.html" title="File which contains partitioners and lambdas for enclosing DCEL faces in bounding volume hierarchies." alt="" coords="85,213,328,269"/>
 </map>

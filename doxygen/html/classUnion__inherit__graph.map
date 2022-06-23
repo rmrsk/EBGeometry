@@ -1,4 +1,4 @@
 <map id="Union&lt; T &gt;" name="Union&lt; T &gt;">
-<area shape="rect" id="node1" title="Distance function union. Computes the signed distance to the closest object of N non&#45;overlapping obje..." alt="" coords="64,80,163,107"/>
-<area shape="rect" id="node2" href="$classSignedDistanceFunction.html" title="Abstract representation of a signed distance function." alt="" coords="5,5,221,32"/>
+<area shape="rect" id="node1" title="CSG union. Computes the minimum of all input implicit functions. This is defined also when objects in..." alt="" coords="38,80,137,107"/>
+<area shape="rect" id="node2" href="$classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="5,5,169,32"/>
 </map>

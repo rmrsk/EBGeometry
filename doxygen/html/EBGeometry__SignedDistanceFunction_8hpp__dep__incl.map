@@ -1,10 +1,8 @@
-<map id="Source/EBGeometry_SignedDistanceFunction.hpp" name="Source/EBGeometry_SignedDistanceFunction.hpp">
-<area shape="rect" id="node1" title="Abstract base class for representing a signed distance function." alt="" coords="434,5,637,47"/>
-<area shape="rect" id="node2" href="$EBGeometry__AnalyticDistanceFunctions_8hpp.html" title="Declaration of various analytic distance functions." alt="" coords="5,95,217,136"/>
-<area shape="rect" id="node3" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="111,184,242,211"/>
-<area shape="rect" id="node4" href="$EBGeometry__SignedDistanceFunctionImplem_8hpp.html" title="Implementation of EBGeometry_SignedDistanceFunctionImplem.hpp." alt="" coords="819,95,1031,136"/>
-<area shape="rect" id="node5" href="$EBGeometry__Union_8hpp.html" title="Declaration of a union operator for creating multi&#45;object scenes." alt="" coords="291,102,516,129"/>
-<area shape="rect" id="node7" href="$EBGeometry__UnionBVH_8hpp.html" title="Declaration of a union operator for creating multi&#45;object scenes." alt="" coords="541,102,794,129"/>
-<area shape="rect" id="node6" href="$EBGeometry__UnionImplem_8hpp.html" title="Implementation of EBGeometry_Union.hpp." alt="" coords="266,184,541,211"/>
-<area shape="rect" id="node8" href="$EBGeometry__UnionBVHImplem_8hpp.html" title="Implementation of EBGeometry_UnionBVH.hpp." alt="" coords="565,184,868,211"/>
+<map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_SignedDistanceFunction.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_SignedDistanceFunction.hpp">
+<area shape="rect" id="node1" title="Abstract base class for representing a signed distance function." alt="" coords="333,5,576,61"/>
+<area shape="rect" id="node2" href="$EBGeometry__AnalyticDistanceFunctions_8hpp.html" title="Declaration of various analytic distance functions." alt="" coords="5,109,248,165"/>
+<area shape="rect" id="node3" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="170,221,401,262"/>
+<area shape="rect" id="node4" href="$EBGeometry__SignedDistanceFunctionImplem_8hpp.html" title="Implementation of EBGeometry_SignedDistanceFunctionImplem.hpp." alt="" coords="323,109,586,165"/>
+<area shape="rect" id="node5" href="$EBGeometry__UnionBVH_8hpp.html" title="Declaration of a union operator for creating multi&#45;object scenes." alt="" coords="611,109,853,165"/>
+<area shape="rect" id="node6" href="$EBGeometry__UnionBVHImplem_8hpp.html" title="Implementation of EBGeometry_UnionBVH.hpp." alt="" coords="611,213,853,269"/>
 </map>

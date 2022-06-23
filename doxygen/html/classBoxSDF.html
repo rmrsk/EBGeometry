@@ -80,8 +80,9 @@ Inheritance diagram for BoxSDF&lt; T &gt;:</div>
 <div class="dyncontent">
 <div class="center"><img src="classBoxSDF__inherit__graph.png" border="0" usemap="#BoxSDF_3_01T_01_4_inherit__map" alt="Inheritance graph"/></div>
 <map name="BoxSDF_3_01T_01_4_inherit__map" id="BoxSDF_3_01T_01_4_inherit__map">
-<area shape="rect" title="Signed distance field for an axis&#45;aligned box." alt="" coords="58,80,169,107"/>
-<area shape="rect" href="classSignedDistanceFunction.html" title="Abstract representation of a signed distance function." alt="" coords="5,5,221,32"/>
+<area shape="rect" title="Signed distance field for an axis&#45;aligned box." alt="" coords="58,155,169,181"/>
+<area shape="rect" href="classSignedDistanceFunction.html" title="Abstract representation of a signed distance function." alt="" coords="5,80,221,107"/>
+<area shape="rect" href="classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="31,5,195,32"/>
 </map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <div class="dynheader">
@@ -89,8 +90,9 @@ Collaboration diagram for BoxSDF&lt; T &gt;:</div>
 <div class="dyncontent">
 <div class="center"><img src="classBoxSDF__coll__graph.png" border="0" usemap="#BoxSDF_3_01T_01_4_coll__map" alt="Collaboration graph"/></div>
 <map name="BoxSDF_3_01T_01_4_coll__map" id="BoxSDF_3_01T_01_4_coll__map">
-<area shape="rect" title="Signed distance field for an axis&#45;aligned box." alt="" coords="58,80,169,107"/>
-<area shape="rect" href="classSignedDistanceFunction.html" title="Abstract representation of a signed distance function." alt="" coords="5,5,221,32"/>
+<area shape="rect" title="Signed distance field for an axis&#45;aligned box." alt="" coords="58,155,169,181"/>
+<area shape="rect" href="classSignedDistanceFunction.html" title="Abstract representation of a signed distance function." alt="" coords="5,80,221,107"/>
+<area shape="rect" href="classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="31,5,195,32"/>
 </map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
@@ -131,18 +133,30 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#ab47b289bd8351d7f323938c91b2bb92b">~SignedDistanceFunction</a> ()=default</td></tr>
 <tr class="memdesc:ab47b289bd8351d7f323938c91b2bb92b inherit pub_methods_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor (does nothing) <br /></td></tr>
 <tr class="separator:ab47b289bd8351d7f323938c91b2bb92b inherit pub_methods_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac385df0170333267b23b29be9c075808 inherit pub_methods_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top">virtual T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#ac385df0170333267b23b29be9c075808">value</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point) const noexcept override final</td></tr>
+<tr class="memdesc:ac385df0170333267b23b29be9c075808 inherit pub_methods_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Implementation of <a class="el" href="classImplicitFunction.html#a1c8f809231cdf88e0c53d47442b5d9af" title="Value function. Points are outside the object if value &gt; 0.0 and inside if value &lt; 0....">ImplicitFunction::value</a>.  <a href="classSignedDistanceFunction.html#ac385df0170333267b23b29be9c075808">More...</a><br /></td></tr>
+<tr class="separator:ac385df0170333267b23b29be9c075808 inherit pub_methods_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae9f55561cebcd7b2eafc1e2e3ae44027 inherit pub_methods_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#ae9f55561cebcd7b2eafc1e2e3ae44027">normal</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point, const T &amp;a_delta) const noexcept</td></tr>
 <tr class="memdesc:ae9f55561cebcd7b2eafc1e2e3ae44027 inherit pub_methods_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Signed distance normal vector.  <a href="classSignedDistanceFunction.html#ae9f55561cebcd7b2eafc1e2e3ae44027">More...</a><br /></td></tr>
 <tr class="separator:ae9f55561cebcd7b2eafc1e2e3ae44027 inherit pub_methods_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:add71ebc2e7f3fb5e85766898413482e7 inherit pub_methods_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#add71ebc2e7f3fb5e85766898413482e7">translate</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_translation) noexcept</td></tr>
-<tr class="memdesc:add71ebc2e7f3fb5e85766898413482e7 inherit pub_methods_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Translate signed distance function.  <a href="classSignedDistanceFunction.html#add71ebc2e7f3fb5e85766898413482e7">More...</a><br /></td></tr>
-<tr class="separator:add71ebc2e7f3fb5e85766898413482e7 inherit pub_methods_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:add9701b76af9db88e4e748ae9248c938 inherit pub_methods_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#add9701b76af9db88e4e748ae9248c938">rotate</a> (const T a_angle, const size_t a_axis) noexcept</td></tr>
-<tr class="memdesc:add9701b76af9db88e4e748ae9248c938 inherit pub_methods_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rotate the signed distance function around.  <a href="classSignedDistanceFunction.html#add9701b76af9db88e4e748ae9248c938">More...</a><br /></td></tr>
-<tr class="separator:add9701b76af9db88e4e748ae9248c938 inherit pub_methods_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af186f98f9ea4ac96fccb4add4ebf196d inherit pub_methods_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#af186f98f9ea4ac96fccb4add4ebf196d">transformPoint</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point) const noexcept</td></tr>
-<tr class="memdesc:af186f98f9ea4ac96fccb4add4ebf196d inherit pub_methods_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Apply transformation operators and move point.  <a href="classSignedDistanceFunction.html#af186f98f9ea4ac96fccb4add4ebf196d">More...</a><br /></td></tr>
-<tr class="separator:af186f98f9ea4ac96fccb4add4ebf196d inherit pub_methods_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_methods_classImplicitFunction"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classImplicitFunction')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classImplicitFunction.html">ImplicitFunction&lt; T &gt;</a></td></tr>
+<tr class="memitem:ad69597fb3ae5d6ef622b2201bf7ae012 inherit pub_methods_classImplicitFunction"><td class="memItemLeft" align="right" valign="top"><a id="ad69597fb3ae5d6ef622b2201bf7ae012"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classImplicitFunction.html#ad69597fb3ae5d6ef622b2201bf7ae012">ImplicitFunction</a> ()=default</td></tr>
+<tr class="memdesc:ad69597fb3ae5d6ef622b2201bf7ae012 inherit pub_methods_classImplicitFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Disallowed, use the full constructor. <br /></td></tr>
+<tr class="separator:ad69597fb3ae5d6ef622b2201bf7ae012 inherit pub_methods_classImplicitFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a27c37038d21db1c7535051a0b6b7c77a inherit pub_methods_classImplicitFunction"><td class="memItemLeft" align="right" valign="top"><a id="a27c37038d21db1c7535051a0b6b7c77a"></a>
+virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classImplicitFunction.html#a27c37038d21db1c7535051a0b6b7c77a">~ImplicitFunction</a> ()=default</td></tr>
+<tr class="memdesc:a27c37038d21db1c7535051a0b6b7c77a inherit pub_methods_classImplicitFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor (does nothing) <br /></td></tr>
+<tr class="separator:a27c37038d21db1c7535051a0b6b7c77a inherit pub_methods_classImplicitFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6c929b3ca9a30b22e5c505b12c0f18ca inherit pub_methods_classImplicitFunction"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classImplicitFunction.html#a6c929b3ca9a30b22e5c505b12c0f18ca">translate</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_translation) noexcept</td></tr>
+<tr class="memdesc:a6c929b3ca9a30b22e5c505b12c0f18ca inherit pub_methods_classImplicitFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Translate signed distance function.  <a href="classImplicitFunction.html#a6c929b3ca9a30b22e5c505b12c0f18ca">More...</a><br /></td></tr>
+<tr class="separator:a6c929b3ca9a30b22e5c505b12c0f18ca inherit pub_methods_classImplicitFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adfa14ca0bfef85c7517f84a5b5dc27a6 inherit pub_methods_classImplicitFunction"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classImplicitFunction.html#adfa14ca0bfef85c7517f84a5b5dc27a6">rotate</a> (const T a_angle, const size_t a_axis) noexcept</td></tr>
+<tr class="memdesc:adfa14ca0bfef85c7517f84a5b5dc27a6 inherit pub_methods_classImplicitFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rotate the signed distance function around.  <a href="classImplicitFunction.html#adfa14ca0bfef85c7517f84a5b5dc27a6">More...</a><br /></td></tr>
+<tr class="separator:adfa14ca0bfef85c7517f84a5b5dc27a6 inherit pub_methods_classImplicitFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa5d5899f07cd10fa0eb3d68c0267a3f9 inherit pub_methods_classImplicitFunction"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classImplicitFunction.html#aa5d5899f07cd10fa0eb3d68c0267a3f9">transformPoint</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point) const noexcept</td></tr>
+<tr class="memdesc:aa5d5899f07cd10fa0eb3d68c0267a3f9 inherit pub_methods_classImplicitFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Apply transformation operators and move point.  <a href="classImplicitFunction.html#aa5d5899f07cd10fa0eb3d68c0267a3f9">More...</a><br /></td></tr>
+<tr class="separator:aa5d5899f07cd10fa0eb3d68c0267a3f9 inherit pub_methods_classImplicitFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
@@ -158,11 +172,11 @@ Protected Attributes</h2></td></tr>
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBoxSDF.html#aac14b4352ba92c067f70884a99c934bf">m_flipInside</a></td></tr>
 <tr class="memdesc:aac14b4352ba92c067f70884a99c934bf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hook for making outside -&gt; inside. <br /></td></tr>
 <tr class="separator:aac14b4352ba92c067f70884a99c934bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="inherit_header pro_attribs_classSignedDistanceFunction"><td colspan="2" onclick="javascript:toggleInherit('pro_attribs_classSignedDistanceFunction')"><img src="closed.png" alt="-"/>&#160;Protected Attributes inherited from <a class="el" href="classSignedDistanceFunction.html">SignedDistanceFunction&lt; T &gt;</a></td></tr>
-<tr class="memitem:af61e5e2ece6add9d2bcf8e5aa8cf2844 inherit pro_attribs_classSignedDistanceFunction"><td class="memItemLeft" align="right" valign="top"><a id="af61e5e2ece6add9d2bcf8e5aa8cf2844"></a>
-std::deque&lt; std::shared_ptr&lt; <a class="el" href="classTransformOp.html">TransformOp</a>&lt; T &gt; &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSignedDistanceFunction.html#af61e5e2ece6add9d2bcf8e5aa8cf2844">m_transformOps</a></td></tr>
-<tr class="memdesc:af61e5e2ece6add9d2bcf8e5aa8cf2844 inherit pro_attribs_classSignedDistanceFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">List of transformation operators for the signed distance field. <br /></td></tr>
-<tr class="separator:af61e5e2ece6add9d2bcf8e5aa8cf2844 inherit pro_attribs_classSignedDistanceFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pro_attribs_classImplicitFunction"><td colspan="2" onclick="javascript:toggleInherit('pro_attribs_classImplicitFunction')"><img src="closed.png" alt="-"/>&#160;Protected Attributes inherited from <a class="el" href="classImplicitFunction.html">ImplicitFunction&lt; T &gt;</a></td></tr>
+<tr class="memitem:a9e7844c296e4ef4a18499ea22736e35d inherit pro_attribs_classImplicitFunction"><td class="memItemLeft" align="right" valign="top"><a id="a9e7844c296e4ef4a18499ea22736e35d"></a>
+std::deque&lt; std::shared_ptr&lt; <a class="el" href="classTransformOp.html">TransformOp</a>&lt; T &gt; &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classImplicitFunction.html#a9e7844c296e4ef4a18499ea22736e35d">m_transformOps</a></td></tr>
+<tr class="memdesc:a9e7844c296e4ef4a18499ea22736e35d inherit pro_attribs_classImplicitFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">List of transformation operators for the signed distance field. <br /></td></tr>
+<tr class="separator:a9e7844c296e4ef4a18499ea22736e35d inherit pro_attribs_classImplicitFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><h3>template&lt;class T&gt;<br />
@@ -384,7 +398,7 @@ template&lt;class T &gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>Source/<a class="el" href="EBGeometry__AnalyticDistanceFunctions_8hpp_source.html">EBGeometry_AnalyticDistanceFunctions.hpp</a></li>
+<li>/home/runner/work/EBGeometry/EBGeometry/Source/<a class="el" href="EBGeometry__AnalyticDistanceFunctions_8hpp_source.html">EBGeometry_AnalyticDistanceFunctions.hpp</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

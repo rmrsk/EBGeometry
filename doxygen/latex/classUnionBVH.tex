@@ -2,7 +2,7 @@
 \label{classUnionBVH}\index{UnionBVH$<$ T, BV, K $>$@{UnionBVH$<$ T, BV, K $>$}}
 
 
-Distance function union using B\+V\+Hs. Computes the signed distance to the closest object of N non-\/overlapping objects.  
+Distance function union using B\+V\+Hs. Computes the signed distance to the closest object of possibly overlapping S\+DF objects. If the S\+D\+Fs do not overlap then this object is also an S\+DF.  
 
 
 
@@ -16,7 +16,7 @@ Inheritance diagram for Union\+B\+VH$<$ T, BV, K $>$\+:
 \begin{figure}[H]
 \begin{center}
 \leavevmode
-\includegraphics[width=242pt]{classUnionBVH__inherit__graph}
+\includegraphics[width=207pt]{classUnionBVH__inherit__graph}
 \end{center}
 \end{figure}
 
@@ -26,7 +26,7 @@ Collaboration diagram for Union\+B\+VH$<$ T, BV, K $>$\+:
 \begin{figure}[H]
 \begin{center}
 \leavevmode
-\includegraphics[width=242pt]{classUnionBVH__coll__graph}
+\includegraphics[width=207pt]{classUnionBVH__coll__graph}
 \end{center}
 \end{figure}
 \doxysubsection*{Public Types}
@@ -53,7 +53,7 @@ void \mbox{\hyperlink{classUnionBVH_a97769f4c449610b681a70b93c99a40ca}{build\+Tr
 \mbox{\Hypertarget{classUnionBVH_aac0a1f16ad0a273e72c8bcd15b80f336}\label{classUnionBVH_aac0a1f16ad0a273e72c8bcd15b80f336}} 
 virtual \mbox{\hyperlink{classUnionBVH_aac0a1f16ad0a273e72c8bcd15b80f336}{$\sim$\+Union\+B\+VH}} ()=default
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classUnionBVH_a9681fdc161e2e077a33caaddb78fb4ba}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+T \mbox{\hyperlink{classUnionBVH_a8650a9c58619d81b0e841bf5fe0a096a}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
 \begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Types}
 \begin{DoxyCompactItemize}
@@ -64,8 +64,8 @@ using \mbox{\hyperlink{classUnionBVH_ac23ace50239fbe00130df2a7e42af995}{S\+D\+F\
 \mbox{\Hypertarget{classUnionBVH_a9fd434576440274a81c0251962d7ff7e}\label{classUnionBVH_a9fd434576440274a81c0251962d7ff7e}} 
 using \mbox{\hyperlink{classUnionBVH_a9fd434576440274a81c0251962d7ff7e}{Builder\+Node}} = E\+B\+Geometry\+::\+B\+V\+H\+::\+NodeT$<$ T, \mbox{\hyperlink{classUnionBVH_a5d1d64d7cabf1000fc1a804d06e103cc}{S\+DF}}, BV, K $>$
 \begin{DoxyCompactList}\small\item\em Builder node type in \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree. Tree is constructed in \char`\"{}full\char`\"{}. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classUnionBVH_a25cac5a9dc5396299f06399434ebe212}\label{classUnionBVH_a25cac5a9dc5396299f06399434ebe212}} 
-using \mbox{\hyperlink{classUnionBVH_a25cac5a9dc5396299f06399434ebe212}{Linear\+Node}} = E\+B\+Geometry\+::\+B\+V\+H\+::\+Linear\+B\+VH$<$ T, \mbox{\hyperlink{classUnionBVH_a5d1d64d7cabf1000fc1a804d06e103cc}{S\+DF}}, BV, K $>$
+\mbox{\Hypertarget{classUnionBVH_a2f18101d78a3ec542dbf644a546c3b4b}\label{classUnionBVH_a2f18101d78a3ec542dbf644a546c3b4b}} 
+using \mbox{\hyperlink{classUnionBVH_a2f18101d78a3ec542dbf644a546c3b4b}{Root\+Node}} = E\+B\+Geometry\+::\+B\+V\+H\+::\+Linear\+B\+VH$<$ T, \mbox{\hyperlink{classUnionBVH_a5d1d64d7cabf1000fc1a804d06e103cc}{S\+DF}}, BV, K $>$
 \begin{DoxyCompactList}\small\item\em Node type in \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree. We use a flattened tree. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
@@ -73,8 +73,8 @@ using \mbox{\hyperlink{classUnionBVH_a25cac5a9dc5396299f06399434ebe212}{Linear\+
 \mbox{\Hypertarget{classUnionBVH_a026a103a13d0b04bedb6dabd50e4da69}\label{classUnionBVH_a026a103a13d0b04bedb6dabd50e4da69}} 
 std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classUnionBVH_a5d1d64d7cabf1000fc1a804d06e103cc}{S\+DF}} $>$ $>$ \mbox{\hyperlink{classUnionBVH_a026a103a13d0b04bedb6dabd50e4da69}{m\+\_\+distance\+Functions}}
 \begin{DoxyCompactList}\small\item\em List of distance functions. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classUnionBVH_ad59be4f96e0f020c28f4677dcb94a004}\label{classUnionBVH_ad59be4f96e0f020c28f4677dcb94a004}} 
-std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classUnionBVH_a25cac5a9dc5396299f06399434ebe212}{Linear\+Node}} $>$ \mbox{\hyperlink{classUnionBVH_ad59be4f96e0f020c28f4677dcb94a004}{m\+\_\+root\+Node}}
+\mbox{\Hypertarget{classUnionBVH_a8933bf862c84439d82c375e2a5a9c469}\label{classUnionBVH_a8933bf862c84439d82c375e2a5a9c469}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classUnionBVH_a2f18101d78a3ec542dbf644a546c3b4b}{Root\+Node}} $>$ \mbox{\hyperlink{classUnionBVH_a8933bf862c84439d82c375e2a5a9c469}{m\+\_\+root\+Node}}
 \begin{DoxyCompactList}\small\item\em Root node for \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classUnionBVH_a2c3a008bd61f225a83c959f2280b9649}\label{classUnionBVH_a2c3a008bd61f225a83c959f2280b9649}} 
 bool \mbox{\hyperlink{classUnionBVH_a2c3a008bd61f225a83c959f2280b9649}{m\+\_\+is\+Good}}
@@ -88,12 +88,7 @@ bool \mbox{\hyperlink{classUnionBVH_a0782d93bd0a7bff7580a99e6fef285c7}{m\+\_\+fl
 \subsubsection*{template$<$class T, class BV, size\+\_\+t K$>$\newline
 class Union\+B\+V\+H$<$ T, B\+V, K $>$}
 
-Distance function union using B\+V\+Hs. Computes the signed distance to the closest object of N non-\/overlapping objects. 
-
-\begin{DoxyNote}{Note}
-This class only makes sense if the object do not overlap. 
-\end{DoxyNote}
-
+Distance function union using B\+V\+Hs. Computes the signed distance to the closest object of possibly overlapping S\+DF objects. If the S\+D\+Fs do not overlap then this object is also an S\+DF. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
 \mbox{\Hypertarget{classUnionBVH_ab56dd603f45f3908be3386fd295d9ffc}\label{classUnionBVH_ab56dd603f45f3908be3386fd295d9ffc}} 
@@ -153,12 +148,12 @@ Build \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree for the input objects. User mu
 \mbox{\texttt{ in}}  & {\em a\+\_\+bv\+Constructor} & Constructor for building a bounding volume that encloses an object. \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classUnionBVH_a9681fdc161e2e077a33caaddb78fb4ba}\label{classUnionBVH_a9681fdc161e2e077a33caaddb78fb4ba}} 
-\index{UnionBVH$<$ T, BV, K $>$@{UnionBVH$<$ T, BV, K $>$}!signedDistance@{signedDistance}}
-\index{signedDistance@{signedDistance}!UnionBVH$<$ T, BV, K $>$@{UnionBVH$<$ T, BV, K $>$}}
-\doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
+\mbox{\Hypertarget{classUnionBVH_a8650a9c58619d81b0e841bf5fe0a096a}\label{classUnionBVH_a8650a9c58619d81b0e841bf5fe0a096a}} 
+\index{UnionBVH$<$ T, BV, K $>$@{UnionBVH$<$ T, BV, K $>$}!value@{value}}
+\index{value@{value}!UnionBVH$<$ T, BV, K $>$@{UnionBVH$<$ T, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{value()}{value()}}
 {\footnotesize\ttfamily template$<$class T , class BV , size\+\_\+t K$>$ \\
-T \mbox{\hyperlink{classUnionBVH}{Union\+B\+VH}}$<$ T, BV, K $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+T \mbox{\hyperlink{classUnionBVH}{Union\+B\+VH}}$<$ T, BV, K $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
 
 
 
@@ -171,11 +166,11 @@ Value function.
 \end{DoxyParams}
 
 
-Implements \mbox{\hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{Signed\+Distance\+Function$<$ T $>$}}.
+Implements \mbox{\hyperlink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function$<$ T $>$}}.
 
 
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 
-Source/\mbox{\hyperlink{EBGeometry__UnionBVH_8hpp}{E\+B\+Geometry\+\_\+\+Union\+B\+V\+H.\+hpp}}\item 
-Source/\mbox{\hyperlink{EBGeometry__UnionBVHImplem_8hpp}{E\+B\+Geometry\+\_\+\+Union\+B\+V\+H\+Implem.\+hpp}}\end{DoxyCompactItemize}
+/home/runner/work/\+E\+B\+Geometry/\+E\+B\+Geometry/\+Source/\mbox{\hyperlink{EBGeometry__UnionBVH_8hpp}{E\+B\+Geometry\+\_\+\+Union\+B\+V\+H.\+hpp}}\item 
+/home/runner/work/\+E\+B\+Geometry/\+E\+B\+Geometry/\+Source/\mbox{\hyperlink{EBGeometry__UnionBVHImplem_8hpp}{E\+B\+Geometry\+\_\+\+Union\+B\+V\+H\+Implem.\+hpp}}\end{DoxyCompactItemize}

@@ -151,7 +151,7 @@
   <span class="n">ChomboSDF</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">a_filename</span><span class="p">)</span>
   <span class="p">{</span>
     <span class="c1">// 1. Read mesh from file.</span>
-    <span class="k">auto</span> <span class="n">mesh</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">PLY</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">readIntoDCEL</span><span class="p">(</span><span class="n">a_filename</span><span class="p">);</span>
+    <span class="k">auto</span> <span class="n">mesh</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">read</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">a_filename</span><span class="p">);</span>
 
     <span class="c1">// 2. Create standard BVH hierarchy. This is not a compact tree.</span>
     <span class="k">auto</span> <span class="n">root</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">BuilderNode</span><span class="o">&gt;</span><span class="p">(</span><span class="n">mesh</span><span class="o">-&gt;</span><span class="n">getFaces</span><span class="p">());</span>
@@ -219,43 +219,43 @@
     <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">50</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
     <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">250</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
 
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../PLY/airfoil.ply&quot;</span><span class="p">;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/airfoil.ply&quot;</span><span class="p">;</span>
   <span class="p">}</span>
   <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Sphere</span>
     <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">400</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
     <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">400</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
 
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../PLY/sphere.ply&quot;</span><span class="p">;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/sphere.ply&quot;</span><span class="p">;</span>
   <span class="p">}</span>
   <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Dodecahedron</span>
     <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
     <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
 
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../PLY/dodecahedron.ply&quot;</span><span class="p">;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/dodecahedron.ply&quot;</span><span class="p">;</span>
   <span class="p">}</span>
   <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Horse</span>
     <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.12</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
     <span class="n">hiCorner</span> <span class="o">=</span> <span class="mf">0.12</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
 
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../PLY/horse.ply&quot;</span><span class="p">;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/horse.ply&quot;</span><span class="p">;</span>
   <span class="p">}</span>
   <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Porsche</span>
     <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">10</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
     <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
 
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../PLY/porsche.ply&quot;</span><span class="p">;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/porsche.ply&quot;</span><span class="p">;</span>
   <span class="p">}</span>
   <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">5</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Orion</span>
     <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">10</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
     <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
 
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../PLY/orion.ply&quot;</span><span class="p">;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/orion.ply&quot;</span><span class="p">;</span>
   <span class="p">}</span>
   <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">6</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Armadillo</span>
     <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">125</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
     <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">125</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
 
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../PLY/armadillo.ply&quot;</span><span class="p">;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/armadillo.ply&quot;</span><span class="p">;</span>
   <span class="p">}</span>
 
   <span class="c1">//</span>

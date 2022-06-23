@@ -1,4 +1,5 @@
 <map id="BoxSDF&lt; T &gt;" name="BoxSDF&lt; T &gt;">
-<area shape="rect" id="node1" title="Signed distance field for an axis&#45;aligned box." alt="" coords="58,80,169,107"/>
-<area shape="rect" id="node2" href="$classSignedDistanceFunction.html" title="Abstract representation of a signed distance function." alt="" coords="5,5,221,32"/>
+<area shape="rect" id="node1" title="Signed distance field for an axis&#45;aligned box." alt="" coords="58,155,169,181"/>
+<area shape="rect" id="node2" href="$classSignedDistanceFunction.html" title="Abstract representation of a signed distance function." alt="" coords="5,80,221,107"/>
+<area shape="rect" id="node3" href="$classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="31,5,195,32"/>
 </map>

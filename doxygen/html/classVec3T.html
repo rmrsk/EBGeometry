@@ -93,6 +93,9 @@ Public Member Functions</h2></td></tr>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVec3T.html#a505fc5de8e213d1fc8e0df5f3b7a3dc7">~Vec3T</a> ()=default</td></tr>
 <tr class="memdesc:a505fc5de8e213d1fc8e0df5f3b7a3dc7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor (does nothing) <br /></td></tr>
 <tr class="separator:a505fc5de8e213d1fc8e0df5f3b7a3dc7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2fc848118eb9b2a298ce1afbc044ed79"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVec3T.html#a2fc848118eb9b2a298ce1afbc044ed79">lessLX</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;u) const noexcept</td></tr>
+<tr class="memdesc:a2fc848118eb9b2a298ce1afbc044ed79"><td class="mdescLeft">&#160;</td><td class="mdescRight">Lexicographical comparison operator. This returns to true.  <a href="classVec3T.html#a2fc848118eb9b2a298ce1afbc044ed79">More...</a><br /></td></tr>
+<tr class="separator:a2fc848118eb9b2a298ce1afbc044ed79"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a76d9ddf4dc672b6867f4d1c3b7d673f2"><td class="memItemLeft" align="right" valign="top">T &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVec3T.html#a76d9ddf4dc672b6867f4d1c3b7d673f2">operator[]</a> (size_t i) noexcept</td></tr>
 <tr class="memdesc:a76d9ddf4dc672b6867f4d1c3b7d673f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return component in vector. (i=0 =&gt; x and so on)  <a href="classVec3T.html#a76d9ddf4dc672b6867f4d1c3b7d673f2">More...</a><br /></td></tr>
 <tr class="separator:a76d9ddf4dc672b6867f4d1c3b7d673f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -102,6 +105,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a715546682c26647643148a80087c4ab4"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVec3T.html#a715546682c26647643148a80087c4ab4">operator==</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;u) const noexcept</td></tr>
 <tr class="memdesc:a715546682c26647643148a80087c4ab4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Comparison operator. Returns true if all components are the same.  <a href="classVec3T.html#a715546682c26647643148a80087c4ab4">More...</a><br /></td></tr>
 <tr class="separator:a715546682c26647643148a80087c4ab4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7185f11d8225731885eb7a4d117c0b05"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVec3T.html#a7185f11d8225731885eb7a4d117c0b05">operator!=</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;u) const noexcept</td></tr>
+<tr class="memdesc:a7185f11d8225731885eb7a4d117c0b05"><td class="mdescLeft">&#160;</td><td class="mdescRight">Comparison operator. Returns false if all components are the same.  <a href="classVec3T.html#a7185f11d8225731885eb7a4d117c0b05">More...</a><br /></td></tr>
+<tr class="separator:a7185f11d8225731885eb7a4d117c0b05"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aba830919c5020bb060f39fe9df6b7ca1"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVec3T.html#aba830919c5020bb060f39fe9df6b7ca1">operator&lt;</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;u) const noexcept</td></tr>
 <tr class="memdesc:aba830919c5020bb060f39fe9df6b7ca1"><td class="mdescLeft">&#160;</td><td class="mdescRight">"Smaller than" operator.  <a href="classVec3T.html#aba830919c5020bb060f39fe9df6b7ca1">More...</a><br /></td></tr>
 <tr class="separator:aba830919c5020bb060f39fe9df6b7ca1"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -210,7 +216,7 @@ T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVe
 <tr class="separator:a0643a9f9a68edf5d4656f2e613c9624f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><h3>template&lt;class T&gt;<br />
+<div class="textblock"><h3>template&lt;typename T&gt;<br />
 class Vec3T&lt; T &gt;</h3>
 
 <p>Three-dimensional vector class with arithmetic operators. </p>
@@ -222,7 +228,7 @@ class Vec3T&lt; T &gt;</h3>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -259,7 +265,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -315,7 +321,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -352,7 +358,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -389,7 +395,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -416,7 +422,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -437,13 +443,49 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
+<a id="a2fc848118eb9b2a298ce1afbc044ed79"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2fc848118eb9b2a298ce1afbc044ed79">&#9670;&nbsp;</a></span>lessLX()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;::lessLX </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;&#160;</td>
+          <td class="paramname"><em>u</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Lexicographical comparison operator. This returns to true. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">u</td><td>Other vector. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="ac126bbdaeff79e475327887bfa8aa62c"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac126bbdaeff79e475327887bfa8aa62c">&#9670;&nbsp;</a></span>max()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -480,7 +522,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -517,7 +559,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -554,7 +596,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -585,13 +627,49 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
+<a id="a7185f11d8225731885eb7a4d117c0b05"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7185f11d8225731885eb7a4d117c0b05">&#9670;&nbsp;</a></span>operator!=()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;::operator!= </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;&#160;</td>
+          <td class="paramname"><em>u</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Comparison operator. Returns false if all components are the same. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">u</td><td>Other vector </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="aa4768276707889db34a716e9e476b9f1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aa4768276707889db34a716e9e476b9f1">&#9670;&nbsp;</a></span>operator*() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -628,7 +706,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -665,7 +743,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -702,7 +780,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -739,7 +817,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -776,7 +854,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -813,7 +891,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -850,7 +928,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -887,7 +965,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -924,7 +1002,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -961,7 +1039,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -997,7 +1075,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -1033,7 +1111,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -1069,7 +1147,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -1105,7 +1183,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -1141,7 +1219,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -1177,7 +1255,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -1213,7 +1291,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -1249,7 +1327,7 @@ template&lt;class T &gt; </div>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;typename T &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -1280,8 +1358,8 @@ template&lt;class T &gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>Source/<a class="el" href="EBGeometry__Vec_8hpp_source.html">EBGeometry_Vec.hpp</a></li>
-<li>Source/<a class="el" href="EBGeometry__VecImplem_8hpp_source.html">EBGeometry_VecImplem.hpp</a></li>
+<li>/home/runner/work/EBGeometry/EBGeometry/Source/<a class="el" href="EBGeometry__Vec_8hpp_source.html">EBGeometry_Vec.hpp</a></li>
+<li>/home/runner/work/EBGeometry/EBGeometry/Source/<a class="el" href="EBGeometry__VecImplem_8hpp_source.html">EBGeometry_VecImplem.hpp</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

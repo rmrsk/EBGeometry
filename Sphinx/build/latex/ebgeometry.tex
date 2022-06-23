@@ -61,7 +61,7 @@
 
 
 \title{EBGeometry}
-\date{Jun 21, 2022}
+\date{Jun 23, 2022}
 \release{1.0}
 \author{Robert Marskar}
 \newcommand{\sphinxlogo}{\vbox{}}
@@ -1998,7 +1998,7 @@ We will focus on the following parts of the code:
   \PYG{c+c1}{// Parse the mesh from file. One can call the signed distance function}
   \PYG{c+c1}{// directly on the mesh, but it will iterate through every facet.}
   \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{cout} \PYG{o}{\PYGZlt{}}\PYG{o}{\PYGZlt{}} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{Parsing input file}\PYG{l+s+se}{\PYGZbs{}n}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{MeshT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{directSDF} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{PLY}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{readIntoDCEL}\PYG{p}{(}\PYG{n}{file}\PYG{p}{)}\PYG{p}{;}
+  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{MeshT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{directSDF} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{read}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{file}\PYG{p}{)}\PYG{p}{;}
   \PYG{c+c1}{// Create a bounding\PYGZhy{}volume hierarchy of the same mesh type. We begin by}
   \PYG{c+c1}{// create the root node and supplying all the mesh faces to it. Here, our}
   \PYG{c+c1}{// bounding volume hierarchy bounds the facets in a binary tree.}
@@ -2298,7 +2298,7 @@ We will focus on the following parts of the code:
       \PYG{p}{\PYGZob{}}
 
         \PYG{c+c1}{// 1. Read mesh from file.}
-        \PYG{k}{auto} \PYG{n}{mesh} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{PLY}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{readIntoDCEL}\PYG{p}{(}\PYG{n}{a\PYGZus{}filename}\PYG{p}{)}\PYG{p}{;}
+        \PYG{k}{auto} \PYG{n}{mesh} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{read}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{a\PYGZus{}filename}\PYG{p}{)}\PYG{p}{;}
 
         \PYG{c+c1}{// 2. Create a standard BVH hierarchy. This is not a compact ree.}
         \PYG{k}{auto} \PYG{n}{root} \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{make\PYGZus{}shared}\PYG{o}{\PYGZlt{}}\PYG{n}{BuilderNode}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{mesh}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{getFaces}\PYG{p}{(}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
@@ -2376,32 +2376,32 @@ We will focus on the following parts of the code:
 
     \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{0}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Airfoil case}
       \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{75}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{l+m+mi}{100}\PYG{p}{,} \PYG{l+m+mi}{125}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../PLY/airfoil.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/airfoil.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
     \PYG{p}{\PYGZcb{}}
     \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{1}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Sphere case}
       \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{400}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{l+m+mi}{400}\PYG{p}{,} \PYG{l+m+mi}{400}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../PLY/sphere.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/sphere.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
     \PYG{p}{\PYGZcb{}}
     \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{2}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Dodecahedron}
       \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2.}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{l+m+mf}{2.}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../PLY/dodecahedron.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/dodecahedron.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
     \PYG{p}{\PYGZcb{}}
     \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{3}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Horse}
       \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{0.12}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{l+m+mf}{0.12}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../PLY/horse.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/horse.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
     \PYG{p}{\PYGZcb{}}
     \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{4}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Car}
       \PYG{c+c1}{//	    rb = RealBox(\PYGZob{}\PYGZhy{}20,\PYGZhy{}20,\PYGZhy{}20\PYGZcb{}, \PYGZob{}20,20,20\PYGZcb{}); // Doesn\PYGZsq{}t work.}
       \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{5}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{5}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{l+m+mi}{5}\PYG{p}{,} \PYG{l+m+mi}{5}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;} \PYG{c+c1}{// Works.}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../PLY/porsche.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/porsche.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
     \PYG{p}{\PYGZcb{}}
     \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{5}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Orion}
       \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{5}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{l+m+mi}{10}\PYG{p}{,} \PYG{l+m+mi}{10}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../PLY/orion.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/orion.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
     \PYG{p}{\PYGZcb{}}
     \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{6}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Armadillo}
       \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{75}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{l+m+mi}{125}\PYG{p}{,} \PYG{l+m+mi}{100}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../PLY/armadillo.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/armadillo.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
     \PYG{p}{\PYGZcb{}}
 
     \PYG{n}{Array}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{int}\PYG{p}{,} \PYG{n}{AMREX\PYGZus{}SPACEDIM}\PYG{o}{\PYGZgt{}} \PYG{n}{is\PYGZus{}periodic}\PYG{p}{\PYGZob{}}\PYG{n+nb}{false}\PYG{p}{,} \PYG{n+nb}{false}\PYG{p}{,} \PYG{n+nb}{false}\PYG{p}{\PYGZcb{}}\PYG{p}{;}
@@ -2534,7 +2534,7 @@ We will focus on the following parts of the code:
   \PYG{n}{ChomboSDF}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{string} \PYG{n}{a\PYGZus{}filename}\PYG{p}{)}
   \PYG{p}{\PYGZob{}}
     \PYG{c+c1}{// 1. Read mesh from file.}
-    \PYG{k}{auto} \PYG{n}{mesh} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{PLY}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{readIntoDCEL}\PYG{p}{(}\PYG{n}{a\PYGZus{}filename}\PYG{p}{)}\PYG{p}{;}
+    \PYG{k}{auto} \PYG{n}{mesh} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{read}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{a\PYGZus{}filename}\PYG{p}{)}\PYG{p}{;}
 
     \PYG{c+c1}{// 2. Create standard BVH hierarchy. This is not a compact tree.}
     \PYG{k}{auto} \PYG{n}{root} \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{make\PYGZus{}shared}\PYG{o}{\PYGZlt{}}\PYG{n}{BuilderNode}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{mesh}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{getFaces}\PYG{p}{(}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
@@ -2602,43 +2602,43 @@ We will focus on the following parts of the code:
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{50} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{250} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../PLY/airfoil.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/airfoil.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{1}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Sphere}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{400} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{400} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../PLY/sphere.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/sphere.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{2}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Dodecahedron}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{2} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{2} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../PLY/dodecahedron.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/dodecahedron.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{3}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Horse}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{0.12} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mf}{0.12} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../PLY/horse.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/horse.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{4}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Porsche}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{10} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../PLY/porsche.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/porsche.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{5}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Orion}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{10} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../PLY/orion.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/orion.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{6}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Armadillo}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{125} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{125} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../PLY/armadillo.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/armadillo.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
 
   \PYG{c+c1}{//}

@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['searchalgorithm_687',['SearchAlgorithm',['../classDCEL_1_1MeshT.html#a2c124d7a678adb956790418f3dd237e9',1,'DCEL::MeshT']]]
+  ['insideoutsidealgorithm_725',['InsideOutsideAlgorithm',['../classPolygon2D.html#a1fbebae900d177089d0233412d282600',1,'Polygon2D']]],
+  ['iterationmode_726',['IterationMode',['../classDCEL_1_1EdgeIteratorT.html#a34c0a8ea1a1c0e87f0a37a84616c4d3c',1,'DCEL::EdgeIteratorT']]]
 ];

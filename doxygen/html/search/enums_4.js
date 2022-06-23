@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['vertexnormalweight_688',['VertexNormalWeight',['../classDCEL_1_1MeshT.html#a4548120cb514e736ae4cd8c13b418e91',1,'DCEL::MeshT']]]
+  ['prune_727',['Prune',['../namespaceBVH.html#a3ddb7b34ac1deb3baed2f32d9eacbe5b',1,'BVH']]]
 ];

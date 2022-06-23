@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['prune_686',['Prune',['../namespaceBVH.html#a3ddb7b34ac1deb3baed2f32d9eacbe5b',1,'BVH']]]
+  ['filetype_724',['FileType',['../namespaceParser.html#a8fc8b809825e25aef6d1cc003b88b60f',1,'Parser']]]
 ];

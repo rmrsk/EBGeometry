@@ -1,48 +1,128 @@
-\doxysection*{Doxygen documentation}
+\mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} is a code for\+:
 
-To build the doxygen documentation locally, run
+
+\begin{DoxyEnumerate}
+\item Computing signed distance functions to watertight and orientable surface grids.
+\item Enabling fast distance and implicit functions with bounding volume hierarchies.
+\end{DoxyEnumerate}
+
+This code was originally written to be used with embedded-\/boundary (EB) codes like Chombo or A\+M\+ReX.
+
+Tesselations must consist of planar polygons (not necessarily triangles). Internally, the surface mesh is stored in a doubly-\/connected edge list (\mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}}), i.\+e. a half-\/edge data structure. On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can be computed in various ways\+:
+
+
+\begin{DoxyItemize}
+\item Directly, by iterating through all facets.
+\item With conventional bounding volume hierarchies (B\+V\+Hs).
+\item With compact (linearized) B\+V\+Hs.
+\end{DoxyItemize}
+
+The B\+V\+Hs in \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} are not limited to facets. One can also embed entire objects (e.\+g., analytic functions) in the B\+V\+Hs, e.\+g. the \mbox{\hyperlink{namespaceBVH}{B\+VH}} accelerator can be used to accelerate the signed distance computation when geometries contain many objects. Once can also use the \mbox{\hyperlink{namespaceBVH}{B\+VH}} accelerator to accelate constructive solid geometry (C\+SG) operations like unions. B\+V\+Hs can also be nested so that the \mbox{\hyperlink{namespaceBVH}{B\+VH}} accelerator is used to embed signed distance objects that are themselves described by a \mbox{\hyperlink{namespaceBVH}{B\+VH}}. For example, a scene consisting of many objects described by surface grids can be embedded as a B\+V\+H-\/of-\/\+B\+VH type of scene. In addition to all of this, \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} provides standard operators for signed distance fields like rotations, translations, and scalings.
+
+
+
+\doxysection*{Requirements }
+
+
+\begin{DoxyItemize}
+\item A C++ compiler which supports C++14.
+\end{DoxyItemize}
+
+\doxysection*{Documentation }
+
+User documentation is available as \href{https://rmrsk.github.io/EBGeometry/}{\texttt{ H\+T\+ML}} or as a \href{https://github.com/rmrsk/EBGeometry/raw/gh-pages/ebgeometry.pdf}{\texttt{ P\+DF}}. A doxygen-\/generated A\+PI is \href{https://rmrsk.github.io/EBGeometry/doxygen/html/index.html}{\texttt{ also available}}.
+
+\doxysection*{Basic usage }
+
+\mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} is a header-\/only library in C++. To use it, simply make \mbox{\hyperlink{EBGeometry_8hpp_source}{E\+B\+Geometry.\+hpp}} visible to your code and include it.
+
+To clone \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}}\+: \begin{DoxyVerb}git clone git@github.com:rmrsk/EBGeometry.git
+\end{DoxyVerb}
+
+
+Various examples are given in the Examples folder. To run one of the examples, navigate to the example and compile and run it. E.\+g.,
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{doxygen doxyfile}
+\DoxyCodeLine{cd Examples/EBGeometry\_DCEL}
+\DoxyCodeLine{g++ -\/O3 -\/std=c++14 main.cpp}
+\DoxyCodeLine{./a.out porsche.ply}
 \end{DoxyCode}
 
 
-in this folder. This will install the doxygen documentation in the {\ttfamily doxygen} subfolder.
+More complex examples that use Chombo or A\+M\+ReX will also include application-\/specific code.
 
-\doxysection*{Manual build}
+\doxysection*{Advanced usage }
 
-We use Sphinx with re\+Structured text for building the user documentation. To build the documentation locally, navigate to the Sphinx subfolder and run
+For more advanced usage, users can supply their own file parsers (P\+LY and S\+TL files are currently supported), provide their own bounding volumes, or their own \mbox{\hyperlink{namespaceBVH}{B\+VH}} partitioners. \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} is not too strict about these things, and uses rigorous templating for ensuring that the \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} functionality can be extended.
+
+\doxysection*{Contributing }
+
+
+\begin{DoxyEnumerate}
+\item Create a branch for the new feature.
+\end{DoxyEnumerate}
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{cd Sphinx}
-\DoxyCodeLine{make html}
+\DoxyCodeLine{git checkout main}
+\DoxyCodeLine{git pull}
+\DoxyCodeLine{git checkout -\/b my\_branch}
 \end{DoxyCode}
 
 
-for the H\+T\+ML documentation and
+
+\begin{DoxyEnumerate}
+\item Develop the feature.
+\end{DoxyEnumerate}
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{cd Sphinx}
-\DoxyCodeLine{make latexpdf}
+\DoxyCodeLine{git add .}
+\DoxyCodeLine{git commit -\/m "my commit message"}
 \end{DoxyCode}
 
 
-for the La\+Te\+X/\+P\+DF documentation.
+If relevant, add Sphinx and doxygen documentation.
 
-Source files will end up in {\ttfamily Sphinx/build/html} and {\ttfamily Sphinx/build/latex}, respectively.
 
-\doxysection*{Adding Sphinx changes.}
-
-To add changes to the Sphinx documentation, make the changes in the relevant Sphinx/source files. To build the documentation, either build it locally as above or put Sphinx in auto-\/build mode\+:
+\begin{DoxyEnumerate}
+\item Format the source and example codes using {\ttfamily clang-\/format}\+:
+\end{DoxyEnumerate}
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{cd Sphinx}
-\DoxyCodeLine{sphinx-\/autobuild source/ build/html}
+\DoxyCodeLine{find Source Examples \(\backslash\)( -\/name "*.hpp" -\/o -\/name "*.cpp" \(\backslash\)) -\/exec clang-\/format -\/i \{\} +}
 \end{DoxyCode}
 
 
-This will start a server at \href{http://127.0.0.1:8000}{\texttt{ http\+://127.\+0.\+0.\+1\+:8000}} and start watching for changes in the {\ttfamily source} directory. When a change is detected, the documentation is rebuilt and any open browser windows are reloaded automatically. {\ttfamily Keyboard\+Interrupt} ({\ttfamily ctrl}+{\ttfamily c}) will stop the server. 
+
+\begin{DoxyEnumerate}
+\item For safety, run \href{https://github.com/codespell-project/codespell}{\texttt{ codespell}} on the source, examples, and documentation directories\+:
+\end{DoxyEnumerate}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{codespell Source Examples Docs/Sphinx -\/-\/skip "*.png,*.log,*.pdf"}
+\end{DoxyCode}
+
+
+
+\begin{DoxyEnumerate}
+\item Push the changes to Git\+Hub
+\end{DoxyEnumerate}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{git push -\/-\/set-\/upstream origin my\_branch}
+\end{DoxyCode}
+
+
+
+\begin{DoxyEnumerate}
+\item Create a pull request and make sure the Git\+Hub continuous integration tests pass.
+\end{DoxyEnumerate}
+
+\doxysection*{License }
+
+See L\+I\+C\+E\+N\+SE and Copyright.\+txt for redistribution rights. 

@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.17"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>EBGeometry: Source/EBGeometry_BVHImplem.hpp Source File</title>
+<title>EBGeometry: /home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_BVHImplem.hpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -582,124 +582,162 @@ $(function() {
 <div class="line"><a name="l00516"></a><span class="lineno">  516</span>&#160;  }</div>
 <div class="line"><a name="l00517"></a><span class="lineno">  517</span>&#160; </div>
 <div class="line"><a name="l00518"></a><span class="lineno">  518</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
-<div class="line"><a name="l00519"></a><span class="lineno">  519</span>&#160;  <span class="keyword">inline</span> T</div>
-<div class="line"><a name="l00520"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearNodeT.html#a1730afb7da76070213d81786318717af">  520</a></span>&#160;  <a class="code" href="classBVH_1_1LinearNodeT.html#a1730afb7da76070213d81786318717af">LinearNodeT&lt;T, P, BV, K&gt;::getDistanceToPrimitives</a>(</div>
-<div class="line"><a name="l00521"></a><span class="lineno">  521</span>&#160;    <span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_point, <span class="keyword">const</span> std::vector&lt;std::shared_ptr&lt;const P&gt;&gt;&amp; a_primitives) <span class="keyword">const</span> noexcept</div>
+<div class="line"><a name="l00519"></a><span class="lineno">  519</span>&#160;  <span class="keyword">inline</span> std::vector&lt;T&gt;</div>
+<div class="line"><a name="l00520"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearNodeT.html#a9b771a1cd5c5fb0a1ab8034918aff291">  520</a></span>&#160;  <a class="code" href="classBVH_1_1LinearNodeT.html#a9b771a1cd5c5fb0a1ab8034918aff291">LinearNodeT&lt;T, P, BV, K&gt;::getDistances</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp;                              a_point,</div>
+<div class="line"><a name="l00521"></a><span class="lineno">  521</span>&#160;                                         <span class="keyword">const</span> std::vector&lt;std::shared_ptr&lt;const P&gt;&gt;&amp; a_primitives) <span class="keyword">const</span> noexcept</div>
 <div class="line"><a name="l00522"></a><span class="lineno">  522</span>&#160;  {</div>
-<div class="line"><a name="l00523"></a><span class="lineno">  523</span>&#160;    T minDist = std::numeric_limits&lt;T&gt;::infinity();</div>
+<div class="line"><a name="l00523"></a><span class="lineno">  523</span>&#160;    std::vector&lt;T&gt; distances;</div>
 <div class="line"><a name="l00524"></a><span class="lineno">  524</span>&#160; </div>
 <div class="line"><a name="l00525"></a><span class="lineno">  525</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; m_numPrimitives; i++) {</div>
 <div class="line"><a name="l00526"></a><span class="lineno">  526</span>&#160;      <span class="keyword">const</span> T curDist = a_primitives[m_primitivesOffset + i]-&gt;signedDistance(a_point);</div>
 <div class="line"><a name="l00527"></a><span class="lineno">  527</span>&#160; </div>
-<div class="line"><a name="l00528"></a><span class="lineno">  528</span>&#160;      <span class="keywordflow">if</span> (std::abs(curDist) &lt; std::abs(minDist)) {</div>
-<div class="line"><a name="l00529"></a><span class="lineno">  529</span>&#160;        minDist = curDist;</div>
-<div class="line"><a name="l00530"></a><span class="lineno">  530</span>&#160;      }</div>
-<div class="line"><a name="l00531"></a><span class="lineno">  531</span>&#160;    }</div>
-<div class="line"><a name="l00532"></a><span class="lineno">  532</span>&#160; </div>
-<div class="line"><a name="l00533"></a><span class="lineno">  533</span>&#160;    <span class="keywordflow">return</span> minDist;</div>
-<div class="line"><a name="l00534"></a><span class="lineno">  534</span>&#160;  }</div>
-<div class="line"><a name="l00535"></a><span class="lineno">  535</span>&#160; </div>
-<div class="line"><a name="l00536"></a><span class="lineno">  536</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
-<div class="line"><a name="l00537"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearBVH.html#af6555a1a22c9d8e44e47ee968336643c">  537</a></span>&#160;  <span class="keyword">inline</span> <a class="code" href="classBVH_1_1LinearBVH.html#af071dcad6741be1314c0b39512d2f142">LinearBVH&lt;T, P, BV, K&gt;::LinearBVH</a>(</div>
-<div class="line"><a name="l00538"></a><span class="lineno">  538</span>&#160;    <span class="keyword">const</span> std::vector&lt;std::shared_ptr&lt;<span class="keyword">const</span> <a class="code" href="classBVH_1_1LinearNodeT.html">LinearNodeT&lt;T, P, BV, K&gt;</a>&gt;&gt;&amp; a_linearNodes,</div>
-<div class="line"><a name="l00539"></a><span class="lineno">  539</span>&#160;    <span class="keyword">const</span> std::vector&lt;std::shared_ptr&lt;const P&gt;&gt;&amp;                        a_primitives)</div>
-<div class="line"><a name="l00540"></a><span class="lineno">  540</span>&#160;  {</div>
-<div class="line"><a name="l00541"></a><span class="lineno">  541</span>&#160;    m_linearNodes = a_linearNodes;</div>
-<div class="line"><a name="l00542"></a><span class="lineno">  542</span>&#160;    m_primitives  = a_primitives;</div>
-<div class="line"><a name="l00543"></a><span class="lineno">  543</span>&#160;  }</div>
-<div class="line"><a name="l00544"></a><span class="lineno">  544</span>&#160; </div>
-<div class="line"><a name="l00545"></a><span class="lineno">  545</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
-<div class="line"><a name="l00546"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearBVH.html#afe11c7156d4de20130563a223c8d7b0d">  546</a></span>&#160;  <span class="keyword">inline</span> <a class="code" href="classBVH_1_1LinearBVH.html#af071dcad6741be1314c0b39512d2f142">LinearBVH&lt;T, P, BV, K&gt;::LinearBVH</a>(<span class="keyword">const</span> std::vector&lt;std::shared_ptr&lt;<a class="code" href="classBVH_1_1LinearNodeT.html">LinearNodeT&lt;T, P, BV, K&gt;</a>&gt;&gt;&amp; a_linearNodes,</div>
-<div class="line"><a name="l00547"></a><span class="lineno">  547</span>&#160;                                           <span class="keyword">const</span> std::vector&lt;std::shared_ptr&lt;const P&gt;&gt;&amp;                  a_primitives)</div>
-<div class="line"><a name="l00548"></a><span class="lineno">  548</span>&#160;  {</div>
-<div class="line"><a name="l00549"></a><span class="lineno">  549</span>&#160; </div>
-<div class="line"><a name="l00550"></a><span class="lineno">  550</span>&#160;    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; p : a_linearNodes) {</div>
-<div class="line"><a name="l00551"></a><span class="lineno">  551</span>&#160;      m_linearNodes.emplace_back(p);</div>
-<div class="line"><a name="l00552"></a><span class="lineno">  552</span>&#160;    }</div>
-<div class="line"><a name="l00553"></a><span class="lineno">  553</span>&#160; </div>
-<div class="line"><a name="l00554"></a><span class="lineno">  554</span>&#160;    m_primitives = a_primitives;</div>
-<div class="line"><a name="l00555"></a><span class="lineno">  555</span>&#160;  }</div>
-<div class="line"><a name="l00556"></a><span class="lineno">  556</span>&#160; </div>
-<div class="line"><a name="l00557"></a><span class="lineno">  557</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
-<div class="line"><a name="l00558"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearBVH.html#a39a98014b81061b35604422cfab5c9b7">  558</a></span>&#160;  <span class="keyword">inline</span> <a class="code" href="classBVH_1_1LinearBVH.html#a39a98014b81061b35604422cfab5c9b7">LinearBVH&lt;T, P, BV, K&gt;::~LinearBVH</a>()</div>
-<div class="line"><a name="l00559"></a><span class="lineno">  559</span>&#160;  {}</div>
-<div class="line"><a name="l00560"></a><span class="lineno">  560</span>&#160; </div>
-<div class="line"><a name="l00561"></a><span class="lineno">  561</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
-<div class="line"><a name="l00562"></a><span class="lineno">  562</span>&#160;  <span class="keyword">inline</span> T</div>
-<div class="line"><a name="l00563"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearBVH.html#a6827bfd0bf7f2ad1b132e9317f60e216">  563</a></span>&#160;  <a class="code" href="classBVH_1_1LinearBVH.html#a6827bfd0bf7f2ad1b132e9317f60e216">LinearBVH&lt;T, P, BV, K&gt;::signedDistance</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a>&amp; a_point) <span class="keyword">const</span> noexcept</div>
-<div class="line"><a name="l00564"></a><span class="lineno">  564</span>&#160;  {</div>
-<div class="line"><a name="l00565"></a><span class="lineno">  565</span>&#160;    <span class="comment">// TLDR: This routine uses ordered traversal along the branches. Rather than</span></div>
-<div class="line"><a name="l00566"></a><span class="lineno">  566</span>&#160;    <span class="comment">// calling itself recursively, it uses</span></div>
-<div class="line"><a name="l00567"></a><span class="lineno">  567</span>&#160;    <span class="comment">//       a stack for investigating the branches and nodes.</span></div>
-<div class="line"><a name="l00568"></a><span class="lineno">  568</span>&#160; </div>
-<div class="line"><a name="l00569"></a><span class="lineno">  569</span>&#160;    <span class="comment">// Shortest unsigned square distance. Initialize to something big.</span></div>
-<div class="line"><a name="l00570"></a><span class="lineno">  570</span>&#160;    T minDist = std::numeric_limits&lt;T&gt;::infinity();</div>
-<div class="line"><a name="l00571"></a><span class="lineno">  571</span>&#160; </div>
-<div class="line"><a name="l00572"></a><span class="lineno">  572</span>&#160;    <span class="comment">// Create temporary storage and and priority queue (our stack).</span></div>
-<div class="line"><a name="l00573"></a><span class="lineno">  573</span>&#160;    <span class="keyword">using</span> NodeAndDist = std::pair&lt;size_t, T&gt;;</div>
-<div class="line"><a name="l00574"></a><span class="lineno">  574</span>&#160; </div>
-<div class="line"><a name="l00575"></a><span class="lineno">  575</span>&#160;    std::array&lt;NodeAndDist, K&gt; children;</div>
-<div class="line"><a name="l00576"></a><span class="lineno">  576</span>&#160;    std::stack&lt;NodeAndDist&gt;    q;</div>
-<div class="line"><a name="l00577"></a><span class="lineno">  577</span>&#160; </div>
-<div class="line"><a name="l00578"></a><span class="lineno">  578</span>&#160;    <span class="comment">// Initialize the stack with the root node.</span></div>
-<div class="line"><a name="l00579"></a><span class="lineno">  579</span>&#160;    q.emplace(0, m_linearNodes[0]-&gt;getDistanceToBoundingVolume(a_point));</div>
-<div class="line"><a name="l00580"></a><span class="lineno">  580</span>&#160; </div>
-<div class="line"><a name="l00581"></a><span class="lineno">  581</span>&#160;    <span class="comment">// Stack loop -- always investigate the one at the top.</span></div>
-<div class="line"><a name="l00582"></a><span class="lineno">  582</span>&#160;    <span class="keywordflow">while</span> (!(q.empty())) {</div>
-<div class="line"><a name="l00583"></a><span class="lineno">  583</span>&#160; </div>
-<div class="line"><a name="l00584"></a><span class="lineno">  584</span>&#160;      <span class="comment">// Pop the top node off the stack.</span></div>
-<div class="line"><a name="l00585"></a><span class="lineno">  585</span>&#160;      <span class="keyword">const</span> <span class="keyword">auto</span>&amp; curNode = (q.top()).first;</div>
-<div class="line"><a name="l00586"></a><span class="lineno">  586</span>&#160;      <span class="keyword">const</span> <span class="keyword">auto</span>&amp; bvDist  = (q.top()).second;</div>
-<div class="line"><a name="l00587"></a><span class="lineno">  587</span>&#160; </div>
-<div class="line"><a name="l00588"></a><span class="lineno">  588</span>&#160;      q.pop();</div>
+<div class="line"><a name="l00528"></a><span class="lineno">  528</span>&#160;      distances.emplace_back(curDist);</div>
+<div class="line"><a name="l00529"></a><span class="lineno">  529</span>&#160;    }</div>
+<div class="line"><a name="l00530"></a><span class="lineno">  530</span>&#160; </div>
+<div class="line"><a name="l00531"></a><span class="lineno">  531</span>&#160;    <span class="keywordflow">return</span> distances;</div>
+<div class="line"><a name="l00532"></a><span class="lineno">  532</span>&#160;  }</div>
+<div class="line"><a name="l00533"></a><span class="lineno">  533</span>&#160; </div>
+<div class="line"><a name="l00534"></a><span class="lineno">  534</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
+<div class="line"><a name="l00535"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearBVH.html#af6555a1a22c9d8e44e47ee968336643c">  535</a></span>&#160;  <span class="keyword">inline</span> <a class="code" href="classBVH_1_1LinearBVH.html#a5f10356de5f87989b0d27520ffd688f9">LinearBVH&lt;T, P, BV, K&gt;::LinearBVH</a>(</div>
+<div class="line"><a name="l00536"></a><span class="lineno">  536</span>&#160;    <span class="keyword">const</span> std::vector&lt;std::shared_ptr&lt;<span class="keyword">const</span> <a class="code" href="classBVH_1_1LinearNodeT.html">LinearNodeT&lt;T, P, BV, K&gt;</a>&gt;&gt;&amp; a_linearNodes,</div>
+<div class="line"><a name="l00537"></a><span class="lineno">  537</span>&#160;    <span class="keyword">const</span> std::vector&lt;std::shared_ptr&lt;const P&gt;&gt;&amp;                        a_primitives)</div>
+<div class="line"><a name="l00538"></a><span class="lineno">  538</span>&#160;  {</div>
+<div class="line"><a name="l00539"></a><span class="lineno">  539</span>&#160;    m_linearNodes = a_linearNodes;</div>
+<div class="line"><a name="l00540"></a><span class="lineno">  540</span>&#160;    m_primitives  = a_primitives;</div>
+<div class="line"><a name="l00541"></a><span class="lineno">  541</span>&#160;  }</div>
+<div class="line"><a name="l00542"></a><span class="lineno">  542</span>&#160; </div>
+<div class="line"><a name="l00543"></a><span class="lineno">  543</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
+<div class="line"><a name="l00544"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearBVH.html#afe11c7156d4de20130563a223c8d7b0d">  544</a></span>&#160;  <span class="keyword">inline</span> <a class="code" href="classBVH_1_1LinearBVH.html#a5f10356de5f87989b0d27520ffd688f9">LinearBVH&lt;T, P, BV, K&gt;::LinearBVH</a>(<span class="keyword">const</span> std::vector&lt;std::shared_ptr&lt;<a class="code" href="classBVH_1_1LinearNodeT.html">LinearNodeT&lt;T, P, BV, K&gt;</a>&gt;&gt;&amp; a_linearNodes,</div>
+<div class="line"><a name="l00545"></a><span class="lineno">  545</span>&#160;                                           <span class="keyword">const</span> std::vector&lt;std::shared_ptr&lt;const P&gt;&gt;&amp;                  a_primitives)</div>
+<div class="line"><a name="l00546"></a><span class="lineno">  546</span>&#160;  {</div>
+<div class="line"><a name="l00547"></a><span class="lineno">  547</span>&#160; </div>
+<div class="line"><a name="l00548"></a><span class="lineno">  548</span>&#160;    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; p : a_linearNodes) {</div>
+<div class="line"><a name="l00549"></a><span class="lineno">  549</span>&#160;      m_linearNodes.emplace_back(p);</div>
+<div class="line"><a name="l00550"></a><span class="lineno">  550</span>&#160;    }</div>
+<div class="line"><a name="l00551"></a><span class="lineno">  551</span>&#160; </div>
+<div class="line"><a name="l00552"></a><span class="lineno">  552</span>&#160;    m_primitives = a_primitives;</div>
+<div class="line"><a name="l00553"></a><span class="lineno">  553</span>&#160;  }</div>
+<div class="line"><a name="l00554"></a><span class="lineno">  554</span>&#160; </div>
+<div class="line"><a name="l00555"></a><span class="lineno">  555</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
+<div class="line"><a name="l00556"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearBVH.html#a39a98014b81061b35604422cfab5c9b7">  556</a></span>&#160;  <span class="keyword">inline</span> <a class="code" href="classBVH_1_1LinearBVH.html#a39a98014b81061b35604422cfab5c9b7">LinearBVH&lt;T, P, BV, K&gt;::~LinearBVH</a>()</div>
+<div class="line"><a name="l00557"></a><span class="lineno">  557</span>&#160;  {}</div>
+<div class="line"><a name="l00558"></a><span class="lineno">  558</span>&#160; </div>
+<div class="line"><a name="l00559"></a><span class="lineno">  559</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
+<div class="line"><a name="l00560"></a><span class="lineno">  560</span>&#160;  <span class="keyword">inline</span> <span class="keyword">const</span> BV&amp;</div>
+<div class="line"><a name="l00561"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearBVH.html#a1ed89c63858338fb83bf2c004ac62454">  561</a></span>&#160;  <a class="code" href="classBVH_1_1LinearBVH.html#a1ed89c63858338fb83bf2c004ac62454">LinearBVH&lt;T, P, BV, K&gt;::getBoundingVolume</a>()</div>
+<div class="line"><a name="l00562"></a><span class="lineno">  562</span>&#160;  {</div>
+<div class="line"><a name="l00563"></a><span class="lineno">  563</span>&#160;    <span class="keywordflow">return</span> m_linearNodes.front()-&gt;getBoundingVolume();</div>
+<div class="line"><a name="l00564"></a><span class="lineno">  564</span>&#160;  }</div>
+<div class="line"><a name="l00565"></a><span class="lineno">  565</span>&#160; </div>
+<div class="line"><a name="l00566"></a><span class="lineno">  566</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
+<div class="line"><a name="l00567"></a><span class="lineno">  567</span>&#160;  <span class="keyword">inline</span> T</div>
+<div class="line"><a name="l00568"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearBVH.html#a6827bfd0bf7f2ad1b132e9317f60e216">  568</a></span>&#160;  <a class="code" href="classBVH_1_1LinearBVH.html#a6827bfd0bf7f2ad1b132e9317f60e216">LinearBVH&lt;T, P, BV, K&gt;::signedDistance</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a>&amp; a_point) <span class="keyword">const</span> noexcept</div>
+<div class="line"><a name="l00569"></a><span class="lineno">  569</span>&#160;  {</div>
+<div class="line"><a name="l00570"></a><span class="lineno">  570</span>&#160; </div>
+<div class="line"><a name="l00571"></a><span class="lineno">  571</span>&#160;    <span class="comment">// For SDF we select the one that is closest, i.e. the object with the</span></div>
+<div class="line"><a name="l00572"></a><span class="lineno">  572</span>&#160;    <span class="comment">// smallest absolute value.</span></div>
+<div class="line"><a name="l00573"></a><span class="lineno">  573</span>&#160;    <a class="code" href="namespaceBVH.html#af1532e9ecc212528197e9a4a2555938f">Comparator&lt;T&gt;</a> sdfComparator = [](<span class="keyword">const</span> T&amp; dmin, <span class="keyword">const</span> std::vector&lt;T&gt;&amp; primDistances) -&gt; T {</div>
+<div class="line"><a name="l00574"></a><span class="lineno">  574</span>&#160;      T d = dmin;</div>
+<div class="line"><a name="l00575"></a><span class="lineno">  575</span>&#160; </div>
+<div class="line"><a name="l00576"></a><span class="lineno">  576</span>&#160;      <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; primDist : primDistances) {</div>
+<div class="line"><a name="l00577"></a><span class="lineno">  577</span>&#160;        d = std::abs(primDist) &lt; std::abs(d) ? primDist : d;</div>
+<div class="line"><a name="l00578"></a><span class="lineno">  578</span>&#160;      }</div>
+<div class="line"><a name="l00579"></a><span class="lineno">  579</span>&#160; </div>
+<div class="line"><a name="l00580"></a><span class="lineno">  580</span>&#160;      <span class="keywordflow">return</span> d;</div>
+<div class="line"><a name="l00581"></a><span class="lineno">  581</span>&#160;    };</div>
+<div class="line"><a name="l00582"></a><span class="lineno">  582</span>&#160; </div>
+<div class="line"><a name="l00583"></a><span class="lineno">  583</span>&#160;    <span class="comment">// If the distance to the BV is shorter than the smallest distance so far,</span></div>
+<div class="line"><a name="l00584"></a><span class="lineno">  584</span>&#160;    <span class="comment">// then we need to check the node.</span></div>
+<div class="line"><a name="l00585"></a><span class="lineno">  585</span>&#160;    <a class="code" href="namespaceBVH.html#a5b6027b11349769fc2b8f669a4b1c53a">Pruner&lt;T&gt;</a> sdfPruner = [](<span class="keyword">const</span> T&amp; bvDist, <span class="keyword">const</span> T&amp; minDist) -&gt; <span class="keywordtype">bool</span> { <span class="keywordflow">return</span> bvDist &lt;= std::abs(minDist); };</div>
+<div class="line"><a name="l00586"></a><span class="lineno">  586</span>&#160; </div>
+<div class="line"><a name="l00587"></a><span class="lineno">  587</span>&#160;    <span class="keywordflow">return</span> this-&gt;stackPrune(a_point, sdfComparator, sdfPruner);</div>
+<div class="line"><a name="l00588"></a><span class="lineno">  588</span>&#160;  }</div>
 <div class="line"><a name="l00589"></a><span class="lineno">  589</span>&#160; </div>
-<div class="line"><a name="l00590"></a><span class="lineno">  590</span>&#160;      <span class="comment">// See if we really need to process this node. We only need to do it if its</span></div>
-<div class="line"><a name="l00591"></a><span class="lineno">  591</span>&#160;      <span class="comment">// BV is closer than the shortest distance we&#39;ve found so far. Otherwise we</span></div>
-<div class="line"><a name="l00592"></a><span class="lineno">  592</span>&#160;      <span class="comment">// are guaranteed that the distance to the primitives is larger than the</span></div>
-<div class="line"><a name="l00593"></a><span class="lineno">  593</span>&#160;      <span class="comment">// shortest distance we&#39;ve found so far.</span></div>
-<div class="line"><a name="l00594"></a><span class="lineno">  594</span>&#160;      <span class="keywordflow">if</span> (bvDist &lt;= std::abs(minDist)) {</div>
-<div class="line"><a name="l00595"></a><span class="lineno">  595</span>&#160; </div>
-<div class="line"><a name="l00596"></a><span class="lineno">  596</span>&#160;        <span class="comment">// If it&#39;s a leaf node, update the shortest distance so far.</span></div>
-<div class="line"><a name="l00597"></a><span class="lineno">  597</span>&#160;        <span class="keywordflow">if</span> (m_linearNodes[curNode]-&gt;isLeaf()) {</div>
-<div class="line"><a name="l00598"></a><span class="lineno">  598</span>&#160;          <span class="keyword">const</span> T primDist = m_linearNodes[curNode]-&gt;getDistanceToPrimitives(a_point, m_primitives);</div>
-<div class="line"><a name="l00599"></a><span class="lineno">  599</span>&#160; </div>
-<div class="line"><a name="l00600"></a><span class="lineno">  600</span>&#160;          <span class="keywordflow">if</span> (std::abs(primDist) &lt; std::abs(minDist)) {</div>
-<div class="line"><a name="l00601"></a><span class="lineno">  601</span>&#160;            minDist = primDist;</div>
-<div class="line"><a name="l00602"></a><span class="lineno">  602</span>&#160;          }</div>
-<div class="line"><a name="l00603"></a><span class="lineno">  603</span>&#160;        }</div>
-<div class="line"><a name="l00604"></a><span class="lineno">  604</span>&#160;        <span class="keywordflow">else</span> {</div>
-<div class="line"><a name="l00605"></a><span class="lineno">  605</span>&#160;          <span class="comment">// Compute child indices and their BVH distance to a_point.</span></div>
-<div class="line"><a name="l00606"></a><span class="lineno">  606</span>&#160;          <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> k = 0; k &lt; K; k++) {</div>
-<div class="line"><a name="l00607"></a><span class="lineno">  607</span>&#160;            <span class="keyword">const</span> <span class="keywordtype">size_t</span>&amp; curOff       = m_linearNodes[curNode]-&gt;getChildOffsets()[k];</div>
-<div class="line"><a name="l00608"></a><span class="lineno">  608</span>&#160;            <span class="keyword">const</span> T       distanceToBV = m_linearNodes[curOff]-&gt;getDistanceToBoundingVolume(a_point);</div>
-<div class="line"><a name="l00609"></a><span class="lineno">  609</span>&#160; </div>
-<div class="line"><a name="l00610"></a><span class="lineno">  610</span>&#160;            children[k] = std::make_pair(curOff, distanceToBV);</div>
-<div class="line"><a name="l00611"></a><span class="lineno">  611</span>&#160;          }</div>
-<div class="line"><a name="l00612"></a><span class="lineno">  612</span>&#160; </div>
-<div class="line"><a name="l00613"></a><span class="lineno">  613</span>&#160;          <span class="comment">// Sort the child nodes and put them on the stack. On the next iteration</span></div>
-<div class="line"><a name="l00614"></a><span class="lineno">  614</span>&#160;          <span class="comment">// we do the closest node first. This sorting is critical to the</span></div>
-<div class="line"><a name="l00615"></a><span class="lineno">  615</span>&#160;          <span class="comment">// performance of the BVH.</span></div>
-<div class="line"><a name="l00616"></a><span class="lineno">  616</span>&#160;          std::sort(children.begin(),</div>
-<div class="line"><a name="l00617"></a><span class="lineno">  617</span>&#160;                    children.end(),</div>
-<div class="line"><a name="l00618"></a><span class="lineno">  618</span>&#160;                    [](<span class="keyword">const</span> std::pair&lt;size_t, T&gt;&amp; node1, <span class="keyword">const</span> std::pair&lt;size_t, T&gt;&amp; node2) -&gt; <span class="keywordtype">bool</span> {</div>
-<div class="line"><a name="l00619"></a><span class="lineno">  619</span>&#160;                      return node1.second &gt; node2.second;</div>
-<div class="line"><a name="l00620"></a><span class="lineno">  620</span>&#160;                    });</div>
-<div class="line"><a name="l00621"></a><span class="lineno">  621</span>&#160; </div>
-<div class="line"><a name="l00622"></a><span class="lineno">  622</span>&#160;          <span class="comment">// Push onto stack if the BV is closer than minDist.</span></div>
-<div class="line"><a name="l00623"></a><span class="lineno">  623</span>&#160;          <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; child : children) {</div>
-<div class="line"><a name="l00624"></a><span class="lineno">  624</span>&#160;            q.push(child);</div>
-<div class="line"><a name="l00625"></a><span class="lineno">  625</span>&#160;          }</div>
-<div class="line"><a name="l00626"></a><span class="lineno">  626</span>&#160;        }</div>
-<div class="line"><a name="l00627"></a><span class="lineno">  627</span>&#160;      }</div>
-<div class="line"><a name="l00628"></a><span class="lineno">  628</span>&#160;    }</div>
-<div class="line"><a name="l00629"></a><span class="lineno">  629</span>&#160; </div>
-<div class="line"><a name="l00630"></a><span class="lineno">  630</span>&#160;    <span class="keywordflow">return</span> minDist;</div>
-<div class="line"><a name="l00631"></a><span class="lineno">  631</span>&#160;  }</div>
-<div class="line"><a name="l00632"></a><span class="lineno">  632</span>&#160;} <span class="comment">// namespace BVH</span></div>
-<div class="line"><a name="l00633"></a><span class="lineno">  633</span>&#160; </div>
-<div class="line"><a name="l00634"></a><span class="lineno">  634</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a>&quot;</span></div>
-<div class="line"><a name="l00635"></a><span class="lineno">  635</span>&#160; </div>
-<div class="line"><a name="l00636"></a><span class="lineno">  636</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00590"></a><span class="lineno">  590</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> P, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
+<div class="line"><a name="l00591"></a><span class="lineno">  591</span>&#160;  <span class="keyword">inline</span> T</div>
+<div class="line"><a name="l00592"></a><span class="lineno"><a class="line" href="classBVH_1_1LinearBVH.html#a243aa537f57a55061d6a96f70a0b591f">  592</a></span>&#160;  <a class="code" href="classBVH_1_1LinearBVH.html#a243aa537f57a55061d6a96f70a0b591f">LinearBVH&lt;T, P, BV, K&gt;::stackPrune</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3</a>&amp;          a_point,</div>
+<div class="line"><a name="l00593"></a><span class="lineno">  593</span>&#160;                                     <span class="keyword">const</span> <a class="code" href="namespaceBVH.html#af1532e9ecc212528197e9a4a2555938f">Comparator&lt;T&gt;</a>&amp; a_comparator,</div>
+<div class="line"><a name="l00594"></a><span class="lineno">  594</span>&#160;                                     <span class="keyword">const</span> <a class="code" href="namespaceBVH.html#a5b6027b11349769fc2b8f669a4b1c53a">Pruner&lt;T&gt;</a>&amp;     a_pruner) <span class="keyword">const</span> noexcept</div>
+<div class="line"><a name="l00595"></a><span class="lineno">  595</span>&#160;  {</div>
+<div class="line"><a name="l00596"></a><span class="lineno">  596</span>&#160;    <span class="comment">// TLDR: This routine uses ordered traversal along the branches. This differs for</span></div>
+<div class="line"><a name="l00597"></a><span class="lineno">  597</span>&#160;    <span class="comment">//       SDF traversal and CSG union traversal, but not enough that I&#39;m willing</span></div>
+<div class="line"><a name="l00598"></a><span class="lineno">  598</span>&#160;    <span class="comment">//       to write separate algorithms for this. Instead, the incoming lambdas are</span></div>
+<div class="line"><a name="l00599"></a><span class="lineno">  599</span>&#160;    <span class="comment">//       sufficient for updating the distance and determining if we need to visit</span></div>
+<div class="line"><a name="l00600"></a><span class="lineno">  600</span>&#160;    <span class="comment">//       the BVH node or not.</span></div>
+<div class="line"><a name="l00601"></a><span class="lineno">  601</span>&#160; </div>
+<div class="line"><a name="l00602"></a><span class="lineno">  602</span>&#160;    <span class="comment">// Shortest unsigned square distance. Initialize to something big.</span></div>
+<div class="line"><a name="l00603"></a><span class="lineno">  603</span>&#160;    T minDist = std::numeric_limits&lt;T&gt;::infinity();</div>
+<div class="line"><a name="l00604"></a><span class="lineno">  604</span>&#160; </div>
+<div class="line"><a name="l00605"></a><span class="lineno">  605</span>&#160;    <span class="comment">// Create temporary storage and and priority queue (our stack).</span></div>
+<div class="line"><a name="l00606"></a><span class="lineno">  606</span>&#160;    <span class="keyword">using</span> NodeAndDist = std::pair&lt;size_t, T&gt;;</div>
+<div class="line"><a name="l00607"></a><span class="lineno">  607</span>&#160; </div>
+<div class="line"><a name="l00608"></a><span class="lineno">  608</span>&#160;    std::array&lt;NodeAndDist, K&gt; children;</div>
+<div class="line"><a name="l00609"></a><span class="lineno">  609</span>&#160;    std::stack&lt;NodeAndDist&gt;    q;</div>
+<div class="line"><a name="l00610"></a><span class="lineno">  610</span>&#160; </div>
+<div class="line"><a name="l00611"></a><span class="lineno">  611</span>&#160;    <span class="comment">// Initialize the stack with the root node.</span></div>
+<div class="line"><a name="l00612"></a><span class="lineno">  612</span>&#160;    q.emplace(0, m_linearNodes[0]-&gt;getDistanceToBoundingVolume(a_point));</div>
+<div class="line"><a name="l00613"></a><span class="lineno">  613</span>&#160; </div>
+<div class="line"><a name="l00614"></a><span class="lineno">  614</span>&#160;    <span class="comment">// Stack loop -- always investigate the one at the top.</span></div>
+<div class="line"><a name="l00615"></a><span class="lineno">  615</span>&#160;    <span class="keywordflow">while</span> (!(q.empty())) {</div>
+<div class="line"><a name="l00616"></a><span class="lineno">  616</span>&#160; </div>
+<div class="line"><a name="l00617"></a><span class="lineno">  617</span>&#160;      <span class="comment">// Pop the top node off the stack.</span></div>
+<div class="line"><a name="l00618"></a><span class="lineno">  618</span>&#160;      <span class="keyword">const</span> <span class="keyword">auto</span>&amp; curNode = (q.top()).first;</div>
+<div class="line"><a name="l00619"></a><span class="lineno">  619</span>&#160;      <span class="keyword">const</span> <span class="keyword">auto</span>&amp; bvDist  = (q.top()).second;</div>
+<div class="line"><a name="l00620"></a><span class="lineno">  620</span>&#160; </div>
+<div class="line"><a name="l00621"></a><span class="lineno">  621</span>&#160;      q.pop();</div>
+<div class="line"><a name="l00622"></a><span class="lineno">  622</span>&#160; </div>
+<div class="line"><a name="l00623"></a><span class="lineno">  623</span>&#160;      <span class="comment">// See if we really need to process this node. This is checked by the pruner.</span></div>
+<div class="line"><a name="l00624"></a><span class="lineno">  624</span>&#160;      <span class="comment">//</span></div>
+<div class="line"><a name="l00625"></a><span class="lineno">  625</span>&#160;      <span class="comment">// 1. For SDFs We only need to do it if its BV is closer than the shortest</span></div>
+<div class="line"><a name="l00626"></a><span class="lineno">  626</span>&#160;      <span class="comment">//    distance we&#39;ve found so far. Otherwise we are guaranteed that the</span></div>
+<div class="line"><a name="l00627"></a><span class="lineno">  627</span>&#160;      <span class="comment">//    distance to the primitives is larger than the the shortest distance</span></div>
+<div class="line"><a name="l00628"></a><span class="lineno">  628</span>&#160;      <span class="comment">//    we&#39;ve found so far.</span></div>
+<div class="line"><a name="l00629"></a><span class="lineno">  629</span>&#160;      <span class="comment">//</span></div>
+<div class="line"><a name="l00630"></a><span class="lineno">  630</span>&#160;      <span class="comment">// 2. For CSG unions we compute min(f1, f2, f3) and so on. If the distance to the BV</span></div>
+<div class="line"><a name="l00631"></a><span class="lineno">  631</span>&#160;      <span class="comment">//    is D &lt;= 0.0 we always need to check. Otherwise we only have to check if</span></div>
+<div class="line"><a name="l00632"></a><span class="lineno">  632</span>&#160;      <span class="comment">//    the distance is D &lt; d and d &gt; 0.0.</span></div>
+<div class="line"><a name="l00633"></a><span class="lineno">  633</span>&#160;      <span class="keywordflow">if</span> (a_pruner(bvDist, minDist)) {</div>
+<div class="line"><a name="l00634"></a><span class="lineno">  634</span>&#160; </div>
+<div class="line"><a name="l00635"></a><span class="lineno">  635</span>&#160;        <span class="comment">// If it&#39;s a leaf node, update the distance to our desired primitive. Again, this will</span></div>
+<div class="line"><a name="l00636"></a><span class="lineno">  636</span>&#160;        <span class="comment">// differ based on whether or not we&#39;re computing the signed distance or the union.</span></div>
+<div class="line"><a name="l00637"></a><span class="lineno">  637</span>&#160;        <span class="keywordflow">if</span> (m_linearNodes[curNode]-&gt;isLeaf()) {</div>
+<div class="line"><a name="l00638"></a><span class="lineno">  638</span>&#160;          <span class="keyword">const</span> std::vector&lt;T&gt; primDistances = m_linearNodes[curNode]-&gt;getDistances(a_point, m_primitives);</div>
+<div class="line"><a name="l00639"></a><span class="lineno">  639</span>&#160; </div>
+<div class="line"><a name="l00640"></a><span class="lineno">  640</span>&#160;          minDist = a_comparator(minDist, primDistances);</div>
+<div class="line"><a name="l00641"></a><span class="lineno">  641</span>&#160;        }</div>
+<div class="line"><a name="l00642"></a><span class="lineno">  642</span>&#160;        <span class="keywordflow">else</span> {</div>
+<div class="line"><a name="l00643"></a><span class="lineno">  643</span>&#160;          <span class="comment">// Compute child indices and their BVH distance to a_point</span></div>
+<div class="line"><a name="l00644"></a><span class="lineno">  644</span>&#160;          <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> k = 0; k &lt; K; k++) {</div>
+<div class="line"><a name="l00645"></a><span class="lineno">  645</span>&#160;            <span class="keyword">const</span> <span class="keywordtype">size_t</span>&amp; curOff       = m_linearNodes[curNode]-&gt;getChildOffsets()[k];</div>
+<div class="line"><a name="l00646"></a><span class="lineno">  646</span>&#160;            <span class="keyword">const</span> T       distanceToBV = m_linearNodes[curOff]-&gt;getDistanceToBoundingVolume(a_point);</div>
+<div class="line"><a name="l00647"></a><span class="lineno">  647</span>&#160; </div>
+<div class="line"><a name="l00648"></a><span class="lineno">  648</span>&#160;            children[k] = std::make_pair(curOff, distanceToBV);</div>
+<div class="line"><a name="l00649"></a><span class="lineno">  649</span>&#160;          }</div>
+<div class="line"><a name="l00650"></a><span class="lineno">  650</span>&#160; </div>
+<div class="line"><a name="l00651"></a><span class="lineno">  651</span>&#160;          <span class="comment">// Sort the child nodes and put them on the stack. On the next iteration</span></div>
+<div class="line"><a name="l00652"></a><span class="lineno">  652</span>&#160;          <span class="comment">// we do the closest node first. This sorting is critical to the</span></div>
+<div class="line"><a name="l00653"></a><span class="lineno">  653</span>&#160;          <span class="comment">// performance of the BVH.</span></div>
+<div class="line"><a name="l00654"></a><span class="lineno">  654</span>&#160;          std::sort(children.begin(),</div>
+<div class="line"><a name="l00655"></a><span class="lineno">  655</span>&#160;                    children.end(),</div>
+<div class="line"><a name="l00656"></a><span class="lineno">  656</span>&#160;                    [](<span class="keyword">const</span> std::pair&lt;size_t, T&gt;&amp; node1, <span class="keyword">const</span> std::pair&lt;size_t, T&gt;&amp; node2) -&gt; <span class="keywordtype">bool</span> {</div>
+<div class="line"><a name="l00657"></a><span class="lineno">  657</span>&#160;                      return node1.second &gt; node2.second;</div>
+<div class="line"><a name="l00658"></a><span class="lineno">  658</span>&#160;                    });</div>
+<div class="line"><a name="l00659"></a><span class="lineno">  659</span>&#160; </div>
+<div class="line"><a name="l00660"></a><span class="lineno">  660</span>&#160;          <span class="comment">// Push onto stack if the BV is closer than minDist.</span></div>
+<div class="line"><a name="l00661"></a><span class="lineno">  661</span>&#160;          <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; child : children) {</div>
+<div class="line"><a name="l00662"></a><span class="lineno">  662</span>&#160;            q.push(child);</div>
+<div class="line"><a name="l00663"></a><span class="lineno">  663</span>&#160;          }</div>
+<div class="line"><a name="l00664"></a><span class="lineno">  664</span>&#160;        }</div>
+<div class="line"><a name="l00665"></a><span class="lineno">  665</span>&#160;      }</div>
+<div class="line"><a name="l00666"></a><span class="lineno">  666</span>&#160;    }</div>
+<div class="line"><a name="l00667"></a><span class="lineno">  667</span>&#160; </div>
+<div class="line"><a name="l00668"></a><span class="lineno">  668</span>&#160;    <span class="keywordflow">return</span> minDist;</div>
+<div class="line"><a name="l00669"></a><span class="lineno">  669</span>&#160;  }</div>
+<div class="line"><a name="l00670"></a><span class="lineno">  670</span>&#160;} <span class="comment">// namespace BVH</span></div>
+<div class="line"><a name="l00671"></a><span class="lineno">  671</span>&#160; </div>
+<div class="line"><a name="l00672"></a><span class="lineno">  672</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a>&quot;</span></div>
+<div class="line"><a name="l00673"></a><span class="lineno">  673</span>&#160; </div>
+<div class="line"><a name="l00674"></a><span class="lineno">  674</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aclassBVH_1_1LinearNodeT_html_afb91cf46234be67eb084bc76ae718c44"><div class="ttname"><a href="classBVH_1_1LinearNodeT.html#afb91cf46234be67eb084bc76ae718c44">BVH::LinearNodeT::getNumPrimitives</a></div><div class="ttdeci">const size_t &amp; getNumPrimitives() const noexcept</div><div class="ttdoc">Get the number of primitives.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:492</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html_ac4a3be457d66d2673f717f203e60fc08"><div class="ttname"><a href="classBVH_1_1NodeT.html#ac4a3be457d66d2673f717f203e60fc08">BVH::NodeT::pruneOrdered</a></div><div class="ttdeci">void pruneOrdered(T &amp;a_closest, const Vec3 &amp;a_point) const noexcept</div><div class="ttdoc">Recursively ordered pruning along the BVH tree.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:285</div></div>
@@ -710,43 +748,47 @@ $(function() {
 <div class="ttc" id="aclassBVH_1_1NodeT_html_acb801f1e446a6472f5d330e85318bdb3"><div class="ttname"><a href="classBVH_1_1NodeT.html#acb801f1e446a6472f5d330e85318bdb3">BVH::NodeT::flattenTree</a></div><div class="ttdeci">std::shared_ptr&lt; LinearBVH&lt; T, P, BV, K &gt; &gt; flattenTree() const noexcept</div><div class="ttdoc">Flatten everything beneath this node into a depth-first sorted BVH hierarchy.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:369</div></div>
 <div class="ttc" id="aclassVec3T_html"><div class="ttname"><a href="classVec3T.html">Vec3T</a></div><div class="ttdoc">Three-dimensional vector class with arithmetic operators.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Vec.hpp:234</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html_ac8df9e7b154186207263b8727e1084a8"><div class="ttname"><a href="classBVH_1_1NodeT.html#ac8df9e7b154186207263b8727e1084a8">BVH::NodeT::getChildren</a></div><div class="ttdeci">const std::array&lt; std::shared_ptr&lt; NodeT&lt; T, P, BV, K &gt; &gt;, K &gt; &amp; getChildren() const noexcept</div><div class="ttdoc">Return this node's children.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:97</div></div>
-<div class="ttc" id="aclassBVH_1_1NodeT_html_a2340f2466ed5b6eebab4bdc72004858e"><div class="ttname"><a href="classBVH_1_1NodeT.html#a2340f2466ed5b6eebab4bdc72004858e">BVH::NodeT::BVConstructor</a></div><div class="ttdeci">BVConstructorT&lt; P, BV &gt; BVConstructor</div><div class="ttdoc">Alias for cutting down on typing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:162</div></div>
+<div class="ttc" id="aclassBVH_1_1NodeT_html_a2340f2466ed5b6eebab4bdc72004858e"><div class="ttname"><a href="classBVH_1_1NodeT.html#a2340f2466ed5b6eebab4bdc72004858e">BVH::NodeT::BVConstructor</a></div><div class="ttdeci">BVConstructorT&lt; P, BV &gt; BVConstructor</div><div class="ttdoc">Alias for cutting down on typing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:178</div></div>
+<div class="ttc" id="anamespaceBVH_html_af1532e9ecc212528197e9a4a2555938f"><div class="ttname"><a href="namespaceBVH.html#af1532e9ecc212528197e9a4a2555938f">BVH::Comparator</a></div><div class="ttdeci">std::function&lt; T(const T &amp;minDist, const std::vector&lt; T &gt; &amp;primDistances)&gt; Comparator</div><div class="ttdoc">Comparator for LinearBVH::stackPrune.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:103</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html_acae5a575fa8b236de984fdd41e04c038"><div class="ttname"><a href="classBVH_1_1NodeT.html#acae5a575fa8b236de984fdd41e04c038">BVH::NodeT::topDownSortAndPartitionPrimitives</a></div><div class="ttdeci">void topDownSortAndPartitionPrimitives(const BVConstructor &amp;a_bvConstructor, const Partitioner &amp;a_partitioner, const StopFunction &amp;a_stopCrit) noexcept</div><div class="ttdoc">Function for using top-down construction of the bounding volume hierarchy.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:104</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html_ad252aa451ca983750dfa0c24344253b2"><div class="ttname"><a href="classBVH_1_1NodeT.html#ad252aa451ca983750dfa0c24344253b2">BVH::NodeT::pruneUnordered</a></div><div class="ttdeci">void pruneUnordered(T &amp;a_closest, const Vec3 &amp;a_point) const noexcept</div><div class="ttdoc">Recursive unordered pruning along the BVH tree.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:343</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html"><div class="ttname"><a href="classBVH_1_1NodeT.html">BVH::NodeT</a></div><div class="ttdoc">Forward declare the BVH node since it is needed for the polymorphic lambdas.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:37</div></div>
 <div class="ttc" id="aEBGeometry__BVH_8hpp_html"><div class="ttname"><a href="EBGeometry__BVH_8hpp.html">EBGeometry_BVH.hpp</a></div><div class="ttdoc">Declaration of a bounding volume hierarchy (BVH) class.</div></div>
-<div class="ttc" id="aclassBVH_1_1NodeT_html_afaf556d6faa78c2cc2b27c82feb0145c"><div class="ttname"><a href="classBVH_1_1NodeT.html#afaf556d6faa78c2cc2b27c82feb0145c">BVH::NodeT::m_children</a></div><div class="ttdeci">std::array&lt; std::shared_ptr&lt; NodeT&lt; T, P, BV, K &gt; &gt;, K &gt; m_children</div><div class="ttdoc">Children nodes.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:274</div></div>
+<div class="ttc" id="anamespaceBVH_html_a5b6027b11349769fc2b8f669a4b1c53a"><div class="ttname"><a href="namespaceBVH.html#a5b6027b11349769fc2b8f669a4b1c53a">BVH::Pruner</a></div><div class="ttdeci">std::function&lt; bool(const T &amp;bvDist, const T &amp;minDist)&gt; Pruner</div><div class="ttdoc">Pruner for LinearBVH::stackPrune.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:111</div></div>
+<div class="ttc" id="aclassBVH_1_1NodeT_html_afaf556d6faa78c2cc2b27c82feb0145c"><div class="ttname"><a href="classBVH_1_1NodeT.html#afaf556d6faa78c2cc2b27c82feb0145c">BVH::NodeT::m_children</a></div><div class="ttdeci">std::array&lt; std::shared_ptr&lt; NodeT&lt; T, P, BV, K &gt; &gt;, K &gt; m_children</div><div class="ttdoc">Children nodes.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:290</div></div>
 <div class="ttc" id="aclassBVH_1_1LinearNodeT_html"><div class="ttname"><a href="classBVH_1_1LinearNodeT.html">BVH::LinearNodeT</a></div><div class="ttdoc">Forward declare linear node class.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:45</div></div>
 <div class="ttc" id="aclassBVH_1_1LinearNodeT_html_aba361834e3d013725a92ec4b45633584"><div class="ttname"><a href="classBVH_1_1LinearNodeT.html#aba361834e3d013725a92ec4b45633584">BVH::LinearNodeT::isLeaf</a></div><div class="ttdeci">bool isLeaf() const noexcept</div><div class="ttdoc">Is leaf or not.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:506</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html_a2e0c1e030162a2dc049acb4debd4d9f2"><div class="ttname"><a href="classBVH_1_1NodeT.html#a2e0c1e030162a2dc049acb4debd4d9f2">BVH::NodeT::getPrimitives</a></div><div class="ttdeci">const PrimitiveList &amp; getPrimitives() const noexcept</div><div class="ttdoc">Get the primitives stored in this node.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:76</div></div>
+<div class="ttc" id="aclassBVH_1_1LinearBVH_html_a1ed89c63858338fb83bf2c004ac62454"><div class="ttname"><a href="classBVH_1_1LinearBVH.html#a1ed89c63858338fb83bf2c004ac62454">BVH::LinearBVH::getBoundingVolume</a></div><div class="ttdeci">const BV &amp; getBoundingVolume()</div><div class="ttdoc">Get the bounding volume for this BVH.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:561</div></div>
 <div class="ttc" id="aclassBVH_1_1LinearNodeT_html_a4b5dd392397794113ad3b5bb2ed5003a"><div class="ttname"><a href="classBVH_1_1LinearNodeT.html#a4b5dd392397794113ad3b5bb2ed5003a">BVH::LinearNodeT::~LinearNodeT</a></div><div class="ttdeci">virtual ~LinearNodeT()</div><div class="ttdoc">Destructor.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:445</div></div>
 <div class="ttc" id="aclassBVH_1_1LinearNodeT_html_abdaf7f92d0fce2cc85d4f83dd80bced0"><div class="ttname"><a href="classBVH_1_1LinearNodeT.html#abdaf7f92d0fce2cc85d4f83dd80bced0">BVH::LinearNodeT::setPrimitivesOffset</a></div><div class="ttdeci">void setPrimitivesOffset(const size_t a_primitivesOffset) noexcept</div><div class="ttdoc">Set the offset into the primitives array.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:457</div></div>
-<div class="ttc" id="aclassBVH_1_1NodeT_html_acbe56195affc439febe8aca84db308e3"><div class="ttname"><a href="classBVH_1_1NodeT.html#acbe56195affc439febe8aca84db308e3">BVH::NodeT::StopFunction</a></div><div class="ttdeci">StopFunctionT&lt; T, P, BV, K &gt; StopFunction</div><div class="ttdoc">Alias for cutting down on typing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:152</div></div>
+<div class="ttc" id="aclassBVH_1_1LinearNodeT_html_a9b771a1cd5c5fb0a1ab8034918aff291"><div class="ttname"><a href="classBVH_1_1LinearNodeT.html#a9b771a1cd5c5fb0a1ab8034918aff291">BVH::LinearNodeT::getDistances</a></div><div class="ttdeci">std::vector&lt; T &gt; getDistances(const Vec3 &amp;a_point, const std::vector&lt; std::shared_ptr&lt; const P &gt;&gt; &amp;a_primitives) const noexcept</div><div class="ttdoc">Compute signed distance to primitives.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:520</div></div>
+<div class="ttc" id="aclassBVH_1_1NodeT_html_acbe56195affc439febe8aca84db308e3"><div class="ttname"><a href="classBVH_1_1NodeT.html#acbe56195affc439febe8aca84db308e3">BVH::NodeT::StopFunction</a></div><div class="ttdeci">StopFunctionT&lt; T, P, BV, K &gt; StopFunction</div><div class="ttdoc">Alias for cutting down on typing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:168</div></div>
 <div class="ttc" id="aclassBVH_1_1LinearNodeT_html_a89feb8e7e164624664fcb056ee70767a"><div class="ttname"><a href="classBVH_1_1LinearNodeT.html#a89feb8e7e164624664fcb056ee70767a">BVH::LinearNodeT::getChildOffsets</a></div><div class="ttdeci">const std::array&lt; size_t, K &gt; &amp; getChildOffsets() const noexcept</div><div class="ttdoc">Get the child offsets.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:499</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html_a2c9c3d3a83b3c1895c8f89b2bbd62e81"><div class="ttname"><a href="classBVH_1_1NodeT.html#a2c9c3d3a83b3c1895c8f89b2bbd62e81">BVH::NodeT::setPrimitives</a></div><div class="ttdeci">void setPrimitives(const PrimitiveList &amp;a_primitives) noexcept</div><div class="ttdoc">Set primitives in this node.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:62</div></div>
-<div class="ttc" id="aclassBVH_1_1NodeT_html_a3c45be2075d8cdfd0dc0a9e73373b64d"><div class="ttname"><a href="classBVH_1_1NodeT.html#a3c45be2075d8cdfd0dc0a9e73373b64d">BVH::NodeT::m_primitives</a></div><div class="ttdeci">std::vector&lt; std::shared_ptr&lt; const P &gt; &gt; m_primitives</div><div class="ttdoc">Primitives list. This will be empty for regular nodes.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:269</div></div>
+<div class="ttc" id="aclassBVH_1_1NodeT_html_a3c45be2075d8cdfd0dc0a9e73373b64d"><div class="ttname"><a href="classBVH_1_1NodeT.html#a3c45be2075d8cdfd0dc0a9e73373b64d">BVH::NodeT::m_primitives</a></div><div class="ttdeci">std::vector&lt; std::shared_ptr&lt; const P &gt; &gt; m_primitives</div><div class="ttdoc">Primitives list. This will be empty for regular nodes.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:285</div></div>
 <div class="ttc" id="aclassBVH_1_1LinearNodeT_html_ad38f1888fbd8512b749e6b78557729c4"><div class="ttname"><a href="classBVH_1_1LinearNodeT.html#ad38f1888fbd8512b749e6b78557729c4">BVH::LinearNodeT::LinearNodeT</a></div><div class="ttdeci">LinearNodeT() noexcept</div><div class="ttdoc">Constructor.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:431</div></div>
 <div class="ttc" id="anamespaceBVH_html"><div class="ttname"><a href="namespaceBVH.html">BVH</a></div><div class="ttdoc">Namespace for various bounding volume hierarchy (BVH) functionality.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:28</div></div>
 <div class="ttc" id="aclassBVH_1_1LinearNodeT_html_a0246e43510fbb92c08e966af346f87c6"><div class="ttname"><a href="classBVH_1_1LinearNodeT.html#a0246e43510fbb92c08e966af346f87c6">BVH::LinearNodeT::setNumPrimitives</a></div><div class="ttdeci">void setNumPrimitives(const size_t a_numPrimitives) noexcept</div><div class="ttdoc">Set number of primitives.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:464</div></div>
-<div class="ttc" id="aclassBVH_1_1LinearNodeT_html_a1730afb7da76070213d81786318717af"><div class="ttname"><a href="classBVH_1_1LinearNodeT.html#a1730afb7da76070213d81786318717af">BVH::LinearNodeT::getDistanceToPrimitives</a></div><div class="ttdeci">T getDistanceToPrimitives(const Vec3 &amp;a_point, const std::vector&lt; std::shared_ptr&lt; const P &gt;&gt; &amp;a_primitives) const noexcept</div><div class="ttdoc">Compute signed distance to primitives.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:520</div></div>
-<div class="ttc" id="aclassBVH_1_1LinearBVH_html_a39a98014b81061b35604422cfab5c9b7"><div class="ttname"><a href="classBVH_1_1LinearBVH.html#a39a98014b81061b35604422cfab5c9b7">BVH::LinearBVH::~LinearBVH</a></div><div class="ttdeci">virtual ~LinearBVH()</div><div class="ttdoc">Destructor. Does nothing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:558</div></div>
+<div class="ttc" id="aclassBVH_1_1LinearBVH_html_a39a98014b81061b35604422cfab5c9b7"><div class="ttname"><a href="classBVH_1_1LinearBVH.html#a39a98014b81061b35604422cfab5c9b7">BVH::LinearBVH::~LinearBVH</a></div><div class="ttdeci">virtual ~LinearBVH()</div><div class="ttdoc">Destructor. Does nothing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:556</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html_a8da9f78078b0a579868d026bd61a2947"><div class="ttname"><a href="classBVH_1_1NodeT.html#a8da9f78078b0a579868d026bd61a2947">BVH::NodeT::getDistanceToBoundingVolume</a></div><div class="ttdeci">T getDistanceToBoundingVolume(const Vec3 &amp;a_point) const noexcept</div><div class="ttdoc">Get the distance from a 3D point to the bounding volume.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:150</div></div>
+<div class="ttc" id="aclassBVH_1_1LinearBVH_html_a5f10356de5f87989b0d27520ffd688f9"><div class="ttname"><a href="classBVH_1_1LinearBVH.html#a5f10356de5f87989b0d27520ffd688f9">BVH::LinearBVH::LinearBVH</a></div><div class="ttdeci">LinearBVH()=default</div><div class="ttdoc">Disallowed. Use the full constructor please.</div></div>
 <div class="ttc" id="aclassBVH_1_1LinearNodeT_html_a1bdc4afa4b52b8592bb19b5da29a4352"><div class="ttname"><a href="classBVH_1_1LinearNodeT.html#a1bdc4afa4b52b8592bb19b5da29a4352">BVH::LinearNodeT::setChildOffset</a></div><div class="ttdeci">void setChildOffset(const size_t a_childOffset, const size_t a_whichChild) noexcept</div><div class="ttdoc">Set the child offsets.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:471</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html_a02cba4dcb065ebfaeea7e4d251b89d04"><div class="ttname"><a href="classBVH_1_1NodeT.html#a02cba4dcb065ebfaeea7e4d251b89d04">BVH::NodeT::getBoundingVolume</a></div><div class="ttdeci">const BV &amp; getBoundingVolume() const noexcept</div><div class="ttdoc">Get bounding volume.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:90</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html_a61dc7040d57f0a69984548eb4804244b"><div class="ttname"><a href="classBVH_1_1NodeT.html#a61dc7040d57f0a69984548eb4804244b">BVH::NodeT::getDistanceToPrimitives</a></div><div class="ttdeci">T getDistanceToPrimitives(const Vec3 &amp;a_point) const noexcept</div><div class="ttdoc">Compute the shortest distance to the primitives in this node.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:157</div></div>
-<div class="ttc" id="aclassBVH_1_1LinearBVH_html_af071dcad6741be1314c0b39512d2f142"><div class="ttname"><a href="classBVH_1_1LinearBVH.html#af071dcad6741be1314c0b39512d2f142">BVH::LinearBVH::LinearBVH</a></div><div class="ttdeci">LinearBVH()=delete</div><div class="ttdoc">Disallowed. Use the full constructor please.</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceFooter_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a></div><div class="ttdoc">Name space footer.</div></div>
 <div class="ttc" id="aclassBVH_1_1LinearNodeT_html_a152b12723c86f8fcb7522562cd97cd67"><div class="ttname"><a href="classBVH_1_1LinearNodeT.html#a152b12723c86f8fcb7522562cd97cd67">BVH::LinearNodeT::getBoundingVolume</a></div><div class="ttdeci">const BV &amp; getBoundingVolume() const noexcept</div><div class="ttdoc">Get the node bounding volume. return m_boundingVolume.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:478</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceHeader_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceHeader_8hpp.html">EBGeometry_NamespaceHeader.hpp</a></div><div class="ttdoc">Name space header.</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html_a6bd0a4dd5843f010dd579d59a289b4d8"><div class="ttname"><a href="classBVH_1_1NodeT.html#a6bd0a4dd5843f010dd579d59a289b4d8">BVH::NodeT::pruneStack</a></div><div class="ttdeci">T pruneStack(const Vec3 &amp;a_point) const noexcept</div><div class="ttdoc">Iterative ordered pruning along the BVH tree.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:211</div></div>
-<div class="ttc" id="aclassBVH_1_1NodeT_html_ab3b7afb83f7ecf97d1985c3c5ade2f0a"><div class="ttname"><a href="classBVH_1_1NodeT.html#ab3b7afb83f7ecf97d1985c3c5ade2f0a">BVH::NodeT::Partitioner</a></div><div class="ttdeci">PartitionerT&lt; P, BV, K &gt; Partitioner</div><div class="ttdoc">Alias for cutting down on typing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:157</div></div>
-<div class="ttc" id="aclassBVH_1_1NodeT_html_a19cce6e7fbe85eccb4a3718dd69f49b7"><div class="ttname"><a href="classBVH_1_1NodeT.html#a19cce6e7fbe85eccb4a3718dd69f49b7">BVH::NodeT::PrimitiveList</a></div><div class="ttdeci">PrimitiveListT&lt; P &gt; PrimitiveList</div><div class="ttdoc">Alias for cutting down on typing. This is a std::vector&lt;std::shared_ptr&lt;const P&gt; &gt;.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:132</div></div>
+<div class="ttc" id="aclassBVH_1_1NodeT_html_ab3b7afb83f7ecf97d1985c3c5ade2f0a"><div class="ttname"><a href="classBVH_1_1NodeT.html#ab3b7afb83f7ecf97d1985c3c5ade2f0a">BVH::NodeT::Partitioner</a></div><div class="ttdeci">PartitionerT&lt; P, BV, K &gt; Partitioner</div><div class="ttdoc">Alias for cutting down on typing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:173</div></div>
+<div class="ttc" id="aclassBVH_1_1NodeT_html_a19cce6e7fbe85eccb4a3718dd69f49b7"><div class="ttname"><a href="classBVH_1_1NodeT.html#a19cce6e7fbe85eccb4a3718dd69f49b7">BVH::NodeT::PrimitiveList</a></div><div class="ttdeci">PrimitiveListT&lt; P &gt; PrimitiveList</div><div class="ttdoc">Alias for cutting down on typing. This is a std::vector&lt;std::shared_ptr&lt;const P&gt; &gt;.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:148</div></div>
 <div class="ttc" id="anamespaceBVH_html_aa1e753bda451b85cd5b948722a2ad7c7"><div class="ttname"><a href="namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7">BVH::PrimitiveListT</a></div><div class="ttdeci">std::vector&lt; std::shared_ptr&lt; const P &gt; &gt; PrimitiveListT</div><div class="ttdoc">Alias to cut down on typing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:60</div></div>
+<div class="ttc" id="aclassBVH_1_1LinearBVH_html_a243aa537f57a55061d6a96f70a0b591f"><div class="ttname"><a href="classBVH_1_1LinearBVH.html#a243aa537f57a55061d6a96f70a0b591f">BVH::LinearBVH::stackPrune</a></div><div class="ttdeci">T stackPrune(const Vec3 &amp;a_point, const BVH::Comparator&lt; T &gt; &amp;a_comparator, const BVH::Pruner&lt; T &gt; &amp;a_pruner) const noexcept</div><div class="ttdoc">Stack-based pruning algorithm (recursion-less).</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:592</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html_a5bc328f2381b6babe37496758ea4b583"><div class="ttname"><a href="classBVH_1_1NodeT.html#a5bc328f2381b6babe37496758ea4b583">BVH::NodeT::~NodeT</a></div><div class="ttdeci">virtual ~NodeT()</div><div class="ttdoc">Destructor (does nothing)</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:57</div></div>
 <div class="ttc" id="aclassBVH_1_1LinearNodeT_html_a03e3dd1c74bf9e66ed692130b49c2e0f"><div class="ttname"><a href="classBVH_1_1LinearNodeT.html#a03e3dd1c74bf9e66ed692130b49c2e0f">BVH::LinearNodeT::setBoundingVolume</a></div><div class="ttdeci">void setBoundingVolume(const BV &amp;a_boundingVolume) noexcept</div><div class="ttdoc">Set the bounding volume.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:450</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html_a83c128d1045ccc23000a8b26f75b3172"><div class="ttname"><a href="classBVH_1_1NodeT.html#a83c128d1045ccc23000a8b26f75b3172">BVH::NodeT::insertChildren</a></div><div class="ttdeci">void insertChildren(const std::array&lt; PrimitiveList, K &gt; &amp;a_primitives) noexcept</div><div class="ttdoc">Insert nodes with primitives.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:139</div></div>
-<div class="ttc" id="aclassBVH_1_1LinearBVH_html_a6827bfd0bf7f2ad1b132e9317f60e216"><div class="ttname"><a href="classBVH_1_1LinearBVH.html#a6827bfd0bf7f2ad1b132e9317f60e216">BVH::LinearBVH::signedDistance</a></div><div class="ttdeci">T signedDistance(const Vec3 &amp;a_point) const noexcept override</div><div class="ttdoc">Function which computes the signed distance. This calls the other version.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:563</div></div>
-<div class="ttc" id="anamespaceBVH_html_a3ddb7b34ac1deb3baed2f32d9eacbe5b"><div class="ttname"><a href="namespaceBVH.html#a3ddb7b34ac1deb3baed2f32d9eacbe5b">BVH::Prune</a></div><div class="ttdeci">Prune</div><div class="ttdoc">Typename for identifying algorithms various algorithms during tree traversel.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:104</div></div>
+<div class="ttc" id="aclassBVH_1_1LinearBVH_html_a6827bfd0bf7f2ad1b132e9317f60e216"><div class="ttname"><a href="classBVH_1_1LinearBVH.html#a6827bfd0bf7f2ad1b132e9317f60e216">BVH::LinearBVH::signedDistance</a></div><div class="ttdeci">T signedDistance(const Vec3 &amp;a_point) const noexcept override</div><div class="ttdoc">Function which computes the signed distance.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:568</div></div>
+<div class="ttc" id="anamespaceBVH_html_a3ddb7b34ac1deb3baed2f32d9eacbe5b"><div class="ttname"><a href="namespaceBVH.html#a3ddb7b34ac1deb3baed2f32d9eacbe5b">BVH::Prune</a></div><div class="ttdeci">Prune</div><div class="ttdoc">Typename for identifying algorithms various algorithms during tree traversel.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:120</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html_a960d0972bec81cf782b36e57f87da1f1"><div class="ttname"><a href="classBVH_1_1NodeT.html#a960d0972bec81cf782b36e57f87da1f1">BVH::NodeT::NodeT</a></div><div class="ttdeci">NodeT()</div><div class="ttdoc">Default constructor which sets a regular node.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVHImplem.hpp:25</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

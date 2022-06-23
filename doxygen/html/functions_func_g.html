@@ -78,7 +78,8 @@ $(function() {
 , <a class="el" href="classDCEL_1_1FaceT.html#ab60c575c87104d606bc6f30dde9e7801">DCEL::FaceT&lt; T &gt;</a>
 </li>
 <li>getBoundingVolume()
-: <a class="el" href="classBVH_1_1LinearNodeT.html#a152b12723c86f8fcb7522562cd97cd67">BVH::LinearNodeT&lt; T, P, BV, K &gt;</a>
+: <a class="el" href="classBVH_1_1LinearBVH.html#a1ed89c63858338fb83bf2c004ac62454">BVH::LinearBVH&lt; T, P, BV, K &gt;</a>
+, <a class="el" href="classBVH_1_1LinearNodeT.html#a152b12723c86f8fcb7522562cd97cd67">BVH::LinearNodeT&lt; T, P, BV, K &gt;</a>
 , <a class="el" href="classBVH_1_1NodeT.html#a02cba4dcb065ebfaeea7e4d251b89d04">BVH::NodeT&lt; T, P, BV, K &gt;</a>
 </li>
 <li>getCenter()
@@ -106,16 +107,22 @@ $(function() {
 : <a class="el" href="classBoundingVolumes_1_1AABBT.html#ad883975a0926c0755a978283137f378f">BoundingVolumes::AABBT&lt; T &gt;</a>
 , <a class="el" href="classBoundingVolumes_1_1BoundingSphereT.html#a06ec858b7349e6a926ad476990c774cb">BoundingVolumes::BoundingSphereT&lt; T &gt;</a>
 </li>
+<li>getDistances()
+: <a class="el" href="classBVH_1_1LinearNodeT.html#a9b771a1cd5c5fb0a1ab8034918aff291">BVH::LinearNodeT&lt; T, P, BV, K &gt;</a>
+</li>
 <li>getDistanceToBoundingVolume()
 : <a class="el" href="classBVH_1_1LinearNodeT.html#a2bf5b1c514a20754d527b17e1c664630">BVH::LinearNodeT&lt; T, P, BV, K &gt;</a>
 , <a class="el" href="classBVH_1_1NodeT.html#a8da9f78078b0a579868d026bd61a2947">BVH::NodeT&lt; T, P, BV, K &gt;</a>
 </li>
 <li>getDistanceToPrimitives()
-: <a class="el" href="classBVH_1_1LinearNodeT.html#a1730afb7da76070213d81786318717af">BVH::LinearNodeT&lt; T, P, BV, K &gt;</a>
-, <a class="el" href="classBVH_1_1NodeT.html#a61dc7040d57f0a69984548eb4804244b">BVH::NodeT&lt; T, P, BV, K &gt;</a>
+: <a class="el" href="classBVH_1_1NodeT.html#a61dc7040d57f0a69984548eb4804244b">BVH::NodeT&lt; T, P, BV, K &gt;</a>
 </li>
 <li>getEdges()
-: <a class="el" href="classDCEL_1_1MeshT.html#a11f33585b5c8ef4e69797a0918a2746f">DCEL::MeshT&lt; T &gt;</a>
+: <a class="el" href="classDCEL_1_1MeshT.html#a8495609501f0bdf1aa3ff8fcf070a493">DCEL::MeshT&lt; T &gt;</a>
+</li>
+<li>getEncoding()
+: <a class="el" href="classParser_1_1PLY.html#addaede99f953fb2e75b7000cb494f4c1">Parser::PLY&lt; T &gt;</a>
+, <a class="el" href="classParser_1_1STL.html#a6d8ede9dc5b66d96522904043b5d227a">Parser::STL&lt; T &gt;</a>
 </li>
 <li>getFace()
 : <a class="el" href="classDCEL_1_1EdgeT.html#a51ff4fd40b5519a918c5fa00420f8125">DCEL::EdgeT&lt; T &gt;</a>
@@ -145,21 +152,21 @@ $(function() {
 : <a class="el" href="classTorusSDF.html#a3af383d80c8d11ab9d39fc872d661a42">TorusSDF&lt; T &gt;</a>
 </li>
 <li>getNextEdge()
-: <a class="el" href="classDCEL_1_1EdgeT.html#acdd54292a931b2f199de966e63bbc8f6">DCEL::EdgeT&lt; T &gt;</a>
+: <a class="el" href="classDCEL_1_1EdgeT.html#acb492fe0e884f810ec30500f9934d04c">DCEL::EdgeT&lt; T &gt;</a>
 </li>
 <li>getNormal()
 : <a class="el" href="classDCEL_1_1EdgeT.html#abc86603f37020f08056f52b4db8b95ae">DCEL::EdgeT&lt; T &gt;</a>
-, <a class="el" href="classDCEL_1_1FaceT.html#aca1280b979865ad6fad80b06a318db2a">DCEL::FaceT&lt; T &gt;</a>
-, <a class="el" href="classDCEL_1_1VertexT.html#a19886be09be2d36fe1a76e036a9339aa">DCEL::VertexT&lt; T &gt;</a>
+, <a class="el" href="classDCEL_1_1FaceT.html#adb88a59063e4c1e5acde371f18fffe98">DCEL::FaceT&lt; T &gt;</a>
+, <a class="el" href="classDCEL_1_1VertexT.html#aed4afdfa493cc5b8898db89a16fe96f1">DCEL::VertexT&lt; T &gt;</a>
 </li>
 <li>getNumPrimitives()
 : <a class="el" href="classBVH_1_1LinearNodeT.html#afb91cf46234be67eb084bc76ae718c44">BVH::LinearNodeT&lt; T, P, BV, K &gt;</a>
 </li>
 <li>getOtherVertex()
-: <a class="el" href="classDCEL_1_1EdgeT.html#a94dacb67712ee13e6d9265938544fc41">DCEL::EdgeT&lt; T &gt;</a>
+: <a class="el" href="classDCEL_1_1EdgeT.html#a4e57db5b8a0f5139ac672b9ffc569879">DCEL::EdgeT&lt; T &gt;</a>
 </li>
 <li>getOutgoingEdge()
-: <a class="el" href="classDCEL_1_1VertexT.html#a8b81a76f0c46d30be49ec5d885d2cb2d">DCEL::VertexT&lt; T &gt;</a>
+: <a class="el" href="classDCEL_1_1VertexT.html#ae8db279e152171922020b5e429571b94">DCEL::VertexT&lt; T &gt;</a>
 </li>
 <li>getOverlappingVolume()
 : <a class="el" href="classBoundingVolumes_1_1AABBT.html#ae65563ac6f3851f8fb05e0c98613fc0d">BoundingVolumes::AABBT&lt; T &gt;</a>
@@ -169,7 +176,7 @@ $(function() {
 : <a class="el" href="classDCEL_1_1EdgeT.html#a1dbd07e735aa0209c7ec853856ef3cb8">DCEL::EdgeT&lt; T &gt;</a>
 </li>
 <li>getPosition()
-: <a class="el" href="classDCEL_1_1VertexT.html#a2b23b1c318548c6754b6a869b04511f0">DCEL::VertexT&lt; T &gt;</a>
+: <a class="el" href="classDCEL_1_1VertexT.html#a07d9ea1cf4fe72388e780b4feff2b8c3">DCEL::VertexT&lt; T &gt;</a>
 </li>
 <li>getPreviousEdge()
 : <a class="el" href="classDCEL_1_1EdgeT.html#ae6d8cbfd0d089987691b7837ec377bf8">DCEL::EdgeT&lt; T &gt;</a>
@@ -189,10 +196,10 @@ $(function() {
 : <a class="el" href="classDCEL_1_1FaceT.html#aaeef6b98bad519d160d7bb2720ffa478">DCEL::FaceT&lt; T &gt;</a>
 </li>
 <li>getVertex()
-: <a class="el" href="classDCEL_1_1EdgeT.html#a7cfaea16298ec5e78a40e9ec34a2affe">DCEL::EdgeT&lt; T &gt;</a>
+: <a class="el" href="classDCEL_1_1EdgeT.html#a0afc8cc1c8cc2f257d8ed91d2a04f1d3">DCEL::EdgeT&lt; T &gt;</a>
 </li>
 <li>getVertices()
-: <a class="el" href="classDCEL_1_1MeshT.html#a25308ecc4b98fc0cf10f327ace3987f5">DCEL::MeshT&lt; T &gt;</a>
+: <a class="el" href="classDCEL_1_1MeshT.html#a8c9886901c65c087a13952b299159f33">DCEL::MeshT&lt; T &gt;</a>
 </li>
 <li>getVolume()
 : <a class="el" href="classBoundingVolumes_1_1AABBT.html#ac5b8f2caa8afe1177f3d2924fbc3f7a5">BoundingVolumes::AABBT&lt; T &gt;</a>

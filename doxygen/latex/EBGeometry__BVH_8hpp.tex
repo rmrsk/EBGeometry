@@ -1,5 +1,5 @@
-\hypertarget{EBGeometry__BVH_8hpp}{}\doxysection{Source/\+E\+B\+Geometry\+\_\+\+B\+VH.hpp File Reference}
-\label{EBGeometry__BVH_8hpp}\index{Source/EBGeometry\_BVH.hpp@{Source/EBGeometry\_BVH.hpp}}
+\hypertarget{EBGeometry__BVH_8hpp}{}\doxysection{/home/runner/work/\+E\+B\+Geometry/\+E\+B\+Geometry/\+Source/\+E\+B\+Geometry\+\_\+\+B\+VH.hpp File Reference}
+\label{EBGeometry__BVH_8hpp}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_BVH.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_BVH.hpp}}
 
 
 Declaration of a bounding volume hierarchy (\mbox{\hyperlink{namespaceBVH}{B\+VH}}) class.  
@@ -59,7 +59,11 @@ class \mbox{\hyperlink{classBVH_1_1LinearBVH}{B\+V\+H\+::\+Linear\+B\+V\+H$<$ T,
 {\footnotesize template$<$class P , class BV , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_a67de8088141156b6eaa225a635cc68c0}{B\+V\+H\+::\+PartitionerT}} = std\+::function$<$ std\+::array$<$ Primitive\+ListT$<$ P $>$, K $>$(const Primitive\+ListT$<$ P $>$ \&a\+\_\+primitives)$>$
 \begin{DoxyCompactList}\small\item\em Polymorphic partitioner for splitting a list of primitives into K new lists of primitives. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class P , class BV $>$ }\\using \mbox{\hyperlink{namespaceBVH_a245702d7eff40cdaedb5dff68c25a88a}{B\+V\+H\+::\+B\+V\+ConstructorT}} = std\+::function$<$ BV(const std\+::shared\+\_\+ptr$<$ const P $>$ \&a\+\_\+primitive)$>$
-\begin{DoxyCompactList}\small\item\em Constructor method for creating bounding volumes from a list of primitives. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Constructor method for creating bounding volumes from a list of primitives. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\using \mbox{\hyperlink{namespaceBVH_af1532e9ecc212528197e9a4a2555938f}{B\+V\+H\+::\+Comparator}} = std\+::function$<$ T(const T \&min\+Dist, const std\+::vector$<$ T $>$ \&prim\+Distances)$>$
+\begin{DoxyCompactList}\small\item\em Comparator for \mbox{\hyperlink{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70a0b591f}{Linear\+B\+V\+H\+::stack\+Prune}}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\using \mbox{\hyperlink{namespaceBVH_a5b6027b11349769fc2b8f669a4b1c53a}{B\+V\+H\+::\+Pruner}} = std\+::function$<$ bool(const T \&bv\+Dist, const T \&min\+Dist)$>$
+\begin{DoxyCompactList}\small\item\em Pruner for \mbox{\hyperlink{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70a0b591f}{Linear\+B\+V\+H\+::stack\+Prune}}. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Enumerations}
 \begin{DoxyCompactItemize}
 \item 

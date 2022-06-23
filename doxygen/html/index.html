@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.17"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>EBGeometry: Documentation quickstart</title>
+<title>EBGeometry: EBGeometry</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -63,27 +63,69 @@ $(function() {
 
 <div class="PageDoc"><div class="header">
   <div class="headertitle">
-<div class="title">Documentation quickstart </div>  </div>
+<div class="title"><a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h1>Doxygen documentation</h1>
-<p>To build the doxygen documentation locally, run</p>
-<div class="fragment"><div class="line">doxygen doxyfile</div>
-</div><!-- fragment --><p>in this folder. This will install the doxygen documentation in the <code>doxygen</code> subfolder.</p>
-<h1>Manual build</h1>
-<p>We use Sphinx with reStructured text for building the user documentation. To build the documentation locally, navigate to the Sphinx subfolder and run</p>
-<div class="fragment"><div class="line">cd Sphinx</div>
-<div class="line">make html</div>
-</div><!-- fragment --><p>for the HTML documentation and</p>
-<div class="fragment"><div class="line">cd Sphinx</div>
-<div class="line">make latexpdf</div>
-</div><!-- fragment --><p>for the LaTeX/PDF documentation.</p>
-<p>Source files will end up in <code>Sphinx/build/html</code> and <code>Sphinx/build/latex</code>, respectively.</p>
-<h1>Adding Sphinx changes.</h1>
-<p>To add changes to the Sphinx documentation, make the changes in the relevant Sphinx/source files. To build the documentation, either build it locally as above or put Sphinx in auto-build mode:</p>
-<div class="fragment"><div class="line">cd Sphinx</div>
-<div class="line">sphinx-autobuild source/ build/html</div>
-</div><!-- fragment --><p>This will start a server at <a href="http://127.0.0.1:8000">http://127.0.0.1:8000</a> and start watching for changes in the <code>source</code> directory. When a change is detected, the documentation is rebuilt and any open browser windows are reloaded automatically. <code>KeyboardInterrupt</code> (<code>ctrl</code>+<code>c</code>) will stop the server. </p>
+<div class="textblock"><p><a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> is a code for:</p>
+<ol type="1">
+<li>Computing signed distance functions to watertight and orientable surface grids.</li>
+<li>Enabling fast distance and implicit functions with bounding volume hierarchies.</li>
+</ol>
+<p>This code was originally written to be used with embedded-boundary (EB) codes like Chombo or AMReX.</p>
+<p>Tesselations must consist of planar polygons (not necessarily triangles). Internally, the surface mesh is stored in a doubly-connected edge list (<a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a>), i.e. a half-edge data structure. On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can be computed in various ways:</p>
+<ul>
+<li>Directly, by iterating through all facets.</li>
+<li>With conventional bounding volume hierarchies (BVHs).</li>
+<li>With compact (linearized) BVHs.</li>
+</ul>
+<p>The BVHs in <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> are not limited to facets. One can also embed entire objects (e.g., analytic functions) in the BVHs, e.g. the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> accelerator can be used to accelerate the signed distance computation when geometries contain many objects. Once can also use the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> accelerator to accelate constructive solid geometry (CSG) operations like unions. BVHs can also be nested so that the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> accelerator is used to embed signed distance objects that are themselves described by a <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>. For example, a scene consisting of many objects described by surface grids can be embedded as a BVH-of-BVH type of scene. In addition to all of this, <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> provides standard operators for signed distance fields like rotations, translations, and scalings.</p>
+<p><img src="example.png" alt="Signed distance field from Armadillo geometry" width="400" class="inline"/></p>
+<h1>Requirements </h1>
+<ul>
+<li>A C++ compiler which supports C++14.</li>
+</ul>
+<h1>Documentation </h1>
+<p>User documentation is available as <a href="https://rmrsk.github.io/EBGeometry/">HTML</a> or as a <a href="https://github.com/rmrsk/EBGeometry/raw/gh-pages/ebgeometry.pdf">PDF</a>. A doxygen-generated API is <a href="https://rmrsk.github.io/EBGeometry/doxygen/html/index.html">also available</a>.</p>
+<h1>Basic usage </h1>
+<p><a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> is a header-only library in C++. To use it, simply make <a class="el" href="EBGeometry_8hpp_source.html">EBGeometry.hpp</a> visible to your code and include it.</p>
+<p>To clone <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a>: </p><pre class="fragment">git clone git@github.com:rmrsk/EBGeometry.git
+</pre><p>Various examples are given in the Examples folder. To run one of the examples, navigate to the example and compile and run it. E.g.,</p>
+<div class="fragment"><div class="line">cd Examples/EBGeometry_DCEL</div>
+<div class="line">g++ -O3 -std=c++14 main.cpp</div>
+<div class="line">./a.out porsche.ply</div>
+</div><!-- fragment --><p>More complex examples that use Chombo or AMReX will also include application-specific code.</p>
+<h1>Advanced usage </h1>
+<p>For more advanced usage, users can supply their own file parsers (PLY and STL files are currently supported), provide their own bounding volumes, or their own <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> partitioners. <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> is not too strict about these things, and uses rigorous templating for ensuring that the <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> functionality can be extended.</p>
+<h1>Contributing </h1>
+<ol type="1">
+<li>Create a branch for the new feature.</li>
+</ol>
+<div class="fragment"><div class="line">git checkout main</div>
+<div class="line">git pull</div>
+<div class="line">git checkout -b my_branch</div>
+</div><!-- fragment --><ol type="1">
+<li>Develop the feature.</li>
+</ol>
+<div class="fragment"><div class="line">git add .</div>
+<div class="line">git commit -m &quot;my commit message&quot;</div>
+</div><!-- fragment --><p>If relevant, add Sphinx and doxygen documentation.</p>
+<ol type="1">
+<li>Format the source and example codes using <code>clang-format</code>:</li>
+</ol>
+<div class="fragment"><div class="line">find Source Examples \( -name &quot;*.hpp&quot; -o -name &quot;*.cpp&quot; \) -exec clang-format -i {} +</div>
+</div><!-- fragment --><ol type="1">
+<li>For safety, run <a href="https://github.com/codespell-project/codespell">codespell</a> on the source, examples, and documentation directories:</li>
+</ol>
+<div class="fragment"><div class="line">codespell Source Examples Docs/Sphinx --skip &quot;*.png,*.log,*.pdf&quot;</div>
+</div><!-- fragment --><ol type="1">
+<li>Push the changes to GitHub</li>
+</ol>
+<div class="fragment"><div class="line">git push --set-upstream origin my_branch</div>
+</div><!-- fragment --><ol type="1">
+<li>Create a pull request and make sure the GitHub continuous integration tests pass.</li>
+</ol>
+<h1>License </h1>
+<p>See LICENSE and Copyright.txt for redistribution rights. </p>
 </div></div><!-- PageDoc -->
 </div><!-- contents -->
 <!-- start footer part -->

@@ -104,6 +104,14 @@ Typedefs</h2></td></tr>
 <tr class="memitem:a245702d7eff40cdaedb5dff68c25a88a"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a245702d7eff40cdaedb5dff68c25a88a">BVConstructorT</a> = std::function&lt; BV(const std::shared_ptr&lt; const P &gt; &amp;a_primitive)&gt;</td></tr>
 <tr class="memdesc:a245702d7eff40cdaedb5dff68c25a88a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor method for creating bounding volumes from a list of primitives.  <a href="namespaceBVH.html#a245702d7eff40cdaedb5dff68c25a88a">More...</a><br /></td></tr>
 <tr class="separator:a245702d7eff40cdaedb5dff68c25a88a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af1532e9ecc212528197e9a4a2555938f"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
+<tr class="memitem:af1532e9ecc212528197e9a4a2555938f"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#af1532e9ecc212528197e9a4a2555938f">Comparator</a> = std::function&lt; T(const T &amp;minDist, const std::vector&lt; T &gt; &amp;primDistances)&gt;</td></tr>
+<tr class="memdesc:af1532e9ecc212528197e9a4a2555938f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Comparator for <a class="el" href="classBVH_1_1LinearBVH.html#a243aa537f57a55061d6a96f70a0b591f" title="Stack-based pruning algorithm (recursion-less).">LinearBVH::stackPrune</a>.  <a href="namespaceBVH.html#af1532e9ecc212528197e9a4a2555938f">More...</a><br /></td></tr>
+<tr class="separator:af1532e9ecc212528197e9a4a2555938f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5b6027b11349769fc2b8f669a4b1c53a"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
+<tr class="memitem:a5b6027b11349769fc2b8f669a4b1c53a"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a5b6027b11349769fc2b8f669a4b1c53a">Pruner</a> = std::function&lt; bool(const T &amp;bvDist, const T &amp;minDist)&gt;</td></tr>
+<tr class="memdesc:a5b6027b11349769fc2b8f669a4b1c53a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pruner for <a class="el" href="classBVH_1_1LinearBVH.html#a243aa537f57a55061d6a96f70a0b591f" title="Stack-based pruning algorithm (recursion-less).">LinearBVH::stackPrune</a>.  <a href="namespaceBVH.html#a5b6027b11349769fc2b8f669a4b1c53a">More...</a><br /></td></tr>
+<tr class="separator:a5b6027b11349769fc2b8f669a4b1c53a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -139,6 +147,31 @@ template&lt;class P , class BV &gt; </div>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Returns a new bounding volumes which is guaranteed to enclose all the input primitives. </dd></dl>
+
+</div>
+</div>
+<a id="af1532e9ecc212528197e9a4a2555938f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af1532e9ecc212528197e9a4a2555938f">&#9670;&nbsp;</a></span>Comparator</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespaceBVH.html#af1532e9ecc212528197e9a4a2555938f">BVH::Comparator</a> = typedef std::function&lt;T(const T&amp; minDist, const std::vector&lt;T&gt;&amp; primDistances)&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Comparator for <a class="el" href="classBVH_1_1LinearBVH.html#a243aa537f57a55061d6a96f70a0b591f" title="Stack-based pruning algorithm (recursion-less).">LinearBVH::stackPrune</a>. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">minDist</td><td>Minimum distance found so far </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">primDistances</td><td>Distance to primitives in the leaf node. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -183,6 +216,31 @@ template&lt;class P &gt; </div>
 
 <p>Alias to cut down on typing. </p>
 <p>P is the primitive bounded by the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>. </p>
+
+</div>
+</div>
+<a id="a5b6027b11349769fc2b8f669a4b1c53a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5b6027b11349769fc2b8f669a4b1c53a">&#9670;&nbsp;</a></span>Pruner</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespaceBVH.html#a5b6027b11349769fc2b8f669a4b1c53a">BVH::Pruner</a> = typedef std::function&lt;bool(const T&amp; bvDist, const T&amp; minDist)&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Pruner for <a class="el" href="classBVH_1_1LinearBVH.html#a243aa537f57a55061d6a96f70a0b591f" title="Stack-based pruning algorithm (recursion-less).">LinearBVH::stackPrune</a>. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">Distance</td><td>to current bounding volume. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">minDist</td><td>Shortest "distance" to primitives found so far. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

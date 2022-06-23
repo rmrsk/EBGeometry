@@ -1,7 +1,8 @@
 var searchData=
 [
-  ['sdf_675',['SDF',['../classUnion.html#a9e9d1d95ae54fa471c6f29e778239021',1,'Union::SDF()'],['../classUnionBVH.html#a5d1d64d7cabf1000fc1a804d06e103cc',1,'UnionBVH::SDF()']]],
-  ['sdflist_676',['SDFList',['../classUnionBVH.html#ac23ace50239fbe00130df2a7e42af995',1,'UnionBVH']]],
-  ['stopfunction_677',['StopFunction',['../classBVH_1_1NodeT.html#acbe56195affc439febe8aca84db308e3',1,'BVH::NodeT']]],
-  ['stopfunctiont_678',['StopFunctionT',['../namespaceBVH.html#afef1c5979c34a11d23b756cc09654bf9',1,'BVH']]]
+  ['partitioner_708',['Partitioner',['../classBVH_1_1NodeT.html#ab3b7afb83f7ecf97d1985c3c5ade2f0a',1,'BVH::NodeT']]],
+  ['partitionert_709',['PartitionerT',['../namespaceBVH.html#a67de8088141156b6eaa225a635cc68c0',1,'BVH']]],
+  ['primitivelist_710',['PrimitiveList',['../classBVH_1_1NodeT.html#a19cce6e7fbe85eccb4a3718dd69f49b7',1,'BVH::NodeT::PrimitiveList()'],['../classBVH_1_1LinearBVH.html#a94ee5da1670e2ef85eeabf7cf6a2da92',1,'BVH::LinearBVH::PrimitiveList()'],['../namespaceDCEL.html#afa38b655d6b4f449cd7b02fef3109f38',1,'DCEL::PrimitiveList()']]],
+  ['primitivelistt_711',['PrimitiveListT',['../namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7',1,'BVH']]],
+  ['pruner_712',['Pruner',['../namespaceBVH.html#a5b6027b11349769fc2b8f669a4b1c53a',1,'BVH']]]
 ];

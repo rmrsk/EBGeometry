@@ -98,10 +98,14 @@ using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cla
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:af071dcad6741be1314c0b39512d2f142"><td class="memItemLeft" align="right" valign="top"><a id="af071dcad6741be1314c0b39512d2f142"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearBVH.html#af071dcad6741be1314c0b39512d2f142">LinearBVH</a> ()=delete</td></tr>
-<tr class="memdesc:af071dcad6741be1314c0b39512d2f142"><td class="mdescLeft">&#160;</td><td class="mdescRight">Disallowed. Use the full constructor please. <br /></td></tr>
-<tr class="separator:af071dcad6741be1314c0b39512d2f142"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5f10356de5f87989b0d27520ffd688f9"><td class="memItemLeft" align="right" valign="top"><a id="a5f10356de5f87989b0d27520ffd688f9"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearBVH.html#a5f10356de5f87989b0d27520ffd688f9">LinearBVH</a> ()=default</td></tr>
+<tr class="memdesc:a5f10356de5f87989b0d27520ffd688f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Disallowed. Use the full constructor please. <br /></td></tr>
+<tr class="separator:a5f10356de5f87989b0d27520ffd688f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7cd5b4ef45b8740d9566b64616c7c52c"><td class="memItemLeft" align="right" valign="top"><a id="a7cd5b4ef45b8740d9566b64616c7c52c"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearBVH.html#a7cd5b4ef45b8740d9566b64616c7c52c">LinearBVH</a> (const <a class="el" href="classBVH_1_1LinearBVH.html">LinearBVH</a> &amp;)=default</td></tr>
+<tr class="memdesc:a7cd5b4ef45b8740d9566b64616c7c52c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy constructor. <br /></td></tr>
+<tr class="separator:a7cd5b4ef45b8740d9566b64616c7c52c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af6555a1a22c9d8e44e47ee968336643c"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearBVH.html#af6555a1a22c9d8e44e47ee968336643c">LinearBVH</a> (const std::vector&lt; std::shared_ptr&lt; const <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>&lt; T, P, BV, K &gt;&gt;&gt; &amp;a_linearNodes, const std::vector&lt; std::shared_ptr&lt; const P &gt;&gt; &amp;a_primitives)</td></tr>
 <tr class="memdesc:af6555a1a22c9d8e44e47ee968336643c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor. Associates the nodes and primitives.  <a href="classBVH_1_1LinearBVH.html#af6555a1a22c9d8e44e47ee968336643c">More...</a><br /></td></tr>
 <tr class="separator:af6555a1a22c9d8e44e47ee968336643c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -112,9 +116,16 @@ Public Member Functions</h2></td></tr>
 virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearBVH.html#a39a98014b81061b35604422cfab5c9b7">~LinearBVH</a> ()</td></tr>
 <tr class="memdesc:a39a98014b81061b35604422cfab5c9b7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor. Does nothing. <br /></td></tr>
 <tr class="separator:a39a98014b81061b35604422cfab5c9b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1ed89c63858338fb83bf2c004ac62454"><td class="memItemLeft" align="right" valign="top"><a id="a1ed89c63858338fb83bf2c004ac62454"></a>
+const BV &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearBVH.html#a1ed89c63858338fb83bf2c004ac62454">getBoundingVolume</a> ()</td></tr>
+<tr class="memdesc:a1ed89c63858338fb83bf2c004ac62454"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the bounding volume for this <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>. <br /></td></tr>
+<tr class="separator:a1ed89c63858338fb83bf2c004ac62454"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6827bfd0bf7f2ad1b132e9317f60e216"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearBVH.html#a6827bfd0bf7f2ad1b132e9317f60e216">signedDistance</a> (const <a class="el" href="classBVH_1_1LinearBVH.html#a13b0083e8b7ff1a5e170d39d69e6a15a">Vec3</a> &amp;a_point) const noexcept override</td></tr>
-<tr class="memdesc:a6827bfd0bf7f2ad1b132e9317f60e216"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function which computes the signed distance. This calls the other version.  <a href="classBVH_1_1LinearBVH.html#a6827bfd0bf7f2ad1b132e9317f60e216">More...</a><br /></td></tr>
+<tr class="memdesc:a6827bfd0bf7f2ad1b132e9317f60e216"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function which computes the signed distance.  <a href="classBVH_1_1LinearBVH.html#a6827bfd0bf7f2ad1b132e9317f60e216">More...</a><br /></td></tr>
 <tr class="separator:a6827bfd0bf7f2ad1b132e9317f60e216"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a243aa537f57a55061d6a96f70a0b591f"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearBVH.html#a243aa537f57a55061d6a96f70a0b591f">stackPrune</a> (const <a class="el" href="classBVH_1_1LinearBVH.html#a13b0083e8b7ff1a5e170d39d69e6a15a">Vec3</a> &amp;a_point, const <a class="el" href="namespaceBVH.html#af1532e9ecc212528197e9a4a2555938f">BVH::Comparator</a>&lt; T &gt; &amp;a_comparator, const <a class="el" href="namespaceBVH.html#a5b6027b11349769fc2b8f669a4b1c53a">BVH::Pruner</a>&lt; T &gt; &amp;a_pruner) const noexcept</td></tr>
+<tr class="memdesc:a243aa537f57a55061d6a96f70a0b591f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Stack-based pruning algorithm (recursion-less).  <a href="classBVH_1_1LinearBVH.html#a243aa537f57a55061d6a96f70a0b591f">More...</a><br /></td></tr>
+<tr class="separator:a243aa537f57a55061d6a96f70a0b591f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
@@ -256,10 +267,65 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Function which computes the signed distance. This calls the other version. </p>
+<p>Function which computes the signed distance. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">a_point</td><td>3D point in space </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>If the objects overlap this routine makes no sense. In that case there is no signed distance, but there IS a CSG union (csgUnion). </dd></dl>
+
+</div>
+</div>
+<a id="a243aa537f57a55061d6a96f70a0b591f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a243aa537f57a55061d6a96f70a0b591f">&#9670;&nbsp;</a></span>stackPrune()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T , class P , class BV , size_t K&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">T <a class="el" href="classBVH_1_1LinearBVH.html">BVH::LinearBVH</a>&lt; T, P, BV, K &gt;::stackPrune </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classBVH_1_1LinearBVH.html#a13b0083e8b7ff1a5e170d39d69e6a15a">Vec3</a> &amp;&#160;</td>
+          <td class="paramname"><em>a_point</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="namespaceBVH.html#af1532e9ecc212528197e9a4a2555938f">BVH::Comparator</a>&lt; T &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_comparator</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="namespaceBVH.html#a5b6027b11349769fc2b8f669a4b1c53a">BVH::Pruner</a>&lt; T &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_pruner</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Stack-based pruning algorithm (recursion-less). </p>
+<p>This will iterate through the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> and visit all nodes where a_pruner evaluates to true. If the node is a leaf node, we update the "distance", which will be the closest object for signed distance, or the one with the smallest value for the constructive solid geometry union. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_point</td><td>3D point in space </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_comparator</td><td>Comparator for how to select the "output" when comparing various distances. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_pruner</td><td>Comparator for whether to visit the node or not. </td></tr>
   </table>
   </dd>
 </dl>
@@ -267,8 +333,8 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>Source/<a class="el" href="EBGeometry__BVH_8hpp_source.html">EBGeometry_BVH.hpp</a></li>
-<li>Source/<a class="el" href="EBGeometry__BVHImplem_8hpp_source.html">EBGeometry_BVHImplem.hpp</a></li>
+<li>/home/runner/work/EBGeometry/EBGeometry/Source/<a class="el" href="EBGeometry__BVH_8hpp_source.html">EBGeometry_BVH.hpp</a></li>
+<li>/home/runner/work/EBGeometry/EBGeometry/Source/<a class="el" href="EBGeometry__BVHImplem_8hpp_source.html">EBGeometry_BVHImplem.hpp</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

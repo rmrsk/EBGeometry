@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.17"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>EBGeometry: Source/EBGeometry_UnionBVHImplem.hpp Source File</title>
+<title>EBGeometry: /home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_UnionBVHImplem.hpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -227,30 +227,62 @@ $(function() {
 <div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160; </div>
 <div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;T</div>
-<div class="line"><a name="l00164"></a><span class="lineno"><a class="line" href="classUnionBVH.html#a9681fdc161e2e077a33caaddb78fb4ba">  164</a></span>&#160;<a class="code" href="classUnionBVH.html#a9681fdc161e2e077a33caaddb78fb4ba">UnionBVH&lt;T, BV, K&gt;::signedDistance</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_point) <span class="keyword">const</span> noexcept</div>
+<div class="line"><a name="l00164"></a><span class="lineno"><a class="line" href="classUnionBVH.html#a8650a9c58619d81b0e841bf5fe0a096a">  164</a></span>&#160;<a class="code" href="classUnionBVH.html#a8650a9c58619d81b0e841bf5fe0a096a">UnionBVH&lt;T, BV, K&gt;::value</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_point) <span class="keyword">const</span> noexcept</div>
 <div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;{</div>
 <div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;  <span class="keyword">const</span> T sign = (m_flipSign) ? -1.0 : 1.0;</div>
 <div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160; </div>
-<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;  <span class="keywordflow">return</span> sign * m_rootNode-&gt;signedDistance(a_point);</div>
-<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;}</div>
-<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160; </div>
-<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a>&quot;</span></div>
-<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160; </div>
-<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;  <span class="comment">// For the CSG union we select the smallest value. This means that if a</span></div>
+<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;  <span class="comment">// point is inside one object but outside another one, we choose the</span></div>
+<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;  <span class="comment">// inside value. By design, LinearNode is a signed distance object, but the</span></div>
+<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;  <span class="comment">// BVH accelerator is still a valid accelerator that permits us to do all</span></div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;  <span class="comment">// kinds of accelerated traversals. For overlapping objects there is not signed</span></div>
+<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;  <span class="comment">// distance but there is still a CSG union, and the BVH is still a useful thing.</span></div>
+<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;  <span class="comment">// So, we can&#39;t use LinearNode::signedDistanceFunction because it returns the</span></div>
+<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;  <span class="comment">// closest object and not the object with the smallest value function.</span></div>
+<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;  <span class="comment">//</span></div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;  <span class="comment">// Fortunately, when I wrote the LinearNode accelerator I wrote it such that we can determine</span></div>
+<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;  <span class="comment">// how to update the &quot;shortest&quot; distance using externally supplied criteria.</span></div>
+<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;  <span class="comment">// So, we just update this as f = min(f1,f2,f3) etc, and prune nodes accordingly.</span></div>
+<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;  <span class="comment">// The criteria for that are below...</span></div>
+<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160; </div>
+<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160;  <a class="code" href="namespaceBVH.html#af1532e9ecc212528197e9a4a2555938f">BVH::Comparator&lt;T&gt;</a> unionComparator = [](<span class="keyword">const</span> T&amp; dmin, <span class="keyword">const</span> std::vector&lt;T&gt;&amp; primDistances) -&gt; T {</div>
+<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;    T d = dmin;</div>
+<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160; </div>
+<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; primDist : primDistances) {</div>
+<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160;      d = <a class="code" href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">std::min</a>(d, primDist);</div>
+<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160;    }</div>
+<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160; </div>
+<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160;    <span class="keywordflow">return</span> d;</div>
+<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160;  };</div>
+<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160; </div>
+<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;  <a class="code" href="namespaceBVH.html#a5b6027b11349769fc2b8f669a4b1c53a">BVH::Pruner&lt;T&gt;</a> unionPruner = [](<span class="keyword">const</span> T&amp; bvDist, <span class="keyword">const</span> T&amp; minDist) -&gt; <span class="keywordtype">bool</span> {</div>
+<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;    <span class="keywordflow">return</span> bvDist &lt;= 0.0 || (bvDist &lt;= minDist &amp;&amp; minDist &gt; 0.0);</div>
+<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;  };</div>
+<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160; </div>
+<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;  <span class="keyword">const</span> T value = m_rootNode-&gt;stackPrune(a_point, unionComparator, unionPruner);</div>
+<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160; </div>
+<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160;  <span class="keywordflow">return</span> sign * value;</div>
+<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160;}</div>
+<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160; </div>
+<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a>&quot;</span></div>
+<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160; </div>
+<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
-<div class="ttc" id="aclassUnionBVH_html_a9681fdc161e2e077a33caaddb78fb4ba"><div class="ttname"><a href="classUnionBVH.html#a9681fdc161e2e077a33caaddb78fb4ba">UnionBVH::signedDistance</a></div><div class="ttdeci">T signedDistance(const Vec3T&lt; T &gt; &amp;a_point) const noexcept override</div><div class="ttdoc">Value function.</div><div class="ttdef"><b>Definition:</b> EBGeometry_UnionBVHImplem.hpp:164</div></div>
 <div class="ttc" id="aclassVec3T_html"><div class="ttname"><a href="classVec3T.html">Vec3T</a></div><div class="ttdoc">Three-dimensional vector class with arithmetic operators.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Vec.hpp:234</div></div>
+<div class="ttc" id="aclassUnionBVH_html_a8650a9c58619d81b0e841bf5fe0a096a"><div class="ttname"><a href="classUnionBVH.html#a8650a9c58619d81b0e841bf5fe0a096a">UnionBVH::value</a></div><div class="ttdeci">T value(const Vec3T&lt; T &gt; &amp;a_point) const noexcept override</div><div class="ttdoc">Value function.</div><div class="ttdef"><b>Definition:</b> EBGeometry_UnionBVHImplem.hpp:164</div></div>
 <div class="ttc" id="aclassUnionBVH_html_a9fd434576440274a81c0251962d7ff7e"><div class="ttname"><a href="classUnionBVH.html#a9fd434576440274a81c0251962d7ff7e">UnionBVH::BuilderNode</a></div><div class="ttdeci">EBGeometry::BVH::NodeT&lt; T, SDF, BV, K &gt; BuilderNode</div><div class="ttdoc">Builder node type in BVH tree. Tree is constructed in &quot;full&quot;.</div><div class="ttdef"><b>Definition:</b> EBGeometry_UnionBVH.hpp:95</div></div>
+<div class="ttc" id="anamespaceBVH_html_af1532e9ecc212528197e9a4a2555938f"><div class="ttname"><a href="namespaceBVH.html#af1532e9ecc212528197e9a4a2555938f">BVH::Comparator</a></div><div class="ttdeci">std::function&lt; T(const T &amp;minDist, const std::vector&lt; T &gt; &amp;primDistances)&gt; Comparator</div><div class="ttdoc">Comparator for LinearBVH::stackPrune.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:103</div></div>
 <div class="ttc" id="aclassUnionBVH_html_a09561e026cd6a7da1a7dbdbad5eea2c2"><div class="ttname"><a href="classUnionBVH.html#a09561e026cd6a7da1a7dbdbad5eea2c2">UnionBVH::BVConstructor</a></div><div class="ttdeci">EBGeometry::BVH::BVConstructorT&lt; SDF, BV &gt; BVConstructor</div><div class="ttdoc">Alias for cutting down on typing. This is a std::function&lt;BV(SDF)&gt;, i.e. a function which returns a b...</div><div class="ttdef"><b>Definition:</b> EBGeometry_UnionBVH.hpp:40</div></div>
-<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a71f0bc32c9be501cf01a1b6c715dc0a9"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">max</a></div><div class="ttdeci">Vec3T&lt; T &gt; max(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Maximum function. Returns new vector with component-wise minimums.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:537</div></div>
+<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a71f0bc32c9be501cf01a1b6c715dc0a9"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">max</a></div><div class="ttdeci">Vec3T&lt; T &gt; max(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Maximum function. Returns new vector with component-wise minimums.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:567</div></div>
+<div class="ttc" id="anamespaceBVH_html_a5b6027b11349769fc2b8f669a4b1c53a"><div class="ttname"><a href="namespaceBVH.html#a5b6027b11349769fc2b8f669a4b1c53a">BVH::Pruner</a></div><div class="ttdeci">std::function&lt; bool(const T &amp;bvDist, const T &amp;minDist)&gt; Pruner</div><div class="ttdoc">Pruner for LinearBVH::stackPrune.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:111</div></div>
 <div class="ttc" id="aEBGeometry__UnionBVH_8hpp_html"><div class="ttname"><a href="EBGeometry__UnionBVH_8hpp.html">EBGeometry_UnionBVH.hpp</a></div><div class="ttdoc">Declaration of a union operator for creating multi-object scenes.</div></div>
-<div class="ttc" id="aclassUnionBVH_html"><div class="ttname"><a href="classUnionBVH.html">UnionBVH</a></div><div class="ttdoc">Distance function union using BVHs. Computes the signed distance to the closest object of N non-overl...</div><div class="ttdef"><b>Definition:</b> EBGeometry_UnionBVH.hpp:28</div></div>
+<div class="ttc" id="aclassUnionBVH_html"><div class="ttname"><a href="classUnionBVH.html">UnionBVH</a></div><div class="ttdoc">Distance function union using BVHs. Computes the signed distance to the closest object of possibly ov...</div><div class="ttdef"><b>Definition:</b> EBGeometry_UnionBVH.hpp:28</div></div>
 <div class="ttc" id="aclassUnionBVH_html_ac23ace50239fbe00130df2a7e42af995"><div class="ttname"><a href="classUnionBVH.html#ac23ace50239fbe00130df2a7e42af995">UnionBVH::SDFList</a></div><div class="ttdeci">std::vector&lt; std::shared_ptr&lt; const SDF &gt; &gt; SDFList</div><div class="ttdoc">Alias for cutting down on typing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_UnionBVH.hpp:90</div></div>
 <div class="ttc" id="aclassVec3T_html_ad88913a21fd56327b28092c2e39ebc3e"><div class="ttname"><a href="classVec3T.html#ad88913a21fd56327b28092c2e39ebc3e">Vec3T::infinity</a></div><div class="ttdeci">static constexpr Vec3T&lt; T &gt; infinity() noexcept</div><div class="ttdoc">Return a vector with inf components.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:263</div></div>
 <div class="ttc" id="aclassUnionBVH_html_a97769f4c449610b681a70b93c99a40ca"><div class="ttname"><a href="classUnionBVH.html#a97769f4c449610b681a70b93c99a40ca">UnionBVH::buildTree</a></div><div class="ttdeci">void buildTree(const BVConstructor &amp;a_bvConstructor)</div><div class="ttdoc">Build BVH tree for the input objects. User must supply a partitioner and a BV constructor for the SDF...</div><div class="ttdef"><b>Definition:</b> EBGeometry_UnionBVHImplem.hpp:42</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceFooter_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a></div><div class="ttdoc">Name space footer.</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceHeader_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceHeader_8hpp.html">EBGeometry_NamespaceHeader.hpp</a></div><div class="ttdoc">Name space header.</div></div>
-<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a291f01622695ab94c0092c3af0a1f3ca"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">min</a></div><div class="ttdeci">Vec3T&lt; T &gt; min(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Minimum function. Returns new vector with component-wise minimums.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:530</div></div>
+<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a291f01622695ab94c0092c3af0a1f3ca"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">min</a></div><div class="ttdeci">Vec3T&lt; T &gt; min(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Minimum function. Returns new vector with component-wise minimums.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:560</div></div>
 <div class="ttc" id="aclassUnionBVH_html_aa2d9a2e95e58a0d7dfb2b92283626cac"><div class="ttname"><a href="classUnionBVH.html#aa2d9a2e95e58a0d7dfb2b92283626cac">UnionBVH::UnionBVH</a></div><div class="ttdeci">UnionBVH()=delete</div><div class="ttdoc">Disallowed, use the full constructor.</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

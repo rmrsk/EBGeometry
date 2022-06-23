@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.17"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>EBGeometry: Source/EBGeometry_Union.hpp Source File</title>
+<title>EBGeometry: /home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Union.hpp Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -82,47 +82,52 @@ $(function() {
 <div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="preprocessor">#include &lt;vector&gt;</span></div>
 <div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160; </div>
 <div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="comment">// Our includes</span></div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__SignedDistanceFunction_8hpp.html">EBGeometry_SignedDistanceFunction.hpp</a>&quot;</span></div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__ImplicitFunction_8hpp.html">EBGeometry_ImplicitFunction.hpp</a>&quot;</span></div>
 <div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceHeader_8hpp.html">EBGeometry_NamespaceHeader.hpp</a>&quot;</span></div>
 <div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160; </div>
 <div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00028"></a><span class="lineno"><a class="line" href="classUnion.html">   28</a></span>&#160;<span class="keyword">class </span><a class="code" href="classUnion.html">Union</a> : <span class="keyword">public</span> <a class="code" href="classSignedDistanceFunction.html">SignedDistanceFunction</a>&lt;T&gt;</div>
+<div class="line"><a name="l00028"></a><span class="lineno"><a class="line" href="classUnion.html">   28</a></span>&#160;<span class="keyword">class </span><a class="code" href="classUnion.html">Union</a> : <span class="keyword">public</span> <a class="code" href="classImplicitFunction.html">ImplicitFunction</a>&lt;T&gt;</div>
 <div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;{</div>
 <div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00034"></a><span class="lineno"><a class="line" href="classUnion.html#a9e9d1d95ae54fa471c6f29e778239021">   34</a></span>&#160;  <span class="keyword">using</span> <a class="code" href="classSignedDistanceFunction.html">SDF</a> = <a class="code" href="classSignedDistanceFunction.html">SignedDistanceFunction&lt;T&gt;</a>;</div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160; </div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;  <a class="code" href="classUnion.html#a2dea7d7ed6d5456f87feff0e02c99453">Union</a>() = <span class="keyword">delete</span>;</div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160; </div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;  <a class="code" href="classUnion.html#a2dea7d7ed6d5456f87feff0e02c99453">Union</a>(<span class="keyword">const</span> std::vector&lt;std::shared_ptr&lt;SDF&gt;&gt;&amp; a_distanceFunctions, <span class="keyword">const</span> <span class="keywordtype">bool</span> a_flipSign);</div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160; </div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;  <span class="keyword">virtual</span> <a class="code" href="classUnion.html#a5c4f15da1b35f6f6643d49ed18faa386">~Union</a>() = <span class="keywordflow">default</span>;</div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160; </div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;  T</div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;  <a class="code" href="classUnion.html#a08beffd354ca261e3d31bcb453951810">signedDistance</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_point) <span class="keyword">const</span> noexcept <span class="keyword">override</span>;</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160; </div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;<span class="keyword">protected</span>:</div>
-<div class="line"><a name="l00064"></a><span class="lineno"><a class="line" href="classUnion.html#a5d2f543272ab5fe25f6f5945ad1ef27f">   64</a></span>&#160;  std::vector&lt;std::shared_ptr&lt;const SDF&gt;&gt; <a class="code" href="classUnion.html#a5d2f543272ab5fe25f6f5945ad1ef27f">m_distanceFunctions</a>;</div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;  <span class="keyword">using</span> <a class="code" href="classImplicitFunction.html">ImpFunc</a> = <a class="code" href="classImplicitFunction.html">ImplicitFunction&lt;T&gt;</a>;</div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160; </div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;  <span class="keyword">using</span> <a class="code" href="classSignedDistanceFunction.html">SDF</a> = <a class="code" href="classSignedDistanceFunction.html">SignedDistanceFunction&lt;T&gt;</a>;</div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160; </div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;  <a class="code" href="classUnion.html#a2dea7d7ed6d5456f87feff0e02c99453">Union</a>() = <span class="keyword">delete</span>;</div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160; </div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;  <a class="code" href="classUnion.html#a2dea7d7ed6d5456f87feff0e02c99453">Union</a>(<span class="keyword">const</span> std::vector&lt;std::shared_ptr&lt;ImpFunc&gt;&gt;&amp; a_implicitFunctions, <span class="keyword">const</span> <span class="keywordtype">bool</span> a_flipSign);</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160; </div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;  <a class="code" href="classUnion.html#a2dea7d7ed6d5456f87feff0e02c99453">Union</a>(<span class="keyword">const</span> std::vector&lt;std::shared_ptr&lt;SDF&gt;&gt;&amp; a_distanceFunctions, <span class="keyword">const</span> <span class="keywordtype">bool</span> a_flipSign);</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160; </div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;  <span class="keyword">virtual</span> <a class="code" href="classUnion.html#a5c4f15da1b35f6f6643d49ed18faa386">~Union</a>() = <span class="keywordflow">default</span>;</div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160; </div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;  T</div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;  <a class="code" href="classUnion.html#ab6f5f12fdd7bc39b4598f45ec70cd4b2">value</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_point) <span class="keyword">const</span> noexcept <span class="keyword">override</span>;</div>
 <div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160; </div>
-<div class="line"><a name="l00069"></a><span class="lineno"><a class="line" href="classUnion.html#a53b9705419030572836a540e7fa3752f">   69</a></span>&#160;  <span class="keywordtype">bool</span> <a class="code" href="classUnion.html#a53b9705419030572836a540e7fa3752f">m_flipSign</a>;</div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;};</div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;<span class="keyword">protected</span>:</div>
+<div class="line"><a name="l00070"></a><span class="lineno"><a class="line" href="classUnion.html#a7914b88dabc03d1bf9e6b43a2e01da98">   70</a></span>&#160;  std::vector&lt;std::shared_ptr&lt;const ImpFunc&gt;&gt; <a class="code" href="classUnion.html#a7914b88dabc03d1bf9e6b43a2e01da98">m_implicitFunctions</a>;</div>
 <div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160; </div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a>&quot;</span></div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160; </div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__UnionImplem_8hpp.html">EBGeometry_UnionImplem.hpp</a>&quot;</span></div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160; </div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00075"></a><span class="lineno"><a class="line" href="classUnion.html#a53b9705419030572836a540e7fa3752f">   75</a></span>&#160;  <span class="keywordtype">bool</span> <a class="code" href="classUnion.html#a53b9705419030572836a540e7fa3752f">m_flipSign</a>;</div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;};</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160; </div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a>&quot;</span></div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160; </div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__UnionImplem_8hpp.html">EBGeometry_UnionImplem.hpp</a>&quot;</span></div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160; </div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aclassUnion_html_a2dea7d7ed6d5456f87feff0e02c99453"><div class="ttname"><a href="classUnion.html#a2dea7d7ed6d5456f87feff0e02c99453">Union::Union</a></div><div class="ttdeci">Union()=delete</div><div class="ttdoc">Disallowed, use the full constructor.</div></div>
 <div class="ttc" id="aclassSignedDistanceFunction_html"><div class="ttname"><a href="classSignedDistanceFunction.html">SignedDistanceFunction</a></div><div class="ttdoc">Abstract representation of a signed distance function.</div><div class="ttdef"><b>Definition:</b> EBGeometry_SignedDistanceFunction.hpp:31</div></div>
 <div class="ttc" id="aclassVec3T_html"><div class="ttname"><a href="classVec3T.html">Vec3T</a></div><div class="ttdoc">Three-dimensional vector class with arithmetic operators.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Vec.hpp:234</div></div>
-<div class="ttc" id="aEBGeometry__SignedDistanceFunction_8hpp_html"><div class="ttname"><a href="EBGeometry__SignedDistanceFunction_8hpp.html">EBGeometry_SignedDistanceFunction.hpp</a></div><div class="ttdoc">Abstract base class for representing a signed distance function.</div></div>
-<div class="ttc" id="aclassUnion_html_a53b9705419030572836a540e7fa3752f"><div class="ttname"><a href="classUnion.html#a53b9705419030572836a540e7fa3752f">Union::m_flipSign</a></div><div class="ttdeci">bool m_flipSign</div><div class="ttdoc">Hook for turning inside to outside.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Union.hpp:69</div></div>
+<div class="ttc" id="aclassUnion_html_a53b9705419030572836a540e7fa3752f"><div class="ttname"><a href="classUnion.html#a53b9705419030572836a540e7fa3752f">Union::m_flipSign</a></div><div class="ttdeci">bool m_flipSign</div><div class="ttdoc">Hook for turning inside to outside.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Union.hpp:75</div></div>
 <div class="ttc" id="aEBGeometry__UnionImplem_8hpp_html"><div class="ttname"><a href="EBGeometry__UnionImplem_8hpp.html">EBGeometry_UnionImplem.hpp</a></div><div class="ttdoc">Implementation of EBGeometry_Union.hpp.</div></div>
-<div class="ttc" id="aclassUnion_html"><div class="ttname"><a href="classUnion.html">Union</a></div><div class="ttdoc">Distance function union. Computes the signed distance to the closest object of N non-overlapping obje...</div><div class="ttdef"><b>Definition:</b> EBGeometry_Union.hpp:28</div></div>
-<div class="ttc" id="aclassUnion_html_a5d2f543272ab5fe25f6f5945ad1ef27f"><div class="ttname"><a href="classUnion.html#a5d2f543272ab5fe25f6f5945ad1ef27f">Union::m_distanceFunctions</a></div><div class="ttdeci">std::vector&lt; std::shared_ptr&lt; const SDF &gt; &gt; m_distanceFunctions</div><div class="ttdoc">List of distance functions.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Union.hpp:64</div></div>
+<div class="ttc" id="aclassUnion_html_ab6f5f12fdd7bc39b4598f45ec70cd4b2"><div class="ttname"><a href="classUnion.html#ab6f5f12fdd7bc39b4598f45ec70cd4b2">Union::value</a></div><div class="ttdeci">T value(const Vec3T&lt; T &gt; &amp;a_point) const noexcept override</div><div class="ttdoc">Value function.</div><div class="ttdef"><b>Definition:</b> EBGeometry_UnionImplem.hpp:41</div></div>
+<div class="ttc" id="aclassUnion_html_a7914b88dabc03d1bf9e6b43a2e01da98"><div class="ttname"><a href="classUnion.html#a7914b88dabc03d1bf9e6b43a2e01da98">Union::m_implicitFunctions</a></div><div class="ttdeci">std::vector&lt; std::shared_ptr&lt; const ImpFunc &gt; &gt; m_implicitFunctions</div><div class="ttdoc">List of implicit functions.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Union.hpp:70</div></div>
+<div class="ttc" id="aclassUnion_html"><div class="ttname"><a href="classUnion.html">Union</a></div><div class="ttdoc">CSG union. Computes the minimum of all input implicit functions. This is defined also when objects in...</div><div class="ttdef"><b>Definition:</b> EBGeometry_Union.hpp:28</div></div>
+<div class="ttc" id="aclassImplicitFunction_html"><div class="ttname"><a href="classImplicitFunction.html">ImplicitFunction</a></div><div class="ttdoc">Abstract representation of an implicit function function (not necessarily signed distance).</div><div class="ttdef"><b>Definition:</b> EBGeometry_ImplicitFunction.hpp:32</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceFooter_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a></div><div class="ttdoc">Name space footer.</div></div>
-<div class="ttc" id="aclassUnion_html_a08beffd354ca261e3d31bcb453951810"><div class="ttname"><a href="classUnion.html#a08beffd354ca261e3d31bcb453951810">Union::signedDistance</a></div><div class="ttdeci">T signedDistance(const Vec3T&lt; T &gt; &amp;a_point) const noexcept override</div><div class="ttdoc">Value function.</div><div class="ttdef"><b>Definition:</b> EBGeometry_UnionImplem.hpp:31</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceHeader_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceHeader_8hpp.html">EBGeometry_NamespaceHeader.hpp</a></div><div class="ttdoc">Name space header.</div></div>
+<div class="ttc" id="aEBGeometry__ImplicitFunction_8hpp_html"><div class="ttname"><a href="EBGeometry__ImplicitFunction_8hpp.html">EBGeometry_ImplicitFunction.hpp</a></div><div class="ttdoc">Abstract base class for representing an implicit function.</div></div>
 <div class="ttc" id="aclassUnion_html_a5c4f15da1b35f6f6643d49ed18faa386"><div class="ttname"><a href="classUnion.html#a5c4f15da1b35f6f6643d49ed18faa386">Union::~Union</a></div><div class="ttdeci">virtual ~Union()=default</div><div class="ttdoc">Destructor (does nothing)</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
