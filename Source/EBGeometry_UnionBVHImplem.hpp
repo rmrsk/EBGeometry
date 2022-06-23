@@ -169,12 +169,12 @@ UnionBVH<T, BV, K>::value(const Vec3T<T>& a_point) const noexcept
   // point is inside one object but outside another one, we choose the
   // inside value. By design, LinearNode is a signed distance object, but the
   // BVH accelerator is still a valid accelerator that permits us to do all
-  // kinds of accelerated traversal. For overlapping objects there is not signed
+  // kinds of accelerated traversals. For overlapping objects there is not signed
   // distance but there is still a CSG union, and the BVH is still a useful thing.
   // So, we can't use LinearNode::signedDistanceFunction because it returns the
   // closest object and not the object with the smallest value function.
   //
-  // Fortunately, when I wrote the LinearNode accelerator such that we can determine
+  // Fortunately, when I wrote the LinearNode accelerator I wrote it such that we can determine
   // how to update the "shortest" distance using externally supplied criteria.
   // So, we just update this as f = min(f1,f2,f3) etc, and prune nodes accordingly.
   // The criteria for that are below...
