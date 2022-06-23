@@ -27,11 +27,11 @@ main(int argc, char* argv[])
 
   // Read the input file.
   if (argc == 2) {
-    file = "../PLY/" + std::string(argv[1]);
+    file = "../Objects/" + std::string(argv[1]);
   }
   else {
     std::cerr << "Missing file name. Use ./a.out 'filename' where 'filename' "
-                 "is one of the files in ../PLY\n";
+                 "is one of the files in ../Objects\n";
   }
 
   // Declare the precision T as float.
@@ -44,7 +44,7 @@ main(int argc, char* argv[])
   // Parse the mesh from file. One can call the signed distance function
   // directly on the mesh, but it will iterate through every facet.
   std::cout << "Parsing input file\n";
-  std::shared_ptr<EBGeometry::DCEL::MeshT<T>> directSDF = EBGeometry::Parser::PLY<T>::readIntoDCEL(file);
+  std::shared_ptr<EBGeometry::DCEL::MeshT<T>> directSDF = EBGeometry::Parser::read<T>(file);
 
   // Create a bounding-volume hierarchy of the same mesh type. We begin by
   // create the root node and supplying all the mesh faces to it. Here, our
