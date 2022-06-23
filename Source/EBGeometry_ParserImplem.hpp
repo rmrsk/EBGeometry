@@ -334,8 +334,6 @@ Parser::STL<T>::readMulti(const std::string a_filename) noexcept
   case Parser::Encoding::Binary: {
     objectsDCEL = Parser::STL<T>::readBinary(a_filename);
 
-    std::cerr << "Parser::STL<T>::readMulti (possibly called through forwarding) - binary not supported\n";
-
     break;
   }
   default: {
