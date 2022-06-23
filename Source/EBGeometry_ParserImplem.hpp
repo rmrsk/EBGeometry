@@ -559,7 +559,6 @@ Parser::STL<T>::readBinary(const std::string a_filename) noexcept
     // Make soups into proper map.
     int curID = 0;
     for (auto& soup : verticesAndFacets) {
-      auto& id       = soup.first;
       auto& vertices = soup.second.first;
       auto& facets   = soup.second.second;
 
