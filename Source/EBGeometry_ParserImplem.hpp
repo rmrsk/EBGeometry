@@ -290,8 +290,10 @@ Parser::STL<T>::getEncoding(const std::string a_filename) noexcept
   if (is.good()) {
 
     // If it's an ASCII file it begins with 'solid <something>' so we just
-    // check if the first 6 characters are 'solid'
-    char header[5];
+    // check if the first 5 characters are 'solid'. Adding a null character
+    // for safety here.
+    char header[6];
+    header[5] = '\0';
     is.read(header, 5);
 
     if (strcmp(header, "solid") == 0) {
@@ -337,7 +339,7 @@ Parser::STL<T>::readMulti(const std::string a_filename) noexcept
     break;
   }
   default: {
-    std::cerr << "Parser::STL<T>::readSingle - unknown STL file format\n";
+    std::cerr << "Parser::STL<T>::readMulti - unknown STL file format\n";
 
     break;
   }
@@ -471,7 +473,117 @@ Parser::STL<T>::readBinary(const std::string a_filename) noexcept
 {
   std::vector<std::pair<std::shared_ptr<Mesh>, std::string>> objectsDCEL;
 
-  std::cerr << "Parser::STL::readBinary -- not supported (yet)\n";
+  using VertexList = std::vector<Vec3>;
+  using FacetList  = std::vector<std::vector<size_t>>;
+
+  std::ifstream is(a_filename);
+  if (is.is_open()) {
+
+    // Read the header and discard that info.
+    char header[80];
+    is.read(header, 80);
+
+    // Read number of triangles
+    char tmp[4];
+    is.read(tmp, 4);
+    uint32_t numTriangles;
+    memcpy(&numTriangles, &tmp, 4);
+
+    std::map<uint16_t, std::pair<VertexList, FacetList>> verticesAndFacets;
+
+    // Read triangles into raw vertices and facets.
+    char normal[12];
+    char v1[12];
+    char v2[12];
+    char v3[12];
+    char att[2];
+
+    float x;
+    float y;
+    float z;
+
+    uint16_t id;
+
+    for (size_t i = 0; i < numTriangles; i++) {
+      is.read(normal, 12);
+      is.read(v1, 12);
+      is.read(v2, 12);
+      is.read(v3, 12);
+      is.read(att, 2);
+
+      char* ptr = nullptr;
+
+      Vec3 v[3];
+
+      ptr = v1;
+      memcpy(&x, ptr, 4);
+      ptr += 4;
+      memcpy(&y, ptr, 4);
+      ptr += 4;
+      memcpy(&z, ptr, 4);
+      v[0] = Vec3(x, y, z);
+
+      ptr = v2;
+      memcpy(&x, ptr, 4);
+      ptr += 4;
+      memcpy(&y, ptr, 4);
+      ptr += 4;
+      memcpy(&z, ptr, 4);
+      v[1] = Vec3(x, y, z);
+
+      ptr = v3;
+      memcpy(&x, ptr, 4);
+      ptr += 4;
+      memcpy(&y, ptr, 4);
+      ptr += 4;
+      memcpy(&z, ptr, 4);
+      v[2] = Vec3(x, y, z);
+
+      memcpy(&id, &att, 2);
+
+      if (verticesAndFacets.find(id) == verticesAndFacets.end()) {
+        verticesAndFacets.emplace(id, std::make_pair(VertexList(), FacetList()));
+      }
+
+      auto& objectVertices = verticesAndFacets.at(id).first;
+      auto& objectFacets   = verticesAndFacets.at(id).second;
+
+      // Insert a new facet.
+      std::vector<size_t> curFacet;
+      for (size_t i = 0; i < 3; i++) {
+        objectVertices.emplace_back(v[i]);
+        curFacet.emplace_back(objectVertices.size() - 1);
+      }
+
+      objectFacets.emplace_back(curFacet);
+    }
+
+    // Make soups into proper map.
+    int curID = 0;
+    for (auto& soup : verticesAndFacets) {
+      auto& id       = soup.first;
+      auto& vertices = soup.second.first;
+      auto& facets   = soup.second.second;
+
+      auto mesh = std::make_shared<Mesh>();
+
+      if (Parser::containsDegeneratePolygons(vertices, facets)) {
+        std::cerr << "Parser::STL::readBinary - input STL has degenerate faces\n";
+      }
+
+      Parser::compress(vertices, facets);
+      Parser::soupToDCEL(*mesh, vertices, facets);
+
+      const std::string strID = std::to_string(curID);
+
+      objectsDCEL.emplace_back(mesh, strID);
+
+      curID++;
+    }
+  }
+  else {
+    std::cerr << "Parser::STL::readBinary -- could not open file '" + a_filename + "'\n";
+  }
 
   return objectsDCEL;
 }
