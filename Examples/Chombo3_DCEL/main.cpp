@@ -38,7 +38,7 @@ public:
   ChomboSDF(const std::string a_filename)
   {
     // 1. Read mesh from file.
-    auto mesh = EBGeometry::Parser::PLY<T>::readIntoDCEL(a_filename);
+    auto mesh = EBGeometry::Parser::read<T>(a_filename);
 
     // 2. Create standard BVH hierarchy. This is not a compact tree.
     auto root = std::make_shared<BuilderNode>(mesh->getFaces());
@@ -106,43 +106,43 @@ main(int argc, char* argv[])
     loCorner = -50 * RealVect::Unit;
     hiCorner = 250 * RealVect::Unit;
 
-    filename = "../PLY/airfoil.ply";
+    filename = "../Objects/airfoil.ply";
   }
   else if (whichGeom == 1) { // Sphere
     loCorner = -400 * RealVect::Unit;
     hiCorner = 400 * RealVect::Unit;
 
-    filename = "../PLY/sphere.ply";
+    filename = "../Objects/sphere.ply";
   }
   else if (whichGeom == 2) { // Dodecahedron
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
-    filename = "../PLY/dodecahedron.ply";
+    filename = "../Objects/dodecahedron.ply";
   }
   else if (whichGeom == 3) { // Horse
     loCorner = -0.12 * RealVect::Unit;
     hiCorner = 0.12 * RealVect::Unit;
 
-    filename = "../PLY/horse.ply";
+    filename = "../Objects/horse.ply";
   }
   else if (whichGeom == 4) { // Porsche
     loCorner = -10 * RealVect::Unit;
     hiCorner = 10 * RealVect::Unit;
 
-    filename = "../PLY/porsche.ply";
+    filename = "../Objects/porsche.ply";
   }
   else if (whichGeom == 5) { // Orion
     loCorner = -10 * RealVect::Unit;
     hiCorner = 10 * RealVect::Unit;
 
-    filename = "../PLY/orion.ply";
+    filename = "../Objects/orion.ply";
   }
   else if (whichGeom == 6) { // Armadillo
     loCorner = -125 * RealVect::Unit;
     hiCorner = 125 * RealVect::Unit;
 
-    filename = "../PLY/armadillo.ply";
+    filename = "../Objects/armadillo.ply";
   }
 
   //

@@ -21,4 +21,4 @@ Run it with
 
     ./a.out 'filename'
 
-where 'filename' is one of the files in ../PLY/. 
+where 'filename' is one of the files in ../Scenes/PLY/ or ../Scenes/STL/.

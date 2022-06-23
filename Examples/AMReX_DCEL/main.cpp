@@ -52,7 +52,7 @@ namespace amrex {
       {
 
         // 1. Read mesh from file.
-        auto mesh = EBGeometry::Parser::PLY<T>::readIntoDCEL(a_filename);
+        auto mesh = EBGeometry::Parser::read<T>(a_filename);
 
         // 2. Create a standard BVH hierarchy. This is not a compact ree.
         auto root = std::make_shared<BuilderNode>(mesh->getFaces());
@@ -130,32 +130,32 @@ main(int argc, char* argv[])
 
     if (which_geom == 0) { // Airfoil case
       rb       = RealBox({-100, -100, -75}, {400, 100, 125});
-      filename = "../PLY/airfoil.ply";
+      filename = "../Objects/airfoil.stl";
     }
     else if (which_geom == 1) { // Sphere case
       rb       = RealBox({-400, -400, -400}, {400, 400, 400});
-      filename = "../PLY/sphere.ply";
+      filename = "../Objects/sphere.stl";
     }
     else if (which_geom == 2) { // Dodecahedron
       rb       = RealBox({-2., -2., -2.}, {2., 2., 2.});
-      filename = "../PLY/dodecahedron.ply";
+      filename = "../Objects/dodecahedron.stl";
     }
     else if (which_geom == 3) { // Horse
       rb       = RealBox({-0.12, -0.12, -0.12}, {0.12, 0.12, 0.12});
-      filename = "../PLY/horse.ply";
+      filename = "../Objects/horse.stl";
     }
     else if (which_geom == 4) { // Car
       //	    rb = RealBox({-20,-20,-20}, {20,20,20}); // Doesn't work.
       rb       = RealBox({-10, -5, -5}, {10, 5, 5}); // Works.
-      filename = "../PLY/porsche.ply";
+      filename = "../Objects/porsche.stl";
     }
     else if (which_geom == 5) { // Orion
       rb       = RealBox({-10, -5, -10}, {10, 10, 10});
-      filename = "../PLY/orion.ply";
+      filename = "../Objects/orion.stl";
     }
     else if (which_geom == 6) { // Armadillo
       rb       = RealBox({-100, -75, -100}, {100, 125, 100});
-      filename = "../PLY/armadillo.ply";
+      filename = "../Objects/armadillo.stl";
     }
 
     Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};
