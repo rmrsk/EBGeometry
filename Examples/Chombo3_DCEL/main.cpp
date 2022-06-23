@@ -106,43 +106,43 @@ main(int argc, char* argv[])
     loCorner = -50 * RealVect::Unit;
     hiCorner = 250 * RealVect::Unit;
 
-    filename = "../Scenes/PLY/airfoil.ply";
+    filename = "../Objects/airfoil.ply";
   }
   else if (whichGeom == 1) { // Sphere
     loCorner = -400 * RealVect::Unit;
     hiCorner = 400 * RealVect::Unit;
 
-    filename = "../Scenes/PLY/sphere.ply";
+    filename = "../Objects/sphere.ply";
   }
   else if (whichGeom == 2) { // Dodecahedron
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
-    filename = "../Scenes/PLY/dodecahedron.ply";
+    filename = "../Objects/dodecahedron.ply";
   }
   else if (whichGeom == 3) { // Horse
     loCorner = -0.12 * RealVect::Unit;
     hiCorner = 0.12 * RealVect::Unit;
 
-    filename = "../Scenes/PLY/horse.ply";
+    filename = "../Objects/horse.ply";
   }
   else if (whichGeom == 4) { // Porsche
     loCorner = -10 * RealVect::Unit;
     hiCorner = 10 * RealVect::Unit;
 
-    filename = "../Scenes/PLY/porsche.ply";
+    filename = "../Objects/porsche.ply";
   }
   else if (whichGeom == 5) { // Orion
     loCorner = -10 * RealVect::Unit;
     hiCorner = 10 * RealVect::Unit;
 
-    filename = "../Scenes/PLY/orion.ply";
+    filename = "../Objects/orion.ply";
   }
   else if (whichGeom == 6) { // Armadillo
     loCorner = -125 * RealVect::Unit;
     hiCorner = 125 * RealVect::Unit;
 
-    filename = "../Scenes/PLY/armadillo.ply";
+    filename = "../Objects/armadillo.ply";
   }
 
   //

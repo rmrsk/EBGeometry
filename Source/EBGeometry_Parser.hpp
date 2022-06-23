@@ -52,15 +52,24 @@ namespace Parser {
   };
 
   /*!
-    @brief A parser which reads a file containing a single object. Returns a DCEL mesh if possible. 
+    @brief Read a file containing a single watertight object. 
+    @param[in] a_filename File name
   */
   template <typename T>
   inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
   read(const std::string a_filename) noexcept;
 
   /*!
+    @brief Read multiple files contain single watertight objects
+    @param[in] a_files File names
+  */
+  template <typename T>
+  inline static std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>>
+  read(const std::vector<std::string> a_files) noexcept;
+
+  /*!
     @brief Get file type
-    @param[in] a_filename
+    @param[in] a_filenames 
   */
   inline static Parser::FileType
   getFileType(const std::string a_filename) noexcept;
