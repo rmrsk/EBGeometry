@@ -66,7 +66,7 @@ template <typename T>
 inline std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>>
 Parser::read(const std::vector<std::string> a_files) noexcept
 {
-  std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T> > > objects;
+  std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>> objects;
 
   for (const auto& file : a_files) {
     objects.emplace_back(Parser::read<T>(file));
