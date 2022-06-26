@@ -393,10 +393,10 @@ Parser::STL<T>::readASCII(const std::string a_filename) noexcept
       std::cerr << "Parser::STL::readASCII - input STL has degenerate faces\n";
     }
 
-    Parser::compress(vertices, facets);
-
     // Turn soup into DCEL mesh and pack in into our return vector.
     std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
+
+    Parser::compress(vertices, facets);
     Parser::soupToDCEL(*mesh, vertices, facets);
 
     objectsDCEL.emplace_back(mesh, objectName);
