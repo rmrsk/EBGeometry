@@ -20,11 +20,12 @@
 
 namespace DCEL {
 
-  // Forward declare classes.
   template <class T>
   class VertexT;
+
   template <class T>
   class EdgeT;
+
   template <class T>
   class FaceT;
 
@@ -38,35 +39,13 @@ namespace DCEL {
   class EdgeIteratorT
   {
   public:
-    /*!
-      @brief Alias to cut down on typing
-    */
     using Vertex = VertexT<T>;
+    using Edge   = EdgeT<T>;
+    using Face   = FaceT<T>;
 
-    /*!
-      @brief Alias to cut down on typing
-    */
-    using Edge = EdgeT<T>;
-
-    /*!
-      @brief Alias to cut down on typing
-    */
-    using Face = FaceT<T>;
-
-    /*!
-      @brief Alias to cut down on typing
-    */
     using VertexPtr = std::shared_ptr<Vertex>;
-
-    /*!
-      @brief Alias to cut down on typing
-    */
-    using EdgePtr = std::shared_ptr<Edge>;
-
-    /*!
-      @brief Alias to cut down on typing
-    */
-    using FacePtr = std::shared_ptr<Face>;
+    using EdgePtr   = std::shared_ptr<Edge>;
+    using FacePtr   = std::shared_ptr<Face>;
 
     /*!
       @brief Default construction is not allowed. Use one of the full constructors
@@ -108,6 +87,11 @@ namespace DCEL {
       from a vertex.
     */
     EdgeIteratorT(const Vertex& a_vertex);
+
+    /*!
+      @brief Destructor.
+    */
+    ~EdgeIteratorT() = default;
 
     /*!
       @brief Operator returning a pointer to the current half-edge

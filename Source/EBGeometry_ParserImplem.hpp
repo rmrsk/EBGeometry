@@ -42,11 +42,6 @@ Parser::read(const std::string a_filename) noexcept
 
     break;
   }
-  case Parser::FileType::PLY: {
-    mesh = Parser::PLY<T>::read(a_filename);
-
-    break;
-  }
   case Parser::FileType::Unsupported: {
     std::cerr << "Parser::read - file type unsupported for '" + a_filename + "'\n";
 
@@ -84,9 +79,6 @@ Parser::getFileType(const std::string a_filename) noexcept
 
   if (ext == "stl" || ext == "STL") {
     ft = Parser::FileType::STL;
-  }
-  else if (ext == "ply" || ext == "PLY") {
-    ft = Parser::FileType::PLY;
   }
 
   return ft;
@@ -188,7 +180,6 @@ Parser::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
                    const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
                    const std::vector<std::vector<size_t>>&  a_facets) noexcept
 {
-
   using Vec3   = EBGeometry::Vec3T<T>;
   using Vertex = EBGeometry::DCEL::VertexT<T>;
   using Edge   = EBGeometry::DCEL::EdgeT<T>;
@@ -583,169 +574,6 @@ Parser::STL<T>::readBinary(const std::string a_filename) noexcept
   }
 
   return objectsDCEL;
-}
-
-template <typename T>
-inline Parser::Encoding
-Parser::PLY<T>::getEncoding(const std::string a_filename) noexcept
-{
-  Parser::Encoding ft = Parser::Encoding::Unknown;
-
-  std::ifstream is(a_filename, std::istringstream::in | std::ios::binary);
-  if (is.good()) {
-
-    std::string line;
-    std::string str1;
-    std::string str2;
-
-    // Ignore first line.
-    std::getline(is, line);
-    std::getline(is, line);
-
-    std::stringstream ss(line);
-
-    ss >> str1 >> str2;
-
-    if (str2 == "ascii") {
-      ft = Parser::Encoding::ASCII;
-    }
-    else if (str2 == "binary_little_endian") {
-      ft = Parser::Encoding::Binary;
-    }
-    else if (str2 == "binary_big_endian") {
-      ft = Parser::Encoding::Binary;
-    }
-  }
-  else {
-    std::cerr << "Parser::PLY::getEncoding -- could not open file '" + a_filename + "'\n";
-  }
-
-  return ft;
-}
-
-template <typename T>
-inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-Parser::PLY<T>::read(const std::string a_filename) noexcept
-{
-  auto mesh = std::make_shared<Mesh>();
-
-  const auto encoding = Parser::PLY<T>::getEncoding(a_filename);
-
-  std::ifstream filestream(a_filename);
-
-  if (filestream.is_open()) {
-    std::vector<Vec3>                vertices;
-    std::vector<std::vector<size_t>> faces;
-
-    switch (encoding) {
-    case Parser::Encoding::ASCII: {
-      Parser::PLY<T>::readPLYSoupASCII(vertices, faces, filestream);
-
-      break;
-    }
-    case Parser::Encoding::Binary: {
-      Parser::PLY<T>::readPLYSoupBinary(vertices, faces, filestream);
-
-      break;
-    }
-    }
-
-    Parser::soupToDCEL(*mesh, vertices, faces);
-  }
-  else {
-    const std::string error = "Parser::PLY::read - ERROR! Could not open file " + a_filename;
-    std::cerr << error + "\n";
-  }
-
-  return mesh;
-}
-
-template <typename T>
-inline void
-Parser::PLY<T>::readPLYSoupASCII(std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-                                 std::vector<std::vector<size_t>>&  a_faces,
-                                 std::ifstream&                     a_inputStream) noexcept
-{
-  T x;
-  T y;
-  T z;
-
-  size_t numVertices;
-  size_t numFaces;
-  size_t numProcessed;
-  size_t numVertInPoly;
-
-  std::string str1;
-  std::string str2;
-  std::string line;
-
-  std::vector<size_t> faceVertices;
-
-  // Get number of vertices
-  a_inputStream.clear();
-  a_inputStream.seekg(0);
-  while (std::getline(a_inputStream, line)) {
-    std::stringstream sstream(line);
-    sstream >> str1 >> str2 >> numVertices;
-    if (str1 == "element" && str2 == "vertex") {
-      break;
-    }
-  }
-
-  // Get number of faces
-  a_inputStream.clear();
-  a_inputStream.seekg(0);
-  while (std::getline(a_inputStream, line)) {
-    std::stringstream sstream(line);
-    sstream >> str1 >> str2 >> numFaces;
-    if (str1 == "element" && str2 == "face") {
-      break;
-    }
-  }
-
-  // Find the line # containing "end_header" and halt the input stream there
-  a_inputStream.clear();
-  a_inputStream.seekg(0);
-  while (std::getline(a_inputStream, line)) {
-    std::stringstream sstream(line);
-    sstream >> str1;
-    if (str1 == "end_header") {
-      break;
-    }
-  }
-
-  // Now read the vertices and faces.
-  numProcessed = 0;
-  while (std::getline(a_inputStream, line)) {
-    std::stringstream ss(line);
-
-    if (numProcessed < numVertices) {
-      ss >> x >> y >> z;
-
-      a_vertices.emplace_back(EBGeometry::Vec3T<T>(x, y, z));
-    }
-    else {
-      ss >> numVertInPoly;
-
-      faceVertices.resize(numVertInPoly);
-      for (size_t i = 0; i < numVertInPoly; i++) {
-        ss >> faceVertices[i];
-      }
-
-      a_faces.emplace_back(faceVertices);
-    }
-
-    numProcessed++;
-  }
-}
-
-template <typename T>
-inline void
-Parser::PLY<T>::readPLYSoupBinary(std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-                                  std::vector<std::vector<size_t>>&  a_faces,
-                                  std::ifstream&                     a_fileStream) noexcept
-{
-  std::cerr << "Parser::PLY<T>::readPLYSoupBinary -- not implemented\n";
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"

@@ -47,7 +47,6 @@ namespace Parser {
   enum class FileType
   {
     STL,
-    PLY,
     Unsupported
   };
 
@@ -60,7 +59,7 @@ namespace Parser {
   read(const std::string a_filename) noexcept;
 
   /*!
-    @brief Read multiple files contain single watertight objects
+    @brief Read multiple files that each contain a single watertight object
     @param[in] a_files File names
   */
   template <typename T>
@@ -182,63 +181,6 @@ namespace Parser {
                      const std::vector<std::string>&   a_fileContents,
                      const size_t                      a_firstLine,
                      const size_t                      a_lastLine) noexcept;
-  };
-
-  /*!
-    @brief Class for reading Stanford PLY files.
-    @note T is the precision used for storing the mesh.
-  */
-  template <typename T>
-  class PLY
-  {
-  public:
-    using Vec3         = EBGeometry::Vec3T<T>;
-    using Vertex       = EBGeometry::DCEL::VertexT<T>;
-    using Edge         = EBGeometry::DCEL::EdgeT<T>;
-    using Face         = EBGeometry::DCEL::FaceT<T>;
-    using Mesh         = EBGeometry::DCEL::MeshT<T>;
-    using EdgeIterator = EBGeometry::DCEL::EdgeIteratorT<T>;
-
-    /*!
-      @brief Static function which reads an ASCII .ply file and returns a DCEL
-      mesh.
-      @param[in]  a_filename File name
-    */
-    inline static std::shared_ptr<Mesh>
-    read(const std::string a_filename) noexcept;
-
-  protected:
-    /*!
-      @brief Check if the input PLY file is an ASCII file or a binary
-      @param[in] a_filename File name
-      @return Returns Encoding::ASCII or Encoding::Binary,
-    */
-    inline static Encoding
-    getEncoding(const std::string a_filename) noexcept;
-
-    /*!
-      @brief Read an ASCII PLY file into a triangle soup. 
-      @details 
-      @param[out]   a_vertices Raw vertices
-      @param[out]   a_faces    Raw polygon faces
-      @param[in]    a_filename File name
-    */
-    inline static void
-    readPLYSoupASCII(std::vector<Vec3>&                a_vertices,
-                     std::vector<std::vector<size_t>>& a_faces,
-                     std::ifstream&                    a_fileStream) noexcept;
-
-    /*!
-      @brief Read a binary PLY file into a triangle soup. 
-      @details 
-      @param[out]   a_vertices Raw vertices
-      @param[out]   a_faces    Raw polygon faces
-      @param[in]    a_filename File name
-    */
-    inline static void
-    readPLYSoupBinary(std::vector<Vec3>&                a_vertices,
-                      std::vector<std::vector<size_t>>& a_faces,
-                      std::ifstream&                    a_fileStream) noexcept;
   };
 } // namespace Parser
 
