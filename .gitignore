@@ -10,6 +10,9 @@ docs/**
 Examples/AMReX_DCEL/plt*
 Examples/AMReX_DCEL/tmp_build_dir
 Examples/AMReX_DCEL/Backtrace.*
+Examples/AMReX_F18/plt*
+Examples/AMReX_F18/tmp_build_dir
+Examples/AMReX_F18/Backtrace.*
 Examples/AMReX_Shapes/plt*
 Examples/AMReX_Shapes/tmp_build_dir
 Examples/AMReX_Shapes/Backtrace.*
