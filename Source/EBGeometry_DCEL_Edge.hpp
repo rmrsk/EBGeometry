@@ -24,13 +24,15 @@
 
 namespace DCEL {
 
-  // Forward declare classes.
   template <class T>
   class VertexT;
+
   template <class T>
   class EdgeT;
+
   template <class T>
   class FaceT;
+
   template <class T>
   class EdgeIteratorT;
 
@@ -58,45 +60,15 @@ namespace DCEL {
   class EdgeT
   {
   public:
-    /*!
-      @brief Alias to cut down on typing
-    */
-    using Vec3 = Vec3T<T>;
-
-    /*!
-      @brief Alias to cut down on typing
-    */
-    using Vertex = VertexT<T>;
-
-    /*!
-      @brief Alias to cut down on typing
-    */
-    using Edge = EdgeT<T>;
-
-    /*!
-      @brief Alias to cut down on typing
-    */
-    using Face = FaceT<T>;
-
-    /*!
-      @brief Alias to cut down on typing
-    */
-    using VertexPtr = std::shared_ptr<Vertex>;
-
-    /*!
-      @brief Alias to cut down on typing
-    */
-    using EdgePtr = std::shared_ptr<Edge>;
-
-    /*!
-      @brief Alias to cut down on typing
-    */
-    using FacePtr = std::shared_ptr<Face>;
-
-    /*!
-      @brief Alias to cut down on typing
-    */
+    using Vec3         = Vec3T<T>;
+    using Vertex       = VertexT<T>;
+    using Edge         = EdgeT<T>;
+    using Face         = FaceT<T>;
     using EdgeIterator = EdgeIteratorT<T>;
+
+    using VertexPtr = std::shared_ptr<Vertex>;
+    using EdgePtr   = std::shared_ptr<Edge>;
+    using FacePtr   = std::shared_ptr<Face>;
 
     /*!
       @brief Default constructor. Sets all pointers to zero and vectors to zero

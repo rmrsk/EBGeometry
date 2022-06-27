@@ -119,13 +119,13 @@ namespace DCEL {
       const bool noDuplicates = (it == vertices.end());
 
       if (f == nullptr) {
-        incrementWarning(warnings, f_null);
+        this->incrementWarning(warnings, f_null);
       }
       else if (halfEdge == nullptr) {
-        incrementWarning(warnings, f_noEdge);
+        this->incrementWarning(warnings, f_noEdge);
       }
       if (!noDuplicates) {
-        incrementWarning(warnings, f_degenerate);
+        this->incrementWarning(warnings, f_degenerate);
       }
     }
 
@@ -138,43 +138,43 @@ namespace DCEL {
 
       // Check basic points for current edge.
       if (e == nullptr) {
-        incrementWarning(warnings, e_null);
+        this->incrementWarning(warnings, e_null);
       }
       else if (e->getVertex() == e->getOtherVertex()) {
-        incrementWarning(warnings, e_degenerate);
+        this->incrementWarning(warnings, e_degenerate);
       }
       else if (pairEdge == nullptr) {
-        incrementWarning(warnings, e_noPairEdge);
+        this->incrementWarning(warnings, e_noPairEdge);
       }
       else if (nextEdge == nullptr) {
-        incrementWarning(warnings, e_noNextEdge);
+        this->incrementWarning(warnings, e_noNextEdge);
       }
       else if (prevEdge == nullptr) {
-        incrementWarning(warnings, e_noPrevEdge);
+        this->incrementWarning(warnings, e_noPrevEdge);
       }
       else if (curVertex == nullptr) {
-        incrementWarning(warnings, e_noOrigVert);
+        this->incrementWarning(warnings, e_noOrigVert);
       }
       else if (curFace == nullptr) {
-        incrementWarning(warnings, e_noFace);
+        this->incrementWarning(warnings, e_noFace);
       }
 
       // Check that the next edge's previous edge is this edge.
       if (prevEdge->getNextEdge() != e) {
-        incrementWarning(warnings, e_noPrevNext);
+        this->incrementWarning(warnings, e_noPrevNext);
       }
       else if (nextEdge->getPreviousEdge() != e) {
-        incrementWarning(warnings, e_noNextPrev);
+        this->incrementWarning(warnings, e_noNextPrev);
       }
     }
 
     // Vertex check
     for (const auto& v : m_vertices) {
       if (v == nullptr) {
-        incrementWarning(warnings, v_null);
+        this->incrementWarning(warnings, v_null);
       }
       else if (v->getOutgoingEdge() == nullptr) {
-        incrementWarning(warnings, v_noEdge);
+        this->incrementWarning(warnings, v_noEdge);
       }
     }
 
