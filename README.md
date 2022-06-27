@@ -40,7 +40,7 @@ g++ -O3 -std=c++14 main.cpp
 ./a.out armadillo.stl
 ```
 
-<img src="Docs/Spinx/source/_static/example_dcel.png" width="200" alt="Signed distance field from Armadillo geometry"/>
+<img src="Docs/Sphinx/source/_static/example_dcel.png" width="200" alt="Signed distance field from Armadillo geometry"/>
 
 ### Fast CSG operations for analytic functions
 
@@ -64,7 +64,7 @@ g++ -O3 -std=c++17 main.cpp -lstdc++fs
 ./a.out
 ```
 
-<img src="Docs/Spinx/source/_static/example_f18.png" width="200" alt="F18 composite geomery"/>
+<img src="Docs/Sphinx/source/_static/example_f18.png" width="200" alt="F18 composite geomery"/>
 
 ### Advanced examples
 
