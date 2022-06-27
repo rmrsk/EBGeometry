@@ -1,43 +1,27 @@
-EBGeometry
-----------
+# EBGeometry
 
 EBGeometry is a code for:
 
-1. Computing signed distance functions to watertight and orientable surface grids.
-2. Enabling fast distance and implicit functions with bounding volume hierarchies. 
+1. Turning watertight and orientable surface grids into signed distance functions (SDFs).
+2. Fast evaluation of such grids using bounding volume hierarchies (BVHs).
+3. Providing fast constructive solid geometry (CSG) using BVHs. 
 
-This code was originally written to be used with embedded-boundary (EB) codes like Chombo or AMReX.
-
-Tesselations must consist of planar polygons (not necessarily triangles).
-Internally, the surface mesh is stored in a doubly-connected edge list (DCEL), i.e. a half-edge data structure. 
-On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can be computed in various ways:
-
-* Directly, by iterating through all facets.
-* With conventional bounding volume hierarchies (BVHs).
-* With compact (linearized) BVHs.
-
-The BVHs in EBGeometry are not limited to facets.
-One can also embed entire objects (e.g., analytic functions) in the BVHs, e.g. the BVH accelerator can be used to accelerate the signed distance computation when geometries contain many objects.
-Once can also use the BVH accelerator to accelate constructive solid geometry (CSG) operations like unions. 
-BVHs can also be nested so that the BVH accelerator is used to embed signed distance objects that are themselves described by a BVH. 
-For example, a scene consisting of many objects described by surface grids can be embedded as a BVH-of-BVH type of scene.
-In addition to all of this, EBGeometry provides standard operators for signed distance fields like rotations, translations, and scalings.
+This code is header-only and can be dropped into any C++ project that supports C++14.
+It was originally written to be used with embedded-boundary (EB) codes like Chombo or AMReX.
 
 <img src="example.png" width="400" alt="Signed distance field from Armadillo geometry"/>
 
-Requirements
-------------
+# Requirements
+
 
 * A C++ compiler which supports C++14.
 
-Documentation
--------------
+# Documentation
 
 User documentation is available as [HTML](https://rmrsk.github.io/EBGeometry/) or as a [PDF](https://github.com/rmrsk/EBGeometry/raw/gh-pages/ebgeometry.pdf).
 A doxygen-generated API is [also available](https://rmrsk.github.io/EBGeometry/doxygen/html/index.html).
 
-Basic usage
------------
+# Basic usage
 
 EBGeometry is a header-only library in C++.
 To use it, simply make EBGeometry.hpp visible to your code and include it.
@@ -48,24 +32,40 @@ To clone EBGeometry:
 
 Various examples are given in the Examples folder.
 To run one of the examples, navigate to the example and compile and run it.
-E.g.,
+
+
+## Creating an SDF from a surface grid
 
 ```
 cd Examples/EBGeometry_DCEL
 g++ -O3 -std=c++14 main.cpp
-./a.out porsche.ply
+./a.out porsche.stl
 ```
 
-More complex examples that use Chombo or AMReX will also include application-specific code.
+## Fast CSG operations
 
-Advanced usage
---------------
+```
+cd Examples/EBGeometry_Union
+g++ -O3 -std=c++14 main.cpp
+./a.out
+```
+
+## Fast CSG on composite geometries
+
+```
+cd Examples/EBGeometry_F18
+g++ -O3 -std=c++17 main.cpp -lstdc++fs
+./a.out
+```
+
+# Advanced usage
 
 For more advanced usage, users can supply their own file parsers (PLY and STL files are currently supported), provide their own bounding volumes, or their own BVH partitioners.
 EBGeometry is not too strict about these things, and uses rigorous templating for ensuring that the EBGeometry functionality can be extended.
 
-Contributing
-------------
+More complex examples that use Chombo or AMReX will also include application-specific code (some examples with AMReX and Chombo3 are provided). 
+
+# Contributing
 
 1. Create a branch for the new feature.
 
