@@ -9,7 +9,7 @@ EBGeometry is a code for:
 This code is header-only and can be dropped into any C++ project that supports C++14.
 It was originally written to be used with embedded-boundary (EB) codes like Chombo or AMReX.
 
-<img src="example.png" width="400" alt="Signed distance field from Armadillo geometry"/>
+
 
 ## Requirements
 
@@ -25,8 +25,6 @@ A doxygen-generated API is [also available](https://rmrsk.github.io/EBGeometry/d
 
 ## Example quickstart
 
-
-
 To clone EBGeometry:
 
     git clone git@github.com:rmrsk/EBGeometry.git
@@ -37,19 +35,27 @@ To run one of the examples, navigate to the example and compile and run it.
 
 ### Creating an SDF from a surface grid
 
+Read in an STL file and turn it into a signed distance field. 
+
 ```
 cd Examples/EBGeometry_DCEL
 g++ -O3 -std=c++14 main.cpp
-./a.out porsche.stl
+./a.out armadillo.stl
 ```
+
+<img src="example_dcel.png" width="400" alt="Signed distance field from Armadillo geometry"/>
 
 ### Fast CSG operations for analytic functions
 
+Generate a spherical packed bed geometry using analytic representations of spheres.
+BVH-accelerated CSG unions lead to order-of-magnitude faster 
 ```
 cd Examples/EBGeometry_Union
 g++ -O3 -std=c++14 main.cpp
 ./a.out
 ```
+
+<img src="example_spheres.png" width="400" alt="Packed bed geometry"/>
 
 ### Fast CSG on composite geometries
 
