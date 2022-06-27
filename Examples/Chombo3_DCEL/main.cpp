@@ -34,7 +34,7 @@ public:
   value(const RealVect& a_point) const override final
   {
     using Vec3 = EBGeometry::Vec3T<T>;
-    
+
 #if CH_SPACEDIM == 2
     Vec3 p(a_point[0], a_point[1], 0.0);
 #else
@@ -51,17 +51,16 @@ public:
   }
 
 protected:
-  
   std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>> m_rootNode;
 };
 
 int
 main(int argc, char* argv[])
 {
-  constexpr int K       = 4;
-  
-  using T    = float;
-  using BV   = EBGeometry::BoundingVolumes::AABBT<T>;  
+  constexpr int K = 4;
+
+  using T  = float;
+  using BV = EBGeometry::BoundingVolumes::AABBT<T>;
 
 #ifdef CH_MPI
   MPI_Init(&argc, &argv);
@@ -125,7 +124,7 @@ main(int argc, char* argv[])
     filename = "../Objects/armadillo.stl";
   }
 
-  auto impFunc = static_cast<BaseIF*> (new ChomboSDF<T, BV, K>(filename));
+  auto impFunc = static_cast<BaseIF*>(new ChomboSDF<T, BV, K>(filename));
 
   // Set up the Chombo EB geometry.
   ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);

@@ -30,7 +30,7 @@ public:
   */
   AMReXSDF(const std::string a_filename)
   {
-    m_rootNode = EBGeometry::Parser::readIntoLinearBVH<T, BV, K> (a_filename);
+    m_rootNode = EBGeometry::Parser::readIntoLinearBVH<T, BV, K>(a_filename);
   }
 
   /*!
@@ -48,7 +48,7 @@ public:
   Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
     using Vec3 = EBGeometry::Vec3T<T>;
-    
+
     return m_rootNode->signedDistance(m_rootNode->transformPoint(Vec3(x, y, z)));
   };
 

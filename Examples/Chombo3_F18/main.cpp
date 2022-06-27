@@ -15,7 +15,6 @@
 // Our includes
 #include "EBGeometry.hpp"
 
-
 constexpr size_t K = 4;
 using T            = Real;
 using Face         = EBGeometry::DCEL::FaceT<T>;
@@ -53,7 +52,7 @@ public:
 
     // Optimized, faster union which uses a BVH for bounding the BVHs.
     m_union = std::make_shared<EBGeometry::UnionBVH<T, Prim, BV, K>>(
-      bvhDCEL, true, [](const std::shared_ptr<const Prim>& a_prim) -> BV { return a_prim->getBoundingVolume(); });    
+      bvhDCEL, true, [](const std::shared_ptr<const Prim>& a_prim) -> BV { return a_prim->getBoundingVolume(); });
   }
 
   F18(const F18& a_other)
@@ -74,7 +73,7 @@ public:
   }
 
 protected:
-  std::shared_ptr<EBGeometry::UnionBVH<T, Prim, BV, K>> m_union;  
+  std::shared_ptr<EBGeometry::UnionBVH<T, Prim, BV, K>> m_union;
 };
 
 int
@@ -95,10 +94,10 @@ main(int argc, char* argv[])
   pp.query("n_cells", nCells);
   pp.query("grid_size", gridSize);
 
-  const RealVect loCorner = -3*RealVect::Unit;
-  const RealVect hiCorner = 11*RealVect::Unit;
+  const RealVect loCorner = -3 * RealVect::Unit;
+  const RealVect hiCorner = 11 * RealVect::Unit;
 
-  auto impFunc = static_cast<BaseIF*> (new F18());
+  auto impFunc = static_cast<BaseIF*>(new F18());
 
   // Set up the Chombo EB geometry.
   ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);
