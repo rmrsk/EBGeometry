@@ -40,6 +40,9 @@ template <class T, class P, class BV, size_t K>
 void
 UnionBVH<T, P, BV, K>::buildTree(const BVConstructor& a_bvConstructor)
 {
+  using PrimList    = std::vector<std::shared_ptr<const P>>;
+  using BuilderNode = EBGeometry::BVH::NodeT<T, P, BV, K>;
+
   // This function is a partitioning function taking the input primitives and
   // partitioning them into K subvolumes. Since the SDFs don't themselves have
   // vertices, centroids, etc., we use their bounding volumes as criteria for

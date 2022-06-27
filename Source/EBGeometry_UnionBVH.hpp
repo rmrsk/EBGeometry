@@ -14,6 +14,7 @@
 
 // Std includes
 #include <vector>
+#include <type_traits>
 
 // Our includes
 #include "EBGeometry_ImplicitFunction.hpp"
@@ -21,11 +22,15 @@
 
 /*!
   @brief Implicit function union using BVHs. 
+  @note If the BVH-enabled union is to make sense, the primitives must be 
+  distance fields (I think). There's a static_assert to make sure of that. 
 */
 template <class T, class P, class BV, size_t K>
 class UnionBVH : public ImplicitFunction<T>
 {
 public:
+  static_assert(std::is_base_of<EBGeometry::SignedDistanceFunction<T>, P>::value);
+
   using BVConstructor = EBGeometry::BVH::BVConstructorT<P, BV>;
 
   /*!
@@ -79,19 +84,15 @@ public:
   getBoundingVolume() const noexcept;
 
 protected:
-  using PrimList    = std::vector<std::shared_ptr<const P>>;
-  using BuilderNode = EBGeometry::BVH::NodeT<T, P, BV, K>;
-  using RootNode    = EBGeometry::BVH::LinearBVH<T, P, BV, K>;
-
   /*!
     @brief List of primitive functions. 
   */
   std::vector<std::shared_ptr<const P>> m_distanceFunctions;
 
   /*!
-    @brief Root node for BVH tree
+    @brief Root node for linearized BVH tree
   */
-  std::shared_ptr<RootNode> m_rootNode;
+  std::shared_ptr<EBGeometry::BVH::LinearBVH<T, P, BV, K>> m_rootNode;
 
   /*!
     @brief Is good or not

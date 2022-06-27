@@ -30,7 +30,7 @@
 
 template <typename T>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-Parser::read(const std::string a_filename) noexcept
+Parser::readIntoDCEL(const std::string a_filename) noexcept
 {
   auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T>>();
 
@@ -64,12 +64,58 @@ Parser::read(const std::string a_filename) noexcept
 
 template <typename T>
 inline std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>>
-Parser::read(const std::vector<std::string> a_files) noexcept
+Parser::readIntoDCEL(const std::vector<std::string> a_files) noexcept
 {
   std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>> objects;
 
   for (const auto& file : a_files) {
-    objects.emplace_back(Parser::read<T>(file));
+    objects.emplace_back(Parser::readIntoDCEL<T>(file));
+  }
+
+  return objects;
+}
+
+template <typename T, typename BV, size_t K>
+inline std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>
+Parser::readIntoFullBVH(const std::string a_filename) noexcept
+{
+  const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(a_filename);
+
+  auto bvh = EBGeometry::DCEL::buildFullBVH<T, BV, K>(mesh);
+
+  return bvh;
+}
+
+template <typename T, typename BV, size_t K>
+inline std::vector<std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>>
+Parser::readIntoFullBVH(const std::vector<std::string> a_files) noexcept
+{
+  std::vector<std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>> objects;
+
+  for (const auto& file : a_files) {
+    objects.emplace_back(Parser::readIntoFullBVH<T, BV, K>(file));
+  }
+
+  return objects;
+}
+
+template <typename T, typename BV, size_t K>
+inline std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>>
+Parser::readIntoLinearBVH(const std::string a_filename) noexcept
+{
+  const auto bvh = Parser::readIntoFullBVH<T, BV, K>(a_filename);
+
+  return bvh->flattenTree();
+}
+
+template <typename T, typename BV, size_t K>
+inline std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>>>
+Parser::readIntoLinearBVH(const std::vector<std::string> a_files) noexcept
+{
+  std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>>> objects;
+
+  for (const auto& file : a_files) {
+    objects.emplace_back(Parser::readIntoLinearBVH<T, BV, K>(file));
   }
 
   return objects;

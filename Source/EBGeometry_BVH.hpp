@@ -53,7 +53,7 @@ namespace BVH {
   class LinearBVH;
 
   /*!
-    @brief Alias to cut down on typing.
+    @brief List of primitives. 
     @details P is the primitive bounded by the BVH.
   */
   template <class P>
@@ -141,40 +141,14 @@ namespace BVH {
   class NodeT : public SignedDistanceFunction<T>
   {
   public:
-    /*!
-      @brief Alias for cutting down on typing. This is a
-      std::vector<std::shared_ptr<const P> >.
-    */
     using PrimitiveList = PrimitiveListT<P>;
+    using Vec3          = Vec3T<T>;
+    using Node          = NodeT<T, P, BV, K>;
 
-    /*!
-      @brief Alias for cutting down on typing.
-    */
-    using Vec3 = Vec3T<T>;
-
-    /*!
-      @brief Alias for cutting down on typing.
-    */
-    using Node = NodeT<T, P, BV, K>;
-
-    /*!
-      @brief Alias for cutting down on typing.
-    */
     using NodePtr = std::shared_ptr<Node>;
 
-    /*!
-      @brief Alias for cutting down on typing.
-    */
-    using StopFunction = StopFunctionT<T, P, BV, K>;
-
-    /*!
-      @brief Alias for cutting down on typing
-    */
-    using Partitioner = PartitionerT<P, BV, K>;
-
-    /*!
-      @brief Alias for cutting down on typing.
-    */
+    using StopFunction  = StopFunctionT<T, P, BV, K>;
+    using Partitioner   = PartitionerT<P, BV, K>;
     using BVConstructor = BVConstructorT<P, BV>;
 
     /*!
@@ -402,9 +376,6 @@ namespace BVH {
   class LinearNodeT
   {
   public:
-    /*!
-      @brief Alias for cutting down on typing.
-    */
     using Vec3 = Vec3T<T>;
 
     /*!
@@ -526,19 +497,8 @@ namespace BVH {
   class LinearBVH : public SignedDistanceFunction<T>
   {
   public:
-    /*!
-      @brief Cut down on typing
-    */
-    using Vec3 = Vec3T<T>;
-
-    /*!
-      @brief Alias for cutting down on typing
-    */
-    using LinearNode = LinearNodeT<T, P, BV, K>;
-
-    /*!
-      @brief List of primitives
-    */
+    using Vec3          = Vec3T<T>;
+    using LinearNode    = LinearNodeT<T, P, BV, K>;
     using PrimitiveList = std::vector<std::shared_ptr<const P>>;
 
     /*!
