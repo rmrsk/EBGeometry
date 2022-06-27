@@ -237,16 +237,17 @@ template <typename T>
 class Vec3T
 {
 public:
-
   /*!
     @brief For outputting a vector to an output stream. 
   */
-  friend std::ostream& operator<<(std::ostream& os, const Vec3T<T>& vec) {
+  friend std::ostream&
+  operator<<(std::ostream& os, const Vec3T<T>& vec)
+  {
     os << '(' << vec[0] << ',' << vec[1] << ',' << vec[2] << ')';
 
     return os;
   }
-  
+
   /*!
     @brief Default constructor. Sets the vector to the zero vector.
   */

@@ -26,7 +26,6 @@ template <class T, class P, class BV, size_t K>
 class UnionBVH : public ImplicitFunction<T>
 {
 public:
-
   using BVConstructor = EBGeometry::BVH::BVConstructorT<P, BV>;
 
   /*!
@@ -49,8 +48,8 @@ public:
     @param[in] a_bvConstructor     Bounding volume constructor.
   */
   UnionBVH(const std::vector<std::shared_ptr<P>>& a_distanceFunctions,
-           const bool                               a_flipSign,
-           const BVConstructor&                     a_bvConstructor);
+           const bool                             a_flipSign,
+           const BVConstructor&                   a_bvConstructor);
 
   /*!
     @brief Build BVH tree for the input objects. User must supply a partitioner
@@ -76,13 +75,13 @@ public:
   /*!
     @brief Get the bounding volume
   */
-  const BV& getBoundingVolume() const noexcept;
+  const BV&
+  getBoundingVolume() const noexcept;
 
 protected:
-
-  using PrimList = std::vector<std::shared_ptr<const P>>;
+  using PrimList    = std::vector<std::shared_ptr<const P>>;
   using BuilderNode = EBGeometry::BVH::NodeT<T, P, BV, K>;
-  using RootNode = EBGeometry::BVH::LinearBVH<T, P, BV, K>;
+  using RootNode    = EBGeometry::BVH::LinearBVH<T, P, BV, K>;
 
   /*!
     @brief List of primitive functions. 

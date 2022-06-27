@@ -29,8 +29,8 @@ UnionBVH<T, P, BV, K>::UnionBVH(const std::vector<std::shared_ptr<P>>& a_distanc
 
 template <class T, class P, class BV, size_t K>
 UnionBVH<T, P, BV, K>::UnionBVH(const std::vector<std::shared_ptr<P>>& a_distanceFunctions,
-				const bool                               a_flipSign,
-				const BVConstructor&                     a_bvConstructor)
+                                const bool                             a_flipSign,
+                                const BVConstructor&                   a_bvConstructor)
   : UnionBVH<T, P, BV, K>(a_distanceFunctions, a_flipSign)
 {
   this->buildTree(a_bvConstructor);
@@ -52,7 +52,7 @@ UnionBVH<T, P, BV, K>::buildTree(const BVConstructor& a_bvConstructor)
 
     if (numPrimitives < K) {
       std::cerr << "UnionBVH<T, P, BV, K>::buildTree -- not enough primitives to "
-	"partition into K new nodes\n";
+                   "partition into K new nodes\n";
     }
 
     // 1. Compute the bounding volume centroids for each input SDF.
@@ -88,8 +88,8 @@ UnionBVH<T, P, BV, K>::buildTree(const BVConstructor& a_bvConstructor)
 
     // Vector sort.
     std::sort(primsAndCentroids.begin(), primsAndCentroids.end(), [splitDir](const PC& sdf1, const PC& sdf2) -> bool {
-	return sdf1.second[splitDir] < sdf2.second[splitDir];
-      });
+      return sdf1.second[splitDir] < sdf2.second[splitDir];
+    });
 
     // Vector unpack. The input SDFs are not sorted based on their bounding
     // volume centroids.
@@ -197,7 +197,9 @@ UnionBVH<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T, class P, class BV, size_t K>
-const BV& UnionBVH<T, P, BV, K>::getBoundingVolume() const noexcept {
+const BV&
+UnionBVH<T, P, BV, K>::getBoundingVolume() const noexcept
+{
   return m_rootNode->getBoundingVolume();
 }
 

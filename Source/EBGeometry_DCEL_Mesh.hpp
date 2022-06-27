@@ -317,7 +317,7 @@ namespace DCEL {
       @brief Flip all vertex normal
     */
     inline void
-    flipVertices() noexcept;        
+    flipVertices() noexcept;
 
     /*!
       @brief Implementation of signed distance function which iterates through all

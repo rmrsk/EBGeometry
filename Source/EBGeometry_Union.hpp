@@ -27,7 +27,6 @@ template <class P, class T>
 class Union : public ImplicitFunction<T>
 {
 public:
-
   /*!
     @brief Disallowed, use the full constructor
   */

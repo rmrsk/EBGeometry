@@ -651,12 +651,12 @@ Parser::PLY<T>::read(const std::string a_filename) noexcept
     }
     case Parser::Encoding::Unknown: {
       const std::string error = "Parser::PLY::read - ERROR! Unknown encoding for '" + a_filename + "'\n";
-      
+
       break;
     }
     default: {
       const std::string error = "Parser::PLY::read - logic bust\n";
-      
+
       break;
     }
     }

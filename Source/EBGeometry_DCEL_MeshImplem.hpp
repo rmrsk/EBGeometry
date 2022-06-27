@@ -206,16 +206,14 @@ namespace DCEL {
     this->reconcileVertices(a_weight);
   }
 
-  template <class T>  
+  template <class T>
   inline void
   MeshT<T>::flip() noexcept
   {
     this->flipFaces();
     this->flipEdges();
-    this->flipVertices();        
+    this->flipVertices();
   }
-
-
 
   template <class T>
   inline void
@@ -241,31 +239,28 @@ namespace DCEL {
   {
     for (auto& v : m_vertices) {
       switch (a_weight) {
-      case VertexNormalWeight::None:
-	{
-	  v->computeVertexNormalAverage();
-	  
-	  break;
-	}
-      case VertexNormalWeight::Angle:
-	{
-	  v->computeVertexNormalAngleWeighted();
-	  
-	  break;
-	}
-      default:
-	{
-	  std::cerr << "In file 'CD_DCELMeshImplem.H' function "
-	    "DCEL::MeshT<T>::reconcileVertices(VertexNormalWeighting) - "
-	    "unsupported algorithm requested\n";
+      case VertexNormalWeight::None: {
+        v->computeVertexNormalAverage();
 
-	  break;
-	}
+        break;
+      }
+      case VertexNormalWeight::Angle: {
+        v->computeVertexNormalAngleWeighted();
+
+        break;
+      }
+      default: {
+        std::cerr << "In file 'CD_DCELMeshImplem.H' function "
+                     "DCEL::MeshT<T>::reconcileVertices(VertexNormalWeighting) - "
+                     "unsupported algorithm requested\n";
+
+        break;
+      }
       }
     }
   }
 
-  template <class T>      
+  template <class T>
   inline void
   MeshT<T>::flipFaces() noexcept
   {
@@ -274,7 +269,7 @@ namespace DCEL {
     }
   }
 
-  template <class T>        
+  template <class T>
   inline void
   MeshT<T>::flipEdges() noexcept
   {

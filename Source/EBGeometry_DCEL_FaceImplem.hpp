@@ -66,7 +66,8 @@ namespace DCEL {
 
   template <class T>
   inline void
-  FaceT<T>::flip() noexcept {
+  FaceT<T>::flip() noexcept
+  {
     m_normal = -m_normal;
   }
 
