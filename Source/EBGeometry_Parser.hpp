@@ -60,7 +60,7 @@ namespace Parser {
   readIntoDCEL(const std::string a_filename) noexcept;
 
   /*!
-    @brief Read multiple files contain single watertight objects
+    @brief Read multiple files containing single watertight objects
     @param[in] a_files File names
   */
   template <typename T>
@@ -76,7 +76,7 @@ namespace Parser {
   readIntoFullBVH(const std::string a_filename) noexcept;
 
   /*!
-    @brief Read multiple files contain single watertight objects
+    @brief Read multiple files containing single watertight objects
     @param[in] a_files File names
   */
   template <typename T, typename BV, size_t K>
@@ -92,7 +92,7 @@ namespace Parser {
   readIntoLinearBVH(const std::string a_filename) noexcept;
 
   /*!
-    @brief Read multiple files contain single watertight objects
+    @brief Read multiple files containing single watertight objects
     @param[in] a_files File names
   */
   template <typename T, typename BV, size_t K>

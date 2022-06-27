@@ -24,7 +24,7 @@ using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
 using Prim         = EBGeometry::BVH::LinearBVH<T, Face, BV, K>;
 using Vec3         = EBGeometry::Vec3T<T>;
 
-// F18 geometry, using nifty EBGeometry bindings and accelerators. 
+// F18 geometry, using nifty EBGeometry bindings and accelerators.
 class F18
 {
 public:
@@ -37,7 +37,7 @@ public:
       const std::string ext = f.substr(f.find_last_of(".") + 1);
 
       if (ext == "stl" || ext == "STL") {
-	stlFiles.emplace_back(f);
+        stlFiles.emplace_back(f);
       }
     }
 
@@ -45,23 +45,16 @@ public:
     // have the normal vector pointing inwards so we flip it.
     std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, Face, BV, K>>> bvhDCEL;
     for (const auto& f : stlFiles) {
-      const auto mesh = EBGeometry::Parser::read<T>(f);
+      const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(f);
       mesh->flip();
 
       // Create the BVH.
-      auto bvh = std::make_shared<EBGeometry::BVH::NodeT<T, Face, BV, K>>(mesh->getFaces());
-      bvh->topDownSortAndPartitionPrimitives(EBGeometry::DCEL::defaultBVConstructor<T, BV>,
-					     EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
-					     EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
-      bvhDCEL.emplace_back(bvh->flattenTree());
+      bvhDCEL.emplace_back(EBGeometry::DCEL::buildFlatBVH<T, BV, K>(mesh));
     }
 
     // Optimized, faster union which uses a BVH for bounding the BVHs.
-    EBGeometry::BVH::BVConstructorT<Prim, BV> bvConstructor = [](const std::shared_ptr<const Prim>& a_prim) -> BV {
-								return a_prim->getBoundingVolume();
-							      };
-
-    m_union = std::make_shared<EBGeometry::UnionBVH<T, Prim, BV, K>>(bvhDCEL, true, bvConstructor);
+    m_union = std::make_shared<EBGeometry::UnionBVH<T, Prim, BV, K>>(
+      bvhDCEL, true, [](const std::shared_ptr<const Prim>& a_prim) -> BV { return a_prim->getBoundingVolume(); });
   }
 
   F18(const F18& a_other)
@@ -71,7 +64,7 @@ public:
 
   Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    return Real(m_union->value(EBGeometry::Vec3T(x,y,z)));
+    return Real(m_union->value(EBGeometry::Vec3T(x, y, z)));
   };
 
   inline Real
@@ -81,8 +74,7 @@ public:
   }
 
 protected:
-      
-  std::shared_ptr<EBGeometry::UnionBVH<T, Prim, BV, K> > m_union;
+  std::shared_ptr<EBGeometry::UnionBVH<T, Prim, BV, K>> m_union;
 };
 
 int
