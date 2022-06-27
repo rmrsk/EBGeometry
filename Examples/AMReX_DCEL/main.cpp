@@ -44,8 +44,7 @@ namespace amrex {
 
       /*!
 	@brief Full constructor.
-	@param[in] a_filename File name. Must be a PLY file and will be parser by the
-	PLY parser.
+	@param[in] a_filename File name. Must be an STL file.
 	@param[in] a_flipSign Hook for swapping inside/outside.
       */
       SignedDistanceBVH(const std::string a_filename, const bool a_flipSign)

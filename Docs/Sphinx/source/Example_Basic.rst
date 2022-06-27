@@ -1,11 +1,11 @@
-.. _Chap:ExamplePLY:
+.. _Chap:ExampleSTL:
 
-Reading mesh files
-==================
+Basic example
+=============
 
 This example is given in :file:`Examples/EBGeometry_DCEL/main.cpp` and shows the following steps:
 
-#. How to read a PLY file into a DCEL mesh.
+#. How to read an STL file into a DCEL mesh.
 #. How to partition and flatten a BVH tree.
 #. How to call the signed distance function and provide a performance comparison between SDF representations.
 
@@ -18,8 +18,8 @@ We will focus on the following parts of the code:
 Reading the surface mesh
 ------------------------
 
-The first block of code parser a PLY file (here called *file*) and returns a DCEL mesh description of the PLY file.
-We point out that the parser will issue errors if the PLY file is not watertight and orientable.
+The first block of code parses an STL file (here called *file*) and returns a DCEL mesh description of the STL file.
+We point out that the parser will issue errors if the STL file is not watertight and orientable.
 
 Constructing the BVH
 --------------------
@@ -39,11 +39,11 @@ The next block of code
 
 partitions the BVH using pre-defined partitioning functions (see :ref:`Chap:BVHIntegration` for details).
 
-Finally, the BVH tree is flatten by
+Finally, the BVH tree is flattened by
 
 .. literalinclude:: ../../../Examples/EBGeometry_DCEL/main.cpp
    :language: c++
-   :lines: 56
+   :lines: 60
 
 Summary
 --------
@@ -55,4 +55,4 @@ The objects differ in how they compute it:
 *  ``bvhSDF`` uses *full BVH tree representation*, pruning branches during the tree traversal.
 *  ``linSDF`` uses *compact BVH tree representation*, also pruning branches during the tree traversal.   
 
-All the above functions give the same result, but with widely different performance metrics. 
+All the above functions give the same result, but with different performance metrics. 

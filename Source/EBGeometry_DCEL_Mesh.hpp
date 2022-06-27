@@ -28,13 +28,17 @@ class Polygon2D;
 
 namespace DCEL {
 
-  // Forward declare classes.
   template <class T>
   class VertexT;
+
   template <class T>
   class EdgeT;
+
   template <class T>
   class FaceT;
+
+  template <class T>
+  class MeshT;
 
   /*!
     @brief Mesh class which stores a full DCEL mesh (with signed distance
@@ -75,45 +79,15 @@ namespace DCEL {
       Angle,
     };
 
-    /*!
-      @brief Alias to cut down on the typing
-    */
-    using Vec3 = Vec3T<T>;
-
-    /*!
-      @brief Alias to cut down on the typing
-    */
+    using Vec3   = Vec3T<T>;
     using Vertex = VertexT<T>;
+    using Edge   = EdgeT<T>;
+    using Face   = FaceT<T>;
+    using Mesh   = MeshT<T>;
 
-    /*!
-      @brief Alias to cut down on the typing
-    */
-    using Edge = EdgeT<T>;
-
-    /*!
-      @brief Alias to cut down on the typing
-    */
-    using Face = FaceT<T>;
-
-    /*!
-      @brief Alias to cut down on the typing
-    */
     using VertexPtr = std::shared_ptr<Vertex>;
-
-    /*!
-      @brief Alias to cut down on the typing
-    */
-    using EdgePtr = std::shared_ptr<Edge>;
-
-    /*!
-      @brief Alias to cut down on the typing
-    */
-    using FacePtr = std::shared_ptr<Face>;
-
-    /*!
-      @brief Alias to cut down on the typing
-    */
-    using Mesh = MeshT<T>;
+    using EdgePtr   = std::shared_ptr<Edge>;
+    using FacePtr   = std::shared_ptr<Face>;
 
     /*!
       @brief Default constructor. Leaves unobject in an unusable state
@@ -142,7 +116,7 @@ namespace DCEL {
     /*!
       @brief Destructor (does nothing)
     */
-    ~MeshT();
+    virtual ~MeshT();
 
     /*!
       @brief Define function. Puts Mesh in usable state.
