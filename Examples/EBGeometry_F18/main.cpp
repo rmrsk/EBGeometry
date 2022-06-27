@@ -62,7 +62,7 @@ main(int argc, char* argv[])
 
   // Compute the value function. 
   std::cout << "fast value = " <<  fastUnion.value(EBGeometry::Vec3T<T>::one()) << "\n";
-  std::cout << "slow value = " <<  slowUnion.value(EBGeometry::Vec3T<T>::one()) << "\n";  
+  std::cout << "slow value = " <<  slowUnion.value(EBGeometry::Vec3T<T>::one()) << "\n";
   
   return 0;
 }

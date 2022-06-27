@@ -196,6 +196,11 @@ UnionBVH<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
   return sign * value;
 }
 
+template <class T, class P, class BV, size_t K>
+const BV& UnionBVH<T, P, BV, K>::getBoundingVolume() const noexcept {
+  return m_rootNode->getBoundingVolume();
+}
+
 #include "EBGeometry_NamespaceFooter.hpp"
 
 #endif

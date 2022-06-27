@@ -73,6 +73,11 @@ public:
   T
   value(const Vec3T<T>& a_point) const noexcept override;
 
+  /*!
+    @brief Get the bounding volume
+  */
+  const BV& getBoundingVolume() const noexcept;
+
 protected:
 
   using PrimList = std::vector<std::shared_ptr<const P>>;
