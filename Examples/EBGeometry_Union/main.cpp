@@ -31,7 +31,7 @@ main()
   // Make a sphere array consisting of about M^3 spheres. We assume
   // that the domain is x,y,z \in [-1,1] and set the number of spheres
   // and their radii.
-  std::vector<std::shared_ptr<SDF>> spheres;
+  std::vector<std::shared_ptr<Sphere>> spheres;
 
   constexpr T   radius = 0.02;
   constexpr int M      = 40;
@@ -64,17 +64,17 @@ main()
 
   // Make a standard union of these spheres. This is the union object which
   // iterates through each and every object in the scene.
-  EBGeometry::Union<T> slowUnion(spheres, false);
+  EBGeometry::Union<Sphere, T> slowUnion(spheres, false);
 
   // Make a fast union. To do this we must have the SDF objects (our vector of
   // spheres) as well as a way for enclosing these objects. We need to define
   // ourselves a lambda that creates an appropriate bounding volumes for each
   // SDF.
-  EBGeometry::BVH::BVConstructorT<SDF, AABB> aabbConstructor = [](const std::shared_ptr<const SDF>& a_prim) {
-    const Sphere& sph = static_cast<const Sphere&>(*a_prim);
+  EBGeometry::BVH::BVConstructorT<Sphere, AABB> aabbConstructor = [](const std::shared_ptr<const Sphere>& a_prim) {
+    //    const Sphere& sph = static_cast<const Sphere&>(*a_prim);
 
-    const Vec3& c = sph.getCenter();
-    const T&    r = sph.getRadius();
+    const Vec3& c = a_prim->getCenter();
+    const T&    r = a_prim->getRadius();
 
     const Vec3 lo = c - r * Vec3::one();
     const Vec3 hi = c + r * Vec3::one();
@@ -83,7 +83,7 @@ main()
   };
 
   std::cout << "Partitioning spheres" << std::endl;
-  EBGeometry::UnionBVH<T, AABB, K> fastUnion(spheres, false, aabbConstructor);
+  EBGeometry::UnionBVH<T, Sphere, AABB, K> fastUnion(spheres, false, aabbConstructor);
 
   std::mt19937_64                   rng(std::chrono::system_clock::now().time_since_epoch().count());
   std::uniform_real_distribution<T> dist(-1.0, 1.0);
