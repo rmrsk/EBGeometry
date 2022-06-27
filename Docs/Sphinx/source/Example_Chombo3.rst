@@ -16,7 +16,7 @@ Constructing the BVH
 When constructing the signed distance function we use the DCEL and BVH functionality directly in the constructor.
 Note that we are performing the following steps:
 
-*  Using the PLY parser for creating a DCEL mesh.
+*  Using the STL parser for creating a DCEL mesh.
 *  Constructing a BVH for the DCEL faces.
 *  Flattening the BVH tree for performance.
 

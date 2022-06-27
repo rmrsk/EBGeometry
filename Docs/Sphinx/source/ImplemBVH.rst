@@ -28,6 +28,24 @@ The above template parameters are:
 Importantly, ``NodeT`` is the BVH builder node, i.e. it is the class through which we recursively build the BVH, see :ref:`Chap:BVHConstruction`.
 The compact BVH is discussed below in :ref:`Chap:LinearBVH`.
 
+Template constraints
+--------------------
+
+The template parameter ``T`` must be a valid C++ floating-point type (e.g. ``float`` or ``double``) and the tree degree must be :math:`K \geq 2`.
+The primitive type ``P`` must have the following:
+
+* A signed distance function ``T P::signedDistance(const Vec3& x) const``.
+
+The bounding volume type ``BV`` must obey the following:
+
+* A default constructor ``BV()``. 
+* A constructor ``BV(const std::vector<BV>&)`` which constructs a bounding volume guaranteed to enclose other bounding volumes.
+* A function ``T getDistance(const Vec3T<T>& x) const`` which returns a positive distance if point ``x`` is outside the bounding volume and zero if ``x`` is inside the bounding volume. 
+  
+
+Signed distance
+---------------
+
 For getting the signed distance, ``NodeT`` has provide the following functions:
 
 .. code-block:: c++
@@ -90,7 +108,7 @@ Construction
 Constructing a BVH is done by
 
 *  Creating a root node and providing it with the geometric primitives.
-*  Partitioning the BVH by providing.
+*  Partitioning the BVH by providing a partitioning function. 
 
 The first step is usually a matter of simply constructing the root node using the following constructor:
 
