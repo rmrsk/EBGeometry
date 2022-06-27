@@ -1,24 +1,23 @@
-This folder contains a basic example of using EBGeometry, with three different representations of the signed distance field.
+This folder contains an advanced example of using EBGeometry, turning composite geometries into BVH-of-BVH types of scenes. 
+It shows how to read a set of files containing tesslated polygons, and turning them each into a linear BVH representation.
+The BVH representations are then put in:
 
-* A naive approach which iterates through all facets and computed the signed distance.
-* Using a conventional bounding volume hierarchy with (references to) primitives stored directly in the nodes.
-* A flattened, more compact bounding volume hierarchy.
+* A standard CSG union.
+* An optimized BVH-enabled CSG union.
 
-Note that SDF queries have different complexity for different geometries and input points.
-For example, a tessellated sphere has a "blind spot" in it's center where even BVHs will visit most, if not all, primitives. 
+The optimized union will be a BVH-of-BVH type of scene where each primitive in the outer BVH is a signed distance function.
+The distance functions themselves are linear BVH hierarchies that bound the triangle sin each component. 
 
 Compiling
 ---------
 
 To compile the example, do
 
-    g++ -std=c++14 -O3 main.cpp
+    g++ -std=c++17 -O3 main.cpp -lstdc++fs
 
 Running
 -------
 
 Run it with
 
-    ./a.out 'filename'
-
-where 'filename' is one of the STL files in ../Scenes/STL/.
+    ./a.out
