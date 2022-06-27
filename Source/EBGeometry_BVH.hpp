@@ -104,8 +104,8 @@ namespace BVH {
 
   /*!
     @brief Pruner for LinearBVH::stackPrune
-    @param[in] Distance to current bounding volume. 
-    @param[in] minDist  Shortest "distance" to primitives found so far. 
+    @param[in] a_bvDist Distance to current bounding volume. 
+    @param[in] a_minDist  Shortest "distance" to primitives found so far. 
   */
   template <class T>
   using Pruner = std::function<bool(const T& bvDist, const T& minDist)>;
