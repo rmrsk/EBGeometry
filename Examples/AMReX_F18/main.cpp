@@ -17,78 +17,73 @@
 using namespace amrex;
 
 constexpr size_t K = 4;
-using T            = float;
+using T            = Real;
 using Face         = EBGeometry::DCEL::FaceT<T>;
 using Mesh         = EBGeometry::DCEL::MeshT<T>;
 using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
 using Prim         = EBGeometry::BVH::LinearBVH<T, Face, BV, K>;
 using Vec3         = EBGeometry::Vec3T<T>;
 
-namespace amrex {
-  namespace EB2 {
+// F18 geometry, using nifty EBGeometry bindings and accelerators. 
+class F18
+{
+public:
+  F18()
+  {
+    // Get all the STL files in this directory .
+    std::vector<std::string> stlFiles;
+    for (const auto& entry : std::filesystem::directory_iterator("../Objects/F18")) {
+      const std::string f   = entry.path();
+      const std::string ext = f.substr(f.find_last_of(".") + 1);
 
-    // F18 geometry, using nifty EBGeometry bindings and accelerators. 
-    class F18
-    {
-    public:
-      F18()
-      {
-	// Get all the STL files in this directory .
-	std::vector<std::string> stlFiles;
-	for (const auto& entry : std::filesystem::directory_iterator("../Objects/F18")) {
-	  const std::string f   = entry.path();
-	  const std::string ext = f.substr(f.find_last_of(".") + 1);
-
-	  if (ext == "stl" || ext == "STL") {
-	    stlFiles.emplace_back(f);
-	  }
-	}
-
-	// // Read each STL file and make them into flattened BVH-trees. These STL files
-	// // have the normal vector pointing inwards so we flip it.
-	// std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, Face, BV, K>>> bvhDCEL;
-	// for (const auto& f : stlFiles) {
-	//   const auto mesh = EBGeometry::Parser::read<T>(f);
-	//   mesh->flip();
-
-	//   // Create the BVH.
-	//   auto bvh = std::make_shared<EBGeometry::BVH::NodeT<T, Face, BV, K>>(mesh->getFaces());
-	//   bvh->topDownSortAndPartitionPrimitives(EBGeometry::DCEL::defaultBVConstructor<T, BV>,
-	// 					 EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
-	// 					 EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
-	//   bvhDCEL.emplace_back(bvh->flattenTree());
-	// }
-
-	// // Optimized, faster union which uses a BVH for bounding the BVHs.
-	// EBGeometry::BVH::BVConstructorT<Prim, BV> bvConstructor = [](const std::shared_ptr<const Prim>& a_prim) -> BV {
-	//   return a_prim->getBoundingVolume();
-	// };
-
-	// m_union = std::make_shared<EBGeometry::UnionBVH<T, Prim, BV, K>>(bvhDCEL, true, bvConstructor);
+      if (ext == "stl" || ext == "STL") {
+	stlFiles.emplace_back(f);
       }
+    }
 
-      F18(const F18& a_other)
-      {
-        this->m_union = a_other.m_union;
-      }
+    // Read each STL file and make them into flattened BVH-trees. These STL files
+    // have the normal vector pointing inwards so we flip it.
+    std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, Face, BV, K>>> bvhDCEL;
+    for (const auto& f : stlFiles) {
+      const auto mesh = EBGeometry::Parser::read<T>(f);
+      mesh->flip();
 
-      Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
-      {
-        return m_union->value(Vec3(x,y,z));
-      };
+      // Create the BVH.
+      auto bvh = std::make_shared<EBGeometry::BVH::NodeT<T, Face, BV, K>>(mesh->getFaces());
+      bvh->topDownSortAndPartitionPrimitives(EBGeometry::DCEL::defaultBVConstructor<T, BV>,
+					     EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
+					     EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
+      bvhDCEL.emplace_back(bvh->flattenTree());
+    }
 
-      inline Real
-      operator()(const RealArray& p) const noexcept
-      {
-        return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
-      }
+    // Optimized, faster union which uses a BVH for bounding the BVHs.
+    EBGeometry::BVH::BVConstructorT<Prim, BV> bvConstructor = [](const std::shared_ptr<const Prim>& a_prim) -> BV {
+								return a_prim->getBoundingVolume();
+							      };
 
-    protected:
+    m_union = std::make_shared<EBGeometry::UnionBVH<T, Prim, BV, K>>(bvhDCEL, true, bvConstructor);
+  }
+
+  F18(const F18& a_other)
+  {
+    this->m_union = a_other.m_union;
+  }
+
+  Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+  {
+    return Real(m_union->value(EBGeometry::Vec3T(x,y,z)));
+  };
+
+  inline Real
+  operator()(const RealArray& p) const noexcept
+  {
+    return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
+  }
+
+protected:
       
-      std::shared_ptr<EBGeometry::UnionBVH<T, Prim, BV, K> > m_union;
-    };
-  } // namespace EB2
-} // namespace amrex
+  std::shared_ptr<EBGeometry::UnionBVH<T, Prim, BV, K> > m_union;
+};
 
 int
 main(int argc, char* argv[])
@@ -96,7 +91,7 @@ main(int argc, char* argv[])
   amrex::Initialize(argc, argv);
 
   int n_cell        = 128;
-  int max_grid_size = 32;
+  int max_grid_size = 16;
   int which_geom    = 0;
 
   std::string filename;
@@ -109,7 +104,7 @@ main(int argc, char* argv[])
 
   Geometry geom;
   {
-    RealBox rb = RealBox({-10, -10, -10}, {10, 10, 10});
+    RealBox rb = RealBox({-1, -1, -1}, {13, 5, 9});
 
     Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};
     Geometry::Setup(&rb, 0, is_periodic.data());
@@ -117,7 +112,7 @@ main(int argc, char* argv[])
     geom.define(domain);
   }
 
-  EB2::F18 f18();
+  F18 f18 = F18();
 
   auto gshop = EB2::makeShop(f18);
   EB2::Build(gshop, geom, 0, 0);
