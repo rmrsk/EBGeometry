@@ -20,17 +20,13 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
-  @brief CSG union. Computes the minimum of all input implicit functions. This
+  @brief CSG union. Computes the minimum of all input primitives. This
   is defined also when objects in the scene overlap one another. It will also
-  be well-defined for signed distance functions.
 */
-template <class T>
+template <class P, class T>
 class Union : public ImplicitFunction<T>
 {
 public:
-  using ImpFunc = ImplicitFunction<T>;
-
-  using SDF = SignedDistanceFunction<T>;
 
   /*!
     @brief Disallowed, use the full constructor
@@ -39,17 +35,10 @@ public:
 
   /*!
     @brief Full constructor. Computes the CSG union
-    @param[in] a_implictFunctions Implicit functions
-    @param[in] a_flipSign         Hook for turning inside to outside
+    @param[in] a_primitives List of primitives
+    @param[in] a_flipSign   Hook for turning inside to outside
   */
-  Union(const std::vector<std::shared_ptr<ImpFunc>>& a_implicitFunctions, const bool a_flipSign);
-
-  /*!
-    @brief Full constructor. 
-    @param[in] a_implictFunctions Implicit functions
-    @param[in] a_flipSign         Hook for turning inside to outside
-  */
-  Union(const std::vector<std::shared_ptr<SDF>>& a_distanceFunctions, const bool a_flipSign);
+  Union(const std::vector<std::shared_ptr<P>>& a_primitives, const bool a_flipSign);
 
   /*!
     @brief Destructor (does nothing)
@@ -65,9 +54,9 @@ public:
 
 protected:
   /*!
-    @brief List of implicit functions
+    @brief List of primitives
   */
-  std::vector<std::shared_ptr<const ImpFunc>> m_implicitFunctions;
+  std::vector<std::shared_ptr<const P>> m_primitives;
 
   /*!
     @brief Hook for turning inside to outside

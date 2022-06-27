@@ -16,28 +16,18 @@
 #include <vector>
 
 // Our includes
-#include "EBGeometry_SignedDistanceFunction.hpp"
+#include "EBGeometry_ImplicitFunction.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
-  @brief Distance function union using BVHs. Computes the signed distance to the
-  closest object of possibly overlapping SDF objects. If the SDFs do not overlap
-  then this object is also an SDF. 
+  @brief Implicit function union using BVHs. 
 */
-template <class T, class BV, size_t K>
+template <class T, class P, class BV, size_t K>
 class UnionBVH : public ImplicitFunction<T>
 {
 public:
-  /*!
-    @brief Alias for cutting down on typing.
-  */
-  using SDF = SignedDistanceFunction<T>;
 
-  /*!
-    @brief Alias for cutting down on typing. This is a std::function<BV(SDF)>,
-    i.e. a function which returns a bounding volume for an SDF
-  */
-  using BVConstructor = EBGeometry::BVH::BVConstructorT<SDF, BV>;
+  using BVConstructor = EBGeometry::BVH::BVConstructorT<P, BV>;
 
   /*!
     @brief Disallowed, use the full constructor
@@ -50,7 +40,7 @@ public:
     @param[in] a_distanceFunctions Signed distance functions.
     @param[in] a_flipSign          Hook for turning inside to outside
   */
-  UnionBVH(const std::vector<std::shared_ptr<SDF>>& a_distanceFunctions, const bool a_flipSign);
+  UnionBVH(const std::vector<std::shared_ptr<P>>& a_distanceFunctions, const bool a_flipSign);
 
   /*!
     @brief Full constructor.
@@ -58,7 +48,7 @@ public:
     @param[in] a_flipSign          Hook for turning inside to outside
     @param[in] a_bvConstructor     Bounding volume constructor.
   */
-  UnionBVH(const std::vector<std::shared_ptr<SDF>>& a_distanceFunctions,
+  UnionBVH(const std::vector<std::shared_ptr<P>>& a_distanceFunctions,
            const bool                               a_flipSign,
            const BVConstructor&                     a_bvConstructor);
 
@@ -84,25 +74,15 @@ public:
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
-  /*!
-    @brief Alias for cutting down on typing
-  */
-  using SDFList = std::vector<std::shared_ptr<const SDF>>;
+
+  using PrimList = std::vector<std::shared_ptr<const P>>;
+  using BuilderNode = EBGeometry::BVH::NodeT<T, P, BV, K>;
+  using RootNode = EBGeometry::BVH::LinearBVH<T, P, BV, K>;
 
   /*!
-    @brief Builder node type in BVH tree. Tree is constructed in "full".
+    @brief List of primitive functions. 
   */
-  using BuilderNode = EBGeometry::BVH::NodeT<T, SDF, BV, K>;
-
-  /*!
-    @brief Node type in BVH tree. We use a flattened tree.
-  */
-  using RootNode = EBGeometry::BVH::LinearBVH<T, SDF, BV, K>;
-
-  /*!
-    @brief List of distance functions
-  */
-  std::vector<std::shared_ptr<const SDF>> m_distanceFunctions;
+  std::vector<std::shared_ptr<const P>> m_distanceFunctions;
 
   /*!
     @brief Root node for BVH tree
