@@ -1,5 +1,7 @@
 var searchData=
 [
-  ['node_706',['Node',['../classBVH_1_1NodeT.html#ac52d9b56f082002c7f8be91062c40ff8',1,'BVH::NodeT']]],
-  ['nodeptr_707',['NodePtr',['../classBVH_1_1NodeT.html#a008f5c2c53adb1f5730d8478b48529b1',1,'BVH::NodeT']]]
+  ['sdf_702',['SDF',['../classUnionBVH.html#a5d1d64d7cabf1000fc1a804d06e103cc',1,'UnionBVH']]],
+  ['sdflist_703',['SDFList',['../classUnionBVH.html#ac23ace50239fbe00130df2a7e42af995',1,'UnionBVH']]],
+  ['stopfunction_704',['StopFunction',['../classBVH_1_1NodeT.html#acbe56195affc439febe8aca84db308e3',1,'BVH::NodeT']]],
+  ['stopfunctiont_705',['StopFunctionT',['../namespaceBVH.html#afef1c5979c34a11d23b756cc09654bf9',1,'BVH']]]
 ];

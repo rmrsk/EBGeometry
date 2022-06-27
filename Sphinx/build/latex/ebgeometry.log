@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2022.6.23)  23 JUN 2022 09:32
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2022.6.27)  27 JUN 2022 06:57
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -797,29 +797,29 @@ Chapter 2.
 [5
 
 ]
-<DCEL.png, id=371, 195.76137pt x 183.38513pt>
+<DCEL.png, id=391, 195.76137pt x 183.38513pt>
 File: DCEL.png Graphic file (type png)
 <use DCEL.png>
 Package pdftex.def Info: DCEL.png  used on input line 292.
 (pdftex.def)             Requested size: 361.34766pt x 338.52122pt.
-<PolygonProjection.png, id=375, 127.01453pt x 113.37357pt>
+<PolygonProjection.png, id=395, 127.01453pt x 113.37357pt>
 File: PolygonProjection.png Graphic file (type png)
 <use PolygonProjection.png>
 Package pdftex.def Info: PolygonProjection.png  used on input line 316.
 (pdftex.def)             Requested size: 180.67383pt x 161.28738pt.
  [6] [7 <./DCEL.png> <./PolygonProjection.png>]
-<Pseudonormal.png, id=393, 98.46788pt x 121.59427pt>
+<Pseudonormal.png, id=413, 98.46788pt x 121.59427pt>
 File: Pseudonormal.png Graphic file (type png)
 <use Pseudonormal.png>
 Package pdftex.def Info: Pseudonormal.png  used on input line 383.
 (pdftex.def)             Requested size: 180.67383pt x 223.13872pt.
-<TrianglesBVH.png, id=398, 359.45291pt x 128.18892pt>
+<TrianglesBVH.png, id=418, 359.45291pt x 128.18892pt>
 File: TrianglesBVH.png Graphic file (type png)
 <use TrianglesBVH.png>
 Package pdftex.def Info: TrianglesBVH.png  used on input line 425.
 (pdftex.def)             Requested size: 361.34766pt x 128.86926pt.
  [8] [9 <./Pseudonormal.png> <./TrianglesBVH.png>] [10]
-<TreePruning.png, id=428, 359.45291pt x 148.69553pt>
+<TreePruning.png, id=448, 359.45291pt x 148.69553pt>
 File: TreePruning.png Graphic file (type png)
 <use TreePruning.png>
 Package pdftex.def Info: TreePruning.png  used on input line 517.
@@ -838,119 +838,119 @@ LaTeX Font Info:    Trying to load font information for TS1+txtt on input line
  (/usr/share/texlive/texmf-dist/tex/latex/txfonts/ts1txtt.fd
 File: ts1txtt.fd 2000/12/15 v3.1
 )
-Underfull \hbox (badness 10000) in paragraph at lines 712--715
+Underfull \hbox (badness 10000) in paragraph at lines 745--748
 []\T1/qtm/b/n/10 Axis-aligned bound-ing box\T1/qtm/m/n/10 , or AABB for short. 
 This is tem-plated as
  []
 
 [15]
-Overfull \vbox (2.67389pt too high) detected at line 849
+Overfull \vbox (2.67389pt too high) detected at line 850
  []
 
-[16]
-<CompactBVH.png, id=469, 148.33417pt x 218.07472pt>
+[16] [17]
+<CompactBVH.png, id=493, 148.33417pt x 218.07472pt>
 File: CompactBVH.png Graphic file (type png)
 <use CompactBVH.png>
-Package pdftex.def Info: CompactBVH.png  used on input line 877.
+Package pdftex.def Info: CompactBVH.png  used on input line 910.
 (pdftex.def)             Requested size: 180.67383pt x 265.62816pt.
- [17] [18 <./CompactBVH.png>] [19] [20] [21] [22]
+ [18 <./CompactBVH.png>] [19] [20] [21] [22] [23]
 LaTeX Font Info:    Font shape `TS1/txtt/m/it' in size <10> not available
-(Font)              Font shape `TS1/txtt/m/sl' tried instead on input line 1295
+(Font)              Font shape `TS1/txtt/m/sl' tried instead on input line 1328
 .
- [23]
-Underfull \hbox (badness 5667) in paragraph at lines 1372--1377
+
+Overfull \vbox (1.38231pt too high) detected at line 1399
+ []
+
+[24]
+Underfull \hbox (badness 5667) in paragraph at lines 1405--1410
 []\T1/qtm/m/n/10 When im-ple-ment-ing the \T1/txtt/m/n/10 signedDistance \T1/qt
 m/m/n/10 func-tion, one can trans-form the in-put point by first call-ing
  []
 
-[24] [25] [26] [27] [28] [29] [30]
-Underfull \vbox (badness 1112) detected at line 1881
+[25] [26] [27] [28] [29] [30] [31]
+Underfull \vbox (badness 1112) detected at line 1914
  []
 
-[31] [32] [33] [34
+[32] [33] [34] [35] [36
 
 ]
 Chapter 4.
-[35] [36] [37] [38]
-Overfull \vbox (1.66618pt too high) detected at line 2444
- []
-
-[39]
-Underfull \vbox (badness 10000) detected at line 2444
+[37] [38] [39] [40] [41]
+Underfull \vbox (badness 10000) detected at line 2545
  []
 
 
-Underfull \vbox (badness 10000) detected at line 2444
+Overfull \vbox (11.67393pt too high) detected at line 2545
  []
 
-[40]
-Underfull \vbox (badness 10000) detected at line 2444
- []
-
-
-Underfull \vbox (badness 10000) detected at line 2444
- []
-
-[41]
-Underfull \vbox (badness 10000) detected at line 2444
+[42]
+Underfull \vbox (badness 10000) detected at line 2545
  []
 
 
-Underfull \vbox (badness 10000) detected at line 2444
+Underfull \vbox (badness 10000) detected at line 2545
  []
 
-[42] [43]
-Underfull \vbox (badness 10000) detected at line 2694
- []
-
-
-Overfull \vbox (3.52196pt too high) detected at line 2694
- []
-
-[44]
-Underfull \vbox (badness 10000) detected at line 2694
+[43]
+Underfull \vbox (badness 10000) detected at line 2545
  []
 
 
-Underfull \vbox (badness 10000) detected at line 2694
+Underfull \vbox (badness 10000) detected at line 2545
  []
 
-[45]
-Underfull \vbox (badness 10000) detected at line 2694
+[44] [45]
+Underfull \vbox (badness 10000) detected at line 2795
  []
 
 
-Underfull \vbox (badness 10000) detected at line 2694
+Underfull \vbox (badness 10000) detected at line 2795
  []
 
-[46] [47] [48]
+[46]
+Underfull \vbox (badness 10000) detected at line 2795
+ []
+
+
+Underfull \vbox (badness 10000) detected at line 2795
+ []
+
+[47]
+Underfull \vbox (badness 10000) detected at line 2795
+ []
+
+
+Underfull \vbox (badness 10000) detected at line 2795
+ []
+
+[48] [49] [50]
 Chapter 5.
-[49
+[51
 
-] [50
+] [52
 
 ] (./ebgeometry.ind)
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 2758.
- [51
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 2859.
+ [53
 
 ]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 2758.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 2859.
  (./ebgeometry.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 2758.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 2758.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 2859.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 2859.
 
 Package rerunfilecheck Info: File `ebgeometry.out' has not changed.
-(rerunfilecheck)             Checksum: BDF68AB6295E0C01CD1904DB3AF3BBD4;8219.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 2758.
+(rerunfilecheck)             Checksum: 5372E9C81574DA481ABD0C02BEC6933B;8865.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 2859.
  ) 
 Here is how much of TeX's memory you used:
- 14126 strings out of 483183
- 201964 string characters out of 5966292
- 674972 words of memory out of 5000000
- 28619 multiletter control sequences out of 15000+600000
+ 14145 strings out of 483183
+ 202281 string characters out of 5966292
+ 669510 words of memory out of 5000000
+ 28629 multiletter control sequences out of 15000+600000
  596385 words of font info for 76 fonts, out of 8000000 for 9000
  15 hyphenation exceptions out of 8191
- 38i,23n,51p,609b,553s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 38i,23n,51p,609b,547s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc}{/usr/share/texmf/
 fonts/enc/dvips/tex-gyre/q-ts1.enc}{/usr/share/texmf/fonts/enc/dvips/tex-gyre/q
 -ec.enc}</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pf
@@ -972,10 +972,10 @@ fonts/type1/public/txfonts/t1xbtt.pfb></usr/share/texlive/texmf-dist/fonts/type
 1/public/txfonts/t1xtt.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/tx
 fonts/t1xtt.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/txfonts/tcxtt
 .pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb>
-Output written on ebgeometry.pdf (55 pages, 1000095 bytes).
+Output written on ebgeometry.pdf (57 pages, 1006284 bytes).
 PDF statistics:
- 755 PDF objects out of 1000 (max. 8388607)
- 652 compressed objects within 7 object streams
- 135 named destinations out of 1000 (max. 500000)
- 531 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 792 PDF objects out of 1000 (max. 8388607)
+ 687 compressed objects within 7 object streams
+ 144 named destinations out of 1000 (max. 500000)
+ 563 words of extra memory for PDF output out of 10000 (max. 10000000)
 

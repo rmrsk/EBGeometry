@@ -9,26 +9,6 @@ Mesh class which stores a full \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} mesh (
 
 {\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+D\+C\+E\+L\+\_\+\+Mesh.\+hpp$>$}
 
-
-
-Inheritance diagram for D\+C\+EL\+::MeshT$<$ T $>$\+:
-\nopagebreak
-\begin{figure}[H]
-\begin{center}
-\leavevmode
-\includegraphics[width=242pt]{classDCEL_1_1MeshT__inherit__graph}
-\end{center}
-\end{figure}
-
-
-Collaboration diagram for D\+C\+EL\+::MeshT$<$ T $>$\+:
-\nopagebreak
-\begin{figure}[H]
-\begin{center}
-\leavevmode
-\includegraphics[width=242pt]{classDCEL_1_1MeshT__coll__graph}
-\end{center}
-\end{figure}
 \doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
@@ -42,43 +22,43 @@ enum \mbox{\hyperlink{classDCEL_1_1MeshT_a4548120cb514e736ae4cd8c13b418e91}{Vert
  \}
 \begin{DoxyCompactList}\small\item\em How to weight vertex normal. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_a91c8faae19992f97fc4a4ae6f98810e2}\label{classDCEL_1_1MeshT_a91c8faae19992f97fc4a4ae6f98810e2}} 
-using \mbox{\hyperlink{classDCEL_1_1MeshT_a91c8faae19992f97fc4a4ae6f98810e2}{Vec3}} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$
-\begin{DoxyCompactList}\small\item\em Alias to cut down on the typing. \end{DoxyCompactList}\item 
+using {\bfseries Vec3} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$
+\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_a21af97aeaeefa3de538c5ee1c04f8da6}\label{classDCEL_1_1MeshT_a21af97aeaeefa3de538c5ee1c04f8da6}} 
-using \mbox{\hyperlink{classDCEL_1_1MeshT_a21af97aeaeefa3de538c5ee1c04f8da6}{Vertex}} = \mbox{\hyperlink{classDCEL_1_1VertexT}{VertexT}}$<$ T $>$
-\begin{DoxyCompactList}\small\item\em Alias to cut down on the typing. \end{DoxyCompactList}\item 
+using {\bfseries Vertex} = \mbox{\hyperlink{classDCEL_1_1VertexT}{VertexT}}$<$ T $>$
+\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_ac6e26e9ad5df10db17eaa46238d4149a}\label{classDCEL_1_1MeshT_ac6e26e9ad5df10db17eaa46238d4149a}} 
-using \mbox{\hyperlink{classDCEL_1_1MeshT_ac6e26e9ad5df10db17eaa46238d4149a}{Edge}} = \mbox{\hyperlink{classDCEL_1_1EdgeT}{EdgeT}}$<$ T $>$
-\begin{DoxyCompactList}\small\item\em Alias to cut down on the typing. \end{DoxyCompactList}\item 
+using {\bfseries Edge} = \mbox{\hyperlink{classDCEL_1_1EdgeT}{EdgeT}}$<$ T $>$
+\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_abf549d12d6b626b2f63d53e1255823f3}\label{classDCEL_1_1MeshT_abf549d12d6b626b2f63d53e1255823f3}} 
-using \mbox{\hyperlink{classDCEL_1_1MeshT_abf549d12d6b626b2f63d53e1255823f3}{Face}} = \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}$<$ T $>$
-\begin{DoxyCompactList}\small\item\em Alias to cut down on the typing. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1MeshT_a359c658d20300d5119bdf50c549fadbd}\label{classDCEL_1_1MeshT_a359c658d20300d5119bdf50c549fadbd}} 
-using \mbox{\hyperlink{classDCEL_1_1MeshT_a359c658d20300d5119bdf50c549fadbd}{Vertex\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a21af97aeaeefa3de538c5ee1c04f8da6}{Vertex}} $>$
-\begin{DoxyCompactList}\small\item\em Alias to cut down on the typing. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1MeshT_af760b8c8c2630806d0028db5ccf37429}\label{classDCEL_1_1MeshT_af760b8c8c2630806d0028db5ccf37429}} 
-using \mbox{\hyperlink{classDCEL_1_1MeshT_af760b8c8c2630806d0028db5ccf37429}{Edge\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_ac6e26e9ad5df10db17eaa46238d4149a}{Edge}} $>$
-\begin{DoxyCompactList}\small\item\em Alias to cut down on the typing. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1MeshT_a48fe132aa1f6966f305c432299d71f42}\label{classDCEL_1_1MeshT_a48fe132aa1f6966f305c432299d71f42}} 
-using \mbox{\hyperlink{classDCEL_1_1MeshT_a48fe132aa1f6966f305c432299d71f42}{Face\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_abf549d12d6b626b2f63d53e1255823f3}{Face}} $>$
-\begin{DoxyCompactList}\small\item\em Alias to cut down on the typing. \end{DoxyCompactList}\item 
+using {\bfseries Face} = \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}$<$ T $>$
+\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_ad114ade3043f6db1ede02eee9e28dff9}\label{classDCEL_1_1MeshT_ad114ade3043f6db1ede02eee9e28dff9}} 
-using \mbox{\hyperlink{classDCEL_1_1MeshT_ad114ade3043f6db1ede02eee9e28dff9}{Mesh}} = \mbox{\hyperlink{classDCEL_1_1MeshT}{MeshT}}$<$ T $>$
-\begin{DoxyCompactList}\small\item\em Alias to cut down on the typing. \end{DoxyCompactList}\end{DoxyCompactItemize}
+using {\bfseries Mesh} = \mbox{\hyperlink{classDCEL_1_1MeshT}{MeshT}}$<$ T $>$
+\item 
+\mbox{\Hypertarget{classDCEL_1_1MeshT_a359c658d20300d5119bdf50c549fadbd}\label{classDCEL_1_1MeshT_a359c658d20300d5119bdf50c549fadbd}} 
+using {\bfseries Vertex\+Ptr} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1VertexT}{Vertex}} $>$
+\item 
+\mbox{\Hypertarget{classDCEL_1_1MeshT_af760b8c8c2630806d0028db5ccf37429}\label{classDCEL_1_1MeshT_af760b8c8c2630806d0028db5ccf37429}} 
+using {\bfseries Edge\+Ptr} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1EdgeT}{Edge}} $>$
+\item 
+\mbox{\Hypertarget{classDCEL_1_1MeshT_a48fe132aa1f6966f305c432299d71f42}\label{classDCEL_1_1MeshT_a48fe132aa1f6966f305c432299d71f42}} 
+using {\bfseries Face\+Ptr} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1FaceT}{Face}} $>$
+\end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_a7db2680bda6538bff7f2905659cd2ece}\label{classDCEL_1_1MeshT_a7db2680bda6538bff7f2905659cd2ece}} 
 \mbox{\hyperlink{classDCEL_1_1MeshT_a7db2680bda6538bff7f2905659cd2ece}{MeshT}} ()
 \begin{DoxyCompactList}\small\item\em Default constructor. Leaves unobject in an unusable state. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classDCEL_1_1MeshT_ad69ce32ee8e9ea83393ad13840d50af9}{MeshT}} (const \mbox{\hyperlink{classDCEL_1_1MeshT_ad114ade3043f6db1ede02eee9e28dff9}{Mesh}} \&a\+\_\+other\+Mesh)=delete
+\mbox{\hyperlink{classDCEL_1_1MeshT_ad69ce32ee8e9ea83393ad13840d50af9}{MeshT}} (const \mbox{\hyperlink{classDCEL_1_1MeshT}{Mesh}} \&a\+\_\+other\+Mesh)=delete
 \begin{DoxyCompactList}\small\item\em Disallowed copy construction. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classDCEL_1_1MeshT_a0a1a373c70f03b95ccee432a838a5b5e}{MeshT}} (std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a48fe132aa1f6966f305c432299d71f42}{Face\+Ptr}} $>$ \&a\+\_\+faces, std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_af760b8c8c2630806d0028db5ccf37429}{Edge\+Ptr}} $>$ \&a\+\_\+edges, std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a359c658d20300d5119bdf50c549fadbd}{Vertex\+Ptr}} $>$ \&a\+\_\+vertices)
+\mbox{\hyperlink{classDCEL_1_1MeshT_a0a1a373c70f03b95ccee432a838a5b5e}{MeshT}} (std\+::vector$<$ Face\+Ptr $>$ \&a\+\_\+faces, std\+::vector$<$ Edge\+Ptr $>$ \&a\+\_\+edges, std\+::vector$<$ Vertex\+Ptr $>$ \&a\+\_\+vertices)
 \begin{DoxyCompactList}\small\item\em Full constructor. This provides the faces, edges, and vertices to the mesh. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_adbc37687291b622a0d23c959a76c6d00}\label{classDCEL_1_1MeshT_adbc37687291b622a0d23c959a76c6d00}} 
-\mbox{\hyperlink{classDCEL_1_1MeshT_adbc37687291b622a0d23c959a76c6d00}{$\sim$\+MeshT}} ()
+virtual \mbox{\hyperlink{classDCEL_1_1MeshT_adbc37687291b622a0d23c959a76c6d00}{$\sim$\+MeshT}} ()
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
-void \mbox{\hyperlink{classDCEL_1_1MeshT_ac2f258cfa49119e6f71f3f23615e40a3}{define}} (std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a48fe132aa1f6966f305c432299d71f42}{Face\+Ptr}} $>$ \&a\+\_\+faces, std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_af760b8c8c2630806d0028db5ccf37429}{Edge\+Ptr}} $>$ \&a\+\_\+edges, std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a359c658d20300d5119bdf50c549fadbd}{Vertex\+Ptr}} $>$ \&a\+\_\+vertices) noexcept
+void \mbox{\hyperlink{classDCEL_1_1MeshT_ac2f258cfa49119e6f71f3f23615e40a3}{define}} (std\+::vector$<$ Face\+Ptr $>$ \&a\+\_\+faces, std\+::vector$<$ Edge\+Ptr $>$ \&a\+\_\+edges, std\+::vector$<$ Vertex\+Ptr $>$ \&a\+\_\+vertices) noexcept
 \begin{DoxyCompactList}\small\item\em Define function. Puts Mesh in usable state. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classDCEL_1_1MeshT_af08266c1b2c03cb5bc2cbdb7fd13b9a1}{sanity\+Check}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Perform a sanity check. \end{DoxyCompactList}\item 
@@ -89,28 +69,28 @@ void \mbox{\hyperlink{classDCEL_1_1MeshT_ac1b8ee0222585435f7ae678de337e3b1}{set\
 void \mbox{\hyperlink{classDCEL_1_1MeshT_a17d4408289ce6a1b8be638cddb028b30}{reconcile}} (typename \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::\mbox{\hyperlink{classDCEL_1_1MeshT_a4548120cb514e736ae4cd8c13b418e91}{Vertex\+Normal\+Weight}} a\+\_\+weight=Vertex\+Normal\+Weight\+::\+Angle) noexcept
 \begin{DoxyCompactList}\small\item\em Reconcile function which computes the internal parameters in vertices, edges, and faces for use with signed distance functionality. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_a25308ecc4b98fc0cf10f327ace3987f5}\label{classDCEL_1_1MeshT_a25308ecc4b98fc0cf10f327ace3987f5}} 
-std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a359c658d20300d5119bdf50c549fadbd}{Vertex\+Ptr}} $>$ \& \mbox{\hyperlink{classDCEL_1_1MeshT_a25308ecc4b98fc0cf10f327ace3987f5}{get\+Vertices}} () noexcept
+std\+::vector$<$ Vertex\+Ptr $>$ \& \mbox{\hyperlink{classDCEL_1_1MeshT_a25308ecc4b98fc0cf10f327ace3987f5}{get\+Vertices}} () noexcept
 \begin{DoxyCompactList}\small\item\em Get modifiable vertices in this mesh. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_a8c9886901c65c087a13952b299159f33}\label{classDCEL_1_1MeshT_a8c9886901c65c087a13952b299159f33}} 
-const std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a359c658d20300d5119bdf50c549fadbd}{Vertex\+Ptr}} $>$ \& \mbox{\hyperlink{classDCEL_1_1MeshT_a8c9886901c65c087a13952b299159f33}{get\+Vertices}} () const noexcept
+const std\+::vector$<$ Vertex\+Ptr $>$ \& \mbox{\hyperlink{classDCEL_1_1MeshT_a8c9886901c65c087a13952b299159f33}{get\+Vertices}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get immutable vertices in this mesh. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_a8495609501f0bdf1aa3ff8fcf070a493}\label{classDCEL_1_1MeshT_a8495609501f0bdf1aa3ff8fcf070a493}} 
-std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_af760b8c8c2630806d0028db5ccf37429}{Edge\+Ptr}} $>$ \& \mbox{\hyperlink{classDCEL_1_1MeshT_a8495609501f0bdf1aa3ff8fcf070a493}{get\+Edges}} () noexcept
+std\+::vector$<$ Edge\+Ptr $>$ \& \mbox{\hyperlink{classDCEL_1_1MeshT_a8495609501f0bdf1aa3ff8fcf070a493}{get\+Edges}} () noexcept
 \begin{DoxyCompactList}\small\item\em Get modifiable half-\/edges in this mesh. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_a11f33585b5c8ef4e69797a0918a2746f}\label{classDCEL_1_1MeshT_a11f33585b5c8ef4e69797a0918a2746f}} 
-const std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_af760b8c8c2630806d0028db5ccf37429}{Edge\+Ptr}} $>$ \& \mbox{\hyperlink{classDCEL_1_1MeshT_a11f33585b5c8ef4e69797a0918a2746f}{get\+Edges}} () const noexcept
+const std\+::vector$<$ Edge\+Ptr $>$ \& \mbox{\hyperlink{classDCEL_1_1MeshT_a11f33585b5c8ef4e69797a0918a2746f}{get\+Edges}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get immutable half-\/edges in this mesh. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_ab3be249acd40bde6fbb7983502cd9541}\label{classDCEL_1_1MeshT_ab3be249acd40bde6fbb7983502cd9541}} 
-std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a48fe132aa1f6966f305c432299d71f42}{Face\+Ptr}} $>$ \& \mbox{\hyperlink{classDCEL_1_1MeshT_ab3be249acd40bde6fbb7983502cd9541}{get\+Faces}} () noexcept
+std\+::vector$<$ Face\+Ptr $>$ \& \mbox{\hyperlink{classDCEL_1_1MeshT_ab3be249acd40bde6fbb7983502cd9541}{get\+Faces}} () noexcept
 \begin{DoxyCompactList}\small\item\em Get modifiable faces in this mesh. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_a0514a248000b064e0eecdec8e5c062e9}\label{classDCEL_1_1MeshT_a0514a248000b064e0eecdec8e5c062e9}} 
-const std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a48fe132aa1f6966f305c432299d71f42}{Face\+Ptr}} $>$ \& \mbox{\hyperlink{classDCEL_1_1MeshT_a0514a248000b064e0eecdec8e5c062e9}{get\+Faces}} () const noexcept
+const std\+::vector$<$ Face\+Ptr $>$ \& \mbox{\hyperlink{classDCEL_1_1MeshT_a0514a248000b064e0eecdec8e5c062e9}{get\+Faces}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get immutable faces in this mesh. \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classDCEL_1_1MeshT_a93dcaf9cec027540a07a5c4136ff5eb3}{signed\+Distance}} (const \mbox{\hyperlink{classDCEL_1_1MeshT_a91c8faae19992f97fc4a4ae6f98810e2}{Vec3}} \&a\+\_\+x0) const noexcept override
+T \mbox{\hyperlink{classDCEL_1_1MeshT_a93dcaf9cec027540a07a5c4136ff5eb3}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3}} \&a\+\_\+x0) const noexcept override
 \begin{DoxyCompactList}\small\item\em Compute the signed distance from a point to this mesh. \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classDCEL_1_1MeshT_a9f5c30f5e07f73434d03c469c1065401}{signed\+Distance}} (const \mbox{\hyperlink{classDCEL_1_1MeshT_a91c8faae19992f97fc4a4ae6f98810e2}{Vec3}} \&a\+\_\+x0, \mbox{\hyperlink{classDCEL_1_1MeshT_a2c124d7a678adb956790418f3dd237e9}{Search\+Algorithm}} a\+\_\+algorithm) const noexcept
+T \mbox{\hyperlink{classDCEL_1_1MeshT_a9f5c30f5e07f73434d03c469c1065401}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3}} \&a\+\_\+x0, \mbox{\hyperlink{classDCEL_1_1MeshT_a2c124d7a678adb956790418f3dd237e9}{Search\+Algorithm}} a\+\_\+algorithm) const noexcept
 \begin{DoxyCompactList}\small\item\em Compute the signed distance from a point to this mesh. \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classDCEL_1_1MeshT_a950762ee0488b522f0c84a83ed661e67}{unsigned\+Distance2}} (const \mbox{\hyperlink{classDCEL_1_1MeshT_a91c8faae19992f97fc4a4ae6f98810e2}{Vec3}} \&a\+\_\+x0) const noexcept
+T \mbox{\hyperlink{classDCEL_1_1MeshT_a950762ee0488b522f0c84a83ed661e67}{unsigned\+Distance2}} (const \mbox{\hyperlink{classVec3T}{Vec3}} \&a\+\_\+x0) const noexcept
 \begin{DoxyCompactList}\small\item\em Compute the unsigned square distance from a point to this mesh. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Member Functions}
 \begin{DoxyCompactItemize}
@@ -124,9 +104,9 @@ void \mbox{\hyperlink{classDCEL_1_1MeshT_ad80de69e1c2093f87ff72afb716a3ece}{reco
 \begin{DoxyCompactList}\small\item\em Function which computes internal things for the half-\/edges. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classDCEL_1_1MeshT_af6f20b112be3300ed9857e349e0c7634}{reconcile\+Vertices}} (typename \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::\mbox{\hyperlink{classDCEL_1_1MeshT_a4548120cb514e736ae4cd8c13b418e91}{Vertex\+Normal\+Weight}} a\+\_\+weight) noexcept
 \begin{DoxyCompactList}\small\item\em Function which computes internal things for the vertices. \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classDCEL_1_1MeshT_aef58cf2832522255daf6b73d0222391f}{Direct\+Signed\+Distance}} (const \mbox{\hyperlink{classDCEL_1_1MeshT_a91c8faae19992f97fc4a4ae6f98810e2}{Vec3}} \&a\+\_\+point) const noexcept
+T \mbox{\hyperlink{classDCEL_1_1MeshT_aef58cf2832522255daf6b73d0222391f}{Direct\+Signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3}} \&a\+\_\+point) const noexcept
 \begin{DoxyCompactList}\small\item\em Implementation of signed distance function which iterates through all faces. \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classDCEL_1_1MeshT_a967d6bef3da79469adaa4f0933ee5559}{Direct\+Signed\+Distance2}} (const \mbox{\hyperlink{classDCEL_1_1MeshT_a91c8faae19992f97fc4a4ae6f98810e2}{Vec3}} \&a\+\_\+point) const noexcept
+T \mbox{\hyperlink{classDCEL_1_1MeshT_a967d6bef3da79469adaa4f0933ee5559}{Direct\+Signed\+Distance2}} (const \mbox{\hyperlink{classVec3T}{Vec3}} \&a\+\_\+point) const noexcept
 \begin{DoxyCompactList}\small\item\em Implementation of squared signed distance function which iterates through all faces. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classDCEL_1_1MeshT_aa8bfac45b97979435c5d342d0f455a70}{increment\+Warning}} (std\+::map$<$ std\+::string, size\+\_\+t $>$ \&a\+\_\+warnings, const std\+::string \&a\+\_\+warn) const noexcept
 \begin{DoxyCompactList}\small\item\em Increment a warning. This is used in \mbox{\hyperlink{classDCEL_1_1MeshT_af08266c1b2c03cb5bc2cbdb7fd13b9a1}{sanity\+Check()}} for locating holes or bad inputs in the mesh. \end{DoxyCompactList}\item 
@@ -140,13 +120,13 @@ void \mbox{\hyperlink{classDCEL_1_1MeshT_aee2a8a6a821545c11fa0c67381b6abd1}{prin
 \mbox{\hyperlink{classDCEL_1_1MeshT_a2c124d7a678adb956790418f3dd237e9}{Search\+Algorithm}} \mbox{\hyperlink{classDCEL_1_1MeshT_af34a4f7f9b5dcd7431a73ba2a89a87c8}{m\+\_\+algorithm}}
 \begin{DoxyCompactList}\small\item\em Search algorithm. Only used in signed distance functions. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_ac221781c11ecacf4231fe968e53b22cf}\label{classDCEL_1_1MeshT_ac221781c11ecacf4231fe968e53b22cf}} 
-std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a359c658d20300d5119bdf50c549fadbd}{Vertex\+Ptr}} $>$ \mbox{\hyperlink{classDCEL_1_1MeshT_ac221781c11ecacf4231fe968e53b22cf}{m\+\_\+vertices}}
+std\+::vector$<$ Vertex\+Ptr $>$ \mbox{\hyperlink{classDCEL_1_1MeshT_ac221781c11ecacf4231fe968e53b22cf}{m\+\_\+vertices}}
 \begin{DoxyCompactList}\small\item\em Mesh vertices. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_a1e85e81c80815fef9f9f50d93e194bf7}\label{classDCEL_1_1MeshT_a1e85e81c80815fef9f9f50d93e194bf7}} 
-std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_af760b8c8c2630806d0028db5ccf37429}{Edge\+Ptr}} $>$ \mbox{\hyperlink{classDCEL_1_1MeshT_a1e85e81c80815fef9f9f50d93e194bf7}{m\+\_\+edges}}
+std\+::vector$<$ Edge\+Ptr $>$ \mbox{\hyperlink{classDCEL_1_1MeshT_a1e85e81c80815fef9f9f50d93e194bf7}{m\+\_\+edges}}
 \begin{DoxyCompactList}\small\item\em Mesh half-\/edges. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_a78b136d32ea8615d3fe6a03c57ff13e7}\label{classDCEL_1_1MeshT_a78b136d32ea8615d3fe6a03c57ff13e7}} 
-std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a48fe132aa1f6966f305c432299d71f42}{Face\+Ptr}} $>$ \mbox{\hyperlink{classDCEL_1_1MeshT_a78b136d32ea8615d3fe6a03c57ff13e7}{m\+\_\+faces}}
+std\+::vector$<$ Face\+Ptr $>$ \mbox{\hyperlink{classDCEL_1_1MeshT_a78b136d32ea8615d3fe6a03c57ff13e7}{m\+\_\+faces}}
 \begin{DoxyCompactList}\small\item\em Mesh faces. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
@@ -181,7 +161,7 @@ Direct means compute the signed distance for all primitives, Direct2 means compu
 \index{MeshT@{MeshT}!DCEL::MeshT$<$ T $>$@{DCEL::MeshT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{MeshT()}{MeshT()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::\mbox{\hyperlink{classDCEL_1_1MeshT}{MeshT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1MeshT_ad114ade3043f6db1ede02eee9e28dff9}{Mesh}} \&}]{a\+\_\+other\+Mesh }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [delete]}}
+\mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::\mbox{\hyperlink{classDCEL_1_1MeshT}{MeshT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1MeshT}{Mesh}} \&}]{a\+\_\+other\+Mesh }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [delete]}}
 
 
 
@@ -197,7 +177,7 @@ Disallowed copy construction.
 \index{MeshT@{MeshT}!DCEL::MeshT$<$ T $>$@{DCEL::MeshT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{MeshT()}{MeshT()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::\mbox{\hyperlink{classDCEL_1_1MeshT}{MeshT}} (\begin{DoxyParamCaption}\item[{std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a48fe132aa1f6966f305c432299d71f42}{Face\+Ptr}} $>$ \&}]{a\+\_\+faces,  }\item[{std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_af760b8c8c2630806d0028db5ccf37429}{Edge\+Ptr}} $>$ \&}]{a\+\_\+edges,  }\item[{std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a359c658d20300d5119bdf50c549fadbd}{Vertex\+Ptr}} $>$ \&}]{a\+\_\+vertices }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+\mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::\mbox{\hyperlink{classDCEL_1_1MeshT}{MeshT}} (\begin{DoxyParamCaption}\item[{std\+::vector$<$ Face\+Ptr $>$ \&}]{a\+\_\+faces,  }\item[{std\+::vector$<$ Edge\+Ptr $>$ \&}]{a\+\_\+edges,  }\item[{std\+::vector$<$ Vertex\+Ptr $>$ \&}]{a\+\_\+vertices }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -223,7 +203,7 @@ The constructor arguments should provide a complete \mbox{\hyperlink{namespaceDC
 \index{define@{define}!DCEL::MeshT$<$ T $>$@{DCEL::MeshT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{define()}{define()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-void \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::define (\begin{DoxyParamCaption}\item[{std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a48fe132aa1f6966f305c432299d71f42}{Face\+Ptr}} $>$ \&}]{a\+\_\+faces,  }\item[{std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_af760b8c8c2630806d0028db5ccf37429}{Edge\+Ptr}} $>$ \&}]{a\+\_\+edges,  }\item[{std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a359c658d20300d5119bdf50c549fadbd}{Vertex\+Ptr}} $>$ \&}]{a\+\_\+vertices }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+void \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::define (\begin{DoxyParamCaption}\item[{std\+::vector$<$ Face\+Ptr $>$ \&}]{a\+\_\+faces,  }\item[{std\+::vector$<$ Edge\+Ptr $>$ \&}]{a\+\_\+edges,  }\item[{std\+::vector$<$ Vertex\+Ptr $>$ \&}]{a\+\_\+vertices }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -246,7 +226,7 @@ The function arguments should provide a complete \mbox{\hyperlink{namespaceDCEL}
 \index{DirectSignedDistance@{DirectSignedDistance}!DCEL::MeshT$<$ T $>$@{DCEL::MeshT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{DirectSignedDistance()}{DirectSignedDistance()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-T \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::Direct\+Signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1MeshT_a91c8faae19992f97fc4a4ae6f98810e2}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+T \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::Direct\+Signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
@@ -262,7 +242,7 @@ Implementation of signed distance function which iterates through all faces.
 \index{DirectSignedDistance2@{DirectSignedDistance2}!DCEL::MeshT$<$ T $>$@{DCEL::MeshT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{DirectSignedDistance2()}{DirectSignedDistance2()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-T \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::Direct\+Signed\+Distance2 (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1MeshT_a91c8faae19992f97fc4a4ae6f98810e2}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+T \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::Direct\+Signed\+Distance2 (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
@@ -402,7 +382,7 @@ Search algorithm for direct signed distance computations.
 \index{signedDistance@{signedDistance}!DCEL::MeshT$<$ T $>$@{DCEL::MeshT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-T \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1MeshT_a91c8faae19992f97fc4a4ae6f98810e2}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+T \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [noexcept]}}
 
 
 
@@ -416,16 +396,12 @@ Compute the signed distance from a point to this mesh.
 This function will iterate through A\+LL faces in the mesh and return the value with the smallest magnitude. This is horrendously slow, which is why this function is almost never called. Rather, Mesh\+T$<$\+T$>$ can be embedded in a bounding volume hierarchy for faster access. \begin{DoxyNote}{Note}
 This will call the other version with the object\textquotesingle{}s search algorithm. 
 \end{DoxyNote}
-
-
-Implements \mbox{\hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{Signed\+Distance\+Function$<$ T $>$}}.
-
 \mbox{\Hypertarget{classDCEL_1_1MeshT_a9f5c30f5e07f73434d03c469c1065401}\label{classDCEL_1_1MeshT_a9f5c30f5e07f73434d03c469c1065401}} 
 \index{DCEL::MeshT$<$ T $>$@{DCEL::MeshT$<$ T $>$}!signedDistance@{signedDistance}}
 \index{signedDistance@{signedDistance}!DCEL::MeshT$<$ T $>$@{DCEL::MeshT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-T \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1MeshT_a91c8faae19992f97fc4a4ae6f98810e2}{Vec3}} \&}]{a\+\_\+x0,  }\item[{\mbox{\hyperlink{classDCEL_1_1MeshT_a2c124d7a678adb956790418f3dd237e9}{Search\+Algorithm}}}]{a\+\_\+algorithm }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+T \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3}} \&}]{a\+\_\+x0,  }\item[{\mbox{\hyperlink{classDCEL_1_1MeshT_a2c124d7a678adb956790418f3dd237e9}{Search\+Algorithm}}}]{a\+\_\+algorithm }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -443,7 +419,7 @@ This function will iterate through A\+LL faces in the mesh and return the value 
 \index{unsignedDistance2@{unsignedDistance2}!DCEL::MeshT$<$ T $>$@{DCEL::MeshT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{unsignedDistance2()}{unsignedDistance2()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-T \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::unsigned\+Distance2 (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1MeshT_a91c8faae19992f97fc4a4ae6f98810e2}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+T \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::unsigned\+Distance2 (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 

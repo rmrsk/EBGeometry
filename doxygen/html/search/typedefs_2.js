@@ -1,6 +1,4 @@
 var searchData=
 [
-  ['edge_699',['Edge',['../classDCEL_1_1EdgeT.html#afa20c9103e63aa41a790ebefb4a10d3d',1,'DCEL::EdgeT::Edge()'],['../classDCEL_1_1FaceT.html#a4229ed12b83fe68402a79af46abfe8a4',1,'DCEL::FaceT::Edge()'],['../classDCEL_1_1EdgeIteratorT.html#a238fbe48a77c433f23bd8a8a1095b87a',1,'DCEL::EdgeIteratorT::Edge()'],['../classDCEL_1_1MeshT.html#ac6e26e9ad5df10db17eaa46238d4149a',1,'DCEL::MeshT::Edge()'],['../classDCEL_1_1VertexT.html#a1f1e2b6cd2ae4be976376c26cd59425d',1,'DCEL::VertexT::Edge()']]],
-  ['edgeiterator_700',['EdgeIterator',['../classDCEL_1_1EdgeT.html#aff1d44a8babc9ed3aa192a7424369279',1,'DCEL::EdgeT::EdgeIterator()'],['../classDCEL_1_1FaceT.html#a6af654847c5217f2ac7b71a6833eb312',1,'DCEL::FaceT::EdgeIterator()'],['../classDCEL_1_1VertexT.html#a8a66e6ac547f34a3fb7d06c0d29b7073',1,'DCEL::VertexT::EdgeIterator()']]],
-  ['edgeptr_701',['EdgePtr',['../classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd',1,'DCEL::EdgeT::EdgePtr()'],['../classDCEL_1_1FaceT.html#a093d002d920273591d221c3d8187e95c',1,'DCEL::FaceT::EdgePtr()'],['../classDCEL_1_1EdgeIteratorT.html#ae3643017376c6720d862d0a39e8af83b',1,'DCEL::EdgeIteratorT::EdgePtr()'],['../classDCEL_1_1MeshT.html#af760b8c8c2630806d0028db5ccf37429',1,'DCEL::MeshT::EdgePtr()'],['../classDCEL_1_1VertexT.html#a418c6b41b10228a5e78c562e693c6096',1,'DCEL::VertexT::EdgePtr()']]]
+  ['linearnode_693',['LinearNode',['../classBVH_1_1LinearBVH.html#ad8c5e4f84138090dbd408a075dc91896',1,'BVH::LinearBVH']]]
 ];

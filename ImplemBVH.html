@@ -16,6 +16,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -58,21 +59,23 @@
 <li class="toctree-l1"><a class="reference internal" href="ImplemVec.html">Vector types</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Bounding volume hierarchy</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#template-constraints">Template constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#signed-distance">Signed distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chap-bvhconstraints">Template constraints</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#bounding-volumes">Bounding volumes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#construction">Construction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#compact-form">Compact form</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#signed-distance">Signed distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">Signed distance</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemSDF.html">Signed distance function</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemUnion.html">Unions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Parsers.html">File parsers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Parsers.html">Reading data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Examples.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Reading mesh files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Basic example</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Union.html">Unions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_AMReX.html">Integration with AMReX</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Chombo3.html">Integration with Chombo3</a></li>
@@ -130,6 +133,22 @@ There are two types of BVHs supported.</p>
 <p><code class="docutils literal notranslate"><span class="pre">NodeT</span></code> describes regular and leaf nodes in the BVH, and has member functions for setting primitives, bounding volumes, and so on.
 Importantly, <code class="docutils literal notranslate"><span class="pre">NodeT</span></code> is the BVH builder node, i.e. it is the class through which we recursively build the BVH, see <a class="reference internal" href="#chap-bvhconstruction"><span class="std std-ref">Construction</span></a>.
 The compact BVH is discussed below in <a class="reference internal" href="#chap-linearbvh"><span class="std std-ref">Compact form</span></a>.</p>
+<div class="section" id="template-constraints">
+<h2>Template constraints<a class="headerlink" href="#template-constraints" title="Permalink to this heading"></a></h2>
+<p>The template parameter <code class="docutils literal notranslate"><span class="pre">T</span></code> must be a valid C++ floating-point type (e.g. <code class="docutils literal notranslate"><span class="pre">float</span></code> or <code class="docutils literal notranslate"><span class="pre">double</span></code>) and the tree degree must be <span class="math notranslate nohighlight">\(K \geq 2\)</span>.
+The primitive type <code class="docutils literal notranslate"><span class="pre">P</span></code> must have the following:</p>
+<ul class="simple">
+<li><p>A signed distance function <code class="docutils literal notranslate"><span class="pre">T</span> <span class="pre">P::signedDistance(const</span> <span class="pre">Vec3&amp;</span> <span class="pre">x)</span> <span class="pre">const</span></code>.</p></li>
+</ul>
+<p>The bounding volume type <code class="docutils literal notranslate"><span class="pre">BV</span></code> must obey the following:</p>
+<ul class="simple">
+<li><p>A default constructor <code class="docutils literal notranslate"><span class="pre">BV()</span></code>.</p></li>
+<li><p>A constructor <code class="docutils literal notranslate"><span class="pre">BV(const</span> <span class="pre">std::vector&lt;BV&gt;&amp;)</span></code> which constructs a bounding volume guaranteed to enclose other bounding volumes.</p></li>
+<li><p>A function <code class="docutils literal notranslate"><span class="pre">T</span> <span class="pre">getDistance(const</span> <span class="pre">Vec3T&lt;T&gt;&amp;</span> <span class="pre">x)</span> <span class="pre">const</span></code> which returns a positive distance if point <code class="docutils literal notranslate"><span class="pre">x</span></code> is outside the bounding volume and zero if <code class="docutils literal notranslate"><span class="pre">x</span></code> is inside the bounding volume.</p></li>
+</ul>
+</div>
+<div class="section" id="signed-distance">
+<h2>Signed distance<a class="headerlink" href="#signed-distance" title="Permalink to this heading"></a></h2>
 <p>For getting the signed distance, <code class="docutils literal notranslate"><span class="pre">NodeT</span></code> has provide the following functions:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kr">inline</span> <span class="n">T</span>
 <span class="nf">signedDistance</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="k">override</span><span class="p">;</span>
@@ -139,8 +158,9 @@ The compact BVH is discussed below in <a class="reference internal" href="#chap-
 </pre></div>
 </div>
 <p>The first version simply calls the other version with a stack-based pruning algorithm for the tree traversal.</p>
-<div class="section" id="template-constraints">
-<span id="chap-bvhconstraints"></span><h2>Template constraints<a class="headerlink" href="#template-constraints" title="Permalink to this heading"></a></h2>
+</div>
+<div class="section" id="chap-bvhconstraints">
+<span id="id1"></span><h2>Template constraints<a class="headerlink" href="#chap-bvhconstraints" title="Permalink to this heading"></a></h2>
 <ul class="simple">
 <li><p>The primitive type <code class="docutils literal notranslate"><span class="pre">P</span></code> must have the following function:</p>
 <ul>
@@ -181,7 +201,7 @@ This is templated as <code class="docutils literal notranslate"><span class="pre
 <p>Constructing a BVH is done by</p>
 <ul class="simple">
 <li><p>Creating a root node and providing it with the geometric primitives.</p></li>
-<li><p>Partitioning the BVH by providing.</p></li>
+<li><p>Partitioning the BVH by providing a partitioning function.</p></li>
 </ul>
 <p>The first step is usually a matter of simply constructing the root node using the following constructor:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
@@ -289,11 +309,11 @@ For the most part this will include the construction of their own bounding volum
 <span id="chap-linearbvh"></span><h2>Compact form<a class="headerlink" href="#compact-form" title="Permalink to this heading"></a></h2>
 <p>In addition to the standard BVH node <code class="docutils literal notranslate"><span class="pre">NodeT&lt;T,</span> <span class="pre">P,</span> <span class="pre">BV,</span> <span class="pre">K&gt;</span></code>, EBGeometry provides a more compact formulation of the BVH hierarchy where the nodes are stored in depth-first order.
 The “linearized” BVH can be automatically constructed from the standard BVH but not vice versa.</p>
-<div class="figure align-center" id="id1">
+<div class="figure align-center" id="id3">
 <a class="reference internal image-reference" href="_images/CompactBVH.png"><img alt="_images/CompactBVH.png" src="_images/CompactBVH.png" style="width: 240px;" /></a>
 <p class="caption"><span class="caption-number">Fig. 6 </span><span class="caption-text">Compact BVH representation.
 The original BVH is traversed from top-to-bottom along the branches and laid out in linear memory.
-Each interior node gets a reference (index offset) to their children nodes.</span><a class="headerlink" href="#id1" title="Permalink to this image"></a></p>
+Each interior node gets a reference (index offset) to their children nodes.</span><a class="headerlink" href="#id3" title="Permalink to this image"></a></p>
 </div>
 <p>The rationale for reorganizing the BVH in compact form is it’s tighter memory footprint and depth-first ordering which allows more efficient traversal downwards in the BVH tree.
 To encapsulate the compact BVH we provide two classes:</p>
@@ -374,8 +394,8 @@ E.g., the set pointer to the root node to <code class="docutils literal notransl
 </pre></div>
 </div>
 </div>
-<div class="section" id="signed-distance">
-<h2>Signed distance<a class="headerlink" href="#signed-distance" title="Permalink to this heading"></a></h2>
+<div class="section" id="id2">
+<h2>Signed distance<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h2>
 <p>The signed distance can be obtained from both the full BVH storage and the compact BVH storage.
 Replicating the code above, we can do:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// Assume that we have built the conventional BVH already</span>

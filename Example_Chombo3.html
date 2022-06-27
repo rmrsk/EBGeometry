@@ -60,12 +60,12 @@
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemSDF.html">Signed distance function</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemUnion.html">Unions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Parsers.html">File parsers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Parsers.html">Reading data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Examples.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Reading mesh files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Basic example</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Union.html">Unions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_AMReX.html">Integration with AMReX</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Integration with Chombo3</a><ul>
@@ -219,43 +219,43 @@
     <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">50</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
     <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">250</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
 
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/airfoil.ply&quot;</span><span class="p">;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/airfoil.stl&quot;</span><span class="p">;</span>
   <span class="p">}</span>
   <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Sphere</span>
     <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">400</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
     <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">400</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
 
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/sphere.ply&quot;</span><span class="p">;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/sphere.stl&quot;</span><span class="p">;</span>
   <span class="p">}</span>
   <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Dodecahedron</span>
     <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
     <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
 
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/dodecahedron.ply&quot;</span><span class="p">;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/dodecahedron.stl&quot;</span><span class="p">;</span>
   <span class="p">}</span>
   <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Horse</span>
     <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.12</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
     <span class="n">hiCorner</span> <span class="o">=</span> <span class="mf">0.12</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
 
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/horse.ply&quot;</span><span class="p">;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/horse.stl&quot;</span><span class="p">;</span>
   <span class="p">}</span>
   <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Porsche</span>
     <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">10</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
     <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
 
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/porsche.ply&quot;</span><span class="p">;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/porsche.stl&quot;</span><span class="p">;</span>
   <span class="p">}</span>
   <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">5</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Orion</span>
     <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">10</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
     <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
 
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/orion.ply&quot;</span><span class="p">;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/orion.stl&quot;</span><span class="p">;</span>
   <span class="p">}</span>
   <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">6</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Armadillo</span>
     <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">125</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
     <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">125</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
 
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/armadillo.ply&quot;</span><span class="p">;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/armadillo.stl&quot;</span><span class="p">;</span>
   <span class="p">}</span>
 
   <span class="c1">//</span>
@@ -315,7 +315,7 @@
 <p>When constructing the signed distance function we use the DCEL and BVH functionality directly in the constructor.
 Note that we are performing the following steps:</p>
 <ul class="simple">
-<li><p>Using the PLY parser for creating a DCEL mesh.</p></li>
+<li><p>Using the STL parser for creating a DCEL mesh.</p></li>
 <li><p>Constructing a BVH for the DCEL faces.</p></li>
 <li><p>Flattening the BVH tree for performance.</p></li>
 </ul>

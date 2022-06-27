@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>File parsers &mdash; EBGeometry 1.0 documentation</title>
+  <title>Reading data &mdash; EBGeometry 1.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
@@ -16,6 +16,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -60,15 +61,17 @@
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemSDF.html">Signed distance function</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemUnion.html">Unions</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">File parsers</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#read-into-dcel">Read into DCEL</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Reading data</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#reading-stl-files">Reading STL files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#from-soups-to-dcel">From soups to DCEL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-third-party-sources">Using third-party sources</a></li>
 </ul>
 </li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Examples.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Reading mesh files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Basic example</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Union.html">Unions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_AMReX.html">Integration with AMReX</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Chombo3.html">Integration with Chombo3</a></li>
@@ -92,7 +95,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>File parsers</li>
+      <li>Reading data</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/Parsers.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -102,35 +105,79 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="file-parsers">
-<span id="chap-parsers"></span><h1>File parsers<a class="headerlink" href="#file-parsers" title="Permalink to this heading"></a></h1>
+  <div class="section" id="reading-data">
+<span id="chap-parsers"></span><h1>Reading data<a class="headerlink" href="#reading-data" title="Permalink to this heading"></a></h1>
 <p>Routines for parsing surface files from grids into EBGeometry’s DCEL grids are given in the namespace <code class="docutils literal notranslate"><span class="pre">EBGeometry::Parser</span></code>.
 The source code is implemented in <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_Parser.hpp</span></code>.</p>
-<div class="section" id="read-into-dcel">
-<h2>Read into DCEL<a class="headerlink" href="#read-into-dcel" title="Permalink to this heading"></a></h2>
-<p>Currently, this is limited to the following file formats:</p>
-<ul>
-<li><p><strong>PLY</strong> Only ASCII formats currently supported, <a class="reference external" href="https://en.wikipedia.org/wiki/PLY_(file_format)">https://en.wikipedia.org/wiki/PLY_(file_format)</a>.</p>
-<p>When reading a PLY file into the DCEL data structures, it is sufficient to call the following static function:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
-<span class="n">using</span> <span class="n">Mesh</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="p">::</span><span class="n">DCEL</span><span class="p">::</span><span class="n">MeshT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
-
-<span class="n">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
-<span class="n">std</span><span class="p">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Mesh</span><span class="o">&gt;</span> <span class="n">EBGeometry</span><span class="p">::</span><span class="n">Parser</span><span class="p">::</span><span class="n">PLY</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">::</span><span class="n">readASCII</span><span class="p">(</span><span class="n">const</span> <span class="n">std</span><span class="p">::</span><span class="n">string</span> <span class="n">a_filename</span><span class="p">);</span>
-</pre></div>
-</div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Although the parser will do it’s best to read files that contains holes or incomplete faces, success will fluctuate.
-Moreover, the signed distance function is not well-defined for such cases.</p>
+<p>EBGeometry is currently limited to reading STL files and reconstructing DCEL grids from those.
+However, it is a simple matter to also reconstructor DCEL grids from triangle soups read using third-party codes (see <a class="reference internal" href="#chap-thirdpartyparser"><span class="std std-ref">Using third-party sources</span></a>).</p>
 </div>
-<p>Calling the <code class="docutils literal notranslate"><span class="pre">readASCII</span></code> function will read the input file (which is assumed to be a PLY file) and create the DCEL data structures.</p>
-</li>
-</ul>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>If the file format of your surface mesh file is not one of the above, consider either providing a new plugin or convert your file (e.g. to PLY) using MeshLab, Blender, etc.</p>
+<div class="section" id="reading-stl-files">
+<h2>Reading STL files<a class="headerlink" href="#reading-stl-files" title="Permalink to this heading"></a></h2>
+<p>EBGeometry supports a native parser for binary and ASCII STL files.
+To read an STL file, one will use one of the following:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kr">inline</span> <span class="k">static</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Mesh</span><span class="o">&gt;</span>
+<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">STL</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">readSingle</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">a_filename</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kr">inline</span> <span class="k">static</span> <span class="n">std</span><span class="o">::</span><span class="n">Vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Mesh</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;&gt;</span>
+<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">STL</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">readMulti</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">a_filename</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
+</pre></div>
 </div>
+<p>The difference between these two is that <code class="docutils literal notranslate"><span class="pre">readSingle</span></code> only reads a single STL <em>solid</em> while <code class="docutils literal notranslate"><span class="pre">readMulti</span></code> will read all STL solids defined in the input file.</p>
+<p>Alternatively, one can use <code class="docutils literal notranslate"><span class="pre">Parser::read</span></code>:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kr">inline</span> <span class="k">static</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">MeshT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span>
+<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">read</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">a_filename</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kr">inline</span> <span class="k">static</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">MeshT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&gt;</span>
+<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">read</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">a_files</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">a_filename</span></code> and <code class="docutils literal notranslate"><span class="pre">a_files</span></code> must be STL files.</p>
+</div>
+<div class="section" id="from-soups-to-dcel">
+<span id="chap-polysoups"></span><h2>From soups to DCEL<a class="headerlink" href="#from-soups-to-dcel" title="Permalink to this heading"></a></h2>
+<p>EBGeometry supports the creation of DCEL grids from polygon soups.
+A triangle soup is represented as</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="n">vertices</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;&gt;</span> <span class="n">faces</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Here, <code class="docutils literal notranslate"><span class="pre">vertices</span></code> contains the <span class="math notranslate nohighlight">\(x,y,z\)</span> coordinates of each vertex, while each entry <code class="docutils literal notranslate"><span class="pre">faces</span></code> contains a list of vertices for the face.</p>
+<p>To turn this into a DCEL mesh, one should call</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kr">inline</span> <span class="k">static</span> <span class="kt">void</span>
+<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">compress</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span> <span class="n">a_vertices</span><span class="p">,</span>
+                             <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;&gt;&amp;</span>  <span class="n">a_facets</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kr">inline</span> <span class="k">static</span> <span class="kt">void</span>
+<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">soupToDCEL</span><span class="p">(</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">MeshT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span>              <span class="n">a_mesh</span><span class="p">,</span>
+                               <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span> <span class="n">a_vertices</span><span class="p">,</span>
+                               <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;&gt;&amp;</span>  <span class="n">a_facets</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">compress</span></code> function will discard duplicate vertices from the soup, while the <code class="docutils literal notranslate"><span class="pre">soupToDCEL</span></code> will simply turn the remaining polygon soup into a DCEL mesh.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p><code class="docutils literal notranslate"><span class="pre">soupToDCEL</span></code> will issue plenty of warnings if the polygon soup is not watertight and orientable.</p>
+</div>
+</div>
+<div class="section" id="using-third-party-sources">
+<span id="chap-thirdpartyparser"></span><h2>Using third-party sources<a class="headerlink" href="#using-third-party-sources" title="Permalink to this heading"></a></h2>
+<p>By design, EBGeometry does not include much functionality for parsing files into polygon soups.
+There are many open source third-party codes for achieving this (and we have tested several of them):</p>
+<ol class="arabic simple">
+<li><p><a class="reference external" href="https://github.com/nmwsharp/happly">happly</a> or <a class="reference external" href="https://github.com/vilya/miniply">miniply</a> for Stanford PLY files.</p></li>
+<li><p><a class="reference external" href="https://github.com/sreiter/stl_reader">stl_reader</a> for STL files.</p></li>
+<li><p><a class="reference external" href="https://github.com/tinyobjloader/tinyobjloader">tinyobjloader</a> for OBJ files.</p></li>
+</ol>
+<p>In almost every case, the above codes can be read into polygon soups, and one can then turn the soup into a DCEL mesh as described in <a class="reference internal" href="#chap-polysoups"><span class="std std-ref">From soups to DCEL</span></a>.</p>
 </div>
 </div>
 

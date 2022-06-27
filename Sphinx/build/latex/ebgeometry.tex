@@ -61,7 +61,7 @@
 
 
 \title{EBGeometry}
-\date{Jun 23, 2022}
+\date{Jun 27, 2022}
 \release{1.0}
 \author{Robert Marskar}
 \newcommand{\sphinxlogo}{\vbox{}}
@@ -635,6 +635,39 @@ The above template parameters are:
 Importantly, \sphinxcode{\sphinxupquote{NodeT}} is the BVH builder node, i.e. it is the class through which we recursively build the BVH, see {\hyperref[\detokenize{ImplemBVH:chap-bvhconstruction}]{\sphinxcrossref{\DUrole{std,std-ref}{Construction}}}}.
 The compact BVH is discussed below in {\hyperref[\detokenize{ImplemBVH:chap-linearbvh}]{\sphinxcrossref{\DUrole{std,std-ref}{Compact form}}}}.
 
+
+\subsection{Template constraints}
+\label{\detokenize{ImplemBVH:template-constraints}}
+\sphinxAtStartPar
+The template parameter \sphinxcode{\sphinxupquote{T}} must be a valid C++ floating\sphinxhyphen{}point type (e.g. \sphinxcode{\sphinxupquote{float}} or \sphinxcode{\sphinxupquote{double}}) and the tree degree must be \(K \geq 2\).
+The primitive type \sphinxcode{\sphinxupquote{P}} must have the following:
+\begin{itemize}
+\item {} 
+\sphinxAtStartPar
+A signed distance function \sphinxcode{\sphinxupquote{T P::signedDistance(const Vec3\& x) const}}.
+
+\end{itemize}
+
+\sphinxAtStartPar
+The bounding volume type \sphinxcode{\sphinxupquote{BV}} must obey the following:
+\begin{itemize}
+\item {} 
+\sphinxAtStartPar
+A default constructor \sphinxcode{\sphinxupquote{BV()}}.
+
+\item {} 
+\sphinxAtStartPar
+A constructor \sphinxcode{\sphinxupquote{BV(const std::vector\textless{}BV\textgreater{}\&)}} which constructs a bounding volume guaranteed to enclose other bounding volumes.
+
+\item {} 
+\sphinxAtStartPar
+A function \sphinxcode{\sphinxupquote{T getDistance(const Vec3T\textless{}T\textgreater{}\& x) const}} which returns a positive distance if point \sphinxcode{\sphinxupquote{x}} is outside the bounding volume and zero if \sphinxcode{\sphinxupquote{x}} is inside the bounding volume.
+
+\end{itemize}
+
+
+\subsection{Signed distance}
+\label{\detokenize{ImplemBVH:signed-distance}}
 \sphinxAtStartPar
 For getting the signed distance, \sphinxcode{\sphinxupquote{NodeT}} has provide the following functions:
 
@@ -651,7 +684,7 @@ The first version simply calls the other version with a stack\sphinxhyphen{}base
 
 
 \subsection{Template constraints}
-\label{\detokenize{ImplemBVH:template-constraints}}\label{\detokenize{ImplemBVH:chap-bvhconstraints}}\begin{itemize}
+\label{\detokenize{ImplemBVH:chap-bvhconstraints}}\label{\detokenize{ImplemBVH:id1}}\begin{itemize}
 \item {} 
 \sphinxAtStartPar
 The primitive type \sphinxcode{\sphinxupquote{P}} must have the following function:
@@ -730,7 +763,7 @@ Creating a root node and providing it with the geometric primitives.
 
 \item {} 
 \sphinxAtStartPar
-Partitioning the BVH by providing.
+Partitioning the BVH by providing a partitioning function.
 
 \end{itemize}
 
@@ -877,7 +910,7 @@ The “linearized” BVH can be automatically constructed from the standard BVH 
 \noindent\sphinxincludegraphics[width=240\sphinxpxdimen]{{CompactBVH}.png}
 \caption{Compact BVH representation.
 The original BVH is traversed from top\sphinxhyphen{}to\sphinxhyphen{}bottom along the branches and laid out in linear memory.
-Each interior node gets a reference (index offset) to their children nodes.}\label{\detokenize{ImplemBVH:id1}}\end{figure}
+Each interior node gets a reference (index offset) to their children nodes.}\label{\detokenize{ImplemBVH:id3}}\end{figure}
 
 \sphinxAtStartPar
 The rationale for reorganizing the BVH in compact form is it’s tighter memory footprint and depth\sphinxhyphen{}first ordering which allows more efficient traversal downwards in the BVH tree.
@@ -986,7 +1019,7 @@ Note that the primitives live in \sphinxcode{\sphinxupquote{LinearBVH}} and not 
 
 
 \subsection{Signed distance}
-\label{\detokenize{ImplemBVH:signed-distance}}
+\label{\detokenize{ImplemBVH:id2}}
 \sphinxAtStartPar
 The signed distance can be obtained from both the full BVH storage and the compact BVH storage.
 Replicating the code above, we can do:
@@ -1266,7 +1299,7 @@ Constructing a compact BVH representation of polygon mesh is therefore done as f
 \PYG{k}{constexpr} \PYG{k+kt}{int} \PYG{n}{K} \PYG{o}{=} \PYG{l+m+mi}{4}\PYG{p}{;}
 
 \PYG{c+c1}{// Read the mesh from file and put it in a DCEL format.}
-\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Mesh}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}} \PYG{o}{\PYGZgt{}} \PYG{n}{mesh} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{PLY}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}}\PYG{l+s}{MyFile.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{)}\PYG{p}{;}
+\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Mesh}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}} \PYG{o}{\PYGZgt{}} \PYG{n}{mesh} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{read}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}}\PYG{l+s}{MyFile.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{)}\PYG{p}{;}
 
 \PYG{c+c1}{// Make a BVH node and build the BVH.}
 \PYG{k}{auto} \PYG{n}{root} \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{make\PYGZus{}shared}\PYG{o}{\PYGZlt{}}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{NodeT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{Face}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}} \PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{mesh}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{getFaces}\PYG{p}{(}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
@@ -1908,48 +1941,117 @@ That is, it relies on pruning from the BVH functionality for finding the signed 
 \sphinxstepscope
 
 
-\section{File parsers}
-\label{\detokenize{Parsers:file-parsers}}\label{\detokenize{Parsers:chap-parsers}}\label{\detokenize{Parsers::doc}}
+\section{Reading data}
+\label{\detokenize{Parsers:reading-data}}\label{\detokenize{Parsers:chap-parsers}}\label{\detokenize{Parsers::doc}}
 \sphinxAtStartPar
 Routines for parsing surface files from grids into EBGeometry’s DCEL grids are given in the namespace \sphinxcode{\sphinxupquote{EBGeometry::Parser}}.
 The source code is implemented in \sphinxcode{\sphinxupquote{Source/EBGeometry\_Parser.hpp}}.
 
-
-\subsection{Read into DCEL}
-\label{\detokenize{Parsers:read-into-dcel}}
-\sphinxAtStartPar
-Currently, this is limited to the following file formats:
-\begin{itemize}
-\item {} 
-\sphinxAtStartPar
-\sphinxstylestrong{PLY} Only ASCII formats currently supported, \sphinxurl{https://en.wikipedia.org/wiki/PLY\_(file\_format)}.
-
-\sphinxAtStartPar
-When reading a PLY file into the DCEL data structures, it is sufficient to call the following static function:
-
-\begin{sphinxVerbatim}[commandchars=\\\{\}]
-\PYG{n}{template}\PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{o}{\PYGZgt{}}
-\PYG{n}{using} \PYG{n}{Mesh} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{p}{:}\PYG{p}{:}\PYG{n}{DCEL}\PYG{p}{:}\PYG{p}{:}\PYG{n}{MeshT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
-
-\PYG{n}{template}\PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{o}{\PYGZgt{}}
-\PYG{n}{std}\PYG{p}{:}\PYG{p}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{Mesh}\PYG{o}{\PYGZgt{}} \PYG{n}{EBGeometry}\PYG{p}{:}\PYG{p}{:}\PYG{n}{Parser}\PYG{p}{:}\PYG{p}{:}\PYG{n}{PLY}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{:}\PYG{p}{:}\PYG{n}{readASCII}\PYG{p}{(}\PYG{n}{const} \PYG{n}{std}\PYG{p}{:}\PYG{p}{:}\PYG{n}{string} \PYG{n}{a\PYGZus{}filename}\PYG{p}{)}\PYG{p}{;}
-\end{sphinxVerbatim}
-
 \begin{sphinxadmonition}{warning}{Warning:}
 \sphinxAtStartPar
-Although the parser will do it’s best to read files that contains holes or incomplete faces, success will fluctuate.
-Moreover, the signed distance function is not well\sphinxhyphen{}defined for such cases.
+EBGeometry is currently limited to reading STL files and reconstructing DCEL grids from those.
+However, it is a simple matter to also reconstructor DCEL grids from triangle soups read using third\sphinxhyphen{}party codes (see {\hyperref[\detokenize{Parsers:chap-thirdpartyparser}]{\sphinxcrossref{\DUrole{std,std-ref}{Using third\sphinxhyphen{}party sources}}}}).
 \end{sphinxadmonition}
 
-\sphinxAtStartPar
-Calling the \sphinxcode{\sphinxupquote{readASCII}} function will read the input file (which is assumed to be a PLY file) and create the DCEL data structures.
 
-\end{itemize}
-
-\begin{sphinxadmonition}{note}{Note:}
+\subsection{Reading STL files}
+\label{\detokenize{Parsers:reading-stl-files}}
 \sphinxAtStartPar
-If the file format of your surface mesh file is not one of the above, consider either providing a new plugin or convert your file (e.g. to PLY) using MeshLab, Blender, etc.
+EBGeometry supports a native parser for binary and ASCII STL files.
+To read an STL file, one will use one of the following:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{typename} \PYG{n}{T}\PYG{o}{\PYGZgt{}}
+\PYG{k+kr}{inline} \PYG{k}{static} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{Mesh}\PYG{o}{\PYGZgt{}}
+\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{STL}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{readSingle}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{string} \PYG{n}{a\PYGZus{}filename}\PYG{p}{)} \PYG{k}{noexcept}\PYG{p}{;}
+
+\PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{typename} \PYG{n}{T}\PYG{o}{\PYGZgt{}}
+\PYG{k+kr}{inline} \PYG{k}{static} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{pair}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{Mesh}\PYG{o}{\PYGZgt{}}\PYG{p}{,} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{string}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}
+\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{STL}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{readMulti}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{string} \PYG{n}{a\PYGZus{}filename}\PYG{p}{)} \PYG{k}{noexcept}\PYG{p}{;}
+\end{sphinxVerbatim}
+
+\sphinxAtStartPar
+The difference between these two is that \sphinxcode{\sphinxupquote{readSingle}} only reads a single STL \sphinxstyleemphasis{solid} while \sphinxcode{\sphinxupquote{readMulti}} will read all STL solids defined in the input file.
+
+\sphinxAtStartPar
+Alternatively, one can use \sphinxcode{\sphinxupquote{Parser::read}}:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{typename} \PYG{n}{T}\PYG{o}{\PYGZgt{}}
+\PYG{k+kr}{inline} \PYG{k}{static} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{MeshT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}
+\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{read}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{string} \PYG{n}{a\PYGZus{}filename}\PYG{p}{)} \PYG{k}{noexcept}\PYG{p}{;}
+
+\PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{typename} \PYG{n}{T}\PYG{o}{\PYGZgt{}}
+\PYG{k+kr}{inline} \PYG{k}{static} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{MeshT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}
+\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{read}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{string}\PYG{o}{\PYGZgt{}} \PYG{n}{a\PYGZus{}files}\PYG{p}{)} \PYG{k}{noexcept}\PYG{p}{;}
+\end{sphinxVerbatim}
+
+\sphinxAtStartPar
+where \sphinxcode{\sphinxupquote{a\_filename}} and \sphinxcode{\sphinxupquote{a\_files}} must be STL files.
+
+
+\subsection{From soups to DCEL}
+\label{\detokenize{Parsers:from-soups-to-dcel}}\label{\detokenize{Parsers:chap-polysoups}}
+\sphinxAtStartPar
+EBGeometry supports the creation of DCEL grids from polygon soups.
+A triangle soup is represented as
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{vertices}\PYG{p}{;}
+\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{size\PYGZus{}t}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{faces}\PYG{p}{;}
+\end{sphinxVerbatim}
+
+\sphinxAtStartPar
+Here, \sphinxcode{\sphinxupquote{vertices}} contains the \(x,y,z\) coordinates of each vertex, while each entry \sphinxcode{\sphinxupquote{faces}} contains a list of vertices for the face.
+
+\sphinxAtStartPar
+To turn this into a DCEL mesh, one should call
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{typename} \PYG{n}{T}\PYG{o}{\PYGZgt{}}
+\PYG{k+kr}{inline} \PYG{k}{static} \PYG{k+kt}{void}
+\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{compress}\PYG{p}{(}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}vertices}\PYG{p}{,}
+                             \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{size\PYGZus{}t}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}}  \PYG{n}{a\PYGZus{}facets}\PYG{p}{)} \PYG{k}{noexcept}\PYG{p}{;}
+
+\PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{typename} \PYG{n}{T}\PYG{o}{\PYGZgt{}}
+\PYG{k+kr}{inline} \PYG{k}{static} \PYG{k+kt}{void}
+\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{soupToDCEL}\PYG{p}{(}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{MeshT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}}              \PYG{n}{a\PYGZus{}mesh}\PYG{p}{,}
+                               \PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}vertices}\PYG{p}{,}
+                               \PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{size\PYGZus{}t}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}}  \PYG{n}{a\PYGZus{}facets}\PYG{p}{)} \PYG{k}{noexcept}\PYG{p}{;}
+\end{sphinxVerbatim}
+
+\sphinxAtStartPar
+The \sphinxcode{\sphinxupquote{compress}} function will discard duplicate vertices from the soup, while the \sphinxcode{\sphinxupquote{soupToDCEL}} will simply turn the remaining polygon soup into a DCEL mesh.
+
+\begin{sphinxadmonition}{tip}{Tip:}
+\sphinxAtStartPar
+\sphinxcode{\sphinxupquote{soupToDCEL}} will issue plenty of warnings if the polygon soup is not watertight and orientable.
 \end{sphinxadmonition}
+
+
+\subsection{Using third\sphinxhyphen{}party sources}
+\label{\detokenize{Parsers:using-third-party-sources}}\label{\detokenize{Parsers:chap-thirdpartyparser}}
+\sphinxAtStartPar
+By design, EBGeometry does not include much functionality for parsing files into polygon soups.
+There are many open source third\sphinxhyphen{}party codes for achieving this (and we have tested several of them):
+\begin{enumerate}
+\sphinxsetlistlabels{\arabic}{enumi}{enumii}{}{.}%
+\item {} 
+\sphinxAtStartPar
+\sphinxhref{https://github.com/nmwsharp/happly}{happly} or \sphinxhref{https://github.com/vilya/miniply}{miniply} for Stanford PLY files.
+
+\item {} 
+\sphinxAtStartPar
+\sphinxhref{https://github.com/sreiter/stl\_reader}{stl\_reader} for STL files.
+
+\item {} 
+\sphinxAtStartPar
+\sphinxhref{https://github.com/tinyobjloader/tinyobjloader}{tinyobjloader} for OBJ files.
+
+\end{enumerate}
+
+\sphinxAtStartPar
+In almost every case, the above codes can be read into polygon soups, and one can then turn the soup into a DCEL mesh as described in {\hyperref[\detokenize{Parsers:chap-polysoups}]{\sphinxcrossref{\DUrole{std,std-ref}{From soups to DCEL}}}}.
 
 
 \chapter{Guided examples}
@@ -1967,15 +2069,15 @@ For instructions on how to compile and run the examples, refer to the README fil
 \sphinxstepscope
 
 
-\section{Reading mesh files}
-\label{\detokenize{Example_Basic:reading-mesh-files}}\label{\detokenize{Example_Basic:chap-exampleply}}\label{\detokenize{Example_Basic::doc}}
+\section{Basic example}
+\label{\detokenize{Example_Basic:basic-example}}\label{\detokenize{Example_Basic:chap-examplestl}}\label{\detokenize{Example_Basic::doc}}
 \sphinxAtStartPar
 This example is given in \sphinxcode{\sphinxupquote{Examples/EBGeometry\_DCEL/main.cpp}} and shows the following steps:
 \begin{enumerate}
 \sphinxsetlistlabels{\arabic}{enumi}{enumii}{}{.}%
 \item {} 
 \sphinxAtStartPar
-How to read a PLY file into a DCEL mesh.
+How to read an STL file into a DCEL mesh.
 
 \item {} 
 \sphinxAtStartPar
@@ -2013,8 +2115,8 @@ We will focus on the following parts of the code:
 \subsection{Reading the surface mesh}
 \label{\detokenize{Example_Basic:reading-the-surface-mesh}}
 \sphinxAtStartPar
-The first block of code parser a PLY file (here called \sphinxstyleemphasis{file}) and returns a DCEL mesh description of the PLY file.
-We point out that the parser will issue errors if the PLY file is not watertight and orientable.
+The first block of code parses an STL file (here called \sphinxstyleemphasis{file}) and returns a DCEL mesh description of the STL file.
+We point out that the parser will issue errors if the STL file is not watertight and orientable.
 
 
 \subsection{Constructing the BVH}
@@ -2041,10 +2143,10 @@ The next block of code
 partitions the BVH using pre\sphinxhyphen{}defined partitioning functions (see {\hyperref[\detokenize{ImplemDCEL:chap-bvhintegration}]{\sphinxcrossref{\DUrole{std,std-ref}{BVH integration}}}} for details).
 
 \sphinxAtStartPar
-Finally, the BVH tree is flatten by
+Finally, the BVH tree is flattened by
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
-                                            \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{defaultStopFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{auto} \PYG{n}{linSDF} \PYG{o}{=} \PYG{n}{bvhSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{flattenTree}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
 \end{sphinxVerbatim}
 
 
@@ -2069,7 +2171,7 @@ The objects differ in how they compute it:
 \end{itemize}
 
 \sphinxAtStartPar
-All the above functions give the same result, but with widely different performance metrics.
+All the above functions give the same result, but with different performance metrics.
 
 \sphinxstepscope
 
@@ -2290,8 +2392,7 @@ We will focus on the following parts of the code:
 
       \PYG{c+cm}{/*!}
 \PYG{c+cm}{	@brief Full constructor.}
-\PYG{c+cm}{	@param[in] a\PYGZus{}filename File name. Must be a PLY file and will be parser by the}
-\PYG{c+cm}{	PLY parser.}
+\PYG{c+cm}{	@param[in] a\PYGZus{}filename File name. Must be an STL file.}
 \PYG{c+cm}{	@param[in] a\PYGZus{}flipSign Hook for swapping inside/outside.}
 \PYG{c+cm}{      */}
       \PYG{n}{SignedDistanceBVH}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{string} \PYG{n}{a\PYGZus{}filename}\PYG{p}{,} \PYG{k}{const} \PYG{k+kt}{bool} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{)}
@@ -2452,7 +2553,7 @@ Note that we are performing the following steps:
 \begin{itemize}
 \item {} 
 \sphinxAtStartPar
-Using the PLY parser for creating a DCEL mesh.
+Using the STL parser for creating a DCEL mesh.
 
 \item {} 
 \sphinxAtStartPar
@@ -2602,43 +2703,43 @@ We will focus on the following parts of the code:
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{50} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{250} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/airfoil.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/airfoil.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{1}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Sphere}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{400} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{400} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/sphere.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/sphere.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{2}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Dodecahedron}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{2} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{2} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/dodecahedron.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/dodecahedron.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{3}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Horse}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{0.12} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mf}{0.12} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/horse.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/horse.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{4}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Porsche}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{10} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/porsche.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/porsche.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{5}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Orion}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{10} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/orion.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/orion.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{6}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Armadillo}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{125} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{125} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/armadillo.ply}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/armadillo.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
 
   \PYG{c+c1}{//}
@@ -2702,7 +2803,7 @@ Note that we are performing the following steps:
 \begin{itemize}
 \item {} 
 \sphinxAtStartPar
-Using the PLY parser for creating a DCEL mesh.
+Using the STL parser for creating a DCEL mesh.
 
 \item {} 
 \sphinxAtStartPar

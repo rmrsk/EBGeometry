@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['mesh_705',['Mesh',['../classDCEL_1_1MeshT.html#ad114ade3043f6db1ede02eee9e28dff9',1,'DCEL::MeshT']]]
+  ['rootnode_701',['RootNode',['../classUnionBVH.html#a2f18101d78a3ec542dbf644a546c3b4b',1,'UnionBVH']]]
 ];

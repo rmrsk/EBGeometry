@@ -84,17 +84,7 @@ var menudata={children:[
 {text:"m",url:"functions_vars.html#index_m"},
 {text:"x",url:"functions_vars.html#index_x"},
 {text:"y",url:"functions_vars.html#index_y"}]},
-{text:"Typedefs",url:"functions_type.html",children:[
-{text:"b",url:"functions_type.html#index_b"},
-{text:"e",url:"functions_type.html#index_e"},
-{text:"f",url:"functions_type.html#index_f"},
-{text:"l",url:"functions_type.html#index_l"},
-{text:"m",url:"functions_type.html#index_m"},
-{text:"n",url:"functions_type.html#index_n"},
-{text:"p",url:"functions_type.html#index_p"},
-{text:"r",url:"functions_type.html#index_r"},
-{text:"s",url:"functions_type.html#index_s"},
-{text:"v",url:"functions_type.html#index_v"}]},
+{text:"Typedefs",url:"functions_type.html"},
 {text:"Enumerations",url:"functions_enum.html"}]}]},
 {text:"Files",url:"files.html",children:[
 {text:"File List",url:"files.html"},

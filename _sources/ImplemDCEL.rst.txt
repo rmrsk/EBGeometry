@@ -171,7 +171,7 @@ Constructing a compact BVH representation of polygon mesh is therefore done as f
    constexpr int K = 4;
 
    // Read the mesh from file and put it in a DCEL format. 
-   std::shared_ptr<EBGeometry::DCEL::Mesh<T> > mesh = EBGeometry::Parser::PLY("MyFile.ply");
+   std::shared_ptr<EBGeometry::DCEL::Mesh<T> > mesh = EBGeometry::Parser::read("MyFile.stl");
 
    // Make a BVH node and build the BVH.
    auto root = std::make_shared<EBGeometry::BVH::NodeT<T, Face, BV, K> >(mesh->getFaces());

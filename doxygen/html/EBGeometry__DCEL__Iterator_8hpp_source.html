@@ -86,96 +86,90 @@ $(function() {
 <div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160; </div>
 <div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespaceDCEL.html">DCEL</a> {</div>
 <div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160; </div>
-<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;  <span class="comment">// Forward declare classes.</span></div>
-<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;  <span class="keyword">class </span>VertexT;</div>
+<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;  <span class="keyword">class </span>VertexT;</div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160; </div>
 <div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
 <div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;  <span class="keyword">class </span>EdgeT;</div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;  <span class="keyword">class </span>FaceT;</div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160; </div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;  <span class="keyword">class </span>EdgeIteratorT</div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;  {</div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;  <span class="keyword">public</span>:</div>
-<div class="line"><a name="l00044"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#a23d60449bf14a9e6951317b18509bc01">   44</a></span>&#160;    <span class="keyword">using</span> <a class="code" href="classDCEL_1_1VertexT.html">Vertex</a> = <a class="code" href="classDCEL_1_1VertexT.html">VertexT&lt;T&gt;</a>;</div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160; </div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;  <span class="keyword">class </span>FaceT;</div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160; </div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;  <span class="keyword">class </span>EdgeIteratorT</div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;  {</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;    <span class="keyword">using</span> Vertex = VertexT&lt;T&gt;;</div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;    <span class="keyword">using</span> Edge   = EdgeT&lt;T&gt;;</div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;    <span class="keyword">using</span> Face   = FaceT&lt;T&gt;;</div>
 <div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160; </div>
-<div class="line"><a name="l00049"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#a238fbe48a77c433f23bd8a8a1095b87a">   49</a></span>&#160;    <span class="keyword">using</span> <a class="code" href="classDCEL_1_1EdgeT.html">Edge</a> = <a class="code" href="classDCEL_1_1EdgeT.html">EdgeT&lt;T&gt;</a>;</div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160; </div>
-<div class="line"><a name="l00054"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#a2922a8f448630749c3ec3ef6fd07a5d0">   54</a></span>&#160;    <span class="keyword">using</span> <a class="code" href="classDCEL_1_1FaceT.html">Face</a> = <a class="code" href="classDCEL_1_1FaceT.html">FaceT&lt;T&gt;</a>;</div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160; </div>
-<div class="line"><a name="l00059"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#a03a587f6ea5920510ef28f9a4fb01c5d">   59</a></span>&#160;    <span class="keyword">using</span> <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a03a587f6ea5920510ef28f9a4fb01c5d">VertexPtr</a> = std::shared_ptr&lt;Vertex&gt;;</div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160; </div>
-<div class="line"><a name="l00064"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#ae3643017376c6720d862d0a39e8af83b">   64</a></span>&#160;    <span class="keyword">using</span> <a class="code" href="classDCEL_1_1EdgeIteratorT.html#ae3643017376c6720d862d0a39e8af83b">EdgePtr</a> = std::shared_ptr&lt;Edge&gt;;</div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160; </div>
-<div class="line"><a name="l00069"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#accd749da9c615605b34d2ccf8d37dc15">   69</a></span>&#160;    <span class="keyword">using</span> <a class="code" href="classDCEL_1_1EdgeIteratorT.html#accd749da9c615605b34d2ccf8d37dc15">FacePtr</a> = std::shared_ptr&lt;Face&gt;;</div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160; </div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a16f2fce17942ff3bd295313fdd629168">EdgeIteratorT</a>() = <span class="keyword">delete</span>;</div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160; </div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a16f2fce17942ff3bd295313fdd629168">EdgeIteratorT</a>(<a class="code" href="classDCEL_1_1FaceT.html">Face</a>&amp; a_face);</div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160; </div>
-<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a16f2fce17942ff3bd295313fdd629168">EdgeIteratorT</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1FaceT.html">Face</a>&amp; a_face);</div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160; </div>
-<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a16f2fce17942ff3bd295313fdd629168">EdgeIteratorT</a>(<a class="code" href="classDCEL_1_1VertexT.html">Vertex</a>&amp; a_vertex);</div>
-<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160; </div>
-<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a16f2fce17942ff3bd295313fdd629168">EdgeIteratorT</a>(<span class="keyword">const</span> <a class="code" href="classDCEL_1_1VertexT.html">Vertex</a>&amp; a_vertex);</div>
-<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160; </div>
-<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;    <span class="keyword">inline</span> <a class="code" href="classDCEL_1_1EdgeIteratorT.html#ae3643017376c6720d862d0a39e8af83b">EdgePtr</a>&amp;</div>
-<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a48d2ae7a189cf9cdeb3282dd94c9f982">operator()</a>() noexcept;</div>
-<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160; </div>
-<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;    inline const <a class="code" href="classDCEL_1_1EdgeIteratorT.html#ae3643017376c6720d862d0a39e8af83b">EdgePtr</a>&amp;</div>
-<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;    operator()() const noexcept;</div>
-<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160; </div>
-<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;    inline <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#accda7f714b1d6b40ebc8b1aabf272a6a">reset</a>() noexcept;</div>
-<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160; </div>
-<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;    inline <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;    operator++() noexcept;</div>
-<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160; </div>
-<div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160;    inline <span class="keywordtype">bool</span></div>
-<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a29e714c601b4a1e3b8238d948e266b0f">ok</a>() const noexcept;</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;    <span class="keyword">using</span> VertexPtr = std::shared_ptr&lt;Vertex&gt;;</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;    <span class="keyword">using</span> EdgePtr   = std::shared_ptr&lt;Edge&gt;;</div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;    <span class="keyword">using</span> FacePtr   = std::shared_ptr&lt;Face&gt;;</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160; </div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a16f2fce17942ff3bd295313fdd629168">EdgeIteratorT</a>() = <span class="keyword">delete</span>;</div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160; </div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a16f2fce17942ff3bd295313fdd629168">EdgeIteratorT</a>(Face&amp; a_face);</div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160; </div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a16f2fce17942ff3bd295313fdd629168">EdgeIteratorT</a>(<span class="keyword">const</span> Face&amp; a_face);</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160; </div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a16f2fce17942ff3bd295313fdd629168">EdgeIteratorT</a>(Vertex&amp; a_vertex);</div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160; </div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a16f2fce17942ff3bd295313fdd629168">EdgeIteratorT</a>(<span class="keyword">const</span> Vertex&amp; a_vertex);</div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160; </div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#ac28390e24d7b010c866511f202460e06">~EdgeIteratorT</a>() = <span class="keywordflow">default</span>;</div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160; </div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;    <span class="keyword">inline</span> EdgePtr&amp;</div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a48d2ae7a189cf9cdeb3282dd94c9f982">operator()</a>() noexcept;</div>
+<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160; </div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;    inline const EdgePtr&amp;</div>
+<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;    operator()() const noexcept;</div>
+<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160; </div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;    inline <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#accda7f714b1d6b40ebc8b1aabf272a6a">reset</a>() noexcept;</div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160; </div>
+<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;    inline <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;    operator++() noexcept;</div>
+<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160; </div>
+<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;    inline <span class="keywordtype">bool</span></div>
+<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a29e714c601b4a1e3b8238d948e266b0f">ok</a>() const noexcept;</div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160; </div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;  protected:</div>
+<div class="line"><a name="l00135"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#a34c0a8ea1a1c0e87f0a37a84616c4d3c">  135</a></span>&#160;    enum class <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a34c0a8ea1a1c0e87f0a37a84616c4d3c">IterationMode</a></div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;    {</div>
+<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;      Vertices,</div>
+<div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160;      Faces</div>
+<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160;    };</div>
+<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160; </div>
+<div class="line"><a name="l00144"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#ad76435e1c9a6e082823a7fd3031e3ca8">  144</a></span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classDCEL_1_1EdgeIteratorT.html#ad76435e1c9a6e082823a7fd3031e3ca8">m_fullLoop</a>;</div>
 <div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160; </div>
-<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160;  protected:</div>
-<div class="line"><a name="l00151"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#a34c0a8ea1a1c0e87f0a37a84616c4d3c">  151</a></span>&#160;    enum class <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a34c0a8ea1a1c0e87f0a37a84616c4d3c">IterationMode</a></div>
-<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;    {</div>
-<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;      Vertices,</div>
-<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;      Faces</div>
-<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;    };</div>
-<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160; </div>
-<div class="line"><a name="l00160"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#ad76435e1c9a6e082823a7fd3031e3ca8">  160</a></span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classDCEL_1_1EdgeIteratorT.html#ad76435e1c9a6e082823a7fd3031e3ca8">m_fullLoop</a>;</div>
-<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160; </div>
-<div class="line"><a name="l00165"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#a78bbf1a3b33f96547fc1f80b6a793028">  165</a></span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a34c0a8ea1a1c0e87f0a37a84616c4d3c">IterationMode</a> <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a78bbf1a3b33f96547fc1f80b6a793028">m_iterMode</a>;</div>
+<div class="line"><a name="l00149"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#a78bbf1a3b33f96547fc1f80b6a793028">  149</a></span>&#160;    <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a34c0a8ea1a1c0e87f0a37a84616c4d3c">IterationMode</a> <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a78bbf1a3b33f96547fc1f80b6a793028">m_iterMode</a>;</div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160; </div>
+<div class="line"><a name="l00154"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#ad586f4b5ee1e39fc7abdf3c226760cb4">  154</a></span>&#160;    std::shared_ptr&lt;Edge&gt; <a class="code" href="classDCEL_1_1EdgeIteratorT.html#ad586f4b5ee1e39fc7abdf3c226760cb4">m_startEdge</a>;</div>
+<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160; </div>
+<div class="line"><a name="l00159"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#a37fb074de06101549b318694ab03202c">  159</a></span>&#160;    std::shared_ptr&lt;Edge&gt; <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a37fb074de06101549b318694ab03202c">m_curEdge</a>;</div>
+<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;  };</div>
+<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;} <span class="comment">// namespace DCEL</span></div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160; </div>
+<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a>&quot;</span></div>
+<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160; </div>
+<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__DCEL__IteratorImplem_8hpp.html">EBGeometry_DCEL_IteratorImplem.hpp</a>&quot;</span></div>
 <div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160; </div>
-<div class="line"><a name="l00170"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#ad586f4b5ee1e39fc7abdf3c226760cb4">  170</a></span>&#160;    std::shared_ptr&lt;Edge&gt; <a class="code" href="classDCEL_1_1EdgeIteratorT.html#ad586f4b5ee1e39fc7abdf3c226760cb4">m_startEdge</a>;</div>
-<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160; </div>
-<div class="line"><a name="l00175"></a><span class="lineno"><a class="line" href="classDCEL_1_1EdgeIteratorT.html#a37fb074de06101549b318694ab03202c">  175</a></span>&#160;    std::shared_ptr&lt;Edge&gt; <a class="code" href="classDCEL_1_1EdgeIteratorT.html#a37fb074de06101549b318694ab03202c">m_curEdge</a>;</div>
-<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;  };</div>
-<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;} <span class="comment">// namespace DCEL</span></div>
-<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160; </div>
-<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a>&quot;</span></div>
-<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160; </div>
-<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__DCEL__IteratorImplem_8hpp.html">EBGeometry_DCEL_IteratorImplem.hpp</a>&quot;</span></div>
-<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160; </div>
-<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
-<div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_ad76435e1c9a6e082823a7fd3031e3ca8"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#ad76435e1c9a6e082823a7fd3031e3ca8">DCEL::EdgeIteratorT::m_fullLoop</a></div><div class="ttdeci">bool m_fullLoop</div><div class="ttdoc">If true, a full loop has been made around the polygon face.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Iterator.hpp:160</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_ad76435e1c9a6e082823a7fd3031e3ca8"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#ad76435e1c9a6e082823a7fd3031e3ca8">DCEL::EdgeIteratorT::m_fullLoop</a></div><div class="ttdeci">bool m_fullLoop</div><div class="ttdoc">If true, a full loop has been made around the polygon face.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Iterator.hpp:144</div></div>
 <div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_a48d2ae7a189cf9cdeb3282dd94c9f982"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#a48d2ae7a189cf9cdeb3282dd94c9f982">DCEL::EdgeIteratorT::operator()</a></div><div class="ttdeci">EdgePtr &amp; operator()() noexcept</div><div class="ttdoc">Operator returning a pointer to the current half-edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_IteratorImplem.hpp:62</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_a03a587f6ea5920510ef28f9a4fb01c5d"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#a03a587f6ea5920510ef28f9a4fb01c5d">DCEL::EdgeIteratorT::VertexPtr</a></div><div class="ttdeci">std::shared_ptr&lt; Vertex &gt; VertexPtr</div><div class="ttdoc">Alias to cut down on typing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Iterator.hpp:59</div></div>
 <div class="ttc" id="anamespaceDCEL_html"><div class="ttname"><a href="namespaceDCEL.html">DCEL</a></div><div class="ttdoc">Namespace containing various double-connected edge list (DCEL) functionality.</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_a34c0a8ea1a1c0e87f0a37a84616c4d3c"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#a34c0a8ea1a1c0e87f0a37a84616c4d3c">DCEL::EdgeIteratorT::IterationMode</a></div><div class="ttdeci">IterationMode</div><div class="ttdoc">Iteration mode, used to distinguish between the two constructors (face- or vertex-based iteration)</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Iterator.hpp:151</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_ac28390e24d7b010c866511f202460e06"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#ac28390e24d7b010c866511f202460e06">DCEL::EdgeIteratorT::~EdgeIteratorT</a></div><div class="ttdeci">~EdgeIteratorT()=default</div><div class="ttdoc">Destructor.</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_a34c0a8ea1a1c0e87f0a37a84616c4d3c"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#a34c0a8ea1a1c0e87f0a37a84616c4d3c">DCEL::EdgeIteratorT::IterationMode</a></div><div class="ttdeci">IterationMode</div><div class="ttdoc">Iteration mode, used to distinguish between the two constructors (face- or vertex-based iteration)</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Iterator.hpp:135</div></div>
 <div class="ttc" id="aEBGeometry__DCEL__IteratorImplem_8hpp_html"><div class="ttname"><a href="EBGeometry__DCEL__IteratorImplem_8hpp.html">EBGeometry_DCEL_IteratorImplem.hpp</a></div><div class="ttdoc">Implementation of EBGeometry_DCEL_Iterator.hpp.</div></div>
-<div class="ttc" id="aclassDCEL_1_1FaceT_html"><div class="ttname"><a href="classDCEL_1_1FaceT.html">DCEL::FaceT</a></div><div class="ttdoc">Class which represents a polygon face in a double-edge connected list (DCEL).</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:33</div></div>
 <div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_a16f2fce17942ff3bd295313fdd629168"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#a16f2fce17942ff3bd295313fdd629168">DCEL::EdgeIteratorT::EdgeIteratorT</a></div><div class="ttdeci">EdgeIteratorT()=delete</div><div class="ttdoc">Default construction is not allowed. Use one of the full constructors.</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_a78bbf1a3b33f96547fc1f80b6a793028"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#a78bbf1a3b33f96547fc1f80b6a793028">DCEL::EdgeIteratorT::m_iterMode</a></div><div class="ttdeci">IterationMode m_iterMode</div><div class="ttdoc">Iteration mode. Set in constructor.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Iterator.hpp:165</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_accd749da9c615605b34d2ccf8d37dc15"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#accd749da9c615605b34d2ccf8d37dc15">DCEL::EdgeIteratorT::FacePtr</a></div><div class="ttdeci">std::shared_ptr&lt; Face &gt; FacePtr</div><div class="ttdoc">Alias to cut down on typing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Iterator.hpp:69</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_a78bbf1a3b33f96547fc1f80b6a793028"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#a78bbf1a3b33f96547fc1f80b6a793028">DCEL::EdgeIteratorT::m_iterMode</a></div><div class="ttdeci">IterationMode m_iterMode</div><div class="ttdoc">Iteration mode. Set in constructor.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Iterator.hpp:149</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceFooter_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a></div><div class="ttdoc">Name space footer.</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeT_html"><div class="ttname"><a href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a></div><div class="ttdoc">Class which represents a half-edge in a double-edge connected list (DCEL).</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:31</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_ad586f4b5ee1e39fc7abdf3c226760cb4"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#ad586f4b5ee1e39fc7abdf3c226760cb4">DCEL::EdgeIteratorT::m_startEdge</a></div><div class="ttdeci">std::shared_ptr&lt; Edge &gt; m_startEdge</div><div class="ttdoc">Starting half-edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Iterator.hpp:170</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_ad586f4b5ee1e39fc7abdf3c226760cb4"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#ad586f4b5ee1e39fc7abdf3c226760cb4">DCEL::EdgeIteratorT::m_startEdge</a></div><div class="ttdeci">std::shared_ptr&lt; Edge &gt; m_startEdge</div><div class="ttdoc">Starting half-edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Iterator.hpp:154</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceHeader_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceHeader_8hpp.html">EBGeometry_NamespaceHeader.hpp</a></div><div class="ttdoc">Name space header.</div></div>
-<div class="ttc" id="aclassDCEL_1_1VertexT_html"><div class="ttname"><a href="classDCEL_1_1VertexT.html">DCEL::VertexT</a></div><div class="ttdoc">Class which represents a vertex node in a double-edge connected list (DCEL).</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Edge.hpp:29</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_ae3643017376c6720d862d0a39e8af83b"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#ae3643017376c6720d862d0a39e8af83b">DCEL::EdgeIteratorT::EdgePtr</a></div><div class="ttdeci">std::shared_ptr&lt; Edge &gt; EdgePtr</div><div class="ttdoc">Alias to cut down on typing.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Iterator.hpp:64</div></div>
 <div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_a29e714c601b4a1e3b8238d948e266b0f"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#a29e714c601b4a1e3b8238d948e266b0f">DCEL::EdgeIteratorT::ok</a></div><div class="ttdeci">bool ok() const noexcept</div><div class="ttdoc">Function which checks if the iteration can be continued.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_IteratorImplem.hpp:109</div></div>
-<div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_a37fb074de06101549b318694ab03202c"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#a37fb074de06101549b318694ab03202c">DCEL::EdgeIteratorT::m_curEdge</a></div><div class="ttdeci">std::shared_ptr&lt; Edge &gt; m_curEdge</div><div class="ttdoc">Current half-edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Iterator.hpp:175</div></div>
+<div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_a37fb074de06101549b318694ab03202c"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#a37fb074de06101549b318694ab03202c">DCEL::EdgeIteratorT::m_curEdge</a></div><div class="ttdeci">std::shared_ptr&lt; Edge &gt; m_curEdge</div><div class="ttdoc">Current half-edge.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Iterator.hpp:159</div></div>
 <div class="ttc" id="aclassDCEL_1_1EdgeIteratorT_html_accda7f714b1d6b40ebc8b1aabf272a6a"><div class="ttname"><a href="classDCEL_1_1EdgeIteratorT.html#accda7f714b1d6b40ebc8b1aabf272a6a">DCEL::EdgeIteratorT::reset</a></div><div class="ttdeci">void reset() noexcept</div><div class="ttdoc">Reset function for the iterator. This resets the iterator so that it begins from the starting half-ed...</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_IteratorImplem.hpp:76</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

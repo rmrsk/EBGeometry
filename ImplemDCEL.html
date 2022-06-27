@@ -65,12 +65,12 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemSDF.html">Signed distance function</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemUnion.html">Unions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Parsers.html">File parsers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Parsers.html">Reading data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Examples.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Reading mesh files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Basic example</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Union.html">Unions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_AMReX.html">Integration with AMReX</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example_Chombo3.html">Integration with Chombo3</a></li>
@@ -252,7 +252,7 @@ Moreover, partitioning functions that partition a set of polygon faces into <cod
 <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">K</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
 
 <span class="c1">// Read the mesh from file and put it in a DCEL format.</span>
-<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">Mesh</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">mesh</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">PLY</span><span class="p">(</span><span class="s">&quot;MyFile.ply&quot;</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">Mesh</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">mesh</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">read</span><span class="p">(</span><span class="s">&quot;MyFile.stl&quot;</span><span class="p">);</span>
 
 <span class="c1">// Make a BVH node and build the BVH.</span>
 <span class="k">auto</span> <span class="n">root</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">NodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Face</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="o">&gt;</span><span class="p">(</span><span class="n">mesh</span><span class="o">-&gt;</span><span class="n">getFaces</span><span class="p">());</span>
