@@ -66,6 +66,12 @@ namespace DCEL {
 
   template <class T>
   inline void
+  FaceT<T>::flip() noexcept {
+    m_normal = -m_normal;
+  }
+
+  template <class T>
+  inline void
   FaceT<T>::computeAndStoreEdges() noexcept
   {
     m_edges.resize(0);

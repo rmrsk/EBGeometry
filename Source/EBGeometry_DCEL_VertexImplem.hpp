@@ -214,6 +214,12 @@ namespace DCEL {
   }
 
   template <class T>
+  inline void
+  VertexT<T>::flip() noexcept {
+    m_normal = -m_normal;
+  }    
+
+  template <class T>
   inline Vec3T<T>&
   VertexT<T>::getPosition() noexcept
   {
