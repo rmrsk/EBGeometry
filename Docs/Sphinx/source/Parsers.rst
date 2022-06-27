@@ -4,7 +4,12 @@ Reading data
 ============
 
 Routines for parsing surface files from grids into EBGeometry's DCEL grids are given in the namespace ``EBGeometry::Parser``.
-The source code is implemented in :file:`Source/EBGeometry_Parser.hpp`. 
+The source code is implemented in :file:`Source/EBGeometry_Parser.hpp`.
+
+.. warning::
+
+   EBGeometry is currently limited to reading STL files and reconstructing DCEL grids from those.
+   However, it is a simple matter to also reconstructor DCEL grids from triangle soups read using third-party codes (see :ref:`Chap:ThirdPartyParser`).
 
 Reading STL files
 -----------------
@@ -22,7 +27,7 @@ To read an STL file, one will use one of the following:
    inline static std::Vector<std::pair<std::shared_ptr<Mesh>, std::string>>
    EBGeometry::Parser::STL<T>::readMulti(const std::string a_filename) noexcept;
 
-The difference between these two is that ``readSingle`` only reads a single STL *solid* while ``readMulti`` will read all STL solids.
+The difference between these two is that ``readSingle`` only reads a single STL *solid* while ``readMulti`` will read all STL solids defined in the input file. 
 
 Alternatively, one can use ``Parser::read``:
 
@@ -73,6 +78,8 @@ The ``compress`` function will discard duplicate vertices from the soup, while t
 .. tip::
    
    ``soupToDCEL`` will issue plenty of warnings if the polygon soup is not watertight and orientable. 
+
+.. _Chap:ThirdPartyParser:
 
 Using third-party sources
 -------------------------

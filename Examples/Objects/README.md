@@ -1,4 +1,4 @@
-This folder contains various PLY surface grids and remarks on where the data was obtained what was done with it. 
+This folder contains various surface grids, remarks on where the data was obtained, and what was done with it. 
 
 | Model Name | Image | PLY file      | Source     | Note |
 |------------|-------|---------------|------------|------|
