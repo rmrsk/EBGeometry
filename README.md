@@ -45,7 +45,7 @@ g++ -O3 -std=c++14 main.cpp
 ### Fast CSG operations for analytic functions
 
 Generate a spherical packed bed geometry using analytic representations of spheres.
-BVH-accelerated CSG unions lead to order-of-magnitude faster 
+BVH-accelerated CSG unions lead to order-of-magnitude faster implicit function evaluation.
 ```
 cd Examples/EBGeometry_Union
 g++ -O3 -std=c++14 main.cpp
