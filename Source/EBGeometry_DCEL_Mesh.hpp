@@ -185,6 +185,12 @@ namespace DCEL {
     getVertices() const noexcept;
 
     /*!
+      @brief Return all vertex coordinates in the mesh.
+    */
+    inline std::vector<Vec3T<T>>
+    getAllVertexCoordinates() const noexcept;
+
+    /*!
       @brief Get modifiable half-edges in this mesh
     */
     inline std::vector<EdgePtr>&
@@ -264,12 +270,6 @@ namespace DCEL {
       @brief Mesh faces
     */
     std::vector<FacePtr> m_faces;
-
-    /*!
-      @brief Return all vertex coordinates in the mesh.
-    */
-    inline std::vector<Vec3T<T>>
-    getAllVertexCoordinates() const noexcept;
 
     /*!
       @brief Function which computes internal things for the polygon faces.

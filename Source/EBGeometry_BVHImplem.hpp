@@ -558,7 +558,7 @@ namespace BVH {
 
   template <class T, class P, class BV, size_t K>
   inline const BV&
-  LinearBVH<T, P, BV, K>::getBoundingVolume()
+  LinearBVH<T, P, BV, K>::getBoundingVolume() const noexcept
   {
     return m_linearNodes.front()->getBoundingVolume();
   }

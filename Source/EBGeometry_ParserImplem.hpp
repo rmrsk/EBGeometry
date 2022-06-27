@@ -321,6 +321,7 @@ template <typename T>
 inline std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>>
 Parser::STL<T>::readMulti(const std::string a_filename) noexcept
 {
+
   const Parser::Encoding ft = Parser::STL<T>::getEncoding(a_filename);
 
   std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>> objectsDCEL;

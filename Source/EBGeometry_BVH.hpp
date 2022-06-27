@@ -576,7 +576,7 @@ namespace BVH {
       @brief Get the bounding volume for this BVH. 
     */
     inline const BV&
-    getBoundingVolume();
+    getBoundingVolume() const noexcept;
 
     /*!
       @brief Function which computes the signed distance.
