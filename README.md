@@ -13,18 +13,19 @@ It was originally written to be used with embedded-boundary (EB) codes like Chom
 
 ## Requirements
 
-
 * A C++ compiler which supports C++14.
+
+EBGeometry is a header-only library in C++.
+To use it, simply make EBGeometry.hpp visible to your code and include it.
 
 ## Documentation
 
 User documentation is available as [HTML](https://rmrsk.github.io/EBGeometry/) or as a [PDF](https://github.com/rmrsk/EBGeometry/raw/gh-pages/ebgeometry.pdf).
 A doxygen-generated API is [also available](https://rmrsk.github.io/EBGeometry/doxygen/html/index.html).
 
-## Basic usage
+## Example quickstart
 
-EBGeometry is a header-only library in C++.
-To use it, simply make EBGeometry.hpp visible to your code and include it.
+
 
 To clone EBGeometry:
 
