@@ -9,7 +9,9 @@ EBGeometry is a code for:
 This code is header-only and can be dropped into any C++ project that supports C++14.
 It was originally written to be used with embedded-boundary (EB) codes like Chombo or AMReX.
 
+To clone EBGeometry:
 
+    git clone git@github.com:rmrsk/EBGeometry.git
 
 ## Requirements
 
@@ -25,13 +27,8 @@ A doxygen-generated API is [also available](https://rmrsk.github.io/EBGeometry/d
 
 ## Example quickstart
 
-To clone EBGeometry:
-
-    git clone git@github.com:rmrsk/EBGeometry.git
-
 Various examples are given in the Examples folder.
 To run one of the examples, navigate to the example and compile and run it.
-
 
 ### Creating an SDF from a surface grid
 
@@ -43,7 +40,7 @@ g++ -O3 -std=c++14 main.cpp
 ./a.out armadillo.stl
 ```
 
-<img src="example_dcel.png" width="400" alt="Signed distance field from Armadillo geometry"/>
+<img src="example_dcel.png" width="200" alt="Signed distance field from Armadillo geometry"/>
 
 ### Fast CSG operations for analytic functions
 
@@ -55,7 +52,7 @@ g++ -O3 -std=c++14 main.cpp
 ./a.out
 ```
 
-<img src="example_spheres.png" width="400" alt="Packed bed geometry"/>
+<img src="example_spheres.png" width="200" alt="Packed bed geometry"/>
 
 ### Fast CSG on composite geometries
 
@@ -67,12 +64,14 @@ g++ -O3 -std=c++17 main.cpp -lstdc++fs
 ./a.out
 ```
 
-## Advanced usage
+<img src="example_f18.png" width="200" alt="F18 composite geomery"/>
 
-For more advanced usage, users can supply their own file parsers (PLY and STL files are currently supported), provide their own bounding volumes, or their own BVH partitioners.
-EBGeometry is not too strict about these things, and uses rigorous templating for ensuring that the EBGeometry functionality can be extended.
+### Advanced examples
 
 More complex examples that use Chombo or AMReX will also include application-specific code (some examples with AMReX and Chombo3 are provided). 
+
+For more advanced usage, users can supply their own file parsers, provide their own bounding volumes, or their own BVH partitioners.
+EBGeometry is not too strict about these things, and uses rigorous templating for ensuring that the EBGeometry functionality can be extended.
 
 ## Contributing
 
