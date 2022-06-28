@@ -1,6 +1,5 @@
 ## EBGeometry
 
-
 EBGeometry is a code for
 
 1. Turning watertight and orientable surface grids into signed distance functions (SDFs).
@@ -19,7 +18,7 @@ To clone EBGeometry:
 
 * A C++ compiler which supports C++14.
 
-EBGeometry is a header-only library in C++.
+EBGeometry is a header-only library in C++ and has no external dependencies.
 To use it, simply make EBGeometry.hpp visible to your code and include it.
 
 ## Documentation
@@ -29,10 +28,20 @@ A doxygen-generated API is [also available](https://rmrsk.github.io/EBGeometry/d
 
 ## Example quickstart
 
-Various examples are given in the Examples folder.
+Several examples are given in the Examples folder.
 To run one of the examples, navigate to the example and compile and run it.
 
-### Creating an SDF from a surface grid
+### 1. Analytic distance fields
+
+Use one of the analytic signed distance fields in EBGeometry, and rotate and transform it.
+
+```
+cd Examples/EBGeometry_Shapes
+g++ -O3 -std=c++14 main.cpp
+./a.out
+```
+
+### 2. Creating an SDF from a surface grid
 
 Read in an STL file and turn it into a signed distance field. 
 
@@ -44,7 +53,7 @@ g++ -O3 -std=c++14 main.cpp
 
 <img src="Docs/Sphinx/source/_static/example_dcel.png" width="300" alt="Signed distance field from Armadillo geometry"/>
 
-### Fast CSG operations for analytic functions
+### 3. Fast CSG operations for analytic functions
 
 Generate a spherical packed bed geometry using analytic representations of spheres.
 BVH-accelerated CSG unions lead to order-of-magnitude faster implicit function evaluation.
@@ -56,7 +65,7 @@ g++ -O3 -std=c++14 main.cpp
 
 <img src="Docs/Sphinx/source/_static/example_spheres.png" width="300" alt="Packed bed geometry"/>
 
-### Fast CSG on composite geometries
+### 4. Fast CSG on composite geometries
 
 Create an F18 implicit function using CSG on each part (65 parts in total).
 
