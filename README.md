@@ -80,12 +80,13 @@ g++ -O3 -std=c++17 main.cpp -lstdc++fs
 ```
 
 <p align="center">
-   <img src="Docs/Sphinx/source/_static/example_f18.png" width="300" alt="F18 composite geomery"/>
+   <img src="Docs/Sphinx/source/_static/example_f18.png" width="400" alt="F18 composite geomery"/>
 </p>   	
 
-### Advanced examples
+### 5. Advanced examples
 
-More complex examples that use Chombo or AMReX will also include application-specific code (some examples with AMReX and Chombo3 are provided). 
+Some complex examples that use Chombo3 or AMReX are also provided in the Examples folder.
+These include application-specific code and require installation of Chombo3 or AMReX.
 
 For more advanced usage, users can supply their own file parsers, provide their own bounding volumes, or their own BVH partitioners.
 EBGeometry is not too strict about these things, and uses rigorous templating for ensuring that the EBGeometry functionality can be extended.
