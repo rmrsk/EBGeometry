@@ -43,6 +43,7 @@ main(int argc, char* argv[])
   // we could just have called EBGeomtry::Parser::readIntoLinearBVH.
   std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, Face, BV, K>>> SDFs;
   for (const auto& f : stlFiles) {
+
     const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(f);
     mesh->flip();
 
