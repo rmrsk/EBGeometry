@@ -50,8 +50,9 @@ cd Examples/EBGeometry_DCEL
 g++ -O3 -std=c++14 main.cpp
 ./a.out armadillo.stl
 ```
-
-<img src="Docs/Sphinx/source/_static/example_dcel.png" width="300" alt="Signed distance field from Armadillo geometry"/>
+<p align="center">
+   <img src="Docs/Sphinx/source/_static/example_dcel.png" width="300" alt="Signed distance field from Armadillo geometry"/>
+</p>   
 
 ### 3. Fast CSG operations for analytic functions
 
