@@ -72,11 +72,11 @@ main(int argc, char* argv[])
   for (size_t i = 0; i < Nsamp; i++) {
     Vec3 x = Vec3(dist(rng), dist(rng), dist(rng));
 
-    x[0] *= 3*delta[0];
-    x[1] *= 3*delta[1];
-    x[2] *= 3*delta[2];
+    x[0] *= 3 * delta[0];
+    x[1] *= 3 * delta[1];
+    x[2] *= 3 * delta[2];
 
-    x += -3*lo;
+    x += -3 * lo;
 
     ranPoints.emplace_back(x);
   }
