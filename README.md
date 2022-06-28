@@ -1,13 +1,15 @@
 ## EBGeometry
 
-EBGeometry is a code for:
+
+EBGeometry is a code for
 
 1. Turning watertight and orientable surface grids into signed distance functions (SDFs).
 2. Fast evaluation of such grids using bounding volume hierarchies (BVHs).
-3. Providing fast constructive solid geometry (CSG) using BVHs. 
+3. Providing fast constructive solid geometry (CSG) unions using BVHs. 
 
 This code is header-only and can be dropped into any C++ project that supports C++14.
 It was originally written to be used with embedded-boundary (EB) codes like Chombo or AMReX.
+However, EBGeometry provides quite general SDFs, implicit functions, and CSG unions, and is useful beyond those codes. 
 
 To clone EBGeometry:
 
