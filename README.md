@@ -50,6 +50,7 @@ cd Examples/EBGeometry_DCEL
 g++ -O3 -std=c++14 main.cpp
 ./a.out armadillo.stl
 ```
+
 <p align="center">
    <img src="Docs/Sphinx/source/_static/example_dcel.png" width="300" alt="Signed distance field from Armadillo geometry"/>
 </p>   
@@ -64,7 +65,9 @@ g++ -O3 -std=c++14 main.cpp
 ./a.out
 ```
 
-<img src="Docs/Sphinx/source/_static/example_spheres.png" width="300" alt="Packed bed geometry"/>
+<p align="center">
+   <img src="Docs/Sphinx/source/_static/example_spheres.png" width="300" alt="Packed bed geometry"/>
+</p>   	   
 
 ### 4. Fast CSG on composite geometries
 
@@ -76,7 +79,9 @@ g++ -O3 -std=c++17 main.cpp -lstdc++fs
 ./a.out
 ```
 
-<img src="Docs/Sphinx/source/_static/example_f18.png" width="300" alt="F18 composite geomery"/>
+<p align="center">
+   <img src="Docs/Sphinx/source/_static/example_f18.png" width="300" alt="F18 composite geomery"/>
+</p>   	
 
 ### Advanced examples
 
