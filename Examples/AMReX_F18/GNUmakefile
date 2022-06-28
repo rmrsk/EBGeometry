@@ -4,13 +4,15 @@ USE_ASSERTION = TRUE
 
 USE_EB = TRUE
 
-USE_MPI  = TRUE
+USE_MPI  = FALSE
 USE_OMP  = FALSE
 
 COMP = gnu
 CXXSTD = c++17
 
 DIM = 3
+
+LIBRARIES += -lstd++fs
 
 CXX=g++-8
 CC=gcc-8

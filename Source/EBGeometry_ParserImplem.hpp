@@ -334,20 +334,21 @@ Parser::STL<T>::getEncoding(const std::string a_filename) noexcept
 
   std::ifstream is(a_filename, std::istringstream::in | std::ios::binary);
   if (is.good()) {
+    char chars[256];
+    is.read(chars, 256);
 
-    // If it's an ASCII file it begins with 'solid <something>' so we just
-    // check if the first 5 characters are 'solid'. Adding a null character
-    // for safety here.
-    char header[6];
-    header[5] = '\0';
-    is.read(header, 5);
+    std::string buffer(chars, is.gcount());
+    std::transform(buffer.begin(), buffer.end(), buffer.begin(), ::tolower);
 
-    if (strcmp(header, "solid") == 0) {
+    // clang-format off
+    if(buffer.find("solid") != std::string::npos && buffer.find("\n")    != std::string::npos &&
+       buffer.find("facet") != std::string::npos && buffer.find("normal")!= std::string::npos) {
       ft = Parser::Encoding::ASCII;
     }
     else {
       ft = Parser::Encoding::Binary;
     }
+    // clang-format on
   }
   else {
     std::cerr << "Parser::STL::getEncoding -- could not open file '" + a_filename + "'\n";
