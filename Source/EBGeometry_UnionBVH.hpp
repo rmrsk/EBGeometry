@@ -39,14 +39,6 @@ public:
   UnionBVH() = delete;
 
   /*!
-    @brief Partial constructor. Associates distance functions but does not build
-    BVH tree.
-    @param[in] a_distanceFunctions Signed distance functions.
-    @param[in] a_flipSign          Hook for turning inside to outside
-  */
-  UnionBVH(const std::vector<std::shared_ptr<P>>& a_distanceFunctions, const bool a_flipSign);
-
-  /*!
     @brief Full constructor.
     @param[in] a_distanceFunctions Signed distance functions.
     @param[in] a_flipSign          Hook for turning inside to outside
@@ -55,16 +47,7 @@ public:
   UnionBVH(const std::vector<std::shared_ptr<P>>& a_distanceFunctions,
            const bool                             a_flipSign,
            const BVConstructor&                   a_bvConstructor);
-
-  /*!
-    @brief Build BVH tree for the input objects. User must supply a partitioner
-    and a BV constructor for the SDF objects.
-    @param[in] a_bvConstructor Constructor for building a bounding volume that
-    encloses an object.
-  */
-  void
-  buildTree(const BVConstructor& a_bvConstructor);
-
+  
   /*!
     @brief Destructor (does nothing)
   */
@@ -84,10 +67,6 @@ public:
   getBoundingVolume() const noexcept;
 
 protected:
-  /*!
-    @brief List of primitive functions. 
-  */
-  std::vector<std::shared_ptr<const P>> m_distanceFunctions;
 
   /*!
     @brief Root node for linearized BVH tree
@@ -95,14 +74,18 @@ protected:
   std::shared_ptr<EBGeometry::BVH::LinearBVH<T, P, BV, K>> m_rootNode;
 
   /*!
-    @brief Is good or not
-  */
-  bool m_isGood;
-
-  /*!
     @brief Hook for turning inside to outside
   */
   bool m_flipSign;
+
+  /*!
+    @brief Build BVH tree for the input objects. User must supply a partitioner
+    and a BV constructor for the SDF objects.
+    @param[in] a_bvConstructor Constructor for building a bounding volume that
+    encloses an object.
+  */
+  inline void
+  buildTree(const std::vector<std::shared_ptr<P>>& a_distanceFunctions, const BVConstructor& a_bvConstructor) noexcept; 
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

@@ -17,28 +17,18 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 template <class T, class P, class BV, size_t K>
-UnionBVH<T, P, BV, K>::UnionBVH(const std::vector<std::shared_ptr<P>>& a_distanceFunctions, const bool a_flipSign)
-{
-  for (const auto& sdf : a_distanceFunctions) {
-    m_distanceFunctions.emplace_back(sdf);
-  }
-
-  m_flipSign = a_flipSign;
-  m_isGood   = false;
-}
-
-template <class T, class P, class BV, size_t K>
 UnionBVH<T, P, BV, K>::UnionBVH(const std::vector<std::shared_ptr<P>>& a_distanceFunctions,
                                 const bool                             a_flipSign,
                                 const BVConstructor&                   a_bvConstructor)
-  : UnionBVH<T, P, BV, K>(a_distanceFunctions, a_flipSign)
 {
-  this->buildTree(a_bvConstructor);
+  m_flipSign = a_flipSign;
+  
+  this->buildTree(a_distanceFunctions, a_bvConstructor);
 }
 
 template <class T, class P, class BV, size_t K>
 void
-UnionBVH<T, P, BV, K>::buildTree(const BVConstructor& a_bvConstructor)
+UnionBVH<T, P, BV, K>::buildTree(const std::vector<std::shared_ptr<P> >& a_distanceFunctions, const BVConstructor& a_bvConstructor) noexcept
 {
   using PrimList    = std::vector<std::shared_ptr<const P>>;
   using BuilderNode = EBGeometry::BVH::NodeT<T, P, BV, K>;
@@ -151,13 +141,12 @@ UnionBVH<T, P, BV, K>::buildTree(const BVConstructor& a_bvConstructor)
   };
 
   // Init the root node and partition the primitives.
-  auto root = std::make_shared<BuilderNode>(m_distanceFunctions);
+  auto root = std::make_shared<BuilderNode>(a_distanceFunctions);
 
   root->topDownSortAndPartitionPrimitives(a_bvConstructor, partitioner, stopFunc);
 
   m_rootNode = root->flattenTree();
 
-  m_isGood = true;
 }
 
 template <class T, class P, class BV, size_t K>
