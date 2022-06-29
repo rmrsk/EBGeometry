@@ -91,32 +91,32 @@ main(int argc, char* argv[])
 
     if (which_geom == 0) { // Airfoil case
       rb       = RealBox({-100, -100, -75}, {400, 100, 125});
-      filename = "../Objects/airfoil.stl";
+      filename = "../Resources/airfoil.stl";
     }
     else if (which_geom == 1) { // Sphere case
       rb       = RealBox({-400, -400, -400}, {400, 400, 400});
-      filename = "../Objects/sphere.stl";
+      filename = "../Resources/sphere.stl";
     }
     else if (which_geom == 2) { // Dodecahedron
       rb       = RealBox({-2., -2., -2.}, {2., 2., 2.});
-      filename = "../Objects/dodecahedron.stl";
+      filename = "../Resources/dodecahedron.stl";
     }
     else if (which_geom == 3) { // Horse
       rb       = RealBox({-0.12, -0.12, -0.12}, {0.12, 0.12, 0.12});
-      filename = "../Objects/horse.stl";
+      filename = "../Resources/horse.stl";
     }
     else if (which_geom == 4) { // Car
       //	    rb = RealBox({-20,-20,-20}, {20,20,20}); // Doesn't work.
       rb       = RealBox({-10, -5, -5}, {10, 5, 5}); // Works.
-      filename = "../Objects/porsche.stl";
+      filename = "../Resources/porsche.stl";
     }
     else if (which_geom == 5) { // Orion
       rb       = RealBox({-10, -5, -10}, {10, 10, 10});
-      filename = "../Objects/orion.stl";
+      filename = "../Resources/orion.stl";
     }
     else if (which_geom == 6) { // Armadillo
       rb       = RealBox({-100, -75, -100}, {100, 125, 100});
-      filename = "../Objects/armadillo.stl";
+      filename = "../Resources/armadillo.stl";
     }
 
     Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};

@@ -32,7 +32,7 @@ public:
   {
     // Get all the STL files in this directory .
     std::vector<std::string> stlFiles;
-    for (const auto& entry : std::filesystem::directory_iterator("../Objects/F18")) {
+    for (const auto& entry : std::filesystem::directory_iterator("../Resources/F18")) {
       const std::string f   = entry.path();
       const std::string ext = f.substr(f.find_last_of(".") + 1);
 

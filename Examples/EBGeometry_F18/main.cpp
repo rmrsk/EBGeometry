@@ -27,9 +27,9 @@ int
 main(int argc, char* argv[])
 {
 
-  // Get all the STL files in the Objects/F18 directory.
+  // Get all the STL files in the Resources/F18 directory.
   std::vector<std::string> stlFiles;
-  for (const auto& entry : std::filesystem::directory_iterator("../Objects/F18/")) {
+  for (const auto& entry : std::filesystem::directory_iterator("../Resources/F18/")) {
     const std::string f   = entry.path();
     const std::string ext = f.substr(f.find_last_of(".") + 1);
 
