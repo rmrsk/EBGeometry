@@ -106,6 +106,7 @@ main(int argc, char* argv[])
   slowTime += (t2 - t1);
   fastTime += (t3 - t2);
 
+  std::cout << "Bounding volume = " << lo << "\t" << hi << "\n";
   std::cout << "Time using slow union (us) = " << slowTime.count() / Nsamp << "\n";
   std::cout << "Time using fast union (us) = " << fastTime.count() / Nsamp << "\n";
   std::cout << "Average speedup = " << (1.0 * slowTime.count()) / (1.0 * fastTime.count()) << "\n";
