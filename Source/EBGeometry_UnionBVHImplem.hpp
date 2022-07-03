@@ -22,13 +22,14 @@ UnionBVH<T, P, BV, K>::UnionBVH(const std::vector<std::shared_ptr<P>>& a_distanc
                                 const BVConstructor&                   a_bvConstructor)
 {
   m_flipSign = a_flipSign;
-  
+
   this->buildTree(a_distanceFunctions, a_bvConstructor);
 }
 
 template <class T, class P, class BV, size_t K>
 void
-UnionBVH<T, P, BV, K>::buildTree(const std::vector<std::shared_ptr<P> >& a_distanceFunctions, const BVConstructor& a_bvConstructor) noexcept
+UnionBVH<T, P, BV, K>::buildTree(const std::vector<std::shared_ptr<P>>& a_distanceFunctions,
+                                 const BVConstructor&                   a_bvConstructor) noexcept
 {
   using PrimList    = std::vector<std::shared_ptr<const P>>;
   using BuilderNode = EBGeometry::BVH::NodeT<T, P, BV, K>;
@@ -146,7 +147,6 @@ UnionBVH<T, P, BV, K>::buildTree(const std::vector<std::shared_ptr<P> >& a_dista
   root->topDownSortAndPartitionPrimitives(a_bvConstructor, partitioner, stopFunc);
 
   m_rootNode = root->flattenTree();
-
 }
 
 template <class T, class P, class BV, size_t K>
