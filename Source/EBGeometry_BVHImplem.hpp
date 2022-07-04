@@ -558,7 +558,7 @@ namespace BVH {
 
   template <class T, class P, class BV, size_t K>
   inline const BV&
-  LinearBVH<T, P, BV, K>::getBoundingVolume()
+  LinearBVH<T, P, BV, K>::getBoundingVolume() const noexcept
   {
     return m_linearNodes.front()->getBoundingVolume();
   }
@@ -599,7 +599,6 @@ namespace BVH {
     //       sufficient for updating the distance and determining if we need to visit
     //       the BVH node or not.
 
-    // Shortest unsigned square distance. Initialize to something big.
     T minDist = std::numeric_limits<T>::infinity();
 
     // Create temporary storage and and priority queue (our stack).

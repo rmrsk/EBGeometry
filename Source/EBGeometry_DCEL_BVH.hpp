@@ -21,13 +21,11 @@
 // Our includes
 #include "EBGeometry_BVH.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
+#include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 namespace DCEL {
 
-  /*!
-    @brief Alias for vector of primitives.
-  */
   template <class T>
   using PrimitiveList = std::vector<std::shared_ptr<const EBGeometry::DCEL::FaceT<T>>>;
 
@@ -244,6 +242,42 @@ namespace DCEL {
   template <class T, class BV, size_t K>
   EBGeometry::BVH::PartitionerT<EBGeometry::DCEL::FaceT<T>, BV, K> defaultPartitioner =
     EBGeometry::DCEL::chunkPartitioner<T, BV, K>;
+
+  /*!
+    @brief One-liner for turning a DCEL mesh into a full-tree BVH. 
+    @param[in] a_dcelMesh Input DCEL mesh. 
+  */
+  template <class T, class BV, size_t K>
+  std::shared_ptr<EBGeometry::BVH::NodeT<T, FaceT<T>, BV, K>>
+  buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_dcelMesh)
+  {
+    auto bvh = std::make_shared<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>(a_dcelMesh->getFaces());
+
+    bvh->topDownSortAndPartitionPrimitives(EBGeometry::DCEL::defaultBVConstructor<T, BV>,
+                                           EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
+                                           EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
+
+    return bvh;
+  }
+
+  /*!
+    @brief One-liner for turning a DCEL mesh into a flattened BVH tree. 
+    @param[in] a_dcelMesh Input DCEL mesh. 
+  */
+  template <class T, class BV, size_t K>
+  std::shared_ptr<EBGeometry::BVH::LinearBVH<T, FaceT<T>, BV, K>>
+  buildFlatBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_dcelMesh)
+  {
+    auto bvh = std::make_shared<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>(a_dcelMesh->getFaces());
+
+    bvh->topDownSortAndPartitionPrimitives(EBGeometry::DCEL::defaultBVConstructor<T, BV>,
+                                           EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
+                                           EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
+
+    auto node = bvh->flattenTree();
+
+    return node;
+  }
 } // namespace DCEL
 
 #include "EBGeometry_NamespaceFooter.hpp"

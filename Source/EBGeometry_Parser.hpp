@@ -57,15 +57,47 @@ namespace Parser {
   */
   template <typename T>
   inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-  read(const std::string a_filename) noexcept;
+  readIntoDCEL(const std::string a_filename) noexcept;
 
   /*!
-    @brief Read multiple files contain single watertight objects
+    @brief Read multiple files containing single watertight objects
     @param[in] a_files File names
   */
   template <typename T>
   inline static std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>>
-  read(const std::vector<std::string> a_files) noexcept;
+  readIntoDCEL(const std::vector<std::string> a_files) noexcept;
+
+  /*!
+    @brief Read a file containing a single watertight object. 
+    @param[in] a_filename File name
+  */
+  template <typename T, typename BV, size_t K>
+  inline static std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>
+  readIntoFullBVH(const std::string a_filename) noexcept;
+
+  /*!
+    @brief Read multiple files containing single watertight objects
+    @param[in] a_files File names
+  */
+  template <typename T, typename BV, size_t K>
+  inline static std::vector<std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>>
+  readIntoFullBVH(const std::vector<std::string> a_files) noexcept;
+
+  /*!
+    @brief Read a file containing a single watertight object. 
+    @param[in] a_filename File name
+  */
+  template <typename T, typename BV, size_t K>
+  inline static std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>>
+  readIntoLinearBVH(const std::string a_filename) noexcept;
+
+  /*!
+    @brief Read multiple files containing single watertight objects
+    @param[in] a_files File names
+  */
+  template <typename T, typename BV, size_t K>
+  inline static std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>>>
+  readIntoLinearBVH(const std::vector<std::string> a_files) noexcept;
 
   /*!
     @brief Get file type

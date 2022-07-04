@@ -19,60 +19,55 @@ using T    = float;
 using SDF  = EBGeometry::SignedDistanceFunction<T>;
 using Vec3 = EBGeometry::Vec3T<T>;
 
-namespace amrex {
-  namespace EB2 {
+/*!
+  @brief This is just an EBGeometry-exposed signed distance field usable with
+  AMReX.
+*/
+class AMReXSDF
+{
+public:
+  /*!
+    @brief Full constructor.
+    @param[in] a_sdf Signed distance function.
+    @param[in] a_flipSign Hook for swapping inside/outside.
+  */
+  AMReXSDF(std::shared_ptr<SDF>& a_sdf)
+  {
+    m_sdf = a_sdf;
+  }
 
-    /*!
-      @brief This is just an EBGeometry-exposed signed distance field usable with
-      AMReX.
-    */
-    class AMReXSDF
-    {
-    public:
-      /*!
-	@brief Full constructor.
-	@param[in] a_sdf Signed distance function.
-	@param[in] a_flipSign Hook for swapping inside/outside.
-      */
-      AMReXSDF(std::shared_ptr<SDF>& a_sdf)
-      {
-        m_sdf = a_sdf;
-      }
+  /*!
+    @brief Copy constructor.
+    @param[in] a_other Other SDF.
+  */
+  AMReXSDF(const AMReXSDF& a_other)
+  {
+    this->m_sdf = a_other.m_sdf;
+  }
 
-      /*!
-	@brief Copy constructor.
-	@param[in] a_other Other SDF.
-      */
-      AMReXSDF(const AMReXSDF& a_other)
-      {
-        this->m_sdf = a_other.m_sdf;
-      }
+  /*!
+    @brief AMReX's implicit function definition.
+  */
+  Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+  {
+    return m_sdf->signedDistance(m_sdf->transformPoint(Vec3(x, y, z)));
+  };
 
-      /*!
-	@brief AMReX's implicit function definition.
-      */
-      Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
-      {
-        return m_sdf->signedDistance(m_sdf->transformPoint(Vec3(x, y, z)));
-      };
+  /*!
+    @brief Also an AMReX implicit function implementation
+  */
+  inline Real
+  operator()(const RealArray& p) const noexcept
+  {
+    return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
+  }
 
-      /*!
-	@brief Also an AMReX implicit function implementation
-      */
-      inline Real
-      operator()(const RealArray& p) const noexcept
-      {
-        return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
-      }
-
-    protected:
-      /*!
-	@brief EBGeometry signed distance function.
-      */
-      std::shared_ptr<SDF> m_sdf;
-    };
-  } // namespace EB2
-} // namespace amrex
+protected:
+  /*!
+    @brief EBGeometry signed distance function.
+  */
+  std::shared_ptr<SDF> m_sdf;
+};
 
 int
 main(int argc, char* argv[])
@@ -157,7 +152,7 @@ main(int argc, char* argv[])
   Box domain(IntVect(0), IntVect(n_cell - 1));
   geom.define(domain);
 
-  EB2::AMReXSDF sdf(func);
+  AMReXSDF sdf(func);
 
   auto gshop = EB2::makeShop(sdf);
   EB2::Build(gshop, geom, 0, 0);

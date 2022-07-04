@@ -1,71 +1,97 @@
-EBGeometry
-----------
+## EBGeometry
 
-EBGeometry is a code for:
+EBGeometry is a code for
 
-1. Computing signed distance functions to watertight and orientable surface grids.
-2. Enabling fast distance and implicit functions with bounding volume hierarchies. 
+1. Turning watertight and orientable surface grids into signed distance functions (SDFs).
+2. Fast evaluation of such grids using bounding volume hierarchies (BVHs).
+3. Providing fast constructive solid geometry (CSG) unions using BVHs. 
 
-This code was originally written to be used with embedded-boundary (EB) codes like Chombo or AMReX.
-
-Tesselations must consist of planar polygons (not necessarily triangles).
-Internally, the surface mesh is stored in a doubly-connected edge list (DCEL), i.e. a half-edge data structure. 
-On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can be computed in various ways:
-
-* Directly, by iterating through all facets.
-* With conventional bounding volume hierarchies (BVHs).
-* With compact (linearized) BVHs.
-
-The BVHs in EBGeometry are not limited to facets.
-One can also embed entire objects (e.g., analytic functions) in the BVHs, e.g. the BVH accelerator can be used to accelerate the signed distance computation when geometries contain many objects.
-Once can also use the BVH accelerator to accelate constructive solid geometry (CSG) operations like unions. 
-BVHs can also be nested so that the BVH accelerator is used to embed signed distance objects that are themselves described by a BVH. 
-For example, a scene consisting of many objects described by surface grids can be embedded as a BVH-of-BVH type of scene.
-In addition to all of this, EBGeometry provides standard operators for signed distance fields like rotations, translations, and scalings.
-
-<img src="example.png" width="400" alt="Signed distance field from Armadillo geometry"/>
-
-Requirements
-------------
-
-* A C++ compiler which supports C++14.
-
-Documentation
--------------
-
-User documentation is available as [HTML](https://rmrsk.github.io/EBGeometry/) or as a [PDF](https://github.com/rmrsk/EBGeometry/raw/gh-pages/ebgeometry.pdf).
-A doxygen-generated API is [also available](https://rmrsk.github.io/EBGeometry/doxygen/html/index.html).
-
-Basic usage
------------
-
-EBGeometry is a header-only library in C++.
-To use it, simply make EBGeometry.hpp visible to your code and include it.
+This code is header-only and can be dropped into any C++ project that supports C++14.
+It was originally written to be used with embedded-boundary (EB) codes like Chombo or AMReX.
+However, EBGeometry provides quite general SDFs, implicit functions, and CSG unions, and is useful beyond those codes. 
 
 To clone EBGeometry:
 
     git clone git@github.com:rmrsk/EBGeometry.git
 
-Various examples are given in the Examples folder.
+## Requirements
+
+* A C++ compiler which supports C++14.
+
+EBGeometry is a header-only library in C++ and has no external dependencies.
+To use it, simply make EBGeometry.hpp visible to your code and include it.
+
+## Documentation
+
+User documentation is available as [HTML](https://rmrsk.github.io/EBGeometry/) or as a [PDF](https://github.com/rmrsk/EBGeometry/raw/gh-pages/ebgeometry.pdf).
+A doxygen-generated API is [also available](https://rmrsk.github.io/EBGeometry/doxygen/html/index.html).
+
+## Example quickstart
+
+Several examples are given in the Examples folder.
 To run one of the examples, navigate to the example and compile and run it.
-E.g.,
+
+### 1. Analytic distance fields
+
+Use one of the analytic signed distance fields in EBGeometry, and rotate and transform it.
+
+```
+cd Examples/EBGeometry_Shapes
+g++ -O3 -std=c++14 main.cpp
+./a.out
+```
+
+### 2. Creating an SDF from a surface grid
+
+Read in an STL file and turn it into a signed distance field. 
 
 ```
 cd Examples/EBGeometry_DCEL
 g++ -O3 -std=c++14 main.cpp
-./a.out porsche.ply
+./a.out armadillo.stl
 ```
 
-More complex examples that use Chombo or AMReX will also include application-specific code.
+<p align="center">
+   <img src="Docs/Sphinx/source/_static/example_dcel.png" width="300" alt="Signed distance field from Armadillo geometry"/>
+</p>   
 
-Advanced usage
---------------
+### 3. Fast CSG operations for analytic functions
 
-For more advanced usage, users can supply their own file parsers (PLY and STL files are currently supported), provide their own bounding volumes, or their own BVH partitioners.
+Generate a spherical packed bed geometry using analytic representations of spheres.
+BVH-accelerated CSG unions lead to order-of-magnitude faster implicit function evaluation.
+```
+cd Examples/EBGeometry_Union
+g++ -O3 -std=c++14 main.cpp
+./a.out
+```
+
+<p align="center">
+   <img src="Docs/Sphinx/source/_static/example_spheres.png" width="300" alt="Packed bed geometry"/>
+</p>   	   
+
+### 4. Fast CSG on composite geometries
+
+Create an F18 implicit function using CSG on each part (65 parts in total).
+
+```
+cd Examples/EBGeometry_F18
+g++ -O3 -std=c++17 main.cpp -lstdc++fs
+./a.out
+```
+
+<p align="center">
+   <img src="Docs/Sphinx/source/_static/example_f18.png" width="400" alt="F18 composite geomery"/>
+</p>   	
+
+### 5. Advanced examples
+
+Some complex examples that use Chombo3 or AMReX are also provided in the Examples folder.
+These include application-specific code and require installation of Chombo3 or AMReX.
+
+For more advanced usage, users can supply their own file parsers, provide their own bounding volumes, or their own BVH partitioners.
 EBGeometry is not too strict about these things, and uses rigorous templating for ensuring that the EBGeometry functionality can be extended.
 
-Contributing
-------------
+## Contributing
 
 1. Create a branch for the new feature.
 
