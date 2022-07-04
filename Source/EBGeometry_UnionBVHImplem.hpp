@@ -180,7 +180,7 @@ UnionBVH<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
   };
 
   BVH::Pruner<T> unionPruner = [](const T& bvDist, const T& minDist) -> bool {
-    return bvDist <= 0.0 || bvDist < minDist && minDist > 0.0;
+    return bvDist <= 0.0 || bvDist <= minDist;
   };
 
   const T value = m_rootNode->stackPrune(a_point, unionComparator, unionPruner);
