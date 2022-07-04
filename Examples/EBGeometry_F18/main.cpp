@@ -40,8 +40,9 @@ main(int argc, char* argv[])
 
   // Read each STL file. These STL files happen to have normal vectors pointing inwards
   // so we flip them.
-  std::vector<std::shared_ptr<Mesh>>                                       slowSDFs;
-  std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, Face, BV, K>>> fastSDFs;
+  std::vector<std::shared_ptr<Mesh>>   slowSDFs;
+  std::vector<std::shared_ptr<LinBVH>> fastSDFs;
+
   for (const auto& f : stlFiles) {
     const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(f);
     mesh->flip();
@@ -51,21 +52,23 @@ main(int argc, char* argv[])
     fastSDFs.emplace_back(EBGeometry::DCEL::buildFlatBVH<T, BV, K>(mesh));
   }
 
-  // Create four representations of each object. We use a slow/fast union and slow/fast SDF representation of each object.
-  EBGeometry::BVH::BVConstructorT<Mesh, BV> bvConstructorSlow = [](const std::shared_ptr<const Mesh>& a_prim) -> BV {
+  // Create four representations of the same object. We use a slow/fast union and
+  // slow/fast SDF representation.
+  EBGeometry::BVH::BVConstructorT<Mesh, BV> bvSlow = [](const std::shared_ptr<const Mesh>& a_prim) -> BV {
     return BV(a_prim->getAllVertexCoordinates());
   };
 
-  EBGeometry::BVH::BVConstructorT<LinBVH, BV> bvConstructorFast =
-    [](const std::shared_ptr<const LinBVH>& a_prim) -> BV { return a_prim->getBoundingVolume(); };
+  EBGeometry::BVH::BVConstructorT<LinBVH, BV> bvFast = [](const std::shared_ptr<const LinBVH>& a_prim) -> BV {
+    return a_prim->getBoundingVolume();
+  };
 
   EBGeometry::Union<T, Mesh>             slowUnionSlowSDF(slowSDFs, false);
   EBGeometry::Union<T, LinBVH>           slowUnionFastSDF(fastSDFs, false);
-  EBGeometry::UnionBVH<T, Mesh, BV, K>   fastUnionSlowSDF(slowSDFs, false, bvConstructorSlow);
-  EBGeometry::UnionBVH<T, LinBVH, BV, K> fastUnionFastSDF(fastSDFs, false, bvConstructorFast);
+  EBGeometry::UnionBVH<T, Mesh, BV, K>   fastUnionSlowSDF(slowSDFs, false, bvSlow);
+  EBGeometry::UnionBVH<T, LinBVH, BV, K> fastUnionFastSDF(fastSDFs, false, bvFast);
 
   // Sample some random positions
-  constexpr size_t Nsamp = 100;
+  constexpr size_t Nsamp = 500;
 
   const Vec3 lo    = fastUnionFastSDF.getBoundingVolume().getLowCorner();
   const Vec3 hi    = fastUnionFastSDF.getBoundingVolume().getHighCorner();
@@ -79,11 +82,11 @@ main(int argc, char* argv[])
   for (size_t i = 0; i < Nsamp; i++) {
     Vec3 x = Vec3(dist(rng), dist(rng), dist(rng));
 
-    x[0] *= 3 * delta[0];
-    x[1] *= 3 * delta[1];
-    x[2] *= 3 * delta[2];
+    x[0] *= 2 * delta[0];
+    x[1] *= 2 * delta[1];
+    x[2] *= 2 * delta[2];
 
-    x += -3 * lo;
+    x += -2 * lo;
 
     ranPoints.emplace_back(x);
   }
