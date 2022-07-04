@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['node_694',['Node',['../classBVH_1_1NodeT.html#ac52d9b56f082002c7f8be91062c40ff8',1,'BVH::NodeT']]],
-  ['nodeptr_695',['NodePtr',['../classBVH_1_1NodeT.html#a008f5c2c53adb1f5730d8478b48529b1',1,'BVH::NodeT']]]
+  ['stopfunctiont_690',['StopFunctionT',['../namespaceBVH.html#afef1c5979c34a11d23b756cc09654bf9',1,'BVH']]]
 ];

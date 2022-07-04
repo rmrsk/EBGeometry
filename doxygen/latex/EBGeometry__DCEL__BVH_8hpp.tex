@@ -7,6 +7,7 @@ File which contains partitioners and lambdas for enclosing \mbox{\hyperlink{name
 
 {\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+B\+V\+H.\+hpp\char`\"{}}\newline
 {\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+D\+C\+E\+L\+\_\+\+Face.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+D\+C\+E\+L\+\_\+\+Mesh.\+hpp\char`\"{}}\newline
 {\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Namespace\+Header.\+hpp\char`\"{}}\newline
 {\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Namespace\+Footer.\+hpp\char`\"{}}\newline
 Include dependency graph for E\+B\+Geometry\+\_\+\+D\+C\+E\+L\+\_\+\+B\+V\+H.\+hpp\+:
@@ -34,8 +35,15 @@ This graph shows which files directly or indirectly include this file\+:
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{namespaceDCEL_afa38b655d6b4f449cd7b02fef3109f38}\label{namespaceDCEL_afa38b655d6b4f449cd7b02fef3109f38}} 
-{\footnotesize template$<$class T $>$ }\\using \mbox{\hyperlink{namespaceDCEL_afa38b655d6b4f449cd7b02fef3109f38}{D\+C\+E\+L\+::\+Primitive\+List}} = std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const E\+B\+Geometry\+::\+D\+C\+E\+L\+::\+FaceT$<$ T $>$ $>$$>$
-\begin{DoxyCompactList}\small\item\em Alias for vector of primitives. \end{DoxyCompactList}\end{DoxyCompactItemize}
+{\footnotesize template$<$class T $>$ }\\using {\bfseries D\+C\+E\+L\+::\+Primitive\+List} = std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const E\+B\+Geometry\+::\+D\+C\+E\+L\+::\+FaceT$<$ T $>$ $>$$>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$class T , class BV , size\+\_\+t K$>$ }\\std\+::shared\+\_\+ptr$<$ E\+B\+Geometry\+::\+B\+V\+H\+::\+NodeT$<$ T, FaceT$<$ T $>$, BV, K $>$ $>$ \mbox{\hyperlink{namespaceDCEL_a43ae660dcc39a718db47103bd5ba54e3}{D\+C\+E\+L\+::build\+Full\+B\+VH}} (const std\+::shared\+\_\+ptr$<$ E\+B\+Geometry\+::\+D\+C\+E\+L\+::\+MeshT$<$ T $>$$>$ \&a\+\_\+dcel\+Mesh)
+\begin{DoxyCompactList}\small\item\em One-\/liner for turning a \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} mesh into a full-\/tree \mbox{\hyperlink{namespaceBVH}{B\+VH}}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , class BV , size\+\_\+t K$>$ }\\std\+::shared\+\_\+ptr$<$ E\+B\+Geometry\+::\+B\+V\+H\+::\+Linear\+B\+VH$<$ T, FaceT$<$ T $>$, BV, K $>$ $>$ \mbox{\hyperlink{namespaceDCEL_a276e5e41bf5eb6c35ea5d44e24ebb211}{D\+C\+E\+L\+::build\+Flat\+B\+VH}} (const std\+::shared\+\_\+ptr$<$ E\+B\+Geometry\+::\+D\+C\+E\+L\+::\+MeshT$<$ T $>$$>$ \&a\+\_\+dcel\+Mesh)
+\begin{DoxyCompactList}\small\item\em One-\/liner for turning a \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} mesh into a flattened \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Variables}
 \begin{DoxyCompactItemize}
 \item 

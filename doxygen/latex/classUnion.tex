@@ -1,8 +1,8 @@
-\hypertarget{classUnion}{}\doxysection{Union$<$ T $>$ Class Template Reference}
-\label{classUnion}\index{Union$<$ T $>$@{Union$<$ T $>$}}
+\hypertarget{classUnion}{}\doxysection{Union$<$ T, P $>$ Class Template Reference}
+\label{classUnion}\index{Union$<$ T, P $>$@{Union$<$ T, P $>$}}
 
 
-C\+SG union. Computes the minimum of all input implicit functions. This is defined also when objects in the scene overlap one another. It will also be well-\/defined for signed distance functions.  
+C\+SG union. Computes the minimum of all input primitives. This is defined also when objects in the scene overlap one another. It will also.  
 
 
 
@@ -11,7 +11,7 @@ C\+SG union. Computes the minimum of all input implicit functions. This is defin
 
 
 
-Inheritance diagram for Union$<$ T $>$\+:
+Inheritance diagram for Union$<$ T, P $>$\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -21,7 +21,7 @@ Inheritance diagram for Union$<$ T $>$\+:
 \end{figure}
 
 
-Collaboration diagram for Union$<$ T $>$\+:
+Collaboration diagram for Union$<$ T, P $>$\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -29,54 +29,43 @@ Collaboration diagram for Union$<$ T $>$\+:
 \includegraphics[width=203pt]{classUnion__coll__graph}
 \end{center}
 \end{figure}
-\doxysubsection*{Public Types}
-\begin{DoxyCompactItemize}
-\item 
-\mbox{\Hypertarget{classUnion_a165df94d38074e6171ede9a9b643c05b}\label{classUnion_a165df94d38074e6171ede9a9b643c05b}} 
-using {\bfseries Imp\+Func} = \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$
-\item 
-\mbox{\Hypertarget{classUnion_a9e9d1d95ae54fa471c6f29e778239021}\label{classUnion_a9e9d1d95ae54fa471c6f29e778239021}} 
-using {\bfseries S\+DF} = \mbox{\hyperlink{classSignedDistanceFunction}{Signed\+Distance\+Function}}$<$ T $>$
-\end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classUnion_a2dea7d7ed6d5456f87feff0e02c99453}\label{classUnion_a2dea7d7ed6d5456f87feff0e02c99453}} 
-\mbox{\hyperlink{classUnion_a2dea7d7ed6d5456f87feff0e02c99453}{Union}} ()=delete
+\mbox{\Hypertarget{classUnion_aa8c4c6acaa20bf3c16ec105f1a123e11}\label{classUnion_aa8c4c6acaa20bf3c16ec105f1a123e11}} 
+\mbox{\hyperlink{classUnion_aa8c4c6acaa20bf3c16ec105f1a123e11}{Union}} ()=delete
 \begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classUnion_a6d33a1cf4b37be23da9e0ab839a9c262}{Union}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Imp\+Func}} $>$$>$ \&a\+\_\+implicit\+Functions, const bool a\+\_\+flip\+Sign)
+\mbox{\hyperlink{classUnion_ab21d9b892f4e9d9aa79277f3ad4032bf}{Union}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+primitives, const bool a\+\_\+flip\+Sign)
 \begin{DoxyCompactList}\small\item\em Full constructor. Computes the C\+SG union. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classUnion_a5f3b3682b1888ee2e574ad80d4f582da}{Union}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classSignedDistanceFunction}{S\+DF}} $>$$>$ \&a\+\_\+distance\+Functions, const bool a\+\_\+flip\+Sign)
-\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classUnion_a5c4f15da1b35f6f6643d49ed18faa386}\label{classUnion_a5c4f15da1b35f6f6643d49ed18faa386}} 
-virtual \mbox{\hyperlink{classUnion_a5c4f15da1b35f6f6643d49ed18faa386}{$\sim$\+Union}} ()=default
+\mbox{\Hypertarget{classUnion_af11948ba4db9a93446bde819f31f49ce}\label{classUnion_af11948ba4db9a93446bde819f31f49ce}} 
+virtual \mbox{\hyperlink{classUnion_af11948ba4db9a93446bde819f31f49ce}{$\sim$\+Union}} ()=default
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classUnion_ab6f5f12fdd7bc39b4598f45ec70cd4b2}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+T \mbox{\hyperlink{classUnion_af7d14a7b9a916489f2dfb16ffa3da5b2}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
 \begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classUnion_a7914b88dabc03d1bf9e6b43a2e01da98}\label{classUnion_a7914b88dabc03d1bf9e6b43a2e01da98}} 
-std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classImplicitFunction}{Imp\+Func}} $>$ $>$ \mbox{\hyperlink{classUnion_a7914b88dabc03d1bf9e6b43a2e01da98}{m\+\_\+implicit\+Functions}}
-\begin{DoxyCompactList}\small\item\em List of implicit functions. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classUnion_a53b9705419030572836a540e7fa3752f}\label{classUnion_a53b9705419030572836a540e7fa3752f}} 
-bool \mbox{\hyperlink{classUnion_a53b9705419030572836a540e7fa3752f}{m\+\_\+flip\+Sign}}
+\mbox{\Hypertarget{classUnion_ad59e877314c00c35b366a463b05062f8}\label{classUnion_ad59e877314c00c35b366a463b05062f8}} 
+std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$ \mbox{\hyperlink{classUnion_ad59e877314c00c35b366a463b05062f8}{m\+\_\+primitives}}
+\begin{DoxyCompactList}\small\item\em List of primitives. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classUnion_a2ea42d9aa14c07c50a132d35d5b9ef8f}\label{classUnion_a2ea42d9aa14c07c50a132d35d5b9ef8f}} 
+bool \mbox{\hyperlink{classUnion_a2ea42d9aa14c07c50a132d35d5b9ef8f}{m\+\_\+flip\+Sign}}
 \begin{DoxyCompactList}\small\item\em Hook for turning inside to outside. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-\subsubsection*{template$<$class T$>$\newline
-class Union$<$ T $>$}
+\subsubsection*{template$<$class T, class P$>$\newline
+class Union$<$ T, P $>$}
 
-C\+SG union. Computes the minimum of all input implicit functions. This is defined also when objects in the scene overlap one another. It will also be well-\/defined for signed distance functions. 
+C\+SG union. Computes the minimum of all input primitives. This is defined also when objects in the scene overlap one another. It will also. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classUnion_a6d33a1cf4b37be23da9e0ab839a9c262}\label{classUnion_a6d33a1cf4b37be23da9e0ab839a9c262}} 
-\index{Union$<$ T $>$@{Union$<$ T $>$}!Union@{Union}}
-\index{Union@{Union}!Union$<$ T $>$@{Union$<$ T $>$}}
-\doxysubsubsection{\texorpdfstring{Union()}{Union()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classUnion}{Union}}$<$ T $>$\+::\mbox{\hyperlink{classUnion}{Union}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Imp\+Func}} $>$$>$ \&}]{a\+\_\+implicit\+Functions,  }\item[{const bool}]{a\+\_\+flip\+Sign }\end{DoxyParamCaption})}
+\mbox{\Hypertarget{classUnion_ab21d9b892f4e9d9aa79277f3ad4032bf}\label{classUnion_ab21d9b892f4e9d9aa79277f3ad4032bf}} 
+\index{Union$<$ T, P $>$@{Union$<$ T, P $>$}!Union@{Union}}
+\index{Union@{Union}!Union$<$ T, P $>$@{Union$<$ T, P $>$}}
+\doxysubsubsection{\texorpdfstring{Union()}{Union()}}
+{\footnotesize\ttfamily template$<$class T , class P $>$ \\
+\mbox{\hyperlink{classUnion}{Union}}$<$ T, P $>$\+::\mbox{\hyperlink{classUnion}{Union}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+primitives,  }\item[{const bool}]{a\+\_\+flip\+Sign }\end{DoxyParamCaption})}
 
 
 
@@ -84,25 +73,7 @@ Full constructor. Computes the C\+SG union.
 
 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+implict\+Functions} & Implicit functions \\
-\hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+flip\+Sign} & Hook for turning inside to outside \\
-\hline
-\end{DoxyParams}
-\mbox{\Hypertarget{classUnion_a5f3b3682b1888ee2e574ad80d4f582da}\label{classUnion_a5f3b3682b1888ee2e574ad80d4f582da}} 
-\index{Union$<$ T $>$@{Union$<$ T $>$}!Union@{Union}}
-\index{Union@{Union}!Union$<$ T $>$@{Union$<$ T $>$}}
-\doxysubsubsection{\texorpdfstring{Union()}{Union()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classUnion}{Union}}$<$ T $>$\+::\mbox{\hyperlink{classUnion}{Union}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classSignedDistanceFunction}{S\+DF}} $>$$>$ \&}]{a\+\_\+distance\+Functions,  }\item[{const bool}]{a\+\_\+flip\+Sign }\end{DoxyParamCaption})}
-
-
-
-Full constructor. 
-
-
-\begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+implict\+Functions} & Implicit functions \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & List of primitives \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+flip\+Sign} & Hook for turning inside to outside \\
 \hline
@@ -110,12 +81,12 @@ Full constructor.
 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classUnion_ab6f5f12fdd7bc39b4598f45ec70cd4b2}\label{classUnion_ab6f5f12fdd7bc39b4598f45ec70cd4b2}} 
-\index{Union$<$ T $>$@{Union$<$ T $>$}!value@{value}}
-\index{value@{value}!Union$<$ T $>$@{Union$<$ T $>$}}
+\mbox{\Hypertarget{classUnion_af7d14a7b9a916489f2dfb16ffa3da5b2}\label{classUnion_af7d14a7b9a916489f2dfb16ffa3da5b2}} 
+\index{Union$<$ T, P $>$@{Union$<$ T, P $>$}!value@{value}}
+\index{value@{value}!Union$<$ T, P $>$@{Union$<$ T, P $>$}}
 \doxysubsubsection{\texorpdfstring{value()}{value()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-T \mbox{\hyperlink{classUnion}{Union}}$<$ T $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$class T , class P $>$ \\
+T \mbox{\hyperlink{classUnion}{Union}}$<$ T, P $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
 
 
 

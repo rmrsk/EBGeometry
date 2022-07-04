@@ -13,8 +13,8 @@ Forward declare linear node class.
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classBVH_1_1LinearNodeT_a073e87d51d44b4cc243c8f90690247a6}\label{classBVH_1_1LinearNodeT_a073e87d51d44b4cc243c8f90690247a6}} 
-using \mbox{\hyperlink{classBVH_1_1LinearNodeT_a073e87d51d44b4cc243c8f90690247a6}{Vec3}} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$
-\begin{DoxyCompactList}\small\item\em Alias for cutting down on typing. \end{DoxyCompactList}\end{DoxyCompactItemize}
+using {\bfseries Vec3} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$
+\end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
@@ -45,9 +45,9 @@ const std\+::array$<$ size\+\_\+t, K $>$ \& \mbox{\hyperlink{classBVH_1_1LinearN
 \mbox{\Hypertarget{classBVH_1_1LinearNodeT_aba361834e3d013725a92ec4b45633584}\label{classBVH_1_1LinearNodeT_aba361834e3d013725a92ec4b45633584}} 
 bool \mbox{\hyperlink{classBVH_1_1LinearNodeT_aba361834e3d013725a92ec4b45633584}{is\+Leaf}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Is leaf or not. \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classBVH_1_1LinearNodeT_a2bf5b1c514a20754d527b17e1c664630}{get\+Distance\+To\+Bounding\+Volume}} (const \mbox{\hyperlink{classBVH_1_1LinearNodeT_a073e87d51d44b4cc243c8f90690247a6}{Vec3}} \&a\+\_\+point) const noexcept
+T \mbox{\hyperlink{classBVH_1_1LinearNodeT_a2bf5b1c514a20754d527b17e1c664630}{get\+Distance\+To\+Bounding\+Volume}} (const \mbox{\hyperlink{classVec3T}{Vec3}} \&a\+\_\+point) const noexcept
 \begin{DoxyCompactList}\small\item\em Get the distance from a 3D point to the bounding volume. \end{DoxyCompactList}\item 
-std\+::vector$<$ T $>$ \mbox{\hyperlink{classBVH_1_1LinearNodeT_a9b771a1cd5c5fb0a1ab8034918aff291}{get\+Distances}} (const \mbox{\hyperlink{classBVH_1_1LinearNodeT_a073e87d51d44b4cc243c8f90690247a6}{Vec3}} \&a\+\_\+point, const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&a\+\_\+primitives) const noexcept
+std\+::vector$<$ T $>$ \mbox{\hyperlink{classBVH_1_1LinearNodeT_a9b771a1cd5c5fb0a1ab8034918aff291}{get\+Distances}} (const \mbox{\hyperlink{classVec3T}{Vec3}} \&a\+\_\+point, const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&a\+\_\+primitives) const noexcept
 \begin{DoxyCompactList}\small\item\em Compute signed distance to primitives. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
@@ -107,7 +107,7 @@ Returns m\+\_\+child\+Offsets
 \index{getDistances@{getDistances}!BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getDistances()}{getDistances()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-std\+::vector$<$ T $>$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{B\+V\+H\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Distances (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBVH_1_1LinearNodeT_a073e87d51d44b4cc243c8f90690247a6}{Vec3}} \&}]{a\+\_\+point,  }\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&}]{a\+\_\+primitives }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+std\+::vector$<$ T $>$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{B\+V\+H\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Distances (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3}} \&}]{a\+\_\+point,  }\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&}]{a\+\_\+primitives }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -128,7 +128,7 @@ Only call if this is a leaf node.
 \index{getDistanceToBoundingVolume@{getDistanceToBoundingVolume}!BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getDistanceToBoundingVolume()}{getDistanceToBoundingVolume()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-T \mbox{\hyperlink{classBVH_1_1LinearNodeT}{B\+V\+H\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Distance\+To\+Bounding\+Volume (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBVH_1_1LinearNodeT_a073e87d51d44b4cc243c8f90690247a6}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+T \mbox{\hyperlink{classBVH_1_1LinearNodeT}{B\+V\+H\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Distance\+To\+Bounding\+Volume (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 

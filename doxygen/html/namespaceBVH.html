@@ -90,7 +90,7 @@ Classes</h2></td></tr>
 Typedefs</h2></td></tr>
 <tr class="memitem:aa1e753bda451b85cd5b948722a2ad7c7"><td class="memTemplParams" colspan="2">template&lt;class P &gt; </td></tr>
 <tr class="memitem:aa1e753bda451b85cd5b948722a2ad7c7"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7">PrimitiveListT</a> = std::vector&lt; std::shared_ptr&lt; const P &gt; &gt;</td></tr>
-<tr class="memdesc:aa1e753bda451b85cd5b948722a2ad7c7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias to cut down on typing.  <a href="namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7">More...</a><br /></td></tr>
+<tr class="memdesc:aa1e753bda451b85cd5b948722a2ad7c7"><td class="mdescLeft">&#160;</td><td class="mdescRight">List of primitives.  <a href="namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7">More...</a><br /></td></tr>
 <tr class="separator:aa1e753bda451b85cd5b948722a2ad7c7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afef1c5979c34a11d23b756cc09654bf9"><td class="memTemplParams" colspan="2">template&lt;class T , class P , class BV , size_t K&gt; </td></tr>
 <tr class="memitem:afef1c5979c34a11d23b756cc09654bf9"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#afef1c5979c34a11d23b756cc09654bf9">StopFunctionT</a> = std::function&lt; bool(const <a class="el" href="classBVH_1_1NodeT.html">NodeT</a>&lt; T, P, BV, K &gt; &amp;a_node)&gt;</td></tr>
@@ -214,7 +214,7 @@ template&lt;class P &gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p>Alias to cut down on typing. </p>
+<p>List of primitives. </p>
 <p>P is the primitive bounded by the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>. </p>
 
 </div>
@@ -236,8 +236,8 @@ template&lt;class T &gt; </div>
 <p>Pruner for <a class="el" href="classBVH_1_1LinearBVH.html#a243aa537f57a55061d6a96f70a0b591f" title="Stack-based pruning algorithm (recursion-less).">LinearBVH::stackPrune</a>. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">Distance</td><td>to current bounding volume. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">minDist</td><td>Shortest "distance" to primitives found so far. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_bvDist</td><td>Distance to current bounding volume. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_minDist</td><td>Shortest "distance" to primitives found so far. </td></tr>
   </table>
   </dd>
 </dl>

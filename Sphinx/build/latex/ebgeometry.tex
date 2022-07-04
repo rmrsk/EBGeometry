@@ -61,7 +61,7 @@
 
 
 \title{EBGeometry}
-\date{Jun 27, 2022}
+\date{Jul 04, 2022}
 \release{1.0}
 \author{Robert Marskar}
 \newcommand{\sphinxlogo}{\vbox{}}
@@ -1729,13 +1729,11 @@ EBGeometry provides two implementations:
 The standard union is template as
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
-\PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{o}{\PYGZgt{}}
 \PYG{k}{class} \PYG{n+nc}{Union} \PYG{o}{:} \PYG{k}{public} \PYG{n}{ImplicitFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}
 \PYG{p}{\PYGZob{}}
 \PYG{k}{public}\PYG{o}{:}
-  \PYG{k}{using} \PYG{n}{ImpFunc} \PYG{o}{=} \PYG{n}{ImplicitFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
-
-  \PYG{k}{using} \PYG{n}{SDF} \PYG{o}{=} \PYG{n}{SignedDistanceFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
+  \PYG{c+c1}{// Regular CSG union only requires implicit functions.}
+  \PYG{k}{static\PYGZus{}assert}\PYG{p}{(}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{is\PYGZus{}base\PYGZus{}of}\PYG{o}{\PYGZlt{}}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{ImplicitFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{,} \PYG{n}{P}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{value}\PYG{p}{)}\PYG{p}{;}
 
   \PYG{c+cm}{/*!}
 \PYG{c+cm}{    @brief Disallowed, use the full constructor}
@@ -1744,17 +1742,10 @@ The standard union is template as
 
   \PYG{c+cm}{/*!}
 \PYG{c+cm}{    @brief Full constructor. Computes the CSG union}
-\PYG{c+cm}{    @param[in] a\PYGZus{}implictFunctions Implicit functions}
-\PYG{c+cm}{    @param[in] a\PYGZus{}flipSign         Hook for turning inside to outside}
+\PYG{c+cm}{    @param[in] a\PYGZus{}primitives List of primitives}
+\PYG{c+cm}{    @param[in] a\PYGZus{}flipSign   Hook for turning inside to outside}
 \PYG{c+cm}{  */}
-  \PYG{n}{Union}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{ImpFunc}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}implicitFunctions}\PYG{p}{,} \PYG{k}{const} \PYG{k+kt}{bool} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{)}\PYG{p}{;}
-
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Full constructor. }
-\PYG{c+cm}{    @param[in] a\PYGZus{}implictFunctions Implicit functions}
-\PYG{c+cm}{    @param[in] a\PYGZus{}flipSign         Hook for turning inside to outside}
-\PYG{c+cm}{  */}
-  \PYG{n}{Union}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{SDF}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}distanceFunctions}\PYG{p}{,} \PYG{k}{const} \PYG{k+kt}{bool} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{)}\PYG{p}{;}
+  \PYG{n}{Union}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{P}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}primitives}\PYG{p}{,} \PYG{k}{const} \PYG{k+kt}{bool} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{)}\PYG{p}{;}
 
   \PYG{c+cm}{/*!}
 \PYG{c+cm}{    @brief Destructor (does nothing)}
@@ -1770,9 +1761,17 @@ The standard union is template as
 
 \PYG{k}{protected}\PYG{o}{:}
   \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief List of implicit functions}
+\PYG{c+cm}{    @brief List of primitives}
 \PYG{c+cm}{  */}
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{k}{const} \PYG{n}{ImpFunc}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{m\PYGZus{}implicitFunctions}\PYG{p}{;}
+  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{k}{const} \PYG{n}{P}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{m\PYGZus{}primitives}\PYG{p}{;}
+
+  \PYG{c+cm}{/*!}
+\PYG{c+cm}{    @brief Hook for turning inside to outside}
+\PYG{c+cm}{  */}
+  \PYG{k+kt}{bool} \PYG{n}{m\PYGZus{}flipSign}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}\PYG{p}{;}
+
+\PYG{c+cp}{\PYGZsh{}}\PYG{c+cp}{include} \PYG{c+cpf}{\PYGZdq{}EBGeometry\PYGZus{}NamespaceFooter.hpp\PYGZdq{}}
 \end{sphinxVerbatim}
 
 \sphinxAtStartPar
@@ -1780,30 +1779,31 @@ Note that \sphinxcode{\sphinxupquote{EBGeometry::Union}} inherits from \sphinxco
 The implementation of the standard union is
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
-\PYG{n}{Union}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Union}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{ImpFunc}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}implicitFunctions}\PYG{p}{,} \PYG{k}{const} \PYG{k+kt}{bool} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{)}
+\PYG{n}{Union}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{P}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Union}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{P}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}primitives}\PYG{p}{,} \PYG{k}{const} \PYG{k+kt}{bool} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{)}
 \PYG{p}{\PYGZob{}}
-  \PYG{k}{for} \PYG{p}{(}\PYG{k}{const} \PYG{k}{auto}\PYG{o}{\PYGZam{}} \PYG{n+nl}{impFunc} \PYG{p}{:} \PYG{n}{a\PYGZus{}implicitFunctions}\PYG{p}{)} \PYG{p}{\PYGZob{}}
-    \PYG{n}{m\PYGZus{}implicitFunctions}\PYG{p}{.}\PYG{n}{emplace\PYGZus{}back}\PYG{p}{(}\PYG{n}{impFunc}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{for} \PYG{p}{(}\PYG{k}{const} \PYG{k}{auto}\PYG{o}{\PYGZam{}} \PYG{n+nl}{prim} \PYG{p}{:} \PYG{n}{a\PYGZus{}primitives}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+    \PYG{n}{m\PYGZus{}primitives}\PYG{p}{.}\PYG{n}{emplace\PYGZus{}back}\PYG{p}{(}\PYG{n}{prim}\PYG{p}{)}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
 
   \PYG{n}{m\PYGZus{}flipSign} \PYG{o}{=} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{;}
 \PYG{p}{\PYGZcb{}}
 
-\PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{o}{\PYGZgt{}}
-\PYG{n}{Union}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Union}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{SDF}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}distanceFunctions}\PYG{p}{,} \PYG{k}{const} \PYG{k+kt}{bool} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{)}
-\PYG{p}{\PYGZob{}}
-  \PYG{k}{for} \PYG{p}{(}\PYG{k}{const} \PYG{k}{auto}\PYG{o}{\PYGZam{}} \PYG{n+nl}{sdf} \PYG{p}{:} \PYG{n}{a\PYGZus{}distanceFunctions}\PYG{p}{)} \PYG{p}{\PYGZob{}}
-    \PYG{n}{m\PYGZus{}implicitFunctions}\PYG{p}{.}\PYG{n}{emplace\PYGZus{}back}\PYG{p}{(}\PYG{n}{sdf}\PYG{p}{)}\PYG{p}{;}
-  \PYG{p}{\PYGZcb{}}
-
-  \PYG{n}{m\PYGZus{}flipSign} \PYG{o}{=} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{;}
-\PYG{p}{\PYGZcb{}}
-
-\PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{o}{\PYGZgt{}}
+\PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{p}{,} \PYG{k}{class} \PYG{n+nc}{P}\PYG{o}{\PYGZgt{}}
 \PYG{n}{T}
-\PYG{n}{Union}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{value}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept}
+\PYG{n}{Union}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{P}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{value}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept}
 \PYG{p}{\PYGZob{}}
   \PYG{n}{T} \PYG{n}{ret} \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{numeric\PYGZus{}limits}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{infinity}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+
+  \PYG{k}{for} \PYG{p}{(}\PYG{k}{const} \PYG{k}{auto}\PYG{o}{\PYGZam{}} \PYG{n+nl}{prim} \PYG{p}{:} \PYG{n}{m\PYGZus{}primitives}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+    \PYG{n}{ret} \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{min}\PYG{p}{(}\PYG{n}{ret}\PYG{p}{,} \PYG{n}{prim}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{value}\PYG{p}{(}\PYG{n}{a\PYGZus{}point}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
+  \PYG{p}{\PYGZcb{}}
+
+  \PYG{n}{T} \PYG{n}{sign} \PYG{o}{=} \PYG{p}{(}\PYG{n}{m\PYGZus{}flipSign}\PYG{p}{)} \PYG{o}{?} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{1.0} \PYG{o}{:} \PYG{l+m+mf}{1.0}\PYG{p}{;}
+
+  \PYG{k}{return} \PYG{n}{sign} \PYG{o}{*} \PYG{n}{ret}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{c+cp}{\PYGZsh{}}\PYG{c+cp}{include} \PYG{c+cpf}{\PYGZdq{}EBGeometry\PYGZus{}NamespaceFooter.hpp\PYGZdq{}}
 \end{sphinxVerbatim}
 
 \sphinxAtStartPar
@@ -1816,101 +1816,74 @@ That is, it iterates through \sphinxstyleemphasis{all} the objects in order to f
 The BVH\sphinxhyphen{}enabled union is implemented by \sphinxcode{\sphinxupquote{EBGeometry::UnionBVH}} as follows:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
-\PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{p}{,} \PYG{k}{class} \PYG{n+nc}{BV}\PYG{p}{,} \PYG{k+kt}{size\PYGZus{}t} \PYG{n}{K}\PYG{o}{\PYGZgt{}}
-\PYG{k}{class} \PYG{n+nc}{UnionBVH} \PYG{o}{:} \PYG{k}{public} \PYG{n}{ImplicitFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}
-\PYG{p}{\PYGZob{}}
-\PYG{k}{public}\PYG{o}{:}
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Alias for cutting down on typing.}
-\PYG{c+cm}{  */}
-  \PYG{k}{using} \PYG{n}{SDF} \PYG{o}{=} \PYG{n}{SignedDistanceFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
+*/
+template \PYGZlt{}class T, class P, class BV, size\PYGZus{}t K\PYGZgt{}
+class UnionBVH : public ImplicitFunction\PYGZlt{}T\PYGZgt{}
+\PYGZob{}
+public:
+  static\PYGZus{}assert(std::is\PYGZus{}base\PYGZus{}of\PYGZlt{}EBGeometry::SignedDistanceFunction\PYGZlt{}T\PYGZgt{}, P\PYGZgt{}::value);
 
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Alias for cutting down on typing. This is a std::function\PYGZlt{}BV(SDF)\PYGZgt{},}
-\PYG{c+cm}{    i.e. a function which returns a bounding volume for an SDF}
-\PYG{c+cm}{  */}
-  \PYG{k}{using} \PYG{n}{BVConstructor} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVConstructorT}\PYG{o}{\PYGZlt{}}\PYG{n}{SDF}\PYG{p}{,} \PYG{n}{BV}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
+  using BVConstructor = EBGeometry::BVH::BVConstructorT\PYGZlt{}P, BV\PYGZgt{};
 
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Disallowed, use the full constructor}
-\PYG{c+cm}{  */}
-  \PYG{n}{UnionBVH}\PYG{p}{(}\PYG{p}{)} \PYG{o}{=} \PYG{k}{delete}\PYG{p}{;}
+  /*!
+    @brief Disallowed, use the full constructor
+  */
+  UnionBVH() = delete;
 
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Partial constructor. Associates distance functions but does not build}
-\PYG{c+cm}{    BVH tree.}
-\PYG{c+cm}{    @param[in] a\PYGZus{}distanceFunctions Signed distance functions.}
-\PYG{c+cm}{    @param[in] a\PYGZus{}flipSign          Hook for turning inside to outside}
-\PYG{c+cm}{  */}
-  \PYG{n}{UnionBVH}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{SDF}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}distanceFunctions}\PYG{p}{,} \PYG{k}{const} \PYG{k+kt}{bool} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{)}\PYG{p}{;}
+  /*!
+    @brief Full constructor.
+    @param[in] a\PYGZus{}distanceFunctions Signed distance functions.
+    @param[in] a\PYGZus{}flipSign          Hook for turning inside to outside
+    @param[in] a\PYGZus{}bvConstructor     Bounding volume constructor.
+  */
+  UnionBVH(const std::vector\PYGZlt{}std::shared\PYGZus{}ptr\PYGZlt{}P\PYGZgt{}\PYGZgt{}\PYGZam{} a\PYGZus{}distanceFunctions,
+           const bool                             a\PYGZus{}flipSign,
+           const BVConstructor\PYGZam{}                   a\PYGZus{}bvConstructor);
 
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Full constructor.}
-\PYG{c+cm}{    @param[in] a\PYGZus{}distanceFunctions Signed distance functions.}
-\PYG{c+cm}{    @param[in] a\PYGZus{}flipSign          Hook for turning inside to outside}
-\PYG{c+cm}{    @param[in] a\PYGZus{}bvConstructor     Bounding volume constructor.}
-\PYG{c+cm}{  */}
-  \PYG{n}{UnionBVH}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{SDF}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}distanceFunctions}\PYG{p}{,}
-           \PYG{k}{const} \PYG{k+kt}{bool}                               \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{,}
-           \PYG{k}{const} \PYG{n}{BVConstructor}\PYG{o}{\PYGZam{}}                     \PYG{n}{a\PYGZus{}bvConstructor}\PYG{p}{)}\PYG{p}{;}
+  /*!
+    @brief Destructor (does nothing)
+  */
+  virtual \PYGZti{}UnionBVH() = default;
 
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Build BVH tree for the input objects. User must supply a partitioner}
-\PYG{c+cm}{    and a BV constructor for the SDF objects.}
-\PYG{c+cm}{    @param[in] a\PYGZus{}bvConstructor Constructor for building a bounding volume that}
-\PYG{c+cm}{    encloses an object.}
-\PYG{c+cm}{  */}
-  \PYG{k+kt}{void}
-  \PYG{n+nf}{buildTree}\PYG{p}{(}\PYG{k}{const} \PYG{n}{BVConstructor}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}bvConstructor}\PYG{p}{)}\PYG{p}{;}
+  /*!
+    @brief Value function
+    @param[in] a\PYGZus{}point 3D point.
+  */
+  T
+  value(const Vec3T\PYGZlt{}T\PYGZgt{}\PYGZam{} a\PYGZus{}point) const noexcept override;
 
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Destructor (does nothing)}
-\PYG{c+cm}{  */}
-  \PYG{k}{virtual} \PYG{o}{\PYGZti{}}\PYG{n}{UnionBVH}\PYG{p}{(}\PYG{p}{)} \PYG{o}{=} \PYG{k}{default}\PYG{p}{;}
+  /*!
+    @brief Get the bounding volume
+  */
+  const BV\PYGZam{}
+  getBoundingVolume() const noexcept;
 
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Value function}
-\PYG{c+cm}{    @param[in] a\PYGZus{}point 3D point.}
-\PYG{c+cm}{  */}
-  \PYG{n}{T}
-  \PYG{n+nf}{value}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept} \PYG{k}{override}\PYG{p}{;}
+protected:
+  /*!
+    @brief Root node for linearized BVH tree
+  */
+  std::shared\PYGZus{}ptr\PYGZlt{}EBGeometry::BVH::LinearBVH\PYGZlt{}T, P, BV, K\PYGZgt{}\PYGZgt{} m\PYGZus{}rootNode;
 
-\PYG{k}{protected}\PYG{o}{:}
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Alias for cutting down on typing}
-\PYG{c+cm}{  */}
-  \PYG{k}{using} \PYG{n}{SDFList} \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{k}{const} \PYG{n}{SDF}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
+  /*!
+    @brief Hook for turning inside to outside
+  */
+  bool m\PYGZus{}flipSign;
 
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Builder node type in BVH tree. Tree is constructed in \PYGZdq{}full\PYGZdq{}.}
-\PYG{c+cm}{  */}
-  \PYG{k}{using} \PYG{n}{BuilderNode} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{NodeT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{SDF}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
+  /*!
+    @brief Build BVH tree for the input objects. User must supply a partitioner
+    and a BV constructor for the SDF objects.
+    @param[in] a\PYGZus{}bvConstructor Constructor for building a bounding volume that
+    encloses an object.
+  */
+  inline void
+  buildTree(const std::vector\PYGZlt{}std::shared\PYGZus{}ptr\PYGZlt{}P\PYGZgt{}\PYGZgt{}\PYGZam{} a\PYGZus{}distanceFunctions, const BVConstructor\PYGZam{} a\PYGZus{}bvConstructor) noexcept;
+\PYGZcb{};
 
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Node type in BVH tree. We use a flattened tree.}
-\PYG{c+cm}{  */}
-  \PYG{k}{using} \PYG{n}{RootNode} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{LinearBVH}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{SDF}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
+\PYGZsh{}include \PYGZdq{}EBGeometry\PYGZus{}NamespaceFooter.hpp\PYGZdq{}
 
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief List of distance functions}
-\PYG{c+cm}{  */}
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{k}{const} \PYG{n}{SDF}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{m\PYGZus{}distanceFunctions}\PYG{p}{;}
+\PYGZsh{}include \PYGZdq{}EBGeometry\PYGZus{}UnionBVHImplem.hpp\PYGZdq{}
 
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Root node for BVH tree}
-\PYG{c+cm}{  */}
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{RootNode}\PYG{o}{\PYGZgt{}} \PYG{n}{m\PYGZus{}rootNode}\PYG{p}{;}
-
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Is good or not}
-\PYG{c+cm}{  */}
-  \PYG{k+kt}{bool} \PYG{n}{m\PYGZus{}isGood}\PYG{p}{;}
-
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Hook for turning inside to outside}
-\PYG{c+cm}{  */}
-  \PYG{k+kt}{bool} \PYG{n}{m\PYGZus{}flipSign}\PYG{p}{;}
-\PYG{p}{\PYGZcb{}}\PYG{p}{;}
+\PYGZsh{}endif
 \end{sphinxVerbatim}
 
 \sphinxAtStartPar
@@ -1925,14 +1898,14 @@ After partitioning the primitives, the original BVH tree is flattened onto the c
 The implementation of the signed distance function for the BVH\sphinxhyphen{}enabled union is
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
-\PYG{n}{T}
-\PYG{n}{UnionBVH}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{value}\PYG{p}{(}\PYG{k}{const} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept}
-\PYG{p}{\PYGZob{}}
-  \PYG{k}{const} \PYG{n}{T} \PYG{n}{sign} \PYG{o}{=} \PYG{p}{(}\PYG{n}{m\PYGZus{}flipSign}\PYG{p}{)} \PYG{o}{?} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{1.0} \PYG{o}{:} \PYG{l+m+mf}{1.0}\PYG{p}{;}
-
-  \PYG{c+c1}{// For the CSG union we select the smallest value. This means that if a}
-  \PYG{c+c1}{// point is inside one object but outside another one, we choose the}
-  \PYG{c+c1}{// inside value. By design, LinearNode is a signed distance object, but the}
+  \PYG{c+c1}{// distance but there is still a CSG union, and the BVH is still a useful thing.}
+  \PYG{c+c1}{// So, we can\PYGZsq{}t use LinearNode::signedDistanceFunction because it returns the}
+  \PYG{c+c1}{// closest object and not the object with the smallest value function.}
+  \PYG{c+c1}{//}
+  \PYG{c+c1}{// Fortunately, when I wrote the LinearNode accelerator I wrote it such that we can determine}
+  \PYG{c+c1}{// how to update the \PYGZdq{}shortest\PYGZdq{} distance using externally supplied criteria.}
+  \PYG{c+c1}{// So, we just update this as f = min(f1,f2,f3) etc, and prune nodes accordingly.}
+  \PYG{c+c1}{// The criteria for that are below...}
 \end{sphinxVerbatim}
 
 \sphinxAtStartPar
@@ -2093,22 +2066,21 @@ How to call the signed distance function and provide a performance comparison be
 We will focus on the following parts of the code:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
-\PYG{k+kt}{int}
-\PYG{n+nf}{main}\PYG{p}{(}\PYG{k+kt}{int} \PYG{n}{argc}\PYG{p}{,} \PYG{k+kt}{char}\PYG{o}{*} \PYG{n}{argv}\PYG{p}{[}\PYG{p}{]}\PYG{p}{)}
-  \PYG{k}{using} \PYG{n}{BV}   \PYG{o}{=} \PYG{n}{BoundingVolumes}\PYG{o}{:}\PYG{o}{:}\PYG{n}{AABBT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
-  \PYG{k}{using} \PYG{n}{Vec3} \PYG{o}{=} \PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
-  \PYG{c+c1}{// Parse the mesh from file. One can call the signed distance function}
-  \PYG{c+c1}{// directly on the mesh, but it will iterate through every facet.}
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{cout} \PYG{o}{\PYGZlt{}}\PYG{o}{\PYGZlt{}} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{Parsing input file}\PYG{l+s+se}{\PYGZbs{}n}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{MeshT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{directSDF} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{read}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{file}\PYG{p}{)}\PYG{p}{;}
-  \PYG{c+c1}{// Create a bounding\PYGZhy{}volume hierarchy of the same mesh type. We begin by}
-  \PYG{c+c1}{// create the root node and supplying all the mesh faces to it. Here, our}
-  \PYG{c+c1}{// bounding volume hierarchy bounds the facets in a binary tree.}
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{cout} \PYG{o}{\PYGZlt{}}\PYG{o}{\PYGZlt{}} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{Partitioning BVH}\PYG{l+s+se}{\PYGZbs{}n}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
-  \PYG{k}{auto} \PYG{n}{bvhSDF} \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{make\PYGZus{}shared}\PYG{o}{\PYGZlt{}}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{NodeT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{FaceT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{directSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{getFaces}\PYG{p}{(}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
-                                            \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{defaultStopFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{)}\PYG{p}{;}
+\PYG{k}{using} \PYG{n}{T}    \PYG{o}{=} \PYG{k+kt}{float}\PYG{p}{;}
+\PYG{k}{using} \PYG{n}{BV}   \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BoundingVolumes}\PYG{o}{:}\PYG{o}{:}\PYG{n}{AABBT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
 
-            \PYG{o}{\PYGZlt{}}\PYG{o}{\PYGZlt{}} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{ us}\PYG{l+s+se}{\PYGZbs{}n}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+  \PYG{c+c1}{// Three representations of the same object. First, we get the DCEL mesh, and then}
+  \PYG{k}{const} \PYG{k}{auto} \PYG{n}{dcelSDF} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{readIntoDCEL}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{file}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{const} \PYG{k}{auto} \PYG{n}{bvhSDF}  \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{buildFullBVH}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{dcelSDF}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{const} \PYG{k}{auto} \PYG{n}{linSDF}  \PYG{o}{=} \PYG{n}{bvhSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{flattenTree}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+
+  \PYG{k}{const} \PYG{n}{Vec3} \PYG{n}{point} \PYG{o}{=} \PYG{n}{Vec3}\PYG{o}{:}\PYG{o}{:}\PYG{n}{one}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+
+  \PYG{k}{const} \PYG{k}{auto} \PYG{n}{t1}         \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{chrono}\PYG{o}{:}\PYG{o}{:}\PYG{n}{high\PYGZus{}resolution\PYGZus{}clock}\PYG{o}{:}\PYG{o}{:}\PYG{n}{now}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{const} \PYG{n}{T}    \PYG{n}{directDist} \PYG{o}{=} \PYG{n}{dcelSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{signedDistance}\PYG{p}{(}\PYG{n}{point}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{const} \PYG{k}{auto} \PYG{n}{t2}         \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{chrono}\PYG{o}{:}\PYG{o}{:}\PYG{n}{high\PYGZus{}resolution\PYGZus{}clock}\PYG{o}{:}\PYG{o}{:}\PYG{n}{now}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{const} \PYG{n}{T}    \PYG{n}{bvhDist} \PYG{o}{=} \PYG{n}{bvhSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{signedDistance}\PYG{p}{(}\PYG{n}{point}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{const} \PYG{k}{auto} \PYG{n}{t4}      \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{chrono}\PYG{o}{:}\PYG{o}{:}\PYG{n}{high\PYGZus{}resolution\PYGZus{}clock}\PYG{o}{:}\PYG{o}{:}\PYG{n}{now}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
 \end{sphinxVerbatim}
 
 
@@ -2125,7 +2097,7 @@ We point out that the parser will issue errors if the STL file is not watertight
 The second block of code, which begins with
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
-  \PYG{c+c1}{// Create a bounding\PYGZhy{}volume hierarchy of the same mesh type. We begin by}
+  \PYG{k}{const} \PYG{n}{Vec3} \PYG{n}{point} \PYG{o}{=} \PYG{n}{Vec3}\PYG{o}{:}\PYG{o}{:}\PYG{n}{one}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
 \end{sphinxVerbatim}
 
 \sphinxAtStartPar
@@ -2133,10 +2105,9 @@ creates a BVH root node and provides it with all the DCEL faces.
 The next block of code
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
-  \PYG{c+c1}{// create the root node and supplying all the mesh faces to it. Here, our}
-  \PYG{c+c1}{// bounding volume hierarchy bounds the facets in a binary tree.}
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{cout} \PYG{o}{\PYGZlt{}}\PYG{o}{\PYGZlt{}} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{Partitioning BVH}\PYG{l+s+se}{\PYGZbs{}n}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
-  \PYG{k}{auto} \PYG{n}{bvhSDF} \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{make\PYGZus{}shared}\PYG{o}{\PYGZlt{}}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{NodeT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{FaceT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{directSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{getFaces}\PYG{p}{(}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{const} \PYG{k}{auto} \PYG{n}{t1}         \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{chrono}\PYG{o}{:}\PYG{o}{:}\PYG{n}{high\PYGZus{}resolution\PYGZus{}clock}\PYG{o}{:}\PYG{o}{:}\PYG{n}{now}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{const} \PYG{n}{T}    \PYG{n}{directDist} \PYG{o}{=} \PYG{n}{dcelSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{signedDistance}\PYG{p}{(}\PYG{n}{point}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{const} \PYG{k}{auto} \PYG{n}{t2}         \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{chrono}\PYG{o}{:}\PYG{o}{:}\PYG{n}{high\PYGZus{}resolution\PYGZus{}clock}\PYG{o}{:}\PYG{o}{:}\PYG{n}{now}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
 \end{sphinxVerbatim}
 
 \sphinxAtStartPar
@@ -2146,7 +2117,7 @@ partitions the BVH using pre\sphinxhyphen{}defined partitioning functions (see {
 Finally, the BVH tree is flattened by
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
-  \PYG{k}{auto} \PYG{n}{linSDF} \PYG{o}{=} \PYG{n}{bvhSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{flattenTree}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{const} \PYG{n}{T}    \PYG{n}{linDist} \PYG{o}{=} \PYG{n}{linSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{signedDistance}\PYG{p}{(}\PYG{n}{point}\PYG{p}{)}\PYG{p}{;}
 \end{sphinxVerbatim}
 
 
@@ -2206,7 +2177,7 @@ We focus on the following parts of the code:
   \PYG{c+c1}{// Make a sphere array consisting of about M\PYGZca{}3 spheres. We assume}
   \PYG{c+c1}{// that the domain is x,y,z \PYGZbs{}in [\PYGZhy{}1,1] and set the number of spheres}
   \PYG{c+c1}{// and their radii.}
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{SDF}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{spheres}\PYG{p}{;}
+  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{Sphere}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{spheres}\PYG{p}{;}
 
   \PYG{k}{constexpr} \PYG{n}{T}   \PYG{n}{radius} \PYG{o}{=} \PYG{l+m+mf}{0.02}\PYG{p}{;}
   \PYG{k}{constexpr} \PYG{k+kt}{int} \PYG{n}{M}      \PYG{o}{=} \PYG{l+m+mi}{40}\PYG{p}{;}
@@ -2239,7 +2210,7 @@ We focus on the following parts of the code:
 
   \PYG{c+c1}{// Make a standard union of these spheres. This is the union object which}
   \PYG{c+c1}{// iterates through each and every object in the scene.}
-  \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Union}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}} \PYG{n}{slowUnion}\PYG{p}{(}\PYG{n}{spheres}\PYG{p}{,} \PYG{n+nb}{false}\PYG{p}{)}\PYG{p}{;}
+  \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Union}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{Sphere}\PYG{o}{\PYGZgt{}} \PYG{n}{slowUnion}\PYG{p}{(}\PYG{n}{spheres}\PYG{p}{,} \PYG{n+nb}{false}\PYG{p}{)}\PYG{p}{;}
   \PYG{c+c1}{// Make a fast union. To do this we must have the SDF objects (our vector of}
   \PYG{c+c1}{// spheres) as well as a way for enclosing these objects. We need to define}
 \end{sphinxVerbatim}
@@ -2256,7 +2227,7 @@ In the first block of code we are defining one million spheres that lie on a thr
   \PYG{c+c1}{// Make a sphere array consisting of about M\PYGZca{}3 spheres. We assume}
   \PYG{c+c1}{// that the domain is x,y,z \PYGZbs{}in [\PYGZhy{}1,1] and set the number of spheres}
   \PYG{c+c1}{// and their radii.}
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{SDF}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{spheres}\PYG{p}{;}
+  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{Sphere}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{spheres}\PYG{p}{;}
 
   \PYG{k}{constexpr} \PYG{n}{T}   \PYG{n}{radius} \PYG{o}{=} \PYG{l+m+mf}{0.02}\PYG{p}{;}
   \PYG{k}{constexpr} \PYG{k+kt}{int} \PYG{n}{M}      \PYG{o}{=} \PYG{l+m+mi}{40}\PYG{p}{;}
@@ -2363,99 +2334,61 @@ We will focus on the following parts of the code:
 
 \PYG{k}{using} \PYG{k}{namespace} \PYG{n}{amrex}\PYG{p}{;}
 
-\PYG{k}{namespace} \PYG{n}{amrex} \PYG{p}{\PYGZob{}}
-  \PYG{k}{namespace} \PYG{n}{EB2} \PYG{p}{\PYGZob{}}
+\PYG{c+cm}{/*!}
+\PYG{c+cm}{  @brief This is an AMReX\PYGZhy{}capable version of the EBGeometry BVH accelerator. It}
+\PYG{c+cm}{  is templated as T, BV, K which indicate the EBGeometry precision, bounding}
+\PYG{c+cm}{  volume, and tree degree.}
+\PYG{c+cm}{*/}
+\PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{p}{,} \PYG{k}{class} \PYG{n+nc}{BV}\PYG{p}{,} \PYG{k+kt}{size\PYGZus{}t} \PYG{n}{K}\PYG{o}{\PYGZgt{}}
+\PYG{k}{class} \PYG{n+nc}{AMReXSDF}
+\PYG{p}{\PYGZob{}}
+\PYG{k}{public}\PYG{o}{:}
+  \PYG{c+cm}{/*!}
+\PYG{c+cm}{    @brief Full constructor.}
+\PYG{c+cm}{    @param[in] a\PYGZus{}filename File name. Must be an STL file.}
+\PYG{c+cm}{  */}
+  \PYG{n}{AMReXSDF}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{string} \PYG{n}{a\PYGZus{}filename}\PYG{p}{)}
+  \PYG{p}{\PYGZob{}}
+    \PYG{n}{m\PYGZus{}rootNode} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{readIntoLinearBVH}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{a\PYGZus{}filename}\PYG{p}{)}\PYG{p}{;}
+  \PYG{p}{\PYGZcb{}}
 
-    \PYG{c+cm}{/*!}
-\PYG{c+cm}{      @brief This is an AMReX\PYGZhy{}capable version of the EBGeometry BVH accelerator. It}
-\PYG{c+cm}{      is templated as T, BV, K which indicate the EBGeometry precision, bounding}
-\PYG{c+cm}{      volume, and tree degree.}
-\PYG{c+cm}{    */}
-    \PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{p}{,} \PYG{k}{class} \PYG{n+nc}{BV}\PYG{p}{,} \PYG{k+kt}{int} \PYG{n}{K}\PYG{o}{\PYGZgt{}}
-    \PYG{k}{class} \PYG{n+nc}{SignedDistanceBVH}
-    \PYG{p}{\PYGZob{}}
-    \PYG{k}{public}\PYG{o}{:}
-      \PYG{c+cm}{/*!}
-\PYG{c+cm}{	@brief Alias for builder node, for encapsulating a \PYGZdq{}standard\PYGZdq{} BVH node}
-\PYG{c+cm}{      */}
-      \PYG{k}{using} \PYG{n}{BuilderNode} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{NodeT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{FaceT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
+  \PYG{c+cm}{/*!}
+\PYG{c+cm}{    @brief Copy constructor.}
+\PYG{c+cm}{    @param[in] a\PYGZus{}other Other SDF.}
+\PYG{c+cm}{  */}
+  \PYG{n}{AMReXSDF}\PYG{p}{(}\PYG{k}{const} \PYG{n}{AMReXSDF}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}other}\PYG{p}{)}
+  \PYG{p}{\PYGZob{}}
+    \PYG{k}{this}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{m\PYGZus{}rootNode} \PYG{o}{=} \PYG{n}{a\PYGZus{}other}\PYG{p}{.}\PYG{n}{m\PYGZus{}rootNode}\PYG{p}{;}
+  \PYG{p}{\PYGZcb{}}
 
-      \PYG{c+cm}{/*!}
-\PYG{c+cm}{	@brief Alias for linearized BVH node}
-\PYG{c+cm}{      */}
-      \PYG{k}{using} \PYG{n}{LinearNode} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{LinearBVH}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{FaceT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
+  \PYG{c+cm}{/*!}
+\PYG{c+cm}{    @brief AMReX\PYGZsq{}s implicit function definition.}
+\PYG{c+cm}{  */}
+  \PYG{n}{Real} \PYG{k}{operator}\PYG{p}{(}\PYG{p}{)}\PYG{p}{(}\PYG{n}{AMREX\PYGZus{}D\PYGZus{}DECL}\PYG{p}{(}\PYG{n}{Real} \PYG{n}{x}\PYG{p}{,} \PYG{n}{Real} \PYG{n}{y}\PYG{p}{,} \PYG{n}{Real} \PYG{n}{z}\PYG{p}{)}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept}
+  \PYG{p}{\PYGZob{}}
+    \PYG{k}{using} \PYG{n}{Vec3} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
 
-      \PYG{c+cm}{/*!}
-\PYG{c+cm}{	@brief Alias for always\PYGZhy{}3D vector}
-\PYG{c+cm}{      */}
-      \PYG{k}{using} \PYG{n}{Vec3} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
+    \PYG{k}{return} \PYG{n}{m\PYGZus{}rootNode}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{signedDistance}\PYG{p}{(}\PYG{n}{m\PYGZus{}rootNode}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{transformPoint}\PYG{p}{(}\PYG{n}{Vec3}\PYG{p}{(}\PYG{n}{x}\PYG{p}{,} \PYG{n}{y}\PYG{p}{,} \PYG{n}{z}\PYG{p}{)}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
+  \PYG{p}{\PYGZcb{}}\PYG{p}{;}
 
-      \PYG{c+cm}{/*!}
-\PYG{c+cm}{	@brief Full constructor.}
-\PYG{c+cm}{	@param[in] a\PYGZus{}filename File name. Must be an STL file.}
-\PYG{c+cm}{	@param[in] a\PYGZus{}flipSign Hook for swapping inside/outside.}
-\PYG{c+cm}{      */}
-      \PYG{n}{SignedDistanceBVH}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{string} \PYG{n}{a\PYGZus{}filename}\PYG{p}{,} \PYG{k}{const} \PYG{k+kt}{bool} \PYG{n}{a\PYGZus{}flipSign}\PYG{p}{)}
-      \PYG{p}{\PYGZob{}}
+  \PYG{c+cm}{/*!}
+\PYG{c+cm}{    @brief Also an AMReX implicit function implementation}
+\PYG{c+cm}{  */}
+  \PYG{k+kr}{inline} \PYG{n}{Real}
+  \PYG{n+nf}{operator}\PYG{p}{(}\PYG{p}{)}\PYG{p}{(}\PYG{k}{const} \PYG{n}{RealArray}\PYG{o}{\PYGZam{}} \PYG{n}{p}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept}
+  \PYG{p}{\PYGZob{}}
+    \PYG{k}{return} \PYG{k}{this}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{k}{operator}\PYG{p}{(}\PYG{p}{)}\PYG{p}{(}\PYG{n}{AMREX\PYGZus{}D\PYGZus{}DECL}\PYG{p}{(}\PYG{n}{p}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]}\PYG{p}{,} \PYG{n}{p}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]}\PYG{p}{,} \PYG{n}{p}\PYG{p}{[}\PYG{l+m+mi}{2}\PYG{p}{]}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
+  \PYG{p}{\PYGZcb{}}
 
-        \PYG{c+c1}{// 1. Read mesh from file.}
-        \PYG{k}{auto} \PYG{n}{mesh} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{read}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{a\PYGZus{}filename}\PYG{p}{)}\PYG{p}{;}
-
-        \PYG{c+c1}{// 2. Create a standard BVH hierarchy. This is not a compact ree.}
-        \PYG{k}{auto} \PYG{n}{root} \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{make\PYGZus{}shared}\PYG{o}{\PYGZlt{}}\PYG{n}{BuilderNode}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{mesh}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{getFaces}\PYG{p}{(}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
-        \PYG{n}{root}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{topDownSortAndPartitionPrimitives}\PYG{p}{(}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{defaultBVConstructor}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{o}{\PYGZgt{}}\PYG{p}{,}
-                                                \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{defaultPartitioner}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{,}
-                                                \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{defaultStopFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{)}\PYG{p}{;}
-
-        \PYG{c+c1}{// 3. Flatten the tree onto a tighter memory representation.}
-        \PYG{n}{m\PYGZus{}rootNode} \PYG{o}{=} \PYG{n}{root}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{flattenTree}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
-      \PYG{p}{\PYGZcb{}}
-
-      \PYG{c+cm}{/*!}
-\PYG{c+cm}{	@brief Copy constructor.}
-\PYG{c+cm}{	@param[in] a\PYGZus{}other Other SDF.}
-\PYG{c+cm}{      */}
-      \PYG{n}{SignedDistanceBVH}\PYG{p}{(}\PYG{k}{const} \PYG{n}{SignedDistanceBVH}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}other}\PYG{p}{)}
-      \PYG{p}{\PYGZob{}}
-        \PYG{k}{this}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{m\PYGZus{}rootNode} \PYG{o}{=} \PYG{n}{a\PYGZus{}other}\PYG{p}{.}\PYG{n}{m\PYGZus{}rootNode}\PYG{p}{;}
-        \PYG{k}{this}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{m\PYGZus{}flipSign} \PYG{o}{=} \PYG{n}{a\PYGZus{}other}\PYG{p}{.}\PYG{n}{m\PYGZus{}flipSign}\PYG{p}{;}
-      \PYG{p}{\PYGZcb{}}
-
-      \PYG{c+cm}{/*!}
-\PYG{c+cm}{	@brief AMReX\PYGZsq{}s implicit function definition.}
-\PYG{c+cm}{      */}
-      \PYG{n}{Real} \PYG{k}{operator}\PYG{p}{(}\PYG{p}{)}\PYG{p}{(}\PYG{n}{AMREX\PYGZus{}D\PYGZus{}DECL}\PYG{p}{(}\PYG{n}{Real} \PYG{n}{x}\PYG{p}{,} \PYG{n}{Real} \PYG{n}{y}\PYG{p}{,} \PYG{n}{Real} \PYG{n}{z}\PYG{p}{)}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept}
-      \PYG{p}{\PYGZob{}}
-        \PYG{k}{const} \PYG{n}{Real} \PYG{n}{sign} \PYG{o}{=} \PYG{p}{(}\PYG{n}{m\PYGZus{}flipSign}\PYG{p}{)} \PYG{o}{?} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{1.0} \PYG{o}{:} \PYG{l+m+mf}{1.0}\PYG{p}{;}
-
-        \PYG{k}{return} \PYG{n}{sign} \PYG{o}{*} \PYG{n}{m\PYGZus{}rootNode}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{signedDistance}\PYG{p}{(}\PYG{n}{m\PYGZus{}rootNode}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{transformPoint}\PYG{p}{(}\PYG{n}{Vec3}\PYG{p}{(}\PYG{n}{x}\PYG{p}{,} \PYG{n}{y}\PYG{p}{,} \PYG{n}{z}\PYG{p}{)}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
-      \PYG{p}{\PYGZcb{}}\PYG{p}{;}
-
-      \PYG{c+cm}{/*!}
-\PYG{c+cm}{	@brief Also an AMReX implicit function implementation}
-\PYG{c+cm}{      */}
-      \PYG{k+kr}{inline} \PYG{n}{Real}
-      \PYG{n+nf}{operator}\PYG{p}{(}\PYG{p}{)}\PYG{p}{(}\PYG{k}{const} \PYG{n}{RealArray}\PYG{o}{\PYGZam{}} \PYG{n}{p}\PYG{p}{)} \PYG{k}{const} \PYG{k}{noexcept}
-      \PYG{p}{\PYGZob{}}
-        \PYG{k}{return} \PYG{k}{this}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{k}{operator}\PYG{p}{(}\PYG{p}{)}\PYG{p}{(}\PYG{n}{AMREX\PYGZus{}D\PYGZus{}DECL}\PYG{p}{(}\PYG{n}{p}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]}\PYG{p}{,} \PYG{n}{p}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]}\PYG{p}{,} \PYG{n}{p}\PYG{p}{[}\PYG{l+m+mi}{2}\PYG{p}{]}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
-      \PYG{p}{\PYGZcb{}}
-
-    \PYG{k}{protected}\PYG{o}{:}
-      \PYG{c+cm}{/*!}
-\PYG{c+cm}{	@brief Root node of the linearized BVH hierarchy.}
-\PYG{c+cm}{      */}
-      \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{LinearNode}\PYG{o}{\PYGZgt{}} \PYG{n}{m\PYGZus{}rootNode}\PYG{p}{;}
-
-      \PYG{c+cm}{/*!}
-\PYG{c+cm}{	@brief Hook for flipping the sign}
-\PYG{c+cm}{      */}
-      \PYG{k+kt}{bool} \PYG{n}{m\PYGZus{}flipSign}\PYG{p}{;}
-    \PYG{p}{\PYGZcb{}}\PYG{p}{;}
-  \PYG{p}{\PYGZcb{}} \PYG{c+c1}{// namespace EB2}
-\PYG{p}{\PYGZcb{}} \PYG{c+c1}{// namespace amrex}
+\PYG{k}{protected}\PYG{o}{:}
+  \PYG{c+cm}{/*!}
+\PYG{c+cm}{    @brief Root node of the linearized BVH hierarchy.}
+\PYG{c+cm}{  */}
+  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{LinearBVH}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{FaceT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{m\PYGZus{}rootNode}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}\PYG{p}{;}
 
 \PYG{k+kt}{int}
-\PYG{n}{main}\PYG{p}{(}\PYG{k+kt}{int} \PYG{n}{argc}\PYG{p}{,} \PYG{k+kt}{char}\PYG{o}{*} \PYG{n}{argv}\PYG{p}{[}\PYG{p}{]}\PYG{p}{)}
+\PYG{n+nf}{main}\PYG{p}{(}\PYG{k+kt}{int} \PYG{n}{argc}\PYG{p}{,} \PYG{k+kt}{char}\PYG{o}{*} \PYG{n}{argv}\PYG{p}{[}\PYG{p}{]}\PYG{p}{)}
 \PYG{p}{\PYGZob{}}
   \PYG{n}{amrex}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Initialize}\PYG{p}{(}\PYG{n}{argc}\PYG{p}{,} \PYG{n}{argv}\PYG{p}{)}\PYG{p}{;}
 
@@ -2477,37 +2410,37 @@ We will focus on the following parts of the code:
 
     \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{0}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Airfoil case}
       \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{75}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{l+m+mi}{100}\PYG{p}{,} \PYG{l+m+mi}{125}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/airfoil.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/airfoil.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
     \PYG{p}{\PYGZcb{}}
     \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{1}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Sphere case}
       \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{400}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{l+m+mi}{400}\PYG{p}{,} \PYG{l+m+mi}{400}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/sphere.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/sphere.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
     \PYG{p}{\PYGZcb{}}
     \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{2}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Dodecahedron}
       \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2.}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{l+m+mf}{2.}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/dodecahedron.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/dodecahedron.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
     \PYG{p}{\PYGZcb{}}
     \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{3}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Horse}
       \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{0.12}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{l+m+mf}{0.12}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/horse.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/horse.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
     \PYG{p}{\PYGZcb{}}
     \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{4}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Car}
       \PYG{c+c1}{//	    rb = RealBox(\PYGZob{}\PYGZhy{}20,\PYGZhy{}20,\PYGZhy{}20\PYGZcb{}, \PYGZob{}20,20,20\PYGZcb{}); // Doesn\PYGZsq{}t work.}
       \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{5}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{5}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{l+m+mi}{5}\PYG{p}{,} \PYG{l+m+mi}{5}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;} \PYG{c+c1}{// Works.}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/porsche.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/porsche.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
     \PYG{p}{\PYGZcb{}}
     \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{5}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Orion}
       \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{5}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{l+m+mi}{10}\PYG{p}{,} \PYG{l+m+mi}{10}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/orion.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/orion.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
     \PYG{p}{\PYGZcb{}}
     \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{6}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Armadillo}
       \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{75}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{l+m+mi}{125}\PYG{p}{,} \PYG{l+m+mi}{100}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/armadillo.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/armadillo.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
     \PYG{p}{\PYGZcb{}}
 
     \PYG{n}{Array}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{int}\PYG{p}{,} \PYG{n}{AMREX\PYGZus{}SPACEDIM}\PYG{o}{\PYGZgt{}} \PYG{n}{is\PYGZus{}periodic}\PYG{p}{\PYGZob{}}\PYG{n+nb}{false}\PYG{p}{,} \PYG{n+nb}{false}\PYG{p}{,} \PYG{n+nb}{false}\PYG{p}{\PYGZcb{}}\PYG{p}{;}
     \PYG{n}{Geometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Setup}\PYG{p}{(}\PYG{o}{\PYGZam{}}\PYG{n}{rb}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{,} \PYG{n}{is\PYGZus{}periodic}\PYG{p}{.}\PYG{n}{data}\PYG{p}{(}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
-    \PYG{n}{Box} \PYG{n+nf}{domain}\PYG{p}{(}\PYG{n}{IntVect}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{)}\PYG{p}{,} \PYG{n}{IntVect}\PYG{p}{(}\PYG{n}{n\PYGZus{}cell} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
+    \PYG{n}{Box} \PYG{n}{domain}\PYG{p}{(}\PYG{n}{IntVect}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{)}\PYG{p}{,} \PYG{n}{IntVect}\PYG{p}{(}\PYG{n}{n\PYGZus{}cell} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
     \PYG{n}{geom}\PYG{p}{.}\PYG{n}{define}\PYG{p}{(}\PYG{n}{domain}\PYG{p}{)}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
 
@@ -2519,7 +2452,7 @@ We will focus on the following parts of the code:
   \PYG{k}{using} \PYG{n}{Vec3} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
   \PYG{k}{using} \PYG{n}{BV}   \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BoundingVolumes}\PYG{o}{:}\PYG{o}{:}\PYG{n}{AABBT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
 
-  \PYG{n}{EB2}\PYG{o}{:}\PYG{o}{:}\PYG{n}{SignedDistanceBVH}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}} \PYG{n}{sdf}\PYG{p}{(}\PYG{n}{filename}\PYG{p}{,} \PYG{n+nb}{false}\PYG{p}{)}\PYG{p}{;}
+  \PYG{n}{AMReXSDF}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}} \PYG{n}{sdf}\PYG{p}{(}\PYG{n}{filename}\PYG{p}{)}\PYG{p}{;}
 
   \PYG{k}{auto} \PYG{n}{gshop} \PYG{o}{=} \PYG{n}{EB2}\PYG{o}{:}\PYG{o}{:}\PYG{n}{makeShop}\PYG{p}{(}\PYG{n}{sdf}\PYG{p}{)}\PYG{p}{;}
   \PYG{n}{EB2}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Build}\PYG{p}{(}\PYG{n}{gshop}\PYG{p}{,} \PYG{n}{geom}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{)}\PYG{p}{;}
@@ -2610,41 +2543,16 @@ We will focus on the following parts of the code:
 \PYG{c+c1}{// Our includes}
 \PYG{c+cp}{\PYGZsh{}}\PYG{c+cp}{include} \PYG{c+cpf}{\PYGZdq{}EBGeometry.hpp\PYGZdq{}}
 
-\PYG{k}{using} \PYG{n}{T}    \PYG{o}{=} \PYG{k+kt}{float}\PYG{p}{;}
-\PYG{k}{using} \PYG{n}{SDF}  \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{SignedDistanceFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
-\PYG{k}{using} \PYG{n}{Vec3} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
-\PYG{k}{using} \PYG{n}{BV}   \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BoundingVolumes}\PYG{o}{:}\PYG{o}{:}\PYG{n}{AABBT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
-
 \PYG{c+c1}{// Binding for exposing EBGeometry\PYGZsq{}s signed distance functions to Chombo}
 \PYG{k}{template} \PYG{o}{\PYGZlt{}}\PYG{k}{class} \PYG{n+nc}{T}\PYG{p}{,} \PYG{k}{class} \PYG{n+nc}{BV}\PYG{p}{,} \PYG{k+kt}{int} \PYG{n}{K}\PYG{o}{\PYGZgt{}}
 \PYG{k}{class} \PYG{n+nc}{ChomboSDF} \PYG{o}{:} \PYG{k}{public} \PYG{n}{BaseIF}
 \PYG{p}{\PYGZob{}}
 \PYG{k}{public}\PYG{o}{:}
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Alias for builder node, for encapsulating a \PYGZdq{}standard\PYGZdq{} BVH node}
-\PYG{c+cm}{  */}
-  \PYG{k}{using} \PYG{n}{BuilderNode} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{NodeT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{FaceT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
-
-  \PYG{c+cm}{/*!}
-\PYG{c+cm}{    @brief Alias for linearized BVH node}
-\PYG{c+cm}{  */}
-  \PYG{k}{using} \PYG{n}{LinearNode} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{LinearBVH}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{FaceT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
-
   \PYG{n}{ChomboSDF}\PYG{p}{(}\PYG{p}{)} \PYG{o}{=} \PYG{k}{delete}\PYG{p}{;}
 
   \PYG{n}{ChomboSDF}\PYG{p}{(}\PYG{k}{const} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{string} \PYG{n}{a\PYGZus{}filename}\PYG{p}{)}
   \PYG{p}{\PYGZob{}}
-    \PYG{c+c1}{// 1. Read mesh from file.}
-    \PYG{k}{auto} \PYG{n}{mesh} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{read}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{a\PYGZus{}filename}\PYG{p}{)}\PYG{p}{;}
-
-    \PYG{c+c1}{// 2. Create standard BVH hierarchy. This is not a compact tree.}
-    \PYG{k}{auto} \PYG{n}{root} \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{make\PYGZus{}shared}\PYG{o}{\PYGZlt{}}\PYG{n}{BuilderNode}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{mesh}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{getFaces}\PYG{p}{(}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
-    \PYG{n}{root}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{topDownSortAndPartitionPrimitives}\PYG{p}{(}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{defaultBVConstructor}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{o}{\PYGZgt{}}\PYG{p}{,}
-                                            \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{defaultPartitioner}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{,}
-                                            \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{defaultStopFunction}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{)}\PYG{p}{;}
-
-    \PYG{c+c1}{// 3. Flatten the tree onto a tighter memory representation.}
-    \PYG{n}{m\PYGZus{}rootNode} \PYG{o}{=} \PYG{n}{root}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{flattenTree}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+    \PYG{n}{m\PYGZus{}rootNode} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{readIntoLinearBVH}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{a\PYGZus{}filename}\PYG{p}{)}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
 
   \PYG{n}{ChomboSDF}\PYG{p}{(}\PYG{k}{const} \PYG{n}{ChomboSDF}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}other}\PYG{p}{)}
@@ -2655,8 +2563,10 @@ We will focus on the following parts of the code:
   \PYG{n}{Real}
   \PYG{n}{value}\PYG{p}{(}\PYG{k}{const} \PYG{n}{RealVect}\PYG{o}{\PYGZam{}} \PYG{n}{a\PYGZus{}point}\PYG{p}{)} \PYG{k}{const} \PYG{k}{override} \PYG{k}{final}
   \PYG{p}{\PYGZob{}}
+    \PYG{k}{using} \PYG{n}{Vec3} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
+
 \PYG{c+cp}{\PYGZsh{}}\PYG{c+cp}{if CH\PYGZus{}SPACEDIM == 2}
-    \PYG{n}{Vec3} \PYG{n}{p}\PYG{p}{(}\PYG{n}{a\PYGZus{}point}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]}\PYG{p}{,} \PYG{n}{a\PYGZus{}point}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]}\PYG{p}{,} \PYG{l+m+mf}{0.0}\PYG{p}{)}\PYG{p}{;}
+    \PYG{n}{Vec3} \PYG{n+nf}{p}\PYG{p}{(}\PYG{n}{a\PYGZus{}point}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]}\PYG{p}{,} \PYG{n}{a\PYGZus{}point}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]}\PYG{p}{,} \PYG{l+m+mf}{0.0}\PYG{p}{)}\PYG{p}{;}
 \PYG{c+cp}{\PYGZsh{}}\PYG{c+cp}{else}
     \PYG{n}{Vec3} \PYG{n+nf}{p}\PYG{p}{(}\PYG{n}{a\PYGZus{}point}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]}\PYG{p}{,} \PYG{n}{a\PYGZus{}point}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]}\PYG{p}{,} \PYG{n}{a\PYGZus{}point}\PYG{p}{[}\PYG{l+m+mi}{2}\PYG{p}{]}\PYG{p}{)}\PYG{p}{;}
 \PYG{c+cp}{\PYGZsh{}}\PYG{c+cp}{endif}
@@ -2671,18 +2581,20 @@ We will focus on the following parts of the code:
   \PYG{p}{\PYGZcb{}}
 
 \PYG{k}{protected}\PYG{o}{:}
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{LinearNode}\PYG{o}{\PYGZgt{}} \PYG{n}{m\PYGZus{}rootNode}\PYG{p}{;}
+  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BVH}\PYG{o}{:}\PYG{o}{:}\PYG{n}{LinearBVH}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{FaceT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{o}{\PYGZgt{}} \PYG{n}{m\PYGZus{}rootNode}\PYG{p}{;}
 \PYG{p}{\PYGZcb{}}\PYG{p}{;}
 
 \PYG{k+kt}{int}
 \PYG{n+nf}{main}\PYG{p}{(}\PYG{k+kt}{int} \PYG{n}{argc}\PYG{p}{,} \PYG{k+kt}{char}\PYG{o}{*} \PYG{n}{argv}\PYG{p}{[}\PYG{p}{]}\PYG{p}{)}
 \PYG{p}{\PYGZob{}}
+  \PYG{k}{constexpr} \PYG{k+kt}{int} \PYG{n}{K} \PYG{o}{=} \PYG{l+m+mi}{4}\PYG{p}{;}
+
+  \PYG{k}{using} \PYG{n}{T}  \PYG{o}{=} \PYG{k+kt}{float}\PYG{p}{;}
+  \PYG{k}{using} \PYG{n}{BV} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BoundingVolumes}\PYG{o}{:}\PYG{o}{:}\PYG{n}{AABBT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
 
 \PYG{c+cp}{\PYGZsh{}}\PYG{c+cp}{ifdef CH\PYGZus{}MPI}
   \PYG{n}{MPI\PYGZus{}Init}\PYG{p}{(}\PYG{o}{\PYGZam{}}\PYG{n}{argc}\PYG{p}{,} \PYG{o}{\PYGZam{}}\PYG{n}{argv}\PYG{p}{)}\PYG{p}{;}
 \PYG{c+cp}{\PYGZsh{}}\PYG{c+cp}{endif}
-
-  \PYG{c+c1}{// Set up domain.}
 
   \PYG{c+c1}{// Parse input file}
   \PYG{k+kt}{char}\PYG{o}{*}     \PYG{n}{inFile} \PYG{o}{=} \PYG{n}{argv}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]}\PYG{p}{;}
@@ -2703,48 +2615,46 @@ We will focus on the following parts of the code:
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{50} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{250} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/airfoil.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/airfoil.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{1}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Sphere}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{400} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{400} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/sphere.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/sphere.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{2}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Dodecahedron}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{2} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{2} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/dodecahedron.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/dodecahedron.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{3}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Horse}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{0.12} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mf}{0.12} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/horse.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/horse.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{4}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Porsche}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{10} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/porsche.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/porsche.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{5}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Orion}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{10} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/orion.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/orion.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
   \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{whichGeom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{6}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Armadillo}
     \PYG{n}{loCorner} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{125} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
     \PYG{n}{hiCorner} \PYG{o}{=} \PYG{l+m+mi}{125} \PYG{o}{*} \PYG{n}{RealVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{;}
 
-    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Objects/armadillo.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/armadillo.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
 
-  \PYG{c+c1}{//}
-  \PYG{k}{constexpr} \PYG{k+kt}{int} \PYG{n}{K}       \PYG{o}{=} \PYG{l+m+mi}{4}\PYG{p}{;}
-  \PYG{k}{auto}          \PYG{n}{impFunc} \PYG{o}{=} \PYG{p}{(}\PYG{n}{BaseIF}\PYG{o}{*}\PYG{p}{)}\PYG{p}{(}\PYG{k}{new} \PYG{n}{ChomboSDF}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{filename}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{auto} \PYG{n}{impFunc} \PYG{o}{=} \PYG{k}{static\PYGZus{}cast}\PYG{o}{\PYGZlt{}}\PYG{n}{BaseIF}\PYG{o}{*}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{k}{new} \PYG{n}{ChomboSDF}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{filename}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
 
   \PYG{c+c1}{// Set up the Chombo EB geometry.}
   \PYG{n}{ProblemDomain} \PYG{n}{domain}\PYG{p}{(}\PYG{n}{IntVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Zero}\PYG{p}{,} \PYG{p}{(}\PYG{n}{nCells} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{)} \PYG{o}{*} \PYG{n}{IntVect}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Unit}\PYG{p}{)}\PYG{p}{;}

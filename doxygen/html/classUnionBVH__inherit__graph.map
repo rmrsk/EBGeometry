@@ -1,4 +1,4 @@
-<map id="UnionBVH&lt; T, BV, K &gt;" name="UnionBVH&lt; T, BV, K &gt;">
-<area shape="rect" id="node1" title="Distance function union using BVHs. Computes the signed distance to the closest object of possibly ov..." alt="" coords="5,80,175,107"/>
-<area shape="rect" id="node2" href="$classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="8,5,172,32"/>
+<map id="UnionBVH&lt; T, P, BV, K &gt;" name="UnionBVH&lt; T, P, BV, K &gt;">
+<area shape="rect" id="node1" title="Implicit function union using BVHs." alt="" coords="5,80,191,107"/>
+<area shape="rect" id="node2" href="$classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="16,5,180,32"/>
 </map>

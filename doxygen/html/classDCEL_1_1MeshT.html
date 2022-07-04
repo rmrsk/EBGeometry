@@ -150,6 +150,9 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <tr class="memitem:a17d4408289ce6a1b8be638cddb028b30"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1MeshT.html#a17d4408289ce6a1b8be638cddb028b30">reconcile</a> (typename <a class="el" href="classDCEL_1_1MeshT.html">DCEL::MeshT</a>&lt; T &gt;::<a class="el" href="classDCEL_1_1MeshT.html#a4548120cb514e736ae4cd8c13b418e91">VertexNormalWeight</a> a_weight=VertexNormalWeight::Angle) noexcept</td></tr>
 <tr class="memdesc:a17d4408289ce6a1b8be638cddb028b30"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reconcile function which computes the internal parameters in vertices, edges, and faces for use with signed distance functionality.  <a href="classDCEL_1_1MeshT.html#a17d4408289ce6a1b8be638cddb028b30">More...</a><br /></td></tr>
 <tr class="separator:a17d4408289ce6a1b8be638cddb028b30"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af4ee8076fcde3ff1ad085b3c01fa3c1e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1MeshT.html#af4ee8076fcde3ff1ad085b3c01fa3c1e">flip</a> () noexcept</td></tr>
+<tr class="memdesc:af4ee8076fcde3ff1ad085b3c01fa3c1e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flip the mesh, making all the normals change direction.  <a href="classDCEL_1_1MeshT.html#af4ee8076fcde3ff1ad085b3c01fa3c1e">More...</a><br /></td></tr>
+<tr class="separator:af4ee8076fcde3ff1ad085b3c01fa3c1e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a25308ecc4b98fc0cf10f327ace3987f5"><td class="memItemLeft" align="right" valign="top"><a id="a25308ecc4b98fc0cf10f327ace3987f5"></a>
 std::vector&lt; VertexPtr &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1MeshT.html#a25308ecc4b98fc0cf10f327ace3987f5">getVertices</a> () noexcept</td></tr>
 <tr class="memdesc:a25308ecc4b98fc0cf10f327ace3987f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get modifiable vertices in this mesh. <br /></td></tr>
@@ -158,6 +161,10 @@ std::vector&lt; VertexPtr &gt; &amp;&#160;</td><td class="memItemRight" valign="
 const std::vector&lt; VertexPtr &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1MeshT.html#a8c9886901c65c087a13952b299159f33">getVertices</a> () const noexcept</td></tr>
 <tr class="memdesc:a8c9886901c65c087a13952b299159f33"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get immutable vertices in this mesh. <br /></td></tr>
 <tr class="separator:a8c9886901c65c087a13952b299159f33"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a18340719fdcbfaca3c55c272cfd12d4c"><td class="memItemLeft" align="right" valign="top"><a id="a18340719fdcbfaca3c55c272cfd12d4c"></a>
+std::vector&lt; <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1MeshT.html#a18340719fdcbfaca3c55c272cfd12d4c">getAllVertexCoordinates</a> () const noexcept</td></tr>
+<tr class="memdesc:a18340719fdcbfaca3c55c272cfd12d4c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return all vertex coordinates in the mesh. <br /></td></tr>
+<tr class="separator:a18340719fdcbfaca3c55c272cfd12d4c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8495609501f0bdf1aa3ff8fcf070a493"><td class="memItemLeft" align="right" valign="top"><a id="a8495609501f0bdf1aa3ff8fcf070a493"></a>
 std::vector&lt; EdgePtr &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1MeshT.html#a8495609501f0bdf1aa3ff8fcf070a493">getEdges</a> () noexcept</td></tr>
 <tr class="memdesc:a8495609501f0bdf1aa3ff8fcf070a493"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get modifiable half-edges in this mesh. <br /></td></tr>
@@ -186,10 +193,6 @@ const std::vector&lt; FacePtr &gt; &amp;&#160;</td><td class="memItemRight" vali
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
-<tr class="memitem:a18340719fdcbfaca3c55c272cfd12d4c"><td class="memItemLeft" align="right" valign="top"><a id="a18340719fdcbfaca3c55c272cfd12d4c"></a>
-std::vector&lt; <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1MeshT.html#a18340719fdcbfaca3c55c272cfd12d4c">getAllVertexCoordinates</a> () const noexcept</td></tr>
-<tr class="memdesc:a18340719fdcbfaca3c55c272cfd12d4c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return all vertex coordinates in the mesh. <br /></td></tr>
-<tr class="separator:a18340719fdcbfaca3c55c272cfd12d4c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab9d8b1977e3e1f02e9e743aba35dbb5e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1MeshT.html#ab9d8b1977e3e1f02e9e743aba35dbb5e">reconcileFaces</a> () noexcept</td></tr>
 <tr class="memdesc:ab9d8b1977e3e1f02e9e743aba35dbb5e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function which computes internal things for the polygon faces.  <a href="classDCEL_1_1MeshT.html#ab9d8b1977e3e1f02e9e743aba35dbb5e">More...</a><br /></td></tr>
 <tr class="separator:ab9d8b1977e3e1f02e9e743aba35dbb5e"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -199,6 +202,18 @@ std::vector&lt; <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &gt;&#
 <tr class="memitem:af6f20b112be3300ed9857e349e0c7634"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1MeshT.html#af6f20b112be3300ed9857e349e0c7634">reconcileVertices</a> (typename <a class="el" href="classDCEL_1_1MeshT.html">DCEL::MeshT</a>&lt; T &gt;::<a class="el" href="classDCEL_1_1MeshT.html#a4548120cb514e736ae4cd8c13b418e91">VertexNormalWeight</a> a_weight) noexcept</td></tr>
 <tr class="memdesc:af6f20b112be3300ed9857e349e0c7634"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function which computes internal things for the vertices.  <a href="classDCEL_1_1MeshT.html#af6f20b112be3300ed9857e349e0c7634">More...</a><br /></td></tr>
 <tr class="separator:af6f20b112be3300ed9857e349e0c7634"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8c0ad58e6bb110c511a730c1fef485f1"><td class="memItemLeft" align="right" valign="top"><a id="a8c0ad58e6bb110c511a730c1fef485f1"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1MeshT.html#a8c0ad58e6bb110c511a730c1fef485f1">flipFaces</a> () noexcept</td></tr>
+<tr class="memdesc:a8c0ad58e6bb110c511a730c1fef485f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flip all face normals. <br /></td></tr>
+<tr class="separator:a8c0ad58e6bb110c511a730c1fef485f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a885a5fcd910c8c7454585c909c3689e5"><td class="memItemLeft" align="right" valign="top"><a id="a885a5fcd910c8c7454585c909c3689e5"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1MeshT.html#a885a5fcd910c8c7454585c909c3689e5">flipEdges</a> () noexcept</td></tr>
+<tr class="memdesc:a885a5fcd910c8c7454585c909c3689e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flip all edge normals. <br /></td></tr>
+<tr class="separator:a885a5fcd910c8c7454585c909c3689e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a98f2b3d5b3f29136bdea972494523e0a"><td class="memItemLeft" align="right" valign="top"><a id="a98f2b3d5b3f29136bdea972494523e0a"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1MeshT.html#a98f2b3d5b3f29136bdea972494523e0a">flipVertices</a> () noexcept</td></tr>
+<tr class="memdesc:a98f2b3d5b3f29136bdea972494523e0a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flip all vertex normal. <br /></td></tr>
+<tr class="separator:a98f2b3d5b3f29136bdea972494523e0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aef58cf2832522255daf6b73d0222391f"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1MeshT.html#aef58cf2832522255daf6b73d0222391f">DirectSignedDistance</a> (const <a class="el" href="classVec3T.html">Vec3</a> &amp;a_point) const noexcept</td></tr>
 <tr class="memdesc:aef58cf2832522255daf6b73d0222391f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Implementation of signed distance function which iterates through all faces.  <a href="classDCEL_1_1MeshT.html#aef58cf2832522255daf6b73d0222391f">More...</a><br /></td></tr>
 <tr class="separator:aef58cf2832522255daf6b73d0222391f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -483,6 +498,33 @@ template&lt;class T &gt; </div>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="af4ee8076fcde3ff1ad085b3c01fa3c1e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af4ee8076fcde3ff1ad085b3c01fa3c1e">&#9670;&nbsp;</a></span>flip()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classDCEL_1_1MeshT.html">DCEL::MeshT</a>&lt; T &gt;::flip</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Flip the mesh, making all the normals change direction. </p>
+<dl class="section note"><dt>Note</dt><dd>Should be called AFTER all normals have been computed. </dd></dl>
 
 </div>
 </div>

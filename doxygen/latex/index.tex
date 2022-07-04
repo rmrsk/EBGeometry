@@ -1,62 +1,109 @@
-\mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} is a code for\+:
+\mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} is a code for
 
 
 \begin{DoxyEnumerate}
-\item Computing signed distance functions to watertight and orientable surface grids.
-\item Enabling fast distance and implicit functions with bounding volume hierarchies.
+\item Turning watertight and orientable surface grids into signed distance functions (S\+D\+Fs).
+\item Fast evaluation of such grids using bounding volume hierarchies (B\+V\+Hs).
+\item Providing fast constructive solid geometry (C\+SG) unions using B\+V\+Hs.
 \end{DoxyEnumerate}
 
-This code was originally written to be used with embedded-\/boundary (EB) codes like Chombo or A\+M\+ReX.
+This code is header-\/only and can be dropped into any C++ project that supports C++14. It was originally written to be used with embedded-\/boundary (EB) codes like Chombo or A\+M\+ReX. However, \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} provides quite general S\+D\+Fs, implicit functions, and C\+SG unions, and is useful beyond those codes.
 
-Tesselations must consist of planar polygons (not necessarily triangles). Internally, the surface mesh is stored in a doubly-\/connected edge list (\mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}}), i.\+e. a half-\/edge data structure. On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can be computed in various ways\+:
-
-
-\begin{DoxyItemize}
-\item Directly, by iterating through all facets.
-\item With conventional bounding volume hierarchies (B\+V\+Hs).
-\item With compact (linearized) B\+V\+Hs.
-\end{DoxyItemize}
-
-The B\+V\+Hs in \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} are not limited to facets. One can also embed entire objects (e.\+g., analytic functions) in the B\+V\+Hs, e.\+g. the \mbox{\hyperlink{namespaceBVH}{B\+VH}} accelerator can be used to accelerate the signed distance computation when geometries contain many objects. Once can also use the \mbox{\hyperlink{namespaceBVH}{B\+VH}} accelerator to accelate constructive solid geometry (C\+SG) operations like unions. B\+V\+Hs can also be nested so that the \mbox{\hyperlink{namespaceBVH}{B\+VH}} accelerator is used to embed signed distance objects that are themselves described by a \mbox{\hyperlink{namespaceBVH}{B\+VH}}. For example, a scene consisting of many objects described by surface grids can be embedded as a B\+V\+H-\/of-\/\+B\+VH type of scene. In addition to all of this, \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} provides standard operators for signed distance fields like rotations, translations, and scalings.
+To clone \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}}\+: \begin{DoxyVerb}git clone git@github.com:rmrsk/EBGeometry.git
+\end{DoxyVerb}
 
 
-
-\doxysection*{Requirements }
+\doxysection*{Requirements}
 
 
 \begin{DoxyItemize}
 \item A C++ compiler which supports C++14.
 \end{DoxyItemize}
 
-\doxysection*{Documentation }
+\mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} is a header-\/only library in C++ and has no external dependencies. To use it, simply make \mbox{\hyperlink{EBGeometry_8hpp_source}{E\+B\+Geometry.\+hpp}} visible to your code and include it.
+
+\doxysection*{Documentation}
 
 User documentation is available as \href{https://rmrsk.github.io/EBGeometry/}{\texttt{ H\+T\+ML}} or as a \href{https://github.com/rmrsk/EBGeometry/raw/gh-pages/ebgeometry.pdf}{\texttt{ P\+DF}}. A doxygen-\/generated A\+PI is \href{https://rmrsk.github.io/EBGeometry/doxygen/html/index.html}{\texttt{ also available}}.
 
-\doxysection*{Basic usage }
+\doxysection*{Example quickstart}
 
-\mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} is a header-\/only library in C++. To use it, simply make \mbox{\hyperlink{EBGeometry_8hpp_source}{E\+B\+Geometry.\+hpp}} visible to your code and include it.
+Several examples are given in the Examples folder. To run one of the examples, navigate to the example and compile and run it.
 
-To clone \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}}\+: \begin{DoxyVerb}git clone git@github.com:rmrsk/EBGeometry.git
-\end{DoxyVerb}
+\doxysubsection*{1. Analytic distance fields}
+
+Use one of the analytic signed distance fields in \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}}, and rotate and transform it.
 
 
-Various examples are given in the Examples folder. To run one of the examples, navigate to the example and compile and run it. E.\+g.,
+\begin{DoxyCode}{0}
+\DoxyCodeLine{cd Examples/EBGeometry\_Shapes}
+\DoxyCodeLine{g++ -\/O3 -\/std=c++14 main.cpp}
+\DoxyCodeLine{./a.out}
+\end{DoxyCode}
+
+
+\doxysubsection*{2. Creating an S\+DF from a surface grid}
+
+Read in an S\+TL file and turn it into a signed distance field.
 
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{cd Examples/EBGeometry\_DCEL}
 \DoxyCodeLine{g++ -\/O3 -\/std=c++14 main.cpp}
-\DoxyCodeLine{./a.out porsche.ply}
+\DoxyCodeLine{./a.out armadillo.stl}
 \end{DoxyCode}
 
 
-More complex examples that use Chombo or A\+M\+ReX will also include application-\/specific code.
 
-\doxysection*{Advanced usage }
 
-For more advanced usage, users can supply their own file parsers (P\+LY and S\+TL files are currently supported), provide their own bounding volumes, or their own \mbox{\hyperlink{namespaceBVH}{B\+VH}} partitioners. \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} is not too strict about these things, and uses rigorous templating for ensuring that the \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} functionality can be extended.
+ 
 
-\doxysection*{Contributing }
+~\newline
+
+
+\doxysubsection*{3. Fast C\+SG operations for analytic functions}
+
+Generate a spherical packed bed geometry using analytic representations of spheres. B\+V\+H-\/accelerated C\+SG unions lead to order-\/of-\/magnitude faster implicit function evaluation. 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{cd Examples/EBGeometry\_Union}
+\DoxyCodeLine{g++ -\/O3 -\/std=c++14 main.cpp}
+\DoxyCodeLine{./a.out}
+\end{DoxyCode}
+
+
+
+
+ 
+
+~\newline
+
+
+\doxysubsection*{4. Fast C\+SG on composite geometries}
+
+Create an F18 implicit function using C\+SG on each part (65 parts in total).
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{cd Examples/EBGeometry\_F18}
+\DoxyCodeLine{g++ -\/O3 -\/std=c++17 main.cpp -\/lstdc++fs}
+\DoxyCodeLine{./a.out}
+\end{DoxyCode}
+
+
+
+
+ 
+
+~\newline
+
+
+\doxysubsection*{5. Advanced examples}
+
+Some complex examples that use Chombo3 or A\+M\+ReX are also provided in the Examples folder. These include application-\/specific code and require installation of Chombo3 or A\+M\+ReX.
+
+For more advanced usage, users can supply their own file parsers, provide their own bounding volumes, or their own \mbox{\hyperlink{namespaceBVH}{B\+VH}} partitioners. \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} is not too strict about these things, and uses rigorous templating for ensuring that the \mbox{\hyperlink{namespaceEBGeometry}{E\+B\+Geometry}} functionality can be extended.
+
+\doxysection*{Contributing}
 
 
 \begin{DoxyEnumerate}

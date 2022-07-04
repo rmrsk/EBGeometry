@@ -66,37 +66,58 @@ $(function() {
 <div class="title"><a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p><a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> is a code for:</p>
+<div class="textblock"><p><a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> is a code for</p>
 <ol type="1">
-<li>Computing signed distance functions to watertight and orientable surface grids.</li>
-<li>Enabling fast distance and implicit functions with bounding volume hierarchies.</li>
+<li>Turning watertight and orientable surface grids into signed distance functions (SDFs).</li>
+<li>Fast evaluation of such grids using bounding volume hierarchies (BVHs).</li>
+<li>Providing fast constructive solid geometry (CSG) unions using BVHs.</li>
 </ol>
-<p>This code was originally written to be used with embedded-boundary (EB) codes like Chombo or AMReX.</p>
-<p>Tesselations must consist of planar polygons (not necessarily triangles). Internally, the surface mesh is stored in a doubly-connected edge list (<a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a>), i.e. a half-edge data structure. On watertight and orientable grids, the distance to any feature (facet, edge, vertex) is well defined, and can be computed in various ways:</p>
-<ul>
-<li>Directly, by iterating through all facets.</li>
-<li>With conventional bounding volume hierarchies (BVHs).</li>
-<li>With compact (linearized) BVHs.</li>
-</ul>
-<p>The BVHs in <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> are not limited to facets. One can also embed entire objects (e.g., analytic functions) in the BVHs, e.g. the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> accelerator can be used to accelerate the signed distance computation when geometries contain many objects. Once can also use the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> accelerator to accelate constructive solid geometry (CSG) operations like unions. BVHs can also be nested so that the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> accelerator is used to embed signed distance objects that are themselves described by a <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>. For example, a scene consisting of many objects described by surface grids can be embedded as a BVH-of-BVH type of scene. In addition to all of this, <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> provides standard operators for signed distance fields like rotations, translations, and scalings.</p>
-<p><img src="example.png" alt="Signed distance field from Armadillo geometry" width="400" class="inline"/></p>
-<h1>Requirements </h1>
+<p>This code is header-only and can be dropped into any C++ project that supports C++14. It was originally written to be used with embedded-boundary (EB) codes like Chombo or AMReX. However, <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> provides quite general SDFs, implicit functions, and CSG unions, and is useful beyond those codes.</p>
+<p>To clone <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a>: </p><pre class="fragment">git clone git@github.com:rmrsk/EBGeometry.git
+</pre><h1>Requirements</h1>
 <ul>
 <li>A C++ compiler which supports C++14.</li>
 </ul>
-<h1>Documentation </h1>
+<p><a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> is a header-only library in C++ and has no external dependencies. To use it, simply make <a class="el" href="EBGeometry_8hpp_source.html">EBGeometry.hpp</a> visible to your code and include it.</p>
+<h1>Documentation</h1>
 <p>User documentation is available as <a href="https://rmrsk.github.io/EBGeometry/">HTML</a> or as a <a href="https://github.com/rmrsk/EBGeometry/raw/gh-pages/ebgeometry.pdf">PDF</a>. A doxygen-generated API is <a href="https://rmrsk.github.io/EBGeometry/doxygen/html/index.html">also available</a>.</p>
-<h1>Basic usage </h1>
-<p><a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> is a header-only library in C++. To use it, simply make <a class="el" href="EBGeometry_8hpp_source.html">EBGeometry.hpp</a> visible to your code and include it.</p>
-<p>To clone <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a>: </p><pre class="fragment">git clone git@github.com:rmrsk/EBGeometry.git
-</pre><p>Various examples are given in the Examples folder. To run one of the examples, navigate to the example and compile and run it. E.g.,</p>
+<h1>Example quickstart</h1>
+<p>Several examples are given in the Examples folder. To run one of the examples, navigate to the example and compile and run it.</p>
+<h2>1. Analytic distance fields</h2>
+<p>Use one of the analytic signed distance fields in <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a>, and rotate and transform it.</p>
+<div class="fragment"><div class="line">cd Examples/EBGeometry_Shapes</div>
+<div class="line">g++ -O3 -std=c++14 main.cpp</div>
+<div class="line">./a.out</div>
+</div><!-- fragment --><h2>2. Creating an SDF from a surface grid</h2>
+<p>Read in an STL file and turn it into a signed distance field.</p>
 <div class="fragment"><div class="line">cd Examples/EBGeometry_DCEL</div>
 <div class="line">g++ -O3 -std=c++14 main.cpp</div>
-<div class="line">./a.out porsche.ply</div>
-</div><!-- fragment --><p>More complex examples that use Chombo or AMReX will also include application-specific code.</p>
-<h1>Advanced usage </h1>
-<p>For more advanced usage, users can supply their own file parsers (PLY and STL files are currently supported), provide their own bounding volumes, or their own <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> partitioners. <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> is not too strict about these things, and uses rigorous templating for ensuring that the <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> functionality can be extended.</p>
-<h1>Contributing </h1>
+<div class="line">./a.out armadillo.stl</div>
+</div><!-- fragment --><p align="center"></p>
+<p><img src="Docs/Sphinx/source/_static/example_dcel.png" alt="Signed distance field from Armadillo geometry" width="300" class="inline"/> </p>
+<p><br  />
+</p>
+<h2>3. Fast CSG operations for analytic functions</h2>
+<p>Generate a spherical packed bed geometry using analytic representations of spheres. BVH-accelerated CSG unions lead to order-of-magnitude faster implicit function evaluation. </p><div class="fragment"><div class="line">cd Examples/EBGeometry_Union</div>
+<div class="line">g++ -O3 -std=c++14 main.cpp</div>
+<div class="line">./a.out</div>
+</div><!-- fragment --><p align="center"></p>
+<p><img src="Docs/Sphinx/source/_static/example_spheres.png" alt="Packed bed geometry" width="300" class="inline"/> </p>
+<p><br  />
+</p>
+<h2>4. Fast CSG on composite geometries</h2>
+<p>Create an F18 implicit function using CSG on each part (65 parts in total).</p>
+<div class="fragment"><div class="line">cd Examples/EBGeometry_F18</div>
+<div class="line">g++ -O3 -std=c++17 main.cpp -lstdc++fs</div>
+<div class="line">./a.out</div>
+</div><!-- fragment --><p align="center"></p>
+<p><img src="Docs/Sphinx/source/_static/example_f18.png" alt="F18 composite geomery" width="400" class="inline"/> </p>
+<p><br  />
+</p>
+<h2>5. Advanced examples</h2>
+<p>Some complex examples that use Chombo3 or AMReX are also provided in the Examples folder. These include application-specific code and require installation of Chombo3 or AMReX.</p>
+<p>For more advanced usage, users can supply their own file parsers, provide their own bounding volumes, or their own <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> partitioners. <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> is not too strict about these things, and uses rigorous templating for ensuring that the <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> functionality can be extended.</p>
+<h1>Contributing</h1>
 <ol type="1">
 <li>Create a branch for the new feature.</li>
 </ol>

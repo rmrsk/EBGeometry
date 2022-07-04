@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.17"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>EBGeometry: UnionBVH&lt; T, BV, K &gt; Class Template Reference</title>
+<title>EBGeometry: UnionBVH&lt; T, P, BV, K &gt; Class Template Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -65,70 +65,63 @@ $(function() {
   <div class="summary">
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
-<a href="#pro-types">Protected Types</a> &#124;
+<a href="#pro-methods">Protected Member Functions</a> &#124;
 <a href="#pro-attribs">Protected Attributes</a> &#124;
 <a href="classUnionBVH-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">UnionBVH&lt; T, BV, K &gt; Class Template Reference</div>  </div>
+<div class="title">UnionBVH&lt; T, P, BV, K &gt; Class Template Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p>Distance function union using BVHs. Computes the signed distance to the closest object of possibly overlapping SDF objects. If the SDFs do not overlap then this object is also an SDF.  
+<p>Implicit function union using BVHs.  
  <a href="classUnionBVH.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="EBGeometry__UnionBVH_8hpp_source.html">EBGeometry_UnionBVH.hpp</a>&gt;</code></p>
 <div class="dynheader">
-Inheritance diagram for UnionBVH&lt; T, BV, K &gt;:</div>
+Inheritance diagram for UnionBVH&lt; T, P, BV, K &gt;:</div>
 <div class="dyncontent">
-<div class="center"><img src="classUnionBVH__inherit__graph.png" border="0" usemap="#UnionBVH_3_01T_00_01BV_00_01K_01_4_inherit__map" alt="Inheritance graph"/></div>
-<map name="UnionBVH_3_01T_00_01BV_00_01K_01_4_inherit__map" id="UnionBVH_3_01T_00_01BV_00_01K_01_4_inherit__map">
-<area shape="rect" title="Distance function union using BVHs. Computes the signed distance to the closest object of possibly ov..." alt="" coords="5,80,175,107"/>
-<area shape="rect" href="classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="8,5,172,32"/>
+<div class="center"><img src="classUnionBVH__inherit__graph.png" border="0" usemap="#UnionBVH_3_01T_00_01P_00_01BV_00_01K_01_4_inherit__map" alt="Inheritance graph"/></div>
+<map name="UnionBVH_3_01T_00_01P_00_01BV_00_01K_01_4_inherit__map" id="UnionBVH_3_01T_00_01P_00_01BV_00_01K_01_4_inherit__map">
+<area shape="rect" title="Implicit function union using BVHs." alt="" coords="5,80,191,107"/>
+<area shape="rect" href="classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="16,5,180,32"/>
 </map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <div class="dynheader">
-Collaboration diagram for UnionBVH&lt; T, BV, K &gt;:</div>
+Collaboration diagram for UnionBVH&lt; T, P, BV, K &gt;:</div>
 <div class="dyncontent">
-<div class="center"><img src="classUnionBVH__coll__graph.png" border="0" usemap="#UnionBVH_3_01T_00_01BV_00_01K_01_4_coll__map" alt="Collaboration graph"/></div>
-<map name="UnionBVH_3_01T_00_01BV_00_01K_01_4_coll__map" id="UnionBVH_3_01T_00_01BV_00_01K_01_4_coll__map">
-<area shape="rect" title="Distance function union using BVHs. Computes the signed distance to the closest object of possibly ov..." alt="" coords="5,80,175,107"/>
-<area shape="rect" href="classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="8,5,172,32"/>
+<div class="center"><img src="classUnionBVH__coll__graph.png" border="0" usemap="#UnionBVH_3_01T_00_01P_00_01BV_00_01K_01_4_coll__map" alt="Collaboration graph"/></div>
+<map name="UnionBVH_3_01T_00_01P_00_01BV_00_01K_01_4_coll__map" id="UnionBVH_3_01T_00_01P_00_01BV_00_01K_01_4_coll__map">
+<area shape="rect" title="Implicit function union using BVHs." alt="" coords="5,80,191,107"/>
+<area shape="rect" href="classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="16,5,180,32"/>
 </map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a5d1d64d7cabf1000fc1a804d06e103cc"><td class="memItemLeft" align="right" valign="top"><a id="a5d1d64d7cabf1000fc1a804d06e103cc"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#a5d1d64d7cabf1000fc1a804d06e103cc">SDF</a> = <a class="el" href="classSignedDistanceFunction.html">SignedDistanceFunction</a>&lt; T &gt;</td></tr>
-<tr class="memdesc:a5d1d64d7cabf1000fc1a804d06e103cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for cutting down on typing. <br /></td></tr>
-<tr class="separator:a5d1d64d7cabf1000fc1a804d06e103cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a09561e026cd6a7da1a7dbdbad5eea2c2"><td class="memItemLeft" align="right" valign="top"><a id="a09561e026cd6a7da1a7dbdbad5eea2c2"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#a09561e026cd6a7da1a7dbdbad5eea2c2">BVConstructor</a> = EBGeometry::BVH::BVConstructorT&lt; <a class="el" href="classUnionBVH.html#a5d1d64d7cabf1000fc1a804d06e103cc">SDF</a>, BV &gt;</td></tr>
-<tr class="memdesc:a09561e026cd6a7da1a7dbdbad5eea2c2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for cutting down on typing. This is a std::function&lt;BV(SDF)&gt;, i.e. a function which returns a bounding volume for an SDF. <br /></td></tr>
-<tr class="separator:a09561e026cd6a7da1a7dbdbad5eea2c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9310c326857e457d1ee39601d7182b5e"><td class="memItemLeft" align="right" valign="top"><a id="a9310c326857e457d1ee39601d7182b5e"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>BVConstructor</b> = EBGeometry::BVH::BVConstructorT&lt; P, BV &gt;</td></tr>
+<tr class="separator:a9310c326857e457d1ee39601d7182b5e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:aa2d9a2e95e58a0d7dfb2b92283626cac"><td class="memItemLeft" align="right" valign="top"><a id="aa2d9a2e95e58a0d7dfb2b92283626cac"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#aa2d9a2e95e58a0d7dfb2b92283626cac">UnionBVH</a> ()=delete</td></tr>
-<tr class="memdesc:aa2d9a2e95e58a0d7dfb2b92283626cac"><td class="mdescLeft">&#160;</td><td class="mdescRight">Disallowed, use the full constructor. <br /></td></tr>
-<tr class="separator:aa2d9a2e95e58a0d7dfb2b92283626cac"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab56dd603f45f3908be3386fd295d9ffc"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#ab56dd603f45f3908be3386fd295d9ffc">UnionBVH</a> (const std::vector&lt; std::shared_ptr&lt; <a class="el" href="classUnionBVH.html#a5d1d64d7cabf1000fc1a804d06e103cc">SDF</a> &gt;&gt; &amp;a_distanceFunctions, const bool a_flipSign)</td></tr>
-<tr class="memdesc:ab56dd603f45f3908be3386fd295d9ffc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Partial constructor. Associates distance functions but does not build <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree.  <a href="classUnionBVH.html#ab56dd603f45f3908be3386fd295d9ffc">More...</a><br /></td></tr>
-<tr class="separator:ab56dd603f45f3908be3386fd295d9ffc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adc951cd9eb51c029a25e33e275e74f25"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#adc951cd9eb51c029a25e33e275e74f25">UnionBVH</a> (const std::vector&lt; std::shared_ptr&lt; <a class="el" href="classUnionBVH.html#a5d1d64d7cabf1000fc1a804d06e103cc">SDF</a> &gt;&gt; &amp;a_distanceFunctions, const bool a_flipSign, const <a class="el" href="classUnionBVH.html#a09561e026cd6a7da1a7dbdbad5eea2c2">BVConstructor</a> &amp;a_bvConstructor)</td></tr>
-<tr class="memdesc:adc951cd9eb51c029a25e33e275e74f25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor.  <a href="classUnionBVH.html#adc951cd9eb51c029a25e33e275e74f25">More...</a><br /></td></tr>
-<tr class="separator:adc951cd9eb51c029a25e33e275e74f25"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a97769f4c449610b681a70b93c99a40ca"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#a97769f4c449610b681a70b93c99a40ca">buildTree</a> (const <a class="el" href="classUnionBVH.html#a09561e026cd6a7da1a7dbdbad5eea2c2">BVConstructor</a> &amp;a_bvConstructor)</td></tr>
-<tr class="memdesc:a97769f4c449610b681a70b93c99a40ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Build <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree for the input objects. User must supply a partitioner and a BV constructor for the SDF objects.  <a href="classUnionBVH.html#a97769f4c449610b681a70b93c99a40ca">More...</a><br /></td></tr>
-<tr class="separator:a97769f4c449610b681a70b93c99a40ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aac0a1f16ad0a273e72c8bcd15b80f336"><td class="memItemLeft" align="right" valign="top"><a id="aac0a1f16ad0a273e72c8bcd15b80f336"></a>
-virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#aac0a1f16ad0a273e72c8bcd15b80f336">~UnionBVH</a> ()=default</td></tr>
-<tr class="memdesc:aac0a1f16ad0a273e72c8bcd15b80f336"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor (does nothing) <br /></td></tr>
-<tr class="separator:aac0a1f16ad0a273e72c8bcd15b80f336"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8650a9c58619d81b0e841bf5fe0a096a"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#a8650a9c58619d81b0e841bf5fe0a096a">value</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point) const noexcept override</td></tr>
-<tr class="memdesc:a8650a9c58619d81b0e841bf5fe0a096a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Value function.  <a href="classUnionBVH.html#a8650a9c58619d81b0e841bf5fe0a096a">More...</a><br /></td></tr>
-<tr class="separator:a8650a9c58619d81b0e841bf5fe0a096a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:add55ba2f62625203d19b5346b1e735e1"><td class="memItemLeft" align="right" valign="top"><a id="add55ba2f62625203d19b5346b1e735e1"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#add55ba2f62625203d19b5346b1e735e1">UnionBVH</a> ()=delete</td></tr>
+<tr class="memdesc:add55ba2f62625203d19b5346b1e735e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Disallowed, use the full constructor. <br /></td></tr>
+<tr class="separator:add55ba2f62625203d19b5346b1e735e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a49160e31e05cf49837dc48f0afb3a430"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#a49160e31e05cf49837dc48f0afb3a430">UnionBVH</a> (const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;a_distanceFunctions, const bool a_flipSign, const BVConstructor &amp;a_bvConstructor)</td></tr>
+<tr class="memdesc:a49160e31e05cf49837dc48f0afb3a430"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor.  <a href="classUnionBVH.html#a49160e31e05cf49837dc48f0afb3a430">More...</a><br /></td></tr>
+<tr class="separator:a49160e31e05cf49837dc48f0afb3a430"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afffed06ca96e82cfb270819bc2d45dd5"><td class="memItemLeft" align="right" valign="top"><a id="afffed06ca96e82cfb270819bc2d45dd5"></a>
+virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#afffed06ca96e82cfb270819bc2d45dd5">~UnionBVH</a> ()=default</td></tr>
+<tr class="memdesc:afffed06ca96e82cfb270819bc2d45dd5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor (does nothing) <br /></td></tr>
+<tr class="separator:afffed06ca96e82cfb270819bc2d45dd5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac22d0bd9a043ace7f24c41e1320b1167"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#ac22d0bd9a043ace7f24c41e1320b1167">value</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point) const noexcept override</td></tr>
+<tr class="memdesc:ac22d0bd9a043ace7f24c41e1320b1167"><td class="mdescLeft">&#160;</td><td class="mdescRight">Value function.  <a href="classUnionBVH.html#ac22d0bd9a043ace7f24c41e1320b1167">More...</a><br /></td></tr>
+<tr class="separator:ac22d0bd9a043ace7f24c41e1320b1167"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4799fadcfbf4b98921b858b42826c376"><td class="memItemLeft" align="right" valign="top"><a id="a4799fadcfbf4b98921b858b42826c376"></a>
+const BV &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#a4799fadcfbf4b98921b858b42826c376">getBoundingVolume</a> () const noexcept</td></tr>
+<tr class="memdesc:a4799fadcfbf4b98921b858b42826c376"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the bounding volume. <br /></td></tr>
+<tr class="separator:a4799fadcfbf4b98921b858b42826c376"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classImplicitFunction"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classImplicitFunction')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classImplicitFunction.html">ImplicitFunction&lt; T &gt;</a></td></tr>
 <tr class="memitem:ad69597fb3ae5d6ef622b2201bf7ae012 inherit pub_methods_classImplicitFunction"><td class="memItemLeft" align="right" valign="top"><a id="ad69597fb3ae5d6ef622b2201bf7ae012"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classImplicitFunction.html#ad69597fb3ae5d6ef622b2201bf7ae012">ImplicitFunction</a> ()=default</td></tr>
@@ -148,39 +141,22 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <tr class="memdesc:aa5d5899f07cd10fa0eb3d68c0267a3f9 inherit pub_methods_classImplicitFunction"><td class="mdescLeft">&#160;</td><td class="mdescRight">Apply transformation operators and move point.  <a href="classImplicitFunction.html#aa5d5899f07cd10fa0eb3d68c0267a3f9">More...</a><br /></td></tr>
 <tr class="separator:aa5d5899f07cd10fa0eb3d68c0267a3f9 inherit pub_methods_classImplicitFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-types"></a>
-Protected Types</h2></td></tr>
-<tr class="memitem:ac23ace50239fbe00130df2a7e42af995"><td class="memItemLeft" align="right" valign="top"><a id="ac23ace50239fbe00130df2a7e42af995"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#ac23ace50239fbe00130df2a7e42af995">SDFList</a> = std::vector&lt; std::shared_ptr&lt; const <a class="el" href="classUnionBVH.html#a5d1d64d7cabf1000fc1a804d06e103cc">SDF</a> &gt; &gt;</td></tr>
-<tr class="memdesc:ac23ace50239fbe00130df2a7e42af995"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for cutting down on typing. <br /></td></tr>
-<tr class="separator:ac23ace50239fbe00130df2a7e42af995"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9fd434576440274a81c0251962d7ff7e"><td class="memItemLeft" align="right" valign="top"><a id="a9fd434576440274a81c0251962d7ff7e"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#a9fd434576440274a81c0251962d7ff7e">BuilderNode</a> = EBGeometry::BVH::NodeT&lt; T, <a class="el" href="classUnionBVH.html#a5d1d64d7cabf1000fc1a804d06e103cc">SDF</a>, BV, K &gt;</td></tr>
-<tr class="memdesc:a9fd434576440274a81c0251962d7ff7e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Builder node type in <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree. Tree is constructed in "full". <br /></td></tr>
-<tr class="separator:a9fd434576440274a81c0251962d7ff7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2f18101d78a3ec542dbf644a546c3b4b"><td class="memItemLeft" align="right" valign="top"><a id="a2f18101d78a3ec542dbf644a546c3b4b"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#a2f18101d78a3ec542dbf644a546c3b4b">RootNode</a> = EBGeometry::BVH::LinearBVH&lt; T, <a class="el" href="classUnionBVH.html#a5d1d64d7cabf1000fc1a804d06e103cc">SDF</a>, BV, K &gt;</td></tr>
-<tr class="memdesc:a2f18101d78a3ec542dbf644a546c3b4b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Node type in <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree. We use a flattened tree. <br /></td></tr>
-<tr class="separator:a2f18101d78a3ec542dbf644a546c3b4b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-methods"></a>
+Protected Member Functions</h2></td></tr>
+<tr class="memitem:a66040d5181b7cf064f525e0b9009dae8"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#a66040d5181b7cf064f525e0b9009dae8">buildTree</a> (const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;a_distanceFunctions, const BVConstructor &amp;a_bvConstructor) noexcept</td></tr>
+<tr class="memdesc:a66040d5181b7cf064f525e0b9009dae8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Build <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree for the input objects. User must supply a partitioner and a BV constructor for the SDF objects.  <a href="classUnionBVH.html#a66040d5181b7cf064f525e0b9009dae8">More...</a><br /></td></tr>
+<tr class="separator:a66040d5181b7cf064f525e0b9009dae8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
-<tr class="memitem:a026a103a13d0b04bedb6dabd50e4da69"><td class="memItemLeft" align="right" valign="top"><a id="a026a103a13d0b04bedb6dabd50e4da69"></a>
-std::vector&lt; std::shared_ptr&lt; const <a class="el" href="classUnionBVH.html#a5d1d64d7cabf1000fc1a804d06e103cc">SDF</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#a026a103a13d0b04bedb6dabd50e4da69">m_distanceFunctions</a></td></tr>
-<tr class="memdesc:a026a103a13d0b04bedb6dabd50e4da69"><td class="mdescLeft">&#160;</td><td class="mdescRight">List of distance functions. <br /></td></tr>
-<tr class="separator:a026a103a13d0b04bedb6dabd50e4da69"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8933bf862c84439d82c375e2a5a9c469"><td class="memItemLeft" align="right" valign="top"><a id="a8933bf862c84439d82c375e2a5a9c469"></a>
-std::shared_ptr&lt; <a class="el" href="classUnionBVH.html#a2f18101d78a3ec542dbf644a546c3b4b">RootNode</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#a8933bf862c84439d82c375e2a5a9c469">m_rootNode</a></td></tr>
-<tr class="memdesc:a8933bf862c84439d82c375e2a5a9c469"><td class="mdescLeft">&#160;</td><td class="mdescRight">Root node for <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree. <br /></td></tr>
-<tr class="separator:a8933bf862c84439d82c375e2a5a9c469"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2c3a008bd61f225a83c959f2280b9649"><td class="memItemLeft" align="right" valign="top"><a id="a2c3a008bd61f225a83c959f2280b9649"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#a2c3a008bd61f225a83c959f2280b9649">m_isGood</a></td></tr>
-<tr class="memdesc:a2c3a008bd61f225a83c959f2280b9649"><td class="mdescLeft">&#160;</td><td class="mdescRight">Is good or not. <br /></td></tr>
-<tr class="separator:a2c3a008bd61f225a83c959f2280b9649"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0782d93bd0a7bff7580a99e6fef285c7"><td class="memItemLeft" align="right" valign="top"><a id="a0782d93bd0a7bff7580a99e6fef285c7"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#a0782d93bd0a7bff7580a99e6fef285c7">m_flipSign</a></td></tr>
-<tr class="memdesc:a0782d93bd0a7bff7580a99e6fef285c7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hook for turning inside to outside. <br /></td></tr>
-<tr class="separator:a0782d93bd0a7bff7580a99e6fef285c7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aba8c5aa300c2d05f585d3c18a4fed514"><td class="memItemLeft" align="right" valign="top"><a id="aba8c5aa300c2d05f585d3c18a4fed514"></a>
+std::shared_ptr&lt; EBGeometry::BVH::LinearBVH&lt; T, P, BV, K &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#aba8c5aa300c2d05f585d3c18a4fed514">m_rootNode</a></td></tr>
+<tr class="memdesc:aba8c5aa300c2d05f585d3c18a4fed514"><td class="mdescLeft">&#160;</td><td class="mdescRight">Root node for linearized <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree. <br /></td></tr>
+<tr class="separator:aba8c5aa300c2d05f585d3c18a4fed514"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a23b578c55de9761532f0d4efbc567176"><td class="memItemLeft" align="right" valign="top"><a id="a23b578c55de9761532f0d4efbc567176"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classUnionBVH.html#a23b578c55de9761532f0d4efbc567176">m_flipSign</a></td></tr>
+<tr class="memdesc:a23b578c55de9761532f0d4efbc567176"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hook for turning inside to outside. <br /></td></tr>
+<tr class="separator:a23b578c55de9761532f0d4efbc567176"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pro_attribs_classImplicitFunction"><td colspan="2" onclick="javascript:toggleInherit('pro_attribs_classImplicitFunction')"><img src="closed.png" alt="-"/>&#160;Protected Attributes inherited from <a class="el" href="classImplicitFunction.html">ImplicitFunction&lt; T &gt;</a></td></tr>
 <tr class="memitem:a9e7844c296e4ef4a18499ea22736e35d inherit pro_attribs_classImplicitFunction"><td class="memItemLeft" align="right" valign="top"><a id="a9e7844c296e4ef4a18499ea22736e35d"></a>
 std::deque&lt; std::shared_ptr&lt; <a class="el" href="classTransformOp.html">TransformOp</a>&lt; T &gt; &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classImplicitFunction.html#a9e7844c296e4ef4a18499ea22736e35d">m_transformOps</a></td></tr>
@@ -188,62 +164,24 @@ std::deque&lt; std::shared_ptr&lt; <a class="el" href="classTransformOp.html">Tr
 <tr class="separator:a9e7844c296e4ef4a18499ea22736e35d inherit pro_attribs_classImplicitFunction"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><h3>template&lt;class T, class BV, size_t K&gt;<br />
-class UnionBVH&lt; T, BV, K &gt;</h3>
+<div class="textblock"><h3>template&lt;class T, class P, class BV, size_t K&gt;<br />
+class UnionBVH&lt; T, P, BV, K &gt;</h3>
 
-<p>Distance function union using BVHs. Computes the signed distance to the closest object of possibly overlapping SDF objects. If the SDFs do not overlap then this object is also an SDF. </p>
+<p>Implicit function union using BVHs. </p>
+<dl class="section note"><dt>Note</dt><dd>If the BVH-enabled union is to make sense, the primitives must be distance fields (I think). There's a static_assert to make sure of that. </dd></dl>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="ab56dd603f45f3908be3386fd295d9ffc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab56dd603f45f3908be3386fd295d9ffc">&#9670;&nbsp;</a></span>UnionBVH() <span class="overload">[1/2]</span></h2>
+<a id="a49160e31e05cf49837dc48f0afb3a430"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a49160e31e05cf49837dc48f0afb3a430">&#9670;&nbsp;</a></span>UnionBVH()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class BV , size_t K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classUnionBVH.html">UnionBVH</a>&lt; T, BV, K &gt;::<a class="el" href="classUnionBVH.html">UnionBVH</a> </td>
+          <td class="memname"><a class="el" href="classUnionBVH.html">UnionBVH</a>&lt; T, P, BV, K &gt;::<a class="el" href="classUnionBVH.html">UnionBVH</a> </td>
           <td>(</td>
-          <td class="paramtype">const std::vector&lt; std::shared_ptr&lt; <a class="el" href="classUnionBVH.html#a5d1d64d7cabf1000fc1a804d06e103cc">SDF</a> &gt;&gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_distanceFunctions</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const bool&#160;</td>
-          <td class="paramname"><em>a_flipSign</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Partial constructor. Associates distance functions but does not build <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_distanceFunctions</td><td>Signed distance functions. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_flipSign</td><td>Hook for turning inside to outside </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="adc951cd9eb51c029a25e33e275e74f25"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adc951cd9eb51c029a25e33e275e74f25">&#9670;&nbsp;</a></span>UnionBVH() <span class="overload">[2/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class T , class BV , size_t K&gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="classUnionBVH.html">UnionBVH</a>&lt; T, BV, K &gt;::<a class="el" href="classUnionBVH.html">UnionBVH</a> </td>
-          <td>(</td>
-          <td class="paramtype">const std::vector&lt; std::shared_ptr&lt; <a class="el" href="classUnionBVH.html#a5d1d64d7cabf1000fc1a804d06e103cc">SDF</a> &gt;&gt; &amp;&#160;</td>
+          <td class="paramtype">const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;&#160;</td>
           <td class="paramname"><em>a_distanceFunctions</em>, </td>
         </tr>
         <tr>
@@ -255,7 +193,7 @@ template&lt;class T , class BV , size_t K&gt; </div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="classUnionBVH.html#a09561e026cd6a7da1a7dbdbad5eea2c2">BVConstructor</a> &amp;&#160;</td>
+          <td class="paramtype">const BVConstructor &amp;&#160;</td>
           <td class="paramname"><em>a_bvConstructor</em>&#160;</td>
         </tr>
         <tr>
@@ -279,22 +217,40 @@ template&lt;class T , class BV , size_t K&gt; </div>
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="a97769f4c449610b681a70b93c99a40ca"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a97769f4c449610b681a70b93c99a40ca">&#9670;&nbsp;</a></span>buildTree()</h2>
+<a id="a66040d5181b7cf064f525e0b9009dae8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a66040d5181b7cf064f525e0b9009dae8">&#9670;&nbsp;</a></span>buildTree()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class BV , size_t K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="classUnionBVH.html">UnionBVH</a>&lt; T, BV, K &gt;::buildTree </td>
+          <td class="memname">void <a class="el" href="classUnionBVH.html">UnionBVH</a>&lt; T, P, BV, K &gt;::buildTree </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classUnionBVH.html#a09561e026cd6a7da1a7dbdbad5eea2c2">BVConstructor</a> &amp;&#160;</td>
-          <td class="paramname"><em>a_bvConstructor</em></td><td>)</td>
+          <td class="paramtype">const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_distanceFunctions</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">const BVConstructor &amp;&#160;</td>
+          <td class="paramname"><em>a_bvConstructor</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">protected</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 <p>Build <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree for the input objects. User must supply a partitioner and a BV constructor for the SDF objects. </p>
@@ -307,19 +263,19 @@ template&lt;class T , class BV , size_t K&gt; </div>
 
 </div>
 </div>
-<a id="a8650a9c58619d81b0e841bf5fe0a096a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8650a9c58619d81b0e841bf5fe0a096a">&#9670;&nbsp;</a></span>value()</h2>
+<a id="ac22d0bd9a043ace7f24c41e1320b1167"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac22d0bd9a043ace7f24c41e1320b1167">&#9670;&nbsp;</a></span>value()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T , class BV , size_t K&gt; </div>
+template&lt;class T , class P , class BV , size_t K&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">T <a class="el" href="classUnionBVH.html">UnionBVH</a>&lt; T, BV, K &gt;::value </td>
+          <td class="memname">T <a class="el" href="classUnionBVH.html">UnionBVH</a>&lt; T, P, BV, K &gt;::value </td>
           <td>(</td>
           <td class="paramtype">const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;&#160;</td>
           <td class="paramname"><em>a_point</em></td><td>)</td>

@@ -128,99 +128,61 @@
 
 <span class="k">using</span> <span class="k">namespace</span> <span class="n">amrex</span><span class="p">;</span>
 
-<span class="k">namespace</span> <span class="n">amrex</span> <span class="p">{</span>
-  <span class="k">namespace</span> <span class="n">EB2</span> <span class="p">{</span>
+<span class="cm">/*!</span>
+<span class="cm">  @brief This is an AMReX-capable version of the EBGeometry BVH accelerator. It</span>
+<span class="cm">  is templated as T, BV, K which indicate the EBGeometry precision, bounding</span>
+<span class="cm">  volume, and tree degree.</span>
+<span class="cm">*/</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">K</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">AMReXSDF</span>
+<span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="cm">/*!</span>
+<span class="cm">    @brief Full constructor.</span>
+<span class="cm">    @param[in] a_filename File name. Must be an STL file.</span>
+<span class="cm">  */</span>
+  <span class="n">AMReXSDF</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">a_filename</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">m_rootNode</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">readIntoLinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">(</span><span class="n">a_filename</span><span class="p">);</span>
+  <span class="p">}</span>
 
-    <span class="cm">/*!</span>
-<span class="cm">      @brief This is an AMReX-capable version of the EBGeometry BVH accelerator. It</span>
-<span class="cm">      is templated as T, BV, K which indicate the EBGeometry precision, bounding</span>
-<span class="cm">      volume, and tree degree.</span>
-<span class="cm">    */</span>
-    <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
-    <span class="k">class</span> <span class="nc">SignedDistanceBVH</span>
-    <span class="p">{</span>
-    <span class="k">public</span><span class="o">:</span>
-      <span class="cm">/*!</span>
-<span class="cm">	@brief Alias for builder node, for encapsulating a &quot;standard&quot; BVH node</span>
-<span class="cm">      */</span>
-      <span class="k">using</span> <span class="n">BuilderNode</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">NodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">;</span>
+  <span class="cm">/*!</span>
+<span class="cm">    @brief Copy constructor.</span>
+<span class="cm">    @param[in] a_other Other SDF.</span>
+<span class="cm">  */</span>
+  <span class="n">AMReXSDF</span><span class="p">(</span><span class="k">const</span> <span class="n">AMReXSDF</span><span class="o">&amp;</span> <span class="n">a_other</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="k">this</span><span class="o">-&gt;</span><span class="n">m_rootNode</span> <span class="o">=</span> <span class="n">a_other</span><span class="p">.</span><span class="n">m_rootNode</span><span class="p">;</span>
+  <span class="p">}</span>
 
-      <span class="cm">/*!</span>
-<span class="cm">	@brief Alias for linearized BVH node</span>
-<span class="cm">      */</span>
-      <span class="k">using</span> <span class="n">LinearNode</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">LinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">;</span>
+  <span class="cm">/*!</span>
+<span class="cm">    @brief AMReX&#39;s implicit function definition.</span>
+<span class="cm">  */</span>
+  <span class="n">Real</span> <span class="k">operator</span><span class="p">()(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="n">Real</span> <span class="n">x</span><span class="p">,</span> <span class="n">Real</span> <span class="n">y</span><span class="p">,</span> <span class="n">Real</span> <span class="n">z</span><span class="p">))</span> <span class="k">const</span> <span class="k">noexcept</span>
+  <span class="p">{</span>
+    <span class="k">using</span> <span class="n">Vec3</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
 
-      <span class="cm">/*!</span>
-<span class="cm">	@brief Alias for always-3D vector</span>
-<span class="cm">      */</span>
-      <span class="k">using</span> <span class="n">Vec3</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">transformPoint</span><span class="p">(</span><span class="n">Vec3</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)));</span>
+  <span class="p">};</span>
 
-      <span class="cm">/*!</span>
-<span class="cm">	@brief Full constructor.</span>
-<span class="cm">	@param[in] a_filename File name. Must be an STL file.</span>
-<span class="cm">	@param[in] a_flipSign Hook for swapping inside/outside.</span>
-<span class="cm">      */</span>
-      <span class="n">SignedDistanceBVH</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">a_filename</span><span class="p">,</span> <span class="k">const</span> <span class="kt">bool</span> <span class="n">a_flipSign</span><span class="p">)</span>
-      <span class="p">{</span>
+  <span class="cm">/*!</span>
+<span class="cm">    @brief Also an AMReX implicit function implementation</span>
+<span class="cm">  */</span>
+  <span class="kr">inline</span> <span class="n">Real</span>
+  <span class="nf">operator</span><span class="p">()(</span><span class="k">const</span> <span class="n">RealArray</span><span class="o">&amp;</span> <span class="n">p</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span>
+  <span class="p">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="o">-&gt;</span><span class="k">operator</span><span class="p">()(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">]));</span>
+  <span class="p">}</span>
 
-        <span class="c1">// 1. Read mesh from file.</span>
-        <span class="k">auto</span> <span class="n">mesh</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">read</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">a_filename</span><span class="p">);</span>
-
-        <span class="c1">// 2. Create a standard BVH hierarchy. This is not a compact ree.</span>
-        <span class="k">auto</span> <span class="n">root</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">BuilderNode</span><span class="o">&gt;</span><span class="p">(</span><span class="n">mesh</span><span class="o">-&gt;</span><span class="n">getFaces</span><span class="p">());</span>
-        <span class="n">root</span><span class="o">-&gt;</span><span class="n">topDownSortAndPartitionPrimitives</span><span class="p">(</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">defaultBVConstructor</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="o">&gt;</span><span class="p">,</span>
-                                                <span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">defaultPartitioner</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">,</span>
-                                                <span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">defaultStopFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">);</span>
-
-        <span class="c1">// 3. Flatten the tree onto a tighter memory representation.</span>
-        <span class="n">m_rootNode</span> <span class="o">=</span> <span class="n">root</span><span class="o">-&gt;</span><span class="n">flattenTree</span><span class="p">();</span>
-      <span class="p">}</span>
-
-      <span class="cm">/*!</span>
-<span class="cm">	@brief Copy constructor.</span>
-<span class="cm">	@param[in] a_other Other SDF.</span>
-<span class="cm">      */</span>
-      <span class="n">SignedDistanceBVH</span><span class="p">(</span><span class="k">const</span> <span class="n">SignedDistanceBVH</span><span class="o">&amp;</span> <span class="n">a_other</span><span class="p">)</span>
-      <span class="p">{</span>
-        <span class="k">this</span><span class="o">-&gt;</span><span class="n">m_rootNode</span> <span class="o">=</span> <span class="n">a_other</span><span class="p">.</span><span class="n">m_rootNode</span><span class="p">;</span>
-        <span class="k">this</span><span class="o">-&gt;</span><span class="n">m_flipSign</span> <span class="o">=</span> <span class="n">a_other</span><span class="p">.</span><span class="n">m_flipSign</span><span class="p">;</span>
-      <span class="p">}</span>
-
-      <span class="cm">/*!</span>
-<span class="cm">	@brief AMReX&#39;s implicit function definition.</span>
-<span class="cm">      */</span>
-      <span class="n">Real</span> <span class="k">operator</span><span class="p">()(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="n">Real</span> <span class="n">x</span><span class="p">,</span> <span class="n">Real</span> <span class="n">y</span><span class="p">,</span> <span class="n">Real</span> <span class="n">z</span><span class="p">))</span> <span class="k">const</span> <span class="k">noexcept</span>
-      <span class="p">{</span>
-        <span class="k">const</span> <span class="n">Real</span> <span class="n">sign</span> <span class="o">=</span> <span class="p">(</span><span class="n">m_flipSign</span><span class="p">)</span> <span class="o">?</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">:</span> <span class="mf">1.0</span><span class="p">;</span>
-
-        <span class="k">return</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">transformPoint</span><span class="p">(</span><span class="n">Vec3</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)));</span>
-      <span class="p">};</span>
-
-      <span class="cm">/*!</span>
-<span class="cm">	@brief Also an AMReX implicit function implementation</span>
-<span class="cm">      */</span>
-      <span class="kr">inline</span> <span class="n">Real</span>
-      <span class="nf">operator</span><span class="p">()(</span><span class="k">const</span> <span class="n">RealArray</span><span class="o">&amp;</span> <span class="n">p</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span>
-      <span class="p">{</span>
-        <span class="k">return</span> <span class="k">this</span><span class="o">-&gt;</span><span class="k">operator</span><span class="p">()(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">]));</span>
-      <span class="p">}</span>
-
-    <span class="k">protected</span><span class="o">:</span>
-      <span class="cm">/*!</span>
-<span class="cm">	@brief Root node of the linearized BVH hierarchy.</span>
-<span class="cm">      */</span>
-      <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">LinearNode</span><span class="o">&gt;</span> <span class="n">m_rootNode</span><span class="p">;</span>
-
-      <span class="cm">/*!</span>
-<span class="cm">	@brief Hook for flipping the sign</span>
-<span class="cm">      */</span>
-      <span class="kt">bool</span> <span class="n">m_flipSign</span><span class="p">;</span>
-    <span class="p">};</span>
-  <span class="p">}</span> <span class="c1">// namespace EB2</span>
-<span class="p">}</span> <span class="c1">// namespace amrex</span>
+<span class="k">protected</span><span class="o">:</span>
+  <span class="cm">/*!</span>
+<span class="cm">    @brief Root node of the linearized BVH hierarchy.</span>
+<span class="cm">  */</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">LinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;&gt;</span> <span class="n">m_rootNode</span><span class="p">;</span>
+<span class="p">};</span>
 
 <span class="kt">int</span>
-<span class="n">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span>
+<span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span>
 <span class="p">{</span>
   <span class="n">amrex</span><span class="o">::</span><span class="n">Initialize</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">);</span>
 
@@ -242,37 +204,37 @@
 
     <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Airfoil case</span>
       <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="o">-</span><span class="mi">75</span><span class="p">},</span> <span class="p">{</span><span class="mi">400</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">125</span><span class="p">});</span>
-      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/airfoil.stl&quot;</span><span class="p">;</span>
+      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/airfoil.stl&quot;</span><span class="p">;</span>
     <span class="p">}</span>
     <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Sphere case</span>
       <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">400</span><span class="p">,</span> <span class="o">-</span><span class="mi">400</span><span class="p">,</span> <span class="o">-</span><span class="mi">400</span><span class="p">},</span> <span class="p">{</span><span class="mi">400</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="mi">400</span><span class="p">});</span>
-      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/sphere.stl&quot;</span><span class="p">;</span>
+      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/sphere.stl&quot;</span><span class="p">;</span>
     <span class="p">}</span>
     <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Dodecahedron</span>
       <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mf">2.</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.</span><span class="p">},</span> <span class="p">{</span><span class="mf">2.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">});</span>
-      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/dodecahedron.stl&quot;</span><span class="p">;</span>
+      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/dodecahedron.stl&quot;</span><span class="p">;</span>
     <span class="p">}</span>
     <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Horse</span>
       <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mf">0.12</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.12</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.12</span><span class="p">},</span> <span class="p">{</span><span class="mf">0.12</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">});</span>
-      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/horse.stl&quot;</span><span class="p">;</span>
+      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/horse.stl&quot;</span><span class="p">;</span>
     <span class="p">}</span>
     <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Car</span>
       <span class="c1">//	    rb = RealBox({-20,-20,-20}, {20,20,20}); // Doesn&#39;t work.</span>
       <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">},</span> <span class="p">{</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">});</span> <span class="c1">// Works.</span>
-      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/porsche.stl&quot;</span><span class="p">;</span>
+      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/porsche.stl&quot;</span><span class="p">;</span>
     <span class="p">}</span>
     <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">5</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Orion</span>
       <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span><span class="p">},</span> <span class="p">{</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">});</span>
-      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/orion.stl&quot;</span><span class="p">;</span>
+      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/orion.stl&quot;</span><span class="p">;</span>
     <span class="p">}</span>
     <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">6</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Armadillo</span>
       <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="o">-</span><span class="mi">75</span><span class="p">,</span> <span class="o">-</span><span class="mi">100</span><span class="p">},</span> <span class="p">{</span><span class="mi">100</span><span class="p">,</span> <span class="mi">125</span><span class="p">,</span> <span class="mi">100</span><span class="p">});</span>
-      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Objects/armadillo.stl&quot;</span><span class="p">;</span>
+      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/armadillo.stl&quot;</span><span class="p">;</span>
     <span class="p">}</span>
 
     <span class="n">Array</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="n">AMREX_SPACEDIM</span><span class="o">&gt;</span> <span class="n">is_periodic</span><span class="p">{</span><span class="nb">false</span><span class="p">,</span> <span class="nb">false</span><span class="p">,</span> <span class="nb">false</span><span class="p">};</span>
     <span class="n">Geometry</span><span class="o">::</span><span class="n">Setup</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rb</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">is_periodic</span><span class="p">.</span><span class="n">data</span><span class="p">());</span>
-    <span class="n">Box</span> <span class="nf">domain</span><span class="p">(</span><span class="n">IntVect</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">IntVect</span><span class="p">(</span><span class="n">n_cell</span> <span class="o">-</span> <span class="mi">1</span><span class="p">));</span>
+    <span class="n">Box</span> <span class="n">domain</span><span class="p">(</span><span class="n">IntVect</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">IntVect</span><span class="p">(</span><span class="n">n_cell</span> <span class="o">-</span> <span class="mi">1</span><span class="p">));</span>
     <span class="n">geom</span><span class="p">.</span><span class="n">define</span><span class="p">(</span><span class="n">domain</span><span class="p">);</span>
   <span class="p">}</span>
 
@@ -284,7 +246,7 @@
   <span class="k">using</span> <span class="n">Vec3</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
   <span class="k">using</span> <span class="n">BV</span>   <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BoundingVolumes</span><span class="o">::</span><span class="n">AABBT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
 
-  <span class="n">EB2</span><span class="o">::</span><span class="n">SignedDistanceBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="n">sdf</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="nb">false</span><span class="p">);</span>
+  <span class="n">AMReXSDF</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="n">sdf</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
 
   <span class="k">auto</span> <span class="n">gshop</span> <span class="o">=</span> <span class="n">EB2</span><span class="o">::</span><span class="n">makeShop</span><span class="p">(</span><span class="n">sdf</span><span class="p">);</span>
   <span class="n">EB2</span><span class="o">::</span><span class="n">Build</span><span class="p">(</span><span class="n">gshop</span><span class="p">,</span> <span class="n">geom</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>

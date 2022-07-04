@@ -6,7 +6,8 @@ Declaration of a union operator for creating multi-\/object scenes.
 
 
 {\ttfamily \#include $<$vector$>$}\newline
-{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Signed\+Distance\+Function.\+hpp\char`\"{}}\newline
+{\ttfamily \#include $<$type\+\_\+traits$>$}\newline
+{\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Implicit\+Function.\+hpp\char`\"{}}\newline
 {\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Namespace\+Header.\+hpp\char`\"{}}\newline
 {\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Namespace\+Footer.\+hpp\char`\"{}}\newline
 {\ttfamily \#include \char`\"{}E\+B\+Geometry\+\_\+\+Union\+B\+V\+H\+Implem.\+hpp\char`\"{}}\newline
@@ -29,8 +30,8 @@ This graph shows which files directly or indirectly include this file\+:
 \doxysubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
-class \mbox{\hyperlink{classUnionBVH}{Union\+B\+V\+H$<$ T, B\+V, K $>$}}
-\begin{DoxyCompactList}\small\item\em Distance function union using B\+V\+Hs. Computes the signed distance to the closest object of possibly overlapping S\+DF objects. If the S\+D\+Fs do not overlap then this object is also an S\+DF. \end{DoxyCompactList}\end{DoxyCompactItemize}
+class \mbox{\hyperlink{classUnionBVH}{Union\+B\+V\+H$<$ T, P, B\+V, K $>$}}
+\begin{DoxyCompactList}\small\item\em Implicit function union using B\+V\+Hs. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}

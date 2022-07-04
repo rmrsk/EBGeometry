@@ -18,7 +18,7 @@ class \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}
 \begin{DoxyCompactItemize}
 \item 
 {\footnotesize template$<$class P $>$ }\\using \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}} = std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$
-\begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em List of primitives. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}{Stop\+FunctionT}} = std\+::function$<$ bool(const \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}$<$ T, P, BV, K $>$ \&a\+\_\+node)$>$
 \begin{DoxyCompactList}\small\item\em Stop function for deciding when a \mbox{\hyperlink{namespaceBVH}{B\+VH}} node can\textquotesingle{}t be divided into sub-\/volumes. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class P , class BV , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_a67de8088141156b6eaa225a635cc68c0}{PartitionerT}} = std\+::function$<$ std\+::array$<$ \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}}$<$ P $>$, K $>$(const \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}}$<$ P $>$ \&a\+\_\+primitives)$>$
@@ -108,7 +108,7 @@ using \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{B\+V\+H\+
 
 
 
-Alias to cut down on typing. 
+List of primitives. 
 
 P is the primitive bounded by the \mbox{\hyperlink{namespaceBVH}{B\+VH}}. \mbox{\Hypertarget{namespaceBVH_a5b6027b11349769fc2b8f669a4b1c53a}\label{namespaceBVH_a5b6027b11349769fc2b8f669a4b1c53a}} 
 \index{BVH@{BVH}!Pruner@{Pruner}}
@@ -123,9 +123,9 @@ Pruner for \mbox{\hyperlink{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70a0b5
 
 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em Distance} & to current bounding volume. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+bv\+Dist} & Distance to current bounding volume. \\
 \hline
-\mbox{\texttt{ in}}  & {\em min\+Dist} & Shortest \char`\"{}distance\char`\"{} to primitives found so far. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+min\+Dist} & Shortest \char`\"{}distance\char`\"{} to primitives found so far. \\
 \hline
 \end{DoxyParams}
 \mbox{\Hypertarget{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}\label{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}} 

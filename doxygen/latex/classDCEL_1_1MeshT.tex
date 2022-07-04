@@ -68,12 +68,17 @@ void \mbox{\hyperlink{classDCEL_1_1MeshT_ac1b8ee0222585435f7ae678de337e3b1}{set\
 \begin{DoxyCompactList}\small\item\em Set the inside/outside algorithm to use when computing the signed distance to polygon faces. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classDCEL_1_1MeshT_a17d4408289ce6a1b8be638cddb028b30}{reconcile}} (typename \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::\mbox{\hyperlink{classDCEL_1_1MeshT_a4548120cb514e736ae4cd8c13b418e91}{Vertex\+Normal\+Weight}} a\+\_\+weight=Vertex\+Normal\+Weight\+::\+Angle) noexcept
 \begin{DoxyCompactList}\small\item\em Reconcile function which computes the internal parameters in vertices, edges, and faces for use with signed distance functionality. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classDCEL_1_1MeshT_af4ee8076fcde3ff1ad085b3c01fa3c1e}{flip}} () noexcept
+\begin{DoxyCompactList}\small\item\em Flip the mesh, making all the normals change direction. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_a25308ecc4b98fc0cf10f327ace3987f5}\label{classDCEL_1_1MeshT_a25308ecc4b98fc0cf10f327ace3987f5}} 
 std\+::vector$<$ Vertex\+Ptr $>$ \& \mbox{\hyperlink{classDCEL_1_1MeshT_a25308ecc4b98fc0cf10f327ace3987f5}{get\+Vertices}} () noexcept
 \begin{DoxyCompactList}\small\item\em Get modifiable vertices in this mesh. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_a8c9886901c65c087a13952b299159f33}\label{classDCEL_1_1MeshT_a8c9886901c65c087a13952b299159f33}} 
 const std\+::vector$<$ Vertex\+Ptr $>$ \& \mbox{\hyperlink{classDCEL_1_1MeshT_a8c9886901c65c087a13952b299159f33}{get\+Vertices}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get immutable vertices in this mesh. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1MeshT_a18340719fdcbfaca3c55c272cfd12d4c}\label{classDCEL_1_1MeshT_a18340719fdcbfaca3c55c272cfd12d4c}} 
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ $>$ \mbox{\hyperlink{classDCEL_1_1MeshT_a18340719fdcbfaca3c55c272cfd12d4c}{get\+All\+Vertex\+Coordinates}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Return all vertex coordinates in the mesh. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDCEL_1_1MeshT_a8495609501f0bdf1aa3ff8fcf070a493}\label{classDCEL_1_1MeshT_a8495609501f0bdf1aa3ff8fcf070a493}} 
 std\+::vector$<$ Edge\+Ptr $>$ \& \mbox{\hyperlink{classDCEL_1_1MeshT_a8495609501f0bdf1aa3ff8fcf070a493}{get\+Edges}} () noexcept
 \begin{DoxyCompactList}\small\item\em Get modifiable half-\/edges in this mesh. \end{DoxyCompactList}\item 
@@ -95,15 +100,21 @@ T \mbox{\hyperlink{classDCEL_1_1MeshT_a950762ee0488b522f0c84a83ed661e67}{unsigne
 \doxysubsection*{Protected Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classDCEL_1_1MeshT_a18340719fdcbfaca3c55c272cfd12d4c}\label{classDCEL_1_1MeshT_a18340719fdcbfaca3c55c272cfd12d4c}} 
-std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ $>$ \mbox{\hyperlink{classDCEL_1_1MeshT_a18340719fdcbfaca3c55c272cfd12d4c}{get\+All\+Vertex\+Coordinates}} () const noexcept
-\begin{DoxyCompactList}\small\item\em Return all vertex coordinates in the mesh. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classDCEL_1_1MeshT_ab9d8b1977e3e1f02e9e743aba35dbb5e}{reconcile\+Faces}} () noexcept
 \begin{DoxyCompactList}\small\item\em Function which computes internal things for the polygon faces. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classDCEL_1_1MeshT_ad80de69e1c2093f87ff72afb716a3ece}{reconcile\+Edges}} () noexcept
 \begin{DoxyCompactList}\small\item\em Function which computes internal things for the half-\/edges. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classDCEL_1_1MeshT_af6f20b112be3300ed9857e349e0c7634}{reconcile\+Vertices}} (typename \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::\mbox{\hyperlink{classDCEL_1_1MeshT_a4548120cb514e736ae4cd8c13b418e91}{Vertex\+Normal\+Weight}} a\+\_\+weight) noexcept
 \begin{DoxyCompactList}\small\item\em Function which computes internal things for the vertices. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1MeshT_a8c0ad58e6bb110c511a730c1fef485f1}\label{classDCEL_1_1MeshT_a8c0ad58e6bb110c511a730c1fef485f1}} 
+void \mbox{\hyperlink{classDCEL_1_1MeshT_a8c0ad58e6bb110c511a730c1fef485f1}{flip\+Faces}} () noexcept
+\begin{DoxyCompactList}\small\item\em Flip all face normals. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1MeshT_a885a5fcd910c8c7454585c909c3689e5}\label{classDCEL_1_1MeshT_a885a5fcd910c8c7454585c909c3689e5}} 
+void \mbox{\hyperlink{classDCEL_1_1MeshT_a885a5fcd910c8c7454585c909c3689e5}{flip\+Edges}} () noexcept
+\begin{DoxyCompactList}\small\item\em Flip all edge normals. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDCEL_1_1MeshT_a98f2b3d5b3f29136bdea972494523e0a}\label{classDCEL_1_1MeshT_a98f2b3d5b3f29136bdea972494523e0a}} 
+void \mbox{\hyperlink{classDCEL_1_1MeshT_a98f2b3d5b3f29136bdea972494523e0a}{flip\+Vertices}} () noexcept
+\begin{DoxyCompactList}\small\item\em Flip all vertex normal. \end{DoxyCompactList}\item 
 T \mbox{\hyperlink{classDCEL_1_1MeshT_aef58cf2832522255daf6b73d0222391f}{Direct\+Signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3}} \&a\+\_\+point) const noexcept
 \begin{DoxyCompactList}\small\item\em Implementation of signed distance function which iterates through all faces. \end{DoxyCompactList}\item 
 T \mbox{\hyperlink{classDCEL_1_1MeshT_a967d6bef3da79469adaa4f0933ee5559}{Direct\+Signed\+Distance2}} (const \mbox{\hyperlink{classVec3T}{Vec3}} \&a\+\_\+point) const noexcept
@@ -253,6 +264,20 @@ This first find the face with the smallest unsigned square distance, and the ret
 \mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point \\
 \hline
 \end{DoxyParams}
+\mbox{\Hypertarget{classDCEL_1_1MeshT_af4ee8076fcde3ff1ad085b3c01fa3c1e}\label{classDCEL_1_1MeshT_af4ee8076fcde3ff1ad085b3c01fa3c1e}} 
+\index{DCEL::MeshT$<$ T $>$@{DCEL::MeshT$<$ T $>$}!flip@{flip}}
+\index{flip@{flip}!DCEL::MeshT$<$ T $>$@{DCEL::MeshT$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{flip()}{flip()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+void \mbox{\hyperlink{classDCEL_1_1MeshT}{D\+C\+E\+L\+::\+MeshT}}$<$ T $>$\+::flip\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Flip the mesh, making all the normals change direction. 
+
+\begin{DoxyNote}{Note}
+Should be called A\+F\+T\+ER all normals have been computed. 
+\end{DoxyNote}
 \mbox{\Hypertarget{classDCEL_1_1MeshT_aa8bfac45b97979435c5d342d0f455a70}\label{classDCEL_1_1MeshT_aa8bfac45b97979435c5d342d0f455a70}} 
 \index{DCEL::MeshT$<$ T $>$@{DCEL::MeshT$<$ T $>$}!incrementWarning@{incrementWarning}}
 \index{incrementWarning@{incrementWarning}!DCEL::MeshT$<$ T $>$@{DCEL::MeshT$<$ T $>$}}

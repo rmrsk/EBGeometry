@@ -1,16 +1,17 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_SignedDistanceFunction.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_SignedDistanceFunction.hpp">
-<area shape="rect" id="node1" title="Abstract base class for representing a signed distance function." alt="" coords="347,5,589,61"/>
-<area shape="rect" id="node2" title=" " alt="" coords="113,184,191,211"/>
-<area shape="rect" id="node3" title=" " alt="" coords="215,184,278,211"/>
-<area shape="rect" id="node4" href="$EBGeometry__ImplicitFunction_8hpp.html" title="Abstract base class for representing an implicit function." alt="" coords="347,109,589,136"/>
-<area shape="rect" id="node7" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="205,437,467,464"/>
-<area shape="rect" id="node8" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="757,437,1013,464"/>
-<area shape="rect" id="node14" href="$EBGeometry__SignedDistanceFunctionImplem_8hpp.html" title="Implementation of EBGeometry_SignedDistanceFunctionImplem.hpp." alt="" coords="986,348,1198,389"/>
-<area shape="rect" id="node5" href="$EBGeometry__TransformOps_8hpp.html" title="Declaration of transformation operators for signed distance fields." alt="" coords="353,184,583,211"/>
-<area shape="rect" id="node13" href="$EBGeometry__ImplicitFunctionImplem_8hpp.html" title="Implementation of EBGeometry_ImplicitFunctionImplem.hpp." alt="" coords="697,259,911,300"/>
-<area shape="rect" id="node6" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="459,266,621,293"/>
-<area shape="rect" id="node12" href="$EBGeometry__TransformOpsImplem_8hpp.html" title="Implementation of EBGeometry_TransformOps.hpp." alt="" coords="145,355,423,382"/>
-<area shape="rect" id="node9" href="$EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp." alt="" coords="549,355,761,382"/>
-<area shape="rect" id="node10" title=" " alt="" coords="531,437,599,464"/>
-<area shape="rect" id="node11" title=" " alt="" coords="624,437,709,464"/>
+<area shape="rect" id="node1" title="Abstract base class for representing a signed distance function." alt="" coords="187,5,429,61"/>
+<area shape="rect" id="node2" title=" " alt="" coords="43,199,120,225"/>
+<area shape="rect" id="node3" title=" " alt="" coords="145,199,207,225"/>
+<area shape="rect" id="node4" href="$EBGeometry__ImplicitFunction_8hpp.html" title="Abstract base class for representing an implicit function." alt="" coords="187,117,429,143"/>
+<area shape="rect" id="node8" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="239,437,502,464"/>
+<area shape="rect" id="node9" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="1037,437,1293,464"/>
+<area shape="rect" id="node15" href="$EBGeometry__SignedDistanceFunctionImplem_8hpp.html" title="Implementation of EBGeometry_SignedDistanceFunctionImplem.hpp." alt="" coords="454,109,666,151"/>
+<area shape="rect" id="node5" href="$EBGeometry__TransformOps_8hpp.html" title="Declaration of transformation operators for signed distance fields." alt="" coords="729,199,959,225"/>
+<area shape="rect" id="node14" href="$EBGeometry__ImplicitFunctionImplem_8hpp.html" title="Implementation of EBGeometry_ImplicitFunctionImplem.hpp." alt="" coords="201,273,415,315"/>
+<area shape="rect" id="node6" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="641,281,804,307"/>
+<area shape="rect" id="node13" href="$EBGeometry__TransformOpsImplem_8hpp.html" title="Implementation of EBGeometry_TransformOps.hpp." alt="" coords="938,363,1217,389"/>
+<area shape="rect" id="node7" title=" " alt="" coords="783,363,863,389"/>
+<area shape="rect" id="node10" href="$EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp." alt="" coords="497,363,709,389"/>
+<area shape="rect" id="node11" title=" " alt="" coords="647,437,715,464"/>
+<area shape="rect" id="node12" title=" " alt="" coords="537,437,623,464"/>
 </map>

@@ -120,7 +120,7 @@
   <span class="c1">// Make a sphere array consisting of about M^3 spheres. We assume</span>
   <span class="c1">// that the domain is x,y,z \in [-1,1] and set the number of spheres</span>
   <span class="c1">// and their radii.</span>
-  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">SDF</span><span class="o">&gt;&gt;</span> <span class="n">spheres</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Sphere</span><span class="o">&gt;&gt;</span> <span class="n">spheres</span><span class="p">;</span>
 
   <span class="k">constexpr</span> <span class="n">T</span>   <span class="n">radius</span> <span class="o">=</span> <span class="mf">0.02</span><span class="p">;</span>
   <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">M</span>      <span class="o">=</span> <span class="mi">40</span><span class="p">;</span>
@@ -153,7 +153,7 @@
 
   <span class="c1">// Make a standard union of these spheres. This is the union object which</span>
   <span class="c1">// iterates through each and every object in the scene.</span>
-  <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Union</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">slowUnion</span><span class="p">(</span><span class="n">spheres</span><span class="p">,</span> <span class="nb">false</span><span class="p">);</span>
+  <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Union</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Sphere</span><span class="o">&gt;</span> <span class="n">slowUnion</span><span class="p">(</span><span class="n">spheres</span><span class="p">,</span> <span class="nb">false</span><span class="p">);</span>
   <span class="c1">// Make a fast union. To do this we must have the SDF objects (our vector of</span>
   <span class="c1">// spheres) as well as a way for enclosing these objects. We need to define</span>
 </pre></div>
@@ -166,7 +166,7 @@
   <span class="c1">// Make a sphere array consisting of about M^3 spheres. We assume</span>
   <span class="c1">// that the domain is x,y,z \in [-1,1] and set the number of spheres</span>
   <span class="c1">// and their radii.</span>
-  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">SDF</span><span class="o">&gt;&gt;</span> <span class="n">spheres</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Sphere</span><span class="o">&gt;&gt;</span> <span class="n">spheres</span><span class="p">;</span>
 
   <span class="k">constexpr</span> <span class="n">T</span>   <span class="n">radius</span> <span class="o">=</span> <span class="mf">0.02</span><span class="p">;</span>
   <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">M</span>      <span class="o">=</span> <span class="mi">40</span><span class="p">;</span>
