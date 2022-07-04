@@ -47,7 +47,7 @@ public:
   UnionBVH(const std::vector<std::shared_ptr<P>>& a_distanceFunctions,
            const bool                             a_flipSign,
            const BVConstructor&                   a_bvConstructor);
-  
+
   /*!
     @brief Destructor (does nothing)
   */
@@ -67,7 +67,6 @@ public:
   getBoundingVolume() const noexcept;
 
 protected:
-
   /*!
     @brief Root node for linearized BVH tree
   */
@@ -85,7 +84,7 @@ protected:
     encloses an object.
   */
   inline void
-  buildTree(const std::vector<std::shared_ptr<P>>& a_distanceFunctions, const BVConstructor& a_bvConstructor) noexcept; 
+  buildTree(const std::vector<std::shared_ptr<P>>& a_distanceFunctions, const BVConstructor& a_bvConstructor) noexcept;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

@@ -64,7 +64,7 @@ main()
 
   // Make a standard union of these spheres. This is the union object which
   // iterates through each and every object in the scene.
-  EBGeometry::Union<Sphere, T> slowUnion(spheres, false);
+  EBGeometry::Union<T, Sphere> slowUnion(spheres, false);
 
   // Make a fast union. To do this we must have the SDF objects (our vector of
   // spheres) as well as a way for enclosing these objects. We need to define

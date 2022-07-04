@@ -23,7 +23,7 @@
   @brief CSG union. Computes the minimum of all input primitives. This
   is defined also when objects in the scene overlap one another. It will also
 */
-template <class P, class T>
+template <class T, class P>
 class Union : public ImplicitFunction<T>
 {
 public:
