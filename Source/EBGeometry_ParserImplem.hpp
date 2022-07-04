@@ -337,7 +337,7 @@ Parser::STL<T>::getEncoding(const std::string a_filename) noexcept
     char chars[256];
     is.read(chars, 256);
 
-    std::string buffer(chars, is.gcount());
+    std::string buffer(chars, static_cast<size_t>(is.gcount()));
     std::transform(buffer.begin(), buffer.end(), buffer.begin(), ::tolower);
 
     // clang-format off
@@ -409,11 +409,10 @@ Parser::STL<T>::readASCII(const std::string a_filename) noexcept
   if (filestream.is_open()) {
     std::string line;
 
-    size_t curLine = -1;
+    size_t curLine = 0;
     size_t first;
     size_t last;
     while (std::getline(filestream, line)) {
-      curLine++;
       fileContents.emplace_back(line);
 
       std::string       str;
@@ -428,6 +427,8 @@ Parser::STL<T>::readASCII(const std::string a_filename) noexcept
 
         firstLast.emplace_back(first, last);
       }
+
+      curLine++;
     }
   }
   else {
@@ -596,8 +597,8 @@ Parser::STL<T>::readBinary(const std::string a_filename) noexcept
 
       // Insert a new facet.
       std::vector<size_t> curFacet;
-      for (size_t i = 0; i < 3; i++) {
-        objectVertices.emplace_back(v[i]);
+      for (size_t j = 0; j < 3; j++) {
+        objectVertices.emplace_back(v[j]);
         curFacet.emplace_back(objectVertices.size() - 1);
       }
 

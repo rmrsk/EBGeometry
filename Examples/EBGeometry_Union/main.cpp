@@ -85,7 +85,8 @@ main()
   std::cout << "Partitioning spheres" << std::endl;
   EBGeometry::UnionBVH<T, Sphere, AABB, K> fastUnion(spheres, false, aabbConstructor);
 
-  std::mt19937_64                   rng(std::chrono::system_clock::now().time_since_epoch().count());
+  std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
+
   std::uniform_real_distribution<T> dist(-1.0, 1.0);
 
   std::chrono::duration<T, std::micro> slowTime(0.0);

@@ -36,7 +36,7 @@ main(int argc, char* argv[])
   }
   else {
     std::cerr << "Missing file name. Use ./a.out 'filename' where 'filename' "
-                 "is one of the files in ../Objects\n";
+                 "is one of the files in ../Resources\n";
   }
 
   // Three representations of the same object. First, we get the DCEL mesh, and then
