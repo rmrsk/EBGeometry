@@ -320,13 +320,11 @@ namespace DCEL {
 
     const bool inside = this->isPointInsideFace(a_x0);
 
-    if (inside) { // Projects to inside so distance and sign are straightforward
-                  // to compute.
+    if (inside) {
       retval = m_normal.dot(a_x0 - m_centroid);
     }
     else {
-      for (const auto& e : m_edges) { // Projects to outside so edge/vertex are
-                                      // closest. Check that distance.
+      for (const auto& e : m_edges) {
         const T curDist = e->signedDistance(a_x0);
 
         retval = (std::abs(curDist) < std::abs(retval)) ? curDist : retval;
@@ -344,14 +342,13 @@ namespace DCEL {
 
     const bool inside = this->isPointInsideFace(a_x0);
 
-    if (inside) { // Projects to inside the polygon face so distance is
-                  // straightforward.
+    if (inside) {
       const T normDist = m_normal.dot(a_x0 - m_centroid);
 
       retval = normDist * normDist;
     }
     else {
-      for (const auto& e : m_edges) { // Projects to outside so edge/vertex are closest.
+      for (const auto& e : m_edges) {
         const T curDist2 = e->unsignedDistance2(a_x0);
 
         retval = (curDist2 < retval) ? curDist2 : retval;

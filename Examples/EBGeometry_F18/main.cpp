@@ -50,7 +50,7 @@ main(int argc, char* argv[])
     SDFs.emplace_back(EBGeometry::DCEL::buildFlatBVH<T, BV, K>(mesh));
   }
 
-  // Two types of unions; a standard one and one that use anothe rBVH
+  // Two types of unions; a standard one and one that use another BVH
   EBGeometry::BVH::BVConstructorT<Prim, BV> bvConstructor = [](const std::shared_ptr<const Prim>& a_prim) -> BV {
     return a_prim->getBoundingVolume();
   };
