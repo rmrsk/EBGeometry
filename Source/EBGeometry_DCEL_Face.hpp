@@ -114,6 +114,12 @@ namespace DCEL {
     reconcile() noexcept;
 
     /*!
+      @brief Flip the normal vector
+    */
+    inline void
+    flip() noexcept;
+
+    /*!
       @brief Set the half edge
       @param[in] a_halfEdge Half edge
     */

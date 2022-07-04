@@ -173,6 +173,13 @@ namespace DCEL {
     reconcile(typename DCEL::MeshT<T>::VertexNormalWeight a_weight = VertexNormalWeight::Angle) noexcept;
 
     /*!
+      @brief Flip the mesh, making all the normals change direction. 
+      @note Should be called AFTER all normals have been computed. 
+    */
+    inline void
+    flip() noexcept;
+
+    /*!
       @brief Get modifiable vertices in this mesh
     */
     inline std::vector<VertexPtr>&
@@ -183,6 +190,12 @@ namespace DCEL {
     */
     inline const std::vector<VertexPtr>&
     getVertices() const noexcept;
+
+    /*!
+      @brief Return all vertex coordinates in the mesh.
+    */
+    inline std::vector<Vec3T<T>>
+    getAllVertexCoordinates() const noexcept;
 
     /*!
       @brief Get modifiable half-edges in this mesh
@@ -266,12 +279,6 @@ namespace DCEL {
     std::vector<FacePtr> m_faces;
 
     /*!
-      @brief Return all vertex coordinates in the mesh.
-    */
-    inline std::vector<Vec3T<T>>
-    getAllVertexCoordinates() const noexcept;
-
-    /*!
       @brief Function which computes internal things for the polygon faces.
       @note This calls DCEL::FaceT<T>::reconcile()
     */
@@ -293,6 +300,24 @@ namespace DCEL {
     */
     inline void
     reconcileVertices(typename DCEL::MeshT<T>::VertexNormalWeight a_weight) noexcept;
+
+    /*!
+      @brief Flip all face normals
+    */
+    inline void
+    flipFaces() noexcept;
+
+    /*!
+      @brief Flip all edge normals
+    */
+    inline void
+    flipEdges() noexcept;
+
+    /*!
+      @brief Flip all vertex normal
+    */
+    inline void
+    flipVertices() noexcept;
 
     /*!
       @brief Implementation of signed distance function which iterates through all

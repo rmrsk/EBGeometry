@@ -30,7 +30,7 @@
 
 template <typename T>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-Parser::read(const std::string a_filename) noexcept
+Parser::readIntoDCEL(const std::string a_filename) noexcept
 {
   auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T>>();
 
@@ -64,12 +64,58 @@ Parser::read(const std::string a_filename) noexcept
 
 template <typename T>
 inline std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>>
-Parser::read(const std::vector<std::string> a_files) noexcept
+Parser::readIntoDCEL(const std::vector<std::string> a_files) noexcept
 {
   std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>> objects;
 
   for (const auto& file : a_files) {
-    objects.emplace_back(Parser::read<T>(file));
+    objects.emplace_back(Parser::readIntoDCEL<T>(file));
+  }
+
+  return objects;
+}
+
+template <typename T, typename BV, size_t K>
+inline std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>
+Parser::readIntoFullBVH(const std::string a_filename) noexcept
+{
+  const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(a_filename);
+
+  auto bvh = EBGeometry::DCEL::buildFullBVH<T, BV, K>(mesh);
+
+  return bvh;
+}
+
+template <typename T, typename BV, size_t K>
+inline std::vector<std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>>
+Parser::readIntoFullBVH(const std::vector<std::string> a_files) noexcept
+{
+  std::vector<std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>> objects;
+
+  for (const auto& file : a_files) {
+    objects.emplace_back(Parser::readIntoFullBVH<T, BV, K>(file));
+  }
+
+  return objects;
+}
+
+template <typename T, typename BV, size_t K>
+inline std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>>
+Parser::readIntoLinearBVH(const std::string a_filename) noexcept
+{
+  const auto bvh = Parser::readIntoFullBVH<T, BV, K>(a_filename);
+
+  return bvh->flattenTree();
+}
+
+template <typename T, typename BV, size_t K>
+inline std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>>>
+Parser::readIntoLinearBVH(const std::vector<std::string> a_files) noexcept
+{
+  std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>>> objects;
+
+  for (const auto& file : a_files) {
+    objects.emplace_back(Parser::readIntoLinearBVH<T, BV, K>(file));
   }
 
   return objects;
@@ -288,20 +334,21 @@ Parser::STL<T>::getEncoding(const std::string a_filename) noexcept
 
   std::ifstream is(a_filename, std::istringstream::in | std::ios::binary);
   if (is.good()) {
+    char chars[256];
+    is.read(chars, 256);
 
-    // If it's an ASCII file it begins with 'solid <something>' so we just
-    // check if the first 5 characters are 'solid'. Adding a null character
-    // for safety here.
-    char header[6];
-    header[5] = '\0';
-    is.read(header, 5);
+    std::string buffer(chars, static_cast<size_t>(is.gcount()));
+    std::transform(buffer.begin(), buffer.end(), buffer.begin(), ::tolower);
 
-    if (strcmp(header, "solid") == 0) {
+    // clang-format off
+    if(buffer.find("solid") != std::string::npos && buffer.find("\n")    != std::string::npos &&
+       buffer.find("facet") != std::string::npos && buffer.find("normal")!= std::string::npos) {
       ft = Parser::Encoding::ASCII;
     }
     else {
       ft = Parser::Encoding::Binary;
     }
+    // clang-format on
   }
   else {
     std::cerr << "Parser::STL::getEncoding -- could not open file '" + a_filename + "'\n";
@@ -321,6 +368,7 @@ template <typename T>
 inline std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>>
 Parser::STL<T>::readMulti(const std::string a_filename) noexcept
 {
+
   const Parser::Encoding ft = Parser::STL<T>::getEncoding(a_filename);
 
   std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>> objectsDCEL;
@@ -361,11 +409,10 @@ Parser::STL<T>::readASCII(const std::string a_filename) noexcept
   if (filestream.is_open()) {
     std::string line;
 
-    size_t curLine = -1;
+    size_t curLine = 0;
     size_t first;
     size_t last;
     while (std::getline(filestream, line)) {
-      curLine++;
       fileContents.emplace_back(line);
 
       std::string       str;
@@ -380,6 +427,8 @@ Parser::STL<T>::readASCII(const std::string a_filename) noexcept
 
         firstLast.emplace_back(first, last);
       }
+
+      curLine++;
     }
   }
   else {
@@ -548,8 +597,8 @@ Parser::STL<T>::readBinary(const std::string a_filename) noexcept
 
       // Insert a new facet.
       std::vector<size_t> curFacet;
-      for (size_t i = 0; i < 3; i++) {
-        objectVertices.emplace_back(v[i]);
+      for (size_t j = 0; j < 3; j++) {
+        objectVertices.emplace_back(v[j]);
         curFacet.emplace_back(objectVertices.size() - 1);
       }
 
@@ -645,6 +694,16 @@ Parser::PLY<T>::read(const std::string a_filename) noexcept
     }
     case Parser::Encoding::Binary: {
       Parser::PLY<T>::readPLYSoupBinary(vertices, faces, filestream);
+
+      break;
+    }
+    case Parser::Encoding::Unknown: {
+      const std::string error = "Parser::PLY::read - ERROR! Unknown encoding for '" + a_filename + "'\n";
+
+      break;
+    }
+    default: {
+      const std::string error = "Parser::PLY::read - logic bust\n";
 
       break;
     }

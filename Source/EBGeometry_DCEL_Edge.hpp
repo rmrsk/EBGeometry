@@ -150,6 +150,12 @@ namespace DCEL {
     reconcile() noexcept;
 
     /*!
+      @brief Flip the normal vector
+    */
+    inline void
+    flip() noexcept;
+
+    /*!
       @brief Get modifiable starting vertex
       @return Returns m_vertex
     */
