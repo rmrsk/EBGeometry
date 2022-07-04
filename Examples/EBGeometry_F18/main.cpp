@@ -15,7 +15,7 @@
 using namespace EBGeometry;
 using namespace EBGeometry::DCEL;
 
-constexpr size_t K = 2;
+constexpr size_t K = 4;
 using T            = float;
 using Face         = EBGeometry::DCEL::FaceT<T>;
 using Mesh         = EBGeometry::DCEL::MeshT<T>;
@@ -68,13 +68,13 @@ main(int argc, char* argv[])
   EBGeometry::UnionBVH<T, LinBVH, BV, K> fastUnionFastSDF(fastSDFs, false, bvFast);
 
   // Sample some random positions
-  constexpr size_t Nsamp = 500;
+  constexpr size_t Nsamp = 100;
 
   const Vec3 lo    = fastUnionFastSDF.getBoundingVolume().getLowCorner();
   const Vec3 hi    = fastUnionFastSDF.getBoundingVolume().getHighCorner();
   const Vec3 delta = hi - lo;
 
-  std::mt19937_64 rng(std::chrono::system_clock::now().time_since_epoch().count());
+  std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
 
   std::uniform_real_distribution<T> dist(0.0, 1.0);
   std::vector<Vec3>                 ranPoints;
