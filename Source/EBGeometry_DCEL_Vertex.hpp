@@ -181,6 +181,12 @@ namespace DCEL {
     computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a_faces) noexcept;
 
     /*!
+      @brief Flip the normal vector
+    */
+    inline void
+    flip() noexcept;
+
+    /*!
       @brief Return modifiable vertex position.
     */
     inline Vec3T<T>&

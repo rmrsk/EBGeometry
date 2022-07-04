@@ -152,6 +152,13 @@ namespace DCEL {
   }
 
   template <class T>
+  inline void
+  EdgeT<T>::flip() noexcept
+  {
+    m_normal = -m_normal;
+  }
+
+  template <class T>
   inline std::shared_ptr<VertexT<T>>&
   EdgeT<T>::getVertex() noexcept
   {

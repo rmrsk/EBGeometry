@@ -13,41 +13,16 @@
 // Our includes
 #include "EBGeometry.hpp"
 
-using T    = float;
-using SDF  = EBGeometry::SignedDistanceFunction<T>;
-using Vec3 = EBGeometry::Vec3T<T>;
-using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
-
 // Binding for exposing EBGeometry's signed distance functions to Chombo
 template <class T, class BV, int K>
 class ChomboSDF : public BaseIF
 {
 public:
-  /*!
-    @brief Alias for builder node, for encapsulating a "standard" BVH node
-  */
-  using BuilderNode = EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>;
-
-  /*!
-    @brief Alias for linearized BVH node
-  */
-  using LinearNode = EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>;
-
   ChomboSDF() = delete;
 
   ChomboSDF(const std::string a_filename)
   {
-    // 1. Read mesh from file.
-    auto mesh = EBGeometry::Parser::read<T>(a_filename);
-
-    // 2. Create standard BVH hierarchy. This is not a compact tree.
-    auto root = std::make_shared<BuilderNode>(mesh->getFaces());
-    root->topDownSortAndPartitionPrimitives(EBGeometry::DCEL::defaultBVConstructor<T, BV>,
-                                            EBGeometry::DCEL::defaultPartitioner<T, BV, K>,
-                                            EBGeometry::DCEL::defaultStopFunction<T, BV, K>);
-
-    // 3. Flatten the tree onto a tighter memory representation.
-    m_rootNode = root->flattenTree();
+    m_rootNode = EBGeometry::Parser::readIntoLinearBVH<T, BV, K>(a_filename);
   }
 
   ChomboSDF(const ChomboSDF& a_other)
@@ -58,6 +33,8 @@ public:
   Real
   value(const RealVect& a_point) const override final
   {
+    using Vec3 = EBGeometry::Vec3T<T>;
+
 #if CH_SPACEDIM == 2
     Vec3 p(a_point[0], a_point[1], 0.0);
 #else
@@ -74,18 +51,20 @@ public:
   }
 
 protected:
-  std::shared_ptr<LinearNode> m_rootNode;
+  std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>> m_rootNode;
 };
 
 int
 main(int argc, char* argv[])
 {
+  constexpr int K = 4;
+
+  using T  = float;
+  using BV = EBGeometry::BoundingVolumes::AABBT<T>;
 
 #ifdef CH_MPI
   MPI_Init(&argc, &argv);
 #endif
-
-  // Set up domain.
 
   // Parse input file
   char*     inFile = argv[1];
@@ -106,48 +85,46 @@ main(int argc, char* argv[])
     loCorner = -50 * RealVect::Unit;
     hiCorner = 250 * RealVect::Unit;
 
-    filename = "../Objects/airfoil.stl";
+    filename = "../Resources/airfoil.stl";
   }
   else if (whichGeom == 1) { // Sphere
     loCorner = -400 * RealVect::Unit;
     hiCorner = 400 * RealVect::Unit;
 
-    filename = "../Objects/sphere.stl";
+    filename = "../Resources/sphere.stl";
   }
   else if (whichGeom == 2) { // Dodecahedron
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
-    filename = "../Objects/dodecahedron.stl";
+    filename = "../Resources/dodecahedron.stl";
   }
   else if (whichGeom == 3) { // Horse
     loCorner = -0.12 * RealVect::Unit;
     hiCorner = 0.12 * RealVect::Unit;
 
-    filename = "../Objects/horse.stl";
+    filename = "../Resources/horse.stl";
   }
   else if (whichGeom == 4) { // Porsche
     loCorner = -10 * RealVect::Unit;
     hiCorner = 10 * RealVect::Unit;
 
-    filename = "../Objects/porsche.stl";
+    filename = "../Resources/porsche.stl";
   }
   else if (whichGeom == 5) { // Orion
     loCorner = -10 * RealVect::Unit;
     hiCorner = 10 * RealVect::Unit;
 
-    filename = "../Objects/orion.stl";
+    filename = "../Resources/orion.stl";
   }
   else if (whichGeom == 6) { // Armadillo
     loCorner = -125 * RealVect::Unit;
     hiCorner = 125 * RealVect::Unit;
 
-    filename = "../Objects/armadillo.stl";
+    filename = "../Resources/armadillo.stl";
   }
 
-  //
-  constexpr int K       = 4;
-  auto          impFunc = (BaseIF*)(new ChomboSDF<T, BV, K>(filename));
+  auto impFunc = static_cast<BaseIF*>(new ChomboSDF<T, BV, K>(filename));
 
   // Set up the Chombo EB geometry.
   ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);

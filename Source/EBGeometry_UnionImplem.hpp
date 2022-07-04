@@ -16,34 +16,24 @@
 #include "EBGeometry_Union.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-template <class T>
-Union<T>::Union(const std::vector<std::shared_ptr<ImpFunc>>& a_implicitFunctions, const bool a_flipSign)
+template <class T, class P>
+Union<T, P>::Union(const std::vector<std::shared_ptr<P>>& a_primitives, const bool a_flipSign)
 {
-  for (const auto& impFunc : a_implicitFunctions) {
-    m_implicitFunctions.emplace_back(impFunc);
+  for (const auto& prim : a_primitives) {
+    m_primitives.emplace_back(prim);
   }
 
   m_flipSign = a_flipSign;
 }
 
-template <class T>
-Union<T>::Union(const std::vector<std::shared_ptr<SDF>>& a_distanceFunctions, const bool a_flipSign)
-{
-  for (const auto& sdf : a_distanceFunctions) {
-    m_implicitFunctions.emplace_back(sdf);
-  }
-
-  m_flipSign = a_flipSign;
-}
-
-template <class T>
+template <class T, class P>
 T
-Union<T>::value(const Vec3T<T>& a_point) const noexcept
+Union<T, P>::value(const Vec3T<T>& a_point) const noexcept
 {
   T ret = std::numeric_limits<T>::infinity();
 
-  for (const auto& impFunc : m_implicitFunctions) {
-    ret = std::min(ret, impFunc->value(a_point));
+  for (const auto& prim : m_primitives) {
+    ret = std::min(ret, prim->value(a_point));
   }
 
   T sign = (m_flipSign) ? -1.0 : 1.0;

@@ -16,51 +16,43 @@
 #include "EBGeometry_UnionBVH.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-template <class T, class BV, size_t K>
-UnionBVH<T, BV, K>::UnionBVH(const std::vector<std::shared_ptr<SDF>>& a_distanceFunctions, const bool a_flipSign)
+template <class T, class P, class BV, size_t K>
+UnionBVH<T, P, BV, K>::UnionBVH(const std::vector<std::shared_ptr<P>>& a_distanceFunctions,
+                                const bool                             a_flipSign,
+                                const BVConstructor&                   a_bvConstructor)
 {
-  for (const auto& sdf : a_distanceFunctions) {
-    m_distanceFunctions.emplace_back(sdf);
-  }
-
   m_flipSign = a_flipSign;
-  m_isGood   = false;
+
+  this->buildTree(a_distanceFunctions, a_bvConstructor);
 }
 
-template <class T, class BV, size_t K>
-UnionBVH<T, BV, K>::UnionBVH(const std::vector<std::shared_ptr<SDF>>& a_distanceFunctions,
-                             const bool                               a_flipSign,
-                             const BVConstructor&                     a_bvConstructor)
-  : UnionBVH<T, BV, K>(a_distanceFunctions, a_flipSign)
-{
-
-  this->buildTree(a_bvConstructor);
-}
-
-template <class T, class BV, size_t K>
+template <class T, class P, class BV, size_t K>
 void
-UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor)
+UnionBVH<T, P, BV, K>::buildTree(const std::vector<std::shared_ptr<P>>& a_distanceFunctions,
+                                 const BVConstructor&                   a_bvConstructor) noexcept
 {
+  using PrimList    = std::vector<std::shared_ptr<const P>>;
+  using BuilderNode = EBGeometry::BVH::NodeT<T, P, BV, K>;
 
-  // This function is a partitioning function taking the input SDFs and
+  // This function is a partitioning function taking the input primitives and
   // partitioning them into K subvolumes. Since the SDFs don't themselves have
   // vertices, centroids, etc., we use their bounding volumes as criteria for
   // subdividing them. We do this by computing the spatial centroid of each
   // bounding volume that encloses the SDFs. We then do a spatial subdivision
   // along the longest coordinate into K almost-equal chunks.
-  EBGeometry::BVH::PartitionerT<SDF, BV, K> partitioner =
-    [a_bvConstructor](const SDFList& a_primitives) -> std::array<SDFList, K> {
+  EBGeometry::BVH::PartitionerT<P, BV, K> partitioner =
+    [a_bvConstructor](const PrimList& a_primitives) -> std::array<PrimList, K> {
     const size_t numPrimitives = a_primitives.size();
 
     if (numPrimitives < K) {
-      std::cerr << "UnionBVH<T, BV, K>::buildTree -- not enough primitives to "
+      std::cerr << "UnionBVH<T, P, BV, K>::buildTree -- not enough primitives to "
                    "partition into K new nodes\n";
     }
 
     // 1. Compute the bounding volume centroids for each input SDF.
     std::vector<Vec3T<T>> bvCentroids;
-    for (const auto& P : a_primitives) {
-      bvCentroids.emplace_back((a_bvConstructor(P)).getCentroid());
+    for (const auto& prim : a_primitives) {
+      bvCentroids.emplace_back((a_bvConstructor(prim)).getCentroid());
     }
 
     // 2. Figure out which coordinate direction has the longest/smallest extent.
@@ -78,7 +70,7 @@ UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor)
     // 3. Sort input primitives based on the centroid location of their bounding
     // volumes. We do this by packing the SDFs and their BV centroids
     //    in a vector which we sort (I love C++).
-    using Primitive = std::shared_ptr<const SDF>;
+    using Primitive = std::shared_ptr<const P>;
     using Centroid  = Vec3T<T>;
     using PC        = std::pair<Primitive, Centroid>;
 
@@ -126,17 +118,17 @@ UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor)
 
     // 5. Put the primitives in separate lists and return them like the API
     // says.
-    std::array<SDFList, K> subVolumePrimitives;
+    std::array<PrimList, K> subVolumePrimitives;
     for (size_t i = 0; i < K; i++) {
 
       // God how I hate how the standard library handles iterator offsets. Fuck
       // you, long/unsigned long conversion.
-      typename SDFList::const_iterator first =
-        sortedPrimitives.cbegin() + static_cast<typename SDFList::difference_type>(startIndices[i]);
-      typename SDFList::const_iterator last =
-        sortedPrimitives.cbegin() + static_cast<typename SDFList::difference_type>(endIndices[i]);
+      typename PrimList::const_iterator first =
+        sortedPrimitives.cbegin() + static_cast<typename PrimList::difference_type>(startIndices[i]);
+      typename PrimList::const_iterator last =
+        sortedPrimitives.cbegin() + static_cast<typename PrimList::difference_type>(endIndices[i]);
 
-      subVolumePrimitives[i] = SDFList(first, last);
+      subVolumePrimitives[i] = PrimList(first, last);
     }
 
     return subVolumePrimitives;
@@ -144,24 +136,22 @@ UnionBVH<T, BV, K>::buildTree(const BVConstructor& a_bvConstructor)
 
   // Stop function. Exists subdivision if there are not enough primitives left
   // to keep subdividing. We set the limit at 10 primitives.
-  EBGeometry::BVH::StopFunctionT<T, SDF, BV, K> stopFunc = [](const BuilderNode& a_node) -> bool {
+  EBGeometry::BVH::StopFunctionT<T, P, BV, K> stopFunc = [](const BuilderNode& a_node) -> bool {
     const size_t numPrimsInNode = (a_node.getPrimitives()).size();
     return numPrimsInNode < K;
   };
 
   // Init the root node and partition the primitives.
-  auto root = std::make_shared<BuilderNode>(m_distanceFunctions);
+  auto root = std::make_shared<BuilderNode>(a_distanceFunctions);
 
   root->topDownSortAndPartitionPrimitives(a_bvConstructor, partitioner, stopFunc);
 
   m_rootNode = root->flattenTree();
-
-  m_isGood = true;
 }
 
-template <class T, class BV, size_t K>
+template <class T, class P, class BV, size_t K>
 T
-UnionBVH<T, BV, K>::value(const Vec3T<T>& a_point) const noexcept
+UnionBVH<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 {
   const T sign = (m_flipSign) ? -1.0 : 1.0;
 
@@ -190,12 +180,19 @@ UnionBVH<T, BV, K>::value(const Vec3T<T>& a_point) const noexcept
   };
 
   BVH::Pruner<T> unionPruner = [](const T& bvDist, const T& minDist) -> bool {
-    return bvDist <= 0.0 || (bvDist <= minDist && minDist > 0.0);
+    return bvDist <= 0.0 || bvDist <= minDist;
   };
 
   const T value = m_rootNode->stackPrune(a_point, unionComparator, unionPruner);
 
   return sign * value;
+}
+
+template <class T, class P, class BV, size_t K>
+const BV&
+UnionBVH<T, P, BV, K>::getBoundingVolume() const noexcept
+{
+  return m_rootNode->getBoundingVolume();
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"
