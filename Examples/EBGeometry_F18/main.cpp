@@ -15,12 +15,12 @@
 using namespace EBGeometry;
 using namespace EBGeometry::DCEL;
 
-constexpr size_t K = 4;
+constexpr size_t K = 2;
 using T            = float;
 using Face         = EBGeometry::DCEL::FaceT<T>;
 using Mesh         = EBGeometry::DCEL::MeshT<T>;
 using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
-using Prim         = EBGeometry::BVH::LinearBVH<T, Face, BV, K>;
+using LinBVH       = EBGeometry::BVH::LinearBVH<T, Face, BV, K>;
 using Vec3         = EBGeometry::Vec3T<T>;
 
 int
@@ -38,31 +38,37 @@ main(int argc, char* argv[])
     }
   }
 
-  // Read each STL file and make them into flattened BVH-trees. These STL files
-  // happen to normal vectors pointing inwards so we flip the DCEL normals. Otherwise
-  // we could just have called EBGeomtry::Parser::readIntoLinearBVH.
-  std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, Face, BV, K>>> SDFs;
+  // Read each STL file. These STL files happen to have normal vectors pointing inwards
+  // so we flip them.
+  std::vector<std::shared_ptr<Mesh>>                                       slowSDFs;
+  std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, Face, BV, K>>> fastSDFs;
   for (const auto& f : stlFiles) {
-
     const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(f);
     mesh->flip();
 
-    SDFs.emplace_back(EBGeometry::DCEL::buildFlatBVH<T, BV, K>(mesh));
+    // Store the grids as basic DCEL grids and as linearized BVHs.
+    slowSDFs.emplace_back(mesh);
+    fastSDFs.emplace_back(EBGeometry::DCEL::buildFlatBVH<T, BV, K>(mesh));
   }
 
-  // Two types of unions; a standard one and one that use another BVH
-  EBGeometry::BVH::BVConstructorT<Prim, BV> bvConstructor = [](const std::shared_ptr<const Prim>& a_prim) -> BV {
-    return a_prim->getBoundingVolume();
+  // Create four representations of each object. We use a slow/fast union and slow/fast SDF representation of each object.
+  EBGeometry::BVH::BVConstructorT<Mesh, BV> bvConstructorSlow = [](const std::shared_ptr<const Mesh>& a_prim) -> BV {
+    return BV(a_prim->getAllVertexCoordinates());
   };
 
-  EBGeometry::Union<Prim, T>           slowUnion(SDFs, false);
-  EBGeometry::UnionBVH<T, Prim, BV, K> fastUnion(SDFs, false, bvConstructor);
+  EBGeometry::BVH::BVConstructorT<LinBVH, BV> bvConstructorFast =
+    [](const std::shared_ptr<const LinBVH>& a_prim) -> BV { return a_prim->getBoundingVolume(); };
+
+  EBGeometry::Union<T, Mesh>             slowUnionSlowSDF(slowSDFs, false);
+  EBGeometry::Union<T, LinBVH>           slowUnionFastSDF(fastSDFs, false);
+  EBGeometry::UnionBVH<T, Mesh, BV, K>   fastUnionSlowSDF(slowSDFs, false, bvConstructorSlow);
+  EBGeometry::UnionBVH<T, LinBVH, BV, K> fastUnionFastSDF(fastSDFs, false, bvConstructorFast);
 
   // Sample some random positions
-  constexpr size_t Nsamp = 1000;
+  constexpr size_t Nsamp = 100;
 
-  const Vec3 lo    = fastUnion.getBoundingVolume().getLowCorner();
-  const Vec3 hi    = fastUnion.getBoundingVolume().getHighCorner();
+  const Vec3 lo    = fastUnionFastSDF.getBoundingVolume().getLowCorner();
+  const Vec3 hi    = fastUnionFastSDF.getBoundingVolume().getHighCorner();
   const Vec3 delta = hi - lo;
 
   std::mt19937_64 rng(std::chrono::system_clock::now().time_since_epoch().count());
@@ -82,34 +88,45 @@ main(int argc, char* argv[])
     ranPoints.emplace_back(x);
   }
 
-  // Time the union calculation
-  T sumSlow = 0.0;
-  T sumFast = 0.0;
+  // Time the calculation of a couple of random points for the four union representations.
+  T sumSlowSlow = 0.0;
+  T sumSlowFast = 0.0;
+  T sumFastSlow = 0.0;
+  T sumFastFast = 0.0;
 
-  std::chrono::duration<T, std::micro> slowTime(0.0);
-  std::chrono::duration<T, std::micro> fastTime(0.0);
-
+  const auto t0 = std::chrono::high_resolution_clock::now();
+  for (const auto& x : ranPoints) {
+    sumSlowSlow += slowUnionSlowSDF.value(x);
+  }
   const auto t1 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    sumSlow += slowUnion.value(x);
+    sumSlowFast += slowUnionFastSDF.value(x);
   }
   const auto t2 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    sumFast += fastUnion.value(x);
+    sumFastSlow += fastUnionSlowSDF.value(x);
   }
   const auto t3 = std::chrono::high_resolution_clock::now();
+  for (const auto& x : ranPoints) {
+    sumFastFast += fastUnionFastSDF.value(x);
+  }
+  const auto t4 = std::chrono::high_resolution_clock::now();
 
-  if (std::abs(sumSlow) - std::abs(sumFast) > std::numeric_limits<T>::min()) {
-    std::cerr << "Got wrong distance! Diff = " << std::abs(sumSlow) - std::abs(sumFast) << "\n";
+  // Make sure they all produce the same result!.
+  if (std::abs(sumSlowSlow) - std::abs(sumFastFast) > std::numeric_limits<T>::min()) {
+    std::cerr << "Got wrong distance! Diff = " << std::abs(sumSlowFast) - std::abs(sumFastFast) << "\n";
   }
 
-  slowTime += (t2 - t1);
-  fastTime += (t3 - t2);
+  const std::chrono::duration<T, std::micro> slowSlowTime = (t1 - t0);
+  const std::chrono::duration<T, std::micro> slowFastTime = (t2 - t1);
+  const std::chrono::duration<T, std::micro> fastSlowTime = (t3 - t2);
+  const std::chrono::duration<T, std::micro> fastFastTime = (t4 - t3);
 
   std::cout << "Bounding volume = " << lo << "\t" << hi << "\n";
-  std::cout << "Time using slow union (us) = " << slowTime.count() / Nsamp << "\n";
-  std::cout << "Time using fast union (us) = " << fastTime.count() / Nsamp << "\n";
-  std::cout << "Average speedup = " << (1.0 * slowTime.count()) / (1.0 * fastTime.count()) << "\n";
+  std::cout << "Slow union/slow SDF (microseconds/call) = " << slowSlowTime.count() / Nsamp << "\n";
+  std::cout << "Slow union/fast SDF (microseconds/call) = " << slowFastTime.count() / Nsamp << "\n";
+  std::cout << "Fast union/slow SDF (microseconds/call) = " << fastSlowTime.count() / Nsamp << "\n";
+  std::cout << "Fast union/fast SDF (microseconds/call) = " << fastFastTime.count() / Nsamp << "\n";
 
   return 0;
 }
