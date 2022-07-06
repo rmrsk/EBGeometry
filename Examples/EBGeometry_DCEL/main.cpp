@@ -46,26 +46,26 @@ main(int argc, char* argv[])
   const auto bvhSDF  = EBGeometry::DCEL::buildFullBVH<T, BV, K>(dcelSDF);
   const auto linSDF  = bvhSDF->flattenTree();
 
-  // Sample some random points around the object. 
+  // Sample some random points around the object.
   constexpr size_t Nsamp = 200;
-  
+
   const Vec3 lo    = bvhSDF->getBoundingVolume().getLowCorner();
   const Vec3 hi    = bvhSDF->getBoundingVolume().getHighCorner();
-  const Vec3 delta = hi - lo;  
+  const Vec3 delta = hi - lo;
 
   std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
-  
+
   std::uniform_real_distribution<T> dist(0.0, 1.0);
   std::vector<Vec3>                 ranPoints;
 
   for (size_t i = 0; i < Nsamp; i++) {
-    ranPoints.emplace_back( 3 * (lo + delta * Vec3(dist(rng), dist(rng), dist(rng))) );
+    ranPoints.emplace_back(3 * (lo + delta * Vec3(dist(rng), dist(rng), dist(rng))));
   }
 
-  // Compute sum of distances to the random points and time the results. 
+  // Compute sum of distances to the random points and time the results.
   T dcelSum = 0.0;
-  T bvhSum = 0.0;
-  T linSum = 0.0;  
+  T bvhSum  = 0.0;
+  T linSum  = 0.0;
 
   const auto t0 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
@@ -85,12 +85,12 @@ main(int argc, char* argv[])
   const std::chrono::duration<T, std::micro> bvhTime  = t2 - t1;
   const std::chrono::duration<T, std::micro> linTime  = t3 - t2;
 
-  if(std::abs(bvhSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
+  if (std::abs(bvhSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
     std::cerr << "Full BVH did not give same distance! Diff = " << bvhSum - dcelSum << "\n";
   }
-  if(std::abs(linSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
+  if (std::abs(linSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
     std::cerr << "Linearized BVH did not give same distance! Diff = " << linSum - dcelSum << "\n";
-  }  
+  }
 
   // clang-format off
   std::cout << "Bounding box = " << lo << "\t" << hi << "\n";

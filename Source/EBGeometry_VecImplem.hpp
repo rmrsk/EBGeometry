@@ -330,7 +330,8 @@ Vec3T<T>::operator*(const T& s) const noexcept
 
 template <typename T>
 inline Vec3T<T>
-Vec3T<T>::operator*(const Vec3T<T>& s) const noexcept {
+Vec3T<T>::operator*(const Vec3T<T>& s) const noexcept
+{
   return Vec3T<T>(s[0] * X[0], s[1] * X[1], s[2] * X[2]);
 }
 
@@ -558,7 +559,7 @@ template <typename T>
 inline Vec3T<T>
 operator*(const Vec3T<T>& u, const Vec3T<T>& v) noexcept
 {
-  return u*v;
+  return u * v;
 }
 
 template <class R, typename T>
