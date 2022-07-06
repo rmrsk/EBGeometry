@@ -65,6 +65,10 @@ main(int argc, char* argv[])
   const std::chrono::duration<T, std::micro> bvhTime    = t4 - t3;
   const std::chrono::duration<T, std::micro> linTime    = t6 - t5;
 
+  const Vec3 lo    = bvhSDF->getBoundingVolume().getLowCorner();
+  const Vec3 hi    = bvhSDF->getBoundingVolume().getHighCorner();
+
+  std::cout << "Bounding box = " << lo << "\t" << hi << "\n";
   std::cout << "Distance and time using direct query     = " << directDist << ", which took " << directTime.count()
             << " us\n";
   std::cout << "Distance and time using bvh query        = " << bvhDist << ", which took " << bvhTime.count()
