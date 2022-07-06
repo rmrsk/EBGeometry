@@ -614,8 +614,8 @@ namespace BVH {
     while (!(q.empty())) {
 
       // Pop the top node off the stack.
-      const auto& curNode = (q.top()).first;
-      const auto& bvDist  = (q.top()).second;
+      const auto curNode = (q.top()).first;
+      const auto bvDist  = (q.top()).second;
 
       q.pop();
 

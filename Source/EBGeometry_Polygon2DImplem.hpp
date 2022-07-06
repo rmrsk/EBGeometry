@@ -136,8 +136,10 @@ Polygon2D<T>::computeCrossingNumber(const Vec2& P) const noexcept
     const Vec2& P1 = m_points[i];
     const Vec2& P2 = m_points[(i + 1) % N];
 
-    const bool upwardCrossing   = (P1.y <= P.y) && (P2.y > P.y);
-    const bool downwardCrossing = (P1.y > P.y) && (P2.y <= P.y);
+    // clang-format off
+    const bool upwardCrossing   = (P1.y <= P.y) && (P2.y >  P.y);
+    const bool downwardCrossing = (P1.y >  P.y) && (P2.y <= P.y);
+    // clang-format on    
 
     if (upwardCrossing || downwardCrossing) {
       const T t = (P.y - P1.y) / (P2.y - P1.y);
