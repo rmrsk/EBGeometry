@@ -35,6 +35,8 @@ This graph shows which files directly or indirectly include this file\+:
 \begin{DoxyCompactList}\small\item\em Division operator in the form s$\ast$\+Vec2T. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class R , typename T $>$ }\\\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{EBGeometry__VecImplem_8hpp_aa2280039b2fbf7da07515e872b181c31}{operator$\ast$}} (const R \&s, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+other) noexcept
 \begin{DoxyCompactList}\small\item\em Multiplication operator. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{EBGeometry__VecImplem_8hpp_a28b9801bfb9890b3163f7ee3ad81f2ba}{operator$\ast$}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&u, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&v) noexcept
+\begin{DoxyCompactList}\small\item\em Multiplication operator. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class R , typename T $>$ }\\\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{EBGeometry__VecImplem_8hpp_a7abe27108d5b681cf5a1e72fda107cf9}{operator/}} (const R \&s, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+other) noexcept
 \begin{DoxyCompactList}\small\item\em Division operator. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{EBGeometry__VecImplem_8hpp_a291f01622695ab94c0092c3af0a1f3ca}{min}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&u, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&v) noexcept
@@ -219,7 +221,7 @@ Returns new vector with components X\mbox{[}0\mbox{]} = std\+::min(u.\+X\mbox{[}
 \mbox{\Hypertarget{EBGeometry__VecImplem_8hpp_aa2280039b2fbf7da07515e872b181c31}\label{EBGeometry__VecImplem_8hpp_aa2280039b2fbf7da07515e872b181c31}} 
 \index{EBGeometry\_VecImplem.hpp@{EBGeometry\_VecImplem.hpp}!operator$\ast$@{operator$\ast$}}
 \index{operator$\ast$@{operator$\ast$}!EBGeometry\_VecImplem.hpp@{EBGeometry\_VecImplem.hpp}}
-\doxysubsubsection{\texorpdfstring{operator$\ast$()}{operator*()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+\doxysubsubsection{\texorpdfstring{operator$\ast$()}{operator*()}\hspace{0.1cm}{\footnotesize\ttfamily [1/3]}}
 {\footnotesize\ttfamily template$<$class R , typename T $>$ \\
 \mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$ operator$\ast$ (\begin{DoxyParamCaption}\item[{const R \&}]{s,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{u }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
@@ -240,7 +242,7 @@ Returns new vector with components X\mbox{[}0\mbox{]} = s$\ast$X\mbox{[}0\mbox{]
 \mbox{\Hypertarget{EBGeometry__VecImplem_8hpp_a011c551978bb37db35ea3520fb23bd00}\label{EBGeometry__VecImplem_8hpp_a011c551978bb37db35ea3520fb23bd00}} 
 \index{EBGeometry\_VecImplem.hpp@{EBGeometry\_VecImplem.hpp}!operator$\ast$@{operator$\ast$}}
 \index{operator$\ast$@{operator$\ast$}!EBGeometry\_VecImplem.hpp@{EBGeometry\_VecImplem.hpp}}
-\doxysubsubsection{\texorpdfstring{operator$\ast$()}{operator*()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+\doxysubsubsection{\texorpdfstring{operator$\ast$()}{operator*()}\hspace{0.1cm}{\footnotesize\ttfamily [2/3]}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
 \mbox{\hyperlink{classVec2T}{Vec2T}}$<$T$>$ operator$\ast$ (\begin{DoxyParamCaption}\item[{const T \&}]{s,  }\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
@@ -257,6 +259,27 @@ Multiplication operator in the form s$\ast$\+Vec2T.
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
 Returns a new vector with components x = s$\ast$a\+\_\+other.x (and same for y) 
+\end{DoxyReturn}
+\mbox{\Hypertarget{EBGeometry__VecImplem_8hpp_a28b9801bfb9890b3163f7ee3ad81f2ba}\label{EBGeometry__VecImplem_8hpp_a28b9801bfb9890b3163f7ee3ad81f2ba}} 
+\index{EBGeometry\_VecImplem.hpp@{EBGeometry\_VecImplem.hpp}!operator$\ast$@{operator$\ast$}}
+\index{operator$\ast$@{operator$\ast$}!EBGeometry\_VecImplem.hpp@{EBGeometry\_VecImplem.hpp}}
+\doxysubsubsection{\texorpdfstring{operator$\ast$()}{operator*()}\hspace{0.1cm}{\footnotesize\ttfamily [3/3]}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$ operator$\ast$ (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{u,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Multiplication operator. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em u} & One vector \\
+\hline
+\mbox{\texttt{ in}}  & {\em v} & Other vector \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns new vector with components X\mbox{[}0\mbox{]} = u\mbox{[}0\mbox{]}$\ast$\mbox{[}v0\mbox{]} and so on 
 \end{DoxyReturn}
 \mbox{\Hypertarget{EBGeometry__VecImplem_8hpp_a7abe27108d5b681cf5a1e72fda107cf9}\label{EBGeometry__VecImplem_8hpp_a7abe27108d5b681cf5a1e72fda107cf9}} 
 \index{EBGeometry\_VecImplem.hpp@{EBGeometry\_VecImplem.hpp}!operator/@{operator/}}

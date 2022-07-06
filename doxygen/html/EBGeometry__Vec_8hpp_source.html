@@ -296,47 +296,51 @@ $(function() {
 <div class="line"><a name="l00571"></a><span class="lineno">  571</span>&#160;inline <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;</div>
 <div class="line"><a name="l00572"></a><span class="lineno">  572</span>&#160;operator*(const R&amp; s, const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; u) noexcept;</div>
 <div class="line"><a name="l00573"></a><span class="lineno">  573</span>&#160; </div>
-<div class="line"><a name="l00580"></a><span class="lineno">  580</span>&#160;template &lt;class R, typename T&gt;</div>
+<div class="line"><a name="l00580"></a><span class="lineno">  580</span>&#160;template &lt;typename T&gt;</div>
 <div class="line"><a name="l00581"></a><span class="lineno">  581</span>&#160;inline <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;</div>
-<div class="line"><a name="l00582"></a><span class="lineno">  582</span>&#160;operator/(const R&amp; s, const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; u) noexcept;</div>
+<div class="line"><a name="l00582"></a><span class="lineno">  582</span>&#160;operator*(const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; u, const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; v) noexcept;</div>
 <div class="line"><a name="l00583"></a><span class="lineno">  583</span>&#160; </div>
-<div class="line"><a name="l00591"></a><span class="lineno">  591</span>&#160;template &lt;typename T&gt;</div>
-<div class="line"><a name="l00592"></a><span class="lineno">  592</span>&#160;inline <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;</div>
-<div class="line"><a name="l00593"></a><span class="lineno">  593</span>&#160;<a class="code" href="classVec2T.html#aca5161a674a3546a8c9d5543537548a3">min</a>(const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; u, const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; v) noexcept;</div>
-<div class="line"><a name="l00594"></a><span class="lineno">  594</span>&#160; </div>
-<div class="line"><a name="l00602"></a><span class="lineno">  602</span>&#160;template &lt;typename T&gt;</div>
-<div class="line"><a name="l00603"></a><span class="lineno">  603</span>&#160;inline <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;</div>
-<div class="line"><a name="l00604"></a><span class="lineno">  604</span>&#160;<a class="code" href="classVec2T.html#a1211175344f9ee8bc0fd4ac2589799d8">max</a>(const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; u, const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; v) noexcept;</div>
-<div class="line"><a name="l00605"></a><span class="lineno">  605</span>&#160; </div>
-<div class="line"><a name="l00611"></a><span class="lineno">  611</span>&#160;template &lt;typename T&gt;</div>
-<div class="line"><a name="l00612"></a><span class="lineno">  612</span>&#160;inline T</div>
-<div class="line"><a name="l00613"></a><span class="lineno">  613</span>&#160;<a class="code" href="classVec2T.html#ab7ed0195847b7a1037051402967780a3">dot</a>(const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; u, const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; v) noexcept;</div>
-<div class="line"><a name="l00614"></a><span class="lineno">  614</span>&#160; </div>
-<div class="line"><a name="l00619"></a><span class="lineno">  619</span>&#160;template &lt;typename T&gt;</div>
-<div class="line"><a name="l00620"></a><span class="lineno">  620</span>&#160;inline T</div>
-<div class="line"><a name="l00621"></a><span class="lineno">  621</span>&#160;<a class="code" href="classVec2T.html#ad7965b8d549a5f9d08cab43760dab56b">length</a>(const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; v) noexcept;</div>
-<div class="line"><a name="l00622"></a><span class="lineno">  622</span>&#160; </div>
+<div class="line"><a name="l00590"></a><span class="lineno">  590</span>&#160;template &lt;class R, typename T&gt;</div>
+<div class="line"><a name="l00591"></a><span class="lineno">  591</span>&#160;inline <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;</div>
+<div class="line"><a name="l00592"></a><span class="lineno">  592</span>&#160;operator/(const R&amp; s, const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; u) noexcept;</div>
+<div class="line"><a name="l00593"></a><span class="lineno">  593</span>&#160; </div>
+<div class="line"><a name="l00601"></a><span class="lineno">  601</span>&#160;template &lt;typename T&gt;</div>
+<div class="line"><a name="l00602"></a><span class="lineno">  602</span>&#160;inline <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;</div>
+<div class="line"><a name="l00603"></a><span class="lineno">  603</span>&#160;<a class="code" href="classVec2T.html#aca5161a674a3546a8c9d5543537548a3">min</a>(const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; u, const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; v) noexcept;</div>
+<div class="line"><a name="l00604"></a><span class="lineno">  604</span>&#160; </div>
+<div class="line"><a name="l00612"></a><span class="lineno">  612</span>&#160;template &lt;typename T&gt;</div>
+<div class="line"><a name="l00613"></a><span class="lineno">  613</span>&#160;inline <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;</div>
+<div class="line"><a name="l00614"></a><span class="lineno">  614</span>&#160;<a class="code" href="classVec2T.html#a1211175344f9ee8bc0fd4ac2589799d8">max</a>(const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; u, const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; v) noexcept;</div>
+<div class="line"><a name="l00615"></a><span class="lineno">  615</span>&#160; </div>
+<div class="line"><a name="l00621"></a><span class="lineno">  621</span>&#160;template &lt;typename T&gt;</div>
+<div class="line"><a name="l00622"></a><span class="lineno">  622</span>&#160;inline T</div>
+<div class="line"><a name="l00623"></a><span class="lineno">  623</span>&#160;<a class="code" href="classVec2T.html#ab7ed0195847b7a1037051402967780a3">dot</a>(const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; u, const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; v) noexcept;</div>
+<div class="line"><a name="l00624"></a><span class="lineno">  624</span>&#160; </div>
 <div class="line"><a name="l00629"></a><span class="lineno">  629</span>&#160;template &lt;typename T&gt;</div>
-<div class="line"><a name="l00630"></a><span class="lineno">  630</span>&#160;inline <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;</div>
-<div class="line"><a name="l00631"></a><span class="lineno">  631</span>&#160;<a class="code" href="classVec2T.html#aca5161a674a3546a8c9d5543537548a3">min</a>(const <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;&amp; u, const <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;&amp; v) noexcept;</div>
+<div class="line"><a name="l00630"></a><span class="lineno">  630</span>&#160;inline T</div>
+<div class="line"><a name="l00631"></a><span class="lineno">  631</span>&#160;<a class="code" href="classVec2T.html#ad7965b8d549a5f9d08cab43760dab56b">length</a>(const <a class="code" href="classVec3T.html">Vec3T</a>&lt;T&gt;&amp; v) noexcept;</div>
 <div class="line"><a name="l00632"></a><span class="lineno">  632</span>&#160; </div>
 <div class="line"><a name="l00639"></a><span class="lineno">  639</span>&#160;template &lt;typename T&gt;</div>
 <div class="line"><a name="l00640"></a><span class="lineno">  640</span>&#160;inline <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;</div>
-<div class="line"><a name="l00641"></a><span class="lineno">  641</span>&#160;<a class="code" href="classVec2T.html#a1211175344f9ee8bc0fd4ac2589799d8">max</a>(const <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;&amp; u, const <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;&amp; v) noexcept;</div>
+<div class="line"><a name="l00641"></a><span class="lineno">  641</span>&#160;<a class="code" href="classVec2T.html#aca5161a674a3546a8c9d5543537548a3">min</a>(const <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;&amp; u, const <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;&amp; v) noexcept;</div>
 <div class="line"><a name="l00642"></a><span class="lineno">  642</span>&#160; </div>
-<div class="line"><a name="l00648"></a><span class="lineno">  648</span>&#160;template &lt;typename T&gt;</div>
-<div class="line"><a name="l00649"></a><span class="lineno">  649</span>&#160;inline T</div>
-<div class="line"><a name="l00650"></a><span class="lineno">  650</span>&#160;<a class="code" href="classVec2T.html#ab7ed0195847b7a1037051402967780a3">dot</a>(const <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;&amp; u, const <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;&amp; v) noexcept;</div>
-<div class="line"><a name="l00651"></a><span class="lineno">  651</span>&#160; </div>
-<div class="line"><a name="l00656"></a><span class="lineno">  656</span>&#160;template &lt;typename T&gt;</div>
-<div class="line"><a name="l00657"></a><span class="lineno">  657</span>&#160;inline T</div>
-<div class="line"><a name="l00658"></a><span class="lineno">  658</span>&#160;<a class="code" href="classVec2T.html#ad7965b8d549a5f9d08cab43760dab56b">length</a>(const <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;&amp; v) noexcept;</div>
-<div class="line"><a name="l00659"></a><span class="lineno">  659</span>&#160; </div>
-<div class="line"><a name="l00660"></a><span class="lineno">  660</span>&#160;<span class="preprocessor">#include &quot;EBGeometry_NamespaceFooter.hpp&quot;</span></div>
+<div class="line"><a name="l00649"></a><span class="lineno">  649</span>&#160;template &lt;typename T&gt;</div>
+<div class="line"><a name="l00650"></a><span class="lineno">  650</span>&#160;inline <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;</div>
+<div class="line"><a name="l00651"></a><span class="lineno">  651</span>&#160;<a class="code" href="classVec2T.html#a1211175344f9ee8bc0fd4ac2589799d8">max</a>(const <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;&amp; u, const <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;&amp; v) noexcept;</div>
+<div class="line"><a name="l00652"></a><span class="lineno">  652</span>&#160; </div>
+<div class="line"><a name="l00658"></a><span class="lineno">  658</span>&#160;template &lt;typename T&gt;</div>
+<div class="line"><a name="l00659"></a><span class="lineno">  659</span>&#160;inline T</div>
+<div class="line"><a name="l00660"></a><span class="lineno">  660</span>&#160;<a class="code" href="classVec2T.html#ab7ed0195847b7a1037051402967780a3">dot</a>(const <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;&amp; u, const <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;&amp; v) noexcept;</div>
 <div class="line"><a name="l00661"></a><span class="lineno">  661</span>&#160; </div>
-<div class="line"><a name="l00662"></a><span class="lineno">  662</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__VecImplem_8hpp.html">EBGeometry_VecImplem.hpp</a>&quot;</span></div>
-<div class="line"><a name="l00663"></a><span class="lineno">  663</span>&#160; </div>
-<div class="line"><a name="l00664"></a><span class="lineno">  664</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00666"></a><span class="lineno">  666</span>&#160;template &lt;typename T&gt;</div>
+<div class="line"><a name="l00667"></a><span class="lineno">  667</span>&#160;inline T</div>
+<div class="line"><a name="l00668"></a><span class="lineno">  668</span>&#160;<a class="code" href="classVec2T.html#ad7965b8d549a5f9d08cab43760dab56b">length</a>(const <a class="code" href="classVec2T.html">Vec2T</a>&lt;T&gt;&amp; v) noexcept;</div>
+<div class="line"><a name="l00669"></a><span class="lineno">  669</span>&#160; </div>
+<div class="line"><a name="l00670"></a><span class="lineno">  670</span>&#160;<span class="preprocessor">#include &quot;EBGeometry_NamespaceFooter.hpp&quot;</span></div>
+<div class="line"><a name="l00671"></a><span class="lineno">  671</span>&#160; </div>
+<div class="line"><a name="l00672"></a><span class="lineno">  672</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__VecImplem_8hpp.html">EBGeometry_VecImplem.hpp</a>&quot;</span></div>
+<div class="line"><a name="l00673"></a><span class="lineno">  673</span>&#160; </div>
+<div class="line"><a name="l00674"></a><span class="lineno">  674</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aclassVec2T_html_a4aa6e0bd3922abd84449278429a03418"><div class="ttname"><a href="classVec2T.html#a4aa6e0bd3922abd84449278429a03418">Vec2T::Vec2T</a></div><div class="ttdeci">Vec2T()</div><div class="ttdoc">Default constructor. Sets the vector to the zero vector.</div><div class="ttdef"><b>Definition:</b> EBGeometry_VecImplem.hpp:24</div></div>
 <div class="ttc" id="aclassVec2T_html_a15a9bac13b94b58f0907443bc551dbee"><div class="ttname"><a href="classVec2T.html#a15a9bac13b94b58f0907443bc551dbee">Vec2T::~Vec2T</a></div><div class="ttdeci">~Vec2T()=default</div><div class="ttdoc">Destructor (does nothing)</div></div>

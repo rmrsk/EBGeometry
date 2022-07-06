@@ -114,20 +114,20 @@
 </ol>
 <p>We will focus on the following parts of the code:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">using</span> <span class="n">T</span>    <span class="o">=</span> <span class="kt">float</span><span class="p">;</span>
-<span class="k">using</span> <span class="n">BV</span>   <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BoundingVolumes</span><span class="o">::</span><span class="n">AABBT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+  <span class="p">}</span>
 
-  <span class="c1">// Three representations of the same object. First, we get the DCEL mesh, and then</span>
+  <span class="c1">// we convert it to a full BVH tree representation. Then we flatten that tree.</span>
   <span class="k">const</span> <span class="k">auto</span> <span class="n">dcelSDF</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">readIntoDCEL</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">file</span><span class="p">);</span>
   <span class="k">const</span> <span class="k">auto</span> <span class="n">bvhSDF</span>  <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">buildFullBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">(</span><span class="n">dcelSDF</span><span class="p">);</span>
   <span class="k">const</span> <span class="k">auto</span> <span class="n">linSDF</span>  <span class="o">=</span> <span class="n">bvhSDF</span><span class="o">-&gt;</span><span class="n">flattenTree</span><span class="p">();</span>
+  <span class="c1">// Sample some random points around the object.</span>
+  <span class="k">constexpr</span> <span class="kt">size_t</span> <span class="n">Nsamp</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
 
-  <span class="k">const</span> <span class="n">Vec3</span> <span class="n">point</span> <span class="o">=</span> <span class="n">Vec3</span><span class="o">::</span><span class="n">one</span><span class="p">();</span>
+  <span class="k">const</span> <span class="n">Vec3</span> <span class="n">lo</span>    <span class="o">=</span> <span class="n">bvhSDF</span><span class="o">-&gt;</span><span class="n">getBoundingVolume</span><span class="p">().</span><span class="n">getLowCorner</span><span class="p">();</span>
+  <span class="k">const</span> <span class="n">Vec3</span> <span class="n">hi</span>    <span class="o">=</span> <span class="n">bvhSDF</span><span class="o">-&gt;</span><span class="n">getBoundingVolume</span><span class="p">().</span><span class="n">getHighCorner</span><span class="p">();</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">mt19937_64</span> <span class="n">rng</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">system_clock</span><span class="o">::</span><span class="n">now</span><span class="p">().</span><span class="n">time_since_epoch</span><span class="p">().</span><span class="n">count</span><span class="p">()));</span>
 
-  <span class="k">const</span> <span class="k">auto</span> <span class="n">t1</span>         <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
-  <span class="k">const</span> <span class="n">T</span>    <span class="n">directDist</span> <span class="o">=</span> <span class="n">dcelSDF</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">point</span><span class="p">);</span>
-  <span class="k">const</span> <span class="k">auto</span> <span class="n">t2</span>         <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
-  <span class="k">const</span> <span class="n">T</span>    <span class="n">bvhDist</span> <span class="o">=</span> <span class="n">bvhSDF</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">point</span><span class="p">);</span>
-  <span class="k">const</span> <span class="k">auto</span> <span class="n">t4</span>      <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">bvhSum</span> <span class="o">-</span> <span class="n">dcelSum</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">epsilon</span><span class="p">())</span> <span class="p">{</span>
 </pre></div>
 </div>
 <div class="section" id="reading-the-surface-mesh">
@@ -138,19 +138,20 @@ We point out that the parser will issue errors if the STL file is not watertight
 <div class="section" id="constructing-the-bvh">
 <h2>Constructing the BVH<a class="headerlink" href="#constructing-the-bvh" title="Permalink to this heading"></a></h2>
 <p>The second block of code, which begins with</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">const</span> <span class="n">Vec3</span> <span class="n">point</span> <span class="o">=</span> <span class="n">Vec3</span><span class="o">::</span><span class="n">one</span><span class="p">();</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="c1">// Sample some random points around the object.</span>
 </pre></div>
 </div>
 <p>creates a BVH root node and provides it with all the DCEL faces.
 The next block of code</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">const</span> <span class="k">auto</span> <span class="n">t1</span>         <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
-  <span class="k">const</span> <span class="n">T</span>    <span class="n">directDist</span> <span class="o">=</span> <span class="n">dcelSDF</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">point</span><span class="p">);</span>
-  <span class="k">const</span> <span class="k">auto</span> <span class="n">t2</span>         <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">constexpr</span> <span class="kt">size_t</span> <span class="n">Nsamp</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+
+  <span class="k">const</span> <span class="n">Vec3</span> <span class="n">lo</span>    <span class="o">=</span> <span class="n">bvhSDF</span><span class="o">-&gt;</span><span class="n">getBoundingVolume</span><span class="p">().</span><span class="n">getLowCorner</span><span class="p">();</span>
+  <span class="k">const</span> <span class="n">Vec3</span> <span class="n">hi</span>    <span class="o">=</span> <span class="n">bvhSDF</span><span class="o">-&gt;</span><span class="n">getBoundingVolume</span><span class="p">().</span><span class="n">getHighCorner</span><span class="p">();</span>
 </pre></div>
 </div>
 <p>partitions the BVH using pre-defined partitioning functions (see <a class="reference internal" href="ImplemDCEL.html#chap-bvhintegration"><span class="std std-ref">BVH integration</span></a> for details).</p>
 <p>Finally, the BVH tree is flattened by</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="k">const</span> <span class="n">T</span>    <span class="n">linDist</span> <span class="o">=</span> <span class="n">linSDF</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">point</span><span class="p">);</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>
 </pre></div>
 </div>
 </div>

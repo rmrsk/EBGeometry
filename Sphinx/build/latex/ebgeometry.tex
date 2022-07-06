@@ -61,7 +61,7 @@
 
 
 \title{EBGeometry}
-\date{Jul 04, 2022}
+\date{Jul 06, 2022}
 \release{1.0}
 \author{Robert Marskar}
 \newcommand{\sphinxlogo}{\vbox{}}
@@ -2067,20 +2067,20 @@ We will focus on the following parts of the code:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
 \PYG{k}{using} \PYG{n}{T}    \PYG{o}{=} \PYG{k+kt}{float}\PYG{p}{;}
-\PYG{k}{using} \PYG{n}{BV}   \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BoundingVolumes}\PYG{o}{:}\PYG{o}{:}\PYG{n}{AABBT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
+  \PYG{p}{\PYGZcb{}}
 
-  \PYG{c+c1}{// Three representations of the same object. First, we get the DCEL mesh, and then}
+  \PYG{c+c1}{// we convert it to a full BVH tree representation. Then we flatten that tree.}
   \PYG{k}{const} \PYG{k}{auto} \PYG{n}{dcelSDF} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Parser}\PYG{o}{:}\PYG{o}{:}\PYG{n}{readIntoDCEL}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{file}\PYG{p}{)}\PYG{p}{;}
   \PYG{k}{const} \PYG{k}{auto} \PYG{n}{bvhSDF}  \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{DCEL}\PYG{o}{:}\PYG{o}{:}\PYG{n}{buildFullBVH}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{dcelSDF}\PYG{p}{)}\PYG{p}{;}
   \PYG{k}{const} \PYG{k}{auto} \PYG{n}{linSDF}  \PYG{o}{=} \PYG{n}{bvhSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{flattenTree}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+  \PYG{c+c1}{// Sample some random points around the object.}
+  \PYG{k}{constexpr} \PYG{k+kt}{size\PYGZus{}t} \PYG{n}{Nsamp} \PYG{o}{=} \PYG{l+m+mi}{100}\PYG{p}{;}
 
-  \PYG{k}{const} \PYG{n}{Vec3} \PYG{n}{point} \PYG{o}{=} \PYG{n}{Vec3}\PYG{o}{:}\PYG{o}{:}\PYG{n}{one}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{const} \PYG{n}{Vec3} \PYG{n}{lo}    \PYG{o}{=} \PYG{n}{bvhSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{getBoundingVolume}\PYG{p}{(}\PYG{p}{)}\PYG{p}{.}\PYG{n}{getLowCorner}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{const} \PYG{n}{Vec3} \PYG{n}{hi}    \PYG{o}{=} \PYG{n}{bvhSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{getBoundingVolume}\PYG{p}{(}\PYG{p}{)}\PYG{p}{.}\PYG{n}{getHighCorner}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{mt19937\PYGZus{}64} \PYG{n}{rng}\PYG{p}{(}\PYG{k}{static\PYGZus{}cast}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{size\PYGZus{}t}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{chrono}\PYG{o}{:}\PYG{o}{:}\PYG{n}{system\PYGZus{}clock}\PYG{o}{:}\PYG{o}{:}\PYG{n}{now}\PYG{p}{(}\PYG{p}{)}\PYG{p}{.}\PYG{n}{time\PYGZus{}since\PYGZus{}epoch}\PYG{p}{(}\PYG{p}{)}\PYG{p}{.}\PYG{n}{count}\PYG{p}{(}\PYG{p}{)}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
 
-  \PYG{k}{const} \PYG{k}{auto} \PYG{n}{t1}         \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{chrono}\PYG{o}{:}\PYG{o}{:}\PYG{n}{high\PYGZus{}resolution\PYGZus{}clock}\PYG{o}{:}\PYG{o}{:}\PYG{n}{now}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
-  \PYG{k}{const} \PYG{n}{T}    \PYG{n}{directDist} \PYG{o}{=} \PYG{n}{dcelSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{signedDistance}\PYG{p}{(}\PYG{n}{point}\PYG{p}{)}\PYG{p}{;}
-  \PYG{k}{const} \PYG{k}{auto} \PYG{n}{t2}         \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{chrono}\PYG{o}{:}\PYG{o}{:}\PYG{n}{high\PYGZus{}resolution\PYGZus{}clock}\PYG{o}{:}\PYG{o}{:}\PYG{n}{now}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
-  \PYG{k}{const} \PYG{n}{T}    \PYG{n}{bvhDist} \PYG{o}{=} \PYG{n}{bvhSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{signedDistance}\PYG{p}{(}\PYG{n}{point}\PYG{p}{)}\PYG{p}{;}
-  \PYG{k}{const} \PYG{k}{auto} \PYG{n}{t4}      \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{chrono}\PYG{o}{:}\PYG{o}{:}\PYG{n}{high\PYGZus{}resolution\PYGZus{}clock}\PYG{o}{:}\PYG{o}{:}\PYG{n}{now}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{if} \PYG{p}{(}\PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{abs}\PYG{p}{(}\PYG{n}{bvhSum} \PYG{o}{\PYGZhy{}} \PYG{n}{dcelSum}\PYG{p}{)} \PYG{o}{\PYGZgt{}} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{numeric\PYGZus{}limits}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{o}{:}\PYG{o}{:}\PYG{n}{epsilon}\PYG{p}{(}\PYG{p}{)}\PYG{p}{)} \PYG{p}{\PYGZob{}}
 \end{sphinxVerbatim}
 
 
@@ -2097,7 +2097,7 @@ We point out that the parser will issue errors if the STL file is not watertight
 The second block of code, which begins with
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
-  \PYG{k}{const} \PYG{n}{Vec3} \PYG{n}{point} \PYG{o}{=} \PYG{n}{Vec3}\PYG{o}{:}\PYG{o}{:}\PYG{n}{one}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+  \PYG{c+c1}{// Sample some random points around the object.}
 \end{sphinxVerbatim}
 
 \sphinxAtStartPar
@@ -2105,9 +2105,10 @@ creates a BVH root node and provides it with all the DCEL faces.
 The next block of code
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
-  \PYG{k}{const} \PYG{k}{auto} \PYG{n}{t1}         \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{chrono}\PYG{o}{:}\PYG{o}{:}\PYG{n}{high\PYGZus{}resolution\PYGZus{}clock}\PYG{o}{:}\PYG{o}{:}\PYG{n}{now}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
-  \PYG{k}{const} \PYG{n}{T}    \PYG{n}{directDist} \PYG{o}{=} \PYG{n}{dcelSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{signedDistance}\PYG{p}{(}\PYG{n}{point}\PYG{p}{)}\PYG{p}{;}
-  \PYG{k}{const} \PYG{k}{auto} \PYG{n}{t2}         \PYG{o}{=} \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{chrono}\PYG{o}{:}\PYG{o}{:}\PYG{n}{high\PYGZus{}resolution\PYGZus{}clock}\PYG{o}{:}\PYG{o}{:}\PYG{n}{now}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{constexpr} \PYG{k+kt}{size\PYGZus{}t} \PYG{n}{Nsamp} \PYG{o}{=} \PYG{l+m+mi}{100}\PYG{p}{;}
+
+  \PYG{k}{const} \PYG{n}{Vec3} \PYG{n}{lo}    \PYG{o}{=} \PYG{n}{bvhSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{getBoundingVolume}\PYG{p}{(}\PYG{p}{)}\PYG{p}{.}\PYG{n}{getLowCorner}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
+  \PYG{k}{const} \PYG{n}{Vec3} \PYG{n}{hi}    \PYG{o}{=} \PYG{n}{bvhSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{getBoundingVolume}\PYG{p}{(}\PYG{p}{)}\PYG{p}{.}\PYG{n}{getHighCorner}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
 \end{sphinxVerbatim}
 
 \sphinxAtStartPar
@@ -2117,7 +2118,7 @@ partitions the BVH using pre\sphinxhyphen{}defined partitioning functions (see {
 Finally, the BVH tree is flattened by
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
-  \PYG{k}{const} \PYG{n}{T}    \PYG{n}{linDist} \PYG{o}{=} \PYG{n}{linSDF}\PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZgt{}}\PYG{n}{signedDistance}\PYG{p}{(}\PYG{n}{point}\PYG{p}{)}\PYG{p}{;}
+
 \end{sphinxVerbatim}
 
 
