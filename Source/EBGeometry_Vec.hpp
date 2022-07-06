@@ -572,6 +572,16 @@ inline Vec3T<T>
 operator*(const R& s, const Vec3T<T>& u) noexcept;
 
 /*!
+  @brief Multiplication operator.
+  @param[in] u One vector
+  @param[in] v Other vector
+  @return Returns new vector with components X[0] = u[0]*[v0] and so on
+*/
+template <typename T>
+inline Vec3T<T>
+operator*(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
+
+/*!
   @brief Division operator.
   @param[in] s Division scalar
   @param[in] u Vector
