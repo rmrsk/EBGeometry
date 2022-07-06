@@ -47,7 +47,7 @@ main(int argc, char* argv[])
   const auto linSDF  = bvhSDF->flattenTree();
 
   // Sample some random points around the object.
-  constexpr size_t Nsamp = 200;
+  constexpr size_t Nsamp = 100;
 
   const Vec3 lo    = bvhSDF->getBoundingVolume().getLowCorner();
   const Vec3 hi    = bvhSDF->getBoundingVolume().getHighCorner();
