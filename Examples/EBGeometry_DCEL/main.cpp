@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <random>
 
 #include "../../EBGeometry.hpp"
 
@@ -45,36 +46,58 @@ main(int argc, char* argv[])
   const auto bvhSDF  = EBGeometry::DCEL::buildFullBVH<T, BV, K>(dcelSDF);
   const auto linSDF  = bvhSDF->flattenTree();
 
-  // Compute signed distance for this position and time all SDF representations.
-  const Vec3 point = Vec3::one();
-
-  const auto t1         = std::chrono::high_resolution_clock::now();
-  const T    directDist = dcelSDF->signedDistance(point);
-  const auto t2         = std::chrono::high_resolution_clock::now();
-
-  const auto t3      = std::chrono::high_resolution_clock::now();
-  const T    bvhDist = bvhSDF->signedDistance(point);
-  const auto t4      = std::chrono::high_resolution_clock::now();
-
-  const auto t5      = std::chrono::high_resolution_clock::now();
-  const T    linDist = linSDF->signedDistance(point);
-  const auto t6      = std::chrono::high_resolution_clock::now();
-
-  // Get the timings.
-  const std::chrono::duration<T, std::micro> directTime = t2 - t1;
-  const std::chrono::duration<T, std::micro> bvhTime    = t4 - t3;
-  const std::chrono::duration<T, std::micro> linTime    = t6 - t5;
-
+  // Sample some random points around the object. 
+  constexpr size_t Nsamp = 200;
+  
   const Vec3 lo    = bvhSDF->getBoundingVolume().getLowCorner();
   const Vec3 hi    = bvhSDF->getBoundingVolume().getHighCorner();
+  const Vec3 delta = hi - lo;  
 
+  std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
+  
+  std::uniform_real_distribution<T> dist(0.0, 1.0);
+  std::vector<Vec3>                 ranPoints;
+
+  for (size_t i = 0; i < Nsamp; i++) {
+    ranPoints.emplace_back( 3 * (lo + delta * Vec3(dist(rng), dist(rng), dist(rng))) );
+  }
+
+  // Compute sum of distances to the random points and time the results. 
+  T dcelSum = 0.0;
+  T bvhSum = 0.0;
+  T linSum = 0.0;  
+
+  const auto t0 = std::chrono::high_resolution_clock::now();
+  for (const auto& x : ranPoints) {
+    dcelSum += dcelSDF->signedDistance(x);
+  }
+  const auto t1 = std::chrono::high_resolution_clock::now();
+  for (const auto& x : ranPoints) {
+    bvhSum += bvhSDF->signedDistance(x);
+  }
+  const auto t2 = std::chrono::high_resolution_clock::now();
+  for (const auto& x : ranPoints) {
+    linSum += linSDF->signedDistance(x);
+  }
+  const auto t3 = std::chrono::high_resolution_clock::now();
+
+  const std::chrono::duration<T, std::micro> dcelTime = t1 - t0;
+  const std::chrono::duration<T, std::micro> bvhTime  = t2 - t1;
+  const std::chrono::duration<T, std::micro> linTime  = t3 - t2;
+
+  if(std::abs(bvhSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
+    std::cerr << "Full BVH did not give same distance! Diff = " << bvhSum - dcelSum << "\n";
+  }
+  if(std::abs(linSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
+    std::cerr << "Linearized BVH did not give same distance! Diff = " << linSum - dcelSum << "\n";
+  }  
+
+  // clang-format off
   std::cout << "Bounding box = " << lo << "\t" << hi << "\n";
-  std::cout << "Distance and time using direct query     = " << directDist << ", which took " << directTime.count()
-            << " us\n";
-  std::cout << "Distance and time using bvh query        = " << bvhDist << ", which took " << bvhTime.count()
-            << " us\n";
-  std::cout << "Distance and time using linear bvh query = " << linDist << ", which took " << linTime.count()
-            << " us\n";
+  std::cout << "Accumulated distance and time using direct DCEL = " << dcelSum << ", which took " << dcelTime.count() / Nsamp << " us\n";
+  std::cout << "Accumulated distance and time using full BVH    = " << bvhSum  << ", which took " << bvhTime.count()  / Nsamp << " us\n";
+  std::cout << "Accumulated distance and time using compact BVH = " << linSum  << ", which took " << linTime.count()  / Nsamp << " us\n";    
+  // clang-format on  
 
   return 0;
 }
