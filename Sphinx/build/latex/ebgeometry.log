@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2022.7.6)  6 JUL 2022 13:18
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2022.9.14)  14 SEP 2022 10:29
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -174,7 +174,7 @@ Package: fncychap 2007/07/30 v1.34 LaTeX package (Revised chapters)
 \c@AlphaCnt=\count190
 \c@AlphaDecCnt=\count191
 ) (./sphinx.sty
-Package: sphinx 2021/01/27 v4.0.0 LaTeX package (Sphinx markup)
+Package: sphinx 2022/06/30 v5.1.0 LaTeX package (Sphinx markup)
 
 (/usr/share/texlive/texmf-dist/tex/latex/xcolor/xcolor.sty
 Package: xcolor 2016/05/11 v2.12 LaTeX color extensions (UK)
@@ -322,25 +322,45 @@ Package graphics Info: Driver file: pdftex.def on input line 105.
 File: sphinxlatexgraphics.sty 2021/01/27 graphics
 \spx@image@maxheight=\dimen164
 \spx@image@box=\box96
-) (./sphinxlatexadmonitions.sty
-File: sphinxlatexadmonitions.sty 2021/01/27 admonitions
+) (./sphinxpackageboxes.sty
+Package: sphinxpackageboxes 2022/07/04 v5.1.0 advanced colored boxes
+\spx@tempboxa=\box97
+\spx@tempboxb=\box98
+\spx@boxes@border=\dimen165
+\spx@boxes@border@top=\dimen166
+\spx@boxes@border@right=\dimen167
+\spx@boxes@border@bottom=\dimen168
+\spx@boxes@border@left=\dimen169
+\spx@boxes@padding@top=\dimen170
+\spx@boxes@padding@right=\dimen171
+\spx@boxes@padding@bottom=\dimen172
+\spx@boxes@padding@left=\dimen173
+\spx@boxes@shadow@xoffset=\dimen174
+\spx@boxes@shadow@yoffset=\dimen175
+\spx@boxes@radius@topleft=\dimen176
+\spx@boxes@radius@topright=\dimen177
+\spx@boxes@radius@bottomright=\dimen178
+\spx@boxes@radius@bottomleft=\dimen179
+)
+(./sphinxlatexadmonitions.sty
+File: sphinxlatexadmonitions.sty 2022/07/03 admonitions
 
 (/usr/share/texlive/texmf-dist/tex/latex/framed/framed.sty
 Package: framed 2011/10/22 v 0.96: framed or shaded text with page breaks
 \OuterFrameSep=\skip61
-\fb@frw=\dimen165
-\fb@frh=\dimen166
-\FrameRule=\dimen167
-\FrameSep=\dimen168
+\fb@frw=\dimen180
+\fb@frh=\dimen181
+\FrameRule=\dimen182
+\FrameSep=\dimen183
 ))
 (./sphinxlatexliterals.sty
-File: sphinxlatexliterals.sty 2021/12/06 code-blocks and parsed literals
+File: sphinxlatexliterals.sty 2022/07/03 code-blocks and parsed literals
 
 (/usr/share/texlive/texmf-dist/tex/latex/fancyvrb/fancyvrb.sty
 Package: fancyvrb 2020/01/13 v3.5 verbatim text (tvz,hv)
 \FV@CodeLineNo=\count270
 \FV@InFile=\read3
-\FV@TabBox=\box97
+\FV@TabBox=\box99
 \c@FancyVerbLine=\count271
 \FV@StepNumber=\count272
 \FV@OutFile=\write3
@@ -355,19 +375,18 @@ tim
 (/usr/share/texlive/texmf-dist/tex/latex/needspace/needspace.sty
 Package: needspace 2010/09/12 v1.3d reserve vertical space
 )
-\sphinxcontinuationbox=\box98
-\sphinxvisiblespacebox=\box99
-\sphinxVerbatim@TitleBox=\box100
-\sphinxVerbatim@ContentsBox=\box101
-\spx@scratchbox=\box102
+\sphinxcontinuationbox=\box100
+\sphinxvisiblespacebox=\box101
+\sphinxVerbatim@TitleBox=\box102
+\sphinxVerbatim@ContentsBox=\box103
 )
 (./sphinxlatexshadowbox.sty
-File: sphinxlatexshadowbox.sty 2021/01/27 sphinxShadowBox
+File: sphinxlatexshadowbox.sty 2022/07/03 sphinxShadowBox
 ) (./sphinxlatexcontainers.sty
 File: sphinxlatexcontainers.sty 2021/05/03 containers
 )
 (./sphinxhighlight.sty
-Package: sphinxhighlight 2016/05/29 stylesheet for highlighting with pygments
+Package: sphinxhighlight 2022/06/30 stylesheet for highlighting with pygments
 ) (./sphinxlatextables.sty
 File: sphinxlatextables.sty 2021/01/27 tables
 
@@ -376,19 +395,19 @@ Package: tabulary 2014/06/11 v0.10 tabulary package (DPC)
 
 (/usr/share/texlive/texmf-dist/tex/latex/tools/array.sty
 Package: array 2019/08/31 v2.4l Tabular extension package (FMi)
-\col@sep=\dimen169
-\ar@mcellbox=\box103
-\extrarowheight=\dimen170
+\col@sep=\dimen184
+\ar@mcellbox=\box104
+\extrarowheight=\dimen185
 \NC@list=\toks25
 \extratabsurround=\skip62
 \backup@length=\skip63
-\ar@cellbox=\box104
+\ar@cellbox=\box105
 )
 \TY@count=\count273
-\TY@linewidth=\dimen171
-\tymin=\dimen172
-\tymax=\dimen173
-\TY@tablewidth=\dimen174
+\TY@linewidth=\dimen186
+\tymin=\dimen187
+\tymax=\dimen188
+\TY@tablewidth=\dimen189
 )
 (/usr/share/texlive/texmf-dist/tex/latex/tools/longtable.sty
 Package: longtable 2020/01/07 v4.13 Multi-page Table package (DPC)
@@ -397,11 +416,11 @@ Package: longtable 2020/01/07 v4.13 Multi-page Table package (DPC)
 \LTpre=\skip66
 \LTpost=\skip67
 \LTchunksize=\count274
-\LTcapwidth=\dimen175
-\LT@head=\box105
-\LT@firsthead=\box106
-\LT@foot=\box107
-\LT@lastfoot=\box108
+\LTcapwidth=\dimen190
+\LT@head=\box106
+\LT@firsthead=\box107
+\LT@foot=\box108
+\LT@lastfoot=\box109
 \LT@cols=\count275
 \LT@rows=\count276
 \c@LT@tables=\count277
@@ -410,12 +429,12 @@ Package: longtable 2020/01/07 v4.13 Multi-page Table package (DPC)
 )
 (/usr/share/texlive/texmf-dist/tex/latex/varwidth/varwidth.sty
 Package: varwidth 2009/03/30 ver 0.92;  Variable-width minipages
-\@vwid@box=\box109
+\@vwid@box=\box110
 \sift@deathcycles=\count279
-\@vwid@loff=\dimen176
-\@vwid@roff=\dimen177
+\@vwid@loff=\dimen191
+\@vwid@roff=\dimen192
 )
-\sphinx@TY@tablewidth=\dimen178
+\sphinx@TY@tablewidth=\dimen193
 )
 (./sphinxlatexnumfig.sty
 File: sphinxlatexnumfig.sty 2021/01/27 numbering
@@ -427,9 +446,9 @@ File: sphinxlatexlists.sty 2021/12/20 lists
  (./sphinxpackagefootnote.sty
 Package: sphinxpackagefootnote 2022/02/12 v4.5.0 Sphinx custom footnotehyper pa
 ckage (Sphinx team)
-\FNH@notes=\box110
+\FNH@notes=\box111
 \FNH@toks=\toks28
-\FNH@width=\dimen179
+\FNH@width=\dimen194
 \c@sphinxfootnotemark=\count281
 ) (./sphinxlatexindbibtoc.sty
 File: sphinxlatexindbibtoc.sty 2021/01/27 index, bib., toc
@@ -465,18 +484,18 @@ File: sphinxlatexstyleheadings.sty 2021/01/27 headings
 
 (/usr/share/texlive/texmf-dist/tex/latex/titlesec/titlesec.sty
 Package: titlesec 2019/10/16 v2.13 Sectioning titles
-\ttl@box=\box111
+\ttl@box=\box112
 \beforetitleunit=\skip77
 \aftertitleunit=\skip78
-\ttl@plus=\dimen180
-\ttl@minus=\dimen181
+\ttl@plus=\dimen195
+\ttl@minus=\dimen196
 \ttl@toksa=\toks29
-\titlewidth=\dimen182
-\titlewidthlast=\dimen183
-\titlewidthfirst=\dimen184
+\titlewidth=\dimen197
+\titlewidthlast=\dimen198
+\titlewidthfirst=\dimen199
 ))
 (./sphinxlatexstyletext.sty
-File: sphinxlatexstyletext.sty 2021/12/06 text styling
+File: sphinxlatexstyletext.sty 2022/07/02 text styling
 ) (./sphinxlatexobjects.sty
 File: sphinxlatexobjects.sty 2022/01/13 documentation environments
 \sphinxsignaturesep=\skip79
@@ -496,14 +515,14 @@ Package: iftex 2019/11/07 v1.0c TeX engine tests
 \Gm@cnth=\count282
 \Gm@cntv=\count283
 \c@Gm@tempcnt=\count284
-\Gm@bindingoffset=\dimen185
-\Gm@wd@mp=\dimen186
-\Gm@odd@mp=\dimen187
-\Gm@even@mp=\dimen188
-\Gm@layoutwidth=\dimen189
-\Gm@layoutheight=\dimen190
-\Gm@layouthoffset=\dimen191
-\Gm@layoutvoffset=\dimen192
+\Gm@bindingoffset=\dimen256
+\Gm@wd@mp=\dimen257
+\Gm@odd@mp=\dimen258
+\Gm@even@mp=\dimen259
+\Gm@layoutwidth=\dimen260
+\Gm@layoutheight=\dimen261
+\Gm@layouthoffset=\dimen262
+\Gm@layoutvoffset=\dimen263
 \Gm@dimlist=\toks30
 )
 (/usr/share/texlive/texmf-dist/tex/latex/hyperref/hyperref.sty
@@ -535,7 +554,7 @@ Package: letltxmacro 2019/12/03 v1.6 Let assignment for LaTeX macros (HO)
 (/usr/share/texlive/texmf-dist/tex/latex/auxhook/auxhook.sty
 Package: auxhook 2019-12-17 v1.6 Hooks for auxiliary files (HO)
 )
-\@linkdim=\dimen193
+\@linkdim=\dimen264
 \Hy@linkcounter=\count285
 \Hy@pagecounter=\count286
 
@@ -575,7 +594,7 @@ Package hyperref Info: Bookmarks ON on input line 4800.
 Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
 )
 LaTeX Info: Redefining \url on input line 5159.
-\XeTeXLinkMargin=\dimen194
+\XeTeXLinkMargin=\dimen265
 
 (/usr/share/texlive/texmf-dist/tex/generic/bitset/bitset.sty
 Package: bitset 2019/12/09 v1.3 Handle bit-vector datatype (HO)
@@ -585,8 +604,8 @@ Package: bigintcalc 2019/12/15 v1.5 Expandable calculations on big integers (HO
 )
 ))
 \Fld@menulength=\count290
-\Field@Width=\dimen195
-\Fld@charsize=\dimen196
+\Field@Width=\dimen266
+\Fld@charsize=\dimen267
 Package hyperref Info: Hyper figures OFF on input line 6430.
 Package hyperref Info: Link nesting OFF on input line 6435.
 Package hyperref Info: Hyper index ON on input line 6438.
@@ -641,7 +660,7 @@ Writing index file ebgeometry.idx
 (/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdfmode.def
 File: l3backend-pdfmode.def 2020-02-03 L3 backend support: PDF mode
 \l__kernel_color_stack_int=\count296
-\l__pdf_internal_box=\box112
+\l__pdf_internal_box=\box113
 )
 (./ebgeometry.aux)
 \openout1 = `ebgeometry.aux'.
@@ -672,13 +691,13 @@ File: t1qtm.fd 2009/09/25 v1.2 font definition file for T1/qtm
 (/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count297
-\scratchdimen=\dimen197
-\scratchbox=\box113
+\scratchdimen=\dimen268
+\scratchbox=\box114
 \nofMPsegments=\count298
 \nofMParguments=\count299
 \everyMPshowfont=\toks31
 \MPscratchCnt=\count300
-\MPscratchDim=\dimen198
+\MPscratchDim=\dimen269
 \MPnumerator=\count301
 \makeMPintoPDFobject=\count302
 \everyMPtoPDFconversion=\toks32
@@ -727,7 +746,7 @@ e
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-\AtBeginShipoutBox=\box114
+\AtBeginShipoutBox=\box115
 Package hyperref Info: Link coloring ON on input line 70.
 (/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2019/09/16 v2.46 Cross-referencing by name of section
@@ -940,13 +959,13 @@ Package rerunfilecheck Info: File `ebgeometry.out' has not changed.
 Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 2770.
  ) 
 Here is how much of TeX's memory you used:
- 14143 strings out of 483183
- 202267 string characters out of 5966293
- 608078 words of memory out of 5000000
- 28629 multiletter control sequences out of 15000+600000
+ 14605 strings out of 483183
+ 215856 string characters out of 5966292
+ 596354 words of memory out of 5000000
+ 29088 multiletter control sequences out of 15000+600000
  596385 words of font info for 76 fonts, out of 8000000 for 9000
  15 hyphenation exceptions out of 8191
- 38i,23n,51p,609b,547s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 38i,23n,51p,609b,575s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc}{/usr/share/texmf/
 fonts/enc/dvips/tex-gyre/q-ts1.enc}{/usr/share/texmf/fonts/enc/dvips/tex-gyre/q
 -ec.enc}</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pf
@@ -968,7 +987,7 @@ fonts/type1/public/txfonts/t1xbtt.pfb></usr/share/texlive/texmf-dist/fonts/type
 1/public/txfonts/t1xtt.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/tx
 fonts/t1xtt.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/txfonts/tcxtt
 .pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb>
-Output written on ebgeometry.pdf (55 pages, 1002380 bytes).
+Output written on ebgeometry.pdf (55 pages, 999316 bytes).
 PDF statistics:
  784 PDF objects out of 1000 (max. 8388607)
  681 compressed objects within 7 object streams

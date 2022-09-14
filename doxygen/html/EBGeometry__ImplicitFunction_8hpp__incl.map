@@ -1,15 +1,16 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_ImplicitFunction.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_ImplicitFunction.hpp">
-<area shape="rect" id="node1" title="Abstract base class for representing an implicit function." alt="" coords="315,5,557,61"/>
+<area shape="rect" id="node1" title="Abstract base class for representing an implicit function." alt="" coords="232,5,475,61"/>
 <area shape="rect" id="node2" title=" " alt="" coords="5,109,83,136"/>
 <area shape="rect" id="node3" title=" " alt="" coords="107,109,170,136"/>
-<area shape="rect" id="node4" href="$EBGeometry__TransformOps_8hpp.html" title="Declaration of transformation operators for signed distance fields." alt="" coords="321,109,551,136"/>
-<area shape="rect" id="node7" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="394,348,657,375"/>
-<area shape="rect" id="node8" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="976,348,1232,375"/>
-<area shape="rect" id="node13" href="$EBGeometry__ImplicitFunctionImplem_8hpp.html" title="Implementation of EBGeometry_ImplicitFunctionImplem.hpp." alt="" coords="953,184,1167,225"/>
-<area shape="rect" id="node5" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="661,191,824,218"/>
-<area shape="rect" id="node12" href="$EBGeometry__TransformOpsImplem_8hpp.html" title="Implementation of EBGeometry_TransformOps.hpp." alt="" coords="297,273,575,300"/>
-<area shape="rect" id="node6" title=" " alt="" coords="651,273,731,300"/>
-<area shape="rect" id="node9" href="$EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp." alt="" coords="805,273,1017,300"/>
-<area shape="rect" id="node10" title=" " alt="" coords="774,348,842,375"/>
-<area shape="rect" id="node11" title=" " alt="" coords="867,348,952,375"/>
+<area shape="rect" id="node4" href="$EBGeometry__TransformOps_8hpp.html" title="Declaration of transformation operators for signed distance fields." alt="" coords="712,109,941,136"/>
+<area shape="rect" id="node7" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="225,348,487,375"/>
+<area shape="rect" id="node8" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="847,348,1103,375"/>
+<area shape="rect" id="node14" href="$EBGeometry__ImplicitFunctionImplem_8hpp.html" title="Implementation of EBGeometry_ImplicitFunctionImplem.hpp." alt="" coords="246,184,461,225"/>
+<area shape="rect" id="node5" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="636,191,799,218"/>
+<area shape="rect" id="node13" href="$EBGeometry__TransformOpsImplem_8hpp.html" title="Implementation of EBGeometry_TransformOps.hpp." alt="" coords="885,273,1163,300"/>
+<area shape="rect" id="node6" title=" " alt="" coords="729,273,809,300"/>
+<area shape="rect" id="node9" href="$EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp." alt="" coords="443,273,655,300"/>
+<area shape="rect" id="node10" title=" " alt="" coords="595,348,663,375"/>
+<area shape="rect" id="node11" title=" " alt="" coords="688,348,773,375"/>
+<area shape="rect" id="node12" title=" " alt="" coords="512,348,571,375"/>
 </map>

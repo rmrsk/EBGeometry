@@ -1,32 +1,33 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Parser.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Parser.hpp">
-<area shape="rect" id="node1" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="1327,5,1569,61"/>
-<area shape="rect" id="node2" title=" " alt="" coords="1491,871,1554,897"/>
-<area shape="rect" id="node3" title=" " alt="" coords="1389,871,1467,897"/>
-<area shape="rect" id="node4" title=" " alt="" coords="195,259,245,285"/>
-<area shape="rect" id="node5" href="$EBGeometry__DCEL__Vertex_8hpp.html" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations." alt="" coords="758,333,981,360"/>
-<area shape="rect" id="node8" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="279,1020,542,1047"/>
-<area shape="rect" id="node9" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="1592,1020,1848,1047"/>
-<area shape="rect" id="node14" href="$EBGeometry__DCEL__Face_8hpp.html" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations." alt="" coords="1173,483,1382,509"/>
-<area shape="rect" id="node15" href="$EBGeometry__DCEL__Edge_8hpp.html" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations." alt="" coords="949,796,1161,823"/>
-<area shape="rect" id="node23" href="$EBGeometry__DCEL__Mesh_8hpp.html" title="Declaration of a mesh class which stores a DCEL mesh (with signed distance functions)" alt="" coords="1341,184,1555,211"/>
-<area shape="rect" id="node26" href="$EBGeometry__ParserImplem_8hpp.html" title="Implementation of EBGeometry_Parser.hpp." alt="" coords="1555,109,1784,136"/>
-<area shape="rect" id="node6" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="973,871,1136,897"/>
-<area shape="rect" id="node13" href="$EBGeometry__DCEL_8hpp.html" title="Namespace documentation." alt="" coords="701,945,875,972"/>
-<area shape="rect" id="node22" href="$EBGeometry__DCEL__VertexImplem_8hpp.html" title="Implementation of EBGeometry_DCEL_Vertex.hpp." alt="" coords="560,408,832,435"/>
-<area shape="rect" id="node7" title=" " alt="" coords="1757,945,1837,972"/>
-<area shape="rect" id="node10" href="$EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp." alt="" coords="949,945,1161,972"/>
-<area shape="rect" id="node11" title=" " alt="" coords="970,1020,1038,1047"/>
-<area shape="rect" id="node12" title=" " alt="" coords="1063,1020,1148,1047"/>
-<area shape="rect" id="node19" href="$EBGeometry__Polygon2D_8hpp.html" title="Declaration of a two&#45;dimensional polygon class for embedding 3D polygon faces." alt="" coords="1729,796,1938,823"/>
-<area shape="rect" id="node21" href="$EBGeometry__DCEL__FaceImplem_8hpp.html" title="Implementation of EBGeometry_DCEL_Face.hpp." alt="" coords="968,557,1227,584"/>
-<area shape="rect" id="node16" href="$EBGeometry__DCEL__EdgeImplem_8hpp.html" title="Implementation of EBGeometry_DCEL_Edge.hpp." alt="" coords="550,871,813,897"/>
-<area shape="rect" id="node17" href="$EBGeometry__DCEL__Iterator_8hpp.html" title="Declaration of iterators for DCEL surface Tesselations." alt="" coords="941,632,1168,659"/>
-<area shape="rect" id="node18" href="$EBGeometry__DCEL__IteratorImplem_8hpp.html" title="Implementation of EBGeometry_DCEL_Iterator.hpp." alt="" coords="955,707,1155,748"/>
-<area shape="rect" id="node20" href="$EBGeometry__Polygon2DImplem_8hpp.html" title="Implementation of EBGeometry_Polygon2D.hpp." alt="" coords="1629,871,1888,897"/>
-<area shape="rect" id="node24" title=" " alt="" coords="1078,259,1165,285"/>
-<area shape="rect" id="node25" href="$EBGeometry__DCEL__MeshImplem_8hpp.html" title="Implementation of EBGeometry_DCEL_Mesh.hpp." alt="" coords="1189,259,1454,285"/>
-<area shape="rect" id="node27" title=" " alt="" coords="1922,184,1995,211"/>
-<area shape="rect" id="node28" title=" " alt="" coords="2019,184,2090,211"/>
-<area shape="rect" id="node29" title=" " alt="" coords="1732,184,1807,211"/>
-<area shape="rect" id="node30" title=" " alt="" coords="1831,184,1897,211"/>
+<area shape="rect" id="node1" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="765,5,1008,61"/>
+<area shape="rect" id="node2" title=" " alt="" coords="787,871,850,897"/>
+<area shape="rect" id="node3" title=" " alt="" coords="1077,871,1155,897"/>
+<area shape="rect" id="node4" title=" " alt="" coords="93,259,144,285"/>
+<area shape="rect" id="node5" href="$EBGeometry__DCEL__Vertex_8hpp.html" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations." alt="" coords="1489,333,1711,360"/>
+<area shape="rect" id="node8" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="757,1020,1019,1047"/>
+<area shape="rect" id="node9" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="1729,1020,1985,1047"/>
+<area shape="rect" id="node15" href="$EBGeometry__DCEL__Face_8hpp.html" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations." alt="" coords="774,483,983,509"/>
+<area shape="rect" id="node16" href="$EBGeometry__DCEL__Edge_8hpp.html" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations." alt="" coords="783,796,995,823"/>
+<area shape="rect" id="node24" href="$EBGeometry__DCEL__Mesh_8hpp.html" title="Declaration of a mesh class which stores a DCEL mesh (with signed distance functions)" alt="" coords="558,184,773,211"/>
+<area shape="rect" id="node27" href="$EBGeometry__ParserImplem_8hpp.html" title="Implementation of EBGeometry_Parser.hpp." alt="" coords="1325,109,1555,136"/>
+<area shape="rect" id="node6" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="216,871,379,897"/>
+<area shape="rect" id="node14" href="$EBGeometry__DCEL_8hpp.html" title="Namespace documentation." alt="" coords="1771,945,1944,972"/>
+<area shape="rect" id="node23" href="$EBGeometry__DCEL__VertexImplem_8hpp.html" title="Implementation of EBGeometry_DCEL_Vertex.hpp." alt="" coords="1464,408,1736,435"/>
+<area shape="rect" id="node7" title=" " alt="" coords="169,945,249,972"/>
+<area shape="rect" id="node10" href="$EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp." alt="" coords="273,945,485,972"/>
+<area shape="rect" id="node11" title=" " alt="" coords="345,1020,413,1047"/>
+<area shape="rect" id="node12" title=" " alt="" coords="437,1020,523,1047"/>
+<area shape="rect" id="node13" title=" " alt="" coords="261,1020,320,1047"/>
+<area shape="rect" id="node20" href="$EBGeometry__Polygon2D_8hpp.html" title="Declaration of a two&#45;dimensional polygon class for embedding 3D polygon faces." alt="" coords="398,796,607,823"/>
+<area shape="rect" id="node22" href="$EBGeometry__DCEL__FaceImplem_8hpp.html" title="Implementation of EBGeometry_DCEL_Face.hpp." alt="" coords="1080,557,1339,584"/>
+<area shape="rect" id="node17" href="$EBGeometry__DCEL__EdgeImplem_8hpp.html" title="Implementation of EBGeometry_DCEL_Edge.hpp." alt="" coords="1281,871,1543,897"/>
+<area shape="rect" id="node18" href="$EBGeometry__DCEL__Iterator_8hpp.html" title="Declaration of iterators for DCEL surface Tesselations." alt="" coords="1256,632,1483,659"/>
+<area shape="rect" id="node19" href="$EBGeometry__DCEL__IteratorImplem_8hpp.html" title="Implementation of EBGeometry_DCEL_Iterator.hpp." alt="" coords="1131,707,1331,748"/>
+<area shape="rect" id="node21" href="$EBGeometry__Polygon2DImplem_8hpp.html" title="Implementation of EBGeometry_Polygon2D.hpp." alt="" coords="504,871,763,897"/>
+<area shape="rect" id="node25" title=" " alt="" coords="422,259,509,285"/>
+<area shape="rect" id="node26" href="$EBGeometry__DCEL__MeshImplem_8hpp.html" title="Implementation of EBGeometry_DCEL_Mesh.hpp." alt="" coords="533,259,798,285"/>
+<area shape="rect" id="node28" title=" " alt="" coords="1879,184,1953,211"/>
+<area shape="rect" id="node29" title=" " alt="" coords="1977,184,2047,211"/>
+<area shape="rect" id="node30" title=" " alt="" coords="1356,184,1431,211"/>
+<area shape="rect" id="node31" title=" " alt="" coords="1455,184,1521,211"/>
 </map>

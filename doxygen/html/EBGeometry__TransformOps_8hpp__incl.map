@@ -1,11 +1,12 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_TransformOps.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_TransformOps.hpp">
-<area shape="rect" id="node1" title="Declaration of transformation operators for signed distance fields." alt="" coords="377,5,619,61"/>
-<area shape="rect" id="node2" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="171,109,334,136"/>
+<area shape="rect" id="node1" title="Declaration of transformation operators for signed distance fields." alt="" coords="406,5,649,61"/>
+<area shape="rect" id="node2" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="201,109,363,136"/>
 <area shape="rect" id="node4" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="5,259,268,285"/>
-<area shape="rect" id="node5" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="497,259,753,285"/>
-<area shape="rect" id="node9" href="$EBGeometry__TransformOpsImplem_8hpp.html" title="Implementation of EBGeometry_TransformOps.hpp." alt="" coords="359,109,637,136"/>
-<area shape="rect" id="node3" title=" " alt="" coords="171,184,251,211"/>
-<area shape="rect" id="node6" href="$EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp." alt="" coords="325,184,537,211"/>
-<area shape="rect" id="node7" title=" " alt="" coords="295,259,363,285"/>
-<area shape="rect" id="node8" title=" " alt="" coords="387,259,473,285"/>
+<area shape="rect" id="node5" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="577,259,833,285"/>
+<area shape="rect" id="node10" href="$EBGeometry__TransformOpsImplem_8hpp.html" title="Implementation of EBGeometry_TransformOps.hpp." alt="" coords="388,109,667,136"/>
+<area shape="rect" id="node3" title=" " alt="" coords="178,184,258,211"/>
+<area shape="rect" id="node6" href="$EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp." alt="" coords="332,184,544,211"/>
+<area shape="rect" id="node7" title=" " alt="" coords="292,259,360,285"/>
+<area shape="rect" id="node8" title=" " alt="" coords="385,259,470,285"/>
+<area shape="rect" id="node9" title=" " alt="" coords="494,259,553,285"/>
 </map>

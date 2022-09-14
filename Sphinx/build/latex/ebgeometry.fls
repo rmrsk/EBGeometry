@@ -91,6 +91,8 @@ INPUT /usr/share/texlive/texmf-dist/tex/latex/graphics-cfg/graphics.cfg
 INPUT /usr/share/texlive/texmf-dist/tex/latex/graphics-cfg/graphics.cfg
 INPUT sphinxlatexgraphics.sty
 INPUT sphinxlatexgraphics.sty
+INPUT sphinxpackageboxes.sty
+INPUT sphinxpackageboxes.sty
 INPUT sphinxlatexadmonitions.sty
 INPUT sphinxlatexadmonitions.sty
 INPUT /usr/share/texlive/texmf-dist/tex/latex/framed/framed.sty
