@@ -15,6 +15,7 @@
 // Std includes
 #include <math.h>
 #include <algorithm>
+#include <limits>
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
