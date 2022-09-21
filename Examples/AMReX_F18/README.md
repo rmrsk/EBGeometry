@@ -17,7 +17,7 @@ Then compile (with your standard AMReX settings) using
 
     make -s -j8
 
-Compilation should be done in 3D, using C++17 (remember to link with -lstdc++fs).  
+Compilation should be done in 3D, using C++17 (may have to link with -lstdc++fs).  
 
 Running
 -------
