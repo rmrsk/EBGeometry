@@ -61,7 +61,7 @@
 
 
 \title{EBGeometry}
-\date{Sep 14, 2022}
+\date{Sep 21, 2022}
 \release{1.0}
 \author{Robert Marskar}
 \newcommand{\sphinxlogo}{\vbox{}}
@@ -2391,88 +2391,93 @@ We will focus on the following parts of the code:
 \PYG{k+kt}{int}
 \PYG{n+nf}{main}\PYG{p}{(}\PYG{k+kt}{int} \PYG{n}{argc}\PYG{p}{,} \PYG{k+kt}{char}\PYG{o}{*} \PYG{n}{argv}\PYG{p}{[}\PYG{p}{]}\PYG{p}{)}
 \PYG{p}{\PYGZob{}}
+
   \PYG{n}{amrex}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Initialize}\PYG{p}{(}\PYG{n}{argc}\PYG{p}{,} \PYG{n}{argv}\PYG{p}{)}\PYG{p}{;}
 
-  \PYG{k+kt}{int} \PYG{n}{n\PYGZus{}cell}        \PYG{o}{=} \PYG{l+m+mi}{128}\PYG{p}{;}
-  \PYG{k+kt}{int} \PYG{n}{max\PYGZus{}grid\PYGZus{}size} \PYG{o}{=} \PYG{l+m+mi}{32}\PYG{p}{;}
-  \PYG{k+kt}{int} \PYG{n}{which\PYGZus{}geom}    \PYG{o}{=} \PYG{l+m+mi}{0}\PYG{p}{;}
-
-  \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{string} \PYG{n}{filename}\PYG{p}{;}
-
-  \PYG{c+c1}{// read parameters}
-  \PYG{n}{ParmParse} \PYG{n}{pp}\PYG{p}{;}
-  \PYG{n}{pp}\PYG{p}{.}\PYG{n}{query}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}}\PYG{l+s}{n\PYGZus{}cell}\PYG{l+s}{\PYGZdq{}}\PYG{p}{,} \PYG{n}{n\PYGZus{}cell}\PYG{p}{)}\PYG{p}{;}
-  \PYG{n}{pp}\PYG{p}{.}\PYG{n}{query}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}}\PYG{l+s}{max\PYGZus{}grid\PYGZus{}size}\PYG{l+s}{\PYGZdq{}}\PYG{p}{,} \PYG{n}{max\PYGZus{}grid\PYGZus{}size}\PYG{p}{)}\PYG{p}{;}
-  \PYG{n}{pp}\PYG{p}{.}\PYG{n}{query}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}}\PYG{l+s}{which\PYGZus{}geom}\PYG{l+s}{\PYGZdq{}}\PYG{p}{,} \PYG{n}{which\PYGZus{}geom}\PYG{p}{)}\PYG{p}{;}
-
-  \PYG{n}{Geometry} \PYG{n}{geom}\PYG{p}{;}
   \PYG{p}{\PYGZob{}}
-    \PYG{n}{RealBox} \PYG{n}{rb}\PYG{p}{;}
+    \PYG{k+kt}{int} \PYG{n}{n\PYGZus{}cell}          \PYG{o}{=} \PYG{l+m+mi}{128}\PYG{p}{;}
+    \PYG{k+kt}{int} \PYG{n}{max\PYGZus{}grid\PYGZus{}size}   \PYG{o}{=} \PYG{l+m+mi}{16}\PYG{p}{;}
+    \PYG{k+kt}{int} \PYG{n}{which\PYGZus{}geom}      \PYG{o}{=} \PYG{l+m+mi}{0}\PYG{p}{;}
+    \PYG{k+kt}{int} \PYG{n}{num\PYGZus{}coarsen\PYGZus{}opt} \PYG{o}{=} \PYG{l+m+mi}{0}\PYG{p}{;}
 
-    \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{0}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Airfoil case}
-      \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{75}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{l+m+mi}{100}\PYG{p}{,} \PYG{l+m+mi}{125}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/airfoil.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
-    \PYG{p}{\PYGZcb{}}
-    \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{1}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Sphere case}
-      \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{400}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{l+m+mi}{400}\PYG{p}{,} \PYG{l+m+mi}{400}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/sphere.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
-    \PYG{p}{\PYGZcb{}}
-    \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{2}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Dodecahedron}
-      \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2.}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{l+m+mf}{2.}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/dodecahedron.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
-    \PYG{p}{\PYGZcb{}}
-    \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{3}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Horse}
-      \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{0.12}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{l+m+mf}{0.12}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/horse.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
-    \PYG{p}{\PYGZcb{}}
-    \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{4}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Car}
-      \PYG{c+c1}{//	    rb = RealBox(\PYGZob{}\PYGZhy{}20,\PYGZhy{}20,\PYGZhy{}20\PYGZcb{}, \PYGZob{}20,20,20\PYGZcb{}); // Doesn\PYGZsq{}t work.}
-      \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{5}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{5}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{l+m+mi}{5}\PYG{p}{,} \PYG{l+m+mi}{5}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;} \PYG{c+c1}{// Works.}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/porsche.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
-    \PYG{p}{\PYGZcb{}}
-    \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{5}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Orion}
-      \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{5}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{l+m+mi}{10}\PYG{p}{,} \PYG{l+m+mi}{10}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/orion.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
-    \PYG{p}{\PYGZcb{}}
-    \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{6}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Armadillo}
-      \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{75}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{l+m+mi}{125}\PYG{p}{,} \PYG{l+m+mi}{100}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
-      \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/armadillo.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+    \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{string} \PYG{n}{filename}\PYG{p}{;}
+
+    \PYG{c+c1}{// read parameters}
+    \PYG{n}{ParmParse} \PYG{n}{pp}\PYG{p}{;}
+    \PYG{n}{pp}\PYG{p}{.}\PYG{n}{query}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}}\PYG{l+s}{n\PYGZus{}cell}\PYG{l+s}{\PYGZdq{}}\PYG{p}{,} \PYG{n}{n\PYGZus{}cell}\PYG{p}{)}\PYG{p}{;}
+    \PYG{n}{pp}\PYG{p}{.}\PYG{n}{query}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}}\PYG{l+s}{max\PYGZus{}grid\PYGZus{}size}\PYG{l+s}{\PYGZdq{}}\PYG{p}{,} \PYG{n}{max\PYGZus{}grid\PYGZus{}size}\PYG{p}{)}\PYG{p}{;}
+    \PYG{n}{pp}\PYG{p}{.}\PYG{n}{query}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}}\PYG{l+s}{which\PYGZus{}geom}\PYG{l+s}{\PYGZdq{}}\PYG{p}{,} \PYG{n}{which\PYGZus{}geom}\PYG{p}{)}\PYG{p}{;}
+    \PYG{n}{pp}\PYG{p}{.}\PYG{n}{query}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}}\PYG{l+s}{num\PYGZus{}coarsen\PYGZus{}opt}\PYG{l+s}{\PYGZdq{}}\PYG{p}{,} \PYG{n}{num\PYGZus{}coarsen\PYGZus{}opt}\PYG{p}{)}\PYG{p}{;}
+
+    \PYG{n}{Geometry} \PYG{n}{geom}\PYG{p}{;}
+    \PYG{p}{\PYGZob{}}
+      \PYG{n}{RealBox} \PYG{n}{rb}\PYG{p}{;}
+
+      \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{0}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Airfoil case}
+        \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{75}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{l+m+mi}{100}\PYG{p}{,} \PYG{l+m+mi}{125}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
+        \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/airfoil.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{p}{\PYGZcb{}}
+      \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{1}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Sphere case}
+        \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{400}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{400}\PYG{p}{,} \PYG{l+m+mi}{400}\PYG{p}{,} \PYG{l+m+mi}{400}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
+        \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/sphere.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{p}{\PYGZcb{}}
+      \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{2}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Dodecahedron}
+        \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2.}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{l+m+mf}{2.}\PYG{p}{,} \PYG{l+m+mf}{2.}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
+        \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/dodecahedron.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{p}{\PYGZcb{}}
+      \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{3}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Horse}
+        \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{0.12}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{l+m+mf}{0.12}\PYG{p}{,} \PYG{l+m+mf}{0.12}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
+        \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/horse.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{p}{\PYGZcb{}}
+      \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{4}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Car}
+        \PYG{c+c1}{//	    rb = RealBox(\PYGZob{}\PYGZhy{}20,\PYGZhy{}20,\PYGZhy{}20\PYGZcb{}, \PYGZob{}20,20,20\PYGZcb{}); // Doesn\PYGZsq{}t work.}
+        \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{5}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{5}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{l+m+mi}{5}\PYG{p}{,} \PYG{l+m+mi}{5}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;} \PYG{c+c1}{// Works.}
+        \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/porsche.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{p}{\PYGZcb{}}
+      \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{5}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Orion}
+        \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{5}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{10}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{l+m+mi}{10}\PYG{p}{,} \PYG{l+m+mi}{10}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
+        \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/orion.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{p}{\PYGZcb{}}
+      \PYG{k}{else} \PYG{k}{if} \PYG{p}{(}\PYG{n}{which\PYGZus{}geom} \PYG{o}{=}\PYG{o}{=} \PYG{l+m+mi}{6}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{// Armadillo}
+        \PYG{n}{rb}       \PYG{o}{=} \PYG{n}{RealBox}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{75}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{100}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{100}\PYG{p}{,} \PYG{l+m+mi}{125}\PYG{p}{,} \PYG{l+m+mi}{100}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{p}{;}
+        \PYG{n}{filename} \PYG{o}{=} \PYG{l+s}{\PYGZdq{}}\PYG{l+s}{../Resources/armadillo.stl}\PYG{l+s}{\PYGZdq{}}\PYG{p}{;}
+      \PYG{p}{\PYGZcb{}}
+
+      \PYG{n}{Array}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{int}\PYG{p}{,} \PYG{n}{AMREX\PYGZus{}SPACEDIM}\PYG{o}{\PYGZgt{}} \PYG{n}{is\PYGZus{}periodic}\PYG{p}{\PYGZob{}}\PYG{n+nb}{false}\PYG{p}{,} \PYG{n+nb}{false}\PYG{p}{,} \PYG{n+nb}{false}\PYG{p}{\PYGZcb{}}\PYG{p}{;}
+      \PYG{n}{Geometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Setup}\PYG{p}{(}\PYG{o}{\PYGZam{}}\PYG{n}{rb}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{,} \PYG{n}{is\PYGZus{}periodic}\PYG{p}{.}\PYG{n}{data}\PYG{p}{(}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
+      \PYG{n}{Box} \PYG{n}{domain}\PYG{p}{(}\PYG{n}{IntVect}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{)}\PYG{p}{,} \PYG{n}{IntVect}\PYG{p}{(}\PYG{n}{n\PYGZus{}cell} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
+      \PYG{n}{geom}\PYG{p}{.}\PYG{n}{define}\PYG{p}{(}\PYG{n}{domain}\PYG{p}{)}\PYG{p}{;}
     \PYG{p}{\PYGZcb{}}
 
-    \PYG{n}{Array}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{int}\PYG{p}{,} \PYG{n}{AMREX\PYGZus{}SPACEDIM}\PYG{o}{\PYGZgt{}} \PYG{n}{is\PYGZus{}periodic}\PYG{p}{\PYGZob{}}\PYG{n+nb}{false}\PYG{p}{,} \PYG{n+nb}{false}\PYG{p}{,} \PYG{n+nb}{false}\PYG{p}{\PYGZcb{}}\PYG{p}{;}
-    \PYG{n}{Geometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Setup}\PYG{p}{(}\PYG{o}{\PYGZam{}}\PYG{n}{rb}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{,} \PYG{n}{is\PYGZus{}periodic}\PYG{p}{.}\PYG{n}{data}\PYG{p}{(}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
-    \PYG{n}{Box} \PYG{n}{domain}\PYG{p}{(}\PYG{n}{IntVect}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{)}\PYG{p}{,} \PYG{n}{IntVect}\PYG{p}{(}\PYG{n}{n\PYGZus{}cell} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
-    \PYG{n}{geom}\PYG{p}{.}\PYG{n}{define}\PYG{p}{(}\PYG{n}{domain}\PYG{p}{)}\PYG{p}{;}
+    \PYG{c+c1}{// Create our signed distance function. K is the tree degree while T is the}
+    \PYG{c+c1}{// EBGeometry precision.}
+    \PYG{k}{constexpr} \PYG{k+kt}{int} \PYG{n}{K} \PYG{o}{=} \PYG{l+m+mi}{4}\PYG{p}{;}
+
+    \PYG{k}{using} \PYG{n}{T}    \PYG{o}{=} \PYG{k+kt}{float}\PYG{p}{;}
+    \PYG{k}{using} \PYG{n}{Vec3} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
+    \PYG{k}{using} \PYG{n}{BV}   \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BoundingVolumes}\PYG{o}{:}\PYG{o}{:}\PYG{n}{AABBT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
+
+    \PYG{n}{AMReXSDF}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}} \PYG{n}{sdf}\PYG{p}{(}\PYG{n}{filename}\PYG{p}{)}\PYG{p}{;}
+
+    \PYG{k}{auto} \PYG{n}{gshop} \PYG{o}{=} \PYG{n}{EB2}\PYG{o}{:}\PYG{o}{:}\PYG{n}{makeShop}\PYG{p}{(}\PYG{n}{sdf}\PYG{p}{)}\PYG{p}{;}
+    \PYG{n}{EB2}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Build}\PYG{p}{(}\PYG{n}{gshop}\PYG{p}{,} \PYG{n}{geom}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{1}\PYG{p}{,} \PYG{n+nb}{true}\PYG{p}{,} \PYG{n+nb}{true}\PYG{p}{,} \PYG{n}{num\PYGZus{}coarsen\PYGZus{}opt}\PYG{p}{)}\PYG{p}{;}
+
+    \PYG{c+c1}{// Put some data}
+    \PYG{n}{MultiFab} \PYG{n}{mf}\PYG{p}{;}
+    \PYG{p}{\PYGZob{}}
+      \PYG{n}{BoxArray} \PYG{n}{boxArray}\PYG{p}{(}\PYG{n}{geom}\PYG{p}{.}\PYG{n}{Domain}\PYG{p}{(}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
+      \PYG{n}{boxArray}\PYG{p}{.}\PYG{n}{maxSize}\PYG{p}{(}\PYG{n}{max\PYGZus{}grid\PYGZus{}size}\PYG{p}{)}\PYG{p}{;}
+      \PYG{n}{DistributionMapping} \PYG{n}{dm}\PYG{p}{\PYGZob{}}\PYG{n}{boxArray}\PYG{p}{\PYGZcb{}}\PYG{p}{;}
+
+      \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{unique\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{EBFArrayBoxFactory}\PYG{o}{\PYGZgt{}} \PYG{n}{factory} \PYG{o}{=}
+        \PYG{n}{amrex}\PYG{o}{:}\PYG{o}{:}\PYG{n}{makeEBFabFactory}\PYG{p}{(}\PYG{n}{geom}\PYG{p}{,} \PYG{n}{boxArray}\PYG{p}{,} \PYG{n}{dm}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{2}\PYG{p}{,} \PYG{l+m+mi}{2}\PYG{p}{,} \PYG{l+m+mi}{2}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{n}{EBSupport}\PYG{o}{:}\PYG{o}{:}\PYG{n}{full}\PYG{p}{)}\PYG{p}{;}
+
+      \PYG{n}{mf}\PYG{p}{.}\PYG{n}{define}\PYG{p}{(}\PYG{n}{boxArray}\PYG{p}{,} \PYG{n}{dm}\PYG{p}{,} \PYG{l+m+mi}{1}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{,} \PYG{n}{MFInfo}\PYG{p}{(}\PYG{p}{)}\PYG{p}{,} \PYG{o}{*}\PYG{n}{factory}\PYG{p}{)}\PYG{p}{;}
+      \PYG{n}{mf}\PYG{p}{.}\PYG{n}{setVal}\PYG{p}{(}\PYG{l+m+mf}{1.0}\PYG{p}{)}\PYG{p}{;}
+    \PYG{p}{\PYGZcb{}}
+
+    \PYG{n}{EB\PYGZus{}WriteSingleLevelPlotfile}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}}\PYG{l+s}{plt}\PYG{l+s}{\PYGZdq{}}\PYG{p}{,} \PYG{n}{mf}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+s}{\PYGZdq{}}\PYG{l+s}{rho}\PYG{l+s}{\PYGZdq{}}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{n}{geom}\PYG{p}{,} \PYG{l+m+mf}{0.0}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{)}\PYG{p}{;}
   \PYG{p}{\PYGZcb{}}
-
-  \PYG{c+c1}{// Create our signed distance function. K is the tree degree while T is the}
-  \PYG{c+c1}{// EBGeometry precision.}
-  \PYG{k}{constexpr} \PYG{k+kt}{int} \PYG{n}{K} \PYG{o}{=} \PYG{l+m+mi}{4}\PYG{p}{;}
-
-  \PYG{k}{using} \PYG{n}{T}    \PYG{o}{=} \PYG{k+kt}{float}\PYG{p}{;}
-  \PYG{k}{using} \PYG{n}{Vec3} \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Vec3T}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
-  \PYG{k}{using} \PYG{n}{BV}   \PYG{o}{=} \PYG{n}{EBGeometry}\PYG{o}{:}\PYG{o}{:}\PYG{n}{BoundingVolumes}\PYG{o}{:}\PYG{o}{:}\PYG{n}{AABBT}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{o}{\PYGZgt{}}\PYG{p}{;}
-
-  \PYG{n}{AMReXSDF}\PYG{o}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{,} \PYG{n}{BV}\PYG{p}{,} \PYG{n}{K}\PYG{o}{\PYGZgt{}} \PYG{n}{sdf}\PYG{p}{(}\PYG{n}{filename}\PYG{p}{)}\PYG{p}{;}
-
-  \PYG{k}{auto} \PYG{n}{gshop} \PYG{o}{=} \PYG{n}{EB2}\PYG{o}{:}\PYG{o}{:}\PYG{n}{makeShop}\PYG{p}{(}\PYG{n}{sdf}\PYG{p}{)}\PYG{p}{;}
-  \PYG{n}{EB2}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Build}\PYG{p}{(}\PYG{n}{gshop}\PYG{p}{,} \PYG{n}{geom}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{)}\PYG{p}{;}
-
-  \PYG{c+c1}{// Put some data}
-  \PYG{n}{MultiFab} \PYG{n}{mf}\PYG{p}{;}
-  \PYG{p}{\PYGZob{}}
-    \PYG{n}{BoxArray} \PYG{n}{boxArray}\PYG{p}{(}\PYG{n}{geom}\PYG{p}{.}\PYG{n}{Domain}\PYG{p}{(}\PYG{p}{)}\PYG{p}{)}\PYG{p}{;}
-    \PYG{n}{boxArray}\PYG{p}{.}\PYG{n}{maxSize}\PYG{p}{(}\PYG{n}{max\PYGZus{}grid\PYGZus{}size}\PYG{p}{)}\PYG{p}{;}
-    \PYG{n}{DistributionMapping} \PYG{n}{dm}\PYG{p}{\PYGZob{}}\PYG{n}{boxArray}\PYG{p}{\PYGZcb{}}\PYG{p}{;}
-
-    \PYG{n}{std}\PYG{o}{:}\PYG{o}{:}\PYG{n}{unique\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{n}{EBFArrayBoxFactory}\PYG{o}{\PYGZgt{}} \PYG{n}{factory} \PYG{o}{=}
-      \PYG{n}{amrex}\PYG{o}{:}\PYG{o}{:}\PYG{n}{makeEBFabFactory}\PYG{p}{(}\PYG{n}{geom}\PYG{p}{,} \PYG{n}{boxArray}\PYG{p}{,} \PYG{n}{dm}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+m+mi}{2}\PYG{p}{,} \PYG{l+m+mi}{2}\PYG{p}{,} \PYG{l+m+mi}{2}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{n}{EBSupport}\PYG{o}{:}\PYG{o}{:}\PYG{n}{full}\PYG{p}{)}\PYG{p}{;}
-
-    \PYG{n}{mf}\PYG{p}{.}\PYG{n}{define}\PYG{p}{(}\PYG{n}{boxArray}\PYG{p}{,} \PYG{n}{dm}\PYG{p}{,} \PYG{l+m+mi}{1}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{,} \PYG{n}{MFInfo}\PYG{p}{(}\PYG{p}{)}\PYG{p}{,} \PYG{o}{*}\PYG{n}{factory}\PYG{p}{)}\PYG{p}{;}
-    \PYG{n}{mf}\PYG{p}{.}\PYG{n}{setVal}\PYG{p}{(}\PYG{l+m+mf}{1.0}\PYG{p}{)}\PYG{p}{;}
-  \PYG{p}{\PYGZcb{}}
-
-  \PYG{n}{EB\PYGZus{}WriteSingleLevelPlotfile}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}}\PYG{l+s}{plt}\PYG{l+s}{\PYGZdq{}}\PYG{p}{,} \PYG{n}{mf}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{l+s}{\PYGZdq{}}\PYG{l+s}{rho}\PYG{l+s}{\PYGZdq{}}\PYG{p}{\PYGZcb{}}\PYG{p}{,} \PYG{n}{geom}\PYG{p}{,} \PYG{l+m+mf}{0.0}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{)}\PYG{p}{;}
 
   \PYG{n}{amrex}\PYG{o}{:}\PYG{o}{:}\PYG{n}{Finalize}\PYG{p}{(}\PYG{p}{)}\PYG{p}{;}
 \PYG{p}{\PYGZcb{}}

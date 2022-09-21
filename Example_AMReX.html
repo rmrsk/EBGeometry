@@ -184,88 +184,93 @@
 <span class="kt">int</span>
 <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span>
 <span class="p">{</span>
+
   <span class="n">amrex</span><span class="o">::</span><span class="n">Initialize</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">);</span>
 
-  <span class="kt">int</span> <span class="n">n_cell</span>        <span class="o">=</span> <span class="mi">128</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">max_grid_size</span> <span class="o">=</span> <span class="mi">32</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">which_geom</span>    <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-
-  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">filename</span><span class="p">;</span>
-
-  <span class="c1">// read parameters</span>
-  <span class="n">ParmParse</span> <span class="n">pp</span><span class="p">;</span>
-  <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;n_cell&quot;</span><span class="p">,</span> <span class="n">n_cell</span><span class="p">);</span>
-  <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;max_grid_size&quot;</span><span class="p">,</span> <span class="n">max_grid_size</span><span class="p">);</span>
-  <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;which_geom&quot;</span><span class="p">,</span> <span class="n">which_geom</span><span class="p">);</span>
-
-  <span class="n">Geometry</span> <span class="n">geom</span><span class="p">;</span>
   <span class="p">{</span>
-    <span class="n">RealBox</span> <span class="n">rb</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">n_cell</span>          <span class="o">=</span> <span class="mi">128</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">max_grid_size</span>   <span class="o">=</span> <span class="mi">16</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">which_geom</span>      <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">num_coarsen_opt</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 
-    <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Airfoil case</span>
-      <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="o">-</span><span class="mi">75</span><span class="p">},</span> <span class="p">{</span><span class="mi">400</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">125</span><span class="p">});</span>
-      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/airfoil.stl&quot;</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Sphere case</span>
-      <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">400</span><span class="p">,</span> <span class="o">-</span><span class="mi">400</span><span class="p">,</span> <span class="o">-</span><span class="mi">400</span><span class="p">},</span> <span class="p">{</span><span class="mi">400</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="mi">400</span><span class="p">});</span>
-      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/sphere.stl&quot;</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Dodecahedron</span>
-      <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mf">2.</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.</span><span class="p">},</span> <span class="p">{</span><span class="mf">2.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">});</span>
-      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/dodecahedron.stl&quot;</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Horse</span>
-      <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mf">0.12</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.12</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.12</span><span class="p">},</span> <span class="p">{</span><span class="mf">0.12</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">});</span>
-      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/horse.stl&quot;</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Car</span>
-      <span class="c1">//	    rb = RealBox({-20,-20,-20}, {20,20,20}); // Doesn&#39;t work.</span>
-      <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">},</span> <span class="p">{</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">});</span> <span class="c1">// Works.</span>
-      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/porsche.stl&quot;</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">5</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Orion</span>
-      <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span><span class="p">},</span> <span class="p">{</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">});</span>
-      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/orion.stl&quot;</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">6</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Armadillo</span>
-      <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="o">-</span><span class="mi">75</span><span class="p">,</span> <span class="o">-</span><span class="mi">100</span><span class="p">},</span> <span class="p">{</span><span class="mi">100</span><span class="p">,</span> <span class="mi">125</span><span class="p">,</span> <span class="mi">100</span><span class="p">});</span>
-      <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/armadillo.stl&quot;</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">filename</span><span class="p">;</span>
+
+    <span class="c1">// read parameters</span>
+    <span class="n">ParmParse</span> <span class="n">pp</span><span class="p">;</span>
+    <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;n_cell&quot;</span><span class="p">,</span> <span class="n">n_cell</span><span class="p">);</span>
+    <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;max_grid_size&quot;</span><span class="p">,</span> <span class="n">max_grid_size</span><span class="p">);</span>
+    <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;which_geom&quot;</span><span class="p">,</span> <span class="n">which_geom</span><span class="p">);</span>
+    <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;num_coarsen_opt&quot;</span><span class="p">,</span> <span class="n">num_coarsen_opt</span><span class="p">);</span>
+
+    <span class="n">Geometry</span> <span class="n">geom</span><span class="p">;</span>
+    <span class="p">{</span>
+      <span class="n">RealBox</span> <span class="n">rb</span><span class="p">;</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Airfoil case</span>
+        <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="o">-</span><span class="mi">75</span><span class="p">},</span> <span class="p">{</span><span class="mi">400</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">125</span><span class="p">});</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/airfoil.stl&quot;</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Sphere case</span>
+        <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">400</span><span class="p">,</span> <span class="o">-</span><span class="mi">400</span><span class="p">,</span> <span class="o">-</span><span class="mi">400</span><span class="p">},</span> <span class="p">{</span><span class="mi">400</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="mi">400</span><span class="p">});</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/sphere.stl&quot;</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Dodecahedron</span>
+        <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mf">2.</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.</span><span class="p">},</span> <span class="p">{</span><span class="mf">2.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">});</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/dodecahedron.stl&quot;</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Horse</span>
+        <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mf">0.12</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.12</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.12</span><span class="p">},</span> <span class="p">{</span><span class="mf">0.12</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">});</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/horse.stl&quot;</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Car</span>
+        <span class="c1">//	    rb = RealBox({-20,-20,-20}, {20,20,20}); // Doesn&#39;t work.</span>
+        <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">},</span> <span class="p">{</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">});</span> <span class="c1">// Works.</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/porsche.stl&quot;</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">5</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Orion</span>
+        <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span><span class="p">},</span> <span class="p">{</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">});</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/orion.stl&quot;</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">6</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Armadillo</span>
+        <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="o">-</span><span class="mi">75</span><span class="p">,</span> <span class="o">-</span><span class="mi">100</span><span class="p">},</span> <span class="p">{</span><span class="mi">100</span><span class="p">,</span> <span class="mi">125</span><span class="p">,</span> <span class="mi">100</span><span class="p">});</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/armadillo.stl&quot;</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="n">Array</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="n">AMREX_SPACEDIM</span><span class="o">&gt;</span> <span class="n">is_periodic</span><span class="p">{</span><span class="nb">false</span><span class="p">,</span> <span class="nb">false</span><span class="p">,</span> <span class="nb">false</span><span class="p">};</span>
+      <span class="n">Geometry</span><span class="o">::</span><span class="n">Setup</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rb</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">is_periodic</span><span class="p">.</span><span class="n">data</span><span class="p">());</span>
+      <span class="n">Box</span> <span class="n">domain</span><span class="p">(</span><span class="n">IntVect</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">IntVect</span><span class="p">(</span><span class="n">n_cell</span> <span class="o">-</span> <span class="mi">1</span><span class="p">));</span>
+      <span class="n">geom</span><span class="p">.</span><span class="n">define</span><span class="p">(</span><span class="n">domain</span><span class="p">);</span>
     <span class="p">}</span>
 
-    <span class="n">Array</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="n">AMREX_SPACEDIM</span><span class="o">&gt;</span> <span class="n">is_periodic</span><span class="p">{</span><span class="nb">false</span><span class="p">,</span> <span class="nb">false</span><span class="p">,</span> <span class="nb">false</span><span class="p">};</span>
-    <span class="n">Geometry</span><span class="o">::</span><span class="n">Setup</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rb</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">is_periodic</span><span class="p">.</span><span class="n">data</span><span class="p">());</span>
-    <span class="n">Box</span> <span class="n">domain</span><span class="p">(</span><span class="n">IntVect</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">IntVect</span><span class="p">(</span><span class="n">n_cell</span> <span class="o">-</span> <span class="mi">1</span><span class="p">));</span>
-    <span class="n">geom</span><span class="p">.</span><span class="n">define</span><span class="p">(</span><span class="n">domain</span><span class="p">);</span>
+    <span class="c1">// Create our signed distance function. K is the tree degree while T is the</span>
+    <span class="c1">// EBGeometry precision.</span>
+    <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">K</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
+
+    <span class="k">using</span> <span class="n">T</span>    <span class="o">=</span> <span class="kt">float</span><span class="p">;</span>
+    <span class="k">using</span> <span class="n">Vec3</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+    <span class="k">using</span> <span class="n">BV</span>   <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BoundingVolumes</span><span class="o">::</span><span class="n">AABBT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+
+    <span class="n">AMReXSDF</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="n">sdf</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
+
+    <span class="k">auto</span> <span class="n">gshop</span> <span class="o">=</span> <span class="n">EB2</span><span class="o">::</span><span class="n">makeShop</span><span class="p">(</span><span class="n">sdf</span><span class="p">);</span>
+    <span class="n">EB2</span><span class="o">::</span><span class="n">Build</span><span class="p">(</span><span class="n">gshop</span><span class="p">,</span> <span class="n">geom</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">true</span><span class="p">,</span> <span class="nb">true</span><span class="p">,</span> <span class="n">num_coarsen_opt</span><span class="p">);</span>
+
+    <span class="c1">// Put some data</span>
+    <span class="n">MultiFab</span> <span class="n">mf</span><span class="p">;</span>
+    <span class="p">{</span>
+      <span class="n">BoxArray</span> <span class="n">boxArray</span><span class="p">(</span><span class="n">geom</span><span class="p">.</span><span class="n">Domain</span><span class="p">());</span>
+      <span class="n">boxArray</span><span class="p">.</span><span class="n">maxSize</span><span class="p">(</span><span class="n">max_grid_size</span><span class="p">);</span>
+      <span class="n">DistributionMapping</span> <span class="n">dm</span><span class="p">{</span><span class="n">boxArray</span><span class="p">};</span>
+
+      <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">EBFArrayBoxFactory</span><span class="o">&gt;</span> <span class="n">factory</span> <span class="o">=</span>
+        <span class="n">amrex</span><span class="o">::</span><span class="n">makeEBFabFactory</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">boxArray</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="p">{</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">},</span> <span class="n">EBSupport</span><span class="o">::</span><span class="n">full</span><span class="p">);</span>
+
+      <span class="n">mf</span><span class="p">.</span><span class="n">define</span><span class="p">(</span><span class="n">boxArray</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">MFInfo</span><span class="p">(),</span> <span class="o">*</span><span class="n">factory</span><span class="p">);</span>
+      <span class="n">mf</span><span class="p">.</span><span class="n">setVal</span><span class="p">(</span><span class="mf">1.0</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">EB_WriteSingleLevelPlotfile</span><span class="p">(</span><span class="s">&quot;plt&quot;</span><span class="p">,</span> <span class="n">mf</span><span class="p">,</span> <span class="p">{</span><span class="s">&quot;rho&quot;</span><span class="p">},</span> <span class="n">geom</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
   <span class="p">}</span>
-
-  <span class="c1">// Create our signed distance function. K is the tree degree while T is the</span>
-  <span class="c1">// EBGeometry precision.</span>
-  <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">K</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
-
-  <span class="k">using</span> <span class="n">T</span>    <span class="o">=</span> <span class="kt">float</span><span class="p">;</span>
-  <span class="k">using</span> <span class="n">Vec3</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
-  <span class="k">using</span> <span class="n">BV</span>   <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BoundingVolumes</span><span class="o">::</span><span class="n">AABBT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
-
-  <span class="n">AMReXSDF</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="n">sdf</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
-
-  <span class="k">auto</span> <span class="n">gshop</span> <span class="o">=</span> <span class="n">EB2</span><span class="o">::</span><span class="n">makeShop</span><span class="p">(</span><span class="n">sdf</span><span class="p">);</span>
-  <span class="n">EB2</span><span class="o">::</span><span class="n">Build</span><span class="p">(</span><span class="n">gshop</span><span class="p">,</span> <span class="n">geom</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-
-  <span class="c1">// Put some data</span>
-  <span class="n">MultiFab</span> <span class="n">mf</span><span class="p">;</span>
-  <span class="p">{</span>
-    <span class="n">BoxArray</span> <span class="n">boxArray</span><span class="p">(</span><span class="n">geom</span><span class="p">.</span><span class="n">Domain</span><span class="p">());</span>
-    <span class="n">boxArray</span><span class="p">.</span><span class="n">maxSize</span><span class="p">(</span><span class="n">max_grid_size</span><span class="p">);</span>
-    <span class="n">DistributionMapping</span> <span class="n">dm</span><span class="p">{</span><span class="n">boxArray</span><span class="p">};</span>
-
-    <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">EBFArrayBoxFactory</span><span class="o">&gt;</span> <span class="n">factory</span> <span class="o">=</span>
-      <span class="n">amrex</span><span class="o">::</span><span class="n">makeEBFabFactory</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">boxArray</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="p">{</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">},</span> <span class="n">EBSupport</span><span class="o">::</span><span class="n">full</span><span class="p">);</span>
-
-    <span class="n">mf</span><span class="p">.</span><span class="n">define</span><span class="p">(</span><span class="n">boxArray</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">MFInfo</span><span class="p">(),</span> <span class="o">*</span><span class="n">factory</span><span class="p">);</span>
-    <span class="n">mf</span><span class="p">.</span><span class="n">setVal</span><span class="p">(</span><span class="mf">1.0</span><span class="p">);</span>
-  <span class="p">}</span>
-
-  <span class="n">EB_WriteSingleLevelPlotfile</span><span class="p">(</span><span class="s">&quot;plt&quot;</span><span class="p">,</span> <span class="n">mf</span><span class="p">,</span> <span class="p">{</span><span class="s">&quot;rho&quot;</span><span class="p">},</span> <span class="n">geom</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 
   <span class="n">amrex</span><span class="o">::</span><span class="n">Finalize</span><span class="p">();</span>
 <span class="p">}</span>

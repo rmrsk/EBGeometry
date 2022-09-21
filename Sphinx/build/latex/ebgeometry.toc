@@ -57,9 +57,9 @@
 \contentsline {section}{\numberline {4.4}Integration with AMReX}{41}{section.4.4}%
 \contentsline {subsection}{\numberline {4.4.1}Constructing the BVH}{44}{subsection.4.4.1}%
 \contentsline {subsection}{\numberline {4.4.2}Exposing signed distance functions}{44}{subsection.4.4.2}%
-\contentsline {section}{\numberline {4.5}Integration with Chombo3}{44}{section.4.5}%
+\contentsline {section}{\numberline {4.5}Integration with Chombo3}{45}{section.4.5}%
 \contentsline {subsection}{\numberline {4.5.1}Constructing the BVH}{48}{subsection.4.5.1}%
 \contentsline {subsection}{\numberline {4.5.2}Exposing signed distance functions}{48}{subsection.4.5.2}%
-\contentsline {chapter}{\numberline {5}References}{49}{chapter.5}%
-\contentsline {section}{\numberline {5.1}References}{49}{section.5.1}%
-\contentsline {chapter}{Bibliography}{51}{chapter*.4}%
+\contentsline {chapter}{\numberline {5}References}{51}{chapter.5}%
+\contentsline {section}{\numberline {5.1}References}{51}{section.5.1}%
+\contentsline {chapter}{Bibliography}{53}{chapter*.4}%

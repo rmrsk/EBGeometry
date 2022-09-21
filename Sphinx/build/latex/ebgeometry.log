@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2022.9.14)  14 SEP 2022 10:29
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2022.9.21)  21 SEP 2022 20:11
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -899,69 +899,61 @@ Underfull \vbox (badness 10000) detected at line 1887
 ]
 Chapter 4.
 [37] [38] [39] [40] [41]
-Underfull \vbox (badness 10000) detected at line 2479
+Underfull \vbox (badness 10000) detected at line 2484
  []
 
 
-Underfull \vbox (badness 10000) detected at line 2479
+Underfull \vbox (badness 10000) detected at line 2484
  []
 
 [42]
-Underfull \vbox (badness 10000) detected at line 2479
+Underfull \vbox (badness 10000) detected at line 2484
  []
 
 
-Underfull \vbox (badness 10000) detected at line 2479
+Underfull \vbox (badness 10000) detected at line 2484
  []
 
-[43] [44]
-Underfull \vbox (badness 10000) detected at line 2706
- []
-
-
-Overfull \vbox (3.52196pt too high) detected at line 2706
- []
-
-[45]
-Underfull \vbox (badness 10000) detected at line 2706
+[43] [44] [45]
+Underfull \vbox (badness 10000) detected at line 2711
  []
 
 
-Underfull \vbox (badness 10000) detected at line 2706
+Underfull \vbox (badness 10000) detected at line 2711
  []
 
 [46]
-Underfull \vbox (badness 10000) detected at line 2706
+Underfull \vbox (badness 10000) detected at line 2711
  []
 
 
-Underfull \vbox (badness 10000) detected at line 2706
+Underfull \vbox (badness 10000) detected at line 2711
  []
 
-[47] [48]
-Chapter 5.
-[49
-
-] [50
-
-] (./ebgeometry.ind)
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 2770.
- [51
+[47] [48] [49] [50
 
 ]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 2770.
+Chapter 5.
+[51] [52
+
+] (./ebgeometry.ind)
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 2775.
+ [53
+
+]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 2775.
  (./ebgeometry.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 2770.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 2770.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 2775.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 2775.
 
 Package rerunfilecheck Info: File `ebgeometry.out' has not changed.
 (rerunfilecheck)             Checksum: 5372E9C81574DA481ABD0C02BEC6933B;8865.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 2770.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 2775.
  ) 
 Here is how much of TeX's memory you used:
- 14605 strings out of 483183
- 215856 string characters out of 5966292
- 596354 words of memory out of 5000000
+ 14607 strings out of 483183
+ 215870 string characters out of 5966292
+ 612468 words of memory out of 5000000
  29088 multiletter control sequences out of 15000+600000
  596385 words of font info for 76 fonts, out of 8000000 for 9000
  15 hyphenation exceptions out of 8191
@@ -987,10 +979,10 @@ fonts/type1/public/txfonts/t1xbtt.pfb></usr/share/texlive/texmf-dist/fonts/type
 1/public/txfonts/t1xtt.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/tx
 fonts/t1xtt.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/txfonts/tcxtt
 .pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb>
-Output written on ebgeometry.pdf (55 pages, 999316 bytes).
+Output written on ebgeometry.pdf (57 pages, 1000421 bytes).
 PDF statistics:
- 784 PDF objects out of 1000 (max. 8388607)
- 681 compressed objects within 7 object streams
- 142 named destinations out of 1000 (max. 500000)
+ 792 PDF objects out of 1000 (max. 8388607)
+ 687 compressed objects within 7 object streams
+ 144 named destinations out of 1000 (max. 500000)
  563 words of extra memory for PDF output out of 10000 (max. 10000000)
 
