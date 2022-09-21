@@ -3,13 +3,15 @@
  * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
  */
 
+// Std includes
+#include <filesystem>
+
 // AMReX includes
 #include <AMReX.H>
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
-#include <filesystem>
 
 // Our include
 #include "../../EBGeometry.hpp"
@@ -82,9 +84,9 @@ main(int argc, char* argv[])
 {
   amrex::Initialize(argc, argv);
 
-  int n_cell        = 128;
-  int max_grid_size = 16;
-  int which_geom    = 0;
+  int n_cell          = 128;
+  int max_grid_size   = 16;
+  int num_coarsen_opt = 0;
 
   std::string filename;
 
@@ -92,7 +94,7 @@ main(int argc, char* argv[])
   ParmParse pp;
   pp.query("n_cell", n_cell);
   pp.query("max_grid_size", max_grid_size);
-  pp.query("which_geom", which_geom);
+  pp.query("num_coarsen_opt", num_coarsen_opt);
 
   Geometry geom;
   {
@@ -107,7 +109,7 @@ main(int argc, char* argv[])
   F18 f18 = F18();
 
   auto gshop = EB2::makeShop(f18);
-  EB2::Build(gshop, geom, 0, 0);
+  EB2::Build(gshop, geom, 0, 0, true, true, num_coarsen_opt);
 
   // Put some data
   MultiFab mf;
