@@ -74,9 +74,10 @@ main(int argc, char* argv[])
 {
   amrex::Initialize(argc, argv);
 
-  int n_cell        = 128;
-  int max_grid_size = 32;
-  int whichGeom     = 0;
+  int n_cell          = 128;
+  int max_grid_size   = 32;
+  int whichGeom       = 0;
+  int num_coarsen_opt = 0;
 
   std::string filename;
 
@@ -85,6 +86,7 @@ main(int argc, char* argv[])
   pp.query("n_cell", n_cell);
   pp.query("max_grid_size", max_grid_size);
   pp.query("which_geom", whichGeom);
+  pp.query("num_coarsen_opt", num_coarsen_opt);
 
   Geometry geom;
   RealBox  rb;
@@ -155,7 +157,7 @@ main(int argc, char* argv[])
   AMReXSDF sdf(func);
 
   auto gshop = EB2::makeShop(sdf);
-  EB2::Build(gshop, geom, 0, 0);
+  EB2::Build(gshop, geom, 0, 0, true, true, num_coarsen_opt);
 
   // Put some data
   MultiFab mf;
