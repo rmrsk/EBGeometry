@@ -123,13 +123,17 @@ main(int argc, char* argv[])
 
     filename = "../Resources/armadillo.stl";
   }
+  else if (whichGeom == 7) { // Adirondacks
+    loCorner  = RealVect::Zero;
+    hiCorner  = 250*RealVect::Unit;
+    filename = "../Resources/adirondacks.stl";
+  }  
 
   auto impFunc = static_cast<BaseIF*>(new ChomboSDF<T, BV, K>(filename));
 
   // Set up the Chombo EB geometry.
   ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);
   const Real    dx = (hiCorner[0] - loCorner[0]) / nCells;
-  ;
 
   GeometryShop  workshop(*impFunc, -1, dx * RealVect::Zero);
   EBIndexSpace* ebisPtr = Chombo_EBIS::instance();
