@@ -26,7 +26,7 @@ using SDF  = EBGeometry::SignedDistanceFunction<T>;
 using Prim = EBGeometry::BoxSDF<T>;
 
 constexpr int K    = 4;
-constexpr int M    = 50;
+constexpr int M    = 25;
 constexpr T   dx   = 0.1;
 constexpr T   Wmin = 1;
 constexpr T   Wmax = 3;
@@ -41,6 +41,10 @@ class City
 public:
   City()
   {
+
+    constexpr Real xC  = 0.5 * M * (Wmax + dx);
+    constexpr Real yC  = 0.5 * M * (Lmax + dx);
+    constexpr Real rad = std::min(xC, yC);
 
     // Generate some random buildings on a lattice -- none of these should overlap.
     std::vector<std::shared_ptr<Prim>> buildings;
@@ -62,10 +66,16 @@ public:
         const T yLo = j * (Lmax + dx) + 0.5 * (dx + Lmax - L);
         const T yHi = yLo + L;
 
-        const Vec3 lo(xLo, yLo, 0.0);
-        const Vec3 hi(xHi, yHi, H);
+        const T xs = 0.5 * (udist(rng) - 0.5) * (Wmax - W);
+        const T ys = 0.5 * (udist(rng) - 0.5) * (Lmax - L);
 
+        const Vec3 lo(xLo + xs, yLo + ys, 0.0);
+        const Vec3 hi(xHi + xs, yHi + ys, H);
+
+        // Enable for circular city.
+        //        if (sqrt(std::pow(xC - 0.5 * (xLo + xHi), 2) + std::pow(yC - 0.5 * (yLo + yHi), 2)) < rad) {
         buildings.emplace_back(std::make_shared<Prim>(lo, hi, false));
+        //        }
       }
     }
 
@@ -114,7 +124,7 @@ main(int argc, char* argv[])
 
   Geometry geom;
   {
-    RealBox rb = RealBox({0, 0, 0}, {M * (Wmax + dx), M * (Lmax + dx), (2 * Hmax)});
+    RealBox rb = RealBox({-Wmax, -Lmax, 0}, {M * (Wmax + dx) + Wmax, M * (Lmax + dx) + Lmax, (2 * Hmax)});
 
     Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};
     Geometry::Setup(&rb, 0, is_periodic.data());
