@@ -5,8 +5,8 @@
 
 #include <string>
 #include <chrono>
-#include <thread>
 #include <random>
+#include <thread>
 #include <math.h>
 
 #include "../../EBGeometry.hpp"
@@ -82,7 +82,7 @@ main()
     return AABB(lo, hi);
   };
 
-  std::cout << "Partitioning spheres" << std::endl;
+  std::cout << "Partitioning " << std::pow(M, 3) << " spheres" << std::endl;
   EBGeometry::UnionBVH<T, Sphere, AABB, K> fastUnion(spheres, false, aabbConstructor);
 
   std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
