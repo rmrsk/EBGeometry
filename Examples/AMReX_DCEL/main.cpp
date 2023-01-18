@@ -120,7 +120,7 @@ main(int argc, char* argv[])
       }
       else if (which_geom == 7) { // Adirondacks
         rb       = RealBox({0, 0, 0}, {200, 200, 50});
-        filename = "../Resources/adirondacks.stl";
+        filename = "../Resources/adirondack.stl";
       }
 
       Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};

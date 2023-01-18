@@ -33,9 +33,6 @@ namespace DCEL {
   template <class T>
   class FaceT;
 
-  template <class T>
-  class EdgeIteratorT;
-
   /*!
     @brief Class which represents a half-edge in a double-edge connected list
     (DCEL).
@@ -46,13 +43,11 @@ namespace DCEL {
     circulate the interior of the face. The EdgeT object is such a half-edge; it
     represents the outgoing half-edge from a vertex, located such that it can be
     logically represented as a half edge on the "inside" of a polygon face. It
-    contains pointers to the polygon face, next half edge, and the previous half
-    edge. It also contains a pointer to the "pair" half edge, i.e. the
+    contains pointers to the polygon face, vertex, and next half edge It also contains 
+    a pointer to the "pair" half edge, i.e. the
     corresponding half-edge on the other face that shares this edge. Since this
     class is used with DCEL functionality and signed distance fields, this class
-    also has a signed distance function and thus a "normal vector". For numericaly
-    efficiency, some extra storage is also allocated (such as the vector between
-    the starting vertex and the end vertex).
+    also has a signed distance function and thus a "normal vector". 
     @note The normal vector is outgoing, i.e. a point x is "outside" if the dot
     product between n and (x - x0) is positive.
   */
@@ -60,11 +55,10 @@ namespace DCEL {
   class EdgeT
   {
   public:
-    using Vec3         = Vec3T<T>;
-    using Vertex       = VertexT<T>;
-    using Edge         = EdgeT<T>;
-    using Face         = FaceT<T>;
-    using EdgeIterator = EdgeIteratorT<T>;
+    using Vec3   = Vec3T<T>;
+    using Vertex = VertexT<T>;
+    using Edge   = EdgeT<T>;
+    using Face   = FaceT<T>;
 
     using VertexPtr = std::shared_ptr<Vertex>;
     using EdgePtr   = std::shared_ptr<Edge>;
@@ -92,22 +86,22 @@ namespace DCEL {
     /*!
       @brief Destructor (does nothing)
     */
-    ~EdgeT();
+    virtual ~EdgeT();
+
+    /*!
+      @brief Get size (in bytes) of this object
+    */
+    inline size_t
+    size() const noexcept;
 
     /*!
       @brief Define function. Sets the starting vertex, edges, and normal vectors
       @param[in] a_vertex       Starting vertex
       @param[in] a_pairEdge     Pair half-edge
       @param[in] a_nextEdge     Next half-edge
-      @param[in] a_previousEdge Previous half-edge
-      @param[in] a_normal       Edge normal vector
     */
     inline void
-    define(const VertexPtr& a_vertex,
-           const EdgePtr&   a_pairEdge,
-           const EdgePtr&   a_nextEdge,
-           const EdgePtr&   a_previousEdge,
-           const Vec3       a_normal) noexcept;
+    define(const VertexPtr& a_vertex, const EdgePtr& a_pairEdge, const EdgePtr& a_nextEdge) noexcept;
 
     /*!
       @brief Set the starting vertex
@@ -131,29 +125,10 @@ namespace DCEL {
     setNextEdge(const EdgePtr& a_nextEdge) noexcept;
 
     /*!
-      @brief Set the previous edge
-      @param[in] a_previousEdge Previous edge
-    */
-    inline void
-    setPreviousEdge(const EdgePtr& a_previousEdge) noexcept;
-
-    /*!
       @brief Set the pointer to this half-edge's face.
     */
     inline void
     setFace(const FacePtr& a_face) noexcept;
-
-    /*!
-      @brief Compute edge normal and edge length (for performance reasons)
-    */
-    inline void
-    reconcile() noexcept;
-
-    /*!
-      @brief Flip the normal vector
-    */
-    inline void
-    flip() noexcept;
 
     /*!
       @brief Get modifiable starting vertex
@@ -198,20 +173,6 @@ namespace DCEL {
     getPairEdge() const noexcept;
 
     /*!
-      @brief Get modifiable previous edge
-      @return Returns the previous edge
-    */
-    inline EdgePtr&
-    getPreviousEdge() noexcept;
-
-    /*!
-      @brief Get immutable previous edge
-      @return Returns the previous edge
-    */
-    inline const EdgePtr&
-    getPreviousEdge() const noexcept;
-
-    /*!
       @brief Get modifiable next edge
       @return Returns the next edge
     */
@@ -226,16 +187,10 @@ namespace DCEL {
     getNextEdge() const noexcept;
 
     /*!
-      @brief Get modifiable half-edge normal vector
+      @brief Compute the normal vector
     */
-    inline Vec3T<T>&
-    getNormal() noexcept;
-
-    /*!
-      @brief Get immutable half-edge normal vector
-    */
-    inline const Vec3T<T>&
-    getNormal() const noexcept;
+    inline Vec3T<T>
+    computeNormal() const noexcept;
 
     /*!
       @brief Get modifiable half-edge face
@@ -272,24 +227,6 @@ namespace DCEL {
 
   protected:
     /*!
-      @brief Half-edge normal vector
-      @details Computed in computeNormal which sets the normal vector to be the
-      average of the normal vector of the connected faces
-    */
-    Vec3 m_normal;
-
-    /*!
-      @brief Vector from the starting vertex to the end vertex. Exists for
-      performance reasons.
-    */
-    Vec3 m_x2x1;
-
-    /*!
-      @brief Squared inverse edge length. Exists for performance reasons.
-    */
-    T m_invLen2;
-
-    /*!
       @brief Starting vertex
     */
     VertexPtr m_vertex;
@@ -298,11 +235,6 @@ namespace DCEL {
       @brief Pair edge
     */
     EdgePtr m_pairEdge;
-
-    /*!
-      @brief Previous edge
-    */
-    EdgePtr m_previousEdge;
 
     /*!
       @brief Next edge
@@ -324,24 +256,10 @@ namespace DCEL {
     projectPointToEdge(const Vec3& a_x0) const noexcept;
 
     /*!
-      @brief Normalize the normal vector, ensuring it has length 1
+      @brief Get the vector pointing along this edge
     */
-    inline void
-    normalizeNormalVector() noexcept;
-
-    /*!
-      @brief Compute the edge length.
-      @details This computes the vector m_x2x1 (vector from starting vertex to end
-      vertex) and the inverse length squared.
-    */
-    inline void
-    computeEdgeLength() noexcept;
-
-    /*!
-      @brief Compute normal vector as average of face normals
-    */
-    inline void
-    computeNormal() noexcept;
+    inline Vec3T<T>
+    getX2X1() const noexcept;
   };
 } // namespace DCEL
 

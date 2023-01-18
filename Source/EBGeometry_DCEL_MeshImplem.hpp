@@ -131,7 +131,6 @@ namespace DCEL {
 
     for (const auto& e : m_edges) {
       const auto& nextEdge  = e->getNextEdge();
-      const auto& prevEdge  = e->getPreviousEdge();
       const auto& pairEdge  = e->getPairEdge();
       const auto& curVertex = e->getVertex();
       const auto& curFace   = e->getFace();
@@ -149,22 +148,11 @@ namespace DCEL {
       else if (nextEdge == nullptr) {
         this->incrementWarning(warnings, e_noNextEdge);
       }
-      else if (prevEdge == nullptr) {
-        this->incrementWarning(warnings, e_noPrevEdge);
-      }
       else if (curVertex == nullptr) {
         this->incrementWarning(warnings, e_noOrigVert);
       }
       else if (curFace == nullptr) {
         this->incrementWarning(warnings, e_noFace);
-      }
-
-      // Check that the next edge's previous edge is this edge.
-      if (prevEdge->getNextEdge() != e) {
-        this->incrementWarning(warnings, e_noPrevNext);
-      }
-      else if (nextEdge->getPreviousEdge() != e) {
-        this->incrementWarning(warnings, e_noNextPrev);
       }
     }
 
@@ -227,11 +215,7 @@ namespace DCEL {
   template <class T>
   inline void
   MeshT<T>::reconcileEdges() noexcept
-  {
-    for (auto& e : m_edges) {
-      e->reconcile();
-    }
-  }
+  {}
 
   template <class T>
   inline void
