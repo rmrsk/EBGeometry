@@ -74,7 +74,7 @@ main(int argc, char* argv[])
   int whichGeom = 0;
   int gridSize  = 16;
   pp.query("which_geom", whichGeom);
-  pp.query("n_cells", nCells);
+  pp.query("ncells", nCells);
   pp.query("grid_size", gridSize);
 
   RealVect    loCorner;

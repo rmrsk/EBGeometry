@@ -24,6 +24,7 @@ namespace DCEL {
   template <class T>
   inline EdgeT<T>::EdgeT()
   {
+    m_normal   = Vec3::zero();
     m_face     = nullptr;
     m_vertex   = nullptr;
     m_pairEdge = nullptr;
@@ -39,6 +40,7 @@ namespace DCEL {
   template <class T>
   inline EdgeT<T>::EdgeT(const Edge& a_otherEdge) : EdgeT<T>()
   {
+    m_normal   = a_otherEdge.m_normal;
     m_face     = a_otherEdge.m_face;
     m_vertex   = a_otherEdge.m_vertex;
     m_pairEdge = a_otherEdge.m_pairEdge;
@@ -56,6 +58,20 @@ namespace DCEL {
     m_vertex   = a_vertex;
     m_pairEdge = a_pairEdge;
     m_nextEdge = a_nextEdge;
+  }
+
+  template <class T>
+  inline void
+  EdgeT<T>::flip() noexcept
+  {
+    m_normal = -m_normal;
+  }
+
+  template <class T>
+  inline void
+  EdgeT<T>::reconcile() noexcept
+  {
+    m_normal = this->computeNormal();
   }
 
   template <class T>
@@ -100,6 +116,13 @@ namespace DCEL {
     }
 
     return normal / normal.length();
+  }
+
+  template <class T>
+  inline const Vec3T<T>&
+  EdgeT<T>::getNormal() const noexcept
+  {
+    return (m_normal);
   }
 
   template <class T>
@@ -214,8 +237,7 @@ namespace DCEL {
       const Vec3 x2x1      = this->getX2X1();
       const Vec3 linePoint = m_vertex->getPosition() + t * x2x1;
       const Vec3 delta     = a_x0 - linePoint;
-      const Vec3 normal    = this->computeNormal();
-      const T    dot       = normal.dot(delta);
+      const T    dot       = m_normal.dot(delta);
 
       const int sgn = (dot > 0.0) ? 1 : -1;
 

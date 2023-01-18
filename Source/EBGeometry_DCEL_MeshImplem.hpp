@@ -215,7 +215,11 @@ namespace DCEL {
   template <class T>
   inline void
   MeshT<T>::reconcileEdges() noexcept
-  {}
+  {
+    for (auto& e : m_edges) {
+      e->reconcile();
+    }
+  }
 
   template <class T>
   inline void

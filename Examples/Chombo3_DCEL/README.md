@@ -9,7 +9,7 @@ Compiling
 
 Compile (with your standard Chombo settings) using
 
-    make -s -j8 DIM=3 OPT=HIGH main
+    make -s -j8 DIM=3 main
 
 Running
 -------

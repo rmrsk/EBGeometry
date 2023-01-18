@@ -104,6 +104,19 @@ namespace DCEL {
     define(const VertexPtr& a_vertex, const EdgePtr& a_pairEdge, const EdgePtr& a_nextEdge) noexcept;
 
     /*!
+      @brief Reconcile internal logic 
+      @details Computes normal.
+    */
+    inline void
+    reconcile() noexcept;
+
+    /*!
+      @brief Flip surface normal
+    */
+    inline void
+    flip() noexcept;
+
+    /*!
       @brief Set the starting vertex
       @param[in] a_vertex Starting vertex
     */
@@ -193,6 +206,12 @@ namespace DCEL {
     computeNormal() const noexcept;
 
     /*!
+      @brief Get the normal vector
+    */
+    inline const Vec3T<T>&
+    getNormal() const noexcept;
+
+    /*!
       @brief Get modifiable half-edge face
     */
     inline FacePtr&
@@ -226,6 +245,11 @@ namespace DCEL {
     unsignedDistance2(const Vec3& a_x0) const noexcept;
 
   protected:
+    /*!
+      @brief Normal vector
+    */
+    Vec3 m_normal;
+
     /*!
       @brief Starting vertex
     */
