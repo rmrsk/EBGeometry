@@ -15,86 +15,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: [Source, Examples]
+
     steps:
-      - name: Checkout EBGeometry
-        uses: actions/checkout@v2
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install clang-format
-          pip install codespell
-
+      - uses: actions/checkout@v3
       - name: Run clang-format
-        if: always()        
-        run: |
-          find Source \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +
-
-      - name: Check for modified files
-        if: always()
-        run: |
-          git diff-index --quiet HEAD
-          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
-
-      - name: Codespell source
-        if: always()
-        run: |
-          codespell Source
-          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
-
-  examples-format:
-    if: github.event.pull_request.draft == false  
-    name: Format examples
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout EBGeometry
-        uses: actions/checkout@v2
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install clang-format
-          pip install codespell
-
-      - name: Run clang-format
-        if: always()        
-        run: |
-          find Examples \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +
-
-      - name: Check for modified files
-        if: always()
-        run: |
-          git diff-index --quiet HEAD
-          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
-
-      - name: Codespell examples
-        if: always()
-        run: |
-          codespell Examples --skip "*.png"
-          if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
-
-  docs-format:
-    if: github.event.pull_request.draft == false  
-    name: Codespell documentation
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout EBGeometry
-        uses: actions/checkout@v2
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          pip install codespell
-
-      - name: Codespell documentation
-        if: always()
-        run: |
-          codespell Docs/Sphinx --skip "*.png,*.log,*.pdf"
-          if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
-
-      
-
+        uses: jidicula/clang-format-action@v4.10.1
+        with:
+          clang-format-version: '10'
+          check-path: ${{ matrix.directory }}    
