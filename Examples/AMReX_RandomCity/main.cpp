@@ -26,25 +26,22 @@ using SDF  = EBGeometry::SignedDistanceFunction<T>;
 using Prim = EBGeometry::BoxSDF<T>;
 
 constexpr int K    = 4;
-constexpr int M    = 25;
+constexpr int M    = 50;
 constexpr T   dx   = 0.1;
 constexpr T   Wmin = 1;
-constexpr T   Wmax = 3;
+constexpr T   Wmax = 6;
 constexpr T   Lmin = 1;
-constexpr T   Lmax = 3;
-constexpr T   Hmin = 1;
+constexpr T   Lmax = 6;
+constexpr T   Hmin = 0.2;
 constexpr T   Hmax = 20;
 
 // City geometry, using a BVH accelerator for the CSG union of the buildings.
 class City
 {
 public:
-  City()
+  City(const bool use_bvh)
   {
-
-    constexpr Real xC  = 0.5 * M * (Wmax + dx);
-    constexpr Real yC  = 0.5 * M * (Lmax + dx);
-    constexpr Real rad = std::min(xC, yC);
+    m_useBVH = use_bvh;
 
     // Generate some random buildings on a lattice -- none of these should overlap.
     std::vector<std::shared_ptr<Prim>> buildings;
@@ -72,13 +69,11 @@ public:
         const Vec3 lo(xLo + xs, yLo + ys, 0.0);
         const Vec3 hi(xHi + xs, yHi + ys, H);
 
-        // Enable for circular city.
-        //        if (sqrt(std::pow(xC - 0.5 * (xLo + xHi), 2) + std::pow(yC - 0.5 * (yLo + yHi), 2)) < rad) {
         buildings.emplace_back(std::make_shared<Prim>(lo, hi, false));
-        //        }
       }
     }
 
+    m_slowUnion = std::make_shared<EBGeometry::Union<T, Prim>>(buildings, true);
     m_fastUnion = std::make_shared<EBGeometry::UnionBVH<T, Prim, BV, K>>(
       buildings, true, [](const std::shared_ptr<const Prim>& a_box) {
         return BV(a_box->getLowCorner(), a_box->getHighCorner());
@@ -87,12 +82,19 @@ public:
 
   City(const City& a_other)
   {
+    this->m_useBVH    = a_other.m_useBVH;
+    this->m_slowUnion = a_other.m_slowUnion;
     this->m_fastUnion = a_other.m_fastUnion;
   }
 
   Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    return Real(m_fastUnion->value(EBGeometry::Vec3T(x, y, z)));
+    if (m_useBVH) {
+      return Real(m_fastUnion->value(EBGeometry::Vec3T(x, y, z)));
+    }
+    else {
+      return Real(m_slowUnion->value(EBGeometry::Vec3T(x, y, z)));
+    }
   };
 
   inline Real
@@ -102,6 +104,8 @@ public:
   }
 
 protected:
+  bool                                                  m_useBVH;
+  std::shared_ptr<EBGeometry::Union<T, Prim>>           m_slowUnion;
   std::shared_ptr<EBGeometry::UnionBVH<T, Prim, BV, K>> m_fastUnion;
 };
 
@@ -110,14 +114,16 @@ main(int argc, char* argv[])
 {
   amrex::Initialize(argc, argv);
 
-  int n_cell          = 128;
-  int max_grid_size   = 16;
-  int num_coarsen_opt = 0;
+  bool use_bvh         = true;
+  int  n_cell          = 128;
+  int  max_grid_size   = 16;
+  int  num_coarsen_opt = 0;
 
   std::string filename;
 
   // read parameters
   ParmParse pp;
+  pp.query("bvh", use_bvh);
   pp.query("n_cell", n_cell);
   pp.query("max_grid_size", max_grid_size);
   pp.query("num_coarsen_opt", num_coarsen_opt);
@@ -132,7 +138,7 @@ main(int argc, char* argv[])
     geom.define(domain);
   }
 
-  City city = City();
+  City city = City(use_bvh);
 
   auto gshop = EB2::makeShop(city);
   EB2::Build(gshop, geom, 0, 0, true, true, num_coarsen_opt);
