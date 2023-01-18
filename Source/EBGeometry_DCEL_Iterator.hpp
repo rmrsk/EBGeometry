@@ -91,7 +91,7 @@ namespace DCEL {
     /*!
       @brief Destructor.
     */
-    ~EdgeIteratorT() = default;
+    virtual ~EdgeIteratorT() = default;
 
     /*!
       @brief Operator returning a pointer to the current half-edge
