@@ -1,60 +1,60 @@
-\hypertarget{classParser_1_1STL}{}\doxysection{Parser\+::S\+TL$<$ T $>$ Class Template Reference}
+\hypertarget{classParser_1_1STL}{}\doxysection{Parser\+::STL$<$ T $>$ Class Template Reference}
 \label{classParser_1_1STL}\index{Parser::STL$<$ T $>$@{Parser::STL$<$ T $>$}}
 
 
-Class for reading \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} files.  
+Class for reading \mbox{\hyperlink{classParser_1_1STL}{STL}} files.  
 
 
 
 
-{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Parser.\+hpp$>$}
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Parser.\+hpp$>$}
 
 \doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classParser_1_1STL_aca4dfc9fcc6b7830d0b627db2f39d708}\label{classParser_1_1STL_aca4dfc9fcc6b7830d0b627db2f39d708}} 
-using {\bfseries Vec3} = E\+B\+Geometry\+::\+Vec3T$<$ T $>$
+using {\bfseries Vec3} = EBGeometry\+::\+Vec3T$<$ T $>$
 \item 
 \mbox{\Hypertarget{classParser_1_1STL_a6056272b6916bc01668816946eab8394}\label{classParser_1_1STL_a6056272b6916bc01668816946eab8394}} 
-using {\bfseries Vertex} = E\+B\+Geometry\+::\+D\+C\+E\+L\+::\+VertexT$<$ T $>$
+using {\bfseries Vertex} = EBGeometry\+::\+DCEL\+::\+VertexT$<$ T $>$
 \item 
 \mbox{\Hypertarget{classParser_1_1STL_a8b414a5fa62d2f231f2938c2598abc3e}\label{classParser_1_1STL_a8b414a5fa62d2f231f2938c2598abc3e}} 
-using {\bfseries Edge} = E\+B\+Geometry\+::\+D\+C\+E\+L\+::\+EdgeT$<$ T $>$
+using {\bfseries Edge} = EBGeometry\+::\+DCEL\+::\+EdgeT$<$ T $>$
 \item 
 \mbox{\Hypertarget{classParser_1_1STL_a0c72b98cc210630d396d7a1855b8421d}\label{classParser_1_1STL_a0c72b98cc210630d396d7a1855b8421d}} 
-using {\bfseries Face} = E\+B\+Geometry\+::\+D\+C\+E\+L\+::\+FaceT$<$ T $>$
+using {\bfseries Face} = EBGeometry\+::\+DCEL\+::\+FaceT$<$ T $>$
 \item 
 \mbox{\Hypertarget{classParser_1_1STL_af77e8ea362ba12c72e961256dc569f19}\label{classParser_1_1STL_af77e8ea362ba12c72e961256dc569f19}} 
-using {\bfseries Mesh} = E\+B\+Geometry\+::\+D\+C\+E\+L\+::\+MeshT$<$ T $>$
+using {\bfseries Mesh} = EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$
 \item 
 \mbox{\Hypertarget{classParser_1_1STL_aebf4973c36a476496832cec75b1b073b}\label{classParser_1_1STL_aebf4973c36a476496832cec75b1b073b}} 
-using {\bfseries Edge\+Iterator} = E\+B\+Geometry\+::\+D\+C\+E\+L\+::\+Edge\+IteratorT$<$ T $>$
+using {\bfseries Edge\+Iterator} = EBGeometry\+::\+DCEL\+::\+Edge\+IteratorT$<$ T $>$
 \end{DoxyCompactItemize}
 \doxysubsection*{Static Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 static std\+::shared\+\_\+ptr$<$ Mesh $>$ \mbox{\hyperlink{classParser_1_1STL_a708a9a9f7531003757f942d0c145c0da}{read\+Single}} (const std\+::string a\+\_\+filename) noexcept
-\begin{DoxyCompactList}\small\item\em Read a single \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} object from the input file. The file can be binary or A\+S\+C\+II. If the \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} file contains multiple solids, this routine returns the first one. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Read a single \mbox{\hyperlink{classParser_1_1STL}{STL}} object from the input file. The file can be binary or ASCII. If the \mbox{\hyperlink{classParser_1_1STL}{STL}} file contains multiple solids, this routine returns the first one. \end{DoxyCompactList}\item 
 static std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ Mesh $>$, std\+::string $>$ $>$ \mbox{\hyperlink{classParser_1_1STL_a2189793342947575c8c6718e36632b6e}{read\+Multi}} (const std\+::string a\+\_\+filename) noexcept
-\begin{DoxyCompactList}\small\item\em Read a single \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} object from the input file. The file can be binary or A\+S\+C\+II. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Read a single \mbox{\hyperlink{classParser_1_1STL}{STL}} object from the input file. The file can be binary or ASCII. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Static Protected Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 static \mbox{\hyperlink{namespaceParser_a4335203a05b102e71ece262ddb2a38a0}{Encoding}} \mbox{\hyperlink{classParser_1_1STL_a6d8ede9dc5b66d96522904043b5d227a}{get\+Encoding}} (const std\+::string a\+\_\+filename) noexcept
-\begin{DoxyCompactList}\small\item\em Check if the input \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} file is an A\+S\+C\+II file or a binary. \end{DoxyCompactList}\item 
-static std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ Mesh $>$, std\+::string $>$ $>$ \mbox{\hyperlink{classParser_1_1STL_a24f1390a688c75cb47b3f6af0266f0b8}{read\+A\+S\+C\+II}} (const std\+::string a\+\_\+filename) noexcept
-\begin{DoxyCompactList}\small\item\em A\+S\+C\+II reader \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} files, possibly containing multiple objects. Each object becomes a \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} mesh. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Check if the input \mbox{\hyperlink{classParser_1_1STL}{STL}} file is an ASCII file or a binary. \end{DoxyCompactList}\item 
+static std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ Mesh $>$, std\+::string $>$ $>$ \mbox{\hyperlink{classParser_1_1STL_a24f1390a688c75cb47b3f6af0266f0b8}{read\+ASCII}} (const std\+::string a\+\_\+filename) noexcept
+\begin{DoxyCompactList}\small\item\em ASCII reader \mbox{\hyperlink{classParser_1_1STL}{STL}} files, possibly containing multiple objects. Each object becomes a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. \end{DoxyCompactList}\item 
 static std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ Mesh $>$, std\+::string $>$ $>$ \mbox{\hyperlink{classParser_1_1STL_aff3d718bbcd5b2decc1ec067a07ee35a}{read\+Binary}} (const std\+::string a\+\_\+filename) noexcept
-\begin{DoxyCompactList}\small\item\em Binary reader for \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} files, possibly containing multiple objects. Each object becomes a \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} mesh. \end{DoxyCompactList}\item 
-static void \mbox{\hyperlink{classParser_1_1STL_a8b131c53210f77632c1e4d288383be01}{read\+S\+T\+L\+Soup\+A\+S\+C\+II}} (std\+::vector$<$ Vec3 $>$ \&a\+\_\+vertices, std\+::vector$<$ std\+::vector$<$ size\+\_\+t $>$$>$ \&a\+\_\+facets, std\+::string \&a\+\_\+object\+Name, const std\+::vector$<$ std\+::string $>$ \&a\+\_\+file\+Contents, const size\+\_\+t a\+\_\+first\+Line, const size\+\_\+t a\+\_\+last\+Line) noexcept
-\begin{DoxyCompactList}\small\item\em Read an \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} object as a triangle soup into a raw vertices and facets. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Binary reader for \mbox{\hyperlink{classParser_1_1STL}{STL}} files, possibly containing multiple objects. Each object becomes a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. \end{DoxyCompactList}\item 
+static void \mbox{\hyperlink{classParser_1_1STL_a8b131c53210f77632c1e4d288383be01}{read\+STLSoup\+ASCII}} (std\+::vector$<$ Vec3 $>$ \&a\+\_\+vertices, std\+::vector$<$ std\+::vector$<$ size\+\_\+t $>$$>$ \&a\+\_\+facets, std\+::string \&a\+\_\+object\+Name, const std\+::vector$<$ std\+::string $>$ \&a\+\_\+file\+Contents, const size\+\_\+t a\+\_\+first\+Line, const size\+\_\+t a\+\_\+last\+Line) noexcept
+\begin{DoxyCompactList}\small\item\em Read an \mbox{\hyperlink{classParser_1_1STL}{STL}} object as a triangle soup into a raw vertices and facets. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
 \subsubsection*{template$<$typename T$>$\newline
-class Parser\+::\+S\+T\+L$<$ T $>$}
+class Parser\+::\+STL$<$ T $>$}
 
-Class for reading \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} files. 
+Class for reading \mbox{\hyperlink{classParser_1_1STL}{STL}} files. 
 
 \begin{DoxyNote}{Note}
 T is the precision used when storing the mesh. 
@@ -67,11 +67,11 @@ T is the precision used when storing the mesh.
 \index{getEncoding@{getEncoding}!Parser::STL$<$ T $>$@{Parser::STL$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{getEncoding()}{getEncoding()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-\mbox{\hyperlink{namespaceParser_a4335203a05b102e71ece262ddb2a38a0}{Parser\+::\+Encoding}} \mbox{\hyperlink{classParser_1_1STL}{Parser\+::\+S\+TL}}$<$ T $>$\+::get\+Encoding (\begin{DoxyParamCaption}\item[{const std\+::string}]{a\+\_\+filename }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+\mbox{\hyperlink{namespaceParser_a4335203a05b102e71ece262ddb2a38a0}{Parser\+::\+Encoding}} \mbox{\hyperlink{classParser_1_1STL}{Parser\+::\+STL}}$<$ T $>$\+::get\+Encoding (\begin{DoxyParamCaption}\item[{const std\+::string}]{a\+\_\+filename }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
-Check if the input \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} file is an A\+S\+C\+II file or a binary. 
+Check if the input \mbox{\hyperlink{classParser_1_1STL}{STL}} file is an ASCII file or a binary. 
 
 
 \begin{DoxyParams}[1]{Parameters}
@@ -79,18 +79,18 @@ Check if the input \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} file is an A\+S\
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
-Returns Encoding\+::\+A\+S\+C\+II or Encoding\+::\+Binary, 
+Returns Encoding\+::\+ASCII or Encoding\+::\+Binary, 
 \end{DoxyReturn}
 \mbox{\Hypertarget{classParser_1_1STL_a24f1390a688c75cb47b3f6af0266f0b8}\label{classParser_1_1STL_a24f1390a688c75cb47b3f6af0266f0b8}} 
 \index{Parser::STL$<$ T $>$@{Parser::STL$<$ T $>$}!readASCII@{readASCII}}
 \index{readASCII@{readASCII}!Parser::STL$<$ T $>$@{Parser::STL$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{readASCII()}{readASCII()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ E\+B\+Geometry\+::\+D\+C\+E\+L\+::\+MeshT$<$ T $>$ $>$, std\+::string $>$ $>$ \mbox{\hyperlink{classParser_1_1STL}{Parser\+::\+S\+TL}}$<$ T $>$\+::read\+A\+S\+C\+II (\begin{DoxyParamCaption}\item[{const std\+::string}]{a\+\_\+filename }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$ $>$, std\+::string $>$ $>$ \mbox{\hyperlink{classParser_1_1STL}{Parser\+::\+STL}}$<$ T $>$\+::read\+ASCII (\begin{DoxyParamCaption}\item[{const std\+::string}]{a\+\_\+filename }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
-A\+S\+C\+II reader \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} files, possibly containing multiple objects. Each object becomes a \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} mesh. 
+ASCII reader \mbox{\hyperlink{classParser_1_1STL}{STL}} files, possibly containing multiple objects. Each object becomes a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. 
 
 
 \begin{DoxyParams}[1]{Parameters}
@@ -102,11 +102,11 @@ A\+S\+C\+II reader \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} files, possibly 
 \index{readBinary@{readBinary}!Parser::STL$<$ T $>$@{Parser::STL$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{readBinary()}{readBinary()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ E\+B\+Geometry\+::\+D\+C\+E\+L\+::\+MeshT$<$ T $>$ $>$, std\+::string $>$ $>$ \mbox{\hyperlink{classParser_1_1STL}{Parser\+::\+S\+TL}}$<$ T $>$\+::read\+Binary (\begin{DoxyParamCaption}\item[{const std\+::string}]{a\+\_\+filename }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$ $>$, std\+::string $>$ $>$ \mbox{\hyperlink{classParser_1_1STL}{Parser\+::\+STL}}$<$ T $>$\+::read\+Binary (\begin{DoxyParamCaption}\item[{const std\+::string}]{a\+\_\+filename }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
-Binary reader for \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} files, possibly containing multiple objects. Each object becomes a \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} mesh. 
+Binary reader for \mbox{\hyperlink{classParser_1_1STL}{STL}} files, possibly containing multiple objects. Each object becomes a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. 
 
 
 \begin{DoxyParams}[1]{Parameters}
@@ -118,15 +118,15 @@ Binary reader for \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} files, possibly c
 \index{readMulti@{readMulti}!Parser::STL$<$ T $>$@{Parser::STL$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{readMulti()}{readMulti()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ E\+B\+Geometry\+::\+D\+C\+E\+L\+::\+MeshT$<$ T $>$ $>$, std\+::string $>$ $>$ \mbox{\hyperlink{classParser_1_1STL}{Parser\+::\+S\+TL}}$<$ T $>$\+::read\+Multi (\begin{DoxyParamCaption}\item[{const std\+::string}]{a\+\_\+filename }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [noexcept]}}
+std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$ $>$, std\+::string $>$ $>$ \mbox{\hyperlink{classParser_1_1STL}{Parser\+::\+STL}}$<$ T $>$\+::read\+Multi (\begin{DoxyParamCaption}\item[{const std\+::string}]{a\+\_\+filename }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [noexcept]}}
 
 
 
-Read a single \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} object from the input file. The file can be binary or A\+S\+C\+II. 
+Read a single \mbox{\hyperlink{classParser_1_1STL}{STL}} object from the input file. The file can be binary or ASCII. 
 
 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+filename} & \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} file name. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+filename} & \mbox{\hyperlink{classParser_1_1STL}{STL}} file name. \\
 \hline
 \end{DoxyParams}
 \mbox{\Hypertarget{classParser_1_1STL_a708a9a9f7531003757f942d0c145c0da}\label{classParser_1_1STL_a708a9a9f7531003757f942d0c145c0da}} 
@@ -134,15 +134,15 @@ Read a single \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} object from the input
 \index{readSingle@{readSingle}!Parser::STL$<$ T $>$@{Parser::STL$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{readSingle()}{readSingle()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-std\+::shared\+\_\+ptr$<$ E\+B\+Geometry\+::\+D\+C\+E\+L\+::\+MeshT$<$ T $>$ $>$ \mbox{\hyperlink{classParser_1_1STL}{Parser\+::\+S\+TL}}$<$ T $>$\+::read\+Single (\begin{DoxyParamCaption}\item[{const std\+::string}]{a\+\_\+filename }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [noexcept]}}
+std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$ $>$ \mbox{\hyperlink{classParser_1_1STL}{Parser\+::\+STL}}$<$ T $>$\+::read\+Single (\begin{DoxyParamCaption}\item[{const std\+::string}]{a\+\_\+filename }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [noexcept]}}
 
 
 
-Read a single \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} object from the input file. The file can be binary or A\+S\+C\+II. If the \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} file contains multiple solids, this routine returns the first one. 
+Read a single \mbox{\hyperlink{classParser_1_1STL}{STL}} object from the input file. The file can be binary or ASCII. If the \mbox{\hyperlink{classParser_1_1STL}{STL}} file contains multiple solids, this routine returns the first one. 
 
 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+filename} & \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} file name. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+filename} & \mbox{\hyperlink{classParser_1_1STL}{STL}} file name. \\
 \hline
 \end{DoxyParams}
 \mbox{\Hypertarget{classParser_1_1STL_a8b131c53210f77632c1e4d288383be01}\label{classParser_1_1STL_a8b131c53210f77632c1e4d288383be01}} 
@@ -150,17 +150,17 @@ Read a single \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} object from the input
 \index{readSTLSoupASCII@{readSTLSoupASCII}!Parser::STL$<$ T $>$@{Parser::STL$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{readSTLSoupASCII()}{readSTLSoupASCII()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-void \mbox{\hyperlink{classParser_1_1STL}{Parser\+::\+S\+TL}}$<$ T $>$\+::read\+S\+T\+L\+Soup\+A\+S\+C\+II (\begin{DoxyParamCaption}\item[{std\+::vector$<$ Vec3 $>$ \&}]{a\+\_\+vertices,  }\item[{std\+::vector$<$ std\+::vector$<$ size\+\_\+t $>$$>$ \&}]{a\+\_\+facets,  }\item[{std\+::string \&}]{a\+\_\+object\+Name,  }\item[{const std\+::vector$<$ std\+::string $>$ \&}]{a\+\_\+file\+Contents,  }\item[{const size\+\_\+t}]{a\+\_\+first\+Line,  }\item[{const size\+\_\+t}]{a\+\_\+last\+Line }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+void \mbox{\hyperlink{classParser_1_1STL}{Parser\+::\+STL}}$<$ T $>$\+::read\+STLSoup\+ASCII (\begin{DoxyParamCaption}\item[{std\+::vector$<$ Vec3 $>$ \&}]{a\+\_\+vertices,  }\item[{std\+::vector$<$ std\+::vector$<$ size\+\_\+t $>$$>$ \&}]{a\+\_\+facets,  }\item[{std\+::string \&}]{a\+\_\+object\+Name,  }\item[{const std\+::vector$<$ std\+::string $>$ \&}]{a\+\_\+file\+Contents,  }\item[{const size\+\_\+t}]{a\+\_\+first\+Line,  }\item[{const size\+\_\+t}]{a\+\_\+last\+Line }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
-Read an \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} object as a triangle soup into a raw vertices and facets. 
+Read an \mbox{\hyperlink{classParser_1_1STL}{STL}} object as a triangle soup into a raw vertices and facets. 
 
 
 \begin{DoxyParams}[1]{Parameters}
 \mbox{\texttt{ out}}  & {\em a\+\_\+vertices} & Vertices \\
 \hline
-\mbox{\texttt{ out}}  & {\em a\+\_\+facets} & \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} facets \\
+\mbox{\texttt{ out}}  & {\em a\+\_\+facets} & \mbox{\hyperlink{classParser_1_1STL}{STL}} facets \\
 \hline
 \mbox{\texttt{ out}}  & {\em a\+\_\+object\+Name} & Object name \\
 \hline
@@ -175,5 +175,5 @@ Read an \mbox{\hyperlink{classParser_1_1STL}{S\+TL}} object as a triangle soup i
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 
-/home/runner/work/\+E\+B\+Geometry/\+E\+B\+Geometry/\+Source/\mbox{\hyperlink{EBGeometry__Parser_8hpp}{E\+B\+Geometry\+\_\+\+Parser.\+hpp}}\item 
-/home/runner/work/\+E\+B\+Geometry/\+E\+B\+Geometry/\+Source/\mbox{\hyperlink{EBGeometry__ParserImplem_8hpp}{E\+B\+Geometry\+\_\+\+Parser\+Implem.\+hpp}}\end{DoxyCompactItemize}
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__Parser_8hpp}{EBGeometry\+\_\+\+Parser.\+hpp}}\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__ParserImplem_8hpp}{EBGeometry\+\_\+\+Parser\+Implem.\+hpp}}\end{DoxyCompactItemize}

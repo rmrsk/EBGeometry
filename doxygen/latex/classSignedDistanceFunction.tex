@@ -7,7 +7,7 @@ Abstract representation of a signed distance function.
 
 
 
-{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Signed\+Distance\+Function.\+hpp$>$}
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Signed\+Distance\+Function.\+hpp$>$}
 
 
 
@@ -53,7 +53,7 @@ class Signed\+Distance\+Function$<$ T $>$}
 
 Abstract representation of a signed distance function. 
 
-Users can put whatever they like in here, e.\+g. analytic functions, \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} meshes, or \mbox{\hyperlink{namespaceDCEL}{D\+C\+EL}} meshes stored in full or compact \mbox{\hyperlink{namespaceBVH}{B\+VH}} trees. The signed\+Distance function must be implemented by the user. When computing it, the user can apply transformation operators (rotations, scaling, translations) by calling transform\+Point on the input coordinate. 
+Users can put whatever they like in here, e.\+g. analytic functions, \mbox{\hyperlink{namespaceDCEL}{DCEL}} meshes, or \mbox{\hyperlink{namespaceDCEL}{DCEL}} meshes stored in full or compact \mbox{\hyperlink{namespaceBVH}{BVH}} trees. The signed\+Distance function must be implemented by the user. When computing it, the user can apply transformation operators (rotations, scaling, translations) by calling transform\+Point on the input coordinate. 
 
 \doxysubsection{Member Function Documentation}
 \mbox{\Hypertarget{classSignedDistanceFunction_ae9f55561cebcd7b2eafc1e2e3ae44027}\label{classSignedDistanceFunction_ae9f55561cebcd7b2eafc1e2e3ae44027}} 
@@ -92,7 +92,7 @@ Signed distance function.
 \end{DoxyParams}
 
 
-Implemented in \mbox{\hyperlink{classConeSDF_a4ef38df98e9831c25297cb93a5b41da5}{Cone\+S\+D\+F$<$ T $>$}}, \mbox{\hyperlink{classInfiniteConeSDF_a98232920c669d548b84493d9e55ddc0a}{Infinite\+Cone\+S\+D\+F$<$ T $>$}}, \mbox{\hyperlink{classCapsuleSDF_a2fa33052a5d93eb0f7fb0a6ff32122e9}{Capsule\+S\+D\+F$<$ T $>$}}, \mbox{\hyperlink{classInfiniteCylinderSDF_a2481e68ea21c304c858878ae1d7fc031}{Infinite\+Cylinder\+S\+D\+F$<$ T $>$}}, \mbox{\hyperlink{classCylinderSDF_a082c08089b07402d55020ed8186cc992}{Cylinder\+S\+D\+F$<$ T $>$}}, \mbox{\hyperlink{classTorusSDF_a23b4d455de2b7b9988ce81833ccd5302}{Torus\+S\+D\+F$<$ T $>$}}, \mbox{\hyperlink{classBoxSDF_a6e7a72790061423e5c9ea47d9e26736f}{Box\+S\+D\+F$<$ T $>$}}, \mbox{\hyperlink{classSphereSDF_a9b0c5f0b1af2c4b62bee1c873e0158e8}{Sphere\+S\+D\+F$<$ T $>$}}, \mbox{\hyperlink{classPlaneSDF_a75c2d73156caac10eefce9b431542d88}{Plane\+S\+D\+F$<$ T $>$}}, \mbox{\hyperlink{classScaledSDF_aeb8f6c22a2f9f242b171a928db1f0069}{Scaled\+S\+D\+F$<$ T $>$}}, \mbox{\hyperlink{classAnnularSDF_ab933bf07072202ccc1e3bbb59bc49465}{Annular\+S\+D\+F$<$ T $>$}}, and \mbox{\hyperlink{classRoundedSDF_a3e59b861e66c4398a7a0cc8ecda0e318}{Rounded\+S\+D\+F$<$ T $>$}}.
+Implemented in \mbox{\hyperlink{classBVH_1_1NodeT_a94966b22b1f42ccc34af88c90b452a87}{BVH\+::\+Node\+T$<$ T, P, BV, K $>$}}, \mbox{\hyperlink{classConeSDF_a4ef38df98e9831c25297cb93a5b41da5}{Cone\+SDF$<$ T $>$}}, \mbox{\hyperlink{classInfiniteConeSDF_a98232920c669d548b84493d9e55ddc0a}{Infinite\+Cone\+SDF$<$ T $>$}}, \mbox{\hyperlink{classCapsuleSDF_a2fa33052a5d93eb0f7fb0a6ff32122e9}{Capsule\+SDF$<$ T $>$}}, \mbox{\hyperlink{classInfiniteCylinderSDF_a2481e68ea21c304c858878ae1d7fc031}{Infinite\+Cylinder\+SDF$<$ T $>$}}, \mbox{\hyperlink{classCylinderSDF_a082c08089b07402d55020ed8186cc992}{Cylinder\+SDF$<$ T $>$}}, \mbox{\hyperlink{classTorusSDF_a23b4d455de2b7b9988ce81833ccd5302}{Torus\+SDF$<$ T $>$}}, \mbox{\hyperlink{classBoxSDF_a6e7a72790061423e5c9ea47d9e26736f}{Box\+SDF$<$ T $>$}}, \mbox{\hyperlink{classSphereSDF_a9b0c5f0b1af2c4b62bee1c873e0158e8}{Sphere\+SDF$<$ T $>$}}, \mbox{\hyperlink{classPlaneSDF_a75c2d73156caac10eefce9b431542d88}{Plane\+SDF$<$ T $>$}}, \mbox{\hyperlink{classScaledSDF_aeb8f6c22a2f9f242b171a928db1f0069}{Scaled\+SDF$<$ T $>$}}, \mbox{\hyperlink{classAnnularSDF_ab933bf07072202ccc1e3bbb59bc49465}{Annular\+SDF$<$ T $>$}}, \mbox{\hyperlink{classRoundedSDF_a3e59b861e66c4398a7a0cc8ecda0e318}{Rounded\+SDF$<$ T $>$}}, \mbox{\hyperlink{classDCEL_1_1MeshT_a93dcaf9cec027540a07a5c4136ff5eb3}{DCEL\+::\+Mesh\+T$<$ T $>$}}, and \mbox{\hyperlink{classBVH_1_1LinearBVH_a6827bfd0bf7f2ad1b132e9317f60e216}{BVH\+::\+Linear\+BVH$<$ T, P, BV, K $>$}}.
 
 \mbox{\Hypertarget{classSignedDistanceFunction_ac385df0170333267b23b29be9c075808}\label{classSignedDistanceFunction_ac385df0170333267b23b29be9c075808}} 
 \index{SignedDistanceFunction$<$ T $>$@{SignedDistanceFunction$<$ T $>$}!value@{value}}
@@ -118,5 +118,5 @@ Implements \mbox{\hyperlink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 
-/home/runner/work/\+E\+B\+Geometry/\+E\+B\+Geometry/\+Source/\mbox{\hyperlink{EBGeometry__SignedDistanceFunction_8hpp}{E\+B\+Geometry\+\_\+\+Signed\+Distance\+Function.\+hpp}}\item 
-/home/runner/work/\+E\+B\+Geometry/\+E\+B\+Geometry/\+Source/\mbox{\hyperlink{EBGeometry__SignedDistanceFunctionImplem_8hpp}{E\+B\+Geometry\+\_\+\+Signed\+Distance\+Function\+Implem.\+hpp}}\end{DoxyCompactItemize}
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__SignedDistanceFunction_8hpp}{EBGeometry\+\_\+\+Signed\+Distance\+Function.\+hpp}}\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__SignedDistanceFunctionImplem_8hpp}{EBGeometry\+\_\+\+Signed\+Distance\+Function\+Implem.\+hpp}}\end{DoxyCompactItemize}

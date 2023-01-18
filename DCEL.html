@@ -1,36 +1,75 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
+  <meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
   <title>DCEL mesh structure &mdash; EBGeometry 1.0 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
         <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <script src="_static/js/theme.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Bounding volume hierarchies" href="BVH.html" />
     <link rel="prev" title="Signed distance fields" href="Concepts.html" /> 
 </head>
 
-<body class="wy-body-for-nav"> 
+<body class="wy-body-for-nav">
+
+   
   <div class="wy-grid-for-nav">
+    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
+          
+
+          
             <a href="index.html" class="icon icon-home"> EBGeometry
+          
+
+          
           </a>
+
+          
+            
+            
+          
+
+          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -38,7 +77,18 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
               <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">Requirements</a></li>
@@ -81,34 +131,75 @@
 <li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
 </ul>
 
+            
+          
         </div>
+        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">EBGeometry</a>
+        
       </nav>
 
+
       <div class="wy-nav-content">
+        
         <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
+    
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
       <li>DCEL mesh structure</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
+        
+          
             <a href="_sources/DCEL.rst.txt" rel="nofollow"> View page source</a>
+          
+        
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-             
-  <div class="section" id="dcel-mesh-structure">
-<span id="chap-dcel"></span><h1>DCEL mesh structure<a class="headerlink" href="#dcel-mesh-structure" title="Permalink to this heading"></a></h1>
-<div class="section" id="basic-concept">
-<h2>Basic concept<a class="headerlink" href="#basic-concept" title="Permalink to this heading"></a></h2>
+            
+  <section id="dcel-mesh-structure">
+<span id="chap-dcel"></span><h1>DCEL mesh structure<a class="headerlink" href="#dcel-mesh-structure" title="Permalink to this heading">¶</a></h1>
+<section id="basic-concept">
+<h2>Basic concept<a class="headerlink" href="#basic-concept" title="Permalink to this heading">¶</a></h2>
 <p>EBGeometry uses a doubly-connected edge list (DCEL) structure for storing surface meshes.
 The DCEL structures consist of the following objects:</p>
 <ul class="simple">
@@ -120,11 +211,13 @@ The DCEL structures consist of the following objects:</p>
 Half-edges circulate the inside of the facet, with pointer-access to the previous and next half-edge.
 A half-edge also stores a reference to it’s starting vertex, as well as a reference to it’s pair-edge.
 From the DCEL structure we can easily obtain all edges or vertices belonging to a single facet, and also “jump” to a neighboring facet by fetching the pair edge.</p>
-<div class="figure align-center" id="id2">
+<figure class="align-center" id="id2">
 <span id="fig-dcel"></span><a class="reference internal image-reference" href="_images/DCEL.png"><img alt="_images/DCEL.png" src="_images/DCEL.png" style="width: 480px;" /></a>
-<p class="caption"><span class="caption-number">Fig. 1 </span><span class="caption-text">DCEL mesh structure. Each half-edge stores references to previous/next half-edges, the pair edge, and the starting vertex.
-Vertices store a coordinate as well as a reference to one of the outgoing half-edges.</span><a class="headerlink" href="#id2" title="Permalink to this image"></a></p>
-</div>
+<figcaption>
+<p><span class="caption-number">Fig. 1 </span><span class="caption-text">DCEL mesh structure. Each half-edge stores references to previous/next half-edges, the pair edge, and the starting vertex.
+Vertices store a coordinate as well as a reference to one of the outgoing half-edges.</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+</figcaption>
+</figure>
 <p>In EBGeometry the half-edge data structure is implemented in it’s own namespace <code class="docutils literal notranslate"><span class="pre">EBGeometry::Dcel</span></code>.
 This is a comparatively standard implementation of the DCEL structure, supplemented by functions that permit signed distance computations to various features on such a mesh.</p>
 <div class="admonition important">
@@ -132,14 +225,16 @@ This is a comparatively standard implementation of the DCEL structure, supplemen
 <p>A signed distance field requires a <em>watertight and orientable</em> surface mesh.
 If the surface mesh consists of holes or flipped facets, the signed distance function does not exist.</p>
 </div>
-</div>
-<div class="section" id="signed-distance">
-<h2>Signed distance<a class="headerlink" href="#signed-distance" title="Permalink to this heading"></a></h2>
+</section>
+<section id="signed-distance">
+<h2>Signed distance<a class="headerlink" href="#signed-distance" title="Permalink to this heading">¶</a></h2>
 <p>When computing the signed distance function, the closest point on the surface mesh can be one of the vertices, (half-) edges, or faces, see <a class="reference internal" href="#fig-polygonprojection"><span class="std std-numref">Fig. 2</span></a>.</p>
-<div class="figure align-center" id="id3">
+<figure class="align-center" id="id3">
 <span id="fig-polygonprojection"></span><a class="reference internal image-reference" href="_images/PolygonProjection.png"><img alt="_images/PolygonProjection.png" src="_images/PolygonProjection.png" style="width: 240px;" /></a>
-<p class="caption"><span class="caption-number">Fig. 2 </span><span class="caption-text">Possible closest-feature cases after projecting a point <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the plane of a polygon face.</span><a class="headerlink" href="#id3" title="Permalink to this image"></a></p>
-</div>
+<figcaption>
+<p><span class="caption-number">Fig. 2 </span><span class="caption-text">Possible closest-feature cases after projecting a point <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the plane of a polygon face.</span><a class="headerlink" href="#id3" title="Permalink to this image">¶</a></p>
+</figcaption>
+</figure>
 <p>It is therefore necessary to distinguish between three cases:</p>
 <ol class="arabic">
 <li><p><strong>Facet/Polygon face</strong>.</p>
@@ -164,9 +259,9 @@ Otherwise, the closest point is one of the vertices.</p>
 <p>If the closest point is a vertex then the signed distance is simply <span class="math notranslate nohighlight">\(\mathbf{n}_v\cdot\left(\mathbf{x}-\mathbf{x}_v\right)\)</span> where <span class="math notranslate nohighlight">\(\mathbf{n}_v\)</span> is the vertex pseudonormal and <span class="math notranslate nohighlight">\(\mathbf{x}_v\)</span> is the vertex position.</p>
 </li>
 </ol>
-</div>
-<div class="section" id="normal-vectors">
-<span id="chap-normaldcel"></span><h2>Normal vectors<a class="headerlink" href="#normal-vectors" title="Permalink to this heading"></a></h2>
+</section>
+<section id="normal-vectors">
+<span id="chap-normaldcel"></span><h2>Normal vectors<a class="headerlink" href="#normal-vectors" title="Permalink to this heading">¶</a></h2>
 <p>The normal vectors for edges <span class="math notranslate nohighlight">\(\mathbf{n}_e\)</span> and vertices <span class="math notranslate nohighlight">\(\mathbf{n}_v\)</span> are, unlike the facet normal, not uniquely defined.
 For both edges and vertices we use the pseudonormals from <span id="id1">[<a class="reference internal" href="ZZReferences.html#id2" title="J.A. Baerentzen and H. Aanaes. Signed distance computation using the angle weighted pseudonormal. IEEE Transactions on Visualization and Computer Graphics, 11(3):243-253, 2005. doi:10.1109/TVCG.2005.49.">1</a>]</span>:</p>
 <div class="math notranslate nohighlight">
@@ -176,42 +271,61 @@ The vertex pseudonormal are given by</p>
 <div class="math notranslate nohighlight">
 \[\mathbf{n}_{v} = \frac{\sum_i\alpha_i\mathbf{n}_{f_i}}{\left|\sum_i\alpha_i\right|},\]</div>
 <p>where the sum runs over all faces which share <span class="math notranslate nohighlight">\(v\)</span> as a vertex, and where <span class="math notranslate nohighlight">\(\alpha_i\)</span> is the subtended angle of the face <span class="math notranslate nohighlight">\(f_i\)</span>, see <a class="reference internal" href="#fig-pseudonormal"><span class="std std-numref">Fig. 3</span></a>.</p>
-<div class="figure align-center" id="id4">
+<figure class="align-center" id="id4">
 <span id="fig-pseudonormal"></span><a class="reference internal image-reference" href="_images/Pseudonormal.png"><img alt="_images/Pseudonormal.png" src="_images/Pseudonormal.png" style="width: 240px;" /></a>
-<p class="caption"><span class="caption-number">Fig. 3 </span><span class="caption-text">Edge and vertex pseudonormals.</span><a class="headerlink" href="#id4" title="Permalink to this image"></a></p>
-</div>
-</div>
-</div>
+<figcaption>
+<p><span class="caption-number">Fig. 3 </span><span class="caption-text">Edge and vertex pseudonormals.</span><a class="headerlink" href="#id4" title="Permalink to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+</section>
 
 
            </div>
+           
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="Concepts.html" class="btn btn-neutral float-left" title="Signed distance fields" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
         <a href="BVH.html" class="btn btn-neutral float-right" title="Bounding volume hierarchies" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Concepts.html" class="btn btn-neutral float-left" title="Signed distance fields" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2022, Robert Marskar.</p>
-  </div>
+    <p>
+        &#169; Copyright 2022, Robert Marskar.
 
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
         </div>
       </div>
+
     </section>
+
   </div>
-  <script>
+  
+
+  <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

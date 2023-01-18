@@ -1,17 +1,17 @@
-\hypertarget{classUnionBVH}{}\doxysection{Union\+B\+VH$<$ T, P, BV, K $>$ Class Template Reference}
+\hypertarget{classUnionBVH}{}\doxysection{Union\+BVH$<$ T, P, BV, K $>$ Class Template Reference}
 \label{classUnionBVH}\index{UnionBVH$<$ T, P, BV, K $>$@{UnionBVH$<$ T, P, BV, K $>$}}
 
 
-Implicit function union using B\+V\+Hs.  
+Implicit function union using BVHs.  
 
 
 
 
-{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Union\+B\+V\+H.\+hpp$>$}
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Union\+BVH.\+hpp$>$}
 
 
 
-Inheritance diagram for Union\+B\+VH$<$ T, P, BV, K $>$\+:
+Inheritance diagram for Union\+BVH$<$ T, P, BV, K $>$\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -21,7 +21,7 @@ Inheritance diagram for Union\+B\+VH$<$ T, P, BV, K $>$\+:
 \end{figure}
 
 
-Collaboration diagram for Union\+B\+VH$<$ T, P, BV, K $>$\+:
+Collaboration diagram for Union\+BVH$<$ T, P, BV, K $>$\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -33,18 +33,18 @@ Collaboration diagram for Union\+B\+VH$<$ T, P, BV, K $>$\+:
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classUnionBVH_a9310c326857e457d1ee39601d7182b5e}\label{classUnionBVH_a9310c326857e457d1ee39601d7182b5e}} 
-using {\bfseries B\+V\+Constructor} = E\+B\+Geometry\+::\+B\+V\+H\+::\+B\+V\+ConstructorT$<$ P, BV $>$
+using {\bfseries BVConstructor} = EBGeometry\+::\+BVH\+::\+BVConstructorT$<$ P, BV $>$
 \end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classUnionBVH_add55ba2f62625203d19b5346b1e735e1}\label{classUnionBVH_add55ba2f62625203d19b5346b1e735e1}} 
-\mbox{\hyperlink{classUnionBVH_add55ba2f62625203d19b5346b1e735e1}{Union\+B\+VH}} ()=delete
+\mbox{\hyperlink{classUnionBVH_add55ba2f62625203d19b5346b1e735e1}{Union\+BVH}} ()=delete
 \begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classUnionBVH_a49160e31e05cf49837dc48f0afb3a430}{Union\+B\+VH}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+distance\+Functions, const bool a\+\_\+flip\+Sign, const B\+V\+Constructor \&a\+\_\+bv\+Constructor)
+\mbox{\hyperlink{classUnionBVH_a49160e31e05cf49837dc48f0afb3a430}{Union\+BVH}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+distance\+Functions, const bool a\+\_\+flip\+Sign, const BVConstructor \&a\+\_\+bv\+Constructor)
 \begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classUnionBVH_afffed06ca96e82cfb270819bc2d45dd5}\label{classUnionBVH_afffed06ca96e82cfb270819bc2d45dd5}} 
-virtual \mbox{\hyperlink{classUnionBVH_afffed06ca96e82cfb270819bc2d45dd5}{$\sim$\+Union\+B\+VH}} ()=default
+virtual \mbox{\hyperlink{classUnionBVH_afffed06ca96e82cfb270819bc2d45dd5}{$\sim$\+Union\+BVH}} ()=default
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
 T \mbox{\hyperlink{classUnionBVH_ac22d0bd9a043ace7f24c41e1320b1167}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
 \begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\item 
@@ -54,14 +54,14 @@ const BV \& \mbox{\hyperlink{classUnionBVH_a4799fadcfbf4b98921b858b42826c376}{ge
 \doxysubsection*{Protected Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-void \mbox{\hyperlink{classUnionBVH_a66040d5181b7cf064f525e0b9009dae8}{build\+Tree}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+distance\+Functions, const B\+V\+Constructor \&a\+\_\+bv\+Constructor) noexcept
-\begin{DoxyCompactList}\small\item\em Build \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree for the input objects. User must supply a partitioner and a BV constructor for the S\+DF objects. \end{DoxyCompactList}\end{DoxyCompactItemize}
+void \mbox{\hyperlink{classUnionBVH_a66040d5181b7cf064f525e0b9009dae8}{build\+Tree}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+distance\+Functions, const BVConstructor \&a\+\_\+bv\+Constructor) noexcept
+\begin{DoxyCompactList}\small\item\em Build \mbox{\hyperlink{namespaceBVH}{BVH}} tree for the input objects. User must supply a partitioner and a BV constructor for the SDF objects. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classUnionBVH_aba8c5aa300c2d05f585d3c18a4fed514}\label{classUnionBVH_aba8c5aa300c2d05f585d3c18a4fed514}} 
-std\+::shared\+\_\+ptr$<$ E\+B\+Geometry\+::\+B\+V\+H\+::\+Linear\+B\+VH$<$ T, P, BV, K $>$ $>$ \mbox{\hyperlink{classUnionBVH_aba8c5aa300c2d05f585d3c18a4fed514}{m\+\_\+root\+Node}}
-\begin{DoxyCompactList}\small\item\em Root node for linearized \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+BVH\+::\+Linear\+BVH$<$ T, P, BV, K $>$ $>$ \mbox{\hyperlink{classUnionBVH_aba8c5aa300c2d05f585d3c18a4fed514}{m\+\_\+root\+Node}}
+\begin{DoxyCompactList}\small\item\em Root node for linearized \mbox{\hyperlink{namespaceBVH}{BVH}} tree. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classUnionBVH_a23b578c55de9761532f0d4efbc567176}\label{classUnionBVH_a23b578c55de9761532f0d4efbc567176}} 
 bool \mbox{\hyperlink{classUnionBVH_a23b578c55de9761532f0d4efbc567176}{m\+\_\+flip\+Sign}}
 \begin{DoxyCompactList}\small\item\em Hook for turning inside to outside. \end{DoxyCompactList}\end{DoxyCompactItemize}
@@ -69,12 +69,12 @@ bool \mbox{\hyperlink{classUnionBVH_a23b578c55de9761532f0d4efbc567176}{m\+\_\+fl
 
 \doxysubsection{Detailed Description}
 \subsubsection*{template$<$class T, class P, class BV, size\+\_\+t K$>$\newline
-class Union\+B\+V\+H$<$ T, P, B\+V, K $>$}
+class Union\+BVH$<$ T, P, BV, K $>$}
 
-Implicit function union using B\+V\+Hs. 
+Implicit function union using BVHs. 
 
 \begin{DoxyNote}{Note}
-If the B\+V\+H-\/enabled union is to make sense, the primitives must be distance fields (I think). There\textquotesingle{}s a static\+\_\+assert to make sure of that. 
+If the BVH-\/enabled union is to make sense, the primitives must be distance fields (I think). There\textquotesingle{}s a static\+\_\+assert to make sure of that. 
 \end{DoxyNote}
 
 
@@ -84,7 +84,7 @@ If the B\+V\+H-\/enabled union is to make sense, the primitives must be distance
 \index{UnionBVH@{UnionBVH}!UnionBVH$<$ T, P, BV, K $>$@{UnionBVH$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{UnionBVH()}{UnionBVH()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-\mbox{\hyperlink{classUnionBVH}{Union\+B\+VH}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classUnionBVH}{Union\+B\+VH}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+distance\+Functions,  }\item[{const bool}]{a\+\_\+flip\+Sign,  }\item[{const B\+V\+Constructor \&}]{a\+\_\+bv\+Constructor }\end{DoxyParamCaption})}
+\mbox{\hyperlink{classUnionBVH}{Union\+BVH}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classUnionBVH}{Union\+BVH}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+distance\+Functions,  }\item[{const bool}]{a\+\_\+flip\+Sign,  }\item[{const BVConstructor \&}]{a\+\_\+bv\+Constructor }\end{DoxyParamCaption})}
 
 
 
@@ -107,11 +107,11 @@ Full constructor.
 \index{buildTree@{buildTree}!UnionBVH$<$ T, P, BV, K $>$@{UnionBVH$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{buildTree()}{buildTree()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-void \mbox{\hyperlink{classUnionBVH}{Union\+B\+VH}}$<$ T, P, BV, K $>$\+::build\+Tree (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+distance\+Functions,  }\item[{const B\+V\+Constructor \&}]{a\+\_\+bv\+Constructor }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+void \mbox{\hyperlink{classUnionBVH}{Union\+BVH}}$<$ T, P, BV, K $>$\+::build\+Tree (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+distance\+Functions,  }\item[{const BVConstructor \&}]{a\+\_\+bv\+Constructor }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
-Build \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree for the input objects. User must supply a partitioner and a BV constructor for the S\+DF objects. 
+Build \mbox{\hyperlink{namespaceBVH}{BVH}} tree for the input objects. User must supply a partitioner and a BV constructor for the SDF objects. 
 
 
 \begin{DoxyParams}[1]{Parameters}
@@ -123,7 +123,7 @@ Build \mbox{\hyperlink{namespaceBVH}{B\+VH}} tree for the input objects. User mu
 \index{value@{value}!UnionBVH$<$ T, P, BV, K $>$@{UnionBVH$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{value()}{value()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-T \mbox{\hyperlink{classUnionBVH}{Union\+B\+VH}}$<$ T, P, BV, K $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+T \mbox{\hyperlink{classUnionBVH}{Union\+BVH}}$<$ T, P, BV, K $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
 
 
 
@@ -142,5 +142,5 @@ Implements \mbox{\hyperlink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 
-/home/runner/work/\+E\+B\+Geometry/\+E\+B\+Geometry/\+Source/\mbox{\hyperlink{EBGeometry__UnionBVH_8hpp}{E\+B\+Geometry\+\_\+\+Union\+B\+V\+H.\+hpp}}\item 
-/home/runner/work/\+E\+B\+Geometry/\+E\+B\+Geometry/\+Source/\mbox{\hyperlink{EBGeometry__UnionBVHImplem_8hpp}{E\+B\+Geometry\+\_\+\+Union\+B\+V\+H\+Implem.\+hpp}}\end{DoxyCompactItemize}
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__UnionBVH_8hpp}{EBGeometry\+\_\+\+Union\+BVH.\+hpp}}\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__UnionBVHImplem_8hpp}{EBGeometry\+\_\+\+Union\+BVHImplem.\+hpp}}\end{DoxyCompactItemize}

@@ -7,13 +7,13 @@ Class which encloses a set of points using a bounding sphere.
 
 
 
-{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp$>$}
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Bounding\+Volumes.\+hpp$>$}
 
 \doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}\label{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}} 
-enum \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}{Bounding\+Volume\+Algorithm}} \{ {\bfseries Ritter}
+enum class \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}{Bounding\+Volume\+Algorithm}} \{ {\bfseries Ritter}
  \}
 \begin{DoxyCompactList}\small\item\em Typename for possible algorithms that support the computation of a bounding sphere for a set of 3D points. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_ad89ed315255abcde216e9ca1de3068ab}\label{classBoundingVolumes_1_1BoundingSphereT_ad89ed315255abcde216e9ca1de3068ab}} 
@@ -42,17 +42,17 @@ virtual \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a4495da5774e14f
 \begin{DoxyCompactList}\small\item\em Template define function which takes a set of 3D points (mixed precision allowed). \end{DoxyCompactList}\item 
 bool \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a90baad0c400aac7645a7e8c1ab13096a}{intersects}} (const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}} \&a\+\_\+other) const noexcept
 \begin{DoxyCompactList}\small\item\em Check if this bounding sphere intersect another bounding sphere. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_ab4c2ce5157e8d0ef1bca21b4961b87ca}\label{classBoundingVolumes_1_1BoundingSphereT_ab4c2ce5157e8d0ef1bca21b4961b87ca}} 
-T \& \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ab4c2ce5157e8d0ef1bca21b4961b87ca}{get\+Radius}} () noexcept
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a8c4f10492e97aa460b1207f384e1c081}\label{classBoundingVolumes_1_1BoundingSphereT_a8c4f10492e97aa460b1207f384e1c081}} 
+T \& \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a8c4f10492e97aa460b1207f384e1c081}{get\+Radius}} () noexcept
 \begin{DoxyCompactList}\small\item\em Get modifiable radius for this sphere. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a39505641b000388ea3d4deb9b3a77366}\label{classBoundingVolumes_1_1BoundingSphereT_a39505641b000388ea3d4deb9b3a77366}} 
-const T \& \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a39505641b000388ea3d4deb9b3a77366}{get\+Radius}} () const noexcept
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_affac2a4ac0cefaada01c5532eb13f26a}\label{classBoundingVolumes_1_1BoundingSphereT_affac2a4ac0cefaada01c5532eb13f26a}} 
+const T \& \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_affac2a4ac0cefaada01c5532eb13f26a}{get\+Radius}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get immutable radius for this sphere. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a8261b0ed0924457fad8fad95bf0037b6}\label{classBoundingVolumes_1_1BoundingSphereT_a8261b0ed0924457fad8fad95bf0037b6}} 
-\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ad89ed315255abcde216e9ca1de3068ab}{Vec3}} \& \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a8261b0ed0924457fad8fad95bf0037b6}{get\+Centroid}} () noexcept
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_ac3adb87ea4da98d70375e5806e8dfdc5}\label{classBoundingVolumes_1_1BoundingSphereT_ac3adb87ea4da98d70375e5806e8dfdc5}} 
+\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ad89ed315255abcde216e9ca1de3068ab}{Vec3}} \& \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ac3adb87ea4da98d70375e5806e8dfdc5}{get\+Centroid}} () noexcept
 \begin{DoxyCompactList}\small\item\em Get modifiable center for this sphere. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_aa4a9440bca3cbd568e1d245455866f32}\label{classBoundingVolumes_1_1BoundingSphereT_aa4a9440bca3cbd568e1d245455866f32}} 
-const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ad89ed315255abcde216e9ca1de3068ab}{Vec3}} \& \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_aa4a9440bca3cbd568e1d245455866f32}{get\+Centroid}} () const noexcept
+\mbox{\Hypertarget{classBoundingVolumes_1_1BoundingSphereT_a62e38a048c7aacd79aec8dcc251e3a65}\label{classBoundingVolumes_1_1BoundingSphereT_a62e38a048c7aacd79aec8dcc251e3a65}} 
+const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ad89ed315255abcde216e9ca1de3068ab}{Vec3}} \& \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a62e38a048c7aacd79aec8dcc251e3a65}{get\+Centroid}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get immutable center for this sphere. \end{DoxyCompactList}\item 
 T \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a4581b87c7a3ccd3b58168bfdae9436cb}{get\+Overlapping\+Volume}} (const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ T $>$ \&a\+\_\+other) const noexcept
 \begin{DoxyCompactList}\small\item\em Compute the overlapping volume between this bounding sphere and another. \end{DoxyCompactList}\item 
@@ -287,5 +287,5 @@ Copy assignment operator.
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 
-/home/runner/work/\+E\+B\+Geometry/\+E\+B\+Geometry/\+Source/\mbox{\hyperlink{EBGeometry__BoundingVolumes_8hpp}{E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp}}\item 
-/home/runner/work/\+E\+B\+Geometry/\+E\+B\+Geometry/\+Source/\mbox{\hyperlink{EBGeometry__BoundingVolumesImplem_8hpp}{E\+B\+Geometry\+\_\+\+Bounding\+Volumes\+Implem.\+hpp}}\end{DoxyCompactItemize}
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__BoundingVolumes_8hpp}{EBGeometry\+\_\+\+Bounding\+Volumes.\+hpp}}\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__BoundingVolumesImplem_8hpp}{EBGeometry\+\_\+\+Bounding\+Volumes\+Implem.\+hpp}}\end{DoxyCompactItemize}

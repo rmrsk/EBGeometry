@@ -1,35 +1,74 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
+  <meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
   <title>Integration with AMReX &mdash; EBGeometry 1.0 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-    <script src="_static/js/theme.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Integration with Chombo3" href="Example_Chombo3.html" />
     <link rel="prev" title="Unions" href="Example_Union.html" /> 
 </head>
 
-<body class="wy-body-for-nav"> 
+<body class="wy-body-for-nav">
+
+   
   <div class="wy-grid-for-nav">
+    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
+          
+
+          
             <a href="index.html" class="icon icon-home"> EBGeometry
+          
+
+          
           </a>
+
+          
+            
+            
+          
+
+          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -37,7 +76,18 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
               <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">Requirements</a></li>
@@ -79,32 +129,73 @@
 <li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
 </ul>
 
+            
+          
         </div>
+        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">EBGeometry</a>
+        
       </nav>
 
+
       <div class="wy-nav-content">
+        
         <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
+    
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
       <li>Integration with AMReX</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
+        
+          
             <a href="_sources/Example_AMReX.rst.txt" rel="nofollow"> View page source</a>
+          
+        
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-             
-  <div class="section" id="integration-with-amrex">
-<h1>Integration with AMReX<a class="headerlink" href="#integration-with-amrex" title="Permalink to this heading"></a></h1>
+            
+  <section id="integration-with-amrex">
+<h1>Integration with AMReX<a class="headerlink" href="#integration-with-amrex" title="Permalink to this heading">¶</a></h1>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>This example requires you to install <a class="reference external" href="https://github.com/AMReX-Codes/amrex">AMReX</a></p>
@@ -117,167 +208,167 @@
 <span class="cm"> */</span>
 
 <span class="c1">// AMReX includes</span>
-<span class="cp">#include</span> <span class="cpf">&lt;AMReX.H&gt;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&lt;AMReX_EB2.H&gt;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&lt;AMReX_EB2_IF.H&gt;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&lt;AMReX_ParmParse.H&gt;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&lt;AMReX_PlotFileUtil.H&gt;</span><span class="cp"></span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;AMReX.H&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;AMReX_EB2.H&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;AMReX_EB2_IF.H&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;AMReX_ParmParse.H&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;AMReX_PlotFileUtil.H&gt;</span>
 
 <span class="c1">// Our include</span>
-<span class="cp">#include</span> <span class="cpf">&quot;../../EBGeometry.hpp&quot;</span><span class="cp"></span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;../../EBGeometry.hpp&quot;</span>
 
-<span class="k">using</span> <span class="k">namespace</span> <span class="n">amrex</span><span class="p">;</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">amrex</span><span class="p">;</span>
 
 <span class="cm">/*!</span>
 <span class="cm">  @brief This is an AMReX-capable version of the EBGeometry BVH accelerator. It</span>
 <span class="cm">  is templated as T, BV, K which indicate the EBGeometry precision, bounding</span>
 <span class="cm">  volume, and tree degree.</span>
 <span class="cm">*/</span>
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">K</span><span class="o">&gt;</span>
-<span class="k">class</span> <span class="nc">AMReXSDF</span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AMReXSDF</span>
 <span class="p">{</span>
 <span class="k">public</span><span class="o">:</span>
-  <span class="cm">/*!</span>
+<span class="w">  </span><span class="cm">/*!</span>
 <span class="cm">    @brief Full constructor.</span>
 <span class="cm">    @param[in] a_filename File name. Must be an STL file.</span>
 <span class="cm">  */</span>
-  <span class="n">AMReXSDF</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">a_filename</span><span class="p">)</span>
-  <span class="p">{</span>
-    <span class="n">m_rootNode</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">readIntoLinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">(</span><span class="n">a_filename</span><span class="p">);</span>
-  <span class="p">}</span>
+<span class="w">  </span><span class="n">AMReXSDF</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">a_filename</span><span class="p">)</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">m_rootNode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">readIntoLinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="p">(</span><span class="n">a_filename</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
 
-  <span class="cm">/*!</span>
+<span class="w">  </span><span class="cm">/*!</span>
 <span class="cm">    @brief Copy constructor.</span>
 <span class="cm">    @param[in] a_other Other SDF.</span>
 <span class="cm">  */</span>
-  <span class="n">AMReXSDF</span><span class="p">(</span><span class="k">const</span> <span class="n">AMReXSDF</span><span class="o">&amp;</span> <span class="n">a_other</span><span class="p">)</span>
-  <span class="p">{</span>
-    <span class="k">this</span><span class="o">-&gt;</span><span class="n">m_rootNode</span> <span class="o">=</span> <span class="n">a_other</span><span class="p">.</span><span class="n">m_rootNode</span><span class="p">;</span>
-  <span class="p">}</span>
+<span class="w">  </span><span class="n">AMReXSDF</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AMReXSDF</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_other</span><span class="p">)</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="k">this</span><span class="o">-&gt;</span><span class="n">m_rootNode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a_other</span><span class="p">.</span><span class="n">m_rootNode</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
 
-  <span class="cm">/*!</span>
+<span class="w">  </span><span class="cm">/*!</span>
 <span class="cm">    @brief AMReX&#39;s implicit function definition.</span>
 <span class="cm">  */</span>
-  <span class="n">Real</span> <span class="k">operator</span><span class="p">()(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="n">Real</span> <span class="n">x</span><span class="p">,</span> <span class="n">Real</span> <span class="n">y</span><span class="p">,</span> <span class="n">Real</span> <span class="n">z</span><span class="p">))</span> <span class="k">const</span> <span class="k">noexcept</span>
-  <span class="p">{</span>
-    <span class="k">using</span> <span class="n">Vec3</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Real</span><span class="w"> </span><span class="k">operator</span><span class="p">()(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="n">Real</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">Real</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">Real</span><span class="w"> </span><span class="n">z</span><span class="p">))</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">Vec3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
 
-    <span class="k">return</span> <span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">transformPoint</span><span class="p">(</span><span class="n">Vec3</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)));</span>
-  <span class="p">};</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">transformPoint</span><span class="p">(</span><span class="n">Vec3</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">z</span><span class="p">)));</span>
+<span class="w">  </span><span class="p">};</span>
 
-  <span class="cm">/*!</span>
+<span class="w">  </span><span class="cm">/*!</span>
 <span class="cm">    @brief Also an AMReX implicit function implementation</span>
 <span class="cm">  */</span>
-  <span class="kr">inline</span> <span class="n">Real</span>
-  <span class="nf">operator</span><span class="p">()(</span><span class="k">const</span> <span class="n">RealArray</span><span class="o">&amp;</span> <span class="n">p</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span>
-  <span class="p">{</span>
-    <span class="k">return</span> <span class="k">this</span><span class="o">-&gt;</span><span class="k">operator</span><span class="p">()(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">]));</span>
-  <span class="p">}</span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="n">Real</span>
+<span class="w">  </span><span class="nf">operator</span><span class="p">()(</span><span class="k">const</span><span class="w"> </span><span class="n">RealArray</span><span class="o">&amp;</span><span class="w"> </span><span class="n">p</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="k">this</span><span class="o">-&gt;</span><span class="k">operator</span><span class="p">()(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">]));</span>
+<span class="w">  </span><span class="p">}</span>
 
 <span class="k">protected</span><span class="o">:</span>
-  <span class="cm">/*!</span>
+<span class="w">  </span><span class="cm">/*!</span>
 <span class="cm">    @brief Root node of the linearized BVH hierarchy.</span>
 <span class="cm">  */</span>
-  <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">LinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;&gt;</span> <span class="n">m_rootNode</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">LinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">m_rootNode</span><span class="p">;</span>
 <span class="p">};</span>
 
 <span class="kt">int</span>
-<span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span>
+<span class="nf">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">argv</span><span class="p">[])</span>
 <span class="p">{</span>
 
-  <span class="n">amrex</span><span class="o">::</span><span class="n">Initialize</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">);</span>
+<span class="w">  </span><span class="n">amrex</span><span class="o">::</span><span class="n">Initialize</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p">);</span>
 
-  <span class="p">{</span>
-    <span class="kt">int</span> <span class="n">n_cell</span>          <span class="o">=</span> <span class="mi">128</span><span class="p">;</span>
-    <span class="kt">int</span> <span class="n">max_grid_size</span>   <span class="o">=</span> <span class="mi">16</span><span class="p">;</span>
-    <span class="kt">int</span> <span class="n">which_geom</span>      <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="kt">int</span> <span class="n">num_coarsen_opt</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">n_cell</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mi">128</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">max_grid_size</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="mi">16</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">which_geom</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">num_coarsen_opt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 
-    <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">filename</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">filename</span><span class="p">;</span>
 
-    <span class="c1">// read parameters</span>
-    <span class="n">ParmParse</span> <span class="n">pp</span><span class="p">;</span>
-    <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;n_cell&quot;</span><span class="p">,</span> <span class="n">n_cell</span><span class="p">);</span>
-    <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;max_grid_size&quot;</span><span class="p">,</span> <span class="n">max_grid_size</span><span class="p">);</span>
-    <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;which_geom&quot;</span><span class="p">,</span> <span class="n">which_geom</span><span class="p">);</span>
-    <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;num_coarsen_opt&quot;</span><span class="p">,</span> <span class="n">num_coarsen_opt</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// read parameters</span>
+<span class="w">    </span><span class="n">ParmParse</span><span class="w"> </span><span class="n">pp</span><span class="p">;</span>
+<span class="w">    </span><span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;n_cell&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">n_cell</span><span class="p">);</span>
+<span class="w">    </span><span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;max_grid_size&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">max_grid_size</span><span class="p">);</span>
+<span class="w">    </span><span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;which_geom&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">which_geom</span><span class="p">);</span>
+<span class="w">    </span><span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;num_coarsen_opt&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">num_coarsen_opt</span><span class="p">);</span>
 
-    <span class="n">Geometry</span> <span class="n">geom</span><span class="p">;</span>
-    <span class="p">{</span>
-      <span class="n">RealBox</span> <span class="n">rb</span><span class="p">;</span>
+<span class="w">    </span><span class="n">Geometry</span><span class="w"> </span><span class="n">geom</span><span class="p">;</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">RealBox</span><span class="w"> </span><span class="n">rb</span><span class="p">;</span>
 
-      <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Airfoil case</span>
-        <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="o">-</span><span class="mi">75</span><span class="p">},</span> <span class="p">{</span><span class="mi">400</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">125</span><span class="p">});</span>
-        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/airfoil.stl&quot;</span><span class="p">;</span>
-      <span class="p">}</span>
-      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Sphere case</span>
-        <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">400</span><span class="p">,</span> <span class="o">-</span><span class="mi">400</span><span class="p">,</span> <span class="o">-</span><span class="mi">400</span><span class="p">},</span> <span class="p">{</span><span class="mi">400</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="mi">400</span><span class="p">});</span>
-        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/sphere.stl&quot;</span><span class="p">;</span>
-      <span class="p">}</span>
-      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Dodecahedron</span>
-        <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mf">2.</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.</span><span class="p">},</span> <span class="p">{</span><span class="mf">2.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">});</span>
-        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/dodecahedron.stl&quot;</span><span class="p">;</span>
-      <span class="p">}</span>
-      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Horse</span>
-        <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mf">0.12</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.12</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.12</span><span class="p">},</span> <span class="p">{</span><span class="mf">0.12</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">});</span>
-        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/horse.stl&quot;</span><span class="p">;</span>
-      <span class="p">}</span>
-      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Car</span>
-        <span class="c1">//	    rb = RealBox({-20,-20,-20}, {20,20,20}); // Doesn&#39;t work.</span>
-        <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">},</span> <span class="p">{</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">});</span> <span class="c1">// Works.</span>
-        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/porsche.stl&quot;</span><span class="p">;</span>
-      <span class="p">}</span>
-      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">5</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Orion</span>
-        <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span><span class="p">},</span> <span class="p">{</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">});</span>
-        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/orion.stl&quot;</span><span class="p">;</span>
-      <span class="p">}</span>
-      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">which_geom</span> <span class="o">==</span> <span class="mi">6</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Armadillo</span>
-        <span class="n">rb</span>       <span class="o">=</span> <span class="n">RealBox</span><span class="p">({</span><span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="o">-</span><span class="mi">75</span><span class="p">,</span> <span class="o">-</span><span class="mi">100</span><span class="p">},</span> <span class="p">{</span><span class="mi">100</span><span class="p">,</span> <span class="mi">125</span><span class="p">,</span> <span class="mi">100</span><span class="p">});</span>
-        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/armadillo.stl&quot;</span><span class="p">;</span>
-      <span class="p">}</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">which_geom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Airfoil case</span>
+<span class="w">        </span><span class="n">rb</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">RealBox</span><span class="p">({</span><span class="mi">-100</span><span class="p">,</span><span class="w"> </span><span class="mi">-100</span><span class="p">,</span><span class="w"> </span><span class="mi">-75</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="mi">400</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="mi">125</span><span class="p">});</span>
+<span class="w">        </span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;../Resources/airfoil.stl&quot;</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">which_geom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Sphere case</span>
+<span class="w">        </span><span class="n">rb</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">RealBox</span><span class="p">({</span><span class="mi">-400</span><span class="p">,</span><span class="w"> </span><span class="mi">-400</span><span class="p">,</span><span class="w"> </span><span class="mi">-400</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="mi">400</span><span class="p">,</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span><span class="w"> </span><span class="mi">400</span><span class="p">});</span>
+<span class="w">        </span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;../Resources/sphere.stl&quot;</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">which_geom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Dodecahedron</span>
+<span class="w">        </span><span class="n">rb</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">RealBox</span><span class="p">({</span><span class="mf">-2.</span><span class="p">,</span><span class="w"> </span><span class="mf">-2.</span><span class="p">,</span><span class="w"> </span><span class="mf">-2.</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="mf">2.</span><span class="p">,</span><span class="w"> </span><span class="mf">2.</span><span class="p">,</span><span class="w"> </span><span class="mf">2.</span><span class="p">});</span>
+<span class="w">        </span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;../Resources/dodecahedron.stl&quot;</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">which_geom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Horse</span>
+<span class="w">        </span><span class="n">rb</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">RealBox</span><span class="p">({</span><span class="mf">-0.12</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.12</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.12</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="mf">0.12</span><span class="p">,</span><span class="w"> </span><span class="mf">0.12</span><span class="p">,</span><span class="w"> </span><span class="mf">0.12</span><span class="p">});</span>
+<span class="w">        </span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;../Resources/horse.stl&quot;</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">which_geom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Car</span>
+<span class="w">        </span><span class="c1">//	    rb = RealBox({-20,-20,-20}, {20,20,20}); // Doesn&#39;t work.</span>
+<span class="w">        </span><span class="n">rb</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">RealBox</span><span class="p">({</span><span class="mi">-10</span><span class="p">,</span><span class="w"> </span><span class="mi">-5</span><span class="p">,</span><span class="w"> </span><span class="mi">-5</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">});</span><span class="w"> </span><span class="c1">// Works.</span>
+<span class="w">        </span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;../Resources/porsche.stl&quot;</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">which_geom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">5</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Orion</span>
+<span class="w">        </span><span class="n">rb</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">RealBox</span><span class="p">({</span><span class="mi">-10</span><span class="p">,</span><span class="w"> </span><span class="mi">-5</span><span class="p">,</span><span class="w"> </span><span class="mi">-10</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">});</span>
+<span class="w">        </span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;../Resources/orion.stl&quot;</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">which_geom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">7</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Adirondacks</span>
+<span class="w">        </span><span class="n">rb</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">RealBox</span><span class="p">({</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="mi">50</span><span class="p">});</span>
+<span class="w">        </span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;../Resources/adirondack.stl&quot;</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
 
-      <span class="n">Array</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="n">AMREX_SPACEDIM</span><span class="o">&gt;</span> <span class="n">is_periodic</span><span class="p">{</span><span class="nb">false</span><span class="p">,</span> <span class="nb">false</span><span class="p">,</span> <span class="nb">false</span><span class="p">};</span>
-      <span class="n">Geometry</span><span class="o">::</span><span class="n">Setup</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rb</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">is_periodic</span><span class="p">.</span><span class="n">data</span><span class="p">());</span>
-      <span class="n">Box</span> <span class="n">domain</span><span class="p">(</span><span class="n">IntVect</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">IntVect</span><span class="p">(</span><span class="n">n_cell</span> <span class="o">-</span> <span class="mi">1</span><span class="p">));</span>
-      <span class="n">geom</span><span class="p">.</span><span class="n">define</span><span class="p">(</span><span class="n">domain</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="w">      </span><span class="n">Array</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="n">AMREX_SPACEDIM</span><span class="o">&gt;</span><span class="w"> </span><span class="n">is_periodic</span><span class="p">{</span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="nb">false</span><span class="p">};</span>
+<span class="w">      </span><span class="n">Geometry</span><span class="o">::</span><span class="n">Setup</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rb</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">is_periodic</span><span class="p">.</span><span class="n">data</span><span class="p">());</span>
+<span class="w">      </span><span class="n">Box</span><span class="w"> </span><span class="n">domain</span><span class="p">(</span><span class="n">IntVect</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="n">IntVect</span><span class="p">(</span><span class="n">n_cell</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">));</span>
+<span class="w">      </span><span class="n">geom</span><span class="p">.</span><span class="n">define</span><span class="p">(</span><span class="n">domain</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="c1">// Create our signed distance function. K is the tree degree while T is the</span>
-    <span class="c1">// EBGeometry precision.</span>
-    <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">K</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// Create our signed distance function. K is the tree degree while T is the</span>
+<span class="w">    </span><span class="c1">// EBGeometry precision.</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">K</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
 
-    <span class="k">using</span> <span class="n">T</span>    <span class="o">=</span> <span class="kt">float</span><span class="p">;</span>
-    <span class="k">using</span> <span class="n">Vec3</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
-    <span class="k">using</span> <span class="n">BV</span>   <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BoundingVolumes</span><span class="o">::</span><span class="n">AABBT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">T</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="kt">float</span><span class="p">;</span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">Vec3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">BV</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BoundingVolumes</span><span class="o">::</span><span class="n">AABBT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
 
-    <span class="n">AMReXSDF</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span> <span class="n">sdf</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
+<span class="w">    </span><span class="n">AMReXSDF</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"> </span><span class="n">sdf</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
 
-    <span class="k">auto</span> <span class="n">gshop</span> <span class="o">=</span> <span class="n">EB2</span><span class="o">::</span><span class="n">makeShop</span><span class="p">(</span><span class="n">sdf</span><span class="p">);</span>
-    <span class="n">EB2</span><span class="o">::</span><span class="n">Build</span><span class="p">(</span><span class="n">gshop</span><span class="p">,</span> <span class="n">geom</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">true</span><span class="p">,</span> <span class="nb">true</span><span class="p">,</span> <span class="n">num_coarsen_opt</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">gshop</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EB2</span><span class="o">::</span><span class="n">makeShop</span><span class="p">(</span><span class="n">sdf</span><span class="p">);</span>
+<span class="w">    </span><span class="n">EB2</span><span class="o">::</span><span class="n">Build</span><span class="p">(</span><span class="n">gshop</span><span class="p">,</span><span class="w"> </span><span class="n">geom</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="n">num_coarsen_opt</span><span class="p">);</span>
 
-    <span class="c1">// Put some data</span>
-    <span class="n">MultiFab</span> <span class="n">mf</span><span class="p">;</span>
-    <span class="p">{</span>
-      <span class="n">BoxArray</span> <span class="n">boxArray</span><span class="p">(</span><span class="n">geom</span><span class="p">.</span><span class="n">Domain</span><span class="p">());</span>
-      <span class="n">boxArray</span><span class="p">.</span><span class="n">maxSize</span><span class="p">(</span><span class="n">max_grid_size</span><span class="p">);</span>
-      <span class="n">DistributionMapping</span> <span class="n">dm</span><span class="p">{</span><span class="n">boxArray</span><span class="p">};</span>
+<span class="w">    </span><span class="c1">// Put some data</span>
+<span class="w">    </span><span class="n">MultiFab</span><span class="w"> </span><span class="n">mf</span><span class="p">;</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">BoxArray</span><span class="w"> </span><span class="n">boxArray</span><span class="p">(</span><span class="n">geom</span><span class="p">.</span><span class="n">Domain</span><span class="p">());</span>
+<span class="w">      </span><span class="n">boxArray</span><span class="p">.</span><span class="n">maxSize</span><span class="p">(</span><span class="n">max_grid_size</span><span class="p">);</span>
+<span class="w">      </span><span class="n">DistributionMapping</span><span class="w"> </span><span class="n">dm</span><span class="p">{</span><span class="n">boxArray</span><span class="p">};</span>
 
-      <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">EBFArrayBoxFactory</span><span class="o">&gt;</span> <span class="n">factory</span> <span class="o">=</span>
-        <span class="n">amrex</span><span class="o">::</span><span class="n">makeEBFabFactory</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">boxArray</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="p">{</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">},</span> <span class="n">EBSupport</span><span class="o">::</span><span class="n">full</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">EBFArrayBoxFactory</span><span class="o">&gt;</span><span class="w"> </span><span class="n">factory</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="n">amrex</span><span class="o">::</span><span class="n">makeEBFabFactory</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span><span class="w"> </span><span class="n">boxArray</span><span class="p">,</span><span class="w"> </span><span class="n">dm</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">},</span><span class="w"> </span><span class="n">EBSupport</span><span class="o">::</span><span class="n">full</span><span class="p">);</span>
 
-      <span class="n">mf</span><span class="p">.</span><span class="n">define</span><span class="p">(</span><span class="n">boxArray</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">MFInfo</span><span class="p">(),</span> <span class="o">*</span><span class="n">factory</span><span class="p">);</span>
-      <span class="n">mf</span><span class="p">.</span><span class="n">setVal</span><span class="p">(</span><span class="mf">1.0</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="w">      </span><span class="n">mf</span><span class="p">.</span><span class="n">define</span><span class="p">(</span><span class="n">boxArray</span><span class="p">,</span><span class="w"> </span><span class="n">dm</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">MFInfo</span><span class="p">(),</span><span class="w"> </span><span class="o">*</span><span class="n">factory</span><span class="p">);</span>
+<span class="w">      </span><span class="n">mf</span><span class="p">.</span><span class="n">setVal</span><span class="p">(</span><span class="mf">1.0</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="n">EB_WriteSingleLevelPlotfile</span><span class="p">(</span><span class="s">&quot;plt&quot;</span><span class="p">,</span> <span class="n">mf</span><span class="p">,</span> <span class="p">{</span><span class="s">&quot;rho&quot;</span><span class="p">},</span> <span class="n">geom</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-  <span class="p">}</span>
+<span class="w">    </span><span class="n">EB_WriteSingleLevelPlotfile</span><span class="p">(</span><span class="s">&quot;plt&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">mf</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">&quot;rho&quot;</span><span class="p">},</span><span class="w"> </span><span class="n">geom</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
 
-  <span class="n">amrex</span><span class="o">::</span><span class="n">Finalize</span><span class="p">();</span>
+<span class="w">  </span><span class="n">amrex</span><span class="o">::</span><span class="n">Finalize</span><span class="p">();</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<div class="section" id="constructing-the-bvh">
-<h2>Constructing the BVH<a class="headerlink" href="#constructing-the-bvh" title="Permalink to this heading"></a></h2>
+<section id="constructing-the-bvh">
+<h2>Constructing the BVH<a class="headerlink" href="#constructing-the-bvh" title="Permalink to this heading">¶</a></h2>
 <p>When constructing the signed distance function we use the DCEL and BVH functionality directly in the constructor.
 Note that we are performing the following steps:</p>
 <ul class="simple">
@@ -285,46 +376,63 @@ Note that we are performing the following steps:</p>
 <li><p>Constructing a BVH for the DCEL faces.</p></li>
 <li><p>Flattening the BVH tree for performance.</p></li>
 </ul>
-</div>
-<div class="section" id="exposing-signed-distance-functions">
-<h2>Exposing signed distance functions<a class="headerlink" href="#exposing-signed-distance-functions" title="Permalink to this heading"></a></h2>
+</section>
+<section id="exposing-signed-distance-functions">
+<h2>Exposing signed distance functions<a class="headerlink" href="#exposing-signed-distance-functions" title="Permalink to this heading">¶</a></h2>
 <p>Next, we expose the signed distance function to AMReX by implementing the functions</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">Real</span> <span class="k">operator</span><span class="p">()(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="n">Real</span> <span class="n">x</span><span class="p">,</span> <span class="n">Real</span> <span class="n">y</span><span class="p">,</span> <span class="n">Real</span> <span class="n">z</span><span class="p">))</span> <span class="k">const</span> <span class="k">noexcept</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">Real</span><span class="w"> </span><span class="k">operator</span><span class="p">()(</span><span class="n">AMREX_D_DECL</span><span class="p">(</span><span class="n">Real</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">Real</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">Real</span><span class="w"> </span><span class="n">z</span><span class="p">))</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span>
 </pre></div>
 </div>
 <p>Note that the AMReX <code class="docutils literal notranslate"><span class="pre">DECL</span></code> macros expand to <code class="docutils literal notranslate"><span class="pre">(Real</span> <span class="pre">x,</span> <span class="pre">Real</span> <span class="pre">y)</span></code> in 2D, but here we assume that the user has compiled for 3D.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>
+           
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="Example_Union.html" class="btn btn-neutral float-left" title="Unions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
         <a href="Example_Chombo3.html" class="btn btn-neutral float-right" title="Integration with Chombo3" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Example_Union.html" class="btn btn-neutral float-left" title="Unions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2022, Robert Marskar.</p>
-  </div>
+    <p>
+        &#169; Copyright 2022, Robert Marskar.
 
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
         </div>
       </div>
+
     </section>
+
   </div>
-  <script>
+  
+
+  <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

@@ -1,46 +1,46 @@
-\hypertarget{namespaceBVH}{}\doxysection{B\+VH Namespace Reference}
+\hypertarget{namespaceBVH}{}\doxysection{BVH Namespace Reference}
 \label{namespaceBVH}\index{BVH@{BVH}}
 
 
-Namespace for various bounding volume hierarchy (\mbox{\hyperlink{namespaceBVH}{B\+VH}}) functionality.  
+Namespace for various bounding volume hierarchy (\mbox{\hyperlink{namespaceBVH}{BVH}}) functionality.  
 
 
 \doxysubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
-class \mbox{\hyperlink{classBVH_1_1LinearBVH}{Linear\+B\+VH}}
-\begin{DoxyCompactList}\small\item\em Forward declare linear \mbox{\hyperlink{namespaceBVH}{B\+VH}} class. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}
+\begin{DoxyCompactList}\small\item\em Forward declare the \mbox{\hyperlink{namespaceBVH}{BVH}} node since it is needed for the polymorphic lambdas. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}
 \begin{DoxyCompactList}\small\item\em Forward declare linear node class. \end{DoxyCompactList}\item 
-class \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}
-\begin{DoxyCompactList}\small\item\em Forward declare the \mbox{\hyperlink{namespaceBVH}{B\+VH}} node since it is needed for the polymorphic lambdas. \end{DoxyCompactList}\end{DoxyCompactItemize}
+class \mbox{\hyperlink{classBVH_1_1LinearBVH}{Linear\+BVH}}
+\begin{DoxyCompactList}\small\item\em Forward declare linear \mbox{\hyperlink{namespaceBVH}{BVH}} class. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Typedefs}
 \begin{DoxyCompactItemize}
 \item 
 {\footnotesize template$<$class P $>$ }\\using \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}} = std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$
 \begin{DoxyCompactList}\small\item\em List of primitives. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}{Stop\+FunctionT}} = std\+::function$<$ bool(const \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}$<$ T, P, BV, K $>$ \&a\+\_\+node)$>$
-\begin{DoxyCompactList}\small\item\em Stop function for deciding when a \mbox{\hyperlink{namespaceBVH}{B\+VH}} node can\textquotesingle{}t be divided into sub-\/volumes. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Stop function for deciding when a \mbox{\hyperlink{namespaceBVH}{BVH}} node can\textquotesingle{}t be divided into sub-\/volumes. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class P , class BV , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_a67de8088141156b6eaa225a635cc68c0}{PartitionerT}} = std\+::function$<$ std\+::array$<$ \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}}$<$ P $>$, K $>$(const \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}}$<$ P $>$ \&a\+\_\+primitives)$>$
 \begin{DoxyCompactList}\small\item\em Polymorphic partitioner for splitting a list of primitives into K new lists of primitives. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class P , class BV $>$ }\\using \mbox{\hyperlink{namespaceBVH_a245702d7eff40cdaedb5dff68c25a88a}{B\+V\+ConstructorT}} = std\+::function$<$ BV(const std\+::shared\+\_\+ptr$<$ const P $>$ \&a\+\_\+primitive)$>$
+{\footnotesize template$<$class P , class BV $>$ }\\using \mbox{\hyperlink{namespaceBVH_a245702d7eff40cdaedb5dff68c25a88a}{BVConstructorT}} = std\+::function$<$ BV(const std\+::shared\+\_\+ptr$<$ const P $>$ \&a\+\_\+primitive)$>$
 \begin{DoxyCompactList}\small\item\em Constructor method for creating bounding volumes from a list of primitives. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T $>$ }\\using \mbox{\hyperlink{namespaceBVH_af1532e9ecc212528197e9a4a2555938f}{Comparator}} = std\+::function$<$ T(const T \&min\+Dist, const std\+::vector$<$ T $>$ \&prim\+Distances)$>$
-\begin{DoxyCompactList}\small\item\em Comparator for \mbox{\hyperlink{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70a0b591f}{Linear\+B\+V\+H\+::stack\+Prune}}. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Comparator for \mbox{\hyperlink{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70a0b591f}{Linear\+BVH\+::stack\+Prune}}. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T $>$ }\\using \mbox{\hyperlink{namespaceBVH_a5b6027b11349769fc2b8f669a4b1c53a}{Pruner}} = std\+::function$<$ bool(const T \&bv\+Dist, const T \&min\+Dist)$>$
-\begin{DoxyCompactList}\small\item\em Pruner for \mbox{\hyperlink{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70a0b591f}{Linear\+B\+V\+H\+::stack\+Prune}}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Pruner for \mbox{\hyperlink{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70a0b591f}{Linear\+BVH\+::stack\+Prune}}. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Enumerations}
 \begin{DoxyCompactItemize}
 \item 
-enum \mbox{\hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{Prune}} \{ {\bfseries Stack}, 
-{\bfseries Ordered}, 
-{\bfseries Unordered}
+enum class \mbox{\hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{Prune}} \{ {\bfseries Stack}
+, {\bfseries Ordered}
+, {\bfseries Unordered}
  \}
 \begin{DoxyCompactList}\small\item\em Typename for identifying algorithms various algorithms during tree traversel. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-Namespace for various bounding volume hierarchy (\mbox{\hyperlink{namespaceBVH}{B\+VH}}) functionality. 
+Namespace for various bounding volume hierarchy (\mbox{\hyperlink{namespaceBVH}{BVH}}) functionality. 
 
 \doxysubsection{Typedef Documentation}
 \mbox{\Hypertarget{namespaceBVH_a245702d7eff40cdaedb5dff68c25a88a}\label{namespaceBVH_a245702d7eff40cdaedb5dff68c25a88a}} 
@@ -48,13 +48,13 @@ Namespace for various bounding volume hierarchy (\mbox{\hyperlink{namespaceBVH}{
 \index{BVConstructorT@{BVConstructorT}!BVH@{BVH}}
 \doxysubsubsection{\texorpdfstring{BVConstructorT}{BVConstructorT}}
 {\footnotesize\ttfamily template$<$class P , class BV $>$ \\
-using \mbox{\hyperlink{namespaceBVH_a245702d7eff40cdaedb5dff68c25a88a}{B\+V\+H\+::\+B\+V\+ConstructorT}} = typedef std\+::function$<$BV(const std\+::shared\+\_\+ptr$<$const P$>$\& a\+\_\+primitive)$>$}
+using \mbox{\hyperlink{namespaceBVH_a245702d7eff40cdaedb5dff68c25a88a}{BVH\+::\+BVConstructorT}} = typedef std\+::function$<$BV(const std\+::shared\+\_\+ptr$<$const P$>$\& a\+\_\+primitive)$>$}
 
 
 
 Constructor method for creating bounding volumes from a list of primitives. 
 
-P is the primitive type bound in the \mbox{\hyperlink{namespaceBVH}{B\+VH}} and BV is the bounding volume type. 
+P is the primitive type bound in the \mbox{\hyperlink{namespaceBVH}{BVH}} and BV is the bounding volume type. 
 \begin{DoxyParams}[1]{Parameters}
 \mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & List of primitives. \\
 \hline
@@ -67,11 +67,11 @@ Returns a new bounding volumes which is guaranteed to enclose all the input prim
 \index{Comparator@{Comparator}!BVH@{BVH}}
 \doxysubsubsection{\texorpdfstring{Comparator}{Comparator}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-using \mbox{\hyperlink{namespaceBVH_af1532e9ecc212528197e9a4a2555938f}{B\+V\+H\+::\+Comparator}} = typedef std\+::function$<$T(const T\& min\+Dist, const std\+::vector$<$T$>$\& prim\+Distances)$>$}
+using \mbox{\hyperlink{namespaceBVH_af1532e9ecc212528197e9a4a2555938f}{BVH\+::\+Comparator}} = typedef std\+::function$<$T(const T\& min\+Dist, const std\+::vector$<$T$>$\& prim\+Distances)$>$}
 
 
 
-Comparator for \mbox{\hyperlink{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70a0b591f}{Linear\+B\+V\+H\+::stack\+Prune}}. 
+Comparator for \mbox{\hyperlink{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70a0b591f}{Linear\+BVH\+::stack\+Prune}}. 
 
 
 \begin{DoxyParams}[1]{Parameters}
@@ -85,13 +85,13 @@ Comparator for \mbox{\hyperlink{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70
 \index{PartitionerT@{PartitionerT}!BVH@{BVH}}
 \doxysubsubsection{\texorpdfstring{PartitionerT}{PartitionerT}}
 {\footnotesize\ttfamily template$<$class P , class BV , size\+\_\+t K$>$ \\
-using \mbox{\hyperlink{namespaceBVH_a67de8088141156b6eaa225a635cc68c0}{B\+V\+H\+::\+PartitionerT}} = typedef std\+::function$<$std\+::array$<$\mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}}$<$P$>$, K$>$(const \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}}$<$P$>$\& a\+\_\+primitives)$>$}
+using \mbox{\hyperlink{namespaceBVH_a67de8088141156b6eaa225a635cc68c0}{BVH\+::\+PartitionerT}} = typedef std\+::function$<$std\+::array$<$\mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}}$<$P$>$, K$>$(const \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}}$<$P$>$\& a\+\_\+primitives)$>$}
 
 
 
 Polymorphic partitioner for splitting a list of primitives into K new lists of primitives. 
 
-P is the primitive type bound in the \mbox{\hyperlink{namespaceBVH}{B\+VH}} and K is the \mbox{\hyperlink{namespaceBVH}{B\+VH}} degree. 
+P is the primitive type bound in the \mbox{\hyperlink{namespaceBVH}{BVH}} and K is the \mbox{\hyperlink{namespaceBVH}{BVH}} degree. 
 \begin{DoxyParams}[1]{Parameters}
 \mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & List of primitives to be subdivided into sub-\/bounding volumes. \\
 \hline
@@ -104,22 +104,22 @@ Returns a list (std\+::array) of new primitives which make up the new bounding v
 \index{PrimitiveListT@{PrimitiveListT}!BVH@{BVH}}
 \doxysubsubsection{\texorpdfstring{PrimitiveListT}{PrimitiveListT}}
 {\footnotesize\ttfamily template$<$class P $>$ \\
-using \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{B\+V\+H\+::\+Primitive\+ListT}} = typedef std\+::vector$<$std\+::shared\+\_\+ptr$<$const P$>$ $>$}
+using \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{BVH\+::\+Primitive\+ListT}} = typedef std\+::vector$<$std\+::shared\+\_\+ptr$<$const P$>$ $>$}
 
 
 
 List of primitives. 
 
-P is the primitive bounded by the \mbox{\hyperlink{namespaceBVH}{B\+VH}}. \mbox{\Hypertarget{namespaceBVH_a5b6027b11349769fc2b8f669a4b1c53a}\label{namespaceBVH_a5b6027b11349769fc2b8f669a4b1c53a}} 
+P is the primitive bounded by the \mbox{\hyperlink{namespaceBVH}{BVH}}. \mbox{\Hypertarget{namespaceBVH_a5b6027b11349769fc2b8f669a4b1c53a}\label{namespaceBVH_a5b6027b11349769fc2b8f669a4b1c53a}} 
 \index{BVH@{BVH}!Pruner@{Pruner}}
 \index{Pruner@{Pruner}!BVH@{BVH}}
 \doxysubsubsection{\texorpdfstring{Pruner}{Pruner}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-using \mbox{\hyperlink{namespaceBVH_a5b6027b11349769fc2b8f669a4b1c53a}{B\+V\+H\+::\+Pruner}} = typedef std\+::function$<$bool(const T\& bv\+Dist, const T\& min\+Dist)$>$}
+using \mbox{\hyperlink{namespaceBVH_a5b6027b11349769fc2b8f669a4b1c53a}{BVH\+::\+Pruner}} = typedef std\+::function$<$bool(const T\& bv\+Dist, const T\& min\+Dist)$>$}
 
 
 
-Pruner for \mbox{\hyperlink{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70a0b591f}{Linear\+B\+V\+H\+::stack\+Prune}}. 
+Pruner for \mbox{\hyperlink{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70a0b591f}{Linear\+BVH\+::stack\+Prune}}. 
 
 
 \begin{DoxyParams}[1]{Parameters}
@@ -133,15 +133,15 @@ Pruner for \mbox{\hyperlink{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70a0b5
 \index{StopFunctionT@{StopFunctionT}!BVH@{BVH}}
 \doxysubsubsection{\texorpdfstring{StopFunctionT}{StopFunctionT}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-using \mbox{\hyperlink{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}{B\+V\+H\+::\+Stop\+FunctionT}} = typedef std\+::function$<$bool(const \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}$<$T, P, BV, K$>$\& a\+\_\+node)$>$}
+using \mbox{\hyperlink{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}{BVH\+::\+Stop\+FunctionT}} = typedef std\+::function$<$bool(const \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}$<$T, P, BV, K$>$\& a\+\_\+node)$>$}
 
 
 
-Stop function for deciding when a \mbox{\hyperlink{namespaceBVH}{B\+VH}} node can\textquotesingle{}t be divided into sub-\/volumes. 
+Stop function for deciding when a \mbox{\hyperlink{namespaceBVH}{BVH}} node can\textquotesingle{}t be divided into sub-\/volumes. 
 
-T is the precision used in the \mbox{\hyperlink{namespaceBVH}{B\+VH}} computations, P is the enclosing primitive and BV is the bounding volume used in the \mbox{\hyperlink{namespaceBVH}{B\+VH}}. K is the tree degree. 
+T is the precision used in the \mbox{\hyperlink{namespaceBVH}{BVH}} computations, P is the enclosing primitive and BV is the bounding volume used in the \mbox{\hyperlink{namespaceBVH}{BVH}}. K is the tree degree. 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+node} & \mbox{\hyperlink{namespaceBVH}{B\+VH}} node \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+node} & \mbox{\hyperlink{namespaceBVH}{BVH}} node \\
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
@@ -154,7 +154,7 @@ True if the node can\textquotesingle{}t be divided into subvolumes and false oth
 \index{BVH@{BVH}!Prune@{Prune}}
 \index{Prune@{Prune}!BVH@{BVH}}
 \doxysubsubsection{\texorpdfstring{Prune}{Prune}}
-{\footnotesize\ttfamily enum \mbox{\hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{B\+V\+H\+::\+Prune}}\hspace{0.3cm}{\ttfamily [strong]}}
+{\footnotesize\ttfamily enum \mbox{\hyperlink{namespaceBVH_a3ddb7b34ac1deb3baed2f32d9eacbe5b}{BVH\+::\+Prune}}\hspace{0.3cm}{\ttfamily [strong]}}
 
 
 

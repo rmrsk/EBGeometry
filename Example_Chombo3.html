@@ -1,35 +1,74 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
+  <meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
   <title>Integration with Chombo3 &mdash; EBGeometry 1.0 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-    <script src="_static/js/theme.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="References" href="ZZReferences.html" />
     <link rel="prev" title="Integration with AMReX" href="Example_AMReX.html" /> 
 </head>
 
-<body class="wy-body-for-nav"> 
+<body class="wy-body-for-nav">
+
+   
   <div class="wy-grid-for-nav">
+    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
+          
+
+          
             <a href="index.html" class="icon icon-home"> EBGeometry
+          
+
+          
           </a>
+
+          
+            
+            
+          
+
+          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -37,7 +76,18 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
               <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">Requirements</a></li>
@@ -79,216 +129,266 @@
 <li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
 </ul>
 
+            
+          
         </div>
+        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">EBGeometry</a>
+        
       </nav>
 
+
       <div class="wy-nav-content">
+        
         <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
+    
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
       <li>Integration with Chombo3</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
+        
+          
             <a href="_sources/Example_Chombo3.rst.txt" rel="nofollow"> View page source</a>
+          
+        
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-             
-  <div class="section" id="integration-with-chombo3">
-<h1>Integration with Chombo3<a class="headerlink" href="#integration-with-chombo3" title="Permalink to this heading"></a></h1>
+            
+  <section id="integration-with-chombo3">
+<h1>Integration with Chombo3<a class="headerlink" href="#integration-with-chombo3" title="Permalink to this heading">¶</a></h1>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>This example requires you to install <a class="reference external" href="https://github.com/applied-numerical-algorithms-group-lbnl/Chombo_3.2">Chombo3</a>.</p>
 </div>
 <p>This example is given in <code class="file docutils literal notranslate"><span class="pre">Examples/Chombo_DCEL/main.cpp</span></code> and shows how to expose EBGeometry’s DCEL and BVH functionality to Chombo3.</p>
 <p>We will focus on the following parts of the code:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// Chombo includes</span>
-<span class="cp">#include</span> <span class="cpf">&quot;EBISLayout.H&quot;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&quot;DisjointBoxLayout.H&quot;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&quot;BaseIF.H&quot;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&quot;GeometryShop.H&quot;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&quot;ParmParse.H&quot;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&quot;EBIndexSpace.H&quot;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&quot;BRMeshRefine.H&quot;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&quot;EBCellFactory.H&quot;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&quot;EBLevelDataOps.H&quot;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&quot;EBAMRIO.H&quot;</span><span class="cp"></span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cm">/* EBGeometry</span>
+<span class="cm"> * Copyright © 2023 Robert Marskar</span>
+<span class="cm"> * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.</span>
+<span class="cm"> */</span>
+
+<span class="c1">// Chombo includes</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;EBISLayout.H&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;DisjointBoxLayout.H&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;BaseIF.H&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;GeometryShop.H&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ParmParse.H&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;EBIndexSpace.H&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;BRMeshRefine.H&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;EBCellFactory.H&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;EBLevelDataOps.H&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;EBAMRIO.H&quot;</span>
 
 <span class="c1">// Our includes</span>
-<span class="cp">#include</span> <span class="cpf">&quot;EBGeometry.hpp&quot;</span><span class="cp"></span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;EBGeometry.hpp&quot;</span>
 
 <span class="c1">// Binding for exposing EBGeometry&#39;s signed distance functions to Chombo</span>
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">BV</span><span class="p">,</span> <span class="kt">int</span> <span class="n">K</span><span class="o">&gt;</span>
-<span class="k">class</span> <span class="nc">ChomboSDF</span> <span class="o">:</span> <span class="k">public</span> <span class="n">BaseIF</span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ChomboSDF</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">BaseIF</span>
 <span class="p">{</span>
 <span class="k">public</span><span class="o">:</span>
-  <span class="n">ChomboSDF</span><span class="p">()</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+<span class="w">  </span><span class="n">ChomboSDF</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">delete</span><span class="p">;</span>
 
-  <span class="n">ChomboSDF</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">a_filename</span><span class="p">)</span>
-  <span class="p">{</span>
-    <span class="n">m_rootNode</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">readIntoLinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">(</span><span class="n">a_filename</span><span class="p">);</span>
-  <span class="p">}</span>
+<span class="w">  </span><span class="n">ChomboSDF</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">a_filename</span><span class="p">)</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">m_rootNode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">readIntoLinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="p">(</span><span class="n">a_filename</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
 
-  <span class="n">ChomboSDF</span><span class="p">(</span><span class="k">const</span> <span class="n">ChomboSDF</span><span class="o">&amp;</span> <span class="n">a_other</span><span class="p">)</span>
-  <span class="p">{</span>
-    <span class="n">m_rootNode</span> <span class="o">=</span> <span class="n">a_other</span><span class="p">.</span><span class="n">m_rootNode</span><span class="p">;</span>
-  <span class="p">}</span>
+<span class="w">  </span><span class="n">ChomboSDF</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">ChomboSDF</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_other</span><span class="p">)</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">m_rootNode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a_other</span><span class="p">.</span><span class="n">m_rootNode</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
 
-  <span class="n">Real</span>
-  <span class="n">value</span><span class="p">(</span><span class="k">const</span> <span class="n">RealVect</span><span class="o">&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">override</span> <span class="k">final</span>
-  <span class="p">{</span>
-    <span class="k">using</span> <span class="n">Vec3</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Real</span>
+<span class="w">  </span><span class="n">value</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">RealVect</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="k">final</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">Vec3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
 
 <span class="cp">#if CH_SPACEDIM == 2</span>
-    <span class="n">Vec3</span> <span class="nf">p</span><span class="p">(</span><span class="n">a_point</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">a_point</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Vec3</span><span class="w"> </span><span class="nf">p</span><span class="p">(</span><span class="n">a_point</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">a_point</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="mf">0.0</span><span class="p">);</span>
 <span class="cp">#else</span>
-    <span class="n">Vec3</span> <span class="nf">p</span><span class="p">(</span><span class="n">a_point</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">a_point</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">a_point</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">Vec3</span><span class="w"> </span><span class="nf">p</span><span class="p">(</span><span class="n">a_point</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">a_point</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="n">a_point</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
 <span class="cp">#endif</span>
 
-    <span class="k">return</span> <span class="nf">Real</span><span class="p">(</span><span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">transformPoint</span><span class="p">(</span><span class="n">p</span><span class="p">)));</span>
-  <span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Real</span><span class="p">(</span><span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">transformPoint</span><span class="p">(</span><span class="n">p</span><span class="p">)));</span>
+<span class="w">  </span><span class="p">}</span>
 
-  <span class="n">BaseIF</span><span class="o">*</span>
-  <span class="n">newImplicitFunction</span><span class="p">()</span> <span class="k">const</span>
-  <span class="p">{</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">BaseIF</span><span class="o">*</span><span class="p">)(</span><span class="k">new</span> <span class="n">ChomboSDF</span><span class="p">(</span><span class="o">*</span><span class="k">this</span><span class="p">));</span>
-  <span class="p">}</span>
+<span class="w">  </span><span class="n">BaseIF</span><span class="o">*</span>
+<span class="w">  </span><span class="n">newImplicitFunction</span><span class="p">()</span><span class="w"> </span><span class="k">const</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">(</span><span class="n">BaseIF</span><span class="o">*</span><span class="p">)(</span><span class="k">new</span><span class="w"> </span><span class="n">ChomboSDF</span><span class="p">(</span><span class="o">*</span><span class="k">this</span><span class="p">));</span>
+<span class="w">  </span><span class="p">}</span>
 
 <span class="k">protected</span><span class="o">:</span>
-  <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">LinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;&gt;</span> <span class="n">m_rootNode</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">LinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">FaceT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">m_rootNode</span><span class="p">;</span>
 <span class="p">};</span>
 
 <span class="kt">int</span>
-<span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span>
+<span class="nf">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">argv</span><span class="p">[])</span>
 <span class="p">{</span>
-  <span class="k">constexpr</span> <span class="kt">int</span> <span class="n">K</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
+<span class="w">  </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">K</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
 
-  <span class="k">using</span> <span class="n">T</span>  <span class="o">=</span> <span class="kt">float</span><span class="p">;</span>
-  <span class="k">using</span> <span class="n">BV</span> <span class="o">=</span> <span class="n">EBGeometry</span><span class="o">::</span><span class="n">BoundingVolumes</span><span class="o">::</span><span class="n">AABBT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
-
-<span class="cp">#ifdef CH_MPI</span>
-  <span class="n">MPI_Init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">argc</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">argv</span><span class="p">);</span>
-<span class="cp">#endif</span>
-
-  <span class="c1">// Parse input file</span>
-  <span class="kt">char</span><span class="o">*</span>     <span class="n">inFile</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
-  <span class="n">ParmParse</span> <span class="n">pp</span><span class="p">(</span><span class="n">argc</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="n">argv</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">inFile</span><span class="p">);</span>
-
-  <span class="kt">int</span> <span class="n">nCells</span>    <span class="o">=</span> <span class="mi">128</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">whichGeom</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">gridSize</span>  <span class="o">=</span> <span class="mi">16</span><span class="p">;</span>
-  <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;which_geom&quot;</span><span class="p">,</span> <span class="n">whichGeom</span><span class="p">);</span>
-  <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;n_cells&quot;</span><span class="p">,</span> <span class="n">nCells</span><span class="p">);</span>
-  <span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;grid_size&quot;</span><span class="p">,</span> <span class="n">gridSize</span><span class="p">);</span>
-
-  <span class="n">RealVect</span>    <span class="n">loCorner</span><span class="p">;</span>
-  <span class="n">RealVect</span>    <span class="n">hiCorner</span><span class="p">;</span>
-  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">filename</span><span class="p">;</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Airfoil</span>
-    <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">50</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
-    <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">250</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
-
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/airfoil.stl&quot;</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Sphere</span>
-    <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">400</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
-    <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">400</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
-
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/sphere.stl&quot;</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Dodecahedron</span>
-    <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
-    <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
-
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/dodecahedron.stl&quot;</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Horse</span>
-    <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.12</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
-    <span class="n">hiCorner</span> <span class="o">=</span> <span class="mf">0.12</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
-
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/horse.stl&quot;</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Porsche</span>
-    <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">10</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
-    <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
-
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/porsche.stl&quot;</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">5</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Orion</span>
-    <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">10</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
-    <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
-
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/orion.stl&quot;</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">whichGeom</span> <span class="o">==</span> <span class="mi">6</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Armadillo</span>
-    <span class="n">loCorner</span> <span class="o">=</span> <span class="o">-</span><span class="mi">125</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
-    <span class="n">hiCorner</span> <span class="o">=</span> <span class="mi">125</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
-
-    <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;../Resources/armadillo.stl&quot;</span><span class="p">;</span>
-  <span class="p">}</span>
-
-  <span class="k">auto</span> <span class="n">impFunc</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="n">BaseIF</span><span class="o">*&gt;</span><span class="p">(</span><span class="k">new</span> <span class="n">ChomboSDF</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">BV</span><span class="p">,</span> <span class="n">K</span><span class="o">&gt;</span><span class="p">(</span><span class="n">filename</span><span class="p">));</span>
-
-  <span class="c1">// Set up the Chombo EB geometry.</span>
-  <span class="n">ProblemDomain</span> <span class="n">domain</span><span class="p">(</span><span class="n">IntVect</span><span class="o">::</span><span class="n">Zero</span><span class="p">,</span> <span class="p">(</span><span class="n">nCells</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">IntVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">);</span>
-  <span class="k">const</span> <span class="n">Real</span>    <span class="n">dx</span> <span class="o">=</span> <span class="p">(</span><span class="n">hiCorner</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">loCorner</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">nCells</span><span class="p">;</span>
-  <span class="p">;</span>
-
-  <span class="n">GeometryShop</span>  <span class="n">workshop</span><span class="p">(</span><span class="o">*</span><span class="n">impFunc</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dx</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Zero</span><span class="p">);</span>
-  <span class="n">EBIndexSpace</span><span class="o">*</span> <span class="n">ebisPtr</span> <span class="o">=</span> <span class="n">Chombo_EBIS</span><span class="o">::</span><span class="n">instance</span><span class="p">();</span>
-  <span class="n">ebisPtr</span><span class="o">-&gt;</span><span class="n">define</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">loCorner</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">workshop</span><span class="p">,</span> <span class="n">gridSize</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
-
-  <span class="c1">// Set up the grids</span>
-  <span class="n">Vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">procs</span><span class="p">;</span>
-  <span class="n">Vector</span><span class="o">&lt;</span><span class="n">Box</span><span class="o">&gt;</span> <span class="n">boxes</span><span class="p">;</span>
-  <span class="n">domainSplit</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">boxes</span><span class="p">,</span> <span class="n">gridSize</span><span class="p">,</span> <span class="n">gridSize</span><span class="p">);</span>
-  <span class="n">mortonOrdering</span><span class="p">(</span><span class="n">boxes</span><span class="p">);</span>
-  <span class="n">LoadBalance</span><span class="p">(</span><span class="n">procs</span><span class="p">,</span> <span class="n">boxes</span><span class="p">);</span>
-  <span class="n">DisjointBoxLayout</span> <span class="n">dbl</span><span class="p">(</span><span class="n">boxes</span><span class="p">,</span> <span class="n">procs</span><span class="p">);</span>
-
-  <span class="c1">// Fill the EBIS layout</span>
-  <span class="n">EBISLayout</span> <span class="n">ebisl</span><span class="p">;</span>
-  <span class="n">ebisPtr</span><span class="o">-&gt;</span><span class="n">fillEBISLayout</span><span class="p">(</span><span class="n">ebisl</span><span class="p">,</span> <span class="n">dbl</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
-
-  <span class="c1">// Allocate some data that we can output</span>
-  <span class="n">LevelData</span><span class="o">&lt;</span><span class="n">EBCellFAB</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">(</span><span class="n">dbl</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">IntVect</span><span class="o">::</span><span class="n">Zero</span><span class="p">,</span> <span class="n">EBCellFactory</span><span class="p">(</span><span class="n">ebisl</span><span class="p">));</span>
-  <span class="k">for</span> <span class="p">(</span><span class="n">DataIterator</span> <span class="n">dit</span><span class="p">(</span><span class="n">dbl</span><span class="p">);</span> <span class="n">dit</span><span class="p">.</span><span class="n">ok</span><span class="p">();</span> <span class="o">++</span><span class="n">dit</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">EBCellFAB</span><span class="o">&amp;</span> <span class="n">fab</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">dit</span><span class="p">()];</span>
-    <span class="n">fab</span><span class="p">.</span><span class="n">setVal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">);</span>
-
-    <span class="k">const</span> <span class="n">Box</span> <span class="n">region</span> <span class="o">=</span> <span class="n">fab</span><span class="p">.</span><span class="n">getRegion</span><span class="p">();</span>
-    <span class="k">for</span> <span class="p">(</span><span class="n">BoxIterator</span> <span class="n">bit</span><span class="p">(</span><span class="n">region</span><span class="p">);</span> <span class="n">bit</span><span class="p">.</span><span class="n">ok</span><span class="p">();</span> <span class="o">++</span><span class="n">bit</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">const</span> <span class="n">IntVect</span> <span class="n">iv</span> <span class="o">=</span> <span class="n">bit</span><span class="p">();</span>
-
-      <span class="k">const</span> <span class="n">RealVect</span> <span class="n">pos</span>        <span class="o">=</span> <span class="n">loCorner</span> <span class="o">+</span> <span class="p">(</span><span class="n">iv</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">)</span> <span class="o">*</span> <span class="n">dx</span><span class="p">;</span>
-      <span class="n">fab</span><span class="p">.</span><span class="n">getFArrayBox</span><span class="p">()(</span><span class="n">iv</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="n">impFunc</span><span class="o">-&gt;</span><span class="n">value</span><span class="p">(</span><span class="n">pos</span><span class="p">);</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="c1">// Write to HDF5</span>
-  <span class="n">Vector</span><span class="o">&lt;</span><span class="n">LevelData</span><span class="o">&lt;</span><span class="n">EBCellFAB</span><span class="o">&gt;*&gt;</span> <span class="n">amrData</span><span class="p">;</span>
-  <span class="n">amrData</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="o">&amp;</span><span class="n">data</span><span class="p">);</span>
-  <span class="n">writeEBAMRname</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amrData</span><span class="p">,</span> <span class="s">&quot;example.hdf5&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">T</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="kt">float</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">BV</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BoundingVolumes</span><span class="o">::</span><span class="n">AABBT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
 
 <span class="cp">#ifdef CH_MPI</span>
-  <span class="n">MPI_Finalize</span><span class="p">();</span>
+<span class="w">  </span><span class="n">MPI_Init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">argv</span><span class="p">);</span>
 <span class="cp">#endif</span>
-  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Parse input file</span>
+<span class="w">  </span><span class="kt">char</span><span class="o">*</span><span class="w">     </span><span class="n">inFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+<span class="w">  </span><span class="n">ParmParse</span><span class="w"> </span><span class="n">pp</span><span class="p">(</span><span class="n">argc</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="n">inFile</span><span class="p">);</span>
+
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">nCells</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="mi">128</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">whichGeom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">gridSize</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mi">16</span><span class="p">;</span>
+<span class="w">  </span><span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;which_geom&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">whichGeom</span><span class="p">);</span>
+<span class="w">  </span><span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;ncells&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">nCells</span><span class="p">);</span>
+<span class="w">  </span><span class="n">pp</span><span class="p">.</span><span class="n">query</span><span class="p">(</span><span class="s">&quot;grid_size&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">gridSize</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">RealVect</span><span class="w">    </span><span class="n">loCorner</span><span class="p">;</span>
+<span class="w">  </span><span class="n">RealVect</span><span class="w">    </span><span class="n">hiCorner</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">filename</span><span class="p">;</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">whichGeom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Airfoil</span>
+<span class="w">    </span><span class="n">loCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-50</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
+<span class="w">    </span><span class="n">hiCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">250</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;../Resources/airfoil.stl&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">whichGeom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Sphere</span>
+<span class="w">    </span><span class="n">loCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-400</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
+<span class="w">    </span><span class="n">hiCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">400</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;../Resources/sphere.stl&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">whichGeom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Dodecahedron</span>
+<span class="w">    </span><span class="n">loCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
+<span class="w">    </span><span class="n">hiCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;../Resources/dodecahedron.stl&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">whichGeom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Horse</span>
+<span class="w">    </span><span class="n">loCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">-0.12</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
+<span class="w">    </span><span class="n">hiCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.12</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;../Resources/horse.stl&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">whichGeom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Porsche</span>
+<span class="w">    </span><span class="n">loCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-10</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
+<span class="w">    </span><span class="n">hiCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;../Resources/porsche.stl&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">whichGeom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">5</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Orion</span>
+<span class="w">    </span><span class="n">loCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-10</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
+<span class="w">    </span><span class="n">hiCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;../Resources/orion.stl&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">whichGeom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Armadillo</span>
+<span class="w">    </span><span class="n">loCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-125</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
+<span class="w">    </span><span class="n">hiCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">125</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;../Resources/armadillo.stl&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">whichGeom</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">7</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Adirondacks</span>
+<span class="w">    </span><span class="n">loCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Zero</span><span class="p">;</span>
+<span class="w">    </span><span class="n">hiCorner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">250</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">;</span>
+<span class="w">    </span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;../Resources/adirondack.stl&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">impFunc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">BaseIF</span><span class="o">*&gt;</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">ChomboSDF</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="p">(</span><span class="n">filename</span><span class="p">));</span>
+
+<span class="w">  </span><span class="c1">// Set up the Chombo EB geometry.</span>
+<span class="w">  </span><span class="n">ProblemDomain</span><span class="w"> </span><span class="n">domain</span><span class="p">(</span><span class="n">IntVect</span><span class="o">::</span><span class="n">Zero</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">nCells</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">IntVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">);</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">Real</span><span class="w">    </span><span class="n">dx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">hiCorner</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">loCorner</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">nCells</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">GeometryShop</span><span class="w">  </span><span class="n">workshop</span><span class="p">(</span><span class="o">*</span><span class="n">impFunc</span><span class="p">,</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span><span class="w"> </span><span class="n">dx</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Zero</span><span class="p">);</span>
+<span class="w">  </span><span class="n">EBIndexSpace</span><span class="o">*</span><span class="w"> </span><span class="n">ebisPtr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Chombo_EBIS</span><span class="o">::</span><span class="n">instance</span><span class="p">();</span>
+<span class="w">  </span><span class="n">ebisPtr</span><span class="o">-&gt;</span><span class="n">define</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span><span class="w"> </span><span class="n">loCorner</span><span class="p">,</span><span class="w"> </span><span class="n">dx</span><span class="p">,</span><span class="w"> </span><span class="n">workshop</span><span class="p">,</span><span class="w"> </span><span class="n">gridSize</span><span class="p">,</span><span class="w"> </span><span class="mi">-1</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Set up the grids</span>
+<span class="w">  </span><span class="n">Vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">procs</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Vector</span><span class="o">&lt;</span><span class="n">Box</span><span class="o">&gt;</span><span class="w"> </span><span class="n">boxes</span><span class="p">;</span>
+<span class="w">  </span><span class="n">domainSplit</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span><span class="w"> </span><span class="n">boxes</span><span class="p">,</span><span class="w"> </span><span class="n">gridSize</span><span class="p">,</span><span class="w"> </span><span class="n">gridSize</span><span class="p">);</span>
+<span class="w">  </span><span class="n">mortonOrdering</span><span class="p">(</span><span class="n">boxes</span><span class="p">);</span>
+<span class="w">  </span><span class="n">LoadBalance</span><span class="p">(</span><span class="n">procs</span><span class="p">,</span><span class="w"> </span><span class="n">boxes</span><span class="p">);</span>
+<span class="w">  </span><span class="n">DisjointBoxLayout</span><span class="w"> </span><span class="n">dbl</span><span class="p">(</span><span class="n">boxes</span><span class="p">,</span><span class="w"> </span><span class="n">procs</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Fill the EBIS layout</span>
+<span class="w">  </span><span class="n">EBISLayout</span><span class="w"> </span><span class="n">ebisl</span><span class="p">;</span>
+<span class="w">  </span><span class="n">ebisPtr</span><span class="o">-&gt;</span><span class="n">fillEBISLayout</span><span class="p">(</span><span class="n">ebisl</span><span class="p">,</span><span class="w"> </span><span class="n">dbl</span><span class="p">,</span><span class="w"> </span><span class="n">domain</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Allocate some data that we can output</span>
+<span class="w">  </span><span class="n">LevelData</span><span class="o">&lt;</span><span class="n">EBCellFAB</span><span class="o">&gt;</span><span class="w"> </span><span class="n">data</span><span class="p">(</span><span class="n">dbl</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">IntVect</span><span class="o">::</span><span class="n">Zero</span><span class="p">,</span><span class="w"> </span><span class="n">EBCellFactory</span><span class="p">(</span><span class="n">ebisl</span><span class="p">));</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">DataIterator</span><span class="w"> </span><span class="n">dit</span><span class="p">(</span><span class="n">dbl</span><span class="p">);</span><span class="w"> </span><span class="n">dit</span><span class="p">.</span><span class="n">ok</span><span class="p">();</span><span class="w"> </span><span class="o">++</span><span class="n">dit</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">EBCellFAB</span><span class="o">&amp;</span><span class="w"> </span><span class="n">fab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">data</span><span class="p">[</span><span class="n">dit</span><span class="p">()];</span>
+<span class="w">    </span><span class="n">fab</span><span class="p">.</span><span class="n">setVal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">Box</span><span class="w"> </span><span class="n">region</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fab</span><span class="p">.</span><span class="n">getRegion</span><span class="p">();</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">BoxIterator</span><span class="w"> </span><span class="n">bit</span><span class="p">(</span><span class="n">region</span><span class="p">);</span><span class="w"> </span><span class="n">bit</span><span class="p">.</span><span class="n">ok</span><span class="p">();</span><span class="w"> </span><span class="o">++</span><span class="n">bit</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="n">IntVect</span><span class="w"> </span><span class="n">iv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bit</span><span class="p">();</span>
+
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="n">RealVect</span><span class="w"> </span><span class="n">pos</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="n">loCorner</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">iv</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.5</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">RealVect</span><span class="o">::</span><span class="n">Unit</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dx</span><span class="p">;</span>
+<span class="w">      </span><span class="n">fab</span><span class="p">.</span><span class="n">getFArrayBox</span><span class="p">()(</span><span class="n">iv</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">impFunc</span><span class="o">-&gt;</span><span class="n">value</span><span class="p">(</span><span class="n">pos</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Write to HDF5</span>
+<span class="w">  </span><span class="n">Vector</span><span class="o">&lt;</span><span class="n">LevelData</span><span class="o">&lt;</span><span class="n">EBCellFAB</span><span class="o">&gt;*&gt;</span><span class="w"> </span><span class="n">amrData</span><span class="p">;</span>
+<span class="w">  </span><span class="n">amrData</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="o">&amp;</span><span class="n">data</span><span class="p">);</span>
+<span class="w">  </span><span class="n">writeEBAMRname</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amrData</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;example.hdf5&quot;</span><span class="p">);</span>
+
+<span class="cp">#ifdef CH_MPI</span>
+<span class="w">  </span><span class="n">MPI_Finalize</span><span class="p">();</span>
+<span class="cp">#endif</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<div class="section" id="constructing-the-bvh">
-<h2>Constructing the BVH<a class="headerlink" href="#constructing-the-bvh" title="Permalink to this heading"></a></h2>
+<section id="constructing-the-bvh">
+<h2>Constructing the BVH<a class="headerlink" href="#constructing-the-bvh" title="Permalink to this heading">¶</a></h2>
 <p>When constructing the signed distance function we use the DCEL and BVH functionality directly in the constructor.
 Note that we are performing the following steps:</p>
 <ul class="simple">
@@ -296,56 +396,73 @@ Note that we are performing the following steps:</p>
 <li><p>Constructing a BVH for the DCEL faces.</p></li>
 <li><p>Flattening the BVH tree for performance.</p></li>
 </ul>
-</div>
-<div class="section" id="exposing-signed-distance-functions">
-<h2>Exposing signed distance functions<a class="headerlink" href="#exposing-signed-distance-functions" title="Permalink to this heading"></a></h2>
+</section>
+<section id="exposing-signed-distance-functions">
+<h2>Exposing signed distance functions<a class="headerlink" href="#exposing-signed-distance-functions" title="Permalink to this heading">¶</a></h2>
 <p>Next, we expose the signed distance function to Chombo3 by implementing the functions</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">Real</span>
-<span class="nf">value</span><span class="p">(</span><span class="k">const</span> <span class="n">RealVect</span><span class="o">&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">override</span> <span class="k">final</span>
+<span class="nf">value</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">RealVect</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="k">final</span>
 <span class="p">{</span>
 <span class="cp">#if CH_SPACEDIM == 2</span>
-  <span class="n">Vec3</span> <span class="n">p</span><span class="p">(</span><span class="n">a_point</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">a_point</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">);</span>
+<span class="w">  </span><span class="n">Vec3</span><span class="w"> </span><span class="n">p</span><span class="p">(</span><span class="n">a_point</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">a_point</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="mf">0.0</span><span class="p">);</span>
 <span class="cp">#else</span>
-  <span class="n">Vec3</span> <span class="n">p</span><span class="p">(</span><span class="n">a_point</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">a_point</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">a_point</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">Vec3</span><span class="w"> </span><span class="n">p</span><span class="p">(</span><span class="n">a_point</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">a_point</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="n">a_point</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
 <span class="cp">#endif</span>
 
-  <span class="k">return</span> <span class="n">Real</span><span class="p">(</span><span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">p</span><span class="p">));</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">Real</span><span class="p">(</span><span class="n">m_rootNode</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">p</span><span class="p">));</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 <p>Note that because Chombo3 can be compiled in either 2D or 3D, we put a Chombo preprocessor flag <code class="docutils literal notranslate"><span class="pre">CH_SPACEDIM</span></code> in order to translate the Chombo <code class="docutils literal notranslate"><span class="pre">RealVect</span></code> to EBGeometry’s inherent 3D vector structure.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>
+           
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="Example_AMReX.html" class="btn btn-neutral float-left" title="Integration with AMReX" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
         <a href="ZZReferences.html" class="btn btn-neutral float-right" title="References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Example_AMReX.html" class="btn btn-neutral float-left" title="Integration with AMReX" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2022, Robert Marskar.</p>
-  </div>
+    <p>
+        &#169; Copyright 2022, Robert Marskar.
 
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
         </div>
       </div>
+
     </section>
+
   </div>
-  <script>
+  
+
+  <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

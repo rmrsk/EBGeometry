@@ -1,35 +1,74 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
+  <meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
   <title>Unions &mdash; EBGeometry 1.0 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-    <script src="_static/js/theme.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Reading data" href="Parsers.html" />
     <link rel="prev" title="Signed distance function" href="ImplemSDF.html" /> 
 </head>
 
-<body class="wy-body-for-nav"> 
+<body class="wy-body-for-nav">
+
+   
   <div class="wy-grid-for-nav">
+    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
+          
+
+          
             <a href="index.html" class="icon icon-home"> EBGeometry
+          
+
+          
           </a>
+
+          
+            
+            
+          
+
+          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -37,7 +76,18 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
               <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">Requirements</a></li>
@@ -79,188 +129,230 @@
 <li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
 </ul>
 
+            
+          
         </div>
+        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">EBGeometry</a>
+        
       </nav>
 
+
       <div class="wy-nav-content">
+        
         <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
+    
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
       <li>Unions</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
+        
+          
             <a href="_sources/ImplemUnion.rst.txt" rel="nofollow"> View page source</a>
+          
+        
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-             
-  <div class="section" id="unions">
-<span id="chap-union"></span><h1>Unions<a class="headerlink" href="#unions" title="Permalink to this heading"></a></h1>
+            
+  <section id="unions">
+<span id="chap-union"></span><h1>Unions<a class="headerlink" href="#unions" title="Permalink to this heading">¶</a></h1>
 <p>As discussed in <a class="reference internal" href="Concepts.html#chap-concepts"><span class="std std-ref">Signed distance fields</span></a>, a union of signed distance fields can be created provided that the objects do not touch or overlap.
 EBGeometry provides two implementations:</p>
 <ul class="simple">
 <li><p><strong>Standard union</strong> where one looks through every primitive in the union.</p></li>
 <li><p><strong>BVH-enabled union</strong> where bounding volume hierarchies are used to find the closest object.</p></li>
 </ul>
-<div class="section" id="standard-union">
-<h2>Standard union<a class="headerlink" href="#standard-union" title="Permalink to this heading"></a></h2>
+<section id="standard-union">
+<h2>Standard union<a class="headerlink" href="#standard-union" title="Permalink to this heading">¶</a></h2>
 <p>The standard union is template as</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Union</span> <span class="o">:</span> <span class="k">public</span> <span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Union</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span>
 <span class="p">{</span>
 <span class="k">public</span><span class="o">:</span>
-  <span class="c1">// Regular CSG union only requires implicit functions.</span>
-  <span class="k">static_assert</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">is_base_of</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">P</span><span class="o">&gt;::</span><span class="n">value</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// Regular CSG union only requires implicit functions.</span>
+<span class="w">  </span><span class="k">static_assert</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">is_base_of</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="o">&gt;::</span><span class="n">value</span><span class="p">,</span>
+<span class="w">                </span><span class="s">&quot;Union requires an implicit function (for now)&quot;</span><span class="p">);</span>
 
-  <span class="cm">/*!</span>
+<span class="w">  </span><span class="cm">/*!</span>
 <span class="cm">    @brief Disallowed, use the full constructor</span>
 <span class="cm">  */</span>
-  <span class="n">Union</span><span class="p">()</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Union</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">delete</span><span class="p">;</span>
 
-  <span class="cm">/*!</span>
+<span class="w">  </span><span class="cm">/*!</span>
 <span class="cm">    @brief Full constructor. Computes the CSG union</span>
 <span class="cm">    @param[in] a_primitives List of primitives</span>
 <span class="cm">    @param[in] a_flipSign   Hook for turning inside to outside</span>
 <span class="cm">  */</span>
-  <span class="n">Union</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;&gt;&amp;</span> <span class="n">a_primitives</span><span class="p">,</span> <span class="k">const</span> <span class="kt">bool</span> <span class="n">a_flipSign</span><span class="p">);</span>
+<span class="w">  </span><span class="n">Union</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_primitives</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">a_flipSign</span><span class="p">);</span>
 
-  <span class="cm">/*!</span>
+<span class="w">  </span><span class="cm">/*!</span>
 <span class="cm">    @brief Destructor (does nothing)</span>
 <span class="cm">  */</span>
-  <span class="k">virtual</span> <span class="o">~</span><span class="n">Union</span><span class="p">()</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+<span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="o">~</span><span class="n">Union</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">default</span><span class="p">;</span>
 
-  <span class="cm">/*!</span>
+<span class="w">  </span><span class="cm">/*!</span>
 <span class="cm">    @brief Value function</span>
 <span class="cm">    @param[in] a_point 3D point.</span>
 <span class="cm">  */</span>
-  <span class="n">T</span>
-  <span class="nf">value</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="k">override</span><span class="p">;</span>
+<span class="w">  </span><span class="n">T</span>
+<span class="w">  </span><span class="nf">value</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
 
 <span class="k">protected</span><span class="o">:</span>
-  <span class="cm">/*!</span>
+<span class="w">  </span><span class="cm">/*!</span>
 <span class="cm">    @brief List of primitives</span>
 <span class="cm">  */</span>
-  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">P</span><span class="o">&gt;&gt;</span> <span class="n">m_primitives</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">P</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">m_primitives</span><span class="p">;</span>
 
-  <span class="cm">/*!</span>
+<span class="w">  </span><span class="cm">/*!</span>
 <span class="cm">    @brief Hook for turning inside to outside</span>
 <span class="cm">  */</span>
-  <span class="kt">bool</span> <span class="n">m_flipSign</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">m_flipSign</span><span class="p">;</span>
 <span class="p">};</span>
 
-<span class="cp">#include</span> <span class="cpf">&quot;EBGeometry_NamespaceFooter.hpp&quot;</span><span class="cp"></span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;EBGeometry_NamespaceFooter.hpp&quot;</span>
 </pre></div>
 </div>
 <p>Note that <code class="docutils literal notranslate"><span class="pre">EBGeometry::Union</span></code> inherits from <code class="docutils literal notranslate"><span class="pre">EBGeometry::SignedDistanceFunction</span></code> and thus provides a <code class="docutils literal notranslate"><span class="pre">signedDistance(...)</span></code> function.
 The implementation of the standard union is</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">Union</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">P</span><span class="o">&gt;::</span><span class="n">Union</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;&gt;&amp;</span> <span class="n">a_primitives</span><span class="p">,</span> <span class="k">const</span> <span class="kt">bool</span> <span class="n">a_flipSign</span><span class="p">)</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">Union</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="o">&gt;::</span><span class="n">Union</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_primitives</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">a_flipSign</span><span class="p">)</span>
 <span class="p">{</span>
-  <span class="k">for</span> <span class="p">(</span><span class="k">const</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">prim</span> <span class="p">:</span> <span class="n">a_primitives</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">m_primitives</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">prim</span><span class="p">);</span>
-  <span class="p">}</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">prim</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">a_primitives</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">m_primitives</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">prim</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
 
-  <span class="n">m_flipSign</span> <span class="o">=</span> <span class="n">a_flipSign</span><span class="p">;</span>
+<span class="w">  </span><span class="n">m_flipSign</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a_flipSign</span><span class="p">;</span>
 <span class="p">}</span>
 
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">P</span><span class="o">&gt;</span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="o">&gt;</span>
 <span class="n">T</span>
-<span class="n">Union</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">P</span><span class="o">&gt;::</span><span class="n">value</span><span class="p">(</span><span class="k">const</span> <span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">a_point</span><span class="p">)</span> <span class="k">const</span> <span class="k">noexcept</span>
+<span class="n">Union</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="o">&gt;::</span><span class="n">value</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span>
 <span class="p">{</span>
-  <span class="n">T</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">infinity</span><span class="p">();</span>
+<span class="w">  </span><span class="n">T</span><span class="w"> </span><span class="n">ret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">infinity</span><span class="p">();</span>
 
-  <span class="k">for</span> <span class="p">(</span><span class="k">const</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="nl">prim</span> <span class="p">:</span> <span class="n">m_primitives</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">ret</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">min</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">prim</span><span class="o">-&gt;</span><span class="n">value</span><span class="p">(</span><span class="n">a_point</span><span class="p">));</span>
-  <span class="p">}</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">prim</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">m_primitives</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">ret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">min</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span><span class="w"> </span><span class="n">prim</span><span class="o">-&gt;</span><span class="n">value</span><span class="p">(</span><span class="n">a_point</span><span class="p">));</span>
+<span class="w">  </span><span class="p">}</span>
 
-  <span class="n">T</span> <span class="n">sign</span> <span class="o">=</span> <span class="p">(</span><span class="n">m_flipSign</span><span class="p">)</span> <span class="o">?</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">:</span> <span class="mf">1.0</span><span class="p">;</span>
+<span class="w">  </span><span class="n">T</span><span class="w"> </span><span class="n">sign</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">m_flipSign</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="mf">-1.0</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">;</span>
 
-  <span class="k">return</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">ret</span><span class="p">;</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">sign</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ret</span><span class="p">;</span>
 <span class="p">}</span>
 
-<span class="cp">#include</span> <span class="cpf">&quot;EBGeometry_NamespaceFooter.hpp&quot;</span><span class="cp"></span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;EBGeometry_NamespaceFooter.hpp&quot;</span>
 </pre></div>
 </div>
 <p>That is, it iterates through <em>all</em> the objects in order to find the signed distance.</p>
-</div>
-<div class="section" id="bvh-enabled-union">
-<h2>BVH-enabled union<a class="headerlink" href="#bvh-enabled-union" title="Permalink to this heading"></a></h2>
+</section>
+<section id="bvh-enabled-union">
+<h2>BVH-enabled union<a class="headerlink" href="#bvh-enabled-union" title="Permalink to this heading">¶</a></h2>
 <p>The BVH-enabled union is implemented by <code class="docutils literal notranslate"><span class="pre">EBGeometry::UnionBVH</span></code> as follows:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>*/
-template &lt;class T, class P, class BV, size_t K&gt;
-class UnionBVH : public ImplicitFunction&lt;T&gt;
-{
-public:
-  static_assert(std::is_base_of&lt;EBGeometry::SignedDistanceFunction&lt;T&gt;, P&gt;::value);
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="o">*/</span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">UnionBVH</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span>
+<span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">  </span><span class="k">static_assert</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">is_base_of</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="o">&gt;::</span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;UnionBVH requires an SDF (for now)&quot;</span><span class="p">);</span>
 
-  using BVConstructor = EBGeometry::BVH::BVConstructorT&lt;P, BV&gt;;
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">BVConstructor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">BVConstructorT</span><span class="o">&lt;</span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="o">&gt;</span><span class="p">;</span>
 
-  /*!
-    @brief Disallowed, use the full constructor
-  */
-  UnionBVH() = delete;
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Disallowed, use the full constructor</span>
+<span class="cm">  */</span>
+<span class="w">  </span><span class="n">UnionBVH</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">delete</span><span class="p">;</span>
 
-  /*!
-    @brief Full constructor.
-    @param[in] a_distanceFunctions Signed distance functions.
-    @param[in] a_flipSign          Hook for turning inside to outside
-    @param[in] a_bvConstructor     Bounding volume constructor.
-  */
-  UnionBVH(const std::vector&lt;std::shared_ptr&lt;P&gt;&gt;&amp; a_distanceFunctions,
-           const bool                             a_flipSign,
-           const BVConstructor&amp;                   a_bvConstructor);
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Full constructor.</span>
+<span class="cm">    @param[in] a_distanceFunctions Signed distance functions.</span>
+<span class="cm">    @param[in] a_flipSign          Hook for turning inside to outside</span>
+<span class="cm">    @param[in] a_bvConstructor     Bounding volume constructor.</span>
+<span class="cm">  */</span>
+<span class="w">  </span><span class="n">UnionBVH</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_distanceFunctions</span><span class="p">,</span>
+<span class="w">           </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w">                             </span><span class="n">a_flipSign</span><span class="p">,</span>
+<span class="w">           </span><span class="k">const</span><span class="w"> </span><span class="n">BVConstructor</span><span class="o">&amp;</span><span class="w">                   </span><span class="n">a_bvConstructor</span><span class="p">);</span>
 
-  /*!
-    @brief Destructor (does nothing)
-  */
-  virtual ~UnionBVH() = default;
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Destructor (does nothing)</span>
+<span class="cm">  */</span>
+<span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="o">~</span><span class="n">UnionBVH</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">default</span><span class="p">;</span>
 
-  /*!
-    @brief Value function
-    @param[in] a_point 3D point.
-  */
-  T
-  value(const Vec3T&lt;T&gt;&amp; a_point) const noexcept override;
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Value function</span>
+<span class="cm">    @param[in] a_point 3D point.</span>
+<span class="cm">  */</span>
+<span class="w">  </span><span class="n">T</span>
+<span class="w">  </span><span class="nf">value</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
 
-  /*!
-    @brief Get the bounding volume
-  */
-  const BV&amp;
-  getBoundingVolume() const noexcept;
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Get the bounding volume</span>
+<span class="cm">  */</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">BV</span><span class="o">&amp;</span>
+<span class="w">  </span><span class="nf">getBoundingVolume</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span>
 
-protected:
-  /*!
-    @brief Root node for linearized BVH tree
-  */
-  std::shared_ptr&lt;EBGeometry::BVH::LinearBVH&lt;T, P, BV, K&gt;&gt; m_rootNode;
+<span class="k">protected</span><span class="o">:</span>
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Root node for linearized BVH tree</span>
+<span class="cm">  */</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">LinearBVH</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">m_rootNode</span><span class="p">;</span>
 
-  /*!
-    @brief Hook for turning inside to outside
-  */
-  bool m_flipSign;
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Hook for turning inside to outside</span>
+<span class="cm">  */</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">m_flipSign</span><span class="p">;</span>
 
-  /*!
-    @brief Build BVH tree for the input objects. User must supply a partitioner
-    and a BV constructor for the SDF objects.
-    @param[in] a_bvConstructor Constructor for building a bounding volume that
-    encloses an object.
-  */
-  inline void
-  buildTree(const std::vector&lt;std::shared_ptr&lt;P&gt;&gt;&amp; a_distanceFunctions, const BVConstructor&amp; a_bvConstructor) noexcept;
-};
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Build BVH tree for the input objects. User must supply a partitioner</span>
+<span class="cm">    and a BV constructor for the SDF objects.</span>
+<span class="cm">    @param[in] a_bvConstructor Constructor for building a bounding volume that</span>
+<span class="cm">    encloses an object.</span>
+<span class="cm">  */</span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span>
+<span class="w">  </span><span class="nf">buildTree</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_distanceFunctions</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">BVConstructor</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_bvConstructor</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span>
+<span class="p">};</span>
 
-#include &quot;EBGeometry_NamespaceFooter.hpp&quot;
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;EBGeometry_NamespaceFooter.hpp&quot;</span>
 
-#include &quot;EBGeometry_UnionBVHImplem.hpp&quot;
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;EBGeometry_UnionBVHImplem.hpp&quot;</span>
 
-#endif
+<span class="cp">#endif</span>
 </pre></div>
 </div>
 <p>As always, the template parameter <code class="docutils literal notranslate"><span class="pre">T</span></code> indicates the precision, <code class="docutils literal notranslate"><span class="pre">BV</span></code> the bounding volume type and <code class="docutils literal notranslate"><span class="pre">K</span></code> the tree degree.
@@ -268,49 +360,66 @@ protected:
 <p>Internally, <code class="docutils literal notranslate"><span class="pre">UnionBVH</span></code> defines its own partitioning function which is identical to the implementation for DCEL meshes (see <a class="reference internal" href="ImplemDCEL.html#chap-bvhintegration"><span class="std std-ref">BVH integration</span></a>), with the exception that the partitioning is based on the centroids of the bounding volumes rather than the centroid of the primitives.
 After partitioning the primitives, the original BVH tree is flattened onto the compact representation.</p>
 <p>The implementation of the signed distance function for the BVH-enabled union is</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>  <span class="c1">// distance but there is still a CSG union, and the BVH is still a useful thing.</span>
-  <span class="c1">// So, we can&#39;t use LinearNode::signedDistanceFunction because it returns the</span>
-  <span class="c1">// closest object and not the object with the smallest value function.</span>
-  <span class="c1">//</span>
-  <span class="c1">// Fortunately, when I wrote the LinearNode accelerator I wrote it such that we can determine</span>
-  <span class="c1">// how to update the &quot;shortest&quot; distance using externally supplied criteria.</span>
-  <span class="c1">// So, we just update this as f = min(f1,f2,f3) etc, and prune nodes accordingly.</span>
-  <span class="c1">// The criteria for that are below...</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// distance but there is still a CSG union, and the BVH is still a useful thing.</span>
+<span class="w">  </span><span class="c1">// So, we can&#39;t use LinearNode::signedDistanceFunction because it returns the</span>
+<span class="w">  </span><span class="c1">// closest object and not the object with the smallest value function.</span>
+<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// Fortunately, when I wrote the LinearNode accelerator I wrote it such that we can determine</span>
+<span class="w">  </span><span class="c1">// how to update the &quot;shortest&quot; distance using externally supplied criteria.</span>
+<span class="w">  </span><span class="c1">// So, we just update this as f = min(f1,f2,f3) etc, and prune nodes accordingly.</span>
+<span class="w">  </span><span class="c1">// The criteria for that are below...</span>
 </pre></div>
 </div>
 <p>That is, it relies on pruning from the BVH functionality for finding the signed distance to the closest object.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>
+           
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="ImplemSDF.html" class="btn btn-neutral float-left" title="Signed distance function" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
         <a href="Parsers.html" class="btn btn-neutral float-right" title="Reading data" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="ImplemSDF.html" class="btn btn-neutral float-left" title="Signed distance function" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2022, Robert Marskar.</p>
-  </div>
+    <p>
+        &#169; Copyright 2022, Robert Marskar.
 
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
         </div>
       </div>
+
     </section>
+
   </div>
-  <script>
+  
+
+  <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

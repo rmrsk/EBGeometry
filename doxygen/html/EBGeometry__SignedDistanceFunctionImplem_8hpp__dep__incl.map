@@ -1,6 +1,6 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_SignedDistanceFunctionImplem.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_SignedDistanceFunctionImplem.hpp">
-<area shape="rect" id="node1" title="Implementation of EBGeometry_SignedDistanceFunctionImplem.hpp." alt="" coords="74,5,337,61"/>
-<area shape="rect" id="node2" href="$EBGeometry__SignedDistanceFunction_8hpp.html" title="Abstract base class for representing a signed distance function." alt="" coords="84,109,327,165"/>
-<area shape="rect" id="node3" href="$EBGeometry__AnalyticDistanceFunctions_8hpp.html" title="Declaration of various analytic distance functions." alt="" coords="5,213,248,269"/>
-<area shape="rect" id="node4" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="90,317,321,359"/>
+<area shape="rect" id="node1" title="Implementation of EBGeometry_SignedDistanceFunctionImplem.hpp." alt="" coords="5,5,268,61"/>
+<area shape="rect" id="node2" href="$EBGeometry__SignedDistanceFunction_8hpp.html" title="Abstract base class for representing a signed distance function." alt="" coords="15,109,258,165"/>
+<area shape="rect" id="node3" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="21,317,252,359"/>
+<area shape="rect" id="node4" href="$EBGeometry__AnalyticDistanceFunctions_8hpp.html" title="Declaration of various analytic distance functions." alt="" coords="95,213,338,269"/>
 </map>

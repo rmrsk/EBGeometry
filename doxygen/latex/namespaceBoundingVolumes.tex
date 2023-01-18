@@ -2,31 +2,31 @@
 \label{namespaceBoundingVolumes}\index{BoundingVolumes@{BoundingVolumes}}
 
 
-Namespace for encapsulating various bounding volumes for usage with B\+V\+Hs.  
+Namespace for encapsulating various bounding volumes for usage with BVHs.  
 
 
 \doxysubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
-class \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}
-\begin{DoxyCompactList}\small\item\em Axis-\/aligned bounding box as bounding volume. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}
-\begin{DoxyCompactList}\small\item\em Class which encloses a set of points using a bounding sphere. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Class which encloses a set of points using a bounding sphere. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}
+\begin{DoxyCompactList}\small\item\em Axis-\/aligned bounding box as bounding volume. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
 {\footnotesize template$<$class T $>$ }\\bool \mbox{\hyperlink{namespaceBoundingVolumes_af35f33c5f319a466550d9ad1040beced}{intersects}} (const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ T $>$ \&a\+\_\+u, const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ T $>$ \&a\+\_\+v) noexcept
 \begin{DoxyCompactList}\small\item\em Intersection method for testing if two bounding spheres overlap. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\bool \mbox{\hyperlink{namespaceBoundingVolumes_a5c360ccd42017c01acbe1caf2cfd1efe}{intersects}} (const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$ \&a\+\_\+u, const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$ \&a\+\_\+v) noexcept
+{\footnotesize template$<$class T $>$ }\\bool \mbox{\hyperlink{namespaceBoundingVolumes_a5c360ccd42017c01acbe1caf2cfd1efe}{intersects}} (const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$ \&a\+\_\+u, const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$ \&a\+\_\+v) noexcept
 \begin{DoxyCompactList}\small\item\em Intersection method for testing if two bounding boxes overlap. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T $>$ }\\T \mbox{\hyperlink{namespaceBoundingVolumes_a4f159289c317e02beedb4b38136ad692}{get\+Overlapping\+Volume}} (const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ T $>$ \&a\+\_\+u, const \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ T $>$ \&a\+\_\+v) noexcept
 \begin{DoxyCompactList}\small\item\em Compute the overlapping volume between two bounding spheres. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\T \mbox{\hyperlink{namespaceBoundingVolumes_ae5716e39e88aaeec0c204f453cac2acd}{get\+Overlapping\+Volume}} (const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$ \&a\+\_\+u, const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$ \&a\+\_\+v) noexcept
+{\footnotesize template$<$class T $>$ }\\T \mbox{\hyperlink{namespaceBoundingVolumes_ae5716e39e88aaeec0c204f453cac2acd}{get\+Overlapping\+Volume}} (const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$ \&a\+\_\+u, const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$ \&a\+\_\+v) noexcept
 \begin{DoxyCompactList}\small\item\em Compute the overlapping volume between two bounding boxes. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-Namespace for encapsulating various bounding volumes for usage with B\+V\+Hs. 
+Namespace for encapsulating various bounding volumes for usage with BVHs. 
 
 \doxysubsection{Function Documentation}
 \mbox{\Hypertarget{namespaceBoundingVolumes_ae5716e39e88aaeec0c204f453cac2acd}\label{namespaceBoundingVolumes_ae5716e39e88aaeec0c204f453cac2acd}} 
@@ -34,7 +34,7 @@ Namespace for encapsulating various bounding volumes for usage with B\+V\+Hs.
 \index{getOverlappingVolume@{getOverlappingVolume}!BoundingVolumes@{BoundingVolumes}}
 \doxysubsubsection{\texorpdfstring{getOverlappingVolume()}{getOverlappingVolume()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-T Bounding\+Volumes\+::get\+Overlapping\+Volume (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$ \&}]{a\+\_\+u,  }\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$ \&}]{a\+\_\+v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+T Bounding\+Volumes\+::get\+Overlapping\+Volume (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$ \&}]{a\+\_\+u,  }\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$ \&}]{a\+\_\+v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -70,7 +70,7 @@ Compute the overlapping volume between two bounding spheres.
 \index{intersects@{intersects}!BoundingVolumes@{BoundingVolumes}}
 \doxysubsubsection{\texorpdfstring{intersects()}{intersects()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-bool Bounding\+Volumes\+::intersects (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$ \&}]{a\+\_\+u,  }\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$ \&}]{a\+\_\+v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+bool Bounding\+Volumes\+::intersects (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$ \&}]{a\+\_\+u,  }\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$ \&}]{a\+\_\+v }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 

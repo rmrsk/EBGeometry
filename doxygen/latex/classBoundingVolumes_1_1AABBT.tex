@@ -1,4 +1,4 @@
-\hypertarget{classBoundingVolumes_1_1AABBT}{}\doxysection{Bounding\+Volumes\+::A\+A\+B\+BT$<$ T $>$ Class Template Reference}
+\hypertarget{classBoundingVolumes_1_1AABBT}{}\doxysection{Bounding\+Volumes\+::AABBT$<$ T $>$ Class Template Reference}
 \label{classBoundingVolumes_1_1AABBT}\index{BoundingVolumes::AABBT$<$ T $>$@{BoundingVolumes::AABBT$<$ T $>$}}
 
 
@@ -7,7 +7,7 @@ Axis-\/aligned bounding box as bounding volume.
 
 
 
-{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp$>$}
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Bounding\+Volumes.\+hpp$>$}
 
 \doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
@@ -19,44 +19,44 @@ using \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_aa968c6b21a7f02e1cbfc03d26c
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classBoundingVolumes_1_1AABBT_a180558daace1d1fb990f9e197eaec02d}\label{classBoundingVolumes_1_1AABBT_a180558daace1d1fb990f9e197eaec02d}} 
-\mbox{\hyperlink{classBoundingVolumes_1_1AABBT_a180558daace1d1fb990f9e197eaec02d}{A\+A\+B\+BT}} ()
+\mbox{\hyperlink{classBoundingVolumes_1_1AABBT_a180558daace1d1fb990f9e197eaec02d}{AABBT}} ()
 \begin{DoxyCompactList}\small\item\em Default constructor (does nothing) \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classBoundingVolumes_1_1AABBT_a28d34a1b4467d329bd50e3561b1e705a}{A\+A\+B\+BT}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+lo, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+hi)
+\mbox{\hyperlink{classBoundingVolumes_1_1AABBT_a28d34a1b4467d329bd50e3561b1e705a}{AABBT}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+lo, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+hi)
 \begin{DoxyCompactList}\small\item\em Full constructor taking the low/high corners of the bounding box. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classBoundingVolumes_1_1AABBT_af69dd29c29d40b1f550118cde9479f15}{A\+A\+B\+BT}} (const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}} \&a\+\_\+other)
+\mbox{\hyperlink{classBoundingVolumes_1_1AABBT_af69dd29c29d40b1f550118cde9479f15}{AABBT}} (const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}} \&a\+\_\+other)
 \begin{DoxyCompactList}\small\item\em Copy constructor of another bounding box. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classBoundingVolumes_1_1AABBT_ad228305b32a0dd94e208cbd150e20e3d}{A\+A\+B\+BT}} (const std\+::vector$<$ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$$>$ \&a\+\_\+others)
-\begin{DoxyCompactList}\small\item\em Constructor which creates an A\+A\+BB which encloses a set of other A\+A\+B\+Bs. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class P $>$ }\\\mbox{\hyperlink{classBoundingVolumes_1_1AABBT_ab675484e4a8fe1f3da862bdc2104858c}{A\+A\+B\+BT}} (const std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ P $>$$>$ \&a\+\_\+points)
-\begin{DoxyCompactList}\small\item\em Template constructor (since mixed precision allowed) which creates an A\+A\+BB that encloses a set of 3D points. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classBoundingVolumes_1_1AABBT_ad228305b32a0dd94e208cbd150e20e3d}{AABBT}} (const std\+::vector$<$ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$$>$ \&a\+\_\+others)
+\begin{DoxyCompactList}\small\item\em Constructor which creates an AABB which encloses a set of other AABBs. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class P $>$ }\\\mbox{\hyperlink{classBoundingVolumes_1_1AABBT_ab675484e4a8fe1f3da862bdc2104858c}{AABBT}} (const std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ P $>$$>$ \&a\+\_\+points)
+\begin{DoxyCompactList}\small\item\em Template constructor (since mixed precision allowed) which creates an AABB that encloses a set of 3D points. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classBoundingVolumes_1_1AABBT_af0a2f67ce6f85f947849d199e6dee1aa}\label{classBoundingVolumes_1_1AABBT_af0a2f67ce6f85f947849d199e6dee1aa}} 
-virtual \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_af0a2f67ce6f85f947849d199e6dee1aa}{$\sim$\+A\+A\+B\+BT}} ()
+virtual \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_af0a2f67ce6f85f947849d199e6dee1aa}{$\sim$\+AABBT}} ()
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}} \& \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_aa09a88f7ec79cfa7715e3e091193e51f}{operator=}} (const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$ \&a\+\_\+other)=default
+\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}} \& \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_aa09a88f7ec79cfa7715e3e091193e51f}{operator=}} (const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$ \&a\+\_\+other)=default
 \begin{DoxyCompactList}\small\item\em Copy assignment. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class P $>$ }\\void \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_a4efd0372a1cc307d94e53788c49de3f1}{define}} (const std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ P $>$$>$ \&a\+\_\+points) noexcept
-\begin{DoxyCompactList}\small\item\em Define function (since mixed precision allowed) which sets this A\+A\+BB such that it encloses a set of 3D points. \end{DoxyCompactList}\item 
-bool \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_a87d160a3e05082e34e37d8b4472bad7d}{intersects}} (const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}} \&a\+\_\+other) const noexcept
-\begin{DoxyCompactList}\small\item\em Check if this A\+A\+BB intersects another A\+A\+BB. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBoundingVolumes_1_1AABBT_ac5306e1f62560f2794d9105f44901d41}\label{classBoundingVolumes_1_1AABBT_ac5306e1f62560f2794d9105f44901d41}} 
-\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_ac5306e1f62560f2794d9105f44901d41}{get\+Low\+Corner}} () noexcept
-\begin{DoxyCompactList}\small\item\em Get the modifiable lower-\/left corner of the A\+A\+BB. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBoundingVolumes_1_1AABBT_ae9379c4fad12e8d4dbd3d7106e8b94d1}\label{classBoundingVolumes_1_1AABBT_ae9379c4fad12e8d4dbd3d7106e8b94d1}} 
-const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_ae9379c4fad12e8d4dbd3d7106e8b94d1}{get\+Low\+Corner}} () const noexcept
-\begin{DoxyCompactList}\small\item\em Get the immutable lower-\/left corner of the A\+A\+BB. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBoundingVolumes_1_1AABBT_a8a2595f3347dc5663ac2bdbfa6f976e6}\label{classBoundingVolumes_1_1AABBT_a8a2595f3347dc5663ac2bdbfa6f976e6}} 
-\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_a8a2595f3347dc5663ac2bdbfa6f976e6}{get\+High\+Corner}} () noexcept
-\begin{DoxyCompactList}\small\item\em Get the modifiable upper-\/right corner of the A\+A\+BB. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBoundingVolumes_1_1AABBT_aba0356fe9652f5b8639f86e3b637c56b}\label{classBoundingVolumes_1_1AABBT_aba0356fe9652f5b8639f86e3b637c56b}} 
-const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_aba0356fe9652f5b8639f86e3b637c56b}{get\+High\+Corner}} () const noexcept
-\begin{DoxyCompactList}\small\item\em Get the immutable upper-\/right corner of the A\+A\+BB. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Define function (since mixed precision allowed) which sets this AABB such that it encloses a set of 3D points. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_a87d160a3e05082e34e37d8b4472bad7d}{intersects}} (const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}} \&a\+\_\+other) const noexcept
+\begin{DoxyCompactList}\small\item\em Check if this AABB intersects another AABB. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBoundingVolumes_1_1AABBT_a6368509e66a2b5691272f273fe96f670}\label{classBoundingVolumes_1_1AABBT_a6368509e66a2b5691272f273fe96f670}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_a6368509e66a2b5691272f273fe96f670}{get\+Low\+Corner}} () noexcept
+\begin{DoxyCompactList}\small\item\em Get the modifiable lower-\/left corner of the AABB. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBoundingVolumes_1_1AABBT_a937cfc6cbbbd457f872370c1c4d5e81e}\label{classBoundingVolumes_1_1AABBT_a937cfc6cbbbd457f872370c1c4d5e81e}} 
+const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_a937cfc6cbbbd457f872370c1c4d5e81e}{get\+Low\+Corner}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the immutable lower-\/left corner of the AABB. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBoundingVolumes_1_1AABBT_a2ecaeccecdb8882051516409e5749ef9}\label{classBoundingVolumes_1_1AABBT_a2ecaeccecdb8882051516409e5749ef9}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_a2ecaeccecdb8882051516409e5749ef9}{get\+High\+Corner}} () noexcept
+\begin{DoxyCompactList}\small\item\em Get the modifiable upper-\/right corner of the AABB. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBoundingVolumes_1_1AABBT_aef8dcd08ea8726cdcd3d361d33c4d554}\label{classBoundingVolumes_1_1AABBT_aef8dcd08ea8726cdcd3d361d33c4d554}} 
+const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_aef8dcd08ea8726cdcd3d361d33c4d554}{get\+High\+Corner}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the immutable upper-\/right corner of the AABB. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classBoundingVolumes_1_1AABBT_a7c98cb4cec1eb672755c9c469ca44990}\label{classBoundingVolumes_1_1AABBT_a7c98cb4cec1eb672755c9c469ca44990}} 
 \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_aa968c6b21a7f02e1cbfc03d26c7e67b4}{Vec3}} \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_a7c98cb4cec1eb672755c9c469ca44990}{get\+Centroid}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get bounding volume centroid. \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_ae65563ac6f3851f8fb05e0c98613fc0d}{get\+Overlapping\+Volume}} (const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$ \&a\+\_\+other) const noexcept
-\begin{DoxyCompactList}\small\item\em Compute the overlapping volume between this A\+A\+BB and another A\+A\+BB. \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_ae65563ac6f3851f8fb05e0c98613fc0d}{get\+Overlapping\+Volume}} (const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$ \&a\+\_\+other) const noexcept
+\begin{DoxyCompactList}\small\item\em Compute the overlapping volume between this AABB and another AABB. \end{DoxyCompactList}\item 
 T \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_ad883975a0926c0755a978283137f378f}{get\+Distance}} (const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_aa968c6b21a7f02e1cbfc03d26c7e67b4}{Vec3}} \&a\+\_\+x0) const noexcept
-\begin{DoxyCompactList}\small\item\em Get the distance to this A\+A\+BB (points inside the bounding box have a zero distance) \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Get the distance to this AABB (points inside the bounding box have a zero distance) \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classBoundingVolumes_1_1AABBT_ac5b8f2caa8afe1177f3d2924fbc3f7a5}\label{classBoundingVolumes_1_1AABBT_ac5b8f2caa8afe1177f3d2924fbc3f7a5}} 
 T \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_ac5b8f2caa8afe1177f3d2924fbc3f7a5}{get\+Volume}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Compute the bounding box volume. \end{DoxyCompactList}\item 
@@ -76,7 +76,7 @@ T \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_ae2f3ba3dde664cccd7c46b0ef4f087
 
 \doxysubsection{Detailed Description}
 \subsubsection*{template$<$class T$>$\newline
-class Bounding\+Volumes\+::\+A\+A\+B\+B\+T$<$ T $>$}
+class Bounding\+Volumes\+::\+AABBT$<$ T $>$}
 
 Axis-\/aligned bounding box as bounding volume. 
 
@@ -91,7 +91,7 @@ The template parameter T is the precision.
 \index{AABBT@{AABBT}!BoundingVolumes::AABBT$<$ T $>$@{BoundingVolumes::AABBT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{AABBT()}{AABBT()}\hspace{0.1cm}{\footnotesize\ttfamily [1/4]}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+A\+A\+B\+BT}}$<$ T $>$\+::\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+lo,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+hi }\end{DoxyParamCaption})}
+\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+AABBT}}$<$ T $>$\+::\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+lo,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+hi }\end{DoxyParamCaption})}
 
 
 
@@ -109,7 +109,7 @@ Full constructor taking the low/high corners of the bounding box.
 \index{AABBT@{AABBT}!BoundingVolumes::AABBT$<$ T $>$@{BoundingVolumes::AABBT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{AABBT()}{AABBT()}\hspace{0.1cm}{\footnotesize\ttfamily [2/4]}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+A\+A\+B\+BT}}$<$ T $>$\+::\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption})}
+\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+AABBT}}$<$ T $>$\+::\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption})}
 
 
 
@@ -125,11 +125,11 @@ Copy constructor of another bounding box.
 \index{AABBT@{AABBT}!BoundingVolumes::AABBT$<$ T $>$@{BoundingVolumes::AABBT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{AABBT()}{AABBT()}\hspace{0.1cm}{\footnotesize\ttfamily [3/4]}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+A\+A\+B\+BT}}$<$ T $>$\+::\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$$>$ \&}]{a\+\_\+others }\end{DoxyParamCaption})}
+\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+AABBT}}$<$ T $>$\+::\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$$>$ \&}]{a\+\_\+others }\end{DoxyParamCaption})}
 
 
 
-Constructor which creates an A\+A\+BB which encloses a set of other A\+A\+B\+Bs. 
+Constructor which creates an AABB which encloses a set of other AABBs. 
 
 
 \begin{DoxyParams}[1]{Parameters}
@@ -142,11 +142,11 @@ Constructor which creates an A\+A\+BB which encloses a set of other A\+A\+B\+Bs.
 \doxysubsubsection{\texorpdfstring{AABBT()}{AABBT()}\hspace{0.1cm}{\footnotesize\ttfamily [4/4]}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
 template$<$class P $>$ \\
-\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+A\+A\+B\+BT}}$<$ T $>$\+::\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ P $>$$>$ \&}]{a\+\_\+points }\end{DoxyParamCaption})}
+\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+AABBT}}$<$ T $>$\+::\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ P $>$$>$ \&}]{a\+\_\+points }\end{DoxyParamCaption})}
 
 
 
-Template constructor (since mixed precision allowed) which creates an A\+A\+BB that encloses a set of 3D points. 
+Template constructor (since mixed precision allowed) which creates an AABB that encloses a set of 3D points. 
 
 
 \begin{DoxyParams}[1]{Parameters}
@@ -165,11 +165,11 @@ Calls the define function
 \doxysubsubsection{\texorpdfstring{define()}{define()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
 template$<$class P $>$ \\
-void \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+A\+A\+B\+BT}}$<$ T $>$\+::define (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ P $>$$>$ \&}]{a\+\_\+points }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+void \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+AABBT}}$<$ T $>$\+::define (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ P $>$$>$ \&}]{a\+\_\+points }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
-Define function (since mixed precision allowed) which sets this A\+A\+BB such that it encloses a set of 3D points. 
+Define function (since mixed precision allowed) which sets this AABB such that it encloses a set of 3D points. 
 
 
 \begin{DoxyParams}[1]{Parameters}
@@ -181,11 +181,11 @@ Define function (since mixed precision allowed) which sets this A\+A\+BB such th
 \index{getDistance@{getDistance}!BoundingVolumes::AABBT$<$ T $>$@{BoundingVolumes::AABBT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{getDistance()}{getDistance()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-T \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+A\+A\+B\+BT}}$<$ T $>$\+::get\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_aa968c6b21a7f02e1cbfc03d26c7e67b4}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+T \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+AABBT}}$<$ T $>$\+::get\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_aa968c6b21a7f02e1cbfc03d26c7e67b4}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
-Get the distance to this A\+A\+BB (points inside the bounding box have a zero distance) 
+Get the distance to this AABB (points inside the bounding box have a zero distance) 
 
 
 \begin{DoxyParams}[1]{Parameters}
@@ -200,15 +200,15 @@ Returns the distance to the bounding box (a point inside has a zero distance)
 \index{getOverlappingVolume@{getOverlappingVolume}!BoundingVolumes::AABBT$<$ T $>$@{BoundingVolumes::AABBT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{getOverlappingVolume()}{getOverlappingVolume()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-T \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+A\+A\+B\+BT}}$<$ T $>$\+::get\+Overlapping\+Volume (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+T \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+AABBT}}$<$ T $>$\+::get\+Overlapping\+Volume (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
-Compute the overlapping volume between this A\+A\+BB and another A\+A\+BB. 
+Compute the overlapping volume between this AABB and another AABB. 
 
 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+other} & The other A\+A\+BB \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+other} & The other AABB \\
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
@@ -219,15 +219,15 @@ Returns overlapping volume
 \index{intersects@{intersects}!BoundingVolumes::AABBT$<$ T $>$@{BoundingVolumes::AABBT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{intersects()}{intersects()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-bool \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+A\+A\+B\+BT}}$<$ T $>$\+::intersects (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+bool \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+AABBT}}$<$ T $>$\+::intersects (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
-Check if this A\+A\+BB intersects another A\+A\+BB. 
+Check if this AABB intersects another AABB. 
 
 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+other} & The other A\+A\+BB \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+other} & The other AABB \\
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
@@ -238,7 +238,7 @@ True if they intersect and false otherwise.
 \index{operator=@{operator=}!BoundingVolumes::AABBT$<$ T $>$@{BoundingVolumes::AABBT$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{operator=()}{operator=()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}\& \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+A\+A\+B\+BT}}$<$ T $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{A\+A\+B\+BT}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [default]}}
+\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}\& \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+AABBT}}$<$ T $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [default]}}
 
 
 
@@ -253,5 +253,5 @@ Copy assignment.
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 
-/home/runner/work/\+E\+B\+Geometry/\+E\+B\+Geometry/\+Source/\mbox{\hyperlink{EBGeometry__BoundingVolumes_8hpp}{E\+B\+Geometry\+\_\+\+Bounding\+Volumes.\+hpp}}\item 
-/home/runner/work/\+E\+B\+Geometry/\+E\+B\+Geometry/\+Source/\mbox{\hyperlink{EBGeometry__BoundingVolumesImplem_8hpp}{E\+B\+Geometry\+\_\+\+Bounding\+Volumes\+Implem.\+hpp}}\end{DoxyCompactItemize}
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__BoundingVolumes_8hpp}{EBGeometry\+\_\+\+Bounding\+Volumes.\+hpp}}\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__BoundingVolumesImplem_8hpp}{EBGeometry\+\_\+\+Bounding\+Volumes\+Implem.\+hpp}}\end{DoxyCompactItemize}

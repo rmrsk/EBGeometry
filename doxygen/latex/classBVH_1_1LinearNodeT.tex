@@ -1,4 +1,4 @@
-\hypertarget{classBVH_1_1LinearNodeT}{}\doxysection{B\+VH\+::Linear\+NodeT$<$ T, P, BV, K $>$ Class Template Reference}
+\hypertarget{classBVH_1_1LinearNodeT}{}\doxysection{BVH\+::Linear\+NodeT$<$ T, P, BV, K $>$ Class Template Reference}
 \label{classBVH_1_1LinearNodeT}\index{BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}}
 
 
@@ -7,7 +7,7 @@ Forward declare linear node class.
 
 
 
-{\ttfamily \#include $<$E\+B\+Geometry\+\_\+\+B\+V\+H.\+hpp$>$}
+{\ttfamily \#include $<$EBGeometry\+\_\+\+BVH.\+hpp$>$}
 
 \doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
@@ -68,23 +68,23 @@ std\+::array$<$ size\+\_\+t, K $>$ \mbox{\hyperlink{classBVH_1_1LinearNodeT_ae57
 
 \doxysubsection{Detailed Description}
 \subsubsection*{template$<$class T, class P, class BV, size\+\_\+t K$>$\newline
-class B\+V\+H\+::\+Linear\+Node\+T$<$ T, P, B\+V, K $>$}
+class BVH\+::\+Linear\+Node\+T$<$ T, P, BV, K $>$}
 
 Forward declare linear node class. 
 
-Node type for linearized (flattened) \mbox{\hyperlink{namespaceBVH}{B\+VH}}. This will be constructed from the other (conventional) \mbox{\hyperlink{namespaceBVH}{B\+VH}} type.
+Node type for linearized (flattened) \mbox{\hyperlink{namespaceBVH}{BVH}}. This will be constructed from the other (conventional) \mbox{\hyperlink{namespaceBVH}{BVH}} type.
 
-T is the precision used in the \mbox{\hyperlink{namespaceBVH}{B\+VH}} computations, P is the enclosing primitive and BV is the bounding volume used in the \mbox{\hyperlink{namespaceBVH}{B\+VH}}. K is the tree degree.
+T is the precision used in the \mbox{\hyperlink{namespaceBVH}{BVH}} computations, P is the enclosing primitive and BV is the bounding volume used in the \mbox{\hyperlink{namespaceBVH}{BVH}}. K is the tree degree.
 
 T is the precision for Vec3, P is the primitive type you want to enclose, BV is the bounding volume you use for it.
 
 \begin{DoxyNote}{Note}
-P M\+U\+ST supply function signed\+Distance(...) BV must supply a function get\+Distance (had this been C++20, we would have use concepts to enforce this). Note that Linear\+Node is the result of a flattened \mbox{\hyperlink{namespaceBVH}{B\+VH}} hierarchy where nodes are stored with depth-\/first ordering for improved cache-\/location in the downward traversal.
+P MUST supply function signed\+Distance(...) BV must supply a function get\+Distance (had this been C++20, we would have use concepts to enforce this). Note that Linear\+Node is the result of a flattened \mbox{\hyperlink{namespaceBVH}{BVH}} hierarchy where nodes are stored with depth-\/first ordering for improved cache-\/location in the downward traversal.
 
-This class exists so that we can fit the nodes with a smaller memory footprint. The standard \mbox{\hyperlink{namespaceBVH}{B\+VH}} node (\mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}) is very useful when building the tree but less useful when traversing it since it stores references to the primitives in the node itself. It will span multiple cache lines. This node exists so that we can fit all the \mbox{\hyperlink{namespaceBVH}{B\+VH}} info onto fewer cache lines. The number of cache lines will depend on the tree degree, precision, and bounding volume that is chosen.
+This class exists so that we can fit the nodes with a smaller memory footprint. The standard \mbox{\hyperlink{namespaceBVH}{BVH}} node (\mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}) is very useful when building the tree but less useful when traversing it since it stores references to the primitives in the node itself. It will span multiple cache lines. This node exists so that we can fit all the \mbox{\hyperlink{namespaceBVH}{BVH}} info onto fewer cache lines. The number of cache lines will depend on the tree degree, precision, and bounding volume that is chosen.
 \end{DoxyNote}
 \begin{DoxyRefDesc}{Todo}
-\item[\mbox{\hyperlink{todo__todo000001}{Todo}}]There\textquotesingle{}s a minor optimization that can be made to the memory alignment, which is as follows\+: For a leaf node we never really need the m\+\_\+child\+Offsets array, and for a regular node we never really need the m\+\_\+primitives\+Offset member. Moreover, m\+\_\+child\+Offsets could be made into a K-\/1 sized array because we happen to know that the linearized hierarchy will store the first child node immediately after the regular node. We could shave off 16 bytes of storage, which would mean that a double-\/precision binary tree only takes up one word of C\+PU memory. \end{DoxyRefDesc}
+\item[\mbox{\hyperlink{todo__todo000001}{Todo}}]There\textquotesingle{}s a minor optimization that can be made to the memory alignment, which is as follows\+: For a leaf node we never really need the m\+\_\+child\+Offsets array, and for a regular node we never really need the m\+\_\+primitives\+Offset member. Moreover, m\+\_\+child\+Offsets could be made into a K-\/1 sized array because we happen to know that the linearized hierarchy will store the first child node immediately after the regular node. We could shave off 16 bytes of storage, which would mean that a double-\/precision binary tree only takes up one word of CPU memory. \end{DoxyRefDesc}
 
 
 \doxysubsection{Member Function Documentation}
@@ -93,7 +93,7 @@ This class exists so that we can fit the nodes with a smaller memory footprint. 
 \index{getChildOffsets@{getChildOffsets}!BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getChildOffsets()}{getChildOffsets()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-const std\+::array$<$ size\+\_\+t, K $>$ \& \mbox{\hyperlink{classBVH_1_1LinearNodeT}{B\+V\+H\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Child\+Offsets\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+const std\+::array$<$ size\+\_\+t, K $>$ \& \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Child\+Offsets\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -107,7 +107,7 @@ Returns m\+\_\+child\+Offsets
 \index{getDistances@{getDistances}!BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getDistances()}{getDistances()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-std\+::vector$<$ T $>$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{B\+V\+H\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Distances (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3}} \&}]{a\+\_\+point,  }\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&}]{a\+\_\+primitives }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+std\+::vector$<$ T $>$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Distances (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3}} \&}]{a\+\_\+point,  }\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&}]{a\+\_\+primitives }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -128,7 +128,7 @@ Only call if this is a leaf node.
 \index{getDistanceToBoundingVolume@{getDistanceToBoundingVolume}!BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getDistanceToBoundingVolume()}{getDistanceToBoundingVolume()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-T \mbox{\hyperlink{classBVH_1_1LinearNodeT}{B\+V\+H\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Distance\+To\+Bounding\+Volume (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+T \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Distance\+To\+Bounding\+Volume (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -147,7 +147,7 @@ Returns distance to bounding volume. A zero distance implies that the input poin
 \index{getNumPrimitives@{getNumPrimitives}!BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getNumPrimitives()}{getNumPrimitives()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-const size\+\_\+t \& \mbox{\hyperlink{classBVH_1_1LinearNodeT}{B\+V\+H\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Num\+Primitives\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+const size\+\_\+t \& \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Num\+Primitives\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -161,7 +161,7 @@ Returns m\+\_\+num\+Primitives
 \index{getPrimitivesOffset@{getPrimitivesOffset}!BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getPrimitivesOffset()}{getPrimitivesOffset()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-const size\+\_\+t \& \mbox{\hyperlink{classBVH_1_1LinearNodeT}{B\+V\+H\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Primitives\+Offset\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+const size\+\_\+t \& \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Primitives\+Offset\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -175,7 +175,7 @@ Returns m\+\_\+primitives\+Offset
 \index{setBoundingVolume@{setBoundingVolume}!BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{setBoundingVolume()}{setBoundingVolume()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-void \mbox{\hyperlink{classBVH_1_1LinearNodeT}{B\+V\+H\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::set\+Bounding\+Volume (\begin{DoxyParamCaption}\item[{const BV \&}]{a\+\_\+bounding\+Volume }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+void \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::set\+Bounding\+Volume (\begin{DoxyParamCaption}\item[{const BV \&}]{a\+\_\+bounding\+Volume }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -191,7 +191,7 @@ Set the bounding volume.
 \index{setChildOffset@{setChildOffset}!BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{setChildOffset()}{setChildOffset()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-void \mbox{\hyperlink{classBVH_1_1LinearNodeT}{B\+V\+H\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::set\+Child\+Offset (\begin{DoxyParamCaption}\item[{const size\+\_\+t}]{a\+\_\+child\+Offset,  }\item[{const size\+\_\+t}]{a\+\_\+which\+Child }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+void \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::set\+Child\+Offset (\begin{DoxyParamCaption}\item[{const size\+\_\+t}]{a\+\_\+child\+Offset,  }\item[{const size\+\_\+t}]{a\+\_\+which\+Child }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -209,7 +209,7 @@ Set the child offsets.
 \index{setNumPrimitives@{setNumPrimitives}!BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{setNumPrimitives()}{setNumPrimitives()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-void \mbox{\hyperlink{classBVH_1_1LinearNodeT}{B\+V\+H\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::set\+Num\+Primitives (\begin{DoxyParamCaption}\item[{const size\+\_\+t}]{a\+\_\+num\+Primitives }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+void \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::set\+Num\+Primitives (\begin{DoxyParamCaption}\item[{const size\+\_\+t}]{a\+\_\+num\+Primitives }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -224,5 +224,5 @@ Set number of primitives.
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 
-/home/runner/work/\+E\+B\+Geometry/\+E\+B\+Geometry/\+Source/\mbox{\hyperlink{EBGeometry__BVH_8hpp}{E\+B\+Geometry\+\_\+\+B\+V\+H.\+hpp}}\item 
-/home/runner/work/\+E\+B\+Geometry/\+E\+B\+Geometry/\+Source/\mbox{\hyperlink{EBGeometry__BVHImplem_8hpp}{E\+B\+Geometry\+\_\+\+B\+V\+H\+Implem.\+hpp}}\end{DoxyCompactItemize}
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__BVH_8hpp}{EBGeometry\+\_\+\+BVH.\+hpp}}\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__BVHImplem_8hpp}{EBGeometry\+\_\+\+BVHImplem.\+hpp}}\end{DoxyCompactItemize}
