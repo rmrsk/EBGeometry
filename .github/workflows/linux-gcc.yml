@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 10
     strategy:
       matrix:
-        comp: [g++-7, g++-8, g++-9, g++-10]
+        comp: [g++-9, g++-10, g++-11]
 
     steps:
       - name: Checkout EBGeometry
@@ -42,11 +42,11 @@ jobs:
         working-directory: Examples/EBGeometry_DCEL
         if: always()        
         run: |
-          ./a.out porsche.ply
+          ./a.out armadillo.stl
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi
 
       - name: Compile union example
-        working-directory: Examples/EBGeometry_Union
+        working-directory: Examples/EBGeometry_PackedSpheres
         if: always()
         run: |
           ${{ matrix.comp }} -std=c++14 \
@@ -57,7 +57,7 @@ jobs:
           main.cpp                     
 
       - name: Run union example
-        working-directory: Examples/EBGeometry_Union
+        working-directory: Examples/EBGeometry_PackedSpheres
         if: always()        
         run: |
           ./a.out
@@ -70,7 +70,7 @@ jobs:
     timeout-minutes: 10
     strategy:
       matrix:
-        comp: [g++-7, g++-8, g++-9, g++-10]
+        comp: [g++-9, g++-10, g++-11]
         std: [c++14]
 
     steps:
@@ -91,17 +91,17 @@ jobs:
       - name: Run DCEL example
         working-directory: Examples/EBGeometry_DCEL
         run: |
-          ./a.out porsche.ply
+          ./a.out armadillo.stl
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi                    
 
       - name: Compile union example
-        working-directory: Examples/EBGeometry_Union
+        working-directory: Examples/EBGeometry_PackedSpheres
         if: always()
         run: |
           ${{ matrix.comp }} -std=c++14 -w -O3 main.cpp          
 
       - name: Run union example
-        working-directory: Examples/EBGeometry_Union
+        working-directory: Examples/EBGeometry_PackedSpheres
         if: always()
         run: |
           ./a.out

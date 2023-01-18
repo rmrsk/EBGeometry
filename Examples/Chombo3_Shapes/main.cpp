@@ -1,3 +1,8 @@
+/* EBGeometry
+ * Copyright © 2023 Robert Marskar
+ * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
+ */
+
 // Chombo includes
 #include "EBISLayout.H"
 #include "DisjointBoxLayout.H"

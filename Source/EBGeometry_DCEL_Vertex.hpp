@@ -269,8 +269,7 @@ namespace DCEL {
     Vec3 m_normal;
 
     /*!
-      @brief List of faces connected to this vertex (these must be "manually"
-      added)
+      @brief List of faces connected to this vertex (these must be "manually" added)
     */
     std::vector<FacePtr> m_faces;
   };

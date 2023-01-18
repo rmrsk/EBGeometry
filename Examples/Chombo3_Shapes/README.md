@@ -1,3 +1,6 @@
+Examples/Chombo3_Shapes
+-----------------------
+
 This example uses the embedded boundary grid generation from Chombo3, and shows how to use basic SDFs from EBGeometry. 
 To compile this application, first install Chombo somewhere and point the CHOMBO_HOME environment variable to it.
 
@@ -14,6 +17,12 @@ Running
 With MPI:
 
     mpirun -np 8 main3d.<something>.ex examples.inputs
+
+Other input options are
+
+* `n_cells = <integer>` For setting the number of grid cells along the coordinate directions.
+* `grid_size = <integer>` For setting the blocking factor.
+* `which_geom = <integer>` For setting the shape function.
 
 Supported geometries
 --------------------

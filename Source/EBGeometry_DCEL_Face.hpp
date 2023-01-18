@@ -187,6 +187,12 @@ namespace DCEL {
     getNormal() const noexcept;
 
     /*!
+      @brief Compute the area of this polygon
+    */
+    inline T
+    computeArea() noexcept;
+
+    /*!
       @brief Compute the signed distance to a point.
       @param[in] a_x0 Point in space
       @details This algorithm operates by checking if the input point projects to
@@ -241,18 +247,6 @@ namespace DCEL {
     EdgePtr m_halfEdge;
 
     /*!
-      @brief Pointers to all the half-edges of this face. Exists for performance
-      reasons (in signedDistance(...))
-      @note Exists for performance reasons. 
-    */
-    std::vector<EdgePtr> m_edges;
-
-    /*!
-      @brief Polygon face area
-    */
-    T m_area;
-
-    /*!
       @brief Polygon face normal vector
     */
     Vec3 m_normal;
@@ -272,12 +266,6 @@ namespace DCEL {
       @brief Algorithm for inside/outside tests
     */
     typename Polygon2D<T>::InsideOutsideAlgorithm m_poly2Algorithm;
-
-    /*!
-      @brief Compute the area of this polygon
-    */
-    inline void
-    computeArea() noexcept;
 
     /*!
       @brief Compute the centroid position of this polygon
