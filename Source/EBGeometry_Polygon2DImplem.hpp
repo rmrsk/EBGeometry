@@ -66,11 +66,11 @@ template <class T>
 inline void
 Polygon2D<T>::define(const Vec3& a_normal, const std::vector<Vec3>& a_points)
 {
-  m_ignoreDir = 0;
+  size_t ignoreDir = 0;
 
   for (size_t dir = 1; dir < 3; dir++) {
-    if (std::abs(a_normal[dir]) > std::abs(a_normal[m_ignoreDir])) {
-      m_ignoreDir = dir;
+    if (std::abs(a_normal[dir]) > std::abs(a_normal[ignoreDir])) {
+      ignoreDir = dir;
     }
   }
 
@@ -78,7 +78,7 @@ Polygon2D<T>::define(const Vec3& a_normal, const std::vector<Vec3>& a_points)
   m_yDir = 0;
 
   for (size_t dir = 0; dir < 3; dir++) {
-    if (dir != m_ignoreDir) {
+    if (dir != ignoreDir) {
       m_xDir = std::min(m_xDir, dir);
       m_yDir = std::max(m_yDir, dir);
     }

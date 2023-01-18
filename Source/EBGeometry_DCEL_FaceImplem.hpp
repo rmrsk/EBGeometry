@@ -61,7 +61,6 @@ namespace DCEL {
     this->computeCentroid();
     this->computeArea();
     this->computePolygon2D();
-    this->computeAndStoreEdges();
   }
 
   template <class T>
@@ -69,17 +68,6 @@ namespace DCEL {
   FaceT<T>::flip() noexcept
   {
     m_normal = -m_normal;
-  }
-
-  template <class T>
-  inline void
-  FaceT<T>::computeAndStoreEdges() noexcept
-  {
-    m_edges.resize(0);
-
-    for (EdgeIterator edgeIt(*this); edgeIt.ok(); ++edgeIt) {
-      m_edges.emplace_back(edgeIt());
-    }
   }
 
   template <class T>
@@ -101,24 +89,6 @@ namespace DCEL {
   FaceT<T>::setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm& a_algorithm) noexcept
   {
     m_poly2Algorithm = a_algorithm;
-  }
-
-  template <class T>
-  inline void
-  FaceT<T>::computeArea() noexcept
-  {
-    m_area = 0.0;
-
-    // This computes the area of any N-side polygon.
-    const auto vertices = this->gatherVertices();
-
-    for (size_t i = 0; i < vertices.size() - 1; i++) {
-      const auto& v1 = vertices[i]->getPosition();
-      const auto& v2 = vertices[i + 1]->getPosition();
-      m_area += m_normal.dot(v2.cross(v1));
-    }
-
-    m_area = 0.5 * std::abs(m_area);
   }
 
   template <class T>
@@ -169,6 +139,28 @@ namespace DCEL {
   }
 
   template <class T>
+  inline T
+  FaceT<T>::computeArea() noexcept
+  {
+
+    T area = 0.0;
+
+    // This computes the area of any N-side polygon.
+    const auto vertices = this->gatherVertices();
+
+    for (size_t i = 0; i < vertices.size() - 1; i++) {
+      const auto& v1 = vertices[i]->getPosition();
+      const auto& v2 = vertices[i + 1]->getPosition();
+
+      area += m_normal.dot(v2.cross(v1));
+    }
+
+    area = 0.5 * std::abs(area);
+
+    return area;
+  }
+
+  template <class T>
   inline T&
   FaceT<T>::getCentroid(const size_t a_dir) noexcept
   {
@@ -208,20 +200,6 @@ namespace DCEL {
   FaceT<T>::getNormal() const noexcept
   {
     return (m_normal);
-  }
-
-  template <class T>
-  inline T
-  FaceT<T>::getArea() noexcept
-  {
-    return (m_area);
-  }
-
-  template <class T>
-  inline T
-  FaceT<T>::getArea() const noexcept
-  {
-    return (m_area);
   }
 
   template <class T>
@@ -324,10 +302,18 @@ namespace DCEL {
       retval = m_normal.dot(a_x0 - m_centroid);
     }
     else {
-      for (const auto& e : m_edges) {
-        const T curDist = e->signedDistance(a_x0);
+      EdgePtr cur = m_halfEdge;
+
+      while (true) {
+        const T curDist = cur->signedDistance(a_x0);
 
         retval = (std::abs(curDist) < std::abs(retval)) ? curDist : retval;
+
+        cur = cur->getNextEdge();
+
+        if (cur == nullptr || cur == m_halfEdge) {
+          break;
+        }
       }
     }
 
@@ -348,10 +334,18 @@ namespace DCEL {
       retval = normDist * normDist;
     }
     else {
-      for (const auto& e : m_edges) {
-        const T curDist2 = e->unsignedDistance2(a_x0);
+      EdgePtr cur = m_halfEdge;
+
+      while (true) {
+        const T curDist2 = cur->unsignedDistance2(a_x0);
 
         retval = (curDist2 < retval) ? curDist2 : retval;
+
+        cur = cur->getNextEdge();
+
+        if (cur == nullptr || cur == m_halfEdge) {
+          break;
+        }
       }
     }
 

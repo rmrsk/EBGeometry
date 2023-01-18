@@ -120,17 +120,12 @@ public:
 
 private:
   /*!
-    @brief 3D coordinate direction to ignore
-  */
-  size_t m_ignoreDir;
-
-  /*!
-    @brief The corresponding 2D x-direction.
+    @brief The corresponding 2D x-direction (one direction is ignored)
   */
   size_t m_xDir;
 
   /*!
-    @brief The corresponding 2D y-direction.
+    @brief The corresponding 2D y-direction (one direction is ignored)
   */
   size_t m_yDir;
 

@@ -29,7 +29,7 @@ template <class T, class P, class BV, size_t K>
 class UnionBVH : public ImplicitFunction<T>
 {
 public:
-  static_assert(std::is_base_of<EBGeometry::SignedDistanceFunction<T>, P>::value);
+  static_assert(std::is_base_of<EBGeometry::SignedDistanceFunction<T>, P>::value, "UnionBVH requires an SDF (for now)");
 
   using BVConstructor = EBGeometry::BVH::BVConstructorT<P, BV>;
 

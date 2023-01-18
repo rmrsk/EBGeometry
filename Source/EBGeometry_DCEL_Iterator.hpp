@@ -30,10 +30,7 @@ namespace DCEL {
   class FaceT;
 
   /*!
-    @brief Class which can iterate through edges and vertices around a DCEL
-    polygon face.
-    @details This class can be used so that it either visits all the half-edges in
-    a face, or all the outgoing half-edges from a vertex.
+    @brief Class which makes it easier to iterate through DCEL edges
   */
   template <class T>
   class EdgeIteratorT
@@ -71,27 +68,9 @@ namespace DCEL {
     EdgeIteratorT(const Face& a_face);
 
     /*!
-      @brief Constructor, taking a vertex as argument. The iterator begins at the
-      outgoing half-edge from the vertex
-      @param[in] a_vertex DCEL vertex
-      @note This constructor will will iterate through the outgoing half-edges
-      from a vertex.
-    */
-    EdgeIteratorT(Vertex& a_vertex);
-
-    /*!
-      @brief Constructor, taking a vertex as argument. The iterator begins at the
-      outgoing half-edge from the vertex
-      @param[in] a_vertex DCEL vertex
-      @note This constructor will will iterate through the outgoing half-edges
-      from a vertex.
-    */
-    EdgeIteratorT(const Vertex& a_vertex);
-
-    /*!
       @brief Destructor.
     */
-    ~EdgeIteratorT() = default;
+    virtual ~EdgeIteratorT() = default;
 
     /*!
       @brief Operator returning a pointer to the current half-edge
@@ -129,24 +108,9 @@ namespace DCEL {
 
   protected:
     /*!
-      @brief Iteration mode, used to distinguish between the two constructors
-      (face- or vertex-based iteration)
-    */
-    enum class IterationMode
-    {
-      Vertices,
-      Faces
-    };
-
-    /*!
       @brief If true, a full loop has been made around the polygon face
     */
     bool m_fullLoop;
-
-    /*!
-      @brief Iteration mode. Set in constructor
-    */
-    IterationMode m_iterMode;
 
     /*!
       @brief Starting half-edge

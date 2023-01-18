@@ -117,19 +117,13 @@ EBGeometry is not too strict about these things, and uses rigorous templating fo
    find Source Examples \( -name "*.hpp" -o -name "*.cpp" \) -exec clang-format -i {} +
    ```
 
-4. For safety, run [codespell](https://github.com/codespell-project/codespell) on the source, examples, and documentation directories:
-
-   ```
-   codespell Source Examples Docs/Sphinx --skip "*.png,*.log,*.pdf"
-   ```
-
-5. Push the changes to GitHub
+4. Push the changes to GitHub
 
    ```
    git push --set-upstream origin my_branch
    ```
    
-6. Create a pull request and make sure the GitHub continuous integration tests pass.
+5. Create a pull request and make sure the GitHub continuous integration tests pass.
 
 License
 -------

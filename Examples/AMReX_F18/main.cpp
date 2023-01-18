@@ -3,15 +3,15 @@
  * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
  */
 
-// Std includes
-#include <filesystem>
-
 // AMReX includes
 #include <AMReX.H>
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
+
+// Std includes
+#include <filesystem>
 
 // Our include
 #include "../../EBGeometry.hpp"

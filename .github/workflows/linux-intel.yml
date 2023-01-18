@@ -39,18 +39,18 @@ jobs:
         if: always()
         run: |
           source /opt/intel/oneapi/setvars.sh          
-          ./a.out porsche.ply
+          ./a.out armadillo.stl
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi
 
       - name: Compile union example
-        working-directory: Examples/EBGeometry_Union
+        working-directory: Examples/EBGeometry_PackedSpheres
         if: always()
         run: |
           source /opt/intel/oneapi/setvars.sh          
           icpc -std=c++14 -w -O3 main.cpp          
 
       - name: Run union example
-        working-directory: Examples/EBGeometry_Union
+        working-directory: Examples/EBGeometry_PackedSpheres
         if: always()
         run: |
           source /opt/intel/oneapi/setvars.sh          
@@ -92,11 +92,11 @@ jobs:
         if: always()
         run: |
           source /opt/intel/oneapi/setvars.sh
-          ./a.out porsche.ply
+          ./a.out armadillo.stl
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
 
       - name: Compile union example
-        working-directory: Examples/EBGeometry_Union
+        working-directory: Examples/EBGeometry_PackedSpheres
         if: always()
         run: |
           source /opt/intel/oneapi/setvars.sh
@@ -107,7 +107,7 @@ jobs:
           main.cpp
 
       - name: Run union example
-        working-directory: Examples/EBGeometry_Union
+        working-directory: Examples/EBGeometry_PackedSpheres
         if: always()
         run: |
           source /opt/intel/oneapi/setvars.sh
