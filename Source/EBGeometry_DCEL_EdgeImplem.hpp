@@ -17,7 +17,6 @@
 #include "EBGeometry_DCEL_Vertex.hpp"
 #include "EBGeometry_DCEL_Edge.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
-#include "EBGeometry_DCEL_Iterator.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 namespace DCEL {
@@ -25,14 +24,11 @@ namespace DCEL {
   template <class T>
   inline EdgeT<T>::EdgeT()
   {
-    m_face         = nullptr;
-    m_vertex       = nullptr;
-    m_pairEdge     = nullptr;
-    m_nextEdge     = nullptr;
-    m_previousEdge = nullptr;
-    m_normal       = Vec3::zero();
-    m_x2x1         = Vec3::zero();
-    m_invLen2      = 0.0;
+    m_normal   = Vec3::zero();
+    m_face     = nullptr;
+    m_vertex   = nullptr;
+    m_pairEdge = nullptr;
+    m_nextEdge = nullptr;
   }
 
   template <class T>
@@ -44,14 +40,11 @@ namespace DCEL {
   template <class T>
   inline EdgeT<T>::EdgeT(const Edge& a_otherEdge) : EdgeT<T>()
   {
-    m_face         = a_otherEdge.m_face;
-    m_vertex       = a_otherEdge.m_vertex;
-    m_pairEdge     = a_otherEdge.m_pairEdge;
-    m_nextEdge     = a_otherEdge.m_nextEdge;
-    m_previousEdge = a_otherEdge.m_previousEdge;
-    m_normal       = a_otherEdge.m_normal;
-    m_x2x1         = a_otherEdge.m_x2x1;
-    m_invLen2      = a_otherEdge.m_invLen2;
+    m_normal   = a_otherEdge.m_normal;
+    m_face     = a_otherEdge.m_face;
+    m_vertex   = a_otherEdge.m_vertex;
+    m_pairEdge = a_otherEdge.m_pairEdge;
+    m_nextEdge = a_otherEdge.m_nextEdge;
   }
 
   template <class T>
@@ -60,17 +53,25 @@ namespace DCEL {
 
   template <class T>
   inline void
-  EdgeT<T>::define(const VertexPtr& a_vertex,
-                   const EdgePtr&   a_pairEdge,
-                   const EdgePtr&   a_nextEdge,
-                   const EdgePtr&   a_previousEdge,
-                   const Vec3       a_normal) noexcept
+  EdgeT<T>::define(const VertexPtr& a_vertex, const EdgePtr& a_pairEdge, const EdgePtr& a_nextEdge) noexcept
   {
-    m_vertex       = a_vertex;
-    m_pairEdge     = a_pairEdge;
-    m_nextEdge     = a_nextEdge;
-    m_previousEdge = a_previousEdge;
-    m_normal       = a_normal;
+    m_vertex   = a_vertex;
+    m_pairEdge = a_pairEdge;
+    m_nextEdge = a_nextEdge;
+  }
+
+  template <class T>
+  inline void
+  EdgeT<T>::flip() noexcept
+  {
+    m_normal = -m_normal;
+  }
+
+  template <class T>
+  inline void
+  EdgeT<T>::reconcile() noexcept
+  {
+    m_normal = this->computeNormal();
   }
 
   template <class T>
@@ -96,66 +97,32 @@ namespace DCEL {
 
   template <class T>
   inline void
-  EdgeT<T>::setPreviousEdge(const EdgePtr& a_previousEdge) noexcept
-  {
-    m_previousEdge = a_previousEdge;
-  }
-
-  template <class T>
-  inline void
   EdgeT<T>::setFace(const FacePtr& a_face) noexcept
   {
     m_face = a_face;
   }
 
   template <class T>
-  inline void
-  EdgeT<T>::normalizeNormalVector() noexcept
+  inline Vec3T<T>
+  EdgeT<T>::computeNormal() const noexcept
   {
-    m_normal = m_normal / m_normal.length();
-  }
+    Vec3T<T> normal = Vec3T<T>::zero();
 
-  template <class T>
-  inline void
-  EdgeT<T>::computeEdgeLength() noexcept
-  {
-    const auto& x1 = this->getVertex()->getPosition();
-    const auto& x2 = this->getOtherVertex()->getPosition();
-
-    m_x2x1 = x2 - x1;
-
-    const auto len2 = m_x2x1.dot(m_x2x1);
-
-    m_invLen2 = 1. / len2;
-  }
-
-  template <class T>
-  inline void
-  EdgeT<T>::computeNormal() noexcept
-  {
-
-    m_normal = m_face->getNormal();
-
+    if (m_face) {
+      normal += m_face->getNormal();
+    }
     if (m_pairEdge) {
-      m_normal += m_pairEdge->getFace()->getNormal();
+      normal += m_pairEdge->getFace()->getNormal();
     }
 
-    this->normalizeNormalVector();
+    return normal / normal.length();
   }
 
   template <class T>
-  inline void
-  EdgeT<T>::reconcile() noexcept
+  inline const Vec3T<T>&
+  EdgeT<T>::getNormal() const noexcept
   {
-    this->computeNormal();
-    this->computeEdgeLength();
-  }
-
-  template <class T>
-  inline void
-  EdgeT<T>::flip() noexcept
-  {
-    m_normal = -m_normal;
+    return (m_normal);
   }
 
   template <class T>
@@ -202,20 +169,6 @@ namespace DCEL {
 
   template <class T>
   inline std::shared_ptr<EdgeT<T>>&
-  EdgeT<T>::getPreviousEdge() noexcept
-  {
-    return (m_previousEdge);
-  }
-
-  template <class T>
-  inline const std::shared_ptr<EdgeT<T>>&
-  EdgeT<T>::getPreviousEdge() const noexcept
-  {
-    return (m_previousEdge);
-  }
-
-  template <class T>
-  inline std::shared_ptr<EdgeT<T>>&
   EdgeT<T>::getNextEdge() noexcept
   {
     return (m_nextEdge);
@@ -229,17 +182,13 @@ namespace DCEL {
   }
 
   template <class T>
-  inline Vec3T<T>&
-  EdgeT<T>::getNormal() noexcept
+  inline Vec3T<T>
+  EdgeT<T>::getX2X1() const noexcept
   {
-    return (m_normal);
-  }
+    const auto& x1 = this->getVertex()->getPosition();
+    const auto& x2 = this->getOtherVertex()->getPosition();
 
-  template <class T>
-  inline const Vec3T<T>&
-  EdgeT<T>::getNormal() const noexcept
-  {
-    return (m_normal);
+    return x2 - x1;
   }
 
   template <class T>
@@ -262,24 +211,31 @@ namespace DCEL {
   {
     const auto p = a_x0 - m_vertex->getPosition();
 
-    return p.dot(m_x2x1) * m_invLen2;
+    const auto x2x1 = this->getX2X1();
+
+    return p.dot(x2x1) / (x2x1.dot(x2x1));
   }
 
   template <class T>
   inline T
   EdgeT<T>::signedDistance(const Vec3& a_x0) const noexcept
   {
+    // Project point to edge.
     const T t = this->projectPointToEdge(a_x0);
 
     T retval;
-    if (t <= 0.0) { // Closest point is the starting vertex
+    if (t <= 0.0) {
+      // Closest point is the starting vertex
       retval = this->getVertex()->signedDistance(a_x0);
     }
-    else if (t >= 1.0) { // Closest point is the end vertex
+    else if (t >= 1.0) {
+      // Closest point is the end vertex
       retval = this->getOtherVertex()->signedDistance(a_x0);
     }
-    else { // Closest point is the edge itself.
-      const Vec3 linePoint = m_vertex->getPosition() + t * m_x2x1;
+    else {
+      // Closest point is the edge itself.
+      const Vec3 x2x1      = this->getX2X1();
+      const Vec3 linePoint = m_vertex->getPosition() + t * x2x1;
       const Vec3 delta     = a_x0 - linePoint;
       const T    dot       = m_normal.dot(delta);
 
@@ -295,14 +251,15 @@ namespace DCEL {
   inline T
   EdgeT<T>::unsignedDistance2(const Vec3& a_x0) const noexcept
   {
-    T t = this->projectPointToEdge(a_x0);
-
     constexpr T zero = 0.0;
     constexpr T one  = 1.0;
 
-    t = std::min(std::max(zero, t), one); // Edge is on t=[0,1].
+    // Project point to edge and restrict to edge length.
+    const auto t = std::min(std::max(zero, this->projectPointToEdge(a_x0)), one);
 
-    const Vec3T<T> linePoint = m_vertex->getPosition() + t * m_x2x1;
+    // Compute distance to this edge.
+    const Vec3T<T> x2x1      = this->getX2X1();
+    const Vec3T<T> linePoint = m_vertex->getPosition() + t * x2x1;
     const Vec3T<T> delta     = a_x0 - linePoint;
 
     return delta.dot(delta);

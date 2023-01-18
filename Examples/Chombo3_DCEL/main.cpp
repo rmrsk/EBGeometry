@@ -1,3 +1,8 @@
+/* EBGeometry
+ * Copyright © 2023 Robert Marskar
+ * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
+ */
+
 // Chombo includes
 #include "EBISLayout.H"
 #include "DisjointBoxLayout.H"
@@ -74,7 +79,7 @@ main(int argc, char* argv[])
   int whichGeom = 0;
   int gridSize  = 16;
   pp.query("which_geom", whichGeom);
-  pp.query("n_cells", nCells);
+  pp.query("ncells", nCells);
   pp.query("grid_size", gridSize);
 
   RealVect    loCorner;
@@ -123,13 +128,17 @@ main(int argc, char* argv[])
 
     filename = "../Resources/armadillo.stl";
   }
+  else if (whichGeom == 7) { // Adirondacks
+    loCorner = RealVect::Zero;
+    hiCorner = 250 * RealVect::Unit;
+    filename = "../Resources/adirondack.stl";
+  }
 
   auto impFunc = static_cast<BaseIF*>(new ChomboSDF<T, BV, K>(filename));
 
   // Set up the Chombo EB geometry.
   ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);
   const Real    dx = (hiCorner[0] - loCorner[0]) / nCells;
-  ;
 
   GeometryShop  workshop(*impFunc, -1, dx * RealVect::Zero);
   EBIndexSpace* ebisPtr = Chombo_EBIS::instance();

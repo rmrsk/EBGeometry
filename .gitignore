@@ -15,6 +15,14 @@ Examples/AMReX_F18/plt*
 Examples/AMReX_F18/tmp_build_dir
 Examples/AMReX_F18/Backtrace.*
 
+Examples/AMReX_PackedSpheres/plt*
+Examples/AMReX_PackedSpheres/tmp_build_dir
+Examples/AMReX_PackedSpheres/Backtrace.*
+
+Examples/AMReX_RandomCity/plt*
+Examples/AMReX_RandomCity/tmp_build_dir
+Examples/AMReX_RandomCity/Backtrace.*
+
 Examples/AMReX_Shapes/plt*
 Examples/AMReX_Shapes/tmp_build_dir
 Examples/AMReX_Shapes/Backtrace.*
@@ -28,6 +36,16 @@ Examples/Chombo3_F18/d/**
 Examples/Chombo3_F18/o/**
 Examples/Chombo3_F18/f/**
 Examples/Chombo3_F18/d/**
+
+Examples/Chombo3_PackedSpheres/d/**
+Examples/Chombo3_PackedSpheres/o/**
+Examples/Chombo3_PackedSpheres/f/**
+Examples/Chombo3_PackedSpheres/d/**
+
+Examples/Chombo3_RandomCity/d/**
+Examples/Chombo3_RandomCity/o/**
+Examples/Chombo3_RandomCity/f/**
+Examples/Chombo3_RandomCity/d/**
 
 Examples/Chombo3_Shapes/d/**
 Examples/Chombo3_Shapes/o/**

@@ -1,4 +1,6 @@
-This example uses the embedded boundary grid generation from AMReX.
+Examples/EBGeometry_F18
+-----------------------
+
 This is an advanced example, showing how multiple files (each containing a watertight polygon) can be embedded in a BVH-accelerated CSG union.
 
 This example loads a series of STL files and creates a DCEL mesh from each file.
@@ -9,10 +11,12 @@ The outer BVH provides fast lookup of the "nearest object".
 The inner BVHs (stored in the leaf nodes of the outer BVH) provide fast lookup of the nearest triangle. 
 The distance functions themselves are linear BVH hierarchies that bound the triangle sin each component.
 
-This example also does a performance comparison between:
+This example also does a performance comparison between the four types of traversal structures:
 
-* An optimized BVH-enabled CSG union (as above).
-* A standard CSG union.
+* Standard CSG, and linear search through triangles.
+* Standard CSG, and BVH-accelerated search through triangles.
+* BVH-accelerated CSG, and linear search through triangles.
+* BVH-accelerated CSG, and BVH-accelerated search through triangles.
 
 Compiling
 ---------

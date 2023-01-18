@@ -273,7 +273,6 @@ Parser::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
       auto& nextEdge = halfEdges[(i + 1) % halfEdges.size()];
 
       curEdge->setNextEdge(nextEdge);
-      nextEdge->setPreviousEdge(curEdge);
     }
 
     edges.insert(edges.end(), halfEdges.begin(), halfEdges.end());

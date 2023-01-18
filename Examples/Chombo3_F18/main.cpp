@@ -1,3 +1,6 @@
+// Std includes
+#include <filesystem>
+
 // Chombo includes
 #include "EBISLayout.H"
 #include "DisjointBoxLayout.H"
@@ -9,8 +12,6 @@
 #include "EBCellFactory.H"
 #include "EBLevelDataOps.H"
 #include "EBAMRIO.H"
-
-#include <filesystem>
 
 // Our includes
 #include "EBGeometry.hpp"
@@ -87,10 +88,9 @@ main(int argc, char* argv[])
   char*     inFile = argv[1];
   ParmParse pp(argc - 2, argv + 2, NULL, inFile);
 
-  int nCells    = 256;
-  int whichGeom = 0;
-  int gridSize  = 16;
-  pp.query("which_geom", whichGeom);
+  int nCells   = 64;
+  int gridSize = 16;
+
   pp.query("n_cells", nCells);
   pp.query("grid_size", gridSize);
 
