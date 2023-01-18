@@ -24,6 +24,7 @@ Other input options are
 
 * `n_cells = <integer>` For setting the number of grid cells along the coordinate directions.
 * `grid_size = <integer>` For setting the blocking factor.
+* `which_geom = <integer>` For setting the geometry.
 
 Supported geometries
 --------------------
