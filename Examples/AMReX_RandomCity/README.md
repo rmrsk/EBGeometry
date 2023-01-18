@@ -1,3 +1,6 @@
+Examples/AMReX_RandomCity
+-------------------------
+
 This example uses the embedded boundary grid generation from AMReX for constructing a random urban city environment (consiting of boxes).
 To compile this application, first install AMReX somewhere and point the AMREX_HOME environment variable to it.
 
