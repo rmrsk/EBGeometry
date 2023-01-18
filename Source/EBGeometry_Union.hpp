@@ -28,7 +28,7 @@ class Union : public ImplicitFunction<T>
 {
 public:
   // Regular CSG union only requires implicit functions.
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value);
+  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "Union requires an implicit function (for now)");
 
   /*!
     @brief Disallowed, use the full constructor
