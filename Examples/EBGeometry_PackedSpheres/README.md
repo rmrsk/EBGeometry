@@ -1,3 +1,6 @@
+Examples/EBGeometry_PackedSpheres
+---------------------------------
+
 This folder contains a basic example of create multi-object scenes using EBGeometry.
 This example creates a scene consisting of packed spheres (defined by analytic functions), and the scene is created from the union of these spheres.
 Two unions are defined: :
