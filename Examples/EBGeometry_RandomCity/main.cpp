@@ -86,12 +86,16 @@ main()
     return AABB(a_box->getLowCorner(), a_box->getHighCorner());
   });
 
-  // Sample some random points.
+  // Sample some random points in the bounding box of the BVH.
+  const AABB& bv = fastUnion.getBoundingVolume();
+  const Vec3  lo = bv.getLowCorner();
+  const Vec3  hi = bv.getHighCorner();
+
   std::vector<Vec3> randomPositions;
   for (int i = 0; i < N; i++) {
-    const T x = (dx + Wmax) * M * udist(rng);
-    const T y = (dx + Lmax) * M * udist(rng);
-    const T z = (dx + Hmax) * M * udist(rng);
+    const T x = lo[0] + udist(rng) * (hi[0] - lo[0]);
+    const T y = lo[1] + udist(rng) * (hi[1] - lo[1]);
+    const T z = lo[2] + udist(rng) * (hi[2] - lo[2]);
 
     randomPositions.emplace_back(Vec3(x, y, z));
   }

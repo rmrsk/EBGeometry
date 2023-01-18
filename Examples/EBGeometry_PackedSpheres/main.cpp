@@ -28,7 +28,7 @@ main()
   // Tree branching factor
   constexpr int K = 4;
 
-  // Make a sphere array consisting of about M^3 spheres. 
+  // Make a sphere array consisting of about M^3 spheres.
   std::vector<std::shared_ptr<Sphere>> spheres;
 
   constexpr T   radius = 1.0;
@@ -59,7 +59,7 @@ main()
   // spheres) as well as a way for enclosing these objects. We need to define
   // ourselves a lambda that creates an appropriate bounding volumes for each
   // SDF.
-  std::cout << "Partitioning " << std::pow(M, 3) << " spheres" << std::endl;  
+  std::cout << "Partitioning " << std::pow(M, 3) << " spheres" << std::endl;
   EBGeometry::BVH::BVConstructorT<Sphere, AABB> aabbConstructor = [](const std::shared_ptr<const Sphere>& a_prim) {
     const Vec3& c = a_prim->getCenter();
     const T&    r = a_prim->getRadius();
@@ -72,36 +72,36 @@ main()
 
   EBGeometry::UnionBVH<T, Sphere, AABB, K> fastUnion(spheres, false, aabbConstructor);
 
-  // Create some samples in the bounding box of the BVH 
+  // Create some samples in the bounding box of the BVH
   std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
   std::uniform_real_distribution<T> dist(0.0, 1.0);
 
   const AABB& bv = fastUnion.getBoundingVolume();
-  const Vec3 lo = bv.getLowCorner();
-  const Vec3 hi = bv.getHighCorner();    
+  const Vec3  lo = bv.getLowCorner();
+  const Vec3  hi = bv.getHighCorner();
 
-  std::vector<Vec3> ranPoints;
+  std::vector<Vec3> randomPositions;
   for (size_t i = 0; i < Nsamp; i++) {
     const T x = lo[0] + dist(rng) * (hi[0] - lo[0]);
     const T y = lo[1] + dist(rng) * (hi[1] - lo[1]);
     const T z = lo[2] + dist(rng) * (hi[2] - lo[2]);
-    
-    ranPoints.emplace_back(Vec3(x,y,z));
+
+    randomPositions.emplace_back(Vec3(x, y, z));
   }
 
   // Time the results, using the standard union and the optimized union.
   std::chrono::duration<T, std::micro> slowTime(0.0);
-  std::chrono::duration<T, std::micro> fastTime(0.0);  
+  std::chrono::duration<T, std::micro> fastTime(0.0);
 
   T sumSlow = 0.0;
   T sumFast = 0.0;
 
   const auto t1 = std::chrono::high_resolution_clock::now();
-  for (const auto& x : ranPoints) {
+  for (const auto& x : randomPositions) {
     sumSlow += slowUnion.value(x);
   }
   const auto t2 = std::chrono::high_resolution_clock::now();
-  for (const auto& x : ranPoints) {
+  for (const auto& x : randomPositions) {
     sumFast += fastUnion.value(x);
   }
   const auto t3 = std::chrono::high_resolution_clock::now();
