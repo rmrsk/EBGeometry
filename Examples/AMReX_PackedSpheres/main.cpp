@@ -31,7 +31,7 @@ constexpr T   dx   = 0.25;
 constexpr T   Rmin = 1;
 constexpr T   Rmax = 6;
 
-//  geometry, using a BVH accelerator for the CSG union of the buildings.
+// Packed spheres geometry, using a BVH accelerator for the CSG union
 class PackedSpheres
 {
 public:

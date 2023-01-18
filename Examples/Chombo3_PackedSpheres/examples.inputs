@@ -1,0 +1,3 @@
+bvh        = true
+n_cells    = 64
+grid_size  = 16
