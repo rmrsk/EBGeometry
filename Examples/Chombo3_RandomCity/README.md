@@ -1,7 +1,7 @@
-Examples/Chombo3_PackedSpheres
+Examples/Chombo3_RandomCity
 ------------------------------
 
-This example uses the embedded boundary grid generation from Chombo3 for constructing a packed spherical bed. 
+This example uses the embedded boundary grid generation from Chombo3 for constructing a random urban environment.
 To compile this application, first install Chombo somewhere and point the CHOMBO_HOME environment variable to it.
 
 Compiling
