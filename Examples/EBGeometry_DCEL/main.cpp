@@ -96,7 +96,8 @@ main(int argc, char* argv[])
   std::cout << "Bounding box = " << lo << "\t" << hi << "\n";
   std::cout << "Accumulated distance and time using direct DCEL = " << dcelSum << ", which took " << dcelTime.count() / Nsamp << " us\n";
   std::cout << "Accumulated distance and time using full BVH    = " << bvhSum  << ", which took " << bvhTime.count()  / Nsamp << " us\n";
-  std::cout << "Accumulated distance and time using compact BVH = " << linSum  << ", which took " << linTime.count()  / Nsamp << " us\n";    
+  std::cout << "Accumulated distance and time using compact BVH = " << linSum  << ", which took " << linTime.count()  / Nsamp << " us\n";
+  std::cout << "Relative speedup using BVH vs direct DCL        = " << dcelTime.count()/linTime.count() << "\n";
   // clang-format on  
 
   return 0;
