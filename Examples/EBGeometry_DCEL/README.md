@@ -1,5 +1,5 @@
 Examples/EBGeometry_DCEL
------------------------
+------------------------
 
 This folder contains a basic example of using EBGeometry, with three different representations of the signed distance field.
 
