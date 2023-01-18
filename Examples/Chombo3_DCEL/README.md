@@ -18,8 +18,6 @@ With MPI:
 
     mpirun -np 8 main3d.<something>.ex examples.inputs
 
-Some of the geometries will generate cut-cells which AMReX does not support, so the geometries should be run with eb2.cover_multiple_cuts=1.
-
 Other input options are
 
 * `n_cells = <integer>` For setting the number of grid cells along the coordinate directions.
