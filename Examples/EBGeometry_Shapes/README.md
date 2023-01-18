@@ -1,3 +1,6 @@
+Examples/EBGeometry_Shapes
+--------------------------
+
 This folder contains a very basic example of using EBGeometry for creating analytic signed distance fields. 
 
 Compiling
