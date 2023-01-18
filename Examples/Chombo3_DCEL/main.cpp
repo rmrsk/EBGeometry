@@ -124,10 +124,10 @@ main(int argc, char* argv[])
     filename = "../Resources/armadillo.stl";
   }
   else if (whichGeom == 7) { // Adirondacks
-    loCorner  = RealVect::Zero;
-    hiCorner  = 250*RealVect::Unit;
+    loCorner = RealVect::Zero;
+    hiCorner = 250 * RealVect::Unit;
     filename = "../Resources/adirondacks.stl";
-  }  
+  }
 
   auto impFunc = static_cast<BaseIF*>(new ChomboSDF<T, BV, K>(filename));
 

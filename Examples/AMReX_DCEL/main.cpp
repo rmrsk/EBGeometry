@@ -119,10 +119,9 @@ main(int argc, char* argv[])
         filename = "../Resources/orion.stl";
       }
       else if (which_geom == 7) { // Adirondacks
-        rb       = RealBox({0,0,0},{200,200,50});
+        rb       = RealBox({0, 0, 0}, {200, 200, 50});
         filename = "../Resources/adirondacks.stl";
       }
-      
 
       Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};
       Geometry::Setup(&rb, 0, is_periodic.data());
