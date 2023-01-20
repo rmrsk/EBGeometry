@@ -62,6 +62,16 @@ namespace Transform {
   template <class T>
   std::shared_ptr<ImplicitFunction<T>>
   annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_delta) noexcept;
+
+  /*!
+    @brief Convenience function for smoothing an implicit function
+    @param[in] a_implicitFunction Input implicit function to be smoothed
+    @param[in] a_fc Smoothing parameter
+    @param[in] a_b  Smoothing parameter
+  */
+  template <class T>
+  std::shared_ptr<ImplicitFunction<T>>
+  smooth(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_fc, const T a_b) noexcept;
 } // namespace Transform
 
 /*!
@@ -123,7 +133,9 @@ public:
     @param[in] a_implicitFunction  Input implicit function. 
     @param[in] a_offset Offset value. 
   */
-  RotateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_angle, const size_t a_axis) noexcept;
+  RotateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
+           const T                                     a_angle,
+           const size_t                                a_axis) noexcept;
 
   /*!
     @brief Destructor
@@ -145,7 +157,7 @@ protected:
   /*!
     @brief Axis to rotate about
   */
-  size_t m_axis;  
+  size_t m_axis;
 
   /*!
     @brief Angle to rotate. 
@@ -160,7 +172,7 @@ protected:
   /*!
     @brief Parameter in rotation matrix. Stored for efficiency.
   */
-  T m_sinAngle;  
+  T m_sinAngle;
 };
 
 /*!
@@ -289,6 +301,67 @@ protected:
     @brief Shell thickness. 
   */
   T m_delta;
+};
+
+/*!
+  @brief Smoothed implicit function. 
+*/
+template <class T>
+class SmoothIF : public ImplicitFunction<T>
+{
+public:
+  /*!
+    @brief Disallowed weak construction
+  */
+  SmoothIF() = delete;
+
+  /*!
+    @brief Full constructor
+    @param[in] a_implicitFunction  Input implicit function. 
+    @param[in] a_delta Shell thickness (at least if the implicit function is also signed distance)
+  */
+  SmoothIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_fc, const T a_b) noexcept;
+
+  /*!
+    @brief Destructor
+  */
+  virtual ~SmoothIF() noexcept;
+
+  /*!
+    @brief Value function
+    @param[in] a_point Input point
+  */
+  virtual T
+  value(const Vec3T<T>& a_point) const noexcept override;
+
+protected:
+  /*!
+    @brief Original implicit function. 
+  */
+  std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction;
+
+  /*!
+    @brief Smoothing parameter
+  */
+  T m_fc;
+
+  /*!
+    @brief Smoothing parameter
+  */
+  T m_b;
+
+  /*!
+    @brief Smoothstep kernel function using the fc parameter
+    @param[in] a_point Input point
+  */
+  inline T
+  smoothStep(const Vec3T<T>& a_point) const noexcept;
+
+  /*!
+    @brief Bump kernel
+  */
+  inline T
+  bump(const Vec3T<T>& a_u) const noexcept;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

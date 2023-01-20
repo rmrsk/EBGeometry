@@ -122,9 +122,10 @@ main(int argc, char* argv[])
     func = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one(), false);
   }
   else if (whichGeom == 6) { // Rounded box.
-    rb = RealBox({-2, -2, -2}, {2, 2, 2});
+    rb   = RealBox({-2, -2, -2}, {2, 2, 2});
     func = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one(), false);
-    func     = std::make_shared<EBGeometry::OffsetIF<T>>(box, 0.25);
+    func = EBGeometry::Transform::offset(func, 0.25);
+    func = EBGeometry::Transform::smooth(func, 0.1, 0.1);
   }
   else if (whichGeom == 7) { // Torus.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});

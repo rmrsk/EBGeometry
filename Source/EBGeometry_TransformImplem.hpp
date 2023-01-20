@@ -54,6 +54,13 @@ Transform::annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctio
 }
 
 template <class T>
+std::shared_ptr<ImplicitFunction<T>>
+Transform::smooth(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_fc, const T a_b) noexcept
+{
+  return std::make_shared<SmoothIF<T>>(a_implicitFunction, a_fc, a_b);
+}
+
+template <class T>
 TranslateIF<T>::TranslateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
                             const Vec3T<T>&                             a_translation) noexcept
 {
@@ -178,6 +185,56 @@ T
 AnnularIF<T>::value(const Vec3T<T>& a_point) const noexcept
 {
   return std::abs(m_implicitFunction->value(a_point)) - m_delta;
+}
+
+template <class T>
+SmoothIF<T>::SmoothIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
+                      const T                                     a_fc,
+                      const T                                     a_b) noexcept
+{
+  m_implicitFunction = a_implicitFunction;
+  m_fc               = a_fc;
+  m_b                = a_b;
+}
+
+template <class T>
+SmoothIF<T>::~SmoothIF() noexcept
+{}
+
+template <class T>
+T
+SmoothIF<T>::value(const Vec3T<T>& a_point) const noexcept
+{
+  return m_implicitFunction->value(a_point);
+}
+
+template <class T>
+inline T
+SmoothIF<T>::smoothStep(const Vec3T<T>& a_p) const noexcept
+{
+  const T f = m_implicitFunction->value(a_p);
+  const T r = std::min(std::abs(f) / m_fc, 1.0);
+
+  return 3 * r * r - 2 * r * r * r;
+}
+
+template <class T>
+inline T
+SmoothIF<T>::bump(const Vec3T<T>& a_u) const noexcept
+{
+  auto w = [](const Vec3T<T>& u) -> T {
+    T ret = 0.0;
+
+    const T u2 = u.length2();
+
+    if (u2 < (T)1.0) {
+      ret = 4.06156938 / (exp(u2 - 1.0));
+    }
+
+    return ret;
+  };
+
+  return std::pow(m_b, -3) * w(a_u / m_b);
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"
