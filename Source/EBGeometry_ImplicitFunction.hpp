@@ -42,6 +42,16 @@ public:
   */
   virtual T
   value(const Vec3T<T>& a_point) const noexcept = 0;
+
+  /*!
+    @brief Alternative signature for the value function.
+    @param[in] a_point 3D point.
+  */
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return this->value(a_point);
+  }
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

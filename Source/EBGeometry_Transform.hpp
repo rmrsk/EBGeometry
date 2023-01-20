@@ -64,14 +64,22 @@ namespace Transform {
   annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_delta) noexcept;
 
   /*!
-    @brief Convenience function for smoothing an implicit function
-    @param[in] a_implicitFunction Input implicit function to be smoothed
-    @param[in] a_fc Smoothing parameter
-    @param[in] a_b  Smoothing parameter
+    @brief Convenience function for blurring an implicit function
+    @param[in] a_implicitFunction Input implicit function to be blurred
+    @param[in] a_blurDistance Smoothing distance
   */
   template <class T>
   std::shared_ptr<ImplicitFunction<T>>
-  smooth(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_fc, const T a_b) noexcept;
+  blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_blur) noexcept;
+
+  /*!
+    @brief Convenience function for mollification with an input sphere. 
+    @param[in] a_implicitFunction Input implicit function to be mollifier
+    @param[in] a_dist Mollification distance. 
+  */
+  template <class T>
+  std::shared_ptr<ImplicitFunction<T>>
+  mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_dist) noexcept;
 } // namespace Transform
 
 /*!
@@ -304,28 +312,87 @@ protected:
 };
 
 /*!
-  @brief Smoothed implicit function. 
+  @brief Blurred/interpolated implicit function - can be used for smoothing.
+  @details This passed the input implicit function through a trilinear filter with specified distance. We blur the function 
+  using f = alpha * f + (1-alpha)/2 * [f(x+d) + f(x-d)]
+*/
+
+template <class T>
+class BlurIF : public ImplicitFunction<T>
+{
+public:
+  /*!
+    @brief Disallowed weak constructino
+  */
+  BlurIF() = delete;
+
+  /*!
+    @brief Full constructor.
+    @param[in] a_implicitFunction Input implicit function
+    @param[in] a_blurDistance     Blur distance
+    @param[in] a_alpha            Blur factor. 
+  */
+  BlurIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
+         const T                                     a_blurDistance,
+         const T                                     a_alpha = 0.5) noexcept;
+
+  /*!
+   @brief Destructor
+  */
+  virtual ~BlurIF() noexcept;
+
+  /*!
+    @brief Value function
+    @param[in] a_point Input point
+  */
+  virtual T
+  value(const Vec3T<T>& a_point) const noexcept override;
+
+protected:
+  /*!
+    @brief Original implicit function
+  */
+  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
+
+  /*!
+    @brief Blur distance.
+  */
+  T m_blurDistance;
+
+  /*!
+    @brief Alpha factor
+  */
+  T m_alpha;
+};
+
+/*!
+  @brief Mollified implicit function. 
 */
 template <class T>
-class SmoothIF : public ImplicitFunction<T>
+class MollifyIF : public ImplicitFunction<T>
 {
 public:
   /*!
     @brief Disallowed weak construction
   */
-  SmoothIF() = delete;
+  MollifyIF() = delete;
 
   /*!
     @brief Full constructor
     @param[in] a_implicitFunction  Input implicit function. 
-    @param[in] a_delta Shell thickness (at least if the implicit function is also signed distance)
+    @param[in] a_mollifier         Mollifier
+    @param[in] a_maxVal            Max/min val where mollifier is applied
+    @param[in] a_numPoints         Number of points to use in mollification convolution kernel. Must be >= 1.
   */
-  SmoothIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_fc, const T a_b) noexcept;
+  MollifyIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
+            const std::shared_ptr<ImplicitFunction<T>>& a_mollifier,
+            const T                                     a_maxValue,
+            const size_t                                a_numPoints) noexcept;
 
   /*!
     @brief Destructor
   */
-  virtual ~SmoothIF() noexcept;
+  virtual ~MollifyIF() noexcept;
 
   /*!
     @brief Value function
@@ -341,27 +408,14 @@ protected:
   std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
 
   /*!
-    @brief Smoothing parameter
+    @brief Mollifier
   */
-  T m_fc;
+  std::shared_ptr<ImplicitFunction<T>> a_mollifier;
 
   /*!
-    @brief Smoothing parameter
+    @brief Mollifier Weights
   */
-  T m_b;
-
-  /*!
-    @brief Smoothstep kernel function using the fc parameter
-    @param[in] a_point Input point
-  */
-  inline T
-  smoothStep(const Vec3T<T>& a_point) const noexcept;
-
-  /*!
-    @brief Bump kernel
-  */
-  inline T
-  bump(const Vec3T<T>& a_u) const noexcept;
+  std::vector<std::pair<Vec3T<T>, T>> m_sampledMollifier;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

@@ -13,6 +13,7 @@
 #define EBGeometry_TransformImplem
 
 // Our includes
+#include "EBGeometry_AnalyticDistanceFunctions.hpp"
 #include "EBGeometry_Transform.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
@@ -55,9 +56,18 @@ Transform::annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctio
 
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
-Transform::smooth(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_fc, const T a_b) noexcept
+Transform::blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_blur) noexcept
 {
-  return std::make_shared<SmoothIF<T>>(a_implicitFunction, a_fc, a_b);
+  return std::make_shared<BlurIF<T>>(a_implicitFunction, a_blur);
+}
+
+template <class T>
+std::shared_ptr<ImplicitFunction<T>>
+Transform::mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_dist) noexcept
+{
+  auto mollifier = std::make_shared<SphereSDF<T>>(Vec3T<T>::zero(), a_dist, false);
+
+  return std::make_shared<MollifyIF<T>>(a_implicitFunction, mollifier, a_dist, 3);
 }
 
 template <class T>
@@ -188,53 +198,97 @@ AnnularIF<T>::value(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T>
-SmoothIF<T>::SmoothIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
-                      const T                                     a_fc,
-                      const T                                     a_b) noexcept
+BlurIF<T>::BlurIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
+                  const T                                     a_blurDistance,
+                  const T                                     a_alpha) noexcept
 {
   m_implicitFunction = a_implicitFunction;
-  m_fc               = a_fc;
-  m_b                = a_b;
+  m_blurDistance     = a_blurDistance;
+  m_alpha            = a_alpha;
 }
 
 template <class T>
-SmoothIF<T>::~SmoothIF() noexcept
+BlurIF<T>::~BlurIF() noexcept
 {}
 
 template <class T>
 T
-SmoothIF<T>::value(const Vec3T<T>& a_point) const noexcept
+BlurIF<T>::value(const Vec3T<T>& a_point) const noexcept
 {
-  return m_implicitFunction->value(a_point);
+
+  const T A = std::pow(m_alpha, 3.0) * std::pow((1.0 - m_alpha) / 2.0, 0.0);
+  const T B = std::pow(m_alpha, 2.0) * std::pow((1.0 - m_alpha) / 2.0, 1.0);
+  const T C = std::pow(m_alpha, 1.0) * std::pow((1.0 - m_alpha) / 2.0, 2.0);
+  const T D = std::pow(m_alpha, 0.0) * std::pow((1.0 - m_alpha) / 2.0, 3.0);
+
+  const Vec3T<T> p = a_point;
+  const Vec3T<T> x = m_blurDistance * Vec3T<T>(1.0, 0.0, 0.0);
+  const Vec3T<T> y = m_blurDistance * Vec3T<T>(0.0, 1.0, 0.0);
+  const Vec3T<T> z = m_blurDistance * Vec3T<T>(0.0, 0.0, 1.0);
+
+  const auto& f = *m_implicitFunction;
+
+  T value = 0.0;
+
+  value += A * f(p);
+  value += B * (f(p + x) + f(p - x) + f(p + y) + f(p - y) + f(p + z) + f(p - z));
+  value += C * (f(p + x + y) + f(p + x - y) + f(p - x + y) + f(p - x - y));
+  value += C * (f(p + x + z) + f(p + x - z) + f(p - x + z) + f(p - x - z));
+  value += C * (f(p + y + y) + f(p + y - y) + f(p - y + y) + f(p - y - y));
+  value += C * (f(p + y + z) + f(p + y - z) + f(p - y + z) + f(p - y - z));
+  value += D * (f(p + x + y + z) + f(p + x + y - z) + f(p + x - y + z) + f(p + x - y - z));
+  value += D * (f(p - z + y + z) + f(p - z + y - z) + f(p - z - y + z) + f(p - z - y - z));
+
+  return value;
 }
 
 template <class T>
-inline T
-SmoothIF<T>::smoothStep(const Vec3T<T>& a_p) const noexcept
+MollifyIF<T>::MollifyIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
+                        const std::shared_ptr<ImplicitFunction<T>>& a_mollifier,
+                        const T                                     a_maxValue,
+                        const size_t                                a_numPoints) noexcept
 {
-  const T f = m_implicitFunction->value(a_p);
-  const T r = std::min(std::abs(f) / m_fc, 1.0);
+  m_implicitFunction = a_implicitFunction;
 
-  return 3 * r * r - 2 * r * r * r;
-}
+  const T dX = 2 * a_maxValue / (numPoints - 1);
 
-template <class T>
-inline T
-SmoothIF<T>::bump(const Vec3T<T>& a_u) const noexcept
-{
-  auto w = [](const Vec3T<T>& u) -> T {
-    T ret = 0.0;
+  for (int i = 0; i < a_numPoints; i++) {
+    for (int j = 0; j < a_numPoints; j++) {
+      for (int k = 0; k < a_numPoints; k++) {
+        const Vec3T<T> pos    = Vec3T<T>(-a_maxValue + i * dX, -a_maxValue + j * dX, -a_maxValue + k * dX);
+        const T        weight = a_mollifier->value(pos);
 
-    const T u2 = u.length2();
-
-    if (u2 < (T)1.0) {
-      ret = 4.06156938 / (exp(u2 - 1.0));
+        m_sampledMollifier.emplace_back(pos, weight);
+      }
     }
+  }
 
-    return ret;
-  };
+  // Normalize.
+  T mollifierSum = 0.0;
+  for (const auto& mol : m_sampledMollifier) {
+    mollifierSum += mol.second;
+  }
 
-  return std::pow(m_b, -3) * w(a_u / m_b);
+  for (auto& w : m_sampledMollifier) {
+    w.second /= mollifierSum;
+  }
+}
+
+template <class T>
+MollifyIF<T>::~MollifyIF() noexcept
+{}
+
+template <class T>
+T
+MollifyIF<T>::value(const Vec3T<T>& a_point) const noexcept
+{
+  T ret = 0.0;
+
+  for (const auto& mollifier : m_sampledMollifier) {
+    ret += m_implicitFunction->value(a_point - mollifier.first) * mollifier.second;
+  }
+
+  return ret;
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"
