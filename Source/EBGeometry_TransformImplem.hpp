@@ -65,9 +65,9 @@ template <class T>
 std::shared_ptr<ImplicitFunction<T>>
 Transform::mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_dist) noexcept
 {
-  auto mollifier = std::make_shared<SphereSDF<T>>(Vec3T<T>::zero(), a_dist, false);
+  auto mollifier = std::make_shared<SphereSDF<T>>(Vec3T<T>::zero(), std::abs(a_dist), false);
 
-  return std::make_shared<MollifyIF<T>>(a_implicitFunction, mollifier, a_dist, 3);
+  return std::make_shared<MollifyIF<T>>(a_implicitFunction, mollifier, std::abs(a_dist), 3);
 }
 
 template <class T>
@@ -250,27 +250,34 @@ MollifyIF<T>::MollifyIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFu
 {
   m_implicitFunction = a_implicitFunction;
 
-  const T dX = 2 * a_maxValue / (numPoints - 1);
+  const T maxVal = std::abs(a_maxValue);
 
-  for (int i = 0; i < a_numPoints; i++) {
-    for (int j = 0; j < a_numPoints; j++) {
-      for (int k = 0; k < a_numPoints; k++) {
-        const Vec3T<T> pos    = Vec3T<T>(-a_maxValue + i * dX, -a_maxValue + j * dX, -a_maxValue + k * dX);
-        const T        weight = a_mollifier->value(pos);
+  if (maxVal > 0.0 && a_numPoints > 0) {
+    const T dX = 2 * maxVal / (a_numPoints - 1);
 
-        m_sampledMollifier.emplace_back(pos, weight);
+    for (int i = 0; i < a_numPoints; i++) {
+      for (int j = 0; j < a_numPoints; j++) {
+        for (int k = 0; k < a_numPoints; k++) {
+          const Vec3T<T> pos    = Vec3T<T>(-maxVal + i * dX, -maxVal + j * dX, -maxVal + k * dX);
+          const T        weight = a_mollifier->value(pos);
+
+          m_sampledMollifier.emplace_back(pos, weight);
+        }
       }
     }
-  }
 
-  // Normalize.
-  T mollifierSum = 0.0;
-  for (const auto& mol : m_sampledMollifier) {
-    mollifierSum += mol.second;
-  }
+    // Normalize.
+    T mollifierSum = 0.0;
+    for (const auto& mol : m_sampledMollifier) {
+      mollifierSum += mol.second;
+    }
 
-  for (auto& w : m_sampledMollifier) {
-    w.second /= mollifierSum;
+    for (auto& w : m_sampledMollifier) {
+      w.second /= mollifierSum;
+    }
+  }
+  else {
+    m_sampledMollifier.emplace_back(Vec3T<T>::zero(), 1.0);
   }
 }
 
