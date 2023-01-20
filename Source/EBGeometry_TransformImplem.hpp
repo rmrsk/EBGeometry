@@ -19,6 +19,13 @@
 
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
+Transform::translate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction) noexcept
+{
+  return std::make_shared<ComplementIF<T>>(a_implicitFunction);
+}
+
+template <class T>
+std::shared_ptr<ImplicitFunction<T>>
 Transform::translate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_shift) noexcept
 {
   return std::make_shared<TranslateIF<T>>(a_implicitFunction, a_shift);
@@ -68,6 +75,24 @@ Transform::mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctio
   auto mollifier = std::make_shared<SphereSDF<T>>(Vec3T<T>::zero(), std::abs(a_dist), false);
 
   return std::make_shared<MollifyIF<T>>(a_implicitFunction, mollifier, std::abs(a_dist), 3);
+}
+
+template <class T>
+ComplementIF<T>::ComplementIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction) noexcept
+
+{
+  m_implicitFunction = a_implicitFunction;
+}
+
+template <class T>
+ComplementIF<T>::~ComplementIF()
+{}
+
+template <class T>
+T
+ComplementIF<T>::value(const Vec3T<T>& a_point) const noexcept
+{
+  return -m_implicitFunction->value(a_point);
 }
 
 template <class T>

@@ -18,6 +18,15 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 namespace Transform {
+
+  /*!
+    @brief Convenience function for taking the complement of an implicit function
+    @param[in] a_implicitFunction Input implicit function
+  */
+  template <class T>
+  std::shared_ptr<ImplicitFunction<T>>
+  complement(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction) noexcept;
+
   /*!
     @brief Convenience function for translating an implicit function
     @param[in] a_implicitFunction Input implicit function to be translated
@@ -81,6 +90,42 @@ namespace Transform {
   std::shared_ptr<ImplicitFunction<T>>
   mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_dist) noexcept;
 } // namespace Transform
+
+/*!
+  @brief Complemented implicit function
+*/
+template <class T>
+class ComplementIF
+{
+public:
+  /*!
+    @brief No weak construction for this one
+  */
+  ComplementIF() = delete;
+
+  /*!
+    @brief Full constructor
+    @param[in] a_implicitFunction Input implicit function
+  */
+  ComplementIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction) noexcept;
+
+  /*!
+    @brief Destructor (does nothing)
+  */
+  virtual ~ComplementIF();
+
+  /*!
+    @brief Value function
+  */
+  virtual T
+  value(const Vec3T<T>& a_point) const noexcept override;
+
+protected:
+  /*!
+    @brief Implicit function
+  */
+  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
+};
 
 /*!
   @brief Translated implicit function
