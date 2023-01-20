@@ -338,7 +338,7 @@ protected:
   /*!
     @brief Original implicit function. 
   */
-  std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction;
+  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
 
   /*!
     @brief Smoothing parameter
