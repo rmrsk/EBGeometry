@@ -18,7 +18,7 @@
 
 template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
-CSG::Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept
+Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
 
@@ -32,7 +32,7 @@ CSG::Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept
 
 template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
-CSG::Union(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>& a_implicitFunction2) noexcept
+Union(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>& a_implicitFunction2) noexcept
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
@@ -47,7 +47,7 @@ CSG::Union(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr
 
 template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
-CSG::SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth) noexcept
+SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth) noexcept
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
 
@@ -61,9 +61,9 @@ CSG::SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, con
 
 template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
-CSG::SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
-                 const std::shared_ptr<P2>& a_implicitFunction2,
-                 const T                    a_smooth) noexcept
+SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
+            const std::shared_ptr<P2>& a_implicitFunction2,
+            const T                    a_smooth) noexcept
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
@@ -78,7 +78,7 @@ CSG::SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
 
 template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
-CSG::Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept
+Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
 
@@ -92,8 +92,7 @@ CSG::Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) no
 
 template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
-CSG::Intersection(const std::shared_ptr<P1>& a_implicitFunction1,
-                  const std::shared_ptr<P2>& a_implicitFunction2) noexcept
+Intersection(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>& a_implicitFunction2) noexcept
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
@@ -108,7 +107,7 @@ CSG::Intersection(const std::shared_ptr<P1>& a_implicitFunction1,
 
 template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
-CSG::SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth) noexcept
+SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth) noexcept
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
 
@@ -122,9 +121,9 @@ CSG::SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctio
 
 template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
-CSG::SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
-                        const std::shared_ptr<P2>& a_implicitFunction2,
-                        const T                    a_smooth) noexcept
+SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
+                   const std::shared_ptr<P2>& a_implicitFunction2,
+                   const T                    a_smooth) noexcept
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
@@ -139,7 +138,7 @@ CSG::SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
 
 template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
-CSG::Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB) noexcept
+Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB) noexcept
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
@@ -216,11 +215,8 @@ SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 
 template <class T, class P, class BV, size_t K>
 FastUnionIF<T, P, BV, K>::FastUnionIF(const std::vector<std::shared_ptr<P>>& a_distanceFunctions,
-                                      const bool                             a_flipSign,
                                       const BVConstructor&                   a_bvConstructor)
 {
-  m_flipSign = a_flipSign;
-
   this->buildTree(a_distanceFunctions, a_bvConstructor);
 }
 
@@ -351,13 +347,11 @@ template <class T, class P, class BV, size_t K>
 T
 FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 {
-  const T sign = (m_flipSign) ? -1.0 : 1.0;
-
   // For the CSG union we select the smallest value. This means that if a
   // point is inside one object but outside another one, we choose the
   // inside value. By design, LinearNode is a signed distance object, but the
   // BVH accelerator is still a valid accelerator that permits us to do all
-  // kinds of accelerated traversals. For overlapping objects there is not signed
+  // kinds of accelerated traversals. For overlapping objects there is no signed
   // distance but there is still a CSG union, and the BVH is still a useful thing.
   // So, we can't use LinearNode::signedDistanceFunction because it returns the
   // closest object and not the object with the smallest value function.
@@ -383,7 +377,7 @@ FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 
   const T value = m_rootNode->stackPrune(a_point, unionComparator, unionPruner);
 
-  return sign * value;
+  return value;
 }
 
 template <class T, class P, class BV, size_t K>

@@ -42,7 +42,7 @@ public:
     // Generate some spheres.
     std::vector<std::shared_ptr<Prim>> spheres;
 
-    // Use a fixed seed = 0 so that every MPI rank agrees on how to randomize the buildings.
+    // Use a fixed seed = 0 so that every MPI rank agrees on how to randomize the spheres.
     std::mt19937_64                   rng(0);
     std::uniform_real_distribution<T> udist(0, 1.0);
 
@@ -53,18 +53,24 @@ public:
 
           const Vec3 center(0.5 * dx + i * (dx + Rmax), 0.5 * dx + j * (dx + Rmax), 0.5 * dx + k * (dx + Rmax));
 
-          spheres.emplace_back(std::make_shared<Prim>(center, R, false));
+          spheres.emplace_back(std::make_shared<Prim>(center, R));
         }
       }
     }
 
-    m_slowUnion = EBGeometry::CSG::Union<T, Prim>(spheres);
+    // Create the standard and fast CSG unions.
+    m_slowUnion = EBGeometry::Union<T, Prim>(spheres);
     m_fastUnion = std::make_shared<EBGeometry::FastUnionIF<T, Prim, BV, K>>(
-      spheres, true, [](const std::shared_ptr<const Prim>& a_sphere) {
+      spheres, [](const std::shared_ptr<const Prim>& a_sphere) {
         const Vec3 lo = a_sphere->getCenter() - a_sphere->getRadius() * Vec3::one();
         const Vec3 hi = a_sphere->getCenter() + a_sphere->getRadius() * Vec3::one();
+
         return BV(lo, hi);
       });
+
+    // AMReX uses the opposite to EBGeometry.
+    m_slowUnion = EBGeometry::Transform::Complement<T>(m_slowUnion);
+    m_fastUnion = EBGeometry::Transform::Complement<T>(m_fastUnion);
   }
 
   PackedSpheres(const PackedSpheres& a_other)
