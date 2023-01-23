@@ -58,8 +58,8 @@ public:
       }
     }
 
-    m_slowUnion = std::make_shared<EBGeometry::Union<T, Prim>>(spheres, true);
-    m_fastUnion = std::make_shared<EBGeometry::UnionBVH<T, Prim, BV, K>>(
+    m_slowUnion = EBGeometry::CSG::Union<T, Prim>(spheres);
+    m_fastUnion = std::make_shared<EBGeometry::FastUnionIF<T, Prim, BV, K>>(
       spheres, true, [](const std::shared_ptr<const Prim>& a_sphere) {
         const Vec3 lo = a_sphere->getCenter() - a_sphere->getRadius() * Vec3::one();
         const Vec3 hi = a_sphere->getCenter() + a_sphere->getRadius() * Vec3::one();
@@ -91,9 +91,9 @@ public:
   }
 
 protected:
-  bool                                                  m_useBVH;
-  std::shared_ptr<EBGeometry::Union<T, Prim>>           m_slowUnion;
-  std::shared_ptr<EBGeometry::UnionBVH<T, Prim, BV, K>> m_fastUnion;
+  bool                                             m_useBVH;
+  std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_slowUnion;
+  std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_fastUnion;
 };
 
 int

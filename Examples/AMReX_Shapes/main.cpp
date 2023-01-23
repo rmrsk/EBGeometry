@@ -121,7 +121,7 @@ main(int argc, char* argv[])
 
     auto func1 = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one(), false);
     auto func2 = EBGeometry::Transform::Rotate<T>(func1, 45.0, 0);
-    func       = EBGeometry::CSG::SmoothUnion<T>(func1, func2, 0.25);
+    func       = EBGeometry::CSG::SmoothIntersection<T>(func1, func2, 0.1);
   }
   else if (whichGeom == 6) { // Offset box.
     rb   = RealBox({-2, -2, -2}, {2, 2, 2});
