@@ -21,41 +21,41 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
-    @brief Convenience function for taking the union of a bunch of a implicit functions
-    @param[in] a_implicitFunctions Implicit functions
-    @note P must derive from ImplicitFunction<T>
-  */
+  @brief Convenience function for taking the union of a bunch of a implicit functions
+  @param[in] a_implicitFunctions Implicit functions
+  @note P must derive from ImplicitFunction<T>
+*/
 template <class T, class P = ImplicitFunction<T>>
 std::shared_ptr<ImplicitFunction<T>>
 Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept;
 
 /*!
-    @brief Convenience function for taking the union of two implicit functions
-    @param[in] a_implicitFunctions1 First implicit function. 
-    @param[in] a_implicitFunctions2 Second implicit function. 
-    @note P1 and P2 must derive from ImplicitFunction<T>
-  */
+  @brief Convenience function for taking the union of two implicit functions
+  @param[in] a_implicitFunctions1 First implicit function. 
+  @param[in] a_implicitFunctions2 Second implicit function. 
+  @note P1 and P2 must derive from ImplicitFunction<T>
+*/
 template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
 Union(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>& a_implicitFunction2) noexcept;
 
 /*!
-    @brief Convenience function for taking the union of a bunch of a implicit functions
-    @param[in] a_implicitFunctions Implicit functions
-    @param[in] a_smooth Smoothing distance. 
-    @note P must derive from ImplicitFunction<T>
-  */
+  @brief Convenience function for taking the union of a bunch of a implicit functions
+  @param[in] a_implicitFunctions Implicit functions
+  @param[in] a_smooth Smoothing distance. 
+  @note P must derive from ImplicitFunction<T>
+*/
 template <class T, class P = ImplicitFunction<T>>
 std::shared_ptr<ImplicitFunction<T>>
 SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth) noexcept;
 
 /*!
-    @brief Convenience function for taking the union of two implicit functions
-    @param[in] a_implicitFunctions1 First implicit function. 
-    @param[in] a_implicitFunctions2 Second implicit function. 
-    @param[in] a_smooth Smoothing distance. 
-    @note P1 and P2 must derive from ImplicitFunction<T>
-  */
+  @brief Convenience function for taking the union of two implicit functions
+  @param[in] a_implicitFunctions1 First implicit function. 
+  @param[in] a_implicitFunctions2 Second implicit function. 
+  @param[in] a_smooth Smoothing distance. 
+  @note P1 and P2 must derive from ImplicitFunction<T>
+*/
 template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
 SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
@@ -63,42 +63,66 @@ SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
             const T                    a_smooth) noexcept;
 
 /*!
-    @brief Convenience function for taking the intersection of a bunch of a implicit functions
-    @param[in] a_implicitFunctions Implicit functions
-    @note P must derive from ImplicitFunction<T>
-  */
+  @brief Convenience function for taking the BVH-accelerated union of a bunch of a implicit functions
+  @param[in] a_implicitFunctions Implicit functions
+  @param[in] a_bvConstructor Bounding volume constructor. 
+  @note P must derive from ImplicitFunction<T>
+*/
+template <class T, class P, class BV, size_t K>
+std::shared_ptr<ImplicitFunction<T>>
+FastUnion(const std::vector<std::shared_ptr<P>>&        a_implicitFunctions,
+          const EBGeometry::BVH::BVConstructorT<P, BV>& a_bvConstructor) noexcept;
+
+/*!
+  @brief Convenience function for taking the BVH-accelerated union of a bunch of a implicit functions
+  @param[in] a_implicitFunctions Implicit functions
+  @param[in] a_bvConstructor Bounding volume constructor. 
+  @param[in] a_smoothLen Smoothing length
+  @note P must derive from ImplicitFunction<T>
+*/
+template <class T, class P, class BV, size_t K>
+std::shared_ptr<ImplicitFunction<T>>
+FastSmoothUnion(const std::vector<std::shared_ptr<P>>&        a_implicitFunctions,
+                const EBGeometry::BVH::BVConstructorT<P, BV>& a_bvConstructor,
+                const T                                       a_smoothLen) noexcept;
+
+/*!
+  @brief Convenience function for taking the intersection of a bunch of a implicit functions
+  @param[in] a_implicitFunctions Implicit functions
+  @note P must derive from ImplicitFunction<T>
+*/
 template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
 Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept;
 
 /*!
-    @brief Convenience function for taking the intersection of two implicit functions
-    @param[in] a_implicitFunctions1 First implicit function. 
-    @param[in] a_implicitFunctions2 Second implicit function. 
-    @note P1 and P2 must derive from ImplicitFunction<T>
-  */
+  @brief Convenience function for taking the intersection of two implicit functions
+  @param[in] a_implicitFunctions1 First implicit function. 
+  @param[in] a_implicitFunctions2 Second implicit function. 
+  @note P1 and P2 must derive from ImplicitFunction<T>
+*/
 template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
 Intersection(const std::shared_ptr<std::shared_ptr<P1>>& a_implicitFunction1,
              const std::shared_ptr<std::shared_ptr<P2>>& a_implicitFunction2) noexcept;
 
 /*!
-    @brief Convenience function for taking the smooth intersection of a bunch of a implicit functions
-    @param[in] a_implicitFunctions Implicit functions
-    @param[in] a_smooth Smoothing distance. 
-    @note P must derive from ImplicitFunction<T>
-  */
+  @brief Convenience function for taking the smooth intersection of a bunch of a implicit functions
+  @param[in] a_implicitFunctions Implicit functions
+  @param[in] a_smooth Smoothing distance. 
+  @note P must derive from ImplicitFunction<T>
+*/
 template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
 SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth) noexcept;
 
 /*!
-    @brief Convenience function for taking the smooth intersection of two implicit functions
-    @param[in] a_implicitFunctions1 First implicit function. 
-    @param[in] a_implicitFunctions2 Second implicit function. 
-    @param[in] a_smooth Smoothing distance. 
-    @note P1 and P2 must derive from ImplicitFunction<T>
-  */
+  @brief Convenience function for taking the smooth intersection of two implicit functions
+  @param[in] a_implicitFunctions1 First implicit function. 
+  @param[in] a_implicitFunctions2 Second implicit function. 
+  @param[in] a_smooth Smoothing distance. 
+  @note P1 and P2 must derive from ImplicitFunction<T>
+*/
 template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
 SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
@@ -106,11 +130,11 @@ SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
                    const T                    a_smooth) noexcept;
 
 /*!
-    @brief Convenience function for taking the CSG difference. 
-    @param[in] a_implicitFunctionsA Implicit function. 
-    @param[in] a_implicitFunctionsB Implicit function to subtract. 
-    @note P1 and P2 must derive from ImplicitFunction<T>
-  */
+  @brief Convenience function for taking the CSG difference. 
+  @param[in] a_implicitFunctionsA Implicit function. 
+  @param[in] a_implicitFunctionsB Implicit function to subtract. 
+  @note P1 and P2 must derive from ImplicitFunction<T>
+*/
 template <class T, class P1 = ImplicitFunction<T>, class P2 = ImplicitFunction<T>>
 std::shared_ptr<ImplicitFunction<T>>
 Difference(const std::shared_ptr<std::shared_ptr<P1>>& a_implicitFunctionA,
@@ -207,9 +231,11 @@ public:
   /*!
     @brief Full constructor. Computes the CSG union
     @param[in] a_implicitFunctions List of primitives
+    @param[in] a_smoothLen Smoothing length
+    @param[in] a_smoothMin Smooth min function. 
   */
   SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>&   a_implicitFunctions,
-                const T                                                    a_smooth,
+                const T                                                    a_smoothLen,
                 const std::function<T(const T& a, const T& b, const T& s)> a_smoothMin = smoothMin<T>) noexcept;
 
   /*!
@@ -231,14 +257,14 @@ protected:
   std::vector<std::shared_ptr<const ImplicitFunction<T>>> m_implicitFunctions;
 
   /*!
+    @brief Smoothing parameter
+  */
+  T m_smoothLen;
+
+  /*!
     @brief Function for taking the smooth minimum
   */
   std::function<T(const T&, const T&, const T&)> m_smoothMin;
-
-  /*!
-    @brief Smoothing parameter
-  */
-  T m_smooth;
 };
 
 /*!
@@ -268,12 +294,6 @@ public:
   FastUnionIF(const std::vector<std::shared_ptr<P>>& a_distanceFunctions, const BVConstructor& a_bvConstructor);
 
   /*!
-    @brief Alternative full constructor where bounding volumes are already assocciated with primitives. 
-    @param[in] a_distanceFunctions Signed distance functions.
-  */
-  FastUnionIF(const std::vector<std::shared_ptr<std::pair<P, BV>>>& a_distanceFunctions);
-
-  /*!
     @brief Destructor (does nothing)
   */
   virtual ~FastUnionIF() = default;
@@ -282,7 +302,7 @@ public:
     @brief Value function
     @param[in] a_point 3D point.
   */
-  T
+  virtual T
   value(const Vec3T<T>& a_point) const noexcept override;
 
   /*!
@@ -305,6 +325,59 @@ protected:
   */
   inline void
   buildTree(const std::vector<std::shared_ptr<P>>& a_distanceFunctions, const BVConstructor& a_bvConstructor) noexcept;
+};
+
+/*!
+  @brief Implicit function smoothed union using BVHs. 
+  @note If the BVH-enabled union is to make sense, the primitives must be 
+  distance fields (I think). There's a static_assert to make sure of that. 
+*/
+template <class T, class P, class BV, size_t K>
+class FastSmoothUnionIF : public FastUnionIF<T, P, BV, K>
+{
+public:
+  static_assert(std::is_base_of<EBGeometry::SignedDistanceFunction<T>, P>::value,
+                "FastUnionIF requires an SDF (for now)");
+
+  using BVConstructor = EBGeometry::BVH::BVConstructorT<P, BV>;
+
+  /*!
+    @brief Disallowed, use the full constructor
+  */
+  FastSmoothUnionIF() = delete;
+
+  /*!
+    @brief Full constructor - constructs bounding volumes in place. 
+    @param[in] a_distanceFunctions Signed distance functions.
+    @param[in] a_bvConstructor     Bounding volume constructor.
+  */
+  FastSmoothUnionIF(const std::vector<std::shared_ptr<P>>&               a_distanceFunctions,
+                    const BVConstructor&                                 a_bvConstructor,
+                    const T                                              a_smoothLen,
+                    const std::function<T(const T&, const T&, const T&)> a_smoothMin = smoothMin<T>) noexcept;
+
+  /*!
+    @brief Destructor (does nothing)
+  */
+  virtual ~FastSmoothUnionIF() = default;
+
+  /*!
+    @brief Value function
+    @param[in] a_point 3D point.
+  */
+  virtual T
+  value(const Vec3T<T>& a_point) const noexcept override;
+
+protected:
+  /*!
+    @brief Smoothing length
+  */
+  T m_smoothLen;
+
+  /*!
+    @brief Smooth min operator. 
+  */
+  std::function<T(const T&, const T&, const T&)> m_smoothMin;
 };
 
 /*!
@@ -359,9 +432,11 @@ public:
   /*!
     @brief Full constructor. Computes the CSG union
     @param[in] a_implicitFunctions List of primitives
+    @param[in] a_smoothLen Smoothing length
+    @param[in] a_smoothMax Smooth max operator
   */
   SmoothIntersectionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>&    a_implicitFunctions,
-                       const T                                                     a_smooth,
+                       const T                                                     a_smoothLen,
                        const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax = smoothMax<T>) noexcept;
 
   /*!
@@ -385,7 +460,7 @@ protected:
   /*!
     @brief Smoothing parameter
   */
-  T m_smooth;
+  T m_smoothLen;
 
   /*!
     @brief Smooth max operator.

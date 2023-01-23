@@ -56,7 +56,7 @@ SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T 
     implicitFunctions.emplace_back(f);
   }
 
-  return std::make_shared<SmoothUnionIF<T>>(a_implicitFunctions, a_smooth);
+  return std::make_shared<SmoothUnionIF<T>>(implicitFunctions, a_smooth);
 }
 
 template <class T, class P1, class P2>
@@ -74,6 +74,24 @@ SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
   implicitFunctions.emplace_back(a_implicitFunction2);
 
   return std::make_shared<SmoothUnionIF<T>>(implicitFunctions, a_smooth);
+}
+
+template <class T, class P, class BV, size_t K>
+std::shared_ptr<ImplicitFunction<T>>
+FastUnion(const std::vector<std::shared_ptr<P>>&        a_implicitFunctions,
+          const EBGeometry::BVH::BVConstructorT<P, BV>& a_bvConstructor) noexcept
+{
+  return std::make_shared<EBGeometry::FastUnionIF<T, P, BV, K>>(a_implicitFunctions, a_bvConstructor);
+}
+
+template <class T, class P, class BV, size_t K>
+std::shared_ptr<ImplicitFunction<T>>
+FastSmoothUnion(const std::vector<std::shared_ptr<P>>&        a_implicitFunctions,
+                const EBGeometry::BVH::BVConstructorT<P, BV>& a_bvConstructor,
+                const T                                       a_smoothLen) noexcept
+{
+  return std::make_shared<EBGeometry::FastSmoothUnionIF<T, P, BV, K>>(
+    a_implicitFunctions, a_bvConstructor, a_smoothLen);
 }
 
 template <class T, class P>
@@ -136,6 +154,14 @@ SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
   return std::make_shared<SmoothIntersectionIF<T>>(implicitFunctions, a_smooth);
 }
 
+template <class T, class P, class BV, size_t K>
+std::shared_ptr<ImplicitFunction<T>>
+FastIntersection(const std::vector<std::shared_ptr<P>>&        a_implicitFunctions,
+                 const EBGeometry::BVH::BVConstructorT<P, BV>& a_bvConstructor) noexcept
+{
+  return std::make_shared<EBGeometry::FastIntersection<T, P, BV, K>>(a_implicitFunctions, a_bvConstructor);
+}
+
 template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
 Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB) noexcept
@@ -169,15 +195,14 @@ UnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 
 template <class T>
 SmoothUnionIF<T>::SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>&    a_implicitFunctions,
-                                const T                                                     a_smooth,
+                                const T                                                     a_smoothLen,
                                 const std::function<T(const T& a_, const T& b, const T& s)> a_smoothMin) noexcept
 {
   for (const auto& prim : a_implicitFunctions) {
     m_implicitFunctions.emplace_back(prim);
   }
 
-  m_smooth = std::max(a_smooth, std::numeric_limits<T>::min());
-
+  m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
   m_smoothMin = a_smoothMin;
 }
 
@@ -207,7 +232,7 @@ SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
     }
 
     // Smooth minimum function.
-    ret = m_smoothMin(a, b, m_smooth);
+    ret = m_smoothMin(a, b, m_smoothLen);
   }
 
   return ret;
@@ -375,9 +400,7 @@ FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
     return bvDist <= 0.0 || bvDist <= minDist;
   };
 
-  const T value = m_rootNode->stackPrune(a_point, unionComparator, unionPruner);
-
-  return value;
+  return this->m_rootNode->stackPrune(a_point, unionComparator, unionPruner);
 }
 
 template <class T, class P, class BV, size_t K>
@@ -385,6 +408,58 @@ const BV&
 FastUnionIF<T, P, BV, K>::getBoundingVolume() const noexcept
 {
   return m_rootNode->getBoundingVolume();
+}
+
+template <class T, class P, class BV, size_t K>
+FastSmoothUnionIF<T, P, BV, K>::FastSmoothUnionIF(
+  const std::vector<std::shared_ptr<P>>&               a_distanceFunctions,
+  const BVConstructor&                                 a_bvConstructor,
+  const T                                              a_smoothLen,
+  const std::function<T(const T&, const T&, const T&)> a_smoothMin) noexcept
+  : FastUnionIF<T, P, BV, K>(a_distanceFunctions, a_bvConstructor)
+{
+  m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
+  m_smoothMin = a_smoothMin;
+}
+
+template <class T, class P, class BV, size_t K>
+T
+FastSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
+{
+  // For the smoothed CSG union we use a smooth min operator on the two closest
+  // primitives.
+
+  // Closest and next closest primitives.
+  T a = std::numeric_limits<T>::infinity();
+  T b = std::numeric_limits<T>::infinity();
+
+  BVH::Pruner<T> unionPruner = [&a, &b](const T& bvDist, const T& minDist) -> bool {
+    return bvDist <= 0.0 || bvDist <= a || bvDist <= b;
+  };
+
+  BVH::Comparator<T> unionComparator = [&a, &b](const T& dmin, const std::vector<T>& primDistances) -> T {
+    T d = dmin;
+
+    for (const auto& primDist : primDistances) {
+
+      if (primDist < d) {
+        b = a;
+        d = primDist;
+        a = d;
+      }
+      else if (primDist < b) {
+        b = primDist;
+      }
+    }
+
+    return d;
+  };
+
+  // Prune -- don't need the result because we store the two closest implicit functions by
+  // reference.
+  this->m_rootNode->stackPrune(a_point, unionComparator, unionPruner);
+
+  return m_smoothMin(a, b, m_smoothLen);
 }
 
 template <class T>
@@ -411,15 +486,14 @@ IntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 template <class T>
 SmoothIntersectionIF<T>::SmoothIntersectionIF(
   const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions,
-  const T                                                  a_smooth,
+  const T                                                  a_smoothLen,
   const std::function<T(const T&, const T&, const T&)>&    a_smoothMax) noexcept
 {
   for (const auto& prim : a_implicitFunctions) {
     m_implicitFunctions.emplace_back(prim);
   }
 
-  m_smooth = std::max(a_smooth, std::numeric_limits<T>::min());
-
+  m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
   m_smoothMax = a_smoothMax;
 }
 
@@ -448,7 +522,7 @@ SmoothIntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
       }
     }
 
-    ret = m_smoothMax(a, b, m_smooth);
+    ret = m_smoothMax(a, b, m_smoothLen);
   }
 
   return ret;

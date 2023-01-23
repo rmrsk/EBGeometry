@@ -25,11 +25,12 @@ using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 using SDF  = EBGeometry::SignedDistanceFunction<T>;
 using Prim = EBGeometry::SphereSDF<T>;
 
-constexpr int K    = 4;
-constexpr int M    = 20;
-constexpr T   dx   = 0.25;
-constexpr T   Rmin = 1;
-constexpr T   Rmax = 6;
+constexpr int K         = 4;
+constexpr int M         = 20;
+constexpr T   dx        = 0.5;
+constexpr T   Rmin      = 1;
+constexpr T   Rmax      = 6;
+constexpr T   smoothLen = 0.5 * Rmin;
 
 // Packed spheres geometry, using a BVH accelerator for the CSG union
 class PackedSpheres
@@ -59,14 +60,16 @@ public:
     }
 
     // Create the standard and fast CSG unions.
-    m_slowUnion = EBGeometry::Union<T, Prim>(spheres);
-    m_fastUnion = std::make_shared<EBGeometry::FastUnionIF<T, Prim, BV, K>>(
-      spheres, [](const std::shared_ptr<const Prim>& a_sphere) {
+    m_slowUnion = EBGeometry::SmoothUnion<T, Prim>(spheres, smoothLen);
+    m_fastUnion = EBGeometry::FastSmoothUnion<T, Prim, BV, K>(
+      spheres,
+      [](const std::shared_ptr<const Prim>& a_sphere) {
         const Vec3 lo = a_sphere->getCenter() - a_sphere->getRadius() * Vec3::one();
         const Vec3 hi = a_sphere->getCenter() + a_sphere->getRadius() * Vec3::one();
 
         return BV(lo, hi);
-      });
+      },
+      smoothLen);
 
     // AMReX uses the opposite to EBGeometry.
     m_slowUnion = EBGeometry::Transform::Complement<T>(m_slowUnion);
