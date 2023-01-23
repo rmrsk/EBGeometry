@@ -79,6 +79,28 @@ CSG::Intersection(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction
 
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
+CSG::SmoothIntersection(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions,
+                        const T                                                  a_smooth) noexcept
+{
+  return std::make_shared<SmoothIntersection<T>>(a_implicitFunctions, a_smooth);
+}
+
+template <class T, class P1, class P2>
+std::shared_ptr<ImplicitFunction<T>>
+CSG::SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
+                        const std::shared_ptr<P2>& a_implicitFunction2,
+                        const T                    a_smooth) noexcept
+{
+  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
+
+  implicitFunctions.emplace_back(a_implicitFunction1);
+  implicitFunctions.emplace_back(a_implicitFunction2);
+
+  return std::make_shared<SmoothIntersectionIF<T>>(implicitFunctions, a_smooth);
+}
+
+template <class T>
+std::shared_ptr<ImplicitFunction<T>>
 CSG::Difference(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionA,
                 const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionB) noexcept
 {
@@ -107,14 +129,17 @@ UnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T>
-SmoothUnionIF<T>::SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions,
-                                const T                                                  a_smooth) noexcept
+SmoothUnionIF<T>::SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>&    a_implicitFunctions,
+                                const T                                                     a_smooth,
+                                const std::function<T(const T& a_, const T& b, const T& s)> a_smoothMin) noexcept
 {
   for (const auto& prim : a_implicitFunctions) {
     m_implicitFunctions.emplace_back(prim);
   }
 
-  m_smooth = std::max(a_smooth, (T)0.0);
+  m_smooth = std::max(a_smooth, std::numeric_limits<T>::min());
+
+  m_smoothMin = a_smoothMin;
 }
 
 template <class T>
@@ -126,34 +151,30 @@ SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
   if (m_implicitFunctions.size() == 1) {
     ret = m_implicitFunctions.front()->value(a_point);
   }
-  else {
-
-    std::pair<std::shared_ptr<const ImplicitFunction<T>>, T> closest;
-    std::pair<std::shared_ptr<const ImplicitFunction<T>>, T> nextClosest;
+  else if (m_implicitFunctions.size() > 1) {
+    T a = std::numeric_limits<T>::infinity();
+    T b = std::numeric_limits<T>::infinity();
 
     for (const auto& implicitFunction : m_implicitFunctions) {
-      const T curVal = implicitFunction->value(a_point);
+      const T curValue = implicitFunction->value(a_point);
 
-      if (curVal < ret) {
-        closest.first  = implicitFunction;
-        closest.second = curVal;
+      if (curValue < a) {
+        b = a;
+        a = curValue;
+      }
+      else if (curValue < b) {
+        b = curValue;
       }
     }
 
-    for (const auto& implicitFunction : m_implicitFunctions) {
-      const T curVal = implicitFunction->value(a_point);
+    // Smooth minimum function.
+#if 1
+    ret = m_smoothMin(a, b, m_smooth);
+#else
+    const T h = std::max(m_smooth - std::abs(a - b), 0.0) / m_smooth;
 
-      if (curVal < ret && implicitFunction != closest.first) {
-        nextClosest.first  = implicitFunction;
-        nextClosest.second = curVal;
-      }
-    }
-
-    const T a = closest.second;
-    const T b = nextClosest.second;
-
-    ret = exp(-a / m_smooth) + exp(-b / m_smooth);
-    ret = -log(ret) / m_smooth;
+    ret = std::min(a, b) - 0.25 * h * h * m_smooth;
+#endif
   }
 
   return ret;
@@ -175,6 +196,52 @@ IntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 
   for (const auto& prim : m_implicitFunctions) {
     ret = std::max(ret, prim->value(a_point));
+  }
+
+  return ret;
+}
+
+template <class T>
+SmoothIntersectionIF<T>::SmoothIntersectionIF(
+  const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions,
+  const T                                                  a_smooth,
+  const std::function<T(const T&, const T&, const T&)>&    a_smoothMax) noexcept
+{
+  for (const auto& prim : a_implicitFunctions) {
+    m_implicitFunctions.emplace_back(prim);
+  }
+
+  m_smooth = std::max(a_smooth, std::numeric_limits<T>::min());
+
+  m_smoothMax = a_smoothMax;
+}
+
+template <class T>
+T
+SmoothIntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
+{
+  T ret = std::numeric_limits<T>::infinity();
+
+  if (m_implicitFunctions.size() == 1) {
+    ret = m_implicitFunctions.front()->value(a_point);
+  }
+  else if (m_implicitFunctions.size() > 1) {
+    T a = -std::numeric_limits<T>::infinity();
+    T b = -std::numeric_limits<T>::infinity();
+
+    for (const auto& implicitFunction : m_implicitFunctions) {
+      const T curValue = implicitFunction->value(a_point);
+
+      if (curValue > a) {
+        b = a;
+        a = curValue;
+      }
+      else if (curValue > b) {
+        b = curValue;
+      }
+    }
+
+    ret = m_smoothMax(a, b, m_smooth);
   }
 
   return ret;
