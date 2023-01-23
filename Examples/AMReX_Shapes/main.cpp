@@ -119,13 +119,14 @@ main(int argc, char* argv[])
   else if (whichGeom == 5) { // Box.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one(), false);
+    auto func1 = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one(), false);
+    auto func2 = EBGeometry::Transform::Rotate<T>(func1, 45.0, 0);
+    func       = EBGeometry::CSG::SmoothUnion<T>(func1, func2, 0.25);
   }
-  else if (whichGeom == 6) { // Rounded box.
+  else if (whichGeom == 6) { // Offset box.
     rb   = RealBox({-2, -2, -2}, {2, 2, 2});
     func = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one(), false);
-    func = EBGeometry::Transform::offset(func, 0.25);
-    func = EBGeometry::Transform::smooth(func, 0.1, 0.1);
+    func = EBGeometry::Transform::Offset<T>(func, 0.25);
   }
   else if (whichGeom == 7) { // Torus.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
@@ -146,7 +147,7 @@ main(int argc, char* argv[])
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
     func = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5), false);
-    func = EBGeometry::Transform::annular(func, 0.1);
+    func = EBGeometry::Transform::Annular<T>(func, 0.1);
   }
 
   Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};

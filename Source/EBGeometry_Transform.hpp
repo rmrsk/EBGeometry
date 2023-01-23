@@ -25,7 +25,7 @@ namespace Transform {
   */
   template <class T>
   std::shared_ptr<ImplicitFunction<T>>
-  complement(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction) noexcept;
+  Complement(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction) noexcept;
 
   /*!
     @brief Convenience function for translating an implicit function
@@ -34,7 +34,7 @@ namespace Transform {
   */
   template <class T>
   std::shared_ptr<ImplicitFunction<T>>
-  translate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_shift) noexcept;
+  Translate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_shift) noexcept;
 
   /*!
     @brief Convenience function for rotating an implicit function. 
@@ -43,7 +43,7 @@ namespace Transform {
   */
   template <class T>
   std::shared_ptr<ImplicitFunction<T>>
-  rotate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_angle, const size_t a_axis) noexcept;
+  Rotate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_angle, const size_t a_axis) noexcept;
 
   /*!
     @brief Convenience function for scaling an implicit function. 
@@ -52,7 +52,7 @@ namespace Transform {
   */
   template <class T>
   std::shared_ptr<ImplicitFunction<T>>
-  scale(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_scale) noexcept;
+  Scale(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_scale) noexcept;
 
   /*!
     @brief Convenience function for offsetting an implicit function
@@ -61,7 +61,7 @@ namespace Transform {
   */
   template <class T>
   std::shared_ptr<ImplicitFunction<T>>
-  offset(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_offset) noexcept;
+  Offset(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_offset) noexcept;
 
   /*!
     @brief Convenience function for creating a shell out of an implicit function
@@ -70,7 +70,7 @@ namespace Transform {
   */
   template <class T>
   std::shared_ptr<ImplicitFunction<T>>
-  annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_delta) noexcept;
+  Annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_delta) noexcept;
 
   /*!
     @brief Convenience function for blurring an implicit function
@@ -79,7 +79,7 @@ namespace Transform {
   */
   template <class T>
   std::shared_ptr<ImplicitFunction<T>>
-  blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_blur) noexcept;
+  Blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_blur) noexcept;
 
   /*!
     @brief Convenience function for mollification with an input sphere. 
@@ -88,14 +88,14 @@ namespace Transform {
   */
   template <class T>
   std::shared_ptr<ImplicitFunction<T>>
-  mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_dist) noexcept;
+  Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_dist) noexcept;
 } // namespace Transform
 
 /*!
   @brief Complemented implicit function
 */
 template <class T>
-class ComplementIF
+class ComplementIF : public ImplicitFunction<T>
 {
 public:
   /*!
