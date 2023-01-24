@@ -161,7 +161,7 @@ jobs:
           ${{ matrix.comp }} -std=c++14 -w -O3 main.cpp
 
       - name: Compile Shapes example
-        working-directory: Examples/EBGeometry_RandomCity
+        working-directory: Examples/EBGeometry_Shapes
         if: always()
         run: |
           ${{ matrix.comp }} -std=c++14 -w -O3 main.cpp
