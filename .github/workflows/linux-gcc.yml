@@ -146,17 +146,55 @@ jobs:
         working-directory: Examples/EBGeometry_DCEL
         run: |
           ./a.out armadillo.stl
-          if [[ $? == 0 ]]; then exit 0; else exit 1; fi                    
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
 
-      - name: Compile union example
+      - name: Compile F18 example
+        working-directory: Examples/EBGeometry_F18
+        if: always()        
+        run: |
+          ${{ matrix.comp }} -std=c++17 -w -O3 main.cpp
+
+      - name: Run F18 example
+        working-directory: Examples/EBGeometry_F18
+        run: |
+          ./a.out
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi                              
+
+      - name: Compile PackedSpheres example
         working-directory: Examples/EBGeometry_PackedSpheres
         if: always()
         run: |
           ${{ matrix.comp }} -std=c++14 -w -O3 main.cpp          
 
-      - name: Run union example
+      - name: Run PackedSpheres example
         working-directory: Examples/EBGeometry_PackedSpheres
         if: always()
         run: |
           ./a.out
-          if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
+
+      - name: Compile RandomCity example
+        working-directory: Examples/EBGeometry_RandomCity
+        if: always()
+        run: |
+          ${{ matrix.comp }} -std=c++14 -w -O3 main.cpp          
+
+      - name: Run RandomCity example
+        working-directory: Examples/EBGeometry_RandomCity
+        if: always()
+        run: |
+          ./a.out
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
+
+      - name: Compile Shapes example
+        working-directory: Examples/EBGeometry_RandomCity
+        if: always()
+        run: |
+          ${{ matrix.comp }} -std=c++14 -w -O3 main.cpp          
+
+      - name: Run Shapes example
+        working-directory: Examples/EBGeometry_Shapes
+        if: always()
+        run: |
+          ./a.out
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi                              
