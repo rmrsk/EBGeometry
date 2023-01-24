@@ -28,7 +28,7 @@ namespace DCEL {
 
   template <class T>
   using PrimitiveList = std::vector<std::shared_ptr<const EBGeometry::DCEL::FaceT<T>>>;
-
+  
   /*!
     @brief Bounding volume constructor for a DCEL face.
     @details With BVHs and DCEL, the object to be bounded is the polygon face
@@ -41,6 +41,17 @@ namespace DCEL {
   EBGeometry::BVH::BVConstructorT<EBGeometry::DCEL::FaceT<T>, BV> defaultBVConstructor =
     [](const std::shared_ptr<const EBGeometry::DCEL::FaceT<T>>& a_primitive) -> BV {
     return BV(a_primitive->getAllVertexCoordinates());
+  };
+
+  /*!
+    @brief Bounding volume constructor for an DCEL mesh. This returns a bounding volume
+    enclosing all the vertices in the mesh. 
+    @param[in] a_mesh Input DCEL mesh
+  */
+  template <class T, class BV>
+  EBGeometry::BVH::BVConstructorT<EBGeometry::DCEL::MeshT<T>, BV> defaultMeshBVConstructor =
+    [](const std::shared_ptr<const EBGeometry::DCEL::MeshT<T>>& a_mesh) -> BV {
+    return BV(a_mesh->getAllVertexCoordinates());
   };
 
   /*!

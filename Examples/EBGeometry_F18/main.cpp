@@ -16,7 +16,7 @@ using namespace EBGeometry;
 using namespace EBGeometry::DCEL;
 
 constexpr size_t K = 4;
-using T            = float;
+using T            = double;
 using Face         = EBGeometry::DCEL::FaceT<T>;
 using Mesh         = EBGeometry::DCEL::MeshT<T>;
 using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
@@ -26,8 +26,19 @@ using Vec3         = EBGeometry::Vec3T<T>;
 int
 main(int argc, char* argv[])
 {
+  // TLDR: This examples generates the implicit function for a geometry consisting of multiple
+  //       parts, where each part is available as an STL file. The implicit function is reconstructed
+  //       using four different approaches:
+  //
+  //       1. Using a standard CSG union and linear search through triangles.
+  //       2. Using a standard CSG union and BVH-accelerated search through triangles.
+  //       3. Using a BVH-accelerated CSG union and linear search through triangles.
+  //       4. Using a BVH-accelerated CSG union and BVH-accelerated search through triangles.
+  //
+  //       For performance comparison, random positions are sampled inside the bounding volume of the geometry
+  //       and the number of calls per second are reported.
 
-  // Get all the STL files in the Resources/F18 directory.
+  // Get the filenames of all the STL files in the Resources/F18 directory.
   std::vector<std::string> stlFiles;
   for (const auto& entry : std::filesystem::directory_iterator("../Resources/F18/")) {
     const std::string f   = entry.path();
@@ -38,10 +49,12 @@ main(int argc, char* argv[])
     }
   }
 
-  // Read each STL file. These STL files happen to have normal vectors pointing inwards
-  // so we flip them.
+  // Read each STL file into a DCEL mesh. These STL files happen to have normal vectors pointing inwards
+  // so we need to flip them. We also store the bounding volumes for each part, and create the total bounding
+  // volume that encloses all parts.
   std::vector<std::shared_ptr<Mesh>>   slowSDFs;
   std::vector<std::shared_ptr<LinBVH>> fastSDFs;
+  std::vector<BV>                      boundingVolumes;
 
   for (const auto& f : stlFiles) {
     const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(f);
@@ -50,28 +63,24 @@ main(int argc, char* argv[])
     // Store the grids as basic DCEL grids and as linearized BVHs.
     slowSDFs.emplace_back(mesh);
     fastSDFs.emplace_back(EBGeometry::DCEL::buildFlatBVH<T, BV, K>(mesh));
+
+    boundingVolumes.emplace_back(mesh->getAllVertexCoordinates());
   }
+  const BV bv = BV(boundingVolumes);
 
-  // Create four representations of the same object. We use a slow/fast union and
-  // slow/fast SDF representation.
-  EBGeometry::BVH::BVConstructorT<Mesh, BV> bvSlow = [](const std::shared_ptr<const Mesh>& a_prim) -> BV {
-    return BV(a_prim->getAllVertexCoordinates());
-  };
-
-  EBGeometry::BVH::BVConstructorT<LinBVH, BV> bvFast = [](const std::shared_ptr<const LinBVH>& a_prim) -> BV {
-    return a_prim->getBoundingVolume();
-  };
-
-  EBGeometry::Union<T, Mesh>             slowUnionSlowSDF(slowSDFs, false);
-  EBGeometry::Union<T, LinBVH>           slowUnionFastSDF(fastSDFs, false);
-  EBGeometry::UnionBVH<T, Mesh, BV, K>   fastUnionSlowSDF(slowSDFs, false, bvSlow);
-  EBGeometry::UnionBVH<T, LinBVH, BV, K> fastUnionFastSDF(fastSDFs, false, bvFast);
+  // 3. Create four representations of the same object. We use a slow/fast union and
+  // slow/fast SDF representation. See EBGeometry_CSG.hpp for these signatures (and EBGeometry_DCEL_BVH.hpp for the BV constructors)
+  const auto slowUnionSlowSDF = EBGeometry::Union<T, Mesh>(slowSDFs);
+  const auto slowUnionFastSDF = EBGeometry::Union<T, LinBVH>(fastSDFs);
+  const auto fastUnionSlowSDF = EBGeometry::FastUnion<T, Mesh, BV, K>(slowSDFs, defaultMeshBVConstructor<T, BV>);
+  const auto fastUnionFastSDF = EBGeometry::FastUnion<T, LinBVH, BV, K>(
+    fastSDFs, [](const std::shared_ptr<const LinBVH>& a_prim) -> BV { return a_prim->getBoundingVolume(); });
 
   // Sample some random positions
   constexpr size_t Nsamp = 100;
 
-  const Vec3 lo    = fastUnionFastSDF.getBoundingVolume().getLowCorner();
-  const Vec3 hi    = fastUnionFastSDF.getBoundingVolume().getHighCorner();
+  const Vec3 lo    = bv.getLowCorner();
+  const Vec3 hi    = bv.getHighCorner();
   const Vec3 delta = hi - lo;
 
   std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
@@ -99,23 +108,23 @@ main(int argc, char* argv[])
 
   const auto t0 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    sumSlowSlow += slowUnionSlowSDF.value(x);
+    sumSlowSlow += slowUnionSlowSDF->value(x);
   }
   const auto t1 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    sumSlowFast += slowUnionFastSDF.value(x);
+    sumSlowFast += slowUnionFastSDF->value(x);
   }
   const auto t2 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    sumFastSlow += fastUnionSlowSDF.value(x);
+    sumFastSlow += fastUnionSlowSDF->value(x);
   }
   const auto t3 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    sumFastFast += fastUnionFastSDF.value(x);
+    sumFastFast += fastUnionFastSDF->value(x);
   }
   const auto t4 = std::chrono::high_resolution_clock::now();
 
-  // Make sure they all produce the same result!.
+  // Debug -- make sure all functions produce the same result!.
   if (std::abs(sumSlowSlow) - std::abs(sumFastFast) > std::numeric_limits<T>::min()) {
     std::cerr << "Got wrong distance! Diff = " << std::abs(sumSlowFast) - std::abs(sumFastFast) << "\n";
   }

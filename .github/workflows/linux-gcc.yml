@@ -61,6 +61,24 @@ jobs:
         if: always()        
         run: |
           ./a.out
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
+
+      - name: Compile F18 example
+        working-directory: Examples/EBGeometry_F18
+        if: always()
+        run: |
+          ${{ matrix.comp }} -std=c++14 \
+          -pedantic -Wall -Wextra  -Wcast-align  -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
+          -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
+          -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel \
+          -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused \
+          main.cpp
+
+      - name: Run F18 example
+        working-directory: Examples/EBGeometry_F18
+        if: always()        
+        run: |
+          ./a.out
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
 
   GNU-OPT:
