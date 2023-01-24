@@ -33,13 +33,24 @@ jobs:
         working-directory: ${{ github.workspace }}/Docs/Sphinx        
         run: |
           make html
-          mv build/html/* ${{ github.workspace }}/Docs
 
       - name: Build PDF documentation
         working-directory: ${{ github.workspace }}/Docs/Sphinx
         run: |
           make latexpdf
-          mv build/latex/ebgeometry.pdf ${{ github.workspace }}/Docs
+
+      - name: Upload
+        uses: actions/upload-artifact@v1
+        with:
+          name: docs
+          path: Docs/Sphinx/build
+
+      - name: Cleanup
+        working-directory: ${{ github.workspace }}/Docs
+        run: |
+          cp -a Sphinx/build/html/* ./
+          mv Sphinx/build/latex/EBGeometry.pdf ./
+          rm -rf Sphinx/build          
           
       - name: Deploy
         if: github.event_name == 'push' && github.repository == 'rmrsk/EBGeometry' && github.ref == 'refs/heads/main'        

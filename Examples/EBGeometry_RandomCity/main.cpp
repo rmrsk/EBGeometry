@@ -73,16 +73,16 @@ main()
       const Vec3 lo(xLo, yLo, 0.0);
       const Vec3 hi(xHi, yHi, H);
 
-      buildings.emplace_back(std::make_shared<Box>(lo, hi, false));
+      buildings.emplace_back(std::make_shared<Box>(lo, hi));
     }
   }
 
   // Create a standard CSG union.
-  EBGeometry::Union<T, Box> slowUnion(buildings, false);
+  EBGeometry::Union<T, Box> slowUnion(buildings);
 
   // Create an optimized union. Cover each building with an AABB box.
   std::cout << "Partitioning " << std::pow(M, 2) << " buildings" << std::endl;
-  EBGeometry::UnionBVH<T, Box, AABB, K> fastUnion(buildings, false, [](const std::shared_ptr<const Box>& a_box) {
+  EBGeometry::UnionBVH<T, Box, AABB, K> fastUnion(buildings, [](const std::shared_ptr<const Box>& a_box) {
     return AABB(a_box->getLowCorner(), a_box->getHighCorner());
   });
 
