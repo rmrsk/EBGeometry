@@ -20,9 +20,6 @@ It does not the discrete geometry generation, i.e. the generation of cut-cells f
 .. This is for getting rid of the TOC in html view. 
 .. raw:: html
 
-   /* front page: hide chapter titles
-    * needed for consistent HTML-PDF-EPUB chapters
-    */
    <style>
    section#introduction,
    section#concepts,
