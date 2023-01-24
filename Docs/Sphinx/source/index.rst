@@ -8,13 +8,20 @@ EBGeometry's user documentation
 
 This is the user documentation for EBGeometry, a small C++ package for computing signed distance fields from surface tesselations and analytic shapes. 
 Although EBGeometry is a self-contained package, it is was originally written for usage with embedded boundary (EB) and immersed boundary (IB) codes.
+EBGeometry provides the geometry representation through an implicit or signed distance function, but does not the discrete geometry generation, i.e. the generation of cut-cells for a given geometry.
 
-EBGeometry only provides the geometry representation through an implicit or signed distance function.
-It does not the discrete geometry generation, i.e. the generation of cut-cells from a given geometry. 
+The basic features of EBGeometry are as follows:
 
-.. important::
+* Representation of water-tight surface grids as signed distance fields.
+* Many analytic distance functions and transformations. 
+* Bounding volume hierarchies (BVHs) for use as acceleration structures for polygon or full object lookup.
+  The BVHs can be represented in full or compact (i.e., linearized) forms.
+* Support for both conventional and accelerated (using BVHs) constructive solid geometry (CSG).
+* Examples of how to couple EBGeometry to AMReX and Chombo.     
 
-   The EBGeometry source code is found `here <https://github.com/rmrsk/EBGeometry>`_.
+.. tip::
+   
+   The EBGeometry source code is found at `https://github.com/rmrsk/EBGeometry <https://github.com/rmrsk/EBGeometry>`_.
    A separate Doxygen-generated API of EBGeometry is `available here <doxygen/html/index.html>`_.   
 
 .. This is for getting rid of the TOC in html view. 
@@ -56,8 +63,6 @@ Concepts
    :hidden:	     
 	     
    Concepts.rst
-   DCEL.rst
-   BVH.rst
 
 Implementation
 **************
@@ -69,25 +74,20 @@ Implementation
 	     
    Implementation.rst
    ImplemVec.rst
+   ImplemCSG.rst
+   ImplemDCEL.rst   
    ImplemBVH.rst
-   ImplemDCEL.rst
-   ImplemSDF.rst
-   ImplemUnion.rst
    Parsers.rst
 
-Guided examples
-***************  
+Examples
+********
 
 .. toctree::
    :maxdepth: 3
-   :caption: Guided examples
+   :caption: Examples
    :hidden:	     
 
    Examples.rst
-   Example_Basic.rst
-   Example_Union.rst
-   Example_AMReX.rst
-   Example_Chombo3.rst   
 
 References
 **********

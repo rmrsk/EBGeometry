@@ -4,7 +4,7 @@
  */
 
 /*!
-  @file   EBGeometry_Transform
+  @file   EBGeometry_Transform.hpp
   @brief  Various transformations for implicit functions and distance fields
   @author Robert Marskar
 */

@@ -1,7 +1,11 @@
 .. _Chap:ImplemBVH:
 
-Bounding volume hierarchy
-=========================
+.. warning::
+
+   Documentation is horribly out of date.
+
+BVH
+===
 
 The BVH functionality is encapsulated in the namespace ``EBGeometry::BVH``.
 For the full API, see `the doxygen API <doxygen/html/namespaceBVH.html>`__.
@@ -329,7 +333,7 @@ Note that the primitives live in ``LinearBVH`` and not ``LinearNodeT``, and the 
      signedDistance(const Vec3& a_point) const noexcept override;
    };
 
-Signed distance
+Tree traversal
 ---------------
 
 The signed distance can be obtained from both the full BVH storage and the compact BVH storage.

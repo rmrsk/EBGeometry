@@ -1,10 +1,13 @@
 .. _Chap:Concepts:
 
+Function representation
+=======================
+
 Signed distance fields
 ----------------------
 
 The signed distance function is defined as a function :math:`S: \mathbb{R}^3 \rightarrow \mathbb{R}`, and returns the *signed distance* to the object.
-The signed distance function has the additional property:
+It has the additional property
 
 .. math::
    :label: Eikonal
@@ -17,7 +20,7 @@ Note that the normal vector is always
 
    \mathbf{n} = \nabla S\left(\mathbf{x}\right).
    
-In EBGeometry we use the following convention: 
+EBGeometry uses the following convention for the sign:
 
 .. math::
 
@@ -29,7 +32,11 @@ In EBGeometry we use the following convention:
 
 which means that the normal vector :math:`\mathbf{n}` points away from the object. 
 
-Signed distance functions are also *implicit functions* (but the reverse statement is not true).
+Implicit functions
+------------------
+
+Like distance functions, implicit functions also determine whether or not a point :math:`\mathbf{x}` is inside or outside an object.
+Signed distance functions are also *implicit functions*, but not vice versa. 
 For example, the signed distance function for a sphere with center :math:`\mathbf{x}_0` and radius :math:`R` can be written
 
 .. math::
@@ -43,25 +50,242 @@ An example of an implicit function for the same sphere is
    I_{\textrm{sph}}\left(\mathbf{x}\right) = \left|\mathbf{x} - \mathbf{x}_0\right|^2 - R^2.
 
 An important difference between these is the Eikonal property in :eq:`Eikonal`, ensuring that the signed distance function always returns the exact distance to the object.
+Signed distance functions are usually the more useful object, but many operations (e.g. CSG unions) do not preserve the signed distance property.
 
-Transformations
+.. _Chap:DCEL:
+
+DCEL
+====
+
+Basic concept
+-------------
+
+EBGeometry uses a doubly-connected edge list (DCEL) structure for storing surface meshes.
+The DCEL structures consist of the following objects:
+
+* Planar polygons (facets).
+* Half-edges.
+* Vertices.
+
+As shown in :numref:`Fig:DCEL`, half-edges circulate the inside of the facet, with pointer-access to the next half-edge.
+A half-edge also stores a reference to it's starting vertex, as well as a reference to it's pair-edge.
+From the DCEL structure we can easily obtain all edges or vertices belonging to a single facet, and also jump to a neighboring facet by fetching the pair edge. 
+
+.. _Fig:DCEL:
+.. figure:: /_static/DCEL.png
+   :width: 480px
+   :align: center
+
+   DCEL mesh structure. Each half-edge stores references to previous/next half-edges, the pair edge, and the starting vertex.
+   Vertices store a coordinate as well as a reference to one of the outgoing half-edges.
+
+In EBGeometry the half-edge data structure is implemented in it's own namespace.
+This is a comparatively standard implementation of the DCEL structure, supplemented by functions that permit signed distance computations to various features on such a mesh.
+
+.. important::
+
+   A signed distance field requires a *watertight and orientable* surface mesh.
+   If the surface mesh consists of holes or flipped facets, neither the signed distance or implicit function exist.
+
+Signed distance
 ---------------
 
-Signed distance functions retain the Eikonal property for the following set of transformations:
+The signed distance to a surface mesh is equivalent to the signed distance to the closest polygon face in the mesh. 
+When computing the signed distance from a point :math:`\mathbf{x}` to a polygon face (e.g., a triangle), the closest feature on the polygon can be one of the vertices, edges, or the interior of the polygon face, see :numref:`Fig:PolygonProjection`.
 
-* Rotations.
-* Translations.
+.. _Fig:PolygonProjection:
+.. figure:: /_static/PolygonProjection.png
+   :width: 240px
+   :align: center
 
-Unions
-------
+   Possible closest-feature cases after projecting a point :math:`\mathbf{x}` to the plane of a polygon face.
 
-Unions of signed distance fields are also signed distance fields *provided that the objects do not intersect or touch*.
-For overlapping objects the signed distance function is not well-defined (since the interior and exterior are not well-defined).
+Three cases can be distinguished:
 
-For non-overlapping objects represented as signed distance fields :math:`\left(S_1\left(\mathbf{x}\right), S_2\left(\mathbf{x}\right), \ldots\right)`, the composite signed distance field is
+#. **Facet/Polygon face**.
+   
+   When computing the distance from a point :math:`\mathbf{x}` to the polygon face we first determine if the projection of :math:`\mathbf{x}` to the face's plane lies inside or outside the face.
+   This is more involved than one might think, and it is done by first computing the two-dimensional projection of the polygon face, ignoring one of the coordinates.
+   Next, we determine, using 2D algorithms, if the projected point lies inside the embedded 2D representation of the polygon face. 
+   Various algorithms for this are available, such as computing the winding number, the crossing number, or the subtended angle between the projected point and the 2D polygon.
+
+   .. tip::
+   
+      EBGeometry uses the crossing number algorithm by default.
+      
+   If the point projects to the inside of the face, the signed distance is just :math:`d = \mathbf{n}_f\cdot\left(\mathbf{x} - \mathbf{x}_f\right)` where :math:`\mathbf{n}_f` is the face normal and :math:`\mathbf{x}_f` is a point on the face plane (e.g., a vertex).
+   If the point projects to *outside* the polygon face, the closest feature is either an edge or a vertex.
+   
+#. **Edge**.
+   
+   When computing the signed distance to an edge, the edge is parametrized as :math:`\mathbf{e}(t) = \mathbf{x}_0 + \left(\mathbf{x}_1 - \mathbf{x}_0\right)t`, where :math:`\mathbf{x}_0` and :math:`\mathbf{x}_1` are the starting and ending vertex coordinates.
+   The point :math:`\mathbf{x}` is projected to this line, and if the projection yields :math:`t^\prime \in [0,1]` then the edge is the closest point.
+   In that case the signed distance is the projected distance and the sign is given by the sign of :math:`\mathbf{n}_e\cdot\left(\mathbf{x} - \mathbf{x}_0\right)` where :math:`\mathbf{n}_e` is the pseudonormal vector of the edge. 
+   Otherwise, the closest point is one of the vertices.
+
+#. **Vertex**.
+
+   If the closest point is a vertex then the signed distance is simply :math:`\mathbf{n}_v\cdot\left(\mathbf{x}-\mathbf{x}_v\right)` where :math:`\mathbf{n}_v` is the vertex pseudonormal and :math:`\mathbf{x}_v` is the vertex position.
+
+.. _Chap:NormalDCEL:
+
+Normal vectors
+--------------
+
+The normal vectors for edges :math:`\mathbf{n}_e` and vertices :math:`\mathbf{n}_v` are, unlike the facet normal, not uniquely defined.
+For both edges and vertices we use the pseudonormals from :cite:`1407857`:
 
 .. math::
 
-   S\left(\mathbf{x}\right) = S_k\left(\mathbf{x}\right),
+   \mathbf{n}_{e} = \frac{1}{2}\left(\mathbf{n}_{f} + \mathbf{n}_{f^\prime}\right).
 
-where :math:`k` is index of the closest object (which is found by evaluating :math:`\left|S_i\left(\mathbf{x}\right)\right|`.
+where :math:`f` and :math:`f^\prime` are the two faces connecting the edge.
+The vertex pseudonormal are given by
+
+.. math::
+
+  \mathbf{n}_{v} = \frac{\sum_i\alpha_i\mathbf{n}_{f_i}}{\left|\sum_i\alpha_i\right|},
+
+where the sum runs over all faces which share :math:`v` as a vertex, and where :math:`\alpha_i` is the subtended angle of the face :math:`f_i`, see :numref:`Fig:Pseudonormal`. 
+
+.. _Fig:Pseudonormal:
+.. figure:: /_static/Pseudonormal.png
+   :width: 240px
+   :align: center
+
+   Edge and vertex pseudonormals.
+
+.. _Chap:BVH:
+
+BVH
+===
+
+BVHs are tree structures where the regular nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces or implicit functions) further down in the hierarchy.
+This means that every node in a BVH is associated with a *bounding volume*.
+The bounding volume can, in principle, be any type of volume. 
+Moreover, there are two types of nodes in a BVH:
+
+* **Regular nodes.** These do not contain any of the primitives/objects.
+  They are also called interior nodes, and store references to their child nodes. 
+* **Leaf nodes.** These lie at the bottom of the BVH tree and each of them contain a subset of the geometric primitives.
+
+:numref:`Fig:TrianglesBVH` shows a concept of BVH partitioning of a set of triangles.
+Here, :math:`P` is a regular node whose bounding volume encloses all geometric primitives in its subtree.
+It's bounding volume, an axis-aligned bounding box or AABB for short, is illustrated by a dashed rectangle.
+The interior node :math:`P` stores references to the leaf nodes :math:`L` and :math:`R`.
+As shown in :numref:`Fig:TrianglesBVH`, :math:`L` contains 5 triangles enclosed by another AABB.
+The other child node :math:`R` contains 6 triangles that are also enclosed by an AABB.
+Note that the bounding volume for :math:`P` encloses the bounding volumes of :math:`L` and :math:`R` and that the bounding volumes for :math:`L` and :math:`R` contain a small overlap. 
+
+.. _Fig:TrianglesBVH:
+.. figure:: /_static/TrianglesBVH.png
+   :width: 480px
+   :align: center
+
+   Example of BVH partitioning for enclosing triangles. The regular node :math:`P` contains two leaf nodes :math:`L` and :math:`R` which contain the primitives (triangles).
+
+There is no fundamental limitation to what type of primitives/objects can be enclosed in BVHs, which makes BVHs useful beyond triangulated data sets.
+For example, analytic signed distance functions can also be embedded in BVHs, provided that we can construct bounding volumes that encloses them.
+
+.. note::
+   
+   EBGeometry limited to binary trees, but supports :math:`k` -ary trees where each regular node has :math:`k` children nodes. 
+
+Construction
+------------
+
+BVHs have extremely flexible rules regarding their construction.
+For example, the child nodes :math:`L` and :math:`R` in :numref:`Fig:TrianglesBVH` could be partitioned in any number of ways, with the only requirement being that each child node gets at least one triangle/primitive. 
+
+Although the rules for BVH construction are highly flexible, performant BVHs are completely reliant on having balanced trees with the following heuristic properties:
+
+* **Tight bounding volumes** that enclose the primitives as tightly as possible.
+* **Minimal overlap** between the bounding volumes.
+* **Balanced**, in the sense that the tree depth does not vary greatly through the tree, and there is approximately the same number of primitives in each leaf node. 
+
+Construction of a BVH is usually done recursively, from top to bottom (so-called top-down construction).
+Alternative construction methods also exist, but are not used in EBGeometry. 
+In this case one can represent the BVH construction of a :math:`k` -ary tree is done through a single function:
+
+.. math::
+   :label: Partition
+   
+   \textrm{Partition}\left(\vec{O}\right): \vec{O} \rightarrow \left(\vec{O}_1, \vec{O}_2, \ldots, \vec{O}_k\right), 
+   
+where :math:`\vec{O}` is an input a list of objects/primitives, which is *partitioned* into :math:`k` new list of primitives.
+Note that the lists :math:`\vec{O}_i` do not contain duplicates, there is a unique set of primitives associated in each new leaf node. 
+Top-down construction can thus be illustrated as a recursive procedure:
+
+.. code-block:: text
+
+   topDownConstruction(Objects):
+      partitionedObjects = Partition(Objects)
+
+      forall p in partitionedObjects:
+         child = insertChildNode(newObjects)
+
+	 if(enoughPrimitives(child)):
+	    child.topDownConstruction(child.objects)
+
+In practice, the above procedure is supplemented by more sophisticated criteria for terminating the recursion, as well as routines for creating the bounding volumes around the newly inserted nodes. 
+
+Tree traversal
+--------------
+
+When computing the signed distance function to objects embedded in a BVH, one takes advantage of the hierarchical embedding of the primitives.
+Consider the case in :numref:`Fig:TreePruning`, where the goal of the BVH traversal is to minimize the number of branches and nodes that are visited.
+For the traversal algorithm we consider the following steps:
+
+* When descending from node :math:`P` we determine that we first investigate the left subtree (node :math:`A`) since its bounding volume is closer than the bounding volumes for the other subtree.
+  The other subtree will is investigated after we have recursed to the bottom of the :math:`A` subtree. 
+* Since :math:`A` is a leaf node, we find the signed distance from :math:`\mathbf{x}` to the primitives in :math:`A`.
+  This requires us to iterate over all the triangles in :math:`A`. 
+* When moving back to :math:`P`, we find that the distance to the primitives in :math:`A` is shorter than the distance from :math:`\mathbf{x}` to the bounding volume that encloses nodes :math:`B` and :math:`C`.
+  This immediately permits us to prune the entire subtree containing :math:`B` and :math:`C`.
+
+.. _Fig:TreePruning:
+.. figure:: /_static/TreePruning.png
+   :width: 480px
+   :align: center
+
+   Example of BVH tree pruning.
+
+.. warning::
+   
+   Note that all BVH traversal algorithms have linear complexity when the primitives are all at approximately the same distance from the query point.
+   For example, it is necessary to traverse almost the entire tree when one tries to compute the signed distance at the origin of a tessellated sphere.
+
+Note that types of tree traversal (that do not compute the signed distance) are also possible, e.g. we may want to compute the union :math:`I\left(\mathbf{x}\right) = \min\left(I_1\left(\mathbf{x}\right), I_2\left(\mathbf{x}\right), .\ldots\right)`.
+EBGeometry supports a fairly flexible approach to the tree traversal and update algorithms.
+
+CSG
+===
+
+Basic transformations
+---------------------
+
+Implicit functions, and by extension also signed distance fields, can be manipulated using basic transformations (like rotations).
+EBGeometry supports many of these:
+
+* Rotations.
+* Translations.
+* Surface offsets.
+* Shell extraction.
+* Mollification (e.g., smoothing)
+* ... and others.
+
+.. warning::
+   
+   Some of these operations preserve the signed distance property, and others do not.
+
+Combining objects
+-----------------
+
+EBGeometry supports standard operations in which implicit functions can be combined:
+
+* Union.
+* Intersection.
+* Difference.
+
+Some of these CSG operations also have smooth equivalents, i.e. for smoothing the transition between combined objects.
+Fast CSG operations are also supported by EBGeometry, e.g. the a BVH-accelerated union where one performs an accelerated search for the closest primitive.   
