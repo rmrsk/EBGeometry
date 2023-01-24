@@ -17,79 +17,76 @@
 #include "EBGeometry_Vec.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-namespace Transform {
+/*!
+  @brief Convenience function for taking the complement of an implicit function
+  @param[in] a_implicitFunction Input implicit function
+*/
+template <class T>
+std::shared_ptr<ImplicitFunction<T>>
+Complement(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction) noexcept;
 
-  /*!
-    @brief Convenience function for taking the complement of an implicit function
-    @param[in] a_implicitFunction Input implicit function
-  */
-  template <class T>
-  std::shared_ptr<ImplicitFunction<T>>
-  Complement(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction) noexcept;
+/*!
+  @brief Convenience function for translating an implicit function
+  @param[in] a_implicitFunction Input implicit function to be translated
+  @param[in] a_shift Distance to shift
+*/
+template <class T>
+std::shared_ptr<ImplicitFunction<T>>
+Translate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_shift) noexcept;
 
-  /*!
-    @brief Convenience function for translating an implicit function
-    @param[in] a_implicitFunction Input implicit function to be translated
-    @param[in] a_shift Distance to shift
-  */
-  template <class T>
-  std::shared_ptr<ImplicitFunction<T>>
-  Translate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_shift) noexcept;
+/*!
+  @brief Convenience function for rotating an implicit function. 
+  @param[in] a_implicitFunction Input implicit function to be rotated.
+  @param[in] a_shift Distance to shift
+*/
+template <class T>
+std::shared_ptr<ImplicitFunction<T>>
+Rotate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_angle, const size_t a_axis) noexcept;
 
-  /*!
-    @brief Convenience function for rotating an implicit function. 
-    @param[in] a_implicitFunction Input implicit function to be rotated.
-    @param[in] a_shift Distance to shift
-  */
-  template <class T>
-  std::shared_ptr<ImplicitFunction<T>>
-  Rotate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_angle, const size_t a_axis) noexcept;
+/*!
+  @brief Convenience function for scaling an implicit function. 
+  @param[in] a_implicitFunction Input implicit function to be scaled. 
+  @param[in] a_scale Scaling factor
+*/
+template <class T>
+std::shared_ptr<ImplicitFunction<T>>
+Scale(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_scale) noexcept;
 
-  /*!
-    @brief Convenience function for scaling an implicit function. 
-    @param[in] a_implicitFunction Input implicit function to be scaled. 
-    @param[in] a_scale Scaling factor
-  */
-  template <class T>
-  std::shared_ptr<ImplicitFunction<T>>
-  Scale(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_scale) noexcept;
+/*!
+  @brief Convenience function for offsetting an implicit function
+  @param[in] a_implicitFunction Input implicit function to be offset
+  @param[in] a_shift Distance to shift
+*/
+template <class T>
+std::shared_ptr<ImplicitFunction<T>>
+Offset(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_offset) noexcept;
 
-  /*!
-    @brief Convenience function for offsetting an implicit function
-    @param[in] a_implicitFunction Input implicit function to be offset
-    @param[in] a_shift Distance to shift
-  */
-  template <class T>
-  std::shared_ptr<ImplicitFunction<T>>
-  Offset(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_offset) noexcept;
+/*!
+  @brief Convenience function for creating a shell out of an implicit function
+  @param[in] a_implicitFunction Input implicit function to be shelled.
+  @param[in] a_delta Shell thickness
+*/
+template <class T>
+std::shared_ptr<ImplicitFunction<T>>
+Annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_delta) noexcept;
 
-  /*!
-    @brief Convenience function for creating a shell out of an implicit function
-    @param[in] a_implicitFunction Input implicit function to be shelled.
-    @param[in] a_delta Shell thickness
-  */
-  template <class T>
-  std::shared_ptr<ImplicitFunction<T>>
-  Annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_delta) noexcept;
+/*!
+  @brief Convenience function for blurring an implicit function
+  @param[in] a_implicitFunction Input implicit function to be blurred
+  @param[in] a_blurDistance Smoothing distance
+*/
+template <class T>
+std::shared_ptr<ImplicitFunction<T>>
+Blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_blur) noexcept;
 
-  /*!
-    @brief Convenience function for blurring an implicit function
-    @param[in] a_implicitFunction Input implicit function to be blurred
-    @param[in] a_blurDistance Smoothing distance
-  */
-  template <class T>
-  std::shared_ptr<ImplicitFunction<T>>
-  Blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_blur) noexcept;
-
-  /*!
-    @brief Convenience function for mollification with an input sphere. 
-    @param[in] a_implicitFunction Input implicit function to be mollifier
-    @param[in] a_dist Mollification distance. 
-  */
-  template <class T>
-  std::shared_ptr<ImplicitFunction<T>>
-  Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_dist) noexcept;
-} // namespace Transform
+/*!
+  @brief Convenience function for mollification with an input sphere. 
+  @param[in] a_implicitFunction Input implicit function to be mollifier
+  @param[in] a_dist Mollification distance. 
+*/
+template <class T>
+std::shared_ptr<ImplicitFunction<T>>
+Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_dist) noexcept;
 
 /*!
   @brief Complemented implicit function
@@ -382,7 +379,7 @@ public:
          const T                                     a_alpha = 0.5) noexcept;
 
   /*!
-   @brief Destructor
+    @brief Destructor
   */
   virtual ~BlurIF() noexcept;
 
