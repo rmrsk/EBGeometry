@@ -20,26 +20,25 @@ It does not the discrete geometry generation, i.e. the generation of cut-cells f
 .. This is for getting rid of the TOC in html view. 
 .. raw:: html
 
-   <style>
    /* front page: hide chapter titles
     * needed for consistent HTML-PDF-EPUB chapters
     */
    <style>
    section#introduction,
-   section#design,
-   section#discretization,
-   section#solvers,
-   section#multi-physics-applications,
-   section#single-solver-applications,
-   section#tutorial,
-   section#utilities,
-   section#contributing,
+   section#concepts,
+   section#implementation,
+   section#guided-examples,
    section#references,
    section#bibliography,
    section#epilogue {
 	 display:none;
    }
-   </style>   
+   </style>
+   
+.. only:: latex
+
+   .. toctree::
+      :caption: Contents   
 
 Introduction
 ************
