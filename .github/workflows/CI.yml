@@ -38,6 +38,7 @@ jobs:
         directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_F18, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
 
     steps:
+      - uses: actions/checkout@v3
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -58,7 +59,6 @@ jobs:
         run: |
           ./a.out
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
-
 
   Linux-Intel:
     needs: Formatting
