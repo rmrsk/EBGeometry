@@ -26,7 +26,7 @@ jobs:
           clang-format-version: '10'
           check-path: ${{ matrix.directory }}
 
-  Compile examples:
+  Compile:
     needs: Formatting
     if: github.event.pull_request.draft == false  
     name: Linux-GNU debug
