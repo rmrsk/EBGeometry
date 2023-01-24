@@ -111,6 +111,29 @@ namespace BVH {
   using Pruner = std::function<bool(const T& bvDist, const T& minDist)>;
 
   /*!
+    @brief Updater for LinearBVH::stackPrune
+    @param[in] a_primitives. 
+  */
+  template <class P>
+  using Updater = std::function<void(const PrimitiveListT<P>& a_primitives)>;
+
+  /*!
+    @brief Pruner for LinearBVH::stackPrune. Must return true if we should visit the node and false otherwise. 
+    @param[in] a_bvDist Distance to current bounding volume. 
+    @param[in] a_minDist  Shortest "distance" to primitives found so far. 
+  */
+  template <class N>
+  using Pruner2 = std::function<bool(const N& a_node)>;
+
+  /*!
+    @brief Sorting criterion for which child node to visit first. 
+    This takes an input list of child nodes and sorts it. When further into the sub-tree, the first
+    node is investigated first, then the second, etc. 
+  */
+  template <class N>
+  using Sorter = std::function<void(std::vector<std::shared_ptr<N>>& a_children)>;
+
+  /*!
     @brief Typename for identifying algorithms various algorithms during tree
     traversel.
     @details Stack     => Use stack/priority queue (ordered traversal).
@@ -560,6 +583,20 @@ namespace BVH {
     stackPrune(const Vec3&               a_point,
                const BVH::Comparator<T>& a_comparator,
                const BVH::Pruner<T>&     a_pruner) const noexcept;
+
+    /*!
+      @brief Recursion-less BVH traversal algorithm. 
+      The user inputs the update rule, a pruning criterion, and a criterion of who to visit first. 
+      @param[in] a_point Point in space.
+      @param[in] a_updater Update rule
+      @param[in] a_pruner Pruning rule
+      @param[in] a_sorter Sort criterion. 
+    */
+    inline void
+    stackPrune(const Vec3&                     a_point,
+               const BVH::Updater<P>&          a_update,
+               const BVH::Pruner2<LinearNode>& a_pruner,
+               const BVH::Sorter<LinearNode>&  a_sorter) const noexcept;
 
   protected:
     /*!

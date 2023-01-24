@@ -44,14 +44,19 @@ main(int argc, char* argv[])
   // Three representations of the same object. First, we get the DCEL mesh, and then
   // we convert it to a full BVH tree representation. Then we flatten that tree.
   const auto dcelSDF = EBGeometry::Parser::readIntoDCEL<T>(file);
-  const auto bvhSDF  = EBGeometry::DCEL::buildFullBVH<T, BV, K>(dcelSDF);
-  const auto linSDF  = bvhSDF->flattenTree();
+  const auto bvhSDF  = std::make_shared<FastMeshSDF<T, BV, K>>(dcelSDF);
+  const auto linSDF  = std::make_shared<FastCompactMeshSDF<T, BV, K>>(dcelSDF);
 
   // Sample some random points around the object.
   constexpr size_t Nsamp = 100;
 
-  const Vec3 lo    = bvhSDF->getBoundingVolume().getLowCorner();
-  const Vec3 hi    = bvhSDF->getBoundingVolume().getHighCorner();
+  Vec3 lo = Vec3::infinity();
+  Vec3 hi = -Vec3::infinity();
+
+  for (const auto& v : dcelSDF->getAllVertexCoordinates()) {
+    lo = min(lo, v);
+    hi = max(hi, v);
+  }
   const Vec3 delta = hi - lo;
 
   std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
