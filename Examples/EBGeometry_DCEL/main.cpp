@@ -36,8 +36,9 @@ main(int argc, char* argv[])
     file = "../Resources/" + std::string(argv[1]);
   }
   else {
-    std::cerr << "Missing file name. Use ./a.out 'filename' where 'filename' "
-                 "is one of the files in ../Resources\n";
+    std::cout << "Missing file name. Use ./a.out 'filename' where 'filename' "
+                 "is one of the files in ../Resources. Setting this equal to the armadillo file\n";
+    file = "../Resources/armadillo.stl";
   }
 
   // Three representations of the same object. First, we get the DCEL mesh, and then
