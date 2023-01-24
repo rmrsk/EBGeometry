@@ -38,9 +38,6 @@ jobs:
         directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_F18, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
 
     steps:
-      - name: Checkout EBGeometry
-        uses: actions/checkout@v2
-
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -73,9 +70,6 @@ jobs:
         directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]    
 
     steps:
-      - name: Checkout EBGeometry
-        uses: actions/checkout@v2
-
       - name: Install Intel oneAPI
         working-directory: /tmp        
         run: |
@@ -104,11 +98,6 @@ jobs:
     needs: [Linux-GNU, Linux-Intel]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          persist-credentials: false
-
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -154,4 +143,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: gh-pages
           folder: Docs
-          clean: false          
+          clean: false
+
+  CI-passed:
+    needs: Formatting
+    steps:
