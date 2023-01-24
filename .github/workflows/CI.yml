@@ -92,7 +92,7 @@ jobs:
           -Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
           -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
           -Wunused-variable -Wwrite-strings -Werror \
-          main.cpp
+          main.cpp -lstdc++fs
 
       - name: Run examples
         working-directory: ${{ matrix.directory }}
@@ -100,8 +100,7 @@ jobs:
           ./a.out
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi
 
-
-  build-and-deploy:
+  Build-documentation:
     needs: [Linux-GNU, Linux-Intel]
     runs-on: ubuntu-latest
     steps:
