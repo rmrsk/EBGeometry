@@ -146,7 +146,7 @@ jobs:
           clean: false
 
   CI-passed:
-    needs: Formatting
+    needs: Build-documentation
     runs-on: ubuntu-latest
     steps:
       - name: Do nothing
