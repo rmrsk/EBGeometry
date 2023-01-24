@@ -77,19 +77,20 @@ main()
     }
   }
 
-  // Create a standard CSG union.
-  EBGeometry::Union<T, Box> slowUnion(buildings);
-
-  // Create an optimized union. Cover each building with an AABB box.
+  // Create a standard and an optimized CSG union.
   std::cout << "Partitioning " << std::pow(M, 2) << " buildings" << std::endl;
-  EBGeometry::UnionBVH<T, Box, AABB, K> fastUnion(buildings, [](const std::shared_ptr<const Box>& a_box) {
+  auto slowUnion = EBGeometry::Union<T, Box>(buildings);
+  auto fastUnion = EBGeometry::FastUnion<T, Box, AABB, K>(buildings, [](const std::shared_ptr<const Box>& a_box) {
     return AABB(a_box->getLowCorner(), a_box->getHighCorner());
   });
 
   // Sample some random points in the bounding box of the BVH.
-  const AABB& bv = fastUnion.getBoundingVolume();
-  const Vec3  lo = bv.getLowCorner();
-  const Vec3  hi = bv.getHighCorner();
+  Vec3 lo = Vec3::infinity();
+  Vec3 hi = -Vec3::infinity();
+  for (const auto& b : buildings) {
+    lo = min(lo, b->getLowCorner());
+    hi = max(hi, b->getLowCorner());
+  }
 
   std::vector<Vec3> randomPositions;
   for (int i = 0; i < N; i++) {
@@ -100,7 +101,8 @@ main()
     randomPositions.emplace_back(Vec3(x, y, z));
   }
 
-  // Time the results using the slow and fast union.
+  // Time the number of calls per second using the slow and fast CSG union representation of the city
+  // landscape. Then print the result.
   std::chrono::duration<T, std::micro> slowTime(0.0);
   std::chrono::duration<T, std::micro> fastTime(0.0);
 
@@ -109,11 +111,11 @@ main()
 
   const auto t1 = std::chrono::high_resolution_clock::now();
   for (const auto& x : randomPositions) {
-    sumSlow += slowUnion.value(x);
+    sumSlow += slowUnion->value(x);
   }
   const auto t2 = std::chrono::high_resolution_clock::now();
   for (const auto& x : randomPositions) {
-    sumFast += fastUnion.value(x);
+    sumFast += fastUnion->value(x);
   }
   const auto t3 = std::chrono::high_resolution_clock::now();
 

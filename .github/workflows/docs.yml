@@ -49,7 +49,7 @@ jobs:
         working-directory: ${{ github.workspace }}/Docs
         run: |
           cp -a Sphinx/build/html/* ./
-          mv Sphinx/build/latex/EBGeometry.pdf ./
+          mv Sphinx/build/latex/ebgeometry.pdf ./
           rm -rf Sphinx/build          
           
       - name: Deploy

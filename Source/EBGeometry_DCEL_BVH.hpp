@@ -28,7 +28,7 @@ namespace DCEL {
 
   template <class T>
   using PrimitiveList = std::vector<std::shared_ptr<const EBGeometry::DCEL::FaceT<T>>>;
-  
+
   /*!
     @brief Bounding volume constructor for a DCEL face.
     @details With BVHs and DCEL, the object to be bounded is the polygon face
