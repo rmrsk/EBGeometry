@@ -68,7 +68,15 @@ main(int argc, char* argv[])
   }
   const BV bv = BV(boundingVolumes);
 
-  // 3. Create four representations of the same object. We use a slow/fast union and
+  // Print some stats on the input mesh
+  size_t numFacets = 0;
+  for (const auto& m : slowSDFs) {
+    numFacets += m->getFaces().size();
+  }
+  std::cout << "Number of components = " << slowSDFs.size() << "\n";
+  std::cout << "Number of triangles  = " << numFacets << "\n";
+
+  // Create four representations of the same object. We use a slow/fast union and
   // slow/fast SDF representation. See EBGeometry_CSG.hpp for these signatures (and EBGeometry_DCEL_BVH.hpp for the BV constructors)
   const auto slowUnionSlowSDF = EBGeometry::Union<T, Mesh>(slowSDFs);
   const auto slowUnionFastSDF = EBGeometry::Union<T, LinBVH>(fastSDFs);
