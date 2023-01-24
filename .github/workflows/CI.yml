@@ -96,7 +96,7 @@ jobs:
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi
 
   Build-documentation:
-    needs: [Linux-GNU, Linux-Intel]
+    needs: Formatting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3      
@@ -148,7 +148,7 @@ jobs:
           clean: false
 
   CI-passed:
-    needs: Build-documentation
+    needs: [Linux-GNU, Linux-Intel, Build-documentation]
     runs-on: ubuntu-latest
     steps:
       - name: Do nothing
