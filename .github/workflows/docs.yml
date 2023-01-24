@@ -22,7 +22,7 @@ jobs:
           sudo apt install texlive
           sudo apt install texlive-latex-extra
           sudo apt install latexmk          
-          python3 -m pip install sphinx sphinx_rtd_theme sphinxcontrib-bibtex
+          python3 -m pip install sphinx==5.0.0 sphinx_rtd_theme sphinxcontrib-bibtex
           
       - name: Build doxygen
         working-directory: ${{ github.workspace }}/Docs
