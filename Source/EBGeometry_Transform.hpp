@@ -452,7 +452,7 @@ protected:
   /*!
     @brief Mollifier
   */
-  std::shared_ptr<ImplicitFunction<T>> a_mollifier;
+  std::shared_ptr<ImplicitFunction<T>> m_mollifier;
 
   /*!
     @brief Mollifier Weights

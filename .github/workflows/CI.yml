@@ -47,7 +47,7 @@ jobs:
       - name: Compile examples
         working-directory: ${{ matrix.directory }}
         run: |
-          ${{ matrix.comp }} -std=c++14 \
+          ${{ matrix.comp }} -std=c++17 \
           -pedantic -Wall -Wextra  -Wcast-align  -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
           -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
           -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel \
@@ -86,7 +86,7 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: |
           source /opt/intel/oneapi/setvars.sh
-          icpc -std=c++14 -O0 \
+          icpc -std=c++17 -O0 \
           -Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
           -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
           -Wunused-variable -Wwrite-strings -Werror \
