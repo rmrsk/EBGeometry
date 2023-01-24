@@ -70,6 +70,7 @@ jobs:
         directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]    
 
     steps:
+      - uses: actions/checkout@v3      
       - name: Install Intel oneAPI
         working-directory: /tmp        
         run: |
@@ -98,6 +99,7 @@ jobs:
     needs: [Linux-GNU, Linux-Intel]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3      
       - name: Install dependencies
         run: |
           sudo apt-get update
