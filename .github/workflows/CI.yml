@@ -33,7 +33,7 @@ jobs:
     strategy:
       matrix:
         comp: [g++-9, g++-10, g++-11]
-        directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_F18, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, EBGeometry_Shapes]
+        directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_F18, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
 
     steps:
       - name: Checkout EBGeometry
@@ -61,7 +61,7 @@ jobs:
     timeout-minutes: 10
     strategy:
       matrix:
-        directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_F18, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, EBGeometry_Shapes]    
+        directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_F18, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]    
 
     steps:
       - name: Checkout EBGeometry
