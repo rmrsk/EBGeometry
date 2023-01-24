@@ -1,4 +1,4 @@
-name: Continuous integration.
+name: Continuous integration
 
 on: [push, pull_request]
 
@@ -8,7 +8,6 @@ concurrency:
 
 jobs:
   Formatting:
-    if: github.event.pull_request.draft == false  
     name: Format source
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -26,10 +25,9 @@ jobs:
           clang-format-version: '10'
           check-path: ${{ matrix.directory }}
 
-  Compile:
+  Compile-GNU:
     needs: Formatting
-    if: github.event.pull_request.draft == false  
-    name: Linux-GNU debug
+    name: Linux-GNU
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
@@ -55,3 +53,34 @@ jobs:
           -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel \
           -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused \
           main.cpp
+
+  Linux-Intel:
+    needs: Formatting
+    name: Linux-Intel
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_F18, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, EBGeometry_Shapes]    
+
+    steps:
+      - name: Checkout EBGeometry
+        uses: actions/checkout@v2
+
+      - name: Install Intel oneAPI
+        working-directory: /tmp        
+        run: |
+          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"
+          sudo apt-get -y install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+
+      - name: Compile examples
+        working-directory: ${{ matrix.directory }}
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          icpc -std=c++14 -O0 \
+          -Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
+          -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
+          -Wunused-variable -Wwrite-strings -Werror \
+          main.cpp        
