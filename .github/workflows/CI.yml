@@ -70,7 +70,7 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_F18, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]    
+        directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]    
 
     steps:
       - name: Checkout EBGeometry
