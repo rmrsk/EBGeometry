@@ -9,8 +9,8 @@ EBGeometry's user documentation
 This is the user documentation for EBGeometry, a small C++ package for computing signed distance fields from surface tesselations and analytic shapes. 
 Although EBGeometry is a self-contained package, it is was originally written for usage with embedded boundary (EB) and immersed boundary (IB) codes.
 
-EBGeometry does provide the *discrete geometry generation*, i.e. the generation of cut-cells from a geometry.
-It only takes care of the *geometry representation*, i.e. the creation of complex geometries as numerically efficient signed distance fields.
+EBGeometry only provides the geometry representation through an implicit or signed distance function.
+It does not the discrete geometry generation, i.e. the generation of cut-cells from a given geometry. 
 
 .. important::
 
@@ -24,13 +24,20 @@ It only takes care of the *geometry representation*, i.e. the creation of comple
    /* front page: hide chapter titles
     * needed for consistent HTML-PDF-EPUB chapters
     */
-   div#introduction.section,
-   div#concepts.section,
-   div#implementation.section,
-   div#guided-examples.section,
-   div#references.section,
-   div#epilogue.section {
-       display:none;
+   <style>
+   section#introduction,
+   section#design,
+   section#discretization,
+   section#solvers,
+   section#multi-physics-applications,
+   section#single-solver-applications,
+   section#tutorial,
+   section#utilities,
+   section#contributing,
+   section#references,
+   section#bibliography,
+   section#epilogue {
+	 display:none;
    }
    </style>   
 
