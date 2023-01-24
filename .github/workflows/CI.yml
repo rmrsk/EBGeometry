@@ -1,6 +1,8 @@
 name: Continuous integration
 
-on: [push, pull_request]
+on:
+  pull_request:
+    types: [push, opened, synchronize, reopened, ready_for_review]
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-code-format
