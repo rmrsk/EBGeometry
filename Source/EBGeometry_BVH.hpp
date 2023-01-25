@@ -123,15 +123,15 @@ namespace BVH {
     @param[in] a_minDist  Shortest "distance" to primitives found so far. 
   */
   template <class N>
-  using Pruner2 = std::function<bool(const N& a_node)>;
+  using Visiter = std::function<bool(const N& a_node)>;
 
   /*!
     @brief Sorting criterion for which child node to visit first. 
     This takes an input list of child nodes and sorts it. When further into the sub-tree, the first
     node is investigated first, then the second, etc. 
   */
-  template <class N>
-  using Sorter = std::function<void(std::vector<std::shared_ptr<N>>& a_children)>;
+  template <class N, size_t K>
+  using Sorter = std::function<void(std::array<std::shared_ptr<const N>, K>& a_children)>;
 
   /*!
     @brief Typename for identifying algorithms various algorithms during tree
@@ -587,16 +587,14 @@ namespace BVH {
     /*!
       @brief Recursion-less BVH traversal algorithm. 
       The user inputs the update rule, a pruning criterion, and a criterion of who to visit first. 
-      @param[in] a_point Point in space.
       @param[in] a_updater Update rule
-      @param[in] a_pruner Pruning rule
-      @param[in] a_sorter Sort criterion. 
+      @param[in] a_visiter Visiter rule
+      @param[in] a_sorter  Visitation pattern rule. 
     */
     inline void
-    stackPrune(const Vec3&                     a_point,
-               const BVH::Updater<P>&          a_update,
-               const BVH::Pruner2<LinearNode>& a_pruner,
-               const BVH::Sorter<LinearNode>&  a_sorter) const noexcept;
+    traverse(const BVH::Updater<P>&            a_updater,
+             const BVH::Visiter<LinearNode>&   a_visiter,
+             const BVH::Sorter<LinearNode, K>& a_sorter) const noexcept;
 
   protected:
     /*!

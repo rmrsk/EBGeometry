@@ -41,10 +41,15 @@ public:
   FastMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept;
 
   /*!
+    @brief Destructor
+  */
+  virtual ~FastMeshSDF() = default;
+
+  /*!
     @brief Value function
     @param[in] a_point Input point. 
   */
-  T
+  virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -61,9 +66,10 @@ template <class T, class BV, size_t K>
 class FastCompactMeshSDF : public SignedDistanceFunction<T>
 {
 public:
-  using Face = EBGeometry::DCEL::FaceT<T>;
-  using Mesh = EBGeometry::DCEL::MeshT<T>;
-  using Node = EBGeometry::BVH::LinearBVH<T, Face, BV, K>;
+  using Face = typename EBGeometry::DCEL::FaceT<T>;
+  using Mesh = typename EBGeometry::DCEL::MeshT<T>;
+  using Root = typename EBGeometry::BVH::LinearBVH<T, Face, BV, K>;
+  using Node = typename Root::LinearNode;
 
   /*!
     @brief Default disallowed constructor
@@ -76,17 +82,22 @@ public:
   FastCompactMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept;
 
   /*!
+    @brief Destructor
+  */
+  virtual ~FastCompactMeshSDF() = default;  
+
+  /*!
     @brief Value function
     @param[in] a_point Input point. 
   */
-  T
+  virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
   /*!
     @brief Bounding volume hierarchy
   */
-  std::shared_ptr<Node> m_bvh;
+  std::shared_ptr<Root> m_bvh;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

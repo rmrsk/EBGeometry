@@ -42,31 +42,36 @@ T
 FastCompactMeshSDF<T, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
 #if 1
-  T shortestDistance = std::numeric_limits<T>::infinity();
+  T minDist = std::numeric_limits<T>::infinity();
 
-  // Pruner, for deciding when to visit a branch. If this returns true we visit the branch.
-  EBGeometry::BVH::Pruner<T> pruner = [d = &shortestDistance](const T& bvDist, const T& minDist) -> bool {
-    return bvDist <= std::abs(minDist);
+  // Lambda for updating the shortest distance.
+  BVH::Updater<Face> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const Face>>& faces) -> void {
+    for (const auto& f : faces) {
+      const T curDist = f->signedDistance(a_point);
+
+      minDist = std::abs(curDist) < std::abs(minDist) ? curDist : minDist;
+    }
   };
 
-  // Comparator, for updating the shortest distance.
-  EBGeometry::BVH::Comparator<T> comparator = [&D = shortestDistance](const T&              dmin,
-                                                                      const std::vector<T>& primDistances) -> T {
-    T d = dmin;
+  // Lambda for pruning nodes. Returns true if we should visit the node.
+  BVH::Visiter<Node> visiter = [&minDist, &a_point](const Node& a_node) -> bool {
+    return a_node.getDistanceToBoundingVolume(a_point) <= std::abs(minDist);
+  };
 
-    for (const auto& primDist : primDistances) {
-      d = std::abs(primDist) < std::abs(d) ? primDist : d;
-    }
-
-    D = d;
-
-    return d;
+  // Sort criterion.
+  BVH::Sorter<Node, K> sorter = [&a_point](std::array<std::shared_ptr<const Node>, K>& a_leaves) -> void {
+    std::sort(a_leaves.begin(),
+              a_leaves.end(),
+              [&a_point](const std::shared_ptr<const Node>& n1, const std::shared_ptr<const Node>& n2) -> bool {
+                return n1->getDistanceToBoundingVolume(a_point) > n2->getDistanceToBoundingVolume(a_point);
+              });
   };
 
   // Traverse the tree.
-  m_bvh->stackPrune(a_point, comparator, pruner);
+  //  return m_bvh->signedDistance(a_point);
+  m_bvh->traverse(updater, visiter, sorter);
 
-  return shortestDistance;
+  return minDist;
 
 #else
   return m_bvh->signedDistance(a_point);

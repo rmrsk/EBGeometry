@@ -666,6 +666,54 @@ namespace BVH {
 
     return minDist;
   }
+
+  template <class T, class P, class BV, size_t K>
+  inline void
+  LinearBVH<T, P, BV, K>::traverse(const BVH::Updater<P>&            a_updater,
+                                   const BVH::Visiter<LinearNode>&   a_visiter,
+                                   const BVH::Sorter<LinearNode, K>& a_sorter) const noexcept
+  {
+    std::array<std::shared_ptr<const LinearNode>, K> children;
+    std::stack<std::shared_ptr<const LinearNode>>    q;
+
+    q.push(m_linearNodes[0]);
+
+    while (!(q.empty())) {
+
+      const auto& curNode = q.top();
+
+      q.pop();
+
+      // User-based criterion for whether or not we need to check this node.
+      if (a_visiter(*curNode)) {
+
+        if (curNode->isLeaf()) {
+          const size_t& offset  = curNode->getPrimitivesOffset();
+          const size_t& numPrim = curNode->getNumPrimitives();
+
+          const auto first = m_primitives.begin() + offset;
+          const auto last  = first + numPrim;
+
+          // User-based update rule.
+          a_updater(PrimitiveList(first, last));
+        }
+        else {
+
+          // Update the children visitation pattern.
+          for (size_t k = 0; k < K; k++) {
+            children[k] = m_linearNodes[curNode->getChildOffsets()[k]];
+          }
+
+          // User-based visit pattern.
+          a_sorter(children);
+
+          for (const auto& child : children) {
+            q.push(child);
+          }
+        }
+      }
+    }
+  }
 } // namespace BVH
 
 #include "EBGeometry_NamespaceFooter.hpp"
