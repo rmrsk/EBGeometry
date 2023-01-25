@@ -668,15 +668,16 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
+  template <class Meta>
   inline void
-  LinearBVH<T, P, BV, K>::traverse(const BVH::Updater<P>&            a_updater,
-                                   const BVH::Visiter<LinearNode>&   a_visiter,
-                                   const BVH::Sorter<LinearNode, K>& a_sorter) const noexcept
+  LinearBVH<T, P, BV, K>::traverse(const BVH::Updater<P>&                  a_updater,
+                                   const BVH::Visiter<LinearNode, Meta>&   a_visiter,
+                                   const BVH::Sorter<LinearNode, K, Meta>& a_sorter) const noexcept
   {
-    std::array<std::shared_ptr<const LinearNode>, K> children;
-    std::stack<std::shared_ptr<const LinearNode>>    q;
+    std::array<std::pair<std::shared_ptr<const LinearNode>, Meta>, K> children;
+    std::stack<std::pair<std::shared_ptr<const LinearNode>, Meta>>    q;
 
-    q.push(m_linearNodes[0]);
+    q.emplace(m_linearNodes[0], std::numeric_limits<T>::infinity());
 
     while (!(q.empty())) {
 
@@ -685,11 +686,11 @@ namespace BVH {
       q.pop();
 
       // User-based criterion for whether or not we need to check this node.
-      if (a_visiter(*curNode)) {
+      if (a_visiter(*curNode.first, curNode.second)) {
 
-        if (curNode->isLeaf()) {
-          const size_t& offset  = curNode->getPrimitivesOffset();
-          const size_t& numPrim = curNode->getNumPrimitives();
+        if (curNode.first->isLeaf()) {
+          const size_t& offset  = curNode.first->getPrimitivesOffset();
+          const size_t& numPrim = curNode.first->getNumPrimitives();
 
           const auto first = m_primitives.begin() + offset;
           const auto last  = first + numPrim;
@@ -701,7 +702,7 @@ namespace BVH {
 
           // Update the children visitation pattern.
           for (size_t k = 0; k < K; k++) {
-            children[k] = m_linearNodes[curNode->getChildOffsets()[k]];
+            children[k].first = m_linearNodes[curNode.first->getChildOffsets()[k]];
           }
 
           // User-based visit pattern.

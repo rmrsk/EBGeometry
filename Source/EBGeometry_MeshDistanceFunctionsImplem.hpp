@@ -53,18 +53,25 @@ FastCompactMeshSDF<T, BV, K>::signedDistance(const Vec3T<T>& a_point) const noex
     }
   };
 
-  // Lambda for pruning nodes. Returns true if we should visit the node.
-  BVH::Visiter<Node> visiter = [&minDist, &a_point](const Node& a_node) -> bool {
-    return a_node.getDistanceToBoundingVolume(a_point) <= std::abs(minDist);
+  // Visit pattern -- visit the node if the bounding volume is close enough.
+  BVH::Visiter<Node, T> visiter = [&minDist, &a_point](const Node& a_node, const T& a_bvDist) -> bool {
+    return a_bvDist <= std::abs(minDist);
   };
 
   // Sort criterion.
-  BVH::Sorter<Node, K> sorter = [&a_point](std::array<std::shared_ptr<const Node>, K>& a_leaves) -> void {
-    std::sort(a_leaves.begin(),
-              a_leaves.end(),
-              [&a_point](const std::shared_ptr<const Node>& n1, const std::shared_ptr<const Node>& n2) -> bool {
-                return n1->getDistanceToBoundingVolume(a_point) > n2->getDistanceToBoundingVolume(a_point);
-              });
+  BVH::Sorter<Node, K, T> sorter =
+    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) -> void {
+    // Compute distance to bounding volumes
+    for (auto& l : a_leaves) {
+      l.second = l.first->getDistanceToBoundingVolume(a_point);
+    }
+
+    // Sort based on distance to bounding volumes -- closest node goes first.
+    std::sort(
+      a_leaves.begin(),
+      a_leaves.end(),
+      [&a_point](const std::pair<std::shared_ptr<const Node>, T>& n1,
+                 const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
   };
 
   // Traverse the tree.

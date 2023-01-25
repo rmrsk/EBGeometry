@@ -118,20 +118,23 @@ namespace BVH {
   using Updater = std::function<void(const PrimitiveListT<P>& a_primitives)>;
 
   /*!
-    @brief Pruner for LinearBVH::stackPrune. Must return true if we should visit the node and false otherwise. 
+    @brief Visiter pattern for LinearBVH::traverse. Must return true if we should visit the node and false otherwise. 
+    @details The Meta template parameter is a door left open to the user for attaching additional data to the 
+    sorter/visiter pattern. 
     @param[in] a_bvDist Distance to current bounding volume. 
     @param[in] a_minDist  Shortest "distance" to primitives found so far. 
   */
-  template <class N>
-  using Visiter = std::function<bool(const N& a_node)>;
+  template <class N, class Meta = void>
+  using Visiter = std::function<bool(const N& a_node, const Meta& a_meta)>;
 
   /*!
     @brief Sorting criterion for which child node to visit first. 
     This takes an input list of child nodes and sorts it. When further into the sub-tree, the first
-    node is investigated first, then the second, etc. 
+    node is investigated first, then the second, etc. The Meta template parameter is a door left open to
+    the user for attaching additional data to the sorter/visiter pattern. 
   */
-  template <class N, size_t K>
-  using Sorter = std::function<void(std::array<std::shared_ptr<const N>, K>& a_children)>;
+  template <class N, size_t K, class Meta = void>
+  using Sorter = std::function<void(std::array<std::pair<std::shared_ptr<const N>, Meta>, K>& a_children)>;
 
   /*!
     @brief Typename for identifying algorithms various algorithms during tree
@@ -591,10 +594,11 @@ namespace BVH {
       @param[in] a_visiter Visiter rule
       @param[in] a_sorter  Visitation pattern rule. 
     */
+    template <class Meta = void>
     inline void
-    traverse(const BVH::Updater<P>&            a_updater,
-             const BVH::Visiter<LinearNode>&   a_visiter,
-             const BVH::Sorter<LinearNode, K>& a_sorter) const noexcept;
+    traverse(const BVH::Updater<P>&                  a_updater,
+             const BVH::Visiter<LinearNode, Meta>&   a_visiter,
+             const BVH::Sorter<LinearNode, K, Meta>& a_sorter) const noexcept;
 
   protected:
     /*!
