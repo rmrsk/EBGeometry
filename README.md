@@ -33,7 +33,7 @@ To run one of the examples, navigate to the example and compile and run it.
 
 ### 1. Analytic distance fields
 
-Use one of the analytic signed distance fields in EBGeometry, and rotate and transform it.
+Use one of the analytic signed distance fields in EBGeometry:
 
 ```
 cd Examples/EBGeometry_Shapes
@@ -48,7 +48,7 @@ Read in an STL file and turn it into a signed distance field.
 ```
 cd Examples/EBGeometry_DCEL
 g++ -O3 -std=c++14 main.cpp
-./a.out armadillo.stl
+./a.out
 ```
 
 <p align="center">
@@ -60,7 +60,7 @@ g++ -O3 -std=c++14 main.cpp
 Generate a spherical packed bed geometry using analytic representations of spheres.
 BVH-accelerated CSG unions lead to order-of-magnitude faster implicit function evaluation.
 ```
-cd Examples/EBGeometry_Union
+cd Examples/EBGeometry_PackedSpheres
 g++ -O3 -std=c++14 main.cpp
 ./a.out
 ```
@@ -87,9 +87,6 @@ g++ -O3 -std=c++17 main.cpp -lstdc++fs
 
 Some complex examples that use Chombo3 or AMReX are also provided in the Examples folder.
 These include application-specific code and require installation of Chombo3 or AMReX.
-
-For more advanced usage, users can supply their own file parsers, provide their own bounding volumes, or their own BVH partitioners.
-EBGeometry is not too strict about these things, and uses rigorous templating for ensuring that the EBGeometry functionality can be extended.
 
 ## Contributing
 

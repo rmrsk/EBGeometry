@@ -3,7 +3,7 @@
 Vector types
 ============
 
-EBGeometry runs it's own vector types ``Vec2T`` and ``Vec3T``. 
+EBGeometry implements its own 2D and 3D vector types ``Vec2T`` and ``Vec3T``. 
 
 ``Vec2T`` is a two-dimensional Cartesian vector.
 It is templated as

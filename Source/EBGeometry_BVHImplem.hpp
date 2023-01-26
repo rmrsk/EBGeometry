@@ -121,11 +121,13 @@ namespace BVH {
     if (!stopRecursiveSplitting && hasEnoughPrimitives) {
 
       // Divide primitives into new partitions
-      const auto& newPartitions = a_partitioner(m_primitives); // Divide this node's primitives into K new
-                                                               // sub-volume primitives
-      this->insertChildren(newPartitions);                     // Insert the K new nodes into the tree.
+      const auto& newPartitions = a_partitioner(m_primitives);
 
-      m_primitives.resize(0); // This node is no longer a leaf node.
+      // Insert the K new nodes into the tree.
+      this->insertChildren(newPartitions);
+
+      // This node is no longer a leaf node.
+      m_primitives.resize(0);
 
       // Partition children nodes further
       for (auto& c : m_children) {
@@ -153,212 +155,40 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
-  inline T
-  NodeT<T, P, BV, K>::getDistanceToPrimitives(const Vec3& a_point) const noexcept
+  template <class Meta>
+  inline void
+  NodeT<T, P, BV, K>::traverse(const BVH::Updater<P>&              a_updater,
+                               const BVH::Visiter<Node, Meta>&     a_visiter,
+                               const BVH::Sorter<Node, Meta, K>&   a_sorter,
+                               const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept
   {
-    T minDist = std::numeric_limits<T>::infinity();
+    std::array<std::pair<std::shared_ptr<const Node>, Meta>, K> children;
+    std::stack<std::pair<std::shared_ptr<const Node>, Meta>>    q;
 
-    for (const auto& p : m_primitives) {
-      const auto curDist = p->signedDistance(a_point);
+    q.emplace(this->shared_from_this(), a_metaUpdater(*this));
 
-      if (curDist * curDist < minDist * minDist) {
-        minDist = curDist;
-      }
-    }
-
-    return minDist;
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline T
-  NodeT<T, P, BV, K>::signedDistance(const Vec3& a_point) const noexcept
-  {
-    return this->signedDistance(a_point, Prune::Stack);
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline T
-  NodeT<T, P, BV, K>::signedDistance(const Vec3& a_point, const Prune a_pruning) const noexcept
-  {
-    T ret = std::numeric_limits<T>::infinity();
-
-    switch (a_pruning) {
-    case Prune::Stack: {
-      ret = this->pruneStack(a_point);
-
-      break;
-    }
-    case Prune::Ordered: {
-      this->pruneOrdered(ret, a_point);
-
-      break;
-    }
-    case Prune::Unordered: {
-      this->pruneUnordered(ret, a_point);
-
-      break;
-    }
-    default:
-      std::cerr << "In file EBGeometry_BVHImplem.hpp function NodeT<T, P, BV, "
-                   "K>::signedDistance(Vec3, Prune) -- bad input enum for 'Prune'\n";
-    };
-
-    return ret;
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline T
-  NodeT<T, P, BV, K>::pruneStack(const Vec3& a_point) const noexcept
-  {
-    // TLDR: This routine uses ordered traversal along the branches. Rather than
-    // calling itself recursively, it uses
-    //       a stack for investigating the branches and nodes.
-
-    // Shortest distance. Initialize to something big.
-    T minDist = std::numeric_limits<T>::infinity();
-
-    // Create temporary storage and and priority queue (our stack).
-    using RawNode     = const NodeT<T, P, BV, K>*;
-    using NodeAndDist = std::pair<RawNode, T>;
-
-    std::array<NodeAndDist, K> childrenAndDistances;
-    std::stack<NodeAndDist>    q;
-
-    // Initialize the stack with the root node.
-    q.emplace(this, this->getDistanceToBoundingVolume(a_point));
-
-    // Stack loop -- always investigate the one at the top.
     while (!(q.empty())) {
-
-      // Pop the top node off the stack.
-      const auto& curNode = (q.top()).first;
-      const auto& bvDist  = (q.top()).second;
+      const auto& node = q.top().first;
+      const auto& meta = q.top().second;
 
       q.pop();
 
-      // See if we really need to process this node. We only need to do it if its
-      // BV is closer than the shortest distance we've found so far. Otherwise we
-      // are guaranteed that the distance to the primitives is larger than the
-      // shortest distance we've found so far. If the current node is a leaf node
-      // we just update the shortest distance. Otherwise we fetch the child nodes
-      // and process them (in a very specific order!).
-      if (bvDist <= std::abs(minDist)) {
-        if (curNode->isLeaf()) {
-          const T primDist = curNode->getDistanceToPrimitives(a_point);
-
-          if (std::abs(primDist) < std::abs(minDist)) {
-            minDist = primDist;
-          }
+      if (a_visiter(*node, meta)) {
+        if (node->isLeaf()) {
+          a_updater(node->getPrimitives());
         }
         else {
-          // If it's a regular node, sort the child nodes and put them on the
-          // stack. On the next iteration we do the closest node first. This
-          // sorting is critical to the performance of the BVH.
-
-          // Get the nodes's children.
-          const std::array<NodePtr, K>& children = curNode->getChildren();
-
           for (size_t k = 0; k < K; k++) {
-            const RawNode& child = &(*children[k]);
-
-            childrenAndDistances[k] = std::make_pair(child, child->getDistanceToBoundingVolume(a_point));
+            children[k].first  = node->getChildren()[k];
+            children[k].second = a_metaUpdater(*children[k].first);
           }
 
-          std::sort(
-            childrenAndDistances.begin(),
-            childrenAndDistances.end(),
-            [](const NodeAndDist& node1, const NodeAndDist& node2) -> bool { return node1.second > node2.second; });
+          // User-based visit pattern.
+          a_sorter(children);
 
-          // Push the children onto the stack.
-          for (const auto& child : childrenAndDistances) {
+          for (const auto& child : children) {
             q.push(child);
           }
-        }
-      }
-    }
-
-    return minDist;
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline void
-  NodeT<T, P, BV, K>::pruneOrdered(T& a_shortestDistanceSoFar, const Vec3& a_point) const noexcept
-  {
-
-    // TLDR: Beginning at some node, this routine descends the branches in the
-    // tree. It always descends the branch with the shortest distance
-    //       to the bounding volume first. The other branch is investigated only
-    //       after the full sub-tree beneath the first branch has completed. Since
-    //       the shortest distance to primitives is updated underway, there is a
-    //       decent chance that the secondary subtree can be pruned. Hence why
-    //       this routine is more efficient than prunedUnordered.
-    if (this->isLeaf()) {
-      // Compute the shortest signed distance to the primitives in this leaf node.
-      // If this is shorter than a_shortestDistanceSoFar, update it. Recall that
-      // the comparison requires the absolute value since we're doing the SIGNED
-      // distance.
-      const T primDist = this->getDistanceToPrimitives(a_point);
-
-      if (std::abs(primDist) < std::abs(a_shortestDistanceSoFar)) {
-        a_shortestDistanceSoFar = primDist;
-      }
-    }
-    else {
-      // In this case we need to decide which subtree to move down. First, sort
-      // the children nodes by the distance between a_point and the children
-      // node's bounding volume. Shortest distance goes first.
-      std::array<std::pair<T, NodePtr>, K> distancesAndNodes;
-      for (size_t i = 0; i < K; i++) {
-        distancesAndNodes[i] = std::make_pair(m_children[i]->getDistanceToBoundingVolume(a_point), m_children[i]);
-      }
-
-      // Comparator for sorting -- puts the node with the shortest distance to the
-      // bounding volume at the front of the vector.
-      auto comparator = [](const std::pair<T, NodePtr>& a_node1, const std::pair<T, NodePtr>& a_node2) -> bool {
-        return std::abs(a_node1.first) < std::abs(a_node2.first);
-      };
-
-      std::sort(distancesAndNodes.begin(), distancesAndNodes.end(), comparator);
-
-      // Go through the children nodes -- closest node goes first. We prune
-      // branches if the distance to the node's bounding volume is longer than the
-      // shortest distance we've found so far.
-      for (size_t i = 0; i < K; i++) {
-        const std::pair<T, NodePtr>& curChildNode = distancesAndNodes[i];
-
-        // a_shortestDistanceSoFar is the SIGNED distance, so we need the absolute
-        // value here.
-        if (std::abs(curChildNode.first) <= std::abs(a_shortestDistanceSoFar)) {
-          curChildNode.second->pruneOrdered(a_shortestDistanceSoFar, a_point);
-        }
-        else { // Prune the rest of the children nodes.
-          break;
-        }
-      }
-    }
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline void
-  NodeT<T, P, BV, K>::pruneUnordered(T& a_shortestDistanceSoFar, const Vec3& a_point) const noexcept
-  {
-    if (this->isLeaf()) {
-      // Check if the distance to the primitives in this leaf is shorter than
-      // a_shortestDistanceSoFar. If it is, update the shortest distance.
-      const T curSignedDistance = this->getDistanceToPrimitives(a_point);
-
-      if (std::abs(curSignedDistance) < std::abs(a_shortestDistanceSoFar)) {
-        a_shortestDistanceSoFar = curSignedDistance;
-      }
-    }
-    else {
-      // Investigate subtrees. Prune subtrees if the distance to their bounding
-      // volumes are longer than the shortest distance we've found so far.
-      for (const auto& child : m_children) {
-        const T distanceToChildBoundingVolume = child->getDistanceToBoundingVolume(a_point);
-
-        if (std::abs(distanceToChildBoundingVolume) < std::abs(a_shortestDistanceSoFar)) {
-          child->pruneUnordered(a_shortestDistanceSoFar, a_point);
         }
       }
     }
@@ -564,107 +394,54 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
-  inline T
-  LinearBVH<T, P, BV, K>::signedDistance(const Vec3& a_point) const noexcept
+  template <class Meta>
+  inline void
+  LinearBVH<T, P, BV, K>::traverse(const BVH::Updater<P>&                    a_updater,
+                                   const BVH::Visiter<LinearNode, Meta>&     a_visiter,
+                                   const BVH::Sorter<LinearNode, Meta, K>&   a_sorter,
+                                   const BVH::MetaUpdater<LinearNode, Meta>& a_metaUpdater) const noexcept
   {
+    std::array<std::pair<std::shared_ptr<const LinearNode>, Meta>, K> children;
+    std::stack<std::pair<std::shared_ptr<const LinearNode>, Meta>>    q;
 
-    // For SDF we select the one that is closest, i.e. the object with the
-    // smallest absolute value.
-    Comparator<T> sdfComparator = [](const T& dmin, const std::vector<T>& primDistances) -> T {
-      T d = dmin;
+    q.emplace(m_linearNodes[0], a_metaUpdater(*m_linearNodes[0]));
 
-      for (const auto& primDist : primDistances) {
-        d = std::abs(primDist) < std::abs(d) ? primDist : d;
-      }
-
-      return d;
-    };
-
-    // If the distance to the BV is shorter than the smallest distance so far,
-    // then we need to check the node.
-    Pruner<T> sdfPruner = [](const T& bvDist, const T& minDist) -> bool { return bvDist <= std::abs(minDist); };
-
-    return this->stackPrune(a_point, sdfComparator, sdfPruner);
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline T
-  LinearBVH<T, P, BV, K>::stackPrune(const Vec3&          a_point,
-                                     const Comparator<T>& a_comparator,
-                                     const Pruner<T>&     a_pruner) const noexcept
-  {
-    // TLDR: This routine uses ordered traversal along the branches. This differs for
-    //       SDF traversal and CSG union traversal, but not enough that I'm willing
-    //       to write separate algorithms for this. Instead, the incoming lambdas are
-    //       sufficient for updating the distance and determining if we need to visit
-    //       the BVH node or not.
-
-    T minDist = std::numeric_limits<T>::infinity();
-
-    // Create temporary storage and and priority queue (our stack).
-    using NodeAndDist = std::pair<size_t, T>;
-
-    std::array<NodeAndDist, K> children;
-    std::stack<NodeAndDist>    q;
-
-    // Initialize the stack with the root node.
-    q.emplace(0, m_linearNodes[0]->getDistanceToBoundingVolume(a_point));
-
-    // Stack loop -- always investigate the one at the top.
     while (!(q.empty())) {
-
-      // Pop the top node off the stack.
-      const auto curNode = (q.top()).first;
-      const auto bvDist  = (q.top()).second;
+      const auto& node = q.top().first;
+      const auto& meta = q.top().second;
 
       q.pop();
 
-      // See if we really need to process this node. This is checked by the pruner.
-      //
-      // 1. For SDFs We only need to do it if its BV is closer than the shortest
-      //    distance we've found so far. Otherwise we are guaranteed that the
-      //    distance to the primitives is larger than the the shortest distance
-      //    we've found so far.
-      //
-      // 2. For CSG unions we compute min(f1, f2, f3) and so on. If the distance to the BV
-      //    is D <= 0.0 we always need to check. Otherwise we only have to check if
-      //    the distance is D < d and d > 0.0.
-      if (a_pruner(bvDist, minDist)) {
+      // User-based criterion for whether or not we need to check this node.
+      if (a_visiter(*node, meta)) {
 
-        // If it's a leaf node, update the distance to our desired primitive. Again, this will
-        // differ based on whether or not we're computing the signed distance or the union.
-        if (m_linearNodes[curNode]->isLeaf()) {
-          const std::vector<T> primDistances = m_linearNodes[curNode]->getDistances(a_point, m_primitives);
+        if (node->isLeaf()) {
+          const size_t& offset  = node->getPrimitivesOffset();
+          const size_t& numPrim = node->getNumPrimitives();
 
-          minDist = a_comparator(minDist, primDistances);
+          const auto first = m_primitives.begin() + offset;
+          const auto last  = first + numPrim;
+
+          // User-based update rule.
+          a_updater(PrimitiveList(first, last));
         }
         else {
-          // Compute child indices and their BVH distance to a_point
-          for (size_t k = 0; k < K; k++) {
-            const size_t& curOff       = m_linearNodes[curNode]->getChildOffsets()[k];
-            const T       distanceToBV = m_linearNodes[curOff]->getDistanceToBoundingVolume(a_point);
 
-            children[k] = std::make_pair(curOff, distanceToBV);
+          // Update the children visitation pattern.
+          for (size_t k = 0; k < K; k++) {
+            children[k].first  = m_linearNodes[node->getChildOffsets()[k]];
+            children[k].second = a_metaUpdater(*children[k].first);
           }
 
-          // Sort the child nodes and put them on the stack. On the next iteration
-          // we do the closest node first. This sorting is critical to the
-          // performance of the BVH.
-          std::sort(children.begin(),
-                    children.end(),
-                    [](const std::pair<size_t, T>& node1, const std::pair<size_t, T>& node2) -> bool {
-                      return node1.second > node2.second;
-                    });
+          // User-based visit pattern.
+          a_sorter(children);
 
-          // Push onto stack if the BV is closer than minDist.
           for (const auto& child : children) {
             q.push(child);
           }
         }
       }
     }
-
-    return minDist;
   }
 } // namespace BVH
 

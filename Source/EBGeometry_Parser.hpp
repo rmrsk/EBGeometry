@@ -19,10 +19,9 @@
 #include <map>
 
 // Our includes
-#include "EBGeometry_DCEL_Vertex.hpp"
-#include "EBGeometry_DCEL_Edge.hpp"
-#include "EBGeometry_DCEL_Face.hpp"
 #include "EBGeometry_DCEL_Mesh.hpp"
+#include "EBGeometry_MeshDistanceFunctions.hpp"
+#include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
@@ -52,7 +51,7 @@ namespace Parser {
   };
 
   /*!
-    @brief Read a file containing a single watertight object. 
+    @brief Read a file containing a single watertight object and return it as a DCEL mesh
     @param[in] a_filename File name
   */
   template <typename T>
@@ -60,7 +59,7 @@ namespace Parser {
   readIntoDCEL(const std::string a_filename) noexcept;
 
   /*!
-    @brief Read multiple files containing single watertight objects
+    @brief Read multiple files containing single watertight objects and return them as DCEL meshes
     @param[in] a_files File names
   */
   template <typename T>
@@ -68,35 +67,51 @@ namespace Parser {
   readIntoDCEL(const std::vector<std::string> a_files) noexcept;
 
   /*!
-    @brief Read a file containing a single watertight object. 
+    @brief Read a file containing a single watertight object and return it as an implicit function.
     @param[in] a_filename File name
   */
-  template <typename T, typename BV, size_t K>
-  inline static std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>
+  template <typename T>
+  inline static std::shared_ptr<MeshSDF<T>>
+  readIntoMesh(const std::string a_filename) noexcept;
+
+  /*!
+    @brief Read multiple files containing single watertight objects and return them as an implicit functions.
+    @param[in] a_files File names
+  */
+  template <typename T>
+  inline static std::vector<std::shared_ptr<MeshSDF<T>>>
+  readIntoMesh(const std::vector<std::string> a_files) noexcept;
+
+  /*!
+    @brief Read a file containing a single watertight object and return it as a DCEL mesh enclosed in a full BVH.
+    @param[in] a_filename File name
+  */
+  template <typename T, typename BV = EBGeometry::BoundingVolumes::AABBT<T>, size_t K = 4>
+  inline static std::shared_ptr<FastMeshSDF<T, BV, K>>
   readIntoFullBVH(const std::string a_filename) noexcept;
 
   /*!
-    @brief Read multiple files containing single watertight objects
+    @brief Read multiple files containing single watertight objects and return them as DCEL meshes enclosed in BVHs.
     @param[in] a_files File names
   */
-  template <typename T, typename BV, size_t K>
-  inline static std::vector<std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>>
+  template <typename T, typename BV = EBGeometry::BoundingVolumes::AABBT<T>, size_t K = 4>
+  inline static std::vector<std::shared_ptr<FastMeshSDF<T, BV, K>>>
   readIntoFullBVH(const std::vector<std::string> a_files) noexcept;
 
   /*!
-    @brief Read a file containing a single watertight object. 
+    @brief Read a file containing a single watertight object and return it as a DCEL mesh enclosed in a linearized BVH
     @param[in] a_filename File name
   */
-  template <typename T, typename BV, size_t K>
-  inline static std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>>
+  template <typename T, typename BV = EBGeometry::BoundingVolumes::AABBT<T>, size_t K = 4>
+  inline static std::shared_ptr<FastCompactMeshSDF<T, BV, K>>
   readIntoLinearBVH(const std::string a_filename) noexcept;
 
   /*!
-    @brief Read multiple files containing single watertight objects
+    @brief Read multiple files containing single watertight objects and return them as DCEL meshes enclosed in linearized BVHs.
     @param[in] a_files File names
   */
-  template <typename T, typename BV, size_t K>
-  inline static std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>>>
+  template <typename T, typename BV = EBGeometry::BoundingVolumes::AABBT<T>, size_t K = 4>
+  inline static std::vector<std::shared_ptr<FastCompactMeshSDF<T, BV, K>>>
   readIntoLinearBVH(const std::vector<std::string> a_files) noexcept;
 
   /*!
