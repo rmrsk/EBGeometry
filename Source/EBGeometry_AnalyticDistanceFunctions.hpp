@@ -37,6 +37,9 @@ clamp(const T& v, const T& lo, const T& hi)
   return v < lo ? lo : hi < v ? hi : v;
 }
 
+/*!
+  @brief Signed distance function for a plane
+*/
 template <class T>
 class PlaneSDF : public SignedDistanceFunction<T>
 {

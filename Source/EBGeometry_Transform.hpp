@@ -37,7 +37,8 @@ Translate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const 
 /*!
   @brief Convenience function for rotating an implicit function. 
   @param[in] a_implicitFunction Input implicit function to be rotated.
-  @param[in] a_shift Distance to shift
+  @param[in] a_angle Angle to be rotated by (in degrees)
+  @param[in] a_axis Axis to rotate about
 */
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
@@ -55,7 +56,7 @@ Scale(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_
 /*!
   @brief Convenience function for offsetting an implicit function
   @param[in] a_implicitFunction Input implicit function to be offset
-  @param[in] a_shift Distance to shift
+  @param[in] a_offset Offset distance
 */
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
@@ -77,7 +78,7 @@ Annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T 
 */
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
-Blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_blur) noexcept;
+Blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_blurDistance) noexcept;
 
 /*!
   @brief Convenience function for mollification with an input sphere. 
@@ -181,7 +182,8 @@ public:
   /*!
     @brief Rounded SDF. Rounds the input SDF
     @param[in] a_implicitFunction  Input implicit function. 
-    @param[in] a_offset Offset value. 
+    @param[in] a_angle Angle to rotate (in degrees)
+    @param[in] a_axis Axis to rotate about
   */
   RotateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
            const T                                     a_angle,
@@ -423,7 +425,7 @@ public:
     @brief Full constructor
     @param[in] a_implicitFunction  Input implicit function. 
     @param[in] a_mollifier         Mollifier
-    @param[in] a_maxVal            Max/min val where mollifier is applied
+    @param[in] a_maxValue          Max/min val where mollifier is applied
     @param[in] a_numPoints         Number of points to use in mollification convolution kernel. Must be >= 1.
   */
   MollifyIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
