@@ -72,7 +72,8 @@ Parser::readIntoDCEL(const std::vector<std::string> a_files) noexcept
 
 template <typename T>
 inline std::shared_ptr<MeshSDF<T>>
-Parser::readIntoMesh(const std::string a_filename) noexcept{
+Parser::readIntoMesh(const std::string a_filename) noexcept
+{
   const auto mesh = Parser::readIntoDCEL<T>(a_filename);
 
   return std::make_shared<MeshSDF<T>>(mesh);
@@ -80,7 +81,8 @@ Parser::readIntoMesh(const std::string a_filename) noexcept{
 
 template <typename T>
 inline std::vector<std::shared_ptr<MeshSDF<T>>>
-Parser::readIntoMesh(const std::vector<std::string> a_files) noexcept{
+Parser::readIntoMesh(const std::vector<std::string> a_files) noexcept
+{
 
   std::vector<std::shared_ptr<MeshSDF<T>>> implicitFunctions;
 
@@ -88,7 +90,7 @@ Parser::readIntoMesh(const std::vector<std::string> a_files) noexcept{
     implicitFunctions.emplace_back(Parser::readIntoMesh<T>(file));
   }
 
-  return implicitFunctions;  
+  return implicitFunctions;
 }
 
 template <typename T, typename BV, size_t K>

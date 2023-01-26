@@ -45,8 +45,8 @@ main(int argc, char* argv[])
   // times and builds the BVH twice (there are converters that avoid this, users will
   // only use one of these representations).
   const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T>(file);
-  const auto bvhSDF  = EBGeometry::Parser::readIntoFullBVH<T, BV, K>(file);  
-  const auto linSDF  = EBGeometry::Parser::readIntoLinearBVH<T, BV, K>(file);  
+  const auto bvhSDF  = EBGeometry::Parser::readIntoFullBVH<T, BV, K>(file);
+  const auto linSDF  = EBGeometry::Parser::readIntoLinearBVH<T, BV, K>(file);
 
   // Sample some random points around the object.
   constexpr size_t Nsamp = 100;
