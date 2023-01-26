@@ -13,6 +13,16 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+from sphinx.highlighting import PygmentsBridge
+from pygments.formatters.latex import LatexFormatter
+
+class CustomLatexFormatter(LatexFormatter):
+    def __init__(self, **options):
+        super(CustomLatexFormatter, self).__init__(**options)
+        self.verboptions = r"formatcom=\scriptsize"
+
+PygmentsBridge.latex_formatter = CustomLatexFormatter
+
 
 
 # -- Project information -----------------------------------------------------
