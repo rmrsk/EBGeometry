@@ -39,29 +39,29 @@ jobs:
         run: |
           doxygen Docs/doxygen.conf
 
-  Build-HTML:
-    needs: Install-dependencies
-    runs-on: ubuntu-latest
+  # Build-HTML:
+  #   needs: Install-dependencies
+  #   runs-on: ubuntu-latest
     
-      - name: Build HTML documentation
-        working-directory: ${{ github.workspace }}/Docs/Sphinx        
-        run: |
-          make html
+  #     - name: Build HTML documentation
+  #       working-directory: ${{ github.workspace }}/Docs/Sphinx        
+  #       run: |
+  #         make html
 
-  Build-PDF:
-    needs: Install-dependencies
-    runs-on: ubuntu-latest
-      - name: Build PDF documentation
-        working-directory: ${{ github.workspace }}/Docs/Sphinx
-        run: |
-          make latexpdf
+  # Build-PDF:
+  #   needs: Install-dependencies
+  #   runs-on: ubuntu-latest
+  #     - name: Build PDF documentation
+  #       working-directory: ${{ github.workspace }}/Docs/Sphinx
+  #       run: |
+  #         make latexpdf
 
-      - name: Cleanup
-        working-directory: ${{ github.workspace }}/Docs
-        run: |
-          cp -a Sphinx/build/html/* ./
-          mv Sphinx/build/latex/ebgeometry.pdf ./
-          rm -rf Sphinx/build
+  #     - name: Cleanup
+  #       working-directory: ${{ github.workspace }}/Docs
+  #       run: |
+  #         cp -a Sphinx/build/html/* ./
+  #         mv Sphinx/build/latex/ebgeometry.pdf ./
+  #         rm -rf Sphinx/build
           
       # - name: Deploy
       #   if: github.event_name == 'push'  && github.ref == 'refs/heads/main'        
