@@ -31,7 +31,7 @@ The basic features of EBGeometry are as follows:
    section#introduction,
    section#concepts,
    section#implementation,
-   section#guided-examples,
+   section#examples,
    section#references,
    section#bibliography,
    section#epilogue {
