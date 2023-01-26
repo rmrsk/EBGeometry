@@ -89,9 +89,6 @@ Examples
 
    Examples.rst
 
-References
-**********
-
 .. toctree::
    :maxdepth: 3
    :caption: References
