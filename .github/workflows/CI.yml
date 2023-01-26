@@ -138,14 +138,7 @@ jobs:
           mv Sphinx/build/latex/ebgeometry.pdf ./
           rm -rf Sphinx/build          
           
-      - name: Deploy
-        if: github.event_name == 'push' && github.repository == 'rmrsk/EBGeometry' && github.ref == 'refs/heads/main'        
-        uses: JamesIves/github-pages-deploy-action@3.7.1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: gh-pages
-          folder: Docs
-          clean: false
+
 
   CI-passed:
     needs: [Linux-GNU, Linux-Intel, Build-documentation]
@@ -153,4 +146,17 @@ jobs:
     steps:
       - name: Do nothing
         run: |
+
+  Deploy:
+    needs: CI-passed
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy documentation
+        if: github.event_name == 'push' && github.repository == 'rmrsk/EBGeometry' && github.ref == 'refs/heads/main'        
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
+          folder: Docs
+          clean: false          
           
