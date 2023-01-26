@@ -137,8 +137,6 @@ jobs:
           cp -a Sphinx/build/html/* ./
           mv Sphinx/build/latex/ebgeometry.pdf ./
           rm -rf Sphinx/build          
-          
-
 
   CI-passed:
     needs: [Linux-GNU, Linux-Intel, Build-documentation]
