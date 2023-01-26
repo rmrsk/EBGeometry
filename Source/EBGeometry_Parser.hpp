@@ -51,7 +51,7 @@ namespace Parser {
   };
 
   /*!
-    @brief Read a file containing a single watertight object and return it as a DCEL mesh (which is also an implicit function)
+    @brief Read a file containing a single watertight object and return it as a DCEL mesh
     @param[in] a_filename File name
   */
   template <typename T>
@@ -59,7 +59,7 @@ namespace Parser {
   readIntoDCEL(const std::string a_filename) noexcept;
 
   /*!
-    @brief Read multiple files containing single watertight objects and return them as DCEL meshes (these are implicit functions)
+    @brief Read multiple files containing single watertight objects and return them as DCEL meshes
     @param[in] a_files File names
   */
   template <typename T>

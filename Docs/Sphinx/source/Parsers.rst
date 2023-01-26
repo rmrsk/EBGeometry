@@ -11,28 +11,73 @@ The source code is implemented in :file:`Source/EBGeometry_Parser.hpp`.
    EBGeometry is currently limited to reading binary and ASCII STL files and reconstructing DCEL grids from those.
    However, it is a simple matter to also reconstructor DCEL grids from triangle soups read using third-party codes (see :ref:`Chap:ThirdPartyParser`).
 
+Quickstart
+----------
+
+If you have one of multiple STL files, you can quickly turn them into implicit functions with
+
+.. code-block:: c++
+
+   std::vector<std::string> files; // <---- List of file names.
+   
+   const auto distanceFields = EBGeometry::Parser::readIntoLinearBVH<float>(files);
+
+See :ref:`Chap:LinearSTL` for further details. 
+
 Reading STL files
 -----------------
 
-EBGeometry supports a native parser for binary and ASCII STL files.
-To read one or multiple STL files and turn it into an implicit function, use
+EBGeometry supports a native parser for binary and ASCII STL files, which can be read into a few different representations:
+
+#. Into a DCEL mesh, see :ref:`Chap:ImplemDCEL`.
+#. Into a signed distance function representation of a DCEL mesh, see :ref:`Chap:ImplemCSG`.
+#. Into a signed distance function representation of a DCEL mesh, but using a BVH accelerator in full representation.
+#. Into a signed distance function representation of a DCEL mesh, but using a BVH accelerator in compact representation.    
+
+DCEL representation
+___________________
+
+To read one or multiple STL files and turn it into DCEL meshes, use
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 54-68
+   :lines: 53-67
 
-Alternatively, the files can be read directly into a full or linearized bounding volume hierarchy:
+DCEL mesh SDF
+_____________
+
+To read one or multiple STL files and turn it into signed distance representations, use
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 70-100
+   :lines: 69-83
+
+DCEL mesh SDF with full BVH
+___________________________
+
+To read one or multiple STL files and turn it into signed distance representations using a full BVH representation, use
+
+.. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
+   :language: c++
+   :lines: 85-99
+
+.. _Chap:LinearSTL:
+
+DCEL mesh SDF with compact BVH
+_______________________________
+
+To read one or multiple STL files and turn it into signed distance representations using a compact BVH representation, use
+
+.. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
+   :language: c++
+   :lines: 101-115
 
 .. _Chap:PolySoups:
 
 From soups to DCEL
 ------------------
 
-EBGeometry also supports the creation of DCEL grids from polygon soups.
+EBGeometry also supports the creation of DCEL grids from polygon soups, which can then be later turned into an SDF representation.
 A triangle soup is represented as
 
 .. code-block:: c++
@@ -46,7 +91,7 @@ To turn this into a DCEL mesh, one should compress the triangle soup (get rid of
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 119-137
+   :lines: 134-152
 
 The ``compress`` function will discard duplicate vertices from the soup, while the ``soupToDCEL`` will simply turn the remaining polygon soup into a DCEL mesh.
 

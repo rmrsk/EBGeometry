@@ -105,11 +105,11 @@ namespace BVH {
     @brief Visiter pattern for LinearBVH::traverse. Must return true if we should visit the node and false otherwise. 
     @details The Meta template parameter is a door left open to the user for attaching additional data to the 
     sorter/visiter pattern. 
-    @param[in] a_bvDist Distance to current bounding volume. 
-    @param[in] a_minDist  Shortest "distance" to primitives found so far. 
+    @param[in] a_node Node to visit or not
+    @param[in] a_meta Meta-data for node visit.
   */
   template <class NodeType, class Meta>
-  using Visiter = std::function<bool(const NodeType& a_node, const Meta a_meta)>;
+  using Visiter = std::function<bool(const NodeType& a_node, const Meta& a_meta)>;
 
   /*!
     @brief Sorting criterion for which child node to visit first. 

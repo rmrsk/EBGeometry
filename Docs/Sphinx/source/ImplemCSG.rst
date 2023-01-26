@@ -33,6 +33,7 @@ Definitions are found in:
 * :file:`Source/EBGeometry_ImplicitFunction.hpp` for implicit functions.
 * :file:`Source/EBGeometry_SignedDistanceFunction.hpp` for signed distance field. 
 * :file:`Source/EBGeometry_AnalyticDistanceFields.hpp` for various pre-defined analytic distance fields.
+* :file:`Source/EBGeometry_MeshDistanceFields.hpp` for various distance field representations for DCEL meshes. 
 
 Transformations
 ---------------
