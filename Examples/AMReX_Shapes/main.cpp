@@ -94,61 +94,63 @@ main(int argc, char* argv[])
   std::shared_ptr<ImpFunc> func;
   if (whichGeom == 0) { // Sphere.
     rb   = RealBox({-1, -1, -1}, {1, 1, 1});
-    func = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5), false);
+    func = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5));
   }
   else if (whichGeom == 1) { // Plane.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
-    func = std::make_shared<EBGeometry::PlaneSDF<T>>(Vec3::zero(), Vec3::one(), false);
+    func = std::make_shared<EBGeometry::PlaneSDF<T>>(Vec3::zero(), Vec3::one());
   }
   else if (whichGeom == 2) { // Infinite cylinder.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
-    func = std::make_shared<EBGeometry::InfiniteCylinderSDF<T>>(Vec3::zero(), T(0.1), 2, false);
+    func = std::make_shared<EBGeometry::InfiniteCylinderSDF<T>>(Vec3::zero(), T(0.1), 2);
   }
   else if (whichGeom == 3) { // Finite cylinder.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::CylinderSDF<T>>(-Vec3::one(), Vec3::one(), 0.25, false);
+    func = std::make_shared<EBGeometry::CylinderSDF<T>>(-Vec3::one(), Vec3::one(), 0.25);
   }
   else if (whichGeom == 4) { // Capsule.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::CapsuleSDF<T>>(-Vec3::one(), Vec3::one(), 0.25, false);
+    func = std::make_shared<EBGeometry::CapsuleSDF<T>>(-Vec3::one(), Vec3::one(), 0.25);
   }
   else if (whichGeom == 5) { // Box.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    auto func1 = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one(), false);
-    auto func2 = EBGeometry::Transform::Rotate<T>(func1, 45.0, 0);
-    func       = EBGeometry::CSG::SmoothIntersection<T>(func1, func2, 0.1);
+    func = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one());
   }
   else if (whichGeom == 6) { // Offset box.
-    rb   = RealBox({-2, -2, -2}, {2, 2, 2});
-    func = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one(), false);
-    func = EBGeometry::Transform::Offset<T>(func, 0.25);
+    rb = RealBox({-2, -2, -2}, {2, 2, 2});
+
+    func = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one());
+    func = EBGeometry::Offset<T>(func, 0.25);
   }
   else if (whichGeom == 7) { // Torus.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::TorusSDF<T>>(Vec3::zero(), 1.0, 0.25, false);
+    func = std::make_shared<EBGeometry::TorusSDF<T>>(Vec3::zero(), 1.0, 0.25);
   }
   else if (whichGeom == 8) { // Infinite cone.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::InfiniteConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 30.0, false);
+    func = std::make_shared<EBGeometry::InfiniteConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 30.0);
   }
   else if (whichGeom == 9) { // Finite cone.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::ConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 2.0, 30, false);
+    func = std::make_shared<EBGeometry::ConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 2.0, 30);
   }
   if (whichGeom == 10) { // Spherical shell.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
-    func = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5), false);
-    func = EBGeometry::Transform::Annular<T>(func, 0.1);
+    func = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5));
+    func = EBGeometry::Annular<T>(func, 0.1);
   }
+
+  // AMReX uses the opposite sign.
+  func = EBGeometry::Complement<T>(func);
 
   Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};
   Geometry::Setup(&rb, 0, is_periodic.data());

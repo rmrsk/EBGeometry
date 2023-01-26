@@ -72,8 +72,8 @@ public:
       smoothLen);
 
     // AMReX uses the opposite to EBGeometry.
-    m_slowUnion = EBGeometry::Transform::Complement<T>(m_slowUnion);
-    m_fastUnion = EBGeometry::Transform::Complement<T>(m_fastUnion);
+    m_slowUnion = EBGeometry::Complement<T>(m_slowUnion);
+    m_fastUnion = EBGeometry::Complement<T>(m_fastUnion);
   }
 
   PackedSpheres(const PackedSpheres& a_other)
