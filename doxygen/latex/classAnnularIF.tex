@@ -1,0 +1,108 @@
+\hypertarget{classAnnularIF}{}\doxysection{Annular\+IF$<$ T $>$ Class Template Reference}
+\label{classAnnularIF}\index{AnnularIF$<$ T $>$@{AnnularIF$<$ T $>$}}
+
+
+Annular implicit function function. Creates a shell out of the implicit function.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Transform.\+hpp$>$}
+
+
+
+Inheritance diagram for Annular\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classAnnularIF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Annular\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classAnnularIF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classAnnularIF_a9c49bab6518c13dccf77fbdd1c54bcde}\label{classAnnularIF_a9c49bab6518c13dccf77fbdd1c54bcde}} 
+\mbox{\hyperlink{classAnnularIF_a9c49bab6518c13dccf77fbdd1c54bcde}{Annular\+IF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classAnnularIF_ac1d5041de80f6710d11089011d3acc0b}{Annular\+IF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ a\+\_\+implicit\+Function, const T a\+\_\+delta)
+\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classAnnularIF_acfdcfe298b74dde5c53d9bce8b9b3d1c}\label{classAnnularIF_acfdcfe298b74dde5c53d9bce8b9b3d1c}} 
+virtual \mbox{\hyperlink{classAnnularIF_acfdcfe298b74dde5c53d9bce8b9b3d1c}{$\sim$\+Annular\+IF}} ()
+\begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
+virtual T \mbox{\hyperlink{classAnnularIF_a0259d2d361f9d07f3cc259bac424b8ef}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classAnnularIF_a07f482f9a7a44e9946a0ca994acd6ecb}\label{classAnnularIF_a07f482f9a7a44e9946a0ca994acd6ecb}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{classAnnularIF_a07f482f9a7a44e9946a0ca994acd6ecb}{m\+\_\+implicit\+Function}}
+\begin{DoxyCompactList}\small\item\em Original implicit function. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classAnnularIF_a6023ea880d6666a556e3e263c8506aab}\label{classAnnularIF_a6023ea880d6666a556e3e263c8506aab}} 
+T \mbox{\hyperlink{classAnnularIF_a6023ea880d6666a556e3e263c8506aab}{m\+\_\+delta}}
+\begin{DoxyCompactList}\small\item\em Shell thickness. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Annular\+IF$<$ T $>$}
+
+Annular implicit function function. Creates a shell out of the implicit function. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classAnnularIF_ac1d5041de80f6710d11089011d3acc0b}\label{classAnnularIF_ac1d5041de80f6710d11089011d3acc0b}} 
+\index{AnnularIF$<$ T $>$@{AnnularIF$<$ T $>$}!AnnularIF@{AnnularIF}}
+\index{AnnularIF@{AnnularIF}!AnnularIF$<$ T $>$@{AnnularIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{AnnularIF()}{AnnularIF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classAnnularIF}{Annular\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classAnnularIF}{Annular\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$}]{a\+\_\+implicit\+Function,  }\item[{const T}]{a\+\_\+delta }\end{DoxyParamCaption})}
+
+
+
+Full constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Function} & Input implicit function. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+delta} & Shell thickness (at least if the implicit function is also signed distance) \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classAnnularIF_a0259d2d361f9d07f3cc259bac424b8ef}\label{classAnnularIF_a0259d2d361f9d07f3cc259bac424b8ef}} 
+\index{AnnularIF$<$ T $>$@{AnnularIF$<$ T $>$}!value@{value}}
+\index{value@{value}!AnnularIF$<$ T $>$@{AnnularIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{value()}{value()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+virtual T \mbox{\hyperlink{classAnnularIF}{Annular\+IF}}$<$ T $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Value function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Input point. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__Transform_8hpp}{EBGeometry\+\_\+\+Transform.\+hpp}}\end{DoxyCompactItemize}

@@ -1,0 +1,115 @@
+\hypertarget{classBlurIF}{}\doxysection{Blur\+IF$<$ T $>$ Class Template Reference}
+\label{classBlurIF}\index{BlurIF$<$ T $>$@{BlurIF$<$ T $>$}}
+
+
+Blurred/interpolated implicit function -\/ can be used for smoothing.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Transform.\+hpp$>$}
+
+
+
+Inheritance diagram for Blur\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classBlurIF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Blur\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classBlurIF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classBlurIF_a8882abc41882b09b8a8ab5ca01fb378c}\label{classBlurIF_a8882abc41882b09b8a8ab5ca01fb378c}} 
+\mbox{\hyperlink{classBlurIF_a8882abc41882b09b8a8ab5ca01fb378c}{Blur\+IF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed weak constructino. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classBlurIF_adcbee623457c7654e2c3a44deb6537a2}{Blur\+IF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const T a\+\_\+blur\+Distance, const T a\+\_\+alpha=0.\+5) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBlurIF_acdcfa7b8230352d442a6f523dd2fdafa}\label{classBlurIF_acdcfa7b8230352d442a6f523dd2fdafa}} 
+virtual \mbox{\hyperlink{classBlurIF_acdcfa7b8230352d442a6f523dd2fdafa}{$\sim$\+Blur\+IF}} () noexcept
+\begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
+virtual T \mbox{\hyperlink{classBlurIF_ad1c8ef264c88bf3d4d6c9a80c06c7262}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classBlurIF_a7a94171c19e95028f3bb96aacb8b8c3c}\label{classBlurIF_a7a94171c19e95028f3bb96aacb8b8c3c}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{classBlurIF_a7a94171c19e95028f3bb96aacb8b8c3c}{m\+\_\+implicit\+Function}}
+\begin{DoxyCompactList}\small\item\em Original implicit function. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBlurIF_ad1bffc7ff029d9741813ccfdaceb1c10}\label{classBlurIF_ad1bffc7ff029d9741813ccfdaceb1c10}} 
+T \mbox{\hyperlink{classBlurIF_ad1bffc7ff029d9741813ccfdaceb1c10}{m\+\_\+blur\+Distance}}
+\begin{DoxyCompactList}\small\item\em Blur distance. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBlurIF_a8d51ac1de2c59492a523d66ddf90ff3d}\label{classBlurIF_a8d51ac1de2c59492a523d66ddf90ff3d}} 
+T \mbox{\hyperlink{classBlurIF_a8d51ac1de2c59492a523d66ddf90ff3d}{m\+\_\+alpha}}
+\begin{DoxyCompactList}\small\item\em Alpha factor. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Blur\+IF$<$ T $>$}
+
+Blurred/interpolated implicit function -\/ can be used for smoothing. 
+
+This passed the input implicit function through a trilinear filter with specified distance. We blur the function using f = alpha $\ast$ f + (1-\/alpha)/2 $\ast$ \mbox{[}f(x+d) + f(x-\/d)\mbox{]} 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classBlurIF_adcbee623457c7654e2c3a44deb6537a2}\label{classBlurIF_adcbee623457c7654e2c3a44deb6537a2}} 
+\index{BlurIF$<$ T $>$@{BlurIF$<$ T $>$}!BlurIF@{BlurIF}}
+\index{BlurIF@{BlurIF}!BlurIF$<$ T $>$@{BlurIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{BlurIF()}{BlurIF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classBlurIF}{Blur\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classBlurIF}{Blur\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const T}]{a\+\_\+blur\+Distance,  }\item[{const T}]{a\+\_\+alpha = {\ttfamily 0.5} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Function} & Input implicit function \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+blur\+Distance} & Blur distance \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+alpha} & Blur factor. \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classBlurIF_ad1c8ef264c88bf3d4d6c9a80c06c7262}\label{classBlurIF_ad1c8ef264c88bf3d4d6c9a80c06c7262}} 
+\index{BlurIF$<$ T $>$@{BlurIF$<$ T $>$}!value@{value}}
+\index{value@{value}!BlurIF$<$ T $>$@{BlurIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{value()}{value()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+virtual T \mbox{\hyperlink{classBlurIF}{Blur\+IF}}$<$ T $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Value function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Input point \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__Transform_8hpp}{EBGeometry\+\_\+\+Transform.\+hpp}}\end{DoxyCompactItemize}

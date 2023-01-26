@@ -68,14 +68,28 @@ $(function() {
 <li>m_algorithm
 : <a class="el" href="classDCEL_1_1MeshT.html#af34a4f7f9b5dcd7431a73ba2a89a87c8">DCEL::MeshT&lt; T &gt;</a>
 </li>
+<li>m_alpha
+: <a class="el" href="classBlurIF.html#a8d51ac1de2c59492a523d66ddf90ff3d">BlurIF&lt; T &gt;</a>
+</li>
+<li>m_angle
+: <a class="el" href="classRotateIF.html#a91be042fbc386a6b658bd35fbbbee362">RotateIF&lt; T &gt;</a>
+</li>
 <li>m_axis
 : <a class="el" href="classCylinderSDF.html#a034a7baec832c8a19fd2cd33ec1358eb">CylinderSDF&lt; T &gt;</a>
 , <a class="el" href="classInfiniteCylinderSDF.html#acc7d841abcd49df2db5d0df5cfd2b024">InfiniteCylinderSDF&lt; T &gt;</a>
-, <a class="el" href="classRotateOp.html#ac1e23c3e185fe54f2e550c9eb52b1184">RotateOp&lt; T &gt;</a>
+, <a class="el" href="classRotateIF.html#ae5eab2b16e5315d1fd47b6a561213881">RotateIF&lt; T &gt;</a>
+</li>
+<li>m_blurDistance
+: <a class="el" href="classBlurIF.html#ad1bffc7ff029d9741813ccfdaceb1c10">BlurIF&lt; T &gt;</a>
 </li>
 <li>m_boundingVolume
 : <a class="el" href="classBVH_1_1LinearNodeT.html#acef96b811ea69cd649fda35da082b361">BVH::LinearNodeT&lt; T, P, BV, K &gt;</a>
 , <a class="el" href="classBVH_1_1NodeT.html#a7f8720f2ab03ee9e81de114c479cb2e5">BVH::NodeT&lt; T, P, BV, K &gt;</a>
+</li>
+<li>m_bvh
+: <a class="el" href="classFastCompactMeshSDF.html#ae8957e5921fa9db1566a4fdef8d70bdf">FastCompactMeshSDF&lt; T, BV, K &gt;</a>
+, <a class="el" href="classFastMeshSDF.html#ab52cd16c2bbb2fc560a34c126ad9afec">FastMeshSDF&lt; T, BV, K &gt;</a>
+, <a class="el" href="classFastUnionIF.html#a5e2819d1ee3e24755e89fb9a83d44205">FastUnionIF&lt; T, P, BV, K &gt;</a>
 </li>
 <li>m_c
 : <a class="el" href="classConeSDF.html#a9b5c714000f34f0426b2ab9c1f8bca7a">ConeSDF&lt; T &gt;</a>
@@ -106,14 +120,13 @@ $(function() {
 : <a class="el" href="classBVH_1_1NodeT.html#afaf556d6faa78c2cc2b27c82feb0145c">BVH::NodeT&lt; T, P, BV, K &gt;</a>
 </li>
 <li>m_cosAngle
-: <a class="el" href="classRotateOp.html#a8eed86f336946618f1964056405b9ac4">RotateOp&lt; T &gt;</a>
+: <a class="el" href="classRotateIF.html#ac4b4270a61d57374886d53a6d6cf0095">RotateIF&lt; T &gt;</a>
 </li>
 <li>m_curEdge
 : <a class="el" href="classDCEL_1_1EdgeIteratorT.html#a37fb074de06101549b318694ab03202c">DCEL::EdgeIteratorT&lt; T &gt;</a>
 </li>
-<li>m_curv
-: <a class="el" href="classAnnularSDF.html#a7b0f5cf810e2208b24dc25386a5996ed">AnnularSDF&lt; T &gt;</a>
-, <a class="el" href="classRoundedSDF.html#a14b74a40c596b4c15cae26b9a678200b">RoundedSDF&lt; T &gt;</a>
+<li>m_delta
+: <a class="el" href="classAnnularIF.html#a6023ea880d6666a556e3e263c8506aab">AnnularIF&lt; T &gt;</a>
 </li>
 <li>m_edges
 : <a class="el" href="classDCEL_1_1MeshT.html#a1e85e81c80815fef9f9f50d93e194bf7">DCEL::MeshT&lt; T &gt;</a>
@@ -124,21 +137,6 @@ $(function() {
 <li>m_faces
 : <a class="el" href="classDCEL_1_1MeshT.html#a78b136d32ea8615d3fe6a03c57ff13e7">DCEL::MeshT&lt; T &gt;</a>
 , <a class="el" href="classDCEL_1_1VertexT.html#a00dd037412432be24277994f7324c2c8">DCEL::VertexT&lt; T &gt;</a>
-</li>
-<li>m_flipInside
-: <a class="el" href="classBoxSDF.html#aac14b4352ba92c067f70884a99c934bf">BoxSDF&lt; T &gt;</a>
-, <a class="el" href="classCapsuleSDF.html#afa07eead08dc7a6f043104a80f9a3f73">CapsuleSDF&lt; T &gt;</a>
-, <a class="el" href="classConeSDF.html#a9dfdb3f65da4af24d34e0a2b5dbe52cd">ConeSDF&lt; T &gt;</a>
-, <a class="el" href="classCylinderSDF.html#a1c57a3a6464820197347bcdc5977f7ba">CylinderSDF&lt; T &gt;</a>
-, <a class="el" href="classInfiniteConeSDF.html#a5641f298cf15950f4b243fd53de7e8ef">InfiniteConeSDF&lt; T &gt;</a>
-, <a class="el" href="classInfiniteCylinderSDF.html#a0b8b948474bef4db0f338a91a28a4326">InfiniteCylinderSDF&lt; T &gt;</a>
-, <a class="el" href="classPlaneSDF.html#a67f2334030779163860f6be3934216e1">PlaneSDF&lt; T &gt;</a>
-, <a class="el" href="classSphereSDF.html#a9a32a668648c166b41c5d1c3981c9579">SphereSDF&lt; T &gt;</a>
-, <a class="el" href="classTorusSDF.html#a41d7b8bbbf97d96d49432dcb1036573a">TorusSDF&lt; T &gt;</a>
-</li>
-<li>m_flipSign
-: <a class="el" href="classUnion.html#a2ea42d9aa14c07c50a132d35d5b9ef8f">Union&lt; T, P &gt;</a>
-, <a class="el" href="classUnionBVH.html#a23b578c55de9761532f0d4efbc567176">UnionBVH&lt; T, P, BV, K &gt;</a>
 </li>
 <li>m_fullLoop
 : <a class="el" href="classDCEL_1_1EdgeIteratorT.html#ad76435e1c9a6e082823a7fd3031e3ca8">DCEL::EdgeIteratorT&lt; T &gt;</a>
@@ -153,6 +151,28 @@ $(function() {
 : <a class="el" href="classBoundingVolumes_1_1AABBT.html#a35f9498191e406b3f48f7454bfdf0cf7">BoundingVolumes::AABBT&lt; T &gt;</a>
 , <a class="el" href="classBoxSDF.html#a96181447700a9106e937fa2ff73499b1">BoxSDF&lt; T &gt;</a>
 </li>
+<li>m_implicitFunction
+: <a class="el" href="classAnnularIF.html#a07f482f9a7a44e9946a0ca994acd6ecb">AnnularIF&lt; T &gt;</a>
+, <a class="el" href="classBlurIF.html#a7a94171c19e95028f3bb96aacb8b8c3c">BlurIF&lt; T &gt;</a>
+, <a class="el" href="classComplementIF.html#a3eeccf1bd601dc98e9b256c4710e82b2">ComplementIF&lt; T &gt;</a>
+, <a class="el" href="classMollifyIF.html#aa732b9445d50a30fe46580c9aa40193b">MollifyIF&lt; T &gt;</a>
+, <a class="el" href="classOffsetIF.html#a740bae15d51a9490b9dec49cfbbeff4b">OffsetIF&lt; T &gt;</a>
+, <a class="el" href="classRotateIF.html#a2f6b7cd9df900bc9ad917270770a1a84">RotateIF&lt; T &gt;</a>
+, <a class="el" href="classScaleIF.html#a981319cf65d6479449b1444304ba2ec2">ScaleIF&lt; T &gt;</a>
+, <a class="el" href="classTranslateIF.html#ac51f1a69fa997e4bbda8b03ebc8134c3">TranslateIF&lt; T &gt;</a>
+</li>
+<li>m_implicitFunctionA
+: <a class="el" href="classDifferenceIF.html#a7fe18374954b3971069b8bb9a57e10b4">DifferenceIF&lt; T &gt;</a>
+</li>
+<li>m_implicitFunctionB
+: <a class="el" href="classDifferenceIF.html#add71ab247810af434a97982f079c7f27">DifferenceIF&lt; T &gt;</a>
+</li>
+<li>m_implicitFunctions
+: <a class="el" href="classIntersectionIF.html#ae5bdcf9b1978bbbe53174c5767a1b313">IntersectionIF&lt; T &gt;</a>
+, <a class="el" href="classSmoothIntersectionIF.html#a19324dda14256369fb8562956e56567f">SmoothIntersectionIF&lt; T &gt;</a>
+, <a class="el" href="classSmoothUnionIF.html#a7dbce1f81f60c70250820413795374b3">SmoothUnionIF&lt; T &gt;</a>
+, <a class="el" href="classUnionIF.html#a90aa206326561b3987bb6d163926fe6c">UnionIF&lt; T &gt;</a>
+</li>
 <li>m_length
 : <a class="el" href="classCylinderSDF.html#a715c9888a921083d827bad94b4660626">CylinderSDF&lt; T &gt;</a>
 </li>
@@ -166,8 +186,14 @@ $(function() {
 <li>m_majorRadius
 : <a class="el" href="classTorusSDF.html#a21d443b0a0f8af98856cdc7bce0363ba">TorusSDF&lt; T &gt;</a>
 </li>
+<li>m_mesh
+: <a class="el" href="classMeshSDF.html#ae6a3734c78feb8da9d182a8e0a53292f">MeshSDF&lt; T &gt;</a>
+</li>
 <li>m_minorRadius
 : <a class="el" href="classTorusSDF.html#afedc4aacff95c95b97d1d540dddd2e99">TorusSDF&lt; T &gt;</a>
+</li>
+<li>m_mollifier
+: <a class="el" href="classMollifyIF.html#af6450901bb5a40b407879a8644c3da7f">MollifyIF&lt; T &gt;</a>
 </li>
 <li>m_nextEdge
 : <a class="el" href="classDCEL_1_1EdgeT.html#afe2f21d7aee79d1ebf93d73282fdbfcd">DCEL::EdgeT&lt; T &gt;</a>
@@ -180,6 +206,9 @@ $(function() {
 </li>
 <li>m_numPrimitives
 : <a class="el" href="classBVH_1_1LinearNodeT.html#ad15aa928c6838a112b9bf1f2fda9a4e9">BVH::LinearNodeT&lt; T, P, BV, K &gt;</a>
+</li>
+<li>m_offset
+: <a class="el" href="classOffsetIF.html#ab9be5afbf362019d352c21c0dc255cdb">OffsetIF&lt; T &gt;</a>
 </li>
 <li>m_outgoingEdge
 : <a class="el" href="classDCEL_1_1VertexT.html#a0308e133b59414d52e5e225423a0c99d">DCEL::VertexT&lt; T &gt;</a>
@@ -202,7 +231,6 @@ $(function() {
 <li>m_primitives
 : <a class="el" href="classBVH_1_1LinearBVH.html#aa4f627615c40d7230139ec1744384322">BVH::LinearBVH&lt; T, P, BV, K &gt;</a>
 , <a class="el" href="classBVH_1_1NodeT.html#a3c45be2075d8cdfd0dc0a9e73373b64d">BVH::NodeT&lt; T, P, BV, K &gt;</a>
-, <a class="el" href="classUnion.html#ad59e877314c00c35b366a463b05062f8">Union&lt; T, P &gt;</a>
 </li>
 <li>m_primitivesOffset
 : <a class="el" href="classBVH_1_1LinearNodeT.html#a649815b1fd49f9d390ed0a1f196aca25">BVH::LinearNodeT&lt; T, P, BV, K &gt;</a>
@@ -214,19 +242,29 @@ $(function() {
 , <a class="el" href="classInfiniteCylinderSDF.html#aa8442ccd669243ad7b71179816d0c422">InfiniteCylinderSDF&lt; T &gt;</a>
 , <a class="el" href="classSphereSDF.html#ac4b0f786ea2b53530512ce3fa4e7bdbd">SphereSDF&lt; T &gt;</a>
 </li>
-<li>m_rootNode
-: <a class="el" href="classUnionBVH.html#aba8c5aa300c2d05f585d3c18a4fed514">UnionBVH&lt; T, P, BV, K &gt;</a>
+<li>m_sampledMollifier
+: <a class="el" href="classMollifyIF.html#a02c3b1a0ffea817b8ea9b4969ee5a4c7">MollifyIF&lt; T &gt;</a>
 </li>
 <li>m_scale
-: <a class="el" href="classScaledSDF.html#a0b0144ab16372a366771a93f554ae6d2">ScaledSDF&lt; T &gt;</a>
+: <a class="el" href="classScaleIF.html#a056da7644722339795059d214453bc05">ScaleIF&lt; T &gt;</a>
 </li>
-<li>m_sdf
-: <a class="el" href="classAnnularSDF.html#a3c5594d91f78de8c9cd995b7bb0bc13e">AnnularSDF&lt; T &gt;</a>
-, <a class="el" href="classRoundedSDF.html#af4d6d34f07b0361fd9d59e61eaf29fb2">RoundedSDF&lt; T &gt;</a>
-, <a class="el" href="classScaledSDF.html#a8c424e766662036ac43c24bcf4905448">ScaledSDF&lt; T &gt;</a>
+<li>m_shift
+: <a class="el" href="classTranslateIF.html#a1ccb33b9df01ab5a565430165b61f4da">TranslateIF&lt; T &gt;</a>
 </li>
 <li>m_sinAngle
-: <a class="el" href="classRotateOp.html#ab0f3316357239d07fb1da64b7298d53f">RotateOp&lt; T &gt;</a>
+: <a class="el" href="classRotateIF.html#a206601f84d33476fe6975b935f1cdae1">RotateIF&lt; T &gt;</a>
+</li>
+<li>m_smoothLen
+: <a class="el" href="classFastSmoothUnionIF.html#a78df5bfd35ecbb6128c36fd53fdd07db">FastSmoothUnionIF&lt; T, P, BV, K &gt;</a>
+, <a class="el" href="classSmoothIntersectionIF.html#a64f7bd153a75f269273cda5836a2e6fc">SmoothIntersectionIF&lt; T &gt;</a>
+, <a class="el" href="classSmoothUnionIF.html#ae043765ce12b2699197c335292bdbd90">SmoothUnionIF&lt; T &gt;</a>
+</li>
+<li>m_smoothMax
+: <a class="el" href="classSmoothIntersectionIF.html#a38c2c5279ffb6a78d192cfff995d71b6">SmoothIntersectionIF&lt; T &gt;</a>
+</li>
+<li>m_smoothMin
+: <a class="el" href="classFastSmoothUnionIF.html#a8f41b52ed7ef9a4390a7d668d796f206">FastSmoothUnionIF&lt; T, P, BV, K &gt;</a>
+, <a class="el" href="classSmoothUnionIF.html#a80b6ba55899cda5c9c10448cf2f6c6f9">SmoothUnionIF&lt; T &gt;</a>
 </li>
 <li>m_startEdge
 : <a class="el" href="classDCEL_1_1EdgeIteratorT.html#ad586f4b5ee1e39fc7abdf3c226760cb4">DCEL::EdgeIteratorT&lt; T &gt;</a>
@@ -235,12 +273,6 @@ $(function() {
 : <a class="el" href="classConeSDF.html#a601849cf515c10342f80b854d42a3017">ConeSDF&lt; T &gt;</a>
 , <a class="el" href="classInfiniteConeSDF.html#af13a6b42eb0a8eae7d0f17041bc2ec52">InfiniteConeSDF&lt; T &gt;</a>
 </li>
-<li>m_transformOps
-: <a class="el" href="classImplicitFunction.html#a9e7844c296e4ef4a18499ea22736e35d">ImplicitFunction&lt; T &gt;</a>
-</li>
-<li>m_translation
-: <a class="el" href="classTranslateOp.html#a35f16c6a9cf4c03edffa19d86e73d27a">TranslateOp&lt; T &gt;</a>
-</li>
 <li>m_vertex
 : <a class="el" href="classDCEL_1_1EdgeT.html#a53ac2f18c3b35dd9ce9a6bc27063e75a">DCEL::EdgeT&lt; T &gt;</a>
 </li>
@@ -248,21 +280,27 @@ $(function() {
 : <a class="el" href="classDCEL_1_1MeshT.html#ac221781c11ecacf4231fe968e53b22cf">DCEL::MeshT&lt; T &gt;</a>
 </li>
 <li>max()
-: <a class="el" href="classVec2T.html#a1211175344f9ee8bc0fd4ac2589799d8">Vec2T&lt; T &gt;</a>
-, <a class="el" href="classVec3T.html#af06b99bd905435060149a61a13f61546">Vec3T&lt; T &gt;</a>
+: <a class="el" href="classVec2T.html#a3d59b621d38a154f108c01cdd153a1ef">Vec2T&lt; T &gt;</a>
+, <a class="el" href="classVec3T.html#a151575a04910352d4f8c028fef081d01">Vec3T&lt; T &gt;</a>
 </li>
 <li>maxDir()
 : <a class="el" href="classVec3T.html#aa90d6fed4944605109090f0b1a3bcef4">Vec3T&lt; T &gt;</a>
+</li>
+<li>MeshSDF()
+: <a class="el" href="classMeshSDF.html#ad7d0a26853e41fb2d0b59ef6be7ec5c9">MeshSDF&lt; T &gt;</a>
 </li>
 <li>MeshT()
 : <a class="el" href="classDCEL_1_1MeshT.html#a7db2680bda6538bff7f2905659cd2ece">DCEL::MeshT&lt; T &gt;</a>
 </li>
 <li>min()
-: <a class="el" href="classVec2T.html#aca5161a674a3546a8c9d5543537548a3">Vec2T&lt; T &gt;</a>
-, <a class="el" href="classVec3T.html#a4f27fdac2e6ac4feffe148bb8857f8bc">Vec3T&lt; T &gt;</a>
+: <a class="el" href="classVec2T.html#a8683604bcdccc2e4d0b04bb473ace422">Vec2T&lt; T &gt;</a>
+, <a class="el" href="classVec3T.html#a0a80a32ea4ea0bd071d94eae66c615b8">Vec3T&lt; T &gt;</a>
 </li>
 <li>minDir()
 : <a class="el" href="classVec3T.html#aef7aa52ffc1344c4ed83a09aea1c5edc">Vec3T&lt; T &gt;</a>
+</li>
+<li>MollifyIF()
+: <a class="el" href="classMollifyIF.html#aec9606ccf33996e7f38b66fb4261e024">MollifyIF&lt; T &gt;</a>
 </li>
 </ul>
 </div><!-- contents -->

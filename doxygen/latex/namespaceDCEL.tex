@@ -34,14 +34,14 @@ class \mbox{\hyperlink{classDCEL_1_1MeshT}{MeshT}}
 \doxysubsection*{Variables}
 \begin{DoxyCompactItemize}
 \item 
+{\footnotesize template$<$class T , size\+\_\+t K$>$ }\\auto \mbox{\hyperlink{namespaceDCEL_aae28e6f450ff452245d8628ab5171e48}{equal\+Counts}}
+\begin{DoxyCompactList}\small\item\em Function for partitioning an input list into K almost-\/equal-\/sized chunks. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T , class BV $>$ }\\EBGeometry\+::\+BVH\+::\+BVConstructorT$<$ EBGeometry\+::\+DCEL\+::\+FaceT$<$ T $>$, BV $>$ \mbox{\hyperlink{namespaceDCEL_a38d12373b4d1a73614ea3703f1782c37}{default\+BVConstructor}}
 \begin{DoxyCompactList}\small\item\em Bounding volume constructor for a \mbox{\hyperlink{namespaceDCEL}{DCEL}} face. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T , class BV , size\+\_\+t K$>$ }\\EBGeometry\+::\+BVH\+::\+Stop\+FunctionT$<$ T, EBGeometry\+::\+DCEL\+::\+FaceT$<$ T $>$, BV, K $>$ \mbox{\hyperlink{namespaceDCEL_aeaa24d5e45491806110dd97180f43a12}{default\+Stop\+Function}}
 \begin{DoxyCompactList}\small\item\em Default stop function. This function terminates the division process if a \mbox{\hyperlink{namespaceBVH}{BVH}} node has only one primitive. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T , size\+\_\+t K$>$ }\\auto \mbox{\hyperlink{namespaceDCEL_ac150ddff45486822d7b0fa57ac229e3a}{valid\+Chunks}}
 \begin{DoxyCompactList}\small\item\em Function which checks that all chunks are valid (i.\+e., contain at least one primitive. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , size\+\_\+t K$>$ }\\auto \mbox{\hyperlink{namespaceDCEL_aae28e6f450ff452245d8628ab5171e48}{equal\+Counts}}
-\begin{DoxyCompactList}\small\item\em Function for partitioning an input list into K almost-\/equal-\/sized chunks. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T , class BV , size\+\_\+t K$>$ }\\EBGeometry\+::\+BVH\+::\+PartitionerT$<$ EBGeometry\+::\+DCEL\+::\+FaceT$<$ T $>$, BV, K $>$ \mbox{\hyperlink{namespaceDCEL_a63e3a028830d8f77944c3b521f7d8e47}{chunk\+Partitioner}}
 \begin{DoxyCompactList}\small\item\em Partitioner function for subdividing into K sub-\/volumes with approximately the same number of primitives. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T , class BV , size\+\_\+t K$>$ }\\EBGeometry\+::\+BVH\+::\+PartitionerT$<$ EBGeometry\+::\+DCEL\+::\+FaceT$<$ T $>$, BV, K $>$ \mbox{\hyperlink{namespaceDCEL_a47002d5944a0b0fa02e5873df52d4c2e}{bv\+Partitioner}}
@@ -134,8 +134,8 @@ EBGeometry\+::\+BVH\+::\+PartitionerT$<$EBGeometry\+::\+DCEL\+::\+FaceT$<$T$>$, 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{=}
 \DoxyCodeLine{    [](\textcolor{keyword}{const} PrimitiveList<T>\& a\_primitives) -\/> std::array<PrimitiveList<T>, K> \{}
-\DoxyCodeLine{    \mbox{\hyperlink{classVec3T}{Vec3T<T>}} lo = \mbox{\hyperlink{classVec3T_af06b99bd905435060149a61a13f61546}{Vec3T<T>::max}}();}
-\DoxyCodeLine{    \mbox{\hyperlink{classVec3T}{Vec3T<T>}} hi = -\/\mbox{\hyperlink{classVec3T_af06b99bd905435060149a61a13f61546}{Vec3T<T>::max}}();}
+\DoxyCodeLine{    \mbox{\hyperlink{classVec3T}{Vec3T<T>}} lo = \mbox{\hyperlink{classVec3T_a151575a04910352d4f8c028fef081d01}{Vec3T<T>::max}}();}
+\DoxyCodeLine{    \mbox{\hyperlink{classVec3T}{Vec3T<T>}} hi = -\/\mbox{\hyperlink{classVec3T_a151575a04910352d4f8c028fef081d01}{Vec3T<T>::max}}();}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keyword}{const} \textcolor{keyword}{auto}\& p : a\_primitives) \{}
 \DoxyCodeLine{      lo = \mbox{\hyperlink{EBGeometry__Vec_8hpp_a291f01622695ab94c0092c3af0a1f3ca}{min}}(lo, p-\/>getCentroid());}

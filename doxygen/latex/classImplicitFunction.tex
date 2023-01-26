@@ -30,18 +30,8 @@ virtual \mbox{\hyperlink{classImplicitFunction_a27c37038d21db1c7535051a0b6b7c77a
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
 virtual T \mbox{\hyperlink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept=0
 \begin{DoxyCompactList}\small\item\em Value function. Points are outside the object if value $>$ 0.\+0 and inside if value $<$ 0.\+0. \end{DoxyCompactList}\item 
-void \mbox{\hyperlink{classImplicitFunction_a6c929b3ca9a30b22e5c505b12c0f18ca}{translate}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+translation) noexcept
-\begin{DoxyCompactList}\small\item\em Translate signed distance function. \end{DoxyCompactList}\item 
-void \mbox{\hyperlink{classImplicitFunction_adfa14ca0bfef85c7517f84a5b5dc27a6}{rotate}} (const T a\+\_\+angle, const size\+\_\+t a\+\_\+axis) noexcept
-\begin{DoxyCompactList}\small\item\em Rotate the signed distance function around. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classImplicitFunction_aa5d5899f07cd10fa0eb3d68c0267a3f9}{transform\+Point}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept
-\begin{DoxyCompactList}\small\item\em Apply transformation operators and move point. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Attributes}
-\begin{DoxyCompactItemize}
-\item 
-\mbox{\Hypertarget{classImplicitFunction_a9e7844c296e4ef4a18499ea22736e35d}\label{classImplicitFunction_a9e7844c296e4ef4a18499ea22736e35d}} 
-std\+::deque$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classTransformOp}{Transform\+Op}}$<$ T $>$ $>$ $>$ \mbox{\hyperlink{classImplicitFunction_a9e7844c296e4ef4a18499ea22736e35d}{m\+\_\+transform\+Ops}}
-\begin{DoxyCompactList}\small\item\em List of transformation operators for the signed distance field. \end{DoxyCompactList}\end{DoxyCompactItemize}
+T \mbox{\hyperlink{classImplicitFunction_a361afffb3619a6e06172bdef96c41b91}{operator()}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept
+\begin{DoxyCompactList}\small\item\em Alternative signature for the value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -50,57 +40,23 @@ class Implicit\+Function$<$ T $>$}
 
 Abstract representation of an implicit function function (not necessarily signed distance). 
 
-The value function must be implemented by subclasses. When computing it, the user can apply transformation operators (rotations, scaling, translations) by calling transform\+Point on the input coordinate. 
+The value function must be implemented by subclasses. 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classImplicitFunction_adfa14ca0bfef85c7517f84a5b5dc27a6}\label{classImplicitFunction_adfa14ca0bfef85c7517f84a5b5dc27a6}} 
-\index{ImplicitFunction$<$ T $>$@{ImplicitFunction$<$ T $>$}!rotate@{rotate}}
-\index{rotate@{rotate}!ImplicitFunction$<$ T $>$@{ImplicitFunction$<$ T $>$}}
-\doxysubsubsection{\texorpdfstring{rotate()}{rotate()}}
+\mbox{\Hypertarget{classImplicitFunction_a361afffb3619a6e06172bdef96c41b91}\label{classImplicitFunction_a361afffb3619a6e06172bdef96c41b91}} 
+\index{ImplicitFunction$<$ T $>$@{ImplicitFunction$<$ T $>$}!operator()@{operator()}}
+\index{operator()@{operator()}!ImplicitFunction$<$ T $>$@{ImplicitFunction$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{operator()()}{operator()()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-void \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$\+::rotate (\begin{DoxyParamCaption}\item[{const T}]{a\+\_\+angle,  }\item[{const size\+\_\+t}]{a\+\_\+axis }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+T \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$\+::operator() (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
-Rotate the signed distance function around. 
+Alternative signature for the value function. 
 
 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+angle} & Rotation angle \\
-\hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+axis} & Rotation axis. 0 = x, 1 = y etc. \\
-\hline
-\end{DoxyParams}
-\mbox{\Hypertarget{classImplicitFunction_aa5d5899f07cd10fa0eb3d68c0267a3f9}\label{classImplicitFunction_aa5d5899f07cd10fa0eb3d68c0267a3f9}} 
-\index{ImplicitFunction$<$ T $>$@{ImplicitFunction$<$ T $>$}!transformPoint@{transformPoint}}
-\index{transformPoint@{transformPoint}!ImplicitFunction$<$ T $>$@{ImplicitFunction$<$ T $>$}}
-\doxysubsubsection{\texorpdfstring{transformPoint()}{transformPoint()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$\+::transform\+Point (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
-
-
-
-Apply transformation operators and move point. 
-
-
-\begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Point to transform \\
-\hline
-\end{DoxyParams}
-\mbox{\Hypertarget{classImplicitFunction_a6c929b3ca9a30b22e5c505b12c0f18ca}\label{classImplicitFunction_a6c929b3ca9a30b22e5c505b12c0f18ca}} 
-\index{ImplicitFunction$<$ T $>$@{ImplicitFunction$<$ T $>$}!translate@{translate}}
-\index{translate@{translate}!ImplicitFunction$<$ T $>$@{ImplicitFunction$<$ T $>$}}
-\doxysubsubsection{\texorpdfstring{translate()}{translate()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-void \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$\+::translate (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+translation }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
-
-
-
-Translate signed distance function. 
-
-
-\begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+translation} & Distance to translate the function. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point. \\
 \hline
 \end{DoxyParams}
 \mbox{\Hypertarget{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}\label{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}} 
@@ -121,11 +77,10 @@ Value function. Points are outside the object if value $>$ 0.\+0 and inside if v
 \end{DoxyParams}
 
 
-Implemented in \mbox{\hyperlink{classSignedDistanceFunction_ac385df0170333267b23b29be9c075808}{Signed\+Distance\+Function$<$ T $>$}}, \mbox{\hyperlink{classUnionBVH_ac22d0bd9a043ace7f24c41e1320b1167}{Union\+BVH$<$ T, P, BV, K $>$}}, and \mbox{\hyperlink{classUnion_af7d14a7b9a916489f2dfb16ffa3da5b2}{Union$<$ T, P $>$}}.
+Implemented in \mbox{\hyperlink{classSignedDistanceFunction_a76f283b0c732de5a71faa665a97530f2}{Signed\+Distance\+Function$<$ T $>$}}, \mbox{\hyperlink{classMollifyIF_afe1a0c6bcd8548e0e49e54072800fa8c}{Mollify\+IF$<$ T $>$}}, \mbox{\hyperlink{classBlurIF_ad1c8ef264c88bf3d4d6c9a80c06c7262}{Blur\+IF$<$ T $>$}}, \mbox{\hyperlink{classAnnularIF_a0259d2d361f9d07f3cc259bac424b8ef}{Annular\+IF$<$ T $>$}}, \mbox{\hyperlink{classScaleIF_a358197feb46e689351b8fa33074815a2}{Scale\+IF$<$ T $>$}}, \mbox{\hyperlink{classOffsetIF_aebf5318998fe4150c93107f43f752fc9}{Offset\+IF$<$ T $>$}}, \mbox{\hyperlink{classRotateIF_ae6429ba9d4d8fd8e722dcba85f1b7d73}{Rotate\+IF$<$ T $>$}}, \mbox{\hyperlink{classTranslateIF_a36a6e48613ce6fa2d29bd2e12ba96c3b}{Translate\+IF$<$ T $>$}}, \mbox{\hyperlink{classComplementIF_a922c5e2af86225eb0835d5b45bdba1fc}{Complement\+IF$<$ T $>$}}, \mbox{\hyperlink{classDifferenceIF_aeb69f3c5235d6038f3ccc4236ddc1bc1}{Difference\+IF$<$ T $>$}}, \mbox{\hyperlink{classSmoothIntersectionIF_a693cb67252e9f124b829306c2642d711}{Smooth\+Intersection\+IF$<$ T $>$}}, \mbox{\hyperlink{classIntersectionIF_a3012ed1cca67de752a7d5ea25121457f}{Intersection\+IF$<$ T $>$}}, \mbox{\hyperlink{classFastSmoothUnionIF_aef2d279ee3019c0120ceac38803f285f}{Fast\+Smooth\+Union\+IF$<$ T, P, BV, K $>$}}, \mbox{\hyperlink{classFastUnionIF_ad913d0fc57aa3f6079e7e54bfbbd7938}{Fast\+Union\+IF$<$ T, P, BV, K $>$}}, \mbox{\hyperlink{classSmoothUnionIF_a1fc2e100cca753745a365756584d23e3}{Smooth\+Union\+IF$<$ T $>$}}, and \mbox{\hyperlink{classUnionIF_ac835007225e23d18f886080313a88252}{Union\+IF$<$ T $>$}}.
 
 
 
-The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__ImplicitFunction_8hpp}{EBGeometry\+\_\+\+Implicit\+Function.\+hpp}}\item 
-/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__ImplicitFunctionImplem_8hpp}{EBGeometry\+\_\+\+Implicit\+Function\+Implem.\+hpp}}\end{DoxyCompactItemize}
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__ImplicitFunction_8hpp}{EBGeometry\+\_\+\+Implicit\+Function.\+hpp}}\end{DoxyCompactItemize}

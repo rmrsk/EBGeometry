@@ -64,8 +64,7 @@ $(function() {
 <div class="header">
   <div class="summary">
 <a href="#nested-classes">Classes</a> &#124;
-<a href="#typedef-members">Typedefs</a> &#124;
-<a href="#enum-members">Enumerations</a>  </div>
+<a href="#typedef-members">Typedefs</a>  </div>
   <div class="headertitle">
 <div class="title">BVH Namespace Reference</div>  </div>
 </div><!--header-->
@@ -104,23 +103,24 @@ Typedefs</h2></td></tr>
 <tr class="memitem:a245702d7eff40cdaedb5dff68c25a88a"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a245702d7eff40cdaedb5dff68c25a88a">BVConstructorT</a> = std::function&lt; BV(const std::shared_ptr&lt; const P &gt; &amp;a_primitive)&gt;</td></tr>
 <tr class="memdesc:a245702d7eff40cdaedb5dff68c25a88a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor method for creating bounding volumes from a list of primitives.  <a href="namespaceBVH.html#a245702d7eff40cdaedb5dff68c25a88a">More...</a><br /></td></tr>
 <tr class="separator:a245702d7eff40cdaedb5dff68c25a88a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af1532e9ecc212528197e9a4a2555938f"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
-<tr class="memitem:af1532e9ecc212528197e9a4a2555938f"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#af1532e9ecc212528197e9a4a2555938f">Comparator</a> = std::function&lt; T(const T &amp;minDist, const std::vector&lt; T &gt; &amp;primDistances)&gt;</td></tr>
-<tr class="memdesc:af1532e9ecc212528197e9a4a2555938f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Comparator for <a class="el" href="classBVH_1_1LinearBVH.html#a243aa537f57a55061d6a96f70a0b591f" title="Stack-based pruning algorithm (recursion-less).">LinearBVH::stackPrune</a>.  <a href="namespaceBVH.html#af1532e9ecc212528197e9a4a2555938f">More...</a><br /></td></tr>
-<tr class="separator:af1532e9ecc212528197e9a4a2555938f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5b6027b11349769fc2b8f669a4b1c53a"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
-<tr class="memitem:a5b6027b11349769fc2b8f669a4b1c53a"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a5b6027b11349769fc2b8f669a4b1c53a">Pruner</a> = std::function&lt; bool(const T &amp;bvDist, const T &amp;minDist)&gt;</td></tr>
-<tr class="memdesc:a5b6027b11349769fc2b8f669a4b1c53a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pruner for <a class="el" href="classBVH_1_1LinearBVH.html#a243aa537f57a55061d6a96f70a0b591f" title="Stack-based pruning algorithm (recursion-less).">LinearBVH::stackPrune</a>.  <a href="namespaceBVH.html#a5b6027b11349769fc2b8f669a4b1c53a">More...</a><br /></td></tr>
-<tr class="separator:a5b6027b11349769fc2b8f669a4b1c53a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
-Enumerations</h2></td></tr>
-<tr class="memitem:a3ddb7b34ac1deb3baed2f32d9eacbe5b"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a3ddb7b34ac1deb3baed2f32d9eacbe5b">Prune</a> { <b>Stack</b>
-, <b>Ordered</b>
-, <b>Unordered</b>
- }</td></tr>
-<tr class="memdesc:a3ddb7b34ac1deb3baed2f32d9eacbe5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Typename for identifying algorithms various algorithms during tree traversel.  <a href="namespaceBVH.html#a3ddb7b34ac1deb3baed2f32d9eacbe5b">More...</a><br /></td></tr>
-<tr class="separator:a3ddb7b34ac1deb3baed2f32d9eacbe5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9098188477f08a345cf059a431ae23aa"><td class="memTemplParams" colspan="2">template&lt;class P &gt; </td></tr>
+<tr class="memitem:a9098188477f08a345cf059a431ae23aa"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a9098188477f08a345cf059a431ae23aa">Updater</a> = std::function&lt; void(const <a class="el" href="namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7">PrimitiveListT</a>&lt; P &gt; &amp;a_primitives)&gt;</td></tr>
+<tr class="memdesc:a9098188477f08a345cf059a431ae23aa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Updater for tree traversal.  <a href="namespaceBVH.html#a9098188477f08a345cf059a431ae23aa">More...</a><br /></td></tr>
+<tr class="separator:a9098188477f08a345cf059a431ae23aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8ac51cce05479b4821bf8c0e2543696a"><td class="memTemplParams" colspan="2">template&lt;class NodeType , class Meta &gt; </td></tr>
+<tr class="memitem:a8ac51cce05479b4821bf8c0e2543696a"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a8ac51cce05479b4821bf8c0e2543696a">Visiter</a> = std::function&lt; bool(const NodeType &amp;a_node, const Meta &amp;a_meta)&gt;</td></tr>
+<tr class="memdesc:a8ac51cce05479b4821bf8c0e2543696a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Visiter pattern for <a class="el" href="classBVH_1_1LinearBVH.html#a213b07e1c41dec5b4c6bac80f0716f1d" title="Recursion-less BVH traversal algorithm. The user inputs the update rule, a pruning criterion,...">LinearBVH::traverse</a>. Must return true if we should visit the node and false otherwise.  <a href="namespaceBVH.html#a8ac51cce05479b4821bf8c0e2543696a">More...</a><br /></td></tr>
+<tr class="separator:a8ac51cce05479b4821bf8c0e2543696a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a98593a87354ca9c46938b74c50a10f91"><td class="memTemplParams" colspan="2"><a id="a98593a87354ca9c46938b74c50a10f91"></a>
+template&lt;class NodeType , class Meta , size_t K&gt; </td></tr>
+<tr class="memitem:a98593a87354ca9c46938b74c50a10f91"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a98593a87354ca9c46938b74c50a10f91">Sorter</a> = std::function&lt; void(std::array&lt; std::pair&lt; std::shared_ptr&lt; const NodeType &gt;, Meta &gt;, K &gt; &amp;a_children)&gt;</td></tr>
+<tr class="memdesc:a98593a87354ca9c46938b74c50a10f91"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sorting criterion for which child node to visit first. This takes an input list of child nodes and sorts it. When further into the sub-tree, the first node is investigated first, then the second, etc. The Meta template parameter is a door left open to the user for attaching additional data to the sorter/visiter pattern. <br /></td></tr>
+<tr class="separator:a98593a87354ca9c46938b74c50a10f91"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acaf9bd22eb434cf05f36d5ca61984b38"><td class="memTemplParams" colspan="2"><a id="acaf9bd22eb434cf05f36d5ca61984b38"></a>
+template&lt;class NodeType , class Meta &gt; </td></tr>
+<tr class="memitem:acaf9bd22eb434cf05f36d5ca61984b38"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#acaf9bd22eb434cf05f36d5ca61984b38">MetaUpdater</a> = std::function&lt; Meta(const NodeType &amp;a_node)&gt;</td></tr>
+<tr class="memdesc:acaf9bd22eb434cf05f36d5ca61984b38"><td class="mdescLeft">&#160;</td><td class="mdescRight">Updater for when user wants to add some meta-data to his <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> traversal. <br /></td></tr>
+<tr class="separator:acaf9bd22eb434cf05f36d5ca61984b38"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Namespace for various bounding volume hierarchy (<a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>) functionality. </p>
@@ -147,31 +147,6 @@ template&lt;class P , class BV &gt; </div>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Returns a new bounding volumes which is guaranteed to enclose all the input primitives. </dd></dl>
-
-</div>
-</div>
-<a id="af1532e9ecc212528197e9a4a2555938f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af1532e9ecc212528197e9a4a2555938f">&#9670;&nbsp;</a></span>Comparator</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class T &gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">using <a class="el" href="namespaceBVH.html#af1532e9ecc212528197e9a4a2555938f">BVH::Comparator</a> = typedef std::function&lt;T(const T&amp; minDist, const std::vector&lt;T&gt;&amp; primDistances)&gt;</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Comparator for <a class="el" href="classBVH_1_1LinearBVH.html#a243aa537f57a55061d6a96f70a0b591f" title="Stack-based pruning algorithm (recursion-less).">LinearBVH::stackPrune</a>. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">minDist</td><td>Minimum distance found so far </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">primDistances</td><td>Distance to primitives in the leaf node. </td></tr>
-  </table>
-  </dd>
-</dl>
 
 </div>
 </div>
@@ -219,31 +194,6 @@ template&lt;class P &gt; </div>
 
 </div>
 </div>
-<a id="a5b6027b11349769fc2b8f669a4b1c53a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5b6027b11349769fc2b8f669a4b1c53a">&#9670;&nbsp;</a></span>Pruner</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class T &gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">using <a class="el" href="namespaceBVH.html#a5b6027b11349769fc2b8f669a4b1c53a">BVH::Pruner</a> = typedef std::function&lt;bool(const T&amp; bvDist, const T&amp; minDist)&gt;</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Pruner for <a class="el" href="classBVH_1_1LinearBVH.html#a243aa537f57a55061d6a96f70a0b591f" title="Stack-based pruning algorithm (recursion-less).">LinearBVH::stackPrune</a>. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_bvDist</td><td>Distance to current bounding volume. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_minDist</td><td>Shortest "distance" to primitives found so far. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
 <a id="afef1c5979c34a11d23b756cc09654bf9"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#afef1c5979c34a11d23b756cc09654bf9">&#9670;&nbsp;</a></span>StopFunctionT</h2>
 
@@ -269,29 +219,52 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 
 </div>
 </div>
-<h2 class="groupheader">Enumeration Type Documentation</h2>
-<a id="a3ddb7b34ac1deb3baed2f32d9eacbe5b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3ddb7b34ac1deb3baed2f32d9eacbe5b">&#9670;&nbsp;</a></span>Prune</h2>
+<a id="a9098188477f08a345cf059a431ae23aa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9098188477f08a345cf059a431ae23aa">&#9670;&nbsp;</a></span>Updater</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
+<div class="memtemplate">
+template&lt;class P &gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">enum <a class="el" href="namespaceBVH.html#a3ddb7b34ac1deb3baed2f32d9eacbe5b">BVH::Prune</a></td>
+          <td class="memname">using <a class="el" href="namespaceBVH.html#a9098188477f08a345cf059a431ae23aa">BVH::Updater</a> = typedef std::function&lt;void(const <a class="el" href="namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7">PrimitiveListT</a>&lt;P&gt;&amp; a_primitives)&gt;</td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
-<p>Typename for identifying algorithms various algorithms during tree traversel. </p>
-<p>Stack =&gt; Use stack/priority queue (ordered traversal). Ordered =&gt; Use recursive ordered traversal. Unordered =&gt; Use recursive unordered traversal. </p>
+<p>Updater for tree traversal. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_primitives.</td><td></td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a8ac51cce05479b4821bf8c0e2543696a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8ac51cce05479b4821bf8c0e2543696a">&#9670;&nbsp;</a></span>Visiter</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class NodeType , class Meta &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespaceBVH.html#a8ac51cce05479b4821bf8c0e2543696a">BVH::Visiter</a> = typedef std::function&lt;bool(const NodeType&amp; a_node, const Meta&amp; a_meta)&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Visiter pattern for <a class="el" href="classBVH_1_1LinearBVH.html#a213b07e1c41dec5b4c6bac80f0716f1d" title="Recursion-less BVH traversal algorithm. The user inputs the update rule, a pruning criterion,...">LinearBVH::traverse</a>. Must return true if we should visit the node and false otherwise. </p>
+<p>The Meta template parameter is a door left open to the user for attaching additional data to the sorter/visiter pattern. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_node</td><td>Node to visit or not </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_meta</td><td>Meta-data for node visit. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

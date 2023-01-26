@@ -1,75 +1,37 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <title>Reading data &mdash; EBGeometry 1.0 documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+  <title>Reading data &mdash; EBGeometry  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
         <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Overview" href="Examples.html" />
-    <link rel="prev" title="Unions" href="ImplemUnion.html" /> 
+    <link rel="next" title="EBGeometry" href="Examples.html" />
+    <link rel="prev" title="BVH" href="ImplemBVH.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="index.html" class="icon icon-home"> EBGeometry
-          
-
-          
           </a>
-
-          
-            
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -77,180 +39,217 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">Requirements</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html#quickstart">Quickstart</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Introduction.html#features">Features</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<p class="caption" role="heading"><span class="caption-text">Basic concepts</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="Concepts.html">Signed distance fields</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Concepts.html#transformations">Transformations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Concepts.html#unions">Unions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="DCEL.html">DCEL mesh structure</a></li>
-<li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html">Geometry representations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html#dcel">DCEL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html#bounding-volume-hierarchies">Bounding volume hierarchies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html#constructive-solid-geometry">Constructive solid geometry</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Implementation</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Implementation.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemVec.html">Vector types</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">Bounding volume hierarchy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemCSG.html">Geometry representation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ImplemSDF.html">Signed distance function</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ImplemUnion.html">Unions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">BVH</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Reading data</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#reading-stl-files">Reading STL files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quickstart">Quickstart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reading-stl-files">Reading STL files</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dcel-representation">DCEL representation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dcel-mesh-sdf">DCEL mesh SDF</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dcel-mesh-sdf-with-full-bvh">DCEL mesh SDF with full BVH</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dcel-mesh-sdf-with-compact-bvh">DCEL mesh SDF with compact BVH</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#from-soups-to-dcel">From soups to DCEL</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#using-third-party-sources">Using third-party sources</a></li>
 </ul>
 </li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="Examples.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Basic example</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Example_Union.html">Unions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Example_AMReX.html">Integration with AMReX</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Example_Chombo3.html">Integration with Chombo3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">EBGeometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html#amrex">AMReX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html#chombo3">Chombo3</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">References</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">Bibliography</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">EBGeometry</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-        
-      <li>Reading data</li>
-    
-    
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">Reading data</li>
       <li class="wy-breadcrumbs-aside">
-        
-          
             <a href="_sources/Parsers.rst.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <section id="reading-data">
-<span id="chap-parsers"></span><h1>Reading data<a class="headerlink" href="#reading-data" title="Permalink to this heading">¶</a></h1>
+<span id="chap-parsers"></span><h1>Reading data<a class="headerlink" href="#reading-data" title="Permalink to this heading"></a></h1>
 <p>Routines for parsing surface files from grids into EBGeometry’s DCEL grids are given in the namespace <code class="docutils literal notranslate"><span class="pre">EBGeometry::Parser</span></code>.
 The source code is implemented in <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_Parser.hpp</span></code>.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>EBGeometry is currently limited to reading STL files and reconstructing DCEL grids from those.
+<p>EBGeometry is currently limited to reading binary and ASCII STL files and reconstructing DCEL grids from those.
 However, it is a simple matter to also reconstructor DCEL grids from triangle soups read using third-party codes (see <a class="reference internal" href="#chap-thirdpartyparser"><span class="std std-ref">Using third-party sources</span></a>).</p>
 </div>
+<section id="quickstart">
+<h2>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this heading"></a></h2>
+<p>If you have one of multiple STL files, you can quickly turn them into implicit functions with</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="w"> </span><span class="n">files</span><span class="p">;</span><span class="w"> </span><span class="c1">// &lt;---- List of file names.</span>
+
+<span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">distanceFields</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">readIntoLinearBVH</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">files</span><span class="p">);</span><span class="w"></span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="#chap-linearstl"><span class="std std-ref">DCEL mesh SDF with compact BVH</span></a> for further details.</p>
+</section>
 <section id="reading-stl-files">
-<h2>Reading STL files<a class="headerlink" href="#reading-stl-files" title="Permalink to this heading">¶</a></h2>
-<p>EBGeometry supports a native parser for binary and ASCII STL files.
-To read an STL file, one will use one of the following:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
-<span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Mesh</span><span class="o">&gt;</span>
-<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">STL</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">readSingle</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">a_filename</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span>
+<h2>Reading STL files<a class="headerlink" href="#reading-stl-files" title="Permalink to this heading"></a></h2>
+<p>EBGeometry supports a native parser for binary and ASCII STL files, which can be read into a few different representations:</p>
+<ol class="arabic simple">
+<li><p>Into a DCEL mesh, see <a class="reference internal" href="ImplemDCEL.html#chap-implemdcel"><span class="std std-ref">DCEL</span></a>.</p></li>
+<li><p>Into a signed distance function representation of a DCEL mesh, see <a class="reference internal" href="ImplemCSG.html#chap-implemcsg"><span class="std std-ref">Geometry representation</span></a>.</p></li>
+<li><p>Into a signed distance function representation of a DCEL mesh, but using a BVH accelerator in full representation.</p></li>
+<li><p>Into a signed distance function representation of a DCEL mesh, but using a BVH accelerator in compact representation.</p></li>
+</ol>
+<section id="dcel-representation">
+<h3>DCEL representation<a class="headerlink" href="#dcel-representation" title="Permalink to this heading"></a></h3>
+<p>To read one or multiple STL files and turn it into DCEL meshes, use</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Read a file containing a single watertight object and return it as a DCEL mesh</span>
+<span class="cm">    @param[in] a_filename File name</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">MeshT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="n">readIntoDCEL</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">a_filename</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
 
-<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
-<span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">Vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Mesh</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;&gt;</span>
-<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">STL</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">readMulti</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">a_filename</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Read multiple files containing single watertight objects and return them as DCEL meshes</span>
+<span class="cm">    @param[in] a_files File names</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">MeshT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="n">readIntoDCEL</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a_files</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
-<p>The difference between these two is that <code class="docutils literal notranslate"><span class="pre">readSingle</span></code> only reads a single STL <em>solid</em> while <code class="docutils literal notranslate"><span class="pre">readMulti</span></code> will read all STL solids defined in the input file.</p>
-<p>Alternatively, one can use <code class="docutils literal notranslate"><span class="pre">Parser::read</span></code>:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
-<span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">MeshT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span>
-<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">read</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">a_filename</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span>
+</section>
+<section id="dcel-mesh-sdf">
+<h3>DCEL mesh SDF<a class="headerlink" href="#dcel-mesh-sdf" title="Permalink to this heading"></a></h3>
+<p>To read one or multiple STL files and turn it into signed distance representations, use</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Read a file containing a single watertight object and return it as an implicit function.</span>
+<span class="cm">    @param[in] a_filename File name</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MeshSDF</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="n">readIntoMesh</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">a_filename</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
 
-<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
-<span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">MeshT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&gt;</span>
-<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">read</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a_files</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Read multiple files containing single watertight objects and return them as an implicit functions.</span>
+<span class="cm">    @param[in] a_files File names</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MeshSDF</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="n">readIntoMesh</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a_files</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
-<p>where <code class="docutils literal notranslate"><span class="pre">a_filename</span></code> and <code class="docutils literal notranslate"><span class="pre">a_files</span></code> must be STL files.</p>
+</section>
+<section id="dcel-mesh-sdf-with-full-bvh">
+<h3>DCEL mesh SDF with full BVH<a class="headerlink" href="#dcel-mesh-sdf-with-full-bvh" title="Permalink to this heading"></a></h3>
+<p>To read one or multiple STL files and turn it into signed distance representations using a full BVH representation, use</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Read a file containing a single watertight object and return it as a DCEL mesh enclosed in a full BVH.</span>
+<span class="cm">    @param[in] a_filename File name</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">typename</span><span class="w"> </span><span class="nc">BV</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BoundingVolumes</span><span class="o">::</span><span class="n">AABBT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">FastMeshSDF</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="n">readIntoFullBVH</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">a_filename</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Read multiple files containing single watertight objects and return them as DCEL meshes enclosed in BVHs.</span>
+<span class="cm">    @param[in] a_files File names</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">typename</span><span class="w"> </span><span class="nc">BV</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BoundingVolumes</span><span class="o">::</span><span class="n">AABBT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">FastMeshSDF</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&gt;&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="n">readIntoFullBVH</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a_files</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+</pre></div>
+</div>
+</section>
+<section id="dcel-mesh-sdf-with-compact-bvh">
+<span id="chap-linearstl"></span><h3>DCEL mesh SDF with compact BVH<a class="headerlink" href="#dcel-mesh-sdf-with-compact-bvh" title="Permalink to this heading"></a></h3>
+<p>To read one or multiple STL files and turn it into signed distance representations using a compact BVH representation, use</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Read a file containing a single watertight object and return it as a DCEL mesh enclosed in a linearized BVH</span>
+<span class="cm">    @param[in] a_filename File name</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">typename</span><span class="w"> </span><span class="nc">BV</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BoundingVolumes</span><span class="o">::</span><span class="n">AABBT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">FastCompactMeshSDF</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="n">readIntoLinearBVH</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">a_filename</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Read multiple files containing single watertight objects and return them as DCEL meshes enclosed in linearized BVHs.</span>
+<span class="cm">    @param[in] a_files File names</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">typename</span><span class="w"> </span><span class="nc">BV</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BoundingVolumes</span><span class="o">::</span><span class="n">AABBT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">FastCompactMeshSDF</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&gt;&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="n">readIntoLinearBVH</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a_files</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+</pre></div>
+</div>
+</section>
 </section>
 <section id="from-soups-to-dcel">
-<span id="chap-polysoups"></span><h2>From soups to DCEL<a class="headerlink" href="#from-soups-to-dcel" title="Permalink to this heading">¶</a></h2>
-<p>EBGeometry supports the creation of DCEL grids from polygon soups.
+<span id="chap-polysoups"></span><h2>From soups to DCEL<a class="headerlink" href="#from-soups-to-dcel" title="Permalink to this heading"></a></h2>
+<p>EBGeometry also supports the creation of DCEL grids from polygon soups, which can then be later turned into an SDF representation.
 A triangle soup is represented as</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">vertices</span><span class="p">;</span>
-<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">faces</span><span class="p">;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">vertices</span><span class="p">;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">faces</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
 <p>Here, <code class="docutils literal notranslate"><span class="pre">vertices</span></code> contains the <span class="math notranslate nohighlight">\(x,y,z\)</span> coordinates of each vertex, while each entry <code class="docutils literal notranslate"><span class="pre">faces</span></code> contains a list of vertices for the face.</p>
-<p>To turn this into a DCEL mesh, one should call</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
-<span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span>
-<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">compress</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_vertices</span><span class="p">,</span>
-<span class="w">                             </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;&gt;&amp;</span><span class="w">  </span><span class="n">a_facets</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span>
+<p>To turn this into a DCEL mesh, one should compress the triangle soup (get rid of duplicate vertices) and then construct the DCEL mesh:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Compress triangle soup (removes duplicate vertices)</span>
+<span class="cm">    @param[out] a_vertices   Vertices</span>
+<span class="cm">    @param[out] a_facets     STL facets</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"></span>
+<span class="w">  </span><span class="n">compress</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_vertices</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_facets</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
 
-<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
-<span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span>
-<span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">soupToDCEL</span><span class="p">(</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">MeshT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w">              </span><span class="n">a_mesh</span><span class="p">,</span>
-<span class="w">                               </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_vertices</span><span class="p">,</span>
-<span class="w">                               </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;&gt;&amp;</span><span class="w">  </span><span class="n">a_facets</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Turn raw vertices into DCEL vertices. Does not include vertex normal vectors. </span>
+<span class="cm">    @param[out] a_verticesDCEL DCEL vertices</span>
+<span class="cm">    @param[in]  a_verticesRaw  Raw vertices</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"></span>
+<span class="w">  </span><span class="n">soupToDCEL</span><span class="p">(</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">MeshT</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w">              </span><span class="n">a_mesh</span><span class="p">,</span><span class="w"></span>
+<span class="w">             </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_vertices</span><span class="p">,</span><span class="w"></span>
+<span class="w">             </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;&gt;&amp;</span><span class="w">  </span><span class="n">a_facets</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">compress</span></code> function will discard duplicate vertices from the soup, while the <code class="docutils literal notranslate"><span class="pre">soupToDCEL</span></code> will simply turn the remaining polygon soup into a DCEL mesh.</p>
@@ -260,7 +259,7 @@ A triangle soup is represented as</p>
 </div>
 </section>
 <section id="using-third-party-sources">
-<span id="chap-thirdpartyparser"></span><h2>Using third-party sources<a class="headerlink" href="#using-third-party-sources" title="Permalink to this heading">¶</a></h2>
+<span id="chap-thirdpartyparser"></span><h2>Using third-party sources<a class="headerlink" href="#using-third-party-sources" title="Permalink to this heading"></a></h2>
 <p>By design, EBGeometry does not include much functionality for parsing files into polygon soups.
 There are many open source third-party codes for achieving this (and we have tested several of them):</p>
 <ol class="arabic simple">
@@ -274,50 +273,33 @@ There are many open source third-party codes for achieving this (and we have tes
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="Examples.html" class="btn btn-neutral float-right" title="Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="ImplemUnion.html" class="btn btn-neutral float-left" title="Unions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ImplemBVH.html" class="btn btn-neutral float-left" title="BVH" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Examples.html" class="btn btn-neutral float-right" title="EBGeometry" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2022, Robert Marskar.
-
-    </p>
+    <p>&#169; Copyright 2022, Robert Marskar.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

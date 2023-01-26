@@ -35,7 +35,7 @@ Collaboration diagram for Box\+SDF$<$ T $>$\+:
 \mbox{\Hypertarget{classBoxSDF_a59b774b2a6fc27001e1a40662f49c5cb}\label{classBoxSDF_a59b774b2a6fc27001e1a40662f49c5cb}} 
 \mbox{\hyperlink{classBoxSDF_a59b774b2a6fc27001e1a40662f49c5cb}{Box\+SDF}} ()=delete
 \begin{DoxyCompactList}\small\item\em Disallowed default constructor. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classBoxSDF_a8cac002be3de6c478a6d68e6e88607d8}{Box\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+lo\+Corner, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+hi\+Corner, const bool a\+\_\+flip\+Inside)
+\mbox{\hyperlink{classBoxSDF_a03bad54ac061f2daa8798b861e381557}{Box\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+lo\+Corner, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+hi\+Corner)
 \begin{DoxyCompactList}\small\item\em Full constructor. Sets the low and high corner. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classBoxSDF_aae169f61825b3235cbb44d299c36e268}\label{classBoxSDF_aae169f61825b3235cbb44d299c36e268}} 
 virtual \mbox{\hyperlink{classBoxSDF_aae169f61825b3235cbb44d299c36e268}{$\sim$\+Box\+SDF}} ()
@@ -58,10 +58,7 @@ virtual T \mbox{\hyperlink{classBoxSDF_a6e7a72790061423e5c9ea47d9e26736f}{signed
 \begin{DoxyCompactList}\small\item\em Low box corner. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classBoxSDF_a96181447700a9106e937fa2ff73499b1}\label{classBoxSDF_a96181447700a9106e937fa2ff73499b1}} 
 \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classBoxSDF_a96181447700a9106e937fa2ff73499b1}{m\+\_\+hi\+Corner}}
-\begin{DoxyCompactList}\small\item\em High box corner. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBoxSDF_aac14b4352ba92c067f70884a99c934bf}\label{classBoxSDF_aac14b4352ba92c067f70884a99c934bf}} 
-bool \mbox{\hyperlink{classBoxSDF_aac14b4352ba92c067f70884a99c934bf}{m\+\_\+flip\+Inside}}
-\begin{DoxyCompactList}\small\item\em Hook for making outside -\/$>$ inside. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em High box corner. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -71,12 +68,12 @@ class Box\+SDF$<$ T $>$}
 Signed distance field for an axis-\/aligned box. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classBoxSDF_a8cac002be3de6c478a6d68e6e88607d8}\label{classBoxSDF_a8cac002be3de6c478a6d68e6e88607d8}} 
+\mbox{\Hypertarget{classBoxSDF_a03bad54ac061f2daa8798b861e381557}\label{classBoxSDF_a03bad54ac061f2daa8798b861e381557}} 
 \index{BoxSDF$<$ T $>$@{BoxSDF$<$ T $>$}!BoxSDF@{BoxSDF}}
 \index{BoxSDF@{BoxSDF}!BoxSDF$<$ T $>$@{BoxSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{BoxSDF()}{BoxSDF()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classBoxSDF}{Box\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classBoxSDF}{Box\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+lo\+Corner,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+hi\+Corner,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+\mbox{\hyperlink{classBoxSDF}{Box\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classBoxSDF}{Box\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+lo\+Corner,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+hi\+Corner }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -87,8 +84,6 @@ Full constructor. Sets the low and high corner.
 \mbox{\texttt{ in}}  & {\em a\+\_\+lo\+Corner} & Lower left corner \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+hi\+Corner} & Upper right corner \\
-\hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+flip\+Inside} & Flip inside/outside. \\
 \hline
 \end{DoxyParams}
 

@@ -1,7 +1,6 @@
 var searchData=
 [
-  ['scaledsdf_351',['ScaledSDF',['../classScaledSDF.html',1,'']]],
-  ['signeddistancefunction_352',['SignedDistanceFunction',['../classSignedDistanceFunction.html',1,'']]],
-  ['spheresdf_353',['SphereSDF',['../classSphereSDF.html',1,'']]],
-  ['stl_354',['STL',['../classParser_1_1STL.html',1,'Parser']]]
+  ['planesdf_385',['PlaneSDF',['../classPlaneSDF.html',1,'']]],
+  ['ply_386',['PLY',['../classParser_1_1PLY.html',1,'Parser']]],
+  ['polygon2d_387',['Polygon2D',['../classPolygon2D.html',1,'']]]
 ];

@@ -1,0 +1,86 @@
+\hypertarget{classOffsetIF}{}\doxysection{Offset\+IF$<$ T $>$ Class Template Reference}
+\label{classOffsetIF}\index{OffsetIF$<$ T $>$@{OffsetIF$<$ T $>$}}
+
+
+Offset implicit function. Offsets the implicit function using the input value.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Transform.\+hpp$>$}
+
+
+
+Inheritance diagram for Offset\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classOffsetIF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Offset\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classOffsetIF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classOffsetIF_adce918bad655eb62d8e2c133621ec602}\label{classOffsetIF_adce918bad655eb62d8e2c133621ec602}} 
+\mbox{\hyperlink{classOffsetIF_adce918bad655eb62d8e2c133621ec602}{Offset\+IF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classOffsetIF_a3e016d5f8188fcf33eebd2e1db6a0324}{Offset\+IF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const T a\+\_\+offset) noexcept
+\begin{DoxyCompactList}\small\item\em Rounded SDF. Rounds the input SDF. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classOffsetIF_aa4d4c28214f7b0ba8f8494bcd1c8af9a}\label{classOffsetIF_aa4d4c28214f7b0ba8f8494bcd1c8af9a}} 
+virtual \mbox{\hyperlink{classOffsetIF_aa4d4c28214f7b0ba8f8494bcd1c8af9a}{$\sim$\+Offset\+IF}} ()
+\begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classOffsetIF_aebf5318998fe4150c93107f43f752fc9}\label{classOffsetIF_aebf5318998fe4150c93107f43f752fc9}} 
+virtual T \mbox{\hyperlink{classOffsetIF_aebf5318998fe4150c93107f43f752fc9}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Implementation of value function with offset. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classOffsetIF_a740bae15d51a9490b9dec49cfbbeff4b}\label{classOffsetIF_a740bae15d51a9490b9dec49cfbbeff4b}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{classOffsetIF_a740bae15d51a9490b9dec49cfbbeff4b}{m\+\_\+implicit\+Function}}
+\begin{DoxyCompactList}\small\item\em Underlying implicit function. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classOffsetIF_ab9be5afbf362019d352c21c0dc255cdb}\label{classOffsetIF_ab9be5afbf362019d352c21c0dc255cdb}} 
+T \mbox{\hyperlink{classOffsetIF_ab9be5afbf362019d352c21c0dc255cdb}{m\+\_\+offset}}
+\begin{DoxyCompactList}\small\item\em Offset value. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Offset\+IF$<$ T $>$}
+
+Offset implicit function. Offsets the implicit function using the input value. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classOffsetIF_a3e016d5f8188fcf33eebd2e1db6a0324}\label{classOffsetIF_a3e016d5f8188fcf33eebd2e1db6a0324}} 
+\index{OffsetIF$<$ T $>$@{OffsetIF$<$ T $>$}!OffsetIF@{OffsetIF}}
+\index{OffsetIF@{OffsetIF}!OffsetIF$<$ T $>$@{OffsetIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{OffsetIF()}{OffsetIF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classOffsetIF}{Offset\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classOffsetIF}{Offset\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const T}]{a\+\_\+offset }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Rounded SDF. Rounds the input SDF. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Function} & Input implicit function. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+offset} & Offset value. \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__Transform_8hpp}{EBGeometry\+\_\+\+Transform.\+hpp}}\end{DoxyCompactItemize}

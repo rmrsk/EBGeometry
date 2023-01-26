@@ -1,0 +1,130 @@
+\hypertarget{classFastSmoothUnionIF}{}\doxysection{Fast\+Smooth\+Union\+IF$<$ T, P, BV, K $>$ Class Template Reference}
+\label{classFastSmoothUnionIF}\index{FastSmoothUnionIF$<$ T, P, BV, K $>$@{FastSmoothUnionIF$<$ T, P, BV, K $>$}}
+
+
+Implicit function smoothed union using BVHs.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+CSG.\+hpp$>$}
+
+
+
+Inheritance diagram for Fast\+Smooth\+Union\+IF$<$ T, P, BV, K $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classFastSmoothUnionIF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Fast\+Smooth\+Union\+IF$<$ T, P, BV, K $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classFastSmoothUnionIF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classFastSmoothUnionIF_af1056272aa24b4af1531ea0436db6fe4}\label{classFastSmoothUnionIF_af1056272aa24b4af1531ea0436db6fe4}} 
+using {\bfseries BVConstructor} = EBGeometry\+::\+BVH\+::\+BVConstructorT$<$ P, BV $>$
+\item 
+\mbox{\Hypertarget{classFastSmoothUnionIF_a83e23a2715599dd0910a01b71cd8959a}\label{classFastSmoothUnionIF_a83e23a2715599dd0910a01b71cd8959a}} 
+using {\bfseries Root} = typename EBGeometry\+::\+BVH\+::\+Linear\+BVH$<$ T, P, BV, K $>$
+\item 
+\mbox{\Hypertarget{classFastSmoothUnionIF_a61803067cbb318f3bc634e8462bc6e74}\label{classFastSmoothUnionIF_a61803067cbb318f3bc634e8462bc6e74}} 
+using {\bfseries Node} = typename Root\+::\+Linear\+Node
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classFastSmoothUnionIF_a635b4b045072a5434ce6d54a7062a08a}\label{classFastSmoothUnionIF_a635b4b045072a5434ce6d54a7062a08a}} 
+\mbox{\hyperlink{classFastSmoothUnionIF_a635b4b045072a5434ce6d54a7062a08a}{Fast\+Smooth\+Union\+IF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classFastSmoothUnionIF_a85dcf528cd6140953f4e3c482934d662}{Fast\+Smooth\+Union\+IF}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+distance\+Functions, const BVConstructor \&a\+\_\+bv\+Constructor, const T a\+\_\+smooth\+Len, const std\+::function$<$ T(const T \&, const T \&, const T \&)$>$ a\+\_\+smooth\+Min=\mbox{\hyperlink{EBGeometry__CSG_8hpp_aa6a6befc82e122b0943c4653290b3259}{smooth\+Min}}$<$ T $>$) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor -\/ constructs bounding volumes in place. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classFastSmoothUnionIF_a8b2608e2c3e3e84427376a5f56d1bde4}\label{classFastSmoothUnionIF_a8b2608e2c3e3e84427376a5f56d1bde4}} 
+virtual \mbox{\hyperlink{classFastSmoothUnionIF_a8b2608e2c3e3e84427376a5f56d1bde4}{$\sim$\+Fast\+Smooth\+Union\+IF}} ()=default
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+virtual T \mbox{\hyperlink{classFastSmoothUnionIF_aef2d279ee3019c0120ceac38803f285f}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classFastSmoothUnionIF_a78df5bfd35ecbb6128c36fd53fdd07db}\label{classFastSmoothUnionIF_a78df5bfd35ecbb6128c36fd53fdd07db}} 
+T \mbox{\hyperlink{classFastSmoothUnionIF_a78df5bfd35ecbb6128c36fd53fdd07db}{m\+\_\+smooth\+Len}}
+\begin{DoxyCompactList}\small\item\em Smoothing length. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classFastSmoothUnionIF_a8f41b52ed7ef9a4390a7d668d796f206}\label{classFastSmoothUnionIF_a8f41b52ed7ef9a4390a7d668d796f206}} 
+std\+::function$<$ T(const T \&, const T \&, const T \&)$>$ \mbox{\hyperlink{classFastSmoothUnionIF_a8f41b52ed7ef9a4390a7d668d796f206}{m\+\_\+smooth\+Min}}
+\begin{DoxyCompactList}\small\item\em Smooth min operator. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T, class P, class BV, size\+\_\+t K$>$\newline
+class Fast\+Smooth\+Union\+IF$<$ T, P, BV, K $>$}
+
+Implicit function smoothed union using BVHs. 
+
+\begin{DoxyNote}{Note}
+If the BVH-\/enabled union is to make sense, the primitives must be distance fields (I think). There\textquotesingle{}s a static\+\_\+assert to make sure of that. 
+\end{DoxyNote}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classFastSmoothUnionIF_a85dcf528cd6140953f4e3c482934d662}\label{classFastSmoothUnionIF_a85dcf528cd6140953f4e3c482934d662}} 
+\index{FastSmoothUnionIF$<$ T, P, BV, K $>$@{FastSmoothUnionIF$<$ T, P, BV, K $>$}!FastSmoothUnionIF@{FastSmoothUnionIF}}
+\index{FastSmoothUnionIF@{FastSmoothUnionIF}!FastSmoothUnionIF$<$ T, P, BV, K $>$@{FastSmoothUnionIF$<$ T, P, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{FastSmoothUnionIF()}{FastSmoothUnionIF()}}
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
+\mbox{\hyperlink{classFastSmoothUnionIF}{Fast\+Smooth\+Union\+IF}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classFastSmoothUnionIF}{Fast\+Smooth\+Union\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+distance\+Functions,  }\item[{const BVConstructor \&}]{a\+\_\+bv\+Constructor,  }\item[{const T}]{a\+\_\+smooth\+Len,  }\item[{const std\+::function$<$ T(const T \&, const T \&, const T \&)$>$}]{a\+\_\+smooth\+Min = {\ttfamily \mbox{\hyperlink{EBGeometry__CSG_8hpp_aa6a6befc82e122b0943c4653290b3259}{smooth\+Min}}$<$~T~$>$} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor -\/ constructs bounding volumes in place. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+distance\+Functions} & Signed distance functions. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+bv\+Constructor} & Bounding volume constructor. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+smooth\+Len} & Smoothing length \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+smooth\+Min} & How to compute the smooth minimum. \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classFastSmoothUnionIF_aef2d279ee3019c0120ceac38803f285f}\label{classFastSmoothUnionIF_aef2d279ee3019c0120ceac38803f285f}} 
+\index{FastSmoothUnionIF$<$ T, P, BV, K $>$@{FastSmoothUnionIF$<$ T, P, BV, K $>$}!value@{value}}
+\index{value@{value}!FastSmoothUnionIF$<$ T, P, BV, K $>$@{FastSmoothUnionIF$<$ T, P, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{value()}{value()}}
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
+virtual T \mbox{\hyperlink{classFastSmoothUnionIF}{Fast\+Smooth\+Union\+IF}}$<$ T, P, BV, K $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Value function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point. \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \mbox{\hyperlink{classFastUnionIF_ad913d0fc57aa3f6079e7e54bfbbd7938}{Fast\+Union\+IF$<$ T, P, BV, K $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__CSG_8hpp}{EBGeometry\+\_\+\+CSG.\+hpp}}\end{DoxyCompactItemize}

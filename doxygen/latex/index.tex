@@ -32,7 +32,7 @@ Several examples are given in the Examples folder. To run one of the examples, n
 
 \doxysubsection*{1. Analytic distance fields}
 
-Use one of the analytic signed distance fields in \mbox{\hyperlink{namespaceEBGeometry}{EBGeometry}}, and rotate and transform it.
+Use one of the analytic signed distance fields in \mbox{\hyperlink{namespaceEBGeometry}{EBGeometry}}\+:
 
 
 \begin{DoxyCode}{0}
@@ -51,7 +51,7 @@ Read in an STL file and turn it into a signed distance field.
 \begin{DoxyCode}{0}
 \DoxyCodeLine{cd Examples/EBGeometry\_DCEL}
 \DoxyCodeLine{g++ -\/O3 -\/std=c++14 main.cpp}
-\DoxyCodeLine{./a.out armadillo.stl}
+\DoxyCodeLine{./a.out}
 
 \end{DoxyCode}
 
@@ -67,7 +67,7 @@ Read in an STL file and turn it into a signed distance field.
 
 Generate a spherical packed bed geometry using analytic representations of spheres. BVH-\/accelerated CSG unions lead to order-\/of-\/magnitude faster implicit function evaluation. 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{cd Examples/EBGeometry\_Union}
+\DoxyCodeLine{cd Examples/EBGeometry\_PackedSpheres}
 \DoxyCodeLine{g++ -\/O3 -\/std=c++14 main.cpp}
 \DoxyCodeLine{./a.out}
 
@@ -104,8 +104,6 @@ Create an F18 implicit function using CSG on each part (65 parts in total).
 \doxysubsection*{5. Advanced examples}
 
 Some complex examples that use Chombo3 or AMReX are also provided in the Examples folder. These include application-\/specific code and require installation of Chombo3 or AMReX.
-
-For more advanced usage, users can supply their own file parsers, provide their own bounding volumes, or their own \mbox{\hyperlink{namespaceBVH}{BVH}} partitioners. \mbox{\hyperlink{namespaceEBGeometry}{EBGeometry}} is not too strict about these things, and uses rigorous templating for ensuring that the \mbox{\hyperlink{namespaceEBGeometry}{EBGeometry}} functionality can be extended.
 
 \doxysection*{Contributing}
 

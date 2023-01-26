@@ -1,19 +1,17 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_AnalyticDistanceFunctions.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_AnalyticDistanceFunctions.hpp">
-<area shape="rect" id="node1" title="Declaration of various analytic distance functions." alt="" coords="115,5,357,61"/>
-<area shape="rect" id="node2" title=" " alt="" coords="5,527,91,553"/>
-<area shape="rect" id="node3" href="$EBGeometry__SignedDistanceFunction_8hpp.html" title="Abstract base class for representing a signed distance function." alt="" coords="225,109,437,151"/>
-<area shape="rect" id="node10" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="155,527,418,553"/>
-<area shape="rect" id="node11" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="1055,527,1311,553"/>
-<area shape="rect" id="node4" title=" " alt="" coords="148,288,225,315"/>
-<area shape="rect" id="node5" title=" " alt="" coords="250,288,313,315"/>
-<area shape="rect" id="node6" href="$EBGeometry__ImplicitFunction_8hpp.html" title="Abstract base class for representing an implicit function." alt="" coords="288,206,531,233"/>
-<area shape="rect" id="node17" href="$EBGeometry__SignedDistanceFunctionImplem_8hpp.html" title="Implementation of EBGeometry_SignedDistanceFunctionImplem.hpp." alt="" coords="555,199,767,240"/>
-<area shape="rect" id="node7" href="$EBGeometry__TransformOps_8hpp.html" title="Declaration of transformation operators for signed distance fields." alt="" coords="693,288,923,315"/>
-<area shape="rect" id="node16" href="$EBGeometry__ImplicitFunctionImplem_8hpp.html" title="Implementation of EBGeometry_ImplicitFunctionImplem.hpp." alt="" coords="223,363,438,404"/>
-<area shape="rect" id="node8" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="617,370,780,397"/>
-<area shape="rect" id="node15" href="$EBGeometry__TransformOpsImplem_8hpp.html" title="Implementation of EBGeometry_TransformOps.hpp." alt="" coords="866,452,1145,479"/>
-<area shape="rect" id="node9" title=" " alt="" coords="711,452,791,479"/>
-<area shape="rect" id="node12" href="$EBGeometry__VecImplem_8hpp.html" title="Implementation of EBGeometry_Vec.hpp." alt="" coords="425,452,637,479"/>
-<area shape="rect" id="node13" title=" " alt="" coords="555,527,623,553"/>
-<area shape="rect" id="node14" title=" " alt="" coords="472,527,531,553"/>
+<area shape="rect" id="node1" title="Declaration of various analytic distance functions." alt="" coords="223,5,465,61"/>
+<area shape="rect" id="node2" title=" " alt="" coords="5,117,91,143"/>
+<area shape="rect" id="node3" href="$EBGeometry__BoundingVolumes_8hpp.html" title="Declaration of a various bounding volumes used for bounding volume hierarchy." alt="" coords="216,206,472,233"/>
+<area shape="rect" id="node7" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="143,377,406,404"/>
+<area shape="rect" id="node8" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="915,377,1171,404"/>
+<area shape="rect" id="node11" href="$EBGeometry__SignedDistanceFunction_8hpp.html" title="Abstract base class for representing a signed distance function." alt="" coords="523,109,735,151"/>
+<area shape="rect" id="node4" title=" " alt="" coords="313,295,375,322"/>
+<area shape="rect" id="node5" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="703,295,865,322"/>
+<area shape="rect" id="node10" title=" " alt="" coords="399,288,627,329"/>
+<area shape="rect" id="node6" title=" " alt="" coords="575,377,655,404"/>
+<area shape="rect" id="node9" title=" " alt="" coords="678,377,890,404"/>
+<area shape="rect" id="node12" title=" " alt="" coords="496,206,573,233"/>
+<area shape="rect" id="node13" title=" " alt="" coords="598,206,661,233"/>
+<area shape="rect" id="node14" href="$EBGeometry__ImplicitFunction_8hpp.html" title="Abstract base class for representing an implicit function." alt="" coords="921,206,1164,233"/>
+<area shape="rect" id="node15" title=" " alt="" coords="685,199,897,240"/>
 </map>

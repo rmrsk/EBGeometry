@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['x_670',['x',['../classVec2T.html#a66ea295b52114b22de1f76cce1aa7f51',1,'Vec2T']]],
-  ['x_671',['X',['../classVec3T.html#a0643a9f9a68edf5d4656f2e613c9624f',1,'Vec3T']]]
+  ['validchunks_734',['validChunks',['../namespaceDCEL.html#ac150ddff45486822d7b0fa57ac229e3a',1,'DCEL']]]
 ];

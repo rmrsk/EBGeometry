@@ -1,0 +1,97 @@
+\hypertarget{classRotateIF}{}\doxysection{Rotate\+IF$<$ T $>$ Class Template Reference}
+\label{classRotateIF}\index{RotateIF$<$ T $>$@{RotateIF$<$ T $>$}}
+
+
+Rotated implicit function. Rotates an implicit function about an axis.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Transform.\+hpp$>$}
+
+
+
+Inheritance diagram for Rotate\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classRotateIF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Rotate\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classRotateIF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classRotateIF_a868f884ca14126ec8916e9d41c8fa331}\label{classRotateIF_a868f884ca14126ec8916e9d41c8fa331}} 
+\mbox{\hyperlink{classRotateIF_a868f884ca14126ec8916e9d41c8fa331}{Rotate\+IF}} ()=delete
+\begin{DoxyCompactList}\small\item\em No weak construction. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classRotateIF_a3671af30ea6d432790efb5c52c6ee849}{Rotate\+IF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const T a\+\_\+angle, const size\+\_\+t a\+\_\+axis) noexcept
+\begin{DoxyCompactList}\small\item\em Rounded SDF. Rounds the input SDF. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRotateIF_a06ed907af69212da7f9ffca8c194538e}\label{classRotateIF_a06ed907af69212da7f9ffca8c194538e}} 
+virtual \mbox{\hyperlink{classRotateIF_a06ed907af69212da7f9ffca8c194538e}{$\sim$\+Rotate\+IF}} ()
+\begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRotateIF_ae6429ba9d4d8fd8e722dcba85f1b7d73}\label{classRotateIF_ae6429ba9d4d8fd8e722dcba85f1b7d73}} 
+virtual T \mbox{\hyperlink{classRotateIF_ae6429ba9d4d8fd8e722dcba85f1b7d73}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Implementation of value function with rotation. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classRotateIF_a2f6b7cd9df900bc9ad917270770a1a84}\label{classRotateIF_a2f6b7cd9df900bc9ad917270770a1a84}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{classRotateIF_a2f6b7cd9df900bc9ad917270770a1a84}{m\+\_\+implicit\+Function}}
+\begin{DoxyCompactList}\small\item\em Underlying implicit function. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRotateIF_ae5eab2b16e5315d1fd47b6a561213881}\label{classRotateIF_ae5eab2b16e5315d1fd47b6a561213881}} 
+size\+\_\+t \mbox{\hyperlink{classRotateIF_ae5eab2b16e5315d1fd47b6a561213881}{m\+\_\+axis}}
+\begin{DoxyCompactList}\small\item\em Axis to rotate about. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRotateIF_a91be042fbc386a6b658bd35fbbbee362}\label{classRotateIF_a91be042fbc386a6b658bd35fbbbee362}} 
+T \mbox{\hyperlink{classRotateIF_a91be042fbc386a6b658bd35fbbbee362}{m\+\_\+angle}}
+\begin{DoxyCompactList}\small\item\em Angle to rotate. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRotateIF_ac4b4270a61d57374886d53a6d6cf0095}\label{classRotateIF_ac4b4270a61d57374886d53a6d6cf0095}} 
+T \mbox{\hyperlink{classRotateIF_ac4b4270a61d57374886d53a6d6cf0095}{m\+\_\+cos\+Angle}}
+\begin{DoxyCompactList}\small\item\em Parameter in rotation matrix. Stored for efficiency. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRotateIF_a206601f84d33476fe6975b935f1cdae1}\label{classRotateIF_a206601f84d33476fe6975b935f1cdae1}} 
+T \mbox{\hyperlink{classRotateIF_a206601f84d33476fe6975b935f1cdae1}{m\+\_\+sin\+Angle}}
+\begin{DoxyCompactList}\small\item\em Parameter in rotation matrix. Stored for efficiency. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Rotate\+IF$<$ T $>$}
+
+Rotated implicit function. Rotates an implicit function about an axis. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classRotateIF_a3671af30ea6d432790efb5c52c6ee849}\label{classRotateIF_a3671af30ea6d432790efb5c52c6ee849}} 
+\index{RotateIF$<$ T $>$@{RotateIF$<$ T $>$}!RotateIF@{RotateIF}}
+\index{RotateIF@{RotateIF}!RotateIF$<$ T $>$@{RotateIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{RotateIF()}{RotateIF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classRotateIF}{Rotate\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classRotateIF}{Rotate\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const T}]{a\+\_\+angle,  }\item[{const size\+\_\+t}]{a\+\_\+axis }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Rounded SDF. Rounds the input SDF. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Function} & Input implicit function. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+angle} & Angle to rotate (in degrees) \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+axis} & Axis to rotate about \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__Transform_8hpp}{EBGeometry\+\_\+\+Transform.\+hpp}}\end{DoxyCompactItemize}

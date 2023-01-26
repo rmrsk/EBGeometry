@@ -21,8 +21,8 @@ using {\bfseries Vec3} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$
 \mbox{\Hypertarget{classBVH_1_1LinearNodeT_ad38f1888fbd8512b749e6b78557729c4}\label{classBVH_1_1LinearNodeT_ad38f1888fbd8512b749e6b78557729c4}} 
 \mbox{\hyperlink{classBVH_1_1LinearNodeT_ad38f1888fbd8512b749e6b78557729c4}{Linear\+NodeT}} () noexcept
 \begin{DoxyCompactList}\small\item\em Constructor. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBVH_1_1LinearNodeT_a4b5dd392397794113ad3b5bb2ed5003a}\label{classBVH_1_1LinearNodeT_a4b5dd392397794113ad3b5bb2ed5003a}} 
-virtual \mbox{\hyperlink{classBVH_1_1LinearNodeT_a4b5dd392397794113ad3b5bb2ed5003a}{$\sim$\+Linear\+NodeT}} ()
+\mbox{\Hypertarget{classBVH_1_1LinearNodeT_a426a5b934f659d46be43e608a70f357c}\label{classBVH_1_1LinearNodeT_a426a5b934f659d46be43e608a70f357c}} 
+virtual \mbox{\hyperlink{classBVH_1_1LinearNodeT_a426a5b934f659d46be43e608a70f357c}{$\sim$\+Linear\+NodeT}} ()
 \begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classBVH_1_1LinearNodeT_a03e3dd1c74bf9e66ed692130b49c2e0f}{set\+Bounding\+Volume}} (const BV \&a\+\_\+bounding\+Volume) noexcept
 \begin{DoxyCompactList}\small\item\em Set the bounding volume. \end{DoxyCompactList}\item 
@@ -33,21 +33,21 @@ void \mbox{\hyperlink{classBVH_1_1LinearNodeT_a0246e43510fbb92c08e966af346f87c6}
 \begin{DoxyCompactList}\small\item\em Set number of primitives. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classBVH_1_1LinearNodeT_a1bdc4afa4b52b8592bb19b5da29a4352}{set\+Child\+Offset}} (const size\+\_\+t a\+\_\+child\+Offset, const size\+\_\+t a\+\_\+which\+Child) noexcept
 \begin{DoxyCompactList}\small\item\em Set the child offsets. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBVH_1_1LinearNodeT_a152b12723c86f8fcb7522562cd97cd67}\label{classBVH_1_1LinearNodeT_a152b12723c86f8fcb7522562cd97cd67}} 
-const BV \& \mbox{\hyperlink{classBVH_1_1LinearNodeT_a152b12723c86f8fcb7522562cd97cd67}{get\+Bounding\+Volume}} () const noexcept
+\mbox{\Hypertarget{classBVH_1_1LinearNodeT_ad3f103d7e451c1fa8a8e38d703bc33ae}\label{classBVH_1_1LinearNodeT_ad3f103d7e451c1fa8a8e38d703bc33ae}} 
+const BV \& \mbox{\hyperlink{classBVH_1_1LinearNodeT_ad3f103d7e451c1fa8a8e38d703bc33ae}{get\+Bounding\+Volume}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the node bounding volume. return m\+\_\+bounding\+Volume. \end{DoxyCompactList}\item 
-const size\+\_\+t \& \mbox{\hyperlink{classBVH_1_1LinearNodeT_a334b85c02f9b1b92bf7896a6b8fe1ad6}{get\+Primitives\+Offset}} () const noexcept
+const size\+\_\+t \& \mbox{\hyperlink{classBVH_1_1LinearNodeT_a85800f732d9bd4270687566b1fd5ab02}{get\+Primitives\+Offset}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the primitives offset. \end{DoxyCompactList}\item 
-const size\+\_\+t \& \mbox{\hyperlink{classBVH_1_1LinearNodeT_afb91cf46234be67eb084bc76ae718c44}{get\+Num\+Primitives}} () const noexcept
+const size\+\_\+t \& \mbox{\hyperlink{classBVH_1_1LinearNodeT_aa63620bbfffac7a7f9f684d0a756f9d2}{get\+Num\+Primitives}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the number of primitives. \end{DoxyCompactList}\item 
-const std\+::array$<$ size\+\_\+t, K $>$ \& \mbox{\hyperlink{classBVH_1_1LinearNodeT_a89feb8e7e164624664fcb056ee70767a}{get\+Child\+Offsets}} () const noexcept
+const std\+::array$<$ size\+\_\+t, K $>$ \& \mbox{\hyperlink{classBVH_1_1LinearNodeT_a9cbe9c48acab8a33e2c1b8befd63f37d}{get\+Child\+Offsets}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the child offsets. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classBVH_1_1LinearNodeT_aba361834e3d013725a92ec4b45633584}\label{classBVH_1_1LinearNodeT_aba361834e3d013725a92ec4b45633584}} 
 bool \mbox{\hyperlink{classBVH_1_1LinearNodeT_aba361834e3d013725a92ec4b45633584}{is\+Leaf}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Is leaf or not. \end{DoxyCompactList}\item 
 T \mbox{\hyperlink{classBVH_1_1LinearNodeT_a2bf5b1c514a20754d527b17e1c664630}{get\+Distance\+To\+Bounding\+Volume}} (const \mbox{\hyperlink{classVec3T}{Vec3}} \&a\+\_\+point) const noexcept
 \begin{DoxyCompactList}\small\item\em Get the distance from a 3D point to the bounding volume. \end{DoxyCompactList}\item 
-std\+::vector$<$ T $>$ \mbox{\hyperlink{classBVH_1_1LinearNodeT_a9b771a1cd5c5fb0a1ab8034918aff291}{get\+Distances}} (const \mbox{\hyperlink{classVec3T}{Vec3}} \&a\+\_\+point, const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&a\+\_\+primitives) const noexcept
+std\+::vector$<$ T $>$ \mbox{\hyperlink{classBVH_1_1LinearNodeT_a4a4a6a8ef0ff7858f6b95b92501e8bc3}{get\+Distances}} (const \mbox{\hyperlink{classVec3T}{Vec3}} \&a\+\_\+point, const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&a\+\_\+primitives) const noexcept
 \begin{DoxyCompactList}\small\item\em Compute signed distance to primitives. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
@@ -88,12 +88,12 @@ This class exists so that we can fit the nodes with a smaller memory footprint. 
 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classBVH_1_1LinearNodeT_a89feb8e7e164624664fcb056ee70767a}\label{classBVH_1_1LinearNodeT_a89feb8e7e164624664fcb056ee70767a}} 
+\mbox{\Hypertarget{classBVH_1_1LinearNodeT_a9cbe9c48acab8a33e2c1b8befd63f37d}\label{classBVH_1_1LinearNodeT_a9cbe9c48acab8a33e2c1b8befd63f37d}} 
 \index{BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}!getChildOffsets@{getChildOffsets}}
 \index{getChildOffsets@{getChildOffsets}!BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getChildOffsets()}{getChildOffsets()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-const std\+::array$<$ size\+\_\+t, K $>$ \& \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Child\+Offsets\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+const std\+::array$<$size\+\_\+t, K$>$\& \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Child\+Offsets (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -102,12 +102,12 @@ Get the child offsets.
 \begin{DoxyReturn}{Returns}
 Returns m\+\_\+child\+Offsets 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classBVH_1_1LinearNodeT_a9b771a1cd5c5fb0a1ab8034918aff291}\label{classBVH_1_1LinearNodeT_a9b771a1cd5c5fb0a1ab8034918aff291}} 
+\mbox{\Hypertarget{classBVH_1_1LinearNodeT_a4a4a6a8ef0ff7858f6b95b92501e8bc3}\label{classBVH_1_1LinearNodeT_a4a4a6a8ef0ff7858f6b95b92501e8bc3}} 
 \index{BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}!getDistances@{getDistances}}
 \index{getDistances@{getDistances}!BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getDistances()}{getDistances()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-std\+::vector$<$ T $>$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Distances (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3}} \&}]{a\+\_\+point,  }\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&}]{a\+\_\+primitives }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+std\+::vector$<$T$>$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Distances (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3}} \&}]{a\+\_\+point,  }\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&}]{a\+\_\+primitives }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -142,12 +142,12 @@ Get the distance from a 3D point to the bounding volume.
 \begin{DoxyReturn}{Returns}
 Returns distance to bounding volume. A zero distance implies that the input point is inside the bounding volume. 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classBVH_1_1LinearNodeT_afb91cf46234be67eb084bc76ae718c44}\label{classBVH_1_1LinearNodeT_afb91cf46234be67eb084bc76ae718c44}} 
+\mbox{\Hypertarget{classBVH_1_1LinearNodeT_aa63620bbfffac7a7f9f684d0a756f9d2}\label{classBVH_1_1LinearNodeT_aa63620bbfffac7a7f9f684d0a756f9d2}} 
 \index{BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}!getNumPrimitives@{getNumPrimitives}}
 \index{getNumPrimitives@{getNumPrimitives}!BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getNumPrimitives()}{getNumPrimitives()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-const size\+\_\+t \& \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Num\+Primitives\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+const size\+\_\+t\& \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Num\+Primitives (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -156,12 +156,12 @@ Get the number of primitives.
 \begin{DoxyReturn}{Returns}
 Returns m\+\_\+num\+Primitives 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classBVH_1_1LinearNodeT_a334b85c02f9b1b92bf7896a6b8fe1ad6}\label{classBVH_1_1LinearNodeT_a334b85c02f9b1b92bf7896a6b8fe1ad6}} 
+\mbox{\Hypertarget{classBVH_1_1LinearNodeT_a85800f732d9bd4270687566b1fd5ab02}\label{classBVH_1_1LinearNodeT_a85800f732d9bd4270687566b1fd5ab02}} 
 \index{BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}!getPrimitivesOffset@{getPrimitivesOffset}}
 \index{getPrimitivesOffset@{getPrimitivesOffset}!BVH::LinearNodeT$<$ T, P, BV, K $>$@{BVH::LinearNodeT$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{getPrimitivesOffset()}{getPrimitivesOffset()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-const size\+\_\+t \& \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Primitives\+Offset\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+const size\+\_\+t\& \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Primitives\+Offset (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -222,7 +222,6 @@ Set number of primitives.
 \end{DoxyParams}
 
 
-The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__BVH_8hpp}{EBGeometry\+\_\+\+BVH.\+hpp}}\item 
-/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__BVHImplem_8hpp}{EBGeometry\+\_\+\+BVHImplem.\+hpp}}\end{DoxyCompactItemize}
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__BVH_8hpp}{EBGeometry\+\_\+\+BVH.\+hpp}}\end{DoxyCompactItemize}

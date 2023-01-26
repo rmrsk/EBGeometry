@@ -1,0 +1,86 @@
+\hypertarget{classTranslateIF}{}\doxysection{Translate\+IF$<$ T $>$ Class Template Reference}
+\label{classTranslateIF}\index{TranslateIF$<$ T $>$@{TranslateIF$<$ T $>$}}
+
+
+Translated implicit function.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Transform.\+hpp$>$}
+
+
+
+Inheritance diagram for Translate\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classTranslateIF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Translate\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classTranslateIF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classTranslateIF_a584cf2776c76f32a21bf3102b8ff2493}\label{classTranslateIF_a584cf2776c76f32a21bf3102b8ff2493}} 
+\mbox{\hyperlink{classTranslateIF_a584cf2776c76f32a21bf3102b8ff2493}{Translate\+IF}} ()=delete
+\begin{DoxyCompactList}\small\item\em No weak construction for this one. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classTranslateIF_a9f19e6d874a44cec6fb803f6363a5489}{Translate\+IF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+shift) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTranslateIF_a2397e83bb51308629789e0ed6471a14c}\label{classTranslateIF_a2397e83bb51308629789e0ed6471a14c}} 
+virtual \mbox{\hyperlink{classTranslateIF_a2397e83bb51308629789e0ed6471a14c}{$\sim$\+Translate\+IF}} ()
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTranslateIF_a36a6e48613ce6fa2d29bd2e12ba96c3b}\label{classTranslateIF_a36a6e48613ce6fa2d29bd2e12ba96c3b}} 
+virtual T \mbox{\hyperlink{classTranslateIF_a36a6e48613ce6fa2d29bd2e12ba96c3b}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classTranslateIF_ac51f1a69fa997e4bbda8b03ebc8134c3}\label{classTranslateIF_ac51f1a69fa997e4bbda8b03ebc8134c3}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{classTranslateIF_ac51f1a69fa997e4bbda8b03ebc8134c3}{m\+\_\+implicit\+Function}}
+\begin{DoxyCompactList}\small\item\em Underlying implicit function. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTranslateIF_a1ccb33b9df01ab5a565430165b61f4da}\label{classTranslateIF_a1ccb33b9df01ab5a565430165b61f4da}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classTranslateIF_a1ccb33b9df01ab5a565430165b61f4da}{m\+\_\+shift}}
+\begin{DoxyCompactList}\small\item\em Input point translate. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Translate\+IF$<$ T $>$}
+
+Translated implicit function. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classTranslateIF_a9f19e6d874a44cec6fb803f6363a5489}\label{classTranslateIF_a9f19e6d874a44cec6fb803f6363a5489}} 
+\index{TranslateIF$<$ T $>$@{TranslateIF$<$ T $>$}!TranslateIF@{TranslateIF}}
+\index{TranslateIF@{TranslateIF}!TranslateIF$<$ T $>$@{TranslateIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{TranslateIF()}{TranslateIF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classTranslateIF}{Translate\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classTranslateIF}{Translate\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+shift }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Function} & Input implicit function to be translated \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+shift} & Distance to shift \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__Transform_8hpp}{EBGeometry\+\_\+\+Transform.\+hpp}}\end{DoxyCompactItemize}

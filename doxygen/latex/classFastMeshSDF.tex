@@ -1,0 +1,100 @@
+\hypertarget{classFastMeshSDF}{}\doxysection{Fast\+Mesh\+SDF$<$ T, BV, K $>$ Class Template Reference}
+\label{classFastMeshSDF}\index{FastMeshSDF$<$ T, BV, K $>$@{FastMeshSDF$<$ T, BV, K $>$}}
+
+
+Signed distance function for a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. This class uses the full \mbox{\hyperlink{namespaceBVH}{BVH}} representation.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Mesh\+Distance\+Functions.\+hpp$>$}
+
+
+
+Inheritance diagram for Fast\+Mesh\+SDF$<$ T, BV, K $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classFastMeshSDF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Fast\+Mesh\+SDF$<$ T, BV, K $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classFastMeshSDF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classFastMeshSDF_a0f810fece44e76cc8f778782c7a17b64}\label{classFastMeshSDF_a0f810fece44e76cc8f778782c7a17b64}} 
+using {\bfseries Face} = EBGeometry\+::\+DCEL\+::\+FaceT$<$ T $>$
+\item 
+\mbox{\Hypertarget{classFastMeshSDF_a145e6021dfe79dd386d90cd8633b6acd}\label{classFastMeshSDF_a145e6021dfe79dd386d90cd8633b6acd}} 
+using {\bfseries Mesh} = EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$
+\item 
+\mbox{\Hypertarget{classFastMeshSDF_a665650e08dbe9f10d36708a3894338cf}\label{classFastMeshSDF_a665650e08dbe9f10d36708a3894338cf}} 
+using {\bfseries Node} = EBGeometry\+::\+BVH\+::\+NodeT$<$ T, Face, BV, K $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classFastMeshSDF_af6f0f08df6d92f737ea35e6deea0919e}\label{classFastMeshSDF_af6f0f08df6d92f737ea35e6deea0919e}} 
+\mbox{\hyperlink{classFastMeshSDF_af6f0f08df6d92f737ea35e6deea0919e}{Fast\+Mesh\+SDF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Default disallowed constructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classFastMeshSDF_a37bb1eca3bb1076adc9cb6cbf27b3443}\label{classFastMeshSDF_a37bb1eca3bb1076adc9cb6cbf27b3443}} 
+\mbox{\hyperlink{classFastMeshSDF_a37bb1eca3bb1076adc9cb6cbf27b3443}{Fast\+Mesh\+SDF}} (const std\+::shared\+\_\+ptr$<$ Mesh $>$ \&a\+\_\+mesh) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor. Takes the input mesh and creates the \mbox{\hyperlink{namespaceBVH}{BVH}}. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classFastMeshSDF_a6cf0457233becb3b066713f2069e9e61}\label{classFastMeshSDF_a6cf0457233becb3b066713f2069e9e61}} 
+virtual \mbox{\hyperlink{classFastMeshSDF_a6cf0457233becb3b066713f2069e9e61}{$\sim$\+Fast\+Mesh\+SDF}} ()=default
+\begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
+virtual T \mbox{\hyperlink{classFastMeshSDF_a371fa42949f9af13a047b2ef7808e3ea}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classFastMeshSDF_a5bab29cbe88e9d8fa4c3102a3bbbb5fe}\label{classFastMeshSDF_a5bab29cbe88e9d8fa4c3102a3bbbb5fe}} 
+BV \mbox{\hyperlink{classFastMeshSDF_a5bab29cbe88e9d8fa4c3102a3bbbb5fe}{compute\+Bounding\+Volume}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Compute bounding volume for this mesh. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classFastMeshSDF_ab52cd16c2bbb2fc560a34c126ad9afec}\label{classFastMeshSDF_ab52cd16c2bbb2fc560a34c126ad9afec}} 
+std\+::shared\+\_\+ptr$<$ Node $>$ \mbox{\hyperlink{classFastMeshSDF_ab52cd16c2bbb2fc560a34c126ad9afec}{m\+\_\+bvh}}
+\begin{DoxyCompactList}\small\item\em Bounding volume hierarchy. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T, class BV, size\+\_\+t K$>$\newline
+class Fast\+Mesh\+SDF$<$ T, BV, K $>$}
+
+Signed distance function for a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. This class uses the full \mbox{\hyperlink{namespaceBVH}{BVH}} representation. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classFastMeshSDF_a371fa42949f9af13a047b2ef7808e3ea}\label{classFastMeshSDF_a371fa42949f9af13a047b2ef7808e3ea}} 
+\index{FastMeshSDF$<$ T, BV, K $>$@{FastMeshSDF$<$ T, BV, K $>$}!signedDistance@{signedDistance}}
+\index{signedDistance@{signedDistance}!FastMeshSDF$<$ T, BV, K $>$@{FastMeshSDF$<$ T, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
+{\footnotesize\ttfamily template$<$class T , class BV , size\+\_\+t K$>$ \\
+virtual T \mbox{\hyperlink{classFastMeshSDF}{Fast\+Mesh\+SDF}}$<$ T, BV, K $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Value function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Input point. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{Signed\+Distance\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__MeshDistanceFunctions_8hpp}{EBGeometry\+\_\+\+Mesh\+Distance\+Functions.\+hpp}}\end{DoxyCompactItemize}

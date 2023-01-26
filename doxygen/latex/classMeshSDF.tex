@@ -1,0 +1,93 @@
+\hypertarget{classMeshSDF}{}\doxysection{Mesh\+SDF$<$ T $>$ Class Template Reference}
+\label{classMeshSDF}\index{MeshSDF$<$ T $>$@{MeshSDF$<$ T $>$}}
+
+
+Signed distance function for a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. Does not use BVHs.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Mesh\+Distance\+Functions.\+hpp$>$}
+
+
+
+Inheritance diagram for Mesh\+SDF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classMeshSDF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Mesh\+SDF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classMeshSDF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classMeshSDF_a8959394849080f9f2e407c3a96c3d006}\label{classMeshSDF_a8959394849080f9f2e407c3a96c3d006}} 
+using {\bfseries Mesh} = EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classMeshSDF_ad7d0a26853e41fb2d0b59ef6be7ec5c9}\label{classMeshSDF_ad7d0a26853e41fb2d0b59ef6be7ec5c9}} 
+\mbox{\hyperlink{classMeshSDF_ad7d0a26853e41fb2d0b59ef6be7ec5c9}{Mesh\+SDF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classMeshSDF_a08e25ae87dd19361eff117000ea37141}{Mesh\+SDF}} (const std\+::shared\+\_\+ptr$<$ Mesh $>$ \&a\+\_\+mesh) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classMeshSDF_a659ef37aec6ead18ba5da350c62771d2}\label{classMeshSDF_a659ef37aec6ead18ba5da350c62771d2}} 
+virtual \mbox{\hyperlink{classMeshSDF_a659ef37aec6ead18ba5da350c62771d2}{$\sim$\+Mesh\+SDF}} ()=default
+\begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classMeshSDF_a6fe9fb2386bdb0073d3c6e9f4ade41e8}\label{classMeshSDF_a6fe9fb2386bdb0073d3c6e9f4ade41e8}} 
+virtual T \mbox{\hyperlink{classMeshSDF_a6fe9fb2386bdb0073d3c6e9f4ade41e8}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classMeshSDF_afc5c06b1fdf7154919521648c9fd3e48}\label{classMeshSDF_afc5c06b1fdf7154919521648c9fd3e48}} 
+const std\+::shared\+\_\+ptr$<$ Mesh $>$ \mbox{\hyperlink{classMeshSDF_afc5c06b1fdf7154919521648c9fd3e48}{get\+Mesh}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the surface mesh. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classMeshSDF_a550b83290295ff0a54489b28f58f7f6e}\label{classMeshSDF_a550b83290295ff0a54489b28f58f7f6e}} 
+{\footnotesize template$<$class BV $>$ }\\BV \mbox{\hyperlink{classMeshSDF_a550b83290295ff0a54489b28f58f7f6e}{compute\+Bounding\+Volume}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Compute bounding volume for this mesh. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classMeshSDF_ae6a3734c78feb8da9d182a8e0a53292f}\label{classMeshSDF_ae6a3734c78feb8da9d182a8e0a53292f}} 
+std\+::shared\+\_\+ptr$<$ Mesh $>$ \mbox{\hyperlink{classMeshSDF_ae6a3734c78feb8da9d182a8e0a53292f}{m\+\_\+mesh}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Mesh\+SDF$<$ T $>$}
+
+Signed distance function for a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. Does not use BVHs. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classMeshSDF_a08e25ae87dd19361eff117000ea37141}\label{classMeshSDF_a08e25ae87dd19361eff117000ea37141}} 
+\index{MeshSDF$<$ T $>$@{MeshSDF$<$ T $>$}!MeshSDF@{MeshSDF}}
+\index{MeshSDF@{MeshSDF}!MeshSDF$<$ T $>$@{MeshSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{MeshSDF()}{MeshSDF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classMeshSDF}{Mesh\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classMeshSDF}{Mesh\+SDF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ Mesh $>$ \&}]{a\+\_\+mesh }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+mesh} & Input mesh \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__MeshDistanceFunctions_8hpp}{EBGeometry\+\_\+\+Mesh\+Distance\+Functions.\+hpp}}\end{DoxyCompactItemize}

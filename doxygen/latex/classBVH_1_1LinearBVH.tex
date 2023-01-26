@@ -9,26 +9,6 @@ Forward declare linear \mbox{\hyperlink{namespaceBVH}{BVH}} class.
 
 {\ttfamily \#include $<$EBGeometry\+\_\+\+BVH.\+hpp$>$}
 
-
-
-Inheritance diagram for BVH\+::Linear\+BVH$<$ T, P, BV, K $>$\+:
-\nopagebreak
-\begin{figure}[H]
-\begin{center}
-\leavevmode
-\includegraphics[width=242pt]{classBVH_1_1LinearBVH__inherit__graph}
-\end{center}
-\end{figure}
-
-
-Collaboration diagram for BVH\+::Linear\+BVH$<$ T, P, BV, K $>$\+:
-\nopagebreak
-\begin{figure}[H]
-\begin{center}
-\leavevmode
-\includegraphics[width=242pt]{classBVH_1_1LinearBVH__coll__graph}
-\end{center}
-\end{figure}
 \doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
@@ -54,16 +34,14 @@ using {\bfseries Primitive\+List} = std\+::vector$<$ std\+::shared\+\_\+ptr$<$ c
 \begin{DoxyCompactList}\small\item\em Full constructor. Associates the nodes and primitives. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classBVH_1_1LinearBVH_afe11c7156d4de20130563a223c8d7b0d}{Linear\+BVH}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ T, P, BV, K $>$$>$$>$ \&a\+\_\+linear\+Nodes, const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&a\+\_\+primitives)
 \begin{DoxyCompactList}\small\item\em Full constructor. Associates the nodes and primitives. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_a39a98014b81061b35604422cfab5c9b7}\label{classBVH_1_1LinearBVH_a39a98014b81061b35604422cfab5c9b7}} 
-virtual \mbox{\hyperlink{classBVH_1_1LinearBVH_a39a98014b81061b35604422cfab5c9b7}{$\sim$\+Linear\+BVH}} ()
+\mbox{\Hypertarget{classBVH_1_1LinearBVH_a9737547d3857bc90c2d6ed9b142663ea}\label{classBVH_1_1LinearBVH_a9737547d3857bc90c2d6ed9b142663ea}} 
+virtual \mbox{\hyperlink{classBVH_1_1LinearBVH_a9737547d3857bc90c2d6ed9b142663ea}{$\sim$\+Linear\+BVH}} ()
 \begin{DoxyCompactList}\small\item\em Destructor. Does nothing. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_aea132bc8cff5062a8740bd93dbcb0fb8}\label{classBVH_1_1LinearBVH_aea132bc8cff5062a8740bd93dbcb0fb8}} 
-const BV \& \mbox{\hyperlink{classBVH_1_1LinearBVH_aea132bc8cff5062a8740bd93dbcb0fb8}{get\+Bounding\+Volume}} () const noexcept
+\mbox{\Hypertarget{classBVH_1_1LinearBVH_a841fbfc0c1dc5c7fdf0074d289e9a9bf}\label{classBVH_1_1LinearBVH_a841fbfc0c1dc5c7fdf0074d289e9a9bf}} 
+const BV \& \mbox{\hyperlink{classBVH_1_1LinearBVH_a841fbfc0c1dc5c7fdf0074d289e9a9bf}{get\+Bounding\+Volume}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the bounding volume for this \mbox{\hyperlink{namespaceBVH}{BVH}}. \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classBVH_1_1LinearBVH_a6827bfd0bf7f2ad1b132e9317f60e216}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3}} \&a\+\_\+point) const noexcept override
-\begin{DoxyCompactList}\small\item\em Function which computes the signed distance. \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70a0b591f}{stack\+Prune}} (const \mbox{\hyperlink{classVec3T}{Vec3}} \&a\+\_\+point, const \mbox{\hyperlink{namespaceBVH_af1532e9ecc212528197e9a4a2555938f}{BVH\+::\+Comparator}}$<$ T $>$ \&a\+\_\+comparator, const \mbox{\hyperlink{namespaceBVH_a5b6027b11349769fc2b8f669a4b1c53a}{BVH\+::\+Pruner}}$<$ T $>$ \&a\+\_\+pruner) const noexcept
-\begin{DoxyCompactList}\small\item\em Stack-\/based pruning algorithm (recursion-\/less). \end{DoxyCompactList}\end{DoxyCompactItemize}
+{\footnotesize template$<$class Meta $>$ }\\void \mbox{\hyperlink{classBVH_1_1LinearBVH_a213b07e1c41dec5b4c6bac80f0716f1d}{traverse}} (const \mbox{\hyperlink{namespaceBVH_a9098188477f08a345cf059a431ae23aa}{BVH\+::\+Updater}}$<$ P $>$ \&a\+\_\+updater, const \mbox{\hyperlink{namespaceBVH_a8ac51cce05479b4821bf8c0e2543696a}{BVH\+::\+Visiter}}$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+Node}}, Meta $>$ \&a\+\_\+visiter, const \mbox{\hyperlink{namespaceBVH_a98593a87354ca9c46938b74c50a10f91}{BVH\+::\+Sorter}}$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+Node}}, Meta, K $>$ \&a\+\_\+sorter, const \mbox{\hyperlink{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}{BVH\+::\+Meta\+Updater}}$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+Node}}, Meta $>$ \&a\+\_\+meta\+Updater) const noexcept
+\begin{DoxyCompactList}\small\item\em Recursion-\/less \mbox{\hyperlink{namespaceBVH}{BVH}} traversal algorithm. The user inputs the update rule, a pruning criterion, and a criterion of who to visit first. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
 \item 
@@ -125,52 +103,31 @@ Full constructor. Associates the nodes and primitives.
 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_a6827bfd0bf7f2ad1b132e9317f60e216}\label{classBVH_1_1LinearBVH_a6827bfd0bf7f2ad1b132e9317f60e216}} 
-\index{BVH::LinearBVH$<$ T, P, BV, K $>$@{BVH::LinearBVH$<$ T, P, BV, K $>$}!signedDistance@{signedDistance}}
-\index{signedDistance@{signedDistance}!BVH::LinearBVH$<$ T, P, BV, K $>$@{BVH::LinearBVH$<$ T, P, BV, K $>$}}
-\doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
+\mbox{\Hypertarget{classBVH_1_1LinearBVH_a213b07e1c41dec5b4c6bac80f0716f1d}\label{classBVH_1_1LinearBVH_a213b07e1c41dec5b4c6bac80f0716f1d}} 
+\index{BVH::LinearBVH$<$ T, P, BV, K $>$@{BVH::LinearBVH$<$ T, P, BV, K $>$}!traverse@{traverse}}
+\index{traverse@{traverse}!BVH::LinearBVH$<$ T, P, BV, K $>$@{BVH::LinearBVH$<$ T, P, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{traverse()}{traverse()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-T \mbox{\hyperlink{classBVH_1_1LinearBVH}{BVH\+::\+Linear\+BVH}}$<$ T, P, BV, K $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+template$<$class Meta $>$ \\
+void \mbox{\hyperlink{classBVH_1_1LinearBVH}{BVH\+::\+Linear\+BVH}}$<$ T, P, BV, K $>$\+::traverse (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{namespaceBVH_a9098188477f08a345cf059a431ae23aa}{BVH\+::\+Updater}}$<$ P $>$ \&}]{a\+\_\+updater,  }\item[{const \mbox{\hyperlink{namespaceBVH_a8ac51cce05479b4821bf8c0e2543696a}{BVH\+::\+Visiter}}$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+Node}}, Meta $>$ \&}]{a\+\_\+visiter,  }\item[{const \mbox{\hyperlink{namespaceBVH_a98593a87354ca9c46938b74c50a10f91}{BVH\+::\+Sorter}}$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+Node}}, Meta, K $>$ \&}]{a\+\_\+sorter,  }\item[{const \mbox{\hyperlink{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}{BVH\+::\+Meta\+Updater}}$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+Node}}, Meta $>$ \&}]{a\+\_\+meta\+Updater }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
-Function which computes the signed distance. 
+Recursion-\/less \mbox{\hyperlink{namespaceBVH}{BVH}} traversal algorithm. The user inputs the update rule, a pruning criterion, and a criterion of who to visit first. 
 
 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point in space \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+updater} & Update rule (for updating whatever the user is interested in updated) \\
 \hline
-\end{DoxyParams}
-\begin{DoxyNote}{Note}
-If the objects overlap this routine makes no sense. In that case there is no signed distance, but there IS a CSG union (csg\+Union). 
-\end{DoxyNote}
-
-
-Implements \mbox{\hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{Signed\+Distance\+Function$<$ T $>$}}.
-
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70a0b591f}\label{classBVH_1_1LinearBVH_a243aa537f57a55061d6a96f70a0b591f}} 
-\index{BVH::LinearBVH$<$ T, P, BV, K $>$@{BVH::LinearBVH$<$ T, P, BV, K $>$}!stackPrune@{stackPrune}}
-\index{stackPrune@{stackPrune}!BVH::LinearBVH$<$ T, P, BV, K $>$@{BVH::LinearBVH$<$ T, P, BV, K $>$}}
-\doxysubsubsection{\texorpdfstring{stackPrune()}{stackPrune()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-T \mbox{\hyperlink{classBVH_1_1LinearBVH}{BVH\+::\+Linear\+BVH}}$<$ T, P, BV, K $>$\+::stack\+Prune (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3}} \&}]{a\+\_\+point,  }\item[{const \mbox{\hyperlink{namespaceBVH_af1532e9ecc212528197e9a4a2555938f}{BVH\+::\+Comparator}}$<$ T $>$ \&}]{a\+\_\+comparator,  }\item[{const \mbox{\hyperlink{namespaceBVH_a5b6027b11349769fc2b8f669a4b1c53a}{BVH\+::\+Pruner}}$<$ T $>$ \&}]{a\+\_\+pruner }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
-
-
-
-Stack-\/based pruning algorithm (recursion-\/less). 
-
-This will iterate through the \mbox{\hyperlink{namespaceBVH}{BVH}} and visit all nodes where a\+\_\+pruner evaluates to true. If the node is a leaf node, we update the \char`\"{}distance\char`\"{}, which will be the closest object for signed distance, or the one with the smallest value for the constructive solid geometry union. 
-\begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point in space \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+visiter} & Visiter rule. Must return true if we should visit the node. \\
 \hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+comparator} & Comparator for how to select the \char`\"{}output\char`\"{} when comparing various distances. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+sorter} & Children sort function for deciding which subtrees and investigated first. \\
 \hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+pruner} & Comparator for whether to visit the node or not. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+meta\+Updater} & Updater for meta-\/information. \\
 \hline
 \end{DoxyParams}
 
 
-The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__BVH_8hpp}{EBGeometry\+\_\+\+BVH.\+hpp}}\item 
-/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__BVHImplem_8hpp}{EBGeometry\+\_\+\+BVHImplem.\+hpp}}\end{DoxyCompactItemize}
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__BVH_8hpp}{EBGeometry\+\_\+\+BVH.\+hpp}}\end{DoxyCompactItemize}

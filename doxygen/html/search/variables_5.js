@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['validchunks_669',['validChunks',['../namespaceDCEL.html#ac150ddff45486822d7b0fa57ac229e3a',1,'DCEL']]]
+  ['smoothmax_732',['smoothMax',['../EBGeometry__CSG_8hpp.html#ae88258939353042593b6ab1401d3bc46',1,'EBGeometry_CSG.hpp']]],
+  ['smoothmin_733',['smoothMin',['../EBGeometry__CSG_8hpp.html#aa6a6befc82e122b0943c4653290b3259',1,'EBGeometry_CSG.hpp']]]
 ];

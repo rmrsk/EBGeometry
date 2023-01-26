@@ -2,6 +2,15 @@
 \label{classPlaneSDF}\index{PlaneSDF$<$ T $>$@{PlaneSDF$<$ T $>$}}
 
 
+Signed distance function for a plane.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp$>$}
+
+
+
 Inheritance diagram for Plane\+SDF$<$ T $>$\+:
 \nopagebreak
 \begin{figure}[H]
@@ -26,7 +35,7 @@ Collaboration diagram for Plane\+SDF$<$ T $>$\+:
 \mbox{\Hypertarget{classPlaneSDF_acbd51b3dace74b7fd8bc94ce6c8715c2}\label{classPlaneSDF_acbd51b3dace74b7fd8bc94ce6c8715c2}} 
 \mbox{\hyperlink{classPlaneSDF_acbd51b3dace74b7fd8bc94ce6c8715c2}{Plane\+SDF}} ()=delete
 \begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classPlaneSDF_a43afe1acbf3b0ccc8fd6c0a6a7f48e57}{Plane\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+normal, const bool a\+\_\+flip\+Inside)
+\mbox{\hyperlink{classPlaneSDF_a698edd3858784ec37d51de52202fad02}{Plane\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+normal)
 \begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
 virtual T \mbox{\hyperlink{classPlaneSDF_a75c2d73156caac10eefce9b431542d88}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
 \begin{DoxyCompactList}\small\item\em Signed distance function for sphere. \end{DoxyCompactList}\end{DoxyCompactItemize}
@@ -38,19 +47,22 @@ virtual T \mbox{\hyperlink{classPlaneSDF_a75c2d73156caac10eefce9b431542d88}{sign
 \begin{DoxyCompactList}\small\item\em Point on plane. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classPlaneSDF_a1d41c3df2c6eaa345cebd9734ae7d850}\label{classPlaneSDF_a1d41c3df2c6eaa345cebd9734ae7d850}} 
 \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classPlaneSDF_a1d41c3df2c6eaa345cebd9734ae7d850}{m\+\_\+normal}}
-\begin{DoxyCompactList}\small\item\em Plane normal vector. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classPlaneSDF_a67f2334030779163860f6be3934216e1}\label{classPlaneSDF_a67f2334030779163860f6be3934216e1}} 
-bool \mbox{\hyperlink{classPlaneSDF_a67f2334030779163860f6be3934216e1}{m\+\_\+flip\+Inside}}
-\begin{DoxyCompactList}\small\item\em Inside to outside hook. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Plane normal vector. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Plane\+SDF$<$ T $>$}
+
+Signed distance function for a plane. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classPlaneSDF_a43afe1acbf3b0ccc8fd6c0a6a7f48e57}\label{classPlaneSDF_a43afe1acbf3b0ccc8fd6c0a6a7f48e57}} 
+\mbox{\Hypertarget{classPlaneSDF_a698edd3858784ec37d51de52202fad02}\label{classPlaneSDF_a698edd3858784ec37d51de52202fad02}} 
 \index{PlaneSDF$<$ T $>$@{PlaneSDF$<$ T $>$}!PlaneSDF@{PlaneSDF}}
 \index{PlaneSDF@{PlaneSDF}!PlaneSDF$<$ T $>$@{PlaneSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{PlaneSDF()}{PlaneSDF()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classPlaneSDF}{Plane\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classPlaneSDF}{Plane\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+normal,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+\mbox{\hyperlink{classPlaneSDF}{Plane\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classPlaneSDF}{Plane\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+normal }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -61,8 +73,6 @@ Full constructor.
 \mbox{\texttt{ in}}  & {\em a\+\_\+point} & Point on the plane \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+normal} & Plane normal vector. \\
-\hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+flip\+Inside} & Hook for turning inside to outside. \\
 \hline
 \end{DoxyParams}
 

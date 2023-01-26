@@ -1,0 +1,108 @@
+\hypertarget{classScaleIF}{}\doxysection{Scale\+IF$<$ T $>$ Class Template Reference}
+\label{classScaleIF}\index{ScaleIF$<$ T $>$@{ScaleIF$<$ T $>$}}
+
+
+Scaled implicit function.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Transform.\+hpp$>$}
+
+
+
+Inheritance diagram for Scale\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classScaleIF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Scale\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classScaleIF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classScaleIF_a8cd39a3aa2e38241491fc1524f246efa}\label{classScaleIF_a8cd39a3aa2e38241491fc1524f246efa}} 
+\mbox{\hyperlink{classScaleIF_a8cd39a3aa2e38241491fc1524f246efa}{Scale\+IF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classScaleIF_a63e83e327eb81329a8bf60b03c5105f4}{Scale\+IF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const T a\+\_\+scale) noexcept
+\begin{DoxyCompactList}\small\item\em Scaled implicit function. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classScaleIF_abb7c93cf82814f5b29021fc3430c834b}\label{classScaleIF_abb7c93cf82814f5b29021fc3430c834b}} 
+virtual \mbox{\hyperlink{classScaleIF_abb7c93cf82814f5b29021fc3430c834b}{$\sim$\+Scale\+IF}} () noexcept
+\begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
+virtual T \mbox{\hyperlink{classScaleIF_a358197feb46e689351b8fa33074815a2}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classScaleIF_a981319cf65d6479449b1444304ba2ec2}\label{classScaleIF_a981319cf65d6479449b1444304ba2ec2}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{classScaleIF_a981319cf65d6479449b1444304ba2ec2}{m\+\_\+implicit\+Function}}
+\begin{DoxyCompactList}\small\item\em Original implicit function. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classScaleIF_a056da7644722339795059d214453bc05}\label{classScaleIF_a056da7644722339795059d214453bc05}} 
+T \mbox{\hyperlink{classScaleIF_a056da7644722339795059d214453bc05}{m\+\_\+scale}}
+\begin{DoxyCompactList}\small\item\em Scaling factor. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Scale\+IF$<$ T $>$}
+
+Scaled implicit function. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classScaleIF_a63e83e327eb81329a8bf60b03c5105f4}\label{classScaleIF_a63e83e327eb81329a8bf60b03c5105f4}} 
+\index{ScaleIF$<$ T $>$@{ScaleIF$<$ T $>$}!ScaleIF@{ScaleIF}}
+\index{ScaleIF@{ScaleIF}!ScaleIF$<$ T $>$@{ScaleIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{ScaleIF()}{ScaleIF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classScaleIF}{Scale\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classScaleIF}{Scale\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const T}]{a\+\_\+scale }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Scaled implicit function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Function} & Implicit function to be scaled. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+scale} & Scaling factor. \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classScaleIF_a358197feb46e689351b8fa33074815a2}\label{classScaleIF_a358197feb46e689351b8fa33074815a2}} 
+\index{ScaleIF$<$ T $>$@{ScaleIF$<$ T $>$}!value@{value}}
+\index{value@{value}!ScaleIF$<$ T $>$@{ScaleIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{value()}{value()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+virtual T \mbox{\hyperlink{classScaleIF}{Scale\+IF}}$<$ T $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Value function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Input point. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__Transform_8hpp}{EBGeometry\+\_\+\+Transform.\+hpp}}\end{DoxyCompactItemize}

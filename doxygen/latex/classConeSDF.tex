@@ -35,7 +35,7 @@ Collaboration diagram for Cone\+SDF$<$ T $>$\+:
 \mbox{\Hypertarget{classConeSDF_ae1fae3348eef9bf84f7c800ce4efc6fc}\label{classConeSDF_ae1fae3348eef9bf84f7c800ce4efc6fc}} 
 \mbox{\hyperlink{classConeSDF_ae1fae3348eef9bf84f7c800ce4efc6fc}{Cone\+SDF}} ()=delete
 \begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classConeSDF_a271f505a343a9fc9da76c14d7e5c0823}{Cone\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+tip, const T \&a\+\_\+height, const T \&a\+\_\+angle, const bool a\+\_\+flip\+Inside)
+\mbox{\hyperlink{classConeSDF_a6156fa4a86a8e0b1b28eb357d279ed25}{Cone\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+tip, const T \&a\+\_\+height, const T \&a\+\_\+angle)
 \begin{DoxyCompactList}\small\item\em Finite cone function. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classConeSDF_a4050413f73cfd2b091d9b28e985736a0}\label{classConeSDF_a4050413f73cfd2b091d9b28e985736a0}} 
 virtual \mbox{\hyperlink{classConeSDF_a4050413f73cfd2b091d9b28e985736a0}{$\sim$\+Cone\+SDF}} ()
@@ -53,10 +53,7 @@ virtual T \mbox{\hyperlink{classConeSDF_a4ef38df98e9831c25297cb93a5b41da5}{signe
 \begin{DoxyCompactList}\small\item\em Sine/cosine of angle. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classConeSDF_a051ec1389b463c0a3691ce1096840439}\label{classConeSDF_a051ec1389b463c0a3691ce1096840439}} 
 T \mbox{\hyperlink{classConeSDF_a051ec1389b463c0a3691ce1096840439}{m\+\_\+height}}
-\begin{DoxyCompactList}\small\item\em Cone height. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classConeSDF_a9dfdb3f65da4af24d34e0a2b5dbe52cd}\label{classConeSDF_a9dfdb3f65da4af24d34e0a2b5dbe52cd}} 
-bool \mbox{\hyperlink{classConeSDF_a9dfdb3f65da4af24d34e0a2b5dbe52cd}{m\+\_\+flip\+Inside}}
-\begin{DoxyCompactList}\small\item\em Hook for making inside -\/$>$ outside. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Cone height. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -66,12 +63,12 @@ class Cone\+SDF$<$ T $>$}
 Signed distance field for an finite cone. Oriented along +z. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classConeSDF_a271f505a343a9fc9da76c14d7e5c0823}\label{classConeSDF_a271f505a343a9fc9da76c14d7e5c0823}} 
+\mbox{\Hypertarget{classConeSDF_a6156fa4a86a8e0b1b28eb357d279ed25}\label{classConeSDF_a6156fa4a86a8e0b1b28eb357d279ed25}} 
 \index{ConeSDF$<$ T $>$@{ConeSDF$<$ T $>$}!ConeSDF@{ConeSDF}}
 \index{ConeSDF@{ConeSDF}!ConeSDF$<$ T $>$@{ConeSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{ConeSDF()}{ConeSDF()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classConeSDF}{Cone\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classConeSDF}{Cone\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+tip,  }\item[{const T \&}]{a\+\_\+height,  }\item[{const T \&}]{a\+\_\+angle,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+\mbox{\hyperlink{classConeSDF}{Cone\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classConeSDF}{Cone\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+tip,  }\item[{const T \&}]{a\+\_\+height,  }\item[{const T \&}]{a\+\_\+angle }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -84,8 +81,6 @@ Finite cone function.
 \mbox{\texttt{ in}}  & {\em a\+\_\+height} & Cone height, measured from top to bottom. \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+angle} & Cone opening angle. \\
-\hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+flip\+Inside} & Hook for making inside to outside. \\
 \hline
 \end{DoxyParams}
 

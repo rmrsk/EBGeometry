@@ -1,75 +1,37 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <title>Signed distance fields &mdash; EBGeometry 1.0 documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+  <title>Geometry representations &mdash; EBGeometry  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
         <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="DCEL mesh structure" href="DCEL.html" />
+    <link rel="next" title="Overview" href="Implementation.html" />
     <link rel="prev" title="Requirements" href="Introduction.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="index.html" class="icon icon-home"> EBGeometry
-          
-
-          
           </a>
-
-          
-            
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -77,130 +39,92 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">Requirements</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html#quickstart">Quickstart</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Introduction.html#features">Features</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<p class="caption" role="heading"><span class="caption-text">Basic concepts</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Signed distance fields</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#transformations">Transformations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#unions">Unions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="DCEL.html">DCEL mesh structure</a></li>
-<li class="toctree-l1"><a class="reference internal" href="BVH.html">Bounding volume hierarchies</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Geometry representations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#signed-distance-fields">Signed distance fields</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#implicit-functions">Implicit functions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#dcel">DCEL</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#principle">Principle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#signed-distance">Signed distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#normal-vectors">Normal vectors</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#bounding-volume-hierarchies">Bounding volume hierarchies</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#construction">Construction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tree-traversal">Tree traversal</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#constructive-solid-geometry">Constructive solid geometry</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basic-transformations">Basic transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#combining-objects">Combining objects</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Implementation</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Implementation.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemVec.html">Vector types</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">Bounding volume hierarchy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemCSG.html">Geometry representation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ImplemSDF.html">Signed distance function</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ImplemUnion.html">Unions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">BVH</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Parsers.html">Reading data</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Guided examples</span></p>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="Examples.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Example_Basic.html">Basic example</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Example_Union.html">Unions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Example_AMReX.html">Integration with AMReX</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Example_Chombo3.html">Integration with Chombo3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">EBGeometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html#amrex">AMReX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html#chombo3">Chombo3</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">References</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">Bibliography</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">EBGeometry</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-        
-      <li>Signed distance fields</li>
-    
-    
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">Geometry representations</li>
       <li class="wy-breadcrumbs-aside">
-        
-          
             <a href="_sources/Concepts.rst.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
-  <section id="signed-distance-fields">
-<span id="chap-concepts"></span><h1>Signed distance fields<a class="headerlink" href="#signed-distance-fields" title="Permalink to this heading">¶</a></h1>
+             
+  <section id="geometry-representations">
+<span id="chap-concepts"></span><h1>Geometry representations<a class="headerlink" href="#geometry-representations" title="Permalink to this heading"></a></h1>
+<section id="signed-distance-fields">
+<h2>Signed distance fields<a class="headerlink" href="#signed-distance-fields" title="Permalink to this heading"></a></h2>
 <p>The signed distance function is defined as a function <span class="math notranslate nohighlight">\(S: \mathbb{R}^3 \rightarrow \mathbb{R}\)</span>, and returns the <em>signed distance</em> to the object.
-The signed distance function has the additional property:</p>
+It has the additional property</p>
 <div class="math notranslate nohighlight" id="equation-eikonal">
-<span class="eqno">(1)<a class="headerlink" href="#equation-eikonal" title="Permalink to this equation">¶</a></span>\[\left|\nabla S(\mathbf{x})\right| = 1 \quad\textrm{everywhere}.\]</div>
+<span class="eqno">(1)<a class="headerlink" href="#equation-eikonal" title="Permalink to this equation"></a></span>\[\left|\nabla S(\mathbf{x})\right| = 1 \quad\textrm{everywhere}.\]</div>
 <p>Note that the normal vector is always</p>
 <div class="math notranslate nohighlight">
 \[\mathbf{n} = \nabla S\left(\mathbf{x}\right).\]</div>
-<p>In EBGeometry we use the following convention:</p>
+<p>EBGeometry uses the following convention for the sign:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}S(\mathbf{x}) =
 \begin{cases}
@@ -208,79 +132,252 @@ The signed distance function has the additional property:</p>
 &lt; 0, &amp; \textrm{for points inside the object},
 \end{cases}\end{split}\]</div>
 <p>which means that the normal vector <span class="math notranslate nohighlight">\(\mathbf{n}\)</span> points away from the object.</p>
-<p>Signed distance functions are also <em>implicit functions</em> (but the reverse statement is not true).
+</section>
+<section id="implicit-functions">
+<h2>Implicit functions<a class="headerlink" href="#implicit-functions" title="Permalink to this heading"></a></h2>
+<p>Like distance functions, implicit functions also determine whether or not a point <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> is inside or outside an object.
+Signed distance functions are also <em>implicit functions</em>, but not vice versa.
 For example, the signed distance function for a sphere with center <span class="math notranslate nohighlight">\(\mathbf{x}_0\)</span> and radius <span class="math notranslate nohighlight">\(R\)</span> can be written</p>
 <div class="math notranslate nohighlight">
 \[S_{\textrm{sph}}\left(\mathbf{x}\right) = \left|\mathbf{x} - \mathbf{x}_0\right| - R.\]</div>
 <p>An example of an implicit function for the same sphere is</p>
 <div class="math notranslate nohighlight">
 \[I_{\textrm{sph}}\left(\mathbf{x}\right) = \left|\mathbf{x} - \mathbf{x}_0\right|^2 - R^2.\]</div>
-<p>An important difference between these is the Eikonal property in <a class="reference internal" href="#equation-eikonal">Eq. 1</a>, ensuring that the signed distance function always returns the exact distance to the object.</p>
+<p>An important difference between these is the Eikonal property in <a class="reference internal" href="#equation-eikonal">Eq. 1</a>, ensuring that the signed distance function always returns the exact distance to the object.
+Signed distance functions are usually the more useful object, but many operations (e.g. CSG unions) do not preserve the signed distance property.</p>
 </section>
-<section id="transformations">
-<h1>Transformations<a class="headerlink" href="#transformations" title="Permalink to this heading">¶</a></h1>
-<p>Signed distance functions retain the Eikonal property for the following set of transformations:</p>
+</section>
+<section id="dcel">
+<span id="chap-dcel"></span><h1>DCEL<a class="headerlink" href="#dcel" title="Permalink to this heading"></a></h1>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Permalink to this heading"></a></h2>
+<p>EBGeometry uses a doubly-connected edge list (DCEL) structure for storing surface meshes.
+The DCEL structures consist of the following objects:</p>
+<ul class="simple">
+<li><p>Planar polygons (facets).</p></li>
+<li><p>Half-edges.</p></li>
+<li><p>Vertices.</p></li>
+</ul>
+<p>As shown in <a class="reference internal" href="#fig-dcel"><span class="std std-numref">Fig. 1</span></a>, half-edges circulate the inside of the facet, with pointer access to the next half-edge.
+A half-edge also stores a reference to its starting vertex, as well as a reference to its pair-edge.
+From the DCEL structure we can easily obtain all edges or vertices belonging to a single facet, and also jump to a neighboring facet by fetching the pair edge.</p>
+<figure class="align-center" id="id2">
+<span id="fig-dcel"></span><a class="reference internal image-reference" href="_images/DCEL.png"><img alt="_images/DCEL.png" src="_images/DCEL.png" style="width: 480px;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 1 </span><span class="caption-text">DCEL mesh structure. Each half-edge stores references to next half-edge, the pair edge, and the starting vertex.
+Vertices store a coordinate as well as a reference to one of the outgoing half-edges.</span><a class="headerlink" href="#id2" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<p>In EBGeometry the half-edge data structure is implemented in its own namespace.
+This is a comparatively standard implementation of the DCEL structure, supplemented by functions that permit signed distance computations to various features on such a mesh.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>A signed distance field requires a <em>watertight and orientable</em> surface mesh.
+If the surface mesh consists of holes or flipped facets, neither the signed distance or implicit function exist.</p>
+</div>
+</section>
+<section id="signed-distance">
+<h2>Signed distance<a class="headerlink" href="#signed-distance" title="Permalink to this heading"></a></h2>
+<p>The signed distance to a surface mesh is equivalent to the signed distance to the closest polygon face in the mesh.
+When computing the signed distance from a point <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to a polygon face (e.g., a triangle), the closest feature on the polygon can be one of the vertices, edges, or the interior of the polygon face, see <a class="reference internal" href="#fig-polygonprojection"><span class="std std-numref">Fig. 2</span></a>.</p>
+<figure class="align-center" id="id3">
+<span id="fig-polygonprojection"></span><a class="reference internal image-reference" href="_images/PolygonProjection.png"><img alt="_images/PolygonProjection.png" src="_images/PolygonProjection.png" style="width: 240px;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 2 </span><span class="caption-text">Possible closest-feature cases after projecting a point <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the plane of a polygon face.</span><a class="headerlink" href="#id3" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<p>Three cases can be distinguished:</p>
+<ol class="arabic">
+<li><p><strong>Facet/Polygon face</strong>.</p>
+<p>When computing the distance from a point <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the polygon face we first determine if the projection of <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the face plane lies inside or outside the face.
+This is more involved than one might think, and it is done by first computing the two-dimensional projection of the polygon face, ignoring one of the coordinates.
+Next, we determine, using 2D algorithms, if the projected point lies inside the embedded 2D representation of the polygon face.
+Various algorithms for this are available, such as computing the winding number, the crossing number, or the subtended angle between the projected point and the 2D polygon.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>EBGeometry uses the crossing number algorithm by default.</p>
+</div>
+<p>If the point projects to the inside of the face, the signed distance is just <span class="math notranslate nohighlight">\(\mathbf{n}_f\cdot\left(\mathbf{x} - \mathbf{x}_f\right)\)</span> where <span class="math notranslate nohighlight">\(\mathbf{n}_f\)</span> is the face normal and <span class="math notranslate nohighlight">\(\mathbf{x}_f\)</span> is a point on the face plane (e.g., a vertex).
+If the point projects to <em>outside</em> the polygon face, the closest feature is either an edge or a vertex.</p>
+</li>
+<li><p><strong>Edge</strong>.</p>
+<p>When computing the signed distance to an edge, the edge is parametrized as <span class="math notranslate nohighlight">\(\mathbf{e}(t) = \mathbf{x}_0 + \left(\mathbf{x}_1 - \mathbf{x}_0\right)t\)</span>, where <span class="math notranslate nohighlight">\(\mathbf{x}_0\)</span> and <span class="math notranslate nohighlight">\(\mathbf{x}_1\)</span> are the starting and ending vertex coordinates.
+The point <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> is projected to this line, and if the projection yields <span class="math notranslate nohighlight">\(t^\prime \in [0,1]\)</span> then the edge is the closest point.
+In that case the signed distance is the projected distance and the sign is given by the sign of <span class="math notranslate nohighlight">\(\mathbf{n}_e\cdot\left(\mathbf{x} - \mathbf{x}_0\right)\)</span> where <span class="math notranslate nohighlight">\(\mathbf{n}_e\)</span> is the pseudonormal vector of the edge.
+Otherwise, the closest point is one of the vertices.</p>
+</li>
+<li><p><strong>Vertex</strong>.</p>
+<p>If the closest point is a vertex then the signed distance is simply <span class="math notranslate nohighlight">\(\mathbf{n}_v\cdot\left(\mathbf{x}-\mathbf{x}_v\right)\)</span> where <span class="math notranslate nohighlight">\(\mathbf{n}_v\)</span> is the vertex pseudonormal and <span class="math notranslate nohighlight">\(\mathbf{x}_v\)</span> is the vertex position.</p>
+</li>
+</ol>
+</section>
+<section id="normal-vectors">
+<span id="chap-normaldcel"></span><h2>Normal vectors<a class="headerlink" href="#normal-vectors" title="Permalink to this heading"></a></h2>
+<p>The normal vectors for edges <span class="math notranslate nohighlight">\(\mathbf{n}_e\)</span> and vertices <span class="math notranslate nohighlight">\(\mathbf{n}_v\)</span> are, unlike the facet normal, not uniquely defined.
+For both edges and vertices we use the pseudonormals from <span id="id1">[<a class="reference internal" href="ZZReferences.html#id2" title="J.A. Baerentzen and H. Aanaes. Signed distance computation using the angle weighted pseudonormal. IEEE Transactions on Visualization and Computer Graphics, 11(3):243-253, 2005. doi:10.1109/TVCG.2005.49.">1</a>]</span>:</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{n}_{e} = \frac{1}{2}\left(\mathbf{n}_{f} + \mathbf{n}_{f^\prime}\right).\]</div>
+<p>where <span class="math notranslate nohighlight">\(f\)</span> and <span class="math notranslate nohighlight">\(f^\prime\)</span> are the two faces connecting the edge.
+The vertex pseudonormal is given by</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{n}_{v} = \frac{\sum_i\alpha_i\mathbf{n}_{f_i}}{\left|\sum_i\alpha_i\right|},\]</div>
+<p>where the sum runs over all faces which share <span class="math notranslate nohighlight">\(v\)</span> as a vertex, and where <span class="math notranslate nohighlight">\(\alpha_i\)</span> is the subtended angle of the face <span class="math notranslate nohighlight">\(f_i\)</span>, see <a class="reference internal" href="#fig-pseudonormal"><span class="std std-numref">Fig. 3</span></a>.</p>
+<figure class="align-center" id="id4">
+<span id="fig-pseudonormal"></span><a class="reference internal image-reference" href="_images/Pseudonormal.png"><img alt="_images/Pseudonormal.png" src="_images/Pseudonormal.png" style="width: 240px;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 3 </span><span class="caption-text">Edge and vertex pseudonormals.</span><a class="headerlink" href="#id4" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+</section>
+<section id="bounding-volume-hierarchies">
+<span id="chap-bvh"></span><h1>Bounding volume hierarchies<a class="headerlink" href="#bounding-volume-hierarchies" title="Permalink to this heading"></a></h1>
+<p>Bounding volume hierarchies (BVHs) are tree structures where the regular nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces or implicit functions) further down in the hierarchy.
+This means that every node in a BVH is associated with a <em>bounding volume</em>.
+The bounding volume can, in principle, be any type of volume.
+Moreover, there are two types of nodes in a BVH:</p>
+<ul class="simple">
+<li><p><strong>Regular/interior nodes.</strong> These do not contain any of the primitives/objects, but store references to subtrees (aka child nodes).</p></li>
+<li><p><strong>Leaf nodes.</strong> These lie at the bottom of the BVH tree and each of them contains a subset of the geometric primitives.</p></li>
+</ul>
+<p><a class="reference internal" href="#fig-trianglesbvh"><span class="std std-numref">Fig. 4</span></a> shows a concept of BVH partitioning of a set of triangles.
+Here, <span class="math notranslate nohighlight">\(P\)</span> is a regular node whose bounding volume encloses all geometric primitives in its subtree.
+Its bounding volume, an axis-aligned bounding box or AABB for short, is illustrated by a dashed rectangle.
+The interior node <span class="math notranslate nohighlight">\(P\)</span> stores references to the leaf nodes <span class="math notranslate nohighlight">\(L\)</span> and <span class="math notranslate nohighlight">\(R\)</span>.
+As shown in <a class="reference internal" href="#fig-trianglesbvh"><span class="std std-numref">Fig. 4</span></a>, <span class="math notranslate nohighlight">\(L\)</span> contains 5 triangles enclosed by another AABB.
+The other child node <span class="math notranslate nohighlight">\(R\)</span> contains 6 triangles that are also enclosed by an AABB.
+Note that the bounding volume for <span class="math notranslate nohighlight">\(P\)</span> encloses the bounding volumes of <span class="math notranslate nohighlight">\(L\)</span> and <span class="math notranslate nohighlight">\(R\)</span> and that the bounding volumes for <span class="math notranslate nohighlight">\(L\)</span> and <span class="math notranslate nohighlight">\(R\)</span> contain a small overlap.</p>
+<figure class="align-center" id="id5">
+<span id="fig-trianglesbvh"></span><a class="reference internal image-reference" href="_images/TrianglesBVH.png"><img alt="_images/TrianglesBVH.png" src="_images/TrianglesBVH.png" style="width: 480px;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 4 </span><span class="caption-text">Example of BVH partitioning for enclosing triangles. The regular node <span class="math notranslate nohighlight">\(P\)</span> contains two leaf nodes <span class="math notranslate nohighlight">\(L\)</span> and <span class="math notranslate nohighlight">\(R\)</span> which contain the primitives (triangles).</span><a class="headerlink" href="#id5" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<p>There is no fundamental limitation to what type of primitives/objects can be enclosed in BVHs, which makes BVHs useful beyond triangulated data sets.
+For example, analytic signed distance functions can also be embedded in BVHs, provided that we can construct bounding volumes that enclose them.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>EBGeometry is not limited to binary trees, but supports <span class="math notranslate nohighlight">\(k\)</span> -ary trees where each regular node has <span class="math notranslate nohighlight">\(k\)</span> child nodes.</p>
+</div>
+<section id="construction">
+<h2>Construction<a class="headerlink" href="#construction" title="Permalink to this heading"></a></h2>
+<p>BVH construction is fairly flexible.
+For example, the child nodes <span class="math notranslate nohighlight">\(L\)</span> and <span class="math notranslate nohighlight">\(R\)</span> in <a class="reference internal" href="#fig-trianglesbvh"><span class="std std-numref">Fig. 4</span></a> could be partitioned in any number of ways, with the only requirement being that each child node gets at least one triangle/primitive.</p>
+<p>Although the rules for BVH construction are highly flexible, performant BVHs are completely reliant on having balanced trees with the following heuristic properties:</p>
+<ul class="simple">
+<li><p><strong>Tight bounding volumes</strong> that enclose the primitives as tightly as possible.</p></li>
+<li><p><strong>Minimal overlap</strong> between the bounding volumes.</p></li>
+<li><p><strong>Balanced</strong>, in the sense that the tree depth does not vary greatly through the tree, and there is approximately the same number of primitives in each leaf node.</p></li>
+</ul>
+<p>Construction of a BVH is usually done recursively, from top to bottom (so-called top-down construction).
+Alternative construction methods also exist, but are not used in EBGeometry.
+In this case one can represent the BVH construction of a <span class="math notranslate nohighlight">\(k\)</span> -ary tree is done through a single function:</p>
+<div class="math notranslate nohighlight" id="equation-partition">
+<span class="eqno">(2)<a class="headerlink" href="#equation-partition" title="Permalink to this equation"></a></span>\[\textrm{Partition}\left(\vec{O}\right): \vec{O} \rightarrow \left(\vec{O}_1, \vec{O}_2, \ldots, \vec{O}_k\right),\]</div>
+<p>where <span class="math notranslate nohighlight">\(\vec{O}\)</span> is an input a list of objects/primitives, which is <em>partitioned</em> into <span class="math notranslate nohighlight">\(k\)</span> new list of primitives.
+Note that the lists <span class="math notranslate nohighlight">\(\vec{O}_i\)</span> do not contain duplicates, there is a unique set of primitives associated in each new leaf node.
+Top-down construction can thus be illustrated as a recursive procedure:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>topDownConstruction(Objects):
+   partitionedObjects = Partition(Objects)
+
+   forall p in partitionedObjects:
+      child = insertChildNode(newObjects)
+
+      if(enoughPrimitives(child)):
+         child.topDownConstruction(child.objects)
+</pre></div>
+</div>
+<p>In practice, the above procedure is supplemented by more sophisticated criteria for terminating the recursion, as well as routines for creating the bounding volumes around the newly inserted nodes.</p>
+</section>
+<section id="tree-traversal">
+<h2>Tree traversal<a class="headerlink" href="#tree-traversal" title="Permalink to this heading"></a></h2>
+<p>When computing the signed distance function to objects embedded in a BVH, one takes advantage of the hierarchical embedding of the primitives.
+Consider the case in <a class="reference internal" href="#fig-treepruning"><span class="std std-numref">Fig. 5</span></a>, where the goal of the BVH traversal is to minimize the number of branches and nodes that are visited.
+For the traversal algorithm we consider the following steps:</p>
+<ul class="simple">
+<li><p>When descending from node <span class="math notranslate nohighlight">\(P\)</span> we determine that we first investigate the left subtree (node <span class="math notranslate nohighlight">\(A\)</span>) since its bounding volume is closer than the bounding volumes for the other subtree.
+The other subtree will is investigated after we have recursed to the bottom of the <span class="math notranslate nohighlight">\(A\)</span> subtree.</p></li>
+<li><p>Since <span class="math notranslate nohighlight">\(A\)</span> is a leaf node, we find the signed distance from <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the primitives in <span class="math notranslate nohighlight">\(A\)</span>.
+This requires us to iterate over all the triangles in <span class="math notranslate nohighlight">\(A\)</span>.</p></li>
+<li><p>When moving back to <span class="math notranslate nohighlight">\(P\)</span>, we find that the distance to the primitives in <span class="math notranslate nohighlight">\(A\)</span> is shorter than the distance from <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the bounding volume that encloses nodes <span class="math notranslate nohighlight">\(B\)</span> and <span class="math notranslate nohighlight">\(C\)</span>.
+This immediately permits us to prune the entire subtree containing <span class="math notranslate nohighlight">\(B\)</span> and <span class="math notranslate nohighlight">\(C\)</span>.</p></li>
+</ul>
+<figure class="align-center" id="id6">
+<span id="fig-treepruning"></span><a class="reference internal image-reference" href="_images/TreePruning.png"><img alt="_images/TreePruning.png" src="_images/TreePruning.png" style="width: 480px;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 5 </span><span class="caption-text">Example of BVH tree pruning.</span><a class="headerlink" href="#id6" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Note that all BVH traversal algorithms have linear complexity when the primitives are all at approximately the same distance from the query point.
+For example, it is necessary to traverse almost the entire tree when one tries to compute the signed distance at the origin of a tessellated sphere.</p>
+</div>
+<p>Note that types of tree traversal (that do not compute the signed distance) are also possible, e.g. we may want to compute the union <span class="math notranslate nohighlight">\(I\left(\mathbf{x}\right) = \min\left(I_1\left(\mathbf{x}\right), I_2\left(\mathbf{x}\right), .\ldots\right)\)</span>.
+EBGeometry supports a fairly flexible approach to the tree traversal and update algorithms.</p>
+</section>
+</section>
+<section id="constructive-solid-geometry">
+<h1>Constructive solid geometry<a class="headerlink" href="#constructive-solid-geometry" title="Permalink to this heading"></a></h1>
+<section id="basic-transformations">
+<h2>Basic transformations<a class="headerlink" href="#basic-transformations" title="Permalink to this heading"></a></h2>
+<p>Implicit functions, and by extension also signed distance fields, can be manipulated using basic transformations (like rotations).
+EBGeometry supports many of these:</p>
 <ul class="simple">
 <li><p>Rotations.</p></li>
 <li><p>Translations.</p></li>
+<li><p>Surface offsets.</p></li>
+<li><p>Shell extraction.</p></li>
+<li><p>Mollification (e.g., smoothing)</p></li>
+<li><p>… and others.</p></li>
 </ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Some of these operations preserve the signed distance property, and others do not.</p>
+</div>
 </section>
-<section id="unions">
-<h1>Unions<a class="headerlink" href="#unions" title="Permalink to this heading">¶</a></h1>
-<p>Unions of signed distance fields are also signed distance fields <em>provided that the objects do not intersect or touch</em>.
-For overlapping objects the signed distance function is not well-defined (since the interior and exterior are not well-defined).</p>
-<p>For non-overlapping objects represented as signed distance fields <span class="math notranslate nohighlight">\(\left(S_1\left(\mathbf{x}\right), S_2\left(\mathbf{x}\right), \ldots\right)\)</span>, the composite signed distance field is</p>
-<div class="math notranslate nohighlight">
-\[S\left(\mathbf{x}\right) = S_k\left(\mathbf{x}\right),\]</div>
-<p>where <span class="math notranslate nohighlight">\(k\)</span> is index of the closest object (which is found by evaluating <span class="math notranslate nohighlight">\(\left|S_i\left(\mathbf{x}\right)\right|\)</span>.</p>
+<section id="combining-objects">
+<h2>Combining objects<a class="headerlink" href="#combining-objects" title="Permalink to this heading"></a></h2>
+<p>EBGeometry supports standard operations in which implicit functions can be combined:</p>
+<ul class="simple">
+<li><p>Union.</p></li>
+<li><p>Intersection.</p></li>
+<li><p>Difference.</p></li>
+</ul>
+<p>Some of these CSG operations also have smooth equivalents, i.e. for smoothing the transition between combined objects.
+Fast CSG operations are also supported by EBGeometry, e.g. the BVH-accelerated CSG union where one uses the BVH when searching for the relevant geometric primitive(s).</p>
+</section>
 </section>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="DCEL.html" class="btn btn-neutral float-right" title="DCEL mesh structure" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="Introduction.html" class="btn btn-neutral float-left" title="Requirements" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Implementation.html" class="btn btn-neutral float-right" title="Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2022, Robert Marskar.
-
-    </p>
+    <p>&#169; Copyright 2022, Robert Marskar.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

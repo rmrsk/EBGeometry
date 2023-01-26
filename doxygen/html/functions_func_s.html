@@ -68,8 +68,8 @@ $(function() {
 <li>sanityCheck()
 : <a class="el" href="classDCEL_1_1MeshT.html#af08266c1b2c03cb5bc2cbdb7fd13b9a1">DCEL::MeshT&lt; T &gt;</a>
 </li>
-<li>ScaledSDF()
-: <a class="el" href="classScaledSDF.html#ad3904374a9b307a055958259ec04b7bc">ScaledSDF&lt; T &gt;</a>
+<li>ScaleIF()
+: <a class="el" href="classScaleIF.html#a8cd39a3aa2e38241491fc1524f246efa">ScaleIF&lt; T &gt;</a>
 </li>
 <li>setBoundingVolume()
 : <a class="el" href="classBVH_1_1LinearNodeT.html#a03e3dd1c74bf9e66ed692130b49c2e0f">BVH::LinearNodeT&lt; T, P, BV, K &gt;</a>
@@ -118,22 +118,20 @@ $(function() {
 : <a class="el" href="classDCEL_1_1EdgeT.html#ab439e26a598ae3337ae2b69285059667">DCEL::EdgeT&lt; T &gt;</a>
 </li>
 <li>signedDistance()
-: <a class="el" href="classAnnularSDF.html#ab933bf07072202ccc1e3bbb59bc49465">AnnularSDF&lt; T &gt;</a>
-, <a class="el" href="classBoxSDF.html#a6e7a72790061423e5c9ea47d9e26736f">BoxSDF&lt; T &gt;</a>
-, <a class="el" href="classBVH_1_1LinearBVH.html#a6827bfd0bf7f2ad1b132e9317f60e216">BVH::LinearBVH&lt; T, P, BV, K &gt;</a>
-, <a class="el" href="classBVH_1_1NodeT.html#a1f9067b43b1a6962854f4a2b43325858">BVH::NodeT&lt; T, P, BV, K &gt;</a>
+: <a class="el" href="classBoxSDF.html#a6e7a72790061423e5c9ea47d9e26736f">BoxSDF&lt; T &gt;</a>
 , <a class="el" href="classCapsuleSDF.html#a2fa33052a5d93eb0f7fb0a6ff32122e9">CapsuleSDF&lt; T &gt;</a>
 , <a class="el" href="classConeSDF.html#a4ef38df98e9831c25297cb93a5b41da5">ConeSDF&lt; T &gt;</a>
 , <a class="el" href="classCylinderSDF.html#a082c08089b07402d55020ed8186cc992">CylinderSDF&lt; T &gt;</a>
 , <a class="el" href="classDCEL_1_1EdgeT.html#a18ff0a6a6ff7ddfda2d2e5c67268e590">DCEL::EdgeT&lt; T &gt;</a>
 , <a class="el" href="classDCEL_1_1FaceT.html#a8aa0f9247ab0cc737a90bad13ed32a9c">DCEL::FaceT&lt; T &gt;</a>
-, <a class="el" href="classDCEL_1_1MeshT.html#a9f5c30f5e07f73434d03c469c1065401">DCEL::MeshT&lt; T &gt;</a>
+, <a class="el" href="classDCEL_1_1MeshT.html#ad8c8f39eaf7a1c2e027584359d25ff59">DCEL::MeshT&lt; T &gt;</a>
 , <a class="el" href="classDCEL_1_1VertexT.html#ac45b8a4c1b815ab0333f1c2fb8fa694d">DCEL::VertexT&lt; T &gt;</a>
+, <a class="el" href="classFastCompactMeshSDF.html#a8b0cf75bd0c87ccf1b992e2035cd3749">FastCompactMeshSDF&lt; T, BV, K &gt;</a>
+, <a class="el" href="classFastMeshSDF.html#a371fa42949f9af13a047b2ef7808e3ea">FastMeshSDF&lt; T, BV, K &gt;</a>
 , <a class="el" href="classInfiniteConeSDF.html#a98232920c669d548b84493d9e55ddc0a">InfiniteConeSDF&lt; T &gt;</a>
 , <a class="el" href="classInfiniteCylinderSDF.html#a2481e68ea21c304c858878ae1d7fc031">InfiniteCylinderSDF&lt; T &gt;</a>
+, <a class="el" href="classMeshSDF.html#a6fe9fb2386bdb0073d3c6e9f4ade41e8">MeshSDF&lt; T &gt;</a>
 , <a class="el" href="classPlaneSDF.html#a75c2d73156caac10eefce9b431542d88">PlaneSDF&lt; T &gt;</a>
-, <a class="el" href="classRoundedSDF.html#a3e59b861e66c4398a7a0cc8ecda0e318">RoundedSDF&lt; T &gt;</a>
-, <a class="el" href="classScaledSDF.html#aeb8f6c22a2f9f242b171a928db1f0069">ScaledSDF&lt; T &gt;</a>
 , <a class="el" href="classSignedDistanceFunction.html#af5912280ca51dc21a2d6949a30ec7d21">SignedDistanceFunction&lt; T &gt;</a>
 , <a class="el" href="classSphereSDF.html#a9b0c5f0b1af2c4b62bee1c873e0158e8">SphereSDF&lt; T &gt;</a>
 , <a class="el" href="classTorusSDF.html#a23b4d455de2b7b9988ce81833ccd5302">TorusSDF&lt; T &gt;</a>
@@ -144,11 +142,14 @@ $(function() {
 <li>size()
 : <a class="el" href="classDCEL_1_1EdgeT.html#adccea85a8ade704add694fa6d439dc86">DCEL::EdgeT&lt; T &gt;</a>
 </li>
+<li>SmoothIntersectionIF()
+: <a class="el" href="classSmoothIntersectionIF.html#a64aa487c53f256d0ef2592dcf0724828">SmoothIntersectionIF&lt; T &gt;</a>
+</li>
+<li>SmoothUnionIF()
+: <a class="el" href="classSmoothUnionIF.html#a61244781a492e884d650c689fd886173">SmoothUnionIF&lt; T &gt;</a>
+</li>
 <li>SphereSDF()
 : <a class="el" href="classSphereSDF.html#ad5f6d20f6ccd77ba91c00acd2aeea28f">SphereSDF&lt; T &gt;</a>
-</li>
-<li>stackPrune()
-: <a class="el" href="classBVH_1_1LinearBVH.html#a243aa537f57a55061d6a96f70a0b591f">BVH::LinearBVH&lt; T, P, BV, K &gt;</a>
 </li>
 </ul>
 </div><!-- contents -->

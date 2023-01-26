@@ -84,7 +84,7 @@ $(function() {
 <h1>Example quickstart</h1>
 <p>Several examples are given in the Examples folder. To run one of the examples, navigate to the example and compile and run it.</p>
 <h2>1. Analytic distance fields</h2>
-<p>Use one of the analytic signed distance fields in <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a>, and rotate and transform it.</p>
+<p>Use one of the analytic signed distance fields in <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a>:</p>
 <div class="fragment"><div class="line">cd Examples/EBGeometry_Shapes</div>
 <div class="line">g++ -O3 -std=c++14 main.cpp</div>
 <div class="line">./a.out</div>
@@ -92,13 +92,13 @@ $(function() {
 <p>Read in an STL file and turn it into a signed distance field.</p>
 <div class="fragment"><div class="line">cd Examples/EBGeometry_DCEL</div>
 <div class="line">g++ -O3 -std=c++14 main.cpp</div>
-<div class="line">./a.out armadillo.stl</div>
+<div class="line">./a.out</div>
 </div><!-- fragment --><p align="center"></p>
 <p><img src="Docs/Sphinx/source/_static/example_dcel.png" alt="Signed distance field from Armadillo geometry" width="300" class="inline"/> </p>
 <p><br  />
 </p>
 <h2>3. Fast CSG operations for analytic functions</h2>
-<p>Generate a spherical packed bed geometry using analytic representations of spheres. BVH-accelerated CSG unions lead to order-of-magnitude faster implicit function evaluation. </p><div class="fragment"><div class="line">cd Examples/EBGeometry_Union</div>
+<p>Generate a spherical packed bed geometry using analytic representations of spheres. BVH-accelerated CSG unions lead to order-of-magnitude faster implicit function evaluation. </p><div class="fragment"><div class="line">cd Examples/EBGeometry_PackedSpheres</div>
 <div class="line">g++ -O3 -std=c++14 main.cpp</div>
 <div class="line">./a.out</div>
 </div><!-- fragment --><p align="center"></p>
@@ -116,7 +116,6 @@ $(function() {
 </p>
 <h2>5. Advanced examples</h2>
 <p>Some complex examples that use Chombo3 or AMReX are also provided in the Examples folder. These include application-specific code and require installation of Chombo3 or AMReX.</p>
-<p>For more advanced usage, users can supply their own file parsers, provide their own bounding volumes, or their own <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> partitioners. <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> is not too strict about these things, and uses rigorous templating for ensuring that the <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> functionality can be extended.</p>
 <h1>Contributing</h1>
 <ol type="1">
 <li>Create a branch for the new feature.</li>

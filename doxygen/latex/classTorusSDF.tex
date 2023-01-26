@@ -35,7 +35,7 @@ Collaboration diagram for Torus\+SDF$<$ T $>$\+:
 \mbox{\Hypertarget{classTorusSDF_a4591d7c3cdbbed45fdbaf414f0d096ee}\label{classTorusSDF_a4591d7c3cdbbed45fdbaf414f0d096ee}} 
 \mbox{\hyperlink{classTorusSDF_a4591d7c3cdbbed45fdbaf414f0d096ee}{Torus\+SDF}} ()=delete
 \begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classTorusSDF_acf22c1b59605e93750a3a002fd5bc23a}{Torus\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+center, const T \&a\+\_\+major\+Radius, const T \&a\+\_\+minor\+Radius, const bool a\+\_\+flip\+Inside)
+\mbox{\hyperlink{classTorusSDF_ad416d7edc5d5630928054c4d58186bb7}{Torus\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+center, const T \&a\+\_\+major\+Radius, const T \&a\+\_\+minor\+Radius)
 \begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classTorusSDF_a97178b72cbb9208b7dde0a6db1ab6e18}\label{classTorusSDF_a97178b72cbb9208b7dde0a6db1ab6e18}} 
 virtual \mbox{\hyperlink{classTorusSDF_a97178b72cbb9208b7dde0a6db1ab6e18}{$\sim$\+Torus\+SDF}} ()
@@ -65,10 +65,7 @@ T \mbox{\hyperlink{classTorusSDF_a21d443b0a0f8af98856cdc7bce0363ba}{m\+\_\+major
 \begin{DoxyCompactList}\small\item\em Major torus radius. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classTorusSDF_afedc4aacff95c95b97d1d540dddd2e99}\label{classTorusSDF_afedc4aacff95c95b97d1d540dddd2e99}} 
 T \mbox{\hyperlink{classTorusSDF_afedc4aacff95c95b97d1d540dddd2e99}{m\+\_\+minor\+Radius}}
-\begin{DoxyCompactList}\small\item\em Minor torus radius. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classTorusSDF_a41d7b8bbbf97d96d49432dcb1036573a}\label{classTorusSDF_a41d7b8bbbf97d96d49432dcb1036573a}} 
-bool \mbox{\hyperlink{classTorusSDF_a41d7b8bbbf97d96d49432dcb1036573a}{m\+\_\+flip\+Inside}}
-\begin{DoxyCompactList}\small\item\em Hook for making outside -\/$>$ inside. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Minor torus radius. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -80,12 +77,12 @@ Signed distance field for a torus.
 This is constructed such that the donut lies in the xy-\/plane. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classTorusSDF_acf22c1b59605e93750a3a002fd5bc23a}\label{classTorusSDF_acf22c1b59605e93750a3a002fd5bc23a}} 
+\mbox{\Hypertarget{classTorusSDF_ad416d7edc5d5630928054c4d58186bb7}\label{classTorusSDF_ad416d7edc5d5630928054c4d58186bb7}} 
 \index{TorusSDF$<$ T $>$@{TorusSDF$<$ T $>$}!TorusSDF@{TorusSDF}}
 \index{TorusSDF@{TorusSDF}!TorusSDF$<$ T $>$@{TorusSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{TorusSDF()}{TorusSDF()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classTorusSDF}{Torus\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classTorusSDF}{Torus\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+center,  }\item[{const T \&}]{a\+\_\+major\+Radius,  }\item[{const T \&}]{a\+\_\+minor\+Radius,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+\mbox{\hyperlink{classTorusSDF}{Torus\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classTorusSDF}{Torus\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+center,  }\item[{const T \&}]{a\+\_\+major\+Radius,  }\item[{const T \&}]{a\+\_\+minor\+Radius }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -98,8 +95,6 @@ Full constructor.
 \mbox{\texttt{ in}}  & {\em a\+\_\+major\+Radius} & Major torus radius. \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+minor\+Radius} & Minor torus radius. \\
-\hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+flip\+Inside} & Flip inside/outside. \\
 \hline
 \end{DoxyParams}
 

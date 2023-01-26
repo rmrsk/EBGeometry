@@ -1,0 +1,113 @@
+\hypertarget{classSmoothUnionIF}{}\doxysection{Smooth\+Union\+IF$<$ T $>$ Class Template Reference}
+\label{classSmoothUnionIF}\index{SmoothUnionIF$<$ T $>$@{SmoothUnionIF$<$ T $>$}}
+
+
+Smooth CSG union. Computes the minimum value of all input primitives.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+CSG.\+hpp$>$}
+
+
+
+Inheritance diagram for Smooth\+Union\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classSmoothUnionIF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Smooth\+Union\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classSmoothUnionIF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classSmoothUnionIF_a61244781a492e884d650c689fd886173}\label{classSmoothUnionIF_a61244781a492e884d650c689fd886173}} 
+\mbox{\hyperlink{classSmoothUnionIF_a61244781a492e884d650c689fd886173}{Smooth\+Union\+IF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classSmoothUnionIF_ae6f01e7a5f6b576045b9b294e49fd0f9}{Smooth\+Union\+IF}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$$>$ \&a\+\_\+implicit\+Functions, const T a\+\_\+smooth\+Len, const std\+::function$<$ T(const T \&a, const T \&b, const T \&s)$>$ a\+\_\+smooth\+Min=\mbox{\hyperlink{EBGeometry__CSG_8hpp_aa6a6befc82e122b0943c4653290b3259}{smooth\+Min}}$<$ T $>$) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor. Computes the CSG union. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classSmoothUnionIF_affd4edcf2daccc155ddc52599a0ee0a2}\label{classSmoothUnionIF_affd4edcf2daccc155ddc52599a0ee0a2}} 
+virtual \mbox{\hyperlink{classSmoothUnionIF_affd4edcf2daccc155ddc52599a0ee0a2}{$\sim$\+Smooth\+Union\+IF}} ()=default
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classSmoothUnionIF_a1fc2e100cca753745a365756584d23e3}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classSmoothUnionIF_a7dbce1f81f60c70250820413795374b3}\label{classSmoothUnionIF_a7dbce1f81f60c70250820413795374b3}} 
+std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ $>$ \mbox{\hyperlink{classSmoothUnionIF_a7dbce1f81f60c70250820413795374b3}{m\+\_\+implicit\+Functions}}
+\begin{DoxyCompactList}\small\item\em List of primitives. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classSmoothUnionIF_ae043765ce12b2699197c335292bdbd90}\label{classSmoothUnionIF_ae043765ce12b2699197c335292bdbd90}} 
+T \mbox{\hyperlink{classSmoothUnionIF_ae043765ce12b2699197c335292bdbd90}{m\+\_\+smooth\+Len}}
+\begin{DoxyCompactList}\small\item\em Smoothing parameter. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classSmoothUnionIF_a80b6ba55899cda5c9c10448cf2f6c6f9}\label{classSmoothUnionIF_a80b6ba55899cda5c9c10448cf2f6c6f9}} 
+std\+::function$<$ T(const T \&, const T \&, const T \&)$>$ \mbox{\hyperlink{classSmoothUnionIF_a80b6ba55899cda5c9c10448cf2f6c6f9}{m\+\_\+smooth\+Min}}
+\begin{DoxyCompactList}\small\item\em Function for taking the smooth minimum. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Smooth\+Union\+IF$<$ T $>$}
+
+Smooth CSG union. Computes the minimum value of all input primitives. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classSmoothUnionIF_ae6f01e7a5f6b576045b9b294e49fd0f9}\label{classSmoothUnionIF_ae6f01e7a5f6b576045b9b294e49fd0f9}} 
+\index{SmoothUnionIF$<$ T $>$@{SmoothUnionIF$<$ T $>$}!SmoothUnionIF@{SmoothUnionIF}}
+\index{SmoothUnionIF@{SmoothUnionIF}!SmoothUnionIF$<$ T $>$@{SmoothUnionIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{SmoothUnionIF()}{SmoothUnionIF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classSmoothUnionIF}{Smooth\+Union\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classSmoothUnionIF}{Smooth\+Union\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$$>$ \&}]{a\+\_\+implicit\+Functions,  }\item[{const T}]{a\+\_\+smooth\+Len,  }\item[{const std\+::function$<$ T(const T \&a, const T \&b, const T \&s)$>$}]{a\+\_\+smooth\+Min = {\ttfamily \mbox{\hyperlink{EBGeometry__CSG_8hpp_aa6a6befc82e122b0943c4653290b3259}{smooth\+Min}}$<$~T~$>$} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. Computes the CSG union. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Functions} & List of primitives \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+smooth\+Len} & Smoothing length \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+smooth\+Min} & Smooth min function. \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classSmoothUnionIF_a1fc2e100cca753745a365756584d23e3}\label{classSmoothUnionIF_a1fc2e100cca753745a365756584d23e3}} 
+\index{SmoothUnionIF$<$ T $>$@{SmoothUnionIF$<$ T $>$}!value@{value}}
+\index{value@{value}!SmoothUnionIF$<$ T $>$@{SmoothUnionIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{value()}{value()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classSmoothUnionIF}{Smooth\+Union\+IF}}$<$ T $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Value function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__CSG_8hpp}{EBGeometry\+\_\+\+CSG.\+hpp}}\end{DoxyCompactItemize}

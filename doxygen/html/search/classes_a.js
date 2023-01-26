@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['rotateop_349',['RotateOp',['../classRotateOp.html',1,'']]],
-  ['roundedsdf_350',['RoundedSDF',['../classRoundedSDF.html',1,'']]]
+  ['offsetif_384',['OffsetIF',['../classOffsetIF.html',1,'']]]
 ];

@@ -35,7 +35,7 @@ Collaboration diagram for Infinite\+Cone\+SDF$<$ T $>$\+:
 \mbox{\Hypertarget{classInfiniteConeSDF_a45ccd0929c04d3cd3c3f287609936c6d}\label{classInfiniteConeSDF_a45ccd0929c04d3cd3c3f287609936c6d}} 
 \mbox{\hyperlink{classInfiniteConeSDF_a45ccd0929c04d3cd3c3f287609936c6d}{Infinite\+Cone\+SDF}} ()=delete
 \begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classInfiniteConeSDF_ae5e8dacfc424318089bb5f5a548dbb5f}{Infinite\+Cone\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+tip, const T \&a\+\_\+angle, const bool a\+\_\+flip\+Inside)
+\mbox{\hyperlink{classInfiniteConeSDF_ae62a0241a1f95caac59ced2e9a502f52}{Infinite\+Cone\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+tip, const T \&a\+\_\+angle)
 \begin{DoxyCompactList}\small\item\em Infinite cone function. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classInfiniteConeSDF_ac33ec944efc7214c9516e4683a0d7e39}\label{classInfiniteConeSDF_ac33ec944efc7214c9516e4683a0d7e39}} 
 virtual \mbox{\hyperlink{classInfiniteConeSDF_ac33ec944efc7214c9516e4683a0d7e39}{$\sim$\+Infinite\+Cone\+SDF}} ()
@@ -50,10 +50,7 @@ virtual T \mbox{\hyperlink{classInfiniteConeSDF_a98232920c669d548b84493d9e55ddc0
 \begin{DoxyCompactList}\small\item\em Tip position. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classInfiniteConeSDF_a35dd714fb6784f60e541a298e02ab937}\label{classInfiniteConeSDF_a35dd714fb6784f60e541a298e02ab937}} 
 \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{classInfiniteConeSDF_a35dd714fb6784f60e541a298e02ab937}{m\+\_\+c}}
-\begin{DoxyCompactList}\small\item\em Sine/cosine of angle. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classInfiniteConeSDF_a5641f298cf15950f4b243fd53de7e8ef}\label{classInfiniteConeSDF_a5641f298cf15950f4b243fd53de7e8ef}} 
-bool \mbox{\hyperlink{classInfiniteConeSDF_a5641f298cf15950f4b243fd53de7e8ef}{m\+\_\+flip\+Inside}}
-\begin{DoxyCompactList}\small\item\em Hook for making inside -\/$>$ outside. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Sine/cosine of angle. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -63,12 +60,12 @@ class Infinite\+Cone\+SDF$<$ T $>$}
 Signed distance field for an infinite cone. Oriented along +z. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classInfiniteConeSDF_ae5e8dacfc424318089bb5f5a548dbb5f}\label{classInfiniteConeSDF_ae5e8dacfc424318089bb5f5a548dbb5f}} 
+\mbox{\Hypertarget{classInfiniteConeSDF_ae62a0241a1f95caac59ced2e9a502f52}\label{classInfiniteConeSDF_ae62a0241a1f95caac59ced2e9a502f52}} 
 \index{InfiniteConeSDF$<$ T $>$@{InfiniteConeSDF$<$ T $>$}!InfiniteConeSDF@{InfiniteConeSDF}}
 \index{InfiniteConeSDF@{InfiniteConeSDF}!InfiniteConeSDF$<$ T $>$@{InfiniteConeSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{InfiniteConeSDF()}{InfiniteConeSDF()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classInfiniteConeSDF}{Infinite\+Cone\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classInfiniteConeSDF}{Infinite\+Cone\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+tip,  }\item[{const T \&}]{a\+\_\+angle,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+\mbox{\hyperlink{classInfiniteConeSDF}{Infinite\+Cone\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classInfiniteConeSDF}{Infinite\+Cone\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+tip,  }\item[{const T \&}]{a\+\_\+angle }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -79,8 +76,6 @@ Infinite cone function.
 \mbox{\texttt{ in}}  & {\em a\+\_\+tip} & Cone tip position \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+angle} & Cone opening angle. \\
-\hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+flip\+Inside} & Hook for making inside to outside. \\
 \hline
 \end{DoxyParams}
 

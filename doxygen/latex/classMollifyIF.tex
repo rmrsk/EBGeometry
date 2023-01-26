@@ -1,0 +1,115 @@
+\hypertarget{classMollifyIF}{}\doxysection{Mollify\+IF$<$ T $>$ Class Template Reference}
+\label{classMollifyIF}\index{MollifyIF$<$ T $>$@{MollifyIF$<$ T $>$}}
+
+
+Mollified implicit function.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Transform.\+hpp$>$}
+
+
+
+Inheritance diagram for Mollify\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classMollifyIF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Mollify\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classMollifyIF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classMollifyIF_aec9606ccf33996e7f38b66fb4261e024}\label{classMollifyIF_aec9606ccf33996e7f38b66fb4261e024}} 
+\mbox{\hyperlink{classMollifyIF_aec9606ccf33996e7f38b66fb4261e024}{Mollify\+IF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classMollifyIF_aef47f9fa4ec441a16f00129d048cfe78}{Mollify\+IF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+mollifier, const T a\+\_\+max\+Value, const size\+\_\+t a\+\_\+num\+Points) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classMollifyIF_aca5b8c7bc1c3b6c9db6076e633022443}\label{classMollifyIF_aca5b8c7bc1c3b6c9db6076e633022443}} 
+virtual \mbox{\hyperlink{classMollifyIF_aca5b8c7bc1c3b6c9db6076e633022443}{$\sim$\+Mollify\+IF}} () noexcept
+\begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
+virtual T \mbox{\hyperlink{classMollifyIF_afe1a0c6bcd8548e0e49e54072800fa8c}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classMollifyIF_aa732b9445d50a30fe46580c9aa40193b}\label{classMollifyIF_aa732b9445d50a30fe46580c9aa40193b}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{classMollifyIF_aa732b9445d50a30fe46580c9aa40193b}{m\+\_\+implicit\+Function}}
+\begin{DoxyCompactList}\small\item\em Original implicit function. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classMollifyIF_af6450901bb5a40b407879a8644c3da7f}\label{classMollifyIF_af6450901bb5a40b407879a8644c3da7f}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{classMollifyIF_af6450901bb5a40b407879a8644c3da7f}{m\+\_\+mollifier}}
+\begin{DoxyCompactList}\small\item\em Mollifier. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classMollifyIF_a02c3b1a0ffea817b8ea9b4969ee5a4c7}\label{classMollifyIF_a02c3b1a0ffea817b8ea9b4969ee5a4c7}} 
+std\+::vector$<$ std\+::pair$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$, T $>$ $>$ \mbox{\hyperlink{classMollifyIF_a02c3b1a0ffea817b8ea9b4969ee5a4c7}{m\+\_\+sampled\+Mollifier}}
+\begin{DoxyCompactList}\small\item\em Mollifier Weights. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Mollify\+IF$<$ T $>$}
+
+Mollified implicit function. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classMollifyIF_aef47f9fa4ec441a16f00129d048cfe78}\label{classMollifyIF_aef47f9fa4ec441a16f00129d048cfe78}} 
+\index{MollifyIF$<$ T $>$@{MollifyIF$<$ T $>$}!MollifyIF@{MollifyIF}}
+\index{MollifyIF@{MollifyIF}!MollifyIF$<$ T $>$@{MollifyIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{MollifyIF()}{MollifyIF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classMollifyIF}{Mollify\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classMollifyIF}{Mollify\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+mollifier,  }\item[{const T}]{a\+\_\+max\+Value,  }\item[{const size\+\_\+t}]{a\+\_\+num\+Points }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Function} & Input implicit function. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+mollifier} & Mollifier \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+max\+Value} & Max/min val where mollifier is applied \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+num\+Points} & Number of points to use in mollification convolution kernel. Must be $>$= 1. \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classMollifyIF_afe1a0c6bcd8548e0e49e54072800fa8c}\label{classMollifyIF_afe1a0c6bcd8548e0e49e54072800fa8c}} 
+\index{MollifyIF$<$ T $>$@{MollifyIF$<$ T $>$}!value@{value}}
+\index{value@{value}!MollifyIF$<$ T $>$@{MollifyIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{value()}{value()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+virtual T \mbox{\hyperlink{classMollifyIF}{Mollify\+IF}}$<$ T $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Value function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Input point \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__Transform_8hpp}{EBGeometry\+\_\+\+Transform.\+hpp}}\end{DoxyCompactItemize}

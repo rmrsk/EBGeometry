@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Geometry representation &mdash; EBGeometry  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="DCEL" href="ImplemDCEL.html" />
+    <link rel="prev" title="Vector types" href="ImplemVec.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> EBGeometry
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html#quickstart">Quickstart</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Basic concepts</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html">Geometry representations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html#dcel">DCEL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html#bounding-volume-hierarchies">Bounding volume hierarchies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html#constructive-solid-geometry">Constructive solid geometry</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Implementation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Implementation.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemVec.html">Vector types</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Geometry representation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#implicit-functions">Implicit functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#transformations">Transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#csg-operations">CSG operations</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">BVH</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Parsers.html">Reading data</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">EBGeometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html#amrex">AMReX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html#chombo3">Chombo3</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ZZReferences.html">Bibliography</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">EBGeometry</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">Geometry representation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/ImplemCSG.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="geometry-representation">
+<span id="chap-implemcsg"></span><h1>Geometry representation<a class="headerlink" href="#geometry-representation" title="Permalink to this heading"></a></h1>
+<section id="implicit-functions">
+<h2>Implicit functions<a class="headerlink" href="#implicit-functions" title="Permalink to this heading"></a></h2>
+<p>EBGeometry implements implement functions and signed distance functions through virtual classes</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// Implicit function implementation requires a value function</span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ImplicitFunction</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">   </span><span class="n">T</span><span class="w"> </span><span class="nf">value</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="c1">// Signed distance function implementation requires a signeDistance function</span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SignedDistanceFunction</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">   </span><span class="n">T</span><span class="w"> </span><span class="nf">value</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="k">this</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">a_point</span><span class="p">);</span><span class="w"></span>
+<span class="w">   </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">   </span><span class="n">T</span><span class="w"> </span><span class="nf">signedDistance</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">T</span></code> is a floating point precision, which is supported because DCEL meshes can take up quite a bit of computer memory.
+These declarations are found in</p>
+<ul class="simple">
+<li><p><code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_ImplicitFunction.hpp</span></code> for implicit functions.</p></li>
+<li><p><code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_SignedDistanceFunction.hpp</span></code> for signed distance field.</p></li>
+</ul>
+<p>Various useful implementations of implicit functions and distance fields are found in:</p>
+<ul class="simple">
+<li><p><code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_AnalyticDistanceFields.hpp</span></code> for various pre-defined analytic distance fields.</p></li>
+<li><p><code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_MeshDistanceFields.hpp</span></code> for various distance field representations for DCEL meshes.</p></li>
+</ul>
+</section>
+<section id="transformations">
+<h2>Transformations<a class="headerlink" href="#transformations" title="Permalink to this heading"></a></h2>
+<p>Various transformations for implicit functions are defined in <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_Transform.hpp</span></code>, such as rotations, translations, etc.
+These are also available through functions that automatically cast the resulting implicit function to <code class="docutils literal notranslate"><span class="pre">ImplicitFunction&lt;T&gt;</span></code>:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for taking the complement of an implicit function</span>
+<span class="cm">  @param[in] a_implicitFunction Input implicit function</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">Complement</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunction</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for translating an implicit function</span>
+<span class="cm">  @param[in] a_implicitFunction Input implicit function to be translated</span>
+<span class="cm">  @param[in] a_shift Distance to shift</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">Translate</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunction</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_shift</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for rotating an implicit function. </span>
+<span class="cm">  @param[in] a_implicitFunction Input implicit function to be rotated.</span>
+<span class="cm">  @param[in] a_angle Angle to be rotated by (in degrees)</span>
+<span class="cm">  @param[in] a_axis Axis to rotate about</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">Rotate</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunction</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">a_angle</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">a_axis</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for scaling an implicit function. </span>
+<span class="cm">  @param[in] a_implicitFunction Input implicit function to be scaled. </span>
+<span class="cm">  @param[in] a_scale Scaling factor</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">Scale</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunction</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">a_scale</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for offsetting an implicit function</span>
+<span class="cm">  @param[in] a_implicitFunction Input implicit function to be offset</span>
+<span class="cm">  @param[in] a_offset Offset distance</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">Offset</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunction</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">a_offset</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for creating a shell out of an implicit function</span>
+<span class="cm">  @param[in] a_implicitFunction Input implicit function to be shelled.</span>
+<span class="cm">  @param[in] a_delta Shell thickness</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">Annular</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunction</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">a_delta</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for blurring an implicit function</span>
+<span class="cm">  @param[in] a_implicitFunction Input implicit function to be blurred</span>
+<span class="cm">  @param[in] a_blurDistance Smoothing distance</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">Blur</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunction</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">a_blurDistance</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for mollification with an input sphere. </span>
+<span class="cm">  @param[in] a_implicitFunction Input implicit function to be mollifier</span>
+<span class="cm">  @param[in] a_dist Mollification distance. </span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+</pre></div>
+</div>
+</section>
+<section id="csg-operations">
+<h2>CSG operations<a class="headerlink" href="#csg-operations" title="Permalink to this heading"></a></h2>
+<p>CSG operations for implicit functions are defined in <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_CSG.hpp</span></code>.
+These also include accelerated variants that take advantage of BVH partitioning of the objects.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for taking the union of a bunch of a implicit functions</span>
+<span class="cm">  @param[in] a_implicitFunctions Implicit functions</span>
+<span class="cm">  @note P must derive from ImplicitFunction&lt;T&gt;</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">Union</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctions</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for taking the union of two implicit functions</span>
+<span class="cm">  @param[in] a_implicitFunctionA First implicit function. </span>
+<span class="cm">  @param[in] a_implicitFunctionB Second implicit function. </span>
+<span class="cm">  @note P1 and P2 must derive from ImplicitFunction&lt;T&gt;</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P1</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P2</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">Union</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P1</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctionA</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P2</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctionB</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for taking the union of a bunch of a implicit functions</span>
+<span class="cm">  @param[in] a_implicitFunctions Implicit functions</span>
+<span class="cm">  @param[in] a_smooth Smoothing distance. </span>
+<span class="cm">  @note P must derive from ImplicitFunction&lt;T&gt;</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">SmoothUnion</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctions</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">a_smooth</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for taking the union of two implicit functions</span>
+<span class="cm">  @param[in] a_implicitFunctionA First implicit function. </span>
+<span class="cm">  @param[in] a_implicitFunctionB Second implicit function. </span>
+<span class="cm">  @param[in] a_smooth Smoothing distance. </span>
+<span class="cm">  @note P1 and P2 must derive from ImplicitFunction&lt;T&gt;</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P1</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P2</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">SmoothUnion</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P1</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctionA</span><span class="p">,</span><span class="w"></span>
+<span class="w">            </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P2</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctionB</span><span class="p">,</span><span class="w"></span>
+<span class="w">            </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w">                    </span><span class="n">a_smooth</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for taking the BVH-accelerated union of a bunch of a implicit functions</span>
+<span class="cm">  @param[in] a_implicitFunctions Implicit functions</span>
+<span class="cm">  @param[in] a_bvConstructor Bounding volume constructor. </span>
+<span class="cm">  @note P must derive from ImplicitFunction&lt;T&gt;</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">FastUnion</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;&gt;&amp;</span><span class="w">        </span><span class="n">a_implicitFunctions</span><span class="p">,</span><span class="w"></span>
+<span class="w">          </span><span class="k">const</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">BVConstructorT</span><span class="o">&lt;</span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_bvConstructor</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for taking the BVH-accelerated union of a bunch of a implicit functions</span>
+<span class="cm">  @param[in] a_implicitFunctions Implicit functions</span>
+<span class="cm">  @param[in] a_bvConstructor Bounding volume constructor. </span>
+<span class="cm">  @param[in] a_smoothLen Smoothing length</span>
+<span class="cm">  @note P must derive from ImplicitFunction&lt;T&gt;</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">FastSmoothUnion</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;&gt;&amp;</span><span class="w">        </span><span class="n">a_implicitFunctions</span><span class="p">,</span><span class="w"></span>
+<span class="w">                </span><span class="k">const</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">BVConstructorT</span><span class="o">&lt;</span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_bvConstructor</span><span class="p">,</span><span class="w"></span>
+<span class="w">                </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w">                                       </span><span class="n">a_smoothLen</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for taking the intersection of a bunch of a implicit functions</span>
+<span class="cm">  @param[in] a_implicitFunctions Implicit functions</span>
+<span class="cm">  @note P must derive from ImplicitFunction&lt;T&gt;</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">Intersection</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctions</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for taking the intersection of two implicit functions</span>
+<span class="cm">  @param[in] a_implicitFunctionA First implicit function. </span>
+<span class="cm">  @param[in] a_implicitFunctionB Second implicit function. </span>
+<span class="cm">  @note P1 and P2 must derive from ImplicitFunction&lt;T&gt;</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P1</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P2</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">Intersection</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P1</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctionA</span><span class="p">,</span><span class="w"></span>
+<span class="w">             </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P2</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctionB</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for taking the smooth intersection of a bunch of a implicit functions</span>
+<span class="cm">  @param[in] a_implicitFunctions Implicit functions</span>
+<span class="cm">  @param[in] a_smooth Smoothing distance. </span>
+<span class="cm">  @note P must derive from ImplicitFunction&lt;T&gt;</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">SmoothIntersection</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctions</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">a_smooth</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for taking the smooth intersection of two implicit functions</span>
+<span class="cm">  @param[in] a_implicitFunctionA First implicit function. </span>
+<span class="cm">  @param[in] a_implicitFunctionB Second implicit function. </span>
+<span class="cm">  @param[in] a_smooth Smoothing distance. </span>
+<span class="cm">  @note P1 and P2 must derive from ImplicitFunction&lt;T&gt;</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P1</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P2</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">SmoothIntersection</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P1</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctionA</span><span class="p">,</span><span class="w"></span>
+<span class="w">                   </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P2</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctionB</span><span class="p">,</span><span class="w"></span>
+<span class="w">                   </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w">                    </span><span class="n">a_smooth</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for taking the CSG difference. </span>
+<span class="cm">  @param[in] a_implicitFunctionA Implicit function. </span>
+<span class="cm">  @param[in] a_implicitFunctionB Implicit function to subtract. </span>
+<span class="cm">  @note P1 and P2 must derive from ImplicitFunction&lt;T&gt;</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">Difference</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P1</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctionA</span><span class="p">,</span><span class="w"></span>
+<span class="w">           </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P2</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctionB</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ImplemVec.html" class="btn btn-neutral float-left" title="Vector types" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ImplemDCEL.html" class="btn btn-neutral float-right" title="DCEL" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Robert Marskar.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

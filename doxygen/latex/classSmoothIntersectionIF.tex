@@ -1,0 +1,113 @@
+\hypertarget{classSmoothIntersectionIF}{}\doxysection{Smooth\+Intersection\+IF$<$ T $>$ Class Template Reference}
+\label{classSmoothIntersectionIF}\index{SmoothIntersectionIF$<$ T $>$@{SmoothIntersectionIF$<$ T $>$}}
+
+
+Smooth intersection.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+CSG.\+hpp$>$}
+
+
+
+Inheritance diagram for Smooth\+Intersection\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=229pt]{classSmoothIntersectionIF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Smooth\+Intersection\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=229pt]{classSmoothIntersectionIF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classSmoothIntersectionIF_a64aa487c53f256d0ef2592dcf0724828}\label{classSmoothIntersectionIF_a64aa487c53f256d0ef2592dcf0724828}} 
+\mbox{\hyperlink{classSmoothIntersectionIF_a64aa487c53f256d0ef2592dcf0724828}{Smooth\+Intersection\+IF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classSmoothIntersectionIF_a33718954d732edfebb5d95f2413e4193}{Smooth\+Intersection\+IF}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$$>$ \&a\+\_\+implicit\+Functions, const T a\+\_\+smooth\+Len, const std\+::function$<$ T(const T \&a, const T \&b, const T \&s)$>$ \&a\+\_\+smooth\+Max=\mbox{\hyperlink{EBGeometry__CSG_8hpp_ae88258939353042593b6ab1401d3bc46}{smooth\+Max}}$<$ T $>$) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor. Computes the CSG union. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classSmoothIntersectionIF_aaaeefd379308c42a60783f6e4ee765ef}\label{classSmoothIntersectionIF_aaaeefd379308c42a60783f6e4ee765ef}} 
+virtual \mbox{\hyperlink{classSmoothIntersectionIF_aaaeefd379308c42a60783f6e4ee765ef}{$\sim$\+Smooth\+Intersection\+IF}} ()=default
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classSmoothIntersectionIF_a693cb67252e9f124b829306c2642d711}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classSmoothIntersectionIF_a19324dda14256369fb8562956e56567f}\label{classSmoothIntersectionIF_a19324dda14256369fb8562956e56567f}} 
+std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ $>$ \mbox{\hyperlink{classSmoothIntersectionIF_a19324dda14256369fb8562956e56567f}{m\+\_\+implicit\+Functions}}
+\begin{DoxyCompactList}\small\item\em List of primitives. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classSmoothIntersectionIF_a64f7bd153a75f269273cda5836a2e6fc}\label{classSmoothIntersectionIF_a64f7bd153a75f269273cda5836a2e6fc}} 
+T \mbox{\hyperlink{classSmoothIntersectionIF_a64f7bd153a75f269273cda5836a2e6fc}{m\+\_\+smooth\+Len}}
+\begin{DoxyCompactList}\small\item\em Smoothing parameter. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classSmoothIntersectionIF_a38c2c5279ffb6a78d192cfff995d71b6}\label{classSmoothIntersectionIF_a38c2c5279ffb6a78d192cfff995d71b6}} 
+std\+::function$<$ T(const T \&a, const T \&b, const T \&s)$>$ \mbox{\hyperlink{classSmoothIntersectionIF_a38c2c5279ffb6a78d192cfff995d71b6}{m\+\_\+smooth\+Max}}
+\begin{DoxyCompactList}\small\item\em Smooth max operator. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Smooth\+Intersection\+IF$<$ T $>$}
+
+Smooth intersection. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classSmoothIntersectionIF_a33718954d732edfebb5d95f2413e4193}\label{classSmoothIntersectionIF_a33718954d732edfebb5d95f2413e4193}} 
+\index{SmoothIntersectionIF$<$ T $>$@{SmoothIntersectionIF$<$ T $>$}!SmoothIntersectionIF@{SmoothIntersectionIF}}
+\index{SmoothIntersectionIF@{SmoothIntersectionIF}!SmoothIntersectionIF$<$ T $>$@{SmoothIntersectionIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{SmoothIntersectionIF()}{SmoothIntersectionIF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classSmoothIntersectionIF}{Smooth\+Intersection\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classSmoothIntersectionIF}{Smooth\+Intersection\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$$>$ \&}]{a\+\_\+implicit\+Functions,  }\item[{const T}]{a\+\_\+smooth\+Len,  }\item[{const std\+::function$<$ T(const T \&a, const T \&b, const T \&s)$>$ \&}]{a\+\_\+smooth\+Max = {\ttfamily \mbox{\hyperlink{EBGeometry__CSG_8hpp_ae88258939353042593b6ab1401d3bc46}{smooth\+Max}}$<$~T~$>$} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. Computes the CSG union. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Functions} & List of primitives \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+smooth\+Len} & Smoothing length \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+smooth\+Max} & Smooth max operator \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classSmoothIntersectionIF_a693cb67252e9f124b829306c2642d711}\label{classSmoothIntersectionIF_a693cb67252e9f124b829306c2642d711}} 
+\index{SmoothIntersectionIF$<$ T $>$@{SmoothIntersectionIF$<$ T $>$}!value@{value}}
+\index{value@{value}!SmoothIntersectionIF$<$ T $>$@{SmoothIntersectionIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{value()}{value()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classSmoothIntersectionIF}{Smooth\+Intersection\+IF}}$<$ T $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Value function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__CSG_8hpp}{EBGeometry\+\_\+\+CSG.\+hpp}}\end{DoxyCompactItemize}

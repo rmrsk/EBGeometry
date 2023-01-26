@@ -35,7 +35,7 @@ Collaboration diagram for Capsule\+SDF$<$ T $>$\+:
 \mbox{\Hypertarget{classCapsuleSDF_abe45c31d0f966369f53e9a2af2708e96}\label{classCapsuleSDF_abe45c31d0f966369f53e9a2af2708e96}} 
 \mbox{\hyperlink{classCapsuleSDF_abe45c31d0f966369f53e9a2af2708e96}{Capsule\+SDF}} ()=delete
 \begin{DoxyCompactList}\small\item\em No weak construction. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classCapsuleSDF_a35a5a18508130bf4fe4981c39d27dc5d}{Capsule\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+tip1, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ a\+\_\+tip2, const T \&a\+\_\+radius, const bool a\+\_\+flip\+Inside)
+\mbox{\hyperlink{classCapsuleSDF_ad3a3015a1713c1df658a7bae8bd836c0}{Capsule\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+tip1, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ a\+\_\+tip2, const T \&a\+\_\+radius)
 \begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
 virtual T \mbox{\hyperlink{classCapsuleSDF_a2fa33052a5d93eb0f7fb0a6ff32122e9}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
 \begin{DoxyCompactList}\small\item\em Implementation of the signed distance function. \end{DoxyCompactList}\end{DoxyCompactItemize}
@@ -50,10 +50,7 @@ virtual T \mbox{\hyperlink{classCapsuleSDF_a2fa33052a5d93eb0f7fb0a6ff32122e9}{si
 \begin{DoxyCompactList}\small\item\em Capsule center2. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classCapsuleSDF_ab4970d97731be17b0851d1e4966e65bb}\label{classCapsuleSDF_ab4970d97731be17b0851d1e4966e65bb}} 
 T \mbox{\hyperlink{classCapsuleSDF_ab4970d97731be17b0851d1e4966e65bb}{m\+\_\+radius}}
-\begin{DoxyCompactList}\small\item\em Capsule radius. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classCapsuleSDF_afa07eead08dc7a6f043104a80f9a3f73}\label{classCapsuleSDF_afa07eead08dc7a6f043104a80f9a3f73}} 
-bool \mbox{\hyperlink{classCapsuleSDF_afa07eead08dc7a6f043104a80f9a3f73}{m\+\_\+flip\+Inside}}
-\begin{DoxyCompactList}\small\item\em Hook for making outside -\/$>$ inside. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Capsule radius. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -63,12 +60,12 @@ class Capsule\+SDF$<$ T $>$}
 Capsulate/pill SDF. Basically a cylinder with spherical endcaps, oriented along the specified axis. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classCapsuleSDF_a35a5a18508130bf4fe4981c39d27dc5d}\label{classCapsuleSDF_a35a5a18508130bf4fe4981c39d27dc5d}} 
+\mbox{\Hypertarget{classCapsuleSDF_ad3a3015a1713c1df658a7bae8bd836c0}\label{classCapsuleSDF_ad3a3015a1713c1df658a7bae8bd836c0}} 
 \index{CapsuleSDF$<$ T $>$@{CapsuleSDF$<$ T $>$}!CapsuleSDF@{CapsuleSDF}}
 \index{CapsuleSDF@{CapsuleSDF}!CapsuleSDF$<$ T $>$@{CapsuleSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{CapsuleSDF()}{CapsuleSDF()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classCapsuleSDF}{Capsule\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classCapsuleSDF}{Capsule\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+tip1,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$}]{a\+\_\+tip2,  }\item[{const T \&}]{a\+\_\+radius,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+\mbox{\hyperlink{classCapsuleSDF}{Capsule\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classCapsuleSDF}{Capsule\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+tip1,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$}]{a\+\_\+tip2,  }\item[{const T \&}]{a\+\_\+radius }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -81,8 +78,6 @@ Full constructor.
 \mbox{\texttt{ in}}  & {\em a\+\_\+tip2} & Other center point. \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+radius} & Radius. \\
-\hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+flip\+Inside} & Hook for flipping inside/outside. \\
 \hline
 \end{DoxyParams}
 

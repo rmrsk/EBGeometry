@@ -35,7 +35,7 @@ Collaboration diagram for Sphere\+SDF$<$ T $>$\+:
 \mbox{\Hypertarget{classSphereSDF_ad5f6d20f6ccd77ba91c00acd2aeea28f}\label{classSphereSDF_ad5f6d20f6ccd77ba91c00acd2aeea28f}} 
 \mbox{\hyperlink{classSphereSDF_ad5f6d20f6ccd77ba91c00acd2aeea28f}{Sphere\+SDF}} ()=delete
 \begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classSphereSDF_a3e555062b1b20c1729a9f4ab6136add4}{Sphere\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+center, const T \&a\+\_\+radius, const bool a\+\_\+flip\+Inside)
+\mbox{\hyperlink{classSphereSDF_abfe0f286ae77c3f0719214aeaf9a8c3a}{Sphere\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+center, const T \&a\+\_\+radius)
 \begin{DoxyCompactList}\small\item\em Default constructor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classSphereSDF_a2c25f14a19fcb910cd4d48af7123185a}\label{classSphereSDF_a2c25f14a19fcb910cd4d48af7123185a}} 
 \mbox{\hyperlink{classSphereSDF_a2c25f14a19fcb910cd4d48af7123185a}{Sphere\+SDF}} (const \mbox{\hyperlink{classSphereSDF}{Sphere\+SDF}} \&a\+\_\+other)
@@ -65,10 +65,7 @@ virtual T \mbox{\hyperlink{classSphereSDF_a9b0c5f0b1af2c4b62bee1c873e0158e8}{sig
 \begin{DoxyCompactList}\small\item\em Sphere center. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classSphereSDF_ac4b0f786ea2b53530512ce3fa4e7bdbd}\label{classSphereSDF_ac4b0f786ea2b53530512ce3fa4e7bdbd}} 
 T \mbox{\hyperlink{classSphereSDF_ac4b0f786ea2b53530512ce3fa4e7bdbd}{m\+\_\+radius}}
-\begin{DoxyCompactList}\small\item\em Sphere radius. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classSphereSDF_a9a32a668648c166b41c5d1c3981c9579}\label{classSphereSDF_a9a32a668648c166b41c5d1c3981c9579}} 
-bool \mbox{\hyperlink{classSphereSDF_a9a32a668648c166b41c5d1c3981c9579}{m\+\_\+flip\+Inside}}
-\begin{DoxyCompactList}\small\item\em For flipping sign. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Sphere radius. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -78,12 +75,12 @@ class Sphere\+SDF$<$ T $>$}
 Signed distance field for sphere. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classSphereSDF_a3e555062b1b20c1729a9f4ab6136add4}\label{classSphereSDF_a3e555062b1b20c1729a9f4ab6136add4}} 
+\mbox{\Hypertarget{classSphereSDF_abfe0f286ae77c3f0719214aeaf9a8c3a}\label{classSphereSDF_abfe0f286ae77c3f0719214aeaf9a8c3a}} 
 \index{SphereSDF$<$ T $>$@{SphereSDF$<$ T $>$}!SphereSDF@{SphereSDF}}
 \index{SphereSDF@{SphereSDF}!SphereSDF$<$ T $>$@{SphereSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{SphereSDF()}{SphereSDF()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classSphereSDF}{Sphere\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classSphereSDF}{Sphere\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+center,  }\item[{const T \&}]{a\+\_\+radius,  }\item[{const bool}]{a\+\_\+flip\+Inside }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+\mbox{\hyperlink{classSphereSDF}{Sphere\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classSphereSDF}{Sphere\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+center,  }\item[{const T \&}]{a\+\_\+radius }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -94,8 +91,6 @@ Default constructor.
 \mbox{\texttt{ in}}  & {\em a\+\_\+center} & Sphere center \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+radius} & Sphere radius \\
-\hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+flip\+Inside} & Flip inside or not \\
 \hline
 \end{DoxyParams}
 

@@ -1,0 +1,103 @@
+\hypertarget{classUnionIF}{}\doxysection{Union\+IF$<$ T $>$ Class Template Reference}
+\label{classUnionIF}\index{UnionIF$<$ T $>$@{UnionIF$<$ T $>$}}
+
+
+CSG union. Computes the minimum value of all input primitives.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+CSG.\+hpp$>$}
+
+
+
+Inheritance diagram for Union\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classUnionIF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Union\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classUnionIF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classUnionIF_aaf40f49faaef464adb1da7f620b9872e}\label{classUnionIF_aaf40f49faaef464adb1da7f620b9872e}} 
+\mbox{\hyperlink{classUnionIF_aaf40f49faaef464adb1da7f620b9872e}{Union\+IF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classUnionIF_a6af6180b1708382ff9b766d2775fb412}{Union\+IF}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$$>$ \&a\+\_\+implicit\+Functions) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor. Computes the CSG union. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classUnionIF_a857e9727364ecde7d96e0b99a41a5294}\label{classUnionIF_a857e9727364ecde7d96e0b99a41a5294}} 
+virtual \mbox{\hyperlink{classUnionIF_a857e9727364ecde7d96e0b99a41a5294}{$\sim$\+Union\+IF}} ()=default
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classUnionIF_ac835007225e23d18f886080313a88252}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classUnionIF_a90aa206326561b3987bb6d163926fe6c}\label{classUnionIF_a90aa206326561b3987bb6d163926fe6c}} 
+std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ $>$ \mbox{\hyperlink{classUnionIF_a90aa206326561b3987bb6d163926fe6c}{m\+\_\+implicit\+Functions}}
+\begin{DoxyCompactList}\small\item\em List of primitives. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Union\+IF$<$ T $>$}
+
+CSG union. Computes the minimum value of all input primitives. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classUnionIF_a6af6180b1708382ff9b766d2775fb412}\label{classUnionIF_a6af6180b1708382ff9b766d2775fb412}} 
+\index{UnionIF$<$ T $>$@{UnionIF$<$ T $>$}!UnionIF@{UnionIF}}
+\index{UnionIF@{UnionIF}!UnionIF$<$ T $>$@{UnionIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{UnionIF()}{UnionIF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classUnionIF}{Union\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classUnionIF}{Union\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$$>$ \&}]{a\+\_\+implicit\+Functions }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. Computes the CSG union. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Functions} & List of primitives \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classUnionIF_ac835007225e23d18f886080313a88252}\label{classUnionIF_ac835007225e23d18f886080313a88252}} 
+\index{UnionIF$<$ T $>$@{UnionIF$<$ T $>$}!value@{value}}
+\index{value@{value}!UnionIF$<$ T $>$@{UnionIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{value()}{value()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classUnionIF}{Union\+IF}}$<$ T $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Value function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__CSG_8hpp}{EBGeometry\+\_\+\+CSG.\+hpp}}\end{DoxyCompactItemize}

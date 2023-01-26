@@ -1,0 +1,103 @@
+\hypertarget{classIntersectionIF}{}\doxysection{Intersection\+IF$<$ T $>$ Class Template Reference}
+\label{classIntersectionIF}\index{IntersectionIF$<$ T $>$@{IntersectionIF$<$ T $>$}}
+
+
+CSG intersection. Computes the maximum value of all input primitives.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+CSG.\+hpp$>$}
+
+
+
+Inheritance diagram for Intersection\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classIntersectionIF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Intersection\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classIntersectionIF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classIntersectionIF_a970390084218b6c6cb0301a11916f4cd}\label{classIntersectionIF_a970390084218b6c6cb0301a11916f4cd}} 
+\mbox{\hyperlink{classIntersectionIF_a970390084218b6c6cb0301a11916f4cd}{Intersection\+IF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classIntersectionIF_aa4681a262cd6ffcbcf78b6ed34f0f18c}{Intersection\+IF}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$$>$ \&a\+\_\+implicit\+Functions) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor. Computes the CSG intersection. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classIntersectionIF_af62c3671ee40086c03cf65a27516fd6f}\label{classIntersectionIF_af62c3671ee40086c03cf65a27516fd6f}} 
+virtual \mbox{\hyperlink{classIntersectionIF_af62c3671ee40086c03cf65a27516fd6f}{$\sim$\+Intersection\+IF}} ()=default
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classIntersectionIF_a3012ed1cca67de752a7d5ea25121457f}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classIntersectionIF_ae5bdcf9b1978bbbe53174c5767a1b313}\label{classIntersectionIF_ae5bdcf9b1978bbbe53174c5767a1b313}} 
+std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ $>$ \mbox{\hyperlink{classIntersectionIF_ae5bdcf9b1978bbbe53174c5767a1b313}{m\+\_\+implicit\+Functions}}
+\begin{DoxyCompactList}\small\item\em List of primitives. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Intersection\+IF$<$ T $>$}
+
+CSG intersection. Computes the maximum value of all input primitives. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classIntersectionIF_aa4681a262cd6ffcbcf78b6ed34f0f18c}\label{classIntersectionIF_aa4681a262cd6ffcbcf78b6ed34f0f18c}} 
+\index{IntersectionIF$<$ T $>$@{IntersectionIF$<$ T $>$}!IntersectionIF@{IntersectionIF}}
+\index{IntersectionIF@{IntersectionIF}!IntersectionIF$<$ T $>$@{IntersectionIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{IntersectionIF()}{IntersectionIF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classIntersectionIF}{Intersection\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classIntersectionIF}{Intersection\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$$>$ \&}]{a\+\_\+implicit\+Functions }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. Computes the CSG intersection. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Functions} & List of primitives \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classIntersectionIF_a3012ed1cca67de752a7d5ea25121457f}\label{classIntersectionIF_a3012ed1cca67de752a7d5ea25121457f}} 
+\index{IntersectionIF$<$ T $>$@{IntersectionIF$<$ T $>$}!value@{value}}
+\index{value@{value}!IntersectionIF$<$ T $>$@{IntersectionIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{value()}{value()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classIntersectionIF}{Intersection\+IF}}$<$ T $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Value function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__CSG_8hpp}{EBGeometry\+\_\+\+CSG.\+hpp}}\end{DoxyCompactItemize}

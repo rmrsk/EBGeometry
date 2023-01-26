@@ -1,0 +1,108 @@
+\hypertarget{classDifferenceIF}{}\doxysection{Difference\+IF$<$ T $>$ Class Template Reference}
+\label{classDifferenceIF}\index{DifferenceIF$<$ T $>$@{DifferenceIF$<$ T $>$}}
+
+
+CSG difference. Computes C = A-\/B.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+CSG.\+hpp$>$}
+
+
+
+Inheritance diagram for Difference\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classDifferenceIF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Difference\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=203pt]{classDifferenceIF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDifferenceIF_ad0775e4f805c27cf49acc7d686656bc1}\label{classDifferenceIF_ad0775e4f805c27cf49acc7d686656bc1}} 
+\mbox{\hyperlink{classDifferenceIF_ad0775e4f805c27cf49acc7d686656bc1}{Difference\+IF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classDifferenceIF_aba799ac92241576bfe12fc877c404247}{Difference\+IF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+FunctionB) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor. Computes the CSG difference. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDifferenceIF_aaf74cc7f973d903270f1f1de945ac280}\label{classDifferenceIF_aaf74cc7f973d903270f1f1de945ac280}} 
+virtual \mbox{\hyperlink{classDifferenceIF_aaf74cc7f973d903270f1f1de945ac280}{$\sim$\+Difference\+IF}} ()=default
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classDifferenceIF_aeb69f3c5235d6038f3ccc4236ddc1bc1}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classDifferenceIF_a7fe18374954b3971069b8bb9a57e10b4}\label{classDifferenceIF_a7fe18374954b3971069b8bb9a57e10b4}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{classDifferenceIF_a7fe18374954b3971069b8bb9a57e10b4}{m\+\_\+implicit\+FunctionA}}
+\begin{DoxyCompactList}\small\item\em First implicit function. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classDifferenceIF_add71ab247810af434a97982f079c7f27}\label{classDifferenceIF_add71ab247810af434a97982f079c7f27}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{classDifferenceIF_add71ab247810af434a97982f079c7f27}{m\+\_\+implicit\+FunctionB}}
+\begin{DoxyCompactList}\small\item\em Subtracted implicit function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Difference\+IF$<$ T $>$}
+
+CSG difference. Computes C = A-\/B. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classDifferenceIF_aba799ac92241576bfe12fc877c404247}\label{classDifferenceIF_aba799ac92241576bfe12fc877c404247}} 
+\index{DifferenceIF$<$ T $>$@{DifferenceIF$<$ T $>$}!DifferenceIF@{DifferenceIF}}
+\index{DifferenceIF@{DifferenceIF}!DifferenceIF$<$ T $>$@{DifferenceIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{DifferenceIF()}{DifferenceIF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classDifferenceIF}{Difference\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classDifferenceIF}{Difference\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+FunctionB }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. Computes the CSG difference. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+FunctionA} & Implicit function \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+FunctionB} & Implicit function to subtract \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classDifferenceIF_aeb69f3c5235d6038f3ccc4236ddc1bc1}\label{classDifferenceIF_aeb69f3c5235d6038f3ccc4236ddc1bc1}} 
+\index{DifferenceIF$<$ T $>$@{DifferenceIF$<$ T $>$}!value@{value}}
+\index{value@{value}!DifferenceIF$<$ T $>$@{DifferenceIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{value()}{value()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classDifferenceIF}{Difference\+IF}}$<$ T $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Value function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__CSG_8hpp}{EBGeometry\+\_\+\+CSG.\+hpp}}\end{DoxyCompactItemize}

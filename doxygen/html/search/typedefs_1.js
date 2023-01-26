@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['comparator_674',['Comparator',['../namespaceBVH.html#af1532e9ecc212528197e9a4a2555938f',1,'BVH']]]
+  ['metaupdater_739',['MetaUpdater',['../namespaceBVH.html#acaf9bd22eb434cf05f36d5ca61984b38',1,'BVH']]]
 ];
