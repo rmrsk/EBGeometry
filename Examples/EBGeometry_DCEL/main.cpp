@@ -36,21 +36,28 @@ main(int argc, char* argv[])
     file = "../Resources/" + std::string(argv[1]);
   }
   else {
-    std::cerr << "Missing file name. Use ./a.out 'filename' where 'filename' "
-                 "is one of the files in ../Resources\n";
+    std::cout << "Missing file name. Use ./a.out 'filename' where 'filename' "
+                 "is one of the files in ../Resources. Setting this equal to the armadillo file\n";
+    file = "../Resources/armadillo.stl";
   }
 
-  // Three representations of the same object. First, we get the DCEL mesh, and then
-  // we convert it to a full BVH tree representation. Then we flatten that tree.
-  const auto dcelSDF = EBGeometry::Parser::readIntoDCEL<T>(file);
-  const auto bvhSDF  = EBGeometry::DCEL::buildFullBVH<T, BV, K>(dcelSDF);
-  const auto linSDF  = bvhSDF->flattenTree();
+  // Three representations of the same object. Note that this reads the mesh three
+  // times and builds the BVH twice (there are converters that avoid this, users will
+  // only use one of these representations).
+  const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T>(file);
+  const auto bvhSDF  = EBGeometry::Parser::readIntoFullBVH<T, BV, K>(file);
+  const auto linSDF  = EBGeometry::Parser::readIntoLinearBVH<T, BV, K>(file);
 
   // Sample some random points around the object.
   constexpr size_t Nsamp = 100;
 
-  const Vec3 lo    = bvhSDF->getBoundingVolume().getLowCorner();
-  const Vec3 hi    = bvhSDF->getBoundingVolume().getHighCorner();
+  Vec3 lo = Vec3::infinity();
+  Vec3 hi = -Vec3::infinity();
+
+  for (const auto& v : dcelSDF->getMesh()->getAllVertexCoordinates()) {
+    lo = min(lo, v);
+    hi = max(hi, v);
+  }
   const Vec3 delta = hi - lo;
 
   std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));

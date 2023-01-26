@@ -1,0 +1,156 @@
+name: Continuous integration
+
+on:
+  pull_request:
+    types: [push, opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-code-format
+  cancel-in-progress: true
+
+jobs:
+  Formatting:
+    name: Format source
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: [Source, Examples]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run clang-format
+        uses: jidicula/clang-format-action@v4.10.1
+        with:
+          clang-format-version: '10'
+          check-path: ${{ matrix.directory }}
+
+  Linux-GNU:
+    needs: Formatting
+    name: Linux-GNU
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        comp: [g++-9, g++-10, g++-11]
+        directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_F18, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install ${{ matrix.comp }}
+
+      - name: Compile examples
+        working-directory: ${{ matrix.directory }}
+        run: |
+          ${{ matrix.comp }} -std=c++17 \
+          -pedantic -Wall -Wextra  -Wcast-align  -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
+          -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
+          -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel \
+          -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused \
+          main.cpp
+
+      - name: Run examples
+        working-directory: ${{ matrix.directory }}
+        run: |
+          ./a.out
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
+
+  Linux-Intel:
+    needs: Formatting
+    name: Linux-Intel
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]    
+
+    steps:
+      - uses: actions/checkout@v3      
+      - name: Install Intel oneAPI
+        working-directory: /tmp        
+        run: |
+          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"
+          sudo apt-get -y install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+
+      - name: Compile examples
+        working-directory: ${{ matrix.directory }}
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          icpc -std=c++17 -O0 \
+          -Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
+          -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
+          -Wunused-variable -Wwrite-strings -Werror \
+          main.cpp -lstdc++fs
+
+      - name: Run examples
+        working-directory: ${{ matrix.directory }}
+        run: |
+          ./a.out
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
+
+  Build-documentation:
+    needs: Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt install doxygen
+          sudo apt install graphviz
+          sudo apt install texlive
+          sudo apt install texlive-latex-extra
+          sudo apt install latexmk
+          python3 -m pip install sphinx==5.0.0 sphinx_rtd_theme sphinxcontrib-bibtex          
+          
+      - name: Build doxygen
+        working-directory: ${{ github.workspace }}/Docs
+        run: |
+          doxygen doxyfile
+
+      - name: Build HTML documentation
+        working-directory: ${{ github.workspace }}/Docs/Sphinx        
+        run: |
+          make html
+
+      - name: Build PDF documentation
+        working-directory: ${{ github.workspace }}/Docs/Sphinx
+        run: |
+          make latexpdf
+
+      - name: Upload
+        uses: actions/upload-artifact@v1
+        with:
+          name: docs
+          path: Docs/Sphinx/build
+
+      - name: Cleanup
+        working-directory: ${{ github.workspace }}/Docs
+        run: |
+          cp -a Sphinx/build/html/* ./
+          mv Sphinx/build/latex/ebgeometry.pdf ./
+          rm -rf Sphinx/build          
+          
+      - name: Deploy
+        if: github.event_name == 'push' && github.repository == 'rmrsk/EBGeometry' && github.ref == 'refs/heads/main'        
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
+          folder: Docs
+          clean: false
+
+  CI-passed:
+    needs: [Linux-GNU, Linux-Intel, Build-documentation]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Do nothing
+        run: |
+          

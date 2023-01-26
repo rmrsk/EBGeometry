@@ -95,34 +95,36 @@ namespace BVH {
   using BVConstructorT = std::function<BV(const std::shared_ptr<const P>& a_primitive)>;
 
   /*!
-    @brief Comparator for LinearBVH::stackPrune
-    @param[in] minDist       Minimum distance found so far
-    @param[in] primDistances Distance to primitives in the leaf node. 
+    @brief Updater for tree traversal
+    @param[in] a_primitives. 
   */
-  template <class T>
-  using Comparator = std::function<T(const T& minDist, const std::vector<T>& primDistances)>;
+  template <class P>
+  using Updater = std::function<void(const PrimitiveListT<P>& a_primitives)>;
 
   /*!
-    @brief Pruner for LinearBVH::stackPrune
-    @param[in] a_bvDist Distance to current bounding volume. 
-    @param[in] a_minDist  Shortest "distance" to primitives found so far. 
+    @brief Visiter pattern for LinearBVH::traverse. Must return true if we should visit the node and false otherwise. 
+    @details The Meta template parameter is a door left open to the user for attaching additional data to the 
+    sorter/visiter pattern. 
+    @param[in] a_node Node to visit or not
+    @param[in] a_meta Meta-data for node visit.
   */
-  template <class T>
-  using Pruner = std::function<bool(const T& bvDist, const T& minDist)>;
+  template <class NodeType, class Meta>
+  using Visiter = std::function<bool(const NodeType& a_node, const Meta& a_meta)>;
 
   /*!
-    @brief Typename for identifying algorithms various algorithms during tree
-    traversel.
-    @details Stack     => Use stack/priority queue (ordered traversal).
-    Ordered   => Use recursive ordered traversal.
-    Unordered => Use recursive unordered traversal.
+    @brief Sorting criterion for which child node to visit first. 
+    This takes an input list of child nodes and sorts it. When further into the sub-tree, the first
+    node is investigated first, then the second, etc. The Meta template parameter is a door left open to
+    the user for attaching additional data to the sorter/visiter pattern. 
   */
-  enum class Prune
-  {
-    Stack,
-    Ordered,
-    Unordered,
-  };
+  template <class NodeType, class Meta, size_t K>
+  using Sorter = std::function<void(std::array<std::pair<std::shared_ptr<const NodeType>, Meta>, K>& a_children)>;
+
+  /*!
+    @brief Updater for when user wants to add some meta-data to his BVH traversal.
+  */
+  template <class NodeType, class Meta>
+  using MetaUpdater = std::function<Meta(const NodeType& a_node)>;
 
   /*!
     @brief Class which encapsulates a node in a bounding volume hierarchy.
@@ -130,23 +132,15 @@ namespace BVH {
     is the bounding volume type used at the nodes. The parameter K (which must be
     > 1) is the tree degree. K=2 is a binary tree, K=3 is a tertiary tree and so
     on.
-    @note Template constraints are as following:
-
-    P MUST supply function signedDistance(...) .
-    BV MUST supply a function getDistance
-
-    Had this been C++20, we would have use concepts to enforce this.
   */
   template <class T, class P, class BV, size_t K>
-  class NodeT : public SignedDistanceFunction<T>
+  class NodeT : public std::enable_shared_from_this<NodeT<T, P, BV, K>>
   {
   public:
     using PrimitiveList = PrimitiveListT<P>;
     using Vec3          = Vec3T<T>;
     using Node          = NodeT<T, P, BV, K>;
-
-    using NodePtr = std::shared_ptr<Node>;
-
+    using NodePtr       = std::shared_ptr<Node>;
     using StopFunction  = StopFunctionT<T, P, BV, K>;
     using Partitioner   = PartitionerT<P, BV, K>;
     using BVConstructor = BVConstructorT<P, BV>;
@@ -214,6 +208,15 @@ namespace BVH {
     getBoundingVolume() const noexcept;
 
     /*!
+      @brief Get the distance from a 3D point to the bounding volume
+      @param[in] a_point 3D point
+      @return Returns distance to bounding volume. A zero distance implies that
+      the input point is inside the bounding volume.
+    */
+    inline T
+    getDistanceToBoundingVolume(const Vec3& a_point) const noexcept;
+
+    /*!
       @brief Return this node's children.
       @return m_children.
     */
@@ -221,22 +224,19 @@ namespace BVH {
     getChildren() const noexcept;
 
     /*!
-      @brief Function which computes the signed distance
-      @param[in] a_point   3D point in space
-      @return Signed distance to the input point.
+      @brief Recursion-less BVH traversal algorithm. 
+      The user inputs the update rule, a pruning criterion, and a criterion of who to visit first. 
+      @param[in] a_updater     Update rule (for updating whatever the user is interested in updated)
+      @param[in] a_visiter     Visiter rule. Must return true if we should visit the node. 
+      @param[in] a_sorter      Children sort function for deciding which subtrees and investigated first. 
+      @param[in] a_metaUpdater Updater for meta-information.
     */
-    inline T
-    signedDistance(const Vec3T<T>& a_point) const noexcept override;
-
-    /*!
-      @brief Function which computes the signed distance. This version allows the
-      user to manually select a traversal algorithm.
-      @param[in] a_point   3D point in space
-      @param[in] a_pruning Pruning algorithm
-      @return Signed distance to the input point.
-    */
-    inline T
-    signedDistance(const Vec3T<T>& a_point, const Prune a_pruning) const noexcept;
+    template <class Meta>
+    inline void
+    traverse(const BVH::Updater<P>&              a_updater,
+             const BVH::Visiter<Node, Meta>&     a_visiter,
+             const BVH::Sorter<Node, Meta, K>&   a_sorter,
+             const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept;
 
     /*!
       @brief Flatten everything beneath this node into a depth-first sorted BVH
@@ -278,51 +278,11 @@ namespace BVH {
     setPrimitives(const PrimitiveList& a_primitives) noexcept;
 
     /*!
-      @brief Get the distance from a 3D point to the bounding volume
-      @param[in] a_point 3D point
-      @return Returns distance to bounding volume. A zero distance implies that
-      the input point is inside the bounding volume.
-    */
-    inline T
-    getDistanceToBoundingVolume(const Vec3& a_point) const noexcept;
-
-    /*!
-      @brief Compute the shortest distance to the primitives in this node.
-      @param[in] a_point 3D point
-      @return Returns the signed distance to the primitives.
-    */
-    inline T
-    getDistanceToPrimitives(const Vec3& a_point) const noexcept;
-
-    /*!
       @brief Get the list of primitives in this node.
       @return Primitives list
     */
     inline PrimitiveList&
     getPrimitives() noexcept;
-
-    /*!
-      @brief Iterative ordered pruning along the BVH tree.
-      @param[in,out] a_point   Input 3D point
-    */
-    inline T
-    pruneStack(const Vec3& a_point) const noexcept;
-
-    /*!
-      @brief Recursively ordered pruning along the BVH tree.
-      @param[in,out] a_closest Shortest distance to primitives so far.
-      @param[in,out] a_point   Input 3D point
-    */
-    inline void
-    pruneOrdered(T& a_closest, const Vec3& a_point) const noexcept;
-
-    /*!
-      @brief Recursive unordered pruning along the BVH tree.
-      @param[in,out] a_closest Shortest distance to primitives so far.
-      @param[in,out] a_point   Input 3D point
-    */
-    inline void
-    pruneUnordered(T& a_closest, const Vec3& a_point) const noexcept;
 
     /*!
       @brief Flatten tree method.
@@ -494,7 +454,7 @@ namespace BVH {
     @brief Linear root node for BVH hierarchy
   */
   template <class T, class P, class BV, size_t K>
-  class LinearBVH : public SignedDistanceFunction<T>
+  class LinearBVH
   {
   public:
     using Vec3          = Vec3T<T>;
@@ -539,27 +499,19 @@ namespace BVH {
     getBoundingVolume() const noexcept;
 
     /*!
-      @brief Function which computes the signed distance.
-      @param[in] a_point 3D point in space
-      @note If the objects overlap this routine makes no sense. In that case
-      there is no signed distance, but there IS a CSG union (csgUnion).
+      @brief Recursion-less BVH traversal algorithm. 
+      The user inputs the update rule, a pruning criterion, and a criterion of who to visit first. 
+      @param[in] a_updater     Update rule (for updating whatever the user is interested in updated)
+      @param[in] a_visiter     Visiter rule. Must return true if we should visit the node. 
+      @param[in] a_sorter      Children sort function for deciding which subtrees and investigated first. 
+      @param[in] a_metaUpdater Updater for meta-information.
     */
-    inline T
-    signedDistance(const Vec3& a_point) const noexcept override;
-
-    /*!
-      @brief Stack-based pruning algorithm (recursion-less).
-      @details This will iterate through the BVH and visit all nodes where a_pruner evaluates to true. If
-      the node is a leaf node, we update the "distance", which will be the closest object for signed
-      distance, or the one with the smallest value for the constructive solid geometry union. 
-      @param[in] a_point      3D point in space
-      @param[in] a_comparator Comparator for how to select the "output" when comparing various distances. 
-      @param[in] a_pruner     Comparator for whether to visit the node or not. 
-    */
-    inline T
-    stackPrune(const Vec3&               a_point,
-               const BVH::Comparator<T>& a_comparator,
-               const BVH::Pruner<T>&     a_pruner) const noexcept;
+    template <class Meta>
+    inline void
+    traverse(const BVH::Updater<P>&                    a_updater,
+             const BVH::Visiter<LinearNode, Meta>&     a_visiter,
+             const BVH::Sorter<LinearNode, Meta, K>&   a_sorter,
+             const BVH::MetaUpdater<LinearNode, Meta>& a_metaUpdater) const noexcept;
 
   protected:
     /*!

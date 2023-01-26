@@ -46,14 +46,14 @@ main()
 
         Vec3 center(x, y, z);
 
-        spheres.emplace_back(std::make_shared<Sphere>(center, radius, false));
+        spheres.emplace_back(std::make_shared<Sphere>(center, radius));
       }
     }
   }
 
   // Make a standard union of these spheres. This is the union object which
   // iterates through each and every object in the scene.
-  EBGeometry::Union<T, Sphere> slowUnion(spheres, false);
+  auto slowUnion = EBGeometry::Union<T, Sphere>(spheres);
 
   // Make a fast union. To do this we must have the SDF objects (our vector of
   // spheres) as well as a way for enclosing these objects. We need to define
@@ -70,7 +70,7 @@ main()
     return AABB(lo, hi);
   };
 
-  EBGeometry::UnionBVH<T, Sphere, AABB, K> fastUnion(spheres, false, aabbConstructor);
+  EBGeometry::FastUnionIF<T, Sphere, AABB, K> fastUnion(spheres, aabbConstructor);
 
   // Create some samples in the bounding box of the BVH
   std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
@@ -98,7 +98,7 @@ main()
 
   const auto t1 = std::chrono::high_resolution_clock::now();
   for (const auto& x : randomPositions) {
-    sumSlow += slowUnion.value(x);
+    sumSlow += slowUnion->value(x);
   }
   const auto t2 = std::chrono::high_resolution_clock::now();
   for (const auto& x : randomPositions) {
