@@ -21,11 +21,6 @@
 
 // Our includes
 #include "EBGeometry_Parser.hpp"
-#include "EBGeometry_DCEL_Vertex.hpp"
-#include "EBGeometry_DCEL_Edge.hpp"
-#include "EBGeometry_DCEL_Face.hpp"
-#include "EBGeometry_DCEL_Mesh.hpp"
-#include "EBGeometry_DCEL_Iterator.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 template <typename T>
@@ -75,50 +70,69 @@ Parser::readIntoDCEL(const std::vector<std::string> a_files) noexcept
   return objects;
 }
 
+template <typename T>
+inline std::shared_ptr<MeshSDF<T>>
+Parser::readIntoMesh(const std::string a_filename) noexcept{
+  const auto mesh = Parser::readIntoDCEL<T>(a_filename);
+
+  return std::make_shared<MeshSDF<T>>(mesh);
+}
+
+template <typename T>
+inline std::vector<std::shared_ptr<MeshSDF<T>>>
+Parser::readIntoMesh(const std::vector<std::string> a_files) noexcept{
+
+  std::vector<std::shared_ptr<MeshSDF<T>>> implicitFunctions;
+
+  for (const auto& file : a_files) {
+    implicitFunctions.emplace_back(Parser::readIntoMesh<T>(file));
+  }
+
+  return implicitFunctions;  
+}
+
 template <typename T, typename BV, size_t K>
-inline std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>
+inline std::shared_ptr<FastMeshSDF<T, BV, K>>
 Parser::readIntoFullBVH(const std::string a_filename) noexcept
 {
   const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(a_filename);
 
-  auto bvh = EBGeometry::DCEL::buildFullBVH<T, BV, K>(mesh);
-
-  return bvh;
+  return std::make_shared<FastMeshSDF<T, BV, K>>(mesh);
 }
 
 template <typename T, typename BV, size_t K>
-inline std::vector<std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>>
+inline std::vector<std::shared_ptr<FastMeshSDF<T, BV, K>>>
 Parser::readIntoFullBVH(const std::vector<std::string> a_files) noexcept
 {
-  std::vector<std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>> objects;
+  std::vector<std::shared_ptr<FastMeshSDF<T, BV, K>>> implicitFunctions;
 
   for (const auto& file : a_files) {
-    objects.emplace_back(Parser::readIntoFullBVH<T, BV, K>(file));
+    implicitFunctions.emplace_back(Parser::readIntoFullBVH<T, BV, K>(file));
   }
 
-  return objects;
+  return implicitFunctions;
 }
 
 template <typename T, typename BV, size_t K>
-inline std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>>
+inline std::shared_ptr<FastCompactMeshSDF<T, BV, K>>
 Parser::readIntoLinearBVH(const std::string a_filename) noexcept
 {
-  const auto bvh = Parser::readIntoFullBVH<T, BV, K>(a_filename);
+  const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(a_filename);
 
-  return bvh->flattenTree();
+  return std::make_shared<FastCompactMeshSDF<T, BV, K>>(mesh);
 }
 
 template <typename T, typename BV, size_t K>
-inline std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>>>
+inline std::vector<std::shared_ptr<FastCompactMeshSDF<T, BV, K>>>
 Parser::readIntoLinearBVH(const std::vector<std::string> a_files) noexcept
 {
-  std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>>> objects;
+  std::vector<std::shared_ptr<FastCompactMeshSDF<T, BV, K>>> implicitFunctions;
 
   for (const auto& file : a_files) {
-    objects.emplace_back(Parser::readIntoLinearBVH<T, BV, K>(file));
+    implicitFunctions.emplace_back(Parser::readIntoLinearBVH<T, BV, K>(file));
   }
 
-  return objects;
+  return implicitFunctions;
 }
 
 inline Parser::FileType

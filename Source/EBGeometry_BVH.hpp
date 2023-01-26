@@ -526,7 +526,7 @@ namespace BVH {
     @brief Linear root node for BVH hierarchy
   */
   template <class T, class P, class BV, size_t K>
-  class LinearBVH : public SignedDistanceFunction<T>
+  class LinearBVH
   {
   public:
     using Vec3          = Vec3T<T>;
@@ -577,7 +577,7 @@ namespace BVH {
       there is no signed distance, but there IS a CSG union (csgUnion).
     */
     inline T
-    signedDistance(const Vec3& a_point) const noexcept override;
+    signedDistance(const Vec3& a_point) const noexcept;
 
     /*!
       @brief Stack-based pruning algorithm (recursion-less).

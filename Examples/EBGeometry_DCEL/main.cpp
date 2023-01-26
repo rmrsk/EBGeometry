@@ -15,7 +15,7 @@ using namespace EBGeometry::DCEL;
 
 // Degree of bounding volume hierarchies. We use a 4-ary tree here, where each
 // regular node has four children.
-constexpr int K = 4;
+constexpr int K = 2;
 
 using T    = float;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
@@ -41,11 +41,12 @@ main(int argc, char* argv[])
     file = "../Resources/armadillo.stl";
   }
 
-  // Three representations of the same object. First, we get the DCEL mesh, and then
-  // we convert it to a full BVH tree representation. Then we flatten that tree.
-  const auto dcelSDF = EBGeometry::Parser::readIntoDCEL<T>(file);
-  const auto bvhSDF  = std::make_shared<FastMeshSDF<T, BV, K>>(dcelSDF);
-  const auto linSDF  = std::make_shared<FastCompactMeshSDF<T, BV, K>>(dcelSDF);
+  // Three representations of the same object. Note that this reads the mesh three
+  // times and builds the BVH twice (there are converters that avoid this, users will
+  // only use one of these representations).
+  const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T>(file);
+  const auto bvhSDF  = EBGeometry::Parser::readIntoFullBVH<T, BV, K>(file);  
+  const auto linSDF  = EBGeometry::Parser::readIntoLinearBVH<T, BV, K>(file);  
 
   // Sample some random points around the object.
   constexpr size_t Nsamp = 100;
@@ -53,7 +54,7 @@ main(int argc, char* argv[])
   Vec3 lo = Vec3::infinity();
   Vec3 hi = -Vec3::infinity();
 
-  for (const auto& v : dcelSDF->getAllVertexCoordinates()) {
+  for (const auto& v : dcelSDF->getMesh()->getAllVertexCoordinates()) {
     lo = min(lo, v);
     hi = max(hi, v);
   }

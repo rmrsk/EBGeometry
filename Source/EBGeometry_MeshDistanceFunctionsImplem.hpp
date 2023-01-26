@@ -16,6 +16,26 @@
 #include "EBGeometry_MeshDistanceFunctions.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
+template <class T>
+MeshSDF<T>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
+{
+  m_mesh = a_mesh;
+}
+
+template <class T>
+T
+MeshSDF<T>::signedDistance(const Vec3T<T>& a_point) const noexcept
+{
+  return m_mesh->signedDistance(a_point);
+}
+
+template <class T>
+const std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
+MeshSDF<T>::getMesh() const noexcept
+{
+  return m_mesh;
+}
+
 template <class T, class BV, size_t K>
 FastMeshSDF<T, BV, K>::FastMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
 {

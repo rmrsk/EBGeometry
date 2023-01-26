@@ -20,6 +20,50 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
+  @brief Signed distance function for a DCEL mesh. Does not use BVHs.
+*/
+template <class T>
+class MeshSDF : public SignedDistanceFunction<T>
+{
+public:
+  using Mesh = EBGeometry::DCEL::MeshT<T>;
+
+  /*!
+    @brief Disallowed constructor
+  */
+  MeshSDF() = delete;
+
+  /*!
+    @brief Full constructor.
+    @param[in] a_mesh Input mesh
+  */
+  MeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept;
+
+  /*!
+    @brief Destructor
+  */
+  virtual ~MeshSDF() = default;
+
+  /*!
+    @brief Value function
+  */
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override;
+
+  /*!
+    @brief Get the surface mesh
+  */
+  const std::shared_ptr<Mesh>
+  getMesh() const noexcept;
+
+protected:
+  /*!
+    @brief DCEL mesh
+  */
+  std::shared_ptr<Mesh> m_mesh;
+};
+
+/*!
   @brief Signed distance function for a DCEL mesh. This class uses the full BVH representation. 
 */
 template <class T, class BV, size_t K>
@@ -78,6 +122,7 @@ public:
 
   /*!
     @brief Full constructor. Takes the input mesh and creates the BVH.
+    @param[in] a_mesh Input mesh
   */
   FastCompactMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept;
 
