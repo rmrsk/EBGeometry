@@ -22,7 +22,7 @@ copyright = '2022, Robert Marskar'
 author = 'Robert Marskar'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0'
+release = 'Latest'
 
 # -- General configuration ---------------------------------------------------
 
