@@ -29,10 +29,10 @@ PygmentsBridge.latex_formatter = CustomLatexFormatter
 
 project = 'EBGeometry'
 copyright = '2022, Robert Marskar'
-author = 'Robert Marskar'
+author = ''
 
 # The full version, including alpha/beta/rc tags
-release = 'Latest'
+#release = 'Latest'
 
 # -- General configuration ---------------------------------------------------
 
