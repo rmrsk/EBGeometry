@@ -37,7 +37,33 @@ jobs:
       - name: Build doxygen
         working-directory: ${{ github.workspace }}/Docs        
         run: |
-          doxygen Docs/doxygen.conf
+          doxygen doxygen.conf
+
+  Build-HTML:
+    needs: Install-dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build html
+        working-directory: ${{ github.workspace }}/Docs        
+        run: |
+          make html
+
+  Build-PDF:
+    needs: Install-dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build PDF
+        working-directory: ${{ github.workspace }}/Docs        
+        run: |
+          make latexpdf
 
   # Build-HTML:
   #   needs: Install-dependencies
