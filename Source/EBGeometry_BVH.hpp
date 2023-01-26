@@ -95,23 +95,7 @@ namespace BVH {
   using BVConstructorT = std::function<BV(const std::shared_ptr<const P>& a_primitive)>;
 
   /*!
-    @brief Comparator for BVH 
-    @param[in] minDist       Minimum distance found so far
-    @param[in] primDistances Distance to primitives in the leaf node. 
-  */
-  template <class T>
-  using Comparator = std::function<T(const T& minDist, const std::vector<T>& primDistances)>;
-
-  /*!
-    @brief Pruner for LinearBVH::stackPrune
-    @param[in] a_bvDist Distance to current bounding volume. 
-    @param[in] a_minDist  Shortest "distance" to primitives found so far. 
-  */
-  template <class T>
-  using Pruner = std::function<bool(const T& bvDist, const T& minDist)>;
-
-  /*!
-    @brief Updater for LinearBVH::stackPrune
+    @brief Updater for tree traversal
     @param[in] a_primitives. 
   */
   template <class P>
@@ -143,20 +127,6 @@ namespace BVH {
   using MetaUpdater = std::function<Meta(const NodeType& a_node)>;
 
   /*!
-    @brief Typename for identifying algorithms various algorithms during tree
-    traversel.
-    @details Stack     => Use stack/priority queue (ordered traversal).
-    Ordered   => Use recursive ordered traversal.
-    Unordered => Use recursive unordered traversal.
-  */
-  enum class Prune
-  {
-    Stack,
-    Ordered,
-    Unordered,
-  };
-
-  /*!
     @brief Class which encapsulates a node in a bounding volume hierarchy.
     @details T is the precision, P is the primitive type you want to enclose, BV
     is the bounding volume type used at the nodes. The parameter K (which must be
@@ -170,9 +140,7 @@ namespace BVH {
     using PrimitiveList = PrimitiveListT<P>;
     using Vec3          = Vec3T<T>;
     using Node          = NodeT<T, P, BV, K>;
-
-    using NodePtr = std::shared_ptr<Node>;
-
+    using NodePtr       = std::shared_ptr<Node>;
     using StopFunction  = StopFunctionT<T, P, BV, K>;
     using Partitioner   = PartitionerT<P, BV, K>;
     using BVConstructor = BVConstructorT<P, BV>;
@@ -529,20 +497,6 @@ namespace BVH {
     */
     inline const BV&
     getBoundingVolume() const noexcept;
-
-    /*!
-      @brief Stack-based pruning algorithm (recursion-less).
-      @details This will iterate through the BVH and visit all nodes where a_pruner evaluates to true. If
-      the node is a leaf node, we update the "distance", which will be the closest object for signed
-      distance, or the one with the smallest value for the constructive solid geometry union. 
-      @param[in] a_point      3D point in space
-      @param[in] a_comparator Comparator for how to select the "output" when comparing various distances. 
-      @param[in] a_pruner     Comparator for whether to visit the node or not. 
-    */
-    inline T
-    stackPrune(const Vec3&               a_point,
-               const BVH::Comparator<T>& a_comparator,
-               const BVH::Pruner<T>&     a_pruner) const noexcept;
 
     /*!
       @brief Recursion-less BVH traversal algorithm. 

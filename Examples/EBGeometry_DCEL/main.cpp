@@ -15,7 +15,7 @@ using namespace EBGeometry::DCEL;
 
 // Degree of bounding volume hierarchies. We use a 4-ary tree here, where each
 // regular node has four children.
-constexpr int K = 2;
+constexpr int K = 4;
 
 using T    = float;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;

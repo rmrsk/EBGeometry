@@ -365,49 +365,49 @@ FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::shared_ptr<P>>& a_dis
 
   root->topDownSortAndPartitionPrimitives(a_bvConstructor, partitioner, stopFunc);
 
-  m_rootNode = root->flattenTree();
+  m_bvh = root->flattenTree();
 }
 
 template <class T, class P, class BV, size_t K>
 T
 FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 {
-  // For the CSG union we select the smallest value. This means that if a
-  // point is inside one object but outside another one, we choose the
-  // inside value. By design, LinearNode is a signed distance object, but the
-  // BVH accelerator is still a valid accelerator that permits us to do all
-  // kinds of accelerated traversals. For overlapping objects there is no signed
-  // distance but there is still a CSG union, and the BVH is still a useful thing.
-  // So, we can't use LinearNode::signedDistanceFunction because it returns the
-  // closest object and not the object with the smallest value function.
-  //
-  // Fortunately, when I wrote the LinearNode accelerator I wrote it such that we can determine
-  // how to update the "shortest" distance using externally supplied criteria.
-  // So, we just update this as f = min(f1,f2,f3) etc, and prune nodes accordingly.
-  // The criteria for that are below...
+  T minDist = std::numeric_limits<T>::infinity();
 
-  BVH::Comparator<T> unionComparator = [](const T& dmin, const std::vector<T>& primDistances) -> T {
-    T d = dmin;
-
-    for (const auto& primDist : primDistances) {
-      d = std::min(d, primDist);
+  BVH::Updater<P> updater = [&minDist,
+                             &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions) -> void {
+    for (const auto& implicitFunction : a_implicitFunctions) {
+      minDist = std::min(minDist, implicitFunction->value(a_point));
     }
-
-    return d;
   };
 
-  BVH::Pruner<T> unionPruner = [](const T& bvDist, const T& minDist) -> bool {
-    return bvDist <= 0.0 || bvDist <= minDist;
+  BVH::Visiter<Node, T> visiter = [&minDist](const Node& a_node, const T& a_bvDist) -> bool {
+    return a_bvDist <= 0.0 || a_bvDist <= minDist;
   };
 
-  return this->m_rootNode->stackPrune(a_point, unionComparator, unionPruner);
+  BVH::Sorter<Node, T, K> sorter =
+    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) -> void {
+    std::sort(
+      a_leaves.begin(),
+      a_leaves.end(),
+      [&a_point](const std::pair<std::shared_ptr<const Node>, T>& n1,
+                 const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
+  };
+
+  BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) -> T {
+    return a_node.getDistanceToBoundingVolume(a_point);
+  };
+
+  m_bvh->traverse(updater, visiter, sorter, metaUpdater);
+
+  return minDist;
 }
 
 template <class T, class P, class BV, size_t K>
 const BV&
 FastUnionIF<T, P, BV, K>::getBoundingVolume() const noexcept
 {
-  return m_rootNode->getBoundingVolume();
+  return m_bvh->getBoundingVolume();
 }
 
 template <class T, class P, class BV, size_t K>
@@ -433,31 +433,39 @@ FastSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
   T a = std::numeric_limits<T>::infinity();
   T b = std::numeric_limits<T>::infinity();
 
-  BVH::Pruner<T> unionPruner = [&a, &b](const T& bvDist, const T& minDist) -> bool {
-    return bvDist <= 0.0 || bvDist <= a || bvDist <= b;
-  };
+  BVH::Updater<P> updater =
+    [&a, &b, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions) -> void {
+    for (const auto& implicitFunction : a_implicitFunctions) {
+      const auto& d = implicitFunction->value(a_point);
 
-  BVH::Comparator<T> unionComparator = [&a, &b](const T& dmin, const std::vector<T>& primDistances) -> T {
-    T d = dmin;
-
-    for (const auto& primDist : primDistances) {
-
-      if (primDist < d) {
+      if (d < a) {
         b = a;
-        d = primDist;
         a = d;
       }
-      else if (primDist < b) {
-        b = primDist;
+      else if (d < b) {
+        b = d;
       }
     }
-
-    return d;
   };
 
-  // Prune -- don't need the result because we store the two closest implicit functions by
-  // reference.
-  this->m_rootNode->stackPrune(a_point, unionComparator, unionPruner);
+  BVH::Visiter<Node, T> visiter = [&a, &b](const Node& a_node, const T& a_bvDist) -> bool {
+    return a_bvDist <= 0.0 || a_bvDist <= a || a_bvDist <= b;
+  };
+
+  BVH::Sorter<Node, T, K> sorter =
+    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) -> void {
+    std::sort(
+      a_leaves.begin(),
+      a_leaves.end(),
+      [&a_point](const std::pair<std::shared_ptr<const Node>, T>& n1,
+                 const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
+  };
+
+  BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) -> T {
+    return a_node.getDistanceToBoundingVolume(a_point);
+  };
+
+  this->m_bvh->traverse(updater, visiter, sorter, metaUpdater);
 
   return m_smoothMin(a, b, m_smoothLen);
 }

@@ -276,10 +276,12 @@ template <class T, class P, class BV, size_t K>
 class FastUnionIF : public ImplicitFunction<T>
 {
 public:
-  static_assert(std::is_base_of<EBGeometry::SignedDistanceFunction<T>, P>::value,
-                "FastUnionIF requires an SDF (for now)");
+  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value,
+                "FastUnionIF requires an implicit function");
 
-  using BVConstructor = EBGeometry::BVH::BVConstructorT<P, BV>;
+  using BVConstructor = typename EBGeometry::BVH::BVConstructorT<P, BV>;
+  using Root          = typename EBGeometry::BVH::LinearBVH<T, P, BV, K>;
+  using Node          = typename Root::LinearNode;
 
   /*!
     @brief Disallowed, use the full constructor
@@ -315,7 +317,7 @@ protected:
   /*!
     @brief Root node for linearized BVH tree
   */
-  std::shared_ptr<EBGeometry::BVH::LinearBVH<T, P, BV, K>> m_rootNode;
+  std::shared_ptr<EBGeometry::BVH::LinearBVH<T, P, BV, K>> m_bvh;
 
   /*!
     @brief Build BVH tree for the input objects. User must supply a partitioner
@@ -336,10 +338,12 @@ template <class T, class P, class BV, size_t K>
 class FastSmoothUnionIF : public FastUnionIF<T, P, BV, K>
 {
 public:
-  static_assert(std::is_base_of<EBGeometry::SignedDistanceFunction<T>, P>::value,
-                "FastUnionIF requires an SDF (for now)");
+  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value,
+                "FastSmoothUnionIF requires an implicit function");
 
   using BVConstructor = EBGeometry::BVH::BVConstructorT<P, BV>;
+  using Root          = typename EBGeometry::BVH::LinearBVH<T, P, BV, K>;
+  using Node          = typename Root::LinearNode;
 
   /*!
     @brief Disallowed, use the full constructor
