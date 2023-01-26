@@ -70,7 +70,7 @@ main()
     return AABB(lo, hi);
   };
 
-  EBGeometry::FastSmoothUnionIF<T, Sphere, AABB, K> fastUnion(spheres, aabbConstructor, 0.5 * radius);
+  EBGeometry::FastUnionIF<T, Sphere, AABB, K> fastUnion(spheres, aabbConstructor);
 
   // Create some samples in the bounding box of the BVH
   std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
