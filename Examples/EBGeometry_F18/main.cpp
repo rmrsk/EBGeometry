@@ -17,11 +17,10 @@ using namespace EBGeometry::DCEL;
 
 constexpr size_t K = 4;
 using T            = double;
-using Face         = EBGeometry::DCEL::FaceT<T>;
-using Mesh         = EBGeometry::DCEL::MeshT<T>;
-using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
-using LinBVH       = EBGeometry::BVH::LinearBVH<T, Face, BV, K>;
 using Vec3         = EBGeometry::Vec3T<T>;
+using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
+using SlowSDF      = EBGeometry::MeshSDF<T>;
+using FastSDF      = EBGeometry::FastCompactMeshSDF<T, BV, K>;
 
 int
 main(int argc, char* argv[])
@@ -52,37 +51,41 @@ main(int argc, char* argv[])
   // Read each STL file into a DCEL mesh. These STL files happen to have normal vectors pointing inwards
   // so we need to flip them. We also store the bounding volumes for each part, and create the total bounding
   // volume that encloses all parts.
-  std::vector<std::shared_ptr<Mesh>>   slowSDFs;
-  std::vector<std::shared_ptr<LinBVH>> fastSDFs;
-  std::vector<BV>                      boundingVolumes;
+  std::vector<std::shared_ptr<SlowSDF>> slowSDFs;
+  std::vector<std::shared_ptr<FastSDF>> fastSDFs;
+  std::vector<BV>                       boundingVolumes;
 
   for (const auto& f : stlFiles) {
+
+    // Read the DCEL mesh.
     const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(f);
     mesh->flip();
 
     // Store the grids as basic DCEL grids and as linearized BVHs.
-    slowSDFs.emplace_back(mesh);
-    fastSDFs.emplace_back(EBGeometry::DCEL::buildFlatBVH<T, BV, K>(mesh));
+    slowSDFs.emplace_back(std::make_shared<SlowSDF>(mesh));
+    fastSDFs.emplace_back(std::make_shared<FastSDF>(mesh));
 
     boundingVolumes.emplace_back(mesh->getAllVertexCoordinates());
   }
+
   const BV bv = BV(boundingVolumes);
 
   // Print some stats on the input mesh
   size_t numFacets = 0;
-  for (const auto& m : slowSDFs) {
-    numFacets += m->getFaces().size();
+  for (const auto& sdf : slowSDFs) {
+    numFacets += sdf->getMesh()->getFaces().size();
   }
   std::cout << "Number of components = " << slowSDFs.size() << "\n";
   std::cout << "Number of triangles  = " << numFacets << "\n";
 
   // Create four representations of the same object. We use a slow/fast union and
   // slow/fast SDF representation. See EBGeometry_CSG.hpp for these signatures (and EBGeometry_DCEL_BVH.hpp for the BV constructors)
-  const auto slowUnionSlowSDF = EBGeometry::Union<T, Mesh>(slowSDFs);
-  const auto slowUnionFastSDF = EBGeometry::Union<T, LinBVH>(fastSDFs);
-  const auto fastUnionSlowSDF = EBGeometry::FastUnion<T, Mesh, BV, K>(slowSDFs, defaultMeshBVConstructor<T, BV>);
-  const auto fastUnionFastSDF = EBGeometry::FastUnion<T, LinBVH, BV, K>(
-    fastSDFs, [](const std::shared_ptr<const LinBVH>& a_prim) -> BV { return a_prim->getBoundingVolume(); });
+  const auto slowUnionSlowSDF = EBGeometry::Union<T, SlowSDF>(slowSDFs);
+  const auto slowUnionFastSDF = EBGeometry::Union<T, FastSDF>(fastSDFs);
+  const auto fastUnionSlowSDF = EBGeometry::FastUnion<T, SlowSDF, BV, K>(
+    slowSDFs, [](const std::shared_ptr<const SlowSDF>& a_sdf) -> BV { return a_sdf->computeBoundingVolume<BV>(); });
+  const auto fastUnionFastSDF = EBGeometry::FastUnion<T, FastSDF, BV, K>(
+    fastSDFs, [](const std::shared_ptr<const FastSDF>& a_sdf) -> BV { return a_sdf->computeBoundingVolume(); });
 
   // Sample some random positions
   constexpr size_t Nsamp = 100;

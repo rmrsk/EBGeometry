@@ -56,6 +56,13 @@ public:
   const std::shared_ptr<Mesh>
   getMesh() const noexcept;
 
+  /*!
+    @brief Compute bounding volume for this mesh. 
+  */
+  template <class BV>
+  BV
+  computeBoundingVolume() const noexcept;
+
 protected:
   /*!
     @brief DCEL mesh
@@ -95,6 +102,12 @@ public:
   */
   virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
+
+  /*!
+    @brief Compute bounding volume for this mesh. 
+  */
+  BV
+  computeBoundingVolume() const noexcept;
 
 protected:
   /*!
@@ -137,6 +150,12 @@ public:
   */
   virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
+
+  /*!
+    @brief Compute bounding volume for this mesh. 
+  */
+  BV
+  computeBoundingVolume() const noexcept;
 
 protected:
   /*!

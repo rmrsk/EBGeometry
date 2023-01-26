@@ -36,6 +36,14 @@ MeshSDF<T>::getMesh() const noexcept
   return m_mesh;
 }
 
+template <class T>
+template <class BV>
+BV
+MeshSDF<T>::computeBoundingVolume() const noexcept
+{
+  return BV(m_mesh->getAllVertexCoordinates());
+};
+
 template <class T, class BV, size_t K>
 FastMeshSDF<T, BV, K>::FastMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
 {
@@ -80,6 +88,13 @@ FastMeshSDF<T, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T, class BV, size_t K>
+BV
+FastMeshSDF<T, BV, K>::computeBoundingVolume() const noexcept
+{
+  return m_bvh->getBoundingVolume();
+};
+
+template <class T, class BV, size_t K>
 FastCompactMeshSDF<T, BV, K>::FastCompactMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
 {
   const auto bvh = EBGeometry::DCEL::buildFullBVH<T, BV, K>(a_mesh);
@@ -122,6 +137,13 @@ FastCompactMeshSDF<T, BV, K>::signedDistance(const Vec3T<T>& a_point) const noex
 
   return minDist;
 }
+
+template <class T, class BV, size_t K>
+BV
+FastCompactMeshSDF<T, BV, K>::computeBoundingVolume() const noexcept
+{
+  return m_bvh->getBoundingVolume();
+};
 
 #include "EBGeometry_NamespaceFooter.hpp"
 
