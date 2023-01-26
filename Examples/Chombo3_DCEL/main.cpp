@@ -27,12 +27,13 @@ public:
 
   ChomboSDF(const std::string a_filename)
   {
-    m_rootNode = EBGeometry::Parser::readIntoLinearBVH<T, BV, K>(a_filename);
+    m_implicitFunction = EBGeometry::Parser::readIntoLinearBVH<T, BV, K>(a_filename);
+    m_implicitFunction = EBGeometry::Complement<T>(m_implicitFunction);
   }
 
   ChomboSDF(const ChomboSDF& a_other)
   {
-    m_rootNode = a_other.m_rootNode;
+    m_implicitFunction = a_other.m_implicitFunction;
   }
 
   Real
@@ -46,7 +47,7 @@ public:
     Vec3 p(a_point[0], a_point[1], a_point[2]);
 #endif
 
-    return Real(m_rootNode->signedDistance(m_rootNode->transformPoint(p)));
+    return Real(m_implicitFunction->value(p));
   }
 
   BaseIF*
@@ -56,7 +57,7 @@ public:
   }
 
 protected:
-  std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>> m_rootNode;
+  std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_implicitFunction;
 };
 
 int

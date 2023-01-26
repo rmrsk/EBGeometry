@@ -21,7 +21,7 @@ using T            = Real;
 using Face         = EBGeometry::DCEL::FaceT<T>;
 using Mesh         = EBGeometry::DCEL::MeshT<T>;
 using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
-using Prim         = EBGeometry::BVH::LinearBVH<T, Face, BV, K>;
+using FastSDF      = EBGeometry::FastCompactMeshSDF<T, BV, K>;
 using Vec3         = EBGeometry::Vec3T<T>;
 
 class F18 : public BaseIF
@@ -31,6 +31,7 @@ public:
   {
     // Get all the STL files in this directory .
     std::vector<std::string> stlFiles;
+
     for (const auto& entry : std::filesystem::directory_iterator("../Resources/F18")) {
       const std::string f   = entry.path();
       const std::string ext = f.substr(f.find_last_of(".") + 1);
@@ -42,29 +43,30 @@ public:
 
     // Read each STL file and make them into flattened BVH-trees. These STL files
     // have the normal vector pointing inwards so we flip it.
-    std::vector<std::shared_ptr<EBGeometry::BVH::LinearBVH<T, Face, BV, K>>> bvhDCEL;
+    std::vector<std::shared_ptr<FastSDF>> fastSDFs;
     for (const auto& f : stlFiles) {
       const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(f);
       mesh->flip();
 
       // Create the BVH.
-      bvhDCEL.emplace_back(EBGeometry::DCEL::buildFlatBVH<T, BV, K>(mesh));
+      fastSDFs.emplace_back(std::make_shared<FastSDF>(mesh));
     }
 
-    // Optimized, faster union which uses a BVH for bounding the BVHs.
-    m_union = std::make_shared<EBGeometry::UnionBVH<T, Prim, BV, K>>(
-      bvhDCEL, true, [](const std::shared_ptr<const Prim>& a_prim) -> BV { return a_prim->getBoundingVolume(); });
+    m_implicitFunction = std::make_shared<EBGeometry::FastUnionIF<T, FastSDF, BV, K>>(
+      fastSDFs, [](const std::shared_ptr<const FastSDF>& a_sdf) -> BV { return a_sdf->computeBoundingVolume(); });
+
+    m_implicitFunction = EBGeometry::Complement<T>(m_implicitFunction);
   }
 
   F18(const F18& a_other)
   {
-    this->m_union = a_other.m_union;
+    this->m_implicitFunction = a_other.m_implicitFunction;
   }
 
   Real
   value(const RealVect& a_point) const override final
   {
-    return Real(m_union->value(Vec3(a_point[0], a_point[1], a_point[2])));
+    return Real(m_implicitFunction->value(Vec3(a_point[0], a_point[1], a_point[2])));
   }
 
   BaseIF*
@@ -74,7 +76,7 @@ public:
   }
 
 protected:
-  std::shared_ptr<EBGeometry::UnionBVH<T, Prim, BV, K>> m_union;
+  std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_implicitFunction;
 };
 
 int

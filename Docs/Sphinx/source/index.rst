@@ -6,33 +6,43 @@
 EBGeometry's user documentation
 ===============================
 
-This is the user documentation for EBGeometry, a small C++ package for computing signed distance fields from surface tesselations and analytic shapes. 
+This is the user documentation for EBGeometry, a small C++ package for efficiently representing implicit functions and signed distance fields for complex geometries.
 Although EBGeometry is a self-contained package, it is was originally written for usage with embedded boundary (EB) and immersed boundary (IB) codes.
+EBGeometry provides the geometry representation through an implicit or signed distance function, but does not provide the discrete geometry generation, i.e. the generation of cut-cells for a given geometry.
 
-EBGeometry does provide the *discrete geometry generation*, i.e. the generation of cut-cells from a geometry.
-It only takes care of the *geometry representation*, i.e. the creation of complex geometries as numerically efficient signed distance fields.
+The basic features of EBGeometry are as follows:
+
+* Representation of water-tight surface grids as signed distance fields.
+* Many analytic distance functions and transformations. 
+* Bounding volume hierarchies (BVHs) for use as acceleration structures for polygon or full object lookup.
+  The BVHs can be represented in full or compact (i.e., linearized) forms.
+* Support for both conventional and accelerated (using BVHs) constructive solid geometry (CSG).
+* Examples of how to couple EBGeometry to AMReX and Chombo.     
 
 .. important::
 
-   The EBGeometry source code is found `here <https://github.com/rmrsk/EBGeometry>`_.
-   A separate Doxygen-generated API of EBGeometry is `available here <doxygen/html/index.html>`_.   
+   This is the user documentation for EBGeometry.
+   The source code is found at `<https://github.com/rmrsk/EBGeometry>`_ and a separate Doxygen-generated API of EBGeometry is available at `<https://rmrsk.github.io/EBGeometry/doxygen/html/index.html>`_.
 
 .. This is for getting rid of the TOC in html view. 
 .. raw:: html
 
    <style>
-   /* front page: hide chapter titles
-    * needed for consistent HTML-PDF-EPUB chapters
-    */
-   div#introduction.section,
-   div#concepts.section,
-   div#implementation.section,
-   div#guided-examples.section,
-   div#references.section,
-   div#epilogue.section {
-       display:none;
+   section#introduction,
+   section#concepts,
+   section#implementation,
+   section#guided-examples,
+   section#references,
+   section#bibliography,
+   section#epilogue {
+	 display:none;
    }
-   </style>   
+   </style>
+   
+.. only:: latex
+
+   .. toctree::
+      :caption: Contents   
 
 Introduction
 ************
@@ -49,12 +59,10 @@ Concepts
 
 .. toctree::
    :maxdepth: 3
-   :caption: Concepts
+   :caption: Basic concepts
    :hidden:	     
 	     
    Concepts.rst
-   DCEL.rst
-   BVH.rst
 
 Implementation
 **************
@@ -66,32 +74,24 @@ Implementation
 	     
    Implementation.rst
    ImplemVec.rst
+   ImplemCSG.rst
+   ImplemDCEL.rst   
    ImplemBVH.rst
-   ImplemDCEL.rst
-   ImplemSDF.rst
-   ImplemUnion.rst
    Parsers.rst
 
-Guided examples
-***************  
+Examples
+********
 
 .. toctree::
    :maxdepth: 3
-   :caption: Guided examples
+   :caption: Examples
    :hidden:	     
 
    Examples.rst
-   Example_Basic.rst
-   Example_Union.rst
-   Example_AMReX.rst
-   Example_Chombo3.rst   
-
-References
-**********
 
 .. toctree::
    :maxdepth: 3
    :caption: References
    :hidden:	     
-   
+
    ZZReferences.rst      

@@ -15,42 +15,42 @@
 
 using namespace amrex;
 
-using T    = float;
-using SDF  = EBGeometry::SignedDistanceFunction<T>;
-using Vec3 = EBGeometry::Vec3T<T>;
+using T       = Real;
+using ImpFunc = EBGeometry::ImplicitFunction<T>;
+using Vec3    = EBGeometry::Vec3T<T>;
 
 /*!
-  @brief This is just an EBGeometry-exposed signed distance field usable with
+  @brief This is just an EBGeometry-exposed implicit function usable with AMReX.
   AMReX.
 */
-class AMReXSDF
+class EBGeometryIF
 {
 public:
   /*!
     @brief Full constructor.
-    @param[in] a_sdf Signed distance function.
+    @param[in] a_impFunc  Implicit function
     @param[in] a_flipSign Hook for swapping inside/outside.
   */
-  AMReXSDF(std::shared_ptr<SDF>& a_sdf)
+  EBGeometryIF(std::shared_ptr<ImpFunc>& a_impFunc)
   {
-    m_sdf = a_sdf;
+    m_impFunc = a_impFunc;
   }
 
   /*!
     @brief Copy constructor.
-    @param[in] a_other Other SDF.
+    @param[in] a_other Other ImpFunc.
   */
-  AMReXSDF(const AMReXSDF& a_other)
+  EBGeometryIF(const EBGeometryIF& a_other)
   {
-    this->m_sdf = a_other.m_sdf;
+    this->m_impFunc = a_other.m_impFunc;
   }
 
   /*!
-    @brief AMReX's implicit function definition.
+    @brief AMReX's implicit function definition. EBGeometry sign is opposite to AMReX'
   */
   Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    return m_sdf->signedDistance(m_sdf->transformPoint(Vec3(x, y, z)));
+    return -m_impFunc->value(Vec3(x, y, z));
   };
 
   /*!
@@ -64,9 +64,9 @@ public:
 
 protected:
   /*!
-    @brief EBGeometry signed distance function.
+    @brief EBGeometry implicit function.
   */
-  std::shared_ptr<SDF> m_sdf;
+  std::shared_ptr<ImpFunc> m_impFunc;
 };
 
 int
@@ -91,70 +91,73 @@ main(int argc, char* argv[])
   Geometry geom;
   RealBox  rb;
 
-  std::shared_ptr<SDF> func;
+  std::shared_ptr<ImpFunc> func;
   if (whichGeom == 0) { // Sphere.
     rb   = RealBox({-1, -1, -1}, {1, 1, 1});
-    func = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5), false);
+    func = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5));
   }
   else if (whichGeom == 1) { // Plane.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
-    func = std::make_shared<EBGeometry::PlaneSDF<T>>(Vec3::zero(), Vec3::one(), false);
+    func = std::make_shared<EBGeometry::PlaneSDF<T>>(Vec3::zero(), Vec3::one());
   }
   else if (whichGeom == 2) { // Infinite cylinder.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
-    func = std::make_shared<EBGeometry::InfiniteCylinderSDF<T>>(Vec3::zero(), T(0.1), 2, false);
+    func = std::make_shared<EBGeometry::InfiniteCylinderSDF<T>>(Vec3::zero(), T(0.1), 2);
   }
   else if (whichGeom == 3) { // Finite cylinder.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::CylinderSDF<T>>(-Vec3::one(), Vec3::one(), 0.25, false);
+    func = std::make_shared<EBGeometry::CylinderSDF<T>>(-Vec3::one(), Vec3::one(), 0.25);
   }
   else if (whichGeom == 4) { // Capsule.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::CapsuleSDF<T>>(-Vec3::one(), Vec3::one(), 0.25, false);
+    func = std::make_shared<EBGeometry::CapsuleSDF<T>>(-Vec3::one(), Vec3::one(), 0.25);
   }
   else if (whichGeom == 5) { // Box.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one(), false);
+    func = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one());
   }
-  else if (whichGeom == 6) { // Rounded box.
+  else if (whichGeom == 6) { // Offset box.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    auto box = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one(), false);
-    func     = std::make_shared<EBGeometry::RoundedSDF<T>>(box, 0.25);
+    func = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one());
+    func = EBGeometry::Offset<T>(func, 0.25);
   }
   else if (whichGeom == 7) { // Torus.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::TorusSDF<T>>(Vec3::zero(), 1.0, 0.25, false);
+    func = std::make_shared<EBGeometry::TorusSDF<T>>(Vec3::zero(), 1.0, 0.25);
   }
   else if (whichGeom == 8) { // Infinite cone.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::InfiniteConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 30.0, false);
+    func = std::make_shared<EBGeometry::InfiniteConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 30.0);
   }
   else if (whichGeom == 9) { // Finite cone.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::ConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 2.0, 30, false);
+    func = std::make_shared<EBGeometry::ConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 2.0, 30);
   }
   if (whichGeom == 10) { // Spherical shell.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
-    auto sphere = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5), false);
-    func        = std::make_shared<EBGeometry::AnnularSDF<T>>(sphere, 0.1);
+    func = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5));
+    func = EBGeometry::Annular<T>(func, 0.1);
   }
+
+  // AMReX uses the opposite sign.
+  func = EBGeometry::Complement<T>(func);
 
   Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};
   Geometry::Setup(&rb, 0, is_periodic.data());
   Box domain(IntVect(0), IntVect(n_cell - 1));
   geom.define(domain);
 
-  AMReXSDF sdf(func);
+  EBGeometryIF sdf(func);
 
   auto gshop = EB2::makeShop(sdf);
   EB2::Build(gshop, geom, 0, 0, true, true, num_coarsen_opt);

@@ -54,8 +54,7 @@ namespace DCEL {
     @note To compute the distance from a point to the face one must determine if
     the point projects "inside" or "outside" the polygon. There are several
     algorithms for this, and by default this class uses a crossing number
-    algorithm. Other algorithms can be set in setInsideOutsideAlgorithm (see
-    CD_DCELAlgorithms.H)
+    algorithm.
   */
   template <class T>
   class FaceT

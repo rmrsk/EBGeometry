@@ -69,15 +69,18 @@ public:
         const Vec3 lo(xLo + xs, yLo + ys, 0.0);
         const Vec3 hi(xHi + xs, yHi + ys, H);
 
-        buildings.emplace_back(std::make_shared<Prim>(lo, hi, false));
+        buildings.emplace_back(std::make_shared<Prim>(lo, hi));
       }
     }
 
-    m_slowUnion = std::make_shared<EBGeometry::Union<T, Prim>>(buildings, true);
-    m_fastUnion = std::make_shared<EBGeometry::UnionBVH<T, Prim, BV, K>>(
-      buildings, true, [](const std::shared_ptr<const Prim>& a_box) {
-        return BV(a_box->getLowCorner(), a_box->getHighCorner());
-      });
+    m_slowUnion = EBGeometry::Union<T, Prim>(buildings);
+    m_fastUnion = EBGeometry::FastUnion<T, Prim, BV, K>(buildings, [](const std::shared_ptr<const Prim>& a_box) {
+      return BV(a_box->getLowCorner(), a_box->getHighCorner());
+    });
+
+    // AMReX uses the opposite sign for the value functions.
+    m_slowUnion = EBGeometry::Complement<T>(m_slowUnion);
+    m_fastUnion = EBGeometry::Complement<T>(m_fastUnion);
   }
 
   City(const City& a_other)
@@ -104,9 +107,9 @@ public:
   }
 
 protected:
-  bool                                                  m_useBVH;
-  std::shared_ptr<EBGeometry::Union<T, Prim>>           m_slowUnion;
-  std::shared_ptr<EBGeometry::UnionBVH<T, Prim, BV, K>> m_fastUnion;
+  bool                                             m_useBVH;
+  std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_slowUnion;
+  std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_fastUnion;
 };
 
 int

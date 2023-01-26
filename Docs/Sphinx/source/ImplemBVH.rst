@@ -1,16 +1,16 @@
 .. _Chap:ImplemBVH:
 
-Bounding volume hierarchy
-=========================
+BVH
+===
 
 The BVH functionality is encapsulated in the namespace ``EBGeometry::BVH``.
 For the full API, see `the doxygen API <doxygen/html/namespaceBVH.html>`__.
 There are two types of BVHs supported.
 
-*  **Direct BVHs** where the nodes are stored in build order and contain references to their children, and the leaf holds primitives.
+*  **Full BVHs** where the nodes are stored in build order and contain references to their children.
 *  **Compact BVHs** where the nodes are stored in depth-first order and contain index offsets to children and primitives.
 
-The direct BVH is encapsulated by a class
+The full BVH is encapsulated by a class
 
 .. code-block:: c++
 
@@ -28,64 +28,6 @@ The above template parameters are:
 Importantly, ``NodeT`` is the BVH builder node, i.e. it is the class through which we recursively build the BVH, see :ref:`Chap:BVHConstruction`.
 The compact BVH is discussed below in :ref:`Chap:LinearBVH`.
 
-Template constraints
---------------------
-
-The template parameter ``T`` must be a valid C++ floating-point type (e.g. ``float`` or ``double``) and the tree degree must be :math:`K \geq 2`.
-The primitive type ``P`` must have the following:
-
-* A signed distance function ``T P::signedDistance(const Vec3& x) const``.
-
-The bounding volume type ``BV`` must obey the following:
-
-* A default constructor ``BV()``. 
-* A constructor ``BV(const std::vector<BV>&)`` which constructs a bounding volume guaranteed to enclose other bounding volumes.
-* A function ``T getDistance(const Vec3T<T>& x) const`` which returns a positive distance if point ``x`` is outside the bounding volume and zero if ``x`` is inside the bounding volume. 
-  
-
-Signed distance
----------------
-
-For getting the signed distance, ``NodeT`` has provide the following functions:
-
-.. code-block:: c++
-
-   inline T
-   signedDistance(const Vec3T<T>& a_point) const noexcept override;
-
-   inline T
-   signedDistance(const Vec3T<T>& a_point, const Prune a_pruning) const noexcept;
-
-The first version simply calls the other version with a stack-based pruning algorithm for the tree traversal.
-   
-
-.. _Chap:BVHConstraints:
-
-Template constraints
---------------------
-
-*  The primitive type ``P`` must have the following function:
-  
-   *  ``T signedDistance(const Vec3T<T>& x)``, which returns the signed distance to the primitive. 
-
-*  The bounding volume type ``BV`` must have the following functions:
-
-   *  ``T getDistance(const Vec3T<T>& x)`` which returns the distance from the point ``x`` to the bounding volume.
-      Note that if ``x`` lies within the bounding volume, the function should return a value of zero.
-      
-   *  A constructor ``BV(const std::vector<BV>& a_otherBVs)`` that permit creation of a bounding volume that encloses other bounding volumes of the same type.
-     
-*  ``K`` should be greater or equal to 2.
-
-*  Currently, we do not support variable-sized trees (i.e., mixing branching ratios). 
-
-Note that the above constraints apply only to the BVH itself.
-Partitioning functions (which are, in principle, supplied by the user) may impose extra constraints.
-
-.. important::
-
-   EBGeometry's BVH implementations fulfill their own template requirements on the primitive type ``P``.
-   This means that objects that are themselves described by BVHs (such as triangulations) can be embedded in another BVH, permitting BVH-of-BVH type of scenes. 
 
 Bounding volumes
 ----------------
@@ -95,8 +37,7 @@ EBGeometry supports the following bounding volumes, which are defined in :file:`
 *  **BoundingSphere**, templated as ``EBGeometry::BoundingVolumes::BoundingSphereT<T>`` and describes a bounding sphere.
    Various constructors are available.
 
-*  **Axis-aligned bounding box**, or AABB for short.
-   This is templated as ``EBGeometry::BoundingVolumes::AABBT<T>``.
+*  **Axis-aligned bounding box**, which is templated as ``EBGeometry::BoundingVolumes::AABBT<T>``.
 
 For full API details, see `the doxygen API <doxygen/html/namespaceBoundingVolumes.html>`_.
 
@@ -114,10 +55,10 @@ The first step is usually a matter of simply constructing the root node using th
 
 .. code-block:: c++
 
-   template <class T, class P, class BV, int K>
-   NodeT(const std::vector<std::shared_ptr<P> >& a_primitives).
+   template <class T, class P, class BV, size_t K>
+   NodeT(const std::vector<std::shared_ptr<const P> >& a_primitives).
 
-That is, the constructor takes a list of primitives to be put in the node.
+The constructor takes a list of primitives to be put in the node.
 For example:
 
 .. code-block:: c++
@@ -129,7 +70,7 @@ For example:
    
    auto root = std::make_shared<Node>(primitives);
 
-The second step is to recursively build the BVH, which is done through the function
+The second step is to recursively build the BVH, which is done through the function ``topDownSortAndPartitionPrimitives``, as follows:
 
 .. code-block:: c++
 
@@ -184,7 +125,7 @@ Although seemingly complicated, the input arguments are simply polymorphic funct
       };
 
 *  ``PartitionerT`` is the partitioner function when splitting a leaf node into ``K`` new leaves.
-   The function takes an list of primitives which it partitions into ``K`` new list of primitives, i.e. it encapsulates :eq:`Partition`.
+   The function takes a list of primitives which it partitions into ``K`` new lists of primitives, i.e. it encapsulates :eq:`Partition`.
    As an example, we include a partitioner that is provided for integrating BVH and DCEL functionality.
 
    .. code-block:: c++
@@ -218,8 +159,6 @@ Although seemingly complicated, the input arguments are simply polymorphic funct
    The input primitives are then sorted based on the facet centroid locations in the ``splitDir`` direction, and they are partitioned into ``K`` almost-equal chunks.
    These partitions are returned and become primitives in the new leaf nodes.
 
-   There is also an example of the same type of partitioning for the BVH-accelerated union, see `UnionBVH <doxygen/html/classUnionBVH.html>`_
-
 In general, users are free to construct their BVHs in their own way if they choose.
 For the most part this will include the construction of their own bounding volumes and/or partitioners. 
 
@@ -239,7 +178,7 @@ The "linearized" BVH can be automatically constructed from the standard BVH but 
    The original BVH is traversed from top-to-bottom along the branches and laid out in linear memory.
    Each interior node gets a reference (index offset) to their children nodes.
 
-The rationale for reorganizing the BVH in compact form is it's tighter memory footprint and depth-first ordering which allows more efficient traversal downwards in the BVH tree.
+The rationale for reorganizing the BVH in compact form is it's tighter memory footprint and depth-first ordering which occasionally allows a more efficient traversal downwards in the BVH tree, particularly if the geometric primitives are sorted in the same order. 
 To encapsulate the compact BVH we provide two classes:
 
 *  ``LinearNodeT`` which encapsulates a node, but rather than storing the primitives and pointers to child nodes it stores offsets along the 1D arrays.
@@ -269,7 +208,7 @@ To encapsulate the compact BVH we provide two classes:
    .. code-block:: c++
 
       template <class T, class P, class BV, size_t K>
-      class LinearBVH : public SignedDistanceFunction<T>
+      class LinearBVH
       {
       public:
 
@@ -288,7 +227,7 @@ This is done by calling the ``NodeT`` member function ``flattenTree()``:
 .. code-block:: c++
 
    template <class T, class P, class BV, size_t K>
-   class NodeT : public SignedDistanceFunction<T>
+   class NodeT
    {
    public:
    
@@ -305,7 +244,7 @@ For example:
    std::shared_ptr<EBGeometry::BVH::NodeT<T, P, BV, K> > builderBVH;
 
    // Flatten the tree.
-   std::shared_ptr<LinearBVH> compactBVH = builderBVH.flattenTree();
+   std::shared_ptr<LinearBVH> compactBVH = builderBVH->flattenTree();
 
    // Release the original BVH.
    builderBVH = nullptr;
@@ -314,45 +253,89 @@ For example:
 
    When calling ``flattenTree``, the original BVH tree is *not* destroyed.
    To release the memory, deallocate the original BVH tree.
-   E.g., the set pointer to the root node to ``nullptr`` if using a smart pointer.
+   E.g., the set pointer to the root node to ``nullptr`` or ensure correct scoping.
 
-Note that the primitives live in ``LinearBVH`` and not ``LinearNodeT``, and the signed distance function is therefore implemented in the ``LinearBVH`` member function:
+Tree traversal
+---------------
+
+Both ``NodeT`` (full BVH) and ``LinearBVH`` (flattened BVH) include routines for traversing the BVH with user-specified criteria.
+For both BVH representations, tree traversal is done using a routine
 
 .. code-block:: c++
 		
-   template <class T, class P, class BV, size_t K>
-   class LinearBVH : public SignedDistanceFunction<T>
-   {
-   public:
+    template <class Meta>
+    inline void
+    traverse(const BVH::Updater<P>&                    a_updater,
+             const BVH::Visiter<LinearNode, Meta>&     a_visiter,
+             const BVH::Sorter<LinearNode, Meta, K>&   a_sorter,
+             const BVH::MetaUpdater<LinearNode, Meta>& a_metaUpdater) const noexcept;
 
-     inline T
-     signedDistance(const Vec3& a_point) const noexcept override;
-   };
+The BVH trees use a stack-based traversal pattern based on visit-sort rules supplied by the user.
 
-Signed distance
----------------
+Node visit
+__________
 
-The signed distance can be obtained from both the full BVH storage and the compact BVH storage.
-Replicating the code above, we can do:
+Here, ``a_visiter`` is a lambda function for determining if the node/subtree should be investigated or pruned from the traversal.
+This function has a signature
 
 .. code-block:: c++
 
-   // Assume that we have built the conventional BVH already
-   std::shared_ptr<EBGeometry::BVH::NodeT<T, P, BV, K> > fullBVH;
+  template <class NodeType, class Meta>
+  using Visiter = std::function<bool(const NodeType& a_node, const Meta a_meta)>;
 
-   // Flatten the tree.
-   std::shared_ptr<EBGeometry::BVH::LinearBVH<T, P, BV, K> > compactBVH = fullBVH.flattenTree();
+where ``NodeType`` is the type of node (which is different for full/flat BVHs), and the ``Meta`` template parameter is discussed below.
+If this function returns true, the node will be visisted and if the function returns false then the node will be pruned from the tree traversal.
 
-   // These give the same result. 
-   const T s1 = fullBVH   ->signedDistance(Vec3T<T>::zero());
-   const T s2 = compactBVH->signedDistance(Vec3T<T>::zero());   
+Traversal pattern
+_________________
 
-We point out that the compact BVH only supports:
+If a subtree is visited in the traversal, there is a question of which of the child nodes to visit first.
+The ``a_sorter`` argument determines the order by letting the user sort the nodes based on order of importance.
+Note that a correct visitation pattern can yield large performance benefits.
+The user is given the option to sort the child nodes based on what he/she thinks is a good order, which is done by supplying a lambda which sorts the children.
+This function has the signature:
 
-* Recursive, unordered traversal through the tree.
-* Recursive, ordered traversal through the tree.
-* Stack-based ordered traversal through the tree.
+.. code-block:: c++
 
-Out of these, the ordered traversals (discussed in :ref:`Chap:BVH`) are faster.
+  template <class NodeType, class Meta, size_t K>
+  using Sorter = std::function<void(std::array<std::pair<std::shared_ptr<const NodeType>, Meta>, K>& a_children)>;
 
-The compact BVH only supports stack-based ordered traversal (which tends to be faster).
+Update rule
+___________
+
+If a leaf node is visited in the traversal, distance or other types of queries to the geometric primitive(s) in the nodes are usually made.
+These are done by a user-supplied update-rule:
+
+.. code-block:: c++
+		
+  template <class P>
+  using Updater = std::function<void(const PrimitiveListT<P>& a_primitives)>;
+
+Meta-data
+_________
+
+During the traversal, it might be necessary to compute meta-data that is helpful during the traversal, and this meta-data is attached to each node that is queried.
+This meta-data is usually, but not necessarily, equal to the distance to the nodes' bounding volumes.
+The signature for meta-data construction is
+
+.. code-block:: c++
+
+  template <class NodeType, class Meta>
+  using MetaUpdater = std::function<Meta(const NodeType& a_node)>;
+
+Traversal example
+_________________
+
+The DCEL mesh distance fields use a traversal pattern based on
+
+* Only visit bounding volumes that are closer than the minimum distance computed (so far).
+* When visiting a subtree, investigate the closest bounding volume first.
+* When visiting a leaf node, check if the primitives are closer than the minimum distance computed so far.
+
+These rules are given below.
+
+.. literalinclude:: ../../../Source/EBGeometry_MeshDistanceFunctionsImplem.hpp
+   :language: c++
+   :lines: 105-139
+   :caption: Tree traversal criterion for computing the signed distance to a DCEL mesh using the BVH accelerator.
+	     See :file:`Source/EBGeometry_MeshDistanceFunctionsImplem.hpp` for details.

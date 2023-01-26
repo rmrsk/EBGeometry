@@ -56,7 +56,7 @@ namespace DCEL {
     use file parsers!
   */
   template <class T>
-  class MeshT : public SignedDistanceFunction<T>
+  class MeshT
   {
   public:
     /*!
@@ -231,7 +231,7 @@ namespace DCEL {
       @note This will call the other version with the object's search algorithm.
     */
     inline T
-    signedDistance(const Vec3& a_x0) const noexcept override;
+    signedDistance(const Vec3& a_x0) const noexcept;
 
     /*!
       @brief Compute the signed distance from a point to this mesh

@@ -28,9 +28,14 @@ public:
     @brief Full constructor.
     @param[in] a_filename File name. Must be an STL file.
   */
-  AMReXSDF(const std::string a_filename)
+  AMReXSDF(const std::string a_filename, const bool a_use_bvh)
   {
-    m_rootNode = EBGeometry::Parser::readIntoLinearBVH<T, BV, K>(a_filename);
+    if (a_use_bvh) {
+      m_sdf = EBGeometry::Parser::readIntoLinearBVH<T, BV, K>(a_filename);
+    }
+    else {
+      m_sdf = EBGeometry::Parser::readIntoMesh<T>(a_filename);
+    }
   }
 
   /*!
@@ -39,7 +44,7 @@ public:
   */
   AMReXSDF(const AMReXSDF& a_other)
   {
-    this->m_rootNode = a_other.m_rootNode;
+    this->m_sdf = a_other.m_sdf;
   }
 
   /*!
@@ -49,7 +54,7 @@ public:
   {
     using Vec3 = EBGeometry::Vec3T<T>;
 
-    return m_rootNode->signedDistance(m_rootNode->transformPoint(Vec3(x, y, z)));
+    return m_sdf->value(Vec3(x, y, z));
   };
 
   /*!
@@ -65,7 +70,7 @@ protected:
   /*!
     @brief Root node of the linearized BVH hierarchy.
   */
-  std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::DCEL::FaceT<T>, BV, K>> m_rootNode;
+  std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_sdf;
 };
 
 int
@@ -75,15 +80,17 @@ main(int argc, char* argv[])
   amrex::Initialize(argc, argv);
 
   {
-    int n_cell          = 128;
-    int max_grid_size   = 16;
-    int which_geom      = 0;
-    int num_coarsen_opt = 0;
+    int  n_cell          = 128;
+    int  max_grid_size   = 16;
+    int  which_geom      = 0;
+    int  num_coarsen_opt = 0;
+    bool use_bvh         = true;
 
     std::string filename;
 
     // read parameters
     ParmParse pp;
+    pp.query("use_bvh", use_bvh);
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
     pp.query("which_geom", which_geom);
@@ -137,7 +144,7 @@ main(int argc, char* argv[])
     using Vec3 = EBGeometry::Vec3T<T>;
     using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 
-    AMReXSDF<T, BV, K> sdf(filename);
+    AMReXSDF<T, BV, K> sdf(filename, use_bvh);
 
     auto gshop = EB2::makeShop(sdf);
     EB2::Build(gshop, geom, 0, 0, 1, true, true, num_coarsen_opt);

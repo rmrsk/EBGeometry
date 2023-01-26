@@ -19,6 +19,7 @@
 #include <algorithm>
 
 // Our includes
+#include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_SignedDistanceFunction.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
@@ -37,159 +38,8 @@ clamp(const T& v, const T& lo, const T& hi)
 }
 
 /*!
-  @brief Rounded signed distance function.
-  @details Rounded distance function -- returns the original distance function
-  displaced by the specified rounding radius.
-  @note Users may need to scale their distance functions afterwards.
+  @brief Signed distance function for a plane
 */
-template <class T>
-class RoundedSDF : public SignedDistanceFunction<T>
-{
-public:
-  /*!
-    @brief Disallowed weak construction
-  */
-  RoundedSDF() = delete;
-
-  /*!
-    @brief Rounded SDF. Rounds the input SDF
-    @param[in] a_sdf  Input signed distance function.
-    @param[in] a_curv Rounding radius.
-  */
-  RoundedSDF(const std::shared_ptr<SignedDistanceFunction<T>> a_sdf, const T a_curv)
-  {
-    m_sdf  = a_sdf;
-    m_curv = a_curv;
-  }
-
-  /*!
-    @brief Destructor
-  */
-  virtual ~RoundedSDF()
-  {}
-
-  /*!
-    @brief Signed distance field.
-  */
-  virtual T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
-  {
-    return m_sdf->signedDistance(a_point) - m_curv;
-  }
-
-protected:
-  /*!
-    @brief Original signed distance function
-  */
-  std::shared_ptr<const SignedDistanceFunction<T>> m_sdf;
-
-  /*!
-    @brief Rounding radius
-  */
-  T m_curv;
-};
-
-/*!
-  @brief Annular signed distance function. Creates a shell out of an object.
-*/
-template <class T>
-class AnnularSDF : public SignedDistanceFunction<T>
-{
-public:
-  /*!
-    @brief Disallowed weak construction
-  */
-  AnnularSDF() = delete;
-
-  /*!
-    @brief Rounded SDF. Rounds the input SDF
-    @param[in] a_sdf  Input signed distance function.
-    @param[in] a_curv Rounding radius.
-  */
-  AnnularSDF(const std::shared_ptr<SignedDistanceFunction<T>> a_sdf, const T a_curv)
-  {
-    m_sdf  = a_sdf;
-    m_curv = a_curv;
-  }
-
-  /*!
-    @brief Destructor
-  */
-  virtual ~AnnularSDF()
-  {}
-
-  /*!
-    @brief Signed distance field.
-  */
-  virtual T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
-  {
-    return std::abs(m_sdf->signedDistance(a_point)) - m_curv;
-  }
-
-protected:
-  /*!
-    @brief Original signed distance function
-  */
-  std::shared_ptr<const SignedDistanceFunction<T>> m_sdf;
-
-  /*!
-    @brief Rounding radius
-  */
-  T m_curv;
-};
-
-/*!
-  @brief Scaled signed distance function.
-*/
-template <class T>
-class ScaledSDF : public SignedDistanceFunction<T>
-{
-public:
-  /*!
-    @brief Disallowed weak construction
-  */
-  ScaledSDF() = delete;
-
-  /*!
-    @brief Scaled SDF.
-    @param[in] a_sdf   Input signed distance function.
-    @param[in] a_scale Scaling factor.
-  */
-  ScaledSDF(const std::shared_ptr<SignedDistanceFunction<T>> a_sdf, const T a_scale)
-  {
-    m_sdf   = a_sdf;
-    m_scale = a_scale;
-  }
-
-  /*!
-    @brief Destructor
-  */
-  virtual ~ScaledSDF()
-  {}
-
-  /*!
-    @brief Signed distance field.
-    @param[in] a_point Input point.
-  */
-  virtual T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
-  {
-    return (m_sdf->signedDistance(a_point / m_scale)) * m_scale;
-  }
-
-protected:
-  /*!
-    @brief Original signed distance function
-  */
-  std::shared_ptr<const SignedDistanceFunction<T>> m_sdf;
-
-  /*!
-    @brief Scaling factor.
-  */
-  T m_scale;
-};
-
 template <class T>
 class PlaneSDF : public SignedDistanceFunction<T>
 {
@@ -203,15 +53,11 @@ public:
     @brief Full constructor
     @param[in] a_point      Point on the plane
     @param[in] a_normal     Plane normal vector.
-    @param[in] a_flipInside Hook for turning inside to outside.
   */
-  PlaneSDF(const Vec3T<T>& a_point, const Vec3T<T>& a_normal, const bool a_flipInside)
+  PlaneSDF(const Vec3T<T>& a_point, const Vec3T<T>& a_normal)
   {
-    m_point      = a_point;
-    m_normal     = a_normal;
-    m_flipInside = a_flipInside;
-
-    m_normal /= m_normal.length();
+    m_point  = a_point;
+    m_normal = a_normal / a_normal.length();
   }
 
   /*!
@@ -221,9 +67,7 @@ public:
   virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
-    const T sign = m_flipInside ? -1.0 : 1.0;
-
-    return sign * dot(a_point - m_point, m_normal);
+    return dot((a_point - m_point), m_normal);
   }
 
 protected:
@@ -236,11 +80,6 @@ protected:
     @brief Plane normal vector
   */
   Vec3T<T> m_normal;
-
-  /*!
-    @brief Inside to outside hook
-  */
-  bool m_flipInside;
 };
 
 /*!
@@ -259,13 +98,11 @@ public:
     @brief Default constructor
     @param[in] a_center Sphere center
     @param[in] a_radius Sphere radius
-    @param[in] a_flipInside Flip inside or not
   */
-  SphereSDF(const Vec3T<T>& a_center, const T& a_radius, const bool a_flipInside)
+  SphereSDF(const Vec3T<T>& a_center, const T& a_radius)
   {
-    this->m_center     = a_center;
-    this->m_radius     = a_radius;
-    this->m_flipInside = a_flipInside;
+    this->m_center = a_center;
+    this->m_radius = a_radius;
   }
 
   /*!
@@ -273,10 +110,8 @@ public:
   */
   SphereSDF(const SphereSDF& a_other)
   {
-    this->m_center       = a_other.m_center;
-    this->m_radius       = a_other.m_radius;
-    this->m_flipInside   = a_other.m_flipInside;
-    this->m_transformOps = a_other.m_transformOps;
+    this->m_center = a_other.m_center;
+    this->m_radius = a_other.m_radius;
   }
 
   /*!
@@ -327,9 +162,7 @@ public:
   virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
-    const T sign = m_flipInside ? -1.0 : 1.0;
-
-    return sign * ((a_point - m_center).length() - m_radius);
+    return (a_point - m_center).length() - m_radius;
   }
 
 protected:
@@ -342,11 +175,6 @@ protected:
     @brief Sphere radius
   */
   T m_radius;
-
-  /*!
-    @brief For flipping sign.
-  */
-  bool m_flipInside;
 };
 
 /*!
@@ -365,13 +193,11 @@ public:
     @brief Full constructor. Sets the low and high corner
     @param[in] a_loCorner   Lower left corner
     @param[in] a_hiCorner   Upper right corner
-    @param[in] a_flipInside Flip inside/outside.
   */
-  BoxSDF(const Vec3T<T>& a_loCorner, const Vec3T<T>& a_hiCorner, const bool a_flipInside)
+  BoxSDF(const Vec3T<T>& a_loCorner, const Vec3T<T>& a_hiCorner)
   {
-    this->m_loCorner   = a_loCorner;
-    this->m_hiCorner   = a_hiCorner;
-    this->m_flipInside = a_flipInside;
+    this->m_loCorner = a_loCorner;
+    this->m_hiCorner = a_hiCorner;
   }
 
   /*!
@@ -431,12 +257,9 @@ public:
     // between xLo and xHi. In this case delta[dir] will be the signed distance
     // to the closest box face in the dir-direction. Otherwise, if a_point[dir]
     // is outside the corner we have delta[dir] > 0.
-    const Vec3T<T> delta(std::max(m_loCorner[0] - a_point[0],
-                                  a_point[0] - m_hiCorner[0]), // < 0 if point falls between xLo and xHi.
-                         std::max(m_loCorner[1] - a_point[1],
-                                  a_point[1] - m_hiCorner[1]), // < 0 if point falls between yLo and yHi.
-                         std::max(m_loCorner[2] - a_point[2],
-                                  a_point[2] - m_hiCorner[2])); // < 0 if point falls between zLo and zHi.
+    const Vec3T<T> delta(std::max(m_loCorner[0] - a_point[0], a_point[0] - m_hiCorner[0]),
+                         std::max(m_loCorner[1] - a_point[1], a_point[1] - m_hiCorner[1]),
+                         std::max(m_loCorner[2] - a_point[2], a_point[2] - m_hiCorner[2]));
 
     // Note: max is max(Vec3T<T>, Vec3T<T>) and not std::max. It returns a
     // vector with coordinate-wise largest components. Note that the first part
@@ -445,9 +268,7 @@ public:
     // for outside the box.
     const T d = std::min(T(0.0), delta[delta.maxDir(false)]) + max(Vec3T<T>::zero(), delta).length();
 
-    const T sign = m_flipInside ? -1.0 : 1.0;
-
-    return sign * d;
+    return d;
   }
 
 protected:
@@ -460,11 +281,6 @@ protected:
     @brief High box corner
   */
   Vec3T<T> m_hiCorner;
-
-  /*!
-    @brief Hook for making outside -> inside.
-  */
-  bool m_flipInside;
 };
 
 /*!
@@ -485,14 +301,12 @@ public:
     @param[in] a_center      Torus center.
     @param[in] a_majorRadius Major torus radius.
     @param[in] a_minorRadius Minor torus radius.
-    @param[in] a_flipInside  Flip inside/outside.
   */
-  TorusSDF(const Vec3T<T>& a_center, const T& a_majorRadius, const T& a_minorRadius, const bool a_flipInside)
+  TorusSDF(const Vec3T<T>& a_center, const T& a_majorRadius, const T& a_minorRadius)
   {
     this->m_center      = a_center;
     this->m_majorRadius = a_majorRadius;
     this->m_minorRadius = a_minorRadius;
-    this->m_flipInside  = a_flipInside;
   }
 
   /*!
@@ -571,9 +385,7 @@ public:
     const T        rho = sqrt(p[0] * p[0] + p[1] * p[1]) - m_majorRadius;
     const T        d   = sqrt(rho * rho + p[2] * p[2]) - m_minorRadius;
 
-    const T sign = m_flipInside ? -1.0 : 1.0;
-
-    return sign * d;
+    return d;
   }
 
 protected:
@@ -591,11 +403,6 @@ protected:
     @brief Minor torus radius.
   */
   T m_minorRadius;
-
-  /*!
-    @brief Hook for making outside -> inside.
-  */
-  bool m_flipInside;
 };
 
 /*!
@@ -615,14 +422,12 @@ public:
     @param[in] a_center1    One endpoint.
     @param[in] a_center2    Other endpoint.
     @param[in] a_radius     Cylinder radius.
-    @param[in] a_flipInside Flip inside/outside.
   */
-  CylinderSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T& a_radius, const bool a_flipInside)
+  CylinderSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T& a_radius)
   {
-    this->m_center1    = a_center1;
-    this->m_center2    = a_center2;
-    this->m_radius     = a_radius;
-    this->m_flipInside = a_flipInside;
+    this->m_center1 = a_center1;
+    this->m_center2 = a_center2;
+    this->m_radius  = a_radius;
 
     // Some derived quantities that are needed for SDF computations.
     m_center = (m_center2 + m_center1) * 0.5;
@@ -702,9 +507,7 @@ public:
       }
     }
 
-    const T sign = m_flipInside ? -1.0 : 1.0;
-
-    return sign * d;
+    return d;
   }
 
 protected:
@@ -719,7 +522,7 @@ protected:
   Vec3T<T> m_center2;
 
   /*!
-    @brief m_Halfway between center1 and m_center2
+    @brief Halfway between center1 and m_center2
   */
   Vec3T<T> m_center;
 
@@ -737,11 +540,6 @@ protected:
     @brief radius.
   */
   T m_radius;
-
-  /*!
-    @brief Hook for making outside -> inside.
-  */
-  bool m_flipInside;
 };
 
 /*!
@@ -761,14 +559,12 @@ public:
     @param[in] a_center     Center point for the cylinder.
     @param[in] a_radius     Cylinder radius.
     @param[in] a_axis       Cylinder axis.
-    @param[in] a_flipInside Hook for flipping inside/outside.
   */
-  InfiniteCylinderSDF(const Vec3T<T>& a_center, const T& a_radius, const size_t a_axis, const bool a_flipInside)
+  InfiniteCylinderSDF(const Vec3T<T>& a_center, const T& a_radius, const size_t a_axis)
   {
-    m_center     = a_center;
-    m_radius     = a_radius;
-    m_axis       = a_axis;
-    m_flipInside = a_flipInside;
+    m_center = a_center;
+    m_radius = a_radius;
+    m_axis   = a_axis;
   }
 
   /*!
@@ -781,10 +577,9 @@ public:
     Vec3T<T> delta = a_point - m_center;
     delta[m_axis]  = 0.0;
 
-    const T d    = delta.length() - m_radius;
-    const T sign = m_flipInside ? -1.0 : 1.0;
+    const T d = delta.length() - m_radius;
 
-    return sign * d;
+    return d;
   }
 
 protected:
@@ -802,11 +597,6 @@ protected:
     @brief Axis
   */
   size_t m_axis;
-
-  /*!
-    @brief Hook for making outside -> inside.
-  */
-  bool m_flipInside;
 };
 
 /*!
@@ -827,15 +617,13 @@ public:
     @param[in] a_tip1       One tip point
     @param[in] a_tip2       Other center point.
     @param[in] a_radius     Radius.
-    @param[in] a_flipInside Hook for flipping inside/outside.
   */
-  CapsuleSDF(const Vec3T<T>& a_tip1, const Vec3T<T> a_tip2, const T& a_radius, const bool a_flipInside)
+  CapsuleSDF(const Vec3T<T>& a_tip1, const Vec3T<T> a_tip2, const T& a_radius)
   {
     const Vec3T<T> axis = (a_tip2 - a_tip1) / length(a_tip2 - a_tip1);
     m_center1           = a_tip1 + a_radius * axis;
     m_center2           = a_tip2 - a_radius * axis;
     m_radius            = a_radius;
-    m_flipInside        = a_flipInside;
   }
 
   /*!
@@ -848,11 +636,10 @@ public:
     const Vec3T<T> v1 = a_point - m_center1;
     const Vec3T<T> v2 = m_center2 - m_center1;
 
-    const T h    = clamp(dot(v1, v2) / dot(v2, v2), T(0.0), T(1.0));
-    const T d    = length(v1 - h * v2) - m_radius;
-    const T sign = m_flipInside ? -1.0 : 1.0;
+    const T h = clamp(dot(v1, v2) / dot(v2, v2), T(0.0), T(1.0));
+    const T d = length(v1 - h * v2) - m_radius;
 
-    return sign * d;
+    return d;
   }
 
 protected:
@@ -870,11 +657,6 @@ protected:
     @brief Capsule radius.
   */
   T m_radius;
-
-  /*!
-    @brief Hook for making outside -> inside.
-  */
-  bool m_flipInside;
 };
 
 /*!
@@ -893,16 +675,14 @@ public:
     @brief Infinite cone function
     @param[in] a_tip        Cone tip position
     @param[in] a_angle      Cone opening angle.
-    @param[in] a_flipInside Hook for making inside to outside.
   */
-  InfiniteConeSDF(const Vec3T<T>& a_tip, const T& a_angle, const bool a_flipInside)
+  InfiniteConeSDF(const Vec3T<T>& a_tip, const T& a_angle)
   {
     constexpr T pi = 3.14159265358979323846;
 
-    m_tip        = a_tip;
-    m_c.x        = std::sin(0.5 * a_angle * pi / 180.0);
-    m_c.y        = std::cos(0.5 * a_angle * pi / 180.0);
-    m_flipInside = a_flipInside;
+    m_tip = a_tip;
+    m_c.x = std::sin(0.5 * a_angle * pi / 180.0);
+    m_c.y = std::cos(0.5 * a_angle * pi / 180.0);
   }
 
   /*!
@@ -924,9 +704,7 @@ public:
     const T d1 = length(q - m_c * std::max(dot(q, m_c), T(0.0)));
     const T d2 = d1 * ((q.x * m_c.y - q.y * m_c.x < 0.0) ? -1.0 : 1.0);
 
-    const T sign = m_flipInside ? -1.0 : 1.0;
-
-    return sign * d2;
+    return d2;
   }
 
 protected:
@@ -939,11 +717,6 @@ protected:
     @brief Sine/cosine of angle
   */
   Vec2T<T> m_c;
-
-  /*!
-    @brief Hook for making inside -> outside.
-  */
-  bool m_flipInside;
 };
 
 /*!
@@ -963,17 +736,15 @@ public:
     @param[in] a_tip        Cone tip position
     @param[in] a_height     Cone height, measured from top to bottom.
     @param[in] a_angle      Cone opening angle.
-    @param[in] a_flipInside Hook for making inside to outside.
   */
-  ConeSDF(const Vec3T<T>& a_tip, const T& a_height, const T& a_angle, const bool a_flipInside)
+  ConeSDF(const Vec3T<T>& a_tip, const T& a_height, const T& a_angle)
   {
     constexpr T pi = 3.14159265358979323846;
 
-    m_tip        = a_tip;
-    m_height     = a_height;
-    m_c.x        = std::sin(0.5 * a_angle * pi / 180.0);
-    m_c.y        = std::cos(0.5 * a_angle * pi / 180.0);
-    m_flipInside = a_flipInside;
+    m_tip    = a_tip;
+    m_height = a_height;
+    m_c.x    = std::sin(0.5 * a_angle * pi / 180.0);
+    m_c.y    = std::cos(0.5 * a_angle * pi / 180.0);
   }
 
   /*!
@@ -1003,12 +774,11 @@ public:
 
     auto sign = [](const T& x) { return (x > zero) - (x < zero); };
 
-    const T k    = sign(q.y);
-    const T d    = std::min(dot(a, a), dot(b, b));
-    const T s    = std::max(k * (w.x * q.y - w.y * q.x), k * (w.y - q.y));
-    const T flip = m_flipInside ? -one : one;
+    const T k = sign(q.y);
+    const T d = std::min(dot(a, a), dot(b, b));
+    const T s = std::max(k * (w.x * q.y - w.y * q.x), k * (w.y - q.y));
 
-    return flip * sqrt(d) * sign(s);
+    return sqrt(d) * sign(s);
   }
 
 protected:
@@ -1026,11 +796,6 @@ protected:
     @brief Cone height
   */
   T m_height;
-
-  /*!
-    @brief Hook for making inside -> outside.
-  */
-  bool m_flipInside;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"
