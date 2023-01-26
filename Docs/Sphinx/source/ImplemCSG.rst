@@ -1,7 +1,7 @@
 .. _Chap:ImplemCSG:
 
-CSG
-===
+Geometry representation
+=======================
 
 Implicit functions
 ------------------
@@ -28,10 +28,14 @@ EBGeometry implements implement functions and signed distance functions through 
       T signedDistance(const Vec3T<T>& a_point) const noexcept = 0;
    }
 
-Definitions are found in:
-   
+Note that ``T`` is a floating point precision, which is supported because DCEL meshes can take up quite a bit of computer memory.
+These declarations are found in
+
 * :file:`Source/EBGeometry_ImplicitFunction.hpp` for implicit functions.
-* :file:`Source/EBGeometry_SignedDistanceFunction.hpp` for signed distance field. 
+* :file:`Source/EBGeometry_SignedDistanceFunction.hpp` for signed distance field.
+
+Various useful implementations of implicit functions and distance fields are found in:
+
 * :file:`Source/EBGeometry_AnalyticDistanceFields.hpp` for various pre-defined analytic distance fields.
 * :file:`Source/EBGeometry_MeshDistanceFields.hpp` for various distance field representations for DCEL meshes. 
 

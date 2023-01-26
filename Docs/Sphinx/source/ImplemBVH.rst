@@ -1,9 +1,5 @@
 .. _Chap:ImplemBVH:
 
-.. warning::
-
-   Documentation is horribly out of date.
-
 BVH
 ===
 
@@ -11,10 +7,10 @@ The BVH functionality is encapsulated in the namespace ``EBGeometry::BVH``.
 For the full API, see `the doxygen API <doxygen/html/namespaceBVH.html>`__.
 There are two types of BVHs supported.
 
-*  **Direct BVHs** where the nodes are stored in build order and contain references to their children, and the leaf holds primitives.
+*  **Full BVHs** where the nodes are stored in build order and contain references to their children.
 *  **Compact BVHs** where the nodes are stored in depth-first order and contain index offsets to children and primitives.
 
-The direct BVH is encapsulated by a class
+The full BVH is encapsulated by a class
 
 .. code-block:: c++
 
@@ -41,8 +37,7 @@ EBGeometry supports the following bounding volumes, which are defined in :file:`
 *  **BoundingSphere**, templated as ``EBGeometry::BoundingVolumes::BoundingSphereT<T>`` and describes a bounding sphere.
    Various constructors are available.
 
-*  **Axis-aligned bounding box**, or AABB for short.
-   This is templated as ``EBGeometry::BoundingVolumes::AABBT<T>``.
+*  **Axis-aligned bounding box**, which is templated as ``EBGeometry::BoundingVolumes::AABBT<T>``.
 
 For full API details, see `the doxygen API <doxygen/html/namespaceBoundingVolumes.html>`_.
 
@@ -130,7 +125,7 @@ Although seemingly complicated, the input arguments are simply polymorphic funct
       };
 
 *  ``PartitionerT`` is the partitioner function when splitting a leaf node into ``K`` new leaves.
-   The function takes an list of primitives which it partitions into ``K`` new list of primitives, i.e. it encapsulates :eq:`Partition`.
+   The function takes a list of primitives which it partitions into ``K`` new lists of primitives, i.e. it encapsulates :eq:`Partition`.
    As an example, we include a partitioner that is provided for integrating BVH and DCEL functionality.
 
    .. code-block:: c++
@@ -164,8 +159,6 @@ Although seemingly complicated, the input arguments are simply polymorphic funct
    The input primitives are then sorted based on the facet centroid locations in the ``splitDir`` direction, and they are partitioned into ``K`` almost-equal chunks.
    These partitions are returned and become primitives in the new leaf nodes.
 
-   There is also an example of the same type of partitioning for the BVH-accelerated union, see `UnionBVH <doxygen/html/classUnionBVH.html>`_
-
 In general, users are free to construct their BVHs in their own way if they choose.
 For the most part this will include the construction of their own bounding volumes and/or partitioners. 
 
@@ -185,7 +178,7 @@ The "linearized" BVH can be automatically constructed from the standard BVH but 
    The original BVH is traversed from top-to-bottom along the branches and laid out in linear memory.
    Each interior node gets a reference (index offset) to their children nodes.
 
-The rationale for reorganizing the BVH in compact form is it's tighter memory footprint and depth-first ordering which occasionally allows a more efficient traversal downwards in the BVH tree.
+The rationale for reorganizing the BVH in compact form is it's tighter memory footprint and depth-first ordering which occasionally allows a more efficient traversal downwards in the BVH tree, particularly if the geometric primitives are sorted in the same order. 
 To encapsulate the compact BVH we provide two classes:
 
 *  ``LinearNodeT`` which encapsulates a node, but rather than storing the primitives and pointers to child nodes it stores offsets along the 1D arrays.
@@ -269,6 +262,7 @@ Both ``NodeT`` (full BVH) and ``LinearBVH`` (flattened BVH) include routines for
 For both BVH representations, tree traversal is done using a routine
 
 .. code-block:: c++
+		
     template <class Meta>
     inline void
     traverse(const BVH::Updater<P>&                    a_updater,

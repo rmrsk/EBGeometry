@@ -6,7 +6,6 @@ DCEL
 The DCEL functionality exists under the namespace ``EBGeometry::DCEL`` and contains the following functionality:
 
 *  **Fundamental data types** like vertices, half-edges, polygons, and entire surface grids.
-*  **Signed distance functionality** for the above types.
 *  **BVH functionality** for putting DCEL grids into bounding volume hierarchies.
 
 .. important::
@@ -48,8 +47,7 @@ The main DCEL functionality (vertices, edges, faces) is provided by the followin
      template <class T>
      class FaceT
 
-  For performance reasons, a polygon face stores all it's half-edges (to avoid iteration when computing the signed distance).
-  It also stores:
+  Faces also store
 
   * The normal vector.
   * A 2D embedding of the polygon face.
@@ -70,15 +68,14 @@ The main DCEL functionality (vertices, edges, faces) is provided by the followin
   The mesh stores all the vertices, half-edges, and faces, and if it is watertight and orientable it is also a signed distance function.
   Typically, the mesh is not created by the user but automatically created when reading the mesh from an input file.
 
-All of the above DCEL classes have member functions of the type:
+The above DCEL classes have member functions of the type:
 
 .. code-block:: c++
 
    T signedDistance(const Vec3T<T>& a_point) const noexcept;
    T unsignedDistance2(const Vec3T<T>& a_point) const noexcept;
 
-Thus, they fulfill the template requirements of the primitive type for the BVH implementation, see :ref:`Chap:BVHConstraints`.
-See :ref:`Chap:BVHIntegration` for details regarding DCEL integration with BVHs.
+which can be used to compute the distance to the various features on the mesh.
 
 .. _Chap:BVHIntegration:
 

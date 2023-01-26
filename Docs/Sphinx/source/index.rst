@@ -6,9 +6,9 @@
 EBGeometry's user documentation
 ===============================
 
-This is the user documentation for EBGeometry, a small C++ package for computing signed distance fields from surface tesselations and analytic shapes. 
+This is the user documentation for EBGeometry, a small C++ package for efficiently representing implicit functions and signed distance fields for complex geometries.
 Although EBGeometry is a self-contained package, it is was originally written for usage with embedded boundary (EB) and immersed boundary (IB) codes.
-EBGeometry provides the geometry representation through an implicit or signed distance function, but does not the discrete geometry generation, i.e. the generation of cut-cells for a given geometry.
+EBGeometry provides the geometry representation through an implicit or signed distance function, but does not provide the discrete geometry generation, i.e. the generation of cut-cells for a given geometry.
 
 The basic features of EBGeometry are as follows:
 
@@ -19,10 +19,10 @@ The basic features of EBGeometry are as follows:
 * Support for both conventional and accelerated (using BVHs) constructive solid geometry (CSG).
 * Examples of how to couple EBGeometry to AMReX and Chombo.     
 
-.. tip::
-   
-   The EBGeometry source code is found at `https://github.com/rmrsk/EBGeometry <https://github.com/rmrsk/EBGeometry>`_.
-   A separate Doxygen-generated API of EBGeometry is `available here <doxygen/html/index.html>`_.   
+.. important::
+
+   This is the user documentation for EBGeometry.
+   The source code is found at `<https://github.com/rmrsk/EBGeometry>`_ and a separate Doxygen-generated API of EBGeometry is available at `<https://rmrsk.github.io/EBGeometry/doxygen/html/index.html>`_.
 
 .. This is for getting rid of the TOC in html view. 
 .. raw:: html
@@ -59,7 +59,7 @@ Concepts
 
 .. toctree::
    :maxdepth: 3
-   :caption: Concepts
+   :caption: Basic concepts
    :hidden:	     
 	     
    Concepts.rst

@@ -1,7 +1,7 @@
 .. _Chap:Concepts:
 
-Function representation
-=======================
+Geometry representations
+========================
 
 Signed distance fields
 ----------------------
@@ -57,8 +57,8 @@ Signed distance functions are usually the more useful object, but many operation
 DCEL
 ====
 
-Basic concept
--------------
+Principle
+---------
 
 EBGeometry uses a doubly-connected edge list (DCEL) structure for storing surface meshes.
 The DCEL structures consist of the following objects:
@@ -67,8 +67,8 @@ The DCEL structures consist of the following objects:
 * Half-edges.
 * Vertices.
 
-As shown in :numref:`Fig:DCEL`, half-edges circulate the inside of the facet, with pointer-access to the next half-edge.
-A half-edge also stores a reference to it's starting vertex, as well as a reference to it's pair-edge.
+As shown in :numref:`Fig:DCEL`, half-edges circulate the inside of the facet, with pointer access to the next half-edge.
+A half-edge also stores a reference to its starting vertex, as well as a reference to its pair-edge.
 From the DCEL structure we can easily obtain all edges or vertices belonging to a single facet, and also jump to a neighboring facet by fetching the pair edge. 
 
 .. _Fig:DCEL:
@@ -76,10 +76,10 @@ From the DCEL structure we can easily obtain all edges or vertices belonging to 
    :width: 480px
    :align: center
 
-   DCEL mesh structure. Each half-edge stores references to previous/next half-edges, the pair edge, and the starting vertex.
+   DCEL mesh structure. Each half-edge stores references to next half-edge, the pair edge, and the starting vertex.
    Vertices store a coordinate as well as a reference to one of the outgoing half-edges.
 
-In EBGeometry the half-edge data structure is implemented in it's own namespace.
+In EBGeometry the half-edge data structure is implemented in its own namespace.
 This is a comparatively standard implementation of the DCEL structure, supplemented by functions that permit signed distance computations to various features on such a mesh.
 
 .. important::
@@ -104,7 +104,7 @@ Three cases can be distinguished:
 
 #. **Facet/Polygon face**.
    
-   When computing the distance from a point :math:`\mathbf{x}` to the polygon face we first determine if the projection of :math:`\mathbf{x}` to the face's plane lies inside or outside the face.
+   When computing the distance from a point :math:`\mathbf{x}` to the polygon face we first determine if the projection of :math:`\mathbf{x}` to the face plane lies inside or outside the face.
    This is more involved than one might think, and it is done by first computing the two-dimensional projection of the polygon face, ignoring one of the coordinates.
    Next, we determine, using 2D algorithms, if the projected point lies inside the embedded 2D representation of the polygon face. 
    Various algorithms for this are available, such as computing the winding number, the crossing number, or the subtended angle between the projected point and the 2D polygon.
@@ -113,7 +113,7 @@ Three cases can be distinguished:
    
       EBGeometry uses the crossing number algorithm by default.
       
-   If the point projects to the inside of the face, the signed distance is just :math:`d = \mathbf{n}_f\cdot\left(\mathbf{x} - \mathbf{x}_f\right)` where :math:`\mathbf{n}_f` is the face normal and :math:`\mathbf{x}_f` is a point on the face plane (e.g., a vertex).
+   If the point projects to the inside of the face, the signed distance is just :math:`\mathbf{n}_f\cdot\left(\mathbf{x} - \mathbf{x}_f\right)` where :math:`\mathbf{n}_f` is the face normal and :math:`\mathbf{x}_f` is a point on the face plane (e.g., a vertex).
    If the point projects to *outside* the polygon face, the closest feature is either an edge or a vertex.
    
 #. **Edge**.
@@ -140,7 +140,7 @@ For both edges and vertices we use the pseudonormals from :cite:`1407857`:
    \mathbf{n}_{e} = \frac{1}{2}\left(\mathbf{n}_{f} + \mathbf{n}_{f^\prime}\right).
 
 where :math:`f` and :math:`f^\prime` are the two faces connecting the edge.
-The vertex pseudonormal are given by
+The vertex pseudonormal is given by
 
 .. math::
 
@@ -157,21 +157,20 @@ where the sum runs over all faces which share :math:`v` as a vertex, and where :
 
 .. _Chap:BVH:
 
-BVH
-===
+Bounding volume hierarchies
+===========================
 
-BVHs are tree structures where the regular nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces or implicit functions) further down in the hierarchy.
+Bounding volume hierarchies (BVHs) are tree structures where the regular nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces or implicit functions) further down in the hierarchy.
 This means that every node in a BVH is associated with a *bounding volume*.
 The bounding volume can, in principle, be any type of volume. 
 Moreover, there are two types of nodes in a BVH:
 
-* **Regular nodes.** These do not contain any of the primitives/objects.
-  They are also called interior nodes, and store references to their child nodes. 
-* **Leaf nodes.** These lie at the bottom of the BVH tree and each of them contain a subset of the geometric primitives.
+* **Regular/interior nodes.** These do not contain any of the primitives/objects, but store references to subtrees (aka child nodes).
+* **Leaf nodes.** These lie at the bottom of the BVH tree and each of them contains a subset of the geometric primitives.
 
 :numref:`Fig:TrianglesBVH` shows a concept of BVH partitioning of a set of triangles.
 Here, :math:`P` is a regular node whose bounding volume encloses all geometric primitives in its subtree.
-It's bounding volume, an axis-aligned bounding box or AABB for short, is illustrated by a dashed rectangle.
+Its bounding volume, an axis-aligned bounding box or AABB for short, is illustrated by a dashed rectangle.
 The interior node :math:`P` stores references to the leaf nodes :math:`L` and :math:`R`.
 As shown in :numref:`Fig:TrianglesBVH`, :math:`L` contains 5 triangles enclosed by another AABB.
 The other child node :math:`R` contains 6 triangles that are also enclosed by an AABB.
@@ -185,16 +184,16 @@ Note that the bounding volume for :math:`P` encloses the bounding volumes of :ma
    Example of BVH partitioning for enclosing triangles. The regular node :math:`P` contains two leaf nodes :math:`L` and :math:`R` which contain the primitives (triangles).
 
 There is no fundamental limitation to what type of primitives/objects can be enclosed in BVHs, which makes BVHs useful beyond triangulated data sets.
-For example, analytic signed distance functions can also be embedded in BVHs, provided that we can construct bounding volumes that encloses them.
+For example, analytic signed distance functions can also be embedded in BVHs, provided that we can construct bounding volumes that enclose them.
 
 .. note::
    
-   EBGeometry limited to binary trees, but supports :math:`k` -ary trees where each regular node has :math:`k` children nodes. 
+   EBGeometry is not limited to binary trees, but supports :math:`k` -ary trees where each regular node has :math:`k` child nodes. 
 
 Construction
 ------------
 
-BVHs have extremely flexible rules regarding their construction.
+BVH construction is fairly flexible.
 For example, the child nodes :math:`L` and :math:`R` in :numref:`Fig:TrianglesBVH` could be partitioned in any number of ways, with the only requirement being that each child node gets at least one triangle/primitive. 
 
 Although the rules for BVH construction are highly flexible, performant BVHs are completely reliant on having balanced trees with the following heuristic properties:
@@ -258,8 +257,8 @@ For the traversal algorithm we consider the following steps:
 Note that types of tree traversal (that do not compute the signed distance) are also possible, e.g. we may want to compute the union :math:`I\left(\mathbf{x}\right) = \min\left(I_1\left(\mathbf{x}\right), I_2\left(\mathbf{x}\right), .\ldots\right)`.
 EBGeometry supports a fairly flexible approach to the tree traversal and update algorithms.
 
-CSG
-===
+Constructive solid geometry
+===========================
 
 Basic transformations
 ---------------------
@@ -288,4 +287,4 @@ EBGeometry supports standard operations in which implicit functions can be combi
 * Difference.
 
 Some of these CSG operations also have smooth equivalents, i.e. for smoothing the transition between combined objects.
-Fast CSG operations are also supported by EBGeometry, e.g. the a BVH-accelerated union where one performs an accelerated search for the closest primitive.   
+Fast CSG operations are also supported by EBGeometry, e.g. the BVH-accelerated CSG union where one uses the BVH when searching for the relevant geometric primitive(s). 
