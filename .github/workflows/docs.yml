@@ -1,0 +1,62 @@
+name: Deploy documentation
+
+on:
+  push:
+    branches: main
+  pull_request:
+    branches: main
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-docs
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false        
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt install doxygen
+          sudo apt install graphviz
+          sudo apt install texlive
+          sudo apt install texlive-latex-extra
+          sudo apt install latexmk
+          python3 -m pip install sphinx==5.0.0 sphinx_rtd_theme sphinxcontrib-bibtex
+
+      - name: Build doxygen
+        working-directory: ${{ github.workspace }}/Docs
+        run: |
+          doxygen doxyfile
+
+      - name: Build HTML documentation
+        working-directory: ${{ github.workspace }}/Docs/Sphinx        
+        run: |
+          make html
+
+      - name: Build PDF documentation
+        working-directory: ${{ github.workspace }}/Docs/Sphinx
+        run: |
+          make latexpdf
+
+      - name: Cleanup
+        working-directory: ${{ github.workspace }}/Docs
+        run: |
+          cp -a Sphinx/build/html/* ./
+          mv Sphinx/build/latex/ebgeometry.pdf ./
+          rm -rf Sphinx/build
+          
+      - name: Deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'        
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
+          folder: Docs
+          clean: false
