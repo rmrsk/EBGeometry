@@ -41,10 +41,15 @@ template <class T, class BV, size_t K>
 T
 FastCompactMeshSDF<T, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
-#if 1
+  // TLDR: This uses the general LinearBVH::traverse pattern where we iterate through nodes based on a 'closest-node' first
+  // strategy. Recall that the BVH traverse function takes:
+  //
+  // 1. An updater function for doing _something_ when we visit a leaf node.
+  // 2. A visiter function for deciding if we should visit the node or not.
+  // 3. A sorter function for deciding which child nodes to visit first.
+  // 4. A meta-updater for updating meta-information that could be required when traversing the tree.
   T minDist = std::numeric_limits<T>::infinity();
 
-  // Lambda for updating the shortest distance.
   BVH::Updater<Face> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const Face>>& faces) -> void {
     for (const auto& f : faces) {
       const T curDist = f->signedDistance(a_point);
@@ -53,20 +58,12 @@ FastCompactMeshSDF<T, BV, K>::signedDistance(const Vec3T<T>& a_point) const noex
     }
   };
 
-  // Visit pattern -- visit the node if the bounding volume is close enough.
   BVH::Visiter<Node, T> visiter = [&minDist, &a_point](const Node& a_node, const T& a_bvDist) -> bool {
     return a_bvDist <= std::abs(minDist);
   };
 
-  // Sort criterion.
-  BVH::Sorter<Node, K, T> sorter =
+  BVH::Sorter<Node, T, K> sorter =
     [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) -> void {
-    // Compute distance to bounding volumes
-    for (auto& l : a_leaves) {
-      l.second = l.first->getDistanceToBoundingVolume(a_point);
-    }
-
-    // Sort based on distance to bounding volumes -- closest node goes first.
     std::sort(
       a_leaves.begin(),
       a_leaves.end(),
@@ -74,16 +71,14 @@ FastCompactMeshSDF<T, BV, K>::signedDistance(const Vec3T<T>& a_point) const noex
                  const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
   };
 
+  BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) -> T {
+    return a_node.getDistanceToBoundingVolume(a_point);
+  };
+
   // Traverse the tree.
-  //  return m_bvh->signedDistance(a_point);
-  m_bvh->traverse(updater, visiter, sorter);
+  m_bvh->traverse(updater, visiter, sorter, metaUpdater);
 
   return minDist;
-
-#else
-  return m_bvh->signedDistance(a_point);
-
-#endif
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"

@@ -84,7 +84,7 @@ public:
   /*!
     @brief Destructor
   */
-  virtual ~FastCompactMeshSDF() = default;  
+  virtual ~FastCompactMeshSDF() = default;
 
   /*!
     @brief Value function

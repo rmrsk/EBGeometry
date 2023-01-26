@@ -670,17 +670,17 @@ namespace BVH {
   template <class T, class P, class BV, size_t K>
   template <class Meta>
   inline void
-  LinearBVH<T, P, BV, K>::traverse(const BVH::Updater<P>&                  a_updater,
-                                   const BVH::Visiter<LinearNode, Meta>&   a_visiter,
-                                   const BVH::Sorter<LinearNode, K, Meta>& a_sorter) const noexcept
+  LinearBVH<T, P, BV, K>::traverse(const BVH::Updater<P>&                    a_updater,
+                                   const BVH::Visiter<LinearNode, Meta>&     a_visiter,
+                                   const BVH::Sorter<LinearNode, Meta, K>&   a_sorter,
+                                   const BVH::MetaUpdater<LinearNode, Meta>& a_metaUpdater) const noexcept
   {
     std::array<std::pair<std::shared_ptr<const LinearNode>, Meta>, K> children;
     std::stack<std::pair<std::shared_ptr<const LinearNode>, Meta>>    q;
 
-    q.emplace(m_linearNodes[0], std::numeric_limits<T>::infinity());
+    q.emplace(m_linearNodes[0], a_metaUpdater(*m_linearNodes[0]));
 
     while (!(q.empty())) {
-
       const auto& curNode = q.top();
 
       q.pop();
@@ -702,7 +702,8 @@ namespace BVH {
 
           // Update the children visitation pattern.
           for (size_t k = 0; k < K; k++) {
-            children[k].first = m_linearNodes[curNode.first->getChildOffsets()[k]];
+            children[k].first  = m_linearNodes[curNode.first->getChildOffsets()[k]];
+            children[k].second = a_metaUpdater(*children[k].first);
           }
 
           // User-based visit pattern.

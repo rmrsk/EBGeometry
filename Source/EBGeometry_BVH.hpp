@@ -124,8 +124,8 @@ namespace BVH {
     @param[in] a_bvDist Distance to current bounding volume. 
     @param[in] a_minDist  Shortest "distance" to primitives found so far. 
   */
-  template <class N, class Meta = void>
-  using Visiter = std::function<bool(const N& a_node, const Meta& a_meta)>;
+  template <class NodeType, class Meta>
+  using Visiter = std::function<bool(const NodeType& a_node, const Meta a_meta)>;
 
   /*!
     @brief Sorting criterion for which child node to visit first. 
@@ -133,8 +133,14 @@ namespace BVH {
     node is investigated first, then the second, etc. The Meta template parameter is a door left open to
     the user for attaching additional data to the sorter/visiter pattern. 
   */
-  template <class N, size_t K, class Meta = void>
-  using Sorter = std::function<void(std::array<std::pair<std::shared_ptr<const N>, Meta>, K>& a_children)>;
+  template <class NodeType, class Meta, size_t K>
+  using Sorter = std::function<void(std::array<std::pair<std::shared_ptr<const NodeType>, Meta>, K>& a_children)>;
+
+  /*!
+    @brief Updater for when user wants to add some meta-data to his BVH traversal.
+  */
+  template <class NodeType, class Meta>
+  using MetaUpdater = std::function<Meta(const NodeType& a_node)>;
 
   /*!
     @brief Typename for identifying algorithms various algorithms during tree
@@ -590,15 +596,17 @@ namespace BVH {
     /*!
       @brief Recursion-less BVH traversal algorithm. 
       The user inputs the update rule, a pruning criterion, and a criterion of who to visit first. 
-      @param[in] a_updater Update rule
-      @param[in] a_visiter Visiter rule
-      @param[in] a_sorter  Visitation pattern rule. 
+      @param[in] a_updater     Update rule (for updating whatever the user is interested in updated)
+      @param[in] a_visiter     Visiter rule. Must return true if we should visit the node. 
+      @param[in] a_sorter      Children sort function for deciding which subtrees and investigated first. 
+      @param[in] a_metaUpdater Updater for meta-information.
     */
-    template <class Meta = void>
+    template <class Meta>
     inline void
-    traverse(const BVH::Updater<P>&                  a_updater,
-             const BVH::Visiter<LinearNode, Meta>&   a_visiter,
-             const BVH::Sorter<LinearNode, K, Meta>& a_sorter) const noexcept;
+    traverse(const BVH::Updater<P>&                    a_updater,
+             const BVH::Visiter<LinearNode, Meta>&     a_visiter,
+             const BVH::Sorter<LinearNode, Meta, K>&   a_sorter,
+             const BVH::MetaUpdater<LinearNode, Meta>& a_metaUpdater) const noexcept;
 
   protected:
     /*!
