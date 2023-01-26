@@ -7,7 +7,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  Build-and-deploy:
+  Install-dependencies:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,25 +26,35 @@ jobs:
           sudo apt install latexmk
           python3 -m pip install sphinx==5.0.0 sphinx_rtd_theme sphinxcontrib-bibtex
 
+  Build-doxygen:
+    needs: Install-dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Build doxygen
+        working-directory: ${{ github.workspace }}/Docs        
         run: |
           doxygen Docs/doxygen.conf
 
+  Build-HTML:
+    needs: Install-dependencies
+    runs-on: ubuntu-latest
+    
       - name: Build HTML documentation
         working-directory: ${{ github.workspace }}/Docs/Sphinx        
         run: |
           make html
 
+  Build-PDF:
+    needs: Install-dependencies
+    runs-on: ubuntu-latest
       - name: Build PDF documentation
         working-directory: ${{ github.workspace }}/Docs/Sphinx
         run: |
           make latexpdf
-
-      - name: Upload
-        uses: actions/upload-artifact@v1
-        with:
-          name: docs
-          path: Docs/Sphinx/build
 
       - name: Cleanup
         working-directory: ${{ github.workspace }}/Docs
@@ -53,11 +63,11 @@ jobs:
           mv Sphinx/build/latex/ebgeometry.pdf ./
           rm -rf Sphinx/build
           
-      - name: Deploy
-        if: github.event_name == 'push'  && github.ref == 'refs/heads/main'        
-        uses: JamesIves/github-pages-deploy-action@3.7.1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: gh-pages
-          folder: Docs
-          clean: false
+      # - name: Deploy
+      #   if: github.event_name == 'push'  && github.ref == 'refs/heads/main'        
+      #   uses: JamesIves/github-pages-deploy-action@3.7.1
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     branch: gh-pages
+      #     folder: Docs
+      #     clean: false          
