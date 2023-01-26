@@ -145,16 +145,3 @@ jobs:
     steps:
       - name: Do nothing
         run: |
-
-  Deploy:
-    needs: CI-Passed
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy
-        if: github.event_name == 'push'  && github.ref == 'refs/heads/main'        
-        uses: JamesIves/github-pages-deploy-action@3.7.1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: gh-pages
-          folder: Docs
-          clean: false                    
