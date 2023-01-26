@@ -57,6 +57,8 @@ public:
     // Optimized, faster union which uses a BVH for bounding the BVHs.
     m_implicitFunction = std::make_shared<EBGeometry::FastUnionIF<T, FastSDF, BV, K>>(
       fastSDFs, [](const std::shared_ptr<const FastSDF>& a_sdf) -> BV { return a_sdf->computeBoundingVolume(); });
+
+    m_implicitFunction = EBGeometry::Complement<T>(m_implicitFunction);
   }
 
   F18(const F18& a_other)
