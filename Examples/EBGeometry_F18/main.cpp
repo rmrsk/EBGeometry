@@ -56,7 +56,6 @@ main(int argc, char* argv[])
   std::vector<BV>                       boundingVolumes;
 
   for (const auto& f : stlFiles) {
-
     // Read the DCEL mesh.
     const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(f);
     mesh->flip();
