@@ -30,6 +30,33 @@ namespace DCEL {
   using PrimitiveList = std::vector<std::shared_ptr<const EBGeometry::DCEL::FaceT<T>>>;
 
   /*!
+    @brief Function for partitioning an input list into K almost-equal-sized
+    chunks
+    @param[in] a_primitives Primitives to be partitioned.
+  */
+  template <class T, size_t K>
+  auto equalCounts = [](const PrimitiveList<T>& a_primitives) -> std::array<PrimitiveList<T>, K> {
+    int length = a_primitives.size() / K;
+    int remain = a_primitives.size() % K;
+
+    int begin = 0;
+    int end   = 0;
+
+    std::array<PrimitiveList<T>, K> chunks;
+
+    for (size_t k = 0; k < K; k++) {
+      end += (remain > 0) ? length + 1 : length;
+      remain--;
+
+      chunks[k] = PrimitiveList<T>(a_primitives.begin() + begin, a_primitives.begin() + end);
+
+      begin = end;
+    }
+
+    return chunks;
+  };
+
+  /*!
     @brief Bounding volume constructor for a DCEL face.
     @details With BVHs and DCEL, the object to be bounded is the polygon face
     (e.g., triangle). We assume that our BV constructor can enclose points, so we
@@ -42,19 +69,6 @@ namespace DCEL {
     [](const std::shared_ptr<const EBGeometry::DCEL::FaceT<T>>& a_primitive) -> BV {
     return BV(a_primitive->getAllVertexCoordinates());
   };
-
-/*!
-    @brief Bounding volume constructor for an DCEL mesh. This returns a bounding volume
-    enclosing all the vertices in the mesh. 
-    @param[in] a_mesh Input DCEL mesh
-  */
-#if 0
-  template <class T, class BV>
-  EBGeometry::BVH::BVConstructorT<EBGeometry::DCEL::MeshT<T>, BV> defaultMeshBVConstructor =
-    [](const std::shared_ptr<const EBGeometry::DCEL::MeshT<T>>& a_mesh) -> BV {
-    return BV(a_mesh->getAllVertexCoordinates());
-  };
-#endif
 
   /*!
     @brief Default stop function. This function terminates the division process if
@@ -85,33 +99,6 @@ namespace DCEL {
     }
 
     return true;
-  };
-
-  /*!
-    @brief Function for partitioning an input list into K almost-equal-sized
-    chunks
-    @param[in] a_primitives Primitives to be partitioned.
-  */
-  template <class T, size_t K>
-  auto equalCounts = [](const PrimitiveList<T>& a_primitives) -> std::array<PrimitiveList<T>, K> {
-    int length = a_primitives.size() / K;
-    int remain = a_primitives.size() % K;
-
-    int begin = 0;
-    int end   = 0;
-
-    std::array<PrimitiveList<T>, K> chunks;
-
-    for (size_t k = 0; k < K; k++) {
-      end += (remain > 0) ? length + 1 : length;
-      remain--;
-
-      chunks[k] = PrimitiveList<T>(a_primitives.begin() + begin, a_primitives.begin() + end);
-
-      begin = end;
-    }
-
-    return chunks;
   };
 
   /*!
