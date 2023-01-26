@@ -1,4 +1,4 @@
-name: Build and Deploy
+name: Deploy documentation
 
 on: [push, pull_request]
 
@@ -27,7 +27,7 @@ jobs:
           python3 -m pip install sphinx==5.0.0 sphinx_rtd_theme sphinxcontrib-bibtex
 
       - name: Build doxygen
-        working-directory: ${{ github.workspace }}/Docs/Sphinx                
+        working-directory: ${{ github.workspace }}/Docs
         run: |
           doxygen doxyfile
 
@@ -40,12 +40,6 @@ jobs:
         working-directory: ${{ github.workspace }}/Docs/Sphinx
         run: |
           make latexpdf
-
-      - name: Upload
-        uses: actions/upload-artifact@v1
-        with:
-          name: docs
-          path: Docs/Sphinx/build
 
       - name: Cleanup
         working-directory: ${{ github.workspace }}/Docs
