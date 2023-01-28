@@ -3,8 +3,6 @@ name: Deploy documentation
 on:
   push:
     branches: main
-  pull_request:
-    branches: main
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-docs
