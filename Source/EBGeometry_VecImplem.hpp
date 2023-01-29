@@ -36,9 +36,7 @@ inline Vec2T<T>::Vec2T(const Vec2T& u) noexcept
 
 template <typename T>
 inline constexpr Vec2T<T>::Vec2T(const T& a_x, const T& a_y) : x(a_x), y(a_y)
-{
-
-}
+{}
 
 template <typename T>
 inline constexpr Vec2T<T>
