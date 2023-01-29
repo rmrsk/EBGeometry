@@ -35,10 +35,9 @@ inline Vec2T<T>::Vec2T(const Vec2T& u) noexcept
 }
 
 template <typename T>
-inline Vec2T<T>::Vec2T(const T& a_x, const T& a_y)
+inline constexpr Vec2T<T>::Vec2T(const T& a_x, const T& a_y) : x(a_x), y(a_y)
 {
-  x = a_x;
-  y = a_y;
+
 }
 
 template <typename T>
@@ -77,7 +76,7 @@ Vec2T<T>::infinity() noexcept
 }
 
 template <typename T>
-inline Vec2T<T>&
+inline constexpr Vec2T<T>&
 Vec2T<T>::operator=(const Vec2T<T>& u) noexcept
 {
   x = u.x;
@@ -87,35 +86,35 @@ Vec2T<T>::operator=(const Vec2T<T>& u) noexcept
 }
 
 template <typename T>
-inline Vec2T<T>
+inline constexpr Vec2T<T>
 Vec2T<T>::operator+(const Vec2T<T>& u) const noexcept
 {
   return Vec2T<T>(x + u.x, y + u.y);
 }
 
 template <typename T>
-inline Vec2T<T>
+inline constexpr Vec2T<T>
 Vec2T<T>::operator-(const Vec2T<T>& u) const noexcept
 {
   return Vec2T<T>(x - u.x, y - u.y);
 }
 
 template <typename T>
-inline Vec2T<T>
+inline constexpr Vec2T<T>
 Vec2T<T>::operator-() const noexcept
 {
   return Vec2T<T>(-x, -y);
 }
 
 template <typename T>
-inline Vec2T<T>
+inline constexpr Vec2T<T>
 Vec2T<T>::operator*(const T& s) const noexcept
 {
   return Vec2T<T>(x * s, y * s);
 }
 
 template <typename T>
-inline Vec2T<T>
+inline constexpr Vec2T<T>
 Vec2T<T>::operator/(const T& s) const noexcept
 {
   const T is = 1. / s;
@@ -123,7 +122,7 @@ Vec2T<T>::operator/(const T& s) const noexcept
 }
 
 template <typename T>
-inline Vec2T<T>&
+inline constexpr Vec2T<T>&
 Vec2T<T>::operator+=(const Vec2T<T>& u) noexcept
 {
   x += u.x;
@@ -133,7 +132,7 @@ Vec2T<T>::operator+=(const Vec2T<T>& u) noexcept
 }
 
 template <typename T>
-inline Vec2T<T>&
+inline constexpr Vec2T<T>&
 Vec2T<T>::operator-=(const Vec2T<T>& u) noexcept
 {
   x -= u.x;
@@ -143,7 +142,7 @@ Vec2T<T>::operator-=(const Vec2T<T>& u) noexcept
 }
 
 template <typename T>
-inline Vec2T<T>&
+inline constexpr Vec2T<T>&
 Vec2T<T>::operator*=(const T& s) noexcept
 {
   x *= s;
@@ -153,7 +152,7 @@ Vec2T<T>::operator*=(const T& s) noexcept
 }
 
 template <typename T>
-inline Vec2T<T>&
+inline constexpr Vec2T<T>&
 Vec2T<T>::operator/=(const T& s) noexcept
 {
   const T is = 1. / s;
@@ -165,35 +164,35 @@ Vec2T<T>::operator/=(const T& s) noexcept
 }
 
 template <typename T>
-inline T
+inline constexpr T
 Vec2T<T>::dot(const Vec2T<T>& u) const noexcept
 {
   return x * u.x + y * u.y;
 }
 
 template <typename T>
-inline T
+inline constexpr T
 Vec2T<T>::length() const noexcept
 {
   return sqrt(x * x + y * y);
 }
 
 template <typename T>
-inline T
+inline constexpr T
 Vec2T<T>::length2() const noexcept
 {
   return x * x + y * y;
 }
 
 template <typename T>
-inline Vec2T<T>
+inline constexpr Vec2T<T>
 operator*(const T& s, const Vec2T<T>& a_other) noexcept
 {
   return a_other * s;
 }
 
 template <typename T>
-inline Vec2T<T>
+inline constexpr Vec2T<T>
 operator/(const T& s, const Vec2T<T>& a_other) noexcept
 {
   return a_other / s;
@@ -214,12 +213,8 @@ inline Vec3T<T>::Vec3T(const Vec3T<T>& u) noexcept
 }
 
 template <typename T>
-inline Vec3T<T>::Vec3T(const T& a_x, const T& a_y, const T& a_z)
-{
-  X[0] = a_x;
-  X[1] = a_y;
-  X[2] = a_z;
-}
+inline constexpr Vec3T<T>::Vec3T(const T& a_x, const T& a_y, const T& a_z) : X{a_x, a_y, a_z}
+{}
 
 template <typename T>
 inline constexpr Vec3T<T>
@@ -268,7 +263,7 @@ Vec3T<T>::infinity() noexcept
 }
 
 template <typename T>
-inline bool
+inline constexpr bool
 Vec3T<T>::lessLX(const Vec3T<T>& u) const noexcept
 {
   bool ret = false;
@@ -291,7 +286,7 @@ Vec3T<T>::lessLX(const Vec3T<T>& u) const noexcept
 }
 
 template <typename T>
-inline Vec3T<T>&
+inline constexpr Vec3T<T>&
 Vec3T<T>::operator=(const Vec3T<T>& u) noexcept
 {
   X[0] = u[0];
@@ -302,42 +297,42 @@ Vec3T<T>::operator=(const Vec3T<T>& u) noexcept
 }
 
 template <typename T>
-inline Vec3T<T>
+inline constexpr Vec3T<T>
 Vec3T<T>::operator+(const Vec3T<T>& u) const noexcept
 {
   return Vec3T<T>(X[0] + u[0], X[1] + u[1], X[2] + u[2]);
 }
 
 template <typename T>
-inline Vec3T<T>
+inline constexpr Vec3T<T>
 Vec3T<T>::operator-(const Vec3T<T>& u) const noexcept
 {
   return Vec3T<T>(X[0] - u[0], X[1] - u[1], X[2] - u[2]);
 }
 
 template <typename T>
-inline Vec3T<T>
+inline constexpr Vec3T<T>
 Vec3T<T>::operator-() const noexcept
 {
   return Vec3T<T>(-X[0], -X[1], -X[2]);
 }
 
 template <typename T>
-inline Vec3T<T>
+inline constexpr Vec3T<T>
 Vec3T<T>::operator*(const T& s) const noexcept
 {
   return Vec3T<T>(s * X[0], s * X[1], s * X[2]);
 }
 
 template <typename T>
-inline Vec3T<T>
+inline constexpr Vec3T<T>
 Vec3T<T>::operator*(const Vec3T<T>& s) const noexcept
 {
   return Vec3T<T>(s[0] * X[0], s[1] * X[1], s[2] * X[2]);
 }
 
 template <typename T>
-inline Vec3T<T>
+inline constexpr Vec3T<T>
 Vec3T<T>::operator/(const T& s) const noexcept
 {
   const T is = 1. / s;
@@ -345,14 +340,14 @@ Vec3T<T>::operator/(const T& s) const noexcept
 }
 
 template <typename T>
-inline Vec3T<T>
+inline constexpr Vec3T<T>
 Vec3T<T>::operator/(const Vec3T<T>& v) const noexcept
 {
   return Vec3T<T>(X[0] / v[0], X[1] / v[1], X[2] / v[2]);
 }
 
 template <typename T>
-inline Vec3T<T>&
+inline constexpr Vec3T<T>&
 Vec3T<T>::operator+=(const Vec3T<T>& u) noexcept
 {
   X[0] += u[0];
@@ -363,7 +358,7 @@ Vec3T<T>::operator+=(const Vec3T<T>& u) noexcept
 }
 
 template <typename T>
-inline Vec3T<T>&
+inline constexpr Vec3T<T>&
 Vec3T<T>::operator-=(const Vec3T<T>& u) noexcept
 {
   X[0] -= u[0];
@@ -374,8 +369,7 @@ Vec3T<T>::operator-=(const Vec3T<T>& u) noexcept
 }
 
 template <typename T>
-
-inline Vec3T<T>&
+inline constexpr Vec3T<T>&
 Vec3T<T>::operator*=(const T& s) noexcept
 {
   X[0] *= s;
@@ -386,7 +380,7 @@ Vec3T<T>::operator*=(const T& s) noexcept
 }
 
 template <typename T>
-inline Vec3T<T>&
+inline constexpr Vec3T<T>&
 Vec3T<T>::operator/=(const T& s) noexcept
 {
   const T is = 1. / s;
@@ -399,28 +393,28 @@ Vec3T<T>::operator/=(const T& s) noexcept
 }
 
 template <typename T>
-inline Vec3T<T>
+inline constexpr Vec3T<T>
 Vec3T<T>::cross(const Vec3T<T>& u) const noexcept
 {
   return Vec3T<T>(X[1] * u[2] - X[2] * u[1], X[2] * u[0] - X[0] * u[2], X[0] * u[1] - X[1] * u[0]);
 }
 
 template <typename T>
-inline T&
+inline constexpr T&
 Vec3T<T>::operator[](size_t i) noexcept
 {
   return X[i];
 }
 
 template <typename T>
-inline const T&
+inline constexpr const T&
 Vec3T<T>::operator[](size_t i) const noexcept
 {
   return X[i];
 }
 
 template <typename T>
-inline Vec3T<T>
+inline constexpr Vec3T<T>
 Vec3T<T>::min(const Vec3T<T>& u) noexcept
 {
   X[0] = std::min(X[0], u[0]);
@@ -431,7 +425,7 @@ Vec3T<T>::min(const Vec3T<T>& u) noexcept
 }
 
 template <typename T>
-inline Vec3T<T>
+inline constexpr Vec3T<T>
 Vec3T<T>::max(const Vec3T<T>& u) noexcept
 {
   X[0] = std::max(X[0], u[0]);
@@ -486,116 +480,66 @@ Vec3T<T>::maxDir(const bool a_doAbs) const noexcept
 }
 
 template <typename T>
-inline bool
+inline constexpr bool
 Vec3T<T>::operator==(const Vec3T<T>& u) const noexcept
 {
   return (X[0] == u[0] && X[1] == u[1] && X[2] == u[2]);
 }
 
 template <typename T>
-inline bool
+inline constexpr bool
 Vec3T<T>::operator!=(const Vec3T<T>& u) const noexcept
 {
   return !(*this == u);
 }
 
 template <typename T>
-inline bool
+inline constexpr bool
 Vec3T<T>::operator<(const Vec3T<T>& u) const noexcept
 {
   return (X[0] < u[0] && X[1] < u[1] && X[2] < u[2]);
 }
 
 template <typename T>
-inline bool
+inline constexpr bool
 Vec3T<T>::operator>(const Vec3T<T>& u) const noexcept
 {
   return (X[0] > u[0] && X[1] > u[1] && X[2] > u[2]);
 }
 
 template <typename T>
-inline bool
+inline constexpr bool
 Vec3T<T>::operator<=(const Vec3T<T>& u) const noexcept
 {
   return (X[0] <= u[0] && X[1] <= u[1] && X[2] <= u[2]);
 }
 
 template <typename T>
-
-inline bool
+inline constexpr bool
 Vec3T<T>::operator>=(const Vec3T<T>& u) const noexcept
 {
   return (X[0] >= u[0] && X[1] >= u[1] && X[2] >= u[2]);
 }
 
 template <typename T>
-inline T
+inline constexpr T
 Vec3T<T>::dot(const Vec3T<T>& u) const noexcept
 {
   return X[0] * u[0] + X[1] * u[1] + X[2] * u[2];
 }
 
 template <typename T>
-inline T
+inline constexpr T
 Vec3T<T>::length() const noexcept
 {
   return sqrt(X[0] * X[0] + X[1] * X[1] + X[2] * X[2]);
 }
 
 template <typename T>
-inline T
+inline constexpr T
 Vec3T<T>::length2() const noexcept
 {
   return X[0] * X[0] + X[1] * X[1] + X[2] * X[2];
-}
-
-template <class R, typename T>
-inline Vec3T<T>
-operator*(const R& s, const Vec3T<T>& a_other) noexcept
-{
-  return a_other * s;
-}
-
-template <typename T>
-inline Vec3T<T>
-operator*(const Vec3T<T>& u, const Vec3T<T>& v) noexcept
-{
-  return u * v;
-}
-
-template <class R, typename T>
-inline Vec3T<T>
-operator/(const R& s, const Vec3T<T>& a_other) noexcept
-{
-  return a_other / s;
-}
-
-template <typename T>
-inline Vec3T<T>
-min(const Vec3T<T>& u, const Vec3T<T>& v) noexcept
-{
-  return Vec3T<T>(std::min(u[0], v[0]), std::min(u[1], v[1]), std::min(u[2], v[2]));
-}
-
-template <typename T>
-inline Vec3T<T>
-max(const Vec3T<T>& u, const Vec3T<T>& v) noexcept
-{
-  return Vec3T<T>(std::max(u[0], v[0]), std::max(u[1], v[1]), std::max(u[2], v[2]));
-}
-
-template <typename T>
-inline T
-dot(const Vec3T<T>& u, const Vec3T<T>& v) noexcept
-{
-  return u.dot(v);
-}
-
-template <typename T>
-inline T
-length(const Vec3T<T>& v) noexcept
-{
-  return v.length();
 }
 
 template <typename T>
@@ -622,6 +566,55 @@ dot(const Vec2T<T>& u, const Vec2T<T>& v) noexcept
 template <typename T>
 inline T
 length(const Vec2T<T>& v) noexcept
+{
+  return v.length();
+}
+
+template <class R, typename T>
+inline constexpr Vec3T<T>
+operator*(const R& s, const Vec3T<T>& a_other) noexcept
+{
+  return a_other * s;
+}
+
+template <typename T>
+inline constexpr Vec3T<T>
+operator*(const Vec3T<T>& u, const Vec3T<T>& v) noexcept
+{
+  return u * v;
+}
+
+template <class R, typename T>
+inline constexpr Vec3T<T>
+operator/(const R& s, const Vec3T<T>& a_other) noexcept
+{
+  return a_other / s;
+}
+
+template <typename T>
+inline constexpr Vec3T<T>
+min(const Vec3T<T>& u, const Vec3T<T>& v) noexcept
+{
+  return Vec3T<T>(std::min(u[0], v[0]), std::min(u[1], v[1]), std::min(u[2], v[2]));
+}
+
+template <typename T>
+inline constexpr Vec3T<T>
+max(const Vec3T<T>& u, const Vec3T<T>& v) noexcept
+{
+  return Vec3T<T>(std::max(u[0], v[0]), std::max(u[1], v[1]), std::max(u[2], v[2]));
+}
+
+template <typename T>
+inline constexpr T
+dot(const Vec3T<T>& u, const Vec3T<T>& v) noexcept
+{
+  return u.dot(v);
+}
+
+template <typename T>
+inline constexpr T
+length(const Vec3T<T>& v) noexcept
 {
   return v.length();
 }
