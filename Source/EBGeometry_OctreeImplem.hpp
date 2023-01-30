@@ -12,6 +12,9 @@
 #ifndef EBGeometry_OctreeImplem
 #define EBGeometry_OctreeImplem
 
+// Std includes
+#include <stack>
+
 // Our includes
 #include "EBGeometry_Octree.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
@@ -92,6 +95,7 @@ namespace Octree {
         for (size_t k = 0; k < 8; k++) {
           m_children[k]            = std::make_shared<Node<Meta, Data>>();
           m_children[k]->getMeta() = a_metaConstructor(static_cast<OctantIndex>(k), this->getMeta());
+          m_children[k]->getData() = a_dataConstructor(static_cast<OctantIndex>(k), this->getData());
         }
 
         // Recurse.
@@ -107,8 +111,36 @@ namespace Octree {
 
   template <typename Meta, typename Data>
   inline void
-  Node<Meta, Data>::traverse(const Visiter& a_visiter, const Sorter& a_sorter) const noexcept
-  {}
+  Node<Meta, Data>::traverse(const Updater& a_updater, const Visiter& a_visiter, const Sorter& a_sorter) const noexcept
+  {
+
+    std::array<std::shared_ptr<const Node<Meta, Data>>, 8> children;
+    std::stack<std::shared_ptr<const Node<Meta, Data>>>    q;
+
+    q.emplace(this->shared_from_this());
+
+    while (!(q.empty())) {
+
+      const auto& curNode = *q.top();
+
+      q.pop();
+
+      if (a_visiter(curNode)) {
+        if (curNode->isLeaf()) {
+          a_updater(curNode);
+        }
+        else {
+          children = curNode.getChildren();
+
+          a_sorter(children);
+
+          for (const auto& c : children) {
+            q.push(c);
+          }
+        }
+      }
+    }
+  }
 } // namespace Octree
 #include "EBGeometry_NamespaceFooter.hpp"
 

@@ -45,8 +45,21 @@ main()
   for (const auto& corner : LowCorner<float>) {
     std::cout << corner << "\n";
   }
-  std::cout << "\n";
-  for (const auto& corner : HighCorner<float>) {
+  std::cout << "\n"; 
+ for (const auto& corner : HighCorner<float>) {
     std::cout << corner << "\n";
   }
+
+
+ // Create a sphere.
+ const std::shared_ptr<ImplicitFunction<float>> sphere = std::make_shared<SphereSDF<float>>(Vec3T<float>::zero(), 1.0);
+
+ Vec3T<float> initLo = -10*Vec3T<float>::one();
+ Vec3T<float> initHi = 10*Vec3T<float>::one();
+
+
+ const auto boundingBox = sphere->computeAABB(initLo, initHi, 5, 0.0);
+
+
+ std::cout << boundingBox << std::endl; 
 }

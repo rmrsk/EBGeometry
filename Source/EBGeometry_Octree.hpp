@@ -14,6 +14,7 @@
 
 // Std includes
 #include <array>
+#include <functional>
 #include <memory>
 
 // Our includes
@@ -63,19 +64,11 @@ namespace Octree {
                                                   LowCorner<T>[7] + 0.5 * Vec3T<T>::one()};
 
   /*!
-    @brief Get the low-corner for an octant inside the unit cube.
-    @param[in] a_index Octant index. 
-  */
-  template <typename T>
-  inline Vec3T<T>
-  getLowCorner(const OctantIndex& a_index) noexcept;
-
-  /*!
     @brief Octree class without anything special (this uses full tree representation rather than linear/pointerless). 
     @details Meta is the meta-data for the node (user can put in e.g. level, volume, etc) and Data is leaf node contents. 
   */
   template <typename Meta, typename Data = void>
-  class Node
+  class Node : public std::enable_shared_from_this<Node<Meta, Data>>
   {
   public:
     /*!
@@ -100,13 +93,18 @@ namespace Octree {
       std::function<std::shared_ptr<Data>(const OctantIndex& a_index, const std::shared_ptr<Data>& a_parentData)>;
 
     /*!
-      @brief Visiter pattern for Node::traverse. Must return true if we should keep going down the sub-branch and
+      @brief Updater pattern for Node::traverse. This is called when visiting a leaf node. 
+    */
+    using Updater = std::function<void(const Node<Meta, Data>& a_node)>;
+
+    /*!
+      @brief Visiter pattern for Node::traverse. This is called on interior and leaf nodes. Must return true if we should query the node.
       false otherwise.
     */
     using Visiter = std::function<bool(const Node<Meta, Data>& a_node)>;
 
     /*!
-      @brief Sorter for traverse pattern.
+      @brief Sorter for traverse pattern. This is called on interior nodes for deciding which sub-tree to visit first. 
     */
     using Sorter = std::function<void(std::array<std::shared_ptr<const Node<Meta, Data>>, 8>& a_children)>;
 
@@ -178,9 +176,17 @@ namespace Octree {
 
     /*!
       @brief Traverse the tree
+      @param[in] a_updater Updater when visiting leaf nodes.
+      @param[in] a_visit Visiter for deciding to visit a node.
+      @param[in] a_sorter Sorter method for deciding which subtree to investigate first. 
     */
     inline void
-    traverse(const Visiter& a_visiter, const Sorter& a_sorter) const noexcept;
+    traverse(
+      const Updater& a_updater,
+      const Visiter& a_visiter,
+      const Sorter&  a_sorter = [](std::array<std::shared_ptr<const Node<Meta, Data>>, 8>& a_children) -> void {
+        return;
+      }) const noexcept;
 
   protected:
     /*!

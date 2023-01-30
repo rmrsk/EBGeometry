@@ -15,6 +15,7 @@
 
 // Std includes
 #include <vector>
+#include <iostream>
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
@@ -204,6 +205,19 @@ namespace BoundingVolumes {
   class AABBT
   {
   public:
+
+  /*!
+    @brief For outputting a vector to an output stream. 
+  */
+    friend std::ostream&
+    operator<<(std::ostream& os, const AABBT<T>& aabb)
+    {
+      os << '(' << aabb.getLowCorner() << ", " << aabb.getHighCorner() << ')';
+
+      return os;
+    }    
+
+    
     /*!
       @brief Alias which cuts down on typing
     */
