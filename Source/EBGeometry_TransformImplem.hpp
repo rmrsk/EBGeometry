@@ -70,7 +70,7 @@ template <class T>
 std::shared_ptr<ImplicitFunction<T>>
 Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_dist) noexcept
 {
-  auto mollifier = std::make_shared<SphereSDF<T>>(Vec3T<T>::zero(), std::abs(a_dist), false);
+  auto mollifier = std::make_shared<SphereSDF<T>>(Vec3T<T>::zero(), std::abs(a_dist));
 
   constexpr size_t numPoints = 3;
 

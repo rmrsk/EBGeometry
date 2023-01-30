@@ -126,15 +126,19 @@ namespace Octree {
       q.pop();
 
       if (a_visiter(curNode)) {
-        if (curNode->isLeaf()) {
+        if (curNode.isLeaf()) {
           a_updater(curNode);
         }
         else {
-          children = curNode.getChildren();
+          for (size_t k = 0; k < 8; k++) {
+            children[k] = curNode.getChildren()[k];
+          }
 
           a_sorter(children);
 
           for (const auto& c : children) {
+            if (c == nullptr)
+              std::cout << "shit\n";
             q.push(c);
           }
         }

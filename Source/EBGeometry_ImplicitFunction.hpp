@@ -52,21 +52,24 @@ public:
   operator()(const Vec3T<T>& a_point) const noexcept;
 
   /*!
-    @brief Compute an approximation to the AABB box that encloses the implicit function. 
-    @details This routine will try to compute an AABB box using octree subdivision of the implicit function. This routine will characterize a cubic region in space
-    as being 'inside', 'outside', or intersected by computing the value function at the center of the cube. If the value function is larger than the extents of the cube,
-    we assume that there is no intersection inside the cube. The success of this algorithm therefore relies on the implicit function also being a signed distance 
+    @brief Compute an approximation to the bounding volume for the implicit surface, using octrees.
+    @details This routine will try to compute a bonding using octree subdivision of the implicit function. This routine will
+    characterize a cubic region in space as being 'inside', 'outside', or intersected by computing the value function at the
+    center of the cube. If the value function is larger than the extents of the cube, we assume that there is no intersection
+    inside the cube. The success of this algorithm therefore relies on the implicit function also being a signed distance 
     function, or at the very least not being horrendously far from being an SDF. 
     @param[in] a_initialLowCorner Initial low corner. 
     @param[in] a_initialHighCorner Initial high corner. 
     @param[in] a_maxTreeDepth Maximum permitted octree depth.
     @param[in] a_safety Safety factor when determining intersection. a_safety=1 sets safety factor to cube width, a_safety=2 sets twice the cube width, etc. 
+    @note The bounding volume type BV MUST have a constructor BV(std::vector<Vec3T<T>>).
   */
-  virtual BoundingVolumes::AABBT<T>
-  computeAABB(const Vec3T<T>&    a_initialLowCorner,
-              const Vec3T<T>&    a_initialHighCorner,
-              const unsigned int a_maxTreeDepth,
-              const T&           a_safety = 0.0) const noexcept;
+  template <class BV>
+  inline BV
+  approximateBoundingVolumeOctree(const Vec3T<T>&    a_initialLowCorner,
+                                  const Vec3T<T>&    a_initialHighCorner,
+                                  const unsigned int a_maxTreeDepth,
+                                  const T&           a_safety = 0.0) const noexcept;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

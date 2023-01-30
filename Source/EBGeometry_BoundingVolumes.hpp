@@ -37,6 +37,17 @@ namespace BoundingVolumes {
   {
   public:
     /*!
+      @brief For outputting a vector to an output stream. 
+    */
+    friend std::ostream&
+    operator<<(std::ostream& os, const BoundingSphereT<T>& sphere)
+    {
+      os << '(' << sphere.getCentroid() << ", " << sphere.getRadius() << ')';
+
+      return os;
+    }
+
+    /*!
       @brief Typename for possible algorithms that support the computation of a
       bounding sphere for a set of 3D points.
     */
@@ -205,19 +216,17 @@ namespace BoundingVolumes {
   class AABBT
   {
   public:
-
-  /*!
-    @brief For outputting a vector to an output stream. 
-  */
+    /*!
+      @brief For outputting a vector to an output stream. 
+    */
     friend std::ostream&
     operator<<(std::ostream& os, const AABBT<T>& aabb)
     {
       os << '(' << aabb.getLowCorner() << ", " << aabb.getHighCorner() << ')';
 
       return os;
-    }    
+    }
 
-    
     /*!
       @brief Alias which cuts down on typing
     */
