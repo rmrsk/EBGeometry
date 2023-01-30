@@ -24,7 +24,7 @@ main()
   Vec3 initLo = -10 * Vec3::one();
   Vec3 initHi = +10 * Vec3::one();
 
-  const auto boundingVolume = func->approximateBoundingVolumeOctree<BV>(initLo, initHi, 6, 0.0);
+  const auto boundingVolume = func->approximateBoundingVolumeOctree<BV>(initLo, initHi, 8, 0.0);
 
   std::cout << "Approximate bounding volume = " << boundingVolume << std::endl;
 
