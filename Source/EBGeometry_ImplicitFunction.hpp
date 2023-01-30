@@ -57,7 +57,8 @@ public:
     characterize a cubic region in space as being 'inside', 'outside', or intersected by computing the value function at the
     center of the cube. If the value function is larger than the extents of the cube, we assume that there is no intersection
     inside the cube. The success of this algorithm therefore relies on the implicit function also being a signed distance 
-    function, or at the very least not being horrendously far from being an SDF. 
+    function, or at the very least not being horrendously far from being an SDF. If octree subdivision fails, this will return
+    the maximally representable bounding volume.
     @param[in] a_initialLowCorner Initial low corner. 
     @param[in] a_initialHighCorner Initial high corner. 
     @param[in] a_maxTreeDepth Maximum permitted octree depth.

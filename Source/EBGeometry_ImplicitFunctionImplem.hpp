@@ -111,35 +111,52 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
   std::get<2>(metaRoot) = 0;
   std::get<3>(metaRoot) = std::abs(this->value(initialCenter)) <= (1.0 + a_safetyFactor) * initialDx.length();
 
-  root->build(splitNode, metaBuild, dataBuild);
-
-  // Traverse the octree and collect the vertex coordinates of each node that contains an
-  // intersection.
   std::vector<Vec3> vertices;
 
-  auto updater = [&vertices](const Node& a_node) -> void {
-    if (std::get<3>(a_node.getMeta())) {
-      const Vec3 lo = std::get<0>(a_node.getMeta());
-      const Vec3 hi = std::get<1>(a_node.getMeta());
-      const Vec3 dx = hi - lo;
+  // Handle potential errors.
+  if (a_initialLowCorner >= a_initialHighCorner) {
+    std::cerr
+      << "ImplicitFunction<T>::approximateBoundingVolumeOctree error: 'a_initialLowCorner >= a_initialHighCorner'\n";
 
-      for (size_t i = 0; i <= 1; i++) {
-        for (size_t j = 0; j <= 1; j++) {
-          for (size_t k = 0; k <= 1; k++) {
-            vertices.emplace_back(lo + Vec3(i * dx[0], j * dx[1], k * dx[2]));
+    vertices.emplace_back(-Vec3::max());
+    vertices.emplace_back(Vec3::max());
+  }
+  else if (!(std::get<3>(metaRoot))) {
+    std::cerr << "ImplicitFunction<T>::approximateBoundingVolumeOctree error: 'input volume does not contain root'\n";
+
+    vertices.emplace_back(-Vec3::max());
+    vertices.emplace_back(Vec3::max());
+  }
+  else {
+    root->build(splitNode, metaBuild, dataBuild);
+
+    // Traverse the octree and collect the vertex coordinates of each node that contains an
+    // intersection.
+
+    auto updater = [&vertices](const Node& a_node) -> void {
+      if (std::get<3>(a_node.getMeta())) {
+        const Vec3 lo = std::get<0>(a_node.getMeta());
+        const Vec3 hi = std::get<1>(a_node.getMeta());
+        const Vec3 dx = hi - lo;
+
+        for (size_t i = 0; i <= 1; i++) {
+          for (size_t j = 0; j <= 1; j++) {
+            for (size_t k = 0; k <= 1; k++) {
+              vertices.emplace_back(lo + Vec3(i * dx[0], j * dx[1], k * dx[2]));
+            }
           }
         }
       }
-    }
-  };
+    };
 
-  auto visiter = [](const Node& a_node) -> bool {
-    const MetaData& meta = a_node.getMeta();
+    auto visiter = [](const Node& a_node) -> bool {
+      const MetaData& meta = a_node.getMeta();
 
-    return std::get<3>(meta);
-  };
+      return std::get<3>(meta);
+    };
 
-  root->traverse(updater, visiter);
+    root->traverse(updater, visiter);
+  }
 
   return BV(vertices);
 }
