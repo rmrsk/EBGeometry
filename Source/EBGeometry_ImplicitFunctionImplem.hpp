@@ -55,8 +55,8 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
   // The node metadata is encoded as a tuple (loCorner, hiCorner, level, contains_intersection). We split the node if it
   // contains an intersection AND if the branch has not reached the maximum permitted depth.
   auto splitNode = [&a_maxTreeDepth](const Node& a_node) -> bool {
-    const auto containsIntersection = std::get<3>(a_node.getMeta());
-    const auto nodeLevel            = std::get<2>(a_node.getMeta());
+    const auto containsIntersection = std::get<3>(a_node.getMetaData());
+    const auto nodeLevel            = std::get<2>(a_node.getMetaData());
 
     return (nodeLevel >= a_maxTreeDepth) || !containsIntersection;
   };
@@ -101,7 +101,7 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
   // Initialize the root node and build the octree.
   auto root = std::make_shared<Node>();
 
-  MetaData& metaRoot = root->getMeta();
+  MetaData& metaRoot = root->getMetaData();
 
   const Vec3 initialCenter = 0.5 * (a_initialHighCorner + a_initialLowCorner);
   const Vec3 initialDx     = 0.5 * (a_initialHighCorner - a_initialLowCorner);
@@ -114,29 +114,28 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
   std::vector<Vec3> vertices;
 
   // Handle potential errors.
+  const std::string baseError = "ImplicitFunction<T>::approximateBoundingVolumeOctree error: ";
   if (a_initialLowCorner >= a_initialHighCorner) {
-    std::cerr
-      << "ImplicitFunction<T>::approximateBoundingVolumeOctree error: 'a_initialLowCorner >= a_initialHighCorner'\n";
+    std::cerr << baseError + "'a_initialLowCorner >= a_initialHighCorner'\n";
 
     vertices.emplace_back(-Vec3::max());
     vertices.emplace_back(Vec3::max());
   }
   else if (!(std::get<3>(metaRoot))) {
-    std::cerr << "ImplicitFunction<T>::approximateBoundingVolumeOctree error: 'input volume does not contain root'\n";
+    std::cerr << baseError + "'input volume does not contain surface.'\n";
 
     vertices.emplace_back(-Vec3::max());
     vertices.emplace_back(Vec3::max());
   }
   else {
-    root->build(splitNode, metaBuild, dataBuild);
+    root->buildBreadthFirst(splitNode, metaBuild, dataBuild);
 
     // Traverse the octree and collect the vertex coordinates of each node that contains an
     // intersection.
-
     auto updater = [&vertices](const Node& a_node) -> void {
-      if (std::get<3>(a_node.getMeta())) {
-        const Vec3 lo = std::get<0>(a_node.getMeta());
-        const Vec3 hi = std::get<1>(a_node.getMeta());
+      if (std::get<3>(a_node.getMetaData())) {
+        const Vec3 lo = std::get<0>(a_node.getMetaData());
+        const Vec3 hi = std::get<1>(a_node.getMetaData());
         const Vec3 dx = hi - lo;
 
         for (size_t i = 0; i <= 1; i++) {
@@ -150,7 +149,7 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
     };
 
     auto visiter = [](const Node& a_node) -> bool {
-      const MetaData& meta = a_node.getMeta();
+      const MetaData& meta = a_node.getMetaData();
 
       return std::get<3>(meta);
     };

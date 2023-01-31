@@ -49,14 +49,14 @@ namespace Octree {
 
   template <typename Meta, typename Data>
   inline Meta&
-  Node<Meta, Data>::getMeta() noexcept
+  Node<Meta, Data>::getMetaData() noexcept
   {
     return m_meta;
   }
 
   template <typename Meta, typename Data>
   inline const Meta&
-  Node<Meta, Data>::getMeta() const noexcept
+  Node<Meta, Data>::getMetaData() const noexcept
   {
     return m_meta;
   }
@@ -84,28 +84,64 @@ namespace Octree {
 
   template <typename Meta, typename Data>
   inline void
-  Node<Meta, Data>::build(const StopFunction&    a_stopFunction,
-                          const MetaConstructor& a_metaConstructor,
-                          const DataConstructor& a_dataConstructor) noexcept
+  Node<Meta, Data>::buildDepthFirst(const StopFunction&    a_stopFunction,
+                                    const MetaConstructor& a_metaConstructor,
+                                    const DataConstructor& a_dataConstructor) noexcept
   {
     if (this->isLeaf()) {
       if (!(a_stopFunction(*this))) {
 
         // Initialize children.
         for (size_t k = 0; k < 8; k++) {
-          m_children[k]            = std::make_shared<Node<Meta, Data>>();
-          m_children[k]->getMeta() = a_metaConstructor(static_cast<OctantIndex>(k), this->getMeta());
-          m_children[k]->getData() = a_dataConstructor(static_cast<OctantIndex>(k), this->getData());
+          m_children[k]                = std::make_shared<Node<Meta, Data>>();
+          m_children[k]->getMetaData() = a_metaConstructor(static_cast<OctantIndex>(k), this->getMetaData());
+          m_children[k]->getData()     = a_dataConstructor(static_cast<OctantIndex>(k), this->getData());
         }
 
         // Recurse.
         for (auto& c : m_children) {
-          c->build(a_stopFunction, a_metaConstructor, a_dataConstructor);
+          c->buildDepthFirst(a_stopFunction, a_metaConstructor, a_dataConstructor);
         }
       }
     }
     else {
-      std::cerr << "Node<Meta, Data>::build() got called on an interior node\n";
+      std::cerr << "Node<Meta, Data>::buildDepthFirst() got called on an interior node\n";
+    }
+  }
+
+  template <typename Meta, typename Data>
+  inline void
+  Node<Meta, Data>::buildBreadthFirst(const StopFunction&    a_stopFunction,
+                                      const MetaConstructor& a_metaConstructor,
+                                      const DataConstructor& a_dataConstructor) noexcept
+  {
+    if (this->isLeaf()) {
+      std::stack<std::shared_ptr<Node<Meta, Data>>> q;
+
+      q.emplace(this->shared_from_this());
+
+      while (!(q.empty())) {
+        auto& curNode = *q.top();
+
+        q.pop();
+
+        if (!(a_stopFunction(curNode))) {
+
+          // Initialize children and push them onto the stack.
+          auto& children = curNode.getChildren();
+
+          for (size_t k = 0; k < 8; k++) {
+            children[k]                = std::make_shared<Node<Meta, Data>>();
+            children[k]->getMetaData() = a_metaConstructor(static_cast<OctantIndex>(k), curNode.getMetaData());
+            children[k]->getData()     = a_dataConstructor(static_cast<OctantIndex>(k), curNode.getData());
+
+            q.push(children[k]);
+          }
+        }
+      }
+    }
+    else {
+      std::cerr << "Node<Meta, Data>::buildBreadthFirst() got called on an interior node\n";
     }
   }
 
@@ -137,8 +173,6 @@ namespace Octree {
           a_sorter(children);
 
           for (const auto& c : children) {
-            if (c == nullptr)
-              std::cout << "shit\n";
             q.push(c);
           }
         }
