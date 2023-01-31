@@ -77,6 +77,7 @@ Implementation
    ImplemCSG.rst
    ImplemDCEL.rst   
    ImplemBVH.rst
+   ImplemOctree.rst
    Parsers.rst
 
 Examples
