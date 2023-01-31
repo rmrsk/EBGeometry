@@ -47,7 +47,7 @@ public:
     @param[in] a_y Second vector component
     @details Sets this->x = a_x and this->y = a_y
   */
-  Vec2T(const T& a_x, const T& a_y);
+  constexpr Vec2T(const T& a_x, const T& a_y);
 
   /*!
     @brief Destructor (does nothing)
@@ -98,7 +98,7 @@ public:
     @brief Assignment operator. Sets this.x = a_other.x and this.y = a_other.y
     @param[in] a_other Other vector
   */
-  inline Vec2T<T>&
+  inline constexpr Vec2T<T>&
   operator=(const Vec2T& a_other) noexcept;
 
   /*!
@@ -107,7 +107,7 @@ public:
     @details Returns a new object with component x = this->x + a_other.x (same
     for y-component)
   */
-  inline Vec2T<T>
+  inline constexpr Vec2T<T>
   operator+(const Vec2T& a_other) const noexcept;
 
   /*!
@@ -116,13 +116,13 @@ public:
     @details Returns a new object with component x = this->x - a_other.x (same
     for y-component)
   */
-  inline Vec2T<T>
+  inline constexpr Vec2T<T>
   operator-(const Vec2T& a_other) const noexcept;
 
   /*!
     @brief Negation operator. Returns a new Vec2T<T> with negated components
   */
-  inline Vec2T<T>
+  inline constexpr Vec2T<T>
   operator-() const noexcept;
 
   /*!
@@ -131,7 +131,7 @@ public:
     @details Returns a new Vec2T<T> with components x = s*this->x (and same for
     y)
   */
-  inline Vec2T<T>
+  inline constexpr Vec2T<T>
   operator*(const T& s) const noexcept;
 
   /*!
@@ -140,7 +140,7 @@ public:
     @details Returns a new Vec2T<T> with components x = (1/s)*this->x (and same
     for y)
   */
-  inline Vec2T<T>
+  inline constexpr Vec2T<T>
   operator/(const T& s) const noexcept;
 
   /*!
@@ -149,7 +149,7 @@ public:
     @details Returns (*this) with components this->x = this->x + a_other.x (and
     same for y)
   */
-  inline Vec2T<T>&
+  inline constexpr Vec2T<T>&
   operator+=(const Vec2T& a_other) noexcept;
 
   /*!
@@ -158,7 +158,7 @@ public:
     @details Returns (*this) with components this->x = this->x - a_other.x (and
     same for y)
   */
-  inline Vec2T<T>&
+  inline constexpr Vec2T<T>&
   operator-=(const Vec2T& a_other) noexcept;
 
   /*!
@@ -167,7 +167,7 @@ public:
     @details Returns (*this) with components this->x = s*this->x (and same for
     y)
   */
-  inline Vec2T<T>&
+  inline constexpr Vec2T<T>&
   operator*=(const T& s) noexcept;
 
   /*!
@@ -176,7 +176,7 @@ public:
     @details Returns (*this) with components this->x = (1/s)*this->x (and same
     for y)
   */
-  inline Vec2T<T>&
+  inline constexpr Vec2T<T>&
   operator/=(const T& s) noexcept;
 
   /*!
@@ -184,7 +184,7 @@ public:
     @param[in] a_other other vector
     @details Returns the dot product, i.e. this->x*a_other.x + this->y+a_other.y
   */
-  inline T
+  inline constexpr T
   dot(const Vec2T& a_other) const noexcept;
 
   /*!
@@ -192,7 +192,7 @@ public:
     @return Returns length of vector, i.e. sqrt[(this->x)*(this->x) +
     (this->y)*(this->y)]
   */
-  inline T
+  inline constexpr T
   length() const noexcept;
 
   /*!
@@ -200,30 +200,9 @@ public:
     @return Returns length of vector, i.e. (this->x)*(this->x) +
     (this->y)*(this->y)
   */
-  inline T
+  inline constexpr T
   length2() const noexcept;
 };
-
-/*!
-  @brief Multiplication operator in the form s*Vec2T
-  @param[in] s Multiplication factor
-  @param[in] a_other Other vector
-  @return Returns a new vector with components x = s*a_other.x (and same for y)
-*/
-template <typename T>
-inline Vec2T<T>
-operator*(const T& s, const Vec2T<T>& a_other) noexcept;
-
-/*!
-  @brief Division operator in the form s*Vec2T.
-  @param[in] s Division factor
-  @param[in] a_other Other vector
-  @return Returns a new vector with components x = (1/s)*a_other.x (and same for
-  y)
-*/
-template <typename T>
-inline Vec2T<T>
-operator/(const T& s, const Vec2T<T>& a_other) noexcept;
 
 /*!
   @brief Three-dimensional vector class with arithmetic operators.
@@ -267,7 +246,7 @@ public:
     @param[in] a_z Third vector component
     @details Sets this->x = a_x, this->y = a_y, and this->z = a_z
   */
-  Vec3T(const T& a_x, const T& a_y, const T& a_z);
+  constexpr Vec3T(const T& a_x, const T& a_y, const T& a_z);
 
   /*!
     @brief Destructor (does nothing)
@@ -316,35 +295,35 @@ public:
     This returns to true 
     @param[in] u Other vector. 
   */
-  inline bool
+  inline constexpr bool
   lessLX(const Vec3T<T>& u) const noexcept;
 
   /*!
     @brief Return component in vector. (i=0 => x and so on)
     @param[in] i Index. Must be < 3
   */
-  inline T&
+  inline constexpr T&
   operator[](size_t i) noexcept;
 
   /*!
     @brief Return non-modifiable component in vector. (i=0 => x and so on)
     @param[in] i Index. Must be < 3
   */
-  inline const T&
+  inline constexpr const T&
   operator[](size_t i) const noexcept;
 
   /*!
     @brief Comparison operator. Returns true if all components are the same
     @param[in] u Other vector
   */
-  inline bool
+  inline constexpr bool
   operator==(const Vec3T<T>& u) const noexcept;
 
   /*!
     @brief Comparison operator. Returns false if all components are the same
     @param[in] u Other vector
   */
-  inline bool
+  inline constexpr bool
   operator!=(const Vec3T<T>& u) const noexcept;
 
   /*!
@@ -353,7 +332,7 @@ public:
     and false otherwise
     @param[in] u Other vector
   */
-  inline bool
+  inline constexpr bool
   operator<(const Vec3T<T>& u) const noexcept;
 
   /*!
@@ -361,7 +340,7 @@ public:
     @details Returns true if this->x > u.x AND this->y > u.y AND this->z > u.z
     @param[in] u Other vector
   */
-  inline bool
+  inline constexpr bool
   operator>(const Vec3T<T>& u) const noexcept;
 
   /*!
@@ -370,7 +349,7 @@ public:
     u.z
     @param[in] u Other vector
   */
-  inline bool
+  inline constexpr bool
   operator<=(const Vec3T<T>& u) const noexcept;
 
   /*!
@@ -379,7 +358,7 @@ public:
     u.z
     @param[in] u Other vector
   */
-  inline bool
+  inline constexpr bool
   operator>=(const Vec3T<T>& u) const noexcept;
 
   /*!
@@ -387,7 +366,7 @@ public:
     components
     @param[in] u Other vector
   */
-  inline Vec3T<T>&
+  inline constexpr Vec3T<T>&
   operator=(const Vec3T<T>& u) noexcept;
 
   /*!
@@ -395,7 +374,7 @@ public:
     @return Returns a new vector with x = this->x - u.x and so on.
     @param[in] u Other vector
   */
-  inline Vec3T<T>
+  inline constexpr Vec3T<T>
   operator+(const Vec3T<T>& u) const noexcept;
 
   /*!
@@ -403,13 +382,13 @@ public:
     @return Returns a new vector with x = this->x - u.x and so on.
     @param[in] u Other vector
   */
-  inline Vec3T<T>
+  inline constexpr Vec3T<T>
   operator-(const Vec3T<T>& u) const noexcept;
 
   /*!
     @brief Negation operator. Returns a vector with negated components
   */
-  inline Vec3T<T>
+  inline constexpr Vec3T<T>
   operator-() const noexcept;
 
   /*!
@@ -418,7 +397,7 @@ public:
     @param[in] s Scalar to multiply by
     @return Returns a new vector with X[i] = this->X[i] * s
   */
-  inline Vec3T<T>
+  inline constexpr Vec3T<T>
   operator*(const T& s) const noexcept;
 
   /*!
@@ -427,7 +406,7 @@ public:
     @return Returns a new vector with X[i] = this->X[i] * s[i] for each
     component.
   */
-  inline Vec3T<T>
+  inline constexpr Vec3T<T>
   operator*(const Vec3T<T>& s) const noexcept;
 
   /*!
@@ -435,7 +414,7 @@ public:
     @param[in] s Scalar to divided by
     @return Returns a new vector with X[i] = this->X[i] / s
   */
-  inline Vec3T<T>
+  inline constexpr Vec3T<T>
   operator/(const T& s) const noexcept;
 
   /*!
@@ -443,7 +422,7 @@ public:
     @param[in] v Other vector
     @return Returns a new vector with X[i] = this->X[i]/v[i] for each component.
   */
-  inline Vec3T<T>
+  inline constexpr Vec3T<T>
   operator/(const Vec3T<T>& v) const noexcept;
 
   /*!
@@ -452,7 +431,7 @@ public:
     @return Returns (*this) with incremented components, e.g. this->X[0] =
     this->X[0] + u.X[0]
   */
-  inline Vec3T<T>&
+  inline constexpr Vec3T<T>&
   operator+=(const Vec3T<T>& u) noexcept;
 
   /*!
@@ -461,7 +440,7 @@ public:
     @return Returns (*this) with subtracted components, e.g. this->X[0] =
     this->X[0] - u.X[0]
   */
-  inline Vec3T<T>&
+  inline constexpr Vec3T<T>&
   operator-=(const Vec3T<T>& u) noexcept;
 
   /*!
@@ -470,7 +449,7 @@ public:
     @return Returns (*this) with multiplied components, e.g. this->X[0] =
     this->X[0] * s
   */
-  inline Vec3T<T>&
+  inline constexpr Vec3T<T>&
   operator*=(const T& s) noexcept;
 
   /*!
@@ -479,7 +458,7 @@ public:
     @return Returns (*this) with multiplied components, e.g. this->X[0] =
     this->X[0] / s
   */
-  inline Vec3T<T>&
+  inline constexpr Vec3T<T>&
   operator/=(const T& s) noexcept;
 
   /*!
@@ -489,7 +468,7 @@ public:
     @return Returns a new vector with X[0] = std::min(this->X[0], u.X[0]) (and
     same for the other components)
   */
-  inline Vec3T<T>
+  inline constexpr Vec3T<T>
   min(const Vec3T<T>& u) noexcept;
 
   /*!
@@ -499,7 +478,7 @@ public:
     @return Returns a new vector with X[0] = std::minmax->X[0], u.X[0]) (and
     same for the other components)
   */
-  inline Vec3T<T>
+  inline constexpr Vec3T<T>
   max(const Vec3T<T>& u) noexcept;
 
   /*!
@@ -507,7 +486,7 @@ public:
     @param[in] u Other vector
     @returns Returns the cross product between (*this) and u
   */
-  inline Vec3T<T>
+  inline constexpr Vec3T<T>
   cross(const Vec3T<T>& u) const noexcept;
 
   /*!
@@ -515,7 +494,7 @@ public:
     @param[in] u Other vector
     @returns Returns the dot product between (*this) and u
   */
-  inline T
+  inline constexpr T
   dot(const Vec3T<T>& u) const noexcept;
 
   /*!
@@ -543,7 +522,7 @@ public:
     @return Returns the vector length, i.e. sqrt(X[0]*X[0] + X[1]*X[1] +
     Y[0]*Y[0])
   */
-  inline T
+  inline constexpr T
   length() const noexcept;
 
   /*!
@@ -551,7 +530,7 @@ public:
     @return Returns the vector length squared, i.e. (X[0]*X[0] + X[1]*X[1] +
     Y[0]*Y[0])
   */
-  inline T
+  inline constexpr T
   length2() const noexcept;
 
 protected:
@@ -562,73 +541,25 @@ protected:
 };
 
 /*!
-  @brief Multiplication operator.
-  @param[in] s Multiplication scalar
-  @param[in] u Vector
-  @return Returns new vector with components X[0] = s*X[0] and so on.
-*/
-template <class R, typename T>
-inline Vec3T<T>
-operator*(const R& s, const Vec3T<T>& u) noexcept;
-
-/*!
-  @brief Multiplication operator.
-  @param[in] u One vector
-  @param[in] v Other vector
-  @return Returns new vector with components X[0] = u[0]*[v0] and so on
+  @brief Multiplication operator in the form s*Vec2T
+  @param[in] s Multiplication factor
+  @param[in] a_other Other vector
+  @return Returns a new vector with components x = s*a_other.x (and same for y)
 */
 template <typename T>
-inline Vec3T<T>
-operator*(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
+inline constexpr Vec2T<T>
+operator*(const T& s, const Vec2T<T>& a_other) noexcept;
 
 /*!
-  @brief Division operator.
-  @param[in] s Division scalar
-  @param[in] u Vector
-  @return Returns new vector with components X[0] = X[0]/s and so on.
-*/
-template <class R, typename T>
-inline Vec3T<T>
-operator/(const R& s, const Vec3T<T>& u) noexcept;
-
-/*!
-  @brief Minimum function. Returns new vector with component-wise minimums.
-  @param[in] u Vector
-  @param[in] v Other vector
-  @return Returns new vector with components X[0] = std::min(u.X[0], v.X[0]) and
-  so on
+  @brief Division operator in the form s*Vec2T.
+  @param[in] s Division factor
+  @param[in] a_other Other vector
+  @return Returns a new vector with components x = (1/s)*a_other.x (and same for
+  y)
 */
 template <typename T>
-inline Vec3T<T>
-min(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
-
-/*!
-  @brief Maximum function. Returns new vector with component-wise minimums.
-  @param[in] u Vector
-  @param[in] v Other vector
-  @return Returns new vector with components X[0] = std::max(u.X[0], v.X[0]) and
-  so on
-*/
-template <typename T>
-inline Vec3T<T>
-max(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
-
-/*!
-  @brief Dot product function.
-  @param[in] u Vector
-  @param[in] v Other vector
-*/
-template <typename T>
-inline T
-dot(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
-
-/*!
-  @brief Length function
-  @param[in] v Vector.
-*/
-template <typename T>
-inline T
-length(const Vec3T<T>& v) noexcept;
+inline constexpr Vec2T<T>
+operator/(const T& s, const Vec2T<T>& a_other) noexcept;
 
 /*!
   @brief Minimum function. Returns new vector with component-wise minimums.
@@ -666,6 +597,75 @@ dot(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
 template <typename T>
 inline T
 length(const Vec2T<T>& v) noexcept;
+
+/*!
+  @brief Multiplication operator.
+  @param[in] s Multiplication scalar
+  @param[in] u Vector
+  @return Returns new vector with components X[0] = s*X[0] and so on.
+*/
+template <class R, typename T>
+inline constexpr Vec3T<T>
+operator*(const R& s, const Vec3T<T>& u) noexcept;
+
+/*!
+  @brief Multiplication operator.
+  @param[in] u One vector
+  @param[in] v Other vector
+  @return Returns new vector with components X[0] = u[0]*[v0] and so on
+*/
+template <typename T>
+inline constexpr Vec3T<T>
+operator*(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
+
+/*!
+  @brief Division operator.
+  @param[in] s Division scalar
+  @param[in] u Vector
+  @return Returns new vector with components X[0] = X[0]/s and so on.
+*/
+template <class R, typename T>
+inline constexpr Vec3T<T>
+operator/(const R& s, const Vec3T<T>& u) noexcept;
+
+/*!
+  @brief Minimum function. Returns new vector with component-wise minimums.
+  @param[in] u Vector
+  @param[in] v Other vector
+  @return Returns new vector with components X[0] = std::min(u.X[0], v.X[0]) and
+  so on
+*/
+template <typename T>
+inline constexpr Vec3T<T>
+min(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
+
+/*!
+  @brief Maximum function. Returns new vector with component-wise minimums.
+  @param[in] u Vector
+  @param[in] v Other vector
+  @return Returns new vector with components X[0] = std::max(u.X[0], v.X[0]) and
+  so on
+*/
+template <typename T>
+inline constexpr Vec3T<T>
+max(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
+
+/*!
+  @brief Dot product function.
+  @param[in] u Vector
+  @param[in] v Other vector
+*/
+template <typename T>
+inline constexpr T
+dot(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
+
+/*!
+  @brief Length function
+  @param[in] v Vector.
+*/
+template <typename T>
+inline constexpr T
+length(const Vec3T<T>& v) noexcept;
 
 #include "EBGeometry_NamespaceFooter.hpp"
 

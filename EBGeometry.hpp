@@ -9,10 +9,10 @@
 #include "Source/EBGeometry_DCEL_Vertex.hpp"
 #include "Source/EBGeometry_DCEL_Iterator.hpp"
 #include "Source/EBGeometry_MeshDistanceFunctions.hpp"
+#include "Source/EBGeometry_Octree.hpp"
 #include "Source/EBGeometry_Parser.hpp"
 #include "Source/EBGeometry_SignedDistanceFunction.hpp"
 #include "Source/EBGeometry_Transform.hpp"
-
 
 /*!
   @brief Name space for all of EBGeometry

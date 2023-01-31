@@ -17,7 +17,7 @@ EBGeometry implements implement functions and signed distance functions through 
       T value(const Vec3T<T>& a_point) const noexcept = 0;
    }
 
-   // Signed distance function implementation requires a signeDistance function
+   // Signed distance fields implementation require an additional function:
    template <class T>
    class SignedDistanceFunction : public ImplicitFunction<T>
    {
@@ -58,3 +58,25 @@ These also include accelerated variants that take advantage of BVH partitioning 
 .. literalinclude:: ../../../Source/EBGeometry_CSG.hpp   
    :language: c++
    :lines: 23-141
+
+Bounding volumes
+----------------
+
+For simple shapes, bounding volumes can be directly constructed given an implicit function.
+E.g. one can easily find the bounding volume for a sphere with a known center and radius, or for a DCEL mesh.
+However, more complicated implicit functions require us to compute the bounding volume, or at the very least an approximation to it.
+``ImplicitFunction<T>`` has a member function that uses spatial subdivision (based on octrees) for doing this:
+
+.. code-block:: c++
+
+   // Compute an approximate bounding volume BV.
+   template <class BV>
+   inline BV
+   approximateBoundingVolumeOctree(const Vec3T<T>&    a_initialLowCorner,
+                                   const Vec3T<T>&    a_initialHighCorner,
+                                   const unsigned int a_maxTreeDepth,
+                                   const T&           a_safety = 0.0) const noexcept;
+
+This function initializes a cubic region in space and uses octree refinement near the implicit surface.
+At the end of the octree recusion the vertices of the octree leaves are collected and a bounding volume of type ``BV`` that encloses them is computed.
+The success of this method relies on the implicit function being a signed distance function (or at least an approximation to it).
