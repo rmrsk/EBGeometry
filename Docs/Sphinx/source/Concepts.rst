@@ -269,7 +269,7 @@ Octree construction can be done in (at least) two ways:
 #. In breadth-first order where tree levels are added one at a time.
 
 EBGeometry supports both of these methods. 
-Traversal of octrees are generally speaking quite similar to the algorithms used for BVH trees.
+Octree traversal is generally speaking quite similar to the traversal algorithms used for BVH trees.
 
 Constructive solid geometry
 ===========================

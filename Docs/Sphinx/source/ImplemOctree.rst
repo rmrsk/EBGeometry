@@ -21,6 +21,10 @@ where the template parameters are:
 
 ``Node`` describes both regular and leaf nodes in the octree.
 
+.. warning::
+
+   ``Octree::Node<Meta, Data>`` should only be used as ``std::shared_ptr<Octree::Node<Meta, Data>>``.
+
 .. _Chap:OctreeConstruction:
 
 Construction
