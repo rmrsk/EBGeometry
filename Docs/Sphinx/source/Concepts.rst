@@ -257,6 +257,20 @@ For the traversal algorithm we consider the following steps:
 Note that types of tree traversal (that do not compute the signed distance) are also possible, e.g. we may want to compute the union :math:`I\left(\mathbf{x}\right) = \min\left(I_1\left(\mathbf{x}\right), I_2\left(\mathbf{x}\right), .\ldots\right)`.
 EBGeometry supports a fairly flexible approach to the tree traversal and update algorithms.
 
+Octree
+======
+
+Octrees are tree-structures where each interior node has exactly eight children.
+Such trees are usually used for spatial partitioning (and in this case the eight children have no spatial overlap), and the leaf nodes may also contain actual data. 
+
+Octree construction can be done in (at least) two ways:
+
+#. In depth-first order where entire sub-trees are built first.
+#. In breadth-first order where tree levels are added one at a time.
+
+EBGeometry supports both of these methods. 
+Traversal of octrees are generally speaking quite similar to the algorithms used for BVH trees.
+
 Constructive solid geometry
 ===========================
 
