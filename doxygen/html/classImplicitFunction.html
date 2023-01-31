@@ -127,6 +127,10 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <tr class="memitem:a361afffb3619a6e06172bdef96c41b91"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classImplicitFunction.html#a361afffb3619a6e06172bdef96c41b91">operator()</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_point) const noexcept</td></tr>
 <tr class="memdesc:a361afffb3619a6e06172bdef96c41b91"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alternative signature for the value function.  <a href="classImplicitFunction.html#a361afffb3619a6e06172bdef96c41b91">More...</a><br /></td></tr>
 <tr class="separator:a361afffb3619a6e06172bdef96c41b91"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a844c5123cf9cbad3a140fc40494b4071"><td class="memTemplParams" colspan="2">template&lt;class BV &gt; </td></tr>
+<tr class="memitem:a844c5123cf9cbad3a140fc40494b4071"><td class="memTemplItemLeft" align="right" valign="top">BV&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classImplicitFunction.html#a844c5123cf9cbad3a140fc40494b4071">approximateBoundingVolumeOctree</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_initialLowCorner, const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_initialHighCorner, const unsigned int a_maxTreeDepth, const T &amp;a_safety=0.0) const noexcept</td></tr>
+<tr class="memdesc:a844c5123cf9cbad3a140fc40494b4071"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute an approximation to the bounding volume for the implicit surface, using octrees.  <a href="classImplicitFunction.html#a844c5123cf9cbad3a140fc40494b4071">More...</a><br /></td></tr>
+<tr class="separator:a844c5123cf9cbad3a140fc40494b4071"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><h3>template&lt;class T&gt;<br />
@@ -135,6 +139,70 @@ class ImplicitFunction&lt; T &gt;</h3>
 <p>Abstract representation of an implicit function function (not necessarily signed distance). </p>
 <p>The value function must be implemented by subclasses. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="a844c5123cf9cbad3a140fc40494b4071"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a844c5123cf9cbad3a140fc40494b4071">&#9670;&nbsp;</a></span>approximateBoundingVolumeOctree()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T &gt; </div>
+<div class="memtemplate">
+template&lt;class BV &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">BV <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;::approximateBoundingVolumeOctree </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_initialLowCorner</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_initialHighCorner</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const unsigned int&#160;</td>
+          <td class="paramname"><em>a_maxTreeDepth</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const T &amp;&#160;</td>
+          <td class="paramname"><em>a_safety</em> = <code>0.0</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Compute an approximation to the bounding volume for the implicit surface, using octrees. </p>
+<p>This routine will try to compute a bonding using octree subdivision of the implicit function. This routine will characterize a cubic region in space as being 'inside', 'outside', or intersected by computing the value function at the center of the cube. If the value function is larger than the extents of the cube, we assume that there is no intersection inside the cube. The success of this algorithm therefore relies on the implicit function also being a signed distance function, or at the very least not being horrendously far from being an SDF. If octree subdivision fails, this will return the maximally representable bounding volume. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_initialLowCorner</td><td>Initial low corner. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_initialHighCorner</td><td>Initial high corner. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_maxTreeDepth</td><td>Maximum permitted octree depth. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_safety</td><td>Safety factor when determining intersection. a_safety=1 sets safety factor to cube width, a_safety=2 sets twice the cube width, etc. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>The bounding volume type BV MUST have a constructor BV(std::vector&lt;Vec3T&lt;T&gt;&gt;). </dd></dl>
+
+</div>
+</div>
 <a id="a361afffb3619a6e06172bdef96c41b91"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a361afffb3619a6e06172bdef96c41b91">&#9670;&nbsp;</a></span>operator()()</h2>
 
@@ -156,7 +224,7 @@ template&lt;class T &gt; </div>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">

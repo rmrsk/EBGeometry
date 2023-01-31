@@ -1,18 +1,12 @@
 var searchData=
 [
-  ['read_247',['read',['../classParser_1_1PLY.html#ad581f1134520f14c39110d94b3b8134b',1,'Parser::PLY']]],
-  ['readascii_248',['readASCII',['../classParser_1_1STL.html#a75bab184434e043c4ce4d8b2f685375b',1,'Parser::STL']]],
-  ['readbinary_249',['readBinary',['../classParser_1_1STL.html#a8c9086ab5d1d72c10ce9f6ec78469aa5',1,'Parser::STL']]],
-  ['readmulti_250',['readMulti',['../classParser_1_1STL.html#ab5b98ee5218bc08460786c426f3b71c5',1,'Parser::STL']]],
-  ['readplysoupascii_251',['readPLYSoupASCII',['../classParser_1_1PLY.html#a799bbbdc4768435d15cf10a5c6f7944a',1,'Parser::PLY']]],
-  ['readplysoupbinary_252',['readPLYSoupBinary',['../classParser_1_1PLY.html#a117043dfc4641c1bc03c4f57dab86560',1,'Parser::PLY']]],
-  ['readsingle_253',['readSingle',['../classParser_1_1STL.html#ae1b99f44e805bb3a5107b6725fc81e16',1,'Parser::STL']]],
-  ['readstlsoupascii_254',['readSTLSoupASCII',['../classParser_1_1STL.html#a85b06fbd47de2eb5b44b0db44ae5d4a6',1,'Parser::STL']]],
-  ['reconcile_255',['reconcile',['../classDCEL_1_1EdgeT.html#af205c6581568dafe9daa31d693550127',1,'DCEL::EdgeT::reconcile()'],['../classDCEL_1_1MeshT.html#a17d4408289ce6a1b8be638cddb028b30',1,'DCEL::MeshT::reconcile()'],['../classDCEL_1_1FaceT.html#afe1573197f96e1035070e9e246f2ffb4',1,'DCEL::FaceT::reconcile()']]],
-  ['reconcileedges_256',['reconcileEdges',['../classDCEL_1_1MeshT.html#ad80de69e1c2093f87ff72afb716a3ece',1,'DCEL::MeshT']]],
-  ['reconcilefaces_257',['reconcileFaces',['../classDCEL_1_1MeshT.html#ab9d8b1977e3e1f02e9e743aba35dbb5e',1,'DCEL::MeshT']]],
-  ['reconcilevertices_258',['reconcileVertices',['../classDCEL_1_1MeshT.html#af6f20b112be3300ed9857e349e0c7634',1,'DCEL::MeshT']]],
-  ['reset_259',['reset',['../classDCEL_1_1EdgeIteratorT.html#accda7f714b1d6b40ebc8b1aabf272a6a',1,'DCEL::EdgeIteratorT']]],
-  ['rotate_260',['Rotate',['../EBGeometry__Transform_8hpp.html#a779a2e9b52de6332451ec3444550cc20',1,'EBGeometry_Transform.hpp']]],
-  ['rotateif_261',['RotateIF',['../classRotateIF.html',1,'RotateIF&lt; T &gt;'],['../classRotateIF.html#a868f884ca14126ec8916e9d41c8fa331',1,'RotateIF::RotateIF()=delete'],['../classRotateIF.html#a3671af30ea6d432790efb5c52c6ee849',1,'RotateIF::RotateIF(const std::shared_ptr&lt; ImplicitFunction&lt; T &gt;&gt; &amp;a_implicitFunction, const T a_angle, const size_t a_axis) noexcept']]]
+  ['parser_252',['Parser',['../namespaceParser.html',1,'']]],
+  ['partitionert_253',['PartitionerT',['../namespaceBVH.html#a67de8088141156b6eaa225a635cc68c0',1,'BVH']]],
+  ['planesdf_254',['PlaneSDF',['../classPlaneSDF.html',1,'PlaneSDF&lt; T &gt;'],['../classPlaneSDF.html#acbd51b3dace74b7fd8bc94ce6c8715c2',1,'PlaneSDF::PlaneSDF()=delete'],['../classPlaneSDF.html#a698edd3858784ec37d51de52202fad02',1,'PlaneSDF::PlaneSDF(const Vec3T&lt; T &gt; &amp;a_point, const Vec3T&lt; T &gt; &amp;a_normal)']]],
+  ['ply_255',['PLY',['../classParser_1_1PLY.html',1,'Parser']]],
+  ['polygon2d_256',['Polygon2D',['../classPolygon2D.html',1,'Polygon2D&lt; T &gt;'],['../classPolygon2D.html#a9733800001f7eba9faebcd86617699ae',1,'Polygon2D::Polygon2D()=delete'],['../classPolygon2D.html#adf4ae9b914197276beb7cc3925ad24f0',1,'Polygon2D::Polygon2D(const Vec3 &amp;a_normal, const std::vector&lt; Vec3 &gt; &amp;a_points)']]],
+  ['primitivelistt_257',['PrimitiveListT',['../namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7',1,'BVH']]],
+  ['printwarnings_258',['printWarnings',['../classDCEL_1_1MeshT.html#aee2a8a6a821545c11fa0c67381b6abd1',1,'DCEL::MeshT']]],
+  ['projectpointintofaceplane_259',['projectPointIntoFacePlane',['../classDCEL_1_1FaceT.html#ae0270906ecae58fd80f30929b4e0fd79',1,'DCEL::FaceT']]],
+  ['projectpointtoedge_260',['projectPointToEdge',['../classDCEL_1_1EdgeT.html#ad3d93918b8ccbbdfba50d74107f162d7',1,'DCEL::EdgeT']]]
 ];

@@ -43,12 +43,14 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">Requirements</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html#third-party-examples">Third-party examples</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Basic concepts</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html">Geometry representations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html#dcel">DCEL</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html#bounding-volume-hierarchies">Bounding volume hierarchies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html#octree">Octree</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html#constructive-solid-geometry">Constructive solid geometry</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Implementation</span></p>
@@ -59,10 +61,12 @@
 <li class="toctree-l2"><a class="reference internal" href="#implicit-functions">Implicit functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#transformations">Transformations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#csg-operations">CSG operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#bounding-volumes">Bounding volumes</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">BVH</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemOctree.html">Octree</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Parsers.html">Reading data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
@@ -112,7 +116,7 @@
 <span class="w">   </span><span class="n">T</span><span class="w"> </span><span class="nf">value</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 
-<span class="c1">// Signed distance function implementation requires a signeDistance function</span>
+<span class="c1">// Signed distance fields implementation require an additional function:</span>
 <span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
 <span class="k">class</span><span class="w"> </span><span class="nc">SignedDistanceFunction</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"></span>
 <span class="p">{</span><span class="w"></span>
@@ -338,6 +342,25 @@ These also include accelerated variants that take advantage of BVH partitioning 
 <span class="w">           </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P2</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctionB</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
+</section>
+<section id="bounding-volumes">
+<h2>Bounding volumes<a class="headerlink" href="#bounding-volumes" title="Permalink to this heading"></a></h2>
+<p>For simple shapes, bounding volumes can be directly constructed given an implicit function.
+E.g. one can easily find the bounding volume for a sphere with a known center and radius, or for a DCEL mesh.
+However, more complicated implicit functions require us to compute the bounding volume, or at the very least an approximation to it.
+<code class="docutils literal notranslate"><span class="pre">ImplicitFunction&lt;T&gt;</span></code> has a member function that uses spatial subdivision (based on octrees) for doing this:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compute an approximate bounding volume BV.</span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="o">&gt;</span><span class="w"></span>
+<span class="kr">inline</span><span class="w"> </span><span class="n">BV</span><span class="w"></span>
+<span class="n">approximateBoundingVolumeOctree</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w">    </span><span class="n">a_initialLowCorner</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                </span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w">    </span><span class="n">a_initialHighCorner</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                </span><span class="k">const</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">a_maxTreeDepth</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="o">&amp;</span><span class="w">           </span><span class="n">a_safety</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+</pre></div>
+</div>
+<p>This function initializes a cubic region in space and uses octree refinement near the implicit surface.
+At the end of the octree recusion the vertices of the octree leaves are collected and a bounding volume of type <code class="docutils literal notranslate"><span class="pre">BV</span></code> that encloses them is computed.
+The success of this method relies on the implicit function being a signed distance function (or at least an approximation to it).</p>
 </section>
 </section>
 

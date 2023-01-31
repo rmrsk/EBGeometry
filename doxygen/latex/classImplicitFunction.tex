@@ -31,7 +31,9 @@ virtual \mbox{\hyperlink{classImplicitFunction_a27c37038d21db1c7535051a0b6b7c77a
 virtual T \mbox{\hyperlink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept=0
 \begin{DoxyCompactList}\small\item\em Value function. Points are outside the object if value $>$ 0.\+0 and inside if value $<$ 0.\+0. \end{DoxyCompactList}\item 
 T \mbox{\hyperlink{classImplicitFunction_a361afffb3619a6e06172bdef96c41b91}{operator()}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept
-\begin{DoxyCompactList}\small\item\em Alternative signature for the value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Alternative signature for the value function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class BV $>$ }\\BV \mbox{\hyperlink{classImplicitFunction_a844c5123cf9cbad3a140fc40494b4071}{approximate\+Bounding\+Volume\+Octree}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+initial\+Low\+Corner, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+initial\+High\+Corner, const unsigned int a\+\_\+max\+Tree\+Depth, const T \&a\+\_\+safety=0.\+0) const noexcept
+\begin{DoxyCompactList}\small\item\em Compute an approximation to the bounding volume for the implicit surface, using octrees. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -43,12 +45,38 @@ Abstract representation of an implicit function function (not necessarily signed
 The value function must be implemented by subclasses. 
 
 \doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classImplicitFunction_a844c5123cf9cbad3a140fc40494b4071}\label{classImplicitFunction_a844c5123cf9cbad3a140fc40494b4071}} 
+\index{ImplicitFunction$<$ T $>$@{ImplicitFunction$<$ T $>$}!approximateBoundingVolumeOctree@{approximateBoundingVolumeOctree}}
+\index{approximateBoundingVolumeOctree@{approximateBoundingVolumeOctree}!ImplicitFunction$<$ T $>$@{ImplicitFunction$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{approximateBoundingVolumeOctree()}{approximateBoundingVolumeOctree()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+template$<$class BV $>$ \\
+BV \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$\+::approximate\+Bounding\+Volume\+Octree (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+initial\+Low\+Corner,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+initial\+High\+Corner,  }\item[{const unsigned int}]{a\+\_\+max\+Tree\+Depth,  }\item[{const T \&}]{a\+\_\+safety = {\ttfamily 0.0} }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Compute an approximation to the bounding volume for the implicit surface, using octrees. 
+
+This routine will try to compute a bonding using octree subdivision of the implicit function. This routine will characterize a cubic region in space as being \textquotesingle{}inside\textquotesingle{}, \textquotesingle{}outside\textquotesingle{}, or intersected by computing the value function at the center of the cube. If the value function is larger than the extents of the cube, we assume that there is no intersection inside the cube. The success of this algorithm therefore relies on the implicit function also being a signed distance function, or at the very least not being horrendously far from being an SDF. If octree subdivision fails, this will return the maximally representable bounding volume. 
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+initial\+Low\+Corner} & Initial low corner. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+initial\+High\+Corner} & Initial high corner. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+max\+Tree\+Depth} & Maximum permitted octree depth. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+safety} & Safety factor when determining intersection. a\+\_\+safety=1 sets safety factor to cube width, a\+\_\+safety=2 sets twice the cube width, etc. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+The bounding volume type BV MUST have a constructor BV(std\+::vector$<$\+Vec3\+T$<$\+T$>$$>$). 
+\end{DoxyNote}
 \mbox{\Hypertarget{classImplicitFunction_a361afffb3619a6e06172bdef96c41b91}\label{classImplicitFunction_a361afffb3619a6e06172bdef96c41b91}} 
 \index{ImplicitFunction$<$ T $>$@{ImplicitFunction$<$ T $>$}!operator()@{operator()}}
 \index{operator()@{operator()}!ImplicitFunction$<$ T $>$@{ImplicitFunction$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{operator()()}{operator()()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-T \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$\+::operator() (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+T \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$\+::operator() (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 

@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['partitionert_740',['PartitionerT',['../namespaceBVH.html#a67de8088141156b6eaa225a635cc68c0',1,'BVH']]],
-  ['primitivelistt_741',['PrimitiveListT',['../namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7',1,'BVH']]]
+  ['metaconstructor_769',['MetaConstructor',['../classOctree_1_1Node.html#ac6f2f5eed98ce36d71962f3aedaaa0b8',1,'Octree::Node']]],
+  ['metaupdater_770',['MetaUpdater',['../namespaceBVH.html#acaf9bd22eb434cf05f36d5ca61984b38',1,'BVH']]]
 ];

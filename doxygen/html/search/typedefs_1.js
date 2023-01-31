@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['metaupdater_739',['MetaUpdater',['../namespaceBVH.html#acaf9bd22eb434cf05f36d5ca61984b38',1,'BVH']]]
+  ['dataconstructor_768',['DataConstructor',['../classOctree_1_1Node.html#aaec57ddb147bd9b8ac190f2c4d0e2eb2',1,'Octree::Node']]]
 ];

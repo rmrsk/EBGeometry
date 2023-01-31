@@ -1,8 +1,9 @@
 var searchData=
 [
-  ['union_300',['Union',['../EBGeometry__CSG_8hpp.html#a9036c684833f5d24cc8691438b4af2e8',1,'Union(const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;a_implicitFunctions) noexcept:&#160;EBGeometry_CSG.hpp'],['../EBGeometry__CSG_8hpp.html#ac4655ab5d0b64fd1f0cb63640608caad',1,'Union(const std::shared_ptr&lt; P1 &gt; &amp;a_implicitFunctionA, const std::shared_ptr&lt; P2 &gt; &amp;a_implicitFunctionB) noexcept:&#160;EBGeometry_CSG.hpp']]],
-  ['unionif_301',['UnionIF',['../classUnionIF.html',1,'UnionIF&lt; T &gt;'],['../classUnionIF.html#aaf40f49faaef464adb1da7f620b9872e',1,'UnionIF::UnionIF()=delete'],['../classUnionIF.html#a6af6180b1708382ff9b766d2775fb412',1,'UnionIF::UnionIF(const std::vector&lt; std::shared_ptr&lt; ImplicitFunction&lt; T &gt;&gt;&gt; &amp;a_implicitFunctions) noexcept']]],
-  ['unit_302',['unit',['../classVec3T.html#a6dd56e39d36a365273636fd72011452c',1,'Vec3T']]],
-  ['unsigneddistance2_303',['unsignedDistance2',['../classDCEL_1_1EdgeT.html#ae1b52396099535d6eb4038172adb0ade',1,'DCEL::EdgeT::unsignedDistance2()'],['../classDCEL_1_1FaceT.html#aee14c3878f1cd208a18aa1052ba71184',1,'DCEL::FaceT::unsignedDistance2()'],['../classDCEL_1_1MeshT.html#a950762ee0488b522f0c84a83ed661e67',1,'DCEL::MeshT::unsignedDistance2()'],['../classDCEL_1_1VertexT.html#a4249842bb5de33c22e54b43e8b813e1f',1,'DCEL::VertexT::unsignedDistance2()']]],
-  ['updater_304',['Updater',['../namespaceBVH.html#a9098188477f08a345cf059a431ae23aa',1,'BVH']]]
+  ['todo_20list_309',['Todo List',['../todo.html',1,'']]],
+  ['topdownsortandpartitionprimitives_310',['topDownSortAndPartitionPrimitives',['../classBVH_1_1NodeT.html#acae5a575fa8b236de984fdd41e04c038',1,'BVH::NodeT']]],
+  ['torussdf_311',['TorusSDF',['../classTorusSDF.html',1,'TorusSDF&lt; T &gt;'],['../classTorusSDF.html#a4591d7c3cdbbed45fdbaf414f0d096ee',1,'TorusSDF::TorusSDF()=delete'],['../classTorusSDF.html#ad416d7edc5d5630928054c4d58186bb7',1,'TorusSDF::TorusSDF(const Vec3T&lt; T &gt; &amp;a_center, const T &amp;a_majorRadius, const T &amp;a_minorRadius)']]],
+  ['translate_312',['Translate',['../EBGeometry__Transform_8hpp.html#a81014952fd6a37af21c711f63ff46f77',1,'EBGeometry_Transform.hpp']]],
+  ['translateif_313',['TranslateIF',['../classTranslateIF.html',1,'TranslateIF&lt; T &gt;'],['../classTranslateIF.html#a584cf2776c76f32a21bf3102b8ff2493',1,'TranslateIF::TranslateIF()=delete'],['../classTranslateIF.html#a9f19e6d874a44cec6fb803f6363a5489',1,'TranslateIF::TranslateIF(const std::shared_ptr&lt; ImplicitFunction&lt; T &gt;&gt; &amp;a_implicitFunction, const Vec3T&lt; T &gt; &amp;a_shift) noexcept']]],
+  ['traverse_314',['traverse',['../classBVH_1_1NodeT.html#aeff5c037a8b4b332542af68566154def',1,'BVH::NodeT::traverse()'],['../classBVH_1_1LinearBVH.html#a213b07e1c41dec5b4c6bac80f0716f1d',1,'BVH::LinearBVH::traverse()'],['../classOctree_1_1Node.html#aac6e9decba3ab712870af74dcad89a9d',1,'Octree::Node::traverse()']]]
 ];

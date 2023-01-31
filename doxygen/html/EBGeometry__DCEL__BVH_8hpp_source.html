@@ -91,7 +91,7 @@ $(function() {
 <div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160; </div>
 <div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keywordtype">size_t</span> K&gt;</div>
 <div class="line"><a name="l00038"></a><span class="lineno"><a class="line" href="namespaceDCEL.html#aae28e6f450ff452245d8628ab5171e48">   38</a></span>&#160;  <span class="keyword">auto</span> <a class="code" href="namespaceDCEL.html#aae28e6f450ff452245d8628ab5171e48">equalCounts</a> = [](<span class="keyword">const</span> PrimitiveList&lt;T&gt;&amp; a_primitives) -&gt; std::array&lt;PrimitiveList&lt;T&gt;, K&gt; {</div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;    <span class="keywordtype">int</span> <a class="code" href="EBGeometry__Vec_8hpp.html#aa7f7e15df344c873d1a27b30f77d0831">length</a> = a_primitives.size() / K;</div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;    <span class="keywordtype">int</span> <a class="code" href="EBGeometry__Vec_8hpp.html#ac7cf88fcdf43f2f197b741a126274cab">length</a> = a_primitives.size() / K;</div>
 <div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;    <span class="keywordtype">int</span> remain = a_primitives.size() % K;</div>
 <div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160; </div>
 <div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;    <span class="keywordtype">int</span> begin = 0;</div>
@@ -100,7 +100,7 @@ $(function() {
 <div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;    std::array&lt;PrimitiveList&lt;T&gt;, K&gt; chunks;</div>
 <div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160; </div>
 <div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> k = 0; k &lt; K; k++) {</div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;      end += (remain &gt; 0) ? <a class="code" href="EBGeometry__Vec_8hpp.html#aa7f7e15df344c873d1a27b30f77d0831">length</a> + 1 : <a class="code" href="EBGeometry__Vec_8hpp.html#aa7f7e15df344c873d1a27b30f77d0831">length</a>;</div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;      end += (remain &gt; 0) ? <a class="code" href="EBGeometry__Vec_8hpp.html#ac7cf88fcdf43f2f197b741a126274cab">length</a> + 1 : <a class="code" href="EBGeometry__Vec_8hpp.html#ac7cf88fcdf43f2f197b741a126274cab">length</a>;</div>
 <div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;      remain--;</div>
 <div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160; </div>
 <div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;      chunks[k] = PrimitiveList&lt;T&gt;(a_primitives.begin() + begin, a_primitives.begin() + end);</div>
@@ -140,8 +140,8 @@ $(function() {
 <div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;    <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> hi = -<a class="code" href="classVec3T.html#a151575a04910352d4f8c028fef081d01">Vec3T&lt;T&gt;::max</a>();</div>
 <div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160; </div>
 <div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; p : a_primitives) {</div>
-<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;      lo = <a class="code" href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">min</a>(lo, p-&gt;getCentroid());</div>
-<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;      hi = <a class="code" href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">max</a>(hi, p-&gt;getCentroid());</div>
+<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;      lo = <a class="code" href="EBGeometry__Vec_8hpp.html#af9ce43058d66582ec3736b13a7ca5dc2">min</a>(lo, p-&gt;getCentroid());</div>
+<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;      hi = <a class="code" href="EBGeometry__Vec_8hpp.html#a49e4d83079ba2af66014b14d2cf9fffd">max</a>(hi, p-&gt;getCentroid());</div>
 <div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;    }</div>
 <div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160; </div>
 <div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">size_t</span> splitDir = (hi - lo).maxDir(<span class="keyword">true</span>);</div>
@@ -174,8 +174,8 @@ $(function() {
 <div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160; </div>
 <div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;      primsAndBVs.emplace_back(p, bv);</div>
 <div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160; </div>
-<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;      lo = <a class="code" href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">min</a>(lo, bv.getCentroid());</div>
-<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;      hi = <a class="code" href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">max</a>(hi, bv.getCentroid());</div>
+<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;      lo = <a class="code" href="EBGeometry__Vec_8hpp.html#af9ce43058d66582ec3736b13a7ca5dc2">min</a>(lo, bv.getCentroid());</div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;      hi = <a class="code" href="EBGeometry__Vec_8hpp.html#a49e4d83079ba2af66014b14d2cf9fffd">max</a>(hi, bv.getCentroid());</div>
 <div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;    }</div>
 <div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160; </div>
 <div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">size_t</span> splitDir = (hi - lo).maxDir(<span class="keyword">true</span>);</div>
@@ -203,8 +203,8 @@ $(function() {
 <div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;    <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a> hi = -<a class="code" href="classVec3T.html#a151575a04910352d4f8c028fef081d01">Vec3T&lt;T&gt;::max</a>();</div>
 <div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160; </div>
 <div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; p : a_primitives) {</div>
-<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;      lo = <a class="code" href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">min</a>(lo, p-&gt;getCentroid());</div>
-<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;      hi = <a class="code" href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">max</a>(hi, p-&gt;getCentroid());</div>
+<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;      lo = <a class="code" href="EBGeometry__Vec_8hpp.html#af9ce43058d66582ec3736b13a7ca5dc2">min</a>(lo, p-&gt;getCentroid());</div>
+<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;      hi = <a class="code" href="EBGeometry__Vec_8hpp.html#a49e4d83079ba2af66014b14d2cf9fffd">max</a>(hi, p-&gt;getCentroid());</div>
 <div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160;    }</div>
 <div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160; </div>
 <div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">size_t</span> splitDir = (hi - lo).maxDir(<span class="keyword">true</span>);</div>
@@ -287,12 +287,12 @@ $(function() {
 <div class="ttc" id="aEBGeometry__DCEL__Mesh_8hpp_html"><div class="ttname"><a href="EBGeometry__DCEL__Mesh_8hpp.html">EBGeometry_DCEL_Mesh.hpp</a></div><div class="ttdoc">Declaration of a mesh class which stores a DCEL mesh (with signed distance functions)</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceFooter_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceFooter_8hpp.html">EBGeometry_NamespaceFooter.hpp</a></div><div class="ttdoc">Name space footer.</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceHeader_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceHeader_8hpp.html">EBGeometry_NamespaceHeader.hpp</a></div><div class="ttdoc">Name space header.</div></div>
-<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a291f01622695ab94c0092c3af0a1f3ca"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a291f01622695ab94c0092c3af0a1f3ca">min</a></div><div class="ttdeci">Vec3T&lt; T &gt; min(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Minimum function. Returns new vector with component-wise minimums.</div></div>
-<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a71f0bc32c9be501cf01a1b6c715dc0a9"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a71f0bc32c9be501cf01a1b6c715dc0a9">max</a></div><div class="ttdeci">Vec3T&lt; T &gt; max(const Vec3T&lt; T &gt; &amp;u, const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Maximum function. Returns new vector with component-wise minimums.</div></div>
-<div class="ttc" id="aEBGeometry__Vec_8hpp_html_aa7f7e15df344c873d1a27b30f77d0831"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#aa7f7e15df344c873d1a27b30f77d0831">length</a></div><div class="ttdeci">T length(const Vec3T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Length function.</div></div>
+<div class="ttc" id="aEBGeometry__Vec_8hpp_html_a49e4d83079ba2af66014b14d2cf9fffd"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#a49e4d83079ba2af66014b14d2cf9fffd">max</a></div><div class="ttdeci">Vec2T&lt; T &gt; max(const Vec2T&lt; T &gt; &amp;u, const Vec2T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Maximum function. Returns new vector with component-wise minimums.</div></div>
+<div class="ttc" id="aEBGeometry__Vec_8hpp_html_ac7cf88fcdf43f2f197b741a126274cab"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#ac7cf88fcdf43f2f197b741a126274cab">length</a></div><div class="ttdeci">T length(const Vec2T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Length function.</div></div>
+<div class="ttc" id="aEBGeometry__Vec_8hpp_html_af9ce43058d66582ec3736b13a7ca5dc2"><div class="ttname"><a href="EBGeometry__Vec_8hpp.html#af9ce43058d66582ec3736b13a7ca5dc2">min</a></div><div class="ttdeci">Vec2T&lt; T &gt; min(const Vec2T&lt; T &gt; &amp;u, const Vec2T&lt; T &gt; &amp;v) noexcept</div><div class="ttdoc">Minimum function. Returns new vector with component-wise minimums.</div></div>
 <div class="ttc" id="aclassBVH_1_1NodeT_html"><div class="ttname"><a href="classBVH_1_1NodeT.html">BVH::NodeT</a></div><div class="ttdoc">Forward declare the BVH node since it is needed for the polymorphic lambdas.</div><div class="ttdef"><b>Definition:</b> EBGeometry_BVH.hpp:138</div></div>
 <div class="ttc" id="aclassDCEL_1_1FaceT_html"><div class="ttname"><a href="classDCEL_1_1FaceT.html">DCEL::FaceT</a></div><div class="ttdoc">Class which represents a polygon face in a double-edge connected list (DCEL).</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_Face.hpp:61</div></div>
-<div class="ttc" id="aclassVec3T_html"><div class="ttname"><a href="classVec3T.html">Vec3T</a></div><div class="ttdoc">Three-dimensional vector class with arithmetic operators.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Vec.hpp:238</div></div>
+<div class="ttc" id="aclassVec3T_html"><div class="ttname"><a href="classVec3T.html">Vec3T</a></div><div class="ttdoc">Three-dimensional vector class with arithmetic operators.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Vec.hpp:217</div></div>
 <div class="ttc" id="aclassVec3T_html_a151575a04910352d4f8c028fef081d01"><div class="ttname"><a href="classVec3T.html#a151575a04910352d4f8c028fef081d01">Vec3T::max</a></div><div class="ttdeci">static constexpr Vec3T&lt; T &gt; max() noexcept</div><div class="ttdoc">Return a vector with maximum representable components.</div></div>
 <div class="ttc" id="anamespaceDCEL_html"><div class="ttname"><a href="namespaceDCEL.html">DCEL</a></div><div class="ttdoc">Namespace containing various double-connected edge list (DCEL) functionality.</div></div>
 <div class="ttc" id="anamespaceDCEL_html_a276e5e41bf5eb6c35ea5d44e24ebb211"><div class="ttname"><a href="namespaceDCEL.html#a276e5e41bf5eb6c35ea5d44e24ebb211">DCEL::buildFlatBVH</a></div><div class="ttdeci">std::shared_ptr&lt; EBGeometry::BVH::LinearBVH&lt; T, FaceT&lt; T &gt;, BV, K &gt; &gt; buildFlatBVH(const std::shared_ptr&lt; EBGeometry::DCEL::MeshT&lt; T &gt;&gt; &amp;a_dcelMesh)</div><div class="ttdoc">One-liner for turning a DCEL mesh into a flattened BVH tree.</div><div class="ttdef"><b>Definition:</b> EBGeometry_DCEL_BVH.hpp:269</div></div>

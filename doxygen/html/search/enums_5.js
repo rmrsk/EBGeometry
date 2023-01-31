@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['vertexnormalweight_753',['VertexNormalWeight',['../classDCEL_1_1MeshT.html#a4548120cb514e736ae4cd8c13b418e91',1,'DCEL::MeshT']]]
+  ['searchalgorithm_785',['SearchAlgorithm',['../classDCEL_1_1MeshT.html#a2c124d7a678adb956790418f3dd237e9',1,'DCEL::MeshT']]]
 ];

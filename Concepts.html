@@ -44,6 +44,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">Requirements</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html#third-party-examples">Third-party examples</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Basic concepts</span></p>
 <ul class="current">
@@ -63,6 +64,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#tree-traversal">Tree traversal</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="#octree">Octree</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#constructive-solid-geometry">Constructive solid geometry</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#basic-transformations">Basic transformations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#combining-objects">Combining objects</a></li>
@@ -76,6 +78,7 @@
 <li class="toctree-l1"><a class="reference internal" href="ImplemCSG.html">Geometry representation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">BVH</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemOctree.html">Octree</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Parsers.html">Reading data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
@@ -316,6 +319,18 @@ For example, it is necessary to traverse almost the entire tree when one tries t
 <p>Note that types of tree traversal (that do not compute the signed distance) are also possible, e.g. we may want to compute the union <span class="math notranslate nohighlight">\(I\left(\mathbf{x}\right) = \min\left(I_1\left(\mathbf{x}\right), I_2\left(\mathbf{x}\right), .\ldots\right)\)</span>.
 EBGeometry supports a fairly flexible approach to the tree traversal and update algorithms.</p>
 </section>
+</section>
+<section id="octree">
+<h1>Octree<a class="headerlink" href="#octree" title="Permalink to this heading"></a></h1>
+<p>Octrees are tree-structures where each interior node has exactly eight children.
+Such trees are usually used for spatial partitioning (and in this case the eight children have no spatial overlap), and the leaf nodes may also contain actual data.</p>
+<p>Octree construction can be done in (at least) two ways:</p>
+<ol class="arabic simple">
+<li><p>In depth-first order where entire sub-trees are built first.</p></li>
+<li><p>In breadth-first order where tree levels are added one at a time.</p></li>
+</ol>
+<p>EBGeometry supports both of these methods.
+Octree traversal is generally speaking quite similar to the traversal algorithms used for BVH trees.</p>
 </section>
 <section id="constructive-solid-geometry">
 <h1>Constructive solid geometry<a class="headerlink" href="#constructive-solid-geometry" title="Permalink to this heading"></a></h1>

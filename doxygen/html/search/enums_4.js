@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['searchalgorithm_752',['SearchAlgorithm',['../classDCEL_1_1MeshT.html#a2c124d7a678adb956790418f3dd237e9',1,'DCEL::MeshT']]]
+  ['octantindex_784',['OctantIndex',['../EBGeometry__Octree_8hpp.html#acda140bb7c781f38a7e6ec64b25d7e60',1,'Octree']]]
 ];

@@ -1,7 +1,11 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_BoundingVolumes.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_BoundingVolumes.hpp">
-<area shape="rect" id="node1" title="Declaration of a various bounding volumes used for bounding volume hierarchy." alt="" coords="111,5,354,61"/>
-<area shape="rect" id="node2" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="117,317,348,359"/>
-<area shape="rect" id="node3" href="$EBGeometry__AnalyticDistanceFunctions_8hpp.html" title="Declaration of various analytic distance functions." alt="" coords="33,213,275,269"/>
-<area shape="rect" id="node4" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="191,109,434,165"/>
-<area shape="rect" id="node5" href="$EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="350,213,593,269"/>
+<area shape="rect" id="node1" title="Declaration of a various bounding volumes used for bounding volume hierarchy." alt="" coords="252,5,495,61"/>
+<area shape="rect" id="node2" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="203,525,434,567"/>
+<area shape="rect" id="node3" href="$EBGeometry__AnalyticDistanceFunctions_8hpp.html" title="Declaration of various analytic distance functions." alt="" coords="93,317,336,373"/>
+<area shape="rect" id="node4" href="$EBGeometry__ImplicitFunction_8hpp.html" title="Abstract base class for representing an implicit function." alt="" coords="252,109,495,165"/>
+<area shape="rect" id="node7" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="515,317,757,373"/>
+<area shape="rect" id="node8" href="$EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="565,421,808,477"/>
+<area shape="rect" id="node5" href="$EBGeometry__CSG_8hpp.html" title="Declaration of a CSG operations for implicit functions." alt="" coords="197,421,440,477"/>
+<area shape="rect" id="node6" href="$EBGeometry__SignedDistanceFunction_8hpp.html" title="Abstract base class for representing a signed distance function." alt="" coords="411,213,653,269"/>
+<area shape="rect" id="node9" href="$EBGeometry__Transform_8hpp.html" title="Various transformations for implicit functions and distance fields." alt="" coords="93,213,336,269"/>
 </map>

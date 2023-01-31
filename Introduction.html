@@ -43,12 +43,14 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Requirements</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#third-party-examples">Third-party examples</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Basic concepts</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html">Geometry representations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html#dcel">DCEL</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html#bounding-volume-hierarchies">Bounding volume hierarchies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html#octree">Octree</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html#constructive-solid-geometry">Constructive solid geometry</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Implementation</span></p>
@@ -58,6 +60,7 @@
 <li class="toctree-l1"><a class="reference internal" href="ImplemCSG.html">Geometry representation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ImplemBVH.html">BVH</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ImplemOctree.html">Octree</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Parsers.html">Reading data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
@@ -100,6 +103,8 @@
 <ul class="simple">
 <li><p>A C++ compiler which supports C++14.</p></li>
 </ul>
+<p>EBGeometry is a header-only library and is comparatively simple to set up and use.
+To use it, make <code class="file docutils literal notranslate"><span class="pre">EBGeometry.hpp</span></code> (stored at the top level) visible to your code and include it.</p>
 </section>
 <section id="quickstart">
 <h1>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this heading"></a></h1>
@@ -107,17 +112,18 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git clone git@github.com:rmrsk/EBGeometry.git
 </pre></div>
 </div>
-<p>EBGeometry is a header-only library and is comparatively simple to set up and use.
-To use it, make <code class="file docutils literal notranslate"><span class="pre">EBGeometry.hpp</span></code> (stored at the top level) visible to your code and include it.</p>
 <p>To compile the EBGeometry example codes, navigate to the EBGeometry/Examples folder.
-Folders that are named <code class="docutils literal notranslate"><span class="pre">EBGeometry_&lt;something&gt;</span></code> are pure <code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> examples and can be compiled without any third-party dependencies.
-Other folders that begin with e.g. <code class="docutils literal notranslate"><span class="pre">AMReX_</span></code> or <code class="docutils literal notranslate"><span class="pre">Chombo3_</span></code> are application code examples and require the user to install additional third-party software.</p>
+Folders that are named <code class="docutils literal notranslate"><span class="pre">EBGeometry_&lt;something&gt;</span></code> are pure <code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> examples and can be compiled without any third-party dependencies.</p>
 <p>To run the EBGeometry examples, navigate to one of the folders and execute</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>g++ -O3 -std<span class="o">=</span>c++17 main.cpp <span class="o">&amp;&amp;</span> ./a.out
 </pre></div>
 </div>
 <p>All EBGeometry examples should run using this command.
 README files present in each folder provide more information regarding the functionality and usage of each example code.</p>
+</section>
+<section id="third-party-examples">
+<h1>Third-party examples<a class="headerlink" href="#third-party-examples" title="Permalink to this heading"></a></h1>
+<p>Exapmle folders that begin with e.g. <code class="docutils literal notranslate"><span class="pre">AMReX_</span></code> or <code class="docutils literal notranslate"><span class="pre">Chombo3_</span></code> are application code examples and require the user to install additional third-party software.</p>
 </section>
 
 
