@@ -140,7 +140,7 @@ main(int argc, char* argv[])
     // EBGeometry precision.
     constexpr int K = 4;
 
-    using T    = float;
+    using T    = double;
     using Vec3 = EBGeometry::Vec3T<T>;
     using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 
