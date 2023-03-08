@@ -72,7 +72,7 @@ Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T 
 {
   auto mollifier = std::make_shared<SphereSDF<T>>(Vec3T<T>::zero(), std::abs(a_dist));
 
-  constexpr size_t numPoints = 3;
+  constexpr size_t numPoints = 2;
 
   return std::make_shared<MollifyIF<T>>(a_implicitFunction, mollifier, std::abs(a_dist), numPoints);
 }
@@ -277,7 +277,7 @@ MollifyIF<T>::MollifyIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFu
 
   const T maxVal = std::abs(a_maxValue);
 
-  if (maxVal > 0.0 && a_numPoints > 0) {
+  if (maxVal > 0.0 && a_numPoints > 1) {
     const T dX = 2 * maxVal / (a_numPoints - 1);
 
     for (int i = 0; i < a_numPoints; i++) {
