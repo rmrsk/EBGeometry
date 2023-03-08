@@ -139,6 +139,18 @@ template <class T, class P1 = ImplicitFunction<T>, class P2 = ImplicitFunction<T
 std::shared_ptr<ImplicitFunction<T>>
 Difference(const std::shared_ptr<std::shared_ptr<P1>>& a_implicitFunctionA,
            const std::shared_ptr<std::shared_ptr<P2>>& a_implicitFunctionB) noexcept;
+/*!
+  @brief Convenience function for taking the smooth CSG difference. 
+  @param[in] a_implicitFunctionA Implicit function. 
+  @param[in] a_implicitFunctionB Implicit function to subtract. 
+  @param[in] a_smoothLen Smoothing length. 
+  @note P1 and P2 must derive from ImplicitFunction<T>. This uses the default smoothMax function.
+*/
+template <class T, class P1 = ImplicitFunction<T>, class P2 = ImplicitFunction<T>>
+std::shared_ptr<ImplicitFunction<T>>
+SmoothDifference(const std::shared_ptr<std::shared_ptr<P1>>& a_implicitFunctionA,
+                 const std::shared_ptr<std::shared_ptr<P2>>& a_implicitFunctionB,
+                 const T                                     a_smooth) noexcept;
 
 /*!
   @brief Exponential minimum function for CSG
@@ -437,7 +449,19 @@ public:
   SmoothIntersectionIF() = delete;
 
   /*!
-    @brief Full constructor. Computes the CSG union
+    @brief Full constructor. Computes the CSG intersection.
+    @param[in] a_implicitFunctionA First implicit function.
+    @param[in] a_implicitFunctionB Second implicit function.
+    @param[in] a_smoothLen Smoothing length
+    @param[in] a_smoothMax Smooth max operator
+  */
+  SmoothIntersectionIF(const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionA,
+                       const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionB,
+                       const T                                                     a_smoothLen,
+                       const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax = smoothMax<T>) noexcept;
+
+  /*!
+    @brief Full constructor. Computes the CSG intersection.
     @param[in] a_implicitFunctions List of primitives
     @param[in] a_smoothLen Smoothing length
     @param[in] a_smoothMax Smooth max operator
@@ -476,7 +500,7 @@ protected:
 };
 
 /*!
-  @brief CSG difference. Computes C = A-B
+  @brief CSG difference between two implicit functions. 
 */
 template <class T>
 class DifferenceIF : public ImplicitFunction<T>
@@ -494,6 +518,14 @@ public:
   */
   DifferenceIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionA,
                const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionB) noexcept;
+
+  /*!
+    @brief Full constructor. Computes the CSG difference between A and the union of the B's
+    @param[in] a_implicitFunctionA Implicit function
+    @param[in] a_implicitFunctionsB Implicit functions to subtract
+  */
+  DifferenceIF(const std::shared_ptr<ImplicitFunction<T>>&              a_implicitFunctionA,
+               const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctionsB) noexcept;
 
   /*!
     @brief Destructor (does nothing)
@@ -517,6 +549,59 @@ protected:
     @brief Subtracted implicit function. 
   */
   std::shared_ptr<ImplicitFunction<T>> m_implicitFunctionB;
+};
+
+/*!
+  @brief CSG difference between two implicit functions. 
+*/
+template <class T>
+class SmoothDifferenceIF : public ImplicitFunction<T>
+{
+public:
+  /*!
+    @brief Disallowed, use the full constructor
+  */
+  SmoothDifferenceIF() = delete;
+
+  /*!
+    @brief Full constructor. Computes the smooth CSG difference.
+    @param[in] a_implicitFunctionA Implicit function
+    @param[in] a_implicitFunctionB Implicit function to subtract
+  */
+  SmoothDifferenceIF(const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionA,
+                     const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionB,
+                     const T                                                     a_smoothLen,
+                     const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax = smoothMax<T>) noexcept;
+
+  /*!
+    @brief Full constructor. Computes the CSG difference between A and the union of the B's
+    @param[in] a_implicitFunctionA  Implicit function
+    @param[in] a_implicitFunctionsB Implicit functions to subtract
+    @param[in] a_smoothLen          Smoothing length
+    @param[in] a_smoothMax          Which smooth-max function to use. 
+  */
+  SmoothDifferenceIF(const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionA,
+                     const std::vector<std::shared_ptr<ImplicitFunction<T>>>&    a_implicitFunctionsB,
+                     const T                                                     a_smoothLen,
+                     const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax = smoothMax<T>) noexcept;
+
+  /*!
+    @brief Destructor (does nothing)
+  */
+  virtual ~SmoothDifferenceIF() = default;
+
+  /*!
+    @brief Value function
+    @param[in] a_point 3D point.
+  */
+  T
+  value(const Vec3T<T>& a_point) const noexcept override;
+
+protected:
+  /*!
+    @brief Resulting smooth intersection.
+  */
+  std::shared_ptr<SmoothIntersectionIF<T>> m_smoothIntersectionIF;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

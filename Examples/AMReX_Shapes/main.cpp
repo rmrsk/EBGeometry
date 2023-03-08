@@ -142,11 +142,19 @@ main(int argc, char* argv[])
 
     func = std::make_shared<EBGeometry::ConeSDF<T>>(Vec3(0.0, 0.0, 1.0), 2.0, 30);
   }
-  if (whichGeom == 10) { // Spherical shell.
+  else if (whichGeom == 10) { // Spherical shell.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
     func = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5));
     func = EBGeometry::Annular<T>(func, 0.1);
+  }
+  else if (whichGeom == 11) { // Smooth CSG difference between spheres, creating a death star.
+    rb = RealBox({-1, -1, -1}, {1, 1, 1});
+
+    auto func1 = std::make_shared<EBGeometry::SphereSDF<T>>(-0.25 * Vec3::one(), T(0.5));
+    auto func2 = std::make_shared<EBGeometry::SphereSDF<T>>(0.25 * Vec3::one(), T(0.5));
+
+    func = EBGeometry::SmoothDifference<T>(func1, func2, 0.025);
   }
 
   // AMReX uses the opposite sign.

@@ -14,6 +14,7 @@
 
 // Our includes
 #include "EBGeometry_CSG.hpp"
+#include "EBGeometry_Transform.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 template <class T, class P>
@@ -170,6 +171,18 @@ Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
 
   return std::make_shared<DifferenceIF<T>>(a_implicitFunctionA, a_implicitFunctionB);
+}
+
+template <class T, class P1, class P2>
+std::shared_ptr<ImplicitFunction<T>>
+SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
+                 const std::shared_ptr<P2>& a_implicitFunctionB,
+                 const T                    a_smoothLen) noexcept
+{
+  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
+
+  return std::make_shared<SmoothDifferenceIF<T>>(a_implicitFunctionA, a_implicitFunctionB, a_smoothLen);
 }
 
 template <class T>
@@ -493,6 +506,21 @@ IntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 
 template <class T>
 SmoothIntersectionIF<T>::SmoothIntersectionIF(
+  const std::shared_ptr<ImplicitFunction<T>>&           a_implicitFunctionA,
+  const std::shared_ptr<ImplicitFunction<T>>&           a_implicitFunctionB,
+  const T                                               a_smoothLen,
+  const std::function<T(const T&, const T&, const T&)>& a_smoothMax) noexcept
+{
+
+  m_implicitFunctions.emplace_back(a_implicitFunctionA);
+  m_implicitFunctions.emplace_back(a_implicitFunctionB);
+
+  m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
+  m_smoothMax = a_smoothMax;
+}
+
+template <class T>
+SmoothIntersectionIF<T>::SmoothIntersectionIF(
   const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions,
   const T                                                  a_smoothLen,
   const std::function<T(const T&, const T&, const T&)>&    a_smoothMax) noexcept
@@ -545,10 +573,56 @@ DifferenceIF<T>::DifferenceIF(const std::shared_ptr<ImplicitFunction<T>>& a_impl
 }
 
 template <class T>
+DifferenceIF<T>::DifferenceIF(const std::shared_ptr<ImplicitFunction<T>>&              a_implicitFunctionA,
+                              const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctionsB) noexcept
+{
+  m_implicitFunctionA = a_implicitFunctionA;
+  m_implicitFunctionB = EBGeometry::Union<T>(a_implicitFunctionsB);
+}
+
+template <class T>
 T
 DifferenceIF<T>::value(const Vec3T<T>& a_point) const noexcept
 {
-  return std::min(m_implicitFunctionA->value(a_point), -m_implicitFunctionB->value(a_point));
+  return std::max(m_implicitFunctionA->value(a_point), -m_implicitFunctionB->value(a_point));
+}
+
+template <class T>
+SmoothDifferenceIF<T>::SmoothDifferenceIF(
+  const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionA,
+  const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionB,
+  const T                                                     a_smoothLen,
+  const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax) noexcept
+{
+
+  m_smoothIntersectionIF = std::make_shared<SmoothIntersectionIF<T>>(
+    a_implicitFunctionA, EBGeometry::Complement<T>(a_implicitFunctionB), a_smoothLen, a_smoothMax);
+}
+
+template <class T>
+SmoothDifferenceIF<T>::SmoothDifferenceIF(
+  const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionA,
+  const std::vector<std::shared_ptr<ImplicitFunction<T>>>&    a_implicitFunctionsB,
+  const T                                                     a_smoothLen,
+  const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax) noexcept
+{
+
+  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
+
+  implicitFunctions.emplace_back(a_implicitFunctionA);
+
+  for (const auto& subtractedFunction : a_implicitFunctionsB) {
+    implicitFunctions.emplace_back(EBGeometry::Complement<T>(subtractedFunction));
+  }
+
+  m_smoothIntersectionIF = std::make_shared<SmoothIntersectionIF<T>>(implicitFunctions, a_smoothLen, a_smoothMax);
+}
+
+template <class T>
+T
+SmoothDifferenceIF<T>::value(const Vec3T<T>& a_point) const noexcept
+{
+  return m_smoothIntersectionIF->value(a_point);
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"
