@@ -43,7 +43,9 @@ class \mbox{\hyperlink{classIntersectionIF}{Intersection\+IF$<$ T $>$}}
 class \mbox{\hyperlink{classSmoothIntersectionIF}{Smooth\+Intersection\+IF$<$ T $>$}}
 \begin{DoxyCompactList}\small\item\em Smooth intersection. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classDifferenceIF}{Difference\+IF$<$ T $>$}}
-\begin{DoxyCompactList}\small\item\em CSG difference. Computes C = A-\/B. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em CSG difference between two implicit functions. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classSmoothDifferenceIF}{Smooth\+Difference\+IF$<$ T $>$}}
+\begin{DoxyCompactList}\small\item\em CSG difference between two implicit functions. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
@@ -68,7 +70,9 @@ class \mbox{\hyperlink{classDifferenceIF}{Difference\+IF$<$ T $>$}}
 {\footnotesize template$<$class T , class P1 , class P2 $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a31e4079fd5d60ead64b3eefe7e6a6b2f}{Smooth\+Intersection}} (const std\+::shared\+\_\+ptr$<$ P1 $>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ P2 $>$ \&a\+\_\+implicit\+FunctionB, const T a\+\_\+smooth) noexcept
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the smooth intersection of two implicit functions. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T , class P1  = Implicit\+Function$<$\+T$>$, class P2  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_aabf5abc0c21f66b645dd3b005a6b13b6}{Difference}} (const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P1 $>$$>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P2 $>$$>$ \&a\+\_\+implicit\+FunctionB) noexcept
-\begin{DoxyCompactList}\small\item\em Convenience function for taking the CSG difference. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Convenience function for taking the CSG difference. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , class P1  = Implicit\+Function$<$\+T$>$, class P2  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_ad629a6cb13a2b90bed83cd4b494a86c7}{Smooth\+Difference}} (const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P1 $>$$>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P2 $>$$>$ \&a\+\_\+implicit\+FunctionB, const T a\+\_\+smooth) noexcept
+\begin{DoxyCompactList}\small\item\em Convenience function for taking the smooth CSG difference. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Variables}
 \begin{DoxyCompactItemize}
 \item 
@@ -193,6 +197,29 @@ Convenience function for taking the intersection of a bunch of a implicit functi
 \end{DoxyParams}
 \begin{DoxyNote}{Note}
 P must derive from Implicit\+Function$<$\+T$>$ 
+\end{DoxyNote}
+\mbox{\Hypertarget{EBGeometry__CSG_8hpp_ad629a6cb13a2b90bed83cd4b494a86c7}\label{EBGeometry__CSG_8hpp_ad629a6cb13a2b90bed83cd4b494a86c7}} 
+\index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!SmoothDifference@{SmoothDifference}}
+\index{SmoothDifference@{SmoothDifference}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
+\doxysubsubsection{\texorpdfstring{SmoothDifference()}{SmoothDifference()}}
+{\footnotesize\ttfamily template$<$class T , class P1  = Implicit\+Function$<$\+T$>$, class P2  = Implicit\+Function$<$\+T$>$$>$ \\
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Smooth\+Difference (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P1 $>$$>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P2 $>$$>$ \&}]{a\+\_\+implicit\+FunctionB,  }\item[{const T}]{a\+\_\+smooth }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Convenience function for taking the smooth CSG difference. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+FunctionA} & Implicit function. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+FunctionB} & Implicit function to subtract. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+smooth\+Len} & Smoothing length. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+P1 and P2 must derive from Implicit\+Function$<$\+T$>$. This uses the default smooth\+Max function. 
 \end{DoxyNote}
 \mbox{\Hypertarget{EBGeometry__CSG_8hpp_a31e4079fd5d60ead64b3eefe7e6a6b2f}\label{EBGeometry__CSG_8hpp_a31e4079fd5d60ead64b3eefe7e6a6b2f}} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!SmoothIntersection@{SmoothIntersection}}

@@ -1,0 +1,129 @@
+\hypertarget{classSmoothDifferenceIF}{}\doxysection{Smooth\+Difference\+IF$<$ T $>$ Class Template Reference}
+\label{classSmoothDifferenceIF}\index{SmoothDifferenceIF$<$ T $>$@{SmoothDifferenceIF$<$ T $>$}}
+
+
+CSG difference between two implicit functions.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+CSG.\+hpp$>$}
+
+
+
+Inheritance diagram for Smooth\+Difference\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=222pt]{classSmoothDifferenceIF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Smooth\+Difference\+IF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=222pt]{classSmoothDifferenceIF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classSmoothDifferenceIF_a21c871b74c9a3839fcd676d2e1c7e0d6}\label{classSmoothDifferenceIF_a21c871b74c9a3839fcd676d2e1c7e0d6}} 
+\mbox{\hyperlink{classSmoothDifferenceIF_a21c871b74c9a3839fcd676d2e1c7e0d6}{Smooth\+Difference\+IF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classSmoothDifferenceIF_aeaaf5d31ec9265e21999193902d87250}{Smooth\+Difference\+IF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+FunctionB, const T a\+\_\+smooth\+Len, const std\+::function$<$ T(const T \&a, const T \&b, const T \&s)$>$ \&a\+\_\+smooth\+Max=\mbox{\hyperlink{EBGeometry__CSG_8hpp_ae88258939353042593b6ab1401d3bc46}{smooth\+Max}}$<$ T $>$) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor. Computes the smooth CSG difference. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classSmoothDifferenceIF_aa2af073d9054762ba62e4ed1b1dfa562}{Smooth\+Difference\+IF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+FunctionA, const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$$>$ \&a\+\_\+implicit\+FunctionsB, const T a\+\_\+smooth\+Len, const std\+::function$<$ T(const T \&a, const T \&b, const T \&s)$>$ \&a\+\_\+smooth\+Max=\mbox{\hyperlink{EBGeometry__CSG_8hpp_ae88258939353042593b6ab1401d3bc46}{smooth\+Max}}$<$ T $>$) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor. Computes the CSG difference between A and the union of the B\textquotesingle{}s. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classSmoothDifferenceIF_a1c6fba69efbb95a3a97288f5bd9dde2b}\label{classSmoothDifferenceIF_a1c6fba69efbb95a3a97288f5bd9dde2b}} 
+virtual \mbox{\hyperlink{classSmoothDifferenceIF_a1c6fba69efbb95a3a97288f5bd9dde2b}{$\sim$\+Smooth\+Difference\+IF}} ()=default
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classSmoothDifferenceIF_a47f9d5ede7d61152041f690510eb8cff}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classSmoothDifferenceIF_afb820ab2507e1c6c95491d0d09b4674e}\label{classSmoothDifferenceIF_afb820ab2507e1c6c95491d0d09b4674e}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classSmoothIntersectionIF}{Smooth\+Intersection\+IF}}$<$ T $>$ $>$ \mbox{\hyperlink{classSmoothDifferenceIF_afb820ab2507e1c6c95491d0d09b4674e}{m\+\_\+smooth\+Intersection\+IF}}
+\begin{DoxyCompactList}\small\item\em Resulting smooth intersection. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Smooth\+Difference\+IF$<$ T $>$}
+
+CSG difference between two implicit functions. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classSmoothDifferenceIF_aeaaf5d31ec9265e21999193902d87250}\label{classSmoothDifferenceIF_aeaaf5d31ec9265e21999193902d87250}} 
+\index{SmoothDifferenceIF$<$ T $>$@{SmoothDifferenceIF$<$ T $>$}!SmoothDifferenceIF@{SmoothDifferenceIF}}
+\index{SmoothDifferenceIF@{SmoothDifferenceIF}!SmoothDifferenceIF$<$ T $>$@{SmoothDifferenceIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{SmoothDifferenceIF()}{SmoothDifferenceIF()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classSmoothDifferenceIF}{Smooth\+Difference\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classSmoothDifferenceIF}{Smooth\+Difference\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+FunctionB,  }\item[{const T}]{a\+\_\+smooth\+Len,  }\item[{const std\+::function$<$ T(const T \&a, const T \&b, const T \&s)$>$ \&}]{a\+\_\+smooth\+Max = {\ttfamily \mbox{\hyperlink{EBGeometry__CSG_8hpp_ae88258939353042593b6ab1401d3bc46}{smooth\+Max}}$<$~T~$>$} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. Computes the smooth CSG difference. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+FunctionA} & Implicit function \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+FunctionB} & Implicit function to subtract \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classSmoothDifferenceIF_aa2af073d9054762ba62e4ed1b1dfa562}\label{classSmoothDifferenceIF_aa2af073d9054762ba62e4ed1b1dfa562}} 
+\index{SmoothDifferenceIF$<$ T $>$@{SmoothDifferenceIF$<$ T $>$}!SmoothDifferenceIF@{SmoothDifferenceIF}}
+\index{SmoothDifferenceIF@{SmoothDifferenceIF}!SmoothDifferenceIF$<$ T $>$@{SmoothDifferenceIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{SmoothDifferenceIF()}{SmoothDifferenceIF()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classSmoothDifferenceIF}{Smooth\+Difference\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classSmoothDifferenceIF}{Smooth\+Difference\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$$>$ \&}]{a\+\_\+implicit\+FunctionsB,  }\item[{const T}]{a\+\_\+smooth\+Len,  }\item[{const std\+::function$<$ T(const T \&a, const T \&b, const T \&s)$>$ \&}]{a\+\_\+smooth\+Max = {\ttfamily \mbox{\hyperlink{EBGeometry__CSG_8hpp_ae88258939353042593b6ab1401d3bc46}{smooth\+Max}}$<$~T~$>$} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. Computes the CSG difference between A and the union of the B\textquotesingle{}s. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+FunctionA} & Implicit function \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+FunctionsB} & Implicit functions to subtract \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+smooth\+Len} & Smoothing length \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+smooth\+Max} & Which smooth-\/max function to use. \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classSmoothDifferenceIF_a47f9d5ede7d61152041f690510eb8cff}\label{classSmoothDifferenceIF_a47f9d5ede7d61152041f690510eb8cff}} 
+\index{SmoothDifferenceIF$<$ T $>$@{SmoothDifferenceIF$<$ T $>$}!value@{value}}
+\index{value@{value}!SmoothDifferenceIF$<$ T $>$@{SmoothDifferenceIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{value()}{value()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classSmoothDifferenceIF}{Smooth\+Difference\+IF}}$<$ T $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Value function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__CSG_8hpp}{EBGeometry\+\_\+\+CSG.\+hpp}}\end{DoxyCompactItemize}

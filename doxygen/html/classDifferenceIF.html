@@ -71,7 +71,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 
-<p>CSG difference. Computes C = A-B.  
+<p>CSG difference between two implicit functions.  
  <a href="classDifferenceIF.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="EBGeometry__CSG_8hpp_source.html">EBGeometry_CSG.hpp</a>&gt;</code></p>
@@ -80,7 +80,7 @@ Inheritance diagram for DifferenceIF&lt; T &gt;:</div>
 <div class="dyncontent">
 <div class="center"><img src="classDifferenceIF__inherit__graph.png" border="0" usemap="#aDifferenceIF_3_01T_01_4_inherit__map" alt="Inheritance graph"/></div>
 <map name="aDifferenceIF_3_01T_01_4_inherit__map" id="aDifferenceIF_3_01T_01_4_inherit__map">
-<area shape="rect" title="CSG difference. Computes C = A&#45;B." alt="" coords="18,80,157,107"/>
+<area shape="rect" title="CSG difference between two implicit functions." alt="" coords="18,80,157,107"/>
 <area shape="rect" href="classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="5,5,169,32"/>
 </map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
@@ -89,7 +89,7 @@ Collaboration diagram for DifferenceIF&lt; T &gt;:</div>
 <div class="dyncontent">
 <div class="center"><img src="classDifferenceIF__coll__graph.png" border="0" usemap="#aDifferenceIF_3_01T_01_4_coll__map" alt="Collaboration graph"/></div>
 <map name="aDifferenceIF_3_01T_01_4_coll__map" id="aDifferenceIF_3_01T_01_4_coll__map">
-<area shape="rect" title="CSG difference. Computes C = A&#45;B." alt="" coords="18,80,157,107"/>
+<area shape="rect" title="CSG difference between two implicit functions." alt="" coords="18,80,157,107"/>
 <area shape="rect" href="classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="5,5,169,32"/>
 </map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
@@ -103,6 +103,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:aba799ac92241576bfe12fc877c404247"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDifferenceIF.html#aba799ac92241576bfe12fc877c404247">DifferenceIF</a> (const std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt; &amp;a_implicitFunctionA, const std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt; &amp;a_implicitFunctionB) noexcept</td></tr>
 <tr class="memdesc:aba799ac92241576bfe12fc877c404247"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor. Computes the CSG difference.  <a href="classDifferenceIF.html#aba799ac92241576bfe12fc877c404247">More...</a><br /></td></tr>
 <tr class="separator:aba799ac92241576bfe12fc877c404247"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7bdd9e692a9a1e39048c3bc8f7bff14a"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDifferenceIF.html#a7bdd9e692a9a1e39048c3bc8f7bff14a">DifferenceIF</a> (const std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt; &amp;a_implicitFunctionA, const std::vector&lt; std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt;&gt; &amp;a_implicitFunctionsB) noexcept</td></tr>
+<tr class="memdesc:a7bdd9e692a9a1e39048c3bc8f7bff14a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor. Computes the CSG difference between A and the union of the B's.  <a href="classDifferenceIF.html#a7bdd9e692a9a1e39048c3bc8f7bff14a">More...</a><br /></td></tr>
+<tr class="separator:a7bdd9e692a9a1e39048c3bc8f7bff14a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaf74cc7f973d903270f1f1de945ac280"><td class="memItemLeft" align="right" valign="top"><a id="aaf74cc7f973d903270f1f1de945ac280"></a>
 virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDifferenceIF.html#aaf74cc7f973d903270f1f1de945ac280">~DifferenceIF</a> ()=default</td></tr>
 <tr class="memdesc:aaf74cc7f973d903270f1f1de945ac280"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor (does nothing) <br /></td></tr>
@@ -142,10 +145,10 @@ std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunc
 <div class="textblock"><h3>template&lt;class T&gt;<br />
 class DifferenceIF&lt; T &gt;</h3>
 
-<p>CSG difference. Computes C = A-B. </p>
+<p>CSG difference between two implicit functions. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="aba799ac92241576bfe12fc877c404247"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aba799ac92241576bfe12fc877c404247">&#9670;&nbsp;</a></span>DifferenceIF()</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#aba799ac92241576bfe12fc877c404247">&#9670;&nbsp;</a></span>DifferenceIF() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -185,6 +188,53 @@ template&lt;class T &gt; </div>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunctionA</td><td>Implicit function </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunctionB</td><td>Implicit function to subtract </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a7bdd9e692a9a1e39048c3bc8f7bff14a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7bdd9e692a9a1e39048c3bc8f7bff14a">&#9670;&nbsp;</a></span>DifferenceIF() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classDifferenceIF.html">DifferenceIF</a>&lt; T &gt;::<a class="el" href="classDifferenceIF.html">DifferenceIF</a> </td>
+          <td>(</td>
+          <td class="paramtype">const std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_implicitFunctionA</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const std::vector&lt; std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_implicitFunctionsB</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Full constructor. Computes the CSG difference between A and the union of the B's. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunctionA</td><td>Implicit function </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunctionsB</td><td>Implicit functions to subtract </td></tr>
   </table>
   </dd>
 </dl>

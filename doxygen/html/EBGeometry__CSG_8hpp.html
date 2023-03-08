@@ -136,7 +136,10 @@ Classes</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Smooth intersection.  <a href="classSmoothIntersectionIF.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDifferenceIF.html">DifferenceIF&lt; T &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">CSG difference. Computes C = A-B.  <a href="classDifferenceIF.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">CSG difference between two implicit functions.  <a href="classDifferenceIF.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSmoothDifferenceIF.html">SmoothDifferenceIF&lt; T &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">CSG difference between two implicit functions.  <a href="classSmoothDifferenceIF.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
@@ -185,6 +188,10 @@ Functions</h2></td></tr>
 <tr class="memitem:aabf5abc0c21f66b645dd3b005a6b13b6"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__CSG_8hpp.html#aabf5abc0c21f66b645dd3b005a6b13b6">Difference</a> (const std::shared_ptr&lt; std::shared_ptr&lt; P1 &gt;&gt; &amp;a_implicitFunctionA, const std::shared_ptr&lt; std::shared_ptr&lt; P2 &gt;&gt; &amp;a_implicitFunctionB) noexcept</td></tr>
 <tr class="memdesc:aabf5abc0c21f66b645dd3b005a6b13b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for taking the CSG difference.  <a href="EBGeometry__CSG_8hpp.html#aabf5abc0c21f66b645dd3b005a6b13b6">More...</a><br /></td></tr>
 <tr class="separator:aabf5abc0c21f66b645dd3b005a6b13b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad629a6cb13a2b90bed83cd4b494a86c7"><td class="memTemplParams" colspan="2">template&lt;class T , class P1  = ImplicitFunction&lt;T&gt;, class P2  = ImplicitFunction&lt;T&gt;&gt; </td></tr>
+<tr class="memitem:ad629a6cb13a2b90bed83cd4b494a86c7"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__CSG_8hpp.html#ad629a6cb13a2b90bed83cd4b494a86c7">SmoothDifference</a> (const std::shared_ptr&lt; std::shared_ptr&lt; P1 &gt;&gt; &amp;a_implicitFunctionA, const std::shared_ptr&lt; std::shared_ptr&lt; P2 &gt;&gt; &amp;a_implicitFunctionB, const T a_smooth) noexcept</td></tr>
+<tr class="memdesc:ad629a6cb13a2b90bed83cd4b494a86c7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for taking the smooth CSG difference.  <a href="EBGeometry__CSG_8hpp.html#ad629a6cb13a2b90bed83cd4b494a86c7">More...</a><br /></td></tr>
+<tr class="separator:ad629a6cb13a2b90bed83cd4b494a86c7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -438,6 +445,61 @@ template&lt;class T , class P &gt; </div>
   </dd>
 </dl>
 <dl class="section note"><dt>Note</dt><dd>P must derive from ImplicitFunction&lt;T&gt; </dd></dl>
+
+</div>
+</div>
+<a id="ad629a6cb13a2b90bed83cd4b494a86c7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad629a6cb13a2b90bed83cd4b494a86c7">&#9670;&nbsp;</a></span>SmoothDifference()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T , class P1  = ImplicitFunction&lt;T&gt;, class P2  = ImplicitFunction&lt;T&gt;&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;<a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt;T&gt; &gt; SmoothDifference </td>
+          <td>(</td>
+          <td class="paramtype">const std::shared_ptr&lt; std::shared_ptr&lt; P1 &gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_implicitFunctionA</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const std::shared_ptr&lt; std::shared_ptr&lt; P2 &gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_implicitFunctionB</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const T&#160;</td>
+          <td class="paramname"><em>a_smooth</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Convenience function for taking the smooth CSG difference. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunctionA</td><td>Implicit function. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunctionB</td><td>Implicit function to subtract. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_smoothLen</td><td>Smoothing length. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>P1 and P2 must derive from ImplicitFunction&lt;T&gt;. This uses the default smoothMax function. </dd></dl>
 
 </div>
 </div>

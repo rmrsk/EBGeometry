@@ -2,7 +2,7 @@
 \label{classDifferenceIF}\index{DifferenceIF$<$ T $>$@{DifferenceIF$<$ T $>$}}
 
 
-CSG difference. Computes C = A-\/B.  
+CSG difference between two implicit functions.  
 
 
 
@@ -37,6 +37,8 @@ Collaboration diagram for Difference\+IF$<$ T $>$\+:
 \begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classDifferenceIF_aba799ac92241576bfe12fc877c404247}{Difference\+IF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+FunctionB) noexcept
 \begin{DoxyCompactList}\small\item\em Full constructor. Computes the CSG difference. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classDifferenceIF_a7bdd9e692a9a1e39048c3bc8f7bff14a}{Difference\+IF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+FunctionA, const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$$>$ \&a\+\_\+implicit\+FunctionsB) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor. Computes the CSG difference between A and the union of the B\textquotesingle{}s. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classDifferenceIF_aaf74cc7f973d903270f1f1de945ac280}\label{classDifferenceIF_aaf74cc7f973d903270f1f1de945ac280}} 
 virtual \mbox{\hyperlink{classDifferenceIF_aaf74cc7f973d903270f1f1de945ac280}{$\sim$\+Difference\+IF}} ()=default
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
@@ -57,13 +59,13 @@ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Func
 \subsubsection*{template$<$class T$>$\newline
 class Difference\+IF$<$ T $>$}
 
-CSG difference. Computes C = A-\/B. 
+CSG difference between two implicit functions. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
 \mbox{\Hypertarget{classDifferenceIF_aba799ac92241576bfe12fc877c404247}\label{classDifferenceIF_aba799ac92241576bfe12fc877c404247}} 
 \index{DifferenceIF$<$ T $>$@{DifferenceIF$<$ T $>$}!DifferenceIF@{DifferenceIF}}
 \index{DifferenceIF@{DifferenceIF}!DifferenceIF$<$ T $>$@{DifferenceIF$<$ T $>$}}
-\doxysubsubsection{\texorpdfstring{DifferenceIF()}{DifferenceIF()}}
+\doxysubsubsection{\texorpdfstring{DifferenceIF()}{DifferenceIF()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
 \mbox{\hyperlink{classDifferenceIF}{Difference\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classDifferenceIF}{Difference\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+FunctionB }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
@@ -76,6 +78,24 @@ Full constructor. Computes the CSG difference.
 \mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+FunctionA} & Implicit function \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+FunctionB} & Implicit function to subtract \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classDifferenceIF_a7bdd9e692a9a1e39048c3bc8f7bff14a}\label{classDifferenceIF_a7bdd9e692a9a1e39048c3bc8f7bff14a}} 
+\index{DifferenceIF$<$ T $>$@{DifferenceIF$<$ T $>$}!DifferenceIF@{DifferenceIF}}
+\index{DifferenceIF@{DifferenceIF}!DifferenceIF$<$ T $>$@{DifferenceIF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{DifferenceIF()}{DifferenceIF()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classDifferenceIF}{Difference\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classDifferenceIF}{Difference\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$$>$ \&}]{a\+\_\+implicit\+FunctionsB }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. Computes the CSG difference between A and the union of the B\textquotesingle{}s. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+FunctionA} & Implicit function \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+FunctionsB} & Implicit functions to subtract \\
 \hline
 \end{DoxyParams}
 

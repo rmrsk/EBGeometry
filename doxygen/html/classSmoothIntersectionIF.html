@@ -100,8 +100,11 @@ Public Member Functions</h2></td></tr>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSmoothIntersectionIF.html#a64aa487c53f256d0ef2592dcf0724828">SmoothIntersectionIF</a> ()=delete</td></tr>
 <tr class="memdesc:a64aa487c53f256d0ef2592dcf0724828"><td class="mdescLeft">&#160;</td><td class="mdescRight">Disallowed, use the full constructor. <br /></td></tr>
 <tr class="separator:a64aa487c53f256d0ef2592dcf0724828"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a984cf95c76f60075b76fb9d313873eba"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSmoothIntersectionIF.html#a984cf95c76f60075b76fb9d313873eba">SmoothIntersectionIF</a> (const std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt; &amp;a_implicitFunctionA, const std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt; &amp;a_implicitFunctionB, const T a_smoothLen, const std::function&lt; T(const T &amp;a, const T &amp;b, const T &amp;s)&gt; &amp;a_smoothMax=<a class="el" href="EBGeometry__CSG_8hpp.html#ae88258939353042593b6ab1401d3bc46">smoothMax</a>&lt; T &gt;) noexcept</td></tr>
+<tr class="memdesc:a984cf95c76f60075b76fb9d313873eba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor. Computes the CSG intersection.  <a href="classSmoothIntersectionIF.html#a984cf95c76f60075b76fb9d313873eba">More...</a><br /></td></tr>
+<tr class="separator:a984cf95c76f60075b76fb9d313873eba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a33718954d732edfebb5d95f2413e4193"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSmoothIntersectionIF.html#a33718954d732edfebb5d95f2413e4193">SmoothIntersectionIF</a> (const std::vector&lt; std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt;&gt; &amp;a_implicitFunctions, const T a_smoothLen, const std::function&lt; T(const T &amp;a, const T &amp;b, const T &amp;s)&gt; &amp;a_smoothMax=<a class="el" href="EBGeometry__CSG_8hpp.html#ae88258939353042593b6ab1401d3bc46">smoothMax</a>&lt; T &gt;) noexcept</td></tr>
-<tr class="memdesc:a33718954d732edfebb5d95f2413e4193"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor. Computes the CSG union.  <a href="classSmoothIntersectionIF.html#a33718954d732edfebb5d95f2413e4193">More...</a><br /></td></tr>
+<tr class="memdesc:a33718954d732edfebb5d95f2413e4193"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor. Computes the CSG intersection.  <a href="classSmoothIntersectionIF.html#a33718954d732edfebb5d95f2413e4193">More...</a><br /></td></tr>
 <tr class="separator:a33718954d732edfebb5d95f2413e4193"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaaeefd379308c42a60783f6e4ee765ef"><td class="memItemLeft" align="right" valign="top"><a id="aaaeefd379308c42a60783f6e4ee765ef"></a>
 virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSmoothIntersectionIF.html#aaaeefd379308c42a60783f6e4ee765ef">~SmoothIntersectionIF</a> ()=default</td></tr>
@@ -148,8 +151,69 @@ class SmoothIntersectionIF&lt; T &gt;</h3>
 
 <p>Smooth intersection. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<a id="a984cf95c76f60075b76fb9d313873eba"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a984cf95c76f60075b76fb9d313873eba">&#9670;&nbsp;</a></span>SmoothIntersectionIF() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classSmoothIntersectionIF.html">SmoothIntersectionIF</a>&lt; T &gt;::<a class="el" href="classSmoothIntersectionIF.html">SmoothIntersectionIF</a> </td>
+          <td>(</td>
+          <td class="paramtype">const std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_implicitFunctionA</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_implicitFunctionB</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const T&#160;</td>
+          <td class="paramname"><em>a_smoothLen</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const std::function&lt; T(const T &amp;a, const T &amp;b, const T &amp;s)&gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_smoothMax</em> = <code><a class="el" href="EBGeometry__CSG_8hpp.html#ae88258939353042593b6ab1401d3bc46">smoothMax</a>&lt;&#160;T&#160;&gt;</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Full constructor. Computes the CSG intersection. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunctionA</td><td>First implicit function. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunctionB</td><td>Second implicit function. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_smoothLen</td><td>Smoothing length </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_smoothMax</td><td>Smooth max operator </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="a33718954d732edfebb5d95f2413e4193"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a33718954d732edfebb5d95f2413e4193">&#9670;&nbsp;</a></span>SmoothIntersectionIF()</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a33718954d732edfebb5d95f2413e4193">&#9670;&nbsp;</a></span>SmoothIntersectionIF() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -190,7 +254,7 @@ template&lt;class T &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Full constructor. Computes the CSG union. </p>
+<p>Full constructor. Computes the CSG intersection. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunctions</td><td>List of primitives </td></tr>
