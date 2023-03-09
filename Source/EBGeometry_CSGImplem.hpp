@@ -272,61 +272,11 @@ template <class T, class P, class BV, size_t K>
 void
 FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs) noexcept
 {
-  using PrimAndBV     = typename std::pair<std::shared_ptr<const P>, BV>;
-  using PrimAndBVList = typename std::vector<PrimAndBV>;
-  using BuilderNode   = typename EBGeometry::BVH::NodeT<T, P, BV, K>;
+  // Init the root node, partition it, and flatten it.
+  auto root = std::make_shared<EBGeometry::BVH::NodeT<T, P, BV, K>>(a_primsAndBVs);
 
-  // This function is a partitioning function taking the input primitives and
-  // partitioning them into K subvolumes. Since the SDFs don't themselves have
-  // vertices, centroids, etc., we use their bounding volumes as criteria for
-  // subdividing them. We do this by computing the spatial centroid of each
-  // bounding volume that encloses the SDFs. We then do a spatial subdivision
-  // along the longest coordinate into K almost-equal chunks.
-  auto partitioner = [](const PrimAndBVList& inputs) -> std::array<PrimAndBVList, K> {
-    const size_t numPrimitives = inputs.size();
+  root->topDownSortAndPartition();
 
-    if (numPrimitives < K) {
-      std::cerr << "FastUnionIF<T, P, BV, K>::buildTree -- not enough primitives to "
-                   "partition into K new nodes\n";
-    }
-
-    // Figure out which coordinate direction has the longest/smallest extent.
-    // We split along the longest direction.
-    auto lo = Vec3T<T>::infinity();
-    auto hi = -Vec3T<T>::infinity();
-
-    for (const auto& pbv : inputs) {
-      lo = min(lo, pbv.second.getCentroid());
-      hi = max(hi, pbv.second.getCentroid());
-    }
-
-    const size_t splitDir = (hi - lo).maxDir(true);
-
-    // Sort the input list along splitDir and partition from there.
-    PrimAndBVList sortedPrimsAndBVs(inputs);
-    std::sort(sortedPrimsAndBVs.begin(),
-              sortedPrimsAndBVs.end(),
-              [splitDir](const PrimAndBV& pbv1, const PrimAndBV& pbv2) -> bool {
-                return pbv1.second.getCentroid()[splitDir] < pbv2.second.getCentroid()[splitDir];
-              });
-
-    return BVH::equalCounts<PrimAndBV, K>(sortedPrimsAndBVs);
-  };
-
-  // Stop function.
-  EBGeometry::BVH::StopFunctionT<T, P, BV, K> stopFunc = [](const BuilderNode& a_node) -> bool {
-    const size_t numPrimsInNode = (a_node.getPrimitives()).size();
-
-    return numPrimsInNode < K;
-  };
-
-  // Init the root node.
-  auto root = std::make_shared<BuilderNode>(a_primsAndBVs);
-
-  // BVH partitioning.
-  root->topDownSortAndPartition(partitioner, stopFunc);
-
-  // Tree flattening.
   m_bvh = root->flattenTree();
 }
 

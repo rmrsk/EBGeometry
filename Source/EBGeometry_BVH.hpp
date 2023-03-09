@@ -136,6 +136,81 @@ namespace BVH {
   template <class NodeType, class Meta>
   using MetaUpdater = std::function<Meta(const NodeType& a_node)>;
 
+  template <class X, size_t K>
+  auto equalCounts = [](const std::vector<X>& a_primitives) -> std::array<std::vector<X>, K> {
+    int length = a_primitives.size() / K;
+    int remain = a_primitives.size() % K;
+
+    int begin = 0;
+    int end   = 0;
+
+    std::array<std::vector<X>, K> chunks;
+
+    for (size_t k = 0; k < K; k++) {
+      end += (remain > 0) ? length + 1 : length;
+      remain--;
+
+      chunks[k] = std::vector<X>(a_primitives.begin() + begin, a_primitives.begin() + end);
+
+      begin = end;
+    }
+
+    return chunks;
+  };
+
+  template <class T, class P, class BV, size_t K>
+  auto PrimitiveCentroidPartitioner =
+    [](const PrimAndBVListT<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVListT<P, BV>, K> {
+    Vec3T<T> lo = Vec3T<T>::max();
+    Vec3T<T> hi = -Vec3T<T>::max();
+
+    for (const auto& pbv : a_primsAndBVs) {
+      lo = min(lo, pbv.first->getCentroid());
+      hi = max(hi, pbv.first->getCentroid());
+    }
+
+    const size_t splitDir = (hi - lo).maxDir(true);
+
+    // Sort the primitives along the above coordinate direction.
+    PrimAndBVListT<P, BV> sortedPrimsAndBVs(a_primsAndBVs);
+
+    std::sort(sortedPrimsAndBVs.begin(),
+              sortedPrimsAndBVs.end(),
+              [splitDir](const PrimAndBV<P, BV>& pbv1, const PrimAndBV<P, BV>& pbv2) -> bool {
+                return pbv1.first->getCentroid(splitDir) < pbv2.first->getCentroid(splitDir);
+              });
+
+    return BVH::equalCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);
+  };
+
+  template <class T, class P, class BV, size_t K>
+  auto BVCentroidPartitioner = [](const PrimAndBVListT<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVListT<P, BV>, K> {
+    Vec3T<T> lo = Vec3T<T>::max();
+    Vec3T<T> hi = -Vec3T<T>::max();
+
+    for (const auto& pbv : a_primsAndBVs) {
+      lo = min(lo, pbv.second.getCentroid());
+      hi = max(hi, pbv.second.getCentroid());
+    }
+
+    const size_t splitDir = (hi - lo).maxDir(true);
+
+    // Sort the primitives along the above coordinate direction.
+    PrimAndBVListT<P, BV> sortedPrimsAndBVs(a_primsAndBVs);
+
+    std::sort(sortedPrimsAndBVs.begin(),
+              sortedPrimsAndBVs.end(),
+              [splitDir](const PrimAndBV<P, BV>& pbv1, const PrimAndBV<P, BV>& pbv2) -> bool {
+                return pbv1.second.getCentroid()[splitDir] < pbv2.second.getCentroid()[splitDir];
+              });
+
+    return BVH::equalCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);
+  };
+
+  template <class T, class P, class BV, size_t K>
+  auto DefaultStopFunction =
+    [](const BVH::NodeT<T, P, BV, K>& a_node) -> bool { return (a_node.getPrimitives()).size() < K; };
+
   /*!
     @brief Class which encapsulates a node in a bounding volume hierarchy.
     @details T is the precision, P is the primitive type you want to enclose, BV
@@ -194,7 +269,8 @@ namespace BVH {
       @param[in] a_stopCrit Termination function which tells us when to stop the recursion.
     */
     inline void
-    topDownSortAndPartition(const Partitioner& a_partitioner, const StopFunction& a_stopCrit) noexcept;
+    topDownSortAndPartition(const Partitioner&  a_partitioner = BVCentroidPartitioner<T, P, BV, K>,
+                            const StopFunction& a_stopCrit    = DefaultStopFunction<T, P, BV, K>) noexcept;
 
     /*!
       @brief Get node type
