@@ -60,7 +60,7 @@ namespace BVH {
   using PrimitiveListT = std::vector<std::shared_ptr<const P>>;
 
   /*!
-    @brief Alias for geometric primitive and BV
+    @brief Alias for a list geometric primitive and BV
   */
   template <class P, class BV>
   using PrimAndBV = std::pair<std::shared_ptr<const P>, BV>;
@@ -73,6 +73,15 @@ namespace BVH {
   using PrimAndBVListT = std::vector<PrimAndBV<P, BV>>;
 
   /*!
+    @brief Polymorphic partitioner for splitting a list of primitives and BVs into K new subsets. 
+    @details P is the primitive type bound in the BVH and K is the BVH degrees. BV is the bounding volume type.
+    @param[in] a_primsAndBVs Vector of primitives and their bounding volumes. 
+    @return Return a K-length array of subset lists. 
+  */
+  template <class P, class BV, size_t K>
+  using PartitionerT = std::function<std::array<PrimAndBVListT<P, BV>, K>(const PrimAndBVListT<P, BV>& a_primsAndBVs)>;
+
+  /*!
     @brief Stop function for deciding when a BVH node can't be divided into
     sub-volumes.
     @details T is the precision used in the BVH computations, P is the enclosing
@@ -82,15 +91,6 @@ namespace BVH {
   */
   template <class T, class P, class BV, size_t K>
   using StopFunctionT = std::function<bool(const NodeT<T, P, BV, K>& a_node)>;
-
-  /*!
-    @brief Polymorphic partitioner for splitting a list of primitives and BVs into K new subsets. 
-    @details P is the primitive type bound in the BVH and K is the BVH degrees. BV is the bounding volume type.
-    @param[in] a_primsAndBVs Vector of primitives and their bounding volumes. 
-    @return Return a K-length array of subset lists. 
-  */
-  template <class P, class BV, size_t K>
-  using PartitionerT = std::function<std::array<PrimAndBVListT<P, BV>, K>(const PrimAndBVListT<P, BV>& a_primsAndBVs)>;
 
   /*!
     @brief Updater for tree traversal
@@ -236,20 +236,6 @@ namespace BVH {
       @brief Default constructor which sets a regular node.
     */
     NodeT() noexcept;
-
-    /*!
-      @brief Construct node from a set of primitives.
-      @details This node becomes a leaf node which contains the input primitives.
-      @param[in] a_primitives Input primitives.
-    */
-    NodeT(const std::vector<std::shared_ptr<P>>& a_primitives) noexcept;
-
-    /*!
-      @brief Construct node from a set of primitives.
-      @details This node becomes a leaf node which contains the input primitives.
-      @param[in] a_primitives Input primitives.
-    */
-    NodeT(const std::vector<std::shared_ptr<const P>>& a_primitives) noexcept;
 
     /*!
       @brief Construct a BVH node from a set of primitives and their bounding volumes

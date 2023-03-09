@@ -33,29 +33,6 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
-  inline NodeT<T, P, BV, K>::NodeT(const std::vector<std::shared_ptr<P>>& a_primitives) noexcept : NodeT<T, P, BV, K>()
-  {
-    for (const auto& p : a_primitives) {
-      m_primitives.emplace_back(p);
-    }
-
-    for (auto& c : m_children) {
-      c = nullptr;
-    }
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline NodeT<T, P, BV, K>::NodeT(const std::vector<std::shared_ptr<const P>>& a_primitives) noexcept
-    : NodeT<T, P, BV, K>()
-  {
-    m_primitives = a_primitives;
-
-    for (auto& c : m_children) {
-      c = nullptr;
-    }
-  }
-
-  template <class T, class P, class BV, size_t K>
   inline NodeT<T, P, BV, K>::NodeT(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs) noexcept : NodeT<T, P, BV, K>()
   {
     for (const auto& pbv : a_primsAndBVs) {
