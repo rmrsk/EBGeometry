@@ -289,9 +289,8 @@ public:
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value,
                 "FastUnionIF requires an implicit function");
 
-  using BVConstructor = typename EBGeometry::BVH::BVConstructorT<P, BV>;
-  using Root          = typename EBGeometry::BVH::LinearBVH<T, P, BV, K>;
-  using Node          = typename Root::LinearNode;
+  using Root = typename EBGeometry::BVH::LinearBVH<T, P, BV, K>;
+  using Node = typename Root::LinearNode;
 
   /*!
     @brief Disallowed, use the full constructor
@@ -300,10 +299,16 @@ public:
 
   /*!
     @brief Full constructor - constructs bounding volumes in place. 
-    @param[in] a_distanceFunctions Signed distance functions.
-    @param[in] a_bvConstructor     Bounding volume constructor.
+    @param[in] a_primsAndBVs Primitives and their bounding volumes. 
   */
-  FastUnionIF(const std::vector<std::shared_ptr<P>>& a_distanceFunctions, const BVConstructor& a_bvConstructor);
+  FastUnionIF(const std::vector<std::pair<std::shared_ptr<P>, BV>>& a_primsAndBVs) noexcept;
+
+  /*!
+    @brief Full constructor - constructs bounding volumes in place. 
+    @param[in] a_primitives Primitives
+    @param[in] a_boundingVolumes Bounding volumes
+  */
+  FastUnionIF(const std::vector<std::shared_ptr<P>>& a_primitives, const std::vector<BV>& a_boundingVolumes) noexcept;
 
   /*!
     @brief Destructor (does nothing)
@@ -330,14 +335,11 @@ protected:
   std::shared_ptr<EBGeometry::BVH::LinearBVH<T, P, BV, K>> m_bvh;
 
   /*!
-    @brief Build BVH tree for the input objects. User must supply a partitioner
-    and a BV constructor for the SDF objects.
-    @param[in] a_distanceFunctions Distance functions
-    @param[in] a_bvConstructor Constructor for building a bounding volume that
-    encloses an object.
+    @brief Build BVH tree for the input objects. 
+    @param[in] a_primsAndBVs Geometric primitives and their bounding volumes. 
   */
   inline void
-  buildTree(const std::vector<std::shared_ptr<P>>& a_distanceFunctions, const BVConstructor& a_bvConstructor) noexcept;
+  buildTree(const std::vector<std::pair<std::shared_ptr<P>, BV>>& a_primsAndBVs) noexcept;
 };
 
 /*!

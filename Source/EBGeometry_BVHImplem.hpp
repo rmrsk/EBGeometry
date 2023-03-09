@@ -21,6 +21,28 @@
 
 namespace BVH {
 
+  template <class X, size_t K>
+  auto equalCounts = [](const std::vector<X>& a_primitives) -> std::array<std::vector<X>, K> {
+    int length = a_primitives.size() / K;
+    int remain = a_primitives.size() % K;
+
+    int begin = 0;
+    int end   = 0;
+
+    std::array<std::vector<X>, K> chunks;
+
+    for (size_t k = 0; k < K; k++) {
+      end += (remain > 0) ? length + 1 : length;
+      remain--;
+
+      chunks[k] = std::vector<X>(a_primitives.begin() + begin, a_primitives.begin() + end);
+
+      begin = end;
+    }
+
+    return chunks;
+  };
+
   template <class T, class P, class BV, size_t K>
   inline NodeT<T, P, BV, K>::NodeT() noexcept
   {

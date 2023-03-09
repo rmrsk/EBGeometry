@@ -33,33 +33,6 @@ namespace DCEL {
   using PrimAndBVList = std::vector<std::pair<std::shared_ptr<const Prim<T>>, BV>>;
 
   /*!
-    @brief Function for partitioning an input list into K almost-equal-sized
-    chunks
-    @param[in] a_primitives Primitives to be partitioned.
-  */
-  template <class X, size_t K>
-  auto equalCounts = [](const std::vector<X>& a_primitives) -> std::array<std::vector<X>, K> {
-    int length = a_primitives.size() / K;
-    int remain = a_primitives.size() % K;
-
-    int begin = 0;
-    int end   = 0;
-
-    std::array<std::vector<X>, K> chunks;
-
-    for (size_t k = 0; k < K; k++) {
-      end += (remain > 0) ? length + 1 : length;
-      remain--;
-
-      chunks[k] = std::vector<X>(a_primitives.begin() + begin, a_primitives.begin() + end);
-
-      begin = end;
-    }
-
-    return chunks;
-  };
-
-  /*!
     @brief Default stop function. This function terminates the division process if
     a BVH node has only one primitive.
     @details In this function, BVH::NodeT<T, FaceT<T>, BVH > is a BVH node. The
@@ -100,7 +73,7 @@ namespace DCEL {
                 return pbv1.first->getCentroid(splitDir) < pbv2.first->getCentroid(splitDir);
               });
 
-    return equalCounts<PrimAndBV, K>(sortedPrimsAndBVs);
+    return BVH::equalCounts<PrimAndBV, K>(sortedPrimsAndBVs);
   };
 
   /*!
