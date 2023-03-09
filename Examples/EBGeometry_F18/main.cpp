@@ -81,10 +81,8 @@ main(int argc, char* argv[])
   // slow/fast SDF representation. See EBGeometry_CSG.hpp for these signatures (and EBGeometry_DCEL_BVH.hpp for the BV constructors)
   const auto slowUnionSlowSDF = EBGeometry::Union<T, SlowSDF>(slowSDFs);
   const auto slowUnionFastSDF = EBGeometry::Union<T, FastSDF>(fastSDFs);
-  const auto fastUnionSlowSDF = EBGeometry::FastUnion<T, SlowSDF, BV, K>(
-    slowSDFs, [](const std::shared_ptr<const SlowSDF>& a_sdf) -> BV { return a_sdf->computeBoundingVolume<BV>(); });
-  const auto fastUnionFastSDF = EBGeometry::FastUnion<T, FastSDF, BV, K>(
-    fastSDFs, [](const std::shared_ptr<const FastSDF>& a_sdf) -> BV { return a_sdf->computeBoundingVolume(); });
+  const auto fastUnionSlowSDF = EBGeometry::FastUnion<T, SlowSDF, BV, K>(slowSDFs, boundingVolumes);
+  const auto fastUnionFastSDF = EBGeometry::FastUnion<T, FastSDF, BV, K>(fastSDFs, boundingVolumes);
 
   // Sample some random positions
   constexpr size_t Nsamp = 100;

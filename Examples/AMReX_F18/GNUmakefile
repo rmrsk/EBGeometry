@@ -14,8 +14,8 @@ DIM = 3
 
 #LIBRARIES += -lstd++fs
 
-CXX=g++-8
-CC=gcc-8
+CXX=g++
+CC=gcc
 
 AMREX_HOME ?= ../../../../amrex
 
