@@ -54,6 +54,7 @@ main()
 
   // Generate some random buildings on a lattice -- none of these should overlap.
   std::vector<std::shared_ptr<Box>> buildings;
+  std::vector<AABB>                 boundingVolumes;
 
   std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
   std::uniform_real_distribution<T> udist(0, 1.0);
@@ -74,15 +75,14 @@ main()
       const Vec3 hi(xHi, yHi, H);
 
       buildings.emplace_back(std::make_shared<Box>(lo, hi));
+      boundingVolumes.emplace_back(AABB(lo, hi));
     }
   }
 
   // Create a standard and an optimized CSG union.
   std::cout << "Partitioning " << std::pow(M, 2) << " buildings" << std::endl;
   auto slowUnion = EBGeometry::Union<T, Box>(buildings);
-  auto fastUnion = EBGeometry::FastUnion<T, Box, AABB, K>(buildings, [](const std::shared_ptr<const Box>& a_box) {
-    return AABB(a_box->getLowCorner(), a_box->getHighCorner());
-  });
+  auto fastUnion = EBGeometry::FastUnion<T, Box, AABB, K>(buildings, boundingVolumes);
 
   // Sample some random points in the bounding box of the BVH.
   Vec3 lo = Vec3::infinity();

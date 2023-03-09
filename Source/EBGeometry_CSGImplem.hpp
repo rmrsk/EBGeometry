@@ -79,10 +79,9 @@ SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
 
 template <class T, class P, class BV, size_t K>
 std::shared_ptr<ImplicitFunction<T>>
-FastUnion(const std::vector<std::shared_ptr<P>>&        a_implicitFunctions,
-          const EBGeometry::BVH::BVConstructorT<P, BV>& a_bvConstructor) noexcept
+FastUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std::vector<BV>& a_boundingVolumes) noexcept
 {
-  return std::make_shared<EBGeometry::FastUnionIF<T, P, BV, K>>(a_implicitFunctions, a_bvConstructor);
+  return std::make_shared<EBGeometry::FastUnionIF<T, P, BV, K>>(a_implicitFunctions, a_boundingVolumes);
 }
 
 template <class T, class P, class BV, size_t K>

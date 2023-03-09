@@ -65,13 +65,13 @@ SmoothUnion(const std::shared_ptr<P1>& a_implicitFunctionA,
 /*!
   @brief Convenience function for taking the BVH-accelerated union of a bunch of a implicit functions
   @param[in] a_implicitFunctions Implicit functions
-  @param[in] a_bvConstructor Bounding volume constructor. 
+  @param[in] a_boundingVolumes Bounding volumes for implicit functions. 
   @note P must derive from ImplicitFunction<T>
 */
 template <class T, class P, class BV, size_t K>
 std::shared_ptr<ImplicitFunction<T>>
-FastUnion(const std::vector<std::shared_ptr<P>>&        a_implicitFunctions,
-          const EBGeometry::BVH::BVConstructorT<P, BV>& a_bvConstructor) noexcept;
+FastUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
+          const std::vector<BV>&                 a_boundingVolumes) noexcept;
 
 /*!
   @brief Convenience function for taking the BVH-accelerated union of a bunch of a implicit functions

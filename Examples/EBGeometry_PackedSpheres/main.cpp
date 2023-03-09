@@ -63,7 +63,7 @@ main()
   // spheres) as well as a way for enclosing these objects. We need to define
   // ourselves a lambda that creates an appropriate bounding volumes for each
   // SDF.
-  std::cout << "Partitioning " << std::pow(M, 3) << " spheres" << std::endl;
+  std::cout << "Partitioning " << spheres.size() << " spheres" << std::endl;
   EBGeometry::FastUnionIF<T, Sphere, AABB, K> fastUnion(spheres, boundingVolumes);
 
   // Create some samples in the bounding box of the BVH
