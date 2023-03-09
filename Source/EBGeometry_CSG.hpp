@@ -150,7 +150,7 @@ template <class T, class P1 = ImplicitFunction<T>, class P2 = ImplicitFunction<T
 std::shared_ptr<ImplicitFunction<T>>
 SmoothDifference(const std::shared_ptr<std::shared_ptr<P1>>& a_implicitFunctionA,
                  const std::shared_ptr<std::shared_ptr<P2>>& a_implicitFunctionB,
-                 const T                                     a_smooth) noexcept;
+                 const T                                     a_smoothLen) noexcept;
 
 /*!
   @brief Exponential minimum function for CSG
@@ -289,7 +289,14 @@ public:
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value,
                 "FastUnionIF requires an implicit function");
 
+  /*!
+    @brief Alias for linear BVH type
+  */
   using Root = typename EBGeometry::BVH::LinearBVH<T, P, BV, K>;
+
+  /*!
+    @brief Alias for linear BVH node
+  */
   using Node = typename Root::LinearNode;
 
   /*!
@@ -354,7 +361,14 @@ public:
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value,
                 "FastSmoothUnionIF requires an implicit function");
 
+  /*!
+    @brief Alias for linear BVH type
+  */
   using Root = typename EBGeometry::BVH::LinearBVH<T, P, BV, K>;
+
+  /*!
+    @brief Alias for linear BVH node
+  */
   using Node = typename Root::LinearNode;
 
   /*!
@@ -566,6 +580,8 @@ public:
     @brief Full constructor. Computes the smooth CSG difference.
     @param[in] a_implicitFunctionA Implicit function
     @param[in] a_implicitFunctionB Implicit function to subtract
+    @param[in] a_smoothLen          Smoothing length
+    @param[in] a_smoothMax          Which smooth-max function to use. 
   */
   SmoothDifferenceIF(const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionA,
                      const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionB,
