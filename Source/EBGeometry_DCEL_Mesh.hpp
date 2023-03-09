@@ -79,15 +79,45 @@ namespace DCEL {
       Angle,
     };
 
-    using Vec3   = Vec3T<T>;
-    using Vertex = VertexT<T>;
-    using Edge   = EdgeT<T>;
-    using Face   = FaceT<T>;
-    using Mesh   = MeshT<T>;
+    /*!
+      @brief Alias for vector type
+    */
+    using Vec3 = Vec3T<T>;
 
+    /*!
+      @brief Alias for vertex type
+    */
+    using Vertex = VertexT<T>;
+
+    /*!
+      @brief Alias for edge type
+    */
+    using Edge = EdgeT<T>;
+
+    /*!
+      @brief Alias for face type
+    */
+    using Face = FaceT<T>;
+
+    /*!
+      @brief Alias for mesh type
+    */
+    using Mesh = MeshT<T>;
+
+    /*!
+      @brief Alias for vertex pointer type
+    */
     using VertexPtr = std::shared_ptr<Vertex>;
-    using EdgePtr   = std::shared_ptr<Edge>;
-    using FacePtr   = std::shared_ptr<Face>;
+
+    /*!
+      @brief Alias for edge pointer type
+    */
+    using EdgePtr = std::shared_ptr<Edge>;
+
+    /*!
+      @brief Alias for face pointer type
+    */
+    using FacePtr = std::shared_ptr<Face>;
 
     /*!
       @brief Default constructor. Leaves unobject in an unusable state

@@ -135,15 +135,6 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
-  inline void
-  NodeT<T, P, BV, K>::insertChildren(const std::array<PrimitiveList, K>& a_primitives) noexcept
-  {
-    for (size_t l = 0; l < K; l++) {
-      m_children[l] = std::make_shared<NodeT<T, P, BV, K>>(a_primitives[l]);
-    }
-  }
-
-  template <class T, class P, class BV, size_t K>
   inline T
   NodeT<T, P, BV, K>::getDistanceToBoundingVolume(const Vec3& a_point) const noexcept
   {
