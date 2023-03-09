@@ -103,7 +103,7 @@ namespace BVH {
   */
   template <class P, class BV, size_t K>
   using NewPartitionerT =
-    std::function<std::array<PrimAndBVListT<P, BV>, K>>(const PrimAndBVListT<P, BV>& a_primsAndBVs);
+    std::function<std::array<PrimAndBVListT<P, BV>, K>(const PrimAndBVListT<P, BV>& a_primsAndBVs)>;
 
   /*!
     @brief Constructor method for creating bounding volumes from a list of
@@ -226,7 +226,7 @@ namespace BVH {
       @param[in] a_stopCrit Termination function which tells us when to stop the recursion.
     */
     inline void
-    topDownSortAndPartitionPrimitives(const NewPartitioner& a_partitioner, const StopFunction& a_stopCrit) noexcept;
+    topDownSortAndPartition(const NewPartitioner& a_partitioner, const StopFunction& a_stopCrit) noexcept;
 
     /*!
       @brief Get node type

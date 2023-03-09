@@ -158,8 +158,8 @@ namespace BVH {
 
   template <class T, class P, class BV, size_t K>
   inline void
-  NodeT<T, P, BV, K>::topDownSortAndPartitionPrimitives(const NewPartitioner& a_partitioner,
-                                                        const StopFunction&   a_stopCrit) noexcept
+  NodeT<T, P, BV, K>::topDownSortAndPartition(const NewPartitioner& a_partitioner,
+                                              const StopFunction&   a_stopCrit) noexcept
   {
 
     // Check if this node should be split into more nodes.
@@ -171,13 +171,13 @@ namespace BVH {
     if (!stopRecursiveSplitting && hasEnoughPrimitives) {
 
       // Pack primitives and BVs.
-      std::vector<PrimAndBV<P, BV>> primsAndBVs;
+      PrimAndBVListT<P, BV> primsAndBVs;
       for (size_t i = 0; i < numPrimsInThisNode; i++) {
         primsAndBVs.emplace_back(std::make_pair(m_primitives[i], m_boundingVolumes[i]));
       }
 
       // Partition into sub-sets.
-      const auto newPartitions = a_partitioner(primsAndBVs);
+      const auto& newPartitions = a_partitioner(primsAndBVs);
 
       // Create children nodes.
       for (size_t c = 0; c < K; c++) {
@@ -190,7 +190,7 @@ namespace BVH {
 
       // Recursive partitioning.
       for (auto& c : m_children) {
-        c->topDownSortAndPartitionPrimitives(a_partitioner, a_stopCrit);
+        c->topDownSortAndPartition(a_partitioner, a_stopCrit);
       }
     }
   }
