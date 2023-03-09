@@ -244,7 +244,8 @@ SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T, class P, class BV, size_t K>
-FastUnionIF<T, P, BV, K>::FastUnionIF(const std::vector<std::pair<std::shared_ptr<P>, BV>>& a_primsAndBVs) noexcept
+FastUnionIF<T, P, BV, K>::FastUnionIF(
+  const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs) noexcept
 {
   this->buildTree(a_primsAndBVs);
 }
@@ -257,7 +258,7 @@ FastUnionIF<T, P, BV, K>::FastUnionIF(const std::vector<std::shared_ptr<P>>& a_p
     std::cerr << "FastUnionIF(std::vector, std::vector) - input arguments not same length!\n";
   }
   else {
-    std::vector<std::pair<std::shared_ptr<P>, BV>> primsAndBVs;
+    std::vector<std::pair<std::shared_ptr<const P>, BV>> primsAndBVs;
 
     for (size_t i = 0; i < a_primitives.size(); i++) {
       primsAndBVs.emplace_back(std::make_pair(a_primitives[i], a_boundingVolumes[i]));
@@ -269,9 +270,9 @@ FastUnionIF<T, P, BV, K>::FastUnionIF(const std::vector<std::shared_ptr<P>>& a_p
 
 template <class T, class P, class BV, size_t K>
 void
-FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<P>, BV>>& a_primsAndBVs) noexcept
+FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs) noexcept
 {
-  using PrimAndBV     = typename std::pair<std::shared_ptr<P>, BV>;
+  using PrimAndBV     = typename std::pair<std::shared_ptr<const P>, BV>;
   using PrimAndBVList = typename std::vector<PrimAndBV>;
   using BuilderNode   = typename EBGeometry::BVH::NodeT<T, P, BV, K>;
 
@@ -281,9 +282,8 @@ FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<
   // subdividing them. We do this by computing the spatial centroid of each
   // bounding volume that encloses the SDFs. We then do a spatial subdivision
   // along the longest coordinate into K almost-equal chunks.
-  EBGeometry::BVH::NewPartitionerT<P, BV, K> partitioner =
-    [](const PrimAndBVList& primsAndBVs) -> std::array<std::vector<std::pair<std::shared_ptr<P>, BV>>, K> {
-    const size_t numPrimitives = primsAndBVs.size();
+  auto partitioner = [](const PrimAndBVList& inputs) -> std::array<PrimAndBVList, K> {
+    const size_t numPrimitives = inputs.size();
 
     if (numPrimitives < K) {
       std::cerr << "FastUnionIF<T, P, BV, K>::buildTree -- not enough primitives to "
@@ -295,7 +295,7 @@ FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<
     auto lo = Vec3T<T>::infinity();
     auto hi = -Vec3T<T>::infinity();
 
-    for (const auto& pbv : primsAndBVs) {
+    for (const auto& pbv : inputs) {
       lo = min(lo, pbv.second.getCentroid());
       hi = max(hi, pbv.second.getCentroid());
     }
@@ -303,7 +303,7 @@ FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<
     const size_t splitDir = (hi - lo).maxDir(true);
 
     // Sort the input list along splitDir and partition from there.
-    PrimAndBVList sortedPrimsAndBVs(primsAndBVs);
+    PrimAndBVList sortedPrimsAndBVs(inputs);
     std::sort(sortedPrimsAndBVs.begin(),
               sortedPrimsAndBVs.end(),
               [splitDir](const PrimAndBV& pbv1, const PrimAndBV& pbv2) -> bool {
@@ -316,6 +316,7 @@ FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<
   // Stop function.
   EBGeometry::BVH::StopFunctionT<T, P, BV, K> stopFunc = [](const BuilderNode& a_node) -> bool {
     const size_t numPrimsInNode = (a_node.getPrimitives()).size();
+
     return numPrimsInNode < K;
   };
 

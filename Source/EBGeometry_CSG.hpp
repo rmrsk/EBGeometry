@@ -301,12 +301,12 @@ public:
     @brief Full constructor - constructs bounding volumes in place. 
     @param[in] a_primsAndBVs Primitives and their bounding volumes. 
   */
-  FastUnionIF(const std::vector<std::pair<std::shared_ptr<P>, BV>>& a_primsAndBVs) noexcept;
+  FastUnionIF(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs) noexcept;
 
   /*!
     @brief Full constructor - constructs bounding volumes in place. 
-    @param[in] a_primitives Primitives
-    @param[in] a_boundingVolumes Bounding volumes
+    @param[in] a_primitives Input primitives.
+    @param[in] a_boundingVolumes Bounding volumes for primitives. 
   */
   FastUnionIF(const std::vector<std::shared_ptr<P>>& a_primitives, const std::vector<BV>& a_boundingVolumes) noexcept;
 
@@ -339,7 +339,7 @@ protected:
     @param[in] a_primsAndBVs Geometric primitives and their bounding volumes. 
   */
   inline void
-  buildTree(const std::vector<std::pair<std::shared_ptr<P>, BV>>& a_primsAndBVs) noexcept;
+  buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs) noexcept;
 };
 
 /*!
