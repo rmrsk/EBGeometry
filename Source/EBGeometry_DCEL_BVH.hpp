@@ -50,7 +50,7 @@ namespace DCEL {
     @brief Chunk-partitioner based on DCEL::FaceT<T> centroids
   */
   template <class T, class BV, size_t K>
-  EBGeometry::BVH::NewPartitionerT<Prim<T>, BV, K> chunkPartitioner =
+  EBGeometry::BVH::PartitionerT<Prim<T>, BV, K> chunkPartitioner =
     [](const PrimAndBVList<T, BV>& a_primsAndBVs) -> std::array<PrimAndBVList<T, BV>, K> {
     Vec3T<T> lo = Vec3T<T>::max();
     Vec3T<T> hi = -Vec3T<T>::max();
@@ -80,7 +80,7 @@ namespace DCEL {
     @brief Alias for default partitioner.
   */
   template <class T, class BV, size_t K>
-  EBGeometry::BVH::NewPartitionerT<Prim<T>, BV, K> defaultPartitioner = EBGeometry::DCEL::chunkPartitioner<T, BV, K>;
+  EBGeometry::BVH::PartitionerT<Prim<T>, BV, K> defaultPartitioner = EBGeometry::DCEL::chunkPartitioner<T, BV, K>;
 
   /*!
     @brief One-liner for turning a DCEL mesh into a full-tree BVH. 

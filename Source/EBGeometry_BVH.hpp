@@ -84,26 +84,13 @@ namespace BVH {
   using StopFunctionT = std::function<bool(const NodeT<T, P, BV, K>& a_node)>;
 
   /*!
-    @brief Polymorphic partitioner for splitting a list of primitives into K new
-    lists of primitives
-    @details P is the primitive type bound in the BVH and K is the BVH degree.
-    @param[in] a_primitives List of primitives to be subdivided into sub-bounding
-    volumes.
-    @return Returns a list (std::array) of new primitives which make up the new
-    bounding volumes.
-  */
-  template <class P, class BV, size_t K>
-  using PartitionerT = std::function<std::array<PrimitiveListT<P>, K>(const PrimitiveListT<P>& a_primitives)>;
-
-  /*!
     @brief Polymorphic partitioner for splitting a list of primitives and BVs into K new subsets. 
     @details P is the primitive type bound in the BVH and K is the BVH degrees. BV is the bounding volume type.
     @param[in] a_primsAndBVs Vector of primitives and their bounding volumes. 
     @return Return a K-length array of subset lists. 
   */
   template <class P, class BV, size_t K>
-  using NewPartitionerT =
-    std::function<std::array<PrimAndBVListT<P, BV>, K>(const PrimAndBVListT<P, BV>& a_primsAndBVs)>;
+  using PartitionerT = std::function<std::array<PrimAndBVListT<P, BV>, K>(const PrimAndBVListT<P, BV>& a_primsAndBVs)>;
 
   /*!
     @brief Constructor method for creating bounding volumes from a list of
@@ -160,14 +147,13 @@ namespace BVH {
   class NodeT : public std::enable_shared_from_this<NodeT<T, P, BV, K>>
   {
   public:
-    using PrimitiveList  = PrimitiveListT<P>;
-    using Vec3           = Vec3T<T>;
-    using Node           = NodeT<T, P, BV, K>;
-    using NodePtr        = std::shared_ptr<Node>;
-    using StopFunction   = StopFunctionT<T, P, BV, K>;
-    using Partitioner    = PartitionerT<P, BV, K>;
-    using BVConstructor  = BVConstructorT<P, BV>;
-    using NewPartitioner = NewPartitionerT<P, BV, K>;
+    using PrimitiveList = PrimitiveListT<P>;
+    using Vec3          = Vec3T<T>;
+    using Node          = NodeT<T, P, BV, K>;
+    using NodePtr       = std::shared_ptr<Node>;
+    using StopFunction  = StopFunctionT<T, P, BV, K>;
+    using BVConstructor = BVConstructorT<P, BV>;
+    using Partitioner   = PartitionerT<P, BV, K>;
 
     /*!
       @brief Default constructor which sets a regular node.
@@ -200,24 +186,6 @@ namespace BVH {
     virtual ~NodeT() noexcept;
 
     /*!
-      @brief Function for using top-down construction of the bounding volume
-      hierarchy.
-      @details The rules for terminating the hierarchy construction, how to
-      partition sets of primitives, and how to enclose them by bounding volumes
-      are given in the input arguments (a_stopFunc, a_partFunc, a_bvFunc)
-      @param[in] a_bvConstructor Polymorphic function which builds a bounding
-      volume from a set of primitives.
-      @param[in] a_partitioner   Partitioning function. This is a polymorphic
-      function which divides a set of primitives into two lists.
-      @param[in] a_stopCrit      Termination function which tells us when to stop
-      the recursion.
-    */
-    inline void
-    topDownSortAndPartitionPrimitives(const BVConstructor& a_bvConstructor,
-                                      const Partitioner&   a_partitioner,
-                                      const StopFunction&  a_stopCrit) noexcept;
-
-    /*!
       @brief Function for using top-down construction of the bounding volume hierarchy. 
       @details The rules for terminating the hierarchy construction, and how to partition them
       are encoded in the input arguments (a_partitioner, a_stopCrit).
@@ -226,7 +194,7 @@ namespace BVH {
       @param[in] a_stopCrit Termination function which tells us when to stop the recursion.
     */
     inline void
-    topDownSortAndPartition(const NewPartitioner& a_partitioner, const StopFunction& a_stopCrit) noexcept;
+    topDownSortAndPartition(const Partitioner& a_partitioner, const StopFunction& a_stopCrit) noexcept;
 
     /*!
       @brief Get node type

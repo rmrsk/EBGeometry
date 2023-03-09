@@ -143,44 +143,7 @@ namespace BVH {
 
   template <class T, class P, class BV, size_t K>
   inline void
-  NodeT<T, P, BV, K>::topDownSortAndPartitionPrimitives(const BVConstructor& a_bvConstructor,
-                                                        const Partitioner&   a_partitioner,
-                                                        const StopFunction&  a_stopCrit) noexcept
-  {
-
-    // Compute the bounding volume for this node.
-    std::vector<BV> boundingVolumes;
-    for (const auto& p : m_primitives) {
-      boundingVolumes.emplace_back(a_bvConstructor(p));
-    }
-
-    m_boundingVolume = BV(boundingVolumes);
-
-    // Check if we can split this node into sub-bounding volumes.
-    const bool stopRecursiveSplitting = a_stopCrit(*this);
-    const bool hasEnoughPrimitives    = m_primitives.size() >= K;
-
-    if (!stopRecursiveSplitting && hasEnoughPrimitives) {
-
-      // Divide primitives into new partitions
-      const auto& newPartitions = a_partitioner(m_primitives);
-
-      // Insert the K new nodes into the tree.
-      this->insertChildren(newPartitions);
-
-      // This node is no longer a leaf node.
-      m_primitives.resize(0);
-
-      // Partition children nodes further
-      for (auto& c : m_children) {
-        c->topDownSortAndPartitionPrimitives(a_bvConstructor, a_partitioner, a_stopCrit);
-      }
-    }
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline void
-  NodeT<T, P, BV, K>::topDownSortAndPartition(const NewPartitioner& a_partitioner,
+  NodeT<T, P, BV, K>::topDownSortAndPartition(const Partitioner& a_partitioner,
                                               const StopFunction&   a_stopCrit) noexcept
   {
 
