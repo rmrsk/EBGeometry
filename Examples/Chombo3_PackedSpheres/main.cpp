@@ -46,6 +46,7 @@ public:
 
     // Generate some spheres.
     std::vector<std::shared_ptr<Prim>> spheres;
+    std::vector<BV>                    boundingVolumes;
 
     // Use a fixed seed = 0 so that every MPI rank agrees on how to randomize the spheres.
     std::mt19937_64                   rng(0);
@@ -59,21 +60,14 @@ public:
           const Vec3 center(0.5 * dx + i * (dx + Rmax), 0.5 * dx + j * (dx + Rmax), 0.5 * dx + k * (dx + Rmax));
 
           spheres.emplace_back(std::make_shared<Prim>(center, R));
+          boundingVolumes.emplace_back(BV(center - R * Vec3::one(), center + R * Vec3::one()));
         }
       }
     }
 
     // Create the standard and fast CSG unions.
     m_slowUnion = EBGeometry::SmoothUnion<T, Prim>(spheres, smoothLen);
-    m_fastUnion = EBGeometry::FastSmoothUnion<T, Prim, BV, K>(
-      spheres,
-      [](const std::shared_ptr<const Prim>& a_sphere) {
-        const Vec3 lo = a_sphere->getCenter() - a_sphere->getRadius() * Vec3::one();
-        const Vec3 hi = a_sphere->getCenter() + a_sphere->getRadius() * Vec3::one();
-
-        return BV(lo, hi);
-      },
-      smoothLen);
+    m_fastUnion = EBGeometry::FastSmoothUnion<T, Prim, BV, K>(spheres, boundingVolumes, smoothLen);
 
     // AMReX uses the opposite to EBGeometry.
     m_slowUnion = EBGeometry::Complement<T>(m_slowUnion);

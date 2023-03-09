@@ -16,6 +16,28 @@
 #include "EBGeometry_MeshDistanceFunctions.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
+template <class T, class BV, size_t K>
+std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>
+DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_dcelMesh)
+{
+  using Prim          = EBGeometry::DCEL::FaceT<T>;
+  using PrimAndBVList = std::vector<std::pair<std::shared_ptr<const Prim>, BV>>;
+
+  // Create a pair-wise list of DCEL faces and their bounding volumes.
+  PrimAndBVList primsAndBVs;
+
+  for (const auto& f : a_dcelMesh->getFaces()) {
+    primsAndBVs.emplace_back(std::make_pair(f, BV(f->getAllVertexCoordinates())));
+  }
+
+  // Partition the BVH using the default input arguments.
+  auto bvh = std::make_shared<EBGeometry::BVH::NodeT<T, Prim, BV, K>>(primsAndBVs);
+
+  bvh->topDownSortAndPartition();
+
+  return bvh;
+}
+
 template <class T>
 MeshSDF<T>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
 {

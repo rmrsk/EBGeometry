@@ -48,119 +48,25 @@ Construction
 
 Constructing a BVH is done by
 
-*  Creating a root node and providing it with the geometric primitives.
+*  Creating a root node and providing it with the geometric primitives and their bounding volumes.
 *  Partitioning the BVH by providing a partitioning function. 
 
-The first step is usually a matter of simply constructing the root node using the following constructor:
+The first step is usually a matter of simply constructing the root node using the full constructor, which takes a list of primitives and their associated bounding volumes. 
+The second step is to recursively build the BVH, which is done through the function ``topDownSortAndPartition()``, see the code below:
 
-.. code-block:: c++
+.. literalinclude:: ../../../Source/EBGeometry_BVH.hpp
+   :language: c++
+   :lines: 28, 62-94, 224-227, 240-245, 251-262, 388, 613
+   :caption: Header section of the BVH implementation.
 
-   template <class T, class P, class BV, size_t K>
-   NodeT(const std::vector<std::shared_ptr<const P> >& a_primitives).
-
-The constructor takes a list of primitives to be put in the node.
-For example:
-
-.. code-block:: c++
-
-   using T    = float;
-   using Node = EBGeometry::BVH::NodeT<T>;
-
-   std::vector<std::shared_ptr<MyPrimitives> > primitives;
-   
-   auto root = std::make_shared<Node>(primitives);
-
-The second step is to recursively build the BVH, which is done through the function ``topDownSortAndPartitionPrimitives``, as follows:
-
-.. code-block:: c++
-
-   template <class T, class P, class BV, int K>
-   using StopFunctionT = std::function<bool(const NodeT<T, P, BV, K>& a_node)>;
-
-   template <class P, class BV>
-   using BVConstructorT = std::function<BV(const std::shared_ptr<const P>& a_primitive)>;		   
-
-   template <class P, int K>
-   using PartitionerT = std::function<std::array<PrimitiveListT<P>, K>(const PrimitiveListT<P>& a_primitives)>;
-
-   template <class T, class P, class BV, int K>
-   NodeT<T, P, BV, K>::topDownSortAndPartitionPrimitives(const BVConstructorT<P, BV>,
-		                                         const PartitionerT<P, K>,
-							 const StopFunction<T, P, BV, K>);
-
-Although seemingly complicated, the input arguments are simply polymorphic functions of the type indicated above, and have the following responsibilities:
-
-*  ``StopFunctionT`` simply takes a ``NodeT`` as input argument and determines if the node should be partitioned further.
-   A basic implementation which terminates the recursion when the leaf node has reached the minimum number of primitives is
-
-   .. code-block:: c++
-
-      EBGeometry::BVH::StopFunction<T, P, BV, K> stopFunc = [](const NodeT<T, P, BV, K>& a_node) -> bool {
-         return a_node.getNumPrimitives() < K;
-      };
-
-   This will terminate the partitioning when the node has less than ``K`` primitives (in which case it *can't* be partitioned further).
-
-*  ``BVConstructorT`` takes a single primitive (or strictly speaking a pointer to the primitive) and returns a bounding volume that encloses it.
-   For example, if the primitives ``P`` are signed distance function spheres (see :ref:`Chap:AnalyticSDF`), the BV constructor can be implemented
-   with AABB bounding volumes as;
-
-   .. code-block:: c++
-
-      using T      = float;
-      using Vec3   = EBGeometry::Vec3T<T>;
-      using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
-      using Sphere = EBGeometry::SphereSDF<T>;
-
-      EBGeometry::BVH::BVConstructor<SDF, AABB> bvConstructor = [](const std::shared_ptr<const SDF>& a_sdf){
-         const Sphere& sph = static_cast<const Sphere&> (*a_sdf);
-
-	 const Vec3& sphereCenter = sph.getCenter();
-	 const T&    sphereRadius = sph.getRadius();
-
-	 const Vec3  lo = sphereCenter - r*Vec3::one();
-	 const Vec3  hi = sphereCenter + r*Vec3::one();
-
-	 return AABB(lo, hi);
-      };
+The optional input arguments to ``topDownSortAndPartition`` are polymorphic functions of type indicated above, and have the following responsibilities:
 
 *  ``PartitionerT`` is the partitioner function when splitting a leaf node into ``K`` new leaves.
-   The function takes a list of primitives which it partitions into ``K`` new lists of primitives, i.e. it encapsulates :eq:`Partition`.
-   As an example, we include a partitioner that is provided for integrating BVH and DCEL functionality.
+   The function takes a list of primitives which it partitions into ``K`` new lists of primitives.
 
-   .. code-block:: c++
-		   
-      template <class T, class BV, size_t K>
-      EBGeometry::BVH::PartitionerT<EBGeometry::DCEL::FaceT<T>, BV, K> chunkPartitioner =
-      [](const PrimitiveList<T>& a_primitives) -> std::array<PrimitiveList<T>, K> {
-        Vec3T<T> lo = Vec3T<T>::max();
-	Vec3T<T> hi = -Vec3T<T>::max();
-	for (const auto& p : a_primitives) {
-	  lo = min(lo, p->getCentroid());
-	  hi = max(hi, p->getCentroid());
-	}
+*  ``StopFunctionT`` simply takes a ``NodeT`` as input argument and determines if the node should be partitioned further.
 
-	const size_t splitDir = (hi - lo).maxDir(true);
-
-	// Sort the primitives along the above coordinate direction.
-	PrimitiveList<T> sortedPrimitives(a_primitives);
-
-	std::sort(
-	  sortedPrimitives.begin(), sortedPrimitives.end(),
-	  [splitDir](const std::shared_ptr<const FaceT<T>>& f1, const std::shared_ptr<const FaceT<T>>& f2) -> bool {
-          return f1->getCentroid(splitDir) < f2->getCentroid(splitDir);
-	  });
-
-	return EBGeometry::DCEL::equalCounts<T, K>(sortedPrimitives);
-      };
-
-   In the above, we are taking a list of DCEL facets in the input argument (``PrimitiveList<T>`` expands to ``std::vector<std::shared_ptr<const FaceT<T> >``).
-   We then compute the centroid locations of each facet and figure out along which coordinate axis we partition the objects (called ``splitDir`` above). 
-   The input primitives are then sorted based on the facet centroid locations in the ``splitDir`` direction, and they are partitioned into ``K`` almost-equal chunks.
-   These partitions are returned and become primitives in the new leaf nodes.
-
-In general, users are free to construct their BVHs in their own way if they choose.
-For the most part this will include the construction of their own bounding volumes and/or partitioners. 
+Default arguments for these are provided, bubt users are free to partition their BVHs in their own way should they choose.
 
 .. _Chap:LinearBVH:
 
@@ -336,6 +242,6 @@ These rules are given below.
 
 .. literalinclude:: ../../../Source/EBGeometry_MeshDistanceFunctionsImplem.hpp
    :language: c++
-   :lines: 105-139
+   :lines: 127-161
    :caption: Tree traversal criterion for computing the signed distance to a DCEL mesh using the BVH accelerator.
 	     See :file:`Source/EBGeometry_MeshDistanceFunctionsImplem.hpp` for details.

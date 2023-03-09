@@ -19,6 +19,18 @@
 #include "EBGeometry_BVH.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
+namespace DCEL {
+
+  /*!
+    @brief One-liner for turning a DCEL mesh into a full-tree BVH. 
+    @param[in] a_dcelMesh Input DCEL mesh. 
+    @return Returns a pointer to a full-tree BVH representation of the DCEL faces.
+  */
+  template <class T, class BV, size_t K>
+  std::shared_ptr<EBGeometry::BVH::NodeT<T, FaceT<T>, BV, K>>
+  buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_dcelMesh);
+} // namespace DCEL
+
 /*!
   @brief Signed distance function for a DCEL mesh. Does not use BVHs.
 */

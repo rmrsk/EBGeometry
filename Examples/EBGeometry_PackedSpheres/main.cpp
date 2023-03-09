@@ -30,6 +30,7 @@ main()
 
   // Make a sphere array consisting of about M^3 spheres.
   std::vector<std::shared_ptr<Sphere>> spheres;
+  std::vector<AABB>                    boundingVolumes;
 
   constexpr T   radius = 1.0;
   constexpr int M      = 80;
@@ -44,9 +45,12 @@ main()
         const T y = j * (delta + 2 * radius);
         const T z = k * (delta + 2 * radius);
 
-        Vec3 center(x, y, z);
+        const Vec3 center(x, y, z);
+        const Vec3 lo = center - radius * Vec3::one();
+        const Vec3 hi = center + radius * Vec3::one();
 
         spheres.emplace_back(std::make_shared<Sphere>(center, radius));
+        boundingVolumes.emplace_back(AABB(lo, hi));
       }
     }
   }
@@ -59,18 +63,8 @@ main()
   // spheres) as well as a way for enclosing these objects. We need to define
   // ourselves a lambda that creates an appropriate bounding volumes for each
   // SDF.
-  std::cout << "Partitioning " << std::pow(M, 3) << " spheres" << std::endl;
-  EBGeometry::BVH::BVConstructorT<Sphere, AABB> aabbConstructor = [](const std::shared_ptr<const Sphere>& a_prim) {
-    const Vec3& c = a_prim->getCenter();
-    const T&    r = a_prim->getRadius();
-
-    const Vec3 lo = c - r * Vec3::one();
-    const Vec3 hi = c + r * Vec3::one();
-
-    return AABB(lo, hi);
-  };
-
-  EBGeometry::FastUnionIF<T, Sphere, AABB, K> fastUnion(spheres, aabbConstructor);
+  std::cout << "Partitioning " << spheres.size() << " spheres" << std::endl;
+  EBGeometry::FastUnionIF<T, Sphere, AABB, K> fastUnion(spheres, boundingVolumes);
 
   // Create some samples in the bounding box of the BVH
   std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));

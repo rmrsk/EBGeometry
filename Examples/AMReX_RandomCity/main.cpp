@@ -45,6 +45,7 @@ public:
 
     // Generate some random buildings on a lattice -- none of these should overlap.
     std::vector<std::shared_ptr<Prim>> buildings;
+    std::vector<BV>                    boundingVolumes;
 
     // Use a fixed seed = 0 so that every MPI rank agrees on how to randomize the buildings.
     std::mt19937_64                   rng(0);
@@ -70,13 +71,12 @@ public:
         const Vec3 hi(xHi + xs, yHi + ys, H);
 
         buildings.emplace_back(std::make_shared<Prim>(lo, hi));
+        boundingVolumes.emplace_back(BV(lo, hi));
       }
     }
 
     m_slowUnion = EBGeometry::Union<T, Prim>(buildings);
-    m_fastUnion = EBGeometry::FastUnion<T, Prim, BV, K>(buildings, [](const std::shared_ptr<const Prim>& a_box) {
-      return BV(a_box->getLowCorner(), a_box->getHighCorner());
-    });
+    m_fastUnion = EBGeometry::FastUnion<T, Prim, BV, K>(buildings, boundingVolumes);
 
     // AMReX uses the opposite sign for the value functions.
     m_slowUnion = EBGeometry::Complement<T>(m_slowUnion);

@@ -46,19 +46,19 @@ public:
     // Read each STL file and make them into flattened BVH-trees. These STL files
     // have the normal vector pointing inwards so we flip it.
     std::vector<std::shared_ptr<FastSDF>> fastSDFs;
+    std::vector<BV>                       boundingVolumes;
     for (const auto& f : stlFiles) {
       const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(f);
       mesh->flip();
 
       // Create the BVH.
       fastSDFs.emplace_back(std::make_shared<FastSDF>(mesh));
+      boundingVolumes.emplace_back(mesh->getAllVertexCoordinates());
     }
 
     // Optimized, faster union which uses a BVH for bounding the BVHs.
-    m_implicitFunction = std::make_shared<EBGeometry::FastUnionIF<T, FastSDF, BV, K>>(
-      fastSDFs, [](const std::shared_ptr<const FastSDF>& a_sdf) -> BV { return a_sdf->computeBoundingVolume(); });
-
-    m_implicitFunction = EBGeometry::Complement<T>(m_implicitFunction);
+    m_implicitFunction = EBGeometry::FastUnion<T, FastSDF, BV, K>(fastSDFs, boundingVolumes);
+    m_implicitFunction = EBGeometry::Complement(m_implicitFunction);
   }
 
   F18(const F18& a_other)
@@ -78,7 +78,7 @@ public:
   }
 
 protected:
-  std::shared_ptr<EBGeometry::FastUnionIF<T, FastSDF, BV, K>> m_implicitFunction;
+  std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_implicitFunction;
 };
 
 int
