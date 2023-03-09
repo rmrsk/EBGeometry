@@ -22,17 +22,18 @@
 namespace BVH {
 
   template <class T, class P, class BV, size_t K>
-  inline NodeT<T, P, BV, K>::NodeT()
+  inline NodeT<T, P, BV, K>::NodeT() noexcept
   {
     for (auto& c : m_children) {
       c = nullptr;
     }
 
     m_primitives.resize(0);
+    m_boundingVolumes.resize(0);
   }
 
   template <class T, class P, class BV, size_t K>
-  inline NodeT<T, P, BV, K>::NodeT(const std::vector<std::shared_ptr<P>>& a_primitives) : NodeT<T, P, BV, K>()
+  inline NodeT<T, P, BV, K>::NodeT(const std::vector<std::shared_ptr<P>>& a_primitives) noexcept : NodeT<T, P, BV, K>()
   {
     for (const auto& p : a_primitives) {
       m_primitives.emplace_back(p);
@@ -44,7 +45,8 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
-  inline NodeT<T, P, BV, K>::NodeT(const std::vector<std::shared_ptr<const P>>& a_primitives) : NodeT<T, P, BV, K>()
+  inline NodeT<T, P, BV, K>::NodeT(const std::vector<std::shared_ptr<const P>>& a_primitives) noexcept
+    : NodeT<T, P, BV, K>()
   {
     m_primitives = a_primitives;
 
@@ -54,21 +56,32 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
-  inline NodeT<T, P, BV, K>::~NodeT()
-  {}
+  inline NodeT<T, P, BV, K>::NodeT(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs) noexcept : NodeT<T, P, BV, K>()
+  {
+    for (const auto& pbv : a_primsAndBVs) {
+      m_primitives.emplace_back(pbv.first);
+      m_boundingVolumes.emplace_back(pbv.second);
+    }
+
+    m_boundingVolume = BV(m_boundingVolumes);
+  }
 
   template <class T, class P, class BV, size_t K>
-  inline void
-  NodeT<T, P, BV, K>::setPrimitives(const PrimitiveList& a_primitives) noexcept
-  {
-    m_primitives = a_primitives;
-  }
+  inline NodeT<T, P, BV, K>::~NodeT() noexcept
+  {}
 
   template <class T, class P, class BV, size_t K>
   inline bool
   NodeT<T, P, BV, K>::isLeaf() const noexcept
   {
     return m_primitives.size() > 0;
+  }
+
+  template <class T, class P, class BV, size_t K>
+  inline const BV&
+  NodeT<T, P, BV, K>::getBoundingVolume() const noexcept
+  {
+    return (m_boundingVolume);
   }
 
   template <class T, class P, class BV, size_t K>
@@ -86,10 +99,17 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
-  inline const BV&
-  NodeT<T, P, BV, K>::getBoundingVolume() const noexcept
+  inline std::vector<BV>&
+  NodeT<T, P, BV, K>::getBoundingVolumes() noexcept
   {
-    return (m_boundingVolume);
+    return (m_boundingVolumes);
+  }
+
+  template <class T, class P, class BV, size_t K>
+  inline const std::vector<BV>&
+  NodeT<T, P, BV, K>::getBoundingVolumes() const noexcept
+  {
+    return (m_boundingVolumes);
   }
 
   template <class T, class P, class BV, size_t K>
@@ -138,12 +158,49 @@ namespace BVH {
 
   template <class T, class P, class BV, size_t K>
   inline void
+  NodeT<T, P, BV, K>::topDownSortAndPartitionPrimitives(const NewPartitioner& a_partitioner,
+                                                        const StopFunction&   a_stopCrit) noexcept
+  {
+
+    // Check if this node should be split into more nodes.
+    const auto numPrimsInThisNode = m_primitives.size();
+
+    const bool stopRecursiveSplitting = a_stopCrit(*this);
+    const bool hasEnoughPrimitives    = numPrimsInThisNode >= K;
+
+    if (!stopRecursiveSplitting && hasEnoughPrimitives) {
+
+      // Pack primitives and BVs.
+      std::vector<PrimAndBV<P, BV>> primsAndBVs;
+      for (size_t i = 0; i < numPrimsInThisNode; i++) {
+        primsAndBVs.emplace_back(std::make_pair(m_primitives[i], m_boundingVolumes[i]));
+      }
+
+      // Partition into sub-sets.
+      const auto newPartitions = a_partitioner(primsAndBVs);
+
+      // Create children nodes.
+      for (size_t c = 0; c < K; c++) {
+        m_children[c] = std::make_shared<NodeT<T, P, BV, K>>(newPartitions[c]);
+      }
+
+      // This is no longer a leaf node.
+      m_primitives.resize(0);
+      m_boundingVolumes.resize(0);
+
+      // Recursive partitioning.
+      for (auto& c : m_children) {
+        c->topDownSortAndPartitionPrimitives(a_partitioner, a_stopCrit);
+      }
+    }
+  }
+
+  template <class T, class P, class BV, size_t K>
+  inline void
   NodeT<T, P, BV, K>::insertChildren(const std::array<PrimitiveList, K>& a_primitives) noexcept
   {
     for (size_t l = 0; l < K; l++) {
-      m_children[l] = std::make_shared<NodeT<T, P, BV, K>>();
-
-      m_children[l]->setPrimitives(a_primitives[l]);
+      m_children[l] = std::make_shared<NodeT<T, P, BV, K>>(a_primitives[l]);
     }
   }
 

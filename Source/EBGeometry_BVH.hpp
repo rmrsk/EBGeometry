@@ -60,6 +60,19 @@ namespace BVH {
   using PrimitiveListT = std::vector<std::shared_ptr<const P>>;
 
   /*!
+    @brief Alias for geometric primitive and BV
+  */
+  template <class P, class BV>
+  using PrimAndBV = std::pair<std::shared_ptr<const P>, BV>;
+
+  /*!
+    @brief List of primitives and their bounding volumes. 
+    @details P is the primitive type and BV is the bounding volume enclosing the implicit surface of each P.
+  */
+  template <class P, class BV>
+  using PrimAndBVListT = std::vector<PrimAndBV<P, BV>>;
+
+  /*!
     @brief Stop function for deciding when a BVH node can't be divided into
     sub-volumes.
     @details T is the precision used in the BVH computations, P is the enclosing
@@ -81,6 +94,16 @@ namespace BVH {
   */
   template <class P, class BV, size_t K>
   using PartitionerT = std::function<std::array<PrimitiveListT<P>, K>(const PrimitiveListT<P>& a_primitives)>;
+
+  /*!
+    @brief Polymorphic partitioner for splitting a list of primitives and BVs into K new subsets. 
+    @details P is the primitive type bound in the BVH and K is the BVH degrees. BV is the bounding volume type.
+    @param[in] a_primsAndBVs Vector of primitives and their bounding volumes. 
+    @return Return a K-length array of subset lists. 
+  */
+  template <class P, class BV, size_t K>
+  using NewPartitionerT =
+    std::function<std::array<PrimAndBVListT<P, BV>, K>>(const PrimAndBVListT<P, BV>& a_primsAndBVs);
 
   /*!
     @brief Constructor method for creating bounding volumes from a list of
@@ -137,37 +160,44 @@ namespace BVH {
   class NodeT : public std::enable_shared_from_this<NodeT<T, P, BV, K>>
   {
   public:
-    using PrimitiveList = PrimitiveListT<P>;
-    using Vec3          = Vec3T<T>;
-    using Node          = NodeT<T, P, BV, K>;
-    using NodePtr       = std::shared_ptr<Node>;
-    using StopFunction  = StopFunctionT<T, P, BV, K>;
-    using Partitioner   = PartitionerT<P, BV, K>;
-    using BVConstructor = BVConstructorT<P, BV>;
+    using PrimitiveList  = PrimitiveListT<P>;
+    using Vec3           = Vec3T<T>;
+    using Node           = NodeT<T, P, BV, K>;
+    using NodePtr        = std::shared_ptr<Node>;
+    using StopFunction   = StopFunctionT<T, P, BV, K>;
+    using Partitioner    = PartitionerT<P, BV, K>;
+    using BVConstructor  = BVConstructorT<P, BV>;
+    using NewPartitioner = NewPartitionerT<P, BV, K>;
 
     /*!
       @brief Default constructor which sets a regular node.
     */
-    NodeT();
+    NodeT() noexcept;
 
     /*!
       @brief Construct node from a set of primitives.
       @details This node becomes a leaf node which contains the input primitives.
       @param[in] a_primitives Input primitives.
     */
-    NodeT(const std::vector<std::shared_ptr<P>>& a_primitives);
+    NodeT(const std::vector<std::shared_ptr<P>>& a_primitives) noexcept;
 
     /*!
       @brief Construct node from a set of primitives.
       @details This node becomes a leaf node which contains the input primitives.
       @param[in] a_primitives Input primitives.
     */
-    NodeT(const std::vector<std::shared_ptr<const P>>& a_primitives);
+    NodeT(const std::vector<std::shared_ptr<const P>>& a_primitives) noexcept;
+
+    /*!
+      @brief Construct a BVH node from a set of primitives and their bounding volumes
+      @param[in] a_primsAndBVs Primitives and their bounding volumes
+    */
+    NodeT(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs) noexcept;
 
     /*!
       @brief Destructor (does nothing)
     */
-    virtual ~NodeT();
+    virtual ~NodeT() noexcept;
 
     /*!
       @brief Function for using top-down construction of the bounding volume
@@ -188,10 +218,28 @@ namespace BVH {
                                       const StopFunction&  a_stopCrit) noexcept;
 
     /*!
+      @brief Function for using top-down construction of the bounding volume hierarchy. 
+      @details The rules for terminating the hierarchy construction, and how to partition them
+      are encoded in the input arguments (a_partitioner, a_stopCrit).
+      @param[in] a_partitioner Partitioning function. This is a polymorphic function which divides a set of 
+      primitives into two or more sub-lists.
+      @param[in] a_stopCrit Termination function which tells us when to stop the recursion.
+    */
+    inline void
+    topDownSortAndPartitionPrimitives(const NewPartitioner& a_partitioner, const StopFunction& a_stopCrit) noexcept;
+
+    /*!
       @brief Get node type
     */
     inline bool
     isLeaf() const noexcept;
+
+    /*!
+      @brief Get bounding volume
+      @return m_bv
+    */
+    inline const BV&
+    getBoundingVolume() const noexcept;
 
     /*!
       @brief Get the primitives stored in this node.
@@ -201,11 +249,11 @@ namespace BVH {
     getPrimitives() const noexcept;
 
     /*!
-      @brief Get bounding volume
-      @return m_bv
+      @brief Get the bounding volumes for the primitives in this node (can be empty if regular node)
+      @return m_boundingVolumes
     */
-    inline const BV&
-    getBoundingVolume() const noexcept;
+    inline const std::vector<BV>&
+    getBoundingVolumes() const noexcept;
 
     /*!
       @brief Get the distance from a 3D point to the bounding volume
@@ -249,7 +297,7 @@ namespace BVH {
 
   protected:
     /*!
-      @brief Bounding volume object.
+      @brief Bounding volume object for enclosing everything in this node. 
     */
     BV m_boundingVolume;
 
@@ -257,6 +305,11 @@ namespace BVH {
       @brief Primitives list. This will be empty for regular nodes
     */
     std::vector<std::shared_ptr<const P>> m_primitives;
+
+    /*!
+      @brief List of bounding volumes for the primitives. This will be empty for regular nodes
+    */
+    std::vector<BV> m_boundingVolumes;
 
     /*!
       @brief Children nodes
@@ -271,18 +324,18 @@ namespace BVH {
     insertChildren(const std::array<PrimitiveList, K>& a_primitives) noexcept;
 
     /*!
-      @brief Set primitives in this node
-      @param[in] a_primitives Primitives
-    */
-    inline void
-    setPrimitives(const PrimitiveList& a_primitives) noexcept;
-
-    /*!
       @brief Get the list of primitives in this node.
       @return Primitives list
     */
     inline PrimitiveList&
     getPrimitives() noexcept;
+
+    /*!
+      @brief Get the bounding volumes for the primitives in this node (can be empty if regular node)
+      @return m_boundingVolumes
+    */
+    inline std::vector<BV>&
+    getBoundingVolumes() noexcept;
 
     /*!
       @brief Flatten tree method.
