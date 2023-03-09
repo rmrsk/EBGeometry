@@ -2,7 +2,6 @@
 #include "Source/EBGeometry_BoundingVolumes.hpp"
 #include "Source/EBGeometry_BVH.hpp"
 #include "Source/EBGeometry_CSG.hpp"
-#include "Source/EBGeometry_DCEL_BVH.hpp"
 #include "Source/EBGeometry_DCEL_Mesh.hpp"
 #include "Source/EBGeometry_DCEL_Face.hpp"
 #include "Source/EBGeometry_DCEL_Edge.hpp"

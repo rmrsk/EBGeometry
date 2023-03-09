@@ -60,6 +60,28 @@ namespace BVH {
   using PrimitiveListT = std::vector<std::shared_ptr<const P>>;
 
   /*!
+    @brief Alias for a list geometric primitive and BV
+  */
+  template <class P, class BV>
+  using PrimAndBV = std::pair<std::shared_ptr<const P>, BV>;
+
+  /*!
+    @brief List of primitives and their bounding volumes. 
+    @details P is the primitive type and BV is the bounding volume enclosing the implicit surface of each P.
+  */
+  template <class P, class BV>
+  using PrimAndBVListT = std::vector<PrimAndBV<P, BV>>;
+
+  /*!
+    @brief Polymorphic partitioner for splitting a list of primitives and BVs into K new subsets. 
+    @details P is the primitive type bound in the BVH and K is the BVH degrees. BV is the bounding volume type.
+    @param[in] a_primsAndBVs Vector of primitives and their bounding volumes. 
+    @return Return a K-length array of subset lists. 
+  */
+  template <class P, class BV, size_t K>
+  using PartitionerT = std::function<std::array<PrimAndBVListT<P, BV>, K>(const PrimAndBVListT<P, BV>& a_primsAndBVs)>;
+
+  /*!
     @brief Stop function for deciding when a BVH node can't be divided into
     sub-volumes.
     @details T is the precision used in the BVH computations, P is the enclosing
@@ -69,30 +91,6 @@ namespace BVH {
   */
   template <class T, class P, class BV, size_t K>
   using StopFunctionT = std::function<bool(const NodeT<T, P, BV, K>& a_node)>;
-
-  /*!
-    @brief Polymorphic partitioner for splitting a list of primitives into K new
-    lists of primitives
-    @details P is the primitive type bound in the BVH and K is the BVH degree.
-    @param[in] a_primitives List of primitives to be subdivided into sub-bounding
-    volumes.
-    @return Returns a list (std::array) of new primitives which make up the new
-    bounding volumes.
-  */
-  template <class P, class BV, size_t K>
-  using PartitionerT = std::function<std::array<PrimitiveListT<P>, K>(const PrimitiveListT<P>& a_primitives)>;
-
-  /*!
-    @brief Constructor method for creating bounding volumes from a list of
-    primitives
-    @details P is the primitive type bound in the BVH and BV is the bounding
-    volume type.
-    @param[in] a_primitives List of primitives.
-    @return Returns a new bounding volumes which is guaranteed to enclose all the
-    input primitives.
-  */
-  template <class P, class BV>
-  using BVConstructorT = std::function<BV(const std::shared_ptr<const P>& a_primitive)>;
 
   /*!
     @brief Updater for tree traversal
@@ -127,6 +125,96 @@ namespace BVH {
   using MetaUpdater = std::function<Meta(const NodeType& a_node)>;
 
   /*!
+    @brief Function for splitting a vector of some size into K almost-equal chunks. This is a utility function.
+  */
+  template <class X, size_t K>
+  auto equalCounts = [](const std::vector<X>& a_primitives) -> std::array<std::vector<X>, K> {
+    int length = a_primitives.size() / K;
+    int remain = a_primitives.size() % K;
+
+    int begin = 0;
+    int end   = 0;
+
+    std::array<std::vector<X>, K> chunks;
+
+    for (size_t k = 0; k < K; k++) {
+      end += (remain > 0) ? length + 1 : length;
+      remain--;
+
+      chunks[k] = std::vector<X>(a_primitives.begin() + begin, a_primitives.begin() + end);
+
+      begin = end;
+    }
+
+    return chunks;
+  };
+
+  /*!
+    @brief Simple partitioner which sorts the primitives based on their centroids, and then splits into K pieces.
+    @param[in] a_primsAndBVs Input primitives and their bounding volumes
+  */
+  template <class T, class P, class BV, size_t K>
+  auto PrimitiveCentroidPartitioner =
+    [](const PrimAndBVListT<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVListT<P, BV>, K> {
+    Vec3T<T> lo = Vec3T<T>::max();
+    Vec3T<T> hi = -Vec3T<T>::max();
+
+    for (const auto& pbv : a_primsAndBVs) {
+      lo = min(lo, pbv.first->getCentroid());
+      hi = max(hi, pbv.first->getCentroid());
+    }
+
+    const size_t splitDir = (hi - lo).maxDir(true);
+
+    // Sort the primitives along the above coordinate direction.
+    PrimAndBVListT<P, BV> sortedPrimsAndBVs(a_primsAndBVs);
+
+    std::sort(sortedPrimsAndBVs.begin(),
+              sortedPrimsAndBVs.end(),
+              [splitDir](const PrimAndBV<P, BV>& pbv1, const PrimAndBV<P, BV>& pbv2) -> bool {
+                return pbv1.first->getCentroid(splitDir) < pbv2.first->getCentroid(splitDir);
+              });
+
+    return BVH::equalCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);
+  };
+
+  /*!
+    @brief Simple partitioner which sorts the BVs based on their bounding volume centroids, and then splits into K pieces.
+    @param[in] a_primsAndBVs Input primitives and their bounding volumes
+  */
+  template <class T, class P, class BV, size_t K>
+  auto BVCentroidPartitioner = [](const PrimAndBVListT<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVListT<P, BV>, K> {
+    Vec3T<T> lo = Vec3T<T>::max();
+    Vec3T<T> hi = -Vec3T<T>::max();
+
+    for (const auto& pbv : a_primsAndBVs) {
+      lo = min(lo, pbv.second.getCentroid());
+      hi = max(hi, pbv.second.getCentroid());
+    }
+
+    const size_t splitDir = (hi - lo).maxDir(true);
+
+    // Sort the primitives along the above coordinate direction.
+    PrimAndBVListT<P, BV> sortedPrimsAndBVs(a_primsAndBVs);
+
+    std::sort(sortedPrimsAndBVs.begin(),
+              sortedPrimsAndBVs.end(),
+              [splitDir](const PrimAndBV<P, BV>& pbv1, const PrimAndBV<P, BV>& pbv2) -> bool {
+                return pbv1.second.getCentroid()[splitDir] < pbv2.second.getCentroid()[splitDir];
+              });
+
+    return BVH::equalCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);
+  };
+
+  /*!
+    @brief Simple stop function which ends the recursion when there aren't enough primitives in the node
+    @param[in] a_node Input BVH node
+  */
+  template <class T, class P, class BV, size_t K>
+  auto DefaultStopFunction =
+    [](const BVH::NodeT<T, P, BV, K>& a_node) -> bool { return (a_node.getPrimitives()).size() < K; };
+
+  /*!
     @brief Class which encapsulates a node in a bounding volume hierarchy.
     @details T is the precision, P is the primitive type you want to enclose, BV
     is the bounding volume type used at the nodes. The parameter K (which must be
@@ -143,55 +231,47 @@ namespace BVH {
     using NodePtr       = std::shared_ptr<Node>;
     using StopFunction  = StopFunctionT<T, P, BV, K>;
     using Partitioner   = PartitionerT<P, BV, K>;
-    using BVConstructor = BVConstructorT<P, BV>;
 
     /*!
       @brief Default constructor which sets a regular node.
     */
-    NodeT();
+    NodeT() noexcept;
 
     /*!
-      @brief Construct node from a set of primitives.
-      @details This node becomes a leaf node which contains the input primitives.
-      @param[in] a_primitives Input primitives.
+      @brief Construct a BVH node from a set of primitives and their bounding volumes
+      @param[in] a_primsAndBVs Primitives and their bounding volumes
     */
-    NodeT(const std::vector<std::shared_ptr<P>>& a_primitives);
-
-    /*!
-      @brief Construct node from a set of primitives.
-      @details This node becomes a leaf node which contains the input primitives.
-      @param[in] a_primitives Input primitives.
-    */
-    NodeT(const std::vector<std::shared_ptr<const P>>& a_primitives);
+    NodeT(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs) noexcept;
 
     /*!
       @brief Destructor (does nothing)
     */
-    virtual ~NodeT();
+    virtual ~NodeT() noexcept;
 
     /*!
-      @brief Function for using top-down construction of the bounding volume
-      hierarchy.
-      @details The rules for terminating the hierarchy construction, how to
-      partition sets of primitives, and how to enclose them by bounding volumes
-      are given in the input arguments (a_stopFunc, a_partFunc, a_bvFunc)
-      @param[in] a_bvConstructor Polymorphic function which builds a bounding
-      volume from a set of primitives.
-      @param[in] a_partitioner   Partitioning function. This is a polymorphic
-      function which divides a set of primitives into two lists.
-      @param[in] a_stopCrit      Termination function which tells us when to stop
-      the recursion.
+      @brief Function for using top-down construction of the bounding volume hierarchy. 
+      @details The rules for terminating the hierarchy construction, and how to partition them
+      are encoded in the input arguments (a_partitioner, a_stopCrit).
+      @param[in] a_partitioner Partitioning function. This is a polymorphic function which divides a set of 
+      primitives into two or more sub-lists.
+      @param[in] a_stopCrit Termination function which tells us when to stop the recursion.
     */
     inline void
-    topDownSortAndPartitionPrimitives(const BVConstructor& a_bvConstructor,
-                                      const Partitioner&   a_partitioner,
-                                      const StopFunction&  a_stopCrit) noexcept;
+    topDownSortAndPartition(const Partitioner&  a_partitioner = BVCentroidPartitioner<T, P, BV, K>,
+                            const StopFunction& a_stopCrit    = DefaultStopFunction<T, P, BV, K>) noexcept;
 
     /*!
       @brief Get node type
     */
     inline bool
     isLeaf() const noexcept;
+
+    /*!
+      @brief Get bounding volume
+      @return m_bv
+    */
+    inline const BV&
+    getBoundingVolume() const noexcept;
 
     /*!
       @brief Get the primitives stored in this node.
@@ -201,11 +281,11 @@ namespace BVH {
     getPrimitives() const noexcept;
 
     /*!
-      @brief Get bounding volume
-      @return m_bv
+      @brief Get the bounding volumes for the primitives in this node (can be empty if regular node)
+      @return m_boundingVolumes
     */
-    inline const BV&
-    getBoundingVolume() const noexcept;
+    inline const std::vector<BV>&
+    getBoundingVolumes() const noexcept;
 
     /*!
       @brief Get the distance from a 3D point to the bounding volume
@@ -249,7 +329,7 @@ namespace BVH {
 
   protected:
     /*!
-      @brief Bounding volume object.
+      @brief Bounding volume object for enclosing everything in this node. 
     */
     BV m_boundingVolume;
 
@@ -257,6 +337,11 @@ namespace BVH {
       @brief Primitives list. This will be empty for regular nodes
     */
     std::vector<std::shared_ptr<const P>> m_primitives;
+
+    /*!
+      @brief List of bounding volumes for the primitives. This will be empty for regular nodes
+    */
+    std::vector<BV> m_boundingVolumes;
 
     /*!
       @brief Children nodes
@@ -271,18 +356,18 @@ namespace BVH {
     insertChildren(const std::array<PrimitiveList, K>& a_primitives) noexcept;
 
     /*!
-      @brief Set primitives in this node
-      @param[in] a_primitives Primitives
-    */
-    inline void
-    setPrimitives(const PrimitiveList& a_primitives) noexcept;
-
-    /*!
       @brief Get the list of primitives in this node.
       @return Primitives list
     */
     inline PrimitiveList&
     getPrimitives() noexcept;
+
+    /*!
+      @brief Get the bounding volumes for the primitives in this node (can be empty if regular node)
+      @return m_boundingVolumes
+    */
+    inline std::vector<BV>&
+    getBoundingVolumes() noexcept;
 
     /*!
       @brief Flatten tree method.

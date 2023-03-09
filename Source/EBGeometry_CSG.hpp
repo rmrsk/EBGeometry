@@ -65,26 +65,26 @@ SmoothUnion(const std::shared_ptr<P1>& a_implicitFunctionA,
 /*!
   @brief Convenience function for taking the BVH-accelerated union of a bunch of a implicit functions
   @param[in] a_implicitFunctions Implicit functions
-  @param[in] a_bvConstructor Bounding volume constructor. 
+  @param[in] a_boundingVolumes Bounding volumes for implicit functions. 
   @note P must derive from ImplicitFunction<T>
 */
 template <class T, class P, class BV, size_t K>
 std::shared_ptr<ImplicitFunction<T>>
-FastUnion(const std::vector<std::shared_ptr<P>>&        a_implicitFunctions,
-          const EBGeometry::BVH::BVConstructorT<P, BV>& a_bvConstructor) noexcept;
+FastUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
+          const std::vector<BV>&                 a_boundingVolumes) noexcept;
 
 /*!
   @brief Convenience function for taking the BVH-accelerated union of a bunch of a implicit functions
   @param[in] a_implicitFunctions Implicit functions
-  @param[in] a_bvConstructor Bounding volume constructor. 
+  @param[in] a_boundingVolumes Bounding volumes for the implicit functions. 
   @param[in] a_smoothLen Smoothing length
   @note P must derive from ImplicitFunction<T>
 */
 template <class T, class P, class BV, size_t K>
 std::shared_ptr<ImplicitFunction<T>>
-FastSmoothUnion(const std::vector<std::shared_ptr<P>>&        a_implicitFunctions,
-                const EBGeometry::BVH::BVConstructorT<P, BV>& a_bvConstructor,
-                const T                                       a_smoothLen) noexcept;
+FastSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
+                const std::vector<BV>&                 a_boundingVolumes,
+                const T                                a_smoothLen) noexcept;
 
 /*!
   @brief Convenience function for taking the intersection of a bunch of a implicit functions
@@ -281,8 +281,6 @@ protected:
 
 /*!
   @brief Implicit function union using BVHs. 
-  @note If the BVH-enabled union is to make sense, the primitives must be 
-  distance fields (I think). There's a static_assert to make sure of that. 
 */
 template <class T, class P, class BV, size_t K>
 class FastUnionIF : public ImplicitFunction<T>
@@ -291,9 +289,8 @@ public:
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value,
                 "FastUnionIF requires an implicit function");
 
-  using BVConstructor = typename EBGeometry::BVH::BVConstructorT<P, BV>;
-  using Root          = typename EBGeometry::BVH::LinearBVH<T, P, BV, K>;
-  using Node          = typename Root::LinearNode;
+  using Root = typename EBGeometry::BVH::LinearBVH<T, P, BV, K>;
+  using Node = typename Root::LinearNode;
 
   /*!
     @brief Disallowed, use the full constructor
@@ -302,10 +299,16 @@ public:
 
   /*!
     @brief Full constructor - constructs bounding volumes in place. 
-    @param[in] a_distanceFunctions Signed distance functions.
-    @param[in] a_bvConstructor     Bounding volume constructor.
+    @param[in] a_primsAndBVs Primitives and their bounding volumes. 
   */
-  FastUnionIF(const std::vector<std::shared_ptr<P>>& a_distanceFunctions, const BVConstructor& a_bvConstructor);
+  FastUnionIF(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs) noexcept;
+
+  /*!
+    @brief Full constructor - constructs bounding volumes in place. 
+    @param[in] a_primitives Input primitives.
+    @param[in] a_boundingVolumes Bounding volumes for primitives. 
+  */
+  FastUnionIF(const std::vector<std::shared_ptr<P>>& a_primitives, const std::vector<BV>& a_boundingVolumes) noexcept;
 
   /*!
     @brief Destructor (does nothing)
@@ -332,14 +335,11 @@ protected:
   std::shared_ptr<EBGeometry::BVH::LinearBVH<T, P, BV, K>> m_bvh;
 
   /*!
-    @brief Build BVH tree for the input objects. User must supply a partitioner
-    and a BV constructor for the SDF objects.
-    @param[in] a_distanceFunctions Distance functions
-    @param[in] a_bvConstructor Constructor for building a bounding volume that
-    encloses an object.
+    @brief Build BVH tree for the input objects. 
+    @param[in] a_primsAndBVs Geometric primitives and their bounding volumes. 
   */
   inline void
-  buildTree(const std::vector<std::shared_ptr<P>>& a_distanceFunctions, const BVConstructor& a_bvConstructor) noexcept;
+  buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs) noexcept;
 };
 
 /*!
@@ -354,9 +354,8 @@ public:
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value,
                 "FastSmoothUnionIF requires an implicit function");
 
-  using BVConstructor = EBGeometry::BVH::BVConstructorT<P, BV>;
-  using Root          = typename EBGeometry::BVH::LinearBVH<T, P, BV, K>;
-  using Node          = typename Root::LinearNode;
+  using Root = typename EBGeometry::BVH::LinearBVH<T, P, BV, K>;
+  using Node = typename Root::LinearNode;
 
   /*!
     @brief Disallowed, use the full constructor
@@ -366,12 +365,12 @@ public:
   /*!
     @brief Full constructor - constructs bounding volumes in place. 
     @param[in] a_distanceFunctions Signed distance functions.
-    @param[in] a_bvConstructor Bounding volume constructor.
+    @param[in] a_boundingVolumes Bounding volumes for the distance fields. 
     @param[in] a_smoothLen Smoothing length
     @param[in] a_smoothMin How to compute the smooth minimum. 
   */
   FastSmoothUnionIF(const std::vector<std::shared_ptr<P>>&               a_distanceFunctions,
-                    const BVConstructor&                                 a_bvConstructor,
+                    const std::vector<BV>&                               a_boundingVolumes,
                     const T                                              a_smoothLen,
                     const std::function<T(const T&, const T&, const T&)> a_smoothMin = smoothMin<T>) noexcept;
 
