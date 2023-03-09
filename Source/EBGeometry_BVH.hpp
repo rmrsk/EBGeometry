@@ -136,6 +136,9 @@ namespace BVH {
   template <class NodeType, class Meta>
   using MetaUpdater = std::function<Meta(const NodeType& a_node)>;
 
+  /*!
+    @brief Function for splitting a vector of some size into K almost-equal chunks. This is a utility function.
+  */
   template <class X, size_t K>
   auto equalCounts = [](const std::vector<X>& a_primitives) -> std::array<std::vector<X>, K> {
     int length = a_primitives.size() / K;
@@ -158,6 +161,10 @@ namespace BVH {
     return chunks;
   };
 
+  /*!
+    @brief Simple partitioner which sorts the primitives based on their centroids, and then splits into K pieces.
+    @param[in] a_primsAndBVs Input primitives and their bounding volumes
+  */
   template <class T, class P, class BV, size_t K>
   auto PrimitiveCentroidPartitioner =
     [](const PrimAndBVListT<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVListT<P, BV>, K> {
@@ -183,6 +190,10 @@ namespace BVH {
     return BVH::equalCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);
   };
 
+  /*!
+    @brief Simple partitioner which sorts the BVs based on their bounding volume centroids, and then splits into K pieces.
+    @param[in] a_primsAndBVs Input primitives and their bounding volumes
+  */
   template <class T, class P, class BV, size_t K>
   auto BVCentroidPartitioner = [](const PrimAndBVListT<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVListT<P, BV>, K> {
     Vec3T<T> lo = Vec3T<T>::max();
@@ -207,6 +218,10 @@ namespace BVH {
     return BVH::equalCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);
   };
 
+  /*!
+    @brief Simple stop function which ends the recursion when there aren't enough primitives in the node
+    @param[in] a_node Input BVH node
+  */
   template <class T, class P, class BV, size_t K>
   auto DefaultStopFunction =
     [](const BVH::NodeT<T, P, BV, K>& a_node) -> bool { return (a_node.getPrimitives()).size() < K; };
