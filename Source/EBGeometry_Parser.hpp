@@ -168,11 +168,34 @@ namespace Parser {
   class STL
   {
   public:
-    using Vec3         = EBGeometry::Vec3T<T>;
-    using Vertex       = EBGeometry::DCEL::VertexT<T>;
-    using Edge         = EBGeometry::DCEL::EdgeT<T>;
-    using Face         = EBGeometry::DCEL::FaceT<T>;
-    using Mesh         = EBGeometry::DCEL::MeshT<T>;
+    /*!
+      @brief Alias for vector type
+    */
+    using Vec3 = EBGeometry::Vec3T<T>;
+
+    /*!
+      @brief Alias for vertex type
+    */
+    using Vertex = EBGeometry::DCEL::VertexT<T>;
+
+    /*!
+      @brief Alias for edge type
+    */
+    using Edge = EBGeometry::DCEL::EdgeT<T>;
+
+    /*!
+      @brief Alias for face type
+    */
+    using Face = EBGeometry::DCEL::FaceT<T>;
+
+    /*!
+      @brief Alias for mesh type
+    */
+    using Mesh = EBGeometry::DCEL::MeshT<T>;
+
+    /*!
+      @brief Alias for edge iterator type
+    */
     using EdgeIterator = EBGeometry::DCEL::EdgeIteratorT<T>;
 
     /*!
@@ -218,7 +241,7 @@ namespace Parser {
       @param[out] a_vertices   Vertices
       @param[out] a_facets     STL facets
       @param[out] a_objectName Object name
-      @param[out] a_filename   File name 
+      @param[out] a_fileContents File contents
       @param[out] a_firstLine  Line number in a_filename containing the 'solid' identifier. 
       @param[out] a_lastLine   Line number in a_filename containing the 'endsolid' identifier. 
     */
@@ -239,11 +262,34 @@ namespace Parser {
   class PLY
   {
   public:
-    using Vec3         = EBGeometry::Vec3T<T>;
-    using Vertex       = EBGeometry::DCEL::VertexT<T>;
-    using Edge         = EBGeometry::DCEL::EdgeT<T>;
-    using Face         = EBGeometry::DCEL::FaceT<T>;
-    using Mesh         = EBGeometry::DCEL::MeshT<T>;
+    /*!
+      @brief Alias for vector type
+    */
+    using Vec3 = EBGeometry::Vec3T<T>;
+
+    /*!
+      @brief Alias for vertex type
+    */
+    using Vertex = EBGeometry::DCEL::VertexT<T>;
+
+    /*!
+      @brief Alias for edge type
+    */
+    using Edge = EBGeometry::DCEL::EdgeT<T>;
+
+    /*!
+      @brief Alias for face type
+    */
+    using Face = EBGeometry::DCEL::FaceT<T>;
+
+    /*!
+      @brief Alias for mesh type
+    */
+    using Mesh = EBGeometry::DCEL::MeshT<T>;
+
+    /*!
+      @brief Alias for edge iterator type
+    */
     using EdgeIterator = EBGeometry::DCEL::EdgeIteratorT<T>;
 
     /*!
@@ -266,9 +312,9 @@ namespace Parser {
     /*!
       @brief Read an ASCII PLY file into a triangle soup. 
       @details 
-      @param[out]   a_vertices Raw vertices
-      @param[out]   a_faces    Raw polygon faces
-      @param[in]    a_filename File name
+      @param[out]   a_vertices   Raw vertices
+      @param[out]   a_faces      Raw polygon faces
+      @param[in]    a_fileStream File stream
     */
     inline static void
     readPLYSoupASCII(std::vector<Vec3>&                a_vertices,
@@ -278,9 +324,9 @@ namespace Parser {
     /*!
       @brief Read a binary PLY file into a triangle soup. 
       @details 
-      @param[out]   a_vertices Raw vertices
-      @param[out]   a_faces    Raw polygon faces
-      @param[in]    a_filename File name
+      @param[out]   a_vertices   Raw vertices
+      @param[out]   a_faces      Raw polygon faces
+      @param[in]    a_fileStream File stream
     */
     inline static void
     readPLYSoupBinary(std::vector<Vec3>&                a_vertices,

@@ -8,25 +8,15 @@ Implicit functions
 
 EBGeometry implements implement functions and signed distance functions through virtual classes
 
-.. code-block:: c++
+.. literalinclude:: ../../../Source/EBGeometry_ImplicitFunction.hpp
+   :language: c++
+   :lines: 25-74
 
-   // Implicit function implementation requires a value function
-   template <class T>
-   class ImplicitFunction
-   {
-      T value(const Vec3T<T>& a_point) const noexcept = 0;
-   }
+and for the signed distance field,
 
-   // Signed distance fields implementation require an additional function:
-   template <class T>
-   class SignedDistanceFunction : public ImplicitFunction<T>
-   {
-      T value(const Vec3T<T>& a_point) const noexcept {
-         return this->signedDistance(a_point);
-      }
-
-      T signedDistance(const Vec3T<T>& a_point) const noexcept = 0;
-   }
+.. literalinclude:: ../../../Source/EBGeometry_SignedDistanceFunction.hpp
+   :language: c++
+   :lines: 30-66
 
 Note that ``T`` is a floating point precision, which is supported because DCEL meshes can take up quite a bit of computer memory.
 These declarations are found in
@@ -47,7 +37,7 @@ These are also available through functions that automatically cast the resulting
 
 .. literalinclude:: ../../../Source/EBGeometry_Transform.hpp   
    :language: c++
-   :lines: 20-89
+   :lines: 20-90
 
 CSG operations
 --------------
@@ -57,7 +47,7 @@ These also include accelerated variants that take advantage of BVH partitioning 
 
 .. literalinclude:: ../../../Source/EBGeometry_CSG.hpp   
    :language: c++
-   :lines: 23-141
+   :lines: 23-153
 
 Bounding volumes
 ----------------

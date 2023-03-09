@@ -56,7 +56,7 @@ The second step is to recursively build the BVH, which is done through the funct
 
 .. literalinclude:: ../../../Source/EBGeometry_BVH.hpp
    :language: c++
-   :lines: 28, 62-94, 224-227, 240-245, 251-262, 388, 613
+   :lines: 28, 62-94, 217-227, 248-257, 263-268, 274-285, 404, 643
    :caption: Header section of the BVH implementation.
 
 The optional input arguments to ``topDownSortAndPartition`` are polymorphic functions of type indicated above, and have the following responsibilities:

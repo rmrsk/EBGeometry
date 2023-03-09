@@ -36,13 +36,35 @@ namespace DCEL {
   class EdgeIteratorT
   {
   public:
+    /*!
+      @brief Alias for DCEL vertex type
+    */
     using Vertex = VertexT<T>;
-    using Edge   = EdgeT<T>;
-    using Face   = FaceT<T>;
 
+    /*!
+      @brief Alias for DCEL edge type
+    */
+    using Edge = EdgeT<T>;
+
+    /*!
+      @brief Alias for DCEL face type
+    */
+    using Face = FaceT<T>;
+
+    /*!
+      @brief Alias for vertex pointer
+    */
     using VertexPtr = std::shared_ptr<Vertex>;
-    using EdgePtr   = std::shared_ptr<Edge>;
-    using FacePtr   = std::shared_ptr<Face>;
+
+    /*!
+      @brief Alias for edge pointer
+    */
+    using EdgePtr = std::shared_ptr<Edge>;
+
+    /*!
+      @brief Alias for face pointer
+    */
+    using FacePtr = std::shared_ptr<Face>;
 
     /*!
       @brief Default construction is not allowed. Use one of the full constructors

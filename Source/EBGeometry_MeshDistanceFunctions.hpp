@@ -38,6 +38,9 @@ template <class T>
 class MeshSDF : public SignedDistanceFunction<T>
 {
 public:
+  /*!
+    @brief Alias for DCEL mesh type
+  */
   using Mesh = EBGeometry::DCEL::MeshT<T>;
 
   /*!
@@ -89,8 +92,19 @@ template <class T, class BV, size_t K>
 class FastMeshSDF : public SignedDistanceFunction<T>
 {
 public:
-  using Face = EBGeometry::DCEL::FaceT<T>;
-  using Mesh = EBGeometry::DCEL::MeshT<T>;
+  /*!
+    @brief Alias for DCEL face type
+  */
+  using Face = typename EBGeometry::DCEL::FaceT<T>;
+
+  /*!
+    @brief Alias for DCEL mesh type
+  */
+  using Mesh = typename EBGeometry::DCEL::MeshT<T>;
+
+  /*!
+    @brief Alias for BVH root node 
+  */
   using Node = EBGeometry::BVH::NodeT<T, Face, BV, K>;
 
   /*!
@@ -135,9 +149,24 @@ template <class T, class BV, size_t K>
 class FastCompactMeshSDF : public SignedDistanceFunction<T>
 {
 public:
+  /*!
+    @brief Alias for DCEL face type
+  */
   using Face = typename EBGeometry::DCEL::FaceT<T>;
+
+  /*!
+    @brief Alias for DCEL mesh type
+  */
   using Mesh = typename EBGeometry::DCEL::MeshT<T>;
+
+  /*!
+    @brief Alias for which BVH root node 
+  */
   using Root = typename EBGeometry::BVH::LinearBVH<T, Face, BV, K>;
+
+  /*!
+    @brief Alias for linearized BVH
+  */
   using Node = typename Root::LinearNode;
 
   /*!

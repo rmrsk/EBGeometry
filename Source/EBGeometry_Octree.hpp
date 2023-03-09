@@ -196,7 +196,7 @@ namespace Octree {
     /*!
       @brief Traverse the tree
       @param[in] a_updater Updater when visiting leaf nodes.
-      @param[in] a_visit Visiter for deciding to visit a node.
+      @param[in] a_visiter Visiter for deciding to visit a node.
       @param[in] a_sorter Sorter method for deciding which subtree to investigate first. 
     */
     inline void
