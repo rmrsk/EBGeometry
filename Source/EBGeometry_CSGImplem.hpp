@@ -86,12 +86,12 @@ FastUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std:
 
 template <class T, class P, class BV, size_t K>
 std::shared_ptr<ImplicitFunction<T>>
-FastSmoothUnion(const std::vector<std::shared_ptr<P>>&        a_implicitFunctions,
-                const EBGeometry::BVH::BVConstructorT<P, BV>& a_bvConstructor,
-                const T                                       a_smoothLen) noexcept
+FastSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
+                const std::vector<BV>&                 a_boundingVolumes,
+                const T                                a_smoothLen) noexcept
 {
   return std::make_shared<EBGeometry::FastSmoothUnionIF<T, P, BV, K>>(
-    a_implicitFunctions, a_bvConstructor, a_smoothLen);
+    a_implicitFunctions, a_boundingVolumes, a_smoothLen);
 }
 
 template <class T, class P>
@@ -324,10 +324,10 @@ FastUnionIF<T, P, BV, K>::getBoundingVolume() const noexcept
 template <class T, class P, class BV, size_t K>
 FastSmoothUnionIF<T, P, BV, K>::FastSmoothUnionIF(
   const std::vector<std::shared_ptr<P>>&               a_distanceFunctions,
-  const BVConstructor&                                 a_bvConstructor,
+  const std::vector<BV>&                               a_boundingVolumes,
   const T                                              a_smoothLen,
   const std::function<T(const T&, const T&, const T&)> a_smoothMin) noexcept
-  : FastUnionIF<T, P, BV, K>(a_distanceFunctions, a_bvConstructor)
+  : FastUnionIF<T, P, BV, K>(a_distanceFunctions, a_boundingVolumes)
 {
   m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
   m_smoothMin = a_smoothMin;

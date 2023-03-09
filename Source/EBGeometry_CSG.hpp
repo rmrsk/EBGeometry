@@ -76,15 +76,15 @@ FastUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
 /*!
   @brief Convenience function for taking the BVH-accelerated union of a bunch of a implicit functions
   @param[in] a_implicitFunctions Implicit functions
-  @param[in] a_bvConstructor Bounding volume constructor. 
+  @param[in] a_boundingVolumes Bounding volumes for the implicit functions. 
   @param[in] a_smoothLen Smoothing length
   @note P must derive from ImplicitFunction<T>
 */
 template <class T, class P, class BV, size_t K>
 std::shared_ptr<ImplicitFunction<T>>
-FastSmoothUnion(const std::vector<std::shared_ptr<P>>&        a_implicitFunctions,
-                const EBGeometry::BVH::BVConstructorT<P, BV>& a_bvConstructor,
-                const T                                       a_smoothLen) noexcept;
+FastSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
+                const std::vector<BV>&                 a_boundingVolumes,
+                const T                                a_smoothLen) noexcept;
 
 /*!
   @brief Convenience function for taking the intersection of a bunch of a implicit functions
@@ -354,9 +354,8 @@ public:
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value,
                 "FastSmoothUnionIF requires an implicit function");
 
-  using BVConstructor = EBGeometry::BVH::BVConstructorT<P, BV>;
-  using Root          = typename EBGeometry::BVH::LinearBVH<T, P, BV, K>;
-  using Node          = typename Root::LinearNode;
+  using Root = typename EBGeometry::BVH::LinearBVH<T, P, BV, K>;
+  using Node = typename Root::LinearNode;
 
   /*!
     @brief Disallowed, use the full constructor
@@ -366,12 +365,12 @@ public:
   /*!
     @brief Full constructor - constructs bounding volumes in place. 
     @param[in] a_distanceFunctions Signed distance functions.
-    @param[in] a_bvConstructor Bounding volume constructor.
+    @param[in] a_boundingVolumes Bounding volumes for the distance fields. 
     @param[in] a_smoothLen Smoothing length
     @param[in] a_smoothMin How to compute the smooth minimum. 
   */
   FastSmoothUnionIF(const std::vector<std::shared_ptr<P>>&               a_distanceFunctions,
-                    const BVConstructor&                                 a_bvConstructor,
+                    const std::vector<BV>&                               a_boundingVolumes,
                     const T                                              a_smoothLen,
                     const std::function<T(const T&, const T&, const T&)> a_smoothMin = smoothMin<T>) noexcept;
 

@@ -93,18 +93,6 @@ namespace BVH {
   using PartitionerT = std::function<std::array<PrimAndBVListT<P, BV>, K>(const PrimAndBVListT<P, BV>& a_primsAndBVs)>;
 
   /*!
-    @brief Constructor method for creating bounding volumes from a list of
-    primitives
-    @details P is the primitive type bound in the BVH and BV is the bounding
-    volume type.
-    @param[in] a_primitives List of primitives.
-    @return Returns a new bounding volumes which is guaranteed to enclose all the
-    input primitives.
-  */
-  template <class P, class BV>
-  using BVConstructorT = std::function<BV(const std::shared_ptr<const P>& a_primitive)>;
-
-  /*!
     @brief Updater for tree traversal
     @param[in] a_primitives. 
   */
@@ -242,7 +230,6 @@ namespace BVH {
     using Node          = NodeT<T, P, BV, K>;
     using NodePtr       = std::shared_ptr<Node>;
     using StopFunction  = StopFunctionT<T, P, BV, K>;
-    using BVConstructor = BVConstructorT<P, BV>;
     using Partitioner   = PartitionerT<P, BV, K>;
 
     /*!
