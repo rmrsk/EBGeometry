@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['defaultbvconstructor_701',['defaultBVConstructor',['../namespaceDCEL.html#a38d12373b4d1a73614ea3703f1782c37',1,'DCEL']]],
-  ['defaultpartitioner_702',['defaultPartitioner',['../namespaceDCEL.html#aed3107d83b1e865230ea5fd1beb26e6d',1,'DCEL']]],
-  ['defaultstopfunction_703',['defaultStopFunction',['../namespaceDCEL.html#aeaa24d5e45491806110dd97180f43a12',1,'DCEL']]]
+  ['equalcounts_694',['equalCounts',['../namespaceBVH.html#affa56504a4aa040e09ce300dae222e5b',1,'BVH']]],
+  ['expmin_695',['expMin',['../EBGeometry__CSG_8hpp.html#a11c96ee776b8a66b75739c6b1419966b',1,'EBGeometry_CSG.hpp']]]
 ];

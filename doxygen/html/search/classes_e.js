@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['torussdf_417',['TorusSDF',['../classTorusSDF.html',1,'']]],
-  ['translateif_418',['TranslateIF',['../classTranslateIF.html',1,'']]]
+  ['torussdf_413',['TorusSDF',['../classTorusSDF.html',1,'']]],
+  ['translateif_414',['TranslateIF',['../classTranslateIF.html',1,'']]]
 ];

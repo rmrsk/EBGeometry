@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['equalcounts_704',['equalCounts',['../namespaceDCEL.html#aae28e6f450ff452245d8628ab5171e48',1,'DCEL']]],
-  ['expmin_705',['expMin',['../EBGeometry__CSG_8hpp.html#a11c96ee776b8a66b75739c6b1419966b',1,'EBGeometry_CSG.hpp']]]
+  ['highcorner_696',['HighCorner',['../EBGeometry__Octree_8hpp.html#acce5a94561596fb4bf09b75d7b82694a',1,'Octree']]]
 ];

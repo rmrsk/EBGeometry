@@ -19,12 +19,15 @@ class \mbox{\hyperlink{classBVH_1_1LinearBVH}{Linear\+BVH}}
 \item 
 {\footnotesize template$<$class P $>$ }\\using \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}} = std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$
 \begin{DoxyCompactList}\small\item\em List of primitives. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}\label{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}} 
+{\footnotesize template$<$class P , class BV $>$ }\\using \mbox{\hyperlink{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}{Prim\+And\+BV}} = std\+::pair$<$ std\+::shared\+\_\+ptr$<$ const P $>$, BV $>$
+\begin{DoxyCompactList}\small\item\em Alias for a list geometric primitive and BV. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class P , class BV $>$ }\\using \mbox{\hyperlink{namespaceBVH_a1edeb7c10026d6fba3e35536a6719a3a}{Prim\+And\+BVListT}} = std\+::vector$<$ \mbox{\hyperlink{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}{Prim\+And\+BV}}$<$ P, BV $>$ $>$
+\begin{DoxyCompactList}\small\item\em List of primitives and their bounding volumes. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class P , class BV , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_ae7e5e97e86dfe5a7103cbf2918f0cfc9}{PartitionerT}} = std\+::function$<$ std\+::array$<$ \mbox{\hyperlink{namespaceBVH_a1edeb7c10026d6fba3e35536a6719a3a}{Prim\+And\+BVListT}}$<$ P, BV $>$, K $>$(const \mbox{\hyperlink{namespaceBVH_a1edeb7c10026d6fba3e35536a6719a3a}{Prim\+And\+BVListT}}$<$ P, BV $>$ \&a\+\_\+prims\+And\+BVs)$>$
+\begin{DoxyCompactList}\small\item\em Polymorphic partitioner for splitting a list of primitives and BVs into K new subsets. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}{Stop\+FunctionT}} = std\+::function$<$ bool(const \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}$<$ T, P, BV, K $>$ \&a\+\_\+node)$>$
 \begin{DoxyCompactList}\small\item\em Stop function for deciding when a \mbox{\hyperlink{namespaceBVH}{BVH}} node can\textquotesingle{}t be divided into sub-\/volumes. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class P , class BV , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_a67de8088141156b6eaa225a635cc68c0}{PartitionerT}} = std\+::function$<$ std\+::array$<$ \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}}$<$ P $>$, K $>$(const \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}}$<$ P $>$ \&a\+\_\+primitives)$>$
-\begin{DoxyCompactList}\small\item\em Polymorphic partitioner for splitting a list of primitives into K new lists of primitives. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class P , class BV $>$ }\\using \mbox{\hyperlink{namespaceBVH_a245702d7eff40cdaedb5dff68c25a88a}{BVConstructorT}} = std\+::function$<$ BV(const std\+::shared\+\_\+ptr$<$ const P $>$ \&a\+\_\+primitive)$>$
-\begin{DoxyCompactList}\small\item\em Constructor method for creating bounding volumes from a list of primitives. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class P $>$ }\\using \mbox{\hyperlink{namespaceBVH_a9098188477f08a345cf059a431ae23aa}{Updater}} = std\+::function$<$ void(const \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}}$<$ P $>$ \&a\+\_\+primitives)$>$
 \begin{DoxyCompactList}\small\item\em Updater for tree traversal. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class Node\+Type , class Meta $>$ }\\using \mbox{\hyperlink{namespaceBVH_a8ac51cce05479b4821bf8c0e2543696a}{Visiter}} = std\+::function$<$ bool(const Node\+Type \&a\+\_\+node, const Meta \&a\+\_\+meta)$>$
@@ -35,51 +38,54 @@ class \mbox{\hyperlink{classBVH_1_1LinearBVH}{Linear\+BVH}}
 \mbox{\Hypertarget{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}\label{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}} 
 {\footnotesize template$<$class Node\+Type , class Meta $>$ }\\using \mbox{\hyperlink{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}{Meta\+Updater}} = std\+::function$<$ Meta(const Node\+Type \&a\+\_\+node)$>$
 \begin{DoxyCompactList}\small\item\em Updater for when user wants to add some meta-\/data to his \mbox{\hyperlink{namespaceBVH}{BVH}} traversal. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$class X , size\+\_\+t K$>$ }\\auto \mbox{\hyperlink{namespaceBVH_affa56504a4aa040e09ce300dae222e5b}{equal\+Counts}}
+\begin{DoxyCompactList}\small\item\em Function for splitting a vector of some size into K almost-\/equal chunks. This is a utility function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\auto \mbox{\hyperlink{namespaceBVH_aa7c7fa51a4c99cebf11a6261b6be2b8a}{Primitive\+Centroid\+Partitioner}}
+\begin{DoxyCompactList}\small\item\em Simple partitioner which sorts the primitives based on their centroids, and then splits into K pieces. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\auto \mbox{\hyperlink{namespaceBVH_a5d49380a6db6e29200da88b68b1ba0a6}{BVCentroid\+Partitioner}}
+\begin{DoxyCompactList}\small\item\em Simple partitioner which sorts the BVs based on their bounding volume centroids, and then splits into K pieces. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\auto \mbox{\hyperlink{namespaceBVH_a21d8f7ec763e9a30d43c68abe2e63f18}{Default\+Stop\+Function}}
+\begin{DoxyCompactList}\small\item\em Simple stop function which ends the recursion when there aren\textquotesingle{}t enough primitives in the node. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
 Namespace for various bounding volume hierarchy (\mbox{\hyperlink{namespaceBVH}{BVH}}) functionality. 
 
 \doxysubsection{Typedef Documentation}
-\mbox{\Hypertarget{namespaceBVH_a245702d7eff40cdaedb5dff68c25a88a}\label{namespaceBVH_a245702d7eff40cdaedb5dff68c25a88a}} 
-\index{BVH@{BVH}!BVConstructorT@{BVConstructorT}}
-\index{BVConstructorT@{BVConstructorT}!BVH@{BVH}}
-\doxysubsubsection{\texorpdfstring{BVConstructorT}{BVConstructorT}}
-{\footnotesize\ttfamily template$<$class P , class BV $>$ \\
-using \mbox{\hyperlink{namespaceBVH_a245702d7eff40cdaedb5dff68c25a88a}{BVH\+::\+BVConstructorT}} = typedef std\+::function$<$BV(const std\+::shared\+\_\+ptr$<$const P$>$\& a\+\_\+primitive)$>$}
-
-
-
-Constructor method for creating bounding volumes from a list of primitives. 
-
-P is the primitive type bound in the \mbox{\hyperlink{namespaceBVH}{BVH}} and BV is the bounding volume type. 
-\begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & List of primitives. \\
-\hline
-\end{DoxyParams}
-\begin{DoxyReturn}{Returns}
-Returns a new bounding volumes which is guaranteed to enclose all the input primitives. 
-\end{DoxyReturn}
-\mbox{\Hypertarget{namespaceBVH_a67de8088141156b6eaa225a635cc68c0}\label{namespaceBVH_a67de8088141156b6eaa225a635cc68c0}} 
+\mbox{\Hypertarget{namespaceBVH_ae7e5e97e86dfe5a7103cbf2918f0cfc9}\label{namespaceBVH_ae7e5e97e86dfe5a7103cbf2918f0cfc9}} 
 \index{BVH@{BVH}!PartitionerT@{PartitionerT}}
 \index{PartitionerT@{PartitionerT}!BVH@{BVH}}
 \doxysubsubsection{\texorpdfstring{PartitionerT}{PartitionerT}}
 {\footnotesize\ttfamily template$<$class P , class BV , size\+\_\+t K$>$ \\
-using \mbox{\hyperlink{namespaceBVH_a67de8088141156b6eaa225a635cc68c0}{BVH\+::\+PartitionerT}} = typedef std\+::function$<$std\+::array$<$\mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}}$<$P$>$, K$>$(const \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}}$<$P$>$\& a\+\_\+primitives)$>$}
+using \mbox{\hyperlink{namespaceBVH_ae7e5e97e86dfe5a7103cbf2918f0cfc9}{BVH\+::\+PartitionerT}} = typedef std\+::function$<$std\+::array$<$\mbox{\hyperlink{namespaceBVH_a1edeb7c10026d6fba3e35536a6719a3a}{Prim\+And\+BVListT}}$<$P, BV$>$, K$>$(const \mbox{\hyperlink{namespaceBVH_a1edeb7c10026d6fba3e35536a6719a3a}{Prim\+And\+BVListT}}$<$P, BV$>$\& a\+\_\+prims\+And\+BVs)$>$}
 
 
 
-Polymorphic partitioner for splitting a list of primitives into K new lists of primitives. 
+Polymorphic partitioner for splitting a list of primitives and BVs into K new subsets. 
 
-P is the primitive type bound in the \mbox{\hyperlink{namespaceBVH}{BVH}} and K is the \mbox{\hyperlink{namespaceBVH}{BVH}} degree. 
+P is the primitive type bound in the \mbox{\hyperlink{namespaceBVH}{BVH}} and K is the \mbox{\hyperlink{namespaceBVH}{BVH}} degrees. BV is the bounding volume type. 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & List of primitives to be subdivided into sub-\/bounding volumes. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+prims\+And\+BVs} & Vector of primitives and their bounding volumes. \\
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
-Returns a list (std\+::array) of new primitives which make up the new bounding volumes. 
+Return a K-\/length array of subset lists. 
 \end{DoxyReturn}
-\mbox{\Hypertarget{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}\label{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}} 
+\mbox{\Hypertarget{namespaceBVH_a1edeb7c10026d6fba3e35536a6719a3a}\label{namespaceBVH_a1edeb7c10026d6fba3e35536a6719a3a}} 
+\index{BVH@{BVH}!PrimAndBVListT@{PrimAndBVListT}}
+\index{PrimAndBVListT@{PrimAndBVListT}!BVH@{BVH}}
+\doxysubsubsection{\texorpdfstring{PrimAndBVListT}{PrimAndBVListT}}
+{\footnotesize\ttfamily template$<$class P , class BV $>$ \\
+using \mbox{\hyperlink{namespaceBVH_a1edeb7c10026d6fba3e35536a6719a3a}{BVH\+::\+Prim\+And\+BVListT}} = typedef std\+::vector$<$\mbox{\hyperlink{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}{Prim\+And\+BV}}$<$P, BV$>$ $>$}
+
+
+
+List of primitives and their bounding volumes. 
+
+P is the primitive type and BV is the bounding volume enclosing the implicit surface of each P. \mbox{\Hypertarget{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}\label{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}} 
 \index{BVH@{BVH}!PrimitiveListT@{PrimitiveListT}}
 \index{PrimitiveListT@{PrimitiveListT}!BVH@{BVH}}
 \doxysubsubsection{\texorpdfstring{PrimitiveListT}{PrimitiveListT}}
@@ -141,5 +147,150 @@ The Meta template parameter is a door left open to the user for attaching additi
 \mbox{\texttt{ in}}  & {\em a\+\_\+node} & Node to visit or not \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+meta} & Meta-\/data for node visit. \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Variable Documentation}
+\mbox{\Hypertarget{namespaceBVH_a5d49380a6db6e29200da88b68b1ba0a6}\label{namespaceBVH_a5d49380a6db6e29200da88b68b1ba0a6}} 
+\index{BVH@{BVH}!BVCentroidPartitioner@{BVCentroidPartitioner}}
+\index{BVCentroidPartitioner@{BVCentroidPartitioner}!BVH@{BVH}}
+\doxysubsubsection{\texorpdfstring{BVCentroidPartitioner}{BVCentroidPartitioner}}
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
+auto BVH\+::\+BVCentroid\+Partitioner}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= [](\textcolor{keyword}{const} PrimAndBVListT<P, BV>\& a\_primsAndBVs) -\/> std::array<PrimAndBVListT<P, BV>, K> \{}
+\DoxyCodeLine{    \mbox{\hyperlink{classVec3T}{Vec3T<T>}} lo = \mbox{\hyperlink{classVec3T_a151575a04910352d4f8c028fef081d01}{Vec3T<T>::max}}();}
+\DoxyCodeLine{    \mbox{\hyperlink{classVec3T}{Vec3T<T>}} hi = -\/\mbox{\hyperlink{classVec3T_a151575a04910352d4f8c028fef081d01}{Vec3T<T>::max}}();}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keyword}{const} \textcolor{keyword}{auto}\& pbv : a\_primsAndBVs) \{}
+\DoxyCodeLine{      lo = \mbox{\hyperlink{EBGeometry__Vec_8hpp_af9ce43058d66582ec3736b13a7ca5dc2}{min}}(lo, pbv.second.getCentroid());}
+\DoxyCodeLine{      hi = \mbox{\hyperlink{EBGeometry__Vec_8hpp_a49e4d83079ba2af66014b14d2cf9fffd}{max}}(hi, pbv.second.getCentroid());}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} splitDir = (hi -\/ lo).maxDir(\textcolor{keyword}{true});}
+\DoxyCodeLine{}
+\DoxyCodeLine{    }
+\DoxyCodeLine{    PrimAndBVListT<P, BV> sortedPrimsAndBVs(a\_primsAndBVs);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::sort(sortedPrimsAndBVs.begin(),}
+\DoxyCodeLine{              sortedPrimsAndBVs.end(),}
+\DoxyCodeLine{              [splitDir](\textcolor{keyword}{const} PrimAndBV<P, BV>\& pbv1, \textcolor{keyword}{const} PrimAndBV<P, BV>\& pbv2) -\/> \textcolor{keywordtype}{bool} \{}
+\DoxyCodeLine{                return pbv1.second.getCentroid()[splitDir] < pbv2.second.getCentroid()[splitDir];}
+\DoxyCodeLine{              \});}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} BVH::equalCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);}
+\DoxyCodeLine{  \}}
+
+\end{DoxyCode}
+
+
+Simple partitioner which sorts the BVs based on their bounding volume centroids, and then splits into K pieces. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+prims\+And\+BVs} & Input primitives and their bounding volumes \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{namespaceBVH_a21d8f7ec763e9a30d43c68abe2e63f18}\label{namespaceBVH_a21d8f7ec763e9a30d43c68abe2e63f18}} 
+\index{BVH@{BVH}!DefaultStopFunction@{DefaultStopFunction}}
+\index{DefaultStopFunction@{DefaultStopFunction}!BVH@{BVH}}
+\doxysubsubsection{\texorpdfstring{DefaultStopFunction}{DefaultStopFunction}}
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
+auto BVH\+::\+Default\+Stop\+Function}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=}
+\DoxyCodeLine{    [](\textcolor{keyword}{const} \mbox{\hyperlink{classBVH_1_1NodeT}{BVH::NodeT<T, P, BV, K>}}\& a\_node) -\/> \textcolor{keywordtype}{bool} \{ \textcolor{keywordflow}{return} (a\_node.getPrimitives()).size() < K; \}}
+
+\end{DoxyCode}
+
+
+Simple stop function which ends the recursion when there aren\textquotesingle{}t enough primitives in the node. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+node} & Input \mbox{\hyperlink{namespaceBVH}{BVH}} node \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{namespaceBVH_affa56504a4aa040e09ce300dae222e5b}\label{namespaceBVH_affa56504a4aa040e09ce300dae222e5b}} 
+\index{BVH@{BVH}!equalCounts@{equalCounts}}
+\index{equalCounts@{equalCounts}!BVH@{BVH}}
+\doxysubsubsection{\texorpdfstring{equalCounts}{equalCounts}}
+{\footnotesize\ttfamily template$<$class X , size\+\_\+t K$>$ \\
+auto BVH\+::equal\+Counts}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= [](\textcolor{keyword}{const} std::vector<X>\& a\_primitives) -\/> std::array<std::vector<X>, K> \{}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} \mbox{\hyperlink{EBGeometry__Vec_8hpp_ac7cf88fcdf43f2f197b741a126274cab}{length}} = a\_primitives.size() / K;}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} remain = a\_primitives.size() \% K;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} begin = 0;}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} end   = 0;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::array<std::vector<X>, K> chunks;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} k = 0; k < K; k++) \{}
+\DoxyCodeLine{      end += (remain > 0) ? \mbox{\hyperlink{EBGeometry__Vec_8hpp_ac7cf88fcdf43f2f197b741a126274cab}{length}} + 1 : \mbox{\hyperlink{EBGeometry__Vec_8hpp_ac7cf88fcdf43f2f197b741a126274cab}{length}};}
+\DoxyCodeLine{      remain-\/-\/;}
+\DoxyCodeLine{}
+\DoxyCodeLine{      chunks[k] = std::vector<X>(a\_primitives.begin() + begin, a\_primitives.begin() + end);}
+\DoxyCodeLine{}
+\DoxyCodeLine{      begin = end;}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} chunks;}
+\DoxyCodeLine{  \}}
+
+\end{DoxyCode}
+
+
+Function for splitting a vector of some size into K almost-\/equal chunks. This is a utility function. 
+
+\mbox{\Hypertarget{namespaceBVH_aa7c7fa51a4c99cebf11a6261b6be2b8a}\label{namespaceBVH_aa7c7fa51a4c99cebf11a6261b6be2b8a}} 
+\index{BVH@{BVH}!PrimitiveCentroidPartitioner@{PrimitiveCentroidPartitioner}}
+\index{PrimitiveCentroidPartitioner@{PrimitiveCentroidPartitioner}!BVH@{BVH}}
+\doxysubsubsection{\texorpdfstring{PrimitiveCentroidPartitioner}{PrimitiveCentroidPartitioner}}
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
+auto BVH\+::\+Primitive\+Centroid\+Partitioner}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=}
+\DoxyCodeLine{    [](\textcolor{keyword}{const} PrimAndBVListT<P, BV>\& a\_primsAndBVs) -\/> std::array<PrimAndBVListT<P, BV>, K> \{}
+\DoxyCodeLine{    \mbox{\hyperlink{classVec3T}{Vec3T<T>}} lo = \mbox{\hyperlink{classVec3T_a151575a04910352d4f8c028fef081d01}{Vec3T<T>::max}}();}
+\DoxyCodeLine{    \mbox{\hyperlink{classVec3T}{Vec3T<T>}} hi = -\/\mbox{\hyperlink{classVec3T_a151575a04910352d4f8c028fef081d01}{Vec3T<T>::max}}();}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keyword}{const} \textcolor{keyword}{auto}\& pbv : a\_primsAndBVs) \{}
+\DoxyCodeLine{      lo = \mbox{\hyperlink{EBGeometry__Vec_8hpp_af9ce43058d66582ec3736b13a7ca5dc2}{min}}(lo, pbv.first-\/>getCentroid());}
+\DoxyCodeLine{      hi = \mbox{\hyperlink{EBGeometry__Vec_8hpp_a49e4d83079ba2af66014b14d2cf9fffd}{max}}(hi, pbv.first-\/>getCentroid());}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} splitDir = (hi -\/ lo).maxDir(\textcolor{keyword}{true});}
+\DoxyCodeLine{}
+\DoxyCodeLine{    }
+\DoxyCodeLine{    PrimAndBVListT<P, BV> sortedPrimsAndBVs(a\_primsAndBVs);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::sort(sortedPrimsAndBVs.begin(),}
+\DoxyCodeLine{              sortedPrimsAndBVs.end(),}
+\DoxyCodeLine{              [splitDir](\textcolor{keyword}{const} PrimAndBV<P, BV>\& pbv1, \textcolor{keyword}{const} PrimAndBV<P, BV>\& pbv2) -\/> \textcolor{keywordtype}{bool} \{}
+\DoxyCodeLine{                return pbv1.first-\/>getCentroid(splitDir) < pbv2.first-\/>getCentroid(splitDir);}
+\DoxyCodeLine{              \});}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} BVH::equalCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);}
+\DoxyCodeLine{  \}}
+
+\end{DoxyCode}
+
+
+Simple partitioner which sorts the primitives based on their centroids, and then splits into K pieces. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+prims\+And\+BVs} & Input primitives and their bounding volumes \\
 \hline
 \end{DoxyParams}

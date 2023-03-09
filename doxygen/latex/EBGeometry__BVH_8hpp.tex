@@ -48,12 +48,15 @@ class \mbox{\hyperlink{classBVH_1_1LinearBVH}{BVH\+::\+Linear\+BVH$<$ T, P, BV, 
 \item 
 {\footnotesize template$<$class P $>$ }\\using \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{BVH\+::\+Primitive\+ListT}} = std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$
 \begin{DoxyCompactList}\small\item\em List of primitives. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}\label{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}} 
+{\footnotesize template$<$class P , class BV $>$ }\\using \mbox{\hyperlink{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}{BVH\+::\+Prim\+And\+BV}} = std\+::pair$<$ std\+::shared\+\_\+ptr$<$ const P $>$, BV $>$
+\begin{DoxyCompactList}\small\item\em Alias for a list geometric primitive and BV. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class P , class BV $>$ }\\using \mbox{\hyperlink{namespaceBVH_a1edeb7c10026d6fba3e35536a6719a3a}{BVH\+::\+Prim\+And\+BVListT}} = std\+::vector$<$ Prim\+And\+BV$<$ P, BV $>$ $>$
+\begin{DoxyCompactList}\small\item\em List of primitives and their bounding volumes. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class P , class BV , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_ae7e5e97e86dfe5a7103cbf2918f0cfc9}{BVH\+::\+PartitionerT}} = std\+::function$<$ std\+::array$<$ Prim\+And\+BVListT$<$ P, BV $>$, K $>$(const Prim\+And\+BVListT$<$ P, BV $>$ \&a\+\_\+prims\+And\+BVs)$>$
+\begin{DoxyCompactList}\small\item\em Polymorphic partitioner for splitting a list of primitives and BVs into K new subsets. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}{BVH\+::\+Stop\+FunctionT}} = std\+::function$<$ bool(const NodeT$<$ T, P, BV, K $>$ \&a\+\_\+node)$>$
 \begin{DoxyCompactList}\small\item\em Stop function for deciding when a \mbox{\hyperlink{namespaceBVH}{BVH}} node can\textquotesingle{}t be divided into sub-\/volumes. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class P , class BV , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_a67de8088141156b6eaa225a635cc68c0}{BVH\+::\+PartitionerT}} = std\+::function$<$ std\+::array$<$ Primitive\+ListT$<$ P $>$, K $>$(const Primitive\+ListT$<$ P $>$ \&a\+\_\+primitives)$>$
-\begin{DoxyCompactList}\small\item\em Polymorphic partitioner for splitting a list of primitives into K new lists of primitives. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class P , class BV $>$ }\\using \mbox{\hyperlink{namespaceBVH_a245702d7eff40cdaedb5dff68c25a88a}{BVH\+::\+BVConstructorT}} = std\+::function$<$ BV(const std\+::shared\+\_\+ptr$<$ const P $>$ \&a\+\_\+primitive)$>$
-\begin{DoxyCompactList}\small\item\em Constructor method for creating bounding volumes from a list of primitives. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class P $>$ }\\using \mbox{\hyperlink{namespaceBVH_a9098188477f08a345cf059a431ae23aa}{BVH\+::\+Updater}} = std\+::function$<$ void(const Primitive\+ListT$<$ P $>$ \&a\+\_\+primitives)$>$
 \begin{DoxyCompactList}\small\item\em Updater for tree traversal. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class Node\+Type , class Meta $>$ }\\using \mbox{\hyperlink{namespaceBVH_a8ac51cce05479b4821bf8c0e2543696a}{BVH\+::\+Visiter}} = std\+::function$<$ bool(const Node\+Type \&a\+\_\+node, const Meta \&a\+\_\+meta)$>$
@@ -64,6 +67,17 @@ class \mbox{\hyperlink{classBVH_1_1LinearBVH}{BVH\+::\+Linear\+BVH$<$ T, P, BV, 
 \mbox{\Hypertarget{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}\label{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}} 
 {\footnotesize template$<$class Node\+Type , class Meta $>$ }\\using \mbox{\hyperlink{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}{BVH\+::\+Meta\+Updater}} = std\+::function$<$ Meta(const Node\+Type \&a\+\_\+node)$>$
 \begin{DoxyCompactList}\small\item\em Updater for when user wants to add some meta-\/data to his \mbox{\hyperlink{namespaceBVH}{BVH}} traversal. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$class X , size\+\_\+t K$>$ }\\auto \mbox{\hyperlink{namespaceBVH_affa56504a4aa040e09ce300dae222e5b}{BVH\+::equal\+Counts}}
+\begin{DoxyCompactList}\small\item\em Function for splitting a vector of some size into K almost-\/equal chunks. This is a utility function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\auto \mbox{\hyperlink{namespaceBVH_aa7c7fa51a4c99cebf11a6261b6be2b8a}{BVH\+::\+Primitive\+Centroid\+Partitioner}}
+\begin{DoxyCompactList}\small\item\em Simple partitioner which sorts the primitives based on their centroids, and then splits into K pieces. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\auto \mbox{\hyperlink{namespaceBVH_a5d49380a6db6e29200da88b68b1ba0a6}{BVH\+::\+BVCentroid\+Partitioner}}
+\begin{DoxyCompactList}\small\item\em Simple partitioner which sorts the BVs based on their bounding volume centroids, and then splits into K pieces. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\auto \mbox{\hyperlink{namespaceBVH_a21d8f7ec763e9a30d43c68abe2e63f18}{BVH\+::\+Default\+Stop\+Function}}
+\begin{DoxyCompactList}\small\item\em Simple stop function which ends the recursion when there aren\textquotesingle{}t enough primitives in the node. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}

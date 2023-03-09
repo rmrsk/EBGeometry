@@ -1,6 +1,4 @@
 var searchData=
 [
-  ['sorter_782',['Sorter',['../classOctree_1_1Node.html#a1df8c08c0daaba3c80cdc264c948f3f6',1,'Octree::Node::Sorter()'],['../namespaceBVH.html#a98593a87354ca9c46938b74c50a10f91',1,'BVH::Sorter()']]],
-  ['stopfunction_783',['StopFunction',['../classOctree_1_1Node.html#a76ef6d051df43996a35f446250e5a44b',1,'Octree::Node']]],
-  ['stopfunctiont_784',['StopFunctionT',['../namespaceBVH.html#afef1c5979c34a11d23b756cc09654bf9',1,'BVH']]]
+  ['updater_777',['Updater',['../classOctree_1_1Node.html#a2706769e036e137fa6f8c0f5cbc8b7f4',1,'Octree::Node::Updater()'],['../namespaceBVH.html#a9098188477f08a345cf059a431ae23aa',1,'BVH::Updater()']]]
 ];

@@ -118,41 +118,38 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>NodePtr</b> = std::s
 using&#160;</td><td class="memItemRight" valign="bottom"><b>StopFunction</b> = <a class="el" href="namespaceBVH.html#afef1c5979c34a11d23b756cc09654bf9">StopFunctionT</a>&lt; T, P, BV, K &gt;</td></tr>
 <tr class="separator:acbe56195affc439febe8aca84db308e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab3b7afb83f7ecf97d1985c3c5ade2f0a"><td class="memItemLeft" align="right" valign="top"><a id="ab3b7afb83f7ecf97d1985c3c5ade2f0a"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>Partitioner</b> = <a class="el" href="namespaceBVH.html#a67de8088141156b6eaa225a635cc68c0">PartitionerT</a>&lt; P, BV, K &gt;</td></tr>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>Partitioner</b> = <a class="el" href="namespaceBVH.html#ae7e5e97e86dfe5a7103cbf2918f0cfc9">PartitionerT</a>&lt; P, BV, K &gt;</td></tr>
 <tr class="separator:ab3b7afb83f7ecf97d1985c3c5ade2f0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2340f2466ed5b6eebab4bdc72004858e"><td class="memItemLeft" align="right" valign="top"><a id="a2340f2466ed5b6eebab4bdc72004858e"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>BVConstructor</b> = <a class="el" href="namespaceBVH.html#a245702d7eff40cdaedb5dff68c25a88a">BVConstructorT</a>&lt; P, BV &gt;</td></tr>
-<tr class="separator:a2340f2466ed5b6eebab4bdc72004858e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a960d0972bec81cf782b36e57f87da1f1"><td class="memItemLeft" align="right" valign="top"><a id="a960d0972bec81cf782b36e57f87da1f1"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a960d0972bec81cf782b36e57f87da1f1">NodeT</a> ()</td></tr>
-<tr class="memdesc:a960d0972bec81cf782b36e57f87da1f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default constructor which sets a regular node. <br /></td></tr>
-<tr class="separator:a960d0972bec81cf782b36e57f87da1f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac5b0e8e32d6160601bca0a4a9dba781a"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#ac5b0e8e32d6160601bca0a4a9dba781a">NodeT</a> (const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;a_primitives)</td></tr>
-<tr class="memdesc:ac5b0e8e32d6160601bca0a4a9dba781a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct node from a set of primitives.  <a href="classBVH_1_1NodeT.html#ac5b0e8e32d6160601bca0a4a9dba781a">More...</a><br /></td></tr>
-<tr class="separator:ac5b0e8e32d6160601bca0a4a9dba781a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a42538439c8df2ef5bdbafe609b31d44d"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a42538439c8df2ef5bdbafe609b31d44d">NodeT</a> (const std::vector&lt; std::shared_ptr&lt; const P &gt;&gt; &amp;a_primitives)</td></tr>
-<tr class="memdesc:a42538439c8df2ef5bdbafe609b31d44d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct node from a set of primitives.  <a href="classBVH_1_1NodeT.html#a42538439c8df2ef5bdbafe609b31d44d">More...</a><br /></td></tr>
-<tr class="separator:a42538439c8df2ef5bdbafe609b31d44d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3519c9aad8410c0703589997c65a4924"><td class="memItemLeft" align="right" valign="top"><a id="a3519c9aad8410c0703589997c65a4924"></a>
-virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a3519c9aad8410c0703589997c65a4924">~NodeT</a> ()</td></tr>
-<tr class="memdesc:a3519c9aad8410c0703589997c65a4924"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor (does nothing) <br /></td></tr>
-<tr class="separator:a3519c9aad8410c0703589997c65a4924"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acae5a575fa8b236de984fdd41e04c038"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#acae5a575fa8b236de984fdd41e04c038">topDownSortAndPartitionPrimitives</a> (const BVConstructor &amp;a_bvConstructor, const Partitioner &amp;a_partitioner, const StopFunction &amp;a_stopCrit) noexcept</td></tr>
-<tr class="memdesc:acae5a575fa8b236de984fdd41e04c038"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function for using top-down construction of the bounding volume hierarchy.  <a href="classBVH_1_1NodeT.html#acae5a575fa8b236de984fdd41e04c038">More...</a><br /></td></tr>
-<tr class="separator:acae5a575fa8b236de984fdd41e04c038"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7d0568132459d93b219633fdc58d110d"><td class="memItemLeft" align="right" valign="top"><a id="a7d0568132459d93b219633fdc58d110d"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a7d0568132459d93b219633fdc58d110d">NodeT</a> () noexcept</td></tr>
+<tr class="memdesc:a7d0568132459d93b219633fdc58d110d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default constructor which sets a regular node. <br /></td></tr>
+<tr class="separator:a7d0568132459d93b219633fdc58d110d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af6aeab9124caa0cfe4b84bcea6d4edae"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#af6aeab9124caa0cfe4b84bcea6d4edae">NodeT</a> (const std::vector&lt; <a class="el" href="namespaceBVH.html#a2f1baf3f4361b542e8b582b2d64954ce">PrimAndBV</a>&lt; P, BV &gt;&gt; &amp;a_primsAndBVs) noexcept</td></tr>
+<tr class="memdesc:af6aeab9124caa0cfe4b84bcea6d4edae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> node from a set of primitives and their bounding volumes.  <a href="classBVH_1_1NodeT.html#af6aeab9124caa0cfe4b84bcea6d4edae">More...</a><br /></td></tr>
+<tr class="separator:af6aeab9124caa0cfe4b84bcea6d4edae"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab4d707ae5a863a7b3b823786cbb343cb"><td class="memItemLeft" align="right" valign="top"><a id="ab4d707ae5a863a7b3b823786cbb343cb"></a>
+virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#ab4d707ae5a863a7b3b823786cbb343cb">~NodeT</a> () noexcept</td></tr>
+<tr class="memdesc:ab4d707ae5a863a7b3b823786cbb343cb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor (does nothing) <br /></td></tr>
+<tr class="separator:ab4d707ae5a863a7b3b823786cbb343cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a96febb1814ab25d04b719350a93f5e7f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a96febb1814ab25d04b719350a93f5e7f">topDownSortAndPartition</a> (const Partitioner &amp;a_partitioner=<a class="el" href="namespaceBVH.html#a5d49380a6db6e29200da88b68b1ba0a6">BVCentroidPartitioner</a>&lt; T, P, BV, K &gt;, const StopFunction &amp;a_stopCrit=<a class="el" href="namespaceBVH.html#a21d8f7ec763e9a30d43c68abe2e63f18">DefaultStopFunction</a>&lt; T, P, BV, K &gt;) noexcept</td></tr>
+<tr class="memdesc:a96febb1814ab25d04b719350a93f5e7f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function for using top-down construction of the bounding volume hierarchy.  <a href="classBVH_1_1NodeT.html#a96febb1814ab25d04b719350a93f5e7f">More...</a><br /></td></tr>
+<tr class="separator:a96febb1814ab25d04b719350a93f5e7f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5c57552524601da9bf20e722e2433aa0"><td class="memItemLeft" align="right" valign="top"><a id="a5c57552524601da9bf20e722e2433aa0"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a5c57552524601da9bf20e722e2433aa0">isLeaf</a> () const noexcept</td></tr>
 <tr class="memdesc:a5c57552524601da9bf20e722e2433aa0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get node type. <br /></td></tr>
 <tr class="separator:a5c57552524601da9bf20e722e2433aa0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a824a733984530c040215b76c10950045"><td class="memItemLeft" align="right" valign="top">const PrimitiveList &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a824a733984530c040215b76c10950045">getPrimitives</a> () const noexcept</td></tr>
-<tr class="memdesc:a824a733984530c040215b76c10950045"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the primitives stored in this node.  <a href="classBVH_1_1NodeT.html#a824a733984530c040215b76c10950045">More...</a><br /></td></tr>
-<tr class="separator:a824a733984530c040215b76c10950045"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4fe7178c2bd08a246cbea5b411ce5e9d"><td class="memItemLeft" align="right" valign="top">const BV &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a4fe7178c2bd08a246cbea5b411ce5e9d">getBoundingVolume</a> () const noexcept</td></tr>
 <tr class="memdesc:a4fe7178c2bd08a246cbea5b411ce5e9d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get bounding volume.  <a href="classBVH_1_1NodeT.html#a4fe7178c2bd08a246cbea5b411ce5e9d">More...</a><br /></td></tr>
 <tr class="separator:a4fe7178c2bd08a246cbea5b411ce5e9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a824a733984530c040215b76c10950045"><td class="memItemLeft" align="right" valign="top">const PrimitiveList &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a824a733984530c040215b76c10950045">getPrimitives</a> () const noexcept</td></tr>
+<tr class="memdesc:a824a733984530c040215b76c10950045"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the primitives stored in this node.  <a href="classBVH_1_1NodeT.html#a824a733984530c040215b76c10950045">More...</a><br /></td></tr>
+<tr class="separator:a824a733984530c040215b76c10950045"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a445cb18bc2e016830141e6596dd31a15"><td class="memItemLeft" align="right" valign="top">const std::vector&lt; BV &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a445cb18bc2e016830141e6596dd31a15">getBoundingVolumes</a> () const noexcept</td></tr>
+<tr class="memdesc:a445cb18bc2e016830141e6596dd31a15"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the bounding volumes for the primitives in this node (can be empty if regular node)  <a href="classBVH_1_1NodeT.html#a445cb18bc2e016830141e6596dd31a15">More...</a><br /></td></tr>
+<tr class="separator:a445cb18bc2e016830141e6596dd31a15"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8da9f78078b0a579868d026bd61a2947"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a8da9f78078b0a579868d026bd61a2947">getDistanceToBoundingVolume</a> (const <a class="el" href="classVec3T.html">Vec3</a> &amp;a_point) const noexcept</td></tr>
 <tr class="memdesc:a8da9f78078b0a579868d026bd61a2947"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the distance from a 3D point to the bounding volume.  <a href="classBVH_1_1NodeT.html#a8da9f78078b0a579868d026bd61a2947">More...</a><br /></td></tr>
 <tr class="separator:a8da9f78078b0a579868d026bd61a2947"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -172,12 +169,12 @@ Protected Member Functions</h2></td></tr>
 <tr class="memitem:a83c128d1045ccc23000a8b26f75b3172"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a83c128d1045ccc23000a8b26f75b3172">insertChildren</a> (const std::array&lt; PrimitiveList, K &gt; &amp;a_primitives) noexcept</td></tr>
 <tr class="memdesc:a83c128d1045ccc23000a8b26f75b3172"><td class="mdescLeft">&#160;</td><td class="mdescRight">Insert nodes with primitives.  <a href="classBVH_1_1NodeT.html#a83c128d1045ccc23000a8b26f75b3172">More...</a><br /></td></tr>
 <tr class="separator:a83c128d1045ccc23000a8b26f75b3172"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2c9c3d3a83b3c1895c8f89b2bbd62e81"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a2c9c3d3a83b3c1895c8f89b2bbd62e81">setPrimitives</a> (const PrimitiveList &amp;a_primitives) noexcept</td></tr>
-<tr class="memdesc:a2c9c3d3a83b3c1895c8f89b2bbd62e81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set primitives in this node.  <a href="classBVH_1_1NodeT.html#a2c9c3d3a83b3c1895c8f89b2bbd62e81">More...</a><br /></td></tr>
-<tr class="separator:a2c9c3d3a83b3c1895c8f89b2bbd62e81"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae4d94382126f1e9f29a58cd6583782b6"><td class="memItemLeft" align="right" valign="top">PrimitiveList &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#ae4d94382126f1e9f29a58cd6583782b6">getPrimitives</a> () noexcept</td></tr>
 <tr class="memdesc:ae4d94382126f1e9f29a58cd6583782b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the list of primitives in this node.  <a href="classBVH_1_1NodeT.html#ae4d94382126f1e9f29a58cd6583782b6">More...</a><br /></td></tr>
 <tr class="separator:ae4d94382126f1e9f29a58cd6583782b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a143b2cef57ce44573fed2295581d1c54"><td class="memItemLeft" align="right" valign="top">std::vector&lt; BV &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a143b2cef57ce44573fed2295581d1c54">getBoundingVolumes</a> () noexcept</td></tr>
+<tr class="memdesc:a143b2cef57ce44573fed2295581d1c54"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the bounding volumes for the primitives in this node (can be empty if regular node)  <a href="classBVH_1_1NodeT.html#a143b2cef57ce44573fed2295581d1c54">More...</a><br /></td></tr>
+<tr class="separator:a143b2cef57ce44573fed2295581d1c54"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a950e1bcd16baa78ede8f6559754a639d"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a950e1bcd16baa78ede8f6559754a639d">flattenTree</a> (std::vector&lt; std::shared_ptr&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>&lt; T, P, BV, K &gt;&gt;&gt; &amp;a_linearNodes, std::vector&lt; std::shared_ptr&lt; const P &gt;&gt; &amp;a_sortedPrimitives, size_t &amp;a_offset) const noexcept</td></tr>
 <tr class="memdesc:a950e1bcd16baa78ede8f6559754a639d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flatten tree method.  <a href="classBVH_1_1NodeT.html#a950e1bcd16baa78ede8f6559754a639d">More...</a><br /></td></tr>
 <tr class="separator:a950e1bcd16baa78ede8f6559754a639d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -186,12 +183,16 @@ Protected Member Functions</h2></td></tr>
 Protected Attributes</h2></td></tr>
 <tr class="memitem:a7f8720f2ab03ee9e81de114c479cb2e5"><td class="memItemLeft" align="right" valign="top"><a id="a7f8720f2ab03ee9e81de114c479cb2e5"></a>
 BV&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a7f8720f2ab03ee9e81de114c479cb2e5">m_boundingVolume</a></td></tr>
-<tr class="memdesc:a7f8720f2ab03ee9e81de114c479cb2e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Bounding volume object. <br /></td></tr>
+<tr class="memdesc:a7f8720f2ab03ee9e81de114c479cb2e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Bounding volume object for enclosing everything in this node. <br /></td></tr>
 <tr class="separator:a7f8720f2ab03ee9e81de114c479cb2e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3c45be2075d8cdfd0dc0a9e73373b64d"><td class="memItemLeft" align="right" valign="top"><a id="a3c45be2075d8cdfd0dc0a9e73373b64d"></a>
 std::vector&lt; std::shared_ptr&lt; const P &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a3c45be2075d8cdfd0dc0a9e73373b64d">m_primitives</a></td></tr>
 <tr class="memdesc:a3c45be2075d8cdfd0dc0a9e73373b64d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Primitives list. This will be empty for regular nodes. <br /></td></tr>
 <tr class="separator:a3c45be2075d8cdfd0dc0a9e73373b64d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa490d577a276c3fce47f3baebb27bf03"><td class="memItemLeft" align="right" valign="top"><a id="aa490d577a276c3fce47f3baebb27bf03"></a>
+std::vector&lt; BV &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#aa490d577a276c3fce47f3baebb27bf03">m_boundingVolumes</a></td></tr>
+<tr class="memdesc:aa490d577a276c3fce47f3baebb27bf03"><td class="mdescLeft">&#160;</td><td class="mdescRight">List of bounding volumes for the primitives. This will be empty for regular nodes. <br /></td></tr>
+<tr class="separator:aa490d577a276c3fce47f3baebb27bf03"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afaf556d6faa78c2cc2b27c82feb0145c"><td class="memItemLeft" align="right" valign="top"><a id="afaf556d6faa78c2cc2b27c82feb0145c"></a>
 std::array&lt; std::shared_ptr&lt; <a class="el" href="classBVH_1_1NodeT.html">NodeT</a>&lt; T, P, BV, K &gt; &gt;, K &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#afaf556d6faa78c2cc2b27c82feb0145c">m_children</a></td></tr>
 <tr class="memdesc:afaf556d6faa78c2cc2b27c82feb0145c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Children nodes. <br /></td></tr>
@@ -209,56 +210,36 @@ class BVH::NodeT&lt; T, P, BV, K &gt;</h3>
 </blockquote>
 <p>on. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="ac5b0e8e32d6160601bca0a4a9dba781a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac5b0e8e32d6160601bca0a4a9dba781a">&#9670;&nbsp;</a></span>NodeT() <span class="overload">[1/2]</span></h2>
+<a id="af6aeab9124caa0cfe4b84bcea6d4edae"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af6aeab9124caa0cfe4b84bcea6d4edae">&#9670;&nbsp;</a></span>NodeT()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;class T , class P , class BV , size_t K&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::<a class="el" href="classBVH_1_1NodeT.html">NodeT</a> </td>
           <td>(</td>
-          <td class="paramtype">const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_primitives</em></td><td>)</td>
+          <td class="paramtype">const std::vector&lt; <a class="el" href="namespaceBVH.html#a2f1baf3f4361b542e8b582b2d64954ce">PrimAndBV</a>&lt; P, BV &gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_primsAndBVs</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
-<p>Construct node from a set of primitives. </p>
-<p>This node becomes a leaf node which contains the input primitives. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>Construct a <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> node from a set of primitives and their bounding volumes. </p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_primitives</td><td>Input primitives. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="a42538439c8df2ef5bdbafe609b31d44d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a42538439c8df2ef5bdbafe609b31d44d">&#9670;&nbsp;</a></span>NodeT() <span class="overload">[2/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class T , class P , class BV , size_t K&gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::<a class="el" href="classBVH_1_1NodeT.html">NodeT</a> </td>
-          <td>(</td>
-          <td class="paramtype">const std::vector&lt; std::shared_ptr&lt; const P &gt;&gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_primitives</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Construct node from a set of primitives. </p>
-<p>This node becomes a leaf node which contains the input primitives. </p><dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_primitives</td><td>Input primitives. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_primsAndBVs</td><td>Primitives and their bounding volumes </td></tr>
   </table>
   </dd>
 </dl>
@@ -378,6 +359,66 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 
 <p>Get bounding volume. </p>
 <dl class="section return"><dt>Returns</dt><dd>m_bv </dd></dl>
+
+</div>
+</div>
+<a id="a445cb18bc2e016830141e6596dd31a15"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a445cb18bc2e016830141e6596dd31a15">&#9670;&nbsp;</a></span>getBoundingVolumes() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T , class P , class BV , size_t K&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const std::vector&lt;BV&gt;&amp; <a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::getBoundingVolumes </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Get the bounding volumes for the primitives in this node (can be empty if regular node) </p>
+<dl class="section return"><dt>Returns</dt><dd>m_boundingVolumes </dd></dl>
+
+</div>
+</div>
+<a id="a143b2cef57ce44573fed2295581d1c54"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a143b2cef57ce44573fed2295581d1c54">&#9670;&nbsp;</a></span>getBoundingVolumes() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T , class P , class BV , size_t K&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::vector&lt;BV&gt;&amp; <a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::getBoundingVolumes </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">protected</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Get the bounding volumes for the primitives in this node (can be empty if regular node) </p>
+<dl class="section return"><dt>Returns</dt><dd>m_boundingVolumes </dd></dl>
 
 </div>
 </div>
@@ -544,8 +585,8 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 
 </div>
 </div>
-<a id="a2c9c3d3a83b3c1895c8f89b2bbd62e81"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2c9c3d3a83b3c1895c8f89b2bbd62e81">&#9670;&nbsp;</a></span>setPrimitives()</h2>
+<a id="a96febb1814ab25d04b719350a93f5e7f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a96febb1814ab25d04b719350a93f5e7f">&#9670;&nbsp;</a></span>topDownSortAndPartition()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -556,58 +597,16 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::setPrimitives </td>
+          <td class="memname">void <a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::topDownSortAndPartition </td>
           <td>(</td>
-          <td class="paramtype">const PrimitiveList &amp;&#160;</td>
-          <td class="paramname"><em>a_primitives</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">protected</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Set primitives in this node. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_primitives</td><td>Primitives </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="acae5a575fa8b236de984fdd41e04c038"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acae5a575fa8b236de984fdd41e04c038">&#9670;&nbsp;</a></span>topDownSortAndPartitionPrimitives()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class T , class P , class BV , size_t K&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">void <a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::topDownSortAndPartitionPrimitives </td>
-          <td>(</td>
-          <td class="paramtype">const BVConstructor &amp;&#160;</td>
-          <td class="paramname"><em>a_bvConstructor</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
           <td class="paramtype">const Partitioner &amp;&#160;</td>
-          <td class="paramname"><em>a_partitioner</em>, </td>
+          <td class="paramname"><em>a_partitioner</em> = <code><a class="el" href="namespaceBVH.html#a5d49380a6db6e29200da88b68b1ba0a6">BVCentroidPartitioner</a>&lt;&#160;T,&#160;P,&#160;BV,&#160;K&#160;&gt;</code>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">const StopFunction &amp;&#160;</td>
-          <td class="paramname"><em>a_stopCrit</em>&#160;</td>
+          <td class="paramname"><em>a_stopCrit</em> = <code><a class="el" href="namespaceBVH.html#a21d8f7ec763e9a30d43c68abe2e63f18">DefaultStopFunction</a>&lt;&#160;T,&#160;P,&#160;BV,&#160;K&#160;&gt;</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -623,10 +622,9 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 </div><div class="memdoc">
 
 <p>Function for using top-down construction of the bounding volume hierarchy. </p>
-<p>The rules for terminating the hierarchy construction, how to partition sets of primitives, and how to enclose them by bounding volumes are given in the input arguments (a_stopFunc, a_partFunc, a_bvFunc) </p><dl class="params"><dt>Parameters</dt><dd>
+<p>The rules for terminating the hierarchy construction, and how to partition them are encoded in the input arguments (a_partitioner, a_stopCrit). </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_bvConstructor</td><td>Polymorphic function which builds a bounding volume from a set of primitives. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_partitioner</td><td>Partitioning function. This is a polymorphic function which divides a set of primitives into two lists. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_partitioner</td><td>Partitioning function. This is a polymorphic function which divides a set of primitives into two or more sub-lists. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">a_stopCrit</td><td>Termination function which tells us when to stop the recursion. </td></tr>
   </table>
   </dd>

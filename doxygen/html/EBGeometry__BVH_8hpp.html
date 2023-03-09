@@ -69,7 +69,8 @@ $(function() {
   <div class="summary">
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#namespaces">Namespaces</a> &#124;
-<a href="#typedef-members">Typedefs</a>  </div>
+<a href="#typedef-members">Typedefs</a> &#124;
+<a href="#var-members">Variables</a>  </div>
   <div class="headertitle">
 <div class="title">EBGeometry_BVH.hpp File Reference</div>  </div>
 </div><!--header-->
@@ -108,11 +109,10 @@ This graph shows which files directly or indirectly include this file:</div>
 <div class="dyncontent">
 <div class="center"><img src="EBGeometry__BVH_8hpp__dep__incl.png" border="0" usemap="#a_2home_2runner_2work_2EBGeometry_2EBGeometry_2Source_2EBGeometry__BVH_8hppdep" alt=""/></div>
 <map name="a_2home_2runner_2work_2EBGeometry_2EBGeometry_2Source_2EBGeometry__BVH_8hppdep" id="a_2home_2runner_2work_2EBGeometry_2EBGeometry_2Source_2EBGeometry__BVH_8hppdep">
-<area shape="rect" title="Declaration of a bounding volume hierarchy (BVH) class." alt="" coords="33,5,275,61"/>
-<area shape="rect" href="EBGeometry_8hpp_source.html" title=" " alt="" coords="117,317,348,359"/>
-<area shape="rect" href="EBGeometry__DCEL__BVH_8hpp.html" title="File which contains partitioners and lambdas for enclosing DCEL faces in bounding volume hierarchies." alt="" coords="33,213,275,269"/>
-<area shape="rect" href="EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="191,109,434,165"/>
-<area shape="rect" href="EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="350,213,593,269"/>
+<area shape="rect" title="Declaration of a bounding volume hierarchy (BVH) class." alt="" coords="27,5,270,61"/>
+<area shape="rect" href="EBGeometry_8hpp_source.html" title=" " alt="" coords="5,317,236,359"/>
+<area shape="rect" href="EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="107,109,350,165"/>
+<area shape="rect" href="EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="158,213,401,269"/>
 </map>
 </div>
 </div>
@@ -142,18 +142,23 @@ Typedefs</h2></td></tr>
 <tr class="memitem:aa1e753bda451b85cd5b948722a2ad7c7"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7">BVH::PrimitiveListT</a> = std::vector&lt; std::shared_ptr&lt; const P &gt; &gt;</td></tr>
 <tr class="memdesc:aa1e753bda451b85cd5b948722a2ad7c7"><td class="mdescLeft">&#160;</td><td class="mdescRight">List of primitives.  <a href="namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7">More...</a><br /></td></tr>
 <tr class="separator:aa1e753bda451b85cd5b948722a2ad7c7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2f1baf3f4361b542e8b582b2d64954ce"><td class="memTemplParams" colspan="2"><a id="a2f1baf3f4361b542e8b582b2d64954ce"></a>
+template&lt;class P , class BV &gt; </td></tr>
+<tr class="memitem:a2f1baf3f4361b542e8b582b2d64954ce"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a2f1baf3f4361b542e8b582b2d64954ce">BVH::PrimAndBV</a> = std::pair&lt; std::shared_ptr&lt; const P &gt;, BV &gt;</td></tr>
+<tr class="memdesc:a2f1baf3f4361b542e8b582b2d64954ce"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for a list geometric primitive and BV. <br /></td></tr>
+<tr class="separator:a2f1baf3f4361b542e8b582b2d64954ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1edeb7c10026d6fba3e35536a6719a3a"><td class="memTemplParams" colspan="2">template&lt;class P , class BV &gt; </td></tr>
+<tr class="memitem:a1edeb7c10026d6fba3e35536a6719a3a"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a1edeb7c10026d6fba3e35536a6719a3a">BVH::PrimAndBVListT</a> = std::vector&lt; PrimAndBV&lt; P, BV &gt; &gt;</td></tr>
+<tr class="memdesc:a1edeb7c10026d6fba3e35536a6719a3a"><td class="mdescLeft">&#160;</td><td class="mdescRight">List of primitives and their bounding volumes.  <a href="namespaceBVH.html#a1edeb7c10026d6fba3e35536a6719a3a">More...</a><br /></td></tr>
+<tr class="separator:a1edeb7c10026d6fba3e35536a6719a3a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae7e5e97e86dfe5a7103cbf2918f0cfc9"><td class="memTemplParams" colspan="2">template&lt;class P , class BV , size_t K&gt; </td></tr>
+<tr class="memitem:ae7e5e97e86dfe5a7103cbf2918f0cfc9"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#ae7e5e97e86dfe5a7103cbf2918f0cfc9">BVH::PartitionerT</a> = std::function&lt; std::array&lt; PrimAndBVListT&lt; P, BV &gt;, K &gt;(const PrimAndBVListT&lt; P, BV &gt; &amp;a_primsAndBVs)&gt;</td></tr>
+<tr class="memdesc:ae7e5e97e86dfe5a7103cbf2918f0cfc9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Polymorphic partitioner for splitting a list of primitives and BVs into K new subsets.  <a href="namespaceBVH.html#ae7e5e97e86dfe5a7103cbf2918f0cfc9">More...</a><br /></td></tr>
+<tr class="separator:ae7e5e97e86dfe5a7103cbf2918f0cfc9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afef1c5979c34a11d23b756cc09654bf9"><td class="memTemplParams" colspan="2">template&lt;class T , class P , class BV , size_t K&gt; </td></tr>
 <tr class="memitem:afef1c5979c34a11d23b756cc09654bf9"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#afef1c5979c34a11d23b756cc09654bf9">BVH::StopFunctionT</a> = std::function&lt; bool(const NodeT&lt; T, P, BV, K &gt; &amp;a_node)&gt;</td></tr>
 <tr class="memdesc:afef1c5979c34a11d23b756cc09654bf9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Stop function for deciding when a <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> node can't be divided into sub-volumes.  <a href="namespaceBVH.html#afef1c5979c34a11d23b756cc09654bf9">More...</a><br /></td></tr>
 <tr class="separator:afef1c5979c34a11d23b756cc09654bf9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a67de8088141156b6eaa225a635cc68c0"><td class="memTemplParams" colspan="2">template&lt;class P , class BV , size_t K&gt; </td></tr>
-<tr class="memitem:a67de8088141156b6eaa225a635cc68c0"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a67de8088141156b6eaa225a635cc68c0">BVH::PartitionerT</a> = std::function&lt; std::array&lt; PrimitiveListT&lt; P &gt;, K &gt;(const PrimitiveListT&lt; P &gt; &amp;a_primitives)&gt;</td></tr>
-<tr class="memdesc:a67de8088141156b6eaa225a635cc68c0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Polymorphic partitioner for splitting a list of primitives into K new lists of primitives.  <a href="namespaceBVH.html#a67de8088141156b6eaa225a635cc68c0">More...</a><br /></td></tr>
-<tr class="separator:a67de8088141156b6eaa225a635cc68c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a245702d7eff40cdaedb5dff68c25a88a"><td class="memTemplParams" colspan="2">template&lt;class P , class BV &gt; </td></tr>
-<tr class="memitem:a245702d7eff40cdaedb5dff68c25a88a"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a245702d7eff40cdaedb5dff68c25a88a">BVH::BVConstructorT</a> = std::function&lt; BV(const std::shared_ptr&lt; const P &gt; &amp;a_primitive)&gt;</td></tr>
-<tr class="memdesc:a245702d7eff40cdaedb5dff68c25a88a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor method for creating bounding volumes from a list of primitives.  <a href="namespaceBVH.html#a245702d7eff40cdaedb5dff68c25a88a">More...</a><br /></td></tr>
-<tr class="separator:a245702d7eff40cdaedb5dff68c25a88a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9098188477f08a345cf059a431ae23aa"><td class="memTemplParams" colspan="2">template&lt;class P &gt; </td></tr>
 <tr class="memitem:a9098188477f08a345cf059a431ae23aa"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a9098188477f08a345cf059a431ae23aa">BVH::Updater</a> = std::function&lt; void(const PrimitiveListT&lt; P &gt; &amp;a_primitives)&gt;</td></tr>
 <tr class="memdesc:a9098188477f08a345cf059a431ae23aa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Updater for tree traversal.  <a href="namespaceBVH.html#a9098188477f08a345cf059a431ae23aa">More...</a><br /></td></tr>
@@ -172,6 +177,25 @@ template&lt;class NodeType , class Meta &gt; </td></tr>
 <tr class="memitem:acaf9bd22eb434cf05f36d5ca61984b38"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#acaf9bd22eb434cf05f36d5ca61984b38">BVH::MetaUpdater</a> = std::function&lt; Meta(const NodeType &amp;a_node)&gt;</td></tr>
 <tr class="memdesc:acaf9bd22eb434cf05f36d5ca61984b38"><td class="mdescLeft">&#160;</td><td class="mdescRight">Updater for when user wants to add some meta-data to his <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> traversal. <br /></td></tr>
 <tr class="separator:acaf9bd22eb434cf05f36d5ca61984b38"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
+Variables</h2></td></tr>
+<tr class="memitem:affa56504a4aa040e09ce300dae222e5b"><td class="memTemplParams" colspan="2">template&lt;class X , size_t K&gt; </td></tr>
+<tr class="memitem:affa56504a4aa040e09ce300dae222e5b"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#affa56504a4aa040e09ce300dae222e5b">BVH::equalCounts</a></td></tr>
+<tr class="memdesc:affa56504a4aa040e09ce300dae222e5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function for splitting a vector of some size into K almost-equal chunks. This is a utility function.  <a href="namespaceBVH.html#affa56504a4aa040e09ce300dae222e5b">More...</a><br /></td></tr>
+<tr class="separator:affa56504a4aa040e09ce300dae222e5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa7c7fa51a4c99cebf11a6261b6be2b8a"><td class="memTemplParams" colspan="2">template&lt;class T , class P , class BV , size_t K&gt; </td></tr>
+<tr class="memitem:aa7c7fa51a4c99cebf11a6261b6be2b8a"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#aa7c7fa51a4c99cebf11a6261b6be2b8a">BVH::PrimitiveCentroidPartitioner</a></td></tr>
+<tr class="memdesc:aa7c7fa51a4c99cebf11a6261b6be2b8a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Simple partitioner which sorts the primitives based on their centroids, and then splits into K pieces.  <a href="namespaceBVH.html#aa7c7fa51a4c99cebf11a6261b6be2b8a">More...</a><br /></td></tr>
+<tr class="separator:aa7c7fa51a4c99cebf11a6261b6be2b8a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5d49380a6db6e29200da88b68b1ba0a6"><td class="memTemplParams" colspan="2">template&lt;class T , class P , class BV , size_t K&gt; </td></tr>
+<tr class="memitem:a5d49380a6db6e29200da88b68b1ba0a6"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a5d49380a6db6e29200da88b68b1ba0a6">BVH::BVCentroidPartitioner</a></td></tr>
+<tr class="memdesc:a5d49380a6db6e29200da88b68b1ba0a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Simple partitioner which sorts the BVs based on their bounding volume centroids, and then splits into K pieces.  <a href="namespaceBVH.html#a5d49380a6db6e29200da88b68b1ba0a6">More...</a><br /></td></tr>
+<tr class="separator:a5d49380a6db6e29200da88b68b1ba0a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a21d8f7ec763e9a30d43c68abe2e63f18"><td class="memTemplParams" colspan="2">template&lt;class T , class P , class BV , size_t K&gt; </td></tr>
+<tr class="memitem:a21d8f7ec763e9a30d43c68abe2e63f18"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceBVH.html#a21d8f7ec763e9a30d43c68abe2e63f18">BVH::DefaultStopFunction</a></td></tr>
+<tr class="memdesc:a21d8f7ec763e9a30d43c68abe2e63f18"><td class="mdescLeft">&#160;</td><td class="mdescRight">Simple stop function which ends the recursion when there aren't enough primitives in the node.  <a href="namespaceBVH.html#a21d8f7ec763e9a30d43c68abe2e63f18">More...</a><br /></td></tr>
+<tr class="separator:a21d8f7ec763e9a30d43c68abe2e63f18"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Declaration of a bounding volume hierarchy (<a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>) class. </p>

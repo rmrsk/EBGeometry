@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['centroidpartitioner_699',['centroidPartitioner',['../namespaceDCEL.html#a73030e63595de076507525cf66fa2265',1,'DCEL']]],
-  ['chunkpartitioner_700',['chunkPartitioner',['../namespaceDCEL.html#a63e3a028830d8f77944c3b521f7d8e47',1,'DCEL']]]
+  ['defaultstopfunction_693',['DefaultStopFunction',['../namespaceBVH.html#a21d8f7ec763e9a30d43c68abe2e63f18',1,'BVH']]]
 ];

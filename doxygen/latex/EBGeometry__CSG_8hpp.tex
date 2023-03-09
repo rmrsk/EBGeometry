@@ -57,9 +57,9 @@ class \mbox{\hyperlink{classSmoothDifferenceIF}{Smooth\+Difference\+IF$<$ T $>$}
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the union of a bunch of a implicit functions. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T , class P1 , class P2 $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a5a8dd7e226e420c4268e101d859fbc29}{Smooth\+Union}} (const std\+::shared\+\_\+ptr$<$ P1 $>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ P2 $>$ \&a\+\_\+implicit\+FunctionB, const T a\+\_\+smooth) noexcept
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the union of two implicit functions. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_ae77f9ccd38d8da0f8776694ca94b15cb}{Fast\+Union}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+implicit\+Functions, const EBGeometry\+::\+BVH\+::\+BVConstructorT$<$ P, BV $>$ \&a\+\_\+bv\+Constructor) noexcept
+{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a93d8216b391726ba65a47409e5d37534}{Fast\+Union}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+implicit\+Functions, const std\+::vector$<$ BV $>$ \&a\+\_\+bounding\+Volumes) noexcept
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the BVH-\/accelerated union of a bunch of a implicit functions. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_acc8ebe1d867ca6291cf171695860f99f}{Fast\+Smooth\+Union}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+implicit\+Functions, const EBGeometry\+::\+BVH\+::\+BVConstructorT$<$ P, BV $>$ \&a\+\_\+bv\+Constructor, const T a\+\_\+smooth\+Len) noexcept
+{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a46f23b756414e6a98e16c5e80ca11153}{Fast\+Smooth\+Union}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+implicit\+Functions, const std\+::vector$<$ BV $>$ \&a\+\_\+bounding\+Volumes, const T a\+\_\+smooth\+Len) noexcept
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the BVH-\/accelerated union of a bunch of a implicit functions. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T , class P $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a4805c0fb0ce70cfc3bc7c06d0614a0e4}{Intersection}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+implicit\+Functions) noexcept
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the intersection of a bunch of a implicit functions. \end{DoxyCompactList}\item 
@@ -114,12 +114,12 @@ Convenience function for taking the CSG difference.
 \begin{DoxyNote}{Note}
 P1 and P2 must derive from Implicit\+Function$<$\+T$>$ 
 \end{DoxyNote}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_acc8ebe1d867ca6291cf171695860f99f}\label{EBGeometry__CSG_8hpp_acc8ebe1d867ca6291cf171695860f99f}} 
+\mbox{\Hypertarget{EBGeometry__CSG_8hpp_a46f23b756414e6a98e16c5e80ca11153}\label{EBGeometry__CSG_8hpp_a46f23b756414e6a98e16c5e80ca11153}} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!FastSmoothUnion@{FastSmoothUnion}}
 \index{FastSmoothUnion@{FastSmoothUnion}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{FastSmoothUnion()}{FastSmoothUnion()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Fast\+Smooth\+Union (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+implicit\+Functions,  }\item[{const EBGeometry\+::\+BVH\+::\+BVConstructorT$<$ P, BV $>$ \&}]{a\+\_\+bv\+Constructor,  }\item[{const T}]{a\+\_\+smooth\+Len }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Fast\+Smooth\+Union (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+implicit\+Functions,  }\item[{const std\+::vector$<$ BV $>$ \&}]{a\+\_\+bounding\+Volumes,  }\item[{const T}]{a\+\_\+smooth\+Len }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -129,7 +129,7 @@ Convenience function for taking the BVH-\/accelerated union of a bunch of a impl
 \begin{DoxyParams}[1]{Parameters}
 \mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Functions} & Implicit functions \\
 \hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+bv\+Constructor} & Bounding volume constructor. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+bounding\+Volumes} & Bounding volumes for the implicit functions. \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+smooth\+Len} & Smoothing length \\
 \hline
@@ -137,12 +137,12 @@ Convenience function for taking the BVH-\/accelerated union of a bunch of a impl
 \begin{DoxyNote}{Note}
 P must derive from Implicit\+Function$<$\+T$>$ 
 \end{DoxyNote}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_ae77f9ccd38d8da0f8776694ca94b15cb}\label{EBGeometry__CSG_8hpp_ae77f9ccd38d8da0f8776694ca94b15cb}} 
+\mbox{\Hypertarget{EBGeometry__CSG_8hpp_a93d8216b391726ba65a47409e5d37534}\label{EBGeometry__CSG_8hpp_a93d8216b391726ba65a47409e5d37534}} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!FastUnion@{FastUnion}}
 \index{FastUnion@{FastUnion}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{FastUnion()}{FastUnion()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Fast\+Union (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+implicit\+Functions,  }\item[{const EBGeometry\+::\+BVH\+::\+BVConstructorT$<$ P, BV $>$ \&}]{a\+\_\+bv\+Constructor }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Fast\+Union (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+implicit\+Functions,  }\item[{const std\+::vector$<$ BV $>$ \&}]{a\+\_\+bounding\+Volumes }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -152,7 +152,7 @@ Convenience function for taking the BVH-\/accelerated union of a bunch of a impl
 \begin{DoxyParams}[1]{Parameters}
 \mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Functions} & Implicit functions \\
 \hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+bv\+Constructor} & Bounding volume constructor. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+bounding\+Volumes} & Bounding volumes for implicit functions. \\
 \hline
 \end{DoxyParams}
 \begin{DoxyNote}{Note}

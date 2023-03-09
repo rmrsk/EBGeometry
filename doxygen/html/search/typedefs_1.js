@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['dataconstructor_777',['DataConstructor',['../classOctree_1_1Node.html#aaec57ddb147bd9b8ac190f2c4d0e2eb2',1,'Octree::Node']]]
+  ['metaconstructor_768',['MetaConstructor',['../classOctree_1_1Node.html#ac6f2f5eed98ce36d71962f3aedaaa0b8',1,'Octree::Node']]],
+  ['metaupdater_769',['MetaUpdater',['../namespaceBVH.html#acaf9bd22eb434cf05f36d5ca61984b38',1,'BVH']]]
 ];

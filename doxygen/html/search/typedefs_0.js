@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['bvconstructort_776',['BVConstructorT',['../namespaceBVH.html#a245702d7eff40cdaedb5dff68c25a88a',1,'BVH']]]
+  ['dataconstructor_767',['DataConstructor',['../classOctree_1_1Node.html#aaec57ddb147bd9b8ac190f2c4d0e2eb2',1,'Octree::Node']]]
 ];

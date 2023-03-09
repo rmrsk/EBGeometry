@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['bvpartitioner_698',['bvPartitioner',['../namespaceDCEL.html#a47002d5944a0b0fa02e5873df52d4c2e',1,'DCEL']]]
+  ['bvcentroidpartitioner_692',['BVCentroidPartitioner',['../namespaceBVH.html#a5d49380a6db6e29200da88b68b1ba0a6',1,'BVH']]]
 ];

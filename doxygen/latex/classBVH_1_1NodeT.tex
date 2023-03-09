@@ -48,33 +48,30 @@ using {\bfseries Node\+Ptr} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBV
 using {\bfseries Stop\+Function} = \mbox{\hyperlink{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}{Stop\+FunctionT}}$<$ T, P, BV, K $>$
 \item 
 \mbox{\Hypertarget{classBVH_1_1NodeT_ab3b7afb83f7ecf97d1985c3c5ade2f0a}\label{classBVH_1_1NodeT_ab3b7afb83f7ecf97d1985c3c5ade2f0a}} 
-using {\bfseries Partitioner} = \mbox{\hyperlink{namespaceBVH_a67de8088141156b6eaa225a635cc68c0}{PartitionerT}}$<$ P, BV, K $>$
-\item 
-\mbox{\Hypertarget{classBVH_1_1NodeT_a2340f2466ed5b6eebab4bdc72004858e}\label{classBVH_1_1NodeT_a2340f2466ed5b6eebab4bdc72004858e}} 
-using {\bfseries BVConstructor} = \mbox{\hyperlink{namespaceBVH_a245702d7eff40cdaedb5dff68c25a88a}{BVConstructorT}}$<$ P, BV $>$
+using {\bfseries Partitioner} = \mbox{\hyperlink{namespaceBVH_ae7e5e97e86dfe5a7103cbf2918f0cfc9}{PartitionerT}}$<$ P, BV, K $>$
 \end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classBVH_1_1NodeT_a960d0972bec81cf782b36e57f87da1f1}\label{classBVH_1_1NodeT_a960d0972bec81cf782b36e57f87da1f1}} 
-\mbox{\hyperlink{classBVH_1_1NodeT_a960d0972bec81cf782b36e57f87da1f1}{NodeT}} ()
+\mbox{\Hypertarget{classBVH_1_1NodeT_a7d0568132459d93b219633fdc58d110d}\label{classBVH_1_1NodeT_a7d0568132459d93b219633fdc58d110d}} 
+\mbox{\hyperlink{classBVH_1_1NodeT_a7d0568132459d93b219633fdc58d110d}{NodeT}} () noexcept
 \begin{DoxyCompactList}\small\item\em Default constructor which sets a regular node. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classBVH_1_1NodeT_ac5b0e8e32d6160601bca0a4a9dba781a}{NodeT}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+primitives)
-\begin{DoxyCompactList}\small\item\em Construct node from a set of primitives. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classBVH_1_1NodeT_a42538439c8df2ef5bdbafe609b31d44d}{NodeT}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&a\+\_\+primitives)
-\begin{DoxyCompactList}\small\item\em Construct node from a set of primitives. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBVH_1_1NodeT_a3519c9aad8410c0703589997c65a4924}\label{classBVH_1_1NodeT_a3519c9aad8410c0703589997c65a4924}} 
-virtual \mbox{\hyperlink{classBVH_1_1NodeT_a3519c9aad8410c0703589997c65a4924}{$\sim$\+NodeT}} ()
+\mbox{\hyperlink{classBVH_1_1NodeT_af6aeab9124caa0cfe4b84bcea6d4edae}{NodeT}} (const std\+::vector$<$ \mbox{\hyperlink{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}{Prim\+And\+BV}}$<$ P, BV $>$$>$ \&a\+\_\+prims\+And\+BVs) noexcept
+\begin{DoxyCompactList}\small\item\em Construct a \mbox{\hyperlink{namespaceBVH}{BVH}} node from a set of primitives and their bounding volumes. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBVH_1_1NodeT_ab4d707ae5a863a7b3b823786cbb343cb}\label{classBVH_1_1NodeT_ab4d707ae5a863a7b3b823786cbb343cb}} 
+virtual \mbox{\hyperlink{classBVH_1_1NodeT_ab4d707ae5a863a7b3b823786cbb343cb}{$\sim$\+NodeT}} () noexcept
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
-void \mbox{\hyperlink{classBVH_1_1NodeT_acae5a575fa8b236de984fdd41e04c038}{top\+Down\+Sort\+And\+Partition\+Primitives}} (const BVConstructor \&a\+\_\+bv\+Constructor, const Partitioner \&a\+\_\+partitioner, const Stop\+Function \&a\+\_\+stop\+Crit) noexcept
+void \mbox{\hyperlink{classBVH_1_1NodeT_a96febb1814ab25d04b719350a93f5e7f}{top\+Down\+Sort\+And\+Partition}} (const Partitioner \&a\+\_\+partitioner=\mbox{\hyperlink{namespaceBVH_a5d49380a6db6e29200da88b68b1ba0a6}{BVCentroid\+Partitioner}}$<$ T, P, BV, K $>$, const Stop\+Function \&a\+\_\+stop\+Crit=\mbox{\hyperlink{namespaceBVH_a21d8f7ec763e9a30d43c68abe2e63f18}{Default\+Stop\+Function}}$<$ T, P, BV, K $>$) noexcept
 \begin{DoxyCompactList}\small\item\em Function for using top-\/down construction of the bounding volume hierarchy. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classBVH_1_1NodeT_a5c57552524601da9bf20e722e2433aa0}\label{classBVH_1_1NodeT_a5c57552524601da9bf20e722e2433aa0}} 
 bool \mbox{\hyperlink{classBVH_1_1NodeT_a5c57552524601da9bf20e722e2433aa0}{is\+Leaf}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get node type. \end{DoxyCompactList}\item 
-const Primitive\+List \& \mbox{\hyperlink{classBVH_1_1NodeT_a824a733984530c040215b76c10950045}{get\+Primitives}} () const noexcept
-\begin{DoxyCompactList}\small\item\em Get the primitives stored in this node. \end{DoxyCompactList}\item 
 const BV \& \mbox{\hyperlink{classBVH_1_1NodeT_a4fe7178c2bd08a246cbea5b411ce5e9d}{get\+Bounding\+Volume}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get bounding volume. \end{DoxyCompactList}\item 
+const Primitive\+List \& \mbox{\hyperlink{classBVH_1_1NodeT_a824a733984530c040215b76c10950045}{get\+Primitives}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the primitives stored in this node. \end{DoxyCompactList}\item 
+const std\+::vector$<$ BV $>$ \& \mbox{\hyperlink{classBVH_1_1NodeT_a445cb18bc2e016830141e6596dd31a15}{get\+Bounding\+Volumes}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the bounding volumes for the primitives in this node (can be empty if regular node) \end{DoxyCompactList}\item 
 T \mbox{\hyperlink{classBVH_1_1NodeT_a8da9f78078b0a579868d026bd61a2947}{get\+Distance\+To\+Bounding\+Volume}} (const \mbox{\hyperlink{classVec3T}{Vec3}} \&a\+\_\+point) const noexcept
 \begin{DoxyCompactList}\small\item\em Get the distance from a 3D point to the bounding volume. \end{DoxyCompactList}\item 
 const std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}$<$ T, P, BV, K $>$ $>$, K $>$ \& \mbox{\hyperlink{classBVH_1_1NodeT_ae3eb77a0e821da201ef02093a4692cce}{get\+Children}} () const noexcept
@@ -88,10 +85,10 @@ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1LinearBVH}{Linear\+BVH}}$
 \item 
 void \mbox{\hyperlink{classBVH_1_1NodeT_a83c128d1045ccc23000a8b26f75b3172}{insert\+Children}} (const std\+::array$<$ Primitive\+List, K $>$ \&a\+\_\+primitives) noexcept
 \begin{DoxyCompactList}\small\item\em Insert nodes with primitives. \end{DoxyCompactList}\item 
-void \mbox{\hyperlink{classBVH_1_1NodeT_a2c9c3d3a83b3c1895c8f89b2bbd62e81}{set\+Primitives}} (const Primitive\+List \&a\+\_\+primitives) noexcept
-\begin{DoxyCompactList}\small\item\em Set primitives in this node. \end{DoxyCompactList}\item 
 Primitive\+List \& \mbox{\hyperlink{classBVH_1_1NodeT_ae4d94382126f1e9f29a58cd6583782b6}{get\+Primitives}} () noexcept
 \begin{DoxyCompactList}\small\item\em Get the list of primitives in this node. \end{DoxyCompactList}\item 
+std\+::vector$<$ BV $>$ \& \mbox{\hyperlink{classBVH_1_1NodeT_a143b2cef57ce44573fed2295581d1c54}{get\+Bounding\+Volumes}} () noexcept
+\begin{DoxyCompactList}\small\item\em Get the bounding volumes for the primitives in this node (can be empty if regular node) \end{DoxyCompactList}\item 
 size\+\_\+t \mbox{\hyperlink{classBVH_1_1NodeT_a950e1bcd16baa78ede8f6559754a639d}{flatten\+Tree}} (std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ T, P, BV, K $>$$>$$>$ \&a\+\_\+linear\+Nodes, std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&a\+\_\+sorted\+Primitives, size\+\_\+t \&a\+\_\+offset) const noexcept
 \begin{DoxyCompactList}\small\item\em Flatten tree method. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Attributes}
@@ -99,10 +96,13 @@ size\+\_\+t \mbox{\hyperlink{classBVH_1_1NodeT_a950e1bcd16baa78ede8f6559754a639d
 \item 
 \mbox{\Hypertarget{classBVH_1_1NodeT_a7f8720f2ab03ee9e81de114c479cb2e5}\label{classBVH_1_1NodeT_a7f8720f2ab03ee9e81de114c479cb2e5}} 
 BV \mbox{\hyperlink{classBVH_1_1NodeT_a7f8720f2ab03ee9e81de114c479cb2e5}{m\+\_\+bounding\+Volume}}
-\begin{DoxyCompactList}\small\item\em Bounding volume object. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Bounding volume object for enclosing everything in this node. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classBVH_1_1NodeT_a3c45be2075d8cdfd0dc0a9e73373b64d}\label{classBVH_1_1NodeT_a3c45be2075d8cdfd0dc0a9e73373b64d}} 
 std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$ \mbox{\hyperlink{classBVH_1_1NodeT_a3c45be2075d8cdfd0dc0a9e73373b64d}{m\+\_\+primitives}}
 \begin{DoxyCompactList}\small\item\em Primitives list. This will be empty for regular nodes. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBVH_1_1NodeT_aa490d577a276c3fce47f3baebb27bf03}\label{classBVH_1_1NodeT_aa490d577a276c3fce47f3baebb27bf03}} 
+std\+::vector$<$ BV $>$ \mbox{\hyperlink{classBVH_1_1NodeT_aa490d577a276c3fce47f3baebb27bf03}{m\+\_\+bounding\+Volumes}}
+\begin{DoxyCompactList}\small\item\em List of bounding volumes for the primitives. This will be empty for regular nodes. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classBVH_1_1NodeT_afaf556d6faa78c2cc2b27c82feb0145c}\label{classBVH_1_1NodeT_afaf556d6faa78c2cc2b27c82feb0145c}} 
 std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}$<$ T, P, BV, K $>$ $>$, K $>$ \mbox{\hyperlink{classBVH_1_1NodeT_afaf556d6faa78c2cc2b27c82feb0145c}{m\+\_\+children}}
 \begin{DoxyCompactList}\small\item\em Children nodes. \end{DoxyCompactList}\end{DoxyCompactItemize}
@@ -123,36 +123,20 @@ T is the precision, P is the primitive type you want to enclose, BV is the bound
 on. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classBVH_1_1NodeT_ac5b0e8e32d6160601bca0a4a9dba781a}\label{classBVH_1_1NodeT_ac5b0e8e32d6160601bca0a4a9dba781a}} 
+\mbox{\Hypertarget{classBVH_1_1NodeT_af6aeab9124caa0cfe4b84bcea6d4edae}\label{classBVH_1_1NodeT_af6aeab9124caa0cfe4b84bcea6d4edae}} 
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!NodeT@{NodeT}}
 \index{NodeT@{NodeT}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
-\doxysubsubsection{\texorpdfstring{NodeT()}{NodeT()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+\doxysubsubsection{\texorpdfstring{NodeT()}{NodeT()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-\mbox{\hyperlink{classBVH_1_1NodeT}{BVH\+::\+NodeT}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+primitives }\end{DoxyParamCaption})}
+\mbox{\hyperlink{classBVH_1_1NodeT}{BVH\+::\+NodeT}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ \mbox{\hyperlink{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}{Prim\+And\+BV}}$<$ P, BV $>$$>$ \&}]{a\+\_\+prims\+And\+BVs }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
-Construct node from a set of primitives. 
+Construct a \mbox{\hyperlink{namespaceBVH}{BVH}} node from a set of primitives and their bounding volumes. 
 
-This node becomes a leaf node which contains the input primitives. 
+
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & Input primitives. \\
-\hline
-\end{DoxyParams}
-\mbox{\Hypertarget{classBVH_1_1NodeT_a42538439c8df2ef5bdbafe609b31d44d}\label{classBVH_1_1NodeT_a42538439c8df2ef5bdbafe609b31d44d}} 
-\index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!NodeT@{NodeT}}
-\index{NodeT@{NodeT}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
-\doxysubsubsection{\texorpdfstring{NodeT()}{NodeT()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-\mbox{\hyperlink{classBVH_1_1NodeT}{BVH\+::\+NodeT}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&}]{a\+\_\+primitives }\end{DoxyParamCaption})}
-
-
-
-Construct node from a set of primitives. 
-
-This node becomes a leaf node which contains the input primitives. 
-\begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & Input primitives. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+prims\+And\+BVs} & Primitives and their bounding volumes \\
 \hline
 \end{DoxyParams}
 
@@ -205,6 +189,34 @@ Get bounding volume.
 
 \begin{DoxyReturn}{Returns}
 m\+\_\+bv 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classBVH_1_1NodeT_a445cb18bc2e016830141e6596dd31a15}\label{classBVH_1_1NodeT_a445cb18bc2e016830141e6596dd31a15}} 
+\index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!getBoundingVolumes@{getBoundingVolumes}}
+\index{getBoundingVolumes@{getBoundingVolumes}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{getBoundingVolumes()}{getBoundingVolumes()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
+const std\+::vector$<$BV$>$\& \mbox{\hyperlink{classBVH_1_1NodeT}{BVH\+::\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Bounding\+Volumes (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the bounding volumes for the primitives in this node (can be empty if regular node) 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+bounding\+Volumes 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classBVH_1_1NodeT_a143b2cef57ce44573fed2295581d1c54}\label{classBVH_1_1NodeT_a143b2cef57ce44573fed2295581d1c54}} 
+\index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!getBoundingVolumes@{getBoundingVolumes}}
+\index{getBoundingVolumes@{getBoundingVolumes}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{getBoundingVolumes()}{getBoundingVolumes()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
+std\+::vector$<$BV$>$\& \mbox{\hyperlink{classBVH_1_1NodeT}{BVH\+::\+NodeT}}$<$ T, P, BV, K $>$\+::get\+Bounding\+Volumes (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+
+
+
+Get the bounding volumes for the primitives in this node (can be empty if regular node) 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+bounding\+Volumes 
 \end{DoxyReturn}
 \mbox{\Hypertarget{classBVH_1_1NodeT_ae3eb77a0e821da201ef02093a4692cce}\label{classBVH_1_1NodeT_ae3eb77a0e821da201ef02093a4692cce}} 
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!getChildren@{getChildren}}
@@ -283,38 +295,20 @@ Insert nodes with primitives.
 \mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & Primitives for children. \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classBVH_1_1NodeT_a2c9c3d3a83b3c1895c8f89b2bbd62e81}\label{classBVH_1_1NodeT_a2c9c3d3a83b3c1895c8f89b2bbd62e81}} 
-\index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!setPrimitives@{setPrimitives}}
-\index{setPrimitives@{setPrimitives}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
-\doxysubsubsection{\texorpdfstring{setPrimitives()}{setPrimitives()}}
+\mbox{\Hypertarget{classBVH_1_1NodeT_a96febb1814ab25d04b719350a93f5e7f}\label{classBVH_1_1NodeT_a96febb1814ab25d04b719350a93f5e7f}} 
+\index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!topDownSortAndPartition@{topDownSortAndPartition}}
+\index{topDownSortAndPartition@{topDownSortAndPartition}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{topDownSortAndPartition()}{topDownSortAndPartition()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-void \mbox{\hyperlink{classBVH_1_1NodeT}{BVH\+::\+NodeT}}$<$ T, P, BV, K $>$\+::set\+Primitives (\begin{DoxyParamCaption}\item[{const Primitive\+List \&}]{a\+\_\+primitives }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
-
-
-
-Set primitives in this node. 
-
-
-\begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & Primitives \\
-\hline
-\end{DoxyParams}
-\mbox{\Hypertarget{classBVH_1_1NodeT_acae5a575fa8b236de984fdd41e04c038}\label{classBVH_1_1NodeT_acae5a575fa8b236de984fdd41e04c038}} 
-\index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!topDownSortAndPartitionPrimitives@{topDownSortAndPartitionPrimitives}}
-\index{topDownSortAndPartitionPrimitives@{topDownSortAndPartitionPrimitives}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
-\doxysubsubsection{\texorpdfstring{topDownSortAndPartitionPrimitives()}{topDownSortAndPartitionPrimitives()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-void \mbox{\hyperlink{classBVH_1_1NodeT}{BVH\+::\+NodeT}}$<$ T, P, BV, K $>$\+::top\+Down\+Sort\+And\+Partition\+Primitives (\begin{DoxyParamCaption}\item[{const BVConstructor \&}]{a\+\_\+bv\+Constructor,  }\item[{const Partitioner \&}]{a\+\_\+partitioner,  }\item[{const Stop\+Function \&}]{a\+\_\+stop\+Crit }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+void \mbox{\hyperlink{classBVH_1_1NodeT}{BVH\+::\+NodeT}}$<$ T, P, BV, K $>$\+::top\+Down\+Sort\+And\+Partition (\begin{DoxyParamCaption}\item[{const Partitioner \&}]{a\+\_\+partitioner = {\ttfamily \mbox{\hyperlink{namespaceBVH_a5d49380a6db6e29200da88b68b1ba0a6}{BVCentroid\+Partitioner}}$<$~T,~P,~BV,~K~$>$},  }\item[{const Stop\+Function \&}]{a\+\_\+stop\+Crit = {\ttfamily \mbox{\hyperlink{namespaceBVH_a21d8f7ec763e9a30d43c68abe2e63f18}{Default\+Stop\+Function}}$<$~T,~P,~BV,~K~$>$} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
 Function for using top-\/down construction of the bounding volume hierarchy. 
 
-The rules for terminating the hierarchy construction, how to partition sets of primitives, and how to enclose them by bounding volumes are given in the input arguments (a\+\_\+stop\+Func, a\+\_\+part\+Func, a\+\_\+bv\+Func) 
+The rules for terminating the hierarchy construction, and how to partition them are encoded in the input arguments (a\+\_\+partitioner, a\+\_\+stop\+Crit). 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+bv\+Constructor} & Polymorphic function which builds a bounding volume from a set of primitives. \\
-\hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+partitioner} & Partitioning function. This is a polymorphic function which divides a set of primitives into two lists. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+partitioner} & Partitioning function. This is a polymorphic function which divides a set of primitives into two or more sub-\/lists. \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+stop\+Crit} & Termination function which tells us when to stop the recursion. \\
 \hline

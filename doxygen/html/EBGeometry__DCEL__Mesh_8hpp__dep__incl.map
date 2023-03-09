@@ -1,7 +1,6 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_DCEL_Mesh.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_DCEL_Mesh.hpp">
-<area shape="rect" id="node1" title="Declaration of a mesh class which stores a DCEL mesh (with signed distance functions)" alt="" coords="111,5,354,61"/>
-<area shape="rect" id="node2" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="117,317,348,359"/>
-<area shape="rect" id="node3" href="$EBGeometry__DCEL__BVH_8hpp.html" title="File which contains partitioners and lambdas for enclosing DCEL faces in bounding volume hierarchies." alt="" coords="33,213,275,269"/>
-<area shape="rect" id="node4" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="191,109,434,165"/>
-<area shape="rect" id="node5" href="$EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="350,213,593,269"/>
+<area shape="rect" id="node1" title="Declaration of a mesh class which stores a DCEL mesh (with signed distance functions)" alt="" coords="54,5,297,61"/>
+<area shape="rect" id="node2" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="5,317,236,359"/>
+<area shape="rect" id="node3" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="54,109,297,165"/>
+<area shape="rect" id="node4" href="$EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="158,213,401,269"/>
 </map>

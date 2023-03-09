@@ -99,9 +99,6 @@ Collaboration diagram for FastUnionIF&lt; T, P, BV, K &gt;:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:adc62b35aaabc59438eafe5d69acbab7c"><td class="memItemLeft" align="right" valign="top"><a id="adc62b35aaabc59438eafe5d69acbab7c"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>BVConstructor</b> = typename EBGeometry::BVH::BVConstructorT&lt; P, BV &gt;</td></tr>
-<tr class="separator:adc62b35aaabc59438eafe5d69acbab7c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a76c2a52e83d11ffe9a683c1600250d42"><td class="memItemLeft" align="right" valign="top"><a id="a76c2a52e83d11ffe9a683c1600250d42"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>Root</b> = typename EBGeometry::BVH::LinearBVH&lt; T, P, BV, K &gt;</td></tr>
 <tr class="separator:a76c2a52e83d11ffe9a683c1600250d42"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -115,9 +112,12 @@ Public Member Functions</h2></td></tr>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastUnionIF.html#a3c01a0591fa38e6592c4db4d36daaf56">FastUnionIF</a> ()=delete</td></tr>
 <tr class="memdesc:a3c01a0591fa38e6592c4db4d36daaf56"><td class="mdescLeft">&#160;</td><td class="mdescRight">Disallowed, use the full constructor. <br /></td></tr>
 <tr class="separator:a3c01a0591fa38e6592c4db4d36daaf56"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a44537f6cba096c263e5e853a54279c43"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastUnionIF.html#a44537f6cba096c263e5e853a54279c43">FastUnionIF</a> (const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;a_distanceFunctions, const BVConstructor &amp;a_bvConstructor)</td></tr>
-<tr class="memdesc:a44537f6cba096c263e5e853a54279c43"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor - constructs bounding volumes in place.  <a href="classFastUnionIF.html#a44537f6cba096c263e5e853a54279c43">More...</a><br /></td></tr>
-<tr class="separator:a44537f6cba096c263e5e853a54279c43"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab7beddf28f4ede606bffa12899cf9579"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastUnionIF.html#ab7beddf28f4ede606bffa12899cf9579">FastUnionIF</a> (const std::vector&lt; std::pair&lt; std::shared_ptr&lt; const P &gt;, BV &gt;&gt; &amp;a_primsAndBVs) noexcept</td></tr>
+<tr class="memdesc:ab7beddf28f4ede606bffa12899cf9579"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor - constructs bounding volumes in place.  <a href="classFastUnionIF.html#ab7beddf28f4ede606bffa12899cf9579">More...</a><br /></td></tr>
+<tr class="separator:ab7beddf28f4ede606bffa12899cf9579"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a60dd3fb7c67dd19f06965202d708824c"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastUnionIF.html#a60dd3fb7c67dd19f06965202d708824c">FastUnionIF</a> (const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;a_primitives, const std::vector&lt; BV &gt; &amp;a_boundingVolumes) noexcept</td></tr>
+<tr class="memdesc:a60dd3fb7c67dd19f06965202d708824c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor - constructs bounding volumes in place.  <a href="classFastUnionIF.html#a60dd3fb7c67dd19f06965202d708824c">More...</a><br /></td></tr>
+<tr class="separator:a60dd3fb7c67dd19f06965202d708824c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aef8d73d72bcf3d764914d55ed16eef77"><td class="memItemLeft" align="right" valign="top"><a id="aef8d73d72bcf3d764914d55ed16eef77"></a>
 virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastUnionIF.html#aef8d73d72bcf3d764914d55ed16eef77">~FastUnionIF</a> ()=default</td></tr>
 <tr class="memdesc:aef8d73d72bcf3d764914d55ed16eef77"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor (does nothing) <br /></td></tr>
@@ -148,9 +148,9 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
-<tr class="memitem:afc6e7b25681dff3f6f2d9eb3805d8537"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastUnionIF.html#afc6e7b25681dff3f6f2d9eb3805d8537">buildTree</a> (const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;a_distanceFunctions, const BVConstructor &amp;a_bvConstructor) noexcept</td></tr>
-<tr class="memdesc:afc6e7b25681dff3f6f2d9eb3805d8537"><td class="mdescLeft">&#160;</td><td class="mdescRight">Build <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree for the input objects. User must supply a partitioner and a BV constructor for the SDF objects.  <a href="classFastUnionIF.html#afc6e7b25681dff3f6f2d9eb3805d8537">More...</a><br /></td></tr>
-<tr class="separator:afc6e7b25681dff3f6f2d9eb3805d8537"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeea313b474a61a2a3c30bbcc08b12622"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastUnionIF.html#aeea313b474a61a2a3c30bbcc08b12622">buildTree</a> (const std::vector&lt; std::pair&lt; std::shared_ptr&lt; const P &gt;, BV &gt;&gt; &amp;a_primsAndBVs) noexcept</td></tr>
+<tr class="memdesc:aeea313b474a61a2a3c30bbcc08b12622"><td class="mdescLeft">&#160;</td><td class="mdescRight">Build <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree for the input objects.  <a href="classFastUnionIF.html#aeea313b474a61a2a3c30bbcc08b12622">More...</a><br /></td></tr>
+<tr class="separator:aeea313b474a61a2a3c30bbcc08b12622"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
@@ -164,27 +164,65 @@ std::shared_ptr&lt; EBGeometry::BVH::LinearBVH&lt; T, P, BV, K &gt; &gt;&#160;</
 class FastUnionIF&lt; T, P, BV, K &gt;</h3>
 
 <p>Implicit function union using BVHs. </p>
-<dl class="section note"><dt>Note</dt><dd>If the BVH-enabled union is to make sense, the primitives must be distance fields (I think). There's a static_assert to make sure of that. </dd></dl>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a44537f6cba096c263e5e853a54279c43"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a44537f6cba096c263e5e853a54279c43">&#9670;&nbsp;</a></span>FastUnionIF()</h2>
+<a id="ab7beddf28f4ede606bffa12899cf9579"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab7beddf28f4ede606bffa12899cf9579">&#9670;&nbsp;</a></span>FastUnionIF() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;class T , class P , class BV , size_t K&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classFastUnionIF.html">FastUnionIF</a>&lt; T, P, BV, K &gt;::<a class="el" href="classFastUnionIF.html">FastUnionIF</a> </td>
+          <td>(</td>
+          <td class="paramtype">const std::vector&lt; std::pair&lt; std::shared_ptr&lt; const P &gt;, BV &gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_primsAndBVs</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Full constructor - constructs bounding volumes in place. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_primsAndBVs</td><td>Primitives and their bounding volumes. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a60dd3fb7c67dd19f06965202d708824c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a60dd3fb7c67dd19f06965202d708824c">&#9670;&nbsp;</a></span>FastUnionIF() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T , class P , class BV , size_t K&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="classFastUnionIF.html">FastUnionIF</a>&lt; T, P, BV, K &gt;::<a class="el" href="classFastUnionIF.html">FastUnionIF</a> </td>
           <td>(</td>
           <td class="paramtype">const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_distanceFunctions</em>, </td>
+          <td class="paramname"><em>a_primitives</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const BVConstructor &amp;&#160;</td>
-          <td class="paramname"><em>a_bvConstructor</em>&#160;</td>
+          <td class="paramtype">const std::vector&lt; BV &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_boundingVolumes</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -192,13 +230,18 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
           <td></td><td></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 <p>Full constructor - constructs bounding volumes in place. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_distanceFunctions</td><td>Signed distance functions. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_bvConstructor</td><td>Bounding volume constructor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_primitives</td><td>Input primitives. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_boundingVolumes</td><td>Bounding volumes for primitives. </td></tr>
   </table>
   </dd>
 </dl>
@@ -206,8 +249,8 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="afc6e7b25681dff3f6f2d9eb3805d8537"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afc6e7b25681dff3f6f2d9eb3805d8537">&#9670;&nbsp;</a></span>buildTree()</h2>
+<a id="aeea313b474a61a2a3c30bbcc08b12622"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aeea313b474a61a2a3c30bbcc08b12622">&#9670;&nbsp;</a></span>buildTree()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -220,19 +263,9 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
         <tr>
           <td class="memname">void <a class="el" href="classFastUnionIF.html">FastUnionIF</a>&lt; T, P, BV, K &gt;::buildTree </td>
           <td>(</td>
-          <td class="paramtype">const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_distanceFunctions</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
+          <td class="paramtype">const std::vector&lt; std::pair&lt; std::shared_ptr&lt; const P &gt;, BV &gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_primsAndBVs</em></td><td>)</td>
           <td></td>
-          <td class="paramtype">const BVConstructor &amp;&#160;</td>
-          <td class="paramname"><em>a_bvConstructor</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
         </tr>
       </table>
   </td>
@@ -242,11 +275,10 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Build <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree for the input objects. User must supply a partitioner and a BV constructor for the SDF objects. </p>
+<p>Build <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree for the input objects. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_distanceFunctions</td><td>Distance functions </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_bvConstructor</td><td>Constructor for building a bounding volume that encloses an object. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_primsAndBVs</td><td>Geometric primitives and their bounding volumes. </td></tr>
   </table>
   </dd>
 </dl>

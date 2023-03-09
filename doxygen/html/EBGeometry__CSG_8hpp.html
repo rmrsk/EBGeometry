@@ -160,14 +160,14 @@ Functions</h2></td></tr>
 <tr class="memitem:a5a8dd7e226e420c4268e101d859fbc29"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__CSG_8hpp.html#a5a8dd7e226e420c4268e101d859fbc29">SmoothUnion</a> (const std::shared_ptr&lt; P1 &gt; &amp;a_implicitFunctionA, const std::shared_ptr&lt; P2 &gt; &amp;a_implicitFunctionB, const T a_smooth) noexcept</td></tr>
 <tr class="memdesc:a5a8dd7e226e420c4268e101d859fbc29"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for taking the union of two implicit functions.  <a href="EBGeometry__CSG_8hpp.html#a5a8dd7e226e420c4268e101d859fbc29">More...</a><br /></td></tr>
 <tr class="separator:a5a8dd7e226e420c4268e101d859fbc29"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae77f9ccd38d8da0f8776694ca94b15cb"><td class="memTemplParams" colspan="2">template&lt;class T , class P , class BV , size_t K&gt; </td></tr>
-<tr class="memitem:ae77f9ccd38d8da0f8776694ca94b15cb"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__CSG_8hpp.html#ae77f9ccd38d8da0f8776694ca94b15cb">FastUnion</a> (const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;a_implicitFunctions, const EBGeometry::BVH::BVConstructorT&lt; P, BV &gt; &amp;a_bvConstructor) noexcept</td></tr>
-<tr class="memdesc:ae77f9ccd38d8da0f8776694ca94b15cb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for taking the BVH-accelerated union of a bunch of a implicit functions.  <a href="EBGeometry__CSG_8hpp.html#ae77f9ccd38d8da0f8776694ca94b15cb">More...</a><br /></td></tr>
-<tr class="separator:ae77f9ccd38d8da0f8776694ca94b15cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acc8ebe1d867ca6291cf171695860f99f"><td class="memTemplParams" colspan="2">template&lt;class T , class P , class BV , size_t K&gt; </td></tr>
-<tr class="memitem:acc8ebe1d867ca6291cf171695860f99f"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__CSG_8hpp.html#acc8ebe1d867ca6291cf171695860f99f">FastSmoothUnion</a> (const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;a_implicitFunctions, const EBGeometry::BVH::BVConstructorT&lt; P, BV &gt; &amp;a_bvConstructor, const T a_smoothLen) noexcept</td></tr>
-<tr class="memdesc:acc8ebe1d867ca6291cf171695860f99f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for taking the BVH-accelerated union of a bunch of a implicit functions.  <a href="EBGeometry__CSG_8hpp.html#acc8ebe1d867ca6291cf171695860f99f">More...</a><br /></td></tr>
-<tr class="separator:acc8ebe1d867ca6291cf171695860f99f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a93d8216b391726ba65a47409e5d37534"><td class="memTemplParams" colspan="2">template&lt;class T , class P , class BV , size_t K&gt; </td></tr>
+<tr class="memitem:a93d8216b391726ba65a47409e5d37534"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__CSG_8hpp.html#a93d8216b391726ba65a47409e5d37534">FastUnion</a> (const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;a_implicitFunctions, const std::vector&lt; BV &gt; &amp;a_boundingVolumes) noexcept</td></tr>
+<tr class="memdesc:a93d8216b391726ba65a47409e5d37534"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for taking the BVH-accelerated union of a bunch of a implicit functions.  <a href="EBGeometry__CSG_8hpp.html#a93d8216b391726ba65a47409e5d37534">More...</a><br /></td></tr>
+<tr class="separator:a93d8216b391726ba65a47409e5d37534"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a46f23b756414e6a98e16c5e80ca11153"><td class="memTemplParams" colspan="2">template&lt;class T , class P , class BV , size_t K&gt; </td></tr>
+<tr class="memitem:a46f23b756414e6a98e16c5e80ca11153"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__CSG_8hpp.html#a46f23b756414e6a98e16c5e80ca11153">FastSmoothUnion</a> (const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;a_implicitFunctions, const std::vector&lt; BV &gt; &amp;a_boundingVolumes, const T a_smoothLen) noexcept</td></tr>
+<tr class="memdesc:a46f23b756414e6a98e16c5e80ca11153"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for taking the BVH-accelerated union of a bunch of a implicit functions.  <a href="EBGeometry__CSG_8hpp.html#a46f23b756414e6a98e16c5e80ca11153">More...</a><br /></td></tr>
+<tr class="separator:a46f23b756414e6a98e16c5e80ca11153"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4805c0fb0ce70cfc3bc7c06d0614a0e4"><td class="memTemplParams" colspan="2">template&lt;class T , class P &gt; </td></tr>
 <tr class="memitem:a4805c0fb0ce70cfc3bc7c06d0614a0e4"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__CSG_8hpp.html#a4805c0fb0ce70cfc3bc7c06d0614a0e4">Intersection</a> (const std::vector&lt; std::shared_ptr&lt; P &gt;&gt; &amp;a_implicitFunctions) noexcept</td></tr>
 <tr class="memdesc:a4805c0fb0ce70cfc3bc7c06d0614a0e4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for taking the intersection of a bunch of a implicit functions.  <a href="EBGeometry__CSG_8hpp.html#a4805c0fb0ce70cfc3bc7c06d0614a0e4">More...</a><br /></td></tr>
@@ -260,8 +260,8 @@ template&lt;class T , class P1  = ImplicitFunction&lt;T&gt;, class P2  = Implici
 
 </div>
 </div>
-<a id="acc8ebe1d867ca6291cf171695860f99f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acc8ebe1d867ca6291cf171695860f99f">&#9670;&nbsp;</a></span>FastSmoothUnion()</h2>
+<a id="a46f23b756414e6a98e16c5e80ca11153"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a46f23b756414e6a98e16c5e80ca11153">&#9670;&nbsp;</a></span>FastSmoothUnion()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -280,8 +280,8 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const EBGeometry::BVH::BVConstructorT&lt; P, BV &gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_bvConstructor</em>, </td>
+          <td class="paramtype">const std::vector&lt; BV &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_boundingVolumes</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -306,7 +306,7 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunctions</td><td>Implicit functions </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_bvConstructor</td><td>Bounding volume constructor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_boundingVolumes</td><td>Bounding volumes for the implicit functions. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">a_smoothLen</td><td>Smoothing length </td></tr>
   </table>
   </dd>
@@ -315,8 +315,8 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 
 </div>
 </div>
-<a id="ae77f9ccd38d8da0f8776694ca94b15cb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae77f9ccd38d8da0f8776694ca94b15cb">&#9670;&nbsp;</a></span>FastUnion()</h2>
+<a id="a93d8216b391726ba65a47409e5d37534"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a93d8216b391726ba65a47409e5d37534">&#9670;&nbsp;</a></span>FastUnion()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -335,8 +335,8 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const EBGeometry::BVH::BVConstructorT&lt; P, BV &gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_bvConstructor</em>&#160;</td>
+          <td class="paramtype">const std::vector&lt; BV &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_boundingVolumes</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -355,7 +355,7 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunctions</td><td>Implicit functions </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_bvConstructor</td><td>Bounding volume constructor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_boundingVolumes</td><td>Bounding volumes for implicit functions. </td></tr>
   </table>
   </dd>
 </dl>

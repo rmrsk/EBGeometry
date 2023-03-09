@@ -85,113 +85,122 @@ $(function() {
 <div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__BVH_8hpp.html">EBGeometry_BVH.hpp</a>&quot;</span></div>
 <div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="EBGeometry__NamespaceHeader_8hpp.html">EBGeometry_NamespaceHeader.hpp</a>&quot;</span></div>
 <div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160; </div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00026"></a><span class="lineno"><a class="line" href="classMeshSDF.html">   26</a></span>&#160;<span class="keyword">class </span><a class="code" href="classMeshSDF.html">MeshSDF</a> : <span class="keyword">public</span> <a class="code" href="classSignedDistanceFunction.html">SignedDistanceFunction</a>&lt;T&gt;</div>
-<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;{</div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;  <span class="keyword">using</span> Mesh = EBGeometry::DCEL::MeshT&lt;T&gt;;</div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160; </div>
-<div class="line"><a name="l00034"></a><span class="lineno"><a class="line" href="classMeshSDF.html#ad7d0a26853e41fb2d0b59ef6be7ec5c9">   34</a></span>&#160;  <a class="code" href="classMeshSDF.html#ad7d0a26853e41fb2d0b59ef6be7ec5c9">MeshSDF</a>() = <span class="keyword">delete</span>;</div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160; </div>
-<div class="line"><a name="l00040"></a><span class="lineno"><a class="line" href="classMeshSDF.html#a08e25ae87dd19361eff117000ea37141">   40</a></span>&#160;  <a class="code" href="classMeshSDF.html#a08e25ae87dd19361eff117000ea37141">MeshSDF</a>(<span class="keyword">const</span> std::shared_ptr&lt;Mesh&gt;&amp; a_mesh) noexcept;</div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160; </div>
-<div class="line"><a name="l00045"></a><span class="lineno"><a class="line" href="classMeshSDF.html#a659ef37aec6ead18ba5da350c62771d2">   45</a></span>&#160;  <span class="keyword">virtual</span> <a class="code" href="classMeshSDF.html#a659ef37aec6ead18ba5da350c62771d2">~MeshSDF</a>() = <span class="keywordflow">default</span>;</div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160; </div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;  <span class="keyword">virtual</span> T</div>
-<div class="line"><a name="l00051"></a><span class="lineno"><a class="line" href="classMeshSDF.html#a6fe9fb2386bdb0073d3c6e9f4ade41e8">   51</a></span>&#160;  <a class="code" href="classMeshSDF.html#a6fe9fb2386bdb0073d3c6e9f4ade41e8">signedDistance</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_point) <span class="keyword">const</span> noexcept <span class="keyword">override</span>;</div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160; </div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;  <span class="keyword">const</span> std::shared_ptr&lt;Mesh&gt;</div>
-<div class="line"><a name="l00057"></a><span class="lineno"><a class="line" href="classMeshSDF.html#afc5c06b1fdf7154919521648c9fd3e48">   57</a></span>&#160;  <a class="code" href="classMeshSDF.html#afc5c06b1fdf7154919521648c9fd3e48">getMesh</a>() const noexcept;</div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespaceDCEL.html">DCEL</a> {</div>
+<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160; </div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;  <span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> BV, <span class="keywordtype">size_t</span> K&gt;</div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;  std::shared_ptr&lt;EBGeometry::BVH::NodeT&lt;T, FaceT&lt;T&gt;, BV, K&gt;&gt;</div>
+<div class="line"><a name="l00031"></a><span class="lineno"><a class="line" href="namespaceDCEL.html#a43ae660dcc39a718db47103bd5ba54e3">   31</a></span>&#160;  <a class="code" href="namespaceDCEL.html#a43ae660dcc39a718db47103bd5ba54e3">buildFullBVH</a>(<span class="keyword">const</span> std::shared_ptr&lt;EBGeometry::DCEL::MeshT&lt;T&gt;&gt;&amp; a_dcelMesh);</div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;} <span class="comment">// namespace DCEL</span></div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160; </div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00038"></a><span class="lineno"><a class="line" href="classMeshSDF.html">   38</a></span>&#160;<span class="keyword">class </span><a class="code" href="classMeshSDF.html">MeshSDF</a> : <span class="keyword">public</span> <a class="code" href="classSignedDistanceFunction.html">SignedDistanceFunction</a>&lt;T&gt;</div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;{</div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;  <span class="keyword">using</span> Mesh = EBGeometry::DCEL::MeshT&lt;T&gt;;</div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160; </div>
+<div class="line"><a name="l00046"></a><span class="lineno"><a class="line" href="classMeshSDF.html#ad7d0a26853e41fb2d0b59ef6be7ec5c9">   46</a></span>&#160;  <a class="code" href="classMeshSDF.html#ad7d0a26853e41fb2d0b59ef6be7ec5c9">MeshSDF</a>() = <span class="keyword">delete</span>;</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160; </div>
+<div class="line"><a name="l00052"></a><span class="lineno"><a class="line" href="classMeshSDF.html#a08e25ae87dd19361eff117000ea37141">   52</a></span>&#160;  <a class="code" href="classMeshSDF.html#a08e25ae87dd19361eff117000ea37141">MeshSDF</a>(<span class="keyword">const</span> std::shared_ptr&lt;Mesh&gt;&amp; a_mesh) noexcept;</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160; </div>
+<div class="line"><a name="l00057"></a><span class="lineno"><a class="line" href="classMeshSDF.html#a659ef37aec6ead18ba5da350c62771d2">   57</a></span>&#160;  <span class="keyword">virtual</span> <a class="code" href="classMeshSDF.html#a659ef37aec6ead18ba5da350c62771d2">~MeshSDF</a>() = <span class="keywordflow">default</span>;</div>
 <div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160; </div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;  template &lt;class BV&gt;</div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;  BV</div>
-<div class="line"><a name="l00064"></a><span class="lineno"><a class="line" href="classMeshSDF.html#a550b83290295ff0a54489b28f58f7f6e">   64</a></span>&#160;  <a class="code" href="classMeshSDF.html#a550b83290295ff0a54489b28f58f7f6e">computeBoundingVolume</a>() const noexcept;</div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160; </div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;protected:</div>
-<div class="line"><a name="l00070"></a><span class="lineno"><a class="line" href="classMeshSDF.html#ae6a3734c78feb8da9d182a8e0a53292f">   70</a></span>&#160;  std::shared_ptr&lt;Mesh&gt; <a class="code" href="classMeshSDF.html#ae6a3734c78feb8da9d182a8e0a53292f">m_mesh</a>;</div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;};</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160; </div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;template &lt;class T, class BV, <span class="keywordtype">size_t</span> K&gt;</div>
-<div class="line"><a name="l00077"></a><span class="lineno"><a class="line" href="classFastMeshSDF.html">   77</a></span>&#160;class <a class="code" href="classFastMeshSDF.html">FastMeshSDF</a> : public <a class="code" href="classSignedDistanceFunction.html">SignedDistanceFunction</a>&lt;T&gt;</div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;{</div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;  <span class="keyword">using</span> Face = EBGeometry::DCEL::FaceT&lt;T&gt;;</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;  <span class="keyword">using</span> Mesh = EBGeometry::DCEL::MeshT&lt;T&gt;;</div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;  <span class="keyword">using</span> Node = EBGeometry::BVH::NodeT&lt;T, Face, BV, K&gt;;</div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160; </div>
-<div class="line"><a name="l00087"></a><span class="lineno"><a class="line" href="classFastMeshSDF.html#af6f0f08df6d92f737ea35e6deea0919e">   87</a></span>&#160;  <a class="code" href="classFastMeshSDF.html#af6f0f08df6d92f737ea35e6deea0919e">FastMeshSDF</a>() = <span class="keyword">delete</span>;</div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160; </div>
-<div class="line"><a name="l00092"></a><span class="lineno"><a class="line" href="classFastMeshSDF.html#a37bb1eca3bb1076adc9cb6cbf27b3443">   92</a></span>&#160;  <a class="code" href="classFastMeshSDF.html#a37bb1eca3bb1076adc9cb6cbf27b3443">FastMeshSDF</a>(<span class="keyword">const</span> std::shared_ptr&lt;Mesh&gt;&amp; a_mesh) noexcept;</div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160; </div>
-<div class="line"><a name="l00097"></a><span class="lineno"><a class="line" href="classFastMeshSDF.html#a6cf0457233becb3b066713f2069e9e61">   97</a></span>&#160;  <span class="keyword">virtual</span> <a class="code" href="classFastMeshSDF.html#a6cf0457233becb3b066713f2069e9e61">~FastMeshSDF</a>() = <span class="keywordflow">default</span>;</div>
-<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160; </div>
-<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;  <span class="keyword">virtual</span> T</div>
-<div class="line"><a name="l00104"></a><span class="lineno"><a class="line" href="classFastMeshSDF.html#a371fa42949f9af13a047b2ef7808e3ea">  104</a></span>&#160;  <a class="code" href="classFastMeshSDF.html#a371fa42949f9af13a047b2ef7808e3ea">signedDistance</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_point) <span class="keyword">const</span> noexcept <span class="keyword">override</span>;</div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;  <span class="keyword">virtual</span> T</div>
+<div class="line"><a name="l00063"></a><span class="lineno"><a class="line" href="classMeshSDF.html#a6fe9fb2386bdb0073d3c6e9f4ade41e8">   63</a></span>&#160;  <a class="code" href="classMeshSDF.html#a6fe9fb2386bdb0073d3c6e9f4ade41e8">signedDistance</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_point) <span class="keyword">const</span> noexcept <span class="keyword">override</span>;</div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160; </div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;  <span class="keyword">const</span> std::shared_ptr&lt;Mesh&gt;</div>
+<div class="line"><a name="l00069"></a><span class="lineno"><a class="line" href="classMeshSDF.html#afc5c06b1fdf7154919521648c9fd3e48">   69</a></span>&#160;  <a class="code" href="classMeshSDF.html#afc5c06b1fdf7154919521648c9fd3e48">getMesh</a>() const noexcept;</div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160; </div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;  template &lt;class BV&gt;</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;  BV</div>
+<div class="line"><a name="l00076"></a><span class="lineno"><a class="line" href="classMeshSDF.html#a550b83290295ff0a54489b28f58f7f6e">   76</a></span>&#160;  <a class="code" href="classMeshSDF.html#a550b83290295ff0a54489b28f58f7f6e">computeBoundingVolume</a>() const noexcept;</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160; </div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;protected:</div>
+<div class="line"><a name="l00082"></a><span class="lineno"><a class="line" href="classMeshSDF.html#ae6a3734c78feb8da9d182a8e0a53292f">   82</a></span>&#160;  std::shared_ptr&lt;Mesh&gt; <a class="code" href="classMeshSDF.html#ae6a3734c78feb8da9d182a8e0a53292f">m_mesh</a>;</div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;};</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160; </div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;template &lt;class T, class BV, <span class="keywordtype">size_t</span> K&gt;</div>
+<div class="line"><a name="l00089"></a><span class="lineno"><a class="line" href="classFastMeshSDF.html">   89</a></span>&#160;class <a class="code" href="classFastMeshSDF.html">FastMeshSDF</a> : public <a class="code" href="classSignedDistanceFunction.html">SignedDistanceFunction</a>&lt;T&gt;</div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;{</div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;  <span class="keyword">using</span> Face = EBGeometry::DCEL::FaceT&lt;T&gt;;</div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;  <span class="keyword">using</span> Mesh = EBGeometry::DCEL::MeshT&lt;T&gt;;</div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;  <span class="keyword">using</span> Node = EBGeometry::BVH::NodeT&lt;T, Face, BV, K&gt;;</div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160; </div>
+<div class="line"><a name="l00099"></a><span class="lineno"><a class="line" href="classFastMeshSDF.html#af6f0f08df6d92f737ea35e6deea0919e">   99</a></span>&#160;  <a class="code" href="classFastMeshSDF.html#af6f0f08df6d92f737ea35e6deea0919e">FastMeshSDF</a>() = <span class="keyword">delete</span>;</div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160; </div>
+<div class="line"><a name="l00104"></a><span class="lineno"><a class="line" href="classFastMeshSDF.html#a37bb1eca3bb1076adc9cb6cbf27b3443">  104</a></span>&#160;  <a class="code" href="classFastMeshSDF.html#a37bb1eca3bb1076adc9cb6cbf27b3443">FastMeshSDF</a>(<span class="keyword">const</span> std::shared_ptr&lt;Mesh&gt;&amp; a_mesh) noexcept;</div>
 <div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160; </div>
-<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;  BV</div>
-<div class="line"><a name="l00110"></a><span class="lineno"><a class="line" href="classFastMeshSDF.html#a5bab29cbe88e9d8fa4c3102a3bbbb5fe">  110</a></span>&#160;  <a class="code" href="classFastMeshSDF.html#a5bab29cbe88e9d8fa4c3102a3bbbb5fe">computeBoundingVolume</a>() const noexcept;</div>
-<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160; </div>
-<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;protected:</div>
-<div class="line"><a name="l00116"></a><span class="lineno"><a class="line" href="classFastMeshSDF.html#ab52cd16c2bbb2fc560a34c126ad9afec">  116</a></span>&#160;  std::shared_ptr&lt;Node&gt; m_bvh;</div>
-<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;};</div>
-<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160; </div>
-<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;template &lt;class T, class BV, <span class="keywordtype">size_t</span> K&gt;</div>
-<div class="line"><a name="l00123"></a><span class="lineno"><a class="line" href="classFastCompactMeshSDF.html">  123</a></span>&#160;class <a class="code" href="classFastCompactMeshSDF.html">FastCompactMeshSDF</a> : public <a class="code" href="classSignedDistanceFunction.html">SignedDistanceFunction</a>&lt;T&gt;</div>
-<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;{</div>
-<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;  <span class="keyword">using</span> Face = <span class="keyword">typename</span> EBGeometry::DCEL::FaceT&lt;T&gt;;</div>
-<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;  <span class="keyword">using</span> Mesh = <span class="keyword">typename</span> EBGeometry::DCEL::MeshT&lt;T&gt;;</div>
-<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;  <span class="keyword">using</span> Root = <span class="keyword">typename</span> EBGeometry::BVH::LinearBVH&lt;T, Face, BV, K&gt;;</div>
-<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;  <span class="keyword">using</span> Node = <span class="keyword">typename</span> Root::LinearNode;</div>
+<div class="line"><a name="l00109"></a><span class="lineno"><a class="line" href="classFastMeshSDF.html#a6cf0457233becb3b066713f2069e9e61">  109</a></span>&#160;  <span class="keyword">virtual</span> <a class="code" href="classFastMeshSDF.html#a6cf0457233becb3b066713f2069e9e61">~FastMeshSDF</a>() = <span class="keywordflow">default</span>;</div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160; </div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;  <span class="keyword">virtual</span> T</div>
+<div class="line"><a name="l00116"></a><span class="lineno"><a class="line" href="classFastMeshSDF.html#a371fa42949f9af13a047b2ef7808e3ea">  116</a></span>&#160;  <a class="code" href="classFastMeshSDF.html#a371fa42949f9af13a047b2ef7808e3ea">signedDistance</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_point) <span class="keyword">const</span> noexcept <span class="keyword">override</span>;</div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160; </div>
+<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;  BV</div>
+<div class="line"><a name="l00122"></a><span class="lineno"><a class="line" href="classFastMeshSDF.html#a5bab29cbe88e9d8fa4c3102a3bbbb5fe">  122</a></span>&#160;  <a class="code" href="classFastMeshSDF.html#a5bab29cbe88e9d8fa4c3102a3bbbb5fe">computeBoundingVolume</a>() const noexcept;</div>
+<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160; </div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;protected:</div>
+<div class="line"><a name="l00128"></a><span class="lineno"><a class="line" href="classFastMeshSDF.html#ab52cd16c2bbb2fc560a34c126ad9afec">  128</a></span>&#160;  std::shared_ptr&lt;Node&gt; m_bvh;</div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;};</div>
 <div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160; </div>
-<div class="line"><a name="l00134"></a><span class="lineno"><a class="line" href="classFastCompactMeshSDF.html#a2ddaad985f9a361368b966d9a397e47b">  134</a></span>&#160;  <a class="code" href="classFastCompactMeshSDF.html#a2ddaad985f9a361368b966d9a397e47b">FastCompactMeshSDF</a>() = <span class="keyword">delete</span>;</div>
-<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160; </div>
-<div class="line"><a name="l00140"></a><span class="lineno"><a class="line" href="classFastCompactMeshSDF.html#aa3267a23a0c472394bc287032e32b9da">  140</a></span>&#160;  <a class="code" href="classFastCompactMeshSDF.html#aa3267a23a0c472394bc287032e32b9da">FastCompactMeshSDF</a>(<span class="keyword">const</span> std::shared_ptr&lt;Mesh&gt;&amp; a_mesh) noexcept;</div>
-<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160; </div>
-<div class="line"><a name="l00145"></a><span class="lineno"><a class="line" href="classFastCompactMeshSDF.html#ace51f4bba9ccc0d52b12655f4f9d2f19">  145</a></span>&#160;  <span class="keyword">virtual</span> <a class="code" href="classFastCompactMeshSDF.html#ace51f4bba9ccc0d52b12655f4f9d2f19">~FastCompactMeshSDF</a>() = <span class="keywordflow">default</span>;</div>
-<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160; </div>
-<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;  <span class="keyword">virtual</span> T</div>
-<div class="line"><a name="l00152"></a><span class="lineno"><a class="line" href="classFastCompactMeshSDF.html#a8b0cf75bd0c87ccf1b992e2035cd3749">  152</a></span>&#160;  <a class="code" href="classFastCompactMeshSDF.html#a8b0cf75bd0c87ccf1b992e2035cd3749">signedDistance</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_point) <span class="keyword">const</span> noexcept <span class="keyword">override</span>;</div>
+<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;template &lt;class T, class BV, <span class="keywordtype">size_t</span> K&gt;</div>
+<div class="line"><a name="l00135"></a><span class="lineno"><a class="line" href="classFastCompactMeshSDF.html">  135</a></span>&#160;class <a class="code" href="classFastCompactMeshSDF.html">FastCompactMeshSDF</a> : public <a class="code" href="classSignedDistanceFunction.html">SignedDistanceFunction</a>&lt;T&gt;</div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;{</div>
+<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160;  <span class="keyword">using</span> Face = <span class="keyword">typename</span> EBGeometry::DCEL::FaceT&lt;T&gt;;</div>
+<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160;  <span class="keyword">using</span> Mesh = <span class="keyword">typename</span> EBGeometry::DCEL::MeshT&lt;T&gt;;</div>
+<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160;  <span class="keyword">using</span> Root = <span class="keyword">typename</span> EBGeometry::BVH::LinearBVH&lt;T, Face, BV, K&gt;;</div>
+<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160;  <span class="keyword">using</span> Node = <span class="keyword">typename</span> Root::LinearNode;</div>
+<div class="line"><a name="l00142"></a><span class="lineno">  142</span>&#160; </div>
+<div class="line"><a name="l00146"></a><span class="lineno"><a class="line" href="classFastCompactMeshSDF.html#a2ddaad985f9a361368b966d9a397e47b">  146</a></span>&#160;  <a class="code" href="classFastCompactMeshSDF.html#a2ddaad985f9a361368b966d9a397e47b">FastCompactMeshSDF</a>() = <span class="keyword">delete</span>;</div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160; </div>
+<div class="line"><a name="l00152"></a><span class="lineno"><a class="line" href="classFastCompactMeshSDF.html#aa3267a23a0c472394bc287032e32b9da">  152</a></span>&#160;  <a class="code" href="classFastCompactMeshSDF.html#aa3267a23a0c472394bc287032e32b9da">FastCompactMeshSDF</a>(<span class="keyword">const</span> std::shared_ptr&lt;Mesh&gt;&amp; a_mesh) noexcept;</div>
 <div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160; </div>
-<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;  BV</div>
-<div class="line"><a name="l00158"></a><span class="lineno"><a class="line" href="classFastCompactMeshSDF.html#a2a11d851f145f3486cbbea8fbcce0bb1">  158</a></span>&#160;  <a class="code" href="classFastCompactMeshSDF.html#a2a11d851f145f3486cbbea8fbcce0bb1">computeBoundingVolume</a>() const noexcept;</div>
-<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160; </div>
-<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;protected:</div>
-<div class="line"><a name="l00164"></a><span class="lineno"><a class="line" href="classFastCompactMeshSDF.html#ae8957e5921fa9db1566a4fdef8d70bdf">  164</a></span>&#160;  std::shared_ptr&lt;Root&gt; m_bvh;</div>
-<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;};</div>
-<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160; </div>
-<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;<span class="preprocessor">#include &quot;EBGeometry_NamespaceFooter.hpp&quot;</span></div>
-<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160; </div>
-<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;<span class="preprocessor">#include &quot;EBGeometry_MeshDistanceFunctionsImplem.hpp&quot;</span></div>
-<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160; </div>
-<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00157"></a><span class="lineno"><a class="line" href="classFastCompactMeshSDF.html#ace51f4bba9ccc0d52b12655f4f9d2f19">  157</a></span>&#160;  <span class="keyword">virtual</span> <a class="code" href="classFastCompactMeshSDF.html#ace51f4bba9ccc0d52b12655f4f9d2f19">~FastCompactMeshSDF</a>() = <span class="keywordflow">default</span>;</div>
+<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160; </div>
+<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;  <span class="keyword">virtual</span> T</div>
+<div class="line"><a name="l00164"></a><span class="lineno"><a class="line" href="classFastCompactMeshSDF.html#a8b0cf75bd0c87ccf1b992e2035cd3749">  164</a></span>&#160;  <a class="code" href="classFastCompactMeshSDF.html#a8b0cf75bd0c87ccf1b992e2035cd3749">signedDistance</a>(<span class="keyword">const</span> <a class="code" href="classVec3T.html">Vec3T&lt;T&gt;</a>&amp; a_point) <span class="keyword">const</span> noexcept <span class="keyword">override</span>;</div>
+<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160; </div>
+<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;  BV</div>
+<div class="line"><a name="l00170"></a><span class="lineno"><a class="line" href="classFastCompactMeshSDF.html#a2a11d851f145f3486cbbea8fbcce0bb1">  170</a></span>&#160;  <a class="code" href="classFastCompactMeshSDF.html#a2a11d851f145f3486cbbea8fbcce0bb1">computeBoundingVolume</a>() const noexcept;</div>
+<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160; </div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;protected:</div>
+<div class="line"><a name="l00176"></a><span class="lineno"><a class="line" href="classFastCompactMeshSDF.html#ae8957e5921fa9db1566a4fdef8d70bdf">  176</a></span>&#160;  std::shared_ptr&lt;Root&gt; m_bvh;</div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;};</div>
+<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160; </div>
+<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;<span class="preprocessor">#include &quot;EBGeometry_NamespaceFooter.hpp&quot;</span></div>
+<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160; </div>
+<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;<span class="preprocessor">#include &quot;EBGeometry_MeshDistanceFunctionsImplem.hpp&quot;</span></div>
+<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160; </div>
+<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;<span class="preprocessor">#endif</span></div>
 <div class="ttc" id="aEBGeometry__BVH_8hpp_html"><div class="ttname"><a href="EBGeometry__BVH_8hpp.html">EBGeometry_BVH.hpp</a></div><div class="ttdoc">Declaration of a bounding volume hierarchy (BVH) class.</div></div>
 <div class="ttc" id="aEBGeometry__BoundingVolumes_8hpp_html"><div class="ttname"><a href="EBGeometry__BoundingVolumes_8hpp.html">EBGeometry_BoundingVolumes.hpp</a></div><div class="ttdoc">Declaration of a various bounding volumes used for bounding volume hierarchy.</div></div>
 <div class="ttc" id="aEBGeometry__DCEL__Mesh_8hpp_html"><div class="ttname"><a href="EBGeometry__DCEL__Mesh_8hpp.html">EBGeometry_DCEL_Mesh.hpp</a></div><div class="ttdoc">Declaration of a mesh class which stores a DCEL mesh (with signed distance functions)</div></div>
 <div class="ttc" id="aEBGeometry__NamespaceHeader_8hpp_html"><div class="ttname"><a href="EBGeometry__NamespaceHeader_8hpp.html">EBGeometry_NamespaceHeader.hpp</a></div><div class="ttdoc">Name space header.</div></div>
 <div class="ttc" id="aEBGeometry__SignedDistanceFunction_8hpp_html"><div class="ttname"><a href="EBGeometry__SignedDistanceFunction_8hpp.html">EBGeometry_SignedDistanceFunction.hpp</a></div><div class="ttdoc">Abstract base class for representing a signed distance function.</div></div>
-<div class="ttc" id="aclassFastCompactMeshSDF_html"><div class="ttname"><a href="classFastCompactMeshSDF.html">FastCompactMeshSDF</a></div><div class="ttdoc">Signed distance function for a DCEL mesh. This class uses the compact BVH representation.</div><div class="ttdef"><b>Definition:</b> EBGeometry_MeshDistanceFunctions.hpp:124</div></div>
+<div class="ttc" id="aclassFastCompactMeshSDF_html"><div class="ttname"><a href="classFastCompactMeshSDF.html">FastCompactMeshSDF</a></div><div class="ttdoc">Signed distance function for a DCEL mesh. This class uses the compact BVH representation.</div><div class="ttdef"><b>Definition:</b> EBGeometry_MeshDistanceFunctions.hpp:136</div></div>
 <div class="ttc" id="aclassFastCompactMeshSDF_html_a2a11d851f145f3486cbbea8fbcce0bb1"><div class="ttname"><a href="classFastCompactMeshSDF.html#a2a11d851f145f3486cbbea8fbcce0bb1">FastCompactMeshSDF::computeBoundingVolume</a></div><div class="ttdeci">BV computeBoundingVolume() const noexcept</div><div class="ttdoc">Compute bounding volume for this mesh.</div></div>
 <div class="ttc" id="aclassFastCompactMeshSDF_html_a2ddaad985f9a361368b966d9a397e47b"><div class="ttname"><a href="classFastCompactMeshSDF.html#a2ddaad985f9a361368b966d9a397e47b">FastCompactMeshSDF::FastCompactMeshSDF</a></div><div class="ttdeci">FastCompactMeshSDF()=delete</div><div class="ttdoc">Default disallowed constructor.</div></div>
 <div class="ttc" id="aclassFastCompactMeshSDF_html_a8b0cf75bd0c87ccf1b992e2035cd3749"><div class="ttname"><a href="classFastCompactMeshSDF.html#a8b0cf75bd0c87ccf1b992e2035cd3749">FastCompactMeshSDF::signedDistance</a></div><div class="ttdeci">virtual T signedDistance(const Vec3T&lt; T &gt; &amp;a_point) const noexcept override</div><div class="ttdoc">Value function.</div></div>
 <div class="ttc" id="aclassFastCompactMeshSDF_html_aa3267a23a0c472394bc287032e32b9da"><div class="ttname"><a href="classFastCompactMeshSDF.html#aa3267a23a0c472394bc287032e32b9da">FastCompactMeshSDF::FastCompactMeshSDF</a></div><div class="ttdeci">FastCompactMeshSDF(const std::shared_ptr&lt; Mesh &gt; &amp;a_mesh) noexcept</div><div class="ttdoc">Full constructor. Takes the input mesh and creates the BVH.</div></div>
 <div class="ttc" id="aclassFastCompactMeshSDF_html_ace51f4bba9ccc0d52b12655f4f9d2f19"><div class="ttname"><a href="classFastCompactMeshSDF.html#ace51f4bba9ccc0d52b12655f4f9d2f19">FastCompactMeshSDF::~FastCompactMeshSDF</a></div><div class="ttdeci">virtual ~FastCompactMeshSDF()=default</div><div class="ttdoc">Destructor.</div></div>
-<div class="ttc" id="aclassFastMeshSDF_html"><div class="ttname"><a href="classFastMeshSDF.html">FastMeshSDF</a></div><div class="ttdoc">Signed distance function for a DCEL mesh. This class uses the full BVH representation.</div><div class="ttdef"><b>Definition:</b> EBGeometry_MeshDistanceFunctions.hpp:78</div></div>
+<div class="ttc" id="aclassFastMeshSDF_html"><div class="ttname"><a href="classFastMeshSDF.html">FastMeshSDF</a></div><div class="ttdoc">Signed distance function for a DCEL mesh. This class uses the full BVH representation.</div><div class="ttdef"><b>Definition:</b> EBGeometry_MeshDistanceFunctions.hpp:90</div></div>
 <div class="ttc" id="aclassFastMeshSDF_html_a371fa42949f9af13a047b2ef7808e3ea"><div class="ttname"><a href="classFastMeshSDF.html#a371fa42949f9af13a047b2ef7808e3ea">FastMeshSDF::signedDistance</a></div><div class="ttdeci">virtual T signedDistance(const Vec3T&lt; T &gt; &amp;a_point) const noexcept override</div><div class="ttdoc">Value function.</div></div>
 <div class="ttc" id="aclassFastMeshSDF_html_a37bb1eca3bb1076adc9cb6cbf27b3443"><div class="ttname"><a href="classFastMeshSDF.html#a37bb1eca3bb1076adc9cb6cbf27b3443">FastMeshSDF::FastMeshSDF</a></div><div class="ttdeci">FastMeshSDF(const std::shared_ptr&lt; Mesh &gt; &amp;a_mesh) noexcept</div><div class="ttdoc">Full constructor. Takes the input mesh and creates the BVH.</div></div>
 <div class="ttc" id="aclassFastMeshSDF_html_a5bab29cbe88e9d8fa4c3102a3bbbb5fe"><div class="ttname"><a href="classFastMeshSDF.html#a5bab29cbe88e9d8fa4c3102a3bbbb5fe">FastMeshSDF::computeBoundingVolume</a></div><div class="ttdeci">BV computeBoundingVolume() const noexcept</div><div class="ttdoc">Compute bounding volume for this mesh.</div></div>
 <div class="ttc" id="aclassFastMeshSDF_html_a6cf0457233becb3b066713f2069e9e61"><div class="ttname"><a href="classFastMeshSDF.html#a6cf0457233becb3b066713f2069e9e61">FastMeshSDF::~FastMeshSDF</a></div><div class="ttdeci">virtual ~FastMeshSDF()=default</div><div class="ttdoc">Destructor.</div></div>
 <div class="ttc" id="aclassFastMeshSDF_html_af6f0f08df6d92f737ea35e6deea0919e"><div class="ttname"><a href="classFastMeshSDF.html#af6f0f08df6d92f737ea35e6deea0919e">FastMeshSDF::FastMeshSDF</a></div><div class="ttdeci">FastMeshSDF()=delete</div><div class="ttdoc">Default disallowed constructor.</div></div>
-<div class="ttc" id="aclassMeshSDF_html"><div class="ttname"><a href="classMeshSDF.html">MeshSDF</a></div><div class="ttdoc">Signed distance function for a DCEL mesh. Does not use BVHs.</div><div class="ttdef"><b>Definition:</b> EBGeometry_MeshDistanceFunctions.hpp:27</div></div>
+<div class="ttc" id="aclassMeshSDF_html"><div class="ttname"><a href="classMeshSDF.html">MeshSDF</a></div><div class="ttdoc">Signed distance function for a DCEL mesh. Does not use BVHs.</div><div class="ttdef"><b>Definition:</b> EBGeometry_MeshDistanceFunctions.hpp:39</div></div>
 <div class="ttc" id="aclassMeshSDF_html_a08e25ae87dd19361eff117000ea37141"><div class="ttname"><a href="classMeshSDF.html#a08e25ae87dd19361eff117000ea37141">MeshSDF::MeshSDF</a></div><div class="ttdeci">MeshSDF(const std::shared_ptr&lt; Mesh &gt; &amp;a_mesh) noexcept</div><div class="ttdoc">Full constructor.</div></div>
 <div class="ttc" id="aclassMeshSDF_html_a550b83290295ff0a54489b28f58f7f6e"><div class="ttname"><a href="classMeshSDF.html#a550b83290295ff0a54489b28f58f7f6e">MeshSDF::computeBoundingVolume</a></div><div class="ttdeci">BV computeBoundingVolume() const noexcept</div><div class="ttdoc">Compute bounding volume for this mesh.</div></div>
 <div class="ttc" id="aclassMeshSDF_html_a659ef37aec6ead18ba5da350c62771d2"><div class="ttname"><a href="classMeshSDF.html#a659ef37aec6ead18ba5da350c62771d2">MeshSDF::~MeshSDF</a></div><div class="ttdeci">virtual ~MeshSDF()=default</div><div class="ttdoc">Destructor.</div></div>
 <div class="ttc" id="aclassMeshSDF_html_a6fe9fb2386bdb0073d3c6e9f4ade41e8"><div class="ttname"><a href="classMeshSDF.html#a6fe9fb2386bdb0073d3c6e9f4ade41e8">MeshSDF::signedDistance</a></div><div class="ttdeci">virtual T signedDistance(const Vec3T&lt; T &gt; &amp;a_point) const noexcept override</div><div class="ttdoc">Value function.</div></div>
 <div class="ttc" id="aclassMeshSDF_html_ad7d0a26853e41fb2d0b59ef6be7ec5c9"><div class="ttname"><a href="classMeshSDF.html#ad7d0a26853e41fb2d0b59ef6be7ec5c9">MeshSDF::MeshSDF</a></div><div class="ttdeci">MeshSDF()=delete</div><div class="ttdoc">Disallowed constructor.</div></div>
-<div class="ttc" id="aclassMeshSDF_html_ae6a3734c78feb8da9d182a8e0a53292f"><div class="ttname"><a href="classMeshSDF.html#ae6a3734c78feb8da9d182a8e0a53292f">MeshSDF::m_mesh</a></div><div class="ttdeci">std::shared_ptr&lt; Mesh &gt; m_mesh</div><div class="ttdoc">DCEL mesh.</div><div class="ttdef"><b>Definition:</b> EBGeometry_MeshDistanceFunctions.hpp:70</div></div>
+<div class="ttc" id="aclassMeshSDF_html_ae6a3734c78feb8da9d182a8e0a53292f"><div class="ttname"><a href="classMeshSDF.html#ae6a3734c78feb8da9d182a8e0a53292f">MeshSDF::m_mesh</a></div><div class="ttdeci">std::shared_ptr&lt; Mesh &gt; m_mesh</div><div class="ttdoc">DCEL mesh.</div><div class="ttdef"><b>Definition:</b> EBGeometry_MeshDistanceFunctions.hpp:82</div></div>
 <div class="ttc" id="aclassMeshSDF_html_afc5c06b1fdf7154919521648c9fd3e48"><div class="ttname"><a href="classMeshSDF.html#afc5c06b1fdf7154919521648c9fd3e48">MeshSDF::getMesh</a></div><div class="ttdeci">const std::shared_ptr&lt; Mesh &gt; getMesh() const noexcept</div><div class="ttdoc">Get the surface mesh.</div></div>
 <div class="ttc" id="aclassSignedDistanceFunction_html"><div class="ttname"><a href="classSignedDistanceFunction.html">SignedDistanceFunction</a></div><div class="ttdoc">Abstract representation of a signed distance function.</div><div class="ttdef"><b>Definition:</b> EBGeometry_SignedDistanceFunction.hpp:32</div></div>
 <div class="ttc" id="aclassVec3T_html"><div class="ttname"><a href="classVec3T.html">Vec3T</a></div><div class="ttdoc">Three-dimensional vector class with arithmetic operators.</div><div class="ttdef"><b>Definition:</b> EBGeometry_Vec.hpp:217</div></div>
+<div class="ttc" id="anamespaceDCEL_html"><div class="ttname"><a href="namespaceDCEL.html">DCEL</a></div><div class="ttdoc">Namespace containing various double-connected edge list (DCEL) functionality.</div></div>
+<div class="ttc" id="anamespaceDCEL_html_a43ae660dcc39a718db47103bd5ba54e3"><div class="ttname"><a href="namespaceDCEL.html#a43ae660dcc39a718db47103bd5ba54e3">DCEL::buildFullBVH</a></div><div class="ttdeci">std::shared_ptr&lt; EBGeometry::BVH::NodeT&lt; T, FaceT&lt; T &gt;, BV, K &gt; &gt; buildFullBVH(const std::shared_ptr&lt; EBGeometry::DCEL::MeshT&lt; T &gt;&gt; &amp;a_dcelMesh)</div><div class="ttdoc">One-liner for turning a DCEL mesh into a full-tree BVH.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

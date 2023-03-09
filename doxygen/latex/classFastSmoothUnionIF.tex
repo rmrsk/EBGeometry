@@ -32,9 +32,6 @@ Collaboration diagram for Fast\+Smooth\+Union\+IF$<$ T, P, BV, K $>$\+:
 \doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classFastSmoothUnionIF_af1056272aa24b4af1531ea0436db6fe4}\label{classFastSmoothUnionIF_af1056272aa24b4af1531ea0436db6fe4}} 
-using {\bfseries BVConstructor} = EBGeometry\+::\+BVH\+::\+BVConstructorT$<$ P, BV $>$
-\item 
 \mbox{\Hypertarget{classFastSmoothUnionIF_a83e23a2715599dd0910a01b71cd8959a}\label{classFastSmoothUnionIF_a83e23a2715599dd0910a01b71cd8959a}} 
 using {\bfseries Root} = typename EBGeometry\+::\+BVH\+::\+Linear\+BVH$<$ T, P, BV, K $>$
 \item 
@@ -47,7 +44,7 @@ using {\bfseries Node} = typename Root\+::\+Linear\+Node
 \mbox{\Hypertarget{classFastSmoothUnionIF_a635b4b045072a5434ce6d54a7062a08a}\label{classFastSmoothUnionIF_a635b4b045072a5434ce6d54a7062a08a}} 
 \mbox{\hyperlink{classFastSmoothUnionIF_a635b4b045072a5434ce6d54a7062a08a}{Fast\+Smooth\+Union\+IF}} ()=delete
 \begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classFastSmoothUnionIF_a85dcf528cd6140953f4e3c482934d662}{Fast\+Smooth\+Union\+IF}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+distance\+Functions, const BVConstructor \&a\+\_\+bv\+Constructor, const T a\+\_\+smooth\+Len, const std\+::function$<$ T(const T \&, const T \&, const T \&)$>$ a\+\_\+smooth\+Min=\mbox{\hyperlink{EBGeometry__CSG_8hpp_aa6a6befc82e122b0943c4653290b3259}{smooth\+Min}}$<$ T $>$) noexcept
+\mbox{\hyperlink{classFastSmoothUnionIF_a917a1c46207bcd8018370a715467a973}{Fast\+Smooth\+Union\+IF}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+distance\+Functions, const std\+::vector$<$ BV $>$ \&a\+\_\+bounding\+Volumes, const T a\+\_\+smooth\+Len, const std\+::function$<$ T(const T \&, const T \&, const T \&)$>$ a\+\_\+smooth\+Min=\mbox{\hyperlink{EBGeometry__CSG_8hpp_aa6a6befc82e122b0943c4653290b3259}{smooth\+Min}}$<$ T $>$) noexcept
 \begin{DoxyCompactList}\small\item\em Full constructor -\/ constructs bounding volumes in place. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classFastSmoothUnionIF_a8b2608e2c3e3e84427376a5f56d1bde4}\label{classFastSmoothUnionIF_a8b2608e2c3e3e84427376a5f56d1bde4}} 
 virtual \mbox{\hyperlink{classFastSmoothUnionIF_a8b2608e2c3e3e84427376a5f56d1bde4}{$\sim$\+Fast\+Smooth\+Union\+IF}} ()=default
@@ -78,12 +75,12 @@ If the BVH-\/enabled union is to make sense, the primitives must be distance fie
 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classFastSmoothUnionIF_a85dcf528cd6140953f4e3c482934d662}\label{classFastSmoothUnionIF_a85dcf528cd6140953f4e3c482934d662}} 
+\mbox{\Hypertarget{classFastSmoothUnionIF_a917a1c46207bcd8018370a715467a973}\label{classFastSmoothUnionIF_a917a1c46207bcd8018370a715467a973}} 
 \index{FastSmoothUnionIF$<$ T, P, BV, K $>$@{FastSmoothUnionIF$<$ T, P, BV, K $>$}!FastSmoothUnionIF@{FastSmoothUnionIF}}
 \index{FastSmoothUnionIF@{FastSmoothUnionIF}!FastSmoothUnionIF$<$ T, P, BV, K $>$@{FastSmoothUnionIF$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{FastSmoothUnionIF()}{FastSmoothUnionIF()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-\mbox{\hyperlink{classFastSmoothUnionIF}{Fast\+Smooth\+Union\+IF}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classFastSmoothUnionIF}{Fast\+Smooth\+Union\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+distance\+Functions,  }\item[{const BVConstructor \&}]{a\+\_\+bv\+Constructor,  }\item[{const T}]{a\+\_\+smooth\+Len,  }\item[{const std\+::function$<$ T(const T \&, const T \&, const T \&)$>$}]{a\+\_\+smooth\+Min = {\ttfamily \mbox{\hyperlink{EBGeometry__CSG_8hpp_aa6a6befc82e122b0943c4653290b3259}{smooth\+Min}}$<$~T~$>$} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+\mbox{\hyperlink{classFastSmoothUnionIF}{Fast\+Smooth\+Union\+IF}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classFastSmoothUnionIF}{Fast\+Smooth\+Union\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+distance\+Functions,  }\item[{const std\+::vector$<$ BV $>$ \&}]{a\+\_\+bounding\+Volumes,  }\item[{const T}]{a\+\_\+smooth\+Len,  }\item[{const std\+::function$<$ T(const T \&, const T \&, const T \&)$>$}]{a\+\_\+smooth\+Min = {\ttfamily \mbox{\hyperlink{EBGeometry__CSG_8hpp_aa6a6befc82e122b0943c4653290b3259}{smooth\+Min}}$<$~T~$>$} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -93,7 +90,7 @@ Full constructor -\/ constructs bounding volumes in place.
 \begin{DoxyParams}[1]{Parameters}
 \mbox{\texttt{ in}}  & {\em a\+\_\+distance\+Functions} & Signed distance functions. \\
 \hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+bv\+Constructor} & Bounding volume constructor. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+bounding\+Volumes} & Bounding volumes for the distance fields. \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+smooth\+Len} & Smoothing length \\
 \hline

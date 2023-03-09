@@ -32,9 +32,6 @@ Collaboration diagram for Fast\+Union\+IF$<$ T, P, BV, K $>$\+:
 \doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classFastUnionIF_adc62b35aaabc59438eafe5d69acbab7c}\label{classFastUnionIF_adc62b35aaabc59438eafe5d69acbab7c}} 
-using {\bfseries BVConstructor} = typename EBGeometry\+::\+BVH\+::\+BVConstructorT$<$ P, BV $>$
-\item 
 \mbox{\Hypertarget{classFastUnionIF_a76c2a52e83d11ffe9a683c1600250d42}\label{classFastUnionIF_a76c2a52e83d11ffe9a683c1600250d42}} 
 using {\bfseries Root} = typename EBGeometry\+::\+BVH\+::\+Linear\+BVH$<$ T, P, BV, K $>$
 \item 
@@ -47,7 +44,9 @@ using {\bfseries Node} = typename Root\+::\+Linear\+Node
 \mbox{\Hypertarget{classFastUnionIF_a3c01a0591fa38e6592c4db4d36daaf56}\label{classFastUnionIF_a3c01a0591fa38e6592c4db4d36daaf56}} 
 \mbox{\hyperlink{classFastUnionIF_a3c01a0591fa38e6592c4db4d36daaf56}{Fast\+Union\+IF}} ()=delete
 \begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classFastUnionIF_a44537f6cba096c263e5e853a54279c43}{Fast\+Union\+IF}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+distance\+Functions, const BVConstructor \&a\+\_\+bv\+Constructor)
+\mbox{\hyperlink{classFastUnionIF_ab7beddf28f4ede606bffa12899cf9579}{Fast\+Union\+IF}} (const std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ const P $>$, BV $>$$>$ \&a\+\_\+prims\+And\+BVs) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor -\/ constructs bounding volumes in place. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classFastUnionIF_a60dd3fb7c67dd19f06965202d708824c}{Fast\+Union\+IF}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+primitives, const std\+::vector$<$ BV $>$ \&a\+\_\+bounding\+Volumes) noexcept
 \begin{DoxyCompactList}\small\item\em Full constructor -\/ constructs bounding volumes in place. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classFastUnionIF_aef8d73d72bcf3d764914d55ed16eef77}\label{classFastUnionIF_aef8d73d72bcf3d764914d55ed16eef77}} 
 virtual \mbox{\hyperlink{classFastUnionIF_aef8d73d72bcf3d764914d55ed16eef77}{$\sim$\+Fast\+Union\+IF}} ()=default
@@ -60,8 +59,8 @@ const BV \& \mbox{\hyperlink{classFastUnionIF_add9a3c155acb4e69f9578c7b458ddfa2}
 \doxysubsection*{Protected Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-void \mbox{\hyperlink{classFastUnionIF_afc6e7b25681dff3f6f2d9eb3805d8537}{build\+Tree}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+distance\+Functions, const BVConstructor \&a\+\_\+bv\+Constructor) noexcept
-\begin{DoxyCompactList}\small\item\em Build \mbox{\hyperlink{namespaceBVH}{BVH}} tree for the input objects. User must supply a partitioner and a BV constructor for the SDF objects. \end{DoxyCompactList}\end{DoxyCompactItemize}
+void \mbox{\hyperlink{classFastUnionIF_aeea313b474a61a2a3c30bbcc08b12622}{build\+Tree}} (const std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ const P $>$, BV $>$$>$ \&a\+\_\+prims\+And\+BVs) noexcept
+\begin{DoxyCompactList}\small\item\em Build \mbox{\hyperlink{namespaceBVH}{BVH}} tree for the input objects. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
 \item 
@@ -76,18 +75,13 @@ class Fast\+Union\+IF$<$ T, P, BV, K $>$}
 
 Implicit function union using BVHs. 
 
-\begin{DoxyNote}{Note}
-If the BVH-\/enabled union is to make sense, the primitives must be distance fields (I think). There\textquotesingle{}s a static\+\_\+assert to make sure of that. 
-\end{DoxyNote}
-
-
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classFastUnionIF_a44537f6cba096c263e5e853a54279c43}\label{classFastUnionIF_a44537f6cba096c263e5e853a54279c43}} 
+\mbox{\Hypertarget{classFastUnionIF_ab7beddf28f4ede606bffa12899cf9579}\label{classFastUnionIF_ab7beddf28f4ede606bffa12899cf9579}} 
 \index{FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}!FastUnionIF@{FastUnionIF}}
 \index{FastUnionIF@{FastUnionIF}!FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}}
-\doxysubsubsection{\texorpdfstring{FastUnionIF()}{FastUnionIF()}}
+\doxysubsubsection{\texorpdfstring{FastUnionIF()}{FastUnionIF()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-\mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+distance\+Functions,  }\item[{const BVConstructor \&}]{a\+\_\+bv\+Constructor }\end{DoxyParamCaption})}
+\mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ const P $>$, BV $>$$>$ \&}]{a\+\_\+prims\+And\+BVs }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -95,30 +89,44 @@ Full constructor -\/ constructs bounding volumes in place.
 
 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+distance\+Functions} & Signed distance functions. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+prims\+And\+BVs} & Primitives and their bounding volumes. \\
 \hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+bv\+Constructor} & Bounding volume constructor. \\
+\end{DoxyParams}
+\mbox{\Hypertarget{classFastUnionIF_a60dd3fb7c67dd19f06965202d708824c}\label{classFastUnionIF_a60dd3fb7c67dd19f06965202d708824c}} 
+\index{FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}!FastUnionIF@{FastUnionIF}}
+\index{FastUnionIF@{FastUnionIF}!FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{FastUnionIF()}{FastUnionIF()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
+\mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+primitives,  }\item[{const std\+::vector$<$ BV $>$ \&}]{a\+\_\+bounding\+Volumes }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor -\/ constructs bounding volumes in place. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & Input primitives. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+bounding\+Volumes} & Bounding volumes for primitives. \\
 \hline
 \end{DoxyParams}
 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classFastUnionIF_afc6e7b25681dff3f6f2d9eb3805d8537}\label{classFastUnionIF_afc6e7b25681dff3f6f2d9eb3805d8537}} 
+\mbox{\Hypertarget{classFastUnionIF_aeea313b474a61a2a3c30bbcc08b12622}\label{classFastUnionIF_aeea313b474a61a2a3c30bbcc08b12622}} 
 \index{FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}!buildTree@{buildTree}}
 \index{buildTree@{buildTree}!FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{buildTree()}{buildTree()}}
 {\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-void \mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}}$<$ T, P, BV, K $>$\+::build\+Tree (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+distance\+Functions,  }\item[{const BVConstructor \&}]{a\+\_\+bv\+Constructor }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+void \mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}}$<$ T, P, BV, K $>$\+::build\+Tree (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ const P $>$, BV $>$$>$ \&}]{a\+\_\+prims\+And\+BVs }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
-Build \mbox{\hyperlink{namespaceBVH}{BVH}} tree for the input objects. User must supply a partitioner and a BV constructor for the SDF objects. 
+Build \mbox{\hyperlink{namespaceBVH}{BVH}} tree for the input objects. 
 
 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+distance\+Functions} & Distance functions \\
-\hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+bv\+Constructor} & Constructor for building a bounding volume that encloses an object. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+prims\+And\+BVs} & Geometric primitives and their bounding volumes. \\
 \hline
 \end{DoxyParams}
 \mbox{\Hypertarget{classFastUnionIF_ad913d0fc57aa3f6079e7e54bfbbd7938}\label{classFastUnionIF_ad913d0fc57aa3f6079e7e54bfbbd7938}} 
