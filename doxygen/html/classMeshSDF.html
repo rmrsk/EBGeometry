@@ -100,7 +100,8 @@ Collaboration diagram for MeshSDF&lt; T &gt;:</div>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
 <tr class="memitem:a8959394849080f9f2e407c3a96c3d006"><td class="memItemLeft" align="right" valign="top"><a id="a8959394849080f9f2e407c3a96c3d006"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>Mesh</b> = EBGeometry::DCEL::MeshT&lt; T &gt;</td></tr>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeshSDF.html#a8959394849080f9f2e407c3a96c3d006">Mesh</a> = EBGeometry::DCEL::MeshT&lt; T &gt;</td></tr>
+<tr class="memdesc:a8959394849080f9f2e407c3a96c3d006"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> mesh type. <br /></td></tr>
 <tr class="separator:a8959394849080f9f2e407c3a96c3d006"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
@@ -109,7 +110,7 @@ Public Member Functions</h2></td></tr>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeshSDF.html#ad7d0a26853e41fb2d0b59ef6be7ec5c9">MeshSDF</a> ()=delete</td></tr>
 <tr class="memdesc:ad7d0a26853e41fb2d0b59ef6be7ec5c9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Disallowed constructor. <br /></td></tr>
 <tr class="separator:ad7d0a26853e41fb2d0b59ef6be7ec5c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a08e25ae87dd19361eff117000ea37141"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeshSDF.html#a08e25ae87dd19361eff117000ea37141">MeshSDF</a> (const std::shared_ptr&lt; Mesh &gt; &amp;a_mesh) noexcept</td></tr>
+<tr class="memitem:a08e25ae87dd19361eff117000ea37141"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeshSDF.html#a08e25ae87dd19361eff117000ea37141">MeshSDF</a> (const std::shared_ptr&lt; <a class="el" href="classMeshSDF.html#a8959394849080f9f2e407c3a96c3d006">Mesh</a> &gt; &amp;a_mesh) noexcept</td></tr>
 <tr class="memdesc:a08e25ae87dd19361eff117000ea37141"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor.  <a href="classMeshSDF.html#a08e25ae87dd19361eff117000ea37141">More...</a><br /></td></tr>
 <tr class="separator:a08e25ae87dd19361eff117000ea37141"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a659ef37aec6ead18ba5da350c62771d2"><td class="memItemLeft" align="right" valign="top"><a id="a659ef37aec6ead18ba5da350c62771d2"></a>
@@ -121,7 +122,7 @@ virtual T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href=
 <tr class="memdesc:a6fe9fb2386bdb0073d3c6e9f4ade41e8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Value function. <br /></td></tr>
 <tr class="separator:a6fe9fb2386bdb0073d3c6e9f4ade41e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afc5c06b1fdf7154919521648c9fd3e48"><td class="memItemLeft" align="right" valign="top"><a id="afc5c06b1fdf7154919521648c9fd3e48"></a>
-const std::shared_ptr&lt; Mesh &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeshSDF.html#afc5c06b1fdf7154919521648c9fd3e48">getMesh</a> () const noexcept</td></tr>
+const std::shared_ptr&lt; <a class="el" href="classMeshSDF.html#a8959394849080f9f2e407c3a96c3d006">Mesh</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeshSDF.html#afc5c06b1fdf7154919521648c9fd3e48">getMesh</a> () const noexcept</td></tr>
 <tr class="memdesc:afc5c06b1fdf7154919521648c9fd3e48"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the surface mesh. <br /></td></tr>
 <tr class="separator:afc5c06b1fdf7154919521648c9fd3e48"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a550b83290295ff0a54489b28f58f7f6e"><td class="memTemplParams" colspan="2"><a id="a550b83290295ff0a54489b28f58f7f6e"></a>
@@ -164,7 +165,7 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
 <tr class="memitem:ae6a3734c78feb8da9d182a8e0a53292f"><td class="memItemLeft" align="right" valign="top"><a id="ae6a3734c78feb8da9d182a8e0a53292f"></a>
-std::shared_ptr&lt; Mesh &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeshSDF.html#ae6a3734c78feb8da9d182a8e0a53292f">m_mesh</a></td></tr>
+std::shared_ptr&lt; <a class="el" href="classMeshSDF.html#a8959394849080f9f2e407c3a96c3d006">Mesh</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeshSDF.html#ae6a3734c78feb8da9d182a8e0a53292f">m_mesh</a></td></tr>
 <tr class="memdesc:ae6a3734c78feb8da9d182a8e0a53292f"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> mesh. <br /></td></tr>
 <tr class="separator:ae6a3734c78feb8da9d182a8e0a53292f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -188,7 +189,7 @@ template&lt;class T &gt; </div>
         <tr>
           <td class="memname"><a class="el" href="classMeshSDF.html">MeshSDF</a>&lt; T &gt;::<a class="el" href="classMeshSDF.html">MeshSDF</a> </td>
           <td>(</td>
-          <td class="paramtype">const std::shared_ptr&lt; Mesh &gt; &amp;&#160;</td>
+          <td class="paramtype">const std::shared_ptr&lt; <a class="el" href="classMeshSDF.html#a8959394849080f9f2e407c3a96c3d006">Mesh</a> &gt; &amp;&#160;</td>
           <td class="paramname"><em>a_mesh</em></td><td>)</td>
           <td></td>
         </tr>

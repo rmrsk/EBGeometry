@@ -33,24 +33,24 @@ Collaboration diagram for Fast\+Compact\+Mesh\+SDF$<$ T, BV, K $>$\+:
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classFastCompactMeshSDF_a2de93688ade86065aeea080ef04cc6a1}\label{classFastCompactMeshSDF_a2de93688ade86065aeea080ef04cc6a1}} 
-using {\bfseries Face} = typename EBGeometry\+::\+DCEL\+::\+FaceT$<$ T $>$
-\item 
+using \mbox{\hyperlink{classFastCompactMeshSDF_a2de93688ade86065aeea080ef04cc6a1}{Face}} = typename EBGeometry\+::\+DCEL\+::\+FaceT$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias for \mbox{\hyperlink{namespaceDCEL}{DCEL}} face type. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classFastCompactMeshSDF_a03d422dfa99e15345b5109d3e52cf287}\label{classFastCompactMeshSDF_a03d422dfa99e15345b5109d3e52cf287}} 
-using {\bfseries Mesh} = typename EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$
-\item 
+using \mbox{\hyperlink{classFastCompactMeshSDF_a03d422dfa99e15345b5109d3e52cf287}{Mesh}} = typename EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias for \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh type. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classFastCompactMeshSDF_ab632c4ed1f37be178b134a5a3e6e47b1}\label{classFastCompactMeshSDF_ab632c4ed1f37be178b134a5a3e6e47b1}} 
-using {\bfseries Root} = typename EBGeometry\+::\+BVH\+::\+Linear\+BVH$<$ T, Face, BV, K $>$
-\item 
+using \mbox{\hyperlink{classFastCompactMeshSDF_ab632c4ed1f37be178b134a5a3e6e47b1}{Root}} = typename EBGeometry\+::\+BVH\+::\+Linear\+BVH$<$ T, \mbox{\hyperlink{classFastCompactMeshSDF_a2de93688ade86065aeea080ef04cc6a1}{Face}}, BV, K $>$
+\begin{DoxyCompactList}\small\item\em Alias for which \mbox{\hyperlink{namespaceBVH}{BVH}} root node. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classFastCompactMeshSDF_ac48e0159238de5c108a33ce60141d7ee}\label{classFastCompactMeshSDF_ac48e0159238de5c108a33ce60141d7ee}} 
-using {\bfseries Node} = typename Root\+::\+Linear\+Node
-\end{DoxyCompactItemize}
+using \mbox{\hyperlink{classFastCompactMeshSDF_ac48e0159238de5c108a33ce60141d7ee}{Node}} = typename Root\+::\+Linear\+Node
+\begin{DoxyCompactList}\small\item\em Alias for linearized \mbox{\hyperlink{namespaceBVH}{BVH}}. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classFastCompactMeshSDF_a2ddaad985f9a361368b966d9a397e47b}\label{classFastCompactMeshSDF_a2ddaad985f9a361368b966d9a397e47b}} 
 \mbox{\hyperlink{classFastCompactMeshSDF_a2ddaad985f9a361368b966d9a397e47b}{Fast\+Compact\+Mesh\+SDF}} ()=delete
 \begin{DoxyCompactList}\small\item\em Default disallowed constructor. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classFastCompactMeshSDF_aa3267a23a0c472394bc287032e32b9da}{Fast\+Compact\+Mesh\+SDF}} (const std\+::shared\+\_\+ptr$<$ Mesh $>$ \&a\+\_\+mesh) noexcept
+\mbox{\hyperlink{classFastCompactMeshSDF_aa3267a23a0c472394bc287032e32b9da}{Fast\+Compact\+Mesh\+SDF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastCompactMeshSDF_a03d422dfa99e15345b5109d3e52cf287}{Mesh}} $>$ \&a\+\_\+mesh) noexcept
 \begin{DoxyCompactList}\small\item\em Full constructor. Takes the input mesh and creates the \mbox{\hyperlink{namespaceBVH}{BVH}}. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classFastCompactMeshSDF_ace51f4bba9ccc0d52b12655f4f9d2f19}\label{classFastCompactMeshSDF_ace51f4bba9ccc0d52b12655f4f9d2f19}} 
 virtual \mbox{\hyperlink{classFastCompactMeshSDF_ace51f4bba9ccc0d52b12655f4f9d2f19}{$\sim$\+Fast\+Compact\+Mesh\+SDF}} ()=default
@@ -64,7 +64,7 @@ BV \mbox{\hyperlink{classFastCompactMeshSDF_a2a11d851f145f3486cbbea8fbcce0bb1}{c
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classFastCompactMeshSDF_ae8957e5921fa9db1566a4fdef8d70bdf}\label{classFastCompactMeshSDF_ae8957e5921fa9db1566a4fdef8d70bdf}} 
-std\+::shared\+\_\+ptr$<$ Root $>$ \mbox{\hyperlink{classFastCompactMeshSDF_ae8957e5921fa9db1566a4fdef8d70bdf}{m\+\_\+bvh}}
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastCompactMeshSDF_ab632c4ed1f37be178b134a5a3e6e47b1}{Root}} $>$ \mbox{\hyperlink{classFastCompactMeshSDF_ae8957e5921fa9db1566a4fdef8d70bdf}{m\+\_\+bvh}}
 \begin{DoxyCompactList}\small\item\em Bounding volume hierarchy. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
@@ -80,7 +80,7 @@ Signed distance function for a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. This
 \index{FastCompactMeshSDF@{FastCompactMeshSDF}!FastCompactMeshSDF$<$ T, BV, K $>$@{FastCompactMeshSDF$<$ T, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{FastCompactMeshSDF()}{FastCompactMeshSDF()}}
 {\footnotesize\ttfamily template$<$class T , class BV , size\+\_\+t K$>$ \\
-\mbox{\hyperlink{classFastCompactMeshSDF}{Fast\+Compact\+Mesh\+SDF}}$<$ T, BV, K $>$\+::\mbox{\hyperlink{classFastCompactMeshSDF}{Fast\+Compact\+Mesh\+SDF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ Mesh $>$ \&}]{a\+\_\+mesh }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+\mbox{\hyperlink{classFastCompactMeshSDF}{Fast\+Compact\+Mesh\+SDF}}$<$ T, BV, K $>$\+::\mbox{\hyperlink{classFastCompactMeshSDF}{Fast\+Compact\+Mesh\+SDF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastCompactMeshSDF_a03d422dfa99e15345b5109d3e52cf287}{Mesh}} $>$ \&}]{a\+\_\+mesh }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 

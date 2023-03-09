@@ -194,10 +194,27 @@ The second step is to recursively build the BVH, which is done through the funct
 <span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"></span>
 <span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">StopFunctionT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">NodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_node</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
 
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Class which encapsulates a node in a bounding volume hierarchy.</span>
+<span class="cm">    @details T is the precision, P is the primitive type you want to enclose, BV</span>
+<span class="cm">    is the bounding volume type used at the nodes. The parameter K (which must be</span>
+<span class="cm">    &gt; 1) is the tree degree. K=2 is a binary tree, K=3 is a tertiary tree and so</span>
+<span class="cm">    on.</span>
+<span class="cm">  */</span><span class="w"></span>
 <span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"></span>
 <span class="w">  </span><span class="k">class</span><span class="w"> </span><span class="nc">NodeT</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">NodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&gt;</span><span class="w"></span>
 <span class="w">  </span><span class="p">{</span><span class="w"></span>
 <span class="w">  </span><span class="k">public</span><span class="o">:</span><span class="w"></span>
+<span class="w">    </span><span class="cm">/*!</span>
+<span class="cm">      @brief Alias for partitioner</span>
+<span class="cm">    */</span><span class="w"></span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">Partitioner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">PartitionerT</span><span class="o">&lt;</span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="cm">/*!</span>
+<span class="cm">      @brief Alias for stop function </span>
+<span class="cm">    */</span><span class="w"></span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">StopFunction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">StopFunctionT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
+
 <span class="w">    </span><span class="cm">/*!</span>
 <span class="cm">      @brief Construct a BVH node from a set of primitives and their bounding volumes</span>
 <span class="cm">      @param[in] a_primsAndBVs Primitives and their bounding volumes</span>

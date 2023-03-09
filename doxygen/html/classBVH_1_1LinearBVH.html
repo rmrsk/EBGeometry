@@ -84,13 +84,16 @@ $(function() {
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
 <tr class="memitem:a13b0083e8b7ff1a5e170d39d69e6a15a"><td class="memItemLeft" align="right" valign="top"><a id="a13b0083e8b7ff1a5e170d39d69e6a15a"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>Vec3</b> = <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;</td></tr>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearBVH.html#a13b0083e8b7ff1a5e170d39d69e6a15a">Vec3</a> = <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;</td></tr>
+<tr class="memdesc:a13b0083e8b7ff1a5e170d39d69e6a15a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for vector type. <br /></td></tr>
 <tr class="separator:a13b0083e8b7ff1a5e170d39d69e6a15a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad8c5e4f84138090dbd408a075dc91896"><td class="memItemLeft" align="right" valign="top"><a id="ad8c5e4f84138090dbd408a075dc91896"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>LinearNode</b> = <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>&lt; T, P, BV, K &gt;</td></tr>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearBVH.html#ad8c5e4f84138090dbd408a075dc91896">LinearNode</a> = <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>&lt; T, P, BV, K &gt;</td></tr>
+<tr class="memdesc:ad8c5e4f84138090dbd408a075dc91896"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for linear node type. <br /></td></tr>
 <tr class="separator:ad8c5e4f84138090dbd408a075dc91896"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a94ee5da1670e2ef85eeabf7cf6a2da92"><td class="memItemLeft" align="right" valign="top"><a id="a94ee5da1670e2ef85eeabf7cf6a2da92"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>PrimitiveList</b> = std::vector&lt; std::shared_ptr&lt; const P &gt; &gt;</td></tr>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearBVH.html#a94ee5da1670e2ef85eeabf7cf6a2da92">PrimitiveList</a> = std::vector&lt; std::shared_ptr&lt; const P &gt; &gt;</td></tr>
+<tr class="memdesc:a94ee5da1670e2ef85eeabf7cf6a2da92"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for list of primitives. <br /></td></tr>
 <tr class="separator:a94ee5da1670e2ef85eeabf7cf6a2da92"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
@@ -118,7 +121,7 @@ const BV &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" 
 <tr class="memdesc:a841fbfc0c1dc5c7fdf0074d289e9a9bf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the bounding volume for this <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>. <br /></td></tr>
 <tr class="separator:a841fbfc0c1dc5c7fdf0074d289e9a9bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a213b07e1c41dec5b4c6bac80f0716f1d"><td class="memTemplParams" colspan="2">template&lt;class Meta &gt; </td></tr>
-<tr class="memitem:a213b07e1c41dec5b4c6bac80f0716f1d"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearBVH.html#a213b07e1c41dec5b4c6bac80f0716f1d">traverse</a> (const <a class="el" href="namespaceBVH.html#a9098188477f08a345cf059a431ae23aa">BVH::Updater</a>&lt; P &gt; &amp;a_updater, const <a class="el" href="namespaceBVH.html#a8ac51cce05479b4821bf8c0e2543696a">BVH::Visiter</a>&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNode</a>, Meta &gt; &amp;a_visiter, const <a class="el" href="namespaceBVH.html#a98593a87354ca9c46938b74c50a10f91">BVH::Sorter</a>&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNode</a>, Meta, K &gt; &amp;a_sorter, const <a class="el" href="namespaceBVH.html#acaf9bd22eb434cf05f36d5ca61984b38">BVH::MetaUpdater</a>&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNode</a>, Meta &gt; &amp;a_metaUpdater) const noexcept</td></tr>
+<tr class="memitem:a213b07e1c41dec5b4c6bac80f0716f1d"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearBVH.html#a213b07e1c41dec5b4c6bac80f0716f1d">traverse</a> (const <a class="el" href="namespaceBVH.html#a9098188477f08a345cf059a431ae23aa">BVH::Updater</a>&lt; P &gt; &amp;a_updater, const <a class="el" href="namespaceBVH.html#a8ac51cce05479b4821bf8c0e2543696a">BVH::Visiter</a>&lt; <a class="el" href="classBVH_1_1LinearBVH.html#ad8c5e4f84138090dbd408a075dc91896">LinearNode</a>, Meta &gt; &amp;a_visiter, const <a class="el" href="namespaceBVH.html#a98593a87354ca9c46938b74c50a10f91">BVH::Sorter</a>&lt; <a class="el" href="classBVH_1_1LinearBVH.html#ad8c5e4f84138090dbd408a075dc91896">LinearNode</a>, Meta, K &gt; &amp;a_sorter, const <a class="el" href="namespaceBVH.html#acaf9bd22eb434cf05f36d5ca61984b38">BVH::MetaUpdater</a>&lt; <a class="el" href="classBVH_1_1LinearBVH.html#ad8c5e4f84138090dbd408a075dc91896">LinearNode</a>, Meta &gt; &amp;a_metaUpdater) const noexcept</td></tr>
 <tr class="memdesc:a213b07e1c41dec5b4c6bac80f0716f1d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Recursion-less <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> traversal algorithm. The user inputs the update rule, a pruning criterion, and a criterion of who to visit first.  <a href="classBVH_1_1LinearBVH.html#a213b07e1c41dec5b4c6bac80f0716f1d">More...</a><br /></td></tr>
 <tr class="separator:a213b07e1c41dec5b4c6bac80f0716f1d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -258,19 +261,19 @@ template&lt;class Meta &gt; </div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="namespaceBVH.html#a8ac51cce05479b4821bf8c0e2543696a">BVH::Visiter</a>&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNode</a>, Meta &gt; &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="namespaceBVH.html#a8ac51cce05479b4821bf8c0e2543696a">BVH::Visiter</a>&lt; <a class="el" href="classBVH_1_1LinearBVH.html#ad8c5e4f84138090dbd408a075dc91896">LinearNode</a>, Meta &gt; &amp;&#160;</td>
           <td class="paramname"><em>a_visiter</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="namespaceBVH.html#a98593a87354ca9c46938b74c50a10f91">BVH::Sorter</a>&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNode</a>, Meta, K &gt; &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="namespaceBVH.html#a98593a87354ca9c46938b74c50a10f91">BVH::Sorter</a>&lt; <a class="el" href="classBVH_1_1LinearBVH.html#ad8c5e4f84138090dbd408a075dc91896">LinearNode</a>, Meta, K &gt; &amp;&#160;</td>
           <td class="paramname"><em>a_sorter</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="namespaceBVH.html#acaf9bd22eb434cf05f36d5ca61984b38">BVH::MetaUpdater</a>&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNode</a>, Meta &gt; &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="namespaceBVH.html#acaf9bd22eb434cf05f36d5ca61984b38">BVH::MetaUpdater</a>&lt; <a class="el" href="classBVH_1_1LinearBVH.html#ad8c5e4f84138090dbd408a075dc91896">LinearNode</a>, Meta &gt; &amp;&#160;</td>
           <td class="paramname"><em>a_metaUpdater</em>&#160;</td>
         </tr>
         <tr>

@@ -100,16 +100,20 @@ Collaboration diagram for FastCompactMeshSDF&lt; T, BV, K &gt;:</div>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
 <tr class="memitem:a2de93688ade86065aeea080ef04cc6a1"><td class="memItemLeft" align="right" valign="top"><a id="a2de93688ade86065aeea080ef04cc6a1"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>Face</b> = typename EBGeometry::DCEL::FaceT&lt; T &gt;</td></tr>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastCompactMeshSDF.html#a2de93688ade86065aeea080ef04cc6a1">Face</a> = typename EBGeometry::DCEL::FaceT&lt; T &gt;</td></tr>
+<tr class="memdesc:a2de93688ade86065aeea080ef04cc6a1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> face type. <br /></td></tr>
 <tr class="separator:a2de93688ade86065aeea080ef04cc6a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a03d422dfa99e15345b5109d3e52cf287"><td class="memItemLeft" align="right" valign="top"><a id="a03d422dfa99e15345b5109d3e52cf287"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>Mesh</b> = typename EBGeometry::DCEL::MeshT&lt; T &gt;</td></tr>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastCompactMeshSDF.html#a03d422dfa99e15345b5109d3e52cf287">Mesh</a> = typename EBGeometry::DCEL::MeshT&lt; T &gt;</td></tr>
+<tr class="memdesc:a03d422dfa99e15345b5109d3e52cf287"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> mesh type. <br /></td></tr>
 <tr class="separator:a03d422dfa99e15345b5109d3e52cf287"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab632c4ed1f37be178b134a5a3e6e47b1"><td class="memItemLeft" align="right" valign="top"><a id="ab632c4ed1f37be178b134a5a3e6e47b1"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>Root</b> = typename EBGeometry::BVH::LinearBVH&lt; T, Face, BV, K &gt;</td></tr>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastCompactMeshSDF.html#ab632c4ed1f37be178b134a5a3e6e47b1">Root</a> = typename EBGeometry::BVH::LinearBVH&lt; T, <a class="el" href="classFastCompactMeshSDF.html#a2de93688ade86065aeea080ef04cc6a1">Face</a>, BV, K &gt;</td></tr>
+<tr class="memdesc:ab632c4ed1f37be178b134a5a3e6e47b1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for which <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> root node. <br /></td></tr>
 <tr class="separator:ab632c4ed1f37be178b134a5a3e6e47b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac48e0159238de5c108a33ce60141d7ee"><td class="memItemLeft" align="right" valign="top"><a id="ac48e0159238de5c108a33ce60141d7ee"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>Node</b> = typename Root::LinearNode</td></tr>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastCompactMeshSDF.html#ac48e0159238de5c108a33ce60141d7ee">Node</a> = typename Root::LinearNode</td></tr>
+<tr class="memdesc:ac48e0159238de5c108a33ce60141d7ee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for linearized <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>. <br /></td></tr>
 <tr class="separator:ac48e0159238de5c108a33ce60141d7ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
@@ -118,7 +122,7 @@ Public Member Functions</h2></td></tr>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastCompactMeshSDF.html#a2ddaad985f9a361368b966d9a397e47b">FastCompactMeshSDF</a> ()=delete</td></tr>
 <tr class="memdesc:a2ddaad985f9a361368b966d9a397e47b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default disallowed constructor. <br /></td></tr>
 <tr class="separator:a2ddaad985f9a361368b966d9a397e47b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa3267a23a0c472394bc287032e32b9da"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastCompactMeshSDF.html#aa3267a23a0c472394bc287032e32b9da">FastCompactMeshSDF</a> (const std::shared_ptr&lt; Mesh &gt; &amp;a_mesh) noexcept</td></tr>
+<tr class="memitem:aa3267a23a0c472394bc287032e32b9da"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastCompactMeshSDF.html#aa3267a23a0c472394bc287032e32b9da">FastCompactMeshSDF</a> (const std::shared_ptr&lt; <a class="el" href="classFastCompactMeshSDF.html#a03d422dfa99e15345b5109d3e52cf287">Mesh</a> &gt; &amp;a_mesh) noexcept</td></tr>
 <tr class="memdesc:aa3267a23a0c472394bc287032e32b9da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor. Takes the input mesh and creates the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>.  <a href="classFastCompactMeshSDF.html#aa3267a23a0c472394bc287032e32b9da">More...</a><br /></td></tr>
 <tr class="separator:aa3267a23a0c472394bc287032e32b9da"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ace51f4bba9ccc0d52b12655f4f9d2f19"><td class="memItemLeft" align="right" valign="top"><a id="ace51f4bba9ccc0d52b12655f4f9d2f19"></a>
@@ -167,7 +171,7 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
 <tr class="memitem:ae8957e5921fa9db1566a4fdef8d70bdf"><td class="memItemLeft" align="right" valign="top"><a id="ae8957e5921fa9db1566a4fdef8d70bdf"></a>
-std::shared_ptr&lt; Root &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastCompactMeshSDF.html#ae8957e5921fa9db1566a4fdef8d70bdf">m_bvh</a></td></tr>
+std::shared_ptr&lt; <a class="el" href="classFastCompactMeshSDF.html#ab632c4ed1f37be178b134a5a3e6e47b1">Root</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastCompactMeshSDF.html#ae8957e5921fa9db1566a4fdef8d70bdf">m_bvh</a></td></tr>
 <tr class="memdesc:ae8957e5921fa9db1566a4fdef8d70bdf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Bounding volume hierarchy. <br /></td></tr>
 <tr class="separator:ae8957e5921fa9db1566a4fdef8d70bdf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -191,7 +195,7 @@ template&lt;class T , class BV , size_t K&gt; </div>
         <tr>
           <td class="memname"><a class="el" href="classFastCompactMeshSDF.html">FastCompactMeshSDF</a>&lt; T, BV, K &gt;::<a class="el" href="classFastCompactMeshSDF.html">FastCompactMeshSDF</a> </td>
           <td>(</td>
-          <td class="paramtype">const std::shared_ptr&lt; Mesh &gt; &amp;&#160;</td>
+          <td class="paramtype">const std::shared_ptr&lt; <a class="el" href="classFastCompactMeshSDF.html#a03d422dfa99e15345b5109d3e52cf287">Mesh</a> &gt; &amp;&#160;</td>
           <td class="paramname"><em>a_mesh</em></td><td>)</td>
           <td></td>
         </tr>

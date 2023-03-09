@@ -32,15 +32,15 @@ Collaboration diagram for Fast\+Mesh\+SDF$<$ T, BV, K $>$\+:
 \doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classFastMeshSDF_a0f810fece44e76cc8f778782c7a17b64}\label{classFastMeshSDF_a0f810fece44e76cc8f778782c7a17b64}} 
-using {\bfseries Face} = EBGeometry\+::\+DCEL\+::\+FaceT$<$ T $>$
-\item 
-\mbox{\Hypertarget{classFastMeshSDF_a145e6021dfe79dd386d90cd8633b6acd}\label{classFastMeshSDF_a145e6021dfe79dd386d90cd8633b6acd}} 
-using {\bfseries Mesh} = EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$
-\item 
+\mbox{\Hypertarget{classFastMeshSDF_ab9249ffc2e28556c3b29774234d0b57d}\label{classFastMeshSDF_ab9249ffc2e28556c3b29774234d0b57d}} 
+using \mbox{\hyperlink{classFastMeshSDF_ab9249ffc2e28556c3b29774234d0b57d}{Face}} = typename EBGeometry\+::\+DCEL\+::\+FaceT$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias for \mbox{\hyperlink{namespaceDCEL}{DCEL}} face type. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classFastMeshSDF_a371a71032c78a8362104b5bb507c5e0c}\label{classFastMeshSDF_a371a71032c78a8362104b5bb507c5e0c}} 
+using \mbox{\hyperlink{classFastMeshSDF_a371a71032c78a8362104b5bb507c5e0c}{Mesh}} = typename EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias for \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh type. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classFastMeshSDF_a665650e08dbe9f10d36708a3894338cf}\label{classFastMeshSDF_a665650e08dbe9f10d36708a3894338cf}} 
-using {\bfseries Node} = EBGeometry\+::\+BVH\+::\+NodeT$<$ T, Face, BV, K $>$
-\end{DoxyCompactItemize}
+using \mbox{\hyperlink{classFastMeshSDF_a665650e08dbe9f10d36708a3894338cf}{Node}} = EBGeometry\+::\+BVH\+::\+NodeT$<$ T, \mbox{\hyperlink{classFastMeshSDF_ab9249ffc2e28556c3b29774234d0b57d}{Face}}, BV, K $>$
+\begin{DoxyCompactList}\small\item\em Alias for \mbox{\hyperlink{namespaceBVH}{BVH}} root node. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
@@ -48,7 +48,7 @@ using {\bfseries Node} = EBGeometry\+::\+BVH\+::\+NodeT$<$ T, Face, BV, K $>$
 \mbox{\hyperlink{classFastMeshSDF_af6f0f08df6d92f737ea35e6deea0919e}{Fast\+Mesh\+SDF}} ()=delete
 \begin{DoxyCompactList}\small\item\em Default disallowed constructor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classFastMeshSDF_a37bb1eca3bb1076adc9cb6cbf27b3443}\label{classFastMeshSDF_a37bb1eca3bb1076adc9cb6cbf27b3443}} 
-\mbox{\hyperlink{classFastMeshSDF_a37bb1eca3bb1076adc9cb6cbf27b3443}{Fast\+Mesh\+SDF}} (const std\+::shared\+\_\+ptr$<$ Mesh $>$ \&a\+\_\+mesh) noexcept
+\mbox{\hyperlink{classFastMeshSDF_a37bb1eca3bb1076adc9cb6cbf27b3443}{Fast\+Mesh\+SDF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastMeshSDF_a371a71032c78a8362104b5bb507c5e0c}{Mesh}} $>$ \&a\+\_\+mesh) noexcept
 \begin{DoxyCompactList}\small\item\em Full constructor. Takes the input mesh and creates the \mbox{\hyperlink{namespaceBVH}{BVH}}. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classFastMeshSDF_a6cf0457233becb3b066713f2069e9e61}\label{classFastMeshSDF_a6cf0457233becb3b066713f2069e9e61}} 
 virtual \mbox{\hyperlink{classFastMeshSDF_a6cf0457233becb3b066713f2069e9e61}{$\sim$\+Fast\+Mesh\+SDF}} ()=default
@@ -62,7 +62,7 @@ BV \mbox{\hyperlink{classFastMeshSDF_a5bab29cbe88e9d8fa4c3102a3bbbb5fe}{compute\
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classFastMeshSDF_ab52cd16c2bbb2fc560a34c126ad9afec}\label{classFastMeshSDF_ab52cd16c2bbb2fc560a34c126ad9afec}} 
-std\+::shared\+\_\+ptr$<$ Node $>$ \mbox{\hyperlink{classFastMeshSDF_ab52cd16c2bbb2fc560a34c126ad9afec}{m\+\_\+bvh}}
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastMeshSDF_a665650e08dbe9f10d36708a3894338cf}{Node}} $>$ \mbox{\hyperlink{classFastMeshSDF_ab52cd16c2bbb2fc560a34c126ad9afec}{m\+\_\+bvh}}
 \begin{DoxyCompactList}\small\item\em Bounding volume hierarchy. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 

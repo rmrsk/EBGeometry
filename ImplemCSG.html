@@ -113,23 +113,96 @@
 <section id="implicit-functions">
 <h2>Implicit functions<a class="headerlink" href="#implicit-functions" title="Permalink to this heading"></a></h2>
 <p>EBGeometry implements implement functions and signed distance functions through virtual classes</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// Implicit function implementation requires a value function</span>
-<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ImplicitFunction</span><span class="w"></span>
 <span class="p">{</span><span class="w"></span>
-<span class="w">   </span><span class="n">T</span><span class="w"> </span><span class="nf">value</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<span class="k">public</span><span class="o">:</span><span class="w"></span>
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Disallowed, use the full constructor</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="n">ImplicitFunction</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">default</span><span class="p">;</span><span class="w"></span>
 
-<span class="c1">// Signed distance fields implementation require an additional function:</span>
-<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Destructor (does nothing)</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="o">~</span><span class="n">ImplicitFunction</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">default</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Value function. Points are outside the object if value &gt; 0.0 and inside</span>
+<span class="cm">    if value &lt; 0.0</span>
+<span class="cm">    @param[in] a_point 3D point.</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="n">T</span><span class="w"></span>
+<span class="w">  </span><span class="nf">value</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Alternative signature for the value function.</span>
+<span class="cm">    @param[in] a_point 3D point.</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="n">T</span><span class="w"></span>
+<span class="w">  </span><span class="nf">operator</span><span class="p">()(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Compute an approximation to the bounding volume for the implicit surface, using octrees.</span>
+<span class="cm">    @details This routine will try to compute a bonding using octree subdivision of the implicit function. This routine will</span>
+<span class="cm">    characterize a cubic region in space as being &#39;inside&#39;, &#39;outside&#39;, or intersected by computing the value function at the</span>
+<span class="cm">    center of the cube. If the value function is larger than the extents of the cube, we assume that there is no intersection</span>
+<span class="cm">    inside the cube. The success of this algorithm therefore relies on the implicit function also being a signed distance </span>
+<span class="cm">    function, or at the very least not being horrendously far from being an SDF. If octree subdivision fails, this will return</span>
+<span class="cm">    the maximally representable bounding volume.</span>
+<span class="cm">    @param[in] a_initialLowCorner Initial low corner. </span>
+<span class="cm">    @param[in] a_initialHighCorner Initial high corner. </span>
+<span class="cm">    @param[in] a_maxTreeDepth Maximum permitted octree depth.</span>
+<span class="cm">    @param[in] a_safety Safety factor when determining intersection. a_safety=1 sets safety factor to cube width, a_safety=2 sets twice the cube width, etc. </span>
+<span class="cm">    @note The bounding volume type BV MUST have a constructor BV(std::vector&lt;Vec3T&lt;T&gt;&gt;).</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="n">BV</span><span class="w"></span>
+<span class="w">  </span><span class="n">approximateBoundingVolumeOctree</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w">    </span><span class="n">a_initialLowCorner</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                  </span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w">    </span><span class="n">a_initialHighCorner</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                  </span><span class="k">const</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">a_maxTreeDepth</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                  </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="o">&amp;</span><span class="w">           </span><span class="n">a_safety</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+<span class="p">};</span><span class="w"></span>
+</pre></div>
+</div>
+<p>and for the signed distance field,</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
 <span class="k">class</span><span class="w"> </span><span class="nc">SignedDistanceFunction</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"></span>
 <span class="p">{</span><span class="w"></span>
-<span class="w">   </span><span class="n">T</span><span class="w"> </span><span class="nf">value</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="k">this</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">a_point</span><span class="p">);</span><span class="w"></span>
-<span class="w">   </span><span class="p">}</span><span class="w"></span>
+<span class="k">public</span><span class="o">:</span><span class="w"></span>
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Disallowed, use the full constructor</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="n">SignedDistanceFunction</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">default</span><span class="p">;</span><span class="w"></span>
 
-<span class="w">   </span><span class="n">T</span><span class="w"> </span><span class="nf">signedDistance</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Destructor (does nothing)</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="o">~</span><span class="n">SignedDistanceFunction</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">default</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Implementation of ImplicitFunction::value</span>
+<span class="cm">    @param[in] a_point 3D point.</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="n">T</span><span class="w"></span>
+<span class="w">  </span><span class="nf">value</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="k">final</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Signed distance function.</span>
+<span class="cm">    @param[in] a_point 3D point.</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="n">T</span><span class="w"></span>
+<span class="w">  </span><span class="nf">signedDistance</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">  </span><span class="cm">/*!</span>
+<span class="cm">    @brief Signed distance normal vector.</span>
+<span class="cm">    @details Computed using finite differences with step a_delta</span>
+<span class="cm">    @param[in] a_point 3D point</span>
+<span class="cm">    @param[in] a_delta Finite difference step</span>
+<span class="cm">  */</span><span class="w"></span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="k">virtual</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="n">normal</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_delta</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+<span class="p">};</span><span class="w"></span>
 </pre></div>
 </div>
 <p>Note that <code class="docutils literal notranslate"><span class="pre">T</span></code> is a floating point precision, which is supported because DCEL meshes can take up quite a bit of computer memory.
@@ -218,6 +291,7 @@ These are also available through functions that automatically cast the resulting
 <span class="cm">*/</span><span class="w"></span>
 <span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
 <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">Mollify</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunction</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">a_dist</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
 </section>
@@ -344,6 +418,18 @@ These also include accelerated variants that take advantage of BVH partitioning 
 <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
 <span class="n">Difference</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P1</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctionA</span><span class="p">,</span><span class="w"></span>
 <span class="w">           </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P2</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctionB</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+<span class="cm">/*!</span>
+<span class="cm">  @brief Convenience function for taking the smooth CSG difference. </span>
+<span class="cm">  @param[in] a_implicitFunctionA Implicit function. </span>
+<span class="cm">  @param[in] a_implicitFunctionB Implicit function to subtract. </span>
+<span class="cm">  @param[in] a_smoothLen Smoothing length. </span>
+<span class="cm">  @note P1 and P2 must derive from ImplicitFunction&lt;T&gt;. This uses the default smoothMax function.</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="n">SmoothDifference</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P1</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctionA</span><span class="p">,</span><span class="w"></span>
+<span class="w">                 </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">P2</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_implicitFunctionB</span><span class="p">,</span><span class="w"></span>
+<span class="w">                 </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w">                                     </span><span class="n">a_smoothLen</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
 </section>

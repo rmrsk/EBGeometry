@@ -84,7 +84,8 @@ $(function() {
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
 <tr class="memitem:a073e87d51d44b4cc243c8f90690247a6"><td class="memItemLeft" align="right" valign="top"><a id="a073e87d51d44b4cc243c8f90690247a6"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>Vec3</b> = <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;</td></tr>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#a073e87d51d44b4cc243c8f90690247a6">Vec3</a> = <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;</td></tr>
+<tr class="memdesc:a073e87d51d44b4cc243c8f90690247a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for vector type. <br /></td></tr>
 <tr class="separator:a073e87d51d44b4cc243c8f90690247a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
@@ -127,10 +128,10 @@ const BV &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" 
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#aba361834e3d013725a92ec4b45633584">isLeaf</a> () const noexcept</td></tr>
 <tr class="memdesc:aba361834e3d013725a92ec4b45633584"><td class="mdescLeft">&#160;</td><td class="mdescRight">Is leaf or not. <br /></td></tr>
 <tr class="separator:aba361834e3d013725a92ec4b45633584"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2bf5b1c514a20754d527b17e1c664630"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#a2bf5b1c514a20754d527b17e1c664630">getDistanceToBoundingVolume</a> (const <a class="el" href="classVec3T.html">Vec3</a> &amp;a_point) const noexcept</td></tr>
+<tr class="memitem:a2bf5b1c514a20754d527b17e1c664630"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#a2bf5b1c514a20754d527b17e1c664630">getDistanceToBoundingVolume</a> (const <a class="el" href="classBVH_1_1LinearNodeT.html#a073e87d51d44b4cc243c8f90690247a6">Vec3</a> &amp;a_point) const noexcept</td></tr>
 <tr class="memdesc:a2bf5b1c514a20754d527b17e1c664630"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the distance from a 3D point to the bounding volume.  <a href="classBVH_1_1LinearNodeT.html#a2bf5b1c514a20754d527b17e1c664630">More...</a><br /></td></tr>
 <tr class="separator:a2bf5b1c514a20754d527b17e1c664630"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4a4a6a8ef0ff7858f6b95b92501e8bc3"><td class="memItemLeft" align="right" valign="top">std::vector&lt; T &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#a4a4a6a8ef0ff7858f6b95b92501e8bc3">getDistances</a> (const <a class="el" href="classVec3T.html">Vec3</a> &amp;a_point, const std::vector&lt; std::shared_ptr&lt; const P &gt;&gt; &amp;a_primitives) const noexcept</td></tr>
+<tr class="memitem:a4a4a6a8ef0ff7858f6b95b92501e8bc3"><td class="memItemLeft" align="right" valign="top">std::vector&lt; T &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#a4a4a6a8ef0ff7858f6b95b92501e8bc3">getDistances</a> (const <a class="el" href="classBVH_1_1LinearNodeT.html#a073e87d51d44b4cc243c8f90690247a6">Vec3</a> &amp;a_point, const std::vector&lt; std::shared_ptr&lt; const P &gt;&gt; &amp;a_primitives) const noexcept</td></tr>
 <tr class="memdesc:a4a4a6a8ef0ff7858f6b95b92501e8bc3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute signed distance to primitives.  <a href="classBVH_1_1LinearNodeT.html#a4a4a6a8ef0ff7858f6b95b92501e8bc3">More...</a><br /></td></tr>
 <tr class="separator:a4a4a6a8ef0ff7858f6b95b92501e8bc3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -210,7 +211,7 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
         <tr>
           <td class="memname">std::vector&lt;T&gt; <a class="el" href="classBVH_1_1LinearNodeT.html">BVH::LinearNodeT</a>&lt; T, P, BV, K &gt;::getDistances </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classVec3T.html">Vec3</a> &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classBVH_1_1LinearNodeT.html#a073e87d51d44b4cc243c8f90690247a6">Vec3</a> &amp;&#160;</td>
           <td class="paramname"><em>a_point</em>, </td>
         </tr>
         <tr>
@@ -258,7 +259,7 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
         <tr>
           <td class="memname">T <a class="el" href="classBVH_1_1LinearNodeT.html">BVH::LinearNodeT</a>&lt; T, P, BV, K &gt;::getDistanceToBoundingVolume </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classVec3T.html">Vec3</a> &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classBVH_1_1LinearNodeT.html#a073e87d51d44b4cc243c8f90690247a6">Vec3</a> &amp;&#160;</td>
           <td class="paramname"><em>a_point</em></td><td>)</td>
           <td> const</td>
         </tr>

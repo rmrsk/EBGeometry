@@ -99,14 +99,17 @@ Collaboration diagram for FastMeshSDF&lt; T, BV, K &gt;:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a0f810fece44e76cc8f778782c7a17b64"><td class="memItemLeft" align="right" valign="top"><a id="a0f810fece44e76cc8f778782c7a17b64"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>Face</b> = EBGeometry::DCEL::FaceT&lt; T &gt;</td></tr>
-<tr class="separator:a0f810fece44e76cc8f778782c7a17b64"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a145e6021dfe79dd386d90cd8633b6acd"><td class="memItemLeft" align="right" valign="top"><a id="a145e6021dfe79dd386d90cd8633b6acd"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>Mesh</b> = EBGeometry::DCEL::MeshT&lt; T &gt;</td></tr>
-<tr class="separator:a145e6021dfe79dd386d90cd8633b6acd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab9249ffc2e28556c3b29774234d0b57d"><td class="memItemLeft" align="right" valign="top"><a id="ab9249ffc2e28556c3b29774234d0b57d"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastMeshSDF.html#ab9249ffc2e28556c3b29774234d0b57d">Face</a> = typename EBGeometry::DCEL::FaceT&lt; T &gt;</td></tr>
+<tr class="memdesc:ab9249ffc2e28556c3b29774234d0b57d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> face type. <br /></td></tr>
+<tr class="separator:ab9249ffc2e28556c3b29774234d0b57d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a371a71032c78a8362104b5bb507c5e0c"><td class="memItemLeft" align="right" valign="top"><a id="a371a71032c78a8362104b5bb507c5e0c"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastMeshSDF.html#a371a71032c78a8362104b5bb507c5e0c">Mesh</a> = typename EBGeometry::DCEL::MeshT&lt; T &gt;</td></tr>
+<tr class="memdesc:a371a71032c78a8362104b5bb507c5e0c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> mesh type. <br /></td></tr>
+<tr class="separator:a371a71032c78a8362104b5bb507c5e0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a665650e08dbe9f10d36708a3894338cf"><td class="memItemLeft" align="right" valign="top"><a id="a665650e08dbe9f10d36708a3894338cf"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>Node</b> = EBGeometry::BVH::NodeT&lt; T, Face, BV, K &gt;</td></tr>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastMeshSDF.html#a665650e08dbe9f10d36708a3894338cf">Node</a> = EBGeometry::BVH::NodeT&lt; T, <a class="el" href="classFastMeshSDF.html#ab9249ffc2e28556c3b29774234d0b57d">Face</a>, BV, K &gt;</td></tr>
+<tr class="memdesc:a665650e08dbe9f10d36708a3894338cf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> root node. <br /></td></tr>
 <tr class="separator:a665650e08dbe9f10d36708a3894338cf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
@@ -116,7 +119,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:af6f0f08df6d92f737ea35e6deea0919e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default disallowed constructor. <br /></td></tr>
 <tr class="separator:af6f0f08df6d92f737ea35e6deea0919e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a37bb1eca3bb1076adc9cb6cbf27b3443"><td class="memItemLeft" align="right" valign="top"><a id="a37bb1eca3bb1076adc9cb6cbf27b3443"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastMeshSDF.html#a37bb1eca3bb1076adc9cb6cbf27b3443">FastMeshSDF</a> (const std::shared_ptr&lt; Mesh &gt; &amp;a_mesh) noexcept</td></tr>
+&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastMeshSDF.html#a37bb1eca3bb1076adc9cb6cbf27b3443">FastMeshSDF</a> (const std::shared_ptr&lt; <a class="el" href="classFastMeshSDF.html#a371a71032c78a8362104b5bb507c5e0c">Mesh</a> &gt; &amp;a_mesh) noexcept</td></tr>
 <tr class="memdesc:a37bb1eca3bb1076adc9cb6cbf27b3443"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor. Takes the input mesh and creates the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>. <br /></td></tr>
 <tr class="separator:a37bb1eca3bb1076adc9cb6cbf27b3443"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6cf0457233becb3b066713f2069e9e61"><td class="memItemLeft" align="right" valign="top"><a id="a6cf0457233becb3b066713f2069e9e61"></a>
@@ -165,7 +168,7 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
 <tr class="memitem:ab52cd16c2bbb2fc560a34c126ad9afec"><td class="memItemLeft" align="right" valign="top"><a id="ab52cd16c2bbb2fc560a34c126ad9afec"></a>
-std::shared_ptr&lt; Node &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastMeshSDF.html#ab52cd16c2bbb2fc560a34c126ad9afec">m_bvh</a></td></tr>
+std::shared_ptr&lt; <a class="el" href="classFastMeshSDF.html#a665650e08dbe9f10d36708a3894338cf">Node</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastMeshSDF.html#ab52cd16c2bbb2fc560a34c126ad9afec">m_bvh</a></td></tr>
 <tr class="memdesc:ab52cd16c2bbb2fc560a34c126ad9afec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Bounding volume hierarchy. <br /></td></tr>
 <tr class="separator:ab52cd16c2bbb2fc560a34c126ad9afec"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>

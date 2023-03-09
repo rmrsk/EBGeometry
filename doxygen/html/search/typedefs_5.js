@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['vec2_778',['Vec2',['../classPolygon2D.html#ac00d7bdde1d15e381c188086bab9e8f2',1,'Polygon2D']]],
-  ['vec3_779',['Vec3',['../classBoundingVolumes_1_1BoundingSphereT.html#ad89ed315255abcde216e9ca1de3068ab',1,'BoundingVolumes::BoundingSphereT::Vec3()'],['../classBoundingVolumes_1_1AABBT.html#aa968c6b21a7f02e1cbfc03d26c7e67b4',1,'BoundingVolumes::AABBT::Vec3()'],['../classPolygon2D.html#a3efc3674f907d26837cdbb1f9a2182d4',1,'Polygon2D::Vec3()']]],
-  ['visiter_780',['Visiter',['../classOctree_1_1Node.html#a884e146418122a03b80b2952cb967a66',1,'Octree::Node::Visiter()'],['../namespaceBVH.html#a8ac51cce05479b4821bf8c0e2543696a',1,'BVH::Visiter()']]]
+  ['node_788',['Node',['../classBVH_1_1NodeT.html#ac52d9b56f082002c7f8be91062c40ff8',1,'BVH::NodeT::Node()'],['../classFastUnionIF.html#ac29ab863add030f25e4c45f2dd75ab73',1,'FastUnionIF::Node()'],['../classFastSmoothUnionIF.html#a61803067cbb318f3bc634e8462bc6e74',1,'FastSmoothUnionIF::Node()'],['../classFastMeshSDF.html#a665650e08dbe9f10d36708a3894338cf',1,'FastMeshSDF::Node()'],['../classFastCompactMeshSDF.html#ac48e0159238de5c108a33ce60141d7ee',1,'FastCompactMeshSDF::Node()']]],
+  ['nodeptr_789',['NodePtr',['../classBVH_1_1NodeT.html#a008f5c2c53adb1f5730d8478b48529b1',1,'BVH::NodeT']]]
 ];

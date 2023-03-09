@@ -33,15 +33,15 @@ Collaboration diagram for Mesh\+SDF$<$ T $>$\+:
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classMeshSDF_a8959394849080f9f2e407c3a96c3d006}\label{classMeshSDF_a8959394849080f9f2e407c3a96c3d006}} 
-using {\bfseries Mesh} = EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$
-\end{DoxyCompactItemize}
+using \mbox{\hyperlink{classMeshSDF_a8959394849080f9f2e407c3a96c3d006}{Mesh}} = EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$
+\begin{DoxyCompactList}\small\item\em Alias for \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh type. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classMeshSDF_ad7d0a26853e41fb2d0b59ef6be7ec5c9}\label{classMeshSDF_ad7d0a26853e41fb2d0b59ef6be7ec5c9}} 
 \mbox{\hyperlink{classMeshSDF_ad7d0a26853e41fb2d0b59ef6be7ec5c9}{Mesh\+SDF}} ()=delete
 \begin{DoxyCompactList}\small\item\em Disallowed constructor. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classMeshSDF_a08e25ae87dd19361eff117000ea37141}{Mesh\+SDF}} (const std\+::shared\+\_\+ptr$<$ Mesh $>$ \&a\+\_\+mesh) noexcept
+\mbox{\hyperlink{classMeshSDF_a08e25ae87dd19361eff117000ea37141}{Mesh\+SDF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classMeshSDF_a8959394849080f9f2e407c3a96c3d006}{Mesh}} $>$ \&a\+\_\+mesh) noexcept
 \begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classMeshSDF_a659ef37aec6ead18ba5da350c62771d2}\label{classMeshSDF_a659ef37aec6ead18ba5da350c62771d2}} 
 virtual \mbox{\hyperlink{classMeshSDF_a659ef37aec6ead18ba5da350c62771d2}{$\sim$\+Mesh\+SDF}} ()=default
@@ -50,7 +50,7 @@ virtual \mbox{\hyperlink{classMeshSDF_a659ef37aec6ead18ba5da350c62771d2}{$\sim$\
 virtual T \mbox{\hyperlink{classMeshSDF_a6fe9fb2386bdb0073d3c6e9f4ade41e8}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
 \begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classMeshSDF_afc5c06b1fdf7154919521648c9fd3e48}\label{classMeshSDF_afc5c06b1fdf7154919521648c9fd3e48}} 
-const std\+::shared\+\_\+ptr$<$ Mesh $>$ \mbox{\hyperlink{classMeshSDF_afc5c06b1fdf7154919521648c9fd3e48}{get\+Mesh}} () const noexcept
+const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classMeshSDF_a8959394849080f9f2e407c3a96c3d006}{Mesh}} $>$ \mbox{\hyperlink{classMeshSDF_afc5c06b1fdf7154919521648c9fd3e48}{get\+Mesh}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the surface mesh. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classMeshSDF_a550b83290295ff0a54489b28f58f7f6e}\label{classMeshSDF_a550b83290295ff0a54489b28f58f7f6e}} 
 {\footnotesize template$<$class BV $>$ }\\BV \mbox{\hyperlink{classMeshSDF_a550b83290295ff0a54489b28f58f7f6e}{compute\+Bounding\+Volume}} () const noexcept
@@ -59,7 +59,7 @@ const std\+::shared\+\_\+ptr$<$ Mesh $>$ \mbox{\hyperlink{classMeshSDF_afc5c06b1
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classMeshSDF_ae6a3734c78feb8da9d182a8e0a53292f}\label{classMeshSDF_ae6a3734c78feb8da9d182a8e0a53292f}} 
-std\+::shared\+\_\+ptr$<$ Mesh $>$ \mbox{\hyperlink{classMeshSDF_ae6a3734c78feb8da9d182a8e0a53292f}{m\+\_\+mesh}}
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classMeshSDF_a8959394849080f9f2e407c3a96c3d006}{Mesh}} $>$ \mbox{\hyperlink{classMeshSDF_ae6a3734c78feb8da9d182a8e0a53292f}{m\+\_\+mesh}}
 \begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
@@ -75,7 +75,7 @@ Signed distance function for a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. Does
 \index{MeshSDF@{MeshSDF}!MeshSDF$<$ T $>$@{MeshSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{MeshSDF()}{MeshSDF()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classMeshSDF}{Mesh\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classMeshSDF}{Mesh\+SDF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ Mesh $>$ \&}]{a\+\_\+mesh }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+\mbox{\hyperlink{classMeshSDF}{Mesh\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classMeshSDF}{Mesh\+SDF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classMeshSDF_a8959394849080f9f2e407c3a96c3d006}{Mesh}} $>$ \&}]{a\+\_\+mesh }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
