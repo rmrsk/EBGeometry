@@ -225,12 +225,35 @@ namespace BVH {
   class NodeT : public std::enable_shared_from_this<NodeT<T, P, BV, K>>
   {
   public:
+    /*!
+      @brief Alias for list of primitives
+    */
     using PrimitiveList = PrimitiveListT<P>;
-    using Vec3          = Vec3T<T>;
-    using Node          = NodeT<T, P, BV, K>;
-    using NodePtr       = std::shared_ptr<Node>;
-    using StopFunction  = StopFunctionT<T, P, BV, K>;
-    using Partitioner   = PartitionerT<P, BV, K>;
+
+    /*!
+      @brief Alias for list of primitives
+    */
+    using Vec3 = Vec3T<T>;
+
+    /*!
+      @brief Alias for node type
+    */
+    using Node = NodeT<T, P, BV, K>;
+
+    /*!
+      @brief Alias for node type pointer
+    */
+    using NodePtr = std::shared_ptr<Node>;
+
+    /*!
+      @brief Alias for partitioner
+    */
+    using Partitioner = PartitionerT<P, BV, K>;
+
+    /*!
+      @brief Alias for stop function 
+    */
+    using StopFunction = StopFunctionT<T, P, BV, K>;
 
     /*!
       @brief Default constructor which sets a regular node.
@@ -349,13 +372,6 @@ namespace BVH {
     std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K> m_children;
 
     /*!
-      @brief Insert nodes with primitives.
-      @param[in] a_primitives Primitives for children.
-    */
-    inline void
-    insertChildren(const std::array<PrimitiveList, K>& a_primitives) noexcept;
-
-    /*!
       @brief Get the list of primitives in this node.
       @return Primitives list
     */
@@ -421,6 +437,9 @@ namespace BVH {
   class LinearNodeT
   {
   public:
+    /*!
+      @brief Alias for vector type
+    */
     using Vec3 = Vec3T<T>;
 
     /*!
@@ -542,8 +561,19 @@ namespace BVH {
   class LinearBVH
   {
   public:
-    using Vec3          = Vec3T<T>;
-    using LinearNode    = LinearNodeT<T, P, BV, K>;
+    /*!
+      @brief Alias for vector type
+    */
+    using Vec3 = Vec3T<T>;
+
+    /*!
+      @brief Alias for linear node type
+    */
+    using LinearNode = LinearNodeT<T, P, BV, K>;
+
+    /*!
+      @brief Alias for list of primitives
+    */
     using PrimitiveList = std::vector<std::shared_ptr<const P>>;
 
     /*!
