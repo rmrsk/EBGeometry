@@ -281,8 +281,6 @@ protected:
 
 /*!
   @brief Implicit function union using BVHs. 
-  @note If the BVH-enabled union is to make sense, the primitives must be 
-  distance fields (I think). There's a static_assert to make sure of that. 
 */
 template <class T, class P, class BV, size_t K>
 class FastUnionIF : public ImplicitFunction<T>

@@ -155,14 +155,6 @@ SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
   return std::make_shared<SmoothIntersectionIF<T>>(implicitFunctions, a_smooth);
 }
 
-template <class T, class P, class BV, size_t K>
-std::shared_ptr<ImplicitFunction<T>>
-FastIntersection(const std::vector<std::shared_ptr<P>>&        a_implicitFunctions,
-                 const EBGeometry::BVH::BVConstructorT<P, BV>& a_bvConstructor) noexcept
-{
-  return std::make_shared<EBGeometry::FastIntersection<T, P, BV, K>>(a_implicitFunctions, a_bvConstructor);
-}
-
 template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
 Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB) noexcept
