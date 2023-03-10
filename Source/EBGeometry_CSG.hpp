@@ -619,6 +619,66 @@ protected:
   std::shared_ptr<SmoothIntersectionIF<T>> m_smoothIntersectionIF;
 };
 
+/*!
+  @brief Class which creates a periodic repetition of an implicit function.
+  @details The user will specify the period (i.e., spacing), and the number of repetitions along increasing and
+  decreasing coordinate directions.
+*/
+template <class T>
+class FiniteRepetitionIF : public ImplicitFunction<T>
+{
+public:
+  /*!
+    @brief Disallowed - use the full constructor
+  */
+  FiniteRepetitionIF() = delete;
+
+  /*!
+    @brief Full constructor
+    @param[in] a_implicitFunction Implicit function to be replicated
+    @param[in] a_period           Repetition period (in each coordinate direction)
+    @param[in] a_repeatLo         Number of repetitions for decreasing coordinates (should contain integers)
+    @param[in] a_repeatHi         Number of repetitions for increasing coordinates (should contain integers)
+  */
+  FiniteRepetitionIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
+                     const Vec3T<T>&                             a_period,
+                     const Vec3T<T>&                             a_repeatLo,
+                     const Vec3T<T>&                             a_repeatHi) noexcept;
+
+  /*!
+    @brief Destructor (does nothing)
+  */
+  virtual ~FiniteRepetitionIF() = default;
+
+  /*!
+    @brief Value function
+    @param[in] a_point 3D point.
+  */
+  T
+  value(const Vec3T<T>& a_point) const noexcept override;
+
+protected:
+  /*!
+    @brief Repetition period
+  */
+  Vec3T<T> m_period;
+
+  /*!
+    @brief Number of repetition over increasing coordinate direction
+  */
+  Vec3T<T> m_repeatHi;
+
+  /*!
+    @brief Number of repetition over increasing coordinate direction
+  */
+  Vec3T<T> m_repeatLo;
+
+  /*!
+    @brief Underlying implicit function
+  */
+  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
+};
+
 #include "EBGeometry_NamespaceFooter.hpp"
 
 #include "EBGeometry_CSGImplem.hpp"
