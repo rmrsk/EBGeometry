@@ -68,13 +68,13 @@ Blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_b
 
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
-Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_dist) noexcept
+Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
+        const T                                     a_dist,
+        const size_t                                a_mollifierSamples) noexcept
 {
   auto mollifier = std::make_shared<SphereSDF<T>>(Vec3T<T>::zero(), std::abs(a_dist));
 
-  constexpr size_t numPoints = 2;
-
-  return std::make_shared<MollifyIF<T>>(a_implicitFunction, mollifier, std::abs(a_dist), numPoints);
+  return std::make_shared<MollifyIF<T>>(a_implicitFunction, mollifier, std::abs(a_dist), a_mollifierSamples);
 }
 
 template <class T>
