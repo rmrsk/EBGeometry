@@ -488,7 +488,7 @@ public:
 
   /*!
     @brief Full constructor.
-    @param[in] a_implicit Implicit function to be stretched
+    @param[in] a_implicitFunction Implicit function to be stretched
     @param[in] a_elongation Stretching (per coordinate)
   */
   ElongateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_elongation) noexcept;
