@@ -2,7 +2,7 @@
 \label{classOctree_1_1Node}\index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 
 
-Octree class without anything special (this uses full tree representation rather than linear/pointerless).  
+\mbox{\hyperlink{namespaceOctree}{Octree}} class without anything special (this uses full tree representation rather than linear/pointerless).  
 
 
 
@@ -34,9 +34,9 @@ Collaboration diagram for Octree\+::Node$<$ Meta, Data $>$\+:
 \item 
 using \mbox{\hyperlink{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b}{Stop\+Function}} = std\+::function$<$ bool(const \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ Meta, Data $>$ \&a\+\_\+node)$>$
 \begin{DoxyCompactList}\small\item\em Function for deciding whether or not to split a node. \end{DoxyCompactList}\item 
-using \mbox{\hyperlink{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}{Meta\+Constructor}} = std\+::function$<$ Meta(const \mbox{\hyperlink{EBGeometry__Octree_8hpp_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}} \&a\+\_\+index, const Meta \&a\+\_\+parent\+Meta)$>$
+using \mbox{\hyperlink{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}{Meta\+Constructor}} = std\+::function$<$ Meta(const \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}} \&a\+\_\+index, const Meta \&a\+\_\+parent\+Meta)$>$
 \begin{DoxyCompactList}\small\item\em For assigning meta-\/data to the child octs during the build process. \end{DoxyCompactList}\item 
-using \mbox{\hyperlink{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}{Data\+Constructor}} = std\+::function$<$ std\+::shared\+\_\+ptr$<$ Data $>$(const \mbox{\hyperlink{EBGeometry__Octree_8hpp_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}} \&a\+\_\+index, const std\+::shared\+\_\+ptr$<$ Data $>$ \&a\+\_\+parent\+Data)$>$
+using \mbox{\hyperlink{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}{Data\+Constructor}} = std\+::function$<$ std\+::shared\+\_\+ptr$<$ Data $>$(const \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}} \&a\+\_\+index, const std\+::shared\+\_\+ptr$<$ Data $>$ \&a\+\_\+parent\+Data)$>$
 \begin{DoxyCompactList}\small\item\em For assigning data to child octs during the build process. \end{DoxyCompactList}\item 
 using \mbox{\hyperlink{classOctree_1_1Node_a2706769e036e137fa6f8c0f5cbc8b7f4}{Updater}} = std\+::function$<$ void(const \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ Meta, Data $>$ \&a\+\_\+node)$>$
 \begin{DoxyCompactList}\small\item\em Updater pattern for \mbox{\hyperlink{classOctree_1_1Node_aac6e9decba3ab712870af74dcad89a9d}{Node\+::traverse}}. This is called when visiting a leaf node. \end{DoxyCompactList}\item 
@@ -92,7 +92,7 @@ std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classOctree_1_1Node}{
 \subsubsection*{template$<$typename Meta, typename Data = void$>$\newline
 class Octree\+::\+Node$<$ Meta, Data $>$}
 
-Octree class without anything special (this uses full tree representation rather than linear/pointerless). 
+\mbox{\hyperlink{namespaceOctree}{Octree}} class without anything special (this uses full tree representation rather than linear/pointerless). 
 
 Meta is the meta-\/data for the node (user can put in e.\+g. level, volume, etc) and Data is the leaf node contents. \begin{DoxyNote}{Note}
 This class should only be used with smart pointers. I.\+e. std\+::shared\+\_\+ptr$<$\+Node$>$ rather than \mbox{\hyperlink{classOctree_1_1Node}{Node}}. 
@@ -105,7 +105,7 @@ This class should only be used with smart pointers. I.\+e. std\+::shared\+\_\+pt
 \index{DataConstructor@{DataConstructor}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{DataConstructor}{DataConstructor}}
 {\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-using \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::\mbox{\hyperlink{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}{Data\+Constructor}} =  std\+::function$<$std\+::shared\+\_\+ptr$<$Data$>$(const \mbox{\hyperlink{EBGeometry__Octree_8hpp_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}}\& a\+\_\+index, const std\+::shared\+\_\+ptr$<$Data$>$\& a\+\_\+parent\+Data)$>$}
+using \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::\mbox{\hyperlink{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}{Data\+Constructor}} =  std\+::function$<$std\+::shared\+\_\+ptr$<$Data$>$(const \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}}\& a\+\_\+index, const std\+::shared\+\_\+ptr$<$Data$>$\& a\+\_\+parent\+Data)$>$}
 
 
 
@@ -123,7 +123,7 @@ For assigning data to child octs during the build process.
 \index{MetaConstructor@{MetaConstructor}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{MetaConstructor}{MetaConstructor}}
 {\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-using \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::\mbox{\hyperlink{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}{Meta\+Constructor}} =  std\+::function$<$Meta(const \mbox{\hyperlink{EBGeometry__Octree_8hpp_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}}\& a\+\_\+index, const Meta\& a\+\_\+parent\+Meta)$>$}
+using \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::\mbox{\hyperlink{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}{Meta\+Constructor}} =  std\+::function$<$Meta(const \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}}\& a\+\_\+index, const Meta\& a\+\_\+parent\+Meta)$>$}
 
 
 

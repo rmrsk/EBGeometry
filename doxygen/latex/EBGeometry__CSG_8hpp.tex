@@ -45,7 +45,9 @@ class \mbox{\hyperlink{classSmoothIntersectionIF}{Smooth\+Intersection\+IF$<$ T 
 class \mbox{\hyperlink{classDifferenceIF}{Difference\+IF$<$ T $>$}}
 \begin{DoxyCompactList}\small\item\em CSG difference between two implicit functions. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classSmoothDifferenceIF}{Smooth\+Difference\+IF$<$ T $>$}}
-\begin{DoxyCompactList}\small\item\em CSG difference between two implicit functions. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em CSG difference between two implicit functions. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classFiniteRepetitionIF}{Finite\+Repetition\+IF$<$ T $>$}}
+\begin{DoxyCompactList}\small\item\em Class which creates a periodic repetition of an implicit function. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
@@ -69,10 +71,12 @@ class \mbox{\hyperlink{classSmoothDifferenceIF}{Smooth\+Difference\+IF$<$ T $>$}
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the smooth intersection of a bunch of a implicit functions. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T , class P1 , class P2 $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a31e4079fd5d60ead64b3eefe7e6a6b2f}{Smooth\+Intersection}} (const std\+::shared\+\_\+ptr$<$ P1 $>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ P2 $>$ \&a\+\_\+implicit\+FunctionB, const T a\+\_\+smooth) noexcept
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the smooth intersection of two implicit functions. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P1  = Implicit\+Function$<$\+T$>$, class P2  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_aabf5abc0c21f66b645dd3b005a6b13b6}{Difference}} (const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P1 $>$$>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P2 $>$$>$ \&a\+\_\+implicit\+FunctionB) noexcept
+{\footnotesize template$<$class T , class P1  = Implicit\+Function$<$\+T$>$, class P2  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_aadab2bfc61b1eaf75a8362c293a321b2}{Difference}} (const std\+::shared\+\_\+ptr$<$ P1 $>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ P2 $>$ \&a\+\_\+implicit\+FunctionB) noexcept
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the CSG difference. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P1  = Implicit\+Function$<$\+T$>$, class P2  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a832b91e7bbe26d789e8786a6c37b8d36}{Smooth\+Difference}} (const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P1 $>$$>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P2 $>$$>$ \&a\+\_\+implicit\+FunctionB, const T a\+\_\+smooth\+Len) noexcept
-\begin{DoxyCompactList}\small\item\em Convenience function for taking the smooth CSG difference. \end{DoxyCompactList}\end{DoxyCompactItemize}
+{\footnotesize template$<$class T , class P1  = Implicit\+Function$<$\+T$>$, class P2  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a59e14e6d19f2b4a9844ef26ad3c5db2e}{Smooth\+Difference}} (const std\+::shared\+\_\+ptr$<$ P1 $>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ P2 $>$ \&a\+\_\+implicit\+FunctionB, const T a\+\_\+smooth\+Len) noexcept
+\begin{DoxyCompactList}\small\item\em Convenience function for taking the smooth CSG difference. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T , class P  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a918f4fe53a991acccdfd23ac317d8e43}{Finite\+Repetition}} (const std\+::shared\+\_\+ptr$<$ P $>$ \&a\+\_\+implicit\+Function, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+period, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+repeat\+Lo, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+repeat\+Hi) noexcept
+\begin{DoxyCompactList}\small\item\em Convenience function for creating a periodically repeated implicit function (\mbox{\hyperlink{classFiniteRepetitionIF}{Finite\+Repetition\+IF}}). \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Variables}
 \begin{DoxyCompactItemize}
 \item 
@@ -93,12 +97,12 @@ Robert Marskar
 
 
 \doxysubsection{Function Documentation}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_aabf5abc0c21f66b645dd3b005a6b13b6}\label{EBGeometry__CSG_8hpp_aabf5abc0c21f66b645dd3b005a6b13b6}} 
+\mbox{\Hypertarget{EBGeometry__CSG_8hpp_aadab2bfc61b1eaf75a8362c293a321b2}\label{EBGeometry__CSG_8hpp_aadab2bfc61b1eaf75a8362c293a321b2}} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!Difference@{Difference}}
 \index{Difference@{Difference}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{Difference()}{Difference()}}
 {\footnotesize\ttfamily template$<$class T , class P1  = Implicit\+Function$<$\+T$>$, class P2  = Implicit\+Function$<$\+T$>$$>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Difference (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P1 $>$$>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P2 $>$$>$ \&}]{a\+\_\+implicit\+FunctionB }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Difference (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ P1 $>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::shared\+\_\+ptr$<$ P2 $>$ \&}]{a\+\_\+implicit\+FunctionB }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -158,6 +162,28 @@ Convenience function for taking the BVH-\/accelerated union of a bunch of a impl
 \begin{DoxyNote}{Note}
 P must derive from Implicit\+Function$<$\+T$>$ 
 \end{DoxyNote}
+\mbox{\Hypertarget{EBGeometry__CSG_8hpp_a918f4fe53a991acccdfd23ac317d8e43}\label{EBGeometry__CSG_8hpp_a918f4fe53a991acccdfd23ac317d8e43}} 
+\index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!FiniteRepetition@{FiniteRepetition}}
+\index{FiniteRepetition@{FiniteRepetition}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
+\doxysubsubsection{\texorpdfstring{FiniteRepetition()}{FiniteRepetition()}}
+{\footnotesize\ttfamily template$<$class T , class P  = Implicit\+Function$<$\+T$>$$>$ \\
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Finite\+Repetition (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ P $>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+period,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+repeat\+Lo,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+repeat\+Hi }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Convenience function for creating a periodically repeated implicit function (\mbox{\hyperlink{classFiniteRepetitionIF}{Finite\+Repetition\+IF}}). 
+
+User inputs the implicit function and the repetition parameters. 
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Function} & Implicit function to be replicated \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+period} & Repetition period (in each coordinate direction) \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+repeat\+Lo} & Number of repetitions for decreasing coordinates (should contain integers) \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+repeat\+Hi} & Number of repetitions for increasing coordinates (should contain integers) \\
+\hline
+\end{DoxyParams}
 \mbox{\Hypertarget{EBGeometry__CSG_8hpp_ac7865f00b63b398cc6f4ad500cc8c90b}\label{EBGeometry__CSG_8hpp_ac7865f00b63b398cc6f4ad500cc8c90b}} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!Intersection@{Intersection}}
 \index{Intersection@{Intersection}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
@@ -198,12 +224,12 @@ Convenience function for taking the intersection of a bunch of a implicit functi
 \begin{DoxyNote}{Note}
 P must derive from Implicit\+Function$<$\+T$>$ 
 \end{DoxyNote}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_a832b91e7bbe26d789e8786a6c37b8d36}\label{EBGeometry__CSG_8hpp_a832b91e7bbe26d789e8786a6c37b8d36}} 
+\mbox{\Hypertarget{EBGeometry__CSG_8hpp_a59e14e6d19f2b4a9844ef26ad3c5db2e}\label{EBGeometry__CSG_8hpp_a59e14e6d19f2b4a9844ef26ad3c5db2e}} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!SmoothDifference@{SmoothDifference}}
 \index{SmoothDifference@{SmoothDifference}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{SmoothDifference()}{SmoothDifference()}}
 {\footnotesize\ttfamily template$<$class T , class P1  = Implicit\+Function$<$\+T$>$, class P2  = Implicit\+Function$<$\+T$>$$>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Smooth\+Difference (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P1 $>$$>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P2 $>$$>$ \&}]{a\+\_\+implicit\+FunctionB,  }\item[{const T}]{a\+\_\+smooth\+Len }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Smooth\+Difference (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ P1 $>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::shared\+\_\+ptr$<$ P2 $>$ \&}]{a\+\_\+implicit\+FunctionB,  }\item[{const T}]{a\+\_\+smooth\+Len }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 

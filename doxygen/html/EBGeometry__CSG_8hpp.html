@@ -141,6 +141,9 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSmoothDifferenceIF.html">SmoothDifferenceIF&lt; T &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">CSG difference between two implicit functions.  <a href="classSmoothDifferenceIF.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFiniteRepetitionIF.html">FiniteRepetitionIF&lt; T &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Class which creates a periodic repetition of an implicit function.  <a href="classFiniteRepetitionIF.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -184,14 +187,18 @@ Functions</h2></td></tr>
 <tr class="memitem:a31e4079fd5d60ead64b3eefe7e6a6b2f"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__CSG_8hpp.html#a31e4079fd5d60ead64b3eefe7e6a6b2f">SmoothIntersection</a> (const std::shared_ptr&lt; P1 &gt; &amp;a_implicitFunctionA, const std::shared_ptr&lt; P2 &gt; &amp;a_implicitFunctionB, const T a_smooth) noexcept</td></tr>
 <tr class="memdesc:a31e4079fd5d60ead64b3eefe7e6a6b2f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for taking the smooth intersection of two implicit functions.  <a href="EBGeometry__CSG_8hpp.html#a31e4079fd5d60ead64b3eefe7e6a6b2f">More...</a><br /></td></tr>
 <tr class="separator:a31e4079fd5d60ead64b3eefe7e6a6b2f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aabf5abc0c21f66b645dd3b005a6b13b6"><td class="memTemplParams" colspan="2">template&lt;class T , class P1  = ImplicitFunction&lt;T&gt;, class P2  = ImplicitFunction&lt;T&gt;&gt; </td></tr>
-<tr class="memitem:aabf5abc0c21f66b645dd3b005a6b13b6"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__CSG_8hpp.html#aabf5abc0c21f66b645dd3b005a6b13b6">Difference</a> (const std::shared_ptr&lt; std::shared_ptr&lt; P1 &gt;&gt; &amp;a_implicitFunctionA, const std::shared_ptr&lt; std::shared_ptr&lt; P2 &gt;&gt; &amp;a_implicitFunctionB) noexcept</td></tr>
-<tr class="memdesc:aabf5abc0c21f66b645dd3b005a6b13b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for taking the CSG difference.  <a href="EBGeometry__CSG_8hpp.html#aabf5abc0c21f66b645dd3b005a6b13b6">More...</a><br /></td></tr>
-<tr class="separator:aabf5abc0c21f66b645dd3b005a6b13b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a832b91e7bbe26d789e8786a6c37b8d36"><td class="memTemplParams" colspan="2">template&lt;class T , class P1  = ImplicitFunction&lt;T&gt;, class P2  = ImplicitFunction&lt;T&gt;&gt; </td></tr>
-<tr class="memitem:a832b91e7bbe26d789e8786a6c37b8d36"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__CSG_8hpp.html#a832b91e7bbe26d789e8786a6c37b8d36">SmoothDifference</a> (const std::shared_ptr&lt; std::shared_ptr&lt; P1 &gt;&gt; &amp;a_implicitFunctionA, const std::shared_ptr&lt; std::shared_ptr&lt; P2 &gt;&gt; &amp;a_implicitFunctionB, const T a_smoothLen) noexcept</td></tr>
-<tr class="memdesc:a832b91e7bbe26d789e8786a6c37b8d36"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for taking the smooth CSG difference.  <a href="EBGeometry__CSG_8hpp.html#a832b91e7bbe26d789e8786a6c37b8d36">More...</a><br /></td></tr>
-<tr class="separator:a832b91e7bbe26d789e8786a6c37b8d36"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aadab2bfc61b1eaf75a8362c293a321b2"><td class="memTemplParams" colspan="2">template&lt;class T , class P1  = ImplicitFunction&lt;T&gt;, class P2  = ImplicitFunction&lt;T&gt;&gt; </td></tr>
+<tr class="memitem:aadab2bfc61b1eaf75a8362c293a321b2"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__CSG_8hpp.html#aadab2bfc61b1eaf75a8362c293a321b2">Difference</a> (const std::shared_ptr&lt; P1 &gt; &amp;a_implicitFunctionA, const std::shared_ptr&lt; P2 &gt; &amp;a_implicitFunctionB) noexcept</td></tr>
+<tr class="memdesc:aadab2bfc61b1eaf75a8362c293a321b2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for taking the CSG difference.  <a href="EBGeometry__CSG_8hpp.html#aadab2bfc61b1eaf75a8362c293a321b2">More...</a><br /></td></tr>
+<tr class="separator:aadab2bfc61b1eaf75a8362c293a321b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a59e14e6d19f2b4a9844ef26ad3c5db2e"><td class="memTemplParams" colspan="2">template&lt;class T , class P1  = ImplicitFunction&lt;T&gt;, class P2  = ImplicitFunction&lt;T&gt;&gt; </td></tr>
+<tr class="memitem:a59e14e6d19f2b4a9844ef26ad3c5db2e"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__CSG_8hpp.html#a59e14e6d19f2b4a9844ef26ad3c5db2e">SmoothDifference</a> (const std::shared_ptr&lt; P1 &gt; &amp;a_implicitFunctionA, const std::shared_ptr&lt; P2 &gt; &amp;a_implicitFunctionB, const T a_smoothLen) noexcept</td></tr>
+<tr class="memdesc:a59e14e6d19f2b4a9844ef26ad3c5db2e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for taking the smooth CSG difference.  <a href="EBGeometry__CSG_8hpp.html#a59e14e6d19f2b4a9844ef26ad3c5db2e">More...</a><br /></td></tr>
+<tr class="separator:a59e14e6d19f2b4a9844ef26ad3c5db2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a918f4fe53a991acccdfd23ac317d8e43"><td class="memTemplParams" colspan="2">template&lt;class T , class P  = ImplicitFunction&lt;T&gt;&gt; </td></tr>
+<tr class="memitem:a918f4fe53a991acccdfd23ac317d8e43"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__CSG_8hpp.html#a918f4fe53a991acccdfd23ac317d8e43">FiniteRepetition</a> (const std::shared_ptr&lt; P &gt; &amp;a_implicitFunction, const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_period, const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_repeatLo, const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_repeatHi) noexcept</td></tr>
+<tr class="memdesc:a918f4fe53a991acccdfd23ac317d8e43"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for creating a periodically repeated implicit function (<a class="el" href="classFiniteRepetitionIF.html" title="Class which creates a periodic repetition of an implicit function.">FiniteRepetitionIF</a>).  <a href="EBGeometry__CSG_8hpp.html#a918f4fe53a991acccdfd23ac317d8e43">More...</a><br /></td></tr>
+<tr class="separator:a918f4fe53a991acccdfd23ac317d8e43"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -212,8 +219,8 @@ Variables</h2></td></tr>
 <div class="textblock"><p>Declaration of a CSG operations for implicit functions. </p>
 <dl class="section author"><dt>Author</dt><dd>Robert Marskar </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
-<a id="aabf5abc0c21f66b645dd3b005a6b13b6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aabf5abc0c21f66b645dd3b005a6b13b6">&#9670;&nbsp;</a></span>Difference()</h2>
+<a id="aadab2bfc61b1eaf75a8362c293a321b2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aadab2bfc61b1eaf75a8362c293a321b2">&#9670;&nbsp;</a></span>Difference()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -226,13 +233,13 @@ template&lt;class T , class P1  = ImplicitFunction&lt;T&gt;, class P2  = Implici
         <tr>
           <td class="memname">std::shared_ptr&lt;<a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt;T&gt; &gt; Difference </td>
           <td>(</td>
-          <td class="paramtype">const std::shared_ptr&lt; std::shared_ptr&lt; P1 &gt;&gt; &amp;&#160;</td>
+          <td class="paramtype">const std::shared_ptr&lt; P1 &gt; &amp;&#160;</td>
           <td class="paramname"><em>a_implicitFunctionA</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const std::shared_ptr&lt; std::shared_ptr&lt; P2 &gt;&gt; &amp;&#160;</td>
+          <td class="paramtype">const std::shared_ptr&lt; P2 &gt; &amp;&#160;</td>
           <td class="paramname"><em>a_implicitFunctionB</em>&#160;</td>
         </tr>
         <tr>
@@ -363,6 +370,67 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 
 </div>
 </div>
+<a id="a918f4fe53a991acccdfd23ac317d8e43"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a918f4fe53a991acccdfd23ac317d8e43">&#9670;&nbsp;</a></span>FiniteRepetition()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T , class P  = ImplicitFunction&lt;T&gt;&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;<a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt;T&gt; &gt; FiniteRepetition </td>
+          <td>(</td>
+          <td class="paramtype">const std::shared_ptr&lt; P &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_implicitFunction</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_period</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_repeatLo</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_repeatHi</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Convenience function for creating a periodically repeated implicit function (<a class="el" href="classFiniteRepetitionIF.html" title="Class which creates a periodic repetition of an implicit function.">FiniteRepetitionIF</a>). </p>
+<p>User inputs the implicit function and the repetition parameters. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunction</td><td>Implicit function to be replicated </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_period</td><td>Repetition period (in each coordinate direction) </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_repeatLo</td><td>Number of repetitions for decreasing coordinates (should contain integers) </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_repeatHi</td><td>Number of repetitions for increasing coordinates (should contain integers) </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="ac7865f00b63b398cc6f4ad500cc8c90b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac7865f00b63b398cc6f4ad500cc8c90b">&#9670;&nbsp;</a></span>Intersection() <span class="overload">[1/2]</span></h2>
 
@@ -448,8 +516,8 @@ template&lt;class T , class P &gt; </div>
 
 </div>
 </div>
-<a id="a832b91e7bbe26d789e8786a6c37b8d36"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a832b91e7bbe26d789e8786a6c37b8d36">&#9670;&nbsp;</a></span>SmoothDifference()</h2>
+<a id="a59e14e6d19f2b4a9844ef26ad3c5db2e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a59e14e6d19f2b4a9844ef26ad3c5db2e">&#9670;&nbsp;</a></span>SmoothDifference()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -462,13 +530,13 @@ template&lt;class T , class P1  = ImplicitFunction&lt;T&gt;, class P2  = Implici
         <tr>
           <td class="memname">std::shared_ptr&lt;<a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt;T&gt; &gt; SmoothDifference </td>
           <td>(</td>
-          <td class="paramtype">const std::shared_ptr&lt; std::shared_ptr&lt; P1 &gt;&gt; &amp;&#160;</td>
+          <td class="paramtype">const std::shared_ptr&lt; P1 &gt; &amp;&#160;</td>
           <td class="paramname"><em>a_implicitFunctionA</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const std::shared_ptr&lt; std::shared_ptr&lt; P2 &gt;&gt; &amp;&#160;</td>
+          <td class="paramtype">const std::shared_ptr&lt; P2 &gt; &amp;&#160;</td>
           <td class="paramname"><em>a_implicitFunctionB</em>, </td>
         </tr>
         <tr>

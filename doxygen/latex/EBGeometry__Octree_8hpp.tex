@@ -32,12 +32,17 @@ This graph shows which files directly or indirectly include this file\+:
 \begin{DoxyCompactItemize}
 \item 
 class \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node$<$ Meta, Data $>$}}
-\begin{DoxyCompactList}\small\item\em Octree class without anything special (this uses full tree representation rather than linear/pointerless). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{namespaceOctree}{Octree}} class without anything special (this uses full tree representation rather than linear/pointerless). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespaceOctree}{Octree}}
+\begin{DoxyCompactList}\small\item\em Namespace for octree functionality. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Enumerations}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{EBGeometry__Octree_8hpp_acda140bb7c781f38a7e6ec64b25d7e60}\label{EBGeometry__Octree_8hpp_acda140bb7c781f38a7e6ec64b25d7e60}} 
-enum \mbox{\hyperlink{EBGeometry__Octree_8hpp_acda140bb7c781f38a7e6ec64b25d7e60}{Octree\+::\+Octant\+Index}} \+: size\+\_\+t \{ \newline
+\mbox{\Hypertarget{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}\label{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}} 
+enum \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octree\+::\+Octant\+Index}} \+: size\+\_\+t \{ \newline
 {\bfseries Bottom\+Left\+Front} = 0
 , {\bfseries Bottom\+Right\+Front} = 1
 , {\bfseries Bottom\+Left\+Back} = 2
@@ -52,9 +57,9 @@ enum \mbox{\hyperlink{EBGeometry__Octree_8hpp_acda140bb7c781f38a7e6ec64b25d7e60}
 \doxysubsection*{Variables}
 \begin{DoxyCompactItemize}
 \item 
-{\footnotesize template$<$typename T $>$ }\\constexpr std\+::array$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$, 8 $>$ \mbox{\hyperlink{EBGeometry__Octree_8hpp_a36a6ec1d276bf30f3e6bdaec2b7ae133}{Octree\+::\+Low\+Corner}}
+{\footnotesize template$<$typename T $>$ }\\constexpr std\+::array$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$, 8 $>$ \mbox{\hyperlink{namespaceOctree_a36a6ec1d276bf30f3e6bdaec2b7ae133}{Octree\+::\+Low\+Corner}}
 \begin{DoxyCompactList}\small\item\em Lower-\/left corners of the octants on the unit cube, indexed lexicographically in x-\/y-\/z. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename T $>$ }\\constexpr std\+::array$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$, 8 $>$ \mbox{\hyperlink{EBGeometry__Octree_8hpp_acce5a94561596fb4bf09b75d7b82694a}{Octree\+::\+High\+Corner}}
+{\footnotesize template$<$typename T $>$ }\\constexpr std\+::array$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$, 8 $>$ \mbox{\hyperlink{namespaceOctree_acce5a94561596fb4bf09b75d7b82694a}{Octree\+::\+High\+Corner}}
 \begin{DoxyCompactList}\small\item\em Upper-\/right corners of the octants on the unit cube, indexed lexicographically in x-\/y-\/z. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
@@ -64,52 +69,3 @@ Declaration of a simple octree class.
 \begin{DoxyAuthor}{Author}
 Robert Marskar 
 \end{DoxyAuthor}
-
-
-\doxysubsection{Variable Documentation}
-\mbox{\Hypertarget{EBGeometry__Octree_8hpp_acce5a94561596fb4bf09b75d7b82694a}\label{EBGeometry__Octree_8hpp_acce5a94561596fb4bf09b75d7b82694a}} 
-\index{EBGeometry\_Octree.hpp@{EBGeometry\_Octree.hpp}!HighCorner@{HighCorner}}
-\index{HighCorner@{HighCorner}!EBGeometry\_Octree.hpp@{EBGeometry\_Octree.hpp}}
-\doxysubsubsection{\texorpdfstring{HighCorner}{HighCorner}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr std\+::array$<$\mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$, 8$>$ Octree\+::\+High\+Corner\hspace{0.3cm}{\ttfamily [constexpr]}}
-
-{\bfseries Initial value\+:}
-\begin{DoxyCode}{0}
-\DoxyCodeLine{= \{LowCorner<T>[0] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}(),}
-\DoxyCodeLine{                                                  LowCorner<T>[1] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}(),}
-\DoxyCodeLine{                                                  LowCorner<T>[2] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}(),}
-\DoxyCodeLine{                                                  LowCorner<T>[3] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}(),}
-\DoxyCodeLine{                                                  LowCorner<T>[4] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}(),}
-\DoxyCodeLine{                                                  LowCorner<T>[5] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}(),}
-\DoxyCodeLine{                                                  LowCorner<T>[6] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}(),}
-\DoxyCodeLine{                                                  LowCorner<T>[7] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}()\}}
-
-\end{DoxyCode}
-
-
-Upper-\/right corners of the octants on the unit cube, indexed lexicographically in x-\/y-\/z. 
-
-\mbox{\Hypertarget{EBGeometry__Octree_8hpp_a36a6ec1d276bf30f3e6bdaec2b7ae133}\label{EBGeometry__Octree_8hpp_a36a6ec1d276bf30f3e6bdaec2b7ae133}} 
-\index{EBGeometry\_Octree.hpp@{EBGeometry\_Octree.hpp}!LowCorner@{LowCorner}}
-\index{LowCorner@{LowCorner}!EBGeometry\_Octree.hpp@{EBGeometry\_Octree.hpp}}
-\doxysubsubsection{\texorpdfstring{LowCorner}{LowCorner}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr std\+::array$<$\mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$, 8$>$ Octree\+::\+Low\+Corner\hspace{0.3cm}{\ttfamily [constexpr]}}
-
-{\bfseries Initial value\+:}
-\begin{DoxyCode}{0}
-\DoxyCodeLine{= \{\mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.0, 0.0, 0.0),}
-\DoxyCodeLine{                                                 \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.5, 0.0, 0.0),}
-\DoxyCodeLine{                                                 \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.0, 0.5, 0.0),}
-\DoxyCodeLine{                                                 \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.5, 0.5, 0.0),}
-\DoxyCodeLine{                                                 \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.0, 0.0, 0.5),}
-\DoxyCodeLine{                                                 \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.5, 0.0, 0.5),}
-\DoxyCodeLine{                                                 \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.0, 0.5, 0.5),}
-\DoxyCodeLine{                                                 \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.5, 0.5, 0.5)\}}
-
-\end{DoxyCode}
-
-
-Lower-\/left corners of the octants on the unit cube, indexed lexicographically in x-\/y-\/z. 
-

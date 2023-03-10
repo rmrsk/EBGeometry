@@ -62,7 +62,7 @@ class \mbox{\hyperlink{classMollifyIF}{Mollify\+IF$<$ T $>$}}
 \begin{DoxyCompactList}\small\item\em Convenience function for creating a shell out of an implicit function. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a758f8af9ce46bc2769cdfff1d74b04b5}{Blur}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const T a\+\_\+blur\+Distance) noexcept
 \begin{DoxyCompactList}\small\item\em Convenience function for blurring an implicit function. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a3bf881fe8e59d3e5b7665baf3fbe12e0}{Mollify}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const T a\+\_\+dist) noexcept
+{\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a258ed801787b09603c1d633c3d8427c3}{Mollify}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const T a\+\_\+dist, const size\+\_\+t a\+\_\+mollifier\+Samples=2) noexcept
 \begin{DoxyCompactList}\small\item\em Convenience function for mollification with an input sphere. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
@@ -127,12 +127,12 @@ Convenience function for taking the complement of an implicit function.
 \mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Function} & Input implicit function \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{EBGeometry__Transform_8hpp_a3bf881fe8e59d3e5b7665baf3fbe12e0}\label{EBGeometry__Transform_8hpp_a3bf881fe8e59d3e5b7665baf3fbe12e0}} 
+\mbox{\Hypertarget{EBGeometry__Transform_8hpp_a258ed801787b09603c1d633c3d8427c3}\label{EBGeometry__Transform_8hpp_a258ed801787b09603c1d633c3d8427c3}} 
 \index{EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}!Mollify@{Mollify}}
 \index{Mollify@{Mollify}!EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}}
 \doxysubsubsection{\texorpdfstring{Mollify()}{Mollify()}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Mollify (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const T}]{a\+\_\+dist }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Mollify (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const T}]{a\+\_\+dist,  }\item[{const size\+\_\+t}]{a\+\_\+mollifier\+Samples = {\ttfamily 2} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -143,6 +143,8 @@ Convenience function for mollification with an input sphere.
 \mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Function} & Input implicit function to be mollifier \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+dist} & Mollification distance. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+mollifier\+Samples} & Number of samples for the mollifier \\
 \hline
 \end{DoxyParams}
 \mbox{\Hypertarget{EBGeometry__Transform_8hpp_a4fceea7ea9cf2b9241da9612a6a21f8c}\label{EBGeometry__Transform_8hpp_a4fceea7ea9cf2b9241da9612a6a21f8c}} 

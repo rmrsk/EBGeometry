@@ -62,7 +62,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Octree</b></li><li class="navelem"><a class="el" href="classOctree_1_1Node.html">Node</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceOctree.html">Octree</a></li><li class="navelem"><a class="el" href="classOctree_1_1Node.html">Node</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -76,7 +76,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 
-<p>Octree class without anything special (this uses full tree representation rather than linear/pointerless).  
+<p><a class="el" href="namespaceOctree.html" title="Namespace for octree functionality.">Octree</a> class without anything special (this uses full tree representation rather than linear/pointerless).  
  <a href="classOctree_1_1Node.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="EBGeometry__Octree_8hpp_source.html">EBGeometry_Octree.hpp</a>&gt;</code></p>
@@ -104,10 +104,10 @@ Public Types</h2></td></tr>
 <tr class="memitem:a76ef6d051df43996a35f446250e5a44b"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classOctree_1_1Node.html#a76ef6d051df43996a35f446250e5a44b">StopFunction</a> = std::function&lt; bool(const <a class="el" href="classOctree_1_1Node.html">Node</a>&lt; Meta, Data &gt; &amp;a_node)&gt;</td></tr>
 <tr class="memdesc:a76ef6d051df43996a35f446250e5a44b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function for deciding whether or not to split a node.  <a href="classOctree_1_1Node.html#a76ef6d051df43996a35f446250e5a44b">More...</a><br /></td></tr>
 <tr class="separator:a76ef6d051df43996a35f446250e5a44b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac6f2f5eed98ce36d71962f3aedaaa0b8"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classOctree_1_1Node.html#ac6f2f5eed98ce36d71962f3aedaaa0b8">MetaConstructor</a> = std::function&lt; Meta(const <a class="el" href="EBGeometry__Octree_8hpp.html#acda140bb7c781f38a7e6ec64b25d7e60">OctantIndex</a> &amp;a_index, const Meta &amp;a_parentMeta)&gt;</td></tr>
+<tr class="memitem:ac6f2f5eed98ce36d71962f3aedaaa0b8"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classOctree_1_1Node.html#ac6f2f5eed98ce36d71962f3aedaaa0b8">MetaConstructor</a> = std::function&lt; Meta(const <a class="el" href="namespaceOctree.html#acda140bb7c781f38a7e6ec64b25d7e60">OctantIndex</a> &amp;a_index, const Meta &amp;a_parentMeta)&gt;</td></tr>
 <tr class="memdesc:ac6f2f5eed98ce36d71962f3aedaaa0b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">For assigning meta-data to the child octs during the build process.  <a href="classOctree_1_1Node.html#ac6f2f5eed98ce36d71962f3aedaaa0b8">More...</a><br /></td></tr>
 <tr class="separator:ac6f2f5eed98ce36d71962f3aedaaa0b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaec57ddb147bd9b8ac190f2c4d0e2eb2"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classOctree_1_1Node.html#aaec57ddb147bd9b8ac190f2c4d0e2eb2">DataConstructor</a> = std::function&lt; std::shared_ptr&lt; Data &gt;(const <a class="el" href="EBGeometry__Octree_8hpp.html#acda140bb7c781f38a7e6ec64b25d7e60">OctantIndex</a> &amp;a_index, const std::shared_ptr&lt; Data &gt; &amp;a_parentData)&gt;</td></tr>
+<tr class="memitem:aaec57ddb147bd9b8ac190f2c4d0e2eb2"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classOctree_1_1Node.html#aaec57ddb147bd9b8ac190f2c4d0e2eb2">DataConstructor</a> = std::function&lt; std::shared_ptr&lt; Data &gt;(const <a class="el" href="namespaceOctree.html#acda140bb7c781f38a7e6ec64b25d7e60">OctantIndex</a> &amp;a_index, const std::shared_ptr&lt; Data &gt; &amp;a_parentData)&gt;</td></tr>
 <tr class="memdesc:aaec57ddb147bd9b8ac190f2c4d0e2eb2"><td class="mdescLeft">&#160;</td><td class="mdescRight">For assigning data to child octs during the build process.  <a href="classOctree_1_1Node.html#aaec57ddb147bd9b8ac190f2c4d0e2eb2">More...</a><br /></td></tr>
 <tr class="separator:aaec57ddb147bd9b8ac190f2c4d0e2eb2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2706769e036e137fa6f8c0f5cbc8b7f4"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classOctree_1_1Node.html#a2706769e036e137fa6f8c0f5cbc8b7f4">Updater</a> = std::function&lt; void(const <a class="el" href="classOctree_1_1Node.html">Node</a>&lt; Meta, Data &gt; &amp;a_node)&gt;</td></tr>
@@ -181,7 +181,7 @@ std::array&lt; std::shared_ptr&lt; <a class="el" href="classOctree_1_1Node.html"
 <div class="textblock"><h3>template&lt;typename Meta, typename Data = void&gt;<br />
 class Octree::Node&lt; Meta, Data &gt;</h3>
 
-<p>Octree class without anything special (this uses full tree representation rather than linear/pointerless). </p>
+<p><a class="el" href="namespaceOctree.html" title="Namespace for octree functionality.">Octree</a> class without anything special (this uses full tree representation rather than linear/pointerless). </p>
 <p>Meta is the meta-data for the node (user can put in e.g. level, volume, etc) and Data is the leaf node contents. </p><dl class="section note"><dt>Note</dt><dd>This class should only be used with smart pointers. I.e. std::shared_ptr&lt;Node&gt; rather than <a class="el" href="classOctree_1_1Node.html" title="Octree class without anything special (this uses full tree representation rather than linear/pointerl...">Node</a>. </dd></dl>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="aaec57ddb147bd9b8ac190f2c4d0e2eb2"></a>
@@ -193,7 +193,7 @@ class Octree::Node&lt; Meta, Data &gt;</h3>
 template&lt;typename Meta , typename Data  = void&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="classOctree_1_1Node.html">Octree::Node</a>&lt; Meta, Data &gt;::<a class="el" href="classOctree_1_1Node.html#aaec57ddb147bd9b8ac190f2c4d0e2eb2">DataConstructor</a> =  std::function&lt;std::shared_ptr&lt;Data&gt;(const <a class="el" href="EBGeometry__Octree_8hpp.html#acda140bb7c781f38a7e6ec64b25d7e60">OctantIndex</a>&amp; a_index, const std::shared_ptr&lt;Data&gt;&amp; a_parentData)&gt;</td>
+          <td class="memname">using <a class="el" href="classOctree_1_1Node.html">Octree::Node</a>&lt; Meta, Data &gt;::<a class="el" href="classOctree_1_1Node.html#aaec57ddb147bd9b8ac190f2c4d0e2eb2">DataConstructor</a> =  std::function&lt;std::shared_ptr&lt;Data&gt;(const <a class="el" href="namespaceOctree.html#acda140bb7c781f38a7e6ec64b25d7e60">OctantIndex</a>&amp; a_index, const std::shared_ptr&lt;Data&gt;&amp; a_parentData)&gt;</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -218,7 +218,7 @@ template&lt;typename Meta , typename Data  = void&gt; </div>
 template&lt;typename Meta , typename Data  = void&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="classOctree_1_1Node.html">Octree::Node</a>&lt; Meta, Data &gt;::<a class="el" href="classOctree_1_1Node.html#ac6f2f5eed98ce36d71962f3aedaaa0b8">MetaConstructor</a> =  std::function&lt;Meta(const <a class="el" href="EBGeometry__Octree_8hpp.html#acda140bb7c781f38a7e6ec64b25d7e60">OctantIndex</a>&amp; a_index, const Meta&amp; a_parentMeta)&gt;</td>
+          <td class="memname">using <a class="el" href="classOctree_1_1Node.html">Octree::Node</a>&lt; Meta, Data &gt;::<a class="el" href="classOctree_1_1Node.html#ac6f2f5eed98ce36d71962f3aedaaa0b8">MetaConstructor</a> =  std::function&lt;Meta(const <a class="el" href="namespaceOctree.html#acda140bb7c781f38a7e6ec64b25d7e60">OctantIndex</a>&amp; a_index, const Meta&amp; a_parentMeta)&gt;</td>
         </tr>
       </table>
 </div><div class="memdoc">
