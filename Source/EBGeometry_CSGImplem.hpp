@@ -176,6 +176,18 @@ SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
   return std::make_shared<SmoothDifferenceIF<T>>(a_implicitFunctionA, a_implicitFunctionB, a_smoothLen);
 }
 
+template <class T, class P>
+std::shared_ptr<ImplicitFunction<T>>
+FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
+                 const Vec3T<T>&           a_period,
+                 const Vec3T<T>&           a_repeatLo,
+                 const Vec3T<T>&           a_repeatHi) noexcept
+{
+  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
+
+  return std::make_shared<FiniteRepetitionIF<T>>(a_implicitFunction, a_period, a_repeatLo, a_repeatHi);
+}
+
 template <class T>
 UnionIF<T>::UnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions) noexcept
 {
