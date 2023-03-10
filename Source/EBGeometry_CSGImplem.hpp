@@ -176,6 +176,18 @@ SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
   return std::make_shared<SmoothDifferenceIF<T>>(a_implicitFunctionA, a_implicitFunctionB, a_smoothLen);
 }
 
+template <class T, class P>
+std::shared_ptr<ImplicitFunction<T>>
+FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
+                 const Vec3T<T>&           a_period,
+                 const Vec3T<T>&           a_repeatLo,
+                 const Vec3T<T>&           a_repeatHi) noexcept
+{
+  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
+
+  return std::make_shared<FiniteRepetitionIF<T>>(a_implicitFunction, a_period, a_repeatLo, a_repeatHi);
+}
+
 template <class T>
 UnionIF<T>::UnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions) noexcept
 {
@@ -521,6 +533,31 @@ T
 SmoothDifferenceIF<T>::value(const Vec3T<T>& a_point) const noexcept
 {
   return m_smoothIntersectionIF->value(a_point);
+}
+
+template <class T>
+FiniteRepetitionIF<T>::FiniteRepetitionIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
+                                          const Vec3T<T>&                             a_period,
+                                          const Vec3T<T>&                             a_repeatLo,
+                                          const Vec3T<T>&                             a_repeatHi) noexcept
+{
+  m_implicitFunction = a_implicitFunction;
+  m_period           = a_period;
+  m_repeatLo         = a_repeatLo;
+  m_repeatHi         = a_repeatHi;
+}
+
+template <class T>
+T
+FiniteRepetitionIF<T>::value(const Vec3T<T>& a_point) const noexcept
+{
+  Vec3T<T> q;
+
+  for (size_t i = 0; i < 3; i++) {
+    q[i] = a_point[i] - m_period[i] * std::round(clamp((a_point[i] / m_period[i]), -m_repeatLo[i], m_repeatHi[i]));
+  }
+
+  return m_implicitFunction->value(q);
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"
