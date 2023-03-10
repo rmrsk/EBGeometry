@@ -63,10 +63,16 @@ main()
   // spheres) as well as a way for enclosing these objects. We need to define
   // ourselves a lambda that creates an appropriate bounding volumes for each
   // SDF.
-  std::cout << "Partitioning " << spheres.size() << " spheres" << std::endl;
+  std::cout << "Partitioning " << spheres.size() << " spheres\n" << std::endl;
   EBGeometry::FastUnionIF<T, Sphere, AABB, K> fastUnion(spheres, boundingVolumes);
 
+  // Create a finite repetition of one of the spheres. This is a third type of object representation.
+  auto sph = std::make_shared<Sphere>(Vec3::zero(), radius);
+  auto sphereArray =
+    EBGeometry::FiniteRepetition<T, Sphere>(sph, (delta + 2 * radius) * Vec3::one(), Vec3::zero(), 80.0 * Vec3::one());
+
   // Create some samples in the bounding box of the BVH
+  std::cout << "Sampling distance fields... \n" << std::endl;
   std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
   std::uniform_real_distribution<T> dist(0.0, 1.0);
 
@@ -83,12 +89,14 @@ main()
     randomPositions.emplace_back(Vec3(x, y, z));
   }
 
-  // Time the results, using the standard union and the optimized union.
+  // Time the results, using the standard union, the optimized union, and the finite repetition.
   std::chrono::duration<T, std::micro> slowTime(0.0);
   std::chrono::duration<T, std::micro> fastTime(0.0);
+  std::chrono::duration<T, std::micro> arrayTime(0.0);
 
-  T sumSlow = 0.0;
-  T sumFast = 0.0;
+  T sumSlow  = 0.0;
+  T sumFast  = 0.0;
+  T sumArray = 0.0;
 
   const auto t1 = std::chrono::high_resolution_clock::now();
   for (const auto& x : randomPositions) {
@@ -99,8 +107,12 @@ main()
     sumFast += fastUnion.value(x);
   }
   const auto t3 = std::chrono::high_resolution_clock::now();
+  for (const auto& x : randomPositions) {
+    sumArray += sphereArray->value(x);
+  }
+  const auto t4 = std::chrono::high_resolution_clock::now();
 
-  if (sumSlow != sumFast) {
+  if (sumSlow != sumFast || sumSlow != sumArray) {
     std::cerr << "Got wrong distance!" << std::endl;
 
     return 2;
@@ -108,10 +120,13 @@ main()
 
   slowTime += (t2 - t1);
   fastTime += (t3 - t2);
+  arrayTime += (t4 - t3);
 
-  std::cout << "Time using slow union (us) = " << slowTime.count() / Nsamp << "\n";
-  std::cout << "Time using fast union (us) = " << fastTime.count() / Nsamp << "\n";
-  std::cout << "Average speedup = " << (1.0 * slowTime.count()) / (1.0 * fastTime.count()) << "\n";
+  std::cout << "Time using slow union (us)   = " << slowTime.count() / Nsamp << "\n";
+  std::cout << "Time using fast union (us)   = " << fastTime.count() / Nsamp << "\n";
+  std::cout << "Time using sphere array (us) = " << arrayTime.count() / Nsamp << "\n\n";
+  std::cout << "BVH speedup over naive       = " << (1.0 * slowTime.count()) / (1.0 * fastTime.count()) << "\n";
+  std::cout << "BVH penalty over optimal     = " << (1.0 * fastTime.count()) / (1.0 * arrayTime.count()) << "\n";
 
   return 0;
 }

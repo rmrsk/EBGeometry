@@ -21,6 +21,9 @@
 #include "EBGeometry_Vec.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
+/*!
+  @brief Namespace for octree functionality
+*/
 namespace Octree {
   /*!
     @brief Lexicographical x-y-z octant indexing. 

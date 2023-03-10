@@ -137,8 +137,8 @@ SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunctionA,
 */
 template <class T, class P1 = ImplicitFunction<T>, class P2 = ImplicitFunction<T>>
 std::shared_ptr<ImplicitFunction<T>>
-Difference(const std::shared_ptr<std::shared_ptr<P1>>& a_implicitFunctionA,
-           const std::shared_ptr<std::shared_ptr<P2>>& a_implicitFunctionB) noexcept;
+Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB) noexcept;
+
 /*!
   @brief Convenience function for taking the smooth CSG difference. 
   @param[in] a_implicitFunctionA Implicit function. 
@@ -148,9 +148,24 @@ Difference(const std::shared_ptr<std::shared_ptr<P1>>& a_implicitFunctionA,
 */
 template <class T, class P1 = ImplicitFunction<T>, class P2 = ImplicitFunction<T>>
 std::shared_ptr<ImplicitFunction<T>>
-SmoothDifference(const std::shared_ptr<std::shared_ptr<P1>>& a_implicitFunctionA,
-                 const std::shared_ptr<std::shared_ptr<P2>>& a_implicitFunctionB,
-                 const T                                     a_smoothLen) noexcept;
+SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
+                 const std::shared_ptr<P2>& a_implicitFunctionB,
+                 const T                    a_smoothLen) noexcept;
+
+/*!
+  @brief Convenience function for creating a periodically repeated implicit function (FiniteRepetitionIF).
+  @details User inputs the implicit function and the repetition parameters. 
+  @param[in] a_implicitFunction Implicit function to be replicated
+  @param[in] a_period Repetition period (in each coordinate direction)
+  @param[in] a_repeatLo Number of repetitions for decreasing coordinates (should contain integers)
+  @param[in] a_repeatHi Number of repetitions for increasing coordinates (should contain integers)
+*/
+template <class T, class P = ImplicitFunction<T>>
+std::shared_ptr<ImplicitFunction<T>>
+FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
+                 const Vec3T<T>&           a_period,
+                 const Vec3T<T>&           a_repeatLo,
+                 const Vec3T<T>&           a_repeatHi) noexcept;
 
 /*!
   @brief Exponential minimum function for CSG
@@ -617,6 +632,66 @@ protected:
     @brief Resulting smooth intersection.
   */
   std::shared_ptr<SmoothIntersectionIF<T>> m_smoothIntersectionIF;
+};
+
+/*!
+  @brief Class which creates a periodic repetition of an implicit function.
+  @details The user will specify the period (i.e., spacing), and the number of repetitions along increasing and
+  decreasing coordinate directions.
+*/
+template <class T>
+class FiniteRepetitionIF : public ImplicitFunction<T>
+{
+public:
+  /*!
+    @brief Disallowed - use the full constructor
+  */
+  FiniteRepetitionIF() = delete;
+
+  /*!
+    @brief Full constructor
+    @param[in] a_implicitFunction Implicit function to be replicated
+    @param[in] a_period           Repetition period (in each coordinate direction)
+    @param[in] a_repeatLo         Number of repetitions for decreasing coordinates (should contain integers)
+    @param[in] a_repeatHi         Number of repetitions for increasing coordinates (should contain integers)
+  */
+  FiniteRepetitionIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
+                     const Vec3T<T>&                             a_period,
+                     const Vec3T<T>&                             a_repeatLo,
+                     const Vec3T<T>&                             a_repeatHi) noexcept;
+
+  /*!
+    @brief Destructor (does nothing)
+  */
+  virtual ~FiniteRepetitionIF() = default;
+
+  /*!
+    @brief Value function
+    @param[in] a_point 3D point.
+  */
+  T
+  value(const Vec3T<T>& a_point) const noexcept override;
+
+protected:
+  /*!
+    @brief Repetition period
+  */
+  Vec3T<T> m_period;
+
+  /*!
+    @brief Number of repetition over increasing coordinate direction
+  */
+  Vec3T<T> m_repeatHi;
+
+  /*!
+    @brief Number of repetition over increasing coordinate direction
+  */
+  Vec3T<T> m_repeatLo;
+
+  /*!
+    @brief Underlying implicit function
+  */
+  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

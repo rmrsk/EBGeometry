@@ -84,10 +84,13 @@ Blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_b
   @brief Convenience function for mollification with an input sphere. 
   @param[in] a_implicitFunction Input implicit function to be mollifier
   @param[in] a_dist Mollification distance. 
+  @param[in] a_mollifierSamples Number of samples for the mollifier
 */
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
-Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_dist) noexcept;
+Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
+        const T                                     a_dist,
+        const size_t                                a_mollifierSamples = 2) noexcept;
 
 /*!
   @brief Complemented implicit function
