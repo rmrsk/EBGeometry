@@ -138,6 +138,9 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMollifyIF.html">MollifyIF&lt; T &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Mollified implicit function.  <a href="classMollifyIF.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classElongateIF.html">ElongateIF&lt; T &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Implicit function which is an elongation of another implicit function along some axis.  <a href="classElongateIF.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -173,6 +176,10 @@ Functions</h2></td></tr>
 <tr class="memitem:a258ed801787b09603c1d633c3d8427c3"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__Transform_8hpp.html#a258ed801787b09603c1d633c3d8427c3">Mollify</a> (const std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt; &amp;a_implicitFunction, const T a_dist, const size_t a_mollifierSamples=2) noexcept</td></tr>
 <tr class="memdesc:a258ed801787b09603c1d633c3d8427c3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for mollification with an input sphere.  <a href="EBGeometry__Transform_8hpp.html#a258ed801787b09603c1d633c3d8427c3">More...</a><br /></td></tr>
 <tr class="separator:a258ed801787b09603c1d633c3d8427c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac5bf383e3d5e7b34b97e0ad72e0e0ef8"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
+<tr class="memitem:ac5bf383e3d5e7b34b97e0ad72e0e0ef8"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__Transform_8hpp.html#ac5bf383e3d5e7b34b97e0ad72e0e0ef8">Elongate</a> (const std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt; &amp;a_implicitFunction, const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_elongation) noexcept</td></tr>
+<tr class="memdesc:ac5bf383e3d5e7b34b97e0ad72e0e0ef8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for elongating (stretching) an implicit function.  <a href="EBGeometry__Transform_8hpp.html#ac5bf383e3d5e7b34b97e0ad72e0e0ef8">More...</a><br /></td></tr>
+<tr class="separator:ac5bf383e3d5e7b34b97e0ad72e0e0ef8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Various transformations for implicit functions and distance fields. </p>
@@ -302,6 +309,53 @@ template&lt;class T &gt; </div>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunction</td><td>Input implicit function </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ac5bf383e3d5e7b34b97e0ad72e0e0ef8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac5bf383e3d5e7b34b97e0ad72e0e0ef8">&#9670;&nbsp;</a></span>Elongate()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;<a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt;T&gt; &gt; Elongate </td>
+          <td>(</td>
+          <td class="paramtype">const std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_implicitFunction</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_elongation</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Convenience function for elongating (stretching) an implicit function. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunction</td><td>Implicit function to be elongated </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_elongation</td><td>Elongation </td></tr>
   </table>
   </dd>
 </dl>

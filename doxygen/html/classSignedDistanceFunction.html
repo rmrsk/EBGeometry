@@ -79,7 +79,7 @@ Inheritance diagram for SignedDistanceFunction&lt; T &gt;:</div>
 <div class="dyncontent">
 <div class="center"><img src="classSignedDistanceFunction__inherit__graph.png" border="0" usemap="#aSignedDistanceFunction_3_01T_01_4_inherit__map" alt="Inheritance graph"/></div>
 <map name="aSignedDistanceFunction_3_01T_01_4_inherit__map" id="aSignedDistanceFunction_3_01T_01_4_inherit__map">
-<area shape="rect" title="Abstract representation of a signed distance function." alt="" coords="217,300,433,327"/>
+<area shape="rect" title="Abstract representation of a signed distance function." alt="" coords="217,325,433,352"/>
 <area shape="rect" href="classBoxSDF.html" title="Signed distance field for an axis&#45;aligned box." alt="" coords="521,5,632,32"/>
 <area shape="rect" href="classCapsuleSDF.html" title="Capsulate/pill SDF. Basically a cylinder with spherical endcaps, oriented along the specified axis." alt="" coords="507,56,646,83"/>
 <area shape="rect" href="classConeSDF.html" title="Signed distance field for an finite cone. Oriented along +z." alt="" coords="517,107,636,133"/>
@@ -90,9 +90,10 @@ Inheritance diagram for SignedDistanceFunction&lt; T &gt;:</div>
 <area shape="rect" href="classInfiniteCylinderSDF.html" title="Inifinitely long cylinder class. Oriented along the y&#45;axis." alt="" coords="484,376,669,403"/>
 <area shape="rect" href="classMeshSDF.html" title="Signed distance function for a DCEL mesh. Does not use BVHs." alt="" coords="516,427,637,453"/>
 <area shape="rect" href="classPlaneSDF.html" title="Signed distance function for a plane." alt="" coords="515,477,638,504"/>
-<area shape="rect" href="classSphereSDF.html" title="Signed distance field for sphere." alt="" coords="511,528,642,555"/>
-<area shape="rect" href="classTorusSDF.html" title="Signed distance field for a torus." alt="" coords="517,579,637,605"/>
-<area shape="rect" href="classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="5,300,169,327"/>
+<area shape="rect" href="classRoundedBoxSDF.html" title="Box of arbitrary dimensions centered at the origin, with rounded corners." alt="" coords="493,528,661,555"/>
+<area shape="rect" href="classSphereSDF.html" title="Signed distance field for sphere." alt="" coords="511,579,642,605"/>
+<area shape="rect" href="classTorusSDF.html" title="Signed distance field for a torus." alt="" coords="517,629,637,656"/>
+<area shape="rect" href="classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="5,325,169,352"/>
 </map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <div class="dynheader">
@@ -229,7 +230,7 @@ template&lt;class T &gt; </div>
   </dd>
 </dl>
 
-<p>Implemented in <a class="el" href="classFastCompactMeshSDF.html#a8b0cf75bd0c87ccf1b992e2035cd3749">FastCompactMeshSDF&lt; T, BV, K &gt;</a>, <a class="el" href="classFastMeshSDF.html#a371fa42949f9af13a047b2ef7808e3ea">FastMeshSDF&lt; T, BV, K &gt;</a>, <a class="el" href="classMeshSDF.html#a6fe9fb2386bdb0073d3c6e9f4ade41e8">MeshSDF&lt; T &gt;</a>, <a class="el" href="classConeSDF.html#a4ef38df98e9831c25297cb93a5b41da5">ConeSDF&lt; T &gt;</a>, <a class="el" href="classInfiniteConeSDF.html#a98232920c669d548b84493d9e55ddc0a">InfiniteConeSDF&lt; T &gt;</a>, <a class="el" href="classCapsuleSDF.html#a2fa33052a5d93eb0f7fb0a6ff32122e9">CapsuleSDF&lt; T &gt;</a>, <a class="el" href="classInfiniteCylinderSDF.html#a2481e68ea21c304c858878ae1d7fc031">InfiniteCylinderSDF&lt; T &gt;</a>, <a class="el" href="classCylinderSDF.html#a082c08089b07402d55020ed8186cc992">CylinderSDF&lt; T &gt;</a>, <a class="el" href="classTorusSDF.html#a23b4d455de2b7b9988ce81833ccd5302">TorusSDF&lt; T &gt;</a>, <a class="el" href="classBoxSDF.html#a6e7a72790061423e5c9ea47d9e26736f">BoxSDF&lt; T &gt;</a>, <a class="el" href="classSphereSDF.html#a9b0c5f0b1af2c4b62bee1c873e0158e8">SphereSDF&lt; T &gt;</a>, and <a class="el" href="classPlaneSDF.html#a75c2d73156caac10eefce9b431542d88">PlaneSDF&lt; T &gt;</a>.</p>
+<p>Implemented in <a class="el" href="classFastCompactMeshSDF.html#a8b0cf75bd0c87ccf1b992e2035cd3749">FastCompactMeshSDF&lt; T, BV, K &gt;</a>, <a class="el" href="classFastMeshSDF.html#a371fa42949f9af13a047b2ef7808e3ea">FastMeshSDF&lt; T, BV, K &gt;</a>, <a class="el" href="classMeshSDF.html#a6fe9fb2386bdb0073d3c6e9f4ade41e8">MeshSDF&lt; T &gt;</a>, <a class="el" href="classRoundedBoxSDF.html#ae8b57dc86dcd306f306e1896c66d4326">RoundedBoxSDF&lt; T &gt;</a>, <a class="el" href="classConeSDF.html#a4ef38df98e9831c25297cb93a5b41da5">ConeSDF&lt; T &gt;</a>, <a class="el" href="classInfiniteConeSDF.html#a98232920c669d548b84493d9e55ddc0a">InfiniteConeSDF&lt; T &gt;</a>, <a class="el" href="classCapsuleSDF.html#a2fa33052a5d93eb0f7fb0a6ff32122e9">CapsuleSDF&lt; T &gt;</a>, <a class="el" href="classInfiniteCylinderSDF.html#a2481e68ea21c304c858878ae1d7fc031">InfiniteCylinderSDF&lt; T &gt;</a>, <a class="el" href="classCylinderSDF.html#a082c08089b07402d55020ed8186cc992">CylinderSDF&lt; T &gt;</a>, <a class="el" href="classTorusSDF.html#a23b4d455de2b7b9988ce81833ccd5302">TorusSDF&lt; T &gt;</a>, <a class="el" href="classBoxSDF.html#a6e7a72790061423e5c9ea47d9e26736f">BoxSDF&lt; T &gt;</a>, <a class="el" href="classSphereSDF.html#a9b0c5f0b1af2c4b62bee1c873e0158e8">SphereSDF&lt; T &gt;</a>, and <a class="el" href="classPlaneSDF.html#a75c2d73156caac10eefce9b431542d88">PlaneSDF&lt; T &gt;</a>.</p>
 
 </div>
 </div>

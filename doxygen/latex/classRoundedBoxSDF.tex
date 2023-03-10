@@ -1,0 +1,89 @@
+\hypertarget{classRoundedBoxSDF}{}\doxysection{Rounded\+Box\+SDF$<$ T $>$ Class Template Reference}
+\label{classRoundedBoxSDF}\index{RoundedBoxSDF$<$ T $>$@{RoundedBoxSDF$<$ T $>$}}
+
+
+Box of arbitrary dimensions centered at the origin, with rounded corners.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp$>$}
+
+
+
+Inheritance diagram for Rounded\+Box\+SDF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classRoundedBoxSDF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Rounded\+Box\+SDF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classRoundedBoxSDF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classRoundedBoxSDF_a7c46113a8a626d4e6610d127268d4fe7}\label{classRoundedBoxSDF_a7c46113a8a626d4e6610d127268d4fe7}} 
+\mbox{\hyperlink{classRoundedBoxSDF_a7c46113a8a626d4e6610d127268d4fe7}{Rounded\+Box\+SDF}} ()=delete
+\begin{DoxyCompactList}\small\item\em Disallowed default constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classRoundedBoxSDF_af3650d4455267c4b65c37e6d356b7677}{Rounded\+Box\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+dimensions, const T a\+\_\+curvature)
+\begin{DoxyCompactList}\small\item\em Full constructor. User inputs dimensions and corner curvature. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRoundedBoxSDF_ab29d9a81a78959f5915222fcef1a436e}\label{classRoundedBoxSDF_ab29d9a81a78959f5915222fcef1a436e}} 
+virtual \mbox{\hyperlink{classRoundedBoxSDF_ab29d9a81a78959f5915222fcef1a436e}{$\sim$\+Rounded\+Box\+SDF}} () noexcept
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRoundedBoxSDF_ae8b57dc86dcd306f306e1896c66d4326}\label{classRoundedBoxSDF_ae8b57dc86dcd306f306e1896c66d4326}} 
+virtual T \mbox{\hyperlink{classRoundedBoxSDF_ae8b57dc86dcd306f306e1896c66d4326}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Signed distance function for the rounded box. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classRoundedBoxSDF_a46ad3193e8c1d61abc101192edf89b39}\label{classRoundedBoxSDF_a46ad3193e8c1d61abc101192edf89b39}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classSphereSDF}{Sphere\+SDF}}$<$ T $>$ $>$ \mbox{\hyperlink{classRoundedBoxSDF_a46ad3193e8c1d61abc101192edf89b39}{m\+\_\+sphere}}
+\begin{DoxyCompactList}\small\item\em Sphere at origin with radius a\+\_\+curvature. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classRoundedBoxSDF_af05fd714e72785776a28fcc0e0c19559}\label{classRoundedBoxSDF_af05fd714e72785776a28fcc0e0c19559}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classRoundedBoxSDF_af05fd714e72785776a28fcc0e0c19559}{m\+\_\+dimensions}}
+\begin{DoxyCompactList}\small\item\em Box dimensions. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Rounded\+Box\+SDF$<$ T $>$}
+
+Box of arbitrary dimensions centered at the origin, with rounded corners. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classRoundedBoxSDF_af3650d4455267c4b65c37e6d356b7677}\label{classRoundedBoxSDF_af3650d4455267c4b65c37e6d356b7677}} 
+\index{RoundedBoxSDF$<$ T $>$@{RoundedBoxSDF$<$ T $>$}!RoundedBoxSDF@{RoundedBoxSDF}}
+\index{RoundedBoxSDF@{RoundedBoxSDF}!RoundedBoxSDF$<$ T $>$@{RoundedBoxSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{RoundedBoxSDF()}{RoundedBoxSDF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classRoundedBoxSDF}{Rounded\+Box\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classRoundedBoxSDF}{Rounded\+Box\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+dimensions,  }\item[{const T}]{a\+\_\+curvature }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Full constructor. User inputs dimensions and corner curvature. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+dimensions} & Box dimensions (width, length, height) \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+curvature} & Corner curvature. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+Curvature must be $>$ 0.\+0 
+\end{DoxyNote}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp}{EBGeometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp}}\end{DoxyCompactItemize}

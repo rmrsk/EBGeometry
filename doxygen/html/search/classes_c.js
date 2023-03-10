@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['rotateif_425',['RotateIF',['../classRotateIF.html',1,'']]]
+  ['rotateif_434',['RotateIF',['../classRotateIF.html',1,'']]],
+  ['roundedboxsdf_435',['RoundedBoxSDF',['../classRoundedBoxSDF.html',1,'']]]
 ];

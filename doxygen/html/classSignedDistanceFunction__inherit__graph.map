@@ -1,5 +1,5 @@
 <map id="SignedDistanceFunction&lt; T &gt;" name="SignedDistanceFunction&lt; T &gt;">
-<area shape="rect" id="node1" title="Abstract representation of a signed distance function." alt="" coords="217,300,433,327"/>
+<area shape="rect" id="node1" title="Abstract representation of a signed distance function." alt="" coords="217,325,433,352"/>
 <area shape="rect" id="node3" href="$classBoxSDF.html" title="Signed distance field for an axis&#45;aligned box." alt="" coords="521,5,632,32"/>
 <area shape="rect" id="node4" href="$classCapsuleSDF.html" title="Capsulate/pill SDF. Basically a cylinder with spherical endcaps, oriented along the specified axis." alt="" coords="507,56,646,83"/>
 <area shape="rect" id="node5" href="$classConeSDF.html" title="Signed distance field for an finite cone. Oriented along +z." alt="" coords="517,107,636,133"/>
@@ -10,7 +10,8 @@
 <area shape="rect" id="node10" href="$classInfiniteCylinderSDF.html" title="Inifinitely long cylinder class. Oriented along the y&#45;axis." alt="" coords="484,376,669,403"/>
 <area shape="rect" id="node11" href="$classMeshSDF.html" title="Signed distance function for a DCEL mesh. Does not use BVHs." alt="" coords="516,427,637,453"/>
 <area shape="rect" id="node12" href="$classPlaneSDF.html" title="Signed distance function for a plane." alt="" coords="515,477,638,504"/>
-<area shape="rect" id="node13" href="$classSphereSDF.html" title="Signed distance field for sphere." alt="" coords="511,528,642,555"/>
-<area shape="rect" id="node14" href="$classTorusSDF.html" title="Signed distance field for a torus." alt="" coords="517,579,637,605"/>
-<area shape="rect" id="node2" href="$classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="5,300,169,327"/>
+<area shape="rect" id="node13" href="$classRoundedBoxSDF.html" title="Box of arbitrary dimensions centered at the origin, with rounded corners." alt="" coords="493,528,661,555"/>
+<area shape="rect" id="node14" href="$classSphereSDF.html" title="Signed distance field for sphere." alt="" coords="511,579,642,605"/>
+<area shape="rect" id="node15" href="$classTorusSDF.html" title="Signed distance field for a torus." alt="" coords="517,629,637,656"/>
+<area shape="rect" id="node2" href="$classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="5,325,169,352"/>
 </map>

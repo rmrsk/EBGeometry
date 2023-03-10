@@ -46,11 +46,15 @@ class \mbox{\hyperlink{classCapsuleSDF}{Capsule\+SDF$<$ T $>$}}
 class \mbox{\hyperlink{classInfiniteConeSDF}{Infinite\+Cone\+SDF$<$ T $>$}}
 \begin{DoxyCompactList}\small\item\em Signed distance field for an infinite cone. Oriented along +z. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classConeSDF}{Cone\+SDF$<$ T $>$}}
-\begin{DoxyCompactList}\small\item\em Signed distance field for an finite cone. Oriented along +z. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Signed distance field for an finite cone. Oriented along +z. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classRoundedBoxSDF}{Rounded\+Box\+SDF$<$ T $>$}}
+\begin{DoxyCompactList}\small\item\em Box of arbitrary dimensions centered at the origin, with rounded corners. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
-{\footnotesize template$<$class T $>$ }\\constexpr const T \& \mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_afaec2a4dfffd8755efe6a8eca30aae26}{clamp}} (const T \&v, const T \&lo, const T \&hi)
+{\footnotesize template$<$class T $>$ }\\constexpr const T \mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}{clamp}} (const T \&v, const T \&lo, const T \&hi)
+\begin{DoxyCompactList}\small\item\em Clamp function. Returns lo if v $<$ lo and hi if v $>$ hi. Otherwise returns v. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\constexpr const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_ae7100fa6728b8df189188ee09d6ef343}{clamp}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&v, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&lo, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&hi)
 \begin{DoxyCompactList}\small\item\em Clamp function. Returns lo if v $<$ lo and hi if v $>$ hi. Otherwise returns v. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
@@ -63,12 +67,32 @@ Robert Marskar
 
 
 \doxysubsection{Function Documentation}
-\mbox{\Hypertarget{EBGeometry__AnalyticDistanceFunctions_8hpp_afaec2a4dfffd8755efe6a8eca30aae26}\label{EBGeometry__AnalyticDistanceFunctions_8hpp_afaec2a4dfffd8755efe6a8eca30aae26}} 
+\mbox{\Hypertarget{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}\label{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}} 
 \index{EBGeometry\_AnalyticDistanceFunctions.hpp@{EBGeometry\_AnalyticDistanceFunctions.hpp}!clamp@{clamp}}
 \index{clamp@{clamp}!EBGeometry\_AnalyticDistanceFunctions.hpp@{EBGeometry\_AnalyticDistanceFunctions.hpp}}
-\doxysubsubsection{\texorpdfstring{clamp()}{clamp()}}
+\doxysubsubsection{\texorpdfstring{clamp()}{clamp()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$class T $>$ \\
-constexpr const T\& clamp (\begin{DoxyParamCaption}\item[{const T \&}]{v,  }\item[{const T \&}]{lo,  }\item[{const T \&}]{hi }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [constexpr]}}
+constexpr const T clamp (\begin{DoxyParamCaption}\item[{const T \&}]{v,  }\item[{const T \&}]{lo,  }\item[{const T \&}]{hi }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [constexpr]}}
+
+
+
+Clamp function. Returns lo if v $<$ lo and hi if v $>$ hi. Otherwise returns v. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em v} & Value to be clamped. \\
+\hline
+\mbox{\texttt{ in}}  & {\em lo} & Lower clamping value. \\
+\hline
+\mbox{\texttt{ in}}  & {\em hi} & Higher clamping value. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{EBGeometry__AnalyticDistanceFunctions_8hpp_ae7100fa6728b8df189188ee09d6ef343}\label{EBGeometry__AnalyticDistanceFunctions_8hpp_ae7100fa6728b8df189188ee09d6ef343}} 
+\index{EBGeometry\_AnalyticDistanceFunctions.hpp@{EBGeometry\_AnalyticDistanceFunctions.hpp}!clamp@{clamp}}
+\index{clamp@{clamp}!EBGeometry\_AnalyticDistanceFunctions.hpp@{EBGeometry\_AnalyticDistanceFunctions.hpp}}
+\doxysubsubsection{\texorpdfstring{clamp()}{clamp()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+constexpr const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$ clamp (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{v,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{lo,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{hi }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [constexpr]}}
 
 
 
