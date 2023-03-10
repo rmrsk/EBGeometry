@@ -72,6 +72,7 @@ main()
     EBGeometry::FiniteRepetition<T, Sphere>(sph, (delta + 2 * radius) * Vec3::one(), Vec3::zero(), 80.0 * Vec3::one());
 
   // Create some samples in the bounding box of the BVH
+  std::cout << "Sampling distance fields... \n" << std::endl;
   std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
   std::uniform_real_distribution<T> dist(0.0, 1.0);
 
