@@ -42,3 +42,4 @@ To select different geometries, set which_geom to one of the below.
 * `which_geom = 9` Finite cone
 * `which_geom = 10` Spherical shell
 * `which_geom = 11` Death star
+* `which_geom = 12` Rounded box
