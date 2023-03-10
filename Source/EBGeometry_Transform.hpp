@@ -93,6 +93,15 @@ Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
         const size_t                                a_mollifierSamples = 2) noexcept;
 
 /*!
+  @brief Convenience function for elongating (stretching) an implicit function
+  @param[in] a_implicitFunction Implicit function to be elongated
+  @param[in] a_elongation Elongation
+*/
+template <class T>
+std::shared_ptr<ImplicitFunction<T>>
+Elongate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_elongation) noexcept;
+
+/*!
   @brief Complemented implicit function
 */
 template <class T>
@@ -463,6 +472,49 @@ protected:
     @brief Mollifier Weights
   */
   std::vector<std::pair<Vec3T<T>, T>> m_sampledMollifier;
+};
+
+/*!
+  @brief Implicit function which is an elongation of another implicit function along some axis
+*/
+template <class T>
+class ElongateIF : public ImplicitFunction<T>
+{
+public:
+  /*!
+    @brief Disallowed weak construction
+  */
+  ElongateIF() = delete;
+
+  /*!
+    @brief Full constructor.
+    @param[in] a_implicit Implicit function to be stretched
+    @param[in] a_elongation Stretching (per coordinate)
+  */
+  ElongateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_elongation) noexcept;
+
+  /*!
+    @brief Destructor
+  */
+  virtual ~ElongateIF() noexcept;
+
+  /*!
+    @brief Value function
+    @param[in] a_point Input point
+  */
+  virtual T
+  value(const Vec3T<T>& a_point) const noexcept override;
+
+protected:
+  /*!
+    @brief Underlying implicit function to be elongated
+  */
+  std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction;
+
+  /*!
+    @brief Elongation
+  */
+  Vec3T<T> m_elongation;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"
