@@ -31,10 +31,24 @@
   @param[in] hi Higher clamping value.
 */
 template <class T>
-constexpr const T&
+constexpr const T
 clamp(const T& v, const T& lo, const T& hi)
 {
-  return v < lo ? lo : hi < v ? hi : v;
+  return (v < lo) ? lo : (v > hi) ? hi : v;
+}
+
+/*!
+  @brief Clamp function. Returns lo if v < lo and hi if v > hi. Otherwise
+  returns v.
+  @param[in] v  Value to be clamped.
+  @param[in] lo Lower clamping value.
+  @param[in] hi Higher clamping value.
+*/
+template <class T>
+constexpr const Vec3T<T>
+clamp(const Vec3T<T>& v, const Vec3T<T>& lo, const Vec3T<T>& hi)
+{
+  return Vec3T<T>(clamp(v[0], lo[0], hi[0]), clamp(v[1], lo[1], hi[1]), clamp(v[2], lo[2], hi[2]));
 }
 
 /*!
@@ -796,6 +810,58 @@ protected:
     @brief Cone height
   */
   T m_height;
+};
+
+/*!
+  @brief Box of arbitrary dimensions centered at the origin, with rounded corners. 
+*/
+template <class T>
+class RoundedBoxSDF : public SignedDistanceFunction<T>
+{
+public:
+  /*!
+    @brief Disallowed default constructor
+  */
+  RoundedBoxSDF() = delete;
+
+  /*!
+    @brief Full constructor. User inputs dimensions and corner curvature. 
+    @param[in] a_dimensions Box dimensions (width, length, height)
+    @param[in] a_curvature Corner curvature. 
+    @note Curvature must be > 0.0
+  */
+  RoundedBoxSDF(const Vec3T<T>& a_dimensions, const T a_curvature)
+  {
+    this->m_dimensions = 0.5 * a_dimensions;
+
+    m_sphere = std::make_shared<SphereSDF<T>>(Vec3T<T>::zero(), a_curvature);
+  }
+
+  /*!
+    @brief Destructor (does nothing).
+  */
+  virtual ~RoundedBoxSDF() noexcept
+  {}
+
+  /*!
+    @brief Signed distance function for the rounded box
+  */
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  {
+    return m_sphere->value(a_point - clamp(a_point, -m_dimensions, m_dimensions));
+  }
+
+protected:
+  /*!
+    @brief Sphere at origin with radius a_curvature
+  */
+  std::shared_ptr<SphereSDF<T>> m_sphere;
+
+  /*!
+    @brief Box dimensions
+  */
+  Vec3T<T> m_dimensions;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

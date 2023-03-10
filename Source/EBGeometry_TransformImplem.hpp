@@ -78,6 +78,13 @@ Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
 }
 
 template <class T>
+std::shared_ptr<ImplicitFunction<T>>
+Elongate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_elongation) noexcept
+{
+  return std::make_shared<ElongateIF<T>>(a_implicitFunction, a_elongation);
+}
+
+template <class T>
 ComplementIF<T>::ComplementIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction) noexcept
 
 {
@@ -321,6 +328,25 @@ MollifyIF<T>::value(const Vec3T<T>& a_point) const noexcept
   }
 
   return ret;
+}
+
+template <class T>
+ElongateIF<T>::ElongateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
+                          const Vec3T<T>&                             a_elongation) noexcept
+{
+  m_implicitFunction = a_implicitFunction;
+  m_elongation       = a_elongation;
+}
+
+template <class T>
+ElongateIF<T>::~ElongateIF() noexcept
+{}
+
+template <class T>
+T
+ElongateIF<T>::value(const Vec3T<T>& a_point) const noexcept
+{
+  return m_implicitFunction->value(a_point - clamp(a_point, -m_elongation, m_elongation));
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"
