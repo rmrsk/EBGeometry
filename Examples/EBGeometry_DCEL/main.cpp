@@ -9,7 +9,7 @@
 #include <random>
 
 #include "../../EBGeometry.hpp"
-#include "../../TriangleMeshDistance/TriangleMeshDistance/include/tmd/TriangleMeshDistance.h"
+#include "../../Submodules/TriangleMeshDistance/TriangleMeshDistance/include/tmd/TriangleMeshDistance.h"
 
 using namespace EBGeometry;
 using namespace EBGeometry::DCEL;
