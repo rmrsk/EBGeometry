@@ -128,7 +128,7 @@ main(int argc, char* argv[])
       else if (which_geom == 6) { // Armadillo
         rb       = RealBox({-100, -75, -100}, {100, 125, 100});
         filename = "../Resources/armadillo.stl";
-      }      
+      }
       else if (which_geom == 7) { // Adirondacks
         rb       = RealBox({0, 0, 0}, {200, 200, 50});
         filename = "../Resources/adirondack.stl";
