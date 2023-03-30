@@ -9,6 +9,7 @@
 #include <random>
 
 #include "../../EBGeometry.hpp"
+#include "../../TriangleMeshDistance/TriangleMeshDistance/include/tmd/TriangleMeshDistance.h"
 
 using namespace EBGeometry;
 using namespace EBGeometry::DCEL;
@@ -48,6 +49,36 @@ main(int argc, char* argv[])
   const auto bvhSDF  = EBGeometry::Parser::readIntoFullBVH<T, BV, K>(file);
   const auto linSDF  = EBGeometry::Parser::readIntoLinearBVH<T, BV, K>(file);
 
+  const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(file);
+  const std::vector<std::shared_ptr<FaceT<T>>>& faces = mesh->getFaces();
+
+  std::vector<std::array<double, 3>> vertices;
+  std::vector<std::array<int, 3>> triangles;
+
+  for (const auto& f : faces) {
+    std::vector<Vec3T<T>> faceVertices = f->getAllVertexCoordinates();
+
+    const int curSize = vertices.size();
+    
+    for (int i = 0; i < faceVertices.size(); i++) {
+      std::array<double, 3> curCoords;      
+      for (size_t dir = 0; dir < 3; dir++) {
+	curCoords[dir] = faceVertices[i][dir];
+      }
+
+      vertices.push_back(curCoords);      
+    }
+
+    std::array<int, 3> curFace;
+    curFace[0] = curSize;
+    curFace[1] = curSize+1;
+    curFace[2] = curSize+2;
+
+    triangles.emplace_back(curFace);
+  }
+
+  tmd::TriangleMeshDistance mesh_distance(vertices, triangles);  
+
   // Sample some random points around the object.
   constexpr size_t Nsamp = 100;
 
@@ -73,6 +104,7 @@ main(int argc, char* argv[])
   T dcelSum = 0.0;
   T bvhSum  = 0.0;
   T linSum  = 0.0;
+  T tmdSum  = 0.0;
 
   const auto t0 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
@@ -87,10 +119,15 @@ main(int argc, char* argv[])
     linSum += linSDF->signedDistance(x);
   }
   const auto t3 = std::chrono::high_resolution_clock::now();
+  for (const auto& x : ranPoints) {
+    tmdSum -= (mesh_distance.signed_distance({x[0], x[1], x[2]})).distance;
+  }
+  const auto t4 = std::chrono::high_resolution_clock::now();  
 
   const std::chrono::duration<T, std::micro> dcelTime = t1 - t0;
   const std::chrono::duration<T, std::micro> bvhTime  = t2 - t1;
   const std::chrono::duration<T, std::micro> linTime  = t3 - t2;
+  const std::chrono::duration<T, std::micro> tmdTime  = t4 - t3;  
 
   if (std::abs(bvhSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
     std::cerr << "Full BVH did not give same distance! Diff = " << bvhSum - dcelSum << "\n";
@@ -104,6 +141,7 @@ main(int argc, char* argv[])
   std::cout << "Accumulated distance and time using direct DCEL = " << dcelSum << ", which took " << dcelTime.count() / Nsamp << " us\n";
   std::cout << "Accumulated distance and time using full BVH    = " << bvhSum  << ", which took " << bvhTime.count()  / Nsamp << " us\n";
   std::cout << "Accumulated distance and time using compact BVH = " << linSum  << ", which took " << linTime.count()  / Nsamp << " us\n";
+  std::cout << "Accumulated distance and time using TMD         = " << tmdSum  << ", which took " << tmdTime.count()  / Nsamp << " us\n";  
   std::cout << "Relative speedup using BVH vs direct DCL        = " << dcelTime.count()/linTime.count() << "\n";
   // clang-format on  
 
