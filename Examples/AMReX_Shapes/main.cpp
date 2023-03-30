@@ -94,7 +94,7 @@ main(int argc, char* argv[])
   std::shared_ptr<ImpFunc> func;
   if (whichGeom == 0) { // Sphere.
     rb   = RealBox({-1, -1, -1}, {1, 1, 1});
-    func = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5));
+    func = std::make_shared<EBGeometry::SphereSDF<T>>(0.0 * Vec3::one(), T(0.1));
   }
   else if (whichGeom == 1) { // Plane.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
@@ -131,6 +131,8 @@ main(int argc, char* argv[])
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
     func = std::make_shared<EBGeometry::TorusSDF<T>>(Vec3::zero(), 1.0, 0.25);
+
+    func = EBGeometry::Elongate(func, 0.5 * Vec3::one());
   }
   else if (whichGeom == 8) { // Infinite cone.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
@@ -155,6 +157,11 @@ main(int argc, char* argv[])
     auto func2 = std::make_shared<EBGeometry::SphereSDF<T>>(0.25 * Vec3::one(), T(0.5));
 
     func = EBGeometry::SmoothDifference<T>(func1, func2, 0.025);
+  }
+  else if (whichGeom == 12) { // Rounded box
+    rb = RealBox({-1, -1, -1}, {1, 1, 1});
+
+    func = std::make_shared<EBGeometry::RoundedBoxSDF<T>>(1.0 * Vec3::one(), 0.1);
   }
 
   // AMReX uses the opposite sign.
