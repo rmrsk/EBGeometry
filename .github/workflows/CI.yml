@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        comp: [g++-9, g++-10, g++-11]
+        comp: [g++-9, g++-10, g++-11, g++12]
         directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_F18, Examples/EBGeometry_OctreeBoundingVolume, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
 
     steps:
