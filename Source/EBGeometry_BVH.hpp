@@ -15,6 +15,7 @@
 // Std includes
 #include <memory>
 #include <vector>
+#include <array>
 #include <functional>
 #include <queue>
 
