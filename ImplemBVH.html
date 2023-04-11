@@ -160,7 +160,8 @@ Various constructors are available.</p></li>
 The second step is to recursively build the BVH, which is done through the function <code class="docutils literal notranslate"><span class="pre">topDownSortAndPartition()</span></code>, see the code below:</p>
 <div class="literal-block-wrapper docutils container" id="id1">
 <div class="code-block-caption"><span class="caption-number">Listing 1 </span><span class="caption-text">Header section of the BVH implementation.</span><a class="headerlink" href="#id1" title="Permalink to this code"></a></div>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span><span class="w"> </span><span class="nn">BVH</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="o">*/</span><span class="w"></span>
+
 <span class="w">  </span><span class="cm">/*!</span>
 <span class="cm">    @brief Alias for a list geometric primitive and BV</span>
 <span class="cm">  */</span><span class="w"></span>
@@ -204,7 +205,7 @@ The second step is to recursively build the BVH, which is done through the funct
 <span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"></span>
 <span class="w">  </span><span class="k">class</span><span class="w"> </span><span class="nc">NodeT</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">NodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&gt;</span><span class="w"></span>
 <span class="w">  </span><span class="p">{</span><span class="w"></span>
-<span class="w">  </span><span class="k">public</span><span class="o">:</span><span class="w"></span>
+
 <span class="w">    </span><span class="cm">/*!</span>
 <span class="cm">      @brief Alias for partitioner</span>
 <span class="cm">    */</span><span class="w"></span>
@@ -232,9 +233,8 @@ The second step is to recursively build the BVH, which is done through the funct
 <span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"></span>
 <span class="w">    </span><span class="nf">topDownSortAndPartition</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Partitioner</span><span class="o">&amp;</span><span class="w">  </span><span class="n">a_partitioner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BVCentroidPartitioner</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="p">,</span><span class="w"></span>
 <span class="w">                            </span><span class="k">const</span><span class="w"> </span><span class="n">StopFunction</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_stopCrit</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="n">DefaultStopFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
-
+<span class="w">                </span><span class="kt">size_t</span><span class="o">&amp;</span><span class="w">                                                 </span><span class="n">a_offset</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="p">};</span><span class="w"></span>
-<span class="p">}</span><span class="w"> </span><span class="c1">// namespace BVH</span>
 </pre></div>
 </div>
 </div>
