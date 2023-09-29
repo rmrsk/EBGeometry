@@ -1,12 +1,12 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Octree.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Octree.hpp">
-<area shape="rect" id="node1" title="Declaration of a simple octree class." alt="" coords="191,5,433,61"/>
-<area shape="rect" id="node2" title=" " alt="" coords="5,109,61,136"/>
-<area shape="rect" id="node3" title=" " alt="" coords="86,109,173,136"/>
-<area shape="rect" id="node4" title=" " alt="" coords="197,109,275,136"/>
-<area shape="rect" id="node5" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="349,109,512,136"/>
-<area shape="rect" id="node7" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="18,184,281,211"/>
-<area shape="rect" id="node8" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="645,184,901,211"/>
-<area shape="rect" id="node10" title=" " alt="" coords="587,109,819,136"/>
-<area shape="rect" id="node6" title=" " alt="" coords="305,184,385,211"/>
-<area shape="rect" id="node9" title=" " alt="" coords="409,184,621,211"/>
+<area shape="rect" id="node1" title="Declaration of a simple octree class." alt="" coords="465,5,708,61"/>
+<area shape="rect" id="node2" title=" " alt="" coords="5,184,61,211"/>
+<area shape="rect" id="node3" title=" " alt="" coords="625,109,711,136"/>
+<area shape="rect" id="node4" title=" " alt="" coords="736,109,813,136"/>
+<area shape="rect" id="node5" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="297,109,460,136"/>
+<area shape="rect" id="node7" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="425,184,687,211"/>
+<area shape="rect" id="node8" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="712,184,968,211"/>
+<area shape="rect" id="node10" title=" " alt="" coords="837,109,1069,136"/>
+<area shape="rect" id="node6" title=" " alt="" coords="320,184,400,211"/>
+<area shape="rect" id="node9" title=" " alt="" coords="85,184,297,211"/>
 </map>
