@@ -14,6 +14,7 @@
 #define EBGeometry_Vec
 
 // Std includes
+#include <array>
 #include <iostream>
 
 // Our includes
@@ -537,7 +538,7 @@ protected:
   /*!
     @brief Vector components
   */
-  T X[3];
+  std::array<T, 3> m_X;
 };
 
 /*!
