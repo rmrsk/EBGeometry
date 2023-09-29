@@ -16,6 +16,8 @@
 #include <math.h>
 #include <algorithm>
 #include <limits>
+#include <tuple>
+#include <utility>
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
@@ -116,6 +118,7 @@ inline constexpr Vec2T<T>
 Vec2T<T>::operator/(const T& s) const noexcept
 {
   const T is = 1. / s;
+
   return Vec2T<T>(x * is, y * is);
 }
 
@@ -205,13 +208,13 @@ inline Vec3T<T>::Vec3T()
 template <typename T>
 inline Vec3T<T>::Vec3T(const Vec3T<T>& u) noexcept
 {
-  X[0] = u[0];
-  X[1] = u[1];
-  X[2] = u[2];
+  m_X[0] = u[0];
+  m_X[1] = u[1];
+  m_X[2] = u[2];
 }
 
 template <typename T>
-inline constexpr Vec3T<T>::Vec3T(const T& a_x, const T& a_y, const T& a_z) : X{a_x, a_y, a_z}
+inline constexpr Vec3T<T>::Vec3T(const T& a_x, const T& a_y, const T& a_z) : m_X{a_x, a_y, a_z}
 {}
 
 template <typename T>
@@ -232,8 +235,8 @@ template <typename T>
 inline constexpr Vec3T<T>
 Vec3T<T>::unit(const size_t a_dir) noexcept
 {
-  Vec3T<T> v = Vec3T<T>::zero();
-  v[a_dir]   = 1.0;
+  Vec3T<T> v        = Vec3T<T>::zero();
+  (v.m_X).at(a_dir) = 1.0;
 
   return v;
 }
@@ -264,32 +267,19 @@ template <typename T>
 inline constexpr bool
 Vec3T<T>::lessLX(const Vec3T<T>& u) const noexcept
 {
-  bool ret = false;
+  const auto& myComps = std::tuple_cat(m_X);
+  const auto& uComps  = std::tuple_cat(u.m_X);
 
-  if (X[0] < u[0]) {
-    ret = true;
-  }
-  else if (X[0] == u[0]) {
-    if (X[1] < u[1]) {
-      ret = true;
-    }
-    else if (X[1] == u[1]) {
-      if (X[2] < u[2]) {
-        ret = true;
-      }
-    }
-  }
-
-  return ret;
+  return std::tie(myComps) < std::tie(uComps);
 }
 
 template <typename T>
 inline constexpr Vec3T<T>&
 Vec3T<T>::operator=(const Vec3T<T>& u) noexcept
 {
-  X[0] = u[0];
-  X[1] = u[1];
-  X[2] = u[2];
+  m_X[0] = u[0];
+  m_X[1] = u[1];
+  m_X[2] = u[2];
 
   return (*this);
 }
@@ -298,35 +288,35 @@ template <typename T>
 inline constexpr Vec3T<T>
 Vec3T<T>::operator+(const Vec3T<T>& u) const noexcept
 {
-  return Vec3T<T>(X[0] + u[0], X[1] + u[1], X[2] + u[2]);
+  return Vec3T<T>(m_X[0] + u[0], m_X[1] + u[1], m_X[2] + u[2]);
 }
 
 template <typename T>
 inline constexpr Vec3T<T>
 Vec3T<T>::operator-(const Vec3T<T>& u) const noexcept
 {
-  return Vec3T<T>(X[0] - u[0], X[1] - u[1], X[2] - u[2]);
+  return Vec3T<T>(m_X[0] - u[0], m_X[1] - u[1], m_X[2] - u[2]);
 }
 
 template <typename T>
 inline constexpr Vec3T<T>
 Vec3T<T>::operator-() const noexcept
 {
-  return Vec3T<T>(-X[0], -X[1], -X[2]);
+  return Vec3T<T>(-m_X[0], -m_X[1], -m_X[2]);
 }
 
 template <typename T>
 inline constexpr Vec3T<T>
 Vec3T<T>::operator*(const T& s) const noexcept
 {
-  return Vec3T<T>(s * X[0], s * X[1], s * X[2]);
+  return Vec3T<T>(s * m_X[0], s * m_X[1], s * m_X[2]);
 }
 
 template <typename T>
 inline constexpr Vec3T<T>
 Vec3T<T>::operator*(const Vec3T<T>& s) const noexcept
 {
-  return Vec3T<T>(s[0] * X[0], s[1] * X[1], s[2] * X[2]);
+  return Vec3T<T>(s[0] * m_X[0], s[1] * m_X[1], s[2] * m_X[2]);
 }
 
 template <typename T>
@@ -334,23 +324,23 @@ inline constexpr Vec3T<T>
 Vec3T<T>::operator/(const T& s) const noexcept
 {
   const T is = 1. / s;
-  return Vec3T<T>(is * X[0], is * X[1], is * X[2]);
+  return Vec3T<T>(is * m_X[0], is * m_X[1], is * m_X[2]);
 }
 
 template <typename T>
 inline constexpr Vec3T<T>
 Vec3T<T>::operator/(const Vec3T<T>& v) const noexcept
 {
-  return Vec3T<T>(X[0] / v[0], X[1] / v[1], X[2] / v[2]);
+  return Vec3T<T>(m_X[0] / v[0], m_X[1] / v[1], m_X[2] / v[2]);
 }
 
 template <typename T>
 inline constexpr Vec3T<T>&
 Vec3T<T>::operator+=(const Vec3T<T>& u) noexcept
 {
-  X[0] += u[0];
-  X[1] += u[1];
-  X[2] += u[2];
+  m_X[0] += u[0];
+  m_X[1] += u[1];
+  m_X[2] += u[2];
 
   return (*this);
 }
@@ -359,9 +349,9 @@ template <typename T>
 inline constexpr Vec3T<T>&
 Vec3T<T>::operator-=(const Vec3T<T>& u) noexcept
 {
-  X[0] -= u[0];
-  X[1] -= u[1];
-  X[2] -= u[2];
+  m_X[0] -= u[0];
+  m_X[1] -= u[1];
+  m_X[2] -= u[2];
 
   return (*this);
 }
@@ -370,9 +360,9 @@ template <typename T>
 inline constexpr Vec3T<T>&
 Vec3T<T>::operator*=(const T& s) noexcept
 {
-  X[0] *= s;
-  X[1] *= s;
-  X[2] *= s;
+  m_X[0] *= s;
+  m_X[1] *= s;
+  m_X[2] *= s;
 
   return (*this);
 }
@@ -383,9 +373,9 @@ Vec3T<T>::operator/=(const T& s) noexcept
 {
   const T is = 1. / s;
 
-  X[0] *= is;
-  X[1] *= is;
-  X[2] *= is;
+  m_X[0] *= is;
+  m_X[1] *= is;
+  m_X[2] *= is;
 
   return (*this);
 }
@@ -394,30 +384,30 @@ template <typename T>
 inline constexpr Vec3T<T>
 Vec3T<T>::cross(const Vec3T<T>& u) const noexcept
 {
-  return Vec3T<T>(X[1] * u[2] - X[2] * u[1], X[2] * u[0] - X[0] * u[2], X[0] * u[1] - X[1] * u[0]);
+  return Vec3T<T>(m_X[1] * u[2] - m_X[2] * u[1], m_X[2] * u[0] - m_X[0] * u[2], m_X[0] * u[1] - m_X[1] * u[0]);
 }
 
 template <typename T>
 inline constexpr T&
 Vec3T<T>::operator[](size_t i) noexcept
 {
-  return X[i];
+  return m_X.at(i);
 }
 
 template <typename T>
 inline constexpr const T&
 Vec3T<T>::operator[](size_t i) const noexcept
 {
-  return X[i];
+  return m_X.at(i);
 }
 
 template <typename T>
 inline constexpr Vec3T<T>
 Vec3T<T>::min(const Vec3T<T>& u) noexcept
 {
-  X[0] = std::min(X[0], u[0]);
-  X[1] = std::min(X[1], u[1]);
-  X[2] = std::min(X[2], u[2]);
+  m_X[0] = std::min(m_X[0], u[0]);
+  m_X[1] = std::min(m_X[1], u[1]);
+  m_X[2] = std::min(m_X[2], u[2]);
 
   return *this;
 }
@@ -426,9 +416,9 @@ template <typename T>
 inline constexpr Vec3T<T>
 Vec3T<T>::max(const Vec3T<T>& u) noexcept
 {
-  X[0] = std::max(X[0], u[0]);
-  X[1] = std::max(X[1], u[1]);
-  X[2] = std::max(X[2], u[2]);
+  m_X[0] = std::max(m_X[0], u[0]);
+  m_X[1] = std::max(m_X[1], u[1]);
+  m_X[2] = std::max(m_X[2], u[2]);
 
   return *this;
 }
@@ -441,12 +431,12 @@ Vec3T<T>::minDir(const bool a_doAbs) const noexcept
 
   for (size_t dir = 0; dir < 3; dir++) {
     if (a_doAbs) {
-      if (std::abs(X[dir]) < std::abs(X[mDir])) {
+      if (std::abs(m_X[dir]) < std::abs(m_X[mDir])) {
         mDir = dir;
       }
     }
     else {
-      if (X[dir] < X[mDir]) {
+      if (m_X[dir] < m_X[mDir]) {
         mDir = dir;
       }
     }
@@ -463,12 +453,12 @@ Vec3T<T>::maxDir(const bool a_doAbs) const noexcept
 
   for (size_t dir = 0; dir < 3; dir++) {
     if (a_doAbs) {
-      if (std::abs(X[dir]) > std::abs(X[mDir])) {
+      if (std::abs(m_X[dir]) > std::abs(m_X[mDir])) {
         mDir = dir;
       }
     }
     else {
-      if (X[dir] > X[mDir]) {
+      if (m_X[dir] > m_X[mDir]) {
         mDir = dir;
       }
     }
@@ -481,7 +471,7 @@ template <typename T>
 inline constexpr bool
 Vec3T<T>::operator==(const Vec3T<T>& u) const noexcept
 {
-  return (X[0] == u[0] && X[1] == u[1] && X[2] == u[2]);
+  return (m_X[0] == u[0] && m_X[1] == u[1] && m_X[2] == u[2]);
 }
 
 template <typename T>
@@ -495,49 +485,49 @@ template <typename T>
 inline constexpr bool
 Vec3T<T>::operator<(const Vec3T<T>& u) const noexcept
 {
-  return (X[0] < u[0] && X[1] < u[1] && X[2] < u[2]);
+  return (m_X[0] < u[0] && m_X[1] < u[1] && m_X[2] < u[2]);
 }
 
 template <typename T>
 inline constexpr bool
 Vec3T<T>::operator>(const Vec3T<T>& u) const noexcept
 {
-  return (X[0] > u[0] && X[1] > u[1] && X[2] > u[2]);
+  return (m_X[0] > u[0] && m_X[1] > u[1] && m_X[2] > u[2]);
 }
 
 template <typename T>
 inline constexpr bool
 Vec3T<T>::operator<=(const Vec3T<T>& u) const noexcept
 {
-  return (X[0] <= u[0] && X[1] <= u[1] && X[2] <= u[2]);
+  return (m_X[0] <= u[0] && m_X[1] <= u[1] && m_X[2] <= u[2]);
 }
 
 template <typename T>
 inline constexpr bool
 Vec3T<T>::operator>=(const Vec3T<T>& u) const noexcept
 {
-  return (X[0] >= u[0] && X[1] >= u[1] && X[2] >= u[2]);
+  return (m_X[0] >= u[0] && m_X[1] >= u[1] && m_X[2] >= u[2]);
 }
 
 template <typename T>
 inline constexpr T
 Vec3T<T>::dot(const Vec3T<T>& u) const noexcept
 {
-  return X[0] * u[0] + X[1] * u[1] + X[2] * u[2];
+  return m_X[0] * u[0] + m_X[1] * u[1] + m_X[2] * u[2];
 }
 
 template <typename T>
 inline constexpr T
 Vec3T<T>::length() const noexcept
 {
-  return sqrt(X[0] * X[0] + X[1] * X[1] + X[2] * X[2]);
+  return sqrt(m_X[0] * m_X[0] + m_X[1] * m_X[1] + m_X[2] * m_X[2]);
 }
 
 template <typename T>
 inline constexpr T
 Vec3T<T>::length2() const noexcept
 {
-  return X[0] * X[0] + X[1] * X[1] + X[2] * X[2];
+  return m_X[0] * m_X[0] + m_X[1] * m_X[1] + m_X[2] * m_X[2];
 }
 
 template <typename T>
