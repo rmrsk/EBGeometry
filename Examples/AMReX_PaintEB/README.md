@@ -22,7 +22,6 @@ Some of the geometries will generate cut-cells which AMReX does not support, so 
 
 Other input options are
 
-* `use_bvh = true/false` Turn on/off the BVH accelerator. 
 * `n_cell = <integer>` For setting the number of grid cells along the coordinate directions.
 * `max_grid_size = <integer>` For setting the blocking factor.
 * `num_coarsen_opt = <integer>` For performance tuning the EB generation.

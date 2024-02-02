@@ -130,6 +130,29 @@ public:
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
   /*!
+    @brief Get the closest faces to the input point
+    @details This returns a list of candidate faces that are close to the input point. The returned
+    argment consists of the faces and the unsigned distance to the face.
+    @param[in] a_point Input ponit
+    @param[in] a_sorted Sort the output vector by distance or not. Closest goes first
+    @return List of candidate faces (potentially sorted)
+  */
+  virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
+  getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const noexcept;
+
+  /*!
+    @brief Get the bounding volume hierarchy enclosing the mesh
+  */
+  virtual std::shared_ptr<Node>&
+  getBVH() noexcept;
+
+  /*!
+    @brief Get the bounding volume hierarchy enclosing the mesh
+  */
+  virtual const std::shared_ptr<Node>&
+  getBVH() const noexcept;
+
+  /*!
     @brief Compute bounding volume for this mesh. 
   */
   BV
@@ -191,6 +214,29 @@ public:
   */
   virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
+
+  /*!
+    @brief Get the closest faces to the input point
+    @details This returns a list of candidate faces that are close to the input point. The returned
+    argment consists of the faces and the unsigned distance to the face.
+    @param[in] a_point Input point
+    @param[in] a_sorted Sort the output vector by distance or not. Closest go first. 
+    @return List of candidate faces (potentially sorted)
+  */
+  virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
+  getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const noexcept;
+
+  /*!
+    @brief Get the bounding volume hierarchy enclosing the mesh
+  */
+  virtual std::shared_ptr<Root>&
+  getRoot() noexcept;
+
+  /*!
+    @brief Get the bounding volume hierarchy enclosing the mesh
+  */
+  virtual const std::shared_ptr<Root>&
+  getRoot() const noexcept;
 
   /*!
     @brief Compute bounding volume for this mesh. 

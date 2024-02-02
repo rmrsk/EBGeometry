@@ -20,7 +20,7 @@ using namespace amrex;
   is templated as T, BV, K which indicate the EBGeometry precision, bounding volume, 
   tree degree, and meta-data type for the triangles (defaults to an integer)
 */
-template <class T, class BV, size_t K, class Meta = int>
+template <class T, class BV, size_t K, class Meta = double>
 class AMReXSDF
 {
 public:
@@ -30,25 +30,19 @@ public:
   using Face = EBGeometry::DCEL::FaceT<T, Meta>;
 
   /*!
-    @brief Shortcut for 3D vector type
-  */
-  using Vec3 = EBGeometry::Vec3T<T>;
-
-  /*!
     @brief Full constructor.
     @param[in] a_filename File name. Must be an STL file.
   */
   AMReXSDF(const std::string a_filename)
   {
-
     // Read in the mesh into a DCEL mesh and partition it into a bounding volume hierarchy
     auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
-    m_sdf     = std::make_shared<EBGeometry::FastMeshSDF<T, Meta, BV, K>>(mesh);
+    m_sdf     = std::make_shared<EBGeometry::FastCompactMeshSDF<T, Meta, BV, K>>(mesh);
 
     // Set the meta-data for all facets to their "index", i.e. position in the list of facets
     auto& faces = mesh->getFaces();
     for (size_t i = 0; i < faces.size(); i++) {
-      faces[i]->getMetaData() = i;
+      faces[i]->getMetaData() = 1.0 * i;
     }
   }
 
@@ -66,9 +60,7 @@ public:
   */
   Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    using Vec3 = EBGeometry::Vec3T<T>;
-
-    return m_sdf->value(Vec3(x, y, z));
+    return m_sdf->value(EBGeometry::Vec3T<T>(x, y, z));
   };
 
   /*!
@@ -81,123 +73,133 @@ public:
   }
 
   /*!
-    @brief Get the face(s) that are closest to the input point. This version takes advantage of the BVH when looking for those triangles. Because of that,
-    the routine can become quite complex but for N triangles it is also O(log N) complex instead of O(N).
+    @brief Get the face(s) that are closest to the input point. 
   */
-  inline std::vector<Face> getClosestFaces(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+  inline std::vector<std::pair<std::shared_ptr<const Face>, T>>
+    getClosestFaces(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    std::vector<Face> faces;
-
-    // This is the shortest distance between the input point and the
-    T shortestDistanceSoFar = std::numeric_limits<T>::infinity();
-
-    // Visiter pattern; go into the node if the distance to the bounding volume is shorter than the shortest distance we've found so far.
-    using NodeType = EBGeometry::BVH::NodeT<T, Face, BV, K>;
-
-    return faces;
+    return m_sdf->getClosestFaces(EBGeometry::Vec3T<T>(x, y, z), true);
   }
 
 protected:
   /*!
     @brief DCEL mesh represented as a BVH of its facets, exposed as an implicit function. 
   */
-  std::shared_ptr<EBGeometry::FastMeshSDF<T, Meta, BV, K>> m_sdf;
+  std::shared_ptr<EBGeometry::FastCompactMeshSDF<T, Meta, BV, K>> m_sdf;
 };
 
 int
 main(int argc, char* argv[])
 {
-
   amrex::Initialize(argc, argv);
 
+  int n_cell          = 128;
+  int max_grid_size   = 16;
+  int which_geom      = 0;
+  int num_coarsen_opt = 0;
+
+  std::string filename;
+
+  // read parameters
+  ParmParse pp;
+  pp.query("n_cell", n_cell);
+  pp.query("max_grid_size", max_grid_size);
+  pp.query("which_geom", which_geom);
+  pp.query("num_coarsen_opt", num_coarsen_opt);
+
+  Geometry geom;
   {
-    int n_cell          = 128;
-    int max_grid_size   = 16;
-    int which_geom      = 0;
-    int num_coarsen_opt = 0;
+    RealBox rb;
 
-    std::string filename;
-
-    // read parameters
-    ParmParse pp;
-    pp.query("n_cell", n_cell);
-    pp.query("max_grid_size", max_grid_size);
-    pp.query("which_geom", which_geom);
-    pp.query("num_coarsen_opt", num_coarsen_opt);
-
-    Geometry geom;
-    {
-      RealBox rb;
-
-      if (which_geom == 0) { // Airfoil case
-        rb       = RealBox({-100, -100, -75}, {400, 100, 125});
-        filename = "../Resources/airfoil.stl";
-      }
-      else if (which_geom == 1) { // Sphere case
-        rb       = RealBox({-400, -400, -400}, {400, 400, 400});
-        filename = "../Resources/sphere.stl";
-      }
-      else if (which_geom == 2) { // Dodecahedron
-        rb       = RealBox({-2., -2., -2.}, {2., 2., 2.});
-        filename = "../Resources/dodecahedron.stl";
-      }
-      else if (which_geom == 3) { // Horse
-        rb       = RealBox({-0.12, -0.12, -0.12}, {0.12, 0.12, 0.12});
-        filename = "../Resources/horse.stl";
-      }
-      else if (which_geom == 4) { // Car
-        //	    rb = RealBox({-20,-20,-20}, {20,20,20}); // Doesn't work.
-        rb       = RealBox({-10, -5, -5}, {10, 5, 5}); // Works.
-        filename = "../Resources/porsche.stl";
-      }
-      else if (which_geom == 5) { // Orion
-        rb       = RealBox({-10, -5, -10}, {10, 10, 10});
-        filename = "../Resources/orion.stl";
-      }
-      else if (which_geom == 6) { // Armadillo
-        rb       = RealBox({-100, -75, -100}, {100, 125, 100});
-        filename = "../Resources/armadillo.stl";
-      }
-      else if (which_geom == 7) { // Adirondacks
-        rb       = RealBox({0, 0, 0}, {200, 200, 50});
-        filename = "../Resources/adirondack.stl";
-      }
-
-      Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};
-      Geometry::Setup(&rb, 0, is_periodic.data());
-      Box domain(IntVect(0), IntVect(n_cell - 1));
-      geom.define(domain);
+    if (which_geom == 0) { // Airfoil case
+      rb       = RealBox({-100, -100, -75}, {400, 100, 125});
+      filename = "../Resources/airfoil.stl";
+    }
+    else if (which_geom == 1) { // Sphere case
+      rb       = RealBox({-400, -400, -400}, {400, 400, 400});
+      filename = "../Resources/sphere.stl";
+    }
+    else if (which_geom == 2) { // Dodecahedron
+      rb       = RealBox({-2., -2., -2.}, {2., 2., 2.});
+      filename = "../Resources/dodecahedron.stl";
+    }
+    else if (which_geom == 3) { // Horse
+      rb       = RealBox({-0.12, -0.12, -0.12}, {0.12, 0.12, 0.12});
+      filename = "../Resources/horse.stl";
+    }
+    else if (which_geom == 4) { // Car
+      //	    rb = RealBox({-20,-20,-20}, {20,20,20}); // Doesn't work.
+      rb       = RealBox({-10, -5, -5}, {10, 5, 5}); // Works.
+      filename = "../Resources/porsche.stl";
+    }
+    else if (which_geom == 5) { // Orion
+      rb       = RealBox({-10, -5, -10}, {10, 10, 10});
+      filename = "../Resources/orion.stl";
+    }
+    else if (which_geom == 6) { // Armadillo
+      rb       = RealBox({-100, -75, -100}, {100, 125, 100});
+      filename = "../Resources/armadillo.stl";
+    }
+    else if (which_geom == 7) { // Adirondacks
+      rb       = RealBox({0, 0, 0}, {200, 200, 50});
+      filename = "../Resources/adirondack.stl";
     }
 
-    // Create our signed distance function. K is the tree degree while T is the
-    // EBGeometry precision.
-    constexpr int K = 4;
-
-    using T    = float;
-    using Vec3 = EBGeometry::Vec3T<T>;
-    using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
-
-    AMReXSDF<T, BV, K> sdf(filename);
-
-    auto gshop = EB2::makeShop(sdf);
-    EB2::Build(gshop, geom, 0, 0, 1, true, true, num_coarsen_opt);
-
-    // Put some data
-    MultiFab mf;
-    {
-      BoxArray boxArray(geom.Domain());
-      boxArray.maxSize(max_grid_size);
-      DistributionMapping dm{boxArray};
-
-      std::unique_ptr<EBFArrayBoxFactory> factory =
-        amrex::makeEBFabFactory(geom, boxArray, dm, {2, 2, 2}, EBSupport::full);
-
-      mf.define(boxArray, dm, 1, 0, MFInfo(), *factory);
-      mf.setVal(1.0);
-    }
-
-    EB_WriteSingleLevelPlotfile("plt", mf, {"rho"}, geom, 0.0, 0);
+    Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};
+    Geometry::Setup(&rb, 0, is_periodic.data());
+    Box domain(IntVect(0), IntVect(n_cell - 1));
+    geom.define(domain);
   }
+
+  // Create our signed distance function. K is the tree degree while T is the
+  // EBGeometry precision.
+  constexpr int K = 4;
+
+  using T    = float;
+  using Vec3 = EBGeometry::Vec3T<T>;
+  using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
+
+  AMReXSDF<T, BV, K> sdf(filename);
+
+  // Create the EB geometry
+  auto gshop = EB2::makeShop(sdf);
+  EB2::Build(gshop, geom, 0, 0, 1, true, true, num_coarsen_opt);
+
+  // Create some data
+  MultiFab mf;
+
+  BoxArray boxArray(geom.Domain());
+  boxArray.maxSize(max_grid_size);
+  DistributionMapping dm{boxArray};
+
+  std::unique_ptr<EBFArrayBoxFactory> factory = amrex::makeEBFabFactory(geom, boxArray, dm, {2, 2, 2}, EBSupport::full);
+
+  mf.define(boxArray, dm, 1, 0, MFInfo(), *factory);
+  mf.setVal(-1.0);
+
+  const auto& ebFlags = factory->getMultiEBCellFlagFab();
+
+  // Go through the multifab. For each cell set the value in the cell equal to the closest triangle distance.
+
+  for (amrex::MFIter mfi(mf); mfi.isValid(); ++mfi) {
+    const auto& bx       = mfi.validbox();
+    const auto& mf_array = mf.array(mfi);
+    const auto& flags    = ebFlags[mfi].getType(bx);
+
+    if (flags == FabType::singlevalued) {
+      amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+        amrex::Real x = (i + 0.5);
+        amrex::Real y = (j + 0.5);
+        amrex::Real z = (k + 0.5);
+
+        const auto& candidateFaces = sdf.getClosestFaces(x, y, z);
+
+        mf_array(i, j, k) = 1.0 * (candidateFaces.front().first)->getMetaData();
+      });
+    }
+  }
+
+  EB_WriteSingleLevelPlotfile("plt", mf, {"facet_id"}, geom, 0.0, 0);
 
   amrex::Finalize();
 }
