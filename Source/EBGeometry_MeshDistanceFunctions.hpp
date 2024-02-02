@@ -34,14 +34,14 @@ namespace DCEL {
 /*!
   @brief Signed distance function for a DCEL mesh. Does not use BVHs.
 */
-template <class T>
+template <class T, class Meta = DCEL::DefaultMetaData>
 class MeshSDF : public SignedDistanceFunction<T>
 {
 public:
   /*!
     @brief Alias for DCEL mesh type
   */
-  using Mesh = EBGeometry::DCEL::MeshT<T>;
+  using Mesh = EBGeometry::DCEL::MeshT<T, Meta>;
 
   /*!
     @brief Disallowed constructor

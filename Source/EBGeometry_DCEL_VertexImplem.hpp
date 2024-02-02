@@ -21,8 +21,8 @@
 
 namespace DCEL {
 
-  template <class T>
-  inline VertexT<T>::VertexT()
+  template <class T, class Meta>
+  inline VertexT<T, Meta>::VertexT()
   {
     m_position = Vec3::zero();
     m_normal   = Vec3::zero();
@@ -30,85 +30,85 @@ namespace DCEL {
     m_faces.resize(0);
   }
 
-  template <class T>
-  inline VertexT<T>::VertexT(const Vec3& a_position) : VertexT()
+  template <class T, class Meta>
+  inline VertexT<T, Meta>::VertexT(const Vec3& a_position) : VertexT()
   {
     m_position = a_position;
   }
 
-  template <class T>
-  inline VertexT<T>::VertexT(const Vec3& a_position, const Vec3& a_normal) : VertexT()
+  template <class T, class Meta>
+  inline VertexT<T, Meta>::VertexT(const Vec3& a_position, const Vec3& a_normal) : VertexT()
   {
     m_position = a_position;
     m_normal   = a_normal;
   }
 
-  template <class T>
-  inline VertexT<T>::VertexT(const VertexT<T>& a_otherVertex)
+  template <class T, class Meta>
+  inline VertexT<T, Meta>::VertexT(const VertexT<T, Meta>& a_otherVertex)
   {
     m_position     = a_otherVertex.m_position;
     m_normal       = a_otherVertex.m_m_normal;
     m_outgoingEdge = a_otherVertex.m_outgoingEdge;
   }
 
-  template <class T>
-  inline VertexT<T>::~VertexT()
+  template <class T, class Meta>
+  inline VertexT<T, Meta>::~VertexT()
   {}
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  VertexT<T>::define(const Vec3& a_position, const EdgePtr& a_edge, const Vec3& a_normal) noexcept
+  VertexT<T, Meta>::define(const Vec3& a_position, const EdgePtr& a_edge, const Vec3& a_normal) noexcept
   {
     m_position     = a_position;
     m_outgoingEdge = a_edge;
     m_normal       = a_normal;
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  VertexT<T>::setPosition(const Vec3& a_position) noexcept
+  VertexT<T, Meta>::setPosition(const Vec3& a_position) noexcept
   {
     m_position = a_position;
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  VertexT<T>::setEdge(const EdgePtr& a_edge) noexcept
+  VertexT<T, Meta>::setEdge(const EdgePtr& a_edge) noexcept
   {
     m_outgoingEdge = a_edge;
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  VertexT<T>::setNormal(const Vec3& a_normal) noexcept
+  VertexT<T, Meta>::setNormal(const Vec3& a_normal) noexcept
   {
     m_normal = a_normal;
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  VertexT<T>::addFace(const FacePtr& a_face) noexcept
+  VertexT<T, Meta>::addFace(const FacePtr& a_face) noexcept
   {
     m_faces.emplace_back(a_face);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  VertexT<T>::normalizeNormalVector() noexcept
+  VertexT<T, Meta>::normalizeNormalVector() noexcept
   {
     m_normal = m_normal / m_normal.length();
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  VertexT<T>::computeVertexNormalAverage() noexcept
+  VertexT<T, Meta>::computeVertexNormalAverage() noexcept
   {
     this->computeVertexNormalAverage(m_faces);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  VertexT<T>::computeVertexNormalAverage(const std::vector<FacePtr>& a_faces) noexcept
+  VertexT<T, Meta>::computeVertexNormalAverage(const std::vector<FacePtr>& a_faces) noexcept
   {
     m_normal = Vec3::zero();
 
@@ -123,16 +123,16 @@ namespace DCEL {
     this->normalizeNormalVector();
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  VertexT<T>::computeVertexNormalAngleWeighted() noexcept
+  VertexT<T, Meta>::computeVertexNormalAngleWeighted() noexcept
   {
     this->computeVertexNormalAngleWeighted(m_faces);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  VertexT<T>::computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a_faces) noexcept
+  VertexT<T, Meta>::computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a_faces) noexcept
   {
     m_normal = Vec3::zero();
 
@@ -213,72 +213,72 @@ namespace DCEL {
     this->normalizeNormalVector();
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  VertexT<T>::flip() noexcept
+  VertexT<T, Meta>::flip() noexcept
   {
     m_normal = -m_normal;
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline Vec3T<T>&
-  VertexT<T>::getPosition() noexcept
+  VertexT<T, Meta>::getPosition() noexcept
   {
     return (m_position);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline const Vec3T<T>&
-  VertexT<T>::getPosition() const noexcept
+  VertexT<T, Meta>::getPosition() const noexcept
   {
     return (m_position);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline Vec3T<T>&
-  VertexT<T>::getNormal() noexcept
+  VertexT<T, Meta>::getNormal() noexcept
   {
     return (m_normal);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline const Vec3T<T>&
-  VertexT<T>::getNormal() const noexcept
+  VertexT<T, Meta>::getNormal() const noexcept
   {
     return (m_normal);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline std::shared_ptr<EdgeT<T>>&
-  VertexT<T>::getOutgoingEdge() noexcept
+  VertexT<T, Meta>::getOutgoingEdge() noexcept
   {
     return (m_outgoingEdge);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline const std::shared_ptr<EdgeT<T>>&
-  VertexT<T>::getOutgoingEdge() const noexcept
+  VertexT<T, Meta>::getOutgoingEdge() const noexcept
   {
     return (m_outgoingEdge);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline std::vector<std::shared_ptr<FaceT<T>>>&
-  VertexT<T>::getFaces() noexcept
+  VertexT<T, Meta>::getFaces() noexcept
   {
     return (m_faces);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline const std::vector<std::shared_ptr<FaceT<T>>>&
-  VertexT<T>::getFaces() const noexcept
+  VertexT<T, Meta>::getFaces() const noexcept
   {
     return (m_faces);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline T
-  VertexT<T>::signedDistance(const Vec3& a_x0) const noexcept
+  VertexT<T, Meta>::signedDistance(const Vec3& a_x0) const noexcept
   {
     const auto delta = a_x0 - m_position;
     const T    dist  = delta.length();
@@ -288,13 +288,27 @@ namespace DCEL {
     return dist * sign;
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline T
-  VertexT<T>::unsignedDistance2(const Vec3& a_x0) const noexcept
+  VertexT<T, Meta>::unsignedDistance2(const Vec3& a_x0) const noexcept
   {
     const auto d = a_x0 - m_position;
 
     return d.dot(d);
+  }
+
+  template <class T, class Meta>
+  inline Meta&
+  VertexT<T, Meta>::getMetaData() noexcept
+  {
+    return m_metaData;
+  }
+
+  template <class T, class Meta>
+  inline const Meta&
+  VertexT<T, Meta>::getMetaData() const noexcept
+  {
+    return m_metaData;
   }
 } // namespace DCEL
 

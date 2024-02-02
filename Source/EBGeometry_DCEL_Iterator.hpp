@@ -20,36 +20,27 @@
 
 namespace DCEL {
 
-  template <class T>
-  class VertexT;
-
-  template <class T>
-  class EdgeT;
-
-  template <class T>
-  class FaceT;
-
   /*!
     @brief Class which makes it easier to iterate through DCEL edges
   */
-  template <class T>
+  template <class T, class Meta>
   class EdgeIteratorT
   {
   public:
     /*!
       @brief Alias for DCEL vertex type
     */
-    using Vertex = VertexT<T>;
+    using Vertex = VertexT<T, Meta>;
 
     /*!
       @brief Alias for DCEL edge type
     */
-    using Edge = EdgeT<T>;
+    using Edge = EdgeT<T, Meta>;
 
     /*!
       @brief Alias for DCEL face type
     */
-    using Face = FaceT<T>;
+    using Face = FaceT<T, Meta>;
 
     /*!
       @brief Alias for vertex pointer

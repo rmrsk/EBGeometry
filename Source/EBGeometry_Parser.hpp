@@ -54,32 +54,32 @@ namespace Parser {
     @brief Read a file containing a single watertight object and return it as a DCEL mesh
     @param[in] a_filename File name
   */
-  template <typename T>
-  inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
+  template <typename T, typename Meta = DCEL::DefaultMetaData>
+  inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
   readIntoDCEL(const std::string a_filename) noexcept;
 
   /*!
     @brief Read multiple files containing single watertight objects and return them as DCEL meshes
     @param[in] a_files File names
   */
-  template <typename T>
-  inline static std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>>
+  template <typename T, typename Meta = DCEL::DefaultMetaData>
+  inline static std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>>
   readIntoDCEL(const std::vector<std::string> a_files) noexcept;
 
   /*!
     @brief Read a file containing a single watertight object and return it as an implicit function.
     @param[in] a_filename File name
   */
-  template <typename T>
-  inline static std::shared_ptr<MeshSDF<T>>
+  template <typename T, typename Meta = DCEL::DefaultMetaData>
+  inline static std::shared_ptr<MeshSDF<T, Meta>>
   readIntoMesh(const std::string a_filename) noexcept;
 
   /*!
     @brief Read multiple files containing single watertight objects and return them as an implicit functions.
     @param[in] a_files File names
   */
-  template <typename T>
-  inline static std::vector<std::shared_ptr<MeshSDF<T>>>
+  template <typename T, typename Meta = DCEL::DefaultMetaData>
+  inline static std::vector<std::shared_ptr<MeshSDF<T, Meta>>>
   readIntoMesh(const std::vector<std::string> a_files) noexcept;
 
   /*!

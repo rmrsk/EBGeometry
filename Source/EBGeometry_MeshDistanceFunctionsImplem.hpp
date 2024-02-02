@@ -38,30 +38,30 @@ DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_dcelMesh
   return bvh;
 }
 
-template <class T>
-MeshSDF<T>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
+template <class T, class Meta>
+MeshSDF<T, Meta>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
 {
   m_mesh = a_mesh;
 }
 
-template <class T>
+template <class T, class Meta>
 T
-MeshSDF<T>::signedDistance(const Vec3T<T>& a_point) const noexcept
+MeshSDF<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
   return m_mesh->signedDistance(a_point);
 }
 
-template <class T>
-const std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-MeshSDF<T>::getMesh() const noexcept
+template <class T, class Meta>
+const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+MeshSDF<T, Meta>::getMesh() const noexcept
 {
   return m_mesh;
 }
 
-template <class T>
+template <class T, class Meta>
 template <class BV>
 BV
-MeshSDF<T>::computeBoundingVolume() const noexcept
+MeshSDF<T, Meta>::computeBoundingVolume() const noexcept
 {
   return BV(m_mesh->getAllVertexCoordinates());
 };

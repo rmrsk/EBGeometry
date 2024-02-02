@@ -23,11 +23,11 @@
 #include "EBGeometry_Parser.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-template <typename T>
-inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
+template <typename T, typename Meta>
+inline std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
 Parser::readIntoDCEL(const std::string a_filename) noexcept
 {
-  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T>>();
+  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
 
   const auto ft = Parser::getFileType(a_filename);
 
@@ -57,37 +57,37 @@ Parser::readIntoDCEL(const std::string a_filename) noexcept
   return mesh;
 }
 
-template <typename T>
-inline std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>>
+template <typename T, typename Meta>
+inline std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>>
 Parser::readIntoDCEL(const std::vector<std::string> a_files) noexcept
 {
-  std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>> objects;
+  std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>> objects;
 
   for (const auto& file : a_files) {
-    objects.emplace_back(Parser::readIntoDCEL<T>(file));
+    objects.emplace_back(Parser::readIntoDCEL<T, Meta>(file));
   }
 
   return objects;
 }
 
-template <typename T>
-inline std::shared_ptr<MeshSDF<T>>
+template <typename T, typename Meta>
+inline std::shared_ptr<MeshSDF<T, Meta>>
 Parser::readIntoMesh(const std::string a_filename) noexcept
 {
-  const auto mesh = Parser::readIntoDCEL<T>(a_filename);
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename);
 
-  return std::make_shared<MeshSDF<T>>(mesh);
+  return std::make_shared<MeshSDF<T, Meta>>(mesh);
 }
 
-template <typename T>
-inline std::vector<std::shared_ptr<MeshSDF<T>>>
+template <typename T, typename Meta>
+inline std::vector<std::shared_ptr<MeshSDF<T, Meta>>>
 Parser::readIntoMesh(const std::vector<std::string> a_files) noexcept
 {
 
-  std::vector<std::shared_ptr<MeshSDF<T>>> implicitFunctions;
+  std::vector<std::shared_ptr<MeshSDF<T, Meta>>> implicitFunctions;
 
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoMesh<T>(file));
+    implicitFunctions.emplace_back(Parser::readIntoMesh<T, Meta>(file));
   }
 
   return implicitFunctions;
@@ -311,7 +311,7 @@ Parser::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
 
   a_mesh.sanityCheck();
 
-  a_mesh.reconcile(EBGeometry::DCEL::MeshT<T>::VertexNormalWeight::Angle);
+  a_mesh.reconcile(EBGeometry::DCEL::VertexNormalWeight::Angle);
 }
 
 template <typename T>

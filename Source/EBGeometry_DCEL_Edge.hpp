@@ -24,15 +24,6 @@
 
 namespace DCEL {
 
-  template <class T>
-  class VertexT;
-
-  template <class T>
-  class EdgeT;
-
-  template <class T>
-  class FaceT;
-
   /*!
     @brief Class which represents a half-edge in a double-edge connected list
     (DCEL).
@@ -51,7 +42,7 @@ namespace DCEL {
     @note The normal vector is outgoing, i.e. a point x is "outside" if the dot
     product between n and (x - x0) is positive.
   */
-  template <class T>
+  template <class T, class Meta>
   class EdgeT
   {
   public:
@@ -63,17 +54,17 @@ namespace DCEL {
     /*!
       @brief Alias for vertex type
     */
-    using Vertex = VertexT<T>;
+    using Vertex = VertexT<T, Meta>;
 
     /*!
       @brief Alias for edge type
     */
-    using Edge = EdgeT<T>;
+    using Edge = EdgeT<T, Meta>;
 
     /*!
       @brief Alias for face type
     */
-    using Face = FaceT<T>;
+    using Face = FaceT<T, Meta>;
 
     /*!
       @brief Alias for vertex pointer type
@@ -250,6 +241,20 @@ namespace DCEL {
     getFace() const noexcept;
 
     /*!
+      @brief Get meta-data
+      @return m_metaData
+    */
+    inline Meta&
+    getMetaData() noexcept;
+
+    /*!
+      @brief Get meta-data
+      @return m_metaData
+    */
+    inline const Meta&
+    getMetaData() const noexcept;    
+
+    /*!
       @brief Get the signed distance to this half edge
       @details This routine will check if the input point projects to the edge or
       one of the vertices. If it projectes to one of the vertices we compute the
@@ -295,6 +300,11 @@ namespace DCEL {
       @brief Enclosing polygon face
     */
     FacePtr m_face;
+
+    /*!
+      @brief Meta-data attached to this edge
+    */
+    Meta m_metaData;
 
     /*!
       @brief Returns the "projection" of a point to an edge.
