@@ -178,13 +178,15 @@ FastMeshSDF<T, Meta, BV, K>::getClosestFaces(const Vec3T<T>& a_point, const bool
 
 template <class T, class Meta, class BV, size_t K>
 std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T, Meta>, BV, K>>&
-FastMeshSDF<T, Meta, BV, K>::getBVH() noexcept {
+FastMeshSDF<T, Meta, BV, K>::getBVH() noexcept
+{
   return (m_bvh);
 }
 
 template <class T, class Meta, class BV, size_t K>
 const std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T, Meta>, BV, K>>&
-FastMeshSDF<T, Meta, BV, K>::getBVH() const noexcept {
+FastMeshSDF<T, Meta, BV, K>::getBVH() const noexcept
+{
   return (m_bvh);
 }
 
