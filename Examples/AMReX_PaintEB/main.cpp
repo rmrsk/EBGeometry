@@ -17,8 +17,8 @@ using namespace amrex;
 
 /*!
   @brief This is an AMReX-capable version of the EBGeometry BVH accelerator. It
-  is templated as T, Meta BV, K which indicate the EBGeometry precision, triangle meta-data, 
-  bounding volume, and tree degree.
+  is templated as T, BV, K which indicate the EBGeometry precision, bounding volume, 
+  tree degree, and meta-data type for the triangles (defaults to an integer)
 */
 template <class T, class BV, size_t K, class Meta = int>
 class AMReXSDF
@@ -30,16 +30,23 @@ public:
   using Face = EBGeometry::DCEL::FaceT<T, Meta>;
 
   /*!
+    @brief Shortcut for 3D vector type
+  */
+  using Vec3 = EBGeometry::Vec3T<T>;
+
+  /*!
     @brief Full constructor.
     @param[in] a_filename File name. Must be an STL file.
   */
   AMReXSDF(const std::string a_filename)
   {
-    m_mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
-    m_sdf  = std::make_shared<EBGeometry::FastMeshSDF<T, Meta, BV, K>>(m_mesh);
+
+    // Read in the mesh into a DCEL mesh and partition it into a bounding volume hierarchy
+    auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
+    m_sdf     = std::make_shared<EBGeometry::FastMeshSDF<T, Meta, BV, K>>(mesh);
 
     // Set the meta-data for all facets to their "index", i.e. position in the list of facets
-    auto& faces = m_mesh->getFaces();
+    auto& faces = mesh->getFaces();
     for (size_t i = 0; i < faces.size(); i++) {
       faces[i]->getMetaData() = i;
     }
@@ -51,8 +58,7 @@ public:
   */
   AMReXSDF(const AMReXSDF& a_other)
   {
-    this->m_mesh = a_other.m_mesh;
-    this->m_sdf  = a_other.m_sdf;
+    this->m_sdf = a_other.m_sdf;
   }
 
   /*!
@@ -75,25 +81,27 @@ public:
   }
 
   /*!
-    @brief Get the closest faces in the 
+    @brief Get the face(s) that are closest to the input point. This version takes advantage of the BVH when looking for those triangles. Because of that,
+    the routine can become quite complex but for N triangles it is also O(log N) complex instead of O(N).
   */
   inline std::vector<Face> getClosestFaces(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
     std::vector<Face> faces;
+
+    // This is the shortest distance between the input point and the
+    T shortestDistanceSoFar = std::numeric_limits<T>::infinity();
+
+    // Visiter pattern; go into the node if the distance to the bounding volume is shorter than the shortest distance we've found so far.
+    using NodeType = EBGeometry::BVH::NodeT<T, Face, BV, K>;
 
     return faces;
   }
 
 protected:
   /*!
-    @brief Full DCEL mesh containing all the triangles. 
-  */
-  std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>> m_mesh;
-
-  /*!
     @brief DCEL mesh represented as a BVH of its facets, exposed as an implicit function. 
   */
-  std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_sdf;
+  std::shared_ptr<EBGeometry::FastMeshSDF<T, Meta, BV, K>> m_sdf;
 };
 
 int
