@@ -17,10 +17,11 @@ using namespace EBGeometry::DCEL;
 
 constexpr size_t K = 4;
 using T            = double;
+using MetaData     = unsigned long long;
 using Vec3         = EBGeometry::Vec3T<T>;
 using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
-using SlowSDF      = EBGeometry::MeshSDF<T>;
-using FastSDF      = EBGeometry::FastCompactMeshSDF<T, BV, K>;
+using SlowSDF      = EBGeometry::MeshSDF<T, MetaData>;
+using FastSDF      = EBGeometry::FastCompactMeshSDF<T, MetaData, BV, K>;
 
 int
 main(int argc, char* argv[])
@@ -57,7 +58,7 @@ main(int argc, char* argv[])
 
   for (const auto& f : stlFiles) {
     // Read the DCEL mesh.
-    const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(f);
+    const auto mesh = EBGeometry::Parser::readIntoDCEL<T, MetaData>(f);
     mesh->flip();
 
     // Store the grids as basic DCEL grids and as linearized BVHs.

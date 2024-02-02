@@ -93,45 +93,45 @@ Parser::readIntoMesh(const std::vector<std::string> a_files) noexcept
   return implicitFunctions;
 }
 
-template <typename T, typename BV, size_t K>
-inline std::shared_ptr<FastMeshSDF<T, BV, K>>
+template <typename T, typename Meta, typename BV, size_t K>
+inline std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>
 Parser::readIntoFullBVH(const std::string a_filename) noexcept
 {
-  const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(a_filename);
+  const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
 
-  return std::make_shared<FastMeshSDF<T, BV, K>>(mesh);
+  return std::make_shared<FastMeshSDF<T, Meta, BV, K>>(mesh);
 }
 
-template <typename T, typename BV, size_t K>
-inline std::vector<std::shared_ptr<FastMeshSDF<T, BV, K>>>
+template <typename T, typename Meta, typename BV, size_t K>
+inline std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>>
 Parser::readIntoFullBVH(const std::vector<std::string> a_files) noexcept
 {
-  std::vector<std::shared_ptr<FastMeshSDF<T, BV, K>>> implicitFunctions;
+  std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>> implicitFunctions;
 
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoFullBVH<T, BV, K>(file));
+    implicitFunctions.emplace_back(Parser::readIntoFullBVH<T, Meta, BV, K>(file));
   }
 
   return implicitFunctions;
 }
 
-template <typename T, typename BV, size_t K>
-inline std::shared_ptr<FastCompactMeshSDF<T, BV, K>>
+template <typename T, typename Meta, typename BV, size_t K>
+inline std::shared_ptr<FastCompactMeshSDF<T, Meta, BV, K>>
 Parser::readIntoLinearBVH(const std::string a_filename) noexcept
 {
-  const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(a_filename);
+  const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
 
-  return std::make_shared<FastCompactMeshSDF<T, BV, K>>(mesh);
+  return std::make_shared<FastCompactMeshSDF<T, Meta, BV, K>>(mesh);
 }
 
-template <typename T, typename BV, size_t K>
-inline std::vector<std::shared_ptr<FastCompactMeshSDF<T, BV, K>>>
+template <typename T, typename Meta, typename BV, size_t K>
+inline std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, BV, K>>>
 Parser::readIntoLinearBVH(const std::vector<std::string> a_files) noexcept
 {
-  std::vector<std::shared_ptr<FastCompactMeshSDF<T, BV, K>>> implicitFunctions;
+  std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, BV, K>>> implicitFunctions;
 
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoLinearBVH<T, BV, K>(file));
+    implicitFunctions.emplace_back(Parser::readIntoLinearBVH<T, Meta, BV, K>(file));
   }
 
   return implicitFunctions;

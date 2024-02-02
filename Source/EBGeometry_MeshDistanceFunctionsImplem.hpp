@@ -16,11 +16,11 @@
 #include "EBGeometry_MeshDistanceFunctions.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-template <class T, class BV, size_t K>
-std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T>, BV, K>>
-DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_dcelMesh)
+template <class T, class Meta, class BV, size_t K>
+std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T, Meta>, BV, K>>
+DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh)
 {
-  using Prim          = EBGeometry::DCEL::FaceT<T>;
+  using Prim          = EBGeometry::DCEL::FaceT<T, Meta>;
   using PrimAndBVList = std::vector<std::pair<std::shared_ptr<const Prim>, BV>>;
 
   // Create a pair-wise list of DCEL faces and their bounding volumes.
@@ -66,15 +66,15 @@ MeshSDF<T, Meta>::computeBoundingVolume() const noexcept
   return BV(m_mesh->getAllVertexCoordinates());
 };
 
-template <class T, class BV, size_t K>
-FastMeshSDF<T, BV, K>::FastMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
+template <class T, class Meta, class BV, size_t K>
+FastMeshSDF<T, Meta, BV, K>::FastMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
 {
-  m_bvh = EBGeometry::DCEL::buildFullBVH<T, BV, K>(a_mesh);
+  m_bvh = EBGeometry::DCEL::buildFullBVH<T, Meta, BV, K>(a_mesh);
 }
 
-template <class T, class BV, size_t K>
+template <class T, class Meta, class BV, size_t K>
 T
-FastMeshSDF<T, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
+FastMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
   T minDist = std::numeric_limits<T>::infinity();
 
@@ -109,24 +109,24 @@ FastMeshSDF<T, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   return minDist;
 }
 
-template <class T, class BV, size_t K>
+template <class T, class Meta, class BV, size_t K>
 BV
-FastMeshSDF<T, BV, K>::computeBoundingVolume() const noexcept
+FastMeshSDF<T, Meta, BV, K>::computeBoundingVolume() const noexcept
 {
   return m_bvh->getBoundingVolume();
 };
 
-template <class T, class BV, size_t K>
-FastCompactMeshSDF<T, BV, K>::FastCompactMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
+template <class T, class Meta, class BV, size_t K>
+FastCompactMeshSDF<T, Meta, BV, K>::FastCompactMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
 {
-  const auto bvh = EBGeometry::DCEL::buildFullBVH<T, BV, K>(a_mesh);
+  const auto bvh = EBGeometry::DCEL::buildFullBVH<T, Meta, BV, K>(a_mesh);
 
   m_bvh = bvh->flattenTree();
 }
 
-template <class T, class BV, size_t K>
+template <class T, class Meta, class BV, size_t K>
 T
-FastCompactMeshSDF<T, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
+FastCompactMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
   T minDist = std::numeric_limits<T>::infinity();
 
@@ -160,9 +160,9 @@ FastCompactMeshSDF<T, BV, K>::signedDistance(const Vec3T<T>& a_point) const noex
   return minDist;
 }
 
-template <class T, class BV, size_t K>
+template <class T, class Meta, class BV, size_t K>
 BV
-FastCompactMeshSDF<T, BV, K>::computeBoundingVolume() const noexcept
+FastCompactMeshSDF<T, Meta, BV, K>::computeBoundingVolume() const noexcept
 {
   return m_bvh->getBoundingVolume();
 };

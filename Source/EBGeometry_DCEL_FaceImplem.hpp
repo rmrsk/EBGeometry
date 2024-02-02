@@ -250,6 +250,7 @@ namespace DCEL {
 
     for (EdgeIterator iter(*this); iter.ok(); ++iter) {
       EdgePtr& edge = iter();
+      
       ret.emplace_back(edge->getVertex()->getPosition());
     }
 

@@ -86,7 +86,7 @@ namespace DCEL {
     /*!
       @brief Alias for edge iterator
     */
-    using EdgeIterator = EdgeIteratorT<T>;
+    using EdgeIterator = EdgeIteratorT<T, Meta>;
 
     /*!
       @brief Default constructor. Sets the half-edge to zero and the

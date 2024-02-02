@@ -86,32 +86,44 @@ namespace Parser {
     @brief Read a file containing a single watertight object and return it as a DCEL mesh enclosed in a full BVH.
     @param[in] a_filename File name
   */
-  template <typename T, typename BV = EBGeometry::BoundingVolumes::AABBT<T>, size_t K = 4>
-  inline static std::shared_ptr<FastMeshSDF<T, BV, K>>
+  template <typename T,
+            typename Meta = DCEL::DefaultMetaData,
+            typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
+            size_t K      = 4>
+  inline static std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>
   readIntoFullBVH(const std::string a_filename) noexcept;
 
   /*!
     @brief Read multiple files containing single watertight objects and return them as DCEL meshes enclosed in BVHs.
     @param[in] a_files File names
   */
-  template <typename T, typename BV = EBGeometry::BoundingVolumes::AABBT<T>, size_t K = 4>
-  inline static std::vector<std::shared_ptr<FastMeshSDF<T, BV, K>>>
+  template <typename T,
+            typename Meta = DCEL::DefaultMetaData,
+            typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
+            size_t K      = 4>
+  inline static std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>>
   readIntoFullBVH(const std::vector<std::string> a_files) noexcept;
 
   /*!
     @brief Read a file containing a single watertight object and return it as a DCEL mesh enclosed in a linearized BVH
     @param[in] a_filename File name
   */
-  template <typename T, typename BV = EBGeometry::BoundingVolumes::AABBT<T>, size_t K = 4>
-  inline static std::shared_ptr<FastCompactMeshSDF<T, BV, K>>
+  template <typename T,
+            typename Meta = DCEL::DefaultMetaData,
+            typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
+            size_t K      = 4>
+  inline static std::shared_ptr<FastCompactMeshSDF<T, Meta, BV, K>>
   readIntoLinearBVH(const std::string a_filename) noexcept;
 
   /*!
     @brief Read multiple files containing single watertight objects and return them as DCEL meshes enclosed in linearized BVHs.
     @param[in] a_files File names
   */
-  template <typename T, typename BV = EBGeometry::BoundingVolumes::AABBT<T>, size_t K = 4>
-  inline static std::vector<std::shared_ptr<FastCompactMeshSDF<T, BV, K>>>
+  template <typename T,
+            typename Meta = DCEL::DefaultMetaData,
+            typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
+            size_t K      = 4>
+  inline static std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, BV, K>>>
   readIntoLinearBVH(const std::vector<std::string> a_files) noexcept;
 
   /*!

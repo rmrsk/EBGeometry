@@ -26,9 +26,9 @@ namespace DCEL {
     @param[in] a_dcelMesh Input DCEL mesh. 
     @return Returns a pointer to a full-tree BVH representation of the DCEL faces.
   */
-  template <class T, class BV, size_t K>
-  std::shared_ptr<EBGeometry::BVH::NodeT<T, FaceT<T>, BV, K>>
-  buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_dcelMesh);
+  template <class T, class Meta, class BV, size_t K>
+  std::shared_ptr<EBGeometry::BVH::NodeT<T, FaceT<T, Meta>, BV, K>>
+  buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh);
 } // namespace DCEL
 
 /*!
@@ -88,19 +88,19 @@ protected:
 /*!
   @brief Signed distance function for a DCEL mesh. This class uses the full BVH representation. 
 */
-template <class T, class BV, size_t K>
+template <class T, class Meta, class BV, size_t K>
 class FastMeshSDF : public SignedDistanceFunction<T>
 {
 public:
   /*!
     @brief Alias for DCEL face type
   */
-  using Face = typename EBGeometry::DCEL::FaceT<T>;
+  using Face = typename EBGeometry::DCEL::FaceT<T, Meta>;
 
   /*!
     @brief Alias for DCEL mesh type
   */
-  using Mesh = typename EBGeometry::DCEL::MeshT<T>;
+  using Mesh = typename EBGeometry::DCEL::MeshT<T, Meta>;
 
   /*!
     @brief Alias for BVH root node 
@@ -145,19 +145,19 @@ protected:
 /*!
   @brief Signed distance function for a DCEL mesh. This class uses the compact BVH representation. 
 */
-template <class T, class BV, size_t K>
+template <class T, class Meta, class BV, size_t K>
 class FastCompactMeshSDF : public SignedDistanceFunction<T>
 {
 public:
   /*!
     @brief Alias for DCEL face type
   */
-  using Face = typename EBGeometry::DCEL::FaceT<T>;
+  using Face = typename EBGeometry::DCEL::FaceT<T, Meta>;
 
   /*!
     @brief Alias for DCEL mesh type
   */
-  using Mesh = typename EBGeometry::DCEL::MeshT<T>;
+  using Mesh = typename EBGeometry::DCEL::MeshT<T, Meta>;
 
   /*!
     @brief Alias for which BVH root node 
