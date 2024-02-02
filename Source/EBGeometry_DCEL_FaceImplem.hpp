@@ -216,17 +216,19 @@ namespace DCEL {
     return (m_halfEdge);
   }
 
-  template <class T, class Meta>  
+  template <class T, class Meta>
   inline Meta&
-  FaceT<T, Meta>::getMetaData() noexcept {
+  FaceT<T, Meta>::getMetaData() noexcept
+  {
     return (m_metaData);
   }
 
-  template <class T, class Meta>  
+  template <class T, class Meta>
   inline const Meta&
-  FaceT<T, Meta>::getMetaData() const noexcept {
+  FaceT<T, Meta>::getMetaData() const noexcept
+  {
     return (m_metaData);
-  }    
+  }
 
   template <class T, class Meta>
   inline std::vector<std::shared_ptr<VertexT<T, Meta>>>
@@ -250,7 +252,7 @@ namespace DCEL {
 
     for (EdgeIterator iter(*this); iter.ok(); ++iter) {
       EdgePtr& edge = iter();
-      
+
       ret.emplace_back(edge->getVertex()->getPosition());
     }
 

@@ -30,8 +30,8 @@ namespace DCEL {
 
   template <class T, class Meta>
   inline MeshT<T, Meta>::MeshT(std::vector<FacePtr>&   a_faces,
-                         std::vector<EdgePtr>&   a_edges,
-                         std::vector<VertexPtr>& a_vertices)
+                               std::vector<EdgePtr>&   a_edges,
+                               std::vector<VertexPtr>& a_vertices)
     : MeshT()
   {
     this->define(a_faces, a_edges, a_vertices);
@@ -44,8 +44,8 @@ namespace DCEL {
   template <class T, class Meta>
   inline void
   MeshT<T, Meta>::define(std::vector<FacePtr>&   a_faces,
-                   std::vector<EdgePtr>&   a_edges,
-                   std::vector<VertexPtr>& a_vertices) noexcept
+                         std::vector<EdgePtr>&   a_edges,
+                         std::vector<VertexPtr>& a_vertices) noexcept
   {
     m_faces    = a_faces;
     m_edges    = a_edges;

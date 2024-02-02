@@ -33,12 +33,12 @@ Parser::readIntoDCEL(const std::string a_filename) noexcept
 
   switch (ft) {
   case Parser::FileType::STL: {
-    mesh = Parser::STL<T>::readSingle(a_filename);
+    mesh = Parser::STL<T, Meta>::readSingle(a_filename);
 
     break;
   }
   case Parser::FileType::PLY: {
-    mesh = Parser::PLY<T>::read(a_filename);
+    //    mesh = Parser::PLY<T>::read(a_filename);
 
     break;
   }
@@ -244,17 +244,17 @@ Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std:
   }
 }
 
-template <typename T>
+template <typename T, typename Meta>
 inline void
-Parser::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
+Parser::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
                    const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
                    const std::vector<std::vector<size_t>>&  a_facets) noexcept
 {
 
   using Vec3   = EBGeometry::Vec3T<T>;
-  using Vertex = EBGeometry::DCEL::VertexT<T>;
-  using Edge   = EBGeometry::DCEL::EdgeT<T>;
-  using Face   = EBGeometry::DCEL::FaceT<T>;
+  using Vertex = EBGeometry::DCEL::VertexT<T, Meta>;
+  using Edge   = EBGeometry::DCEL::EdgeT<T, Meta>;
+  using Face   = EBGeometry::DCEL::FaceT<T, Meta>;
 
   std::vector<std::shared_ptr<Vertex>>& vertices = a_mesh.getVertices();
   std::vector<std::shared_ptr<Edge>>&   edges    = a_mesh.getEdges();
@@ -314,9 +314,9 @@ Parser::soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
   a_mesh.reconcile(EBGeometry::DCEL::VertexNormalWeight::Angle);
 }
 
-template <typename T>
+template <typename T, typename Meta>
 inline void
-Parser::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T>>>& a_edges) noexcept
+Parser::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T, Meta>>>& a_edges) noexcept
 {
   for (auto& curEdge : a_edges) {
     const auto& nextEdge = curEdge->getNextEdge();
@@ -325,7 +325,7 @@ Parser::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::Edg
     const auto& vertexEnd   = nextEdge->getVertex();
 
     for (const auto& p : vertexStart->getFaces()) {
-      for (EBGeometry::DCEL::EdgeIteratorT<T> edgeIt(*p); edgeIt.ok(); ++edgeIt) {
+      for (EBGeometry::DCEL::EdgeIteratorT<T, Meta> edgeIt(*p); edgeIt.ok(); ++edgeIt) {
         const auto& polyCurEdge  = edgeIt();
         const auto& polyNextEdge = polyCurEdge->getNextEdge();
 
@@ -341,9 +341,9 @@ Parser::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::Edg
   }
 }
 
-template <typename T>
+template <typename T, typename Meta>
 inline Parser::Encoding
-Parser::STL<T>::getEncoding(const std::string a_filename) noexcept
+Parser::STL<T, Meta>::getEncoding(const std::string a_filename) noexcept
 {
   Parser::Encoding ft = Parser::Encoding::Unknown;
 
@@ -372,35 +372,35 @@ Parser::STL<T>::getEncoding(const std::string a_filename) noexcept
   return ft;
 }
 
-template <typename T>
-inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-Parser::STL<T>::readSingle(const std::string a_filename) noexcept
+template <typename T, typename Meta>
+inline std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+Parser::STL<T, Meta>::readSingle(const std::string a_filename) noexcept
 {
-  return ((Parser::STL<T>::readMulti(a_filename)).front()).first;
+  return ((Parser::STL<T, Meta>::readMulti(a_filename)).front()).first;
 }
 
-template <typename T>
-inline std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>>
-Parser::STL<T>::readMulti(const std::string a_filename) noexcept
+template <typename T, typename Meta>
+inline std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>, std::string>>
+Parser::STL<T, Meta>::readMulti(const std::string a_filename) noexcept
 {
 
-  const Parser::Encoding ft = Parser::STL<T>::getEncoding(a_filename);
+  const Parser::Encoding ft = Parser::STL<T, Meta>::getEncoding(a_filename);
 
-  std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>> objectsDCEL;
+  std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>, std::string>> objectsDCEL;
 
   switch (ft) {
   case Parser::Encoding::ASCII: {
-    objectsDCEL = Parser::STL<T>::readASCII(a_filename);
+    objectsDCEL = Parser::STL<T, Meta>::readASCII(a_filename);
 
     break;
   }
   case Parser::Encoding::Binary: {
-    objectsDCEL = Parser::STL<T>::readBinary(a_filename);
+    objectsDCEL = Parser::STL<T, Meta>::readBinary(a_filename);
 
     break;
   }
   default: {
-    std::cerr << "Parser::STL<T>::readMulti - unknown STL file format\n";
+    std::cerr << "Parser::STL<T, Meta>::readMulti - unknown STL file format\n";
 
     break;
   }
@@ -409,9 +409,9 @@ Parser::STL<T>::readMulti(const std::string a_filename) noexcept
   return objectsDCEL;
 }
 
-template <typename T>
-inline std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>>
-Parser::STL<T>::readASCII(const std::string a_filename) noexcept
+template <typename T, typename Meta>
+inline std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>, std::string>>
+Parser::STL<T, Meta>::readASCII(const std::string a_filename) noexcept
 {
   std::vector<std::pair<std::shared_ptr<Mesh>, std::string>> objectsDCEL;
 
@@ -460,7 +460,7 @@ Parser::STL<T>::readASCII(const std::string a_filename) noexcept
     std::vector<std::vector<size_t>> facets;
     std::string                      objectName;
 
-    Parser::STL<T>::readSTLSoupASCII(vertices, facets, objectName, fileContents, firstLine, lastLine);
+    Parser::STL<T, Meta>::readSTLSoupASCII(vertices, facets, objectName, fileContents, firstLine, lastLine);
 
     if (Parser::containsDegeneratePolygons(vertices, facets)) {
       std::cerr << "Parser::STL::readASCII - input STL has degenerate faces\n";
@@ -478,14 +478,14 @@ Parser::STL<T>::readASCII(const std::string a_filename) noexcept
   return objectsDCEL;
 }
 
-template <typename T>
+template <typename T, typename Meta>
 inline void
-Parser::STL<T>::readSTLSoupASCII(std::vector<Vec3>&                a_vertices,
-                                 std::vector<std::vector<size_t>>& a_facets,
-                                 std::string&                      a_objectName,
-                                 const std::vector<std::string>&   a_fileContents,
-                                 const size_t                      a_firstLine,
-                                 const size_t                      a_lastLine) noexcept
+Parser::STL<T, Meta>::readSTLSoupASCII(std::vector<Vec3>&                a_vertices,
+                                       std::vector<std::vector<size_t>>& a_facets,
+                                       std::string&                      a_objectName,
+                                       const std::vector<std::string>&   a_fileContents,
+                                       const size_t                      a_firstLine,
+                                       const size_t                      a_lastLine) noexcept
 {
   // First line just holds the object name.
   std::stringstream ss(a_fileContents[a_firstLine]);
@@ -529,9 +529,9 @@ Parser::STL<T>::readSTLSoupASCII(std::vector<Vec3>&                a_vertices,
   }
 }
 
-template <typename T>
-inline std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T>>, std::string>>
-Parser::STL<T>::readBinary(const std::string a_filename) noexcept
+template <typename T, typename Meta>
+inline std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>, std::string>>
+Parser::STL<T, Meta>::readBinary(const std::string a_filename) noexcept
 {
   std::vector<std::pair<std::shared_ptr<Mesh>, std::string>> objectsDCEL;
 

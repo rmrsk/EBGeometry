@@ -178,14 +178,14 @@ namespace DCEL {
           }
           else {
             std::cerr << "In file 'CD_DCELVertexImplem.H' function "
-                         "vertexT<T>::computeVertexNormalAngleWeighted() - logic bust.\n";
+                         "vertexT<T, Meta>::computeVertexNormalAngleWeighted() - logic bust.\n";
           }
         }
       }
 
       if (inoutVertices.size() != 2) {
         std::cerr << "In file 'CD_DCELVertexImplem.H' function "
-                     "vertexT<T>::computeVertexNormalAngleWeighted() - logic bust 2.\n";
+                     "vertexT<T, Meta>::computeVertexNormalAngleWeighted() - logic bust 2.\n";
       }
 
       const Vec3& x0 = originVertex->getPosition();
@@ -194,7 +194,7 @@ namespace DCEL {
 
       if (x0 == x1 || x0 == x2 || x1 == x2) {
         std::cerr << "In file 'CD_DCELVertexImplem.H' function "
-                     "vertexT<T>::computeVertexNormalAngleWeighted() - logic bust 3.\n";
+                     "vertexT<T, Meta>::computeVertexNormalAngleWeighted() - logic bust 3.\n";
       }
 
       Vec3 v1 = x1 - x0;
@@ -249,28 +249,28 @@ namespace DCEL {
   }
 
   template <class T, class Meta>
-  inline std::shared_ptr<EdgeT<T>>&
+  inline std::shared_ptr<EdgeT<T, Meta>>&
   VertexT<T, Meta>::getOutgoingEdge() noexcept
   {
     return (m_outgoingEdge);
   }
 
   template <class T, class Meta>
-  inline const std::shared_ptr<EdgeT<T>>&
+  inline const std::shared_ptr<EdgeT<T, Meta>>&
   VertexT<T, Meta>::getOutgoingEdge() const noexcept
   {
     return (m_outgoingEdge);
   }
 
   template <class T, class Meta>
-  inline std::vector<std::shared_ptr<FaceT<T>>>&
+  inline std::vector<std::shared_ptr<FaceT<T, Meta>>>&
   VertexT<T, Meta>::getFaces() noexcept
   {
     return (m_faces);
   }
 
   template <class T, class Meta>
-  inline const std::vector<std::shared_ptr<FaceT<T>>>&
+  inline const std::vector<std::shared_ptr<FaceT<T, Meta>>>&
   VertexT<T, Meta>::getFaces() const noexcept
   {
     return (m_faces);

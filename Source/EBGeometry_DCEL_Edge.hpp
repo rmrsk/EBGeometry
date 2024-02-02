@@ -252,7 +252,7 @@ namespace DCEL {
       @return m_metaData
     */
     inline const Meta&
-    getMetaData() const noexcept;    
+    getMetaData() const noexcept;
 
     /*!
       @brief Get the signed distance to this half edge

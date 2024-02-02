@@ -156,10 +156,11 @@ namespace Parser {
     @brief Turn raw vertices into DCEL vertices. Does not include vertex normal vectors. 
     @param[out] a_verticesDCEL DCEL vertices
     @param[in]  a_verticesRaw  Raw vertices
+    @param[in]  a_facets       Facets
   */
-  template <typename T>
+  template <typename T, typename Meta>
   inline static void
-  soupToDCEL(EBGeometry::DCEL::MeshT<T>&              a_mesh,
+  soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
              const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
              const std::vector<std::vector<size_t>>&  a_facets) noexcept;
 
@@ -168,15 +169,15 @@ namespace Parser {
     half-edge
     @param[in,out] a_edges Half edges.
   */
-  template <typename T>
+  template <typename T, typename Meta>
   inline static void
-  reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T>>>& a_edges) noexcept;
+  reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T, Meta>>>& a_edges) noexcept;
 
   /*!
     @brief Class for reading STL files.
     @note T is the precision used when storing the mesh. 
   */
-  template <typename T>
+  template <typename T, typename Meta>
   class STL
   {
   public:
@@ -188,27 +189,27 @@ namespace Parser {
     /*!
       @brief Alias for vertex type
     */
-    using Vertex = EBGeometry::DCEL::VertexT<T>;
+    using Vertex = EBGeometry::DCEL::VertexT<T, Meta>;
 
     /*!
       @brief Alias for edge type
     */
-    using Edge = EBGeometry::DCEL::EdgeT<T>;
+    using Edge = EBGeometry::DCEL::EdgeT<T, Meta>;
 
     /*!
       @brief Alias for face type
     */
-    using Face = EBGeometry::DCEL::FaceT<T>;
+    using Face = EBGeometry::DCEL::FaceT<T, Meta>;
 
     /*!
       @brief Alias for mesh type
     */
-    using Mesh = EBGeometry::DCEL::MeshT<T>;
+    using Mesh = EBGeometry::DCEL::MeshT<T, Meta>;
 
     /*!
       @brief Alias for edge iterator type
     */
-    using EdgeIterator = EBGeometry::DCEL::EdgeIteratorT<T>;
+    using EdgeIterator = EBGeometry::DCEL::EdgeIteratorT<T, Meta>;
 
     /*!
       @brief Read a single STL object from the input file. The file can be binary or ASCII. 

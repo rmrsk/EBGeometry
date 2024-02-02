@@ -205,17 +205,19 @@ namespace DCEL {
     return (m_face);
   }
 
-  template <class T, class Meta>  
+  template <class T, class Meta>
   inline Meta&
-  EdgeT<T, Meta>::getMetaData() noexcept {
+  EdgeT<T, Meta>::getMetaData() noexcept
+  {
     return (m_metaData);
   }
 
-  template <class T, class Meta>  
+  template <class T, class Meta>
   inline const Meta&
-  EdgeT<T, Meta>::getMetaData() const noexcept {
+  EdgeT<T, Meta>::getMetaData() const noexcept
+  {
     return (m_metaData);
-  }  
+  }
 
   template <class T, class Meta>
   inline T

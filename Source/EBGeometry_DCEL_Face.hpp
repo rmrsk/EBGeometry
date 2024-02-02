@@ -215,7 +215,7 @@ namespace DCEL {
       @return m_metaData
     */
     inline const Meta&
-    getMetaData() const noexcept;        
+    getMetaData() const noexcept;
 
     /*!
       @brief Compute the area of this polygon

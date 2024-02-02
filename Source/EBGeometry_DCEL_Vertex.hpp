@@ -52,12 +52,12 @@ namespace DCEL {
     /*!
       @brief Alias for edge type
     */
-    using Edge = EdgeT<T>;
+    using Edge = EdgeT<T, Meta>;
 
     /*!
       @brief Alias for face type
     */
-    using Face = FaceT<T>;
+    using Face = FaceT<T, Meta>;
 
     /*!
       @brief Alias for vertex pointer type
@@ -77,7 +77,7 @@ namespace DCEL {
     /*!
       @brief Alias for edge iterator
     */
-    using EdgeIterator = EdgeIteratorT<T>;
+    using EdgeIterator = EdgeIteratorT<T, Meta>;
 
     /*!
       @brief Default constructor.
