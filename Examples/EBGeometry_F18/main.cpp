@@ -17,7 +17,7 @@ using namespace EBGeometry::DCEL;
 
 constexpr size_t K = 4;
 using T            = double;
-using MetaData     = unsigned long long;
+using MetaData     = std::map<int, std::vector<unsigned long long>>; // Attach some ridiculous meta-data
 using Vec3         = EBGeometry::Vec3T<T>;
 using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
 using SlowSDF      = EBGeometry::MeshSDF<T, MetaData>;
