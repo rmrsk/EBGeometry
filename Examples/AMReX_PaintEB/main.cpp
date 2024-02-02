@@ -25,6 +25,11 @@ class AMReXSDF
 {
 public:
   /*!
+    @brief Shortcut for DCEL face type
+  */
+  using Face = EBGeometry::DCEL::FaceT<T, Meta>;
+
+  /*!
     @brief Full constructor.
     @param[in] a_filename File name. Must be an STL file.
   */
@@ -32,6 +37,12 @@ public:
   {
     m_mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
     m_sdf  = std::make_shared<EBGeometry::FastMeshSDF<T, Meta, BV, K>>(m_mesh);
+
+    // Set the meta-data for all facets to their "index", i.e. position in the list of facets
+    auto& faces = m_mesh->getFaces();
+    for (size_t i = 0; i < faces.size(); i++) {
+      faces[i]->getMetaData() = i;
+    }
   }
 
   /*!
@@ -61,6 +72,16 @@ public:
   operator()(const RealArray& p) const noexcept
   {
     return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
+  }
+
+  /*!
+    @brief Get the closest faces in the 
+  */
+  inline std::vector<Face> getClosestFaces(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+  {
+    std::vector<Face> faces;
+
+    return faces;
   }
 
 protected:
