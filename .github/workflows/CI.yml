@@ -1,3 +1,4 @@
+
 name: Continuous integration
 
 on:
@@ -21,7 +22,7 @@ jobs:
         directory: [Source, Examples]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run clang-format
         uses: jidicula/clang-format-action@v4.10.1
         with:
@@ -39,7 +40,7 @@ jobs:
         directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_F18, Examples/EBGeometry_OctreeBoundingVolume, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -71,7 +72,7 @@ jobs:
         directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]    
 
     steps:
-      - uses: actions/checkout@v3      
+      - uses: actions/checkout@v4      
       - name: Install Intel oneAPI
         working-directory: /tmp        
         run: |
@@ -100,7 +101,7 @@ jobs:
     needs: Formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3      
+      - uses: actions/checkout@v4      
       - name: Install dependencies
         run: |
           sudo apt-get update
