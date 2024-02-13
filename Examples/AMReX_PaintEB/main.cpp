@@ -108,48 +108,46 @@ main(int argc, char* argv[])
   pp.query("num_coarsen_opt", num_coarsen_opt);
 
   Geometry geom;
-  {
-    RealBox rb;
+  RealBox  rb;
 
-    if (which_geom == 0) { // Airfoil case
-      rb       = RealBox({-100, -100, -75}, {400, 100, 125});
-      filename = "../Resources/airfoil.stl";
-    }
-    else if (which_geom == 1) { // Sphere case
-      rb       = RealBox({-400, -400, -400}, {400, 400, 400});
-      filename = "../Resources/sphere.stl";
-    }
-    else if (which_geom == 2) { // Dodecahedron
-      rb       = RealBox({-2., -2., -2.}, {2., 2., 2.});
-      filename = "../Resources/dodecahedron.stl";
-    }
-    else if (which_geom == 3) { // Horse
-      rb       = RealBox({-0.12, -0.12, -0.12}, {0.12, 0.12, 0.12});
-      filename = "../Resources/horse.stl";
-    }
-    else if (which_geom == 4) { // Car
-      //	    rb = RealBox({-20,-20,-20}, {20,20,20}); // Doesn't work.
-      rb       = RealBox({-10, -5, -5}, {10, 5, 5}); // Works.
-      filename = "../Resources/porsche.stl";
-    }
-    else if (which_geom == 5) { // Orion
-      rb       = RealBox({-10, -5, -10}, {10, 10, 10});
-      filename = "../Resources/orion.stl";
-    }
-    else if (which_geom == 6) { // Armadillo
-      rb       = RealBox({-100, -75, -100}, {100, 125, 100});
-      filename = "../Resources/armadillo.stl";
-    }
-    else if (which_geom == 7) { // Adirondacks
-      rb       = RealBox({0, 0, 0}, {200, 200, 50});
-      filename = "../Resources/adirondack.stl";
-    }
-
-    Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};
-    Geometry::Setup(&rb, 0, is_periodic.data());
-    Box domain(IntVect(0), IntVect(n_cell - 1));
-    geom.define(domain);
+  if (which_geom == 0) { // Airfoil case
+    rb       = RealBox({-100, -100, -75}, {400, 100, 125});
+    filename = "../Resources/airfoil.stl";
   }
+  else if (which_geom == 1) { // Sphere case
+    rb       = RealBox({-400, -400, -400}, {400, 400, 400});
+    filename = "../Resources/sphere.stl";
+  }
+  else if (which_geom == 2) { // Dodecahedron
+    rb       = RealBox({-2., -2., -2.}, {2., 2., 2.});
+    filename = "../Resources/dodecahedron.stl";
+  }
+  else if (which_geom == 3) { // Horse
+    rb       = RealBox({-0.12, -0.12, -0.12}, {0.12, 0.12, 0.12});
+    filename = "../Resources/horse.stl";
+  }
+  else if (which_geom == 4) { // Car
+    //	    rb = RealBox({-20,-20,-20}, {20,20,20}); // Doesn't work.
+    rb       = RealBox({-10, -5, -5}, {10, 5, 5}); // Works.
+    filename = "../Resources/porsche.stl";
+  }
+  else if (which_geom == 5) { // Orion
+    rb       = RealBox({-10, -5, -10}, {10, 10, 10});
+    filename = "../Resources/orion.stl";
+  }
+  else if (which_geom == 6) { // Armadillo
+    rb       = RealBox({-100, -75, -100}, {100, 125, 100});
+    filename = "../Resources/armadillo.stl";
+  }
+  else if (which_geom == 7) { // Adirondacks
+    rb       = RealBox({0, 0, 0}, {200, 200, 50});
+    filename = "../Resources/adirondack.stl";
+  }
+
+  Array<int, AMREX_SPACEDIM> is_periodic{false, false, false};
+  Geometry::Setup(&rb, 0, is_periodic.data());
+  Box domain(IntVect(0), IntVect(n_cell - 1));
+  geom.define(domain);
 
   // Create our signed distance function. K is the tree degree while T is the
   // EBGeometry precision.
@@ -172,6 +170,11 @@ main(int argc, char* argv[])
   boxArray.maxSize(max_grid_size);
   DistributionMapping dm{boxArray};
 
+  RealVect dx;
+  for (int dir = 0; dir < SpaceDim; dir++) {
+    dx[dir] = rb.length(dir) / (n_cell - 1);
+  }
+
   std::unique_ptr<EBFArrayBoxFactory> factory = amrex::makeEBFabFactory(geom, boxArray, dm, {2, 2, 2}, EBSupport::full);
 
   mf.define(boxArray, dm, 1, 0, MFInfo(), *factory);
@@ -188,9 +191,9 @@ main(int argc, char* argv[])
 
     if (flags == FabType::singlevalued) {
       amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-        amrex::Real x = (i + 0.5);
-        amrex::Real y = (j + 0.5);
-        amrex::Real z = (k + 0.5);
+        amrex::Real x = rb.lo()[0] + (i + 0.5) * dx[0];
+        amrex::Real y = rb.lo()[1] + (j + 0.5) * dx[1];
+        amrex::Real z = rb.lo()[2] + (k + 0.5) * dx[2];
 
         const auto& candidateFaces = sdf.getClosestFaces(x, y, z);
 

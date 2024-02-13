@@ -169,7 +169,7 @@ FastMeshSDF<T, Meta, BV, K>::getClosestFaces(const Vec3T<T>& a_point, const bool
   // Sort if the user asks for it
   if (a_sorted) {
     std::sort(candidateFaces.begin(), candidateFaces.end(), [](const FaceAndDist& a, const FaceAndDist& b) {
-      return a.second > b.second;
+      return a.second < b.second;
     });
   }
 
@@ -300,7 +300,7 @@ FastCompactMeshSDF<T, Meta, BV, K>::getClosestFaces(const Vec3T<T>& a_point, con
   // Sort if the user asks for it
   if (a_sorted) {
     std::sort(candidateFaces.begin(), candidateFaces.end(), [](const FaceAndDist& a, const FaceAndDist& b) {
-      return a.second > b.second;
+      return a.second < b.second;
     });
   }
 
