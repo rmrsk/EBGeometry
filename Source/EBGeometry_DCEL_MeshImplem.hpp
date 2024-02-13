@@ -22,59 +22,59 @@
 
 namespace DCEL {
 
-  template <class T>
-  inline MeshT<T>::MeshT()
+  template <class T, class Meta>
+  inline MeshT<T, Meta>::MeshT()
   {
     m_algorithm = SearchAlgorithm::Direct2;
   }
 
-  template <class T>
-  inline MeshT<T>::MeshT(std::vector<FacePtr>&   a_faces,
-                         std::vector<EdgePtr>&   a_edges,
-                         std::vector<VertexPtr>& a_vertices)
+  template <class T, class Meta>
+  inline MeshT<T, Meta>::MeshT(std::vector<FacePtr>&   a_faces,
+                               std::vector<EdgePtr>&   a_edges,
+                               std::vector<VertexPtr>& a_vertices)
     : MeshT()
   {
     this->define(a_faces, a_edges, a_vertices);
   }
 
-  template <class T>
-  inline MeshT<T>::~MeshT()
+  template <class T, class Meta>
+  inline MeshT<T, Meta>::~MeshT()
   {}
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  MeshT<T>::define(std::vector<FacePtr>&   a_faces,
-                   std::vector<EdgePtr>&   a_edges,
-                   std::vector<VertexPtr>& a_vertices) noexcept
+  MeshT<T, Meta>::define(std::vector<FacePtr>&   a_faces,
+                         std::vector<EdgePtr>&   a_edges,
+                         std::vector<VertexPtr>& a_vertices) noexcept
   {
     m_faces    = a_faces;
     m_edges    = a_edges;
     m_vertices = a_vertices;
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  MeshT<T>::incrementWarning(std::map<std::string, size_t>& a_warnings, const std::string& a_warn) const noexcept
+  MeshT<T, Meta>::incrementWarning(std::map<std::string, size_t>& a_warnings, const std::string& a_warn) const noexcept
   {
     a_warnings.at(a_warn) += 1;
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  MeshT<T>::printWarnings(const std::map<std::string, size_t>& a_warnings) const noexcept
+  MeshT<T, Meta>::printWarnings(const std::map<std::string, size_t>& a_warnings) const noexcept
   {
     for (const auto& warn : a_warnings) {
       if (warn.second > 0) {
         std::cerr << "In file 'CD_DCELMeshImplem.H' function "
-                     "MeshT<T>::sanityCheck() - warnings about error '"
+                     "MeshT<T, Meta>::sanityCheck() - warnings about error '"
                   << warn.first << "' = " << warn.second << "\n";
       }
     }
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  MeshT<T>::sanityCheck() const noexcept
+  MeshT<T, Meta>::sanityCheck() const noexcept
   {
 
     const std::string f_null       = "nullptr face";
@@ -169,77 +169,77 @@ namespace DCEL {
     this->printWarnings(warnings);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  MeshT<T>::setSearchAlgorithm(const SearchAlgorithm a_algorithm) noexcept
+  MeshT<T, Meta>::setSearchAlgorithm(const SearchAlgorithm a_algorithm) noexcept
   {
     m_algorithm = a_algorithm;
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  MeshT<T>::setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm a_algorithm) noexcept
+  MeshT<T, Meta>::setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm a_algorithm) noexcept
   {
     for (auto& f : m_faces) {
       f->setInsideOutsideAlgorithm(a_algorithm);
     }
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  MeshT<T>::reconcile(typename DCEL::MeshT<T>::VertexNormalWeight a_weight) noexcept
+  MeshT<T, Meta>::reconcile(const DCEL::VertexNormalWeight a_weight) noexcept
   {
     this->reconcileFaces();
     this->reconcileEdges();
     this->reconcileVertices(a_weight);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  MeshT<T>::flip() noexcept
+  MeshT<T, Meta>::flip() noexcept
   {
     this->flipFaces();
     this->flipEdges();
     this->flipVertices();
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  MeshT<T>::reconcileFaces() noexcept
+  MeshT<T, Meta>::reconcileFaces() noexcept
   {
     for (auto& f : m_faces) {
       f->reconcile();
     }
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  MeshT<T>::reconcileEdges() noexcept
+  MeshT<T, Meta>::reconcileEdges() noexcept
   {
     for (auto& e : m_edges) {
       e->reconcile();
     }
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  MeshT<T>::reconcileVertices(typename DCEL::MeshT<T>::VertexNormalWeight a_weight) noexcept
+  MeshT<T, Meta>::reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexcept
   {
     for (auto& v : m_vertices) {
       switch (a_weight) {
-      case VertexNormalWeight::None: {
+      case DCEL::VertexNormalWeight::None: {
         v->computeVertexNormalAverage();
 
         break;
       }
-      case VertexNormalWeight::Angle: {
+      case DCEL::VertexNormalWeight::Angle: {
         v->computeVertexNormalAngleWeighted();
 
         break;
       }
       default: {
         std::cerr << "In file 'CD_DCELMeshImplem.H' function "
-                     "DCEL::MeshT<T>::reconcileVertices(VertexNormalWeighting) - "
+                     "DCEL::MeshT<T, Meta>::reconcileVertices(VertexNormalWeighting) - "
                      "unsupported algorithm requested\n";
 
         break;
@@ -248,78 +248,78 @@ namespace DCEL {
     }
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  MeshT<T>::flipFaces() noexcept
+  MeshT<T, Meta>::flipFaces() noexcept
   {
     for (auto& f : m_faces) {
       f->flip();
     }
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  MeshT<T>::flipEdges() noexcept
+  MeshT<T, Meta>::flipEdges() noexcept
   {
     for (auto& e : m_edges) {
       e->flip();
     }
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  MeshT<T>::flipVertices() noexcept
+  MeshT<T, Meta>::flipVertices() noexcept
   {
     for (auto& v : m_vertices) {
       v->flip();
     }
   }
 
-  template <class T>
-  inline std::vector<std::shared_ptr<VertexT<T>>>&
-  MeshT<T>::getVertices() noexcept
+  template <class T, class Meta>
+  inline std::vector<std::shared_ptr<VertexT<T, Meta>>>&
+  MeshT<T, Meta>::getVertices() noexcept
   {
     return (m_vertices);
   }
 
-  template <class T>
-  inline const std::vector<std::shared_ptr<VertexT<T>>>&
-  MeshT<T>::getVertices() const noexcept
+  template <class T, class Meta>
+  inline const std::vector<std::shared_ptr<VertexT<T, Meta>>>&
+  MeshT<T, Meta>::getVertices() const noexcept
   {
     return (m_vertices);
   }
 
-  template <class T>
-  inline std::vector<std::shared_ptr<EdgeT<T>>>&
-  MeshT<T>::getEdges() noexcept
+  template <class T, class Meta>
+  inline std::vector<std::shared_ptr<EdgeT<T, Meta>>>&
+  MeshT<T, Meta>::getEdges() noexcept
   {
     return (m_edges);
   }
 
-  template <class T>
-  inline const std::vector<std::shared_ptr<EdgeT<T>>>&
-  MeshT<T>::getEdges() const noexcept
+  template <class T, class Meta>
+  inline const std::vector<std::shared_ptr<EdgeT<T, Meta>>>&
+  MeshT<T, Meta>::getEdges() const noexcept
   {
     return (m_edges);
   }
 
-  template <class T>
-  inline std::vector<std::shared_ptr<FaceT<T>>>&
-  MeshT<T>::getFaces() noexcept
+  template <class T, class Meta>
+  inline std::vector<std::shared_ptr<FaceT<T, Meta>>>&
+  MeshT<T, Meta>::getFaces() noexcept
   {
     return (m_faces);
   }
 
-  template <class T>
-  inline const std::vector<std::shared_ptr<FaceT<T>>>&
-  MeshT<T>::getFaces() const noexcept
+  template <class T, class Meta>
+  inline const std::vector<std::shared_ptr<FaceT<T, Meta>>>&
+  MeshT<T, Meta>::getFaces() const noexcept
   {
     return (m_faces);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline std::vector<Vec3T<T>>
-  MeshT<T>::getAllVertexCoordinates() const noexcept
+  MeshT<T, Meta>::getAllVertexCoordinates() const noexcept
   {
     std::vector<Vec3> vertexCoordinates;
     for (const auto& v : m_vertices) {
@@ -329,16 +329,16 @@ namespace DCEL {
     return vertexCoordinates;
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline T
-  MeshT<T>::signedDistance(const Vec3& a_point) const noexcept
+  MeshT<T, Meta>::signedDistance(const Vec3& a_point) const noexcept
   {
     return this->signedDistance(a_point, m_algorithm);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline T
-  MeshT<T>::unsignedDistance2(const Vec3& a_point) const noexcept
+  MeshT<T, Meta>::unsignedDistance2(const Vec3& a_point) const noexcept
   {
     T minDist2 = std::numeric_limits<T>::max();
 
@@ -351,9 +351,9 @@ namespace DCEL {
     return minDist2;
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline T
-  MeshT<T>::signedDistance(const Vec3& a_point, SearchAlgorithm a_algorithm) const noexcept
+  MeshT<T, Meta>::signedDistance(const Vec3& a_point, SearchAlgorithm a_algorithm) const noexcept
   {
     T minDist = std::numeric_limits<T>::max();
 
@@ -369,7 +369,7 @@ namespace DCEL {
       break;
     }
     default: {
-      std::cerr << "Error in file 'CD_DCELMeshImplem.H' MeshT<T>::signedDistance "
+      std::cerr << "Error in file 'CD_DCELMeshImplem.H' MeshT<T, Meta>::signedDistance "
                    "unsupported algorithm requested\n";
 
       break;
@@ -379,9 +379,9 @@ namespace DCEL {
     return minDist;
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline T
-  MeshT<T>::DirectSignedDistance(const Vec3& a_point) const noexcept
+  MeshT<T, Meta>::DirectSignedDistance(const Vec3& a_point) const noexcept
   {
     T minDist  = m_faces.front()->signedDistance(a_point);
     T minDist2 = minDist * minDist;
@@ -399,9 +399,9 @@ namespace DCEL {
     return minDist;
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline T
-  MeshT<T>::DirectSignedDistance2(const Vec3& a_point) const noexcept
+  MeshT<T, Meta>::DirectSignedDistance2(const Vec3& a_point) const noexcept
   {
     FacePtr closest  = m_faces.front();
     T       minDist2 = closest->unsignedDistance2(a_point);
