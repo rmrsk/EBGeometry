@@ -135,7 +135,7 @@ main(int argc, char* argv[])
     filename = "../Resources/adirondack.stl";
   }
 
-  using Meta = EBGeometry::DCEL::DefaultMetaData;
+  using Meta   = EBGeometry::DCEL::DefaultMetaData;
   auto impFunc = static_cast<BaseIF*>(new ChomboSDF<T, Meta, BV, K>(filename));
 
   // Set up the Chombo EB geometry.
