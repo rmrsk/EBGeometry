@@ -32,7 +32,7 @@ The compact BVH is discussed below in :ref:`Chap:LinearBVH`.
 Bounding volumes
 ----------------
 
-EBGeometry supports the following bounding volumes, which are defined in :file:`EBGeometry_BoundingVolumes.hpp``:
+``EBGeometry`` supports the following bounding volumes, which are defined in :file:`EBGeometry_BoundingVolumes.hpp`:
 
 *  **BoundingSphere**, templated as ``EBGeometry::BoundingVolumes::BoundingSphereT<T>`` and describes a bounding sphere.
    Various constructors are available.
@@ -56,7 +56,7 @@ The second step is to recursively build the BVH, which is done through the funct
 
 .. literalinclude:: ../../../Source/EBGeometry_BVH.hpp
    :language: c++
-   :lines: 28, 62-94, 217-227, 248-257, 263-268, 274-285, 404, 643
+   :lines: 29, 62-94, 217-227, 248-257, 263-268, 274-285, 404, 643,644
    :caption: Header section of the BVH implementation.
 
 The optional input arguments to ``topDownSortAndPartition`` are polymorphic functions of type indicated above, and have the following responsibilities:
@@ -73,7 +73,7 @@ Default arguments for these are provided, bubt users are free to partition their
 Compact form
 ------------
 
-In addition to the standard BVH node ``NodeT<T, P, BV, K>``, EBGeometry provides a more compact formulation of the BVH hierarchy where the nodes are stored in depth-first order.
+In addition to the standard BVH node ``NodeT<T, P, BV, K>``, ``EBGeometry`` provides a more compact formulation of the BVH hierarchy where the nodes are stored in depth-first order.
 The "linearized" BVH can be automatically constructed from the standard BVH but not vice versa.
 
 .. figure:: /_static/CompactBVH.png

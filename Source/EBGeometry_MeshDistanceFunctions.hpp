@@ -26,22 +26,22 @@ namespace DCEL {
     @param[in] a_dcelMesh Input DCEL mesh. 
     @return Returns a pointer to a full-tree BVH representation of the DCEL faces.
   */
-  template <class T, class BV, size_t K>
-  std::shared_ptr<EBGeometry::BVH::NodeT<T, FaceT<T>, BV, K>>
-  buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T>>& a_dcelMesh);
+  template <class T, class Meta, class BV, size_t K>
+  std::shared_ptr<EBGeometry::BVH::NodeT<T, FaceT<T, Meta>, BV, K>>
+  buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh);
 } // namespace DCEL
 
 /*!
   @brief Signed distance function for a DCEL mesh. Does not use BVHs.
 */
-template <class T>
+template <class T, class Meta = DCEL::DefaultMetaData>
 class MeshSDF : public SignedDistanceFunction<T>
 {
 public:
   /*!
     @brief Alias for DCEL mesh type
   */
-  using Mesh = EBGeometry::DCEL::MeshT<T>;
+  using Mesh = EBGeometry::DCEL::MeshT<T, Meta>;
 
   /*!
     @brief Disallowed constructor
@@ -88,19 +88,19 @@ protected:
 /*!
   @brief Signed distance function for a DCEL mesh. This class uses the full BVH representation. 
 */
-template <class T, class BV, size_t K>
+template <class T, class Meta, class BV, size_t K>
 class FastMeshSDF : public SignedDistanceFunction<T>
 {
 public:
   /*!
     @brief Alias for DCEL face type
   */
-  using Face = typename EBGeometry::DCEL::FaceT<T>;
+  using Face = typename EBGeometry::DCEL::FaceT<T, Meta>;
 
   /*!
     @brief Alias for DCEL mesh type
   */
-  using Mesh = typename EBGeometry::DCEL::MeshT<T>;
+  using Mesh = typename EBGeometry::DCEL::MeshT<T, Meta>;
 
   /*!
     @brief Alias for BVH root node 
@@ -130,6 +130,29 @@ public:
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
   /*!
+    @brief Get the closest faces to the input point
+    @details This returns a list of candidate faces that are close to the input point. The returned
+    argment consists of the faces and the unsigned distance to the face.
+    @param[in] a_point Input ponit
+    @param[in] a_sorted Sort the output vector by distance or not. Closest goes first
+    @return List of candidate faces (potentially sorted)
+  */
+  virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
+  getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const noexcept;
+
+  /*!
+    @brief Get the bounding volume hierarchy enclosing the mesh
+  */
+  virtual std::shared_ptr<Node>&
+  getBVH() noexcept;
+
+  /*!
+    @brief Get the bounding volume hierarchy enclosing the mesh
+  */
+  virtual const std::shared_ptr<Node>&
+  getBVH() const noexcept;
+
+  /*!
     @brief Compute bounding volume for this mesh. 
   */
   BV
@@ -145,19 +168,19 @@ protected:
 /*!
   @brief Signed distance function for a DCEL mesh. This class uses the compact BVH representation. 
 */
-template <class T, class BV, size_t K>
+template <class T, class Meta, class BV, size_t K>
 class FastCompactMeshSDF : public SignedDistanceFunction<T>
 {
 public:
   /*!
     @brief Alias for DCEL face type
   */
-  using Face = typename EBGeometry::DCEL::FaceT<T>;
+  using Face = typename EBGeometry::DCEL::FaceT<T, Meta>;
 
   /*!
     @brief Alias for DCEL mesh type
   */
-  using Mesh = typename EBGeometry::DCEL::MeshT<T>;
+  using Mesh = typename EBGeometry::DCEL::MeshT<T, Meta>;
 
   /*!
     @brief Alias for which BVH root node 
@@ -191,6 +214,29 @@ public:
   */
   virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
+
+  /*!
+    @brief Get the closest faces to the input point
+    @details This returns a list of candidate faces that are close to the input point. The returned
+    argment consists of the faces and the unsigned distance to the face.
+    @param[in] a_point Input point
+    @param[in] a_sorted Sort the output vector by distance or not. Closest go first. 
+    @return List of candidate faces (potentially sorted)
+  */
+  virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
+  getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const noexcept;
+
+  /*!
+    @brief Get the bounding volume hierarchy enclosing the mesh
+  */
+  virtual std::shared_ptr<Root>&
+  getRoot() noexcept;
+
+  /*!
+    @brief Get the bounding volume hierarchy enclosing the mesh
+  */
+  virtual const std::shared_ptr<Root>&
+  getRoot() const noexcept;
 
   /*!
     @brief Compute bounding volume for this mesh. 

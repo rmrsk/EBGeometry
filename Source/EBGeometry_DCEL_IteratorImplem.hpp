@@ -21,55 +21,55 @@
 
 namespace DCEL {
 
-  template <class T>
-  inline EdgeIteratorT<T>::EdgeIteratorT(Face& a_face)
+  template <class T, class Meta>
+  inline EdgeIteratorT<T, Meta>::EdgeIteratorT(Face& a_face)
   {
     m_startEdge = a_face.getHalfEdge();
     m_curEdge   = m_startEdge;
     m_fullLoop  = false;
   }
 
-  template <class T>
-  inline EdgeIteratorT<T>::EdgeIteratorT(const Face& a_face)
+  template <class T, class Meta>
+  inline EdgeIteratorT<T, Meta>::EdgeIteratorT(const Face& a_face)
   {
     m_startEdge = a_face.getHalfEdge();
     m_curEdge   = m_startEdge;
     m_fullLoop  = false;
   }
 
-  template <class T>
-  inline std::shared_ptr<EdgeT<T>>&
-  EdgeIteratorT<T>::operator()() noexcept
+  template <class T, class Meta>
+  inline std::shared_ptr<EdgeT<T, Meta>>&
+  EdgeIteratorT<T, Meta>::operator()() noexcept
   {
     return (m_curEdge);
   }
 
-  template <class T>
-  inline const std::shared_ptr<EdgeT<T>>&
-  EdgeIteratorT<T>::operator()() const noexcept
+  template <class T, class Meta>
+  inline const std::shared_ptr<EdgeT<T, Meta>>&
+  EdgeIteratorT<T, Meta>::operator()() const noexcept
   {
     return (m_curEdge);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  EdgeIteratorT<T>::reset() noexcept
+  EdgeIteratorT<T, Meta>::reset() noexcept
   {
     m_curEdge  = m_startEdge;
     m_fullLoop = false;
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline void
-  EdgeIteratorT<T>::operator++() noexcept
+  EdgeIteratorT<T, Meta>::operator++() noexcept
   {
     m_curEdge  = m_curEdge->getNextEdge();
     m_fullLoop = (m_curEdge == m_startEdge);
   }
 
-  template <class T>
+  template <class T, class Meta>
   inline bool
-  EdgeIteratorT<T>::ok() const noexcept
+  EdgeIteratorT<T, Meta>::ok() const noexcept
   {
     return !m_fullLoop && m_curEdge;
   }

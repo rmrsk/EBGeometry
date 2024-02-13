@@ -11,7 +11,7 @@ Octrees are encapsulated by a class
 
 .. literalinclude:: ../../../Source/EBGeometry_Octree.hpp
    :language: c++
-   :lines: 71-72
+   :lines: 74-75
 
 
 where the template parameters are:
@@ -30,15 +30,15 @@ where the template parameters are:
 Construction
 ------------
 
-Constructing the octree is done by first initializing the root node and then building it in either depth-first or breadth-first ordering:
+Constructing the octree is done by first initializing the root node and then building it in either depth-first or breadth-first ordering.
 
 .. literalinclude:: ../../../Source/EBGeometry_Octree.hpp
    :language: c++
-   :lines: 71-73,80-81,87-88,94-96,180-184,191-194,226
+   :lines: 74-76, 83, 90, 97-98,104,111,117-118,183-187,194-198,229,230
 
 The input functions to ``buildDepthFirst`` and ``buildBreadthFirst`` are as follows:
 
-#.  ``StopFunction`` determines if the node should be split or not. If it returns true, the node will *not* be split.
+#. ``StopFunction`` determines if the node should be split or not. If it returns true, the node will *not* be split.
 #. ``MetaConstructor`` constructs meta-data in the child nodes. This can/should include the physical corners of the node, but this is not a requirement.
 #. ``DataConstructor`` constructs data in the child node. This can e.g. be a partitioning of the parent data.
 
@@ -47,7 +47,7 @@ Tree traversal
 
 .. literalinclude:: ../../../Source/EBGeometry_Octree.hpp
    :language: c++
-   :lines: 71-73,101-102,108-109,114-115,202-208,226
+   :lines: 74-76,205-211,239
 
 The input functions to ``traverse`` are as follows:
 

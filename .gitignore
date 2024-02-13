@@ -27,6 +27,10 @@ Examples/AMReX_Shapes/plt*
 Examples/AMReX_Shapes/tmp_build_dir
 Examples/AMReX_Shapes/Backtrace.*
 
+Examples/AMReX_PaintEB/plt*
+Examples/AMReX_PaintEB/tmp_build_dir
+Examples/AMReX_PaintEB/Backtrace.*
+
 Examples/Chombo3_DCEL/d/**
 Examples/Chombo3_DCEL/o/**
 Examples/Chombo3_DCEL/f/**

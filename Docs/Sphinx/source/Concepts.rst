@@ -14,13 +14,13 @@ It has the additional property
 
    \left|\nabla S(\mathbf{x})\right| = 1 \quad\textrm{everywhere}.
 
-Note that the normal vector is always
+The normal vector is always
 
 .. math::
 
    \mathbf{n} = \nabla S\left(\mathbf{x}\right).
    
-EBGeometry uses the following convention for the sign:
+``EBGeometry`` uses the following convention for the sign:
 
 .. math::
 
@@ -60,7 +60,7 @@ DCEL
 Principle
 ---------
 
-EBGeometry uses a doubly-connected edge list (DCEL) structure for storing surface meshes.
+``EBGeometry`` uses a doubly-connected edge list (DCEL) structure for storing surface meshes.
 The DCEL structures consist of the following objects:
 
 * Planar polygons (facets).
@@ -79,7 +79,7 @@ From the DCEL structure we can easily obtain all edges or vertices belonging to 
    DCEL mesh structure. Each half-edge stores references to next half-edge, the pair edge, and the starting vertex.
    Vertices store a coordinate as well as a reference to one of the outgoing half-edges.
 
-In EBGeometry the half-edge data structure is implemented in its own namespace.
+In ``EBGeometry`` the half-edge data structure is implemented in its own namespace.
 This is a comparatively standard implementation of the DCEL structure, supplemented by functions that permit signed distance computations to various features on such a mesh.
 
 .. important::
@@ -111,7 +111,7 @@ Three cases can be distinguished:
 
    .. tip::
    
-      EBGeometry uses the crossing number algorithm by default.
+      ``EBGeometry`` uses the crossing number algorithm by default.
       
    If the point projects to the inside of the face, the signed distance is just :math:`\mathbf{n}_f\cdot\left(\mathbf{x} - \mathbf{x}_f\right)` where :math:`\mathbf{n}_f` is the face normal and :math:`\mathbf{x}_f` is a point on the face plane (e.g., a vertex).
    If the point projects to *outside* the polygon face, the closest feature is either an edge or a vertex.
@@ -188,7 +188,7 @@ For example, analytic signed distance functions can also be embedded in BVHs, pr
 
 .. note::
    
-   EBGeometry is not limited to binary trees, but supports :math:`k` -ary trees where each regular node has :math:`k` child nodes. 
+   ``EBGeometry`` is not limited to binary trees, but supports :math:`k` -ary trees where each regular node has :math:`k` child nodes. 
 
 Construction
 ------------
@@ -203,7 +203,7 @@ Although the rules for BVH construction are highly flexible, performant BVHs are
 * **Balanced**, in the sense that the tree depth does not vary greatly through the tree, and there is approximately the same number of primitives in each leaf node. 
 
 Construction of a BVH is usually done recursively, from top to bottom (so-called top-down construction).
-Alternative construction methods also exist, but are not used in EBGeometry. 
+Alternative construction methods also exist, but are not used in ``EBGeometry``. 
 In this case one can represent the BVH construction of a :math:`k` -ary tree is done through a single function:
 
 .. math::
@@ -255,7 +255,7 @@ For the traversal algorithm we consider the following steps:
    For example, it is necessary to traverse almost the entire tree when one tries to compute the signed distance at the origin of a tessellated sphere.
 
 Note that types of tree traversal (that do not compute the signed distance) are also possible, e.g. we may want to compute the union :math:`I\left(\mathbf{x}\right) = \min\left(I_1\left(\mathbf{x}\right), I_2\left(\mathbf{x}\right), .\ldots\right)`.
-EBGeometry supports a fairly flexible approach to the tree traversal and update algorithms.
+``EBGeometry`` supports a fairly flexible approach to the tree traversal and update algorithms.
 
 Octree
 ======
@@ -268,7 +268,7 @@ Octree construction can be done in (at least) two ways:
 #. In depth-first order where entire sub-trees are built first.
 #. In breadth-first order where tree levels are added one at a time.
 
-EBGeometry supports both of these methods. 
+``EBGeometry`` supports both of these methods. 
 Octree traversal is generally speaking quite similar to the traversal algorithms used for BVH trees.
 
 Constructive solid geometry
@@ -278,7 +278,7 @@ Basic transformations
 ---------------------
 
 Implicit functions, and by extension also signed distance fields, can be manipulated using basic transformations (like rotations).
-EBGeometry supports many of these:
+``EBGeometry`` supports many of these:
 
 * Rotations.
 * Translations.
@@ -294,11 +294,11 @@ EBGeometry supports many of these:
 Combining objects
 -----------------
 
-EBGeometry supports standard operations in which implicit functions can be combined:
+``EBGeometry`` supports standard operations in which implicit functions can be combined:
 
 * Union.
 * Intersection.
 * Difference.
 
 Some of these CSG operations also have smooth equivalents, i.e. for smoothing the transition between combined objects.
-Fast CSG operations are also supported by EBGeometry, e.g. the BVH-accelerated CSG union where one uses the BVH when searching for the relevant geometric primitive(s). 
+Fast CSG operations are also supported by ``EBGeometry``, e.g. the BVH-accelerated CSG union where one uses the BVH when searching for the relevant geometric primitive(s). 

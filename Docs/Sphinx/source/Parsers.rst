@@ -3,12 +3,12 @@
 Reading data
 ============
 
-Routines for parsing surface files from grids into EBGeometry's DCEL grids are given in the namespace ``EBGeometry::Parser``.
+Routines for parsing surface files from grids into ``EBGeometry``'s DCEL grids are given in the namespace ``EBGeometry::Parser``.
 The source code is implemented in :file:`Source/EBGeometry_Parser.hpp`.
 
 .. warning::
 
-   EBGeometry is currently limited to reading binary and ASCII STL files and reconstructing DCEL grids from those.
+   ``EBGeometry`` is currently limited to reading binary and ASCII STL files and reconstructing DCEL grids from those.
    However, it is a simple matter to also reconstructor DCEL grids from triangle soups read using third-party codes (see :ref:`Chap:ThirdPartyParser`).
 
 Quickstart
@@ -22,12 +22,12 @@ If you have one of multiple STL files, you can quickly turn them into implicit f
    
    const auto distanceFields = EBGeometry::Parser::readIntoLinearBVH<float>(files);
 
-See :ref:`Chap:LinearSTL` for further details. 
+See :ref:`Chap:LinearSTL` for further details.
 
 Reading STL files
 -----------------
 
-EBGeometry supports a native parser for binary and ASCII STL files, which can be read into a few different representations:
+``EBGeometry`` supports a native parser for binary and ASCII STL files, which can be read into a few different representations:
 
 #. Into a DCEL mesh, see :ref:`Chap:ImplemDCEL`.
 #. Into a signed distance function representation of a DCEL mesh, see :ref:`Chap:ImplemCSG`.
@@ -77,7 +77,7 @@ To read one or multiple STL files and turn it into signed distance representatio
 From soups to DCEL
 ------------------
 
-EBGeometry also supports the creation of DCEL grids from polygon soups, which can then be later turned into an SDF representation.
+``EBGeometry`` also supports the creation of DCEL grids from polygon soups, which can then be later turned into an SDF representation.
 A triangle soup is represented as
 
 .. code-block:: c++
@@ -91,7 +91,7 @@ To turn this into a DCEL mesh, one should compress the triangle soup (get rid of
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 134-152
+   :lines: 136-165
 
 The ``compress`` function will discard duplicate vertices from the soup, while the ``soupToDCEL`` will simply turn the remaining polygon soup into a DCEL mesh.
 
@@ -104,7 +104,7 @@ The ``compress`` function will discard duplicate vertices from the soup, while t
 Using third-party sources
 -------------------------
 
-By design, EBGeometry does not include much functionality for parsing files into polygon soups.
+By design, ``EBGeometry`` does not include much functionality for parsing files into polygon soups.
 There are many open source third-party codes for achieving this (and we have tested several of them): 
 
 #. `happly <https://github.com/nmwsharp/happly>`_ or `miniply <https://github.com/vilya/miniply>`_ for Stanford PLY files.
