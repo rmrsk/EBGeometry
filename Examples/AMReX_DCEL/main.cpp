@@ -17,10 +17,10 @@ using namespace amrex;
 
 /*!
   @brief This is an AMReX-capable version of the EBGeometry BVH accelerator. It
-  is templated as T, BV, K which indicate the EBGeometry precision, bounding
-  volume, and tree degree.
+  is templated as T, Meta BV, K which indicate the EBGeometry precision, triangle meta-data, 
+  bounding volume, and tree degree.
 */
-template <class T, class BV, size_t K>
+template <class T, class Meta, class BV, size_t K>
 class AMReXSDF
 {
 public:
@@ -31,10 +31,10 @@ public:
   AMReXSDF(const std::string a_filename, const bool a_use_bvh)
   {
     if (a_use_bvh) {
-      m_sdf = EBGeometry::Parser::readIntoLinearBVH<T, BV, K>(a_filename);
+      m_sdf = EBGeometry::Parser::readIntoLinearBVH<T, Meta, BV, K>(a_filename);
     }
     else {
-      m_sdf = EBGeometry::Parser::readIntoMesh<T>(a_filename);
+      m_sdf = EBGeometry::Parser::readIntoMesh<T, Meta>(a_filename);
     }
   }
 
@@ -144,11 +144,12 @@ main(int argc, char* argv[])
     // EBGeometry precision.
     constexpr int K = 4;
 
-    using T    = double;
+    using T    = float;
+    using Meta = EBGeometry::DCEL::DefaultMetaData;
     using Vec3 = EBGeometry::Vec3T<T>;
     using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 
-    AMReXSDF<T, BV, K> sdf(filename, use_bvh);
+    AMReXSDF<T, Meta, BV, K> sdf(filename, use_bvh);
 
     auto gshop = EB2::makeShop(sdf);
     EB2::Build(gshop, geom, 0, 0, 1, true, true, num_coarsen_opt);

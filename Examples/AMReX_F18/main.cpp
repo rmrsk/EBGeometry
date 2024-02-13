@@ -20,11 +20,12 @@ using namespace amrex;
 
 constexpr size_t K = 4;
 using T            = Real;
-using Face         = EBGeometry::DCEL::FaceT<T>;
-using Mesh         = EBGeometry::DCEL::MeshT<T>;
-using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
-using FastSDF      = EBGeometry::FastCompactMeshSDF<T, BV, K>;
+using MetaData     = int;
 using Vec3         = EBGeometry::Vec3T<T>;
+using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
+using Face         = EBGeometry::DCEL::FaceT<T, MetaData>;
+using Mesh         = EBGeometry::DCEL::MeshT<T, MetaData>;
+using FastSDF      = EBGeometry::FastCompactMeshSDF<T, MetaData, BV, K>;
 
 // F18 geometry, using nifty EBGeometry bindings and accelerators.
 class F18
@@ -48,7 +49,7 @@ public:
     std::vector<std::shared_ptr<FastSDF>> fastSDFs;
     std::vector<BV>                       boundingVolumes;
     for (const auto& f : stlFiles) {
-      const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(f);
+      const auto mesh = EBGeometry::Parser::readIntoDCEL<T, MetaData>(f);
       mesh->flip();
 
       // Create the BVH.

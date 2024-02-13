@@ -25,18 +25,6 @@
 
 namespace DCEL {
 
-  template <class T>
-  class VertexT;
-
-  template <class T>
-  class EdgeT;
-
-  template <class T>
-  class FaceT;
-
-  template <class T>
-  class EdgeIteratorT;
-
   /*!
     @brief Class which represents a vertex node in a double-edge connected list
     (DCEL).
@@ -47,7 +35,7 @@ namespace DCEL {
     @note The normal vector is outgoing, i.e. a point x is "outside" the vertex if
     the dot product between n and (x - x0) is positive.
   */
-  template <class T>
+  template <class T, class Meta>
   class VertexT
   {
   public:
@@ -59,17 +47,17 @@ namespace DCEL {
     /*!
       @brief Alias for vertex type
     */
-    using Vertex = VertexT<T>;
+    using Vertex = VertexT<T, Meta>;
 
     /*!
       @brief Alias for edge type
     */
-    using Edge = EdgeT<T>;
+    using Edge = EdgeT<T, Meta>;
 
     /*!
       @brief Alias for face type
     */
-    using Face = FaceT<T>;
+    using Face = FaceT<T, Meta>;
 
     /*!
       @brief Alias for vertex pointer type
@@ -89,7 +77,7 @@ namespace DCEL {
     /*!
       @brief Alias for edge iterator
     */
-    using EdgeIterator = EdgeIteratorT<T>;
+    using EdgeIterator = EdgeIteratorT<T, Meta>;
 
     /*!
       @brief Default constructor.
@@ -282,6 +270,20 @@ namespace DCEL {
     inline T
     unsignedDistance2(const Vec3& a_x0) const noexcept;
 
+    /*!
+      @brief Get meta-data
+      @return m_metaData
+    */
+    inline Meta&
+    getMetaData() noexcept;
+
+    /*!
+      @brief Get meta-data
+      @return m_metaData
+    */
+    inline const Meta&
+    getMetaData() const noexcept;
+
   protected:
     /*!
       @brief Pointer to an outgoing edge from this vertex.
@@ -302,6 +304,11 @@ namespace DCEL {
       @brief List of faces connected to this vertex (these must be "manually" added)
     */
     std::vector<FacePtr> m_faces;
+
+    /*!
+      @brief Meta-data for this vertex
+    */
+    Meta m_metaData;
   };
 } // namespace DCEL
 
