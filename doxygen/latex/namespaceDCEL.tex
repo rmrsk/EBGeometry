@@ -9,19 +9,33 @@ Namespace containing various double-\/connected edge list (\mbox{\hyperlink{name
 \begin{DoxyCompactItemize}
 \item 
 class \mbox{\hyperlink{classDCEL_1_1VertexT}{VertexT}}
-\begin{DoxyCompactList}\small\item\em Class which represents a vertex node in a double-\/edge connected list (\mbox{\hyperlink{namespaceDCEL}{DCEL}}). \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Vertex class. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classDCEL_1_1EdgeT}{EdgeT}}
-\begin{DoxyCompactList}\small\item\em Class which represents a half-\/edge in a double-\/edge connected list (\mbox{\hyperlink{namespaceDCEL}{DCEL}}). \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Edge class. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}
-\begin{DoxyCompactList}\small\item\em Class which represents a polygon face in a double-\/edge connected list (\mbox{\hyperlink{namespaceDCEL}{DCEL}}). \end{DoxyCompactList}\item 
-class \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{Edge\+IteratorT}}
-\begin{DoxyCompactList}\small\item\em Class which makes it easier to iterate through \mbox{\hyperlink{namespaceDCEL}{DCEL}} edges. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Face class. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classDCEL_1_1MeshT}{MeshT}}
-\begin{DoxyCompactList}\small\item\em Mesh class which stores a full \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh (with signed distance functions) \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Mesh class. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{Edge\+IteratorT}}
+\begin{DoxyCompactList}\small\item\em Edge iterator class. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespaceDCEL_ad8f2940fada08cf162f8c01adf6d7bd6}\label{namespaceDCEL_ad8f2940fada08cf162f8c01adf6d7bd6}} 
+using \mbox{\hyperlink{namespaceDCEL_ad8f2940fada08cf162f8c01adf6d7bd6}{Default\+Meta\+Data}} = short
+\begin{DoxyCompactList}\small\item\em Default meta-\/data type for the \mbox{\hyperlink{namespaceDCEL}{DCEL}} primitives. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespaceDCEL_aa6a314c993921b3523ab627ae873946a}\label{namespaceDCEL_aa6a314c993921b3523ab627ae873946a}} 
+enum class \mbox{\hyperlink{namespaceDCEL_aa6a314c993921b3523ab627ae873946a}{Vertex\+Normal\+Weight}} \{ {\bfseries None}
+, {\bfseries Angle}
+ \}
+\begin{DoxyCompactList}\small\item\em Enum for putting some logic into how vertex normal weights are calculated. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
-{\footnotesize template$<$class T , class BV , size\+\_\+t K$>$ }\\std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+BVH\+::\+NodeT$<$ T, \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}$<$ T $>$, BV, K $>$ $>$ \mbox{\hyperlink{namespaceDCEL_a43ae660dcc39a718db47103bd5ba54e3}{build\+Full\+BVH}} (const std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$$>$ \&a\+\_\+dcel\+Mesh)
+{\footnotesize template$<$class T , class Meta , class BV , size\+\_\+t K$>$ }\\std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+BVH\+::\+NodeT$<$ T, \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}$<$ T, Meta $>$, BV, K $>$ $>$ \mbox{\hyperlink{namespaceDCEL_a60bbe280c2912fc07e08a161690283e7}{build\+Full\+BVH}} (const std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ T, Meta $>$$>$ \&a\+\_\+dcel\+Mesh)
 \begin{DoxyCompactList}\small\item\em One-\/liner for turning a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh into a full-\/tree \mbox{\hyperlink{namespaceBVH}{BVH}}. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
@@ -29,12 +43,12 @@ class \mbox{\hyperlink{classDCEL_1_1MeshT}{MeshT}}
 Namespace containing various double-\/connected edge list (\mbox{\hyperlink{namespaceDCEL}{DCEL}}) functionality. 
 
 \doxysubsection{Function Documentation}
-\mbox{\Hypertarget{namespaceDCEL_a43ae660dcc39a718db47103bd5ba54e3}\label{namespaceDCEL_a43ae660dcc39a718db47103bd5ba54e3}} 
+\mbox{\Hypertarget{namespaceDCEL_a60bbe280c2912fc07e08a161690283e7}\label{namespaceDCEL_a60bbe280c2912fc07e08a161690283e7}} 
 \index{DCEL@{DCEL}!buildFullBVH@{buildFullBVH}}
 \index{buildFullBVH@{buildFullBVH}!DCEL@{DCEL}}
 \doxysubsubsection{\texorpdfstring{buildFullBVH()}{buildFullBVH()}}
-{\footnotesize\ttfamily template$<$class T , class BV , size\+\_\+t K$>$ \\
-std\+::shared\+\_\+ptr$<$EBGeometry\+::\+BVH\+::\+NodeT$<$T, \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}$<$T$>$, BV, K$>$ $>$ DCEL\+::build\+Full\+BVH (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$$>$ \&}]{a\+\_\+dcel\+Mesh }\end{DoxyParamCaption})}
+{\footnotesize\ttfamily template$<$class T , class Meta , class BV , size\+\_\+t K$>$ \\
+std\+::shared\+\_\+ptr$<$EBGeometry\+::\+BVH\+::\+NodeT$<$T, \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}$<$T, Meta$>$, BV, K$>$ $>$ DCEL\+::build\+Full\+BVH (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ T, Meta $>$$>$ \&}]{a\+\_\+dcel\+Mesh }\end{DoxyParamCaption})}
 
 
 

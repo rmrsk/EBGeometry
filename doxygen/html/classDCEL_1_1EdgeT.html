@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>EBGeometry: DCEL::EdgeT&lt; T &gt; Class Template Reference</title>
+<title>EBGeometry: DCEL::EdgeT&lt; T, Meta &gt; Class Template Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -73,188 +73,199 @@ $(function() {
 <a href="#pro-attribs">Protected Attributes</a> &#124;
 <a href="classDCEL_1_1EdgeT-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">DCEL::EdgeT&lt; T &gt; Class Template Reference</div>  </div>
+<div class="title">DCEL::EdgeT&lt; T, Meta &gt; Class Template Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p>Class which represents a half-edge in a double-edge connected list (<a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a>).  
+<p>Edge class.  
  <a href="classDCEL_1_1EdgeT.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="EBGeometry__DCEL__Edge_8hpp_source.html">EBGeometry_DCEL_Edge.hpp</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a77019436e02262607e9c1fc2e9e2f644"><td class="memItemLeft" align="right" valign="top"><a id="a77019436e02262607e9c1fc2e9e2f644"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a77019436e02262607e9c1fc2e9e2f644">Vec3</a> = <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;</td></tr>
-<tr class="memdesc:a77019436e02262607e9c1fc2e9e2f644"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for vector type. <br /></td></tr>
-<tr class="separator:a77019436e02262607e9c1fc2e9e2f644"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a912d09a0105fbce0e58c5522dddd7e8b"><td class="memItemLeft" align="right" valign="top"><a id="a912d09a0105fbce0e58c5522dddd7e8b"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a912d09a0105fbce0e58c5522dddd7e8b">Vertex</a> = <a class="el" href="classDCEL_1_1VertexT.html">VertexT</a>&lt; T &gt;</td></tr>
-<tr class="memdesc:a912d09a0105fbce0e58c5522dddd7e8b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for vertex type. <br /></td></tr>
-<tr class="separator:a912d09a0105fbce0e58c5522dddd7e8b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afa20c9103e63aa41a790ebefb4a10d3d"><td class="memItemLeft" align="right" valign="top"><a id="afa20c9103e63aa41a790ebefb4a10d3d"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#afa20c9103e63aa41a790ebefb4a10d3d">Edge</a> = <a class="el" href="classDCEL_1_1EdgeT.html">EdgeT</a>&lt; T &gt;</td></tr>
-<tr class="memdesc:afa20c9103e63aa41a790ebefb4a10d3d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for edge type. <br /></td></tr>
-<tr class="separator:afa20c9103e63aa41a790ebefb4a10d3d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aced11510a9976fcc886dea9d1125c0a1"><td class="memItemLeft" align="right" valign="top"><a id="aced11510a9976fcc886dea9d1125c0a1"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#aced11510a9976fcc886dea9d1125c0a1">Face</a> = <a class="el" href="classDCEL_1_1FaceT.html">FaceT</a>&lt; T &gt;</td></tr>
-<tr class="memdesc:aced11510a9976fcc886dea9d1125c0a1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for face type. <br /></td></tr>
-<tr class="separator:aced11510a9976fcc886dea9d1125c0a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aee30f15b2c4e37ee4d09c1bb36fa146b"><td class="memItemLeft" align="right" valign="top"><a id="aee30f15b2c4e37ee4d09c1bb36fa146b"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a> = std::shared_ptr&lt; <a class="el" href="classDCEL_1_1EdgeT.html#a912d09a0105fbce0e58c5522dddd7e8b">Vertex</a> &gt;</td></tr>
-<tr class="memdesc:aee30f15b2c4e37ee4d09c1bb36fa146b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for vertex pointer type. <br /></td></tr>
-<tr class="separator:aee30f15b2c4e37ee4d09c1bb36fa146b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acfa5d7602f5c3b4cc4812c0a8c5132fd"><td class="memItemLeft" align="right" valign="top"><a id="acfa5d7602f5c3b4cc4812c0a8c5132fd"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a> = std::shared_ptr&lt; <a class="el" href="classDCEL_1_1EdgeT.html#afa20c9103e63aa41a790ebefb4a10d3d">Edge</a> &gt;</td></tr>
-<tr class="memdesc:acfa5d7602f5c3b4cc4812c0a8c5132fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for edge pointer type. <br /></td></tr>
-<tr class="separator:acfa5d7602f5c3b4cc4812c0a8c5132fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae3cb3bfc7d976cab10edafdb73341c3b"><td class="memItemLeft" align="right" valign="top"><a id="ae3cb3bfc7d976cab10edafdb73341c3b"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#ae3cb3bfc7d976cab10edafdb73341c3b">FacePtr</a> = std::shared_ptr&lt; <a class="el" href="classDCEL_1_1EdgeT.html#aced11510a9976fcc886dea9d1125c0a1">Face</a> &gt;</td></tr>
-<tr class="memdesc:ae3cb3bfc7d976cab10edafdb73341c3b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for face pointer type. <br /></td></tr>
-<tr class="separator:ae3cb3bfc7d976cab10edafdb73341c3b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6feb0f17e8065243b40586b02e2e9e89"><td class="memItemLeft" align="right" valign="top"><a id="a6feb0f17e8065243b40586b02e2e9e89"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a6feb0f17e8065243b40586b02e2e9e89">Vec3</a> = <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;</td></tr>
+<tr class="memdesc:a6feb0f17e8065243b40586b02e2e9e89"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for vector type. <br /></td></tr>
+<tr class="separator:a6feb0f17e8065243b40586b02e2e9e89"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0a83d1460ab7454c89398c594410cdc2"><td class="memItemLeft" align="right" valign="top"><a id="a0a83d1460ab7454c89398c594410cdc2"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a0a83d1460ab7454c89398c594410cdc2">Vertex</a> = <a class="el" href="classDCEL_1_1VertexT.html">VertexT</a>&lt; T, Meta &gt;</td></tr>
+<tr class="memdesc:a0a83d1460ab7454c89398c594410cdc2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for vertex type. <br /></td></tr>
+<tr class="separator:a0a83d1460ab7454c89398c594410cdc2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6babcf06467338f436223a8c9e2ece49"><td class="memItemLeft" align="right" valign="top"><a id="a6babcf06467338f436223a8c9e2ece49"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a6babcf06467338f436223a8c9e2ece49">Edge</a> = <a class="el" href="classDCEL_1_1EdgeT.html">EdgeT</a>&lt; T, Meta &gt;</td></tr>
+<tr class="memdesc:a6babcf06467338f436223a8c9e2ece49"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for edge type. <br /></td></tr>
+<tr class="separator:a6babcf06467338f436223a8c9e2ece49"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2c070ab2285036478f6f38ab22e3611d"><td class="memItemLeft" align="right" valign="top"><a id="a2c070ab2285036478f6f38ab22e3611d"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a2c070ab2285036478f6f38ab22e3611d">Face</a> = <a class="el" href="classDCEL_1_1FaceT.html">FaceT</a>&lt; T, Meta &gt;</td></tr>
+<tr class="memdesc:a2c070ab2285036478f6f38ab22e3611d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for face type. <br /></td></tr>
+<tr class="separator:a2c070ab2285036478f6f38ab22e3611d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab5d79a6663cd5e996a13747b55457013"><td class="memItemLeft" align="right" valign="top"><a id="ab5d79a6663cd5e996a13747b55457013"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a> = std::shared_ptr&lt; <a class="el" href="classDCEL_1_1EdgeT.html#a0a83d1460ab7454c89398c594410cdc2">Vertex</a> &gt;</td></tr>
+<tr class="memdesc:ab5d79a6663cd5e996a13747b55457013"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for vertex pointer type. <br /></td></tr>
+<tr class="separator:ab5d79a6663cd5e996a13747b55457013"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a48b8a5a2c50fd7376cf5c32ff045e6ba"><td class="memItemLeft" align="right" valign="top"><a id="a48b8a5a2c50fd7376cf5c32ff045e6ba"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a> = std::shared_ptr&lt; <a class="el" href="classDCEL_1_1EdgeT.html#a6babcf06467338f436223a8c9e2ece49">Edge</a> &gt;</td></tr>
+<tr class="memdesc:a48b8a5a2c50fd7376cf5c32ff045e6ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for edge pointer type. <br /></td></tr>
+<tr class="separator:a48b8a5a2c50fd7376cf5c32ff045e6ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a638f92abf9bd625ef1809123a8819bea"><td class="memItemLeft" align="right" valign="top"><a id="a638f92abf9bd625ef1809123a8819bea"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a638f92abf9bd625ef1809123a8819bea">FacePtr</a> = std::shared_ptr&lt; <a class="el" href="classDCEL_1_1EdgeT.html#a2c070ab2285036478f6f38ab22e3611d">Face</a> &gt;</td></tr>
+<tr class="memdesc:a638f92abf9bd625ef1809123a8819bea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alias for face pointer type. <br /></td></tr>
+<tr class="separator:a638f92abf9bd625ef1809123a8819bea"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a1d09a46a696336651b726df879fae828"><td class="memItemLeft" align="right" valign="top"><a id="a1d09a46a696336651b726df879fae828"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a1d09a46a696336651b726df879fae828">EdgeT</a> ()</td></tr>
-<tr class="memdesc:a1d09a46a696336651b726df879fae828"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default constructor. Sets all pointers to zero and vectors to zero vectors. <br /></td></tr>
-<tr class="separator:a1d09a46a696336651b726df879fae828"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a483a66bf406e38074083ea14af52800c"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a483a66bf406e38074083ea14af52800c">EdgeT</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#afa20c9103e63aa41a790ebefb4a10d3d">Edge</a> &amp;a_otherEdge)</td></tr>
-<tr class="memdesc:a483a66bf406e38074083ea14af52800c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy constructor. Copies all information from the other half-edge.  <a href="classDCEL_1_1EdgeT.html#a483a66bf406e38074083ea14af52800c">More...</a><br /></td></tr>
-<tr class="separator:a483a66bf406e38074083ea14af52800c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a22348f1a0b084dd984dd3b2a501d485a"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a22348f1a0b084dd984dd3b2a501d485a">EdgeT</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a> &amp;a_vertex)</td></tr>
-<tr class="memdesc:a22348f1a0b084dd984dd3b2a501d485a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Partial constructor. Calls the default constructor but sets the starting vertex.  <a href="classDCEL_1_1EdgeT.html#a22348f1a0b084dd984dd3b2a501d485a">More...</a><br /></td></tr>
-<tr class="separator:a22348f1a0b084dd984dd3b2a501d485a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5bcd473ce4193086bb5e97d012f94af0"><td class="memItemLeft" align="right" valign="top"><a id="a5bcd473ce4193086bb5e97d012f94af0"></a>
-virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a5bcd473ce4193086bb5e97d012f94af0">~EdgeT</a> ()</td></tr>
-<tr class="memdesc:a5bcd473ce4193086bb5e97d012f94af0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor (does nothing) <br /></td></tr>
-<tr class="separator:a5bcd473ce4193086bb5e97d012f94af0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adccea85a8ade704add694fa6d439dc86"><td class="memItemLeft" align="right" valign="top"><a id="adccea85a8ade704add694fa6d439dc86"></a>
-size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#adccea85a8ade704add694fa6d439dc86">size</a> () const noexcept</td></tr>
-<tr class="memdesc:adccea85a8ade704add694fa6d439dc86"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get size (in bytes) of this object. <br /></td></tr>
-<tr class="separator:adccea85a8ade704add694fa6d439dc86"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a721cf5dce17568d6dce376f3a79fa817"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a721cf5dce17568d6dce376f3a79fa817">define</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a> &amp;a_vertex, const <a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a> &amp;a_pairEdge, const <a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a> &amp;a_nextEdge) noexcept</td></tr>
-<tr class="memdesc:a721cf5dce17568d6dce376f3a79fa817"><td class="mdescLeft">&#160;</td><td class="mdescRight">Define function. Sets the starting vertex, edges, and normal vectors.  <a href="classDCEL_1_1EdgeT.html#a721cf5dce17568d6dce376f3a79fa817">More...</a><br /></td></tr>
-<tr class="separator:a721cf5dce17568d6dce376f3a79fa817"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af205c6581568dafe9daa31d693550127"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#af205c6581568dafe9daa31d693550127">reconcile</a> () noexcept</td></tr>
-<tr class="memdesc:af205c6581568dafe9daa31d693550127"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reconcile internal logic.  <a href="classDCEL_1_1EdgeT.html#af205c6581568dafe9daa31d693550127">More...</a><br /></td></tr>
-<tr class="separator:af205c6581568dafe9daa31d693550127"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a728bafe2e32200317696363adffc1474"><td class="memItemLeft" align="right" valign="top"><a id="a728bafe2e32200317696363adffc1474"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a728bafe2e32200317696363adffc1474">flip</a> () noexcept</td></tr>
-<tr class="memdesc:a728bafe2e32200317696363adffc1474"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flip surface normal. <br /></td></tr>
-<tr class="separator:a728bafe2e32200317696363adffc1474"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab439e26a598ae3337ae2b69285059667"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#ab439e26a598ae3337ae2b69285059667">setVertex</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a> &amp;a_vertex) noexcept</td></tr>
-<tr class="memdesc:ab439e26a598ae3337ae2b69285059667"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the starting vertex.  <a href="classDCEL_1_1EdgeT.html#ab439e26a598ae3337ae2b69285059667">More...</a><br /></td></tr>
-<tr class="separator:ab439e26a598ae3337ae2b69285059667"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a91b996c2569dfea4689508f6038226aa"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a91b996c2569dfea4689508f6038226aa">setPairEdge</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a> &amp;a_pairEdge) noexcept</td></tr>
-<tr class="memdesc:a91b996c2569dfea4689508f6038226aa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the pair edge.  <a href="classDCEL_1_1EdgeT.html#a91b996c2569dfea4689508f6038226aa">More...</a><br /></td></tr>
-<tr class="separator:a91b996c2569dfea4689508f6038226aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afcedb51849b8a2976a689b5d41591d5c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#afcedb51849b8a2976a689b5d41591d5c">setNextEdge</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a> &amp;a_nextEdge) noexcept</td></tr>
-<tr class="memdesc:afcedb51849b8a2976a689b5d41591d5c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the next edge.  <a href="classDCEL_1_1EdgeT.html#afcedb51849b8a2976a689b5d41591d5c">More...</a><br /></td></tr>
-<tr class="separator:afcedb51849b8a2976a689b5d41591d5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aed89e0450331d54b98c857fc25f0a38c"><td class="memItemLeft" align="right" valign="top"><a id="aed89e0450331d54b98c857fc25f0a38c"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#aed89e0450331d54b98c857fc25f0a38c">setFace</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#ae3cb3bfc7d976cab10edafdb73341c3b">FacePtr</a> &amp;a_face) noexcept</td></tr>
-<tr class="memdesc:aed89e0450331d54b98c857fc25f0a38c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the pointer to this half-edge's face. <br /></td></tr>
-<tr class="separator:aed89e0450331d54b98c857fc25f0a38c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac42b8ece90004b01384346f11bf441e9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#ac42b8ece90004b01384346f11bf441e9">getVertex</a> () noexcept</td></tr>
-<tr class="memdesc:ac42b8ece90004b01384346f11bf441e9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get modifiable starting vertex.  <a href="classDCEL_1_1EdgeT.html#ac42b8ece90004b01384346f11bf441e9">More...</a><br /></td></tr>
-<tr class="separator:ac42b8ece90004b01384346f11bf441e9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7cfaea16298ec5e78a40e9ec34a2affe"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a7cfaea16298ec5e78a40e9ec34a2affe">getVertex</a> () const noexcept</td></tr>
-<tr class="memdesc:a7cfaea16298ec5e78a40e9ec34a2affe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get immutable starting vertex.  <a href="classDCEL_1_1EdgeT.html#a7cfaea16298ec5e78a40e9ec34a2affe">More...</a><br /></td></tr>
-<tr class="separator:a7cfaea16298ec5e78a40e9ec34a2affe"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3212d4a9cf2ea512bff17d1ec1f4136f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a3212d4a9cf2ea512bff17d1ec1f4136f">getOtherVertex</a> () noexcept</td></tr>
-<tr class="memdesc:a3212d4a9cf2ea512bff17d1ec1f4136f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get modifiable end vertex.  <a href="classDCEL_1_1EdgeT.html#a3212d4a9cf2ea512bff17d1ec1f4136f">More...</a><br /></td></tr>
-<tr class="separator:a3212d4a9cf2ea512bff17d1ec1f4136f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a94dacb67712ee13e6d9265938544fc41"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a94dacb67712ee13e6d9265938544fc41">getOtherVertex</a> () const noexcept</td></tr>
-<tr class="memdesc:a94dacb67712ee13e6d9265938544fc41"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get immutable end vertex.  <a href="classDCEL_1_1EdgeT.html#a94dacb67712ee13e6d9265938544fc41">More...</a><br /></td></tr>
-<tr class="separator:a94dacb67712ee13e6d9265938544fc41"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abd0ef2f61fcb1220de67bb7916eb73da"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#abd0ef2f61fcb1220de67bb7916eb73da">getPairEdge</a> () noexcept</td></tr>
-<tr class="memdesc:abd0ef2f61fcb1220de67bb7916eb73da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get modifiable pair edge.  <a href="classDCEL_1_1EdgeT.html#abd0ef2f61fcb1220de67bb7916eb73da">More...</a><br /></td></tr>
-<tr class="separator:abd0ef2f61fcb1220de67bb7916eb73da"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a520728d1c69900dd9548426cd645e873"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a520728d1c69900dd9548426cd645e873">getPairEdge</a> () const noexcept</td></tr>
-<tr class="memdesc:a520728d1c69900dd9548426cd645e873"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get immutable pair edge.  <a href="classDCEL_1_1EdgeT.html#a520728d1c69900dd9548426cd645e873">More...</a><br /></td></tr>
-<tr class="separator:a520728d1c69900dd9548426cd645e873"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9f55aa0a363649f628fab3065f89cfb0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a9f55aa0a363649f628fab3065f89cfb0">getNextEdge</a> () noexcept</td></tr>
-<tr class="memdesc:a9f55aa0a363649f628fab3065f89cfb0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get modifiable next edge.  <a href="classDCEL_1_1EdgeT.html#a9f55aa0a363649f628fab3065f89cfb0">More...</a><br /></td></tr>
-<tr class="separator:a9f55aa0a363649f628fab3065f89cfb0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acdd54292a931b2f199de966e63bbc8f6"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#acdd54292a931b2f199de966e63bbc8f6">getNextEdge</a> () const noexcept</td></tr>
-<tr class="memdesc:acdd54292a931b2f199de966e63bbc8f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get immutable next edge.  <a href="classDCEL_1_1EdgeT.html#acdd54292a931b2f199de966e63bbc8f6">More...</a><br /></td></tr>
-<tr class="separator:acdd54292a931b2f199de966e63bbc8f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a24a857c9a14284358779aaf6e7388760"><td class="memItemLeft" align="right" valign="top"><a id="a24a857c9a14284358779aaf6e7388760"></a>
-<a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a24a857c9a14284358779aaf6e7388760">computeNormal</a> () const noexcept</td></tr>
-<tr class="memdesc:a24a857c9a14284358779aaf6e7388760"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the normal vector. <br /></td></tr>
-<tr class="separator:a24a857c9a14284358779aaf6e7388760"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a349222d108ae28c398caa6736e421bc6"><td class="memItemLeft" align="right" valign="top"><a id="a349222d108ae28c398caa6736e421bc6"></a>
-const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a349222d108ae28c398caa6736e421bc6">getNormal</a> () const noexcept</td></tr>
-<tr class="memdesc:a349222d108ae28c398caa6736e421bc6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the normal vector. <br /></td></tr>
-<tr class="separator:a349222d108ae28c398caa6736e421bc6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a25138f48fda88c8707f3e014aa8d91b1"><td class="memItemLeft" align="right" valign="top"><a id="a25138f48fda88c8707f3e014aa8d91b1"></a>
-<a class="el" href="classDCEL_1_1EdgeT.html#ae3cb3bfc7d976cab10edafdb73341c3b">FacePtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a25138f48fda88c8707f3e014aa8d91b1">getFace</a> () noexcept</td></tr>
-<tr class="memdesc:a25138f48fda88c8707f3e014aa8d91b1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get modifiable half-edge face. <br /></td></tr>
-<tr class="separator:a25138f48fda88c8707f3e014aa8d91b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abac194b10831f8e4ccf82bc9ffa3107e"><td class="memItemLeft" align="right" valign="top"><a id="abac194b10831f8e4ccf82bc9ffa3107e"></a>
-const <a class="el" href="classDCEL_1_1EdgeT.html#ae3cb3bfc7d976cab10edafdb73341c3b">FacePtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#abac194b10831f8e4ccf82bc9ffa3107e">getFace</a> () const noexcept</td></tr>
-<tr class="memdesc:abac194b10831f8e4ccf82bc9ffa3107e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get immutable half-edge face. <br /></td></tr>
-<tr class="separator:abac194b10831f8e4ccf82bc9ffa3107e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a18ff0a6a6ff7ddfda2d2e5c67268e590"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a18ff0a6a6ff7ddfda2d2e5c67268e590">signedDistance</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#a77019436e02262607e9c1fc2e9e2f644">Vec3</a> &amp;a_x0) const noexcept</td></tr>
-<tr class="memdesc:a18ff0a6a6ff7ddfda2d2e5c67268e590"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the signed distance to this half edge.  <a href="classDCEL_1_1EdgeT.html#a18ff0a6a6ff7ddfda2d2e5c67268e590">More...</a><br /></td></tr>
-<tr class="separator:a18ff0a6a6ff7ddfda2d2e5c67268e590"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae1b52396099535d6eb4038172adb0ade"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#ae1b52396099535d6eb4038172adb0ade">unsignedDistance2</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#a77019436e02262607e9c1fc2e9e2f644">Vec3</a> &amp;a_x0) const noexcept</td></tr>
-<tr class="memdesc:ae1b52396099535d6eb4038172adb0ade"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the signed distance to this half edge.  <a href="classDCEL_1_1EdgeT.html#ae1b52396099535d6eb4038172adb0ade">More...</a><br /></td></tr>
-<tr class="separator:ae1b52396099535d6eb4038172adb0ade"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7d6a4bac06cf7700031b53588f89f37f"><td class="memItemLeft" align="right" valign="top"><a id="a7d6a4bac06cf7700031b53588f89f37f"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a7d6a4bac06cf7700031b53588f89f37f">EdgeT</a> ()</td></tr>
+<tr class="memdesc:a7d6a4bac06cf7700031b53588f89f37f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default constructor. Sets all pointers to zero and vectors to zero vectors. <br /></td></tr>
+<tr class="separator:a7d6a4bac06cf7700031b53588f89f37f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2ad0d44ec052d349c06a56a5dc97e386"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a2ad0d44ec052d349c06a56a5dc97e386">EdgeT</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#a6babcf06467338f436223a8c9e2ece49">Edge</a> &amp;a_otherEdge)</td></tr>
+<tr class="memdesc:a2ad0d44ec052d349c06a56a5dc97e386"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy constructor. Copies all information from the other half-edge.  <a href="classDCEL_1_1EdgeT.html#a2ad0d44ec052d349c06a56a5dc97e386">More...</a><br /></td></tr>
+<tr class="separator:a2ad0d44ec052d349c06a56a5dc97e386"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a22beabe0c14e97d5b899cbbde23d2557"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a22beabe0c14e97d5b899cbbde23d2557">EdgeT</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a> &amp;a_vertex)</td></tr>
+<tr class="memdesc:a22beabe0c14e97d5b899cbbde23d2557"><td class="mdescLeft">&#160;</td><td class="mdescRight">Partial constructor. Calls the default constructor but sets the starting vertex.  <a href="classDCEL_1_1EdgeT.html#a22beabe0c14e97d5b899cbbde23d2557">More...</a><br /></td></tr>
+<tr class="separator:a22beabe0c14e97d5b899cbbde23d2557"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af109f236cf298660d755183e5adc64f3"><td class="memItemLeft" align="right" valign="top"><a id="af109f236cf298660d755183e5adc64f3"></a>
+virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#af109f236cf298660d755183e5adc64f3">~EdgeT</a> ()</td></tr>
+<tr class="memdesc:af109f236cf298660d755183e5adc64f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor (does nothing) <br /></td></tr>
+<tr class="separator:af109f236cf298660d755183e5adc64f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af66109de5c8d32c3c2cd6f437098e5ea"><td class="memItemLeft" align="right" valign="top"><a id="af66109de5c8d32c3c2cd6f437098e5ea"></a>
+size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#af66109de5c8d32c3c2cd6f437098e5ea">size</a> () const noexcept</td></tr>
+<tr class="memdesc:af66109de5c8d32c3c2cd6f437098e5ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get size (in bytes) of this object. <br /></td></tr>
+<tr class="separator:af66109de5c8d32c3c2cd6f437098e5ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aab8aa1da01bff6072fb20fd8b6603231"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#aab8aa1da01bff6072fb20fd8b6603231">define</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a> &amp;a_vertex, const <a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a> &amp;a_pairEdge, const <a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a> &amp;a_nextEdge) noexcept</td></tr>
+<tr class="memdesc:aab8aa1da01bff6072fb20fd8b6603231"><td class="mdescLeft">&#160;</td><td class="mdescRight">Define function. Sets the starting vertex, edges, and normal vectors.  <a href="classDCEL_1_1EdgeT.html#aab8aa1da01bff6072fb20fd8b6603231">More...</a><br /></td></tr>
+<tr class="separator:aab8aa1da01bff6072fb20fd8b6603231"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a33d26785005757d0ced31a6dff25325c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a33d26785005757d0ced31a6dff25325c">reconcile</a> () noexcept</td></tr>
+<tr class="memdesc:a33d26785005757d0ced31a6dff25325c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reconcile internal logic.  <a href="classDCEL_1_1EdgeT.html#a33d26785005757d0ced31a6dff25325c">More...</a><br /></td></tr>
+<tr class="separator:a33d26785005757d0ced31a6dff25325c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af8ca653a9e395cf4f74293885933c8c6"><td class="memItemLeft" align="right" valign="top"><a id="af8ca653a9e395cf4f74293885933c8c6"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#af8ca653a9e395cf4f74293885933c8c6">flip</a> () noexcept</td></tr>
+<tr class="memdesc:af8ca653a9e395cf4f74293885933c8c6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flip surface normal. <br /></td></tr>
+<tr class="separator:af8ca653a9e395cf4f74293885933c8c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac59ffbe1f850270559e1bd3ba6106fb7"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#ac59ffbe1f850270559e1bd3ba6106fb7">setVertex</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a> &amp;a_vertex) noexcept</td></tr>
+<tr class="memdesc:ac59ffbe1f850270559e1bd3ba6106fb7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the starting vertex.  <a href="classDCEL_1_1EdgeT.html#ac59ffbe1f850270559e1bd3ba6106fb7">More...</a><br /></td></tr>
+<tr class="separator:ac59ffbe1f850270559e1bd3ba6106fb7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa43663143002611e6161da154b1aa813"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#aa43663143002611e6161da154b1aa813">setPairEdge</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a> &amp;a_pairEdge) noexcept</td></tr>
+<tr class="memdesc:aa43663143002611e6161da154b1aa813"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the pair edge.  <a href="classDCEL_1_1EdgeT.html#aa43663143002611e6161da154b1aa813">More...</a><br /></td></tr>
+<tr class="separator:aa43663143002611e6161da154b1aa813"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4dbe68b4013bee78c8fe31b919769ad5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a4dbe68b4013bee78c8fe31b919769ad5">setNextEdge</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a> &amp;a_nextEdge) noexcept</td></tr>
+<tr class="memdesc:a4dbe68b4013bee78c8fe31b919769ad5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the next edge.  <a href="classDCEL_1_1EdgeT.html#a4dbe68b4013bee78c8fe31b919769ad5">More...</a><br /></td></tr>
+<tr class="separator:a4dbe68b4013bee78c8fe31b919769ad5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a74724359b69fb391b483670a04b73709"><td class="memItemLeft" align="right" valign="top"><a id="a74724359b69fb391b483670a04b73709"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a74724359b69fb391b483670a04b73709">setFace</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#a638f92abf9bd625ef1809123a8819bea">FacePtr</a> &amp;a_face) noexcept</td></tr>
+<tr class="memdesc:a74724359b69fb391b483670a04b73709"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the pointer to this half-edge's face. <br /></td></tr>
+<tr class="separator:a74724359b69fb391b483670a04b73709"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1bf2a31b77307cf07c82aa2e0dfe9388"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a1bf2a31b77307cf07c82aa2e0dfe9388">getVertex</a> () noexcept</td></tr>
+<tr class="memdesc:a1bf2a31b77307cf07c82aa2e0dfe9388"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get modifiable starting vertex.  <a href="classDCEL_1_1EdgeT.html#a1bf2a31b77307cf07c82aa2e0dfe9388">More...</a><br /></td></tr>
+<tr class="separator:a1bf2a31b77307cf07c82aa2e0dfe9388"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adc0491771351e5c9a9f8653ffcef7a69"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#adc0491771351e5c9a9f8653ffcef7a69">getVertex</a> () const noexcept</td></tr>
+<tr class="memdesc:adc0491771351e5c9a9f8653ffcef7a69"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get immutable starting vertex.  <a href="classDCEL_1_1EdgeT.html#adc0491771351e5c9a9f8653ffcef7a69">More...</a><br /></td></tr>
+<tr class="separator:adc0491771351e5c9a9f8653ffcef7a69"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7d18ba902893d2f86ff64157e700976a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a7d18ba902893d2f86ff64157e700976a">getOtherVertex</a> () noexcept</td></tr>
+<tr class="memdesc:a7d18ba902893d2f86ff64157e700976a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get modifiable end vertex.  <a href="classDCEL_1_1EdgeT.html#a7d18ba902893d2f86ff64157e700976a">More...</a><br /></td></tr>
+<tr class="separator:a7d18ba902893d2f86ff64157e700976a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0fd2844ddcf95c6eb6cbb7e06cf75600"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a0fd2844ddcf95c6eb6cbb7e06cf75600">getOtherVertex</a> () const noexcept</td></tr>
+<tr class="memdesc:a0fd2844ddcf95c6eb6cbb7e06cf75600"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get immutable end vertex.  <a href="classDCEL_1_1EdgeT.html#a0fd2844ddcf95c6eb6cbb7e06cf75600">More...</a><br /></td></tr>
+<tr class="separator:a0fd2844ddcf95c6eb6cbb7e06cf75600"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aab2e986e2e4fa89da9c29a004f36b712"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#aab2e986e2e4fa89da9c29a004f36b712">getPairEdge</a> () noexcept</td></tr>
+<tr class="memdesc:aab2e986e2e4fa89da9c29a004f36b712"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get modifiable pair edge.  <a href="classDCEL_1_1EdgeT.html#aab2e986e2e4fa89da9c29a004f36b712">More...</a><br /></td></tr>
+<tr class="separator:aab2e986e2e4fa89da9c29a004f36b712"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abda1fbe9a16eb071738f07ed58303250"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#abda1fbe9a16eb071738f07ed58303250">getPairEdge</a> () const noexcept</td></tr>
+<tr class="memdesc:abda1fbe9a16eb071738f07ed58303250"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get immutable pair edge.  <a href="classDCEL_1_1EdgeT.html#abda1fbe9a16eb071738f07ed58303250">More...</a><br /></td></tr>
+<tr class="separator:abda1fbe9a16eb071738f07ed58303250"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaf57aeba89ddf797da74065a68928b18"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#aaf57aeba89ddf797da74065a68928b18">getNextEdge</a> () noexcept</td></tr>
+<tr class="memdesc:aaf57aeba89ddf797da74065a68928b18"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get modifiable next edge.  <a href="classDCEL_1_1EdgeT.html#aaf57aeba89ddf797da74065a68928b18">More...</a><br /></td></tr>
+<tr class="separator:aaf57aeba89ddf797da74065a68928b18"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a181d58d21ae4a47166b54b78d9096d76"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a181d58d21ae4a47166b54b78d9096d76">getNextEdge</a> () const noexcept</td></tr>
+<tr class="memdesc:a181d58d21ae4a47166b54b78d9096d76"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get immutable next edge.  <a href="classDCEL_1_1EdgeT.html#a181d58d21ae4a47166b54b78d9096d76">More...</a><br /></td></tr>
+<tr class="separator:a181d58d21ae4a47166b54b78d9096d76"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0ef4a18fe6bbfb260d5ffff8d0e3f21d"><td class="memItemLeft" align="right" valign="top"><a id="a0ef4a18fe6bbfb260d5ffff8d0e3f21d"></a>
+<a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a0ef4a18fe6bbfb260d5ffff8d0e3f21d">computeNormal</a> () const noexcept</td></tr>
+<tr class="memdesc:a0ef4a18fe6bbfb260d5ffff8d0e3f21d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the normal vector. <br /></td></tr>
+<tr class="separator:a0ef4a18fe6bbfb260d5ffff8d0e3f21d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0fc5d0e0f2ea29eaf60ad65bfbaceed6"><td class="memItemLeft" align="right" valign="top"><a id="a0fc5d0e0f2ea29eaf60ad65bfbaceed6"></a>
+const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a0fc5d0e0f2ea29eaf60ad65bfbaceed6">getNormal</a> () const noexcept</td></tr>
+<tr class="memdesc:a0fc5d0e0f2ea29eaf60ad65bfbaceed6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the normal vector. <br /></td></tr>
+<tr class="separator:a0fc5d0e0f2ea29eaf60ad65bfbaceed6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa3509c010a6c161450541087a855ea50"><td class="memItemLeft" align="right" valign="top"><a id="aa3509c010a6c161450541087a855ea50"></a>
+<a class="el" href="classDCEL_1_1EdgeT.html#a638f92abf9bd625ef1809123a8819bea">FacePtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#aa3509c010a6c161450541087a855ea50">getFace</a> () noexcept</td></tr>
+<tr class="memdesc:aa3509c010a6c161450541087a855ea50"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get modifiable half-edge face. <br /></td></tr>
+<tr class="separator:aa3509c010a6c161450541087a855ea50"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a08bb212dc77719beded252e3081acd88"><td class="memItemLeft" align="right" valign="top"><a id="a08bb212dc77719beded252e3081acd88"></a>
+const <a class="el" href="classDCEL_1_1EdgeT.html#a638f92abf9bd625ef1809123a8819bea">FacePtr</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a08bb212dc77719beded252e3081acd88">getFace</a> () const noexcept</td></tr>
+<tr class="memdesc:a08bb212dc77719beded252e3081acd88"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get immutable half-edge face. <br /></td></tr>
+<tr class="separator:a08bb212dc77719beded252e3081acd88"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0e880d81f9a4ad429035fcb70550557a"><td class="memItemLeft" align="right" valign="top">Meta &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a0e880d81f9a4ad429035fcb70550557a">getMetaData</a> () noexcept</td></tr>
+<tr class="memdesc:a0e880d81f9a4ad429035fcb70550557a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get meta-data.  <a href="classDCEL_1_1EdgeT.html#a0e880d81f9a4ad429035fcb70550557a">More...</a><br /></td></tr>
+<tr class="separator:a0e880d81f9a4ad429035fcb70550557a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6a2a1673beb60a63b7bd3a45a17960e8"><td class="memItemLeft" align="right" valign="top">const Meta &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a6a2a1673beb60a63b7bd3a45a17960e8">getMetaData</a> () const noexcept</td></tr>
+<tr class="memdesc:a6a2a1673beb60a63b7bd3a45a17960e8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get meta-data.  <a href="classDCEL_1_1EdgeT.html#a6a2a1673beb60a63b7bd3a45a17960e8">More...</a><br /></td></tr>
+<tr class="separator:a6a2a1673beb60a63b7bd3a45a17960e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aadeb669045861bea4c55c5bd5bcb2649"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#aadeb669045861bea4c55c5bd5bcb2649">signedDistance</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#a6feb0f17e8065243b40586b02e2e9e89">Vec3</a> &amp;a_x0) const noexcept</td></tr>
+<tr class="memdesc:aadeb669045861bea4c55c5bd5bcb2649"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the signed distance to this half edge.  <a href="classDCEL_1_1EdgeT.html#aadeb669045861bea4c55c5bd5bcb2649">More...</a><br /></td></tr>
+<tr class="separator:aadeb669045861bea4c55c5bd5bcb2649"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abd25e92deeae55a569a67d503b1d18ed"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#abd25e92deeae55a569a67d503b1d18ed">unsignedDistance2</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#a6feb0f17e8065243b40586b02e2e9e89">Vec3</a> &amp;a_x0) const noexcept</td></tr>
+<tr class="memdesc:abd25e92deeae55a569a67d503b1d18ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the signed distance to this half edge.  <a href="classDCEL_1_1EdgeT.html#abd25e92deeae55a569a67d503b1d18ed">More...</a><br /></td></tr>
+<tr class="separator:abd25e92deeae55a569a67d503b1d18ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
-<tr class="memitem:ad3d93918b8ccbbdfba50d74107f162d7"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#ad3d93918b8ccbbdfba50d74107f162d7">projectPointToEdge</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#a77019436e02262607e9c1fc2e9e2f644">Vec3</a> &amp;a_x0) const noexcept</td></tr>
-<tr class="memdesc:ad3d93918b8ccbbdfba50d74107f162d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the "projection" of a point to an edge.  <a href="classDCEL_1_1EdgeT.html#ad3d93918b8ccbbdfba50d74107f162d7">More...</a><br /></td></tr>
-<tr class="separator:ad3d93918b8ccbbdfba50d74107f162d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aeccf25dc0091e36d2bc249bc8542feca"><td class="memItemLeft" align="right" valign="top"><a id="aeccf25dc0091e36d2bc249bc8542feca"></a>
-<a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#aeccf25dc0091e36d2bc249bc8542feca">getX2X1</a> () const noexcept</td></tr>
-<tr class="memdesc:aeccf25dc0091e36d2bc249bc8542feca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the vector pointing along this edge. <br /></td></tr>
-<tr class="separator:aeccf25dc0091e36d2bc249bc8542feca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a21db14521528521ada23da7f22c05dab"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a21db14521528521ada23da7f22c05dab">projectPointToEdge</a> (const <a class="el" href="classDCEL_1_1EdgeT.html#a6feb0f17e8065243b40586b02e2e9e89">Vec3</a> &amp;a_x0) const noexcept</td></tr>
+<tr class="memdesc:a21db14521528521ada23da7f22c05dab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the "projection" of a point to an edge.  <a href="classDCEL_1_1EdgeT.html#a21db14521528521ada23da7f22c05dab">More...</a><br /></td></tr>
+<tr class="separator:a21db14521528521ada23da7f22c05dab"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af76b987074a1ade7302bef81be91856f"><td class="memItemLeft" align="right" valign="top"><a id="af76b987074a1ade7302bef81be91856f"></a>
+<a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#af76b987074a1ade7302bef81be91856f">getX2X1</a> () const noexcept</td></tr>
+<tr class="memdesc:af76b987074a1ade7302bef81be91856f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the vector pointing along this edge. <br /></td></tr>
+<tr class="separator:af76b987074a1ade7302bef81be91856f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
-<tr class="memitem:a93c04beec0547743780d4382c21bd5fa"><td class="memItemLeft" align="right" valign="top"><a id="a93c04beec0547743780d4382c21bd5fa"></a>
-<a class="el" href="classDCEL_1_1EdgeT.html#a77019436e02262607e9c1fc2e9e2f644">Vec3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a93c04beec0547743780d4382c21bd5fa">m_normal</a></td></tr>
-<tr class="memdesc:a93c04beec0547743780d4382c21bd5fa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Normal vector. <br /></td></tr>
-<tr class="separator:a93c04beec0547743780d4382c21bd5fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a53ac2f18c3b35dd9ce9a6bc27063e75a"><td class="memItemLeft" align="right" valign="top"><a id="a53ac2f18c3b35dd9ce9a6bc27063e75a"></a>
-<a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a53ac2f18c3b35dd9ce9a6bc27063e75a">m_vertex</a></td></tr>
-<tr class="memdesc:a53ac2f18c3b35dd9ce9a6bc27063e75a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Starting vertex. <br /></td></tr>
-<tr class="separator:a53ac2f18c3b35dd9ce9a6bc27063e75a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae90cc2bf7a4e44d70de58433fc505413"><td class="memItemLeft" align="right" valign="top"><a id="ae90cc2bf7a4e44d70de58433fc505413"></a>
-<a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#ae90cc2bf7a4e44d70de58433fc505413">m_pairEdge</a></td></tr>
-<tr class="memdesc:ae90cc2bf7a4e44d70de58433fc505413"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pair edge. <br /></td></tr>
-<tr class="separator:ae90cc2bf7a4e44d70de58433fc505413"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afe2f21d7aee79d1ebf93d73282fdbfcd"><td class="memItemLeft" align="right" valign="top"><a id="afe2f21d7aee79d1ebf93d73282fdbfcd"></a>
-<a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#afe2f21d7aee79d1ebf93d73282fdbfcd">m_nextEdge</a></td></tr>
-<tr class="memdesc:afe2f21d7aee79d1ebf93d73282fdbfcd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Next edge. <br /></td></tr>
-<tr class="separator:afe2f21d7aee79d1ebf93d73282fdbfcd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aea50c2f1be02917cd517778fa53b0584"><td class="memItemLeft" align="right" valign="top"><a id="aea50c2f1be02917cd517778fa53b0584"></a>
-<a class="el" href="classDCEL_1_1EdgeT.html#ae3cb3bfc7d976cab10edafdb73341c3b">FacePtr</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#aea50c2f1be02917cd517778fa53b0584">m_face</a></td></tr>
-<tr class="memdesc:aea50c2f1be02917cd517778fa53b0584"><td class="mdescLeft">&#160;</td><td class="mdescRight">Enclosing polygon face. <br /></td></tr>
-<tr class="separator:aea50c2f1be02917cd517778fa53b0584"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaa09ba81495619c68f5ac2ea116f2af4"><td class="memItemLeft" align="right" valign="top"><a id="aaa09ba81495619c68f5ac2ea116f2af4"></a>
+<a class="el" href="classDCEL_1_1EdgeT.html#a6feb0f17e8065243b40586b02e2e9e89">Vec3</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#aaa09ba81495619c68f5ac2ea116f2af4">m_normal</a></td></tr>
+<tr class="memdesc:aaa09ba81495619c68f5ac2ea116f2af4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Normal vector. <br /></td></tr>
+<tr class="separator:aaa09ba81495619c68f5ac2ea116f2af4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a28df026b6d9929c8516d19c0a6ca1691"><td class="memItemLeft" align="right" valign="top"><a id="a28df026b6d9929c8516d19c0a6ca1691"></a>
+<a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a28df026b6d9929c8516d19c0a6ca1691">m_vertex</a></td></tr>
+<tr class="memdesc:a28df026b6d9929c8516d19c0a6ca1691"><td class="mdescLeft">&#160;</td><td class="mdescRight">Starting vertex. <br /></td></tr>
+<tr class="separator:a28df026b6d9929c8516d19c0a6ca1691"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:affc4540d9577d941399ed46d3a028473"><td class="memItemLeft" align="right" valign="top"><a id="affc4540d9577d941399ed46d3a028473"></a>
+<a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#affc4540d9577d941399ed46d3a028473">m_pairEdge</a></td></tr>
+<tr class="memdesc:affc4540d9577d941399ed46d3a028473"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pair edge. <br /></td></tr>
+<tr class="separator:affc4540d9577d941399ed46d3a028473"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a07d7bf0ffb15a58590611bdf1a2d028d"><td class="memItemLeft" align="right" valign="top"><a id="a07d7bf0ffb15a58590611bdf1a2d028d"></a>
+<a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a07d7bf0ffb15a58590611bdf1a2d028d">m_nextEdge</a></td></tr>
+<tr class="memdesc:a07d7bf0ffb15a58590611bdf1a2d028d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Next edge. <br /></td></tr>
+<tr class="separator:a07d7bf0ffb15a58590611bdf1a2d028d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac583a0c4ad4afaff31bb96c2f40eda40"><td class="memItemLeft" align="right" valign="top"><a id="ac583a0c4ad4afaff31bb96c2f40eda40"></a>
+<a class="el" href="classDCEL_1_1EdgeT.html#a638f92abf9bd625ef1809123a8819bea">FacePtr</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#ac583a0c4ad4afaff31bb96c2f40eda40">m_face</a></td></tr>
+<tr class="memdesc:ac583a0c4ad4afaff31bb96c2f40eda40"><td class="mdescLeft">&#160;</td><td class="mdescRight">Enclosing polygon face. <br /></td></tr>
+<tr class="separator:ac583a0c4ad4afaff31bb96c2f40eda40"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a89b904780df8bf86cd8ed74c674123fa"><td class="memItemLeft" align="right" valign="top"><a id="a89b904780df8bf86cd8ed74c674123fa"></a>
+Meta&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDCEL_1_1EdgeT.html#a89b904780df8bf86cd8ed74c674123fa">m_metaData</a></td></tr>
+<tr class="memdesc:a89b904780df8bf86cd8ed74c674123fa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Meta-data attached to this edge. <br /></td></tr>
+<tr class="separator:a89b904780df8bf86cd8ed74c674123fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><h3>template&lt;class T&gt;<br />
-class DCEL::EdgeT&lt; T &gt;</h3>
+<div class="textblock"><h3>template&lt;class T, class Meta&gt;<br />
+class DCEL::EdgeT&lt; T, Meta &gt;</h3>
 
-<p>Class which represents a half-edge in a double-edge connected list (<a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a>). </p>
-<p>This class is used in <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> functionality which stores polygonal surfaces in a mesh. The information contain in an <a class="el" href="classDCEL_1_1EdgeT.html" title="Class which represents a half-edge in a double-edge connected list (DCEL).">EdgeT</a> object contains the necessary object for logically circulating the inside of a polygon face. This means that a polygon face has a double-connected list of half-edges which circulate the interior of the face. The <a class="el" href="classDCEL_1_1EdgeT.html" title="Class which represents a half-edge in a double-edge connected list (DCEL).">EdgeT</a> object is such a half-edge; it represents the outgoing half-edge from a vertex, located such that it can be logically represented as a half edge on the "inside" of a polygon face. It contains pointers to the polygon face, vertex, and next half edge It also contains a pointer to the "pair" half edge, i.e. the corresponding half-edge on the other face that shares this edge. Since this class is used with <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> functionality and signed distance fields, this class also has a signed distance function and thus a "normal vector". </p><dl class="section note"><dt>Note</dt><dd>The normal vector is outgoing, i.e. a point x is "outside" if the dot product between n and (x - x0) is positive. </dd></dl>
+<p>Edge class. </p>
+<p>Class which represents a half-edge in a double-edge connected list (<a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a>).</p>
+<p>This class is used in <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> functionality which stores polygonal surfaces in a mesh. The information contain in an <a class="el" href="classDCEL_1_1EdgeT.html" title="Edge class.">EdgeT</a> object contains the necessary object for logically circulating the inside of a polygon face. This means that a polygon face has a double-connected list of half-edges which circulate the interior of the face. The <a class="el" href="classDCEL_1_1EdgeT.html" title="Edge class.">EdgeT</a> object is such a half-edge; it represents the outgoing half-edge from a vertex, located such that it can be logically represented as a half edge on the "inside" of a polygon face. It contains pointers to the polygon face, vertex, and next half edge It also contains a pointer to the "pair" half edge, i.e. the corresponding half-edge on the other face that shares this edge. Since this class is used with <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> functionality and signed distance fields, this class also has a signed distance function and thus a "normal vector". </p><dl class="section note"><dt>Note</dt><dd>The normal vector is outgoing, i.e. a point x is "outside" if the dot product between n and (x - x0) is positive. </dd></dl>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a483a66bf406e38074083ea14af52800c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a483a66bf406e38074083ea14af52800c">&#9670;&nbsp;</a></span>EdgeT() <span class="overload">[1/2]</span></h2>
+<a id="a2ad0d44ec052d349c06a56a5dc97e386"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2ad0d44ec052d349c06a56a5dc97e386">&#9670;&nbsp;</a></span>EdgeT() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::<a class="el" href="classDCEL_1_1EdgeT.html">EdgeT</a> </td>
+          <td class="memname"><a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::<a class="el" href="classDCEL_1_1EdgeT.html">EdgeT</a> </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#afa20c9103e63aa41a790ebefb4a10d3d">Edge</a> &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#a6babcf06467338f436223a8c9e2ece49">Edge</a> &amp;&#160;</td>
           <td class="paramname"><em>a_otherEdge</em></td><td>)</td>
           <td></td>
         </tr>
@@ -271,18 +282,18 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="a22348f1a0b084dd984dd3b2a501d485a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a22348f1a0b084dd984dd3b2a501d485a">&#9670;&nbsp;</a></span>EdgeT() <span class="overload">[2/2]</span></h2>
+<a id="a22beabe0c14e97d5b899cbbde23d2557"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a22beabe0c14e97d5b899cbbde23d2557">&#9670;&nbsp;</a></span>EdgeT() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::<a class="el" href="classDCEL_1_1EdgeT.html">EdgeT</a> </td>
+          <td class="memname"><a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::<a class="el" href="classDCEL_1_1EdgeT.html">EdgeT</a> </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a> &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a> &amp;&#160;</td>
           <td class="paramname"><em>a_vertex</em></td><td>)</td>
           <td></td>
         </tr>
@@ -300,33 +311,33 @@ template&lt;class T &gt; </div>
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="a721cf5dce17568d6dce376f3a79fa817"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a721cf5dce17568d6dce376f3a79fa817">&#9670;&nbsp;</a></span>define()</h2>
+<a id="aab8aa1da01bff6072fb20fd8b6603231"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aab8aa1da01bff6072fb20fd8b6603231">&#9670;&nbsp;</a></span>define()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::define </td>
+          <td class="memname">void <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::define </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a> &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a> &amp;&#160;</td>
           <td class="paramname"><em>a_vertex</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a> &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a> &amp;&#160;</td>
           <td class="paramname"><em>a_pairEdge</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a> &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a> &amp;&#160;</td>
           <td class="paramname"><em>a_nextEdge</em>&#160;</td>
         </tr>
         <tr>
@@ -354,19 +365,79 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="acdd54292a931b2f199de966e63bbc8f6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acdd54292a931b2f199de966e63bbc8f6">&#9670;&nbsp;</a></span>getNextEdge() <span class="overload">[1/2]</span></h2>
+<a id="a6a2a1673beb60a63b7bd3a45a17960e8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6a2a1673beb60a63b7bd3a45a17960e8">&#9670;&nbsp;</a></span>getMetaData() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">const <a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::getNextEdge </td>
+          <td class="memname">const Meta&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::getMetaData </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Get meta-data. </p>
+<dl class="section return"><dt>Returns</dt><dd>m_metaData </dd></dl>
+
+</div>
+</div>
+<a id="a0e880d81f9a4ad429035fcb70550557a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0e880d81f9a4ad429035fcb70550557a">&#9670;&nbsp;</a></span>getMetaData() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T , class Meta &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">Meta&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::getMetaData </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Get meta-data. </p>
+<dl class="section return"><dt>Returns</dt><dd>m_metaData </dd></dl>
+
+</div>
+</div>
+<a id="a181d58d21ae4a47166b54b78d9096d76"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a181d58d21ae4a47166b54b78d9096d76">&#9670;&nbsp;</a></span>getNextEdge() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T , class Meta &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const <a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::getNextEdge </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -384,19 +455,19 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="a9f55aa0a363649f628fab3065f89cfb0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9f55aa0a363649f628fab3065f89cfb0">&#9670;&nbsp;</a></span>getNextEdge() <span class="overload">[2/2]</span></h2>
+<a id="aaf57aeba89ddf797da74065a68928b18"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaf57aeba89ddf797da74065a68928b18">&#9670;&nbsp;</a></span>getNextEdge() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::getNextEdge </td>
+          <td class="memname"><a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::getNextEdge </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -414,19 +485,19 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="a94dacb67712ee13e6d9265938544fc41"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a94dacb67712ee13e6d9265938544fc41">&#9670;&nbsp;</a></span>getOtherVertex() <span class="overload">[1/2]</span></h2>
+<a id="a0fd2844ddcf95c6eb6cbb7e06cf75600"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0fd2844ddcf95c6eb6cbb7e06cf75600">&#9670;&nbsp;</a></span>getOtherVertex() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">const <a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::getOtherVertex </td>
+          <td class="memname">const <a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::getOtherVertex </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -444,19 +515,19 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="a3212d4a9cf2ea512bff17d1ec1f4136f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3212d4a9cf2ea512bff17d1ec1f4136f">&#9670;&nbsp;</a></span>getOtherVertex() <span class="overload">[2/2]</span></h2>
+<a id="a7d18ba902893d2f86ff64157e700976a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7d18ba902893d2f86ff64157e700976a">&#9670;&nbsp;</a></span>getOtherVertex() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::getOtherVertex </td>
+          <td class="memname"><a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::getOtherVertex </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -474,19 +545,19 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="a520728d1c69900dd9548426cd645e873"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a520728d1c69900dd9548426cd645e873">&#9670;&nbsp;</a></span>getPairEdge() <span class="overload">[1/2]</span></h2>
+<a id="abda1fbe9a16eb071738f07ed58303250"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abda1fbe9a16eb071738f07ed58303250">&#9670;&nbsp;</a></span>getPairEdge() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">const <a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::getPairEdge </td>
+          <td class="memname">const <a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::getPairEdge </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -504,19 +575,19 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="abd0ef2f61fcb1220de67bb7916eb73da"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abd0ef2f61fcb1220de67bb7916eb73da">&#9670;&nbsp;</a></span>getPairEdge() <span class="overload">[2/2]</span></h2>
+<a id="aab2e986e2e4fa89da9c29a004f36b712"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aab2e986e2e4fa89da9c29a004f36b712">&#9670;&nbsp;</a></span>getPairEdge() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::getPairEdge </td>
+          <td class="memname"><a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::getPairEdge </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -534,19 +605,19 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="a7cfaea16298ec5e78a40e9ec34a2affe"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7cfaea16298ec5e78a40e9ec34a2affe">&#9670;&nbsp;</a></span>getVertex() <span class="overload">[1/2]</span></h2>
+<a id="adc0491771351e5c9a9f8653ffcef7a69"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adc0491771351e5c9a9f8653ffcef7a69">&#9670;&nbsp;</a></span>getVertex() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">const <a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::getVertex </td>
+          <td class="memname">const <a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::getVertex </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -564,19 +635,19 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="ac42b8ece90004b01384346f11bf441e9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac42b8ece90004b01384346f11bf441e9">&#9670;&nbsp;</a></span>getVertex() <span class="overload">[2/2]</span></h2>
+<a id="a1bf2a31b77307cf07c82aa2e0dfe9388"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1bf2a31b77307cf07c82aa2e0dfe9388">&#9670;&nbsp;</a></span>getVertex() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::getVertex </td>
+          <td class="memname"><a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a>&amp; <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::getVertex </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -594,21 +665,21 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="ad3d93918b8ccbbdfba50d74107f162d7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad3d93918b8ccbbdfba50d74107f162d7">&#9670;&nbsp;</a></span>projectPointToEdge()</h2>
+<a id="a21db14521528521ada23da7f22c05dab"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a21db14521528521ada23da7f22c05dab">&#9670;&nbsp;</a></span>projectPointToEdge()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">T <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::projectPointToEdge </td>
+          <td class="memname">T <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::projectPointToEdge </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#a77019436e02262607e9c1fc2e9e2f644">Vec3</a> &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#a6feb0f17e8065243b40586b02e2e9e89">Vec3</a> &amp;&#160;</td>
           <td class="paramname"><em>a_x0</em></td><td>)</td>
           <td> const</td>
         </tr>
@@ -625,19 +696,19 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="af205c6581568dafe9daa31d693550127"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af205c6581568dafe9daa31d693550127">&#9670;&nbsp;</a></span>reconcile()</h2>
+<a id="a33d26785005757d0ced31a6dff25325c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a33d26785005757d0ced31a6dff25325c">&#9670;&nbsp;</a></span>reconcile()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::reconcile </td>
+          <td class="memname">void <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::reconcile </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -655,21 +726,21 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="afcedb51849b8a2976a689b5d41591d5c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afcedb51849b8a2976a689b5d41591d5c">&#9670;&nbsp;</a></span>setNextEdge()</h2>
+<a id="a4dbe68b4013bee78c8fe31b919769ad5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4dbe68b4013bee78c8fe31b919769ad5">&#9670;&nbsp;</a></span>setNextEdge()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::setNextEdge </td>
+          <td class="memname">void <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::setNextEdge </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a> &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a> &amp;&#160;</td>
           <td class="paramname"><em>a_nextEdge</em></td><td>)</td>
           <td></td>
         </tr>
@@ -691,21 +762,21 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="a91b996c2569dfea4689508f6038226aa"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a91b996c2569dfea4689508f6038226aa">&#9670;&nbsp;</a></span>setPairEdge()</h2>
+<a id="aa43663143002611e6161da154b1aa813"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa43663143002611e6161da154b1aa813">&#9670;&nbsp;</a></span>setPairEdge()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::setPairEdge </td>
+          <td class="memname">void <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::setPairEdge </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#acfa5d7602f5c3b4cc4812c0a8c5132fd">EdgePtr</a> &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#a48b8a5a2c50fd7376cf5c32ff045e6ba">EdgePtr</a> &amp;&#160;</td>
           <td class="paramname"><em>a_pairEdge</em></td><td>)</td>
           <td></td>
         </tr>
@@ -727,21 +798,21 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="ab439e26a598ae3337ae2b69285059667"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab439e26a598ae3337ae2b69285059667">&#9670;&nbsp;</a></span>setVertex()</h2>
+<a id="ac59ffbe1f850270559e1bd3ba6106fb7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac59ffbe1f850270559e1bd3ba6106fb7">&#9670;&nbsp;</a></span>setVertex()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::setVertex </td>
+          <td class="memname">void <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::setVertex </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#aee30f15b2c4e37ee4d09c1bb36fa146b">VertexPtr</a> &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#ab5d79a6663cd5e996a13747b55457013">VertexPtr</a> &amp;&#160;</td>
           <td class="paramname"><em>a_vertex</em></td><td>)</td>
           <td></td>
         </tr>
@@ -763,21 +834,21 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="a18ff0a6a6ff7ddfda2d2e5c67268e590"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a18ff0a6a6ff7ddfda2d2e5c67268e590">&#9670;&nbsp;</a></span>signedDistance()</h2>
+<a id="aadeb669045861bea4c55c5bd5bcb2649"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aadeb669045861bea4c55c5bd5bcb2649">&#9670;&nbsp;</a></span>signedDistance()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">T <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::signedDistance </td>
+          <td class="memname">T <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::signedDistance </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#a77019436e02262607e9c1fc2e9e2f644">Vec3</a> &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#a6feb0f17e8065243b40586b02e2e9e89">Vec3</a> &amp;&#160;</td>
           <td class="paramname"><em>a_x0</em></td><td>)</td>
           <td> const</td>
         </tr>
@@ -794,21 +865,21 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a id="ae1b52396099535d6eb4038172adb0ade"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae1b52396099535d6eb4038172adb0ade">&#9670;&nbsp;</a></span>unsignedDistance2()</h2>
+<a id="abd25e92deeae55a569a67d503b1d18ed"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abd25e92deeae55a569a67d503b1d18ed">&#9670;&nbsp;</a></span>unsignedDistance2()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class T &gt; </div>
+template&lt;class T , class Meta &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">T <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T &gt;::unsignedDistance2 </td>
+          <td class="memname">T <a class="el" href="classDCEL_1_1EdgeT.html">DCEL::EdgeT</a>&lt; T, Meta &gt;::unsignedDistance2 </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#a77019436e02262607e9c1fc2e9e2f644">Vec3</a> &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classDCEL_1_1EdgeT.html#a6feb0f17e8065243b40586b02e2e9e89">Vec3</a> &amp;&#160;</td>
           <td class="paramname"><em>a_x0</em></td><td>)</td>
           <td> const</td>
         </tr>
@@ -821,11 +892,12 @@ template&lt;class T &gt; </div>
 </div><div class="memdoc">
 
 <p>Get the signed distance to this half edge. </p>
-<p>This routine will check if the input point projects to the edge or one of the vertices. If it projectes to one of the vertices we compute the squared distance to the corresponding vertex. Otherwise we compute the squared distance of the projection to the edge. This is faster than <a class="el" href="classDCEL_1_1EdgeT.html#a18ff0a6a6ff7ddfda2d2e5c67268e590" title="Get the signed distance to this half edge.">signedDistance()</a> </p>
+<p>This routine will check if the input point projects to the edge or one of the vertices. If it projectes to one of the vertices we compute the squared distance to the corresponding vertex. Otherwise we compute the squared distance of the projection to the edge. This is faster than <a class="el" href="classDCEL_1_1EdgeT.html#aadeb669045861bea4c55c5bd5bcb2649" title="Get the signed distance to this half edge.">signedDistance()</a> </p>
 
 </div>
 </div>
-<hr/>The documentation for this class was generated from the following file:<ul>
+<hr/>The documentation for this class was generated from the following files:<ul>
+<li>/home/runner/work/EBGeometry/EBGeometry/Source/<a class="el" href="EBGeometry__DCEL_8hpp_source.html">EBGeometry_DCEL.hpp</a></li>
 <li>/home/runner/work/EBGeometry/EBGeometry/Source/<a class="el" href="EBGeometry__DCEL__Edge_8hpp_source.html">EBGeometry_DCEL_Edge.hpp</a></li>
 </ul>
 </div><!-- contents -->

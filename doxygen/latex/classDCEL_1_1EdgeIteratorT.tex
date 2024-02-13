@@ -1,8 +1,8 @@
-\hypertarget{classDCEL_1_1EdgeIteratorT}{}\doxysection{DCEL\+::Edge\+IteratorT$<$ T $>$ Class Template Reference}
-\label{classDCEL_1_1EdgeIteratorT}\index{DCEL::EdgeIteratorT$<$ T $>$@{DCEL::EdgeIteratorT$<$ T $>$}}
+\hypertarget{classDCEL_1_1EdgeIteratorT}{}\doxysection{DCEL\+::Edge\+IteratorT$<$ T, Meta $>$ Class Template Reference}
+\label{classDCEL_1_1EdgeIteratorT}\index{DCEL::EdgeIteratorT$<$ T, Meta $>$@{DCEL::EdgeIteratorT$<$ T, Meta $>$}}
 
 
-Class which makes it easier to iterate through \mbox{\hyperlink{namespaceDCEL}{DCEL}} edges.  
+Edge iterator class.  
 
 
 
@@ -12,78 +12,80 @@ Class which makes it easier to iterate through \mbox{\hyperlink{namespaceDCEL}{D
 \doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a23d60449bf14a9e6951317b18509bc01}\label{classDCEL_1_1EdgeIteratorT_a23d60449bf14a9e6951317b18509bc01}} 
-using \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a23d60449bf14a9e6951317b18509bc01}{Vertex}} = \mbox{\hyperlink{classDCEL_1_1VertexT}{VertexT}}$<$ T $>$
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_ac42b2bd37eb33ace1564c611ba881d76}\label{classDCEL_1_1EdgeIteratorT_ac42b2bd37eb33ace1564c611ba881d76}} 
+using \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_ac42b2bd37eb33ace1564c611ba881d76}{Vertex}} = \mbox{\hyperlink{classDCEL_1_1VertexT}{VertexT}}$<$ T, Meta $>$
 \begin{DoxyCompactList}\small\item\em Alias for \mbox{\hyperlink{namespaceDCEL}{DCEL}} vertex type. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a238fbe48a77c433f23bd8a8a1095b87a}\label{classDCEL_1_1EdgeIteratorT_a238fbe48a77c433f23bd8a8a1095b87a}} 
-using \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a238fbe48a77c433f23bd8a8a1095b87a}{Edge}} = \mbox{\hyperlink{classDCEL_1_1EdgeT}{EdgeT}}$<$ T $>$
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a247bbcf5432438ae82fe717c4f037b6f}\label{classDCEL_1_1EdgeIteratorT_a247bbcf5432438ae82fe717c4f037b6f}} 
+using \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a247bbcf5432438ae82fe717c4f037b6f}{Edge}} = \mbox{\hyperlink{classDCEL_1_1EdgeT}{EdgeT}}$<$ T, Meta $>$
 \begin{DoxyCompactList}\small\item\em Alias for \mbox{\hyperlink{namespaceDCEL}{DCEL}} edge type. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a2922a8f448630749c3ec3ef6fd07a5d0}\label{classDCEL_1_1EdgeIteratorT_a2922a8f448630749c3ec3ef6fd07a5d0}} 
-using \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a2922a8f448630749c3ec3ef6fd07a5d0}{Face}} = \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}$<$ T $>$
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a390c555d04c0414f9aebbf883e623db7}\label{classDCEL_1_1EdgeIteratorT_a390c555d04c0414f9aebbf883e623db7}} 
+using \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a390c555d04c0414f9aebbf883e623db7}{Face}} = \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}$<$ T, Meta $>$
 \begin{DoxyCompactList}\small\item\em Alias for \mbox{\hyperlink{namespaceDCEL}{DCEL}} face type. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a03a587f6ea5920510ef28f9a4fb01c5d}\label{classDCEL_1_1EdgeIteratorT_a03a587f6ea5920510ef28f9a4fb01c5d}} 
-using \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a03a587f6ea5920510ef28f9a4fb01c5d}{Vertex\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a23d60449bf14a9e6951317b18509bc01}{Vertex}} $>$
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_acd022341379608fb61ce3baff8d939e5}\label{classDCEL_1_1EdgeIteratorT_acd022341379608fb61ce3baff8d939e5}} 
+using \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_acd022341379608fb61ce3baff8d939e5}{Vertex\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_ac42b2bd37eb33ace1564c611ba881d76}{Vertex}} $>$
 \begin{DoxyCompactList}\small\item\em Alias for vertex pointer. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_ae3643017376c6720d862d0a39e8af83b}\label{classDCEL_1_1EdgeIteratorT_ae3643017376c6720d862d0a39e8af83b}} 
-using \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_ae3643017376c6720d862d0a39e8af83b}{Edge\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a238fbe48a77c433f23bd8a8a1095b87a}{Edge}} $>$
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_aaa081381d4978b504cf2bbacf1f10add}\label{classDCEL_1_1EdgeIteratorT_aaa081381d4978b504cf2bbacf1f10add}} 
+using \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_aaa081381d4978b504cf2bbacf1f10add}{Edge\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a247bbcf5432438ae82fe717c4f037b6f}{Edge}} $>$
 \begin{DoxyCompactList}\small\item\em Alias for edge pointer. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_accd749da9c615605b34d2ccf8d37dc15}\label{classDCEL_1_1EdgeIteratorT_accd749da9c615605b34d2ccf8d37dc15}} 
-using \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_accd749da9c615605b34d2ccf8d37dc15}{Face\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a2922a8f448630749c3ec3ef6fd07a5d0}{Face}} $>$
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_ac17d90d54b7afc322a361abffb3a57fb}\label{classDCEL_1_1EdgeIteratorT_ac17d90d54b7afc322a361abffb3a57fb}} 
+using \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_ac17d90d54b7afc322a361abffb3a57fb}{Face\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a390c555d04c0414f9aebbf883e623db7}{Face}} $>$
 \begin{DoxyCompactList}\small\item\em Alias for face pointer. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a16f2fce17942ff3bd295313fdd629168}\label{classDCEL_1_1EdgeIteratorT_a16f2fce17942ff3bd295313fdd629168}} 
-\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a16f2fce17942ff3bd295313fdd629168}{Edge\+IteratorT}} ()=delete
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_af1da648772ab2dcce4ab28ef5598212b}\label{classDCEL_1_1EdgeIteratorT_af1da648772ab2dcce4ab28ef5598212b}} 
+\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_af1da648772ab2dcce4ab28ef5598212b}{Edge\+IteratorT}} ()=delete
 \begin{DoxyCompactList}\small\item\em Default construction is not allowed. Use one of the full constructors. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a048f1b8b289ff26b6e7cb5da8756110e}{Edge\+IteratorT}} (\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a2922a8f448630749c3ec3ef6fd07a5d0}{Face}} \&a\+\_\+face)
+\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a590b08bbc8f9a3d7e66e67dfe82f6957}{Edge\+IteratorT}} (\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a390c555d04c0414f9aebbf883e623db7}{Face}} \&a\+\_\+face)
 \begin{DoxyCompactList}\small\item\em Constructor, taking a face as argument. The iterator begins at the half-\/edge pointer contained in the face. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a856b989e3460da67a44dbf92a8eb1d54}{Edge\+IteratorT}} (const \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a2922a8f448630749c3ec3ef6fd07a5d0}{Face}} \&a\+\_\+face)
+\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a146de39dd4e7b6eddf774b046c3fed32}{Edge\+IteratorT}} (const \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a390c555d04c0414f9aebbf883e623db7}{Face}} \&a\+\_\+face)
 \begin{DoxyCompactList}\small\item\em Constructor, taking a face as argument. The iterator begins at the half-\/edge pointer contained in the face. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a07def60c28a7375d893bdcce1fc23d2e}\label{classDCEL_1_1EdgeIteratorT_a07def60c28a7375d893bdcce1fc23d2e}} 
-virtual \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a07def60c28a7375d893bdcce1fc23d2e}{$\sim$\+Edge\+IteratorT}} ()=default
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a71f81f08d693f3f07bdf98e45d2eab82}\label{classDCEL_1_1EdgeIteratorT_a71f81f08d693f3f07bdf98e45d2eab82}} 
+virtual \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a71f81f08d693f3f07bdf98e45d2eab82}{$\sim$\+Edge\+IteratorT}} ()=default
 \begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_ac374a712dffdb9762d29bec8a09ae2bc}\label{classDCEL_1_1EdgeIteratorT_ac374a712dffdb9762d29bec8a09ae2bc}} 
-\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_ae3643017376c6720d862d0a39e8af83b}{Edge\+Ptr}} \& \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_ac374a712dffdb9762d29bec8a09ae2bc}{operator()}} () noexcept
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a7b57fa4f6ea47bac46c2ca27a934e163}\label{classDCEL_1_1EdgeIteratorT_a7b57fa4f6ea47bac46c2ca27a934e163}} 
+\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_aaa081381d4978b504cf2bbacf1f10add}{Edge\+Ptr}} \& \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a7b57fa4f6ea47bac46c2ca27a934e163}{operator()}} () noexcept
 \begin{DoxyCompactList}\small\item\em Operator returning a pointer to the current half-\/edge. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_adcdfcaf1c623d8ca4aef6d84e6872911}\label{classDCEL_1_1EdgeIteratorT_adcdfcaf1c623d8ca4aef6d84e6872911}} 
-const \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_ae3643017376c6720d862d0a39e8af83b}{Edge\+Ptr}} \& \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_adcdfcaf1c623d8ca4aef6d84e6872911}{operator()}} () const noexcept
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a41bf58caf797ec31c07befdf4c618fb4}\label{classDCEL_1_1EdgeIteratorT_a41bf58caf797ec31c07befdf4c618fb4}} 
+const \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_aaa081381d4978b504cf2bbacf1f10add}{Edge\+Ptr}} \& \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a41bf58caf797ec31c07befdf4c618fb4}{operator()}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Operator returning a pointer to the current half-\/edge. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_accda7f714b1d6b40ebc8b1aabf272a6a}\label{classDCEL_1_1EdgeIteratorT_accda7f714b1d6b40ebc8b1aabf272a6a}} 
-void \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_accda7f714b1d6b40ebc8b1aabf272a6a}{reset}} () noexcept
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a136dc9ec23775ec0a326a97c11df63d7}\label{classDCEL_1_1EdgeIteratorT_a136dc9ec23775ec0a326a97c11df63d7}} 
+void \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a136dc9ec23775ec0a326a97c11df63d7}{reset}} () noexcept
 \begin{DoxyCompactList}\small\item\em Reset function for the iterator. This resets the iterator so that it begins from the starting half-\/edge. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a5e1c43c081793e29da0d3dc3ddbb9986}\label{classDCEL_1_1EdgeIteratorT_a5e1c43c081793e29da0d3dc3ddbb9986}} 
-void \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a5e1c43c081793e29da0d3dc3ddbb9986}{operator++}} () noexcept
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_aee1cd346924994aaa55ea0c74bad7548}\label{classDCEL_1_1EdgeIteratorT_aee1cd346924994aaa55ea0c74bad7548}} 
+void \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_aee1cd346924994aaa55ea0c74bad7548}{operator++}} () noexcept
 \begin{DoxyCompactList}\small\item\em Incrementation operator, bringing the iterator to the next half-\/edge. \end{DoxyCompactList}\item 
-bool \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a29e714c601b4a1e3b8238d948e266b0f}{ok}} () const noexcept
+bool \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_aaa5be7b2db03adb98b04f9932480eb9f}{ok}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Function which checks if the iteration can be continued. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_ad76435e1c9a6e082823a7fd3031e3ca8}\label{classDCEL_1_1EdgeIteratorT_ad76435e1c9a6e082823a7fd3031e3ca8}} 
-bool \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_ad76435e1c9a6e082823a7fd3031e3ca8}{m\+\_\+full\+Loop}}
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a2a0088732de845a12b43d997574578fe}\label{classDCEL_1_1EdgeIteratorT_a2a0088732de845a12b43d997574578fe}} 
+bool \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a2a0088732de845a12b43d997574578fe}{m\+\_\+full\+Loop}}
 \begin{DoxyCompactList}\small\item\em If true, a full loop has been made around the polygon face. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_ad586f4b5ee1e39fc7abdf3c226760cb4}\label{classDCEL_1_1EdgeIteratorT_ad586f4b5ee1e39fc7abdf3c226760cb4}} 
-std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a238fbe48a77c433f23bd8a8a1095b87a}{Edge}} $>$ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_ad586f4b5ee1e39fc7abdf3c226760cb4}{m\+\_\+start\+Edge}}
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a3ea67d6b9753535bda1d326df79a1078}\label{classDCEL_1_1EdgeIteratorT_a3ea67d6b9753535bda1d326df79a1078}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a247bbcf5432438ae82fe717c4f037b6f}{Edge}} $>$ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a3ea67d6b9753535bda1d326df79a1078}{m\+\_\+start\+Edge}}
 \begin{DoxyCompactList}\small\item\em Starting half-\/edge. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a37fb074de06101549b318694ab03202c}\label{classDCEL_1_1EdgeIteratorT_a37fb074de06101549b318694ab03202c}} 
-std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a238fbe48a77c433f23bd8a8a1095b87a}{Edge}} $>$ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a37fb074de06101549b318694ab03202c}{m\+\_\+cur\+Edge}}
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a0b2b3704ffca56cf53dbc386f3168583}\label{classDCEL_1_1EdgeIteratorT_a0b2b3704ffca56cf53dbc386f3168583}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a247bbcf5432438ae82fe717c4f037b6f}{Edge}} $>$ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a0b2b3704ffca56cf53dbc386f3168583}{m\+\_\+cur\+Edge}}
 \begin{DoxyCompactList}\small\item\em Current half-\/edge. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-\subsubsection*{template$<$class T$>$\newline
-class DCEL\+::\+Edge\+Iterator\+T$<$ T $>$}
+\subsubsection*{template$<$class T, class Meta$>$\newline
+class DCEL\+::\+Edge\+Iterator\+T$<$ T, Meta $>$}
+
+Edge iterator class. 
 
 Class which makes it easier to iterate through \mbox{\hyperlink{namespaceDCEL}{DCEL}} edges. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a048f1b8b289ff26b6e7cb5da8756110e}\label{classDCEL_1_1EdgeIteratorT_a048f1b8b289ff26b6e7cb5da8756110e}} 
-\index{DCEL::EdgeIteratorT$<$ T $>$@{DCEL::EdgeIteratorT$<$ T $>$}!EdgeIteratorT@{EdgeIteratorT}}
-\index{EdgeIteratorT@{EdgeIteratorT}!DCEL::EdgeIteratorT$<$ T $>$@{DCEL::EdgeIteratorT$<$ T $>$}}
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a590b08bbc8f9a3d7e66e67dfe82f6957}\label{classDCEL_1_1EdgeIteratorT_a590b08bbc8f9a3d7e66e67dfe82f6957}} 
+\index{DCEL::EdgeIteratorT$<$ T, Meta $>$@{DCEL::EdgeIteratorT$<$ T, Meta $>$}!EdgeIteratorT@{EdgeIteratorT}}
+\index{EdgeIteratorT@{EdgeIteratorT}!DCEL::EdgeIteratorT$<$ T, Meta $>$@{DCEL::EdgeIteratorT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{EdgeIteratorT()}{EdgeIteratorT()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{DCEL\+::\+Edge\+IteratorT}}$<$ T $>$\+::\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{Edge\+IteratorT}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a2922a8f448630749c3ec3ef6fd07a5d0}{Face}} \&}]{a\+\_\+face }\end{DoxyParamCaption})}
+{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
+\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{DCEL\+::\+Edge\+IteratorT}}$<$ T, Meta $>$\+::\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{Edge\+IteratorT}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a390c555d04c0414f9aebbf883e623db7}{Face}} \&}]{a\+\_\+face }\end{DoxyParamCaption})}
 
 
 
@@ -97,12 +99,12 @@ Constructor, taking a face as argument. The iterator begins at the half-\/edge p
 \begin{DoxyNote}{Note}
 This constructor will will iterate through the half-\/edges in the polygon face. 
 \end{DoxyNote}
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a856b989e3460da67a44dbf92a8eb1d54}\label{classDCEL_1_1EdgeIteratorT_a856b989e3460da67a44dbf92a8eb1d54}} 
-\index{DCEL::EdgeIteratorT$<$ T $>$@{DCEL::EdgeIteratorT$<$ T $>$}!EdgeIteratorT@{EdgeIteratorT}}
-\index{EdgeIteratorT@{EdgeIteratorT}!DCEL::EdgeIteratorT$<$ T $>$@{DCEL::EdgeIteratorT$<$ T $>$}}
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a146de39dd4e7b6eddf774b046c3fed32}\label{classDCEL_1_1EdgeIteratorT_a146de39dd4e7b6eddf774b046c3fed32}} 
+\index{DCEL::EdgeIteratorT$<$ T, Meta $>$@{DCEL::EdgeIteratorT$<$ T, Meta $>$}!EdgeIteratorT@{EdgeIteratorT}}
+\index{EdgeIteratorT@{EdgeIteratorT}!DCEL::EdgeIteratorT$<$ T, Meta $>$@{DCEL::EdgeIteratorT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{EdgeIteratorT()}{EdgeIteratorT()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{DCEL\+::\+Edge\+IteratorT}}$<$ T $>$\+::\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{Edge\+IteratorT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a2922a8f448630749c3ec3ef6fd07a5d0}{Face}} \&}]{a\+\_\+face }\end{DoxyParamCaption})}
+{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
+\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{DCEL\+::\+Edge\+IteratorT}}$<$ T, Meta $>$\+::\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{Edge\+IteratorT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a390c555d04c0414f9aebbf883e623db7}{Face}} \&}]{a\+\_\+face }\end{DoxyParamCaption})}
 
 
 
@@ -119,12 +121,12 @@ This constructor will will iterate through the half-\/edges in the polygon face.
 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_a29e714c601b4a1e3b8238d948e266b0f}\label{classDCEL_1_1EdgeIteratorT_a29e714c601b4a1e3b8238d948e266b0f}} 
-\index{DCEL::EdgeIteratorT$<$ T $>$@{DCEL::EdgeIteratorT$<$ T $>$}!ok@{ok}}
-\index{ok@{ok}!DCEL::EdgeIteratorT$<$ T $>$@{DCEL::EdgeIteratorT$<$ T $>$}}
+\mbox{\Hypertarget{classDCEL_1_1EdgeIteratorT_aaa5be7b2db03adb98b04f9932480eb9f}\label{classDCEL_1_1EdgeIteratorT_aaa5be7b2db03adb98b04f9932480eb9f}} 
+\index{DCEL::EdgeIteratorT$<$ T, Meta $>$@{DCEL::EdgeIteratorT$<$ T, Meta $>$}!ok@{ok}}
+\index{ok@{ok}!DCEL::EdgeIteratorT$<$ T, Meta $>$@{DCEL::EdgeIteratorT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{ok()}{ok()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-bool \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{DCEL\+::\+Edge\+IteratorT}}$<$ T $>$\+::ok (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
+bool \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{DCEL\+::\+Edge\+IteratorT}}$<$ T, Meta $>$\+::ok (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -137,5 +139,5 @@ Returns true unless the current half-\/edge is a nullptr (i.\+e., a broken polyg
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 
-/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__DCEL__Face_8hpp}{EBGeometry\+\_\+\+DCEL\+\_\+\+Face.\+hpp}}\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__DCEL_8hpp}{EBGeometry\+\_\+\+DCEL.\+hpp}}\item 
 /home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__DCEL__Iterator_8hpp}{EBGeometry\+\_\+\+DCEL\+\_\+\+Iterator.\+hpp}}\end{DoxyCompactItemize}

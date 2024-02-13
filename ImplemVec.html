@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vector types &mdash; EBGeometry  documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="_static/my_theme.css" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -104,7 +106,7 @@
              
   <section id="vector-types">
 <span id="chap-vector"></span><h1>Vector types<a class="headerlink" href="#vector-types" title="Permalink to this heading"></a></h1>
-<p>EBGeometry implements its own 2D and 3D vector types <code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> and <code class="docutils literal notranslate"><span class="pre">Vec3T</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> implements its own 2D and 3D vector types <code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> and <code class="docutils literal notranslate"><span class="pre">Vec3T</span></code>.</p>
 <p><code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> is a two-dimensional Cartesian vector.
 It is templated as</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span><span class="w"> </span><span class="nn">EBGeometry</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
@@ -117,7 +119,7 @@ It is templated as</p>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-<p>Most of EBGeometry is written as three-dimensional code, but <code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> is needed for DCEL functionality when determining if a point projects onto the interior or exterior of a planar polygon, see <a class="reference internal" href="Concepts.html#chap-dcel"><span class="std std-ref">DCEL</span></a>.
+<p>Most of <code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> is written as three-dimensional code, but <code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> is needed for DCEL functionality when determining if a point projects onto the interior or exterior of a planar polygon, see <a class="reference internal" href="Concepts.html#chap-dcel"><span class="std std-ref">DCEL</span></a>.
 <code class="docutils literal notranslate"><span class="pre">Vec2T</span></code> has “most” common arithmetic operators like the dot product, length, multiplication operators and so on.</p>
 <p><code class="docutils literal notranslate"><span class="pre">Vec3T</span></code> is a three-dimensional Cartesian vector type with precision <code class="docutils literal notranslate"><span class="pre">T</span></code>.
 It is templated as</p>

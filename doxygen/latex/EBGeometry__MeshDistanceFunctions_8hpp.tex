@@ -31,11 +31,11 @@ This graph shows which files directly or indirectly include this file\+:
 \doxysubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
-class \mbox{\hyperlink{classMeshSDF}{Mesh\+SDF$<$ T $>$}}
+class \mbox{\hyperlink{classMeshSDF}{Mesh\+SDF$<$ T, Meta $>$}}
 \begin{DoxyCompactList}\small\item\em Signed distance function for a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. Does not use BVHs. \end{DoxyCompactList}\item 
-class \mbox{\hyperlink{classFastMeshSDF}{Fast\+Mesh\+SDF$<$ T, BV, K $>$}}
+class \mbox{\hyperlink{classFastMeshSDF}{Fast\+Mesh\+SDF$<$ T, Meta, BV, K $>$}}
 \begin{DoxyCompactList}\small\item\em Signed distance function for a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. This class uses the full \mbox{\hyperlink{namespaceBVH}{BVH}} representation. \end{DoxyCompactList}\item 
-class \mbox{\hyperlink{classFastCompactMeshSDF}{Fast\+Compact\+Mesh\+SDF$<$ T, BV, K $>$}}
+class \mbox{\hyperlink{classFastCompactMeshSDF}{Fast\+Compact\+Mesh\+SDF$<$ T, Meta, BV, K $>$}}
 \begin{DoxyCompactList}\small\item\em Signed distance function for a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. This class uses the compact \mbox{\hyperlink{namespaceBVH}{BVH}} representation. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Namespaces}
 \begin{DoxyCompactItemize}
@@ -45,7 +45,7 @@ class \mbox{\hyperlink{classFastCompactMeshSDF}{Fast\+Compact\+Mesh\+SDF$<$ T, B
 \doxysubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
-{\footnotesize template$<$class T , class BV , size\+\_\+t K$>$ }\\std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+BVH\+::\+NodeT$<$ T, FaceT$<$ T $>$, BV, K $>$ $>$ \mbox{\hyperlink{namespaceDCEL_a43ae660dcc39a718db47103bd5ba54e3}{DCEL\+::build\+Full\+BVH}} (const std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$$>$ \&a\+\_\+dcel\+Mesh)
+{\footnotesize template$<$class T , class Meta , class BV , size\+\_\+t K$>$ }\\std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+BVH\+::\+NodeT$<$ T, FaceT$<$ T, Meta $>$, BV, K $>$ $>$ \mbox{\hyperlink{namespaceDCEL_a60bbe280c2912fc07e08a161690283e7}{DCEL\+::build\+Full\+BVH}} (const std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ T, Meta $>$$>$ \&a\+\_\+dcel\+Mesh)
 \begin{DoxyCompactList}\small\item\em One-\/liner for turning a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh into a full-\/tree \mbox{\hyperlink{namespaceBVH}{BVH}}. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 

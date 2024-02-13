@@ -1,5 +1,5 @@
-\hypertarget{classFastMeshSDF}{}\doxysection{Fast\+Mesh\+SDF$<$ T, BV, K $>$ Class Template Reference}
-\label{classFastMeshSDF}\index{FastMeshSDF$<$ T, BV, K $>$@{FastMeshSDF$<$ T, BV, K $>$}}
+\hypertarget{classFastMeshSDF}{}\doxysection{Fast\+Mesh\+SDF$<$ T, Meta, BV, K $>$ Class Template Reference}
+\label{classFastMeshSDF}\index{FastMeshSDF$<$ T, Meta, BV, K $>$@{FastMeshSDF$<$ T, Meta, BV, K $>$}}
 
 
 Signed distance function for a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. This class uses the full \mbox{\hyperlink{namespaceBVH}{BVH}} representation.  
@@ -11,7 +11,7 @@ Signed distance function for a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. This
 
 
 
-Inheritance diagram for Fast\+Mesh\+SDF$<$ T, BV, K $>$\+:
+Inheritance diagram for Fast\+Mesh\+SDF$<$ T, Meta, BV, K $>$\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -21,7 +21,7 @@ Inheritance diagram for Fast\+Mesh\+SDF$<$ T, BV, K $>$\+:
 \end{figure}
 
 
-Collaboration diagram for Fast\+Mesh\+SDF$<$ T, BV, K $>$\+:
+Collaboration diagram for Fast\+Mesh\+SDF$<$ T, Meta, BV, K $>$\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -32,53 +32,82 @@ Collaboration diagram for Fast\+Mesh\+SDF$<$ T, BV, K $>$\+:
 \doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classFastMeshSDF_ab9249ffc2e28556c3b29774234d0b57d}\label{classFastMeshSDF_ab9249ffc2e28556c3b29774234d0b57d}} 
-using \mbox{\hyperlink{classFastMeshSDF_ab9249ffc2e28556c3b29774234d0b57d}{Face}} = typename EBGeometry\+::\+DCEL\+::\+FaceT$<$ T $>$
+\mbox{\Hypertarget{classFastMeshSDF_acae970bf9f08f39b718a1f65b9476b2e}\label{classFastMeshSDF_acae970bf9f08f39b718a1f65b9476b2e}} 
+using \mbox{\hyperlink{classFastMeshSDF_acae970bf9f08f39b718a1f65b9476b2e}{Face}} = typename EBGeometry\+::\+DCEL\+::\+FaceT$<$ T, Meta $>$
 \begin{DoxyCompactList}\small\item\em Alias for \mbox{\hyperlink{namespaceDCEL}{DCEL}} face type. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classFastMeshSDF_a371a71032c78a8362104b5bb507c5e0c}\label{classFastMeshSDF_a371a71032c78a8362104b5bb507c5e0c}} 
-using \mbox{\hyperlink{classFastMeshSDF_a371a71032c78a8362104b5bb507c5e0c}{Mesh}} = typename EBGeometry\+::\+DCEL\+::\+MeshT$<$ T $>$
+\mbox{\Hypertarget{classFastMeshSDF_af87a9e618ed040a580b834a156bd405f}\label{classFastMeshSDF_af87a9e618ed040a580b834a156bd405f}} 
+using \mbox{\hyperlink{classFastMeshSDF_af87a9e618ed040a580b834a156bd405f}{Mesh}} = typename EBGeometry\+::\+DCEL\+::\+MeshT$<$ T, Meta $>$
 \begin{DoxyCompactList}\small\item\em Alias for \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh type. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classFastMeshSDF_a665650e08dbe9f10d36708a3894338cf}\label{classFastMeshSDF_a665650e08dbe9f10d36708a3894338cf}} 
-using \mbox{\hyperlink{classFastMeshSDF_a665650e08dbe9f10d36708a3894338cf}{Node}} = EBGeometry\+::\+BVH\+::\+NodeT$<$ T, \mbox{\hyperlink{classFastMeshSDF_ab9249ffc2e28556c3b29774234d0b57d}{Face}}, BV, K $>$
+\mbox{\Hypertarget{classFastMeshSDF_a04a7a7e74554051c3040637d543dccdf}\label{classFastMeshSDF_a04a7a7e74554051c3040637d543dccdf}} 
+using \mbox{\hyperlink{classFastMeshSDF_a04a7a7e74554051c3040637d543dccdf}{Node}} = EBGeometry\+::\+BVH\+::\+NodeT$<$ T, \mbox{\hyperlink{classFastMeshSDF_acae970bf9f08f39b718a1f65b9476b2e}{Face}}, BV, K $>$
 \begin{DoxyCompactList}\small\item\em Alias for \mbox{\hyperlink{namespaceBVH}{BVH}} root node. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classFastMeshSDF_af6f0f08df6d92f737ea35e6deea0919e}\label{classFastMeshSDF_af6f0f08df6d92f737ea35e6deea0919e}} 
-\mbox{\hyperlink{classFastMeshSDF_af6f0f08df6d92f737ea35e6deea0919e}{Fast\+Mesh\+SDF}} ()=delete
+\mbox{\Hypertarget{classFastMeshSDF_aa82738d8df17c7e9864e99a2d02d1f98}\label{classFastMeshSDF_aa82738d8df17c7e9864e99a2d02d1f98}} 
+\mbox{\hyperlink{classFastMeshSDF_aa82738d8df17c7e9864e99a2d02d1f98}{Fast\+Mesh\+SDF}} ()=delete
 \begin{DoxyCompactList}\small\item\em Default disallowed constructor. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classFastMeshSDF_a37bb1eca3bb1076adc9cb6cbf27b3443}\label{classFastMeshSDF_a37bb1eca3bb1076adc9cb6cbf27b3443}} 
-\mbox{\hyperlink{classFastMeshSDF_a37bb1eca3bb1076adc9cb6cbf27b3443}{Fast\+Mesh\+SDF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastMeshSDF_a371a71032c78a8362104b5bb507c5e0c}{Mesh}} $>$ \&a\+\_\+mesh) noexcept
+\mbox{\Hypertarget{classFastMeshSDF_a7302f623ffb9a1de8db3ce8f2e03528e}\label{classFastMeshSDF_a7302f623ffb9a1de8db3ce8f2e03528e}} 
+\mbox{\hyperlink{classFastMeshSDF_a7302f623ffb9a1de8db3ce8f2e03528e}{Fast\+Mesh\+SDF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastMeshSDF_af87a9e618ed040a580b834a156bd405f}{Mesh}} $>$ \&a\+\_\+mesh) noexcept
 \begin{DoxyCompactList}\small\item\em Full constructor. Takes the input mesh and creates the \mbox{\hyperlink{namespaceBVH}{BVH}}. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classFastMeshSDF_a6cf0457233becb3b066713f2069e9e61}\label{classFastMeshSDF_a6cf0457233becb3b066713f2069e9e61}} 
-virtual \mbox{\hyperlink{classFastMeshSDF_a6cf0457233becb3b066713f2069e9e61}{$\sim$\+Fast\+Mesh\+SDF}} ()=default
+\mbox{\Hypertarget{classFastMeshSDF_abf7cef9dc0d6294a1d305cfa18d3f89e}\label{classFastMeshSDF_abf7cef9dc0d6294a1d305cfa18d3f89e}} 
+virtual \mbox{\hyperlink{classFastMeshSDF_abf7cef9dc0d6294a1d305cfa18d3f89e}{$\sim$\+Fast\+Mesh\+SDF}} ()=default
 \begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
-virtual T \mbox{\hyperlink{classFastMeshSDF_a371fa42949f9af13a047b2ef7808e3ea}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+virtual T \mbox{\hyperlink{classFastMeshSDF_af7a84bec6a411abc96869e131d3b627f}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
 \begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classFastMeshSDF_a5bab29cbe88e9d8fa4c3102a3bbbb5fe}\label{classFastMeshSDF_a5bab29cbe88e9d8fa4c3102a3bbbb5fe}} 
-BV \mbox{\hyperlink{classFastMeshSDF_a5bab29cbe88e9d8fa4c3102a3bbbb5fe}{compute\+Bounding\+Volume}} () const noexcept
+virtual std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classFastMeshSDF_acae970bf9f08f39b718a1f65b9476b2e}{Face}} $>$, T $>$ $>$ \mbox{\hyperlink{classFastMeshSDF_acbb02ee772b5a9cd76f3b039c1642ca8}{get\+Closest\+Faces}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point, const bool a\+\_\+sorted) const noexcept
+\begin{DoxyCompactList}\small\item\em Get the closest faces to the input point. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classFastMeshSDF_a095e6049098fea872b4b50fc9b323b73}\label{classFastMeshSDF_a095e6049098fea872b4b50fc9b323b73}} 
+virtual std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastMeshSDF_a04a7a7e74554051c3040637d543dccdf}{Node}} $>$ \& \mbox{\hyperlink{classFastMeshSDF_a095e6049098fea872b4b50fc9b323b73}{get\+BVH}} () noexcept
+\begin{DoxyCompactList}\small\item\em Get the bounding volume hierarchy enclosing the mesh. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classFastMeshSDF_a722d5f38d50407e12ecac53fb4ab62c5}\label{classFastMeshSDF_a722d5f38d50407e12ecac53fb4ab62c5}} 
+virtual const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastMeshSDF_a04a7a7e74554051c3040637d543dccdf}{Node}} $>$ \& \mbox{\hyperlink{classFastMeshSDF_a722d5f38d50407e12ecac53fb4ab62c5}{get\+BVH}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the bounding volume hierarchy enclosing the mesh. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classFastMeshSDF_a3a6af8145a5150f2effb86a5cc232898}\label{classFastMeshSDF_a3a6af8145a5150f2effb86a5cc232898}} 
+BV \mbox{\hyperlink{classFastMeshSDF_a3a6af8145a5150f2effb86a5cc232898}{compute\+Bounding\+Volume}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Compute bounding volume for this mesh. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classFastMeshSDF_ab52cd16c2bbb2fc560a34c126ad9afec}\label{classFastMeshSDF_ab52cd16c2bbb2fc560a34c126ad9afec}} 
-std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastMeshSDF_a665650e08dbe9f10d36708a3894338cf}{Node}} $>$ \mbox{\hyperlink{classFastMeshSDF_ab52cd16c2bbb2fc560a34c126ad9afec}{m\+\_\+bvh}}
+\mbox{\Hypertarget{classFastMeshSDF_ad8a4e428c7d80fa6e1dce42d2975fdfc}\label{classFastMeshSDF_ad8a4e428c7d80fa6e1dce42d2975fdfc}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastMeshSDF_a04a7a7e74554051c3040637d543dccdf}{Node}} $>$ \mbox{\hyperlink{classFastMeshSDF_ad8a4e428c7d80fa6e1dce42d2975fdfc}{m\+\_\+bvh}}
 \begin{DoxyCompactList}\small\item\em Bounding volume hierarchy. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-\subsubsection*{template$<$class T, class BV, size\+\_\+t K$>$\newline
-class Fast\+Mesh\+SDF$<$ T, BV, K $>$}
+\subsubsection*{template$<$class T, class Meta, class BV, size\+\_\+t K$>$\newline
+class Fast\+Mesh\+SDF$<$ T, Meta, BV, K $>$}
 
 Signed distance function for a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. This class uses the full \mbox{\hyperlink{namespaceBVH}{BVH}} representation. 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classFastMeshSDF_a371fa42949f9af13a047b2ef7808e3ea}\label{classFastMeshSDF_a371fa42949f9af13a047b2ef7808e3ea}} 
-\index{FastMeshSDF$<$ T, BV, K $>$@{FastMeshSDF$<$ T, BV, K $>$}!signedDistance@{signedDistance}}
-\index{signedDistance@{signedDistance}!FastMeshSDF$<$ T, BV, K $>$@{FastMeshSDF$<$ T, BV, K $>$}}
+\mbox{\Hypertarget{classFastMeshSDF_acbb02ee772b5a9cd76f3b039c1642ca8}\label{classFastMeshSDF_acbb02ee772b5a9cd76f3b039c1642ca8}} 
+\index{FastMeshSDF$<$ T, Meta, BV, K $>$@{FastMeshSDF$<$ T, Meta, BV, K $>$}!getClosestFaces@{getClosestFaces}}
+\index{getClosestFaces@{getClosestFaces}!FastMeshSDF$<$ T, Meta, BV, K $>$@{FastMeshSDF$<$ T, Meta, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{getClosestFaces()}{getClosestFaces()}}
+{\footnotesize\ttfamily template$<$class T , class Meta , class BV , size\+\_\+t K$>$ \\
+virtual std\+::vector$<$std\+::pair$<$std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classFastMeshSDF_acae970bf9f08f39b718a1f65b9476b2e}{Face}}$>$, T$>$ $>$ \mbox{\hyperlink{classFastMeshSDF}{Fast\+Mesh\+SDF}}$<$ T, Meta, BV, K $>$\+::get\+Closest\+Faces (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point,  }\item[{const bool}]{a\+\_\+sorted }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Get the closest faces to the input point. 
+
+This returns a list of candidate faces that are close to the input point. The returned argment consists of the faces and the unsigned distance to the face. 
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Input ponit \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+sorted} & Sort the output vector by distance or not. Closest goes first \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+List of candidate faces (potentially sorted) 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classFastMeshSDF_af7a84bec6a411abc96869e131d3b627f}\label{classFastMeshSDF_af7a84bec6a411abc96869e131d3b627f}} 
+\index{FastMeshSDF$<$ T, Meta, BV, K $>$@{FastMeshSDF$<$ T, Meta, BV, K $>$}!signedDistance@{signedDistance}}
+\index{signedDistance@{signedDistance}!FastMeshSDF$<$ T, Meta, BV, K $>$@{FastMeshSDF$<$ T, Meta, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
-{\footnotesize\ttfamily template$<$class T , class BV , size\+\_\+t K$>$ \\
-virtual T \mbox{\hyperlink{classFastMeshSDF}{Fast\+Mesh\+SDF}}$<$ T, BV, K $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$class T , class Meta , class BV , size\+\_\+t K$>$ \\
+virtual T \mbox{\hyperlink{classFastMeshSDF}{Fast\+Mesh\+SDF}}$<$ T, Meta, BV, K $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
 
 
 

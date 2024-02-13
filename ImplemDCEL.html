@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DCEL &mdash; EBGeometry  documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="_static/my_theme.css" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -115,7 +117,7 @@
 </ul>
 <div class="admonition important">
 <p class="admonition-title">Important</p>
-<p>The DCEL functionality is <em>not</em> restricted to triangles, but supports N-sided polygons.</p>
+<p>The DCEL functionality is <em>not</em> restricted to triangles, but supports N-sided polygons, including <em>meta-data</em> attached to the vertices, edges, and facets.</p>
 </div>
 <section id="main-types">
 <h2>Main types<a class="headerlink" href="#main-types" title="Permalink to this heading"></a></h2>
@@ -124,7 +126,7 @@
 <li><p><strong>Vertices</strong> are implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::DCEL::EdgeT</span></code></p></li>
 </ul>
 <blockquote>
-<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="o">&gt;</span><span class="w"></span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VertexT</span><span class="w"></span>
 </pre></div>
 </div>
@@ -136,7 +138,7 @@ Note that the class has member functions for computing the vertex pseudonormal, 
 <li><p><strong>Edges</strong> are implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::DCEL::EdgeT</span></code></p></li>
 </ul>
 <blockquote>
-<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="o">&gt;</span><span class="w"></span>
 <span class="k">class</span><span class="w"> </span><span class="nc">EdgeT</span><span class="w"></span>
 </pre></div>
 </div>
@@ -147,7 +149,7 @@ Note that the class has member functions for computing the vertex pseudonormal, 
 <li><p><strong>Faces</strong> are implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::DCEL::FaceT</span></code></p></li>
 </ul>
 <blockquote>
-<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="o">&gt;</span><span class="w"></span>
 <span class="k">class</span><span class="w"> </span><span class="nc">FaceT</span><span class="w"></span>
 </pre></div>
 </div>
@@ -165,7 +167,7 @@ The centroid position exists only because BVH partitioners will use it for parti
 <li><p><strong>Mesh</strong> is implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::DCEL::MeshT</span></code></p></li>
 </ul>
 <blockquote>
-<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
+<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="o">&gt;</span><span class="w"></span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MeshT</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"></span>
 </pre></div>
 </div>
@@ -178,11 +180,12 @@ Typically, the mesh is not created by the user but automatically created when re
 </pre></div>
 </div>
 <p>which can be used to compute the distance to the various features on the mesh.</p>
+<p>Meta-data can be attached to the DCEL primitives by selecting an appropriate type for <code class="docutils literal notranslate"><span class="pre">Meta</span></code> above (which defaults to <code class="docutils literal notranslate"><span class="pre">short</span></code>).</p>
 </section>
 <section id="bvh-integration">
 <span id="chap-bvhintegration"></span><h2>BVH integration<a class="headerlink" href="#bvh-integration" title="Permalink to this heading"></a></h2>
 <p>DCEL grids can easily be embedded in BVHs by enclosing bounding volumes around the polygons (e.g., triangles).
-Partitioning and bounding volume constructors are provided in <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_DCEL_BVH.hpp</span></code>.</p>
+Partitioning and bounding volume constructors are provided in <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_MeshDistanceFunctions.hpp</span></code>.</p>
 </section>
 </section>
 

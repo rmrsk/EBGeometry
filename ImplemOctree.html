@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Octree &mdash; EBGeometry  documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="_static/my_theme.css" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -113,8 +115,8 @@
 For the full API, see <a class="reference external" href="doxygen/html/namespaceOctree.html">the doxygen API</a>.
 Currently, only full octrees are supported (i.e. pointer-based representation).</p>
 <p>Octrees are encapsulated by a class</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>    @details Meta is the meta-data for the node (user can put in e.g. level, volume, etc) and Data is the leaf node contents. 
-    @note This class should only be used with smart pointers. I.e. std::shared_ptr&lt;Node&gt; rather than Node.
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">Meta</span><span class="p">,</span><span class="w"> </span><span class="k">typename</span><span class="w"> </span><span class="nc">Data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">void</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="k">class</span><span class="w"> </span><span class="nc">Node</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&lt;</span><span class="n">Meta</span><span class="p">,</span><span class="w"> </span><span class="n">Data</span><span class="o">&gt;&gt;</span><span class="w"></span>
 </pre></div>
 </div>
 <p>where the template parameters are:</p>
@@ -129,27 +131,30 @@ Currently, only full octrees are supported (i.e. pointer-based representation).<
 </div>
 <section id="construction">
 <span id="chap-octreeconstruction"></span><h2>Construction<a class="headerlink" href="#construction" title="Permalink to this heading"></a></h2>
-<p>Constructing the octree is done by first initializing the root node and then building it in either depth-first or breadth-first ordering:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>    @details Meta is the meta-data for the node (user can put in e.g. level, volume, etc) and Data is the leaf node contents. 
-    @note This class should only be used with smart pointers. I.e. std::shared_ptr&lt;Node&gt; rather than Node.
-  */
-      @details This is called on leaf nodes -- if the function returns true the node will be split. 
-      @param[in] a_node Node to split. 
-      @param[in] a_index Octant index
-      @param[in] a_parentMeta Parent meta data
-      @param[in] a_index Octant index
-      @param[in] a_parentData Parent data.
-    */
-      @param[in] a_metaConstructor Constructor for node meta-data
-      @param[in] a_dataConstructor Constructor for node data
-    */
-    inline void
-    buildDepthFirst(const StopFunction&amp;    a_stopFunction,
-      @param[in] a_metaConstructor Constructor for node meta-data
-      @param[in] a_dataConstructor Constructor for node data
-    */
-    inline void
-      @brief Node children
+<p>Constructing the octree is done by first initializing the root node and then building it in either depth-first or breadth-first ordering.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">Meta</span><span class="p">,</span><span class="w"> </span><span class="k">typename</span><span class="w"> </span><span class="nc">Data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">void</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="k">class</span><span class="w"> </span><span class="nc">Node</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&lt;</span><span class="n">Meta</span><span class="p">,</span><span class="w"> </span><span class="n">Data</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">StopFunction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">Meta</span><span class="p">,</span><span class="w"> </span><span class="n">Data</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_node</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">MetaConstructor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="n">Meta</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">OctantIndex</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_index</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Meta</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_parentMeta</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">DataConstructor</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Data</span><span class="o">&gt;</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">OctantIndex</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_index</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Data</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_parentData</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">Updater</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">Meta</span><span class="p">,</span><span class="w"> </span><span class="n">Data</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_node</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">Visiter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">Meta</span><span class="p">,</span><span class="w"> </span><span class="n">Data</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_node</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">Sorter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">Meta</span><span class="p">,</span><span class="w"> </span><span class="n">Data</span><span class="o">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_children</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"></span>
+<span class="w">    </span><span class="nf">buildDepthFirst</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">StopFunction</span><span class="o">&amp;</span><span class="w">    </span><span class="n">a_stopFunction</span><span class="p">,</span><span class="w"></span>
+<span class="w">                    </span><span class="k">const</span><span class="w"> </span><span class="n">MetaConstructor</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_metaConstructor</span><span class="p">,</span><span class="w"></span>
+<span class="w">                    </span><span class="k">const</span><span class="w"> </span><span class="n">DataConstructor</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_dataConstructor</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"></span>
+<span class="w">    </span><span class="nf">buildBreadthFirst</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">StopFunction</span><span class="o">&amp;</span><span class="w">    </span><span class="n">a_stopFunction</span><span class="p">,</span><span class="w"></span>
+<span class="w">                      </span><span class="k">const</span><span class="w"> </span><span class="n">MetaConstructor</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_metaConstructor</span><span class="p">,</span><span class="w"></span>
+<span class="w">                      </span><span class="k">const</span><span class="w"> </span><span class="n">DataConstructor</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_dataConstructor</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">  </span><span class="p">};</span><span class="w"></span>
+<span class="p">}</span><span class="w"> </span><span class="c1">// namespace Octree</span>
 </pre></div>
 </div>
 <p>The input functions to <code class="docutils literal notranslate"><span class="pre">buildDepthFirst</span></code> and <code class="docutils literal notranslate"><span class="pre">buildBreadthFirst</span></code> are as follows:</p>
@@ -161,23 +166,16 @@ Currently, only full octrees are supported (i.e. pointer-based representation).<
 </section>
 <section id="tree-traversal">
 <h2>Tree traversal<a class="headerlink" href="#tree-traversal" title="Permalink to this heading"></a></h2>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>    @details Meta is the meta-data for the node (user can put in e.g. level, volume, etc) and Data is the leaf node contents. 
-    @note This class should only be used with smart pointers. I.e. std::shared_ptr&lt;Node&gt; rather than Node.
-  */
-      @brief Updater pattern for Node::traverse. This is called when visiting a leaf node. 
-      @param[in] a_node Leaf node that is visited. 
-      query the node and false otherwise.
-      @param[in] a_node Node to visit or not. 
-      @brief Sorter for traverse pattern. This is called on interior nodes for deciding which sub-tree to visit first. 
-      @param[inout] a_children Sortable children nodes, first node is visited first, then the second, etc. 
-      @param[in] a_visiter Visiter for deciding to visit a node.
-      @param[in] a_sorter Sorter method for deciding which subtree to investigate first. 
-    */
-    inline void
-    traverse(
-      const Updater&amp; a_updater,
-      const Visiter&amp; a_visiter,
-      @brief Node children
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">Meta</span><span class="p">,</span><span class="w"> </span><span class="k">typename</span><span class="w"> </span><span class="nc">Data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">void</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="k">class</span><span class="w"> </span><span class="nc">Node</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&lt;</span><span class="n">Meta</span><span class="p">,</span><span class="w"> </span><span class="n">Data</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"></span>
+<span class="w">    </span><span class="nf">traverse</span><span class="p">(</span><span class="w"></span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="n">Updater</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_updater</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="n">Visiter</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_visiter</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="n">Sorter</span><span class="o">&amp;</span><span class="w">  </span><span class="n">a_sorter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">Meta</span><span class="p">,</span><span class="w"> </span><span class="n">Data</span><span class="o">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_children</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="p">})</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
 <p>The input functions to <code class="docutils literal notranslate"><span class="pre">traverse</span></code> are as follows:</p>

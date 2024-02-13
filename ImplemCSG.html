@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Geometry representation &mdash; EBGeometry  documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="_static/my_theme.css" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -112,7 +114,7 @@
 <span id="chap-implemcsg"></span><h1>Geometry representation<a class="headerlink" href="#geometry-representation" title="Permalink to this heading"></a></h1>
 <section id="implicit-functions">
 <h2>Implicit functions<a class="headerlink" href="#implicit-functions" title="Permalink to this heading"></a></h2>
-<p>EBGeometry implements implement functions and signed distance functions through virtual classes</p>
+<p><code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> implements implement functions and signed distance functions through virtual classes</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ImplicitFunction</span><span class="w"></span>
 <span class="p">{</span><span class="w"></span>
@@ -165,7 +167,7 @@
 <span class="p">};</span><span class="w"></span>
 </pre></div>
 </div>
-<p>and for the signed distance field,</p>
+<p>Signed distance fields inherit from implicit functions as follows:</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"></span>
 <span class="k">class</span><span class="w"> </span><span class="nc">SignedDistanceFunction</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">ImplicitFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"></span>
 <span class="p">{</span><span class="w"></span>

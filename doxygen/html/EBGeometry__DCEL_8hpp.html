@@ -67,7 +67,9 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
-<a href="#namespaces">Namespaces</a>  </div>
+<a href="#namespaces">Namespaces</a> &#124;
+<a href="#typedef-members">Typedefs</a> &#124;
+<a href="#enum-members">Enumerations</a>  </div>
   <div class="headertitle">
 <div class="title">EBGeometry_DCEL.hpp File Reference</div>  </div>
 </div><!--header-->
@@ -92,11 +94,14 @@ This graph shows which files directly or indirectly include this file:</div>
 <div class="dyncontent">
 <div class="center"><img src="EBGeometry__DCEL_8hpp__dep__incl.png" border="0" usemap="#a_2home_2runner_2work_2EBGeometry_2EBGeometry_2Source_2EBGeometry__DCEL_8hppdep" alt=""/></div>
 <map name="a_2home_2runner_2work_2EBGeometry_2EBGeometry_2Source_2EBGeometry__DCEL_8hppdep" id="a_2home_2runner_2work_2EBGeometry_2EBGeometry_2Source_2EBGeometry__DCEL_8hppdep">
-<area shape="rect" title="Namespace documentation." alt="" coords="133,5,375,61"/>
-<area shape="rect" href="EBGeometry__DCEL__Vertex_8hpp.html" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations." alt="" coords="133,109,375,165"/>
-<area shape="rect" href="EBGeometry_8hpp_source.html" title=" " alt="" coords="5,421,236,463"/>
-<area shape="rect" href="EBGeometry__DCEL__Face_8hpp.html" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations." alt="" coords="133,213,375,269"/>
-<area shape="rect" href="EBGeometry__DCEL__Edge_8hpp.html" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations." alt="" coords="158,317,401,373"/>
+<area shape="rect" title="Namespace documentation." alt="" coords="209,5,451,61"/>
+<area shape="rect" href="EBGeometry__DCEL__Mesh_8hpp.html" title="Declaration of a mesh class which stores a DCEL mesh (with signed distance functions)" alt="" coords="75,109,318,165"/>
+<area shape="rect" href="EBGeometry__DCEL__Vertex_8hpp.html" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations." alt="" coords="367,109,610,165"/>
+<area shape="rect" href="EBGeometry_8hpp_source.html" title=" " alt="" coords="160,421,391,463"/>
+<area shape="rect" href="EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="25,213,267,269"/>
+<area shape="rect" href="EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="75,317,318,373"/>
+<area shape="rect" href="EBGeometry__DCEL__Face_8hpp.html" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations." alt="" coords="393,213,635,269"/>
+<area shape="rect" href="EBGeometry__DCEL__Edge_8hpp.html" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations." alt="" coords="443,317,686,373"/>
 </map>
 </div>
 </div>
@@ -107,6 +112,21 @@ Namespaces</h2></td></tr>
 <tr class="memitem:namespaceDCEL"><td class="memItemLeft" align="right" valign="top"> &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceDCEL.html">DCEL</a></td></tr>
 <tr class="memdesc:namespaceDCEL"><td class="mdescLeft">&#160;</td><td class="mdescRight">Namespace containing various double-connected edge list (<a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a>) functionality. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
+Typedefs</h2></td></tr>
+<tr class="memitem:ad8f2940fada08cf162f8c01adf6d7bd6"><td class="memItemLeft" align="right" valign="top"><a id="ad8f2940fada08cf162f8c01adf6d7bd6"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceDCEL.html#ad8f2940fada08cf162f8c01adf6d7bd6">DCEL::DefaultMetaData</a> = short</td></tr>
+<tr class="memdesc:ad8f2940fada08cf162f8c01adf6d7bd6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default meta-data type for the <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> primitives. <br /></td></tr>
+<tr class="separator:ad8f2940fada08cf162f8c01adf6d7bd6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
+Enumerations</h2></td></tr>
+<tr class="memitem:aa6a314c993921b3523ab627ae873946a"><td class="memItemLeft" align="right" valign="top"><a id="aa6a314c993921b3523ab627ae873946a"></a>enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceDCEL.html#aa6a314c993921b3523ab627ae873946a">DCEL::VertexNormalWeight</a> { <b>None</b>
+, <b>Angle</b>
+ }</td></tr>
+<tr class="memdesc:aa6a314c993921b3523ab627ae873946a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Enum for putting some logic into how vertex normal weights are calculated. <br /></td></tr>
+<tr class="separator:aa6a314c993921b3523ab627ae873946a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Namespace documentation. </p>
