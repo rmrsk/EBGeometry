@@ -1,7 +1,7 @@
-Examples/AMReX_DCEL
--------------------
+Examples/AMReX_PaintEB
+----------------------
 
-This example uses the embedded boundary grid generation from AMReX.
+This example uses the embedded boundary grid generation from AMReX and associates triangle meta-data with AMReX-based cut-cells.
 To compile this application, first install AMReX somewhere and point the AMREX_HOME environment variable to it.
 
 Compiling
