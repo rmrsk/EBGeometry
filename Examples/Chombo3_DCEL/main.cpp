@@ -19,7 +19,7 @@
 #include "EBGeometry.hpp"
 
 // Binding for exposing EBGeometry's signed distance functions to Chombo
-template <class T, class BV, int K>
+template <class T, class Meta, class BV, int K>
 class ChomboSDF : public BaseIF
 {
 public:
@@ -27,7 +27,7 @@ public:
 
   ChomboSDF(const std::string a_filename)
   {
-    m_implicitFunction = EBGeometry::Parser::readIntoLinearBVH<T, BV, K>(a_filename);
+    m_implicitFunction = EBGeometry::Parser::readIntoLinearBVH<T, Meta, BV, K>(a_filename);
     m_implicitFunction = EBGeometry::Complement<T>(m_implicitFunction);
   }
 
@@ -135,7 +135,8 @@ main(int argc, char* argv[])
     filename = "../Resources/adirondack.stl";
   }
 
-  auto impFunc = static_cast<BaseIF*>(new ChomboSDF<T, BV, K>(filename));
+  using Meta = EBGeometry::DCEL::DefaultMetaData;
+  auto impFunc = static_cast<BaseIF*>(new ChomboSDF<T, Meta, BV, K>(filename));
 
   // Set up the Chombo EB geometry.
   ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);
