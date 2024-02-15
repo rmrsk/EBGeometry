@@ -1032,7 +1032,7 @@ protected:
 
   /*!
     @brief Ken Perlins grad function
-    @param[in] has Input parameter
+    @param[in] hash Input parameter
     @param[in] x Input parameter
     @param[in] y Input parameter
     @param[in] z Input parameter
@@ -1048,7 +1048,7 @@ protected:
 
   /*!
     @brief Octave noise function
-    @param[in] a_Input point
+    @param[in] a_point Input point
   */
   T
   noise(const Vec3T<T>& a_point) const noexcept
