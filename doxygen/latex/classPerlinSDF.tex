@@ -1,0 +1,277 @@
+\hypertarget{classPerlinSDF}{}\doxysection{Perlin\+SDF$<$ T $>$ Class Template Reference}
+\label{classPerlinSDF}\index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
+
+
+Ken Perlins gradient noise function.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp$>$}
+
+
+
+Inheritance diagram for Perlin\+SDF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classPerlinSDF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Perlin\+SDF$<$ T $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classPerlinSDF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classPerlinSDF_a5e17712af08f5f6360ef5290736d00f9}{Perlin\+SDF}} (const T a\+\_\+noise\+Amplitude, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ a\+\_\+noise\+Frequency, const T a\+\_\+noise\+Persistence, const unsigned int a\+\_\+noise\+Octaves) noexcept
+\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classPerlinSDF_a515932653d4f38a7511c5488f74122c3}\label{classPerlinSDF_a515932653d4f38a7511c5488f74122c3}} 
+virtual \mbox{\hyperlink{classPerlinSDF_a515932653d4f38a7511c5488f74122c3}{$\sim$\+Perlin\+SDF}} () noexcept
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+virtual T \mbox{\hyperlink{classPerlinSDF_ae09237cf05912698478602e4ddbeb228}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\begin{DoxyCompactList}\small\item\em Signed distance function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class URNG $>$ }\\void \mbox{\hyperlink{classPerlinSDF_a03a95e8290a0b42c16e7666446909c70}{shuffle}} (URNG \&g) noexcept
+\begin{DoxyCompactList}\small\item\em Shuffle the permutation with the input RNG. \end{DoxyCompactList}\item 
+std\+::array$<$ int, 512 $>$ \& \mbox{\hyperlink{classPerlinSDF_a8197aab12159714a62fd372394e30e54}{get\+Permutation\+Table}} () noexcept
+\begin{DoxyCompactList}\small\item\em Get the internal permutation table. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+virtual T \mbox{\hyperlink{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}{lerp}} (const T t, const T a, const T b) const noexcept
+\begin{DoxyCompactList}\small\item\em Ken Perlin\textquotesingle{}s lerp function. \end{DoxyCompactList}\item 
+virtual T \mbox{\hyperlink{classPerlinSDF_a2a2e57d92c95ff84ad928a9e43cce000}{fade}} (const T t) const noexcept
+\begin{DoxyCompactList}\small\item\em Ken Perlin\textquotesingle{}s fade function. \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}{grad}} (const int hash, const T x, const T y, const T z) const noexcept
+\begin{DoxyCompactList}\small\item\em Ken Perlins grad function. \end{DoxyCompactList}\item 
+T \mbox{\hyperlink{classPerlinSDF_a81da3c917766b8dace69f3e4c32fcfae}{noise}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept
+\begin{DoxyCompactList}\small\item\em Octave noise function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classPerlinSDF_ac012b10725b20136e308f78ba22bbe1a}\label{classPerlinSDF_ac012b10725b20136e308f78ba22bbe1a}} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classPerlinSDF_ac012b10725b20136e308f78ba22bbe1a}{m\+\_\+noise\+Frequency}}
+\begin{DoxyCompactList}\small\item\em Noise frequency. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classPerlinSDF_acc066e02830ba15e7b7218afaf3ca5fe}\label{classPerlinSDF_acc066e02830ba15e7b7218afaf3ca5fe}} 
+T \mbox{\hyperlink{classPerlinSDF_acc066e02830ba15e7b7218afaf3ca5fe}{m\+\_\+noise\+Amplitude}}
+\begin{DoxyCompactList}\small\item\em Noise amplitude. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classPerlinSDF_a28a5d74cbffe155b189aa9dfb20db943}\label{classPerlinSDF_a28a5d74cbffe155b189aa9dfb20db943}} 
+T \mbox{\hyperlink{classPerlinSDF_a28a5d74cbffe155b189aa9dfb20db943}{m\+\_\+noise\+Persistence}}
+\begin{DoxyCompactList}\small\item\em Noise persistence. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}\label{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}} 
+std\+::array$<$ T, 512 $>$ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\+\_\+permutation\+Table}}
+\begin{DoxyCompactList}\small\item\em Permutation table. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classPerlinSDF_a182b7c7f99d178e539f3cf192bc75fc8}\label{classPerlinSDF_a182b7c7f99d178e539f3cf192bc75fc8}} 
+unsigned int \mbox{\hyperlink{classPerlinSDF_a182b7c7f99d178e539f3cf192bc75fc8}{m\+\_\+noise\+Octaves}}
+\begin{DoxyCompactList}\small\item\em Number of noise octaves. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Static Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+constexpr static std\+::array$<$ int, 256 $>$ \mbox{\hyperlink{classPerlinSDF_ac36a7fad0ae2bf6fc4e98aa622e1a35f}{s\+\_\+permutation\+Table}}
+\begin{DoxyCompactList}\small\item\em Ken Perlin\textquotesingle{}s original permutation array. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class T$>$\newline
+class Perlin\+SDF$<$ T $>$}
+
+Ken Perlins gradient noise function. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classPerlinSDF_a5e17712af08f5f6360ef5290736d00f9}\label{classPerlinSDF_a5e17712af08f5f6360ef5290736d00f9}} 
+\index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!PerlinSDF@{PerlinSDF}}
+\index{PerlinSDF@{PerlinSDF}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{PerlinSDF()}{PerlinSDF()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+\mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}} (\begin{DoxyParamCaption}\item[{const T}]{a\+\_\+noise\+Amplitude,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$}]{a\+\_\+noise\+Frequency,  }\item[{const T}]{a\+\_\+noise\+Persistence,  }\item[{const unsigned int}]{a\+\_\+noise\+Octaves }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Full constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+noise\+Amplitude} & Noise amplitude \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+noise\+Frequency} & Spatial noise frequency along the three Cartesian axes \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+noise\+Persistence} & Noise amplitude drop-\/off and frequency increase for octave noise. Should be $<$ 1 \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+noise\+Octaves} & Number of octaves. Should be $>$ 0 \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classPerlinSDF_a2a2e57d92c95ff84ad928a9e43cce000}\label{classPerlinSDF_a2a2e57d92c95ff84ad928a9e43cce000}} 
+\index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!fade@{fade}}
+\index{fade@{fade}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{fade()}{fade()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+virtual T \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::fade (\begin{DoxyParamCaption}\item[{const T}]{t }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Ken Perlin\textquotesingle{}s fade function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em t} & Input parameter \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classPerlinSDF_a8197aab12159714a62fd372394e30e54}\label{classPerlinSDF_a8197aab12159714a62fd372394e30e54}} 
+\index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!getPermutationTable@{getPermutationTable}}
+\index{getPermutationTable@{getPermutationTable}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getPermutationTable()}{getPermutationTable()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+std\+::array$<$int, 512$>$\& \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::get\+Permutation\+Table (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Get the internal permutation table. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+permutation\+Table. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}\label{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}} 
+\index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!grad@{grad}}
+\index{grad@{grad}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{grad()}{grad()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::grad (\begin{DoxyParamCaption}\item[{const int}]{hash,  }\item[{const T}]{x,  }\item[{const T}]{y,  }\item[{const T}]{z }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+
+
+
+Ken Perlins grad function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em hash} & Input parameter \\
+\hline
+\mbox{\texttt{ in}}  & {\em x} & Input parameter \\
+\hline
+\mbox{\texttt{ in}}  & {\em y} & Input parameter \\
+\hline
+\mbox{\texttt{ in}}  & {\em z} & Input parameter \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}\label{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}} 
+\index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!lerp@{lerp}}
+\index{lerp@{lerp}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{lerp()}{lerp()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+virtual T \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::lerp (\begin{DoxyParamCaption}\item[{const T}]{t,  }\item[{const T}]{a,  }\item[{const T}]{b }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Ken Perlin\textquotesingle{}s lerp function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em t} & Input parameter \\
+\hline
+\mbox{\texttt{ in}}  & {\em a} & Input parameter \\
+\hline
+\mbox{\texttt{ in}}  & {\em b} & Input parameter \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classPerlinSDF_a81da3c917766b8dace69f3e4c32fcfae}\label{classPerlinSDF_a81da3c917766b8dace69f3e4c32fcfae}} 
+\index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!noise@{noise}}
+\index{noise@{noise}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{noise()}{noise()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+T \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::noise (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+
+
+
+Octave noise function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Input point \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classPerlinSDF_a03a95e8290a0b42c16e7666446909c70}\label{classPerlinSDF_a03a95e8290a0b42c16e7666446909c70}} 
+\index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!shuffle@{shuffle}}
+\index{shuffle@{shuffle}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{shuffle()}{shuffle()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+template$<$class URNG $>$ \\
+void \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::shuffle (\begin{DoxyParamCaption}\item[{URNG \&}]{g }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Shuffle the permutation with the input RNG. 
+
+URNG should be a uniform random number generator, e.\+g. 
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em g} & Uniform random number generator (e.\+g., std\+::mt19937) \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+When using parallel calculations it is exceptionally important that the input RNG is the same across all threads/ranks. Otherwise, the user must manually ensure that the permutation table is the same. Failure to do so implies that each thread/rank generates it\textquotesingle{}s own gradient noise and there is correspondingly no single geometry. 
+\end{DoxyNote}
+\mbox{\Hypertarget{classPerlinSDF_ae09237cf05912698478602e4ddbeb228}\label{classPerlinSDF_ae09237cf05912698478602e4ddbeb228}} 
+\index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!signedDistance@{signedDistance}}
+\index{signedDistance@{signedDistance}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+virtual T \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Signed distance function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Input point \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{Signed\+Distance\+Function$<$ T $>$}}.
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{classPerlinSDF_ac36a7fad0ae2bf6fc4e98aa622e1a35f}\label{classPerlinSDF_ac36a7fad0ae2bf6fc4e98aa622e1a35f}} 
+\index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!s\_permutationTable@{s\_permutationTable}}
+\index{s\_permutationTable@{s\_permutationTable}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{s\_permutationTable}{s\_permutationTable}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+constexpr static std\+::array$<$int, 256$>$ \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::s\+\_\+permutation\+Table\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}, {\ttfamily [protected]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \{}
+\DoxyCodeLine{    151, 160, 137, 91,  90,  15,  131, 13,  201, 95,  96,  53,  194, 233, 7,   225, 140, 36,  103, 30,  69,  142,}
+\DoxyCodeLine{    8,   99,  37,  240, 21,  10,  23,  190, 6,   148, 247, 120, 234, 75,  0,   26,  197, 62,  94,  252, 219, 203,}
+\DoxyCodeLine{    117, 35,  11,  32,  57,  177, 33,  88,  237, 149, 56,  87,  174, 20,  125, 136, 171, 168, 68,  175, 74,  165,}
+\DoxyCodeLine{    71,  134, 139, 48,  27,  166, 77,  146, 158, 231, 83,  111, 229, 122, 60,  211, 133, 230, 220, 105, 92,  41,}
+\DoxyCodeLine{    55,  46,  245, 40,  244, 102, 143, 54,  65,  25,  63,  161, 1,   216, 80,  73,  209, 76,  132, 187, 208, 89,}
+\DoxyCodeLine{    18,  169, 200, 196, 135, 130, 116, 188, 159, 86,  164, 100, 109, 198, 173, 186, 3,   64,  52,  217, 226, 250,}
+\DoxyCodeLine{    124, 123, 5,   202, 38,  147, 118, 126, 255, 82,  85,  212, 207, 206, 59,  227, 47,  16,  58,  17,  182, 189,}
+\DoxyCodeLine{    28,  42,  223, 183, 170, 213, 119, 248, 152, 2,   44,  154, 163, 70,  221, 153, 101, 155, 167, 43,  172, 9,}
+\DoxyCodeLine{    129, 22,  39,  253, 19,  98,  108, 110, 79,  113, 224, 232, 178, 185, 112, 104, 218, 246, 97,  228, 251, 34,}
+\DoxyCodeLine{    242, 193, 238, 210, 144, 12,  191, 179, 162, 241, 81,  51,  145, 235, 249, 14,  239, 107, 49,  192, 214, 31,}
+\DoxyCodeLine{    181, 199, 106, 157, 184, 84,  204, 176, 115, 121, 50,  45,  127, 4,   150, 254, 138, 236, 205, 93,  222, 114,}
+\DoxyCodeLine{    67,  29,  24,  72,  243, 141, 128, 195, 78,  66,  215, 61,  156, 180\}}
+
+\end{DoxyCode}
+
+
+Ken Perlin\textquotesingle{}s original permutation array. 
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp}{EBGeometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp}}\end{DoxyCompactItemize}
