@@ -17,6 +17,7 @@
 
 // Std includes
 #include <algorithm>
+#include <random>
 
 // Our includes
 #include "EBGeometry_BoundingVolumes.hpp"
@@ -862,6 +863,231 @@ protected:
     @brief Box dimensions
   */
   Vec3T<T> m_dimensions;
+};
+
+/*!
+  @brief Ken Perlins gradient noise function
+*/
+template <class T>
+class PerlinSDF : public SignedDistanceFunction<T>
+{
+public:
+  /*!
+    @brief Full constructor. 
+    @param[in] a_noiseAmplitude Noise amplitude
+    @param[in] a_noiseFrequency Spatial noise frequency along the three Cartesian axes
+    @param[in] a_noisePersistence Noise amplitude drop-off and frequency increase for octave noise. Should be < 1
+    @param[in] a_noiseOctaves Number of octaves. Should be > 0
+  */
+  PerlinSDF(const T            a_noiseAmplitude,
+            const Vec3T<T>     a_noiseFrequency,
+            const T            a_noisePersistence,
+            const unsigned int a_noiseOctaves) noexcept
+  {
+    m_noiseAmplitude   = a_noiseAmplitude;
+    m_noiseFrequency   = a_noiseFrequency;
+    m_noisePersistence = std::min(1.0, a_noisePersistence);
+    m_noiseOctaves     = std::max((unsigned int)1, a_noiseOctaves);
+
+    // By default, use Ken Perlin's original permutation table
+    for (int i = 0; i < 256; i++) {
+      m_permutationTable[i]       = s_permutationTable[i];
+      m_permutationTable[i + 256] = s_permutationTable[i];
+    }
+
+#if 1 // Development code
+    std::random_device rd;
+    std::mt19937       g(0);
+
+    this->shuffle(g);
+#endif
+  }
+
+  /*!
+    @brief Destructor (does nothing)
+  */
+  virtual ~PerlinSDF() noexcept
+  {}
+
+  /*!
+    @brief Signed distance function. 
+    @param[in] a_point Input point
+  */
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  {
+    T ret = 0.0;
+
+    Vec3T<T> curFreq = m_noiseFrequency;
+    T        curAmp  = 1.0;
+
+    for (unsigned int curOctave = 0; curOctave < m_noiseOctaves; curOctave++) {
+      ret += this->noise(a_point * curFreq) * curAmp;
+
+      curFreq = curFreq / m_noisePersistence;
+      curAmp  = curAmp * m_noisePersistence;
+    }
+
+    return ret * m_noiseAmplitude;
+  };
+
+  /*!
+    @brief Shuffle the permutation with the input RNG. 
+    @details URNG should be a uniform random number generator, e.g. 
+    @param[in] g Uniform random number generator (e.g., std::mt19937)
+    @note When using parallel calculations it is exceptionally important that the input RNG is the same across all threads/ranks. Otherwise, the
+    user must manually ensure that the permutation table is the same. Failure to do so implies that each thread/rank generates it's own gradient noise
+    and there is correspondingly no single geometry. 
+  */
+  template <class URNG>
+  void
+  shuffle(URNG& g) noexcept
+  {
+
+    for (unsigned int i = 0; i < 256; i++) {
+      m_permutationTable[i] = i;
+    }
+
+    std::shuffle(m_permutationTable.begin(), m_permutationTable.begin() + 256, g);
+
+    for (int i = 0; i < 256; i++) {
+      m_permutationTable[i + 256] = m_permutationTable[i];
+    }
+  }
+
+  /*!
+    @brief Get the internal permutation table
+    @return m_permutationTable.
+  */
+  std::array<int, 512>&
+  getPermutationTable() noexcept
+  {
+    return m_permutationTable;
+  }
+
+protected:
+  /*!
+    @brief Ken Perlin's original permutation array
+  */
+  constexpr static std::array<int, 256> s_permutationTable = {
+    151, 160, 137, 91,  90,  15,  131, 13,  201, 95,  96,  53,  194, 233, 7,   225, 140, 36,  103, 30,  69,  142,
+    8,   99,  37,  240, 21,  10,  23,  190, 6,   148, 247, 120, 234, 75,  0,   26,  197, 62,  94,  252, 219, 203,
+    117, 35,  11,  32,  57,  177, 33,  88,  237, 149, 56,  87,  174, 20,  125, 136, 171, 168, 68,  175, 74,  165,
+    71,  134, 139, 48,  27,  166, 77,  146, 158, 231, 83,  111, 229, 122, 60,  211, 133, 230, 220, 105, 92,  41,
+    55,  46,  245, 40,  244, 102, 143, 54,  65,  25,  63,  161, 1,   216, 80,  73,  209, 76,  132, 187, 208, 89,
+    18,  169, 200, 196, 135, 130, 116, 188, 159, 86,  164, 100, 109, 198, 173, 186, 3,   64,  52,  217, 226, 250,
+    124, 123, 5,   202, 38,  147, 118, 126, 255, 82,  85,  212, 207, 206, 59,  227, 47,  16,  58,  17,  182, 189,
+    28,  42,  223, 183, 170, 213, 119, 248, 152, 2,   44,  154, 163, 70,  221, 153, 101, 155, 167, 43,  172, 9,
+    129, 22,  39,  253, 19,  98,  108, 110, 79,  113, 224, 232, 178, 185, 112, 104, 218, 246, 97,  228, 251, 34,
+    242, 193, 238, 210, 144, 12,  191, 179, 162, 241, 81,  51,  145, 235, 249, 14,  239, 107, 49,  192, 214, 31,
+    181, 199, 106, 157, 184, 84,  204, 176, 115, 121, 50,  45,  127, 4,   150, 254, 138, 236, 205, 93,  222, 114,
+    67,  29,  24,  72,  243, 141, 128, 195, 78,  66,  215, 61,  156, 180};
+
+  /*!
+    @brief Noise frequency
+  */
+  Vec3T<T> m_noiseFrequency;
+
+  /*!
+    @brief Noise amplitude
+  */
+  T m_noiseAmplitude;
+
+  /*!
+    @brief Noise persistence
+  */
+  T m_noisePersistence;
+
+  /*!
+    @brief Permutation table
+  */
+  std::array<T, 512> m_permutationTable;
+
+  /*!
+    @brief Number of noise octaves
+  */
+  unsigned int m_noiseOctaves;
+
+  /*!
+    @brief Ken Perlin's lerp function
+    @param[in] t Input parameter
+    @param[in] a Input parameter
+    @param[in] b Input parameter
+  */
+  virtual T
+  lerp(const T t, const T a, const T b) const noexcept
+  {
+    return a + t * (b - a);
+  };
+
+  /*!
+    @brief Ken Perlin's fade function
+    @param[in] t Input parameter
+  */
+  virtual T
+  fade(const T t) const noexcept
+  {
+    return t * t * t * (t * (t * 6 - 15) + 10);
+  };
+
+  /*!
+    @brief Ken Perlins grad function
+    @param[in] has Input parameter
+    @param[in] x Input parameter
+    @param[in] y Input parameter
+    @param[in] z Input parameter
+  */
+  T
+  grad(const int hash, const T x, const T y, const T z) const noexcept
+  {
+    const int h = hash & 15;
+    const T   u = h < 8 ? x : y;
+    const T   v = h < 4 ? y : h == 12 || h == 14 ? x : y;
+    return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+  }
+
+  /*!
+    @brief Octave noise function
+    @param[in] a_Input point
+  */
+  T
+  noise(const Vec3T<T>& a_point) const noexcept
+  {
+    // Lower cube corner
+    const int X = (int)std::floor(a_point[0]) & 255;
+    const int Y = (int)std::floor(a_point[1]) & 255;
+    const int Z = (int)std::floor(a_point[2]) & 255;
+
+    // Relative distance wrt lower cube corner
+    const double x = a_point[0] - std::floor(a_point[0]);
+    const double y = a_point[1] - std::floor(a_point[1]);
+    const double z = a_point[2] - std::floor(a_point[2]);
+
+    // Fade curves
+    const double u = fade(x);
+    const double v = fade(y);
+    const double w = fade(z);
+
+    // Hash coordinates of 8 cube corners
+    const int A  = m_permutationTable[X] + Y;
+    const int AA = m_permutationTable[A] + Z;
+    const int AB = m_permutationTable[A + 1] + Z;
+    const int B  = m_permutationTable[X + 1] + Y;
+    const int BA = m_permutationTable[B] + Z;
+    const int BB = m_permutationTable[B + 1] + Z;
+
+    // Add blended results from 8 corners of cube
+    return lerp(
+      w,
+      lerp(v,
+           lerp(u, grad(m_permutationTable[AA], x, y, z), grad(m_permutationTable[BA], x - 1, y, z)),
+           lerp(u, grad(m_permutationTable[AB], x, y - 1, z), grad(m_permutationTable[BB], x - 1, y - 1, z))),
+      lerp(v,
+           lerp(u, grad(m_permutationTable[AA + 1], x, y, z - 1), grad(m_permutationTable[BA + 1], x - 1, y, z - 1)),
+           lerp(u,
+                grad(m_permutationTable[AB + 1], x, y - 1, z - 1),
+                grad(m_permutationTable[BB + 1], x - 1, y - 1, z - 1))));
+  };
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"
