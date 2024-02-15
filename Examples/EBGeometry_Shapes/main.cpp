@@ -21,4 +21,6 @@ main()
   const EBGeometry::CapsuleSDF<T>          capsule(Vec3::zero(), Vec3::one(), 0.1);
   const EBGeometry::InfiniteConeSDF<T>     infiniteCone(Vec3::zero(), 45.0);
   const EBGeometry::ConeSDF<T>             cone(Vec3::zero(), 1.0, 45.0);
+  const EBGeometry::PerlinSDF<T>           perlin(1.0, Vec3::one(), 0.5, 10);
+  const EBGeometry::RoundedBoxSDF<T>       roundBox(Vec3::one(), 0.1);
 }

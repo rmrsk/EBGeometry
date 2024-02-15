@@ -163,6 +163,11 @@ main(int argc, char* argv[])
 
     func = std::make_shared<EBGeometry::RoundedBoxSDF<T>>(1.0 * Vec3::one(), 0.1);
   }
+  else if (whichGeom == 13) { // Perlin Random noise function
+    rb = RealBox({-1, -1, -1}, {1, 1, 1});
+
+    func = std::make_shared<EBGeometry::PerlinSDF<T>>(0.5, 2.0 * Vec3::one(), 0.5, 4);
+  }
 
   // AMReX uses the opposite sign.
   func = EBGeometry::Complement<T>(func);
