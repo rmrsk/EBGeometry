@@ -66,7 +66,6 @@ $(function() {
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pro-methods">Protected Member Functions</a> &#124;
 <a href="#pro-attribs">Protected Attributes</a> &#124;
-<a href="#pro-static-attribs">Static Protected Attributes</a> &#124;
 <a href="classPerlinSDF-members.html">List of all members</a>  </div>
   <div class="headertitle">
 <div class="title">PerlinSDF&lt; T &gt; Class Template Reference</div>  </div>
@@ -186,12 +185,6 @@ std::array&lt; T, 512 &gt;&#160;</td><td class="memItemRight" valign="bottom"><a
 unsigned int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPerlinSDF.html#a182b7c7f99d178e539f3cf192bc75fc8">m_noiseOctaves</a></td></tr>
 <tr class="memdesc:a182b7c7f99d178e539f3cf192bc75fc8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of noise octaves. <br /></td></tr>
 <tr class="separator:a182b7c7f99d178e539f3cf192bc75fc8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-static-attribs"></a>
-Static Protected Attributes</h2></td></tr>
-<tr class="memitem:ac36a7fad0ae2bf6fc4e98aa622e1a35f"><td class="memItemLeft" align="right" valign="top">constexpr static std::array&lt; int, 256 &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classPerlinSDF.html#ac36a7fad0ae2bf6fc4e98aa622e1a35f">s_permutationTable</a></td></tr>
-<tr class="memdesc:ac36a7fad0ae2bf6fc4e98aa622e1a35f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ken Perlin's original permutation array.  <a href="classPerlinSDF.html#ac36a7fad0ae2bf6fc4e98aa622e1a35f">More...</a><br /></td></tr>
-<tr class="separator:ac36a7fad0ae2bf6fc4e98aa622e1a35f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><h3>template&lt;class T&gt;<br />
@@ -552,46 +545,6 @@ template&lt;class T &gt; </div>
 </dl>
 
 <p>Implements <a class="el" href="classSignedDistanceFunction.html#af5912280ca51dc21a2d6949a30ec7d21">SignedDistanceFunction&lt; T &gt;</a>.</p>
-
-</div>
-</div>
-<h2 class="groupheader">Member Data Documentation</h2>
-<a id="ac36a7fad0ae2bf6fc4e98aa622e1a35f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac36a7fad0ae2bf6fc4e98aa622e1a35f">&#9670;&nbsp;</a></span>s_permutationTable</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;class T &gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">constexpr static std::array&lt;int, 256&gt; <a class="el" href="classPerlinSDF.html">PerlinSDF</a>&lt; T &gt;::s_permutationTable</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">constexpr</span><span class="mlabel">protected</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<b>Initial value:</b><div class="fragment"><div class="line">= {</div>
-<div class="line">    151, 160, 137, 91,  90,  15,  131, 13,  201, 95,  96,  53,  194, 233, 7,   225, 140, 36,  103, 30,  69,  142,</div>
-<div class="line">    8,   99,  37,  240, 21,  10,  23,  190, 6,   148, 247, 120, 234, 75,  0,   26,  197, 62,  94,  252, 219, 203,</div>
-<div class="line">    117, 35,  11,  32,  57,  177, 33,  88,  237, 149, 56,  87,  174, 20,  125, 136, 171, 168, 68,  175, 74,  165,</div>
-<div class="line">    71,  134, 139, 48,  27,  166, 77,  146, 158, 231, 83,  111, 229, 122, 60,  211, 133, 230, 220, 105, 92,  41,</div>
-<div class="line">    55,  46,  245, 40,  244, 102, 143, 54,  65,  25,  63,  161, 1,   216, 80,  73,  209, 76,  132, 187, 208, 89,</div>
-<div class="line">    18,  169, 200, 196, 135, 130, 116, 188, 159, 86,  164, 100, 109, 198, 173, 186, 3,   64,  52,  217, 226, 250,</div>
-<div class="line">    124, 123, 5,   202, 38,  147, 118, 126, 255, 82,  85,  212, 207, 206, 59,  227, 47,  16,  58,  17,  182, 189,</div>
-<div class="line">    28,  42,  223, 183, 170, 213, 119, 248, 152, 2,   44,  154, 163, 70,  221, 153, 101, 155, 167, 43,  172, 9,</div>
-<div class="line">    129, 22,  39,  253, 19,  98,  108, 110, 79,  113, 224, 232, 178, 185, 112, 104, 218, 246, 97,  228, 251, 34,</div>
-<div class="line">    242, 193, 238, 210, 144, 12,  191, 179, 162, 241, 81,  51,  145, 235, 249, 14,  239, 107, 49,  192, 214, 31,</div>
-<div class="line">    181, 199, 106, 157, 184, 84,  204, 176, 115, 121, 50,  45,  127, 4,   150, 254, 138, 236, 205, 93,  222, 114,</div>
-<div class="line">    67,  29,  24,  72,  243, 141, 128, 195, 78,  66,  215, 61,  156, 180}</div>
-</div><!-- fragment -->
-<p>Ken Perlin's original permutation array. </p>
 
 </div>
 </div>
