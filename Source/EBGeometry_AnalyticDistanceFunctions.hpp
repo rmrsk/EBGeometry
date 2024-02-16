@@ -910,7 +910,7 @@ public:
   {}
 
   /*!
-    @brief Signed distance function. 
+    @brief Signed distance function. Generates a distance on [0,curAmplitude]
     @param[in] a_point Input point
   */
   virtual T
@@ -922,7 +922,7 @@ public:
     T        curAmp  = 1.0;
 
     for (unsigned int curOctave = 0; curOctave < m_noiseOctaves; curOctave++) {
-      ret += this->noise(a_point * curFreq) * curAmp;
+      ret += 0.5 * curAmp * (1 + this->noise(a_point * curFreq));
 
       curFreq = curFreq / m_noisePersistence;
       curAmp  = curAmp * m_noisePersistence;
