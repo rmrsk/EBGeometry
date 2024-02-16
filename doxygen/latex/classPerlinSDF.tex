@@ -38,7 +38,7 @@ Collaboration diagram for Perlin\+SDF$<$ T $>$\+:
 virtual \mbox{\hyperlink{classPerlinSDF_a515932653d4f38a7511c5488f74122c3}{$\sim$\+Perlin\+SDF}} () noexcept
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
 virtual T \mbox{\hyperlink{classPerlinSDF_ae09237cf05912698478602e4ddbeb228}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
-\begin{DoxyCompactList}\small\item\em Signed distance function. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Signed distance function. Generates a distance on \mbox{[}0,cur\+Amplitude\mbox{]}. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class URNG $>$ }\\void \mbox{\hyperlink{classPerlinSDF_a03a95e8290a0b42c16e7666446909c70}{shuffle}} (URNG \&g) noexcept
 \begin{DoxyCompactList}\small\item\em Shuffle the permutation with the input RNG. \end{DoxyCompactList}\item 
 std\+::array$<$ int, 512 $>$ \& \mbox{\hyperlink{classPerlinSDF_a8197aab12159714a62fd372394e30e54}{get\+Permutation\+Table}} () noexcept
@@ -223,7 +223,7 @@ virtual T \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::signed\+Dis
 
 
 
-Signed distance function. 
+Signed distance function. Generates a distance on \mbox{[}0,cur\+Amplitude\mbox{]}. 
 
 
 \begin{DoxyParams}[1]{Parameters}
