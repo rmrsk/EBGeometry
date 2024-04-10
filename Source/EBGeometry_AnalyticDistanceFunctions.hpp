@@ -844,6 +844,7 @@ public:
 
   /*!
     @brief Full constructor. User inputs dimensions and corner curvature. 
+    @note The extensions of the box in each direction 'dir' is a_dimensions[dir] + a_curvature. 
     @param[in] a_dimensions Box dimensions (width, length, height)
     @param[in] a_curvature Corner curvature. 
     @note Curvature must be > 0.0

@@ -102,6 +102,15 @@ std::shared_ptr<ImplicitFunction<T>>
 Elongate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_elongation) noexcept;
 
 /*!
+  @brief Convenience function for reflecting an implicit function
+  @param[in] a_implicitFunction Implicit function to be reflected
+  @param[in] a_reflectPlane Plane to reflect across  (0=yz-plane, 1=xz-plane, 2=xy-plane).
+*/
+template <class T>
+std::shared_ptr<ImplicitFunction<T>>
+Reflect(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const size_t& a_reflectPlane) noexcept;
+
+/*!
   @brief Complemented implicit function
 */
 template <class T>
@@ -515,6 +524,49 @@ protected:
     @brief Elongation
   */
   Vec3T<T> m_elongation;
+};
+
+/*!
+  @brief Implicit function which is a reflection of another implicit function
+*/
+template <class T>
+class ReflectIF : public ImplicitFunction<T>
+{
+public:
+  /*!
+    @brief Disallowed weak construction
+  */
+  ReflectIF() = delete;
+
+  /*!
+    @brief Full constructor. Reflects around the input plane (0=yz-plane, 1=xz-plane, 2=xy-plane).
+    @param[in] a_implicitFunction Implicit function to be reflected
+    @param[in] a_reflectPlane Plane to reflect across
+  */
+  ReflectIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const size_t& a_reflectPlane) noexcept;
+
+  /*!
+    @brief Destructor
+  */
+  virtual ~ReflectIF() noexcept;
+
+  /*!
+    @brief Value function
+    @param[in] a_point input point
+  */
+  virtual T
+  value(const Vec3T<T>& a_point) const noexcept override;
+
+protected:
+  /*!
+    @brief Underlying implicit function to be reflected
+  */
+  std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction;
+
+  /*!
+    @brief Reflection parameters
+  */
+  Vec3T<T> m_reflectParams;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"
