@@ -85,6 +85,13 @@ Elongate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const V
 }
 
 template <class T>
+std::shared_ptr<ImplicitFunction<T>>
+Reflect(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const size_t& a_reflectPlane) noexcept
+{
+  return std::make_shared<ReflectIF<T>>(a_implicitFunction, a_reflectPlane);
+}
+
+template <class T>
 ComplementIF<T>::ComplementIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction) noexcept
 
 {
@@ -347,6 +354,29 @@ T
 ElongateIF<T>::value(const Vec3T<T>& a_point) const noexcept
 {
   return m_implicitFunction->value(a_point - clamp(a_point, -m_elongation, m_elongation));
+}
+
+template <class T>
+ReflectIF<T>::ReflectIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
+                        const size_t&                               a_reflectPlane) noexcept
+{
+  m_implicitFunction = a_implicitFunction;
+  m_reflectParams    = Vec3T<T>::one();
+
+  if (a_reflectPlane >= 0 && a_reflectPlane <= 2) {
+    m_reflectParams[a_reflectPlane] = -1;
+  }
+}
+
+template <class T>
+ReflectIF<T>::~ReflectIF() noexcept
+{}
+
+template <class T>
+T
+ReflectIF<T>::value(const Vec3T<T>& a_point) const noexcept
+{
+  return m_implicitFunction->value(a_point * m_reflectParams);
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"
