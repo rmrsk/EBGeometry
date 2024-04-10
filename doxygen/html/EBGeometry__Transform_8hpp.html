@@ -142,6 +142,9 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classElongateIF.html">ElongateIF&lt; T &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Implicit function which is an elongation of another implicit function along some axis.  <a href="classElongateIF.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classReflectIF.html">ReflectIF&lt; T &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Implicit function which is a reflection of another implicit function.  <a href="classReflectIF.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -181,6 +184,10 @@ Functions</h2></td></tr>
 <tr class="memitem:ac5bf383e3d5e7b34b97e0ad72e0e0ef8"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__Transform_8hpp.html#ac5bf383e3d5e7b34b97e0ad72e0e0ef8">Elongate</a> (const std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt; &amp;a_implicitFunction, const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_elongation) noexcept</td></tr>
 <tr class="memdesc:ac5bf383e3d5e7b34b97e0ad72e0e0ef8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for elongating (stretching) an implicit function.  <a href="EBGeometry__Transform_8hpp.html#ac5bf383e3d5e7b34b97e0ad72e0e0ef8">More...</a><br /></td></tr>
 <tr class="separator:ac5bf383e3d5e7b34b97e0ad72e0e0ef8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad0b6c6277cc8fdeaec43e56eae5336f7"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
+<tr class="memitem:ad0b6c6277cc8fdeaec43e56eae5336f7"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="EBGeometry__Transform_8hpp.html#ad0b6c6277cc8fdeaec43e56eae5336f7">Reflect</a> (const std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt; &amp;a_implicitFunction, const size_t &amp;a_reflectPlane) noexcept</td></tr>
+<tr class="memdesc:ad0b6c6277cc8fdeaec43e56eae5336f7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenience function for reflecting an implicit function.  <a href="EBGeometry__Transform_8hpp.html#ad0b6c6277cc8fdeaec43e56eae5336f7">More...</a><br /></td></tr>
+<tr class="separator:ad0b6c6277cc8fdeaec43e56eae5336f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Various transformations for implicit functions and distance fields. </p>
@@ -458,6 +465,53 @@ template&lt;class T &gt; </div>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunction</td><td>Input implicit function to be offset </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">a_offset</td><td>Offset distance </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ad0b6c6277cc8fdeaec43e56eae5336f7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad0b6c6277cc8fdeaec43e56eae5336f7">&#9670;&nbsp;</a></span>Reflect()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;<a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt;T&gt; &gt; Reflect </td>
+          <td>(</td>
+          <td class="paramtype">const std::shared_ptr&lt; <a class="el" href="classImplicitFunction.html">ImplicitFunction</a>&lt; T &gt;&gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_implicitFunction</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const size_t &amp;&#160;</td>
+          <td class="paramname"><em>a_reflectPlane</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Convenience function for reflecting an implicit function. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_implicitFunction</td><td>Implicit function to be reflected </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_reflectPlane</td><td>Plane to reflect across (0=yz-plane, 1=xz-plane, 2=xy-plane). </td></tr>
   </table>
   </dd>
 </dl>

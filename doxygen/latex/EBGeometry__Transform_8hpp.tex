@@ -46,7 +46,9 @@ class \mbox{\hyperlink{classBlurIF}{Blur\+IF$<$ T $>$}}
 class \mbox{\hyperlink{classMollifyIF}{Mollify\+IF$<$ T $>$}}
 \begin{DoxyCompactList}\small\item\em Mollified implicit function. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classElongateIF}{Elongate\+IF$<$ T $>$}}
-\begin{DoxyCompactList}\small\item\em Implicit function which is an elongation of another implicit function along some axis. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Implicit function which is an elongation of another implicit function along some axis. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classReflectIF}{Reflect\+IF$<$ T $>$}}
+\begin{DoxyCompactList}\small\item\em Implicit function which is a reflection of another implicit function. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
@@ -67,7 +69,9 @@ class \mbox{\hyperlink{classElongateIF}{Elongate\+IF$<$ T $>$}}
 {\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a258ed801787b09603c1d633c3d8427c3}{Mollify}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const T a\+\_\+dist, const size\+\_\+t a\+\_\+mollifier\+Samples=2) noexcept
 \begin{DoxyCompactList}\small\item\em Convenience function for mollification with an input sphere. \end{DoxyCompactList}\item 
 {\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_ac5bf383e3d5e7b34b97e0ad72e0e0ef8}{Elongate}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+elongation) noexcept
-\begin{DoxyCompactList}\small\item\em Convenience function for elongating (stretching) an implicit function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Convenience function for elongating (stretching) an implicit function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_ad0b6c6277cc8fdeaec43e56eae5336f7}{Reflect}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const size\+\_\+t \&a\+\_\+reflect\+Plane) noexcept
+\begin{DoxyCompactList}\small\item\em Convenience function for reflecting an implicit function. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -185,6 +189,24 @@ Convenience function for offsetting an implicit function.
 \mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Function} & Input implicit function to be offset \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+offset} & Offset distance \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{EBGeometry__Transform_8hpp_ad0b6c6277cc8fdeaec43e56eae5336f7}\label{EBGeometry__Transform_8hpp_ad0b6c6277cc8fdeaec43e56eae5336f7}} 
+\index{EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}!Reflect@{Reflect}}
+\index{Reflect@{Reflect}!EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}}
+\doxysubsubsection{\texorpdfstring{Reflect()}{Reflect()}}
+{\footnotesize\ttfamily template$<$class T $>$ \\
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Reflect (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const size\+\_\+t \&}]{a\+\_\+reflect\+Plane }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Convenience function for reflecting an implicit function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Function} & Implicit function to be reflected \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+reflect\+Plane} & Plane to reflect across (0=yz-\/plane, 1=xz-\/plane, 2=xy-\/plane). \\
 \hline
 \end{DoxyParams}
 \mbox{\Hypertarget{EBGeometry__Transform_8hpp_a779a2e9b52de6332451ec3444550cc20}\label{EBGeometry__Transform_8hpp_a779a2e9b52de6332451ec3444550cc20}} 
