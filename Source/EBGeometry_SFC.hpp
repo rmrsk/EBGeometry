@@ -9,6 +9,8 @@
   @author Robert Marskar
 */
 
+#if __cplusplus >= 202002L
+
 #ifndef EBGeometry_SFC
 #define EBGeometry_SFC
 
@@ -16,7 +18,6 @@
 #include <cstdint>
 
 // Our includes
-#include "EBGeometry_Index.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 namespace SFC {
@@ -46,8 +47,8 @@ namespace SFC {
   */
   template <typename T>
   concept Encodable = requires(const Index& point, const SFC::Code code) {
-    { T::encode(point) } -> SFC::Code;
-    { T::decode(code) } -> Index;
+    { T::encode(point) } -> std::same_as<SFC::Code>;
+    { T::decode(code) } -> std::same_as<Index>;
   };
 
   /*!
@@ -102,5 +103,7 @@ namespace SFC {
 #include "EBGeometry_NamespaceFooter.hpp"
 
 #include "EBGeometry_SFCImplem.hpp"
+
+#endif
 
 #endif

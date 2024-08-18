@@ -10,6 +10,7 @@
 #include "Source/EBGeometry_MeshDistanceFunctions.hpp"
 #include "Source/EBGeometry_Octree.hpp"
 #include "Source/EBGeometry_Parser.hpp"
+#include "Source/EBGeometry_SFC.hpp"
 #include "Source/EBGeometry_SignedDistanceFunction.hpp"
 #include "Source/EBGeometry_Transform.hpp"
 
