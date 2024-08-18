@@ -50,7 +50,8 @@ public:
   /*!
     @brief AMReX's implicit function definition.
   */
-  Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+  Real
+  operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
     using Vec3 = EBGeometry::Vec3T<T>;
 
