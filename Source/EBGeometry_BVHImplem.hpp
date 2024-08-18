@@ -140,7 +140,16 @@ namespace BVH {
   inline void
   NodeT<T, P, BV, K>::bottomUpSortAndPartition() noexcept
   {
-#error "NodeT<T, P, BV, K>::bottomUpSortAndPartition not implemented yet"
+    // Get the centroids for all the primitives.
+    std::vector<Vec3> bvCentroids;
+
+    Vec3 min = +Vec3::infinity();
+    Vec3 max = -Vec3::infinity();
+
+    for (const auto& bv : m_boundingVolumes) {
+      bvCentroids.emplace_back(bv.getCentroid());
+    }
+#warning "NodeT<T, P, BV, K>::bottomUpSortAndPartition not implemented yet"
   }
 #endif
 
