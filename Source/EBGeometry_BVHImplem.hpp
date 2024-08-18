@@ -134,6 +134,16 @@ namespace BVH {
     }
   }
 
+#if __cplusplus >= 202002L
+  template <class T, class P, class BV, size_t K>
+  template <SFC::Encodable S>
+  inline void
+  NodeT<T, P, BV, K>::bottomUpSortAndPartition() noexcept
+  {
+#error "NodeT<T, P, BV, K>::bottomUpSortAndPartition not implemented yet"
+  }
+#endif
+
   template <class T, class P, class BV, size_t K>
   inline T
   NodeT<T, P, BV, K>::getDistanceToBoundingVolume(const Vec3& a_point) const noexcept

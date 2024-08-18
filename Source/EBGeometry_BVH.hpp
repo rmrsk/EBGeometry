@@ -21,6 +21,7 @@
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
+#include "EBGeometry_SFC.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
@@ -283,6 +284,20 @@ namespace BVH {
     inline void
     topDownSortAndPartition(const Partitioner&  a_partitioner = BVCentroidPartitioner<T, P, BV, K>,
                             const StopFunction& a_stopCrit    = DefaultStopFunction<T, P, BV, K>) noexcept;
+
+#if __cplusplus >= 202002L
+    /*!
+      @brief Function for doing bottom-up construction using a specified space-filling curve.
+      @details The template parameter is the space-filling curve type. This function will partition the BVH
+      by first sorting the bounding volume centroids along the space-filling curve. The tree is then constructed
+      by placing at least K primitives in each leaf, and the leaves are then merged upwards until we reach the
+      root node.
+    */
+    template <SFC::Encodable S>
+    inline void
+    bottomUpSortAndPartition() noexcept;
+#endif
+    
 
     /*!
       @brief Get node type
