@@ -297,7 +297,6 @@ namespace BVH {
     inline void
     bottomUpSortAndPartition() noexcept;
 #endif
-    
 
     /*!
       @brief Get node type

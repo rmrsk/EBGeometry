@@ -38,7 +38,7 @@ Parser::readIntoDCEL(const std::string a_filename) noexcept
     break;
   }
   case Parser::FileType::PLY: {
-    //    mesh = Parser::PLY<T>::read(a_filename);
+    mesh = Parser::PLY<T>::read(a_filename);
 
     break;
   }

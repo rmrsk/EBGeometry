@@ -100,7 +100,6 @@ namespace BVH {
   inline void
   NodeT<T, P, BV, K>::topDownSortAndPartition(const Partitioner& a_partitioner, const StopFunction& a_stopCrit) noexcept
   {
-
     // Check if this node should be split into more nodes.
     const auto numPrimsInThisNode = m_primitives.size();
 
@@ -140,16 +139,31 @@ namespace BVH {
   inline void
   NodeT<T, P, BV, K>::bottomUpSortAndPartition() noexcept
   {
-    // Get the centroids for all the primitives.
-    std::vector<Vec3> bvCentroids;
+    // The space-filling curves operate on positive coordinates only, using up to 2^21 valid bits
+    // per coordinate direction. The centroids of the bounding volumes use this coordinate system
+    // rather than the "real" coordinates.
+    std::vector<SFC::Index> bins;
 
-    Vec3 min = +Vec3::infinity();
-    Vec3 max = -Vec3::infinity();
+    Vec3 minCoord = Vec3::infinity();
+    Vec3 maxCoord = -Vec3::infinity();
 
     for (const auto& bv : m_boundingVolumes) {
-      bvCentroids.emplace_back(bv.getCentroid());
+      const auto& curCentroid = bv.getCentroid();
+
+      minCoord = min(minCoord, curCentroid);
+      maxCoord = max(maxCoord, curCentroid);
     }
-#warning "NodeT<T, P, BV, K>::bottomUpSortAndPartition not implemented yet"
+
+    const Vec3 delta = (maxCoord - minCoord) / SFC::ValidSpan;
+
+    for (const auto& bv : m_boundingVolumes) {
+      const Vec3 curBin = (bv.getCentroid() - minCoord) / delta;
+
+      bins.emplace_back(SFC::Index{
+        (unsigned int)std::floor(curBin[0]), (unsigned int)std::floor(curBin[1]), (unsigned int)std::floor(curBin[2])});
+    }
+
+    std::cout << bins.size() << std::endl;
   }
 #endif
 
