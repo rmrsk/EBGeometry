@@ -14,6 +14,7 @@
 
 // Std includes
 #include <stack>
+#include <tuple>
 
 // Our includes
 #include "EBGeometry_BVH.hpp"
@@ -30,6 +31,8 @@ namespace BVH {
 
     m_primitives.resize(0);
     m_boundingVolumes.resize(0);
+
+    m_partitioned = false;
   }
 
   template <class T, class P, class BV, size_t K>
@@ -41,6 +44,8 @@ namespace BVH {
     }
 
     m_boundingVolume = BV(m_boundingVolumes);
+
+    m_partitioned = false;
   }
 
   template <class T, class P, class BV, size_t K>
@@ -52,6 +57,13 @@ namespace BVH {
   NodeT<T, P, BV, K>::isLeaf() const noexcept
   {
     return m_primitives.size() > 0;
+  }
+
+  template <class T, class P, class BV, size_t K>
+  inline bool
+  NodeT<T, P, BV, K>::isPartitioned() const noexcept
+  {
+    return m_partitioned;
   }
 
   template <class T, class P, class BV, size_t K>
@@ -131,6 +143,8 @@ namespace BVH {
         c->topDownSortAndPartition(a_partitioner, a_stopCrit);
       }
     }
+
+    m_partitioned = true;
   }
 
 #if __cplusplus >= 202002L
@@ -163,8 +177,25 @@ namespace BVH {
         (unsigned int)std::floor(curBin[0]), (unsigned int)std::floor(curBin[1]), (unsigned int)std::floor(curBin[2])});
     }
 
-    // Sort the bins along the space-filling curves.
-    SFC::sort<S>(bins);
+    // Sort the primitives, their BVs, and their spatial bins along the space-filling curves.
+    using PrimBvAndCode = std::tuple<std::shared_ptr<const P>, BV, SFC::Code>;
+
+    std::vector<PrimBvAndCode> sortedPrimitives;
+
+    for (int i = 0; i < m_primitives.size(); i++) {
+      sortedPrimitives.emplace_back(std::make_tuple(m_primitives[i], m_boundingVolumes[i], S::encode(bins[i])));
+    }
+
+    auto sortCrit = [](const PrimBvAndCode& A, const PrimBvAndCode& B) -> bool {
+      return std::get<2>(A) < std::get<2>(B);
+    };
+
+    std::sort(std::begin(sortedPrimitives), std::end(sortedPrimitives), sortCrit);
+
+    // Go through the SFC and merge leaves that are nearby. This is done recursively so we end up with
+    // a root node in the end.
+
+    m_partitioned = true;
   }
 #endif
 

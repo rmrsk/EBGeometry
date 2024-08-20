@@ -365,11 +365,22 @@ namespace BVH {
     inline std::shared_ptr<LinearBVH<T, P, BV, K>>
     flattenTree() const noexcept;
 
+    /*!
+      @brief Check if BVH is already partitioned
+    */
+    inline bool
+    isPartitioned() const noexcept;
+
   protected:
     /*!
       @brief Bounding volume object for enclosing everything in this node. 
     */
     BV m_boundingVolume;
+
+    /*!
+      @brief Determines whether or not the partitioning function has already been called
+    */
+    bool m_partitioned;
 
     /*!
       @brief Primitives list. This will be empty for regular nodes

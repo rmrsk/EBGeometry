@@ -23,38 +23,6 @@
 namespace EBGeometry {
   namespace SFC {
 
-    template <Encodable T>
-    inline SFC::Code
-    encode(const Index& a_point) noexcept
-    {
-      return T::encode(a_point);
-    }
-
-    template <Encodable T>
-    inline Index
-    decode(const SFC::Code& a_code) noexcept
-    {
-      return T::decode(a_code);
-    }
-
-    template <Encodable T>
-    inline void
-    sort(std::vector<Index>& a_points) noexcept
-    {
-      std::vector<uint64_t> codes;
-
-      for (const auto& p : a_points) {
-        codes.emplace_back(T::encode(p));
-      }
-
-      std::sort(codes.begin(), codes.end());
-
-      a_points.clear();
-      for (const auto& c : codes) {
-        a_points.emplace_back(T::decode(c));
-      }
-    }
-
     inline uint64_t
     Morton::encode(const Index& a_point) noexcept
     {
