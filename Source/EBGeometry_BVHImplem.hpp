@@ -163,7 +163,8 @@ namespace BVH {
         (unsigned int)std::floor(curBin[0]), (unsigned int)std::floor(curBin[1]), (unsigned int)std::floor(curBin[2])});
     }
 
-    std::cout << bins.size() << std::endl;
+    // Sort the bins along the space-filling curves.
+    SFC::sort<S>(bins);
   }
 #endif
 

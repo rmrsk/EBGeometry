@@ -45,10 +45,10 @@ namespace SFC {
   /*!
     @brief Encodable SFC concept -- class must have a static function static uint64_t encode(const Index&). This is the main interface for SFCs
   */
-  template <typename T>
+  template <typename S>
   concept Encodable = requires(const Index& point, const SFC::Code code) {
-    { T::encode(point) } -> std::same_as<SFC::Code>;
-    { T::decode(code) } -> std::same_as<Index>;
+    { S::encode(point) } -> std::same_as<SFC::Code>;
+    { S::decode(code) } -> std::same_as<Index>;
   };
 
   /*!
