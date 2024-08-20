@@ -139,14 +139,15 @@ namespace BoundingVolumes {
 
     constexpr T half = 0.5;
 
-    constexpr size_t DIM = 3;
+    constexpr size_t BoundingVolumeDIM = 3;
 
     // INITIAL PASS
-    std::vector<Vec3> min_coord(DIM, a_points[0]); // [0] = Minimum x, [1] = Minimum y, [2] = Minimum z
-    std::vector<Vec3> max_coord(DIM, a_points[0]);
+    // [0] = Minimum x, [1] = Minimum y, [2] = Minimum z
+    std::vector<Vec3> min_coord(BoundingVolumeDIM, a_points[0]);
+    std::vector<Vec3> max_coord(BoundingVolumeDIM, a_points[0]);
 
     for (size_t i = 1; i < a_points.size(); i++) {
-      for (size_t dir = 0; dir < DIM; dir++) {
+      for (size_t dir = 0; dir < BoundingVolumeDIM; dir++) {
         Vec3& min = min_coord[dir];
         Vec3& max = max_coord[dir];
 
@@ -161,7 +162,7 @@ namespace BoundingVolumes {
 
     T    dist = -1;
     Vec3 v, p1, p2;
-    for (size_t dir = 0; dir < DIM; dir++) {
+    for (size_t dir = 0; dir < BoundingVolumeDIM; dir++) {
       const T len = (max_coord[dir] - min_coord[dir]).length();
       if (len > dist) {
         dist = len;
@@ -399,15 +400,15 @@ namespace BoundingVolumes {
   inline T
   AABBT<T>::getArea() const noexcept
   {
-    constexpr size_t DIM = 3;
+    constexpr size_t BoundingVolumeDIM = 3;
 
     T ret = 0.0;
 
     const auto delta = m_hiCorner - m_loCorner;
 
-    for (size_t dir = 0; dir < DIM; dir++) {
-      const size_t otherDir1 = (dir + 1) % DIM;
-      const size_t otherDir2 = (dir + 2) % DIM;
+    for (size_t dir = 0; dir < BoundingVolumeDIM; dir++) {
+      const size_t otherDir1 = (dir + 1) % BoundingVolumeDIM;
+      const size_t otherDir2 = (dir + 2) % BoundingVolumeDIM;
 
       ret += 2.0 * delta[otherDir1] * delta[otherDir2];
     }
