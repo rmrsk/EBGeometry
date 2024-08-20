@@ -285,24 +285,30 @@ namespace BVH {
     topDownSortAndPartition(const Partitioner&  a_partitioner = BVCentroidPartitioner<T, P, BV, K>,
                             const StopFunction& a_stopCrit    = DefaultStopFunction<T, P, BV, K>) noexcept;
 
-#if __cplusplus >= 202002L
     /*!
       @brief Function for doing bottom-up construction using a specified space-filling curve.
       @details The template parameter is the space-filling curve type. This function will partition the BVH
       by first sorting the bounding volume centroids along the space-filling curve. The tree is then constructed
       by placing at least K primitives in each leaf, and the leaves are then merged upwards until we reach the
       root node.
+      @note S must have an encode and decode function which returns an SFC index. See the SFC namespace for
+      examples for Morton and Nested indices. 
     */
-    template <SFC::Encodable S>
+    template <typename S>
     inline void
     bottomUpSortAndPartition() noexcept;
-#endif
 
     /*!
       @brief Get node type
     */
     inline bool
     isLeaf() const noexcept;
+
+    /*!
+      @brief Check if BVH is already partitioned
+    */
+    inline bool
+    isPartitioned() const noexcept;
 
     /*!
       @brief Get bounding volume
@@ -364,12 +370,6 @@ namespace BVH {
     */
     inline std::shared_ptr<LinearBVH<T, P, BV, K>>
     flattenTree() const noexcept;
-
-    /*!
-      @brief Check if BVH is already partitioned
-    */
-    inline bool
-    isPartitioned() const noexcept;
 
   protected:
     /*!
@@ -541,6 +541,12 @@ namespace BVH {
     isLeaf() const noexcept;
 
     /*!
+      @brief Check if BVH is already partitioned
+    */
+    inline bool
+    isPartitioned() const noexcept;
+
+    /*!
       @brief Get the distance from a 3D point to the bounding volume
       @param[in] a_point 3D point
       @return Returns distance to bounding volume. A zero distance implies that
@@ -563,6 +569,11 @@ namespace BVH {
       @brief Bounding volume.
     */
     BV m_boundingVolume;
+
+    /*!
+      @brief Determines whether or not the partitioning function has already been called
+    */
+    bool m_partitioned;
 
     /*!
       @brief Offset into primitives array

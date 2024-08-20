@@ -147,9 +147,8 @@ namespace BVH {
     m_partitioned = true;
   }
 
-#if __cplusplus >= 202002L
   template <class T, class P, class BV, size_t K>
-  template <SFC::Encodable S>
+  template <typename S>
   inline void
   NodeT<T, P, BV, K>::bottomUpSortAndPartition() noexcept
   {
@@ -192,12 +191,23 @@ namespace BVH {
 
     std::sort(std::begin(sortedPrimitives), std::end(sortedPrimitives), sortCrit);
 
-    // Go through the SFC and merge leaves that are nearby. This is done recursively so we end up with
+    // Go through the SFC and merge leaves that are nearby. We are trying to build a _balanced_
+    // tree where all the leaves exist on the same level, so the numb
     // a root node in the end.
+    const size_t numPrimitives = sortedPrimitives.size();
+    const size_t treeDepth     = std::floor(log(numPrimitives) / log(K));
+    const size_t numLeaves     = std::pow(K, treeDepth);
+    const size_t primsPerLeaf  = numPrimitives / numLeaves;
+    const size_t remainder     = numPrimitives % numLeaves;
+
+    std::cout << numPrimitives << "\t" << treeDepth << "\t" << numLeaves << "\t" << primsPerLeaf << "\t" << remainder
+              << "\t" << std::endl;
+
+    // Build the leaves -- this node will always be the root node.
+    std::vector<std::shared_ptr<NodeT<T, P, BV, K>>> leaves;
 
     m_partitioned = true;
   }
-#endif
 
   template <class T, class P, class BV, size_t K>
   inline T
@@ -388,6 +398,12 @@ namespace BVH {
   LinearNodeT<T, P, BV, K>::isLeaf() const noexcept
   {
     return m_numPrimitives > 0;
+  }
+  template <class T, class P, class BV, size_t K>
+  inline bool
+  LinearNodeT<T, P, BV, K>::isPartitioned() const noexcept
+  {
+    return m_partitioned;
   }
 
   template <class T, class P, class BV, size_t K>
