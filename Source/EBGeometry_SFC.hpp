@@ -40,6 +40,17 @@ namespace SFC {
   */
   static constexpr Code ValidSpan = ((uint64_t)1 << ValidBits) - 1;
 
+#if __cplusplus >= 202002L
+  /*!
+    @brief Encodable SFC concept -- class must have a static function static uint64_t encode(const Index&). This is the main interface for SFCs
+  */
+  template <typename S>
+  concept Encodable = requires(const Index& point, const SFC::Code code) {
+    { S::encode(point) } -> std::same_as<SFC::Code>;
+    { S::decode(code) } -> std::same_as<Index>;
+  };
+#endif
+
   /*!
     @brief Implementation of the Morton SFC
   */
@@ -90,6 +101,11 @@ namespace SFC {
 } // namespace SFC
 
 #include "EBGeometry_NamespaceFooter.hpp"
+
+#if __cplusplus >= 202002L
+static_assert(EBGeometry::SFC::Encodable<EBGeometry::SFC::Morton>);
+static_assert(EBGeometry::SFC::Encodable<EBGeometry::SFC::Nested>);
+#endif
 
 #include "EBGeometry_SFCImplem.hpp"
 

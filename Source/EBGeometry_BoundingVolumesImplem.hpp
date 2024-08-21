@@ -22,28 +22,28 @@
 namespace BoundingVolumes {
 
   template <class T>
-  inline BoundingSphereT<T>::BoundingSphereT()
+  inline BoundingSphereT<T>::BoundingSphereT() noexcept
   {
     m_radius = 0.0;
     m_center = Vec3::zero();
   }
 
   template <class T>
-  inline BoundingSphereT<T>::BoundingSphereT(const Vec3T<T>& a_center, const T& a_radius)
+  inline BoundingSphereT<T>::BoundingSphereT(const Vec3T<T>& a_center, const T& a_radius) noexcept
   {
     m_center = a_center;
     m_radius = a_radius;
   }
 
   template <class T>
-  BoundingSphereT<T>::BoundingSphereT(const BoundingSphereT& a_other)
+  BoundingSphereT<T>::BoundingSphereT(const BoundingSphereT& a_other) noexcept
   {
     m_radius = a_other.m_radius;
     m_center = a_other.m_center;
   }
 
   template <class T>
-  BoundingSphereT<T>::BoundingSphereT(const std::vector<BoundingSphereT<T>>& a_otherSpheres)
+  BoundingSphereT<T>::BoundingSphereT(const std::vector<BoundingSphereT<T>>& a_otherSpheres) noexcept
   {
 
     // TLDR: Spheres enclosing other spheres is a difficult problem, but a sphere
@@ -65,13 +65,13 @@ namespace BoundingVolumes {
 
   template <class T>
   template <class P>
-  BoundingSphereT<T>::BoundingSphereT(const std::vector<Vec3T<P>>& a_points, const BoundingVolumeAlgorithm& a_algorithm)
+  BoundingSphereT<T>::BoundingSphereT(const std::vector<Vec3T<P>>& a_points, const BoundingVolumeAlgorithm& a_algorithm) noexcept
   {
     this->define(a_points, a_algorithm);
   }
 
   template <class T>
-  BoundingSphereT<T>::~BoundingSphereT()
+  BoundingSphereT<T>::~BoundingSphereT() noexcept
   {}
 
   template <class T>
@@ -238,28 +238,28 @@ namespace BoundingVolumes {
   }
 
   template <class T>
-  AABBT<T>::AABBT()
+  AABBT<T>::AABBT()noexcept
   {
     m_loCorner = Vec3::zero();
     m_hiCorner = Vec3::zero();
   }
 
   template <class T>
-  AABBT<T>::AABBT(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi)
+  AABBT<T>::AABBT(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi) noexcept
   {
     m_loCorner = a_lo;
     m_hiCorner = a_hi;
   }
 
   template <class T>
-  AABBT<T>::AABBT(const AABBT<T>& a_other)
+  AABBT<T>::AABBT(const AABBT<T>& a_other) noexcept
   {
     m_loCorner = a_other.m_loCorner;
     m_hiCorner = a_other.m_hiCorner;
   }
 
   template <class T>
-  AABBT<T>::AABBT(const std::vector<AABBT<T>>& a_others)
+  AABBT<T>::AABBT(const std::vector<AABBT<T>>& a_others)noexcept
   {
     m_loCorner = a_others.front().getLowCorner();
     m_hiCorner = a_others.front().getHighCorner();
@@ -272,13 +272,13 @@ namespace BoundingVolumes {
 
   template <class T>
   template <class P>
-  AABBT<T>::AABBT(const std::vector<Vec3T<P>>& a_points)
+  AABBT<T>::AABBT(const std::vector<Vec3T<P>>& a_points) noexcept
   {
     this->define(a_points);
   }
 
   template <class T>
-  AABBT<T>::~AABBT()
+  AABBT<T>::~AABBT() noexcept
   {}
 
   template <class T>
