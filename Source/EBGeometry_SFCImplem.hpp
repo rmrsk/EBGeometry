@@ -9,8 +9,6 @@
   @author Robert Marskar
 */
 
-#if __cplusplus >= 202002L
-
 #ifndef _EBGeometry_SFCImplem_
 #define _EBGeometry_SFCImplem_
 
@@ -96,7 +94,5 @@ namespace EBGeometry {
     }
   } // namespace SFC
 } // namespace EBGeometry
-
-#endif
 
 #endif

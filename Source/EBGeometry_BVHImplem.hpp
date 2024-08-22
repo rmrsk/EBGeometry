@@ -198,13 +198,43 @@ namespace BVH {
     const size_t treeDepth     = std::floor(log(numPrimitives) / log(K));
     const size_t numLeaves     = std::pow(K, treeDepth);
     const size_t primsPerLeaf  = numPrimitives / numLeaves;
-    const size_t remainder     = numPrimitives % numLeaves;
 
-    std::cout << numPrimitives << "\t" << treeDepth << "\t" << numLeaves << "\t" << primsPerLeaf << "\t" << remainder
-              << "\t" << std::endl;
+    if (treeDepth > 0) {
 
-    // Build the leaves -- this node will always be the root node.
-    std::vector<std::shared_ptr<NodeT<T, P, BV, K>>> leaves;
+      // Build the leaves by partitioning the primitives along the SFC.
+      std::vector<std::vector<std::shared_ptr<NodeT<T, P, BV, K>>>> nodes(treeDepth + 1);
+
+      size_t startIndex = 0;
+      size_t endIndex   = 0;
+      size_t remainder  = numPrimitives % numLeaves;
+
+      for (size_t ileaf = 0; ileaf < numLeaves; ileaf++) {
+        endIndex = startIndex + primsPerLeaf - 1;
+
+        if (remainder > 0) {
+          endIndex  = endIndex + 1;
+          remainder = remainder - 1;
+        }
+
+        std::vector<BVH::PrimAndBV<P, BV>> primsAndBVs;
+
+        for (size_t i = startIndex; i <= endIndex; i++) {
+          const auto& cur = sortedPrimitives[i];
+
+          primsAndBVs.emplace_back(std::get<0>(cur), std::get<1>(cur));
+        }
+
+        nodes[treeDepth].emplace_back(std::make_shared<NodeT<T, P, BV, K>>(primsAndBVs));
+
+        startIndex = endIndex + 1;
+      }
+
+      // Starting at the bottom of the tree, merge the nodes.
+      for (int lvl = treeDepth - 1; lvl > 0; lvl--) {
+      }
+
+      // This node is the root node of the tree.
+    }
 
     m_partitioned = true;
   }
