@@ -231,17 +231,16 @@ namespace BVH {
 
       // Starting at the bottom of the tree, merge the nodes upward in clusters of K.
       for (int lvl = treeDepth - 1; lvl >= 0; lvl--) {
-        const size_t numNodes = std::pow(K, lvl);
+        nodes[lvl].resize(0);
 
-        for (int inode = 0; inode < numNodes; inode++) {
+        for (int inode = 0; inode < std::pow(K, lvl); inode++) {
 
           std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K> children;
 
           for (int child = 0; child < K; child++) {
-            children[child] = nodes[lvl - 1][inode * K + child];
+            children[child] = nodes[lvl + 1][inode * K + child];
           }
 
-          // The root node (i.e., this node) already exists so don't reset it.
           if (lvl > 0) {
             nodes[lvl].emplace_back(std::make_shared<NodeT<T, P, BV, K>>());
           }
@@ -270,7 +269,7 @@ namespace BVH {
     m_primitives.resize(0);
     m_boundingVolumes.resize(0);
 
-    m_boundingVolume = BV(m_boundingVolumes);
+    m_boundingVolume = BV(boundingVolumes);
     m_children       = a_children;
     m_partitioned    = true;
   }
