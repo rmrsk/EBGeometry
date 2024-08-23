@@ -230,8 +230,7 @@ namespace BVH {
       }
 
       // Starting at the bottom of the tree, merge the nodes upward in clusters of K.
-      for (int lvl = treeDepth - 1; lvl > 0; lvl--) {
-
+      for (int lvl = treeDepth - 1; lvl >= 0; lvl--) {
         const size_t numNodes = std::pow(K, lvl);
 
         for (int inode = 0; inode < numNodes; inode++) {
@@ -242,6 +241,7 @@ namespace BVH {
             children[child] = nodes[lvl - 1][inode * K + child];
           }
 
+          // The root node (i.e., this node) already exists so don't reset it.
           if (lvl > 0) {
             nodes[lvl].emplace_back(std::make_shared<NodeT<T, P, BV, K>>());
           }
