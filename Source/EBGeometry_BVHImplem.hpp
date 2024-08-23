@@ -201,9 +201,9 @@ namespace BVH {
 
     if (treeDepth > 0) {
 
-      // Build the leaves by partitioning the primitives along the SFC.
       std::vector<std::vector<std::shared_ptr<NodeT<T, P, BV, K>>>> nodes(treeDepth + 1);
 
+      // Build the leaves by partitioning the primitives along the SFC.
       size_t startIndex = 0;
       size_t endIndex   = 0;
       size_t remainder  = numPrimitives % numLeaves;
@@ -229,14 +229,50 @@ namespace BVH {
         startIndex = endIndex + 1;
       }
 
-      // Starting at the bottom of the tree, merge the nodes.
+      // Starting at the bottom of the tree, merge the nodes upward in clusters of K.
       for (int lvl = treeDepth - 1; lvl > 0; lvl--) {
-      }
 
-      // This node is the root node of the tree.
+        const size_t numNodes = std::pow(K, lvl);
+
+        for (int inode = 0; inode < numNodes; inode++) {
+
+          std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K> children;
+
+          for (int child = 0; child < K; child++) {
+            children[child] = nodes[lvl - 1][inode * K + child];
+          }
+
+          if (lvl > 0) {
+            nodes[lvl].emplace_back(std::make_shared<NodeT<T, P, BV, K>>());
+          }
+          else {
+            nodes[lvl].emplace_back(this->shared_from_this());
+          }
+
+          nodes[lvl].back()->setChildren(children);
+        }
+      }
     }
 
     m_partitioned = true;
+  }
+
+  template <class T, class P, class BV, size_t K>
+  inline void
+  NodeT<T, P, BV, K>::setChildren(const std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K>& a_children) noexcept
+  {
+
+    std::vector<BV> boundingVolumes;
+    for (const auto& child : a_children) {
+      boundingVolumes.emplace_back(child->getBoundingVolume());
+    }
+
+    m_primitives.resize(0);
+    m_boundingVolumes.resize(0);
+
+    m_boundingVolume = BV(m_boundingVolumes);
+    m_children       = a_children;
+    m_partitioned    = true;
   }
 
   template <class T, class P, class BV, size_t K>

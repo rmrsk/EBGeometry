@@ -412,6 +412,14 @@ namespace BVH {
     getBoundingVolumes() noexcept;
 
     /*!
+      @brief Explicitly set this node's children.
+      @details This will turn this node into the parent node of the input children, i.e. a regular node.
+      @return m_children.
+    */
+    inline void
+    setChildren(const std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K>& a_children) noexcept;        
+
+    /*!
       @brief Flatten tree method.
       @details This function will flatten everything beneath the current node and
       linearize all the nodes and primitives beneath it to a_linearNodes and
