@@ -12,6 +12,7 @@
 #include "Source/EBGeometry_Parser.hpp"
 #include "Source/EBGeometry_SFC.hpp"
 #include "Source/EBGeometry_SignedDistanceFunction.hpp"
+#include "Source/EBGeometry_SimpleTimer.hpp"
 #include "Source/EBGeometry_Transform.hpp"
 
 /*!

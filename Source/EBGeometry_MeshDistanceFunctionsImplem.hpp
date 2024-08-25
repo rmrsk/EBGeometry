@@ -33,8 +33,9 @@ DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dc
   // Partition the BVH using the default input arguments.
   auto bvh = std::make_shared<EBGeometry::BVH::NodeT<T, Prim, BV, K>>(primsAndBVs);
 
-#if 0
-#warning "In file EBGeometry::MeshDistanceFunctionsImplem.hpp DCEL::buildFullBVH<T, P, BV, K> - dev code enabled but must be removed later"
+#if 1
+#warning \
+  "In file EBGeometry::MeshDistanceFunctionsImplem.hpp DCEL::buildFullBVH<T, P, BV, K> - dev code enabled but must be removed later"
   bvh->template bottomUpSortAndPartition<SFC::Morton>();
 #else
   bvh->topDownSortAndPartition();

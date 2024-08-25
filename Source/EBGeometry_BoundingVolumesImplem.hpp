@@ -65,7 +65,8 @@ namespace BoundingVolumes {
 
   template <class T>
   template <class P>
-  BoundingSphereT<T>::BoundingSphereT(const std::vector<Vec3T<P>>& a_points, const BoundingVolumeAlgorithm& a_algorithm) noexcept
+  BoundingSphereT<T>::BoundingSphereT(const std::vector<Vec3T<P>>&   a_points,
+                                      const BoundingVolumeAlgorithm& a_algorithm) noexcept
   {
     this->define(a_points, a_algorithm);
   }
@@ -238,7 +239,7 @@ namespace BoundingVolumes {
   }
 
   template <class T>
-  AABBT<T>::AABBT()noexcept
+  AABBT<T>::AABBT() noexcept
   {
     m_loCorner = Vec3::zero();
     m_hiCorner = Vec3::zero();
@@ -259,7 +260,7 @@ namespace BoundingVolumes {
   }
 
   template <class T>
-  AABBT<T>::AABBT(const std::vector<AABBT<T>>& a_others)noexcept
+  AABBT<T>::AABBT(const std::vector<AABBT<T>>& a_others) noexcept
   {
     m_loCorner = a_others.front().getLowCorner();
     m_hiCorner = a_others.front().getHighCorner();

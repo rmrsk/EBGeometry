@@ -417,7 +417,7 @@ namespace BVH {
       @return m_children.
     */
     inline void
-    setChildren(const std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K>& a_children) noexcept;        
+    setChildren(const std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K>& a_children) noexcept;
 
     /*!
       @brief Flatten tree method.
