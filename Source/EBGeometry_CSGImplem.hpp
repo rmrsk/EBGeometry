@@ -281,12 +281,33 @@ FastUnionIF<T, P, BV, K>::FastUnionIF(const std::vector<std::shared_ptr<P>>& a_p
 
 template <class T, class P, class BV, size_t K>
 void
-FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs) noexcept
+FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
+                                    const BVH::Build                                            a_build) noexcept
 {
   // Init the root node, partition it, and flatten it.
   auto root = std::make_shared<EBGeometry::BVH::NodeT<T, P, BV, K>>(a_primsAndBVs);
 
-  root->topDownSortAndPartition();
+  switch (a_build) {
+  case BVH::Build::TopDown: {
+    root->topDownSortAndPartition();
+
+    break;
+  }
+  case BVH::Build::Morton: {
+    root->template bottomUpSortAndPartition<SFC::Morton>();
+
+    break;
+  }
+  case BVH::Build::Nested: {
+    root->template bottomUpSortAndPartition<SFC::Nested>();
+
+    break;
+  }
+  default: {
+    std::cerr << "EBGeometry_CSGImplem.hpp in FastUnionIF::buildTree - unsupported build method requested" << std::endl;
+    break;
+  }
+  }
 
   m_bvh = root->flattenTree();
 }

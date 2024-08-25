@@ -30,6 +30,16 @@
 namespace BVH {
 
   /*!
+    @brief Enum for specifying whether or not the construction is top-down or bottom-up
+  */
+  enum class Build
+  {
+    TopDown,
+    Morton,
+    Nested
+  };
+
+  /*!
     @brief Forward declare the BVH node since it is needed for the polymorphic
     lambdas.
     @details T is the precision used in the BVH computations, P is the enclosing

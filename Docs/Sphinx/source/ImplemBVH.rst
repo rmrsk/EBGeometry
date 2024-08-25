@@ -52,12 +52,13 @@ Constructing a BVH is done by
 *  Partitioning the BVH by providing a partitioning function. 
 
 The first step is usually a matter of simply constructing the root node using the full constructor, which takes a list of primitives and their associated bounding volumes. 
-The second step is to recursively build the BVH, which is done through the function ``topDownSortAndPartition()``, see the code below:
+The second step is to recursively build the BVH.
+We currently support top-down and bottom-up construction (using space-filling curves).
 
-.. literalinclude:: ../../../Source/EBGeometry_BVH.hpp
-   :language: c++
-   :lines: 29, 62-94, 217-227, 248-257, 263-268, 274-285, 404, 643,644
-   :caption: Header section of the BVH implementation.
+Top-down construction
+_____________________
+
+Top-down construction is done through the function ``topDownSortAndPartition()``, `see the doxygen API for the BVH implementation <doxygen/html/doxygen/html/classBVH_1_1NodeT.html`.
 
 The optional input arguments to ``topDownSortAndPartition`` are polymorphic functions of type indicated above, and have the following responsibilities:
 
@@ -67,6 +68,11 @@ The optional input arguments to ``topDownSortAndPartition`` are polymorphic func
 *  ``StopFunctionT`` simply takes a ``NodeT`` as input argument and determines if the node should be partitioned further.
 
 Default arguments for these are provided, bubt users are free to partition their BVHs in their own way should they choose.
+
+Bottom-up construction
+______________________
+
+TODO.
 
 .. _Chap:LinearBVH:
 
