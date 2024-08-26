@@ -67,7 +67,8 @@ public:
     this->m_implicitFunction = a_other.m_implicitFunction;
   }
 
-  Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+  Real
+  operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
     return Real(m_implicitFunction->value(EBGeometry::Vec3T(x, y, z)));
   };

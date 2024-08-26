@@ -14,6 +14,7 @@
 
 // Std includes
 #include <stack>
+#include <tuple>
 
 // Our includes
 #include "EBGeometry_BVH.hpp"
@@ -30,6 +31,8 @@ namespace BVH {
 
     m_primitives.resize(0);
     m_boundingVolumes.resize(0);
+
+    m_partitioned = false;
   }
 
   template <class T, class P, class BV, size_t K>
@@ -41,6 +44,8 @@ namespace BVH {
     }
 
     m_boundingVolume = BV(m_boundingVolumes);
+
+    m_partitioned = false;
   }
 
   template <class T, class P, class BV, size_t K>
@@ -52,6 +57,13 @@ namespace BVH {
   NodeT<T, P, BV, K>::isLeaf() const noexcept
   {
     return m_primitives.size() > 0;
+  }
+
+  template <class T, class P, class BV, size_t K>
+  inline bool
+  NodeT<T, P, BV, K>::isPartitioned() const noexcept
+  {
+    return m_partitioned;
   }
 
   template <class T, class P, class BV, size_t K>
@@ -100,7 +112,6 @@ namespace BVH {
   inline void
   NodeT<T, P, BV, K>::topDownSortAndPartition(const Partitioner& a_partitioner, const StopFunction& a_stopCrit) noexcept
   {
-
     // Check if this node should be split into more nodes.
     const auto numPrimsInThisNode = m_primitives.size();
 
@@ -132,6 +143,136 @@ namespace BVH {
         c->topDownSortAndPartition(a_partitioner, a_stopCrit);
       }
     }
+
+    m_partitioned = true;
+  }
+
+  template <class T, class P, class BV, size_t K>
+  template <typename S>
+  inline void
+  NodeT<T, P, BV, K>::bottomUpSortAndPartition() noexcept
+  {
+    // The space-filling curves operate on positive coordinates only, using up to 2^21 valid bits
+    // per coordinate direction. The centroids of the bounding volumes use this coordinate system
+    // rather than the "real" coordinates.
+    std::vector<SFC::Index> bins;
+
+    Vec3 minCoord = Vec3::infinity();
+    Vec3 maxCoord = -Vec3::infinity();
+
+    for (const auto& bv : m_boundingVolumes) {
+      const auto& curCentroid = bv.getCentroid();
+
+      minCoord = min(minCoord, curCentroid);
+      maxCoord = max(maxCoord, curCentroid);
+    }
+
+    const Vec3 delta = (maxCoord - minCoord) / SFC::ValidSpan;
+
+    for (const auto& bv : m_boundingVolumes) {
+      const Vec3 curBin = (bv.getCentroid() - minCoord) / delta;
+
+      bins.emplace_back(SFC::Index{static_cast<unsigned int>(std::floor(curBin[0])),
+                                   static_cast<unsigned int>(std::floor(curBin[1])),
+                                   static_cast<unsigned int>(std::floor(curBin[2]))});
+    }
+
+    // Sort the primitives, their BVs, and their spatial bins along the space-filling curves.
+    using PrimBvAndCode = std::tuple<std::shared_ptr<const P>, BV, SFC::Code>;
+
+    std::vector<PrimBvAndCode> sortedPrimitives;
+
+    for (size_t i = 0; i < m_primitives.size(); i++) {
+      sortedPrimitives.emplace_back(std::make_tuple(m_primitives[i], m_boundingVolumes[i], S::encode(bins[i])));
+    }
+
+    auto sortCrit = [](const PrimBvAndCode& A, const PrimBvAndCode& B) -> bool {
+      return std::get<2>(A) < std::get<2>(B);
+    };
+
+    std::sort(std::begin(sortedPrimitives), std::end(sortedPrimitives), sortCrit);
+
+    // Go through the SFC and merge leaves that are nearby. We are trying to build a _balanced_
+    // tree where all the leaves exist on the same level, so the numb
+    // a root node in the end.
+    const size_t numPrimitives = sortedPrimitives.size();
+    const size_t treeDepth     = std::floor(log(numPrimitives) / log(K));
+    const size_t numLeaves     = std::pow(K, treeDepth);
+    const size_t primsPerLeaf  = numPrimitives / numLeaves;
+
+    if (treeDepth > 0) {
+
+      std::vector<std::vector<std::shared_ptr<NodeT<T, P, BV, K>>>> nodes(treeDepth + 1);
+
+      // Build the leaves by partitioning the primitives along the SFC.
+      size_t startIndex = 0;
+      size_t endIndex   = 0;
+      size_t remainder  = numPrimitives % numLeaves;
+
+      for (size_t ileaf = 0; ileaf < numLeaves; ileaf++) {
+        endIndex = startIndex + primsPerLeaf - 1;
+
+        if (remainder > 0) {
+          endIndex  = endIndex + 1;
+          remainder = remainder - 1;
+        }
+
+        std::vector<BVH::PrimAndBV<P, BV>> primsAndBVs;
+
+        for (size_t i = startIndex; i <= endIndex; i++) {
+          const auto& cur = sortedPrimitives[i];
+
+          primsAndBVs.emplace_back(std::get<0>(cur), std::get<1>(cur));
+        }
+
+        nodes[treeDepth].emplace_back(std::make_shared<NodeT<T, P, BV, K>>(primsAndBVs));
+
+        startIndex = endIndex + 1;
+      }
+
+      // Starting at the bottom of the tree, merge the nodes upward in clusters of K.
+      for (int lvl = static_cast<int>(treeDepth) - 1; lvl >= 0; lvl--) {
+        nodes[static_cast<size_t>(lvl)].resize(0);
+
+        for (size_t inode = 0; inode < std::pow(K, lvl); inode++) {
+
+          std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K> children;
+
+          for (size_t child = 0; child < K; child++) {
+            children[child] = nodes[static_cast<size_t>(lvl + 1)][inode * K + child];
+          }
+
+          if (lvl > 0) {
+            nodes[static_cast<size_t>(lvl)].emplace_back(std::make_shared<NodeT<T, P, BV, K>>());
+          }
+          else {
+            nodes[static_cast<size_t>(lvl)].emplace_back(this->shared_from_this());
+          }
+
+          nodes[static_cast<size_t>(lvl)].back()->setChildren(children);
+        }
+      }
+    }
+
+    m_partitioned = true;
+  }
+
+  template <class T, class P, class BV, size_t K>
+  inline void
+  NodeT<T, P, BV, K>::setChildren(const std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K>& a_children) noexcept
+  {
+
+    std::vector<BV> boundingVolumes;
+    for (const auto& child : a_children) {
+      boundingVolumes.emplace_back(child->getBoundingVolume());
+    }
+
+    m_primitives.resize(0);
+    m_boundingVolumes.resize(0);
+
+    m_boundingVolume = BV(boundingVolumes);
+    m_children       = a_children;
+    m_partitioned    = true;
   }
 
   template <class T, class P, class BV, size_t K>
@@ -324,6 +465,12 @@ namespace BVH {
   {
     return m_numPrimitives > 0;
   }
+  template <class T, class P, class BV, size_t K>
+  inline bool
+  LinearNodeT<T, P, BV, K>::isPartitioned() const noexcept
+  {
+    return m_partitioned;
+  }
 
   template <class T, class P, class BV, size_t K>
   inline T
@@ -406,8 +553,8 @@ namespace BVH {
           const size_t& offset  = node->getPrimitivesOffset();
           const size_t& numPrim = node->getNumPrimitives();
 
-          const auto first = m_primitives.begin() + offset;
-          const auto last  = first + numPrim;
+          const auto first = m_primitives.begin() + static_cast<long int>(offset);
+          const auto last  = first + static_cast<long int>(numPrim);
 
           // User-based update rule.
           a_updater(PrimitiveList(first, last));
