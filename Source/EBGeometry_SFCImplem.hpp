@@ -31,15 +31,15 @@ namespace EBGeometry {
       const uint_fast32_t z = a_point[2];
 
       auto PartBy3 = [](const uint_fast32_t a) -> uint64_t {
-        uint64_t x = a & Mask_64[0];
+        uint64_t b = a & Mask_64[0];
 
-        x = (x | x << 32) & Mask_64[1];
-        x = (x | x << 16) & Mask_64[2];
-        x = (x | x << 8) & Mask_64[3];
-        x = (x | x << 4) & Mask_64[4];
-        x = (x | x << 2) & Mask_64[5];
+        b = (b | b << 32) & Mask_64[1];
+        b = (b | b << 16) & Mask_64[2];
+        b = (b | b << 8) & Mask_64[3];
+        b = (b | b << 4) & Mask_64[4];
+        b = (b | b << 2) & Mask_64[5];
 
-        return x;
+        return b;
       };
 
       code |= PartBy3(x) | PartBy3(y) << 1 | PartBy3(z) << 2;
@@ -62,9 +62,9 @@ namespace EBGeometry {
         return x;
       };
 
-      const unsigned int x = (unsigned int)getEveryThirdBit(a_code);
-      const unsigned int y = (unsigned int)getEveryThirdBit(a_code >> 1);
-      const unsigned int z = (unsigned int)getEveryThirdBit(a_code >> 2);
+      const unsigned int x = static_cast<unsigned int>(getEveryThirdBit(a_code));
+      const unsigned int y = static_cast<unsigned int>(getEveryThirdBit(a_code >> 1));
+      const unsigned int z = static_cast<unsigned int>(getEveryThirdBit(a_code >> 2));
 
       return Index({x, y, z});
     }

@@ -38,7 +38,7 @@ namespace SFC {
   /*!
     @brief Maximum permitted span along any spatial coordinate. 
   */
-  static constexpr Code ValidSpan = ((uint64_t)1 << ValidBits) - 1;
+  static constexpr Code ValidSpan = (static_cast<uint64_t>(1) << ValidBits) - 1;
 
 #if __cplusplus >= 202002L
   /*!

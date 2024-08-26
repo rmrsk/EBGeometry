@@ -905,7 +905,7 @@ public:
     m_noiseAmplitude   = a_noiseAmplitude;
     m_noiseFrequency   = a_noiseFrequency;
     m_noisePersistence = std::min(1.0, a_noisePersistence);
-    m_noiseOctaves     = std::max((unsigned int)1, a_noiseOctaves);
+    m_noiseOctaves     = std::max(static_cast<unsigned int>(1), a_noiseOctaves);
 
     // By default, use Ken Perlin's original permutation table
     for (int i = 0; i < 256; i++) {
@@ -1055,9 +1055,9 @@ protected:
   noise(const Vec3T<T>& a_point) const noexcept
   {
     // Lower cube corner
-    const int X = (int)std::floor(a_point[0]) & 255;
-    const int Y = (int)std::floor(a_point[1]) & 255;
-    const int Z = (int)std::floor(a_point[2]) & 255;
+    const int X = static_cast<int>(std::floor(a_point[0])) & 255;
+    const int Y = static_cast<int>(std::floor(a_point[1])) & 255;
+    const int Z = static_cast<int>(std::floor(a_point[2])) & 255;
 
     // Relative distance wrt lower cube corner
     const double x = a_point[0] - std::floor(a_point[0]);

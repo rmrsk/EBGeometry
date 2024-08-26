@@ -172,8 +172,9 @@ namespace BVH {
     for (const auto& bv : m_boundingVolumes) {
       const Vec3 curBin = (bv.getCentroid() - minCoord) / delta;
 
-      bins.emplace_back(SFC::Index{
-        (unsigned int)std::floor(curBin[0]), (unsigned int)std::floor(curBin[1]), (unsigned int)std::floor(curBin[2])});
+      bins.emplace_back(SFC::Index{static_cast<unsigned int>(std::floor(curBin[0])),
+                                   static_cast<unsigned int>(std::floor(curBin[1])),
+                                   static_cast<unsigned int>(std::floor(curBin[2]))});
     }
 
     // Sort the primitives, their BVs, and their spatial bins along the space-filling curves.
@@ -181,7 +182,7 @@ namespace BVH {
 
     std::vector<PrimBvAndCode> sortedPrimitives;
 
-    for (int i = 0; i < m_primitives.size(); i++) {
+    for (size_t i = 0; i < m_primitives.size(); i++) {
       sortedPrimitives.emplace_back(std::make_tuple(m_primitives[i], m_boundingVolumes[i], S::encode(bins[i])));
     }
 
@@ -230,25 +231,25 @@ namespace BVH {
       }
 
       // Starting at the bottom of the tree, merge the nodes upward in clusters of K.
-      for (int lvl = treeDepth - 1; lvl >= 0; lvl--) {
-        nodes[lvl].resize(0);
+      for (int lvl = static_cast<int>(treeDepth) - 1; lvl >= 0; lvl--) {
+        nodes[static_cast<size_t>(lvl)].resize(0);
 
-        for (int inode = 0; inode < std::pow(K, lvl); inode++) {
+        for (size_t inode = 0; inode < std::pow(K, lvl); inode++) {
 
           std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K> children;
 
-          for (int child = 0; child < K; child++) {
-            children[child] = nodes[lvl + 1][inode * K + child];
+          for (size_t child = 0; child < K; child++) {
+            children[child] = nodes[static_cast<size_t>(lvl + 1)][inode * K + child];
           }
 
           if (lvl > 0) {
-            nodes[lvl].emplace_back(std::make_shared<NodeT<T, P, BV, K>>());
+            nodes[static_cast<size_t>(lvl)].emplace_back(std::make_shared<NodeT<T, P, BV, K>>());
           }
           else {
-            nodes[lvl].emplace_back(this->shared_from_this());
+            nodes[static_cast<size_t>(lvl)].emplace_back(this->shared_from_this());
           }
 
-          nodes[lvl].back()->setChildren(children);
+          nodes[static_cast<size_t>(lvl)].back()->setChildren(children);
         }
       }
     }
@@ -552,8 +553,8 @@ namespace BVH {
           const size_t& offset  = node->getPrimitivesOffset();
           const size_t& numPrim = node->getNumPrimitives();
 
-          const auto first = m_primitives.begin() + offset;
-          const auto last  = first + numPrim;
+          const auto first = m_primitives.begin() + static_cast<long int>(offset);
+          const auto last  = first + static_cast<long int>(numPrim);
 
           // User-based update rule.
           a_updater(PrimitiveList(first, last));
