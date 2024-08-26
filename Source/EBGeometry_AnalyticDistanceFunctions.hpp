@@ -86,7 +86,7 @@ public:
     @param[in] a_point      Point on the plane
     @param[in] a_normal     Plane normal vector.
   */
-  PlaneSDF(const Vec3T<T>& a_point, const Vec3T<T>& a_normal)
+  PlaneSDF(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) noexcept
   {
     m_point  = a_point;
     m_normal = a_normal / a_normal.length();
@@ -131,7 +131,7 @@ public:
     @param[in] a_center Sphere center
     @param[in] a_radius Sphere radius
   */
-  SphereSDF(const Vec3T<T>& a_center, const T& a_radius)
+  SphereSDF(const Vec3T<T>& a_center, const T& a_radius) noexcept
   {
     this->m_center = a_center;
     this->m_radius = a_radius;
@@ -140,7 +140,7 @@ public:
   /*!
     @brief Copy constructor
   */
-  SphereSDF(const SphereSDF& a_other)
+  SphereSDF(const SphereSDF& a_other) noexcept
   {
     this->m_center = a_other.m_center;
     this->m_radius = a_other.m_radius;
@@ -149,7 +149,7 @@ public:
   /*!
     @brief Destructor
   */
-  virtual ~SphereSDF() = default;
+  virtual ~SphereSDF() noexcept = default;
 
   /*!
     @brief Get center
@@ -226,7 +226,7 @@ public:
     @param[in] a_loCorner   Lower left corner
     @param[in] a_hiCorner   Upper right corner
   */
-  BoxSDF(const Vec3T<T>& a_loCorner, const Vec3T<T>& a_hiCorner)
+  BoxSDF(const Vec3T<T>& a_loCorner, const Vec3T<T>& a_hiCorner) noexcept
   {
     this->m_loCorner = a_loCorner;
     this->m_hiCorner = a_hiCorner;
@@ -235,7 +235,7 @@ public:
   /*!
     @brief Destructor (does nothing).
   */
-  virtual ~BoxSDF()
+  virtual ~BoxSDF() noexcept
   {}
 
   /*!
@@ -334,7 +334,7 @@ public:
     @param[in] a_majorRadius Major torus radius.
     @param[in] a_minorRadius Minor torus radius.
   */
-  TorusSDF(const Vec3T<T>& a_center, const T& a_majorRadius, const T& a_minorRadius)
+  TorusSDF(const Vec3T<T>& a_center, const T& a_majorRadius, const T& a_minorRadius) noexcept
   {
     this->m_center      = a_center;
     this->m_majorRadius = a_majorRadius;
@@ -344,7 +344,7 @@ public:
   /*!
     @brief Destructor (does nothing).
   */
-  virtual ~TorusSDF()
+  virtual ~TorusSDF() noexcept
   {}
 
   /*!
@@ -455,7 +455,7 @@ public:
     @param[in] a_center2    Other endpoint.
     @param[in] a_radius     Cylinder radius.
   */
-  CylinderSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T& a_radius)
+  CylinderSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T& a_radius) noexcept
   {
     this->m_center1 = a_center1;
     this->m_center2 = a_center2;
@@ -470,7 +470,7 @@ public:
   /*!
     @brief Destructor (does nothing).
   */
-  virtual ~CylinderSDF()
+  virtual ~CylinderSDF() noexcept
   {}
 
   /*!
@@ -592,7 +592,7 @@ public:
     @param[in] a_radius     Cylinder radius.
     @param[in] a_axis       Cylinder axis.
   */
-  InfiniteCylinderSDF(const Vec3T<T>& a_center, const T& a_radius, const size_t a_axis)
+  InfiniteCylinderSDF(const Vec3T<T>& a_center, const T& a_radius, const size_t a_axis) noexcept
   {
     m_center = a_center;
     m_radius = a_radius;
@@ -650,7 +650,7 @@ public:
     @param[in] a_tip2       Other center point.
     @param[in] a_radius     Radius.
   */
-  CapsuleSDF(const Vec3T<T>& a_tip1, const Vec3T<T> a_tip2, const T& a_radius)
+  CapsuleSDF(const Vec3T<T>& a_tip1, const Vec3T<T> a_tip2, const T& a_radius) noexcept
   {
     const Vec3T<T> axis = (a_tip2 - a_tip1) / length(a_tip2 - a_tip1);
     m_center1           = a_tip1 + a_radius * axis;
@@ -708,7 +708,7 @@ public:
     @param[in] a_tip        Cone tip position
     @param[in] a_angle      Cone opening angle.
   */
-  InfiniteConeSDF(const Vec3T<T>& a_tip, const T& a_angle)
+  InfiniteConeSDF(const Vec3T<T>& a_tip, const T& a_angle) noexcept
   {
     constexpr T pi = 3.14159265358979323846;
 
@@ -769,7 +769,7 @@ public:
     @param[in] a_height     Cone height, measured from top to bottom.
     @param[in] a_angle      Cone opening angle.
   */
-  ConeSDF(const Vec3T<T>& a_tip, const T& a_height, const T& a_angle)
+  ConeSDF(const Vec3T<T>& a_tip, const T& a_height, const T& a_angle) noexcept
   {
     constexpr T pi = 3.14159265358979323846;
 
@@ -849,7 +849,7 @@ public:
     @param[in] a_curvature Corner curvature. 
     @note Curvature must be > 0.0
   */
-  RoundedBoxSDF(const Vec3T<T>& a_dimensions, const T a_curvature)
+  RoundedBoxSDF(const Vec3T<T>& a_dimensions, const T a_curvature) noexcept
   {
     this->m_dimensions = 0.5 * a_dimensions;
 
@@ -905,7 +905,7 @@ public:
     m_noiseAmplitude   = a_noiseAmplitude;
     m_noiseFrequency   = a_noiseFrequency;
     m_noisePersistence = std::min(1.0, a_noisePersistence);
-    m_noiseOctaves     = std::max((unsigned int)1, a_noiseOctaves);
+    m_noiseOctaves     = std::max(static_cast<unsigned int>(1), a_noiseOctaves);
 
     // By default, use Ken Perlin's original permutation table
     for (int i = 0; i < 256; i++) {
@@ -1055,9 +1055,9 @@ protected:
   noise(const Vec3T<T>& a_point) const noexcept
   {
     // Lower cube corner
-    const int X = (int)std::floor(a_point[0]) & 255;
-    const int Y = (int)std::floor(a_point[1]) & 255;
-    const int Z = (int)std::floor(a_point[2]) & 255;
+    const int X = static_cast<int>(std::floor(a_point[0])) & 255;
+    const int Y = static_cast<int>(std::floor(a_point[1])) & 255;
+    const int Z = static_cast<int>(std::floor(a_point[2])) & 255;
 
     // Relative distance wrt lower cube corner
     const double x = a_point[0] - std::floor(a_point[0]);

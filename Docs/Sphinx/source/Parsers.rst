@@ -43,10 +43,12 @@ To read one or multiple STL files and turn it into DCEL meshes, use
    :language: c++
    :lines: 53-67
 
+Note that this will only expose the DCEL mesh, but not include any signed distance functionality.
+
 DCEL mesh SDF
 _____________
 
-To read one or multiple STL files and turn it into signed distance representations, use
+To read one or multiple STL files and also turn it into signed distance representations, use
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
@@ -59,7 +61,7 @@ To read one or multiple STL files and turn it into signed distance representatio
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 85-99
+   :lines: 85-105
 
 .. _Chap:LinearSTL:
 
@@ -70,7 +72,7 @@ To read one or multiple STL files and turn it into signed distance representatio
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 101-115
+   :lines: 107-127
 
 .. _Chap:PolySoups:
 
@@ -91,11 +93,12 @@ To turn this into a DCEL mesh, one should compress the triangle soup (get rid of
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 136-165
+   :lines: 146-165
 
 The ``compress`` function will discard duplicate vertices from the soup, while the ``soupToDCEL`` will simply turn the remaining polygon soup into a DCEL mesh.
+This function will also compute the vertex and edge normal vectors.
 
-.. tip::
+.. warning::
    
    ``soupToDCEL`` will issue plenty of warnings if the polygon soup is not watertight and orientable. 
 

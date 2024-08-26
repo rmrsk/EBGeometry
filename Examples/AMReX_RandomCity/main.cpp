@@ -90,7 +90,8 @@ public:
     this->m_fastUnion = a_other.m_fastUnion;
   }
 
-  Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+  Real
+  operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
     if (m_useBVH) {
       return Real(m_fastUnion->value(EBGeometry::Vec3T(x, y, z)));

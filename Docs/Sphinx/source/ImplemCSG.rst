@@ -37,7 +37,7 @@ These are also available through functions that automatically cast the resulting
 
 .. literalinclude:: ../../../Source/EBGeometry_Transform.hpp   
    :language: c++
-   :lines: 20-90
+   :lines: 20-111
 
 CSG operations
 --------------

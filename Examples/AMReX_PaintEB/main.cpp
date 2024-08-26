@@ -58,7 +58,8 @@ public:
   /*!
     @brief AMReX's implicit function definition.
   */
-  Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+  Real
+  operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
     return m_sdf->value(EBGeometry::Vec3T<T>(x, y, z));
   };
@@ -76,7 +77,7 @@ public:
     @brief Get the face(s) that are closest to the input point. 
   */
   inline std::vector<std::pair<std::shared_ptr<const Face>, T>>
-    getClosestFaces(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+  getClosestFaces(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
     return m_sdf->getClosestFaces(EBGeometry::Vec3T<T>(x, y, z), true);
   }

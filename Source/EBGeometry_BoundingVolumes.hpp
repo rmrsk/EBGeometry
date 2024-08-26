@@ -64,27 +64,27 @@ namespace BoundingVolumes {
     /*!
       @brief Default constructor. Leaves object in undefined state.
     */
-    BoundingSphereT();
+    inline BoundingSphereT() noexcept;
 
     /*!
       @brief Full constructor. Sets the center and radius of the bounding sphere.
       @param[in] a_center Bounding sphere center
       @param[in] a_radius Bounding sphere radius
     */
-    BoundingSphereT(const Vec3T<T>& a_center, const T& a_radius);
+    inline BoundingSphereT(const Vec3T<T>& a_center, const T& a_radius) noexcept;
 
     /*!
       @brief Full constructor. Constructs a bounding sphere that encloses all the
       other bounding spheres
       @param[in] a_otherSpheres Other bounding spheres.
     */
-    BoundingSphereT(const std::vector<BoundingSphereT<T>>& a_otherSpheres);
+    inline BoundingSphereT(const std::vector<BoundingSphereT<T>>& a_otherSpheres) noexcept;
 
     /*!
       @brief Copy constructor. Sets the center and radius from the other sphere.
       @param[in] a_other Other sphere
     */
-    BoundingSphereT(const BoundingSphereT& a_other);
+    inline BoundingSphereT(const BoundingSphereT& a_other) noexcept;
 
     /*!
       @brief Template constructor which takes a set of 3D points (mixed precision
@@ -95,13 +95,13 @@ namespace BoundingVolumes {
       @note This calls the define(...) function.
     */
     template <class P>
-    BoundingSphereT(const std::vector<Vec3T<P>>&   a_points,
-                    const BoundingVolumeAlgorithm& a_alg = BoundingVolumeAlgorithm::Ritter);
+    inline BoundingSphereT(const std::vector<Vec3T<P>>&   a_points,
+                           const BoundingVolumeAlgorithm& a_alg = BoundingVolumeAlgorithm::Ritter) noexcept;
 
     /*!
       @brief Destructor (does nothing).
     */
-    virtual ~BoundingSphereT();
+    virtual ~BoundingSphereT() noexcept;
 
     /*!
       @brief Copy assignment operator
@@ -235,27 +235,27 @@ namespace BoundingVolumes {
     /*!
       @brief Default constructor (does nothing)
     */
-    AABBT();
+    inline AABBT() noexcept;
 
     /*!
       @brief Full constructor taking the low/high corners of the bounding box
       @param[in] a_lo Low corner
       @param[in] a_hi High
     */
-    AABBT(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi);
+    inline AABBT(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi) noexcept;
 
     /*!
       @brief Copy constructor of another bounding box
       @param[in] a_other Other bounding box
     */
-    AABBT(const AABBT& a_other);
+    inline AABBT(const AABBT& a_other) noexcept;
 
     /*!
       @brief Constructor which creates an AABB which encloses a set of other
       AABBs.
       @param[in] a_others Other bounding boxes
     */
-    AABBT(const std::vector<AABBT<T>>& a_others);
+    inline AABBT(const std::vector<AABBT<T>>& a_others) noexcept;
 
     /*!
       @brief Template constructor (since mixed precision allowed) which creates an
@@ -264,12 +264,12 @@ namespace BoundingVolumes {
       @note Calls the define function
     */
     template <class P>
-    AABBT(const std::vector<Vec3T<P>>& a_points);
+    inline AABBT(const std::vector<Vec3T<P>>& a_points) noexcept;
 
     /*!
       @brief Destructor (does nothing)
     */
-    virtual ~AABBT();
+    virtual ~AABBT() noexcept;
 
     /*!
       @brief Copy assignment

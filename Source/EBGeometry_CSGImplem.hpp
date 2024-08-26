@@ -281,12 +281,33 @@ FastUnionIF<T, P, BV, K>::FastUnionIF(const std::vector<std::shared_ptr<P>>& a_p
 
 template <class T, class P, class BV, size_t K>
 void
-FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs) noexcept
+FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
+                                    const BVH::Build                                            a_build) noexcept
 {
   // Init the root node, partition it, and flatten it.
   auto root = std::make_shared<EBGeometry::BVH::NodeT<T, P, BV, K>>(a_primsAndBVs);
 
-  root->topDownSortAndPartition();
+  switch (a_build) {
+  case BVH::Build::TopDown: {
+    root->topDownSortAndPartition();
+
+    break;
+  }
+  case BVH::Build::Morton: {
+    root->template bottomUpSortAndPartition<SFC::Morton>();
+
+    break;
+  }
+  case BVH::Build::Nested: {
+    root->template bottomUpSortAndPartition<SFC::Nested>();
+
+    break;
+  }
+  default: {
+    std::cerr << "EBGeometry_CSGImplem.hpp in FastUnionIF::buildTree - unsupported build method requested" << std::endl;
+    break;
+  }
+  }
 
   m_bvh = root->flattenTree();
 }
@@ -297,19 +318,19 @@ FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 {
   T minDist = std::numeric_limits<T>::infinity();
 
-  BVH::Updater<P> updater = [&minDist,
-                             &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions) -> void {
+  BVH::Updater<P> updater =
+    [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions) noexcept -> void {
     for (const auto& implicitFunction : a_implicitFunctions) {
       minDist = std::min(minDist, implicitFunction->value(a_point));
     }
   };
 
-  BVH::Visiter<Node, T> visiter = [&minDist](const Node& a_node, const T& a_bvDist) -> bool {
+  BVH::Visiter<Node, T> visiter = [&minDist](const Node& a_node, const T& a_bvDist) noexcept -> bool {
     return a_bvDist <= 0.0 || a_bvDist <= minDist;
   };
 
   BVH::Sorter<Node, T, K> sorter =
-    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) -> void {
+    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
     std::sort(
       a_leaves.begin(),
       a_leaves.end(),
@@ -317,7 +338,7 @@ FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
                  const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
   };
 
-  BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) -> T {
+  BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
     return a_node.getDistanceToBoundingVolume(a_point);
   };
 
@@ -357,7 +378,7 @@ FastSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
   T b = std::numeric_limits<T>::infinity();
 
   BVH::Updater<P> updater =
-    [&a, &b, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions) -> void {
+    [&a, &b, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions) noexcept -> void {
     for (const auto& implicitFunction : a_implicitFunctions) {
       const auto& d = implicitFunction->value(a_point);
 
@@ -371,12 +392,12 @@ FastSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
     }
   };
 
-  BVH::Visiter<Node, T> visiter = [&a, &b](const Node& a_node, const T& a_bvDist) -> bool {
+  BVH::Visiter<Node, T> visiter = [&a, &b](const Node& a_node, const T& a_bvDist) noexcept -> bool {
     return a_bvDist <= 0.0 || a_bvDist <= a || a_bvDist <= b;
   };
 
   BVH::Sorter<Node, T, K> sorter =
-    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) -> void {
+    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
     std::sort(
       a_leaves.begin(),
       a_leaves.end(),
@@ -384,7 +405,7 @@ FastSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
                  const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
   };
 
-  BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) -> T {
+  BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
     return a_node.getDistanceToBoundingVolume(a_point);
   };
 

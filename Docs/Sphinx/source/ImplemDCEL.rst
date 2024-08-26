@@ -10,7 +10,7 @@ The DCEL functionality exists under the namespace ``EBGeometry::DCEL`` and conta
 
 .. important::
 
-   The DCEL functionality is *not* restricted to triangles, but supports N-sided polygons, including *meta-data* attached to the vertices, edges, and facets. 
+   The DCEL functionality is *not* restricted to triangles, but supports N-sided polygons, including *meta-data* attached to the vertices, edges, and facets. The latter is particularly useful in case on wants to associate e.g. boundary conditions to specific triangles. 
 
 Main types
 ----------
@@ -77,7 +77,7 @@ The above DCEL classes have member functions of the type:
 
 which can be used to compute the distance to the various features on the mesh.
 
-Meta-data can be attached to the DCEL primitives by selecting an appropriate type for ``Meta`` above (which defaults to ``short``). 
+Meta-data can be attached to the DCEL primitives by selecting an appropriate type for ``Meta`` above.
 
 
 .. _Chap:BVHIntegration:

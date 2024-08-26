@@ -23,7 +23,7 @@
 namespace DCEL {
 
   template <class T, class Meta>
-  inline MeshT<T, Meta>::MeshT()
+  inline MeshT<T, Meta>::MeshT() noexcept
   {
     m_algorithm = SearchAlgorithm::Direct2;
   }
@@ -31,14 +31,14 @@ namespace DCEL {
   template <class T, class Meta>
   inline MeshT<T, Meta>::MeshT(std::vector<FacePtr>&   a_faces,
                                std::vector<EdgePtr>&   a_edges,
-                               std::vector<VertexPtr>& a_vertices)
+                               std::vector<VertexPtr>& a_vertices) noexcept
     : MeshT()
   {
     this->define(a_faces, a_edges, a_vertices);
   }
 
   template <class T, class Meta>
-  inline MeshT<T, Meta>::~MeshT()
+  inline MeshT<T, Meta>::~MeshT() noexcept
   {}
 
   template <class T, class Meta>

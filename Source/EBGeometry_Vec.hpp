@@ -231,7 +231,7 @@ public:
   /*!
     @brief Default constructor. Sets the vector to the zero vector.
   */
-  Vec3T();
+  Vec3T() noexcept;
 
   /*!
     @brief Copy constructor
@@ -247,12 +247,12 @@ public:
     @param[in] a_z Third vector component
     @details Sets this->x = a_x, this->y = a_y, and this->z = a_z
   */
-  constexpr Vec3T(const T& a_x, const T& a_y, const T& a_z);
+  constexpr Vec3T(const T& a_x, const T& a_y, const T& a_z) noexcept;
 
   /*!
     @brief Destructor (does nothing)
   */
-  ~Vec3T() = default;
+  ~Vec3T() noexcept = default;
 
   /*!
     @brief Return av vector with x = y = z = 0

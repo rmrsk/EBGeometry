@@ -23,12 +23,14 @@ namespace DCEL {
 
   /*!
     @brief One-liner for turning a DCEL mesh into a full-tree BVH. 
-    @param[in] a_dcelMesh Input DCEL mesh. 
+    @param[in] a_dcelMesh Input DCEL mesh.
+    @param[in] a_build Build specification for BVH.
     @return Returns a pointer to a full-tree BVH representation of the DCEL faces.
   */
   template <class T, class Meta, class BV, size_t K>
   std::shared_ptr<EBGeometry::BVH::NodeT<T, FaceT<T, Meta>, BV, K>>
-  buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh);
+  buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh,
+               const BVH::Build                                         a_build = BVH::Build::TopDown) noexcept;
 } // namespace DCEL
 
 /*!
@@ -114,8 +116,10 @@ public:
 
   /*!
     @brief Full constructor. Takes the input mesh and creates the BVH.
+    @param[in] a_mesh Input mesh
+    @param[in] a_build Specification of build method. Must be TopDown, Morton, or Nested.
   */
-  FastMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept;
+  FastMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build = BVH::Build::TopDown) noexcept;
 
   /*!
     @brief Destructor
@@ -200,8 +204,9 @@ public:
   /*!
     @brief Full constructor. Takes the input mesh and creates the BVH.
     @param[in] a_mesh Input mesh
+    @param[in] a_build Build specification. Either top-down, Morton, or Nested.
   */
-  FastCompactMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept;
+  FastCompactMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build = BVH::Build::TopDown) noexcept;
 
   /*!
     @brief Destructor

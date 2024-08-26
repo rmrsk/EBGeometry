@@ -24,4 +24,4 @@ Run it with
 
     ./a.out 'filename'
 
-where 'filename' is one of the STL files in ../Scenes/STL/.
+where 'filename' is one of the STL files in ../Resources
