@@ -140,7 +140,7 @@ namespace BVH {
     @brief Function for splitting a vector of some size into K almost-equal chunks. This is a utility function.
   */
   template <class X, size_t K>
-  auto equalCounts = [](const std::vector<X>& a_primitives) -> std::array<std::vector<X>, K> {
+  auto equalCounts = [](const std::vector<X>& a_primitives) noexcept -> std::array<std::vector<X>, K> {
     int length = a_primitives.size() / K;
     int remain = a_primitives.size() % K;
 
@@ -167,7 +167,7 @@ namespace BVH {
   */
   template <class T, class P, class BV, size_t K>
   auto PrimitiveCentroidPartitioner =
-    [](const PrimAndBVListT<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVListT<P, BV>, K> {
+    [](const PrimAndBVListT<P, BV>& a_primsAndBVs) noexcept -> std::array<PrimAndBVListT<P, BV>, K> {
     Vec3T<T> lo = Vec3T<T>::max();
     Vec3T<T> hi = -Vec3T<T>::max();
 
@@ -224,7 +224,7 @@ namespace BVH {
   */
   template <class T, class P, class BV, size_t K>
   auto DefaultStopFunction =
-    [](const BVH::NodeT<T, P, BV, K>& a_node) -> bool { return (a_node.getPrimitives()).size() < K; };
+    [](const BVH::NodeT<T, P, BV, K>& a_node) noexcept -> bool { return (a_node.getPrimitives()).size() < K; };
 
   /*!
     @brief Class which encapsulates a node in a bounding volume hierarchy.
