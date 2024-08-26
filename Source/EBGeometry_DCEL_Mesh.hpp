@@ -108,7 +108,7 @@ namespace DCEL {
     /*!
       @brief Default constructor. Leaves unobject in an unusable state
     */
-    MeshT();
+    MeshT() noexcept;
 
     /*!
       @brief Disallowed copy construction
@@ -127,12 +127,12 @@ namespace DCEL {
       description. This is usually done through a file parser which reads a mesh
       file format and creates the DCEL mesh structure
     */
-    MeshT(std::vector<FacePtr>& a_faces, std::vector<EdgePtr>& a_edges, std::vector<VertexPtr>& a_vertices);
+    MeshT(std::vector<FacePtr>& a_faces, std::vector<EdgePtr>& a_edges, std::vector<VertexPtr>& a_vertices) noexcept;
 
     /*!
       @brief Destructor (does nothing)
     */
-    virtual ~MeshT();
+    virtual ~MeshT() noexcept;
 
     /*!
       @brief Define function. Puts Mesh in usable state.

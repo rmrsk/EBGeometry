@@ -22,28 +22,28 @@
 namespace BoundingVolumes {
 
   template <class T>
-  inline BoundingSphereT<T>::BoundingSphereT()
+  inline BoundingSphereT<T>::BoundingSphereT() noexcept
   {
     m_radius = 0.0;
     m_center = Vec3::zero();
   }
 
   template <class T>
-  inline BoundingSphereT<T>::BoundingSphereT(const Vec3T<T>& a_center, const T& a_radius)
+  inline BoundingSphereT<T>::BoundingSphereT(const Vec3T<T>& a_center, const T& a_radius) noexcept
   {
     m_center = a_center;
     m_radius = a_radius;
   }
 
   template <class T>
-  BoundingSphereT<T>::BoundingSphereT(const BoundingSphereT& a_other)
+  BoundingSphereT<T>::BoundingSphereT(const BoundingSphereT& a_other) noexcept
   {
     m_radius = a_other.m_radius;
     m_center = a_other.m_center;
   }
 
   template <class T>
-  BoundingSphereT<T>::BoundingSphereT(const std::vector<BoundingSphereT<T>>& a_otherSpheres)
+  BoundingSphereT<T>::BoundingSphereT(const std::vector<BoundingSphereT<T>>& a_otherSpheres) noexcept
   {
 
     // TLDR: Spheres enclosing other spheres is a difficult problem, but a sphere
@@ -65,13 +65,14 @@ namespace BoundingVolumes {
 
   template <class T>
   template <class P>
-  BoundingSphereT<T>::BoundingSphereT(const std::vector<Vec3T<P>>& a_points, const BoundingVolumeAlgorithm& a_algorithm)
+  BoundingSphereT<T>::BoundingSphereT(const std::vector<Vec3T<P>>&   a_points,
+                                      const BoundingVolumeAlgorithm& a_algorithm) noexcept
   {
     this->define(a_points, a_algorithm);
   }
 
   template <class T>
-  BoundingSphereT<T>::~BoundingSphereT()
+  BoundingSphereT<T>::~BoundingSphereT() noexcept
   {}
 
   template <class T>
@@ -139,14 +140,15 @@ namespace BoundingVolumes {
 
     constexpr T half = 0.5;
 
-    constexpr size_t DIM = 3;
+    constexpr size_t BoundingVolumeDIM = 3;
 
     // INITIAL PASS
-    std::vector<Vec3> min_coord(DIM, a_points[0]); // [0] = Minimum x, [1] = Minimum y, [2] = Minimum z
-    std::vector<Vec3> max_coord(DIM, a_points[0]);
+    // [0] = Minimum x, [1] = Minimum y, [2] = Minimum z
+    std::vector<Vec3> min_coord(BoundingVolumeDIM, a_points[0]);
+    std::vector<Vec3> max_coord(BoundingVolumeDIM, a_points[0]);
 
     for (size_t i = 1; i < a_points.size(); i++) {
-      for (size_t dir = 0; dir < DIM; dir++) {
+      for (size_t dir = 0; dir < BoundingVolumeDIM; dir++) {
         Vec3& min = min_coord[dir];
         Vec3& max = max_coord[dir];
 
@@ -161,7 +163,7 @@ namespace BoundingVolumes {
 
     T    dist = -1;
     Vec3 v, p1, p2;
-    for (size_t dir = 0; dir < DIM; dir++) {
+    for (size_t dir = 0; dir < BoundingVolumeDIM; dir++) {
       const T len = (max_coord[dir] - min_coord[dir]).length();
       if (len > dist) {
         dist = len;
@@ -237,28 +239,28 @@ namespace BoundingVolumes {
   }
 
   template <class T>
-  AABBT<T>::AABBT()
+  AABBT<T>::AABBT() noexcept
   {
     m_loCorner = Vec3::zero();
     m_hiCorner = Vec3::zero();
   }
 
   template <class T>
-  AABBT<T>::AABBT(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi)
+  AABBT<T>::AABBT(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi) noexcept
   {
     m_loCorner = a_lo;
     m_hiCorner = a_hi;
   }
 
   template <class T>
-  AABBT<T>::AABBT(const AABBT<T>& a_other)
+  AABBT<T>::AABBT(const AABBT<T>& a_other) noexcept
   {
     m_loCorner = a_other.m_loCorner;
     m_hiCorner = a_other.m_hiCorner;
   }
 
   template <class T>
-  AABBT<T>::AABBT(const std::vector<AABBT<T>>& a_others)
+  AABBT<T>::AABBT(const std::vector<AABBT<T>>& a_others) noexcept
   {
     m_loCorner = a_others.front().getLowCorner();
     m_hiCorner = a_others.front().getHighCorner();
@@ -271,13 +273,13 @@ namespace BoundingVolumes {
 
   template <class T>
   template <class P>
-  AABBT<T>::AABBT(const std::vector<Vec3T<P>>& a_points)
+  AABBT<T>::AABBT(const std::vector<Vec3T<P>>& a_points) noexcept
   {
     this->define(a_points);
   }
 
   template <class T>
-  AABBT<T>::~AABBT()
+  AABBT<T>::~AABBT() noexcept
   {}
 
   template <class T>
@@ -399,15 +401,15 @@ namespace BoundingVolumes {
   inline T
   AABBT<T>::getArea() const noexcept
   {
-    constexpr size_t DIM = 3;
+    constexpr size_t BoundingVolumeDIM = 3;
 
     T ret = 0.0;
 
     const auto delta = m_hiCorner - m_loCorner;
 
-    for (size_t dir = 0; dir < DIM; dir++) {
-      const size_t otherDir1 = (dir + 1) % DIM;
-      const size_t otherDir2 = (dir + 2) % DIM;
+    for (size_t dir = 0; dir < BoundingVolumeDIM; dir++) {
+      const size_t otherDir1 = (dir + 1) % BoundingVolumeDIM;
+      const size_t otherDir2 = (dir + 2) % BoundingVolumeDIM;
 
       ret += 2.0 * delta[otherDir1] * delta[otherDir2];
     }

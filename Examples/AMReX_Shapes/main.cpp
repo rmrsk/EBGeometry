@@ -48,7 +48,8 @@ public:
   /*!
     @brief AMReX's implicit function definition. EBGeometry sign is opposite to AMReX'
   */
-  Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+  Real
+  operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
     return -m_impFunc->value(Vec3(x, y, z));
   };

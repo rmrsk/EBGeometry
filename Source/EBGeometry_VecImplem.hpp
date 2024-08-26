@@ -200,7 +200,7 @@ operator/(const T& s, const Vec2T<T>& a_other) noexcept
 }
 
 template <typename T>
-inline Vec3T<T>::Vec3T()
+inline Vec3T<T>::Vec3T() noexcept
 {
   (*this) = Vec3T<T>::zero();
 }
@@ -214,7 +214,7 @@ inline Vec3T<T>::Vec3T(const Vec3T<T>& u) noexcept
 }
 
 template <typename T>
-inline constexpr Vec3T<T>::Vec3T(const T& a_x, const T& a_y, const T& a_z) : m_X{a_x, a_y, a_z}
+inline constexpr Vec3T<T>::Vec3T(const T& a_x, const T& a_y, const T& a_z) noexcept : m_X{a_x, a_y, a_z}
 {}
 
 template <typename T>

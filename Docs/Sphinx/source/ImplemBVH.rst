@@ -14,7 +14,7 @@ The full BVH is encapsulated by a class
 
 .. code-block:: c++
 
-   template <class T, class P, class BV, int K>
+   template <class T, class P, class BV, size_t K>
    class NodeT;
 
 The above template parameters are:
@@ -40,24 +40,31 @@ Bounding volumes
 *  **Axis-aligned bounding box**, which is templated as ``EBGeometry::BoundingVolumes::AABBT<T>``.
 
 For full API details, see `the doxygen API <doxygen/html/namespaceBoundingVolumes.html>`_.
+Other types of bounding volumes can in principle be added, with the only requirement being that they conform to the same interface as the ``AABB`` and ``BoundingSphere`` volumes.
 
 .. _Chap:BVHConstruction:
 
 Construction
 ------------
 
-Constructing a BVH is done by
+Constructing a BVH is done by:
 
-*  Creating a root node and providing it with the geometric primitives and their bounding volumes.
-*  Partitioning the BVH by providing a partitioning function. 
+#.  Creating a root node and providing it with the geometric primitives and their bounding volumes.
+#.  Partitioning the BVH by providing a partitioning function. 
 
 The first step is usually a matter of simply constructing the root node using the full constructor, which takes a list of primitives and their associated bounding volumes. 
-The second step is to recursively build the BVH, which is done through the function ``topDownSortAndPartition()``, see the code below:
+The second step is to recursively build the BVH.
+We currently support top-down and bottom-up construction (using space-filling curves).
 
-.. literalinclude:: ../../../Source/EBGeometry_BVH.hpp
-   :language: c++
-   :lines: 29, 62-94, 217-227, 248-257, 263-268, 274-285, 404, 643,644
-   :caption: Header section of the BVH implementation.
+.. tip::
+
+   The default construction methods performs the hierarchical subdivision by only considering the *bounding volumes*.
+   Consequently, the build process is identical regardless of what type of primitives (e.g., triangles or analytic spheres) are contained in the BVH.
+
+Top-down construction
+_____________________
+
+Top-down construction is done through the function ``topDownSortAndPartition()``, `see the doxygen API for the BVH implementation <doxygen/html/doxygen/html/classBVH_1_1NodeT.html>`_.
 
 The optional input arguments to ``topDownSortAndPartition`` are polymorphic functions of type indicated above, and have the following responsibilities:
 
@@ -67,6 +74,23 @@ The optional input arguments to ``topDownSortAndPartition`` are polymorphic func
 *  ``StopFunctionT`` simply takes a ``NodeT`` as input argument and determines if the node should be partitioned further.
 
 Default arguments for these are provided, bubt users are free to partition their BVHs in their own way should they choose.
+
+Bottom-up construction
+______________________
+
+The bottom-up construction uses a space-filling curve (e.g., a Morton curve) for first building the leaf nodes.
+This construction is done such that each leaf node contains approximately the number of primitives, and all leaf nodes exist on the same level.
+To use bottom-up construction, one may use the member function
+
+.. literalinclude:: ../../../Source/EBGeometry_BVH.hpp
+   :language: c++
+   :lines: 298-309
+
+The template argument is the space-filling curve that the user wants to apply.
+Currently, we support Morton codes and nested indices.
+For Morton curves, one would e.g. call ``bottomUpSortAndPartition<SFC::Morton>`` while for nested indices (which are not recommended) the signature is likewise ``bottomUpSortAndPartition<SFC::Nested``.
+
+Build times for SFC-based bottom-up construction are generally speaking faster than top-down construction, but tends to produce worse trees such that traversal becomes slower. 
 
 .. _Chap:LinearBVH:
 
@@ -190,7 +214,7 @@ This function has a signature
   using Visiter = std::function<bool(const NodeType& a_node, const Meta a_meta)>;
 
 where ``NodeType`` is the type of node (which is different for full/flat BVHs), and the ``Meta`` template parameter is discussed below.
-If this function returns true, the node will be visisted and if the function returns false then the node will be pruned from the tree traversal.
+If this function returns true, the node will be visisted and if the function returns false then the node will be pruned from the tree traversal. Typically, the ``Meta`` parameter will contain the necessary information that determines whether or not to visit the subtree.
 
 Traversal pattern
 _________________
@@ -206,6 +230,9 @@ This function has the signature:
   template <class NodeType, class Meta, size_t K>
   using Sorter = std::function<void(std::array<std::pair<std::shared_ptr<const NodeType>, Meta>, K>& a_children)>;
 
+Sorting the child nodes is completely optional.
+The user can leave this function empty if it does not matter which subtrees are visited first. 
+
 Update rule
 ___________
 
@@ -216,6 +243,8 @@ These are done by a user-supplied update-rule:
 		
   template <class P>
   using Updater = std::function<void(const PrimitiveListT<P>& a_primitives)>;
+
+Typically, the ``Updater`` will modify parameters that appear in a local scope outside of the tree traversal (e.g. updating the minimum distance to a DCEL mesh).
 
 Meta-data
 _________
@@ -229,8 +258,25 @@ The signature for meta-data construction is
   template <class NodeType, class Meta>
   using MetaUpdater = std::function<Meta(const NodeType& a_node)>;
 
-Traversal example
-_________________
+The biggest difference between ``Updater`` and ``MetaUpdater`` is that ``Updater`` is *only* called on leaf nodes whereas ``MetaUpdater`` is also called for internal nodes.
+One typical example for DCEL meshes is that ``Updater`` computes the distance from an input point to the triangles in a leaf node, whereas ``MetaUpdater`` computes the distance from the input point to the bounding volumes of a child nodes.
+This information is then used in ``Sorter`` in order to determine a preferred child visit pattern when descending along subtrees. 
+
+Traversal algorithm
+___________________
+
+The code-block below shows the implementation of the BVH traversal.
+The implementation uses a non-recursive queue-based formulation when descending along subtrees.
+Observe that each entry in the stack contains both the node itself *and* any meta-data we want to attach to the node.
+If the traversal decides to visit a node, it immediately computes the specified meta-data of the node, and the user can then sort the children based on that data.
+
+.. literalinclude:: ../../../Source/EBGeometry_BVHImplem.hpp
+   :language: c++
+   :lines: 284-322
+   :caption: Tree traversal algorithm for the BVH tree.
+
+Traversal examples
+__________________
 
 The DCEL mesh distance fields use a traversal pattern based on
 
@@ -242,6 +288,6 @@ These rules are given below.
 
 .. literalinclude:: ../../../Source/EBGeometry_MeshDistanceFunctionsImplem.hpp
    :language: c++
-   :lines: 127-161
+   :lines: 97-132
    :caption: Tree traversal criterion for computing the signed distance to a DCEL mesh using the BVH accelerator.
 	     See :file:`Source/EBGeometry_MeshDistanceFunctionsImplem.hpp` for details.
