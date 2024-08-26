@@ -424,7 +424,7 @@ namespace BVH {
     /*!
       @brief Explicitly set this node's children.
       @details This will turn this node into the parent node of the input children, i.e. a regular node.
-      @return m_children.
+      @param[in] a_children Child nodes.
     */
     inline void
     setChildren(const std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K>& a_children) noexcept;

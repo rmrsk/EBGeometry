@@ -153,7 +153,7 @@ namespace Parser {
   compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets) noexcept;
 
   /*!
-    @brief Turn raw vertices into DCEL vertices. Does not include vertex normal vectors. 
+    @brief Turn raw vertices into DCEL vertices. 
     @param[out] a_verticesDCEL DCEL vertices
     @param[in]  a_verticesRaw  Raw vertices
     @param[in]  a_facets       Facets
