@@ -38,6 +38,15 @@ class \mbox{\hyperlink{classBVH_1_1LinearBVH}{Linear\+BVH}}
 \mbox{\Hypertarget{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}\label{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}} 
 {\footnotesize template$<$class Node\+Type , class Meta $>$ }\\using \mbox{\hyperlink{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}{Meta\+Updater}} = std\+::function$<$ Meta(const Node\+Type \&a\+\_\+node)$>$
 \begin{DoxyCompactList}\small\item\em Updater for when user wants to add some meta-\/data to his \mbox{\hyperlink{namespaceBVH}{BVH}} traversal. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespaceBVH_a6f2491cf571e9012cb840916ab730688}\label{namespaceBVH_a6f2491cf571e9012cb840916ab730688}} 
+enum class \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{Build}} \{ {\bfseries Top\+Down}
+, {\bfseries Morton}
+, {\bfseries Nested}
+ \}
+\begin{DoxyCompactList}\small\item\em Enum for specifying whether or not the construction is top-\/down or bottom-\/up. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Variables}
 \begin{DoxyCompactItemize}
 \item 
@@ -204,7 +213,7 @@ auto BVH\+::\+Default\+Stop\+Function}
 {\bfseries Initial value\+:}
 \begin{DoxyCode}{0}
 \DoxyCodeLine{=}
-\DoxyCodeLine{    [](\textcolor{keyword}{const} \mbox{\hyperlink{classBVH_1_1NodeT}{BVH::NodeT<T, P, BV, K>}}\& a\_node) -\/> \textcolor{keywordtype}{bool} \{ \textcolor{keywordflow}{return} (a\_node.getPrimitives()).size() < K; \}}
+\DoxyCodeLine{    [](\textcolor{keyword}{const} \mbox{\hyperlink{classBVH_1_1NodeT}{BVH::NodeT<T, P, BV, K>}}\& a\_node) noexcept -\/> \textcolor{keywordtype}{bool} \{ \textcolor{keywordflow}{return} (a\_node.getPrimitives()).size() < K; \}}
 
 \end{DoxyCode}
 
@@ -225,7 +234,7 @@ auto BVH\+::equal\+Counts}
 
 {\bfseries Initial value\+:}
 \begin{DoxyCode}{0}
-\DoxyCodeLine{= [](\textcolor{keyword}{const} std::vector<X>\& a\_primitives) -\/> std::array<std::vector<X>, K> \{}
+\DoxyCodeLine{= [](\textcolor{keyword}{const} std::vector<X>\& a\_primitives) noexcept -\/> std::array<std::vector<X>, K> \{}
 \DoxyCodeLine{    \textcolor{keywordtype}{int} \mbox{\hyperlink{EBGeometry__Vec_8hpp_ac7cf88fcdf43f2f197b741a126274cab}{length}} = a\_primitives.size() / K;}
 \DoxyCodeLine{    \textcolor{keywordtype}{int} remain = a\_primitives.size() \% K;}
 \DoxyCodeLine{}
@@ -261,7 +270,7 @@ auto BVH\+::\+Primitive\+Centroid\+Partitioner}
 {\bfseries Initial value\+:}
 \begin{DoxyCode}{0}
 \DoxyCodeLine{=}
-\DoxyCodeLine{    [](\textcolor{keyword}{const} PrimAndBVListT<P, BV>\& a\_primsAndBVs) -\/> std::array<PrimAndBVListT<P, BV>, K> \{}
+\DoxyCodeLine{    [](\textcolor{keyword}{const} PrimAndBVListT<P, BV>\& a\_primsAndBVs) noexcept -\/> std::array<PrimAndBVListT<P, BV>, K> \{}
 \DoxyCodeLine{    \mbox{\hyperlink{classVec3T}{Vec3T<T>}} lo = \mbox{\hyperlink{classVec3T_a151575a04910352d4f8c028fef081d01}{Vec3T<T>::max}}();}
 \DoxyCodeLine{    \mbox{\hyperlink{classVec3T}{Vec3T<T>}} hi = -\/\mbox{\hyperlink{classVec3T_a151575a04910352d4f8c028fef081d01}{Vec3T<T>::max}}();}
 \DoxyCodeLine{}

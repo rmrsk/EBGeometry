@@ -143,10 +143,18 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <tr class="memitem:a96febb1814ab25d04b719350a93f5e7f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a96febb1814ab25d04b719350a93f5e7f">topDownSortAndPartition</a> (const <a class="el" href="classBVH_1_1NodeT.html#ab3b7afb83f7ecf97d1985c3c5ade2f0a">Partitioner</a> &amp;a_partitioner=<a class="el" href="namespaceBVH.html#a5d49380a6db6e29200da88b68b1ba0a6">BVCentroidPartitioner</a>&lt; T, P, BV, K &gt;, const <a class="el" href="classBVH_1_1NodeT.html#acbe56195affc439febe8aca84db308e3">StopFunction</a> &amp;a_stopCrit=<a class="el" href="namespaceBVH.html#a21d8f7ec763e9a30d43c68abe2e63f18">DefaultStopFunction</a>&lt; T, P, BV, K &gt;) noexcept</td></tr>
 <tr class="memdesc:a96febb1814ab25d04b719350a93f5e7f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function for using top-down construction of the bounding volume hierarchy.  <a href="classBVH_1_1NodeT.html#a96febb1814ab25d04b719350a93f5e7f">More...</a><br /></td></tr>
 <tr class="separator:a96febb1814ab25d04b719350a93f5e7f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac6b444e11b909bd69faef8e8c875b135"><td class="memTemplParams" colspan="2">template&lt;typename S &gt; </td></tr>
+<tr class="memitem:ac6b444e11b909bd69faef8e8c875b135"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#ac6b444e11b909bd69faef8e8c875b135">bottomUpSortAndPartition</a> () noexcept</td></tr>
+<tr class="memdesc:ac6b444e11b909bd69faef8e8c875b135"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function for doing bottom-up construction using a specified space-filling curve.  <a href="classBVH_1_1NodeT.html#ac6b444e11b909bd69faef8e8c875b135">More...</a><br /></td></tr>
+<tr class="separator:ac6b444e11b909bd69faef8e8c875b135"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5c57552524601da9bf20e722e2433aa0"><td class="memItemLeft" align="right" valign="top"><a id="a5c57552524601da9bf20e722e2433aa0"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a5c57552524601da9bf20e722e2433aa0">isLeaf</a> () const noexcept</td></tr>
 <tr class="memdesc:a5c57552524601da9bf20e722e2433aa0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get node type. <br /></td></tr>
 <tr class="separator:a5c57552524601da9bf20e722e2433aa0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abb00d39b9a03ad602f1a47efe6272b24"><td class="memItemLeft" align="right" valign="top"><a id="abb00d39b9a03ad602f1a47efe6272b24"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#abb00d39b9a03ad602f1a47efe6272b24">isPartitioned</a> () const noexcept</td></tr>
+<tr class="memdesc:abb00d39b9a03ad602f1a47efe6272b24"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> is already partitioned. <br /></td></tr>
+<tr class="separator:abb00d39b9a03ad602f1a47efe6272b24"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4fe7178c2bd08a246cbea5b411ce5e9d"><td class="memItemLeft" align="right" valign="top">const BV &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a4fe7178c2bd08a246cbea5b411ce5e9d">getBoundingVolume</a> () const noexcept</td></tr>
 <tr class="memdesc:a4fe7178c2bd08a246cbea5b411ce5e9d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get bounding volume.  <a href="classBVH_1_1NodeT.html#a4fe7178c2bd08a246cbea5b411ce5e9d">More...</a><br /></td></tr>
 <tr class="separator:a4fe7178c2bd08a246cbea5b411ce5e9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -178,6 +186,9 @@ Protected Member Functions</h2></td></tr>
 <tr class="memitem:a143b2cef57ce44573fed2295581d1c54"><td class="memItemLeft" align="right" valign="top">std::vector&lt; BV &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a143b2cef57ce44573fed2295581d1c54">getBoundingVolumes</a> () noexcept</td></tr>
 <tr class="memdesc:a143b2cef57ce44573fed2295581d1c54"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the bounding volumes for the primitives in this node (can be empty if regular node)  <a href="classBVH_1_1NodeT.html#a143b2cef57ce44573fed2295581d1c54">More...</a><br /></td></tr>
 <tr class="separator:a143b2cef57ce44573fed2295581d1c54"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a445ee159b30df3cae61bc3f6d383758c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a445ee159b30df3cae61bc3f6d383758c">setChildren</a> (const std::array&lt; std::shared_ptr&lt; <a class="el" href="classBVH_1_1NodeT.html">NodeT</a>&lt; T, P, BV, K &gt;&gt;, K &gt; &amp;a_children) noexcept</td></tr>
+<tr class="memdesc:a445ee159b30df3cae61bc3f6d383758c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Explicitly set this node's children.  <a href="classBVH_1_1NodeT.html#a445ee159b30df3cae61bc3f6d383758c">More...</a><br /></td></tr>
+<tr class="separator:a445ee159b30df3cae61bc3f6d383758c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a950e1bcd16baa78ede8f6559754a639d"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a950e1bcd16baa78ede8f6559754a639d">flattenTree</a> (std::vector&lt; std::shared_ptr&lt; <a class="el" href="classBVH_1_1LinearNodeT.html">LinearNodeT</a>&lt; T, P, BV, K &gt;&gt;&gt; &amp;a_linearNodes, std::vector&lt; std::shared_ptr&lt; const P &gt;&gt; &amp;a_sortedPrimitives, size_t &amp;a_offset) const noexcept</td></tr>
 <tr class="memdesc:a950e1bcd16baa78ede8f6559754a639d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flatten tree method.  <a href="classBVH_1_1NodeT.html#a950e1bcd16baa78ede8f6559754a639d">More...</a><br /></td></tr>
 <tr class="separator:a950e1bcd16baa78ede8f6559754a639d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -188,6 +199,10 @@ Protected Attributes</h2></td></tr>
 BV&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a7f8720f2ab03ee9e81de114c479cb2e5">m_boundingVolume</a></td></tr>
 <tr class="memdesc:a7f8720f2ab03ee9e81de114c479cb2e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Bounding volume object for enclosing everything in this node. <br /></td></tr>
 <tr class="separator:a7f8720f2ab03ee9e81de114c479cb2e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5f4bee1536ec2fb6ef8c99159e3e730c"><td class="memItemLeft" align="right" valign="top"><a id="a5f4bee1536ec2fb6ef8c99159e3e730c"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a5f4bee1536ec2fb6ef8c99159e3e730c">m_partitioned</a></td></tr>
+<tr class="memdesc:a5f4bee1536ec2fb6ef8c99159e3e730c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Determines whether or not the partitioning function has already been called. <br /></td></tr>
+<tr class="separator:a5f4bee1536ec2fb6ef8c99159e3e730c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3c45be2075d8cdfd0dc0a9e73373b64d"><td class="memItemLeft" align="right" valign="top"><a id="a3c45be2075d8cdfd0dc0a9e73373b64d"></a>
 std::vector&lt; std::shared_ptr&lt; const P &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1NodeT.html#a3c45be2075d8cdfd0dc0a9e73373b64d">m_primitives</a></td></tr>
 <tr class="memdesc:a3c45be2075d8cdfd0dc0a9e73373b64d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Primitives list. This will be empty for regular nodes. <br /></td></tr>
@@ -250,6 +265,38 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a id="ac6b444e11b909bd69faef8e8c875b135"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac6b444e11b909bd69faef8e8c875b135">&#9670;&nbsp;</a></span>bottomUpSortAndPartition()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T , class P , class BV , size_t K&gt; </div>
+<div class="memtemplate">
+template&lt;typename S &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::bottomUpSortAndPartition </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Function for doing bottom-up construction using a specified space-filling curve. </p>
+<p>The template parameter is the space-filling curve type. This function will partition the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> by first sorting the bounding volume centroids along the space-filling curve. The tree is then constructed by placing at least K primitives in each leaf, and the leaves are then merged upwards until we reach the root node. </p><dl class="section note"><dt>Note</dt><dd>S must have an encode and decode function which returns an SFC index. See the SFC namespace for examples for Morton and Nested indices. </dd></dl>
+
+</div>
+</div>
 <a id="a5409c30e79cfaa837ecd8b14c6c6e5cf"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a5409c30e79cfaa837ecd8b14c6c6e5cf">&#9670;&nbsp;</a></span>flattenTree() <span class="overload">[1/2]</span></h2>
 
@@ -549,6 +596,42 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 
 <p>Get the list of primitives in this node. </p>
 <dl class="section return"><dt>Returns</dt><dd>Primitives list </dd></dl>
+
+</div>
+</div>
+<a id="a445ee159b30df3cae61bc3f6d383758c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a445ee159b30df3cae61bc3f6d383758c">&#9670;&nbsp;</a></span>setChildren()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T , class P , class BV , size_t K&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classBVH_1_1NodeT.html">BVH::NodeT</a>&lt; T, P, BV, K &gt;::setChildren </td>
+          <td>(</td>
+          <td class="paramtype">const std::array&lt; std::shared_ptr&lt; <a class="el" href="classBVH_1_1NodeT.html">NodeT</a>&lt; T, P, BV, K &gt;&gt;, K &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_children</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">protected</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Explicitly set this node's children. </p>
+<p>This will turn this node into the parent node of the input children, i.e. a regular node. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_children</td><td>Child nodes. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

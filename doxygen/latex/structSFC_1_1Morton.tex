@@ -1,0 +1,83 @@
+\hypertarget{structSFC_1_1Morton}{}\doxysection{SFC\+::Morton Struct Reference}
+\label{structSFC_1_1Morton}\index{SFC::Morton@{SFC::Morton}}
+
+
+Implementation of the \mbox{\hyperlink{structSFC_1_1Morton}{Morton}} SFC.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+SFC.\+hpp$>$}
+
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static uint64\+\_\+t \mbox{\hyperlink{structSFC_1_1Morton_ae4bb2ac28769bc7e4f434a4e6663b48d}{encode}} (const \mbox{\hyperlink{EBGeometry__SFC_8hpp_afa50aff77363cab5737ed5d9a1d11483}{Index}} \&a\+\_\+point) noexcept
+\begin{DoxyCompactList}\small\item\em Encode an input point into a \mbox{\hyperlink{structSFC_1_1Morton}{Morton}} index with a 64-\/bit representation. \end{DoxyCompactList}\item 
+static \mbox{\hyperlink{EBGeometry__SFC_8hpp_afa50aff77363cab5737ed5d9a1d11483}{Index}} \mbox{\hyperlink{structSFC_1_1Morton_a5e8fb26d87cc37e6a8430aed9b352364}{decode}} (const uint64\+\_\+t \&a\+\_\+code) noexcept
+\begin{DoxyCompactList}\small\item\em Decode the 64-\/bit \mbox{\hyperlink{structSFC_1_1Morton}{Morton}} code into an Index. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Static Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+static constexpr uint\+\_\+fast64\+\_\+t \mbox{\hyperlink{structSFC_1_1Morton_ad6c2fe2c2940e91d5cf3a851862fb645}{Mask\+\_\+64}} \mbox{[}6\mbox{]}
+\begin{DoxyCompactList}\small\item\em Mask for magic-\/bits encoding of 3D \mbox{\hyperlink{structSFC_1_1Morton}{Morton}} code. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Implementation of the \mbox{\hyperlink{structSFC_1_1Morton}{Morton}} SFC. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{structSFC_1_1Morton_a5e8fb26d87cc37e6a8430aed9b352364}\label{structSFC_1_1Morton_a5e8fb26d87cc37e6a8430aed9b352364}} 
+\index{SFC::Morton@{SFC::Morton}!decode@{decode}}
+\index{decode@{decode}!SFC::Morton@{SFC::Morton}}
+\doxysubsubsection{\texorpdfstring{decode()}{decode()}}
+{\footnotesize\ttfamily static \mbox{\hyperlink{EBGeometry__SFC_8hpp_afa50aff77363cab5737ed5d9a1d11483}{Index}} SFC\+::\+Morton\+::decode (\begin{DoxyParamCaption}\item[{const uint64\+\_\+t \&}]{a\+\_\+code }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [noexcept]}}
+
+
+
+Decode the 64-\/bit \mbox{\hyperlink{structSFC_1_1Morton}{Morton}} code into an Index. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+code} & \mbox{\hyperlink{structSFC_1_1Morton}{Morton}} code \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{structSFC_1_1Morton_ae4bb2ac28769bc7e4f434a4e6663b48d}\label{structSFC_1_1Morton_ae4bb2ac28769bc7e4f434a4e6663b48d}} 
+\index{SFC::Morton@{SFC::Morton}!encode@{encode}}
+\index{encode@{encode}!SFC::Morton@{SFC::Morton}}
+\doxysubsubsection{\texorpdfstring{encode()}{encode()}}
+{\footnotesize\ttfamily static uint64\+\_\+t SFC\+::\+Morton\+::encode (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{EBGeometry__SFC_8hpp_afa50aff77363cab5737ed5d9a1d11483}{Index}} \&}]{a\+\_\+point }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [noexcept]}}
+
+
+
+Encode an input point into a \mbox{\hyperlink{structSFC_1_1Morton}{Morton}} index with a 64-\/bit representation. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structSFC_1_1Morton_ad6c2fe2c2940e91d5cf3a851862fb645}\label{structSFC_1_1Morton_ad6c2fe2c2940e91d5cf3a851862fb645}} 
+\index{SFC::Morton@{SFC::Morton}!Mask\_64@{Mask\_64}}
+\index{Mask\_64@{Mask\_64}!SFC::Morton@{SFC::Morton}}
+\doxysubsubsection{\texorpdfstring{Mask\_64}{Mask\_64}}
+{\footnotesize\ttfamily constexpr uint\+\_\+fast64\+\_\+t SFC\+::\+Morton\+::\+Mask\+\_\+64\mbox{[}6\mbox{]}\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}, {\ttfamily [protected]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{      0x1fffff, 0x1f00000000ffff, 0x1f0000ff0000ff, 0x100f00f00f00f00f, 0x10c30c30c30c30c3, 0x1249249249249249\}}
+
+\end{DoxyCode}
+
+
+Mask for magic-\/bits encoding of 3D \mbox{\hyperlink{structSFC_1_1Morton}{Morton}} code. 
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__SFC_8hpp}{EBGeometry\+\_\+\+SFC.\+hpp}}\end{DoxyCompactItemize}

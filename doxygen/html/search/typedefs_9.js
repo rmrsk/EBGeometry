@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['updater_879',['Updater',['../classOctree_1_1Node.html#a2706769e036e137fa6f8c0f5cbc8b7f4',1,'Octree::Node::Updater()'],['../namespaceBVH.html#a9098188477f08a345cf059a431ae23aa',1,'BVH::Updater()']]]
+  ['root_920',['Root',['../classFastUnionIF.html#a76c2a52e83d11ffe9a683c1600250d42',1,'FastUnionIF::Root()'],['../classFastSmoothUnionIF.html#a83e23a2715599dd0910a01b71cd8959a',1,'FastSmoothUnionIF::Root()'],['../classFastCompactMeshSDF.html#a4c50c76f38b0bc8e738a463a0b641539',1,'FastCompactMeshSDF::Root()']]]
 ];

@@ -20,13 +20,13 @@ To obtain ``EBGeometry``, clone the code from `github <https://github.com/rmrsk/
 To compile the ``EBGeometry`` example codes, navigate to the :file:`EBGeometry/Examples` folder.
 Folders that are named :file:`EBGeometry_<something>` are pure ``EBGeometry`` examples and can be compiled without any third-party dependencies.
 
-To run the ``EBGeometry`` examples, navigate to one of the folders and execute
+To run the ``EBGeometry`` examples, navigate to one of the folders in :file:`EBGeometry/Examples/EBGeometry_*` and execute
 
 .. code-block:: bash
 
-   g++ -O3 -std=c++17 main.cpp && ./a.out
+   g++ -O3 main.cpp && ./a.out
 
-All ``EBGeometry`` examples should run using this command.
+All ``EBGeometry`` examples can be run using this command.
 README files present in each folder provide more information regarding the functionality and usage of each example code.
 
 Third-party examples

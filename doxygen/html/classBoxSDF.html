@@ -102,13 +102,13 @@ Public Member Functions</h2></td></tr>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBoxSDF.html#a59b774b2a6fc27001e1a40662f49c5cb">BoxSDF</a> ()=delete</td></tr>
 <tr class="memdesc:a59b774b2a6fc27001e1a40662f49c5cb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Disallowed default constructor. <br /></td></tr>
 <tr class="separator:a59b774b2a6fc27001e1a40662f49c5cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a03bad54ac061f2daa8798b861e381557"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBoxSDF.html#a03bad54ac061f2daa8798b861e381557">BoxSDF</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_loCorner, const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_hiCorner)</td></tr>
-<tr class="memdesc:a03bad54ac061f2daa8798b861e381557"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor. Sets the low and high corner.  <a href="classBoxSDF.html#a03bad54ac061f2daa8798b861e381557">More...</a><br /></td></tr>
-<tr class="separator:a03bad54ac061f2daa8798b861e381557"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aae169f61825b3235cbb44d299c36e268"><td class="memItemLeft" align="right" valign="top"><a id="aae169f61825b3235cbb44d299c36e268"></a>
-virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBoxSDF.html#aae169f61825b3235cbb44d299c36e268">~BoxSDF</a> ()</td></tr>
-<tr class="memdesc:aae169f61825b3235cbb44d299c36e268"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor (does nothing). <br /></td></tr>
-<tr class="separator:aae169f61825b3235cbb44d299c36e268"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa7afe04758bd8c6f147fffae61b5e282"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBoxSDF.html#aa7afe04758bd8c6f147fffae61b5e282">BoxSDF</a> (const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_loCorner, const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;a_hiCorner) noexcept</td></tr>
+<tr class="memdesc:aa7afe04758bd8c6f147fffae61b5e282"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor. Sets the low and high corner.  <a href="classBoxSDF.html#aa7afe04758bd8c6f147fffae61b5e282">More...</a><br /></td></tr>
+<tr class="separator:aa7afe04758bd8c6f147fffae61b5e282"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab6aa46df303f7f64da40fda003fd8468"><td class="memItemLeft" align="right" valign="top"><a id="ab6aa46df303f7f64da40fda003fd8468"></a>
+virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBoxSDF.html#ab6aa46df303f7f64da40fda003fd8468">~BoxSDF</a> () noexcept</td></tr>
+<tr class="memdesc:ab6aa46df303f7f64da40fda003fd8468"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor (does nothing). <br /></td></tr>
+<tr class="separator:ab6aa46df303f7f64da40fda003fd8468"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a564b5f203d6bec78be94da4b9119748a"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classVec3T.html">Vec3T</a>&lt; T &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBoxSDF.html#a564b5f203d6bec78be94da4b9119748a">getLowCorner</a> () const noexcept</td></tr>
 <tr class="memdesc:a564b5f203d6bec78be94da4b9119748a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get lower-left corner.  <a href="classBoxSDF.html#a564b5f203d6bec78be94da4b9119748a">More...</a><br /></td></tr>
 <tr class="separator:a564b5f203d6bec78be94da4b9119748a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -173,8 +173,8 @@ class BoxSDF&lt; T &gt;</h3>
 
 <p>Signed distance field for an axis-aligned box. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a03bad54ac061f2daa8798b861e381557"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a03bad54ac061f2daa8798b861e381557">&#9670;&nbsp;</a></span>BoxSDF()</h2>
+<a id="aa7afe04758bd8c6f147fffae61b5e282"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa7afe04758bd8c6f147fffae61b5e282">&#9670;&nbsp;</a></span>BoxSDF()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -204,7 +204,7 @@ template&lt;class T &gt; </div>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">

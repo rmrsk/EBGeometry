@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['dataconstructor_856',['DataConstructor',['../classOctree_1_1Node.html#aaec57ddb147bd9b8ac190f2c4d0e2eb2',1,'Octree::Node']]],
-  ['defaultmetadata_857',['DefaultMetaData',['../namespaceDCEL.html#ad8f2940fada08cf162f8c01adf6d7bd6',1,'DCEL']]]
+  ['clock_898',['Clock',['../classEBGeometry_1_1SimpleTimer.html#a87627dee64a13e6a6fc19ab308ca804b',1,'EBGeometry::SimpleTimer']]],
+  ['code_899',['Code',['../EBGeometry__SFC_8hpp.html#af6f1b683be65b20ea3a7db81521e5897',1,'SFC']]]
 ];

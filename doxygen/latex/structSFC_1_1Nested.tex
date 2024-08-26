@@ -1,0 +1,61 @@
+\hypertarget{structSFC_1_1Nested}{}\doxysection{SFC\+::Nested Struct Reference}
+\label{structSFC_1_1Nested}\index{SFC::Nested@{SFC::Nested}}
+
+
+Implementation of a nested index SFC.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+SFC.\+hpp$>$}
+
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static uint64\+\_\+t \mbox{\hyperlink{structSFC_1_1Nested_aeef8c2f5e30873209c33a7ca5d072a38}{encode}} (const \mbox{\hyperlink{EBGeometry__SFC_8hpp_afa50aff77363cab5737ed5d9a1d11483}{Index}} \&a\+\_\+point) noexcept
+\begin{DoxyCompactList}\small\item\em Encode the input point into the SFC code. \end{DoxyCompactList}\item 
+static \mbox{\hyperlink{EBGeometry__SFC_8hpp_afa50aff77363cab5737ed5d9a1d11483}{Index}} \mbox{\hyperlink{structSFC_1_1Nested_a26aab46c288a303123b9ccf6a6e83843}{decode}} (const uint64\+\_\+t \&a\+\_\+code) noexcept
+\begin{DoxyCompactList}\small\item\em Decode the 64-\/bit SFC code into an Index. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Implementation of a nested index SFC. 
+
+The SFC is encoded by the code = i + j $\ast$ N + k $\ast$ N $\ast$ N in 3D, where i,j,k are the block indices. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{structSFC_1_1Nested_a26aab46c288a303123b9ccf6a6e83843}\label{structSFC_1_1Nested_a26aab46c288a303123b9ccf6a6e83843}} 
+\index{SFC::Nested@{SFC::Nested}!decode@{decode}}
+\index{decode@{decode}!SFC::Nested@{SFC::Nested}}
+\doxysubsubsection{\texorpdfstring{decode()}{decode()}}
+{\footnotesize\ttfamily static \mbox{\hyperlink{EBGeometry__SFC_8hpp_afa50aff77363cab5737ed5d9a1d11483}{Index}} SFC\+::\+Nested\+::decode (\begin{DoxyParamCaption}\item[{const uint64\+\_\+t \&}]{a\+\_\+code }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [noexcept]}}
+
+
+
+Decode the 64-\/bit SFC code into an Index. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+code} & SFC code. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{structSFC_1_1Nested_aeef8c2f5e30873209c33a7ca5d072a38}\label{structSFC_1_1Nested_aeef8c2f5e30873209c33a7ca5d072a38}} 
+\index{SFC::Nested@{SFC::Nested}!encode@{encode}}
+\index{encode@{encode}!SFC::Nested@{SFC::Nested}}
+\doxysubsubsection{\texorpdfstring{encode()}{encode()}}
+{\footnotesize\ttfamily static uint64\+\_\+t SFC\+::\+Nested\+::encode (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{EBGeometry__SFC_8hpp_afa50aff77363cab5737ed5d9a1d11483}{Index}} \&}]{a\+\_\+point }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [noexcept]}}
+
+
+
+Encode the input point into the SFC code. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__SFC_8hpp}{EBGeometry\+\_\+\+SFC.\+hpp}}\end{DoxyCompactItemize}

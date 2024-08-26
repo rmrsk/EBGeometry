@@ -5,7 +5,7 @@ Octree
 
 The octree functionality is encapsulated in the namespace ``EBGeometry::Octree``.
 For the full API, see `the doxygen API <doxygen/html/namespaceOctree.html>`__.
-Currently, only full octrees are supported (i.e. pointer-based representation).
+Currently, only full octrees are supported (i.e., using a pointer-based representation).
 
 Octrees are encapsulated by a class
 

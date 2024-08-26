@@ -50,7 +50,7 @@ using \mbox{\hyperlink{classFastCompactMeshSDF_a5c9219c7a7aa9d2b422673e6d300925f
 \mbox{\Hypertarget{classFastCompactMeshSDF_a1d6ffa8833bb9581af2545d320db333c}\label{classFastCompactMeshSDF_a1d6ffa8833bb9581af2545d320db333c}} 
 \mbox{\hyperlink{classFastCompactMeshSDF_a1d6ffa8833bb9581af2545d320db333c}{Fast\+Compact\+Mesh\+SDF}} ()=delete
 \begin{DoxyCompactList}\small\item\em Default disallowed constructor. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classFastCompactMeshSDF_ac13dbb1197ae2f47b3a25fb382d30916}{Fast\+Compact\+Mesh\+SDF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastCompactMeshSDF_ab69d271504a00c6585b9d71d58a999d8}{Mesh}} $>$ \&a\+\_\+mesh) noexcept
+\mbox{\hyperlink{classFastCompactMeshSDF_a5b64a86bb57d7da15b3efeb8d9e8c95e}{Fast\+Compact\+Mesh\+SDF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastCompactMeshSDF_ab69d271504a00c6585b9d71d58a999d8}{Mesh}} $>$ \&a\+\_\+mesh, const \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH\+::\+Build}} a\+\_\+build=BVH\+::\+Build\+::\+Top\+Down) noexcept
 \begin{DoxyCompactList}\small\item\em Full constructor. Takes the input mesh and creates the \mbox{\hyperlink{namespaceBVH}{BVH}}. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classFastCompactMeshSDF_a44cae40029f0241bf1959a5644f0db1b}\label{classFastCompactMeshSDF_a44cae40029f0241bf1959a5644f0db1b}} 
 virtual \mbox{\hyperlink{classFastCompactMeshSDF_a44cae40029f0241bf1959a5644f0db1b}{$\sim$\+Fast\+Compact\+Mesh\+SDF}} ()=default
@@ -83,12 +83,12 @@ class Fast\+Compact\+Mesh\+SDF$<$ T, Meta, BV, K $>$}
 Signed distance function for a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. This class uses the compact \mbox{\hyperlink{namespaceBVH}{BVH}} representation. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classFastCompactMeshSDF_ac13dbb1197ae2f47b3a25fb382d30916}\label{classFastCompactMeshSDF_ac13dbb1197ae2f47b3a25fb382d30916}} 
+\mbox{\Hypertarget{classFastCompactMeshSDF_a5b64a86bb57d7da15b3efeb8d9e8c95e}\label{classFastCompactMeshSDF_a5b64a86bb57d7da15b3efeb8d9e8c95e}} 
 \index{FastCompactMeshSDF$<$ T, Meta, BV, K $>$@{FastCompactMeshSDF$<$ T, Meta, BV, K $>$}!FastCompactMeshSDF@{FastCompactMeshSDF}}
 \index{FastCompactMeshSDF@{FastCompactMeshSDF}!FastCompactMeshSDF$<$ T, Meta, BV, K $>$@{FastCompactMeshSDF$<$ T, Meta, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{FastCompactMeshSDF()}{FastCompactMeshSDF()}}
 {\footnotesize\ttfamily template$<$class T , class Meta , class BV , size\+\_\+t K$>$ \\
-\mbox{\hyperlink{classFastCompactMeshSDF}{Fast\+Compact\+Mesh\+SDF}}$<$ T, Meta, BV, K $>$\+::\mbox{\hyperlink{classFastCompactMeshSDF}{Fast\+Compact\+Mesh\+SDF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastCompactMeshSDF_ab69d271504a00c6585b9d71d58a999d8}{Mesh}} $>$ \&}]{a\+\_\+mesh }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+\mbox{\hyperlink{classFastCompactMeshSDF}{Fast\+Compact\+Mesh\+SDF}}$<$ T, Meta, BV, K $>$\+::\mbox{\hyperlink{classFastCompactMeshSDF}{Fast\+Compact\+Mesh\+SDF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastCompactMeshSDF_ab69d271504a00c6585b9d71d58a999d8}{Mesh}} $>$ \&}]{a\+\_\+mesh,  }\item[{const \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH\+::\+Build}}}]{a\+\_\+build = {\ttfamily BVH\+:\+:Build\+:\+:TopDown} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -97,6 +97,8 @@ Full constructor. Takes the input mesh and creates the \mbox{\hyperlink{namespac
 
 \begin{DoxyParams}[1]{Parameters}
 \mbox{\texttt{ in}}  & {\em a\+\_\+mesh} & Input mesh \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+build} & Build specification. Either top-\/down, Morton, or Nested. \\
 \hline
 \end{DoxyParams}
 

@@ -153,7 +153,7 @@ For example, the signed distance function for a sphere with center <span class="
 <div class="math notranslate nohighlight">
 \[I_{\textrm{sph}}\left(\mathbf{x}\right) = \left|\mathbf{x} - \mathbf{x}_0\right|^2 - R^2.\]</div>
 <p>An important difference between these is the Eikonal property in <a class="reference internal" href="#equation-eikonal">Eq. 1</a>, ensuring that the signed distance function always returns the exact distance to the object.
-Signed distance functions are usually the more useful object, but many operations (e.g. CSG unions) do not preserve the signed distance property.</p>
+Signed distance functions are more useful objects, but many operations (e.g. CSG unions) do not preserve the signed distance property (but still provide <em>bounds</em> for the signed distance).</p>
 </section>
 </section>
 <section id="dcel">
@@ -169,7 +169,7 @@ The DCEL structures consist of the following objects:</p>
 </ul>
 <p>As shown in <a class="reference internal" href="#fig-dcel"><span class="std std-numref">Fig. 1</span></a>, half-edges circulate the inside of the facet, with pointer access to the next half-edge.
 A half-edge also stores a reference to its starting vertex, as well as a reference to its pair-edge.
-From the DCEL structure we can easily obtain all edges or vertices belonging to a single facet, and also jump to a neighboring facet by fetching the pair edge.</p>
+From the DCEL structure we can obtain all edges or vertices belonging to a single facet by iterating through the half-edges, and also jump to a neighboring facet by fetching the pair edge.</p>
 <figure class="align-center" id="id2">
 <span id="fig-dcel"></span><a class="reference internal image-reference" href="_images/DCEL.png"><img alt="_images/DCEL.png" src="_images/DCEL.png" style="width: 480px;" /></a>
 <figcaption>
@@ -244,7 +244,7 @@ The vertex pseudonormal is given by</p>
 <p>Bounding volume hierarchies (BVHs) are tree structures where the regular nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces or implicit functions) further down in the hierarchy.
 This means that every node in a BVH is associated with a <em>bounding volume</em>.
 The bounding volume can, in principle, be any type of volume.
-Moreover, there are two types of nodes in a BVH:</p>
+There are two types of nodes in a BVH:</p>
 <ul class="simple">
 <li><p><strong>Regular/interior nodes.</strong> These do not contain any of the primitives/objects, but store references to subtrees (aka child nodes).</p></li>
 <li><p><strong>Leaf nodes.</strong> These lie at the bottom of the BVH tree and each of them contains a subset of the geometric primitives.</p></li>
@@ -264,8 +264,8 @@ Note that the bounding volume for <span class="math notranslate nohighlight">\(P
 </figure>
 <p>There is no fundamental limitation to what type of primitives/objects can be enclosed in BVHs, which makes BVHs useful beyond triangulated data sets.
 For example, analytic signed distance functions can also be embedded in BVHs, provided that we can construct bounding volumes that enclose them.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
 <p><code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> is not limited to binary trees, but supports <span class="math notranslate nohighlight">\(k\)</span> -ary trees where each regular node has <span class="math notranslate nohighlight">\(k\)</span> child nodes.</p>
 </div>
 <section id="construction">
@@ -297,6 +297,8 @@ Top-down construction can thus be illustrated as a recursive procedure:</p>
 </pre></div>
 </div>
 <p>In practice, the above procedure is supplemented by more sophisticated criteria for terminating the recursion, as well as routines for creating the bounding volumes around the newly inserted nodes.</p>
+<p>Bottom-up construction is also possible, in which case one constructs the leaf nodes first, and then merge the nodes upward until one reaches a root node.
+In <code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code>, bottom-up construction is done by means of space-filling curves (e.g., Morton codes).</p>
 </section>
 <section id="tree-traversal">
 <h2>Tree traversal<a class="headerlink" href="#tree-traversal" title="Permalink to this heading"></a></h2>
@@ -306,9 +308,9 @@ For the traversal algorithm we consider the following steps:</p>
 <ul class="simple">
 <li><p>When descending from node <span class="math notranslate nohighlight">\(P\)</span> we determine that we first investigate the left subtree (node <span class="math notranslate nohighlight">\(A\)</span>) since its bounding volume is closer than the bounding volumes for the other subtree.
 The other subtree will is investigated after we have recursed to the bottom of the <span class="math notranslate nohighlight">\(A\)</span> subtree.</p></li>
-<li><p>Since <span class="math notranslate nohighlight">\(A\)</span> is a leaf node, we find the signed distance from <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the primitives in <span class="math notranslate nohighlight">\(A\)</span>.
+<li><p>Since <span class="math notranslate nohighlight">\(A\)</span> is a leaf node, we compute the signed distance from <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the primitives in <span class="math notranslate nohighlight">\(A\)</span>.
 This requires us to iterate over all the triangles in <span class="math notranslate nohighlight">\(A\)</span>.</p></li>
-<li><p>When moving back to <span class="math notranslate nohighlight">\(P\)</span>, we find that the distance to the primitives in <span class="math notranslate nohighlight">\(A\)</span> is shorter than the distance from <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the bounding volume that encloses nodes <span class="math notranslate nohighlight">\(B\)</span> and <span class="math notranslate nohighlight">\(C\)</span>.
+<li><p>When investigating the other child node of <span class="math notranslate nohighlight">\(P\)</span>, we find that the distance to the primitives in <span class="math notranslate nohighlight">\(A\)</span> is shorter than the distance from <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> to the bounding volume that encloses nodes <span class="math notranslate nohighlight">\(B\)</span> and <span class="math notranslate nohighlight">\(C\)</span>.
 This immediately permits us to prune the entire subtree containing <span class="math notranslate nohighlight">\(B\)</span> and <span class="math notranslate nohighlight">\(C\)</span>.</p></li>
 </ul>
 <figure class="align-center" id="id6">
@@ -319,17 +321,19 @@ This immediately permits us to prune the entire subtree containing <span class="
 </figure>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Note that all BVH traversal algorithms have linear complexity when the primitives are all at approximately the same distance from the query point.
-For example, it is necessary to traverse almost the entire tree when one tries to compute the signed distance at the origin of a tessellated sphere.</p>
+<p>BVH traversal has <span class="math notranslate nohighlight">\(\log N\)</span> complexity on average.
+However in the worst case the traversal algorithm may have linear complexity if the primitives are all at approximately the same distance from the query point.
+For example, it is necessary to traverse almost the entire tree when one tries to compute the signed distance at the origin of a tessellated sphere since all triangles and their bounding volumes are approximately at the same distance from the center.</p>
 </div>
-<p>Note that types of tree traversal (that do not compute the signed distance) are also possible, e.g. we may want to compute the union <span class="math notranslate nohighlight">\(I\left(\mathbf{x}\right) = \min\left(I_1\left(\mathbf{x}\right), I_2\left(\mathbf{x}\right), .\ldots\right)\)</span>.
-<code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> supports a fairly flexible approach to the tree traversal and update algorithms.</p>
+<p>Other types of tree traversal (that do not compute the signed distance) are also possible.
+<code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> supports a fairly flexible approach to the tree traversal and update algorithms such that the user is permitted to use the hierarhical traversal algorithm also for other types of operations (e.g., for finding all facets within a specified distance from a point).</p>
 </section>
 </section>
 <section id="octree">
 <h1>Octree<a class="headerlink" href="#octree" title="Permalink to this heading"></a></h1>
 <p>Octrees are tree-structures where each interior node has exactly eight children.
-Such trees are usually used for spatial partitioning (and in this case the eight children have no spatial overlap), and the leaf nodes may also contain actual data.</p>
+Such trees are usually used for spatial partitioning.
+Unlike BVH trees, the eight child nodes have no spatial overlap.</p>
 <p>Octree construction can be done in (at least) two ways:</p>
 <ol class="arabic simple">
 <li><p>In depth-first order where entire sub-trees are built first.</p></li>
@@ -366,7 +370,9 @@ Octree traversal is generally speaking quite similar to the traversal algorithms
 <li><p>Difference.</p></li>
 </ul>
 <p>Some of these CSG operations also have smooth equivalents, i.e. for smoothing the transition between combined objects.
-Fast CSG operations are also supported by <code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code>, e.g. the BVH-accelerated CSG union where one uses the BVH when searching for the relevant geometric primitive(s).</p>
+Fast CSG operations are also supported by <code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code>, e.g. the BVH-accelerated CSG union where one uses the BVH when searching for the relevant geometric primitive(s).
+This functionality is motivated by the fact that a CSG union is normally implemented as <span class="math notranslate nohighlight">\(\min\left(I_1, I_2, I_3, \ldots,I_N\right)\)</span>, which has <span class="math notranslate nohighlight">\(\mathcal{O}\left(N\right)\)</span> complexity when there are <span class="math notranslate nohighlight">\(N\)</span> objects.
+BVH trees can reduce this to <span class="math notranslate nohighlight">\(\mathcal{O}\left(\log N\right)\)</span> complexity.</p>
 </section>
 </section>
 

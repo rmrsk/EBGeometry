@@ -128,6 +128,10 @@ const BV &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" 
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#aba361834e3d013725a92ec4b45633584">isLeaf</a> () const noexcept</td></tr>
 <tr class="memdesc:aba361834e3d013725a92ec4b45633584"><td class="mdescLeft">&#160;</td><td class="mdescRight">Is leaf or not. <br /></td></tr>
 <tr class="separator:aba361834e3d013725a92ec4b45633584"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6552a1ef54d1173b53d6baa435bde6a4"><td class="memItemLeft" align="right" valign="top"><a id="a6552a1ef54d1173b53d6baa435bde6a4"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#a6552a1ef54d1173b53d6baa435bde6a4">isPartitioned</a> () const noexcept</td></tr>
+<tr class="memdesc:a6552a1ef54d1173b53d6baa435bde6a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> is already partitioned. <br /></td></tr>
+<tr class="separator:a6552a1ef54d1173b53d6baa435bde6a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2bf5b1c514a20754d527b17e1c664630"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#a2bf5b1c514a20754d527b17e1c664630">getDistanceToBoundingVolume</a> (const <a class="el" href="classBVH_1_1LinearNodeT.html#a073e87d51d44b4cc243c8f90690247a6">Vec3</a> &amp;a_point) const noexcept</td></tr>
 <tr class="memdesc:a2bf5b1c514a20754d527b17e1c664630"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the distance from a 3D point to the bounding volume.  <a href="classBVH_1_1LinearNodeT.html#a2bf5b1c514a20754d527b17e1c664630">More...</a><br /></td></tr>
 <tr class="separator:a2bf5b1c514a20754d527b17e1c664630"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -141,6 +145,10 @@ Protected Attributes</h2></td></tr>
 BV&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#acef96b811ea69cd649fda35da082b361">m_boundingVolume</a></td></tr>
 <tr class="memdesc:acef96b811ea69cd649fda35da082b361"><td class="mdescLeft">&#160;</td><td class="mdescRight">Bounding volume. <br /></td></tr>
 <tr class="separator:acef96b811ea69cd649fda35da082b361"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae0e7397f00638903a8cf38a95e438c70"><td class="memItemLeft" align="right" valign="top"><a id="ae0e7397f00638903a8cf38a95e438c70"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#ae0e7397f00638903a8cf38a95e438c70">m_partitioned</a></td></tr>
+<tr class="memdesc:ae0e7397f00638903a8cf38a95e438c70"><td class="mdescLeft">&#160;</td><td class="mdescRight">Determines whether or not the partitioning function has already been called. <br /></td></tr>
+<tr class="separator:ae0e7397f00638903a8cf38a95e438c70"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a649815b1fd49f9d390ed0a1f196aca25"><td class="memItemLeft" align="right" valign="top"><a id="a649815b1fd49f9d390ed0a1f196aca25"></a>
 size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBVH_1_1LinearNodeT.html#a649815b1fd49f9d390ed0a1f196aca25">m_primitivesOffset</a></td></tr>
 <tr class="memdesc:a649815b1fd49f9d390ed0a1f196aca25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Offset into primitives array. <br /></td></tr>

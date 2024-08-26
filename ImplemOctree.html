@@ -113,7 +113,7 @@
 <span id="chap-implemoctree"></span><h1>Octree<a class="headerlink" href="#octree" title="Permalink to this heading"></a></h1>
 <p>The octree functionality is encapsulated in the namespace <code class="docutils literal notranslate"><span class="pre">EBGeometry::Octree</span></code>.
 For the full API, see <a class="reference external" href="doxygen/html/namespaceOctree.html">the doxygen API</a>.
-Currently, only full octrees are supported (i.e. pointer-based representation).</p>
+Currently, only full octrees are supported (i.e., using a pointer-based representation).</p>
 <p>Octrees are encapsulated by a class</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">Meta</span><span class="p">,</span><span class="w"> </span><span class="k">typename</span><span class="w"> </span><span class="nc">Data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">void</span><span class="o">&gt;</span><span class="w"></span>
 <span class="w">  </span><span class="k">class</span><span class="w"> </span><span class="nc">Node</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&lt;</span><span class="n">Meta</span><span class="p">,</span><span class="w"> </span><span class="n">Data</span><span class="o">&gt;&gt;</span><span class="w"></span>

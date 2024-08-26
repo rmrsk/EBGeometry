@@ -67,14 +67,19 @@
 <li class="toctree-l1"><a class="reference internal" href="ImplemDCEL.html">DCEL</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">BVH</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#bounding-volumes">Bounding volumes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#construction">Construction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#construction">Construction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#top-down-construction">Top-down construction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bottom-up-construction">Bottom-up construction</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#compact-form">Compact form</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#tree-traversal">Tree traversal</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#node-visit">Node visit</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#traversal-pattern">Traversal pattern</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#update-rule">Update rule</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#meta-data">Meta-data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#traversal-example">Traversal example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#traversal-algorithm">Traversal algorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#traversal-examples">Traversal examples</a></li>
 </ul>
 </li>
 </ul>
@@ -127,7 +132,7 @@ There are two types of BVHs supported.</p>
 <li><p><strong>Compact BVHs</strong> where the nodes are stored in depth-first order and contain index offsets to children and primitives.</p></li>
 </ul>
 <p>The full BVH is encapsulated by a class</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"></span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"></span>
 <span class="k">class</span><span class="w"> </span><span class="nc">NodeT</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
@@ -149,98 +154,27 @@ The compact BVH is discussed below in <a class="reference internal" href="#chap-
 Various constructors are available.</p></li>
 <li><p><strong>Axis-aligned bounding box</strong>, which is templated as <code class="docutils literal notranslate"><span class="pre">EBGeometry::BoundingVolumes::AABBT&lt;T&gt;</span></code>.</p></li>
 </ul>
-<p>For full API details, see <a class="reference external" href="doxygen/html/namespaceBoundingVolumes.html">the doxygen API</a>.</p>
+<p>For full API details, see <a class="reference external" href="doxygen/html/namespaceBoundingVolumes.html">the doxygen API</a>.
+Other types of bounding volumes can in principle be added, with the only requirement being that they conform to the same interface as the <code class="docutils literal notranslate"><span class="pre">AABB</span></code> and <code class="docutils literal notranslate"><span class="pre">BoundingSphere</span></code> volumes.</p>
 </section>
 <section id="construction">
 <span id="chap-bvhconstruction"></span><h2>Construction<a class="headerlink" href="#construction" title="Permalink to this heading"></a></h2>
-<p>Constructing a BVH is done by</p>
-<ul class="simple">
+<p>Constructing a BVH is done by:</p>
+<ol class="arabic simple">
 <li><p>Creating a root node and providing it with the geometric primitives and their bounding volumes.</p></li>
 <li><p>Partitioning the BVH by providing a partitioning function.</p></li>
-</ul>
+</ol>
 <p>The first step is usually a matter of simply constructing the root node using the full constructor, which takes a list of primitives and their associated bounding volumes.
-The second step is to recursively build the BVH, which is done through the function <code class="docutils literal notranslate"><span class="pre">topDownSortAndPartition()</span></code>, see the code below:</p>
-<div class="literal-block-wrapper docutils container" id="id1">
-<div class="code-block-caption"><span class="caption-number">Listing 1 </span><span class="caption-text">Header section of the BVH implementation.</span><a class="headerlink" href="#id1" title="Permalink to this code"></a></div>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span><span class="w"> </span><span class="nn">BVH</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-
-<span class="w">  </span><span class="cm">/*!</span>
-<span class="cm">    @brief Alias for a list geometric primitive and BV</span>
-<span class="cm">  */</span><span class="w"></span>
-<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="o">&gt;</span><span class="w"></span>
-<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">PrimAndBV</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">P</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
-
-<span class="w">  </span><span class="cm">/*!</span>
-<span class="cm">    @brief List of primitives and their bounding volumes. </span>
-<span class="cm">    @details P is the primitive type and BV is the bounding volume enclosing the implicit surface of each P.</span>
-<span class="cm">  */</span><span class="w"></span>
-<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="o">&gt;</span><span class="w"></span>
-<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">PrimAndBVListT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">PrimAndBV</span><span class="o">&lt;</span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="o">&gt;&gt;</span><span class="p">;</span><span class="w"></span>
-
-<span class="w">  </span><span class="cm">/*!</span>
-<span class="cm">    @brief Polymorphic partitioner for splitting a list of primitives and BVs into K new subsets. </span>
-<span class="cm">    @details P is the primitive type bound in the BVH and K is the BVH degrees. BV is the bounding volume type.</span>
-<span class="cm">    @param[in] a_primsAndBVs Vector of primitives and their bounding volumes. </span>
-<span class="cm">    @return Return a K-length array of subset lists. </span>
-<span class="cm">  */</span><span class="w"></span>
-<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"></span>
-<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">PartitionerT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">PrimAndBVListT</span><span class="o">&lt;</span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">PrimAndBVListT</span><span class="o">&lt;</span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_primsAndBVs</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
-
-<span class="w">  </span><span class="cm">/*!</span>
-<span class="cm">    @brief Stop function for deciding when a BVH node can&#39;t be divided into</span>
-<span class="cm">    sub-volumes.</span>
-<span class="cm">    @details T is the precision used in the BVH computations, P is the enclosing</span>
-<span class="cm">    primitive and BV is the bounding volume used in the BVH. K is the tree degree.</span>
-<span class="cm">    @param[in] a_node BVH node</span>
-<span class="cm">    @return True if the node can&#39;t be divided into subvolumes and false otherwise.</span>
-<span class="cm">  */</span><span class="w"></span>
-<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"></span>
-<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">StopFunctionT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">NodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_node</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
-
-<span class="w">  </span><span class="cm">/*!</span>
-<span class="cm">    @brief Class which encapsulates a node in a bounding volume hierarchy.</span>
-<span class="cm">    @details T is the precision, P is the primitive type you want to enclose, BV</span>
-<span class="cm">    is the bounding volume type used at the nodes. The parameter K (which must be</span>
-<span class="cm">    &gt; 1) is the tree degree. K=2 is a binary tree, K=3 is a tertiary tree and so</span>
-<span class="cm">    on.</span>
-<span class="cm">  */</span><span class="w"></span>
-<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"></span>
-<span class="w">  </span><span class="k">class</span><span class="w"> </span><span class="nc">NodeT</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">NodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&gt;</span><span class="w"></span>
-<span class="w">  </span><span class="p">{</span><span class="w"></span>
-
-<span class="w">    </span><span class="cm">/*!</span>
-<span class="cm">      @brief Alias for partitioner</span>
-<span class="cm">    */</span><span class="w"></span>
-<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">Partitioner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">PartitionerT</span><span class="o">&lt;</span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
-
-<span class="w">    </span><span class="cm">/*!</span>
-<span class="cm">      @brief Alias for stop function </span>
-<span class="cm">    */</span><span class="w"></span>
-<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">StopFunction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">StopFunctionT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
-
-<span class="w">    </span><span class="cm">/*!</span>
-<span class="cm">      @brief Construct a BVH node from a set of primitives and their bounding volumes</span>
-<span class="cm">      @param[in] a_primsAndBVs Primitives and their bounding volumes</span>
-<span class="cm">    */</span><span class="w"></span>
-<span class="w">    </span><span class="n">NodeT</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">PrimAndBV</span><span class="o">&lt;</span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_primsAndBVs</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
-
-<span class="w">    </span><span class="cm">/*!</span>
-<span class="cm">      @brief Function for using top-down construction of the bounding volume hierarchy. </span>
-<span class="cm">      @details The rules for terminating the hierarchy construction, and how to partition them</span>
-<span class="cm">      are encoded in the input arguments (a_partitioner, a_stopCrit).</span>
-<span class="cm">      @param[in] a_partitioner Partitioning function. This is a polymorphic function which divides a set of </span>
-<span class="cm">      primitives into two or more sub-lists.</span>
-<span class="cm">      @param[in] a_stopCrit Termination function which tells us when to stop the recursion.</span>
-<span class="cm">    */</span><span class="w"></span>
-<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"></span>
-<span class="w">    </span><span class="nf">topDownSortAndPartition</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Partitioner</span><span class="o">&amp;</span><span class="w">  </span><span class="n">a_partitioner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BVCentroidPartitioner</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                            </span><span class="k">const</span><span class="w"> </span><span class="n">StopFunction</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_stopCrit</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="n">DefaultStopFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
-<span class="w">                </span><span class="kt">size_t</span><span class="o">&amp;</span><span class="w">                                                 </span><span class="n">a_offset</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
-<span class="w">  </span><span class="p">};</span><span class="w"></span>
-<span class="p">}</span><span class="w"> </span><span class="c1">// namespace BVH</span>
-</pre></div>
+The second step is to recursively build the BVH.
+We currently support top-down and bottom-up construction (using space-filling curves).</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>The default construction methods performs the hierarchical subdivision by only considering the <em>bounding volumes</em>.
+Consequently, the build process is identical regardless of what type of primitives (e.g., triangles or analytic spheres) are contained in the BVH.</p>
 </div>
-</div>
+<section id="top-down-construction">
+<h3>Top-down construction<a class="headerlink" href="#top-down-construction" title="Permalink to this heading"></a></h3>
+<p>Top-down construction is done through the function <code class="docutils literal notranslate"><span class="pre">topDownSortAndPartition()</span></code>, <a class="reference external" href="doxygen/html/doxygen/html/classBVH_1_1NodeT.html">see the doxygen API for the BVH implementation</a>.</p>
 <p>The optional input arguments to <code class="docutils literal notranslate"><span class="pre">topDownSortAndPartition</span></code> are polymorphic functions of type indicated above, and have the following responsibilities:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">PartitionerT</span></code> is the partitioner function when splitting a leaf node into <code class="docutils literal notranslate"><span class="pre">K</span></code> new leaves.
@@ -249,16 +183,41 @@ The function takes a list of primitives which it partitions into <code class="do
 </ul>
 <p>Default arguments for these are provided, bubt users are free to partition their BVHs in their own way should they choose.</p>
 </section>
+<section id="bottom-up-construction">
+<h3>Bottom-up construction<a class="headerlink" href="#bottom-up-construction" title="Permalink to this heading"></a></h3>
+<p>The bottom-up construction uses a space-filling curve (e.g., a Morton curve) for first building the leaf nodes.
+This construction is done such that each leaf node contains approximately the number of primitives, and all leaf nodes exist on the same level.
+To use bottom-up construction, one may use the member function</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="cm">/*!</span>
+<span class="cm">      @brief Function for doing bottom-up construction using a specified space-filling curve.</span>
+<span class="cm">      @details The template parameter is the space-filling curve type. This function will partition the BVH</span>
+<span class="cm">      by first sorting the bounding volume centroids along the space-filling curve. The tree is then constructed</span>
+<span class="cm">      by placing at least K primitives in each leaf, and the leaves are then merged upwards until we reach the</span>
+<span class="cm">      root node.</span>
+<span class="cm">      @note S must have an encode and decode function which returns an SFC index. See the SFC namespace for</span>
+<span class="cm">      examples for Morton and Nested indices. </span>
+<span class="cm">    */</span><span class="w"></span>
+<span class="w">    </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">S</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"></span>
+<span class="w">    </span><span class="n">bottomUpSortAndPartition</span><span class="p">()</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+</pre></div>
+</div>
+<p>The template argument is the space-filling curve that the user wants to apply.
+Currently, we support Morton codes and nested indices.
+For Morton curves, one would e.g. call <code class="docutils literal notranslate"><span class="pre">bottomUpSortAndPartition&lt;SFC::Morton&gt;</span></code> while for nested indices (which are not recommended) the signature is likewise <code class="docutils literal notranslate"><span class="pre">bottomUpSortAndPartition&lt;SFC::Nested</span></code>.</p>
+<p>Build times for SFC-based bottom-up construction are generally speaking faster than top-down construction, but tends to produce worse trees such that traversal becomes slower.</p>
+</section>
+</section>
 <section id="compact-form">
 <span id="chap-linearbvh"></span><h2>Compact form<a class="headerlink" href="#compact-form" title="Permalink to this heading"></a></h2>
 <p>In addition to the standard BVH node <code class="docutils literal notranslate"><span class="pre">NodeT&lt;T,</span> <span class="pre">P,</span> <span class="pre">BV,</span> <span class="pre">K&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> provides a more compact formulation of the BVH hierarchy where the nodes are stored in depth-first order.
 The “linearized” BVH can be automatically constructed from the standard BVH but not vice versa.</p>
-<figure class="align-center" id="id2">
+<figure class="align-center" id="id1">
 <a class="reference internal image-reference" href="_images/CompactBVH.png"><img alt="_images/CompactBVH.png" src="_images/CompactBVH.png" style="width: 240px;" /></a>
 <figcaption>
 <p><span class="caption-number">Fig. 6 </span><span class="caption-text">Compact BVH representation.
 The original BVH is traversed from top-to-bottom along the branches and laid out in linear memory.
-Each interior node gets a reference (index offset) to their children nodes.</span><a class="headerlink" href="#id2" title="Permalink to this image"></a></p>
+Each interior node gets a reference (index offset) to their children nodes.</span><a class="headerlink" href="#id1" title="Permalink to this image"></a></p>
 </figcaption>
 </figure>
 <p>The rationale for reorganizing the BVH in compact form is it’s tighter memory footprint and depth-first ordering which occasionally allows a more efficient traversal downwards in the BVH tree, particularly if the geometric primitives are sorted in the same order.
@@ -351,7 +310,7 @@ This function has a signature</p>
 </pre></div>
 </div>
 <p>where <code class="docutils literal notranslate"><span class="pre">NodeType</span></code> is the type of node (which is different for full/flat BVHs), and the <code class="docutils literal notranslate"><span class="pre">Meta</span></code> template parameter is discussed below.
-If this function returns true, the node will be visisted and if the function returns false then the node will be pruned from the tree traversal.</p>
+If this function returns true, the node will be visisted and if the function returns false then the node will be pruned from the tree traversal. Typically, the <code class="docutils literal notranslate"><span class="pre">Meta</span></code> parameter will contain the necessary information that determines whether or not to visit the subtree.</p>
 </section>
 <section id="traversal-pattern">
 <h3>Traversal pattern<a class="headerlink" href="#traversal-pattern" title="Permalink to this heading"></a></h3>
@@ -364,6 +323,8 @@ This function has the signature:</p>
 <span class="k">using</span><span class="w"> </span><span class="n">Sorter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">NodeType</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">Meta</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_children</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
+<p>Sorting the child nodes is completely optional.
+The user can leave this function empty if it does not matter which subtrees are visited first.</p>
 </section>
 <section id="update-rule">
 <h3>Update rule<a class="headerlink" href="#update-rule" title="Permalink to this heading"></a></h3>
@@ -373,6 +334,7 @@ These are done by a user-supplied update-rule:</p>
 <span class="k">using</span><span class="w"> </span><span class="n">Updater</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">PrimitiveListT</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_primitives</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
+<p>Typically, the <code class="docutils literal notranslate"><span class="pre">Updater</span></code> will modify parameters that appear in a local scope outside of the tree traversal (e.g. updating the minimum distance to a DCEL mesh).</p>
 </section>
 <section id="meta-data">
 <h3>Meta-data<a class="headerlink" href="#meta-data" title="Permalink to this heading"></a></h3>
@@ -383,9 +345,62 @@ The signature for meta-data construction is</p>
 <span class="k">using</span><span class="w"> </span><span class="n">MetaUpdater</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="n">Meta</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">NodeType</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_node</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
+<p>The biggest difference between <code class="docutils literal notranslate"><span class="pre">Updater</span></code> and <code class="docutils literal notranslate"><span class="pre">MetaUpdater</span></code> is that <code class="docutils literal notranslate"><span class="pre">Updater</span></code> is <em>only</em> called on leaf nodes whereas <code class="docutils literal notranslate"><span class="pre">MetaUpdater</span></code> is also called for internal nodes.
+One typical example for DCEL meshes is that <code class="docutils literal notranslate"><span class="pre">Updater</span></code> computes the distance from an input point to the triangles in a leaf node, whereas <code class="docutils literal notranslate"><span class="pre">MetaUpdater</span></code> computes the distance from the input point to the bounding volumes of a child nodes.
+This information is then used in <code class="docutils literal notranslate"><span class="pre">Sorter</span></code> in order to determine a preferred child visit pattern when descending along subtrees.</p>
 </section>
-<section id="traversal-example">
-<h3>Traversal example<a class="headerlink" href="#traversal-example" title="Permalink to this heading"></a></h3>
+<section id="traversal-algorithm">
+<h3>Traversal algorithm<a class="headerlink" href="#traversal-algorithm" title="Permalink to this heading"></a></h3>
+<p>The code-block below shows the implementation of the BVH traversal.
+The implementation uses a non-recursive queue-based formulation when descending along subtrees.
+Observe that each entry in the stack contains both the node itself <em>and</em> any meta-data we want to attach to the node.
+If the traversal decides to visit a node, it immediately computes the specified meta-data of the node, and the user can then sort the children based on that data.</p>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-number">Listing 1 </span><span class="caption-text">Tree traversal algorithm for the BVH tree.</span><a class="headerlink" href="#id2" title="Permalink to this code"></a></div>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">P</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"></span>
+<span class="w">  </span><span class="n">NodeT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;::</span><span class="n">traverse</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">BVH</span><span class="o">::</span><span class="n">Updater</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;&amp;</span><span class="w">              </span><span class="n">a_updater</span><span class="p">,</span><span class="w"></span>
+<span class="w">                               </span><span class="k">const</span><span class="w"> </span><span class="n">BVH</span><span class="o">::</span><span class="n">Visiter</span><span class="o">&lt;</span><span class="n">Node</span><span class="p">,</span><span class="w"> </span><span class="n">Meta</span><span class="o">&gt;&amp;</span><span class="w">     </span><span class="n">a_visiter</span><span class="p">,</span><span class="w"></span>
+<span class="w">                               </span><span class="k">const</span><span class="w"> </span><span class="n">BVH</span><span class="o">::</span><span class="n">Sorter</span><span class="o">&lt;</span><span class="n">Node</span><span class="p">,</span><span class="w"> </span><span class="n">Meta</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&amp;</span><span class="w">   </span><span class="n">a_sorter</span><span class="p">,</span><span class="w"></span>
+<span class="w">                               </span><span class="k">const</span><span class="w"> </span><span class="n">BVH</span><span class="o">::</span><span class="n">MetaUpdater</span><span class="o">&lt;</span><span class="n">Node</span><span class="p">,</span><span class="w"> </span><span class="n">Meta</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_metaUpdater</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="w"></span>
+<span class="w">  </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">Meta</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"> </span><span class="n">children</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">stack</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">Meta</span><span class="o">&gt;&gt;</span><span class="w">    </span><span class="n">q</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">q</span><span class="p">.</span><span class="n">emplace</span><span class="p">(</span><span class="k">this</span><span class="o">-&gt;</span><span class="n">shared_from_this</span><span class="p">(),</span><span class="w"> </span><span class="n">a_metaUpdater</span><span class="p">(</span><span class="o">*</span><span class="k">this</span><span class="p">));</span><span class="w"></span>
+
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="n">q</span><span class="p">.</span><span class="n">empty</span><span class="p">()))</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">q</span><span class="p">.</span><span class="n">top</span><span class="p">().</span><span class="n">first</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">meta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">q</span><span class="p">.</span><span class="n">top</span><span class="p">().</span><span class="n">second</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">      </span><span class="n">q</span><span class="p">.</span><span class="n">pop</span><span class="p">();</span><span class="w"></span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">a_visiter</span><span class="p">(</span><span class="o">*</span><span class="n">node</span><span class="p">,</span><span class="w"> </span><span class="n">meta</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">isLeaf</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">          </span><span class="n">a_updater</span><span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">getPrimitives</span><span class="p">());</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">        </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">          </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">K</span><span class="p">;</span><span class="w"> </span><span class="n">k</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="n">children</span><span class="p">[</span><span class="n">k</span><span class="p">].</span><span class="n">first</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">node</span><span class="o">-&gt;</span><span class="n">getChildren</span><span class="p">()[</span><span class="n">k</span><span class="p">];</span><span class="w"></span>
+<span class="w">            </span><span class="n">children</span><span class="p">[</span><span class="n">k</span><span class="p">].</span><span class="n">second</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a_metaUpdater</span><span class="p">(</span><span class="o">*</span><span class="n">children</span><span class="p">[</span><span class="n">k</span><span class="p">].</span><span class="n">first</span><span class="p">);</span><span class="w"></span>
+<span class="w">          </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">          </span><span class="c1">// User-based visit pattern.</span>
+<span class="w">          </span><span class="n">a_sorter</span><span class="p">(</span><span class="n">children</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">          </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">child</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">children</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="n">q</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">child</span><span class="p">);</span><span class="w"></span>
+<span class="w">          </span><span class="p">}</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="traversal-examples">
+<h3>Traversal examples<a class="headerlink" href="#traversal-examples" title="Permalink to this heading"></a></h3>
 <p>The DCEL mesh distance fields use a traversal pattern based on</p>
 <ul class="simple">
 <li><p>Only visit bounding volumes that are closer than the minimum distance computed (so far).</p></li>
@@ -396,16 +411,27 @@ The signature for meta-data construction is</p>
 <div class="literal-block-wrapper docutils container" id="id3">
 <div class="code-block-caption"><span class="caption-number">Listing 2 </span><span class="caption-text">Tree traversal criterion for computing the signed distance to a DCEL mesh using the BVH accelerator.
 See <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_MeshDistanceFunctionsImplem.hpp</span></code> for details.</span><a class="headerlink" href="#id3" title="Permalink to this code"></a></div>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Visitation pattern - go into the node if the point is inside or the distance to the BV is shorter than</span>
-<span class="w">  </span><span class="c1">// the shortest distance so far.</span>
-<span class="w">  </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">Visiter</span><span class="o">&lt;</span><span class="n">Node</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">visiter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">shortestDistanceSoFar</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&amp;</span><span class="w">    </span><span class="n">a_node</span><span class="p">,</span><span class="w"></span>
-<span class="w">                                                                       </span><span class="k">const</span><span class="w"> </span><span class="n">BVHMeta</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_bvDist</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">a_bvDist</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mf">0.0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">a_bvDist</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">shortestDistanceSoFar</span><span class="p">;</span><span class="w"></span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BV</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"></span>
+<span class="n">T</span><span class="w"></span>
+<span class="n">FastMeshSDF</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">Meta</span><span class="p">,</span><span class="w"> </span><span class="n">BV</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;::</span><span class="n">signedDistance</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="n">T</span><span class="w"> </span><span class="n">minDist</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">infinity</span><span class="p">();</span><span class="w"></span>
+
+<span class="w">  </span><span class="n">BVH</span><span class="o">::</span><span class="n">Updater</span><span class="o">&lt;</span><span class="n">Face</span><span class="o">&gt;</span><span class="w"> </span><span class="n">updater</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">minDist</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                </span><span class="o">&amp;</span><span class="n">a_point</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">Face</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">faces</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">f</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">faces</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">curDist</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">signedDistance</span><span class="p">(</span><span class="n">a_point</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">      </span><span class="n">minDist</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">curDist</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">minDist</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">curDist</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">minDist</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
 <span class="w">  </span><span class="p">};</span><span class="w"></span>
 
-<span class="w">  </span><span class="c1">// Sorter for BVH nodes, visit closest nodes first</span>
-<span class="w">  </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">Sorter</span><span class="o">&lt;</span><span class="n">Node</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"> </span><span class="n">sorter</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
-<span class="w">    </span><span class="p">[</span><span class="o">&amp;</span><span class="n">a_point</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_leaves</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="n">BVH</span><span class="o">::</span><span class="n">Visiter</span><span class="o">&lt;</span><span class="n">Node</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">visiter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">minDist</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">a_point</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_node</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_bvDist</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">a_bvDist</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">minDist</span><span class="p">);</span><span class="w"></span>
+<span class="w">  </span><span class="p">};</span><span class="w"></span>
+
+<span class="w">  </span><span class="n">BVH</span><span class="o">::</span><span class="n">Sorter</span><span class="o">&lt;</span><span class="n">Node</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="w"> </span><span class="n">sorter</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
+<span class="w">    </span><span class="p">[</span><span class="o">&amp;</span><span class="n">a_point</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_leaves</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span><span class="w"></span>
 <span class="w">      </span><span class="n">a_leaves</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"></span>
 <span class="w">      </span><span class="n">a_leaves</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span><span class="w"></span>
@@ -413,23 +439,14 @@ See <code class="file docutils literal notranslate"><span class="pre">Source/EBG
 <span class="w">                 </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">n2</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">n1</span><span class="p">.</span><span class="n">second</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">n2</span><span class="p">.</span><span class="n">second</span><span class="p">;</span><span class="w"> </span><span class="p">});</span><span class="w"></span>
 <span class="w">  </span><span class="p">};</span><span class="w"></span>
 
-<span class="w">  </span><span class="c1">// Meta-data updater - this meta-data enters into the visitor pattern.</span>
-<span class="w">  </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">MetaUpdater</span><span class="o">&lt;</span><span class="n">Node</span><span class="p">,</span><span class="w"> </span><span class="n">BVHMeta</span><span class="o">&gt;</span><span class="w"> </span><span class="n">metaUpdater</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">a_point</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_node</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">BVHMeta</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="n">BVH</span><span class="o">::</span><span class="n">MetaUpdater</span><span class="o">&lt;</span><span class="n">Node</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">metaUpdater</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">a_point</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a_node</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">a_node</span><span class="p">.</span><span class="n">getDistanceToBoundingVolume</span><span class="p">(</span><span class="n">a_point</span><span class="p">);</span><span class="w"></span>
 <span class="w">  </span><span class="p">};</span><span class="w"></span>
 
-<span class="w">  </span><span class="c1">// Update rule for the BVH. Go through the faces and check</span>
-<span class="w">  </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">BVH</span><span class="o">::</span><span class="n">Updater</span><span class="o">&lt;</span><span class="n">Face</span><span class="o">&gt;</span><span class="w"> </span><span class="n">updater</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">shortestDistanceSoFar</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">a_point</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">candidateFaces</span><span class="p">](</span><span class="w"></span>
-<span class="w">                                             </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">Face</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_faces</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="c1">// Calculate the distance to each face in the leaf node. If it is shorter than the shortest distance so far, add this face</span>
-<span class="w">    </span><span class="c1">// to the list of faces and update the shortest distance.</span>
-<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">f</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">a_faces</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">distToFace</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sqrt</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">unsignedDistance2</span><span class="p">(</span><span class="n">a_point</span><span class="p">));</span><span class="w"></span>
+<span class="w">  </span><span class="c1">// Traverse the tree.</span>
+<span class="w">  </span><span class="n">m_bvh</span><span class="o">-&gt;</span><span class="n">traverse</span><span class="p">(</span><span class="n">updater</span><span class="p">,</span><span class="w"> </span><span class="n">visiter</span><span class="p">,</span><span class="w"> </span><span class="n">sorter</span><span class="p">,</span><span class="w"> </span><span class="n">metaUpdater</span><span class="p">);</span><span class="w"></span>
 
-<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">distToFace</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">shortestDistanceSoFar</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="n">candidateFaces</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="w"> </span><span class="n">distToFace</span><span class="p">);</span><span class="w"></span>
-
-<span class="w">        </span><span class="n">shortestDistanceSoFar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">distToFace</span><span class="p">;</span><span class="w"></span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">minDist</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
 </div>

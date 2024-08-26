@@ -1,6 +1,9 @@
 var searchData=
 [
-  ['sorter_876',['Sorter',['../classOctree_1_1Node.html#a1df8c08c0daaba3c80cdc264c948f3f6',1,'Octree::Node::Sorter()'],['../namespaceBVH.html#a98593a87354ca9c46938b74c50a10f91',1,'BVH::Sorter()']]],
-  ['stopfunction_877',['StopFunction',['../classBVH_1_1NodeT.html#acbe56195affc439febe8aca84db308e3',1,'BVH::NodeT::StopFunction()'],['../classOctree_1_1Node.html#a76ef6d051df43996a35f446250e5a44b',1,'Octree::Node::StopFunction()']]],
-  ['stopfunctiont_878',['StopFunctionT',['../namespaceBVH.html#afef1c5979c34a11d23b756cc09654bf9',1,'BVH']]]
+  ['partitioner_914',['Partitioner',['../classBVH_1_1NodeT.html#ab3b7afb83f7ecf97d1985c3c5ade2f0a',1,'BVH::NodeT']]],
+  ['partitionert_915',['PartitionerT',['../namespaceBVH.html#ae7e5e97e86dfe5a7103cbf2918f0cfc9',1,'BVH']]],
+  ['primandbv_916',['PrimAndBV',['../namespaceBVH.html#a2f1baf3f4361b542e8b582b2d64954ce',1,'BVH']]],
+  ['primandbvlistt_917',['PrimAndBVListT',['../namespaceBVH.html#a1edeb7c10026d6fba3e35536a6719a3a',1,'BVH']]],
+  ['primitivelist_918',['PrimitiveList',['../classBVH_1_1NodeT.html#a19cce6e7fbe85eccb4a3718dd69f49b7',1,'BVH::NodeT::PrimitiveList()'],['../classBVH_1_1LinearBVH.html#a94ee5da1670e2ef85eeabf7cf6a2da92',1,'BVH::LinearBVH::PrimitiveList()']]],
+  ['primitivelistt_919',['PrimitiveListT',['../namespaceBVH.html#aa1e753bda451b85cd5b948722a2ad7c7',1,'BVH']]]
 ];

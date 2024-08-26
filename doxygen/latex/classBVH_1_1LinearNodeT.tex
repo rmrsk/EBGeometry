@@ -45,6 +45,9 @@ const std\+::array$<$ size\+\_\+t, K $>$ \& \mbox{\hyperlink{classBVH_1_1LinearN
 \mbox{\Hypertarget{classBVH_1_1LinearNodeT_aba361834e3d013725a92ec4b45633584}\label{classBVH_1_1LinearNodeT_aba361834e3d013725a92ec4b45633584}} 
 bool \mbox{\hyperlink{classBVH_1_1LinearNodeT_aba361834e3d013725a92ec4b45633584}{is\+Leaf}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Is leaf or not. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBVH_1_1LinearNodeT_a6552a1ef54d1173b53d6baa435bde6a4}\label{classBVH_1_1LinearNodeT_a6552a1ef54d1173b53d6baa435bde6a4}} 
+bool \mbox{\hyperlink{classBVH_1_1LinearNodeT_a6552a1ef54d1173b53d6baa435bde6a4}{is\+Partitioned}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Check if \mbox{\hyperlink{namespaceBVH}{BVH}} is already partitioned. \end{DoxyCompactList}\item 
 T \mbox{\hyperlink{classBVH_1_1LinearNodeT_a2bf5b1c514a20754d527b17e1c664630}{get\+Distance\+To\+Bounding\+Volume}} (const \mbox{\hyperlink{classBVH_1_1LinearNodeT_a073e87d51d44b4cc243c8f90690247a6}{Vec3}} \&a\+\_\+point) const noexcept
 \begin{DoxyCompactList}\small\item\em Get the distance from a 3D point to the bounding volume. \end{DoxyCompactList}\item 
 std\+::vector$<$ T $>$ \mbox{\hyperlink{classBVH_1_1LinearNodeT_a4a4a6a8ef0ff7858f6b95b92501e8bc3}{get\+Distances}} (const \mbox{\hyperlink{classBVH_1_1LinearNodeT_a073e87d51d44b4cc243c8f90690247a6}{Vec3}} \&a\+\_\+point, const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&a\+\_\+primitives) const noexcept
@@ -55,6 +58,9 @@ std\+::vector$<$ T $>$ \mbox{\hyperlink{classBVH_1_1LinearNodeT_a4a4a6a8ef0ff785
 \mbox{\Hypertarget{classBVH_1_1LinearNodeT_acef96b811ea69cd649fda35da082b361}\label{classBVH_1_1LinearNodeT_acef96b811ea69cd649fda35da082b361}} 
 BV \mbox{\hyperlink{classBVH_1_1LinearNodeT_acef96b811ea69cd649fda35da082b361}{m\+\_\+bounding\+Volume}}
 \begin{DoxyCompactList}\small\item\em Bounding volume. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBVH_1_1LinearNodeT_ae0e7397f00638903a8cf38a95e438c70}\label{classBVH_1_1LinearNodeT_ae0e7397f00638903a8cf38a95e438c70}} 
+bool \mbox{\hyperlink{classBVH_1_1LinearNodeT_ae0e7397f00638903a8cf38a95e438c70}{m\+\_\+partitioned}}
+\begin{DoxyCompactList}\small\item\em Determines whether or not the partitioning function has already been called. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classBVH_1_1LinearNodeT_a649815b1fd49f9d390ed0a1f196aca25}\label{classBVH_1_1LinearNodeT_a649815b1fd49f9d390ed0a1f196aca25}} 
 size\+\_\+t \mbox{\hyperlink{classBVH_1_1LinearNodeT_a649815b1fd49f9d390ed0a1f196aca25}{m\+\_\+primitives\+Offset}}
 \begin{DoxyCompactList}\small\item\em Offset into primitives array. \end{DoxyCompactList}\item 

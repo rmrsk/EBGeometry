@@ -118,10 +118,9 @@ Public Member Functions</h2></td></tr>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastMeshSDF.html#aa82738d8df17c7e9864e99a2d02d1f98">FastMeshSDF</a> ()=delete</td></tr>
 <tr class="memdesc:aa82738d8df17c7e9864e99a2d02d1f98"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default disallowed constructor. <br /></td></tr>
 <tr class="separator:aa82738d8df17c7e9864e99a2d02d1f98"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7302f623ffb9a1de8db3ce8f2e03528e"><td class="memItemLeft" align="right" valign="top"><a id="a7302f623ffb9a1de8db3ce8f2e03528e"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastMeshSDF.html#a7302f623ffb9a1de8db3ce8f2e03528e">FastMeshSDF</a> (const std::shared_ptr&lt; <a class="el" href="classFastMeshSDF.html#af87a9e618ed040a580b834a156bd405f">Mesh</a> &gt; &amp;a_mesh) noexcept</td></tr>
-<tr class="memdesc:a7302f623ffb9a1de8db3ce8f2e03528e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor. Takes the input mesh and creates the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>. <br /></td></tr>
-<tr class="separator:a7302f623ffb9a1de8db3ce8f2e03528e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a342fe25e8cebbc41fef1f8a83b60660d"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastMeshSDF.html#a342fe25e8cebbc41fef1f8a83b60660d">FastMeshSDF</a> (const std::shared_ptr&lt; <a class="el" href="classFastMeshSDF.html#af87a9e618ed040a580b834a156bd405f">Mesh</a> &gt; &amp;a_mesh, const <a class="el" href="namespaceBVH.html#a6f2491cf571e9012cb840916ab730688">BVH::Build</a> a_build=BVH::Build::TopDown) noexcept</td></tr>
+<tr class="memdesc:a342fe25e8cebbc41fef1f8a83b60660d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full constructor. Takes the input mesh and creates the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>.  <a href="classFastMeshSDF.html#a342fe25e8cebbc41fef1f8a83b60660d">More...</a><br /></td></tr>
+<tr class="separator:a342fe25e8cebbc41fef1f8a83b60660d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abf7cef9dc0d6294a1d305cfa18d3f89e"><td class="memItemLeft" align="right" valign="top"><a id="abf7cef9dc0d6294a1d305cfa18d3f89e"></a>
 virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastMeshSDF.html#abf7cef9dc0d6294a1d305cfa18d3f89e">~FastMeshSDF</a> ()=default</td></tr>
 <tr class="memdesc:abf7cef9dc0d6294a1d305cfa18d3f89e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor. <br /></td></tr>
@@ -188,7 +187,55 @@ std::shared_ptr&lt; <a class="el" href="classFastMeshSDF.html#a04a7a7e74554051c3
 class FastMeshSDF&lt; T, Meta, BV, K &gt;</h3>
 
 <p>Signed distance function for a <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> mesh. This class uses the full <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> representation. </p>
-</div><h2 class="groupheader">Member Function Documentation</h2>
+</div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<a id="a342fe25e8cebbc41fef1f8a83b60660d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a342fe25e8cebbc41fef1f8a83b60660d">&#9670;&nbsp;</a></span>FastMeshSDF()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class T , class Meta , class BV , size_t K&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classFastMeshSDF.html">FastMeshSDF</a>&lt; T, Meta, BV, K &gt;::<a class="el" href="classFastMeshSDF.html">FastMeshSDF</a> </td>
+          <td>(</td>
+          <td class="paramtype">const std::shared_ptr&lt; <a class="el" href="classFastMeshSDF.html#af87a9e618ed040a580b834a156bd405f">Mesh</a> &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_mesh</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="namespaceBVH.html#a6f2491cf571e9012cb840916ab730688">BVH::Build</a>&#160;</td>
+          <td class="paramname"><em>a_build</em> = <code>BVH::Build::TopDown</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Full constructor. Takes the input mesh and creates the <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_mesh</td><td>Input mesh </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_build</td><td>Specification of build method. Must be TopDown, Morton, or Nested. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<h2 class="groupheader">Member Function Documentation</h2>
 <a id="acbb02ee772b5a9cd76f3b039c1642ca8"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#acbb02ee772b5a9cd76f3b039c1642ca8">&#9670;&nbsp;</a></span>getClosestFaces()</h2>
 

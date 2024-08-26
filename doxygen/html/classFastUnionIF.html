@@ -150,9 +150,9 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
-<tr class="memitem:aeea313b474a61a2a3c30bbcc08b12622"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastUnionIF.html#aeea313b474a61a2a3c30bbcc08b12622">buildTree</a> (const std::vector&lt; std::pair&lt; std::shared_ptr&lt; const P &gt;, BV &gt;&gt; &amp;a_primsAndBVs) noexcept</td></tr>
-<tr class="memdesc:aeea313b474a61a2a3c30bbcc08b12622"><td class="mdescLeft">&#160;</td><td class="mdescRight">Build <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree for the input objects.  <a href="classFastUnionIF.html#aeea313b474a61a2a3c30bbcc08b12622">More...</a><br /></td></tr>
-<tr class="separator:aeea313b474a61a2a3c30bbcc08b12622"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac9ae6bbbf4dac42e3274b7411c0e546f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classFastUnionIF.html#ac9ae6bbbf4dac42e3274b7411c0e546f">buildTree</a> (const std::vector&lt; std::pair&lt; std::shared_ptr&lt; const P &gt;, BV &gt;&gt; &amp;a_primsAndBVs, const <a class="el" href="namespaceBVH.html#a6f2491cf571e9012cb840916ab730688">BVH::Build</a> a_build=BVH::Build::TopDown) noexcept</td></tr>
+<tr class="memdesc:ac9ae6bbbf4dac42e3274b7411c0e546f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Build <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a> tree for the input objects.  <a href="classFastUnionIF.html#ac9ae6bbbf4dac42e3274b7411c0e546f">More...</a><br /></td></tr>
+<tr class="separator:ac9ae6bbbf4dac42e3274b7411c0e546f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
@@ -251,8 +251,8 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="aeea313b474a61a2a3c30bbcc08b12622"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aeea313b474a61a2a3c30bbcc08b12622">&#9670;&nbsp;</a></span>buildTree()</h2>
+<a id="ac9ae6bbbf4dac42e3274b7411c0e546f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac9ae6bbbf4dac42e3274b7411c0e546f">&#9670;&nbsp;</a></span>buildTree()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -266,8 +266,18 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
           <td class="memname">void <a class="el" href="classFastUnionIF.html">FastUnionIF</a>&lt; T, P, BV, K &gt;::buildTree </td>
           <td>(</td>
           <td class="paramtype">const std::vector&lt; std::pair&lt; std::shared_ptr&lt; const P &gt;, BV &gt;&gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_primsAndBVs</em></td><td>)</td>
+          <td class="paramname"><em>a_primsAndBVs</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">const <a class="el" href="namespaceBVH.html#a6f2491cf571e9012cb840916ab730688">BVH::Build</a>&#160;</td>
+          <td class="paramname"><em>a_build</em> = <code>BVH::Build::TopDown</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
   </td>
@@ -281,6 +291,7 @@ template&lt;class T , class P , class BV , size_t K&gt; </div>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">a_primsAndBVs</td><td>Geometric primitives and their bounding volumes. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_build</td><td>Build method (see <a class="el" href="EBGeometry__BVH_8hpp.html" title="Declaration of a bounding volume hierarchy (BVH) class.">EBGeometry_BVH.hpp</a>) </td></tr>
   </table>
   </dd>
 </dl>

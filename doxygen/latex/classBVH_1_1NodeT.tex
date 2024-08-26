@@ -63,9 +63,14 @@ virtual \mbox{\hyperlink{classBVH_1_1NodeT_ab4d707ae5a863a7b3b823786cbb343cb}{$\
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classBVH_1_1NodeT_a96febb1814ab25d04b719350a93f5e7f}{top\+Down\+Sort\+And\+Partition}} (const \mbox{\hyperlink{classBVH_1_1NodeT_ab3b7afb83f7ecf97d1985c3c5ade2f0a}{Partitioner}} \&a\+\_\+partitioner=\mbox{\hyperlink{namespaceBVH_a5d49380a6db6e29200da88b68b1ba0a6}{BVCentroid\+Partitioner}}$<$ T, P, BV, K $>$, const \mbox{\hyperlink{classBVH_1_1NodeT_acbe56195affc439febe8aca84db308e3}{Stop\+Function}} \&a\+\_\+stop\+Crit=\mbox{\hyperlink{namespaceBVH_a21d8f7ec763e9a30d43c68abe2e63f18}{Default\+Stop\+Function}}$<$ T, P, BV, K $>$) noexcept
 \begin{DoxyCompactList}\small\item\em Function for using top-\/down construction of the bounding volume hierarchy. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename S $>$ }\\void \mbox{\hyperlink{classBVH_1_1NodeT_ac6b444e11b909bd69faef8e8c875b135}{bottom\+Up\+Sort\+And\+Partition}} () noexcept
+\begin{DoxyCompactList}\small\item\em Function for doing bottom-\/up construction using a specified space-\/filling curve. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classBVH_1_1NodeT_a5c57552524601da9bf20e722e2433aa0}\label{classBVH_1_1NodeT_a5c57552524601da9bf20e722e2433aa0}} 
 bool \mbox{\hyperlink{classBVH_1_1NodeT_a5c57552524601da9bf20e722e2433aa0}{is\+Leaf}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get node type. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBVH_1_1NodeT_abb00d39b9a03ad602f1a47efe6272b24}\label{classBVH_1_1NodeT_abb00d39b9a03ad602f1a47efe6272b24}} 
+bool \mbox{\hyperlink{classBVH_1_1NodeT_abb00d39b9a03ad602f1a47efe6272b24}{is\+Partitioned}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Check if \mbox{\hyperlink{namespaceBVH}{BVH}} is already partitioned. \end{DoxyCompactList}\item 
 const BV \& \mbox{\hyperlink{classBVH_1_1NodeT_a4fe7178c2bd08a246cbea5b411ce5e9d}{get\+Bounding\+Volume}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get bounding volume. \end{DoxyCompactList}\item 
 const \mbox{\hyperlink{classBVH_1_1NodeT_a19cce6e7fbe85eccb4a3718dd69f49b7}{Primitive\+List}} \& \mbox{\hyperlink{classBVH_1_1NodeT_a824a733984530c040215b76c10950045}{get\+Primitives}} () const noexcept
@@ -87,6 +92,8 @@ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1LinearBVH}{Linear\+BVH}}$
 \begin{DoxyCompactList}\small\item\em Get the list of primitives in this node. \end{DoxyCompactList}\item 
 std\+::vector$<$ BV $>$ \& \mbox{\hyperlink{classBVH_1_1NodeT_a143b2cef57ce44573fed2295581d1c54}{get\+Bounding\+Volumes}} () noexcept
 \begin{DoxyCompactList}\small\item\em Get the bounding volumes for the primitives in this node (can be empty if regular node) \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classBVH_1_1NodeT_a445ee159b30df3cae61bc3f6d383758c}{set\+Children}} (const std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}$<$ T, P, BV, K $>$$>$, K $>$ \&a\+\_\+children) noexcept
+\begin{DoxyCompactList}\small\item\em Explicitly set this node\textquotesingle{}s children. \end{DoxyCompactList}\item 
 size\+\_\+t \mbox{\hyperlink{classBVH_1_1NodeT_a950e1bcd16baa78ede8f6559754a639d}{flatten\+Tree}} (std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ T, P, BV, K $>$$>$$>$ \&a\+\_\+linear\+Nodes, std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&a\+\_\+sorted\+Primitives, size\+\_\+t \&a\+\_\+offset) const noexcept
 \begin{DoxyCompactList}\small\item\em Flatten tree method. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Attributes}
@@ -95,6 +102,9 @@ size\+\_\+t \mbox{\hyperlink{classBVH_1_1NodeT_a950e1bcd16baa78ede8f6559754a639d
 \mbox{\Hypertarget{classBVH_1_1NodeT_a7f8720f2ab03ee9e81de114c479cb2e5}\label{classBVH_1_1NodeT_a7f8720f2ab03ee9e81de114c479cb2e5}} 
 BV \mbox{\hyperlink{classBVH_1_1NodeT_a7f8720f2ab03ee9e81de114c479cb2e5}{m\+\_\+bounding\+Volume}}
 \begin{DoxyCompactList}\small\item\em Bounding volume object for enclosing everything in this node. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classBVH_1_1NodeT_a5f4bee1536ec2fb6ef8c99159e3e730c}\label{classBVH_1_1NodeT_a5f4bee1536ec2fb6ef8c99159e3e730c}} 
+bool \mbox{\hyperlink{classBVH_1_1NodeT_a5f4bee1536ec2fb6ef8c99159e3e730c}{m\+\_\+partitioned}}
+\begin{DoxyCompactList}\small\item\em Determines whether or not the partitioning function has already been called. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classBVH_1_1NodeT_a3c45be2075d8cdfd0dc0a9e73373b64d}\label{classBVH_1_1NodeT_a3c45be2075d8cdfd0dc0a9e73373b64d}} 
 std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$ \mbox{\hyperlink{classBVH_1_1NodeT_a3c45be2075d8cdfd0dc0a9e73373b64d}{m\+\_\+primitives}}
 \begin{DoxyCompactList}\small\item\em Primitives list. This will be empty for regular nodes. \end{DoxyCompactList}\item 
@@ -140,6 +150,21 @@ Construct a \mbox{\hyperlink{namespaceBVH}{BVH}} node from a set of primitives a
 
 
 \doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classBVH_1_1NodeT_ac6b444e11b909bd69faef8e8c875b135}\label{classBVH_1_1NodeT_ac6b444e11b909bd69faef8e8c875b135}} 
+\index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!bottomUpSortAndPartition@{bottomUpSortAndPartition}}
+\index{bottomUpSortAndPartition@{bottomUpSortAndPartition}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{bottomUpSortAndPartition()}{bottomUpSortAndPartition()}}
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
+template$<$typename S $>$ \\
+void \mbox{\hyperlink{classBVH_1_1NodeT}{BVH\+::\+NodeT}}$<$ T, P, BV, K $>$\+::bottom\+Up\+Sort\+And\+Partition (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Function for doing bottom-\/up construction using a specified space-\/filling curve. 
+
+The template parameter is the space-\/filling curve type. This function will partition the \mbox{\hyperlink{namespaceBVH}{BVH}} by first sorting the bounding volume centroids along the space-\/filling curve. The tree is then constructed by placing at least K primitives in each leaf, and the leaves are then merged upwards until we reach the root node. \begin{DoxyNote}{Note}
+S must have an encode and decode function which returns an SFC index. See the SFC namespace for examples for Morton and Nested indices. 
+\end{DoxyNote}
 \mbox{\Hypertarget{classBVH_1_1NodeT_a5409c30e79cfaa837ecd8b14c6c6e5cf}\label{classBVH_1_1NodeT_a5409c30e79cfaa837ecd8b14c6c6e5cf}} 
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!flattenTree@{flattenTree}}
 \index{flattenTree@{flattenTree}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
@@ -277,6 +302,22 @@ Get the list of primitives in this node.
 \begin{DoxyReturn}{Returns}
 Primitives list 
 \end{DoxyReturn}
+\mbox{\Hypertarget{classBVH_1_1NodeT_a445ee159b30df3cae61bc3f6d383758c}\label{classBVH_1_1NodeT_a445ee159b30df3cae61bc3f6d383758c}} 
+\index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!setChildren@{setChildren}}
+\index{setChildren@{setChildren}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{setChildren()}{setChildren()}}
+{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
+void \mbox{\hyperlink{classBVH_1_1NodeT}{BVH\+::\+NodeT}}$<$ T, P, BV, K $>$\+::set\+Children (\begin{DoxyParamCaption}\item[{const std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}$<$ T, P, BV, K $>$$>$, K $>$ \&}]{a\+\_\+children }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+
+
+
+Explicitly set this node\textquotesingle{}s children. 
+
+This will turn this node into the parent node of the input children, i.\+e. a regular node. 
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+children} & Child nodes. \\
+\hline
+\end{DoxyParams}
 \mbox{\Hypertarget{classBVH_1_1NodeT_a96febb1814ab25d04b719350a93f5e7f}\label{classBVH_1_1NodeT_a96febb1814ab25d04b719350a93f5e7f}} 
 \index{BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}!topDownSortAndPartition@{topDownSortAndPartition}}
 \index{topDownSortAndPartition@{topDownSortAndPartition}!BVH::NodeT$<$ T, P, BV, K $>$@{BVH::NodeT$<$ T, P, BV, K $>$}}

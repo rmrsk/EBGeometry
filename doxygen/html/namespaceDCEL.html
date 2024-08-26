@@ -110,36 +110,55 @@ Enumerations</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a60bbe280c2912fc07e08a161690283e7"><td class="memTemplParams" colspan="2">template&lt;class T , class Meta , class BV , size_t K&gt; </td></tr>
-<tr class="memitem:a60bbe280c2912fc07e08a161690283e7"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; EBGeometry::BVH::NodeT&lt; T, <a class="el" href="classDCEL_1_1FaceT.html">FaceT</a>&lt; T, Meta &gt;, BV, K &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceDCEL.html#a60bbe280c2912fc07e08a161690283e7">buildFullBVH</a> (const std::shared_ptr&lt; EBGeometry::DCEL::MeshT&lt; T, Meta &gt;&gt; &amp;a_dcelMesh)</td></tr>
-<tr class="memdesc:a60bbe280c2912fc07e08a161690283e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">One-liner for turning a <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> mesh into a full-tree <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>.  <a href="namespaceDCEL.html#a60bbe280c2912fc07e08a161690283e7">More...</a><br /></td></tr>
-<tr class="separator:a60bbe280c2912fc07e08a161690283e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7ca0475be7e8b6adf131ebf5bed90c33"><td class="memTemplParams" colspan="2">template&lt;class T , class Meta , class BV , size_t K&gt; </td></tr>
+<tr class="memitem:a7ca0475be7e8b6adf131ebf5bed90c33"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; EBGeometry::BVH::NodeT&lt; T, <a class="el" href="classDCEL_1_1FaceT.html">FaceT</a>&lt; T, Meta &gt;, BV, K &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceDCEL.html#a7ca0475be7e8b6adf131ebf5bed90c33">buildFullBVH</a> (const std::shared_ptr&lt; EBGeometry::DCEL::MeshT&lt; T, Meta &gt;&gt; &amp;a_dcelMesh, const <a class="el" href="namespaceBVH.html#a6f2491cf571e9012cb840916ab730688">BVH::Build</a> a_build=BVH::Build::TopDown) noexcept</td></tr>
+<tr class="memdesc:a7ca0475be7e8b6adf131ebf5bed90c33"><td class="mdescLeft">&#160;</td><td class="mdescRight">One-liner for turning a <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> mesh into a full-tree <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>.  <a href="namespaceDCEL.html#a7ca0475be7e8b6adf131ebf5bed90c33">More...</a><br /></td></tr>
+<tr class="separator:a7ca0475be7e8b6adf131ebf5bed90c33"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Namespace containing various double-connected edge list (<a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a>) functionality. </p>
 </div><h2 class="groupheader">Function Documentation</h2>
-<a id="a60bbe280c2912fc07e08a161690283e7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a60bbe280c2912fc07e08a161690283e7">&#9670;&nbsp;</a></span>buildFullBVH()</h2>
+<a id="a7ca0475be7e8b6adf131ebf5bed90c33"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7ca0475be7e8b6adf131ebf5bed90c33">&#9670;&nbsp;</a></span>buildFullBVH()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;class T , class Meta , class BV , size_t K&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">std::shared_ptr&lt;EBGeometry::BVH::NodeT&lt;T, <a class="el" href="classDCEL_1_1FaceT.html">FaceT</a>&lt;T, Meta&gt;, BV, K&gt; &gt; DCEL::buildFullBVH </td>
           <td>(</td>
           <td class="paramtype">const std::shared_ptr&lt; EBGeometry::DCEL::MeshT&lt; T, Meta &gt;&gt; &amp;&#160;</td>
-          <td class="paramname"><em>a_dcelMesh</em></td><td>)</td>
+          <td class="paramname"><em>a_dcelMesh</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">const <a class="el" href="namespaceBVH.html#a6f2491cf571e9012cb840916ab730688">BVH::Build</a>&#160;</td>
+          <td class="paramname"><em>a_build</em> = <code>BVH::Build::TopDown</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 <p>One-liner for turning a <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> mesh into a full-tree <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">a_dcelMesh</td><td>Input <a class="el" href="namespaceDCEL.html" title="Namespace containing various double-connected edge list (DCEL) functionality.">DCEL</a> mesh. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_build</td><td>Build specification for <a class="el" href="namespaceBVH.html" title="Namespace for various bounding volume hierarchy (BVH) functionality.">BVH</a>. </td></tr>
   </table>
   </dd>
 </dl>

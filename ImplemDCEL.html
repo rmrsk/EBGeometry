@@ -117,7 +117,7 @@
 </ul>
 <div class="admonition important">
 <p class="admonition-title">Important</p>
-<p>The DCEL functionality is <em>not</em> restricted to triangles, but supports N-sided polygons, including <em>meta-data</em> attached to the vertices, edges, and facets.</p>
+<p>The DCEL functionality is <em>not</em> restricted to triangles, but supports N-sided polygons, including <em>meta-data</em> attached to the vertices, edges, and facets. The latter is particularly useful in case on wants to associate e.g. boundary conditions to specific triangles.</p>
 </div>
 <section id="main-types">
 <h2>Main types<a class="headerlink" href="#main-types" title="Permalink to this heading"></a></h2>
@@ -180,7 +180,7 @@ Typically, the mesh is not created by the user but automatically created when re
 </pre></div>
 </div>
 <p>which can be used to compute the distance to the various features on the mesh.</p>
-<p>Meta-data can be attached to the DCEL primitives by selecting an appropriate type for <code class="docutils literal notranslate"><span class="pre">Meta</span></code> above (which defaults to <code class="docutils literal notranslate"><span class="pre">short</span></code>).</p>
+<p>Meta-data can be attached to the DCEL primitives by selecting an appropriate type for <code class="docutils literal notranslate"><span class="pre">Meta</span></code> above.</p>
 </section>
 <section id="bvh-integration">
 <span id="chap-bvhintegration"></span><h2>BVH integration<a class="headerlink" href="#bvh-integration" title="Permalink to this heading"></a></h2>

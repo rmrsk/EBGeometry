@@ -35,7 +35,7 @@ enum class \mbox{\hyperlink{namespaceDCEL_aa6a314c993921b3523ab627ae873946a}{Ver
 \doxysubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
-{\footnotesize template$<$class T , class Meta , class BV , size\+\_\+t K$>$ }\\std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+BVH\+::\+NodeT$<$ T, \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}$<$ T, Meta $>$, BV, K $>$ $>$ \mbox{\hyperlink{namespaceDCEL_a60bbe280c2912fc07e08a161690283e7}{build\+Full\+BVH}} (const std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ T, Meta $>$$>$ \&a\+\_\+dcel\+Mesh)
+{\footnotesize template$<$class T , class Meta , class BV , size\+\_\+t K$>$ }\\std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+BVH\+::\+NodeT$<$ T, \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}$<$ T, Meta $>$, BV, K $>$ $>$ \mbox{\hyperlink{namespaceDCEL_a7ca0475be7e8b6adf131ebf5bed90c33}{build\+Full\+BVH}} (const std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ T, Meta $>$$>$ \&a\+\_\+dcel\+Mesh, const \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH\+::\+Build}} a\+\_\+build=BVH\+::\+Build\+::\+Top\+Down) noexcept
 \begin{DoxyCompactList}\small\item\em One-\/liner for turning a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh into a full-\/tree \mbox{\hyperlink{namespaceBVH}{BVH}}. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
@@ -43,12 +43,12 @@ enum class \mbox{\hyperlink{namespaceDCEL_aa6a314c993921b3523ab627ae873946a}{Ver
 Namespace containing various double-\/connected edge list (\mbox{\hyperlink{namespaceDCEL}{DCEL}}) functionality. 
 
 \doxysubsection{Function Documentation}
-\mbox{\Hypertarget{namespaceDCEL_a60bbe280c2912fc07e08a161690283e7}\label{namespaceDCEL_a60bbe280c2912fc07e08a161690283e7}} 
+\mbox{\Hypertarget{namespaceDCEL_a7ca0475be7e8b6adf131ebf5bed90c33}\label{namespaceDCEL_a7ca0475be7e8b6adf131ebf5bed90c33}} 
 \index{DCEL@{DCEL}!buildFullBVH@{buildFullBVH}}
 \index{buildFullBVH@{buildFullBVH}!DCEL@{DCEL}}
 \doxysubsubsection{\texorpdfstring{buildFullBVH()}{buildFullBVH()}}
 {\footnotesize\ttfamily template$<$class T , class Meta , class BV , size\+\_\+t K$>$ \\
-std\+::shared\+\_\+ptr$<$EBGeometry\+::\+BVH\+::\+NodeT$<$T, \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}$<$T, Meta$>$, BV, K$>$ $>$ DCEL\+::build\+Full\+BVH (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ T, Meta $>$$>$ \&}]{a\+\_\+dcel\+Mesh }\end{DoxyParamCaption})}
+std\+::shared\+\_\+ptr$<$EBGeometry\+::\+BVH\+::\+NodeT$<$T, \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}$<$T, Meta$>$, BV, K$>$ $>$ DCEL\+::build\+Full\+BVH (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ T, Meta $>$$>$ \&}]{a\+\_\+dcel\+Mesh,  }\item[{const \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH\+::\+Build}}}]{a\+\_\+build = {\ttfamily BVH\+:\+:Build\+:\+:TopDown} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -57,6 +57,8 @@ One-\/liner for turning a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh into a ful
 
 \begin{DoxyParams}[1]{Parameters}
 \mbox{\texttt{ in}}  & {\em a\+\_\+dcel\+Mesh} & Input \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+build} & Build specification for \mbox{\hyperlink{namespaceBVH}{BVH}}. \\
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
