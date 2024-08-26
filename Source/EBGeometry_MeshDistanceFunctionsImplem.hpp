@@ -100,7 +100,8 @@ FastMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexc
 {
   T minDist = std::numeric_limits<T>::infinity();
 
-  BVH::Updater<Face> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const Face>>& faces) noexcept -> void {
+  BVH::Updater<Face> updater = [&minDist,
+                                &a_point](const std::vector<std::shared_ptr<const Face>>& faces) noexcept -> void {
     for (const auto& f : faces) {
       const T curDist = f->signedDistance(a_point);
 

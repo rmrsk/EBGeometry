@@ -318,8 +318,8 @@ FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 {
   T minDist = std::numeric_limits<T>::infinity();
 
-  BVH::Updater<P> updater = [&minDist,
-                             &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions) noexcept -> void {
+  BVH::Updater<P> updater =
+    [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions) noexcept -> void {
     for (const auto& implicitFunction : a_implicitFunctions) {
       minDist = std::min(minDist, implicitFunction->value(a_point));
     }
