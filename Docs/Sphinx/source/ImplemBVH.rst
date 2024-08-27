@@ -278,6 +278,12 @@ If the traversal decides to visit a node, it immediately computes the specified 
 Traversal examples
 __________________
 
+Below, we consider two examples for BVH traversal.
+The examples show how we compute the signed distance from a DCEL mesh, and how to perform a *smooth* CSG union where the search for the two closest objects is done by BVH traversal.
+
+Signed distance
+^^^^^^^^^^^^^^^
+
 The DCEL mesh distance fields use a traversal pattern based on
 
 * Only visit bounding volumes that are closer than the minimum distance computed (so far).
@@ -291,3 +297,16 @@ These rules are given below.
    :lines: 97-132
    :caption: Tree traversal criterion for computing the signed distance to a DCEL mesh using the BVH accelerator.
 	     See :file:`Source/EBGeometry_MeshDistanceFunctionsImplem.hpp` for details.
+
+CSG Union
+^^^^^^^^^
+
+Combinations of implicit functions in ``EBGeometry`` into aggregate objects can be done by means of CSG unions.
+One such union is known as the *smooth union*, in which the transition between two objects is gradual rather than abrupt.
+Below, we show the traversal code for this union, where we traverse through the tree and obtains the distance to the *two* closest objects rather than a single one.
+
+.. literalinclude:: ../../../Source/EBGeometry_CSGImplem.hpp
+   :language: c++
+   :lines: 369-415
+   :caption: Tree traversal when computing the smooth CSG union.
+	     See :file:`Source/EBGeometry_CSGImplem.hpp` for details.
