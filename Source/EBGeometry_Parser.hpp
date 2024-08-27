@@ -154,7 +154,7 @@ namespace Parser {
 
   /*!
     @brief Turn raw vertices into DCEL vertices. 
-    @param[out] a_verticesDCEL DCEL vertices
+    @param[out] a_mesh Output DCEL mesh.
     @param[in]  a_verticesRaw  Raw vertices
     @param[in]  a_facets       Facets
   */
