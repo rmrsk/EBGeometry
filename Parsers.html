@@ -119,22 +119,23 @@
              
   <section id="reading-data">
 <span id="chap-parsers"></span><h1>Reading data<a class="headerlink" href="#reading-data" title="Permalink to this heading"></a></h1>
-<p>Routines for parsing surface files from grids into <code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code>’s DCEL grids are given in the namespace <code class="docutils literal notranslate"><span class="pre">EBGeometry::Parser</span></code>.
+<p>Routines for parsing surface grid from files into <code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code>’s DCEL grids are given in the namespace <code class="docutils literal notranslate"><span class="pre">EBGeometry::Parser</span></code>.
 The source code is implemented in <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_Parser.hpp</span></code>.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p><code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> is currently limited to reading binary and ASCII STL files and reconstructing DCEL grids from those.
-However, it is a simple matter to also reconstructor DCEL grids from triangle soups read using third-party codes (see <a class="reference internal" href="#chap-thirdpartyparser"><span class="std std-ref">Using third-party sources</span></a>).</p>
+However, it is also possible to build DCEL grids from polygon soups read using third-party codes (see <a class="reference internal" href="#chap-thirdpartyparser"><span class="std std-ref">Using third-party sources</span></a>).</p>
 </div>
 <section id="quickstart">
 <h2>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this heading"></a></h2>
-<p>If you have one of multiple STL files, you can quickly turn them into implicit functions with</p>
+<p>If you have one or multiple STL files, you can quickly turn them into signed distance fields using</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="w"> </span><span class="n">files</span><span class="p">;</span><span class="w"> </span><span class="c1">// &lt;---- List of file names.</span>
 
 <span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">distanceFields</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">readIntoLinearBVH</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">files</span><span class="p">);</span><span class="w"></span>
 </pre></div>
 </div>
-<p>See <a class="reference internal" href="#chap-linearstl"><span class="std std-ref">DCEL mesh SDF with compact BVH</span></a> for further details.</p>
+<p>This will build DCEL meshes for each input file, and wrap the meshes in BVHs.
+See <a class="reference internal" href="#chap-linearstl"><span class="std std-ref">DCEL mesh SDF with compact BVH</span></a> for further details.</p>
 </section>
 <section id="reading-stl-files">
 <h2>Reading STL files<a class="headerlink" href="#reading-stl-files" title="Permalink to this heading"></a></h2>
@@ -245,7 +246,7 @@ However, it is a simple matter to also reconstructor DCEL grids from triangle so
 </section>
 <section id="from-soups-to-dcel">
 <span id="chap-polysoups"></span><h2>From soups to DCEL<a class="headerlink" href="#from-soups-to-dcel" title="Permalink to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> also supports the creation of DCEL grids from polygon soups, which can then be later turned into an SDF representation.
+<p><code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> also supports the creation of DCEL grids from polygon soups, which can then later be turned into an SDF representation.
 A triangle soup is represented as</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">vertices</span><span class="p">;</span><span class="w"></span>
 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">faces</span><span class="p">;</span><span class="w"></span>
@@ -264,7 +265,7 @@ A triangle soup is represented as</p>
 
 <span class="w">  </span><span class="cm">/*!</span>
 <span class="cm">    @brief Turn raw vertices into DCEL vertices. </span>
-<span class="cm">    @param[out] a_verticesDCEL DCEL vertices</span>
+<span class="cm">    @param[out] a_mesh Output DCEL mesh.</span>
 <span class="cm">    @param[in]  a_verticesRaw  Raw vertices</span>
 <span class="cm">    @param[in]  a_facets       Facets</span>
 <span class="cm">  */</span><span class="w"></span>
@@ -275,7 +276,7 @@ A triangle soup is represented as</p>
 <span class="w">             </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;&gt;&amp;</span><span class="w">  </span><span class="n">a_facets</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
-<p>The <code class="docutils literal notranslate"><span class="pre">compress</span></code> function will discard duplicate vertices from the soup, while the <code class="docutils literal notranslate"><span class="pre">soupToDCEL</span></code> will simply turn the remaining polygon soup into a DCEL mesh.
+<p>The <code class="docutils literal notranslate"><span class="pre">compress</span></code> function will discard duplicate vertices from the soup, while the <code class="docutils literal notranslate"><span class="pre">soupToDCEL</span></code> will tie the remaining polygons into a DCEL mesh.
 This function will also compute the vertex and edge normal vectors.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
