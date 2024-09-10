@@ -9,7 +9,7 @@ var indexSectionsWithContent =
   6: "cdefilmnprstuv",
   7: "befiosv",
   8: "o",
-  9: "et"
+  9: "lt"
 };
 
 var indexSectionNames =
