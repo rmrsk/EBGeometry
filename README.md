@@ -1,3 +1,7 @@
+## Latest news
+
+Porting of EBGeometry to GPUs has begun. If you are interested in contributing to this development, email Robert at robert.marskar@sintef.no
+
 ## EBGeometry
 
 EBGeometry is a code for
