@@ -12,6 +12,9 @@
 #ifndef EBGeometry_MeshDistanceFunctions
 #define EBGeometry_MeshDistanceFunctions
 
+// Std includes
+#include <set>
+
 // Our includes
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_SignedDistanceFunction.hpp"
@@ -145,6 +148,18 @@ public:
   getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const noexcept;
 
   /*!
+    @brief Check for intersections between the polygon faces.
+    @details This routine will run through all polygons in the input mesh, and check whether or not the
+    polygons intersect with any of the other polygons the BVH-stored mesh. To make this search efficient, the
+    routine uses the BVH to accelerate the search. Note that if one passes in the same mesh as in the constructor,
+    one obtains the number of self-intersections in this mesh.
+    @param[in] a_mesh Mesh to check for intersections against the current BVH-stored mesh.
+    @returns Returns unique pairs of intersecting faces
+  */
+  virtual std::set<std::pair<std::shared_ptr<const Face>, std::shared_ptr<const Face>>>
+  getIntersectingFaces(const std::shared_ptr<Mesh>& a_mesh) const noexcept;
+
+  /*!
     @brief Get the bounding volume hierarchy enclosing the mesh
   */
   virtual std::shared_ptr<Node>&
@@ -230,6 +245,18 @@ public:
   */
   virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
   getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const noexcept;
+
+  /*!
+    @brief Check for intersections between the polygon faces.
+    @details This routine will run through all polygons in the input mesh, and check whether or not the
+    polygons intersect with any of the other polygons the BVH-stored mesh. To make this search efficient, the
+    routine uses the BVH to accelerate the search. Note that if one passes in the same mesh as in the constructor,
+    one obtains the number of self-intersections in this mesh.
+    @param[in] a_mesh Mesh to check for intersections against the current BVH-stored mesh.
+    @returns Returns unique pairs of intersecting faces
+  */
+  virtual std::set<std::pair<std::shared_ptr<const Face>, std::shared_ptr<const Face>>>
+  getIntersectingFaces(const std::shared_ptr<Mesh>& a_mesh) const noexcept;
 
   /*!
     @brief Get the bounding volume hierarchy enclosing the mesh

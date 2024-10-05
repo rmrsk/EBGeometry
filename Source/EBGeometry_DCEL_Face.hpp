@@ -154,6 +154,13 @@ namespace DCEL {
     setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm& a_algorithm) noexcept;
 
     /*!
+      @brief Check if this face intersections with another face
+      @param[in] a_otherFace Other face to test against.
+    */
+    inline bool
+    intersects(const Face& a_otherFace) const noexcept;
+
+    /*!
       @brief Get modifiable half-edge
     */
     inline EdgePtr&
