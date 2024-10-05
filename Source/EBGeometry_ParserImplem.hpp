@@ -54,6 +54,8 @@ Parser::readIntoDCEL(const std::string a_filename) noexcept
   }
   }
 
+  mesh->sanityCheck();
+
   return mesh;
 }
 
@@ -99,7 +101,16 @@ Parser::readIntoFullBVH(const std::string a_filename) noexcept
 {
   const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
 
-  return std::make_shared<FastMeshSDF<T, Meta, BV, K>>(mesh);
+  auto fastMeshSDF = std::make_shared<FastMeshSDF<T, Meta, BV, K>>(mesh);
+
+  const auto intersectingFaces = fastMeshSDF->getIntersectingFaces(mesh);
+
+  if (intersectingFaces.size() > 0) {
+    std::cerr << "Parser::readIntoFullBVH - file '" << a_filename << "' might contain up to "
+              << intersectingFaces.size() << " self-intersections.\n";
+  }
+
+  return fastMeshSDF;
 }
 
 template <typename T, typename Meta, typename BV, size_t K>
@@ -121,7 +132,16 @@ Parser::readIntoLinearBVH(const std::string a_filename) noexcept
 {
   const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
 
-  return std::make_shared<FastCompactMeshSDF<T, Meta, BV, K>>(mesh);
+  auto fastMeshSDF = std::make_shared<FastCompactMeshSDF<T, Meta, BV, K>>(mesh);
+
+  const auto intersectingFaces = fastMeshSDF->getIntersectingFaces(mesh);
+
+  if (intersectingFaces.size() > 0) {
+    std::cerr << "Parser::readIntoFullBVH - file '" << a_filename << "' might contain up to "
+              << intersectingFaces.size() << " self-intersections.\n";
+  }
+
+  return fastMeshSDF;
 }
 
 template <typename T, typename Meta, typename BV, size_t K>

@@ -12,6 +12,9 @@
 #ifndef EBGeometry_MeshDistanceFunctionsImplem
 #define EBGeometry_MeshDistanceFunctionsImplem
 
+// Std includes
+#include <set>
+
 // Our includes
 #include "EBGeometry_MeshDistanceFunctions.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
@@ -200,6 +203,81 @@ FastMeshSDF<T, Meta, BV, K>::getClosestFaces(const Vec3T<T>& a_point, const bool
 }
 
 template <class T, class Meta, class BV, size_t K>
+std::set<std::pair<std::shared_ptr<const DCEL::FaceT<T, Meta>>, std::shared_ptr<const DCEL::FaceT<T, Meta>>>>
+FastMeshSDF<T, Meta, BV, K>::getIntersectingFaces(const std::shared_ptr<Mesh>& a_mesh) const noexcept
+{
+  using FacePtr  = std::shared_ptr<const Face>;
+  using FacePair = std::pair<FacePtr, FacePtr>;
+  using BVHMeta  = bool;
+
+  auto comparator = [](FacePair A, FacePair B) -> bool {
+    if (A.first > A.second) {
+      A = std::make_pair(A.second, A.first);
+    }
+    if (B.first > B.second) {
+      B = std::make_pair(B.second, B.first);
+    }
+
+    return A.first < B.first;
+  };
+
+  std::set<FacePair, decltype(comparator)> uniqueIntersections(comparator);
+
+  // Iterate through the input faces.
+  for (const auto& curFace : a_mesh->getFaces()) {
+
+    // Construct the bounding volume for this face.
+    const auto faceBV = BV(curFace->getAllVertexCoordinates());
+
+    // Visit pattern -- need to visit the node if it's bounding volume intersects with the face
+    // bounding volume. The intersection test is done in the meta-updater.
+    EBGeometry::BVH::Visiter<Node, BVHMeta> visiter = [](const Node& a_node, const BVHMeta& a_meta) noexcept -> bool {
+      return a_meta;
+    };
+
+    // Sorting function for child visit pattern - no need to visit in any particular order in
+    // our case
+    EBGeometry::BVH::Sorter<Node, BVHMeta, K> sorter =
+      [](std::array<std::pair<std::shared_ptr<const Node>, BVHMeta>, K>& a_children) noexcept -> void {
+
+    };
+
+    // Meta-updater - this data is what enters the visitor pattern but it is not required
+    // in our case.
+    EBGeometry::BVH::MetaUpdater<Node, BVHMeta> metaUpdater = [&faceBV](const Node& a_node) noexcept -> BVHMeta {
+      const auto nodeBV = a_node.getBoundingVolume();
+
+      return nodeBV.intersects(faceBV);
+    };
+
+    // Update rule for the BVH leaf nodes. This runs through the faces in the node and
+    // checks if they intersect the current face.
+    EBGeometry::BVH::Updater<Face> updater =
+      [&uniqueIntersections, &curFace](const std::vector<std::shared_ptr<const Face>>& a_leafFaces) noexcept -> void {
+      for (const auto& leafFace : a_leafFaces) {
+        if (leafFace != curFace) {
+          if (curFace->intersects(*leafFace)) {
+            uniqueIntersections.insert({curFace, leafFace});
+          }
+        }
+      }
+    };
+
+    // Traverse the tree.
+    m_bvh->traverse(updater, visiter, sorter, metaUpdater);
+  }
+
+  // Return set of unique intersecting faces.
+  std::set<FacePair> intersectingFaces;
+
+  for (const auto& i : uniqueIntersections) {
+    intersectingFaces.insert(i);
+  }
+
+  return intersectingFaces;
+}
+
+template <class T, class Meta, class BV, size_t K>
 std::shared_ptr<EBGeometry::BVH::NodeT<T, EBGeometry::DCEL::FaceT<T, Meta>, BV, K>>&
 FastMeshSDF<T, Meta, BV, K>::getBVH() noexcept
 {
@@ -330,6 +408,81 @@ FastCompactMeshSDF<T, Meta, BV, K>::getClosestFaces(const Vec3T<T>& a_point, con
   }
 
   return candidateFaces;
+}
+
+template <class T, class Meta, class BV, size_t K>
+std::set<std::pair<std::shared_ptr<const DCEL::FaceT<T, Meta>>, std::shared_ptr<const DCEL::FaceT<T, Meta>>>>
+FastCompactMeshSDF<T, Meta, BV, K>::getIntersectingFaces(const std::shared_ptr<Mesh>& a_mesh) const noexcept
+{
+  using FacePtr  = std::shared_ptr<const Face>;
+  using FacePair = std::pair<FacePtr, FacePtr>;
+  using BVHMeta  = bool;
+
+  auto comparator = [](FacePair A, FacePair B) -> bool {
+    if (A.first > A.second) {
+      A = std::make_pair(A.second, A.first);
+    }
+    if (B.first > B.second) {
+      B = std::make_pair(B.second, B.first);
+    }
+
+    return A.first < B.first;
+  };
+
+  std::set<FacePair, decltype(comparator)> uniqueIntersections(comparator);
+
+  // Iterate through the input faces.
+  for (const auto& curFace : a_mesh->getFaces()) {
+
+    // Construct the bounding volume for this face.
+    const auto faceBV = BV(curFace->getAllVertexCoordinates());
+
+    // Visit pattern -- need to visit the node if it's bounding volume intersects with the face
+    // bounding volume. The intersection test is done in the meta-updater.
+    EBGeometry::BVH::Visiter<Node, BVHMeta> visiter = [](const Node& a_node, const BVHMeta& a_meta) noexcept -> bool {
+      return a_meta;
+    };
+
+    // Sorting function for child visit pattern - no need to visit in any particular order in
+    // our case
+    EBGeometry::BVH::Sorter<Node, BVHMeta, K> sorter =
+      [](std::array<std::pair<std::shared_ptr<const Node>, BVHMeta>, K>& a_children) noexcept -> void {
+
+    };
+
+    // Meta-updater - this data is what enters the visitor pattern but it is not required
+    // in our case.
+    EBGeometry::BVH::MetaUpdater<Node, BVHMeta> metaUpdater = [&faceBV](const Node& a_node) noexcept -> BVHMeta {
+      const auto nodeBV = a_node.getBoundingVolume();
+
+      return nodeBV.intersects(faceBV);
+    };
+
+    // Update rule for the BVH leaf nodes. This runs through the faces in the node and
+    // checks if they intersect the current face.
+    EBGeometry::BVH::Updater<Face> updater =
+      [&uniqueIntersections, &curFace](const std::vector<std::shared_ptr<const Face>>& a_leafFaces) noexcept -> void {
+      for (const auto& leafFace : a_leafFaces) {
+        if (leafFace != curFace) {
+          if (curFace->intersects(*leafFace)) {
+            uniqueIntersections.insert({curFace, leafFace});
+          }
+        }
+      }
+    };
+
+    // Traverse the tree.
+    m_bvh->traverse(updater, visiter, sorter, metaUpdater);
+  }
+
+  // Return set of unique intersecting faces.
+  std::set<FacePair> intersectingFaces;
+
+  for (const auto& i : uniqueIntersections) {
+    intersectingFaces.insert(i);
+  }
+
+  return intersectingFaces;
 }
 
 template <class T, class Meta, class BV, size_t K>

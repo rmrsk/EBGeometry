@@ -92,6 +92,15 @@ namespace DCEL {
   }
 
   template <class T, class Meta>
+  inline bool
+  FaceT<T, Meta>::intersects(const Face& a_otherFace) const noexcept
+  {
+#warning "FaceT<T,Meta>::intersects - not implemented"
+
+    return true;
+  }
+
+  template <class T, class Meta>
   inline void
   FaceT<T, Meta>::computeCentroid() noexcept
   {
