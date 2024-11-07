@@ -47,7 +47,7 @@ namespace DCEL {
   inline VertexT<T, Meta>::VertexT(const VertexT<T, Meta>& a_otherVertex)
   {
     m_position     = a_otherVertex.m_position;
-    m_normal       = a_otherVertex.m_m_normal;
+    m_normal       = a_otherVertex.m_normal;
     m_outgoingEdge = a_otherVertex.m_outgoingEdge;
   }
 
