@@ -22,7 +22,7 @@ using MetaData     = EBGeometry::DCEL::DefaultMetaData;
 using Face         = EBGeometry::DCEL::FaceT<T>;
 using Mesh         = EBGeometry::DCEL::MeshT<T>;
 using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
-using FastSDF      = EBGeometry::FastCompactMeshSDF<T, MetaData, BV, K>;
+using FastSDF      = EBGeometry::FastTriMeshBVH<T, MetaData, BV, K>;
 using Vec3         = EBGeometry::Vec3T<T>;
 
 class F18 : public BaseIF

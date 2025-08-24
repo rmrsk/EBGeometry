@@ -27,7 +27,7 @@ public:
 
   ChomboSDF(const std::string a_filename)
   {
-    m_implicitFunction = EBGeometry::Parser::readIntoLinearBVH<T, Meta, BV, K>(a_filename);
+    m_implicitFunction = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, BV, K>(a_filename);
     m_implicitFunction = EBGeometry::Complement<T>(m_implicitFunction);
   }
 

@@ -330,11 +330,10 @@ FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
   };
 
   BVH::Sorter<Node, T, K> sorter =
-    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
-    std::sort(
-      a_leaves.begin(),
-      a_leaves.end(),
-      [&a_point](const std::pair<std::shared_ptr<const Node>, T>& n1,
+    [](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
+    std::sort(a_leaves.begin(),
+              a_leaves.end(),
+              [](const std::pair<std::shared_ptr<const Node>, T>& n1,
                  const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
   };
 
