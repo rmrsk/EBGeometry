@@ -401,6 +401,37 @@ FastCompactMeshSDF<T, Meta, BV, K>::computeBoundingVolume() const noexcept
 };
 
 template <class T, class Meta, class BV, size_t K>
+FastTriMeshSDF<T, Meta, BV, K>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build) noexcept
+{
+  // Turn the input mesh into triangles
+  std::vector<std::shared_ptr<Triangle<T, Meta>>> triangles;
+
+  for (const auto& f : a_mesh->getFaces()) {
+    const auto normal   = f->getNormal();
+    const auto vertices = f->gatherVertices();
+    const auto edges    = f->gatherEdges();
+
+    if (vertices.size() != 3) {
+      std::cerr << "Parser::readIntoTriangles -- DCEL mesh not composed of only triangles!" << "\n";
+    }
+
+    // Create the triangle
+    auto tri = std::make_shared<Triangle<T, Meta>>();
+
+    tri->setNormal(normal);
+    tri->setVertexPositions({vertices[0]->getPosition(), vertices[1]->getPosition(), vertices[2]->getPosition()});
+    tri->setVertexNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
+    tri->setEdgeNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
+
+    triangles.emplace_back(tri);
+  }
+
+  auto bvh = EBGeometry::buildTriMeshFullBVH<T, Meta, BV, K>(triangles, a_build);
+
+  m_bvh = bvh->flattenTree();
+}
+
+template <class T, class Meta, class BV, size_t K>
 FastTriMeshSDF<T, Meta, BV, K>::FastTriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
                                                const BVH::Build                         a_build) noexcept
 {

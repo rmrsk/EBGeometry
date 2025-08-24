@@ -144,7 +144,7 @@ namespace Parser {
             typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
             size_t K      = 4>
   inline static std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>>
-  readIntoTriangleBVH(const std::vector<std::string> a_files) noexcept;  
+  readIntoTriangleBVH(const std::vector<std::string> a_files) noexcept;
 
   /*!
     @brief Read a file containing a single watertight object and return it as an implicit function.
@@ -160,7 +160,7 @@ namespace Parser {
   */
   template <typename T, typename Meta>
   inline static std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
-  readIntoTriangles(const std::vector<std::string> a_files) noexcept;  
+  readIntoTriangles(const std::vector<std::string> a_files) noexcept;
 
   /*!
     @brief Get file type

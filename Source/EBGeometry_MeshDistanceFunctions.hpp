@@ -265,6 +265,11 @@ class FastTriMeshSDF : public SignedDistanceFunction<T>
 {
 public:
   /*!
+    @brief Alias for DCEL mesh type
+  */
+  using Mesh = EBGeometry::DCEL::MeshT<T, Meta>;
+
+  /*!
     @brief Alias for DCEL face type
   */
   using Tri = typename EBGeometry::Triangle<T, Meta>;
@@ -283,6 +288,13 @@ public:
     @brief Default disallowed constructor
   */
   FastTriMeshSDF() = delete;
+
+  /*!
+    @brief Full constructor. Takes a DCEL mesh and creates the input triangles. Then creates the BVH.
+    @param[in] a_mesh DCEL mesh
+    @param[in] a_build Specification of build method. Must be TopDown, Morton, or Nested.
+  */
+  FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build = BVH::Build::TopDown) noexcept;
 
   /*!
     @brief Full constructor. Takes the input triangles and creates the BVH.
@@ -313,7 +325,7 @@ public:
     @return List of candidate triangles (potentially sorted)
   */
   virtual std::vector<std::pair<std::shared_ptr<const Tri>, T>>
-  getClosestTriangles(const Vec3T<T>& a_point, const bool a_sorted) const noexcept;  
+  getClosestTriangles(const Vec3T<T>& a_point, const bool a_sorted) const noexcept;
 
   /*!
     @brief Get the bounding volume hierarchy enclosing the mesh

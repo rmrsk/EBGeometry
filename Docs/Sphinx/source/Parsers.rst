@@ -125,6 +125,7 @@ To turn this into a DCEL mesh, one should compress the triangle soup (get rid of
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
    :lines: 182-201
+   :dedent: 2
 
 The ``compress`` function will discard duplicate vertices from the soup, while the ``soupToDCEL`` will tie the remaining polygons into a DCEL mesh.
 This function will also compute the vertex and edge normal vectors.

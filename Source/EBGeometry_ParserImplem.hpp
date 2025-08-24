@@ -163,9 +163,9 @@ template <typename T, typename Meta, typename BV, size_t K>
 inline std::shared_ptr<FastTriMeshSDF<T, Meta, BV, K>>
 Parser::readIntoTriangleBVH(const std::string a_filename) noexcept
 {
-  auto triangles = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename);
+  const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
 
-  return std::make_shared<FastTriMeshSDF<T, Meta, BV, K>>(triangles);
+  return std::make_shared<FastTriMeshSDF<T, Meta, BV, K>>(mesh);
 }
 
 template <typename T, typename Meta, typename BV, size_t K>
