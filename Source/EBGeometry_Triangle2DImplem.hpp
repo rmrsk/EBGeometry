@@ -29,11 +29,11 @@ namespace EBGeometry {
   void
   Triangle2D<T>::define(const Vec3T<T>& a_normal, const std::array<Vec3T<T>, 3>& a_vertices) noexcept
   {
-    int projectDir = 0;
+    int ignoreDir = 0;
 
     for (int dir = 1; dir < 3; dir++) {
-      if (std::abs(a_normal[dir]) > std::abs(a_normal[projectDir])) {
-        projectDir = dir;
+      if (std::abs(a_normal[dir]) > std::abs(a_normal[ignoreDir])) {
+        ignoreDir = dir;
       }
     }
 
@@ -41,7 +41,7 @@ namespace EBGeometry {
     m_yDir = 0;
 
     for (int dir = 0; dir < 3; dir++) {
-      if (dir != projectDir) {
+      if (dir != ignoreDir) {
         m_xDir = std::min(m_xDir, dir);
         m_yDir = std::max(m_yDir, dir);
       }
@@ -118,7 +118,6 @@ namespace EBGeometry {
   Vec2T<T>
   Triangle2D<T>::projectPoint(const Vec3T<T>& a_point) const noexcept
   {
-
     return Vec2T<T>(a_point[m_xDir], a_point[m_yDir]);
   }
 

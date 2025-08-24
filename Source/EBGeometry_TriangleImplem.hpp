@@ -14,6 +14,7 @@
 
 // Our includes
 #include "EBGeometry_Triangle.hpp"
+#include "EBGeometry_Polygon2D.hpp"
 
 namespace EBGeometry {
 
@@ -34,9 +35,7 @@ namespace EBGeometry {
   void
   Triangle<T, Meta>::setVertexPositions(const std::array<Vec3T<T>, 3>& a_vertexPositions) noexcept
   {
-    for (int i = 0; i < 3; i++) {
-      this->m_vertexPositions[i] = a_vertexPositions[i];
-    }
+    m_vertexPositions = a_vertexPositions;
 
     this->computeNormal();
 
@@ -47,18 +46,14 @@ namespace EBGeometry {
   void
   Triangle<T, Meta>::setVertexNormals(const std::array<Vec3T<T>, 3>& a_vertexNormals) noexcept
   {
-    for (int i = 0; i < 3; i++) {
-      this->m_vertexNormals[i] = a_vertexNormals[i];
-    }
+    m_vertexNormals = a_vertexNormals;
   }
 
   template <class T, class Meta>
   void
   Triangle<T, Meta>::setEdgeNormals(const std::array<Vec3T<T>, 3>& a_edgeNormals) noexcept
   {
-    for (int i = 0; i < 3; i++) {
-      this->m_edgeNormals[i] = a_edgeNormals[i];
-    }
+    m_edgeNormals = a_edgeNormals;
   }
 
   template <class T, class Meta>
@@ -72,10 +67,10 @@ namespace EBGeometry {
   void
   Triangle<T, Meta>::computeNormal() noexcept
   {
-    const Vec3T<T> x1x0 = m_vertexPositions[1] - m_vertexPositions[0];
+    const Vec3T<T> x2x0 = m_vertexPositions[2] - m_vertexPositions[0];
     const Vec3T<T> x2x1 = m_vertexPositions[2] - m_vertexPositions[1];
 
-    m_triangleNormal = x1x0.cross(x2x1);
+    m_triangleNormal = x2x1.cross(x2x0);
     m_triangleNormal = m_triangleNormal / m_triangleNormal.length();
   }
 
@@ -152,8 +147,30 @@ namespace EBGeometry {
   T
   Triangle<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
   {
-    // Check if projection falls inside.
-    const bool isPointInside = m_triangle2D.isPointInsideWindingNumber(a_point);
+    // Check if projection falls inside. x is the projected point
+    const auto x = a_point - m_triangleNormal * (m_triangleNormal.dot(a_point - m_vertexPositions[0]));
+
+#if 1
+    const bool isPointInside = m_triangle2D.isPointInsideCrossingNumber(x);
+#else
+#warning "Restore original code when debugging is done"    
+    std::vector<Vec3T<T>> vertices;
+    for (const auto& v : m_vertexPositions) {
+      vertices.emplace_back(v);
+    }
+
+    auto tri2  = std::make_shared<Triangle2D<T>>(m_triangleNormal, m_vertexPositions);
+    auto poly2 = std::make_shared<Polygon2D<T>>(m_triangleNormal, vertices);
+
+    const bool isPointInsideTri  = tri2->isPointInsideCrossingNumber(x);
+    const bool isPointInsidePoly = poly2->isPointInside(x, Polygon2D<T>::InsideOutsideAlgorithm::CrossingNumber);
+
+    const bool isPointInside = isPointInsidePoly;
+
+    if (isPointInsideTri != isPointInsidePoly) {
+      std::cout << "should not happen" << std::endl;
+    }
+#endif
 
     T ret = std::numeric_limits<T>::max();
 
@@ -171,7 +188,6 @@ namespace EBGeometry {
         ret = (delta.length() > std::abs(ret)) ? ret : delta.length() * sgn(m_vertexNormals[i].dot(delta));
       }
 
-      // Check distances to edges
       for (int i = 0; i < 3; i++) {
         const Vec3T<T>& a = m_vertexPositions[i];
         const Vec3T<T>& b = m_vertexPositions[(i + 1) % 3];
