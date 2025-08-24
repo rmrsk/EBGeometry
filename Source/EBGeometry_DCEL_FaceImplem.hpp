@@ -245,6 +245,21 @@ namespace DCEL {
   }
 
   template <class T, class Meta>
+  inline std::vector<std::shared_ptr<EdgeT<T, Meta>>>
+  FaceT<T, Meta>::gatherEdges() const noexcept
+  {
+    std::vector<EdgePtr> edges;
+
+    for (EdgeIterator iter(*this); iter.ok(); ++iter) {
+      EdgePtr& edge = iter();
+
+      edges.emplace_back(edge);
+    }
+
+    return edges;
+  }
+
+  template <class T, class Meta>
   inline std::vector<Vec3T<T>>
   FaceT<T, Meta>::getAllVertexCoordinates() const noexcept
   {

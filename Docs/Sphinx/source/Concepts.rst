@@ -155,6 +155,13 @@ where the sum runs over all faces which share :math:`v` as a vertex, and where :
 
    Edge and vertex pseudonormals.
 
+Triangles
+=========
+
+``EBGeometry`` also supports using direct triangles rather than DCEL polygons.
+In this case the user can parse his/her files and ask for triangle description rather than a DCEL description.
+Internally, triangles are represented as *pseudo-triangles* that contain normal vectors on both the edges and vertices, completely similar to a DCEL polygon.
+
 .. _Chap:BVH:
 
 Bounding volume hierarchies

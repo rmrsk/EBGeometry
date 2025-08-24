@@ -234,10 +234,11 @@ namespace DCEL {
   inline T
   EdgeT<T, Meta>::signedDistance(const Vec3& a_x0) const noexcept
   {
+    T retval = std::numeric_limits<T>::max();
+
     // Project point to edge.
     const T t = this->projectPointToEdge(a_x0);
 
-    T retval;
     if (t <= 0.0) {
       // Closest point is the starting vertex
       retval = this->getVertex()->signedDistance(a_x0);
