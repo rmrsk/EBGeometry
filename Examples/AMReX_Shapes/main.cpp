@@ -48,7 +48,8 @@ public:
   /*!
     @brief AMReX's implicit function definition. EBGeometry sign is opposite to AMReX'
   */
-  Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+  Real
+  operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
     return -m_impFunc->value(Vec3(x, y, z));
   };
@@ -162,6 +163,11 @@ main(int argc, char* argv[])
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
     func = std::make_shared<EBGeometry::RoundedBoxSDF<T>>(1.0 * Vec3::one(), 0.1);
+  }
+  else if (whichGeom == 13) { // Perlin Random noise function
+    rb = RealBox({-1, -1, -1}, {1, 1, 1});
+
+    func = std::make_shared<EBGeometry::PerlinSDF<T>>(0.5, 2.0 * Vec3::one(), 0.5, 4);
   }
 
   // AMReX uses the opposite sign.

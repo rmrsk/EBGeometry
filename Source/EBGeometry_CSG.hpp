@@ -358,10 +358,12 @@ protected:
 
   /*!
     @brief Build BVH tree for the input objects. 
-    @param[in] a_primsAndBVs Geometric primitives and their bounding volumes. 
+    @param[in] a_primsAndBVs Geometric primitives and their bounding volumes.
+    @param[in] a_build Build method (see EBGeometry_BVH.hpp)
   */
   inline void
-  buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs) noexcept;
+  buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
+            const BVH::Build                                            a_build = BVH::Build::TopDown) noexcept;
 };
 
 /*!

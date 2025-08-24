@@ -14,13 +14,13 @@ It has the additional property
 
    \left|\nabla S(\mathbf{x})\right| = 1 \quad\textrm{everywhere}.
 
-Note that the normal vector is always
+The normal vector is always
 
 .. math::
 
    \mathbf{n} = \nabla S\left(\mathbf{x}\right).
    
-EBGeometry uses the following convention for the sign:
+``EBGeometry`` uses the following convention for the sign:
 
 .. math::
 
@@ -50,7 +50,7 @@ An example of an implicit function for the same sphere is
    I_{\textrm{sph}}\left(\mathbf{x}\right) = \left|\mathbf{x} - \mathbf{x}_0\right|^2 - R^2.
 
 An important difference between these is the Eikonal property in :eq:`Eikonal`, ensuring that the signed distance function always returns the exact distance to the object.
-Signed distance functions are usually the more useful object, but many operations (e.g. CSG unions) do not preserve the signed distance property.
+Signed distance functions are more useful objects, but many operations (e.g. CSG unions) do not preserve the signed distance property (but still provide *bounds* for the signed distance).
 
 .. _Chap:DCEL:
 
@@ -60,7 +60,7 @@ DCEL
 Principle
 ---------
 
-EBGeometry uses a doubly-connected edge list (DCEL) structure for storing surface meshes.
+``EBGeometry`` uses a doubly-connected edge list (DCEL) structure for storing surface meshes.
 The DCEL structures consist of the following objects:
 
 * Planar polygons (facets).
@@ -69,7 +69,7 @@ The DCEL structures consist of the following objects:
 
 As shown in :numref:`Fig:DCEL`, half-edges circulate the inside of the facet, with pointer access to the next half-edge.
 A half-edge also stores a reference to its starting vertex, as well as a reference to its pair-edge.
-From the DCEL structure we can easily obtain all edges or vertices belonging to a single facet, and also jump to a neighboring facet by fetching the pair edge. 
+From the DCEL structure we can obtain all edges or vertices belonging to a single facet by iterating through the half-edges, and also jump to a neighboring facet by fetching the pair edge. 
 
 .. _Fig:DCEL:
 .. figure:: /_static/DCEL.png
@@ -79,7 +79,7 @@ From the DCEL structure we can easily obtain all edges or vertices belonging to 
    DCEL mesh structure. Each half-edge stores references to next half-edge, the pair edge, and the starting vertex.
    Vertices store a coordinate as well as a reference to one of the outgoing half-edges.
 
-In EBGeometry the half-edge data structure is implemented in its own namespace.
+In ``EBGeometry`` the half-edge data structure is implemented in its own namespace.
 This is a comparatively standard implementation of the DCEL structure, supplemented by functions that permit signed distance computations to various features on such a mesh.
 
 .. important::
@@ -111,7 +111,7 @@ Three cases can be distinguished:
 
    .. tip::
    
-      EBGeometry uses the crossing number algorithm by default.
+      ``EBGeometry`` uses the crossing number algorithm by default. 
       
    If the point projects to the inside of the face, the signed distance is just :math:`\mathbf{n}_f\cdot\left(\mathbf{x} - \mathbf{x}_f\right)` where :math:`\mathbf{n}_f` is the face normal and :math:`\mathbf{x}_f` is a point on the face plane (e.g., a vertex).
    If the point projects to *outside* the polygon face, the closest feature is either an edge or a vertex.
@@ -155,6 +155,13 @@ where the sum runs over all faces which share :math:`v` as a vertex, and where :
 
    Edge and vertex pseudonormals.
 
+Triangles
+=========
+
+``EBGeometry`` also supports using direct triangles rather than DCEL polygons.
+In this case the user can parse his/her files and ask for triangle description rather than a DCEL description.
+Internally, triangles are represented as *pseudo-triangles* that contain normal vectors on both the edges and vertices, completely similar to a DCEL polygon.
+
 .. _Chap:BVH:
 
 Bounding volume hierarchies
@@ -163,7 +170,7 @@ Bounding volume hierarchies
 Bounding volume hierarchies (BVHs) are tree structures where the regular nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces or implicit functions) further down in the hierarchy.
 This means that every node in a BVH is associated with a *bounding volume*.
 The bounding volume can, in principle, be any type of volume. 
-Moreover, there are two types of nodes in a BVH:
+There are two types of nodes in a BVH:
 
 * **Regular/interior nodes.** These do not contain any of the primitives/objects, but store references to subtrees (aka child nodes).
 * **Leaf nodes.** These lie at the bottom of the BVH tree and each of them contains a subset of the geometric primitives.
@@ -186,9 +193,9 @@ Note that the bounding volume for :math:`P` encloses the bounding volumes of :ma
 There is no fundamental limitation to what type of primitives/objects can be enclosed in BVHs, which makes BVHs useful beyond triangulated data sets.
 For example, analytic signed distance functions can also be embedded in BVHs, provided that we can construct bounding volumes that enclose them.
 
-.. note::
+.. important::
    
-   EBGeometry is not limited to binary trees, but supports :math:`k` -ary trees where each regular node has :math:`k` child nodes. 
+   ``EBGeometry`` is not limited to binary trees, but supports :math:`k` -ary trees where each regular node has :math:`k` child nodes. 
 
 Construction
 ------------
@@ -203,7 +210,7 @@ Although the rules for BVH construction are highly flexible, performant BVHs are
 * **Balanced**, in the sense that the tree depth does not vary greatly through the tree, and there is approximately the same number of primitives in each leaf node. 
 
 Construction of a BVH is usually done recursively, from top to bottom (so-called top-down construction).
-Alternative construction methods also exist, but are not used in EBGeometry. 
+Alternative construction methods also exist, but are not used in ``EBGeometry``. 
 In this case one can represent the BVH construction of a :math:`k` -ary tree is done through a single function:
 
 .. math::
@@ -226,7 +233,10 @@ Top-down construction can thus be illustrated as a recursive procedure:
 	 if(enoughPrimitives(child)):
 	    child.topDownConstruction(child.objects)
 
-In practice, the above procedure is supplemented by more sophisticated criteria for terminating the recursion, as well as routines for creating the bounding volumes around the newly inserted nodes. 
+In practice, the above procedure is supplemented by more sophisticated criteria for terminating the recursion, as well as routines for creating the bounding volumes around the newly inserted nodes.
+
+Bottom-up construction is also possible, in which case one constructs the leaf nodes first, and then merge the nodes upward until one reaches a root node.
+In ``EBGeometry``, bottom-up construction is done by means of space-filling curves (e.g., Morton codes).
 
 Tree traversal
 --------------
@@ -237,9 +247,9 @@ For the traversal algorithm we consider the following steps:
 
 * When descending from node :math:`P` we determine that we first investigate the left subtree (node :math:`A`) since its bounding volume is closer than the bounding volumes for the other subtree.
   The other subtree will is investigated after we have recursed to the bottom of the :math:`A` subtree. 
-* Since :math:`A` is a leaf node, we find the signed distance from :math:`\mathbf{x}` to the primitives in :math:`A`.
+* Since :math:`A` is a leaf node, we compute the signed distance from :math:`\mathbf{x}` to the primitives in :math:`A`.
   This requires us to iterate over all the triangles in :math:`A`. 
-* When moving back to :math:`P`, we find that the distance to the primitives in :math:`A` is shorter than the distance from :math:`\mathbf{x}` to the bounding volume that encloses nodes :math:`B` and :math:`C`.
+* When investigating the other child node of :math:`P`, we find that the distance to the primitives in :math:`A` is shorter than the distance from :math:`\mathbf{x}` to the bounding volume that encloses nodes :math:`B` and :math:`C`.
   This immediately permits us to prune the entire subtree containing :math:`B` and :math:`C`.
 
 .. _Fig:TreePruning:
@@ -251,24 +261,26 @@ For the traversal algorithm we consider the following steps:
 
 .. warning::
    
-   Note that all BVH traversal algorithms have linear complexity when the primitives are all at approximately the same distance from the query point.
-   For example, it is necessary to traverse almost the entire tree when one tries to compute the signed distance at the origin of a tessellated sphere.
+   BVH traversal has :math:`\log N` complexity on average.
+   However in the worst case the traversal algorithm may have linear complexity if the primitives are all at approximately the same distance from the query point.
+   For example, it is necessary to traverse almost the entire tree when one tries to compute the signed distance at the origin of a tessellated sphere since all triangles and their bounding volumes are approximately at the same distance from the center.
 
-Note that types of tree traversal (that do not compute the signed distance) are also possible, e.g. we may want to compute the union :math:`I\left(\mathbf{x}\right) = \min\left(I_1\left(\mathbf{x}\right), I_2\left(\mathbf{x}\right), .\ldots\right)`.
-EBGeometry supports a fairly flexible approach to the tree traversal and update algorithms.
+Other types of tree traversal (that do not compute the signed distance) are also possible.
+``EBGeometry`` supports a fairly flexible approach to the tree traversal and update algorithms such that the user is permitted to use the hierarhical traversal algorithm also for other types of operations (e.g., for finding all facets within a specified distance from a point).
 
 Octree
 ======
 
 Octrees are tree-structures where each interior node has exactly eight children.
-Such trees are usually used for spatial partitioning (and in this case the eight children have no spatial overlap), and the leaf nodes may also contain actual data. 
+Such trees are usually used for spatial partitioning.
+Unlike BVH trees, the eight child nodes have no spatial overlap.
 
 Octree construction can be done in (at least) two ways:
 
 #. In depth-first order where entire sub-trees are built first.
 #. In breadth-first order where tree levels are added one at a time.
 
-EBGeometry supports both of these methods. 
+``EBGeometry`` supports both of these methods. 
 Octree traversal is generally speaking quite similar to the traversal algorithms used for BVH trees.
 
 Constructive solid geometry
@@ -278,7 +290,7 @@ Basic transformations
 ---------------------
 
 Implicit functions, and by extension also signed distance fields, can be manipulated using basic transformations (like rotations).
-EBGeometry supports many of these:
+``EBGeometry`` supports many of these:
 
 * Rotations.
 * Translations.
@@ -294,11 +306,13 @@ EBGeometry supports many of these:
 Combining objects
 -----------------
 
-EBGeometry supports standard operations in which implicit functions can be combined:
+``EBGeometry`` supports standard operations in which implicit functions can be combined:
 
 * Union.
 * Intersection.
 * Difference.
 
 Some of these CSG operations also have smooth equivalents, i.e. for smoothing the transition between combined objects.
-Fast CSG operations are also supported by EBGeometry, e.g. the BVH-accelerated CSG union where one uses the BVH when searching for the relevant geometric primitive(s). 
+Fast CSG operations are also supported by ``EBGeometry``, e.g. the BVH-accelerated CSG union where one uses the BVH when searching for the relevant geometric primitive(s).
+This functionality is motivated by the fact that a CSG union is normally implemented as :math:`\min\left(I_1, I_2, I_3, \ldots,I_N\right)`, which has :math:`\mathcal{O}\left(N\right)` complexity when there are :math:`N` objects.
+BVH trees can reduce this to :math:`\mathcal{O}\left(\log N\right)` complexity.

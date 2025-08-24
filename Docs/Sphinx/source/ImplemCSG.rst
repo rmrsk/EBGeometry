@@ -6,13 +6,13 @@ Geometry representation
 Implicit functions
 ------------------
 
-EBGeometry implements implement functions and signed distance functions through virtual classes
+``EBGeometry`` implements implement functions and signed distance functions through virtual classes
 
 .. literalinclude:: ../../../Source/EBGeometry_ImplicitFunction.hpp
    :language: c++
    :lines: 25-74
 
-and for the signed distance field,
+Signed distance fields inherit from implicit functions as follows:
 
 .. literalinclude:: ../../../Source/EBGeometry_SignedDistanceFunction.hpp
    :language: c++
@@ -37,7 +37,7 @@ These are also available through functions that automatically cast the resulting
 
 .. literalinclude:: ../../../Source/EBGeometry_Transform.hpp   
    :language: c++
-   :lines: 20-90
+   :lines: 20-111
 
 CSG operations
 --------------

@@ -17,10 +17,11 @@ using namespace EBGeometry::DCEL;
 
 constexpr size_t K = 4;
 using T            = double;
+using MetaData     = std::map<int, std::vector<unsigned long long>>; // Attach some ridiculous meta-data
 using Vec3         = EBGeometry::Vec3T<T>;
 using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
-using SlowSDF      = EBGeometry::MeshSDF<T>;
-using FastSDF      = EBGeometry::FastCompactMeshSDF<T, BV, K>;
+using SlowSDF      = EBGeometry::MeshSDF<T, MetaData>;
+using FastSDF      = EBGeometry::FastTriMeshSDF<T, MetaData, BV, K>;
 
 int
 main(int argc, char* argv[])
@@ -57,7 +58,7 @@ main(int argc, char* argv[])
 
   for (const auto& f : stlFiles) {
     // Read the DCEL mesh.
-    const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(f);
+    const auto mesh = EBGeometry::Parser::readIntoDCEL<T, MetaData>(f);
     mesh->flip();
 
     // Store the grids as basic DCEL grids and as linearized BVHs.
@@ -135,6 +136,9 @@ main(int argc, char* argv[])
   // Debug -- make sure all functions produce the same result!.
   if (std::abs(sumSlowSlow) - std::abs(sumFastFast) > std::numeric_limits<T>::min()) {
     std::cerr << "Got wrong distance! Diff = " << std::abs(sumSlowFast) - std::abs(sumFastFast) << "\n";
+  }
+  if (std::abs(sumSlowSlow) - std::abs(sumFastSlow) > std::numeric_limits<T>::min()) {
+    std::cerr << "Got wrong distance! Diff = " << std::abs(sumSlowFast) - std::abs(sumFastSlow) << "\n";
   }
 
   const std::chrono::duration<T, std::micro> slowSlowTime = (t1 - t0);

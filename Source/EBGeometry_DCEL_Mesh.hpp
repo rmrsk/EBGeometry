@@ -20,25 +20,11 @@
 #include <map>
 
 // Our includes
+#include "EBGeometry_DCEL.hpp"
 #include "EBGeometry_Polygon2D.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-template <class T>
-class Polygon2D;
-
 namespace DCEL {
-
-  template <class T>
-  class VertexT;
-
-  template <class T>
-  class EdgeT;
-
-  template <class T>
-  class FaceT;
-
-  template <class T>
-  class MeshT;
 
   /*!
     @brief Mesh class which stores a full DCEL mesh (with signed distance
@@ -55,7 +41,7 @@ namespace DCEL {
     and builds the mesh from that. Do not try to build a MeshT object yourself,
     use file parsers!
   */
-  template <class T>
+  template <class T, class Meta>
   class MeshT
   {
   public:
@@ -87,22 +73,22 @@ namespace DCEL {
     /*!
       @brief Alias for vertex type
     */
-    using Vertex = VertexT<T>;
+    using Vertex = VertexT<T, Meta>;
 
     /*!
       @brief Alias for edge type
     */
-    using Edge = EdgeT<T>;
+    using Edge = EdgeT<T, Meta>;
 
     /*!
       @brief Alias for face type
     */
-    using Face = FaceT<T>;
+    using Face = FaceT<T, Meta>;
 
     /*!
       @brief Alias for mesh type
     */
-    using Mesh = MeshT<T>;
+    using Mesh = MeshT<T, Meta>;
 
     /*!
       @brief Alias for vertex pointer type
@@ -122,7 +108,7 @@ namespace DCEL {
     /*!
       @brief Default constructor. Leaves unobject in an unusable state
     */
-    MeshT();
+    MeshT() noexcept;
 
     /*!
       @brief Disallowed copy construction
@@ -141,12 +127,12 @@ namespace DCEL {
       description. This is usually done through a file parser which reads a mesh
       file format and creates the DCEL mesh structure
     */
-    MeshT(std::vector<FacePtr>& a_faces, std::vector<EdgePtr>& a_edges, std::vector<VertexPtr>& a_vertices);
+    MeshT(std::vector<FacePtr>& a_faces, std::vector<EdgePtr>& a_edges, std::vector<VertexPtr>& a_vertices) noexcept;
 
     /*!
       @brief Destructor (does nothing)
     */
-    virtual ~MeshT();
+    virtual ~MeshT() noexcept;
 
     /*!
       @brief Define function. Puts Mesh in usable state.
@@ -157,7 +143,7 @@ namespace DCEL {
       description. This is usually done through a file parser which reads a mesh
       file format and creates the DCEL mesh structure. Note that this only
       involves associating pointer structures through the mesh. Internal
-      parameters like face area and normal is computed in MeshT<T>::reconcile.
+      parameters like face area and normal is computed in MeshT<T, Meta>::reconcile.
     */
     inline void
     define(std::vector<FacePtr>& a_faces, std::vector<EdgePtr>& a_edges, std::vector<VertexPtr>& a_vertices) noexcept;
@@ -200,7 +186,7 @@ namespace DCEL {
       area and normal vector for faces
     */
     inline void
-    reconcile(typename DCEL::MeshT<T>::VertexNormalWeight a_weight = VertexNormalWeight::Angle) noexcept;
+    reconcile(const DCEL::VertexNormalWeight a_weight = DCEL::VertexNormalWeight::Angle) noexcept;
 
     /*!
       @brief Flip the mesh, making all the normals change direction. 
@@ -256,7 +242,7 @@ namespace DCEL {
       @param[in] a_x0 3D point in space.
       @details This function will iterate through ALL faces in the mesh and return
       the value with the smallest magnitude. This is horrendously slow, which is
-      why this function is almost never called. Rather, MeshT<T> can be embedded
+      why this function is almost never called. Rather, MeshT<T, Meta> can be embedded
       in a bounding volume hierarchy for faster access.
       @note This will call the other version with the object's search algorithm.
     */
@@ -269,7 +255,7 @@ namespace DCEL {
       @param[in] a_algorithm Search algorithm
       @details This function will iterate through ALL faces in the mesh and return
       the value with the smallest magnitude. This is horrendously slow, which is
-      why this function is almost never called. Rather, MeshT<T> can be embedded
+      why this function is almost never called. Rather, MeshT<T, Meta> can be embedded
       in a bounding volume hierarchy for faster access.
     */
     inline T
@@ -280,7 +266,7 @@ namespace DCEL {
       @param[in] a_x0 3D point in space.
       @details This function will iterate through ALL faces in the mesh and return
       the value with the smallest magnitude. This is horrendously slow, which is
-      why this function is almost never called. Rather, MeshT<T> can be embedded
+      why this function is almost never called. Rather, MeshT<T, Meta> can be embedded
       in a bounding volume hierarchy for faster access.
       @note This will call the other version with the object's search algorithm.
     */
@@ -310,14 +296,14 @@ namespace DCEL {
 
     /*!
       @brief Function which computes internal things for the polygon faces.
-      @note This calls DCEL::FaceT<T>::reconcile()
+      @note This calls DCEL::FaceT<T, Meta>::reconcile()
     */
     inline void
     reconcileFaces() noexcept;
 
     /*!
       @brief Function which computes internal things for the half-edges
-      @note This calls DCEL::EdgeT<T>::reconcile()
+      @note This calls DCEL::EdgeT<T, Meta>::reconcile()
     */
     inline void
     reconcileEdges() noexcept;
@@ -325,11 +311,11 @@ namespace DCEL {
     /*!
       @brief Function which computes internal things for the vertices
       @param[in] a_weight Vertex angle weighting
-      @note This calls DCEL::VertexT<T>::computeVertexNormalAverage() or
-      DCEL::VertexT<T>::computeVertexNormalAngleWeighted()
+      @note This calls DCEL::VertexT<T, Meta>::computeVertexNormalAverage() or
+      DCEL::VertexT<T, Meta>::computeVertexNormalAngleWeighted()
     */
     inline void
-    reconcileVertices(typename DCEL::MeshT<T>::VertexNormalWeight a_weight) noexcept;
+    reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexcept;
 
     /*!
       @brief Flip all face normals

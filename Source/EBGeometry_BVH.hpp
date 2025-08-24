@@ -15,17 +15,29 @@
 // Std includes
 #include <memory>
 #include <vector>
+#include <array>
 #include <functional>
 #include <queue>
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
+#include "EBGeometry_SFC.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
   @brief Namespace for various bounding volume hierarchy (BVH) functionality.
 */
 namespace BVH {
+
+  /*!
+    @brief Enum for specifying whether or not the construction is top-down or bottom-up
+  */
+  enum class Build
+  {
+    TopDown,
+    Morton,
+    Nested
+  };
 
   /*!
     @brief Forward declare the BVH node since it is needed for the polymorphic
@@ -128,7 +140,7 @@ namespace BVH {
     @brief Function for splitting a vector of some size into K almost-equal chunks. This is a utility function.
   */
   template <class X, size_t K>
-  auto equalCounts = [](const std::vector<X>& a_primitives) -> std::array<std::vector<X>, K> {
+  auto equalCounts = [](const std::vector<X>& a_primitives) noexcept -> std::array<std::vector<X>, K> {
     int length = a_primitives.size() / K;
     int remain = a_primitives.size() % K;
 
@@ -155,7 +167,7 @@ namespace BVH {
   */
   template <class T, class P, class BV, size_t K>
   auto PrimitiveCentroidPartitioner =
-    [](const PrimAndBVListT<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVListT<P, BV>, K> {
+    [](const PrimAndBVListT<P, BV>& a_primsAndBVs) noexcept -> std::array<PrimAndBVListT<P, BV>, K> {
     Vec3T<T> lo = Vec3T<T>::max();
     Vec3T<T> hi = -Vec3T<T>::max();
 
@@ -212,7 +224,7 @@ namespace BVH {
   */
   template <class T, class P, class BV, size_t K>
   auto DefaultStopFunction =
-    [](const BVH::NodeT<T, P, BV, K>& a_node) -> bool { return (a_node.getPrimitives()).size() < K; };
+    [](const BVH::NodeT<T, P, BV, K>& a_node) noexcept -> bool { return (a_node.getPrimitives()).size() < K; };
 
   /*!
     @brief Class which encapsulates a node in a bounding volume hierarchy.
@@ -284,10 +296,29 @@ namespace BVH {
                             const StopFunction& a_stopCrit    = DefaultStopFunction<T, P, BV, K>) noexcept;
 
     /*!
+      @brief Function for doing bottom-up construction using a specified space-filling curve.
+      @details The template parameter is the space-filling curve type. This function will partition the BVH
+      by first sorting the bounding volume centroids along the space-filling curve. The tree is then constructed
+      by placing at least K primitives in each leaf, and the leaves are then merged upwards until we reach the
+      root node.
+      @note S must have an encode and decode function which returns an SFC index. See the SFC namespace for
+      examples for Morton and Nested indices. 
+    */
+    template <typename S>
+    inline void
+    bottomUpSortAndPartition() noexcept;
+
+    /*!
       @brief Get node type
     */
     inline bool
     isLeaf() const noexcept;
+
+    /*!
+      @brief Check if BVH is already partitioned
+    */
+    inline bool
+    isPartitioned() const noexcept;
 
     /*!
       @brief Get bounding volume
@@ -357,6 +388,11 @@ namespace BVH {
     BV m_boundingVolume;
 
     /*!
+      @brief Determines whether or not the partitioning function has already been called
+    */
+    bool m_partitioned;
+
+    /*!
       @brief Primitives list. This will be empty for regular nodes
     */
     std::vector<std::shared_ptr<const P>> m_primitives;
@@ -384,6 +420,14 @@ namespace BVH {
     */
     inline std::vector<BV>&
     getBoundingVolumes() noexcept;
+
+    /*!
+      @brief Explicitly set this node's children.
+      @details This will turn this node into the parent node of the input children, i.e. a regular node.
+      @param[in] a_children Child nodes.
+    */
+    inline void
+    setChildren(const std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K>& a_children) noexcept;
 
     /*!
       @brief Flatten tree method.
@@ -515,6 +559,12 @@ namespace BVH {
     isLeaf() const noexcept;
 
     /*!
+      @brief Check if BVH is already partitioned
+    */
+    inline bool
+    isPartitioned() const noexcept;
+
+    /*!
       @brief Get the distance from a 3D point to the bounding volume
       @param[in] a_point 3D point
       @return Returns distance to bounding volume. A zero distance implies that
@@ -537,6 +587,11 @@ namespace BVH {
       @brief Bounding volume.
     */
     BV m_boundingVolume;
+
+    /*!
+      @brief Determines whether or not the partitioning function has already been called
+    */
+    bool m_partitioned;
 
     /*!
       @brief Offset into primitives array

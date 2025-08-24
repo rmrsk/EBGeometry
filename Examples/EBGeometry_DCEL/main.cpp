@@ -19,8 +19,10 @@ using namespace EBGeometry::DCEL;
 constexpr int K = 4;
 
 using T    = float;
+using Meta = short;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Vec3 = EBGeometry::Vec3T<T>;
+using Tri  = EBGeometry::Triangle<T, Meta>;
 
 int
 main(int argc, char* argv[])
@@ -45,39 +47,40 @@ main(int argc, char* argv[])
   // Three representations of the same object. Note that this reads the mesh three
   // times and builds the BVH twice (there are converters that avoid this, users will
   // only use one of these representations).
-  const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T>(file);
-  const auto bvhSDF  = EBGeometry::Parser::readIntoFullBVH<T, BV, K>(file);
-  const auto linSDF  = EBGeometry::Parser::readIntoLinearBVH<T, BV, K>(file);
+  const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file);
+  const auto bvhSDF  = EBGeometry::Parser::readIntoFullBVH<T, Meta, BV, K>(file);
+  const auto linSDF  = EBGeometry::Parser::readIntoLinearBVH<T, Meta, BV, K>(file);
+  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, BV, K>(file);
 
-  const auto mesh = EBGeometry::Parser::readIntoDCEL<T>(file);
+  const auto                                    mesh  = EBGeometry::Parser::readIntoDCEL<T>(file);
   const std::vector<std::shared_ptr<FaceT<T>>>& faces = mesh->getFaces();
 
   std::vector<std::array<double, 3>> vertices;
-  std::vector<std::array<int, 3>> triangles;
+  std::vector<std::array<int, 3>>    triangles;
 
   for (const auto& f : faces) {
     std::vector<Vec3T<T>> faceVertices = f->getAllVertexCoordinates();
 
     const int curSize = vertices.size();
-    
+
     for (int i = 0; i < faceVertices.size(); i++) {
-      std::array<double, 3> curCoords;      
+      std::array<double, 3> curCoords;
       for (size_t dir = 0; dir < 3; dir++) {
-	curCoords[dir] = faceVertices[i][dir];
+        curCoords[dir] = faceVertices[i][dir];
       }
 
-      vertices.push_back(curCoords);      
+      vertices.push_back(curCoords);
     }
 
     std::array<int, 3> curFace;
     curFace[0] = curSize;
-    curFace[1] = curSize+1;
-    curFace[2] = curSize+2;
+    curFace[1] = curSize + 1;
+    curFace[2] = curSize + 2;
 
     triangles.emplace_back(curFace);
   }
 
-  tmd::TriangleMeshDistance mesh_distance(vertices, triangles);  
+  tmd::TriangleMeshDistance mesh_distance(vertices, triangles);
 
   // Sample some random points around the object.
   constexpr size_t Nsamp = 100;
@@ -105,6 +108,7 @@ main(int argc, char* argv[])
   T bvhSum  = 0.0;
   T linSum  = 0.0;
   T tmdSum  = 0.0;
+  T triSum  = 0.0;
 
   const auto t0 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
@@ -122,18 +126,29 @@ main(int argc, char* argv[])
   for (const auto& x : ranPoints) {
     tmdSum -= (mesh_distance.signed_distance({x[0], x[1], x[2]})).distance;
   }
-  const auto t4 = std::chrono::high_resolution_clock::now();  
+  const auto t4 = std::chrono::high_resolution_clock::now();
+  for (const auto& x : ranPoints) {
+    triSum += triSDF->signedDistance(x);
+  }
+  const auto t5 = std::chrono::high_resolution_clock::now();
 
   const std::chrono::duration<T, std::micro> dcelTime = t1 - t0;
   const std::chrono::duration<T, std::micro> bvhTime  = t2 - t1;
   const std::chrono::duration<T, std::micro> linTime  = t3 - t2;
-  const std::chrono::duration<T, std::micro> tmdTime  = t4 - t3;  
+  const std::chrono::duration<T, std::micro> tmdTime  = t4 - t3;
+  const std::chrono::duration<T, std::micro> triTime  = t5 - t4;
 
   if (std::abs(bvhSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
     std::cerr << "Full BVH did not give same distance! Diff = " << bvhSum - dcelSum << "\n";
   }
   if (std::abs(linSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
     std::cerr << "Linearized BVH did not give same distance! Diff = " << linSum - dcelSum << "\n";
+  }
+  if (std::abs(tmdSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
+    std::cerr << "TDM BVH did not give same distance! Diff = " << tmdSum - dcelSum << "\n";
+  }
+  if (std::abs(triSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
+    std::cerr << "TriMesh BVH did not give same distance! Diff = " << triSum - dcelSum << "\n";
   }
 
   // clang-format off
@@ -142,7 +157,7 @@ main(int argc, char* argv[])
   std::cout << "Accumulated distance and time using full BVH    = " << bvhSum  << ", which took " << bvhTime.count()  / Nsamp << " us\n";
   std::cout << "Accumulated distance and time using compact BVH = " << linSum  << ", which took " << linTime.count()  / Nsamp << " us\n";
   std::cout << "Accumulated distance and time using TMD         = " << tmdSum  << ", which took " << tmdTime.count()  / Nsamp << " us\n";  
-  std::cout << "Relative speedup using BVH vs direct DCL        = " << dcelTime.count()/linTime.count() << "\n";
+  std::cout << "Accumulated distance and time using trimesh BVH = " << triSum  << ", which took " << triTime.count()  / Nsamp << " us\n";  
   // clang-format on  
 
   return 0;

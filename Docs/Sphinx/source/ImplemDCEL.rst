@@ -10,7 +10,7 @@ The DCEL functionality exists under the namespace ``EBGeometry::DCEL`` and conta
 
 .. important::
 
-   The DCEL functionality is *not* restricted to triangles, but supports N-sided polygons. 
+   The DCEL functionality is *not* restricted to triangles, but supports N-sided polygons, including *meta-data* attached to the vertices, edges, and facets. The latter is particularly useful in case on wants to associate e.g. boundary conditions to specific triangles. 
 
 Main types
 ----------
@@ -21,7 +21,7 @@ The main DCEL functionality (vertices, edges, faces) is provided by the followin
 
   .. code-block:: c++
      
-     template <class T>
+     template <class T, class Meta>
      class VertexT
 
   The DCEL vertex class stores the vertex position, normal vector, and the outgoing half-edge from the vertex.
@@ -33,7 +33,7 @@ The main DCEL functionality (vertices, edges, faces) is provided by the followin
 
   .. code-block:: c++
 		  
-     template <class T>
+     template <class T, class Meta>
      class EdgeT
 
   The half-edges store a reference to their face, as well as pointers to the next edge, pair edge, and starting vertex.
@@ -44,7 +44,7 @@ The main DCEL functionality (vertices, edges, faces) is provided by the followin
 
   .. code-block:: c++
 		  
-     template <class T>
+     template <class T, class Meta>
      class FaceT
 
   Faces also store
@@ -62,7 +62,7 @@ The main DCEL functionality (vertices, edges, faces) is provided by the followin
 
   .. code-block:: c++
 		  
-     template <class T>
+     template <class T, class Meta>
      class MeshT : public SignedDistanceFunction<T>
 
   The mesh stores all the vertices, half-edges, and faces, and if it is watertight and orientable it is also a signed distance function.
@@ -77,10 +77,13 @@ The above DCEL classes have member functions of the type:
 
 which can be used to compute the distance to the various features on the mesh.
 
+Meta-data can be attached to the DCEL primitives by selecting an appropriate type for ``Meta`` above.
+
+
 .. _Chap:BVHIntegration:
 
 BVH integration
 ---------------
 
 DCEL grids can easily be embedded in BVHs by enclosing bounding volumes around the polygons (e.g., triangles).
-Partitioning and bounding volume constructors are provided in :file:`Source/EBGeometry_DCEL_BVH.hpp`.
+Partitioning and bounding volume constructors are provided in :file:`Source/EBGeometry_MeshDistanceFunctions.hpp`.

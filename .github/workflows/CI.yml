@@ -1,3 +1,4 @@
+
 name: Continuous integration
 
 on:
@@ -21,11 +22,11 @@ jobs:
         directory: [Source, Examples]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run clang-format
         uses: jidicula/clang-format-action@v4.10.1
         with:
-          clang-format-version: '10'
+          clang-format-version: '18'
           check-path: ${{ matrix.directory }}
 
   Linux-GNU:
@@ -35,11 +36,11 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        comp: [g++-9, g++-10, g++-11]
+        comp: [g++-9, g++-10, g++-11, g++-12]
         directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_F18, Examples/EBGeometry_OctreeBoundingVolume, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -71,7 +72,7 @@ jobs:
         directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]    
 
     steps:
-      - uses: actions/checkout@v3      
+      - uses: actions/checkout@v4      
       - name: Install Intel oneAPI
         working-directory: /tmp        
         run: |
@@ -84,8 +85,8 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: |
           source /opt/intel/oneapi/setvars.sh
-          icpc -std=c++17 -O0 \
-          -Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
+          icpx -std=c++17 -O0 \
+          -Wall -Warray-bounds -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
           -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
           -Wunused-variable -Wwrite-strings -Werror \
           main.cpp -lstdc++fs
@@ -100,7 +101,7 @@ jobs:
     needs: Formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3      
+      - uses: actions/checkout@v4      
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -127,7 +128,7 @@ jobs:
           make latexpdf
 
       - name: Upload
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: docs
           path: Docs/Sphinx/build

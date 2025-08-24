@@ -26,18 +26,6 @@
 
 namespace DCEL {
 
-  template <class T>
-  class VertexT;
-
-  template <class T>
-  class EdgeT;
-
-  template <class T>
-  class FaceT;
-
-  template <class T>
-  class EdgeIteratorT;
-
   /*!
     @brief Class which represents a polygon face in a double-edge connected list
     (DCEL).
@@ -56,7 +44,7 @@ namespace DCEL {
     algorithms for this, and by default this class uses a crossing number
     algorithm.
   */
-  template <class T>
+  template <class T, class Meta>
   class FaceT
   {
   public:
@@ -68,17 +56,17 @@ namespace DCEL {
     /*!
       @brief Alias for vertex type
     */
-    using Vertex = VertexT<T>;
+    using Vertex = VertexT<T, Meta>;
 
     /*!
       @brief Alias for edge type
     */
-    using Edge = EdgeT<T>;
+    using Edge = EdgeT<T, Meta>;
 
     /*!
       @brief Alias for face type
     */
-    using Face = FaceT<T>;
+    using Face = FaceT<T, Meta>;
 
     /*!
       @brief Alias for vertex pointer type
@@ -98,7 +86,7 @@ namespace DCEL {
     /*!
       @brief Alias for edge iterator
     */
-    using EdgeIterator = EdgeIteratorT<T>;
+    using EdgeIterator = EdgeIteratorT<T, Meta>;
 
     /*!
       @brief Default constructor. Sets the half-edge to zero and the
@@ -216,6 +204,20 @@ namespace DCEL {
     getNormal() const noexcept;
 
     /*!
+      @brief Get meta-data
+      @return m_metaData
+    */
+    inline Meta&
+    getMetaData() noexcept;
+
+    /*!
+      @brief Get meta-data
+      @return m_metaData
+    */
+    inline const Meta&
+    getMetaData() const noexcept;
+
+    /*!
       @brief Compute the area of this polygon
     */
     inline T
@@ -258,6 +260,13 @@ namespace DCEL {
     gatherVertices() const noexcept;
 
     /*!
+      @brief Return all the half-edges on this polygon
+      @details This builds a list of all the edges and returns it.
+    */
+    inline std::vector<EdgePtr>
+    gatherEdges() const noexcept;
+
+    /*!
       @brief Get the lower-left-most coordinate of this polygon face
     */
     inline Vec3T<T>
@@ -284,6 +293,11 @@ namespace DCEL {
       @brief Polygon face centroid position
     */
     Vec3 m_centroid;
+
+    /*!
+      @brief Meta-data attached to this face
+    */
+    Meta m_metaData;
 
     /*!
       @brief 2D embedding of this polygon. This is the 2D view of the current
