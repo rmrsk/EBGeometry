@@ -1,0 +1,681 @@
+\doxysection{EBGeometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp}
+\hypertarget{EBGeometry__AnalyticDistanceFunctions_8hpp_source}{}\label{EBGeometry__AnalyticDistanceFunctions_8hpp_source}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_AnalyticDistanceFunctions.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_AnalyticDistanceFunctions.hpp}}
+\mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*\ EBGeometry}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ Copyright\ ©\ 2022\ Robert\ Marskar}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ Please\ refer\ to\ Copyright.txt\ and\ LICENSE\ in\ the\ EBGeometry\ root\ directory.}}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ EBGeometry\_AnalyticDistanceFunctions}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ EBGeometry\_AnalyticDistanceFunctions}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ Std\ includes}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <algorithm>}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <random>}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ Our\ includes}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__BoundingVolumes_8hpp}{EBGeometry\_BoundingVolumes.hpp}}"{}}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__SignedDistanceFunction_8hpp}{EBGeometry\_SignedDistanceFunction.hpp}}"{}}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceHeader_8hpp}{EBGeometry\_NamespaceHeader.hpp}}"{}}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00034\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00035\ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{const}\ T}
+\DoxyCodeLine{00036\ \mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}{clamp}}(\textcolor{keyword}{const}\ T\&\ v,\ \textcolor{keyword}{const}\ T\&\ lo,\ \textcolor{keyword}{const}\ T\&\ hi)}
+\DoxyCodeLine{00037\ \{}
+\DoxyCodeLine{00038\ \ \ \textcolor{keywordflow}{return}\ (v\ <\ lo)\ ?\ lo\ :\ (v\ >\ hi)\ ?\ hi\ :\ v;}
+\DoxyCodeLine{00039\ \}}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00048\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00049\ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}}
+\DoxyCodeLine{00050\ \mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}{clamp}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ v,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ lo,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ hi)}
+\DoxyCodeLine{00051\ \{}
+\DoxyCodeLine{00052\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(\mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}{clamp}}(\mbox{\hyperlink{classVec3T}{v}}[0],\ \mbox{\hyperlink{classVec3T}{lo}}[0],\ \mbox{\hyperlink{classVec3T}{hi}}[0]),\ \mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}{clamp}}(\mbox{\hyperlink{classVec3T}{v}}[1],\ \mbox{\hyperlink{classVec3T}{lo}}[1],\ \mbox{\hyperlink{classVec3T}{hi}}[1]),\ \mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}{clamp}}(\mbox{\hyperlink{classVec3T}{v}}[2],\ \mbox{\hyperlink{classVec3T}{lo}}[2],\ \mbox{\hyperlink{classVec3T}{hi}}[2]));}
+\DoxyCodeLine{00053\ \}}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00058\ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{static}\ std::array<int,\ 256>\ s\_perlinPermutationTable\ =\ \{}
+\DoxyCodeLine{00059\ \ \ 151,\ 160,\ 137,\ 91,\ \ 90,\ \ 15,\ \ 131,\ 13,\ \ 201,\ 95,\ \ 96,\ \ 53,\ \ 194,\ 233,\ 7,\ \ \ 225,\ 140,\ 36,\ \ 103,\ 30,\ \ 69,\ \ 142,}
+\DoxyCodeLine{00060\ \ \ 8,\ \ \ 99,\ \ 37,\ \ 240,\ 21,\ \ 10,\ \ 23,\ \ 190,\ 6,\ \ \ 148,\ 247,\ 120,\ 234,\ 75,\ \ 0,\ \ \ 26,\ \ 197,\ 62,\ \ 94,\ \ 252,\ 219,\ 203,}
+\DoxyCodeLine{00061\ \ \ 117,\ 35,\ \ 11,\ \ 32,\ \ 57,\ \ 177,\ 33,\ \ 88,\ \ 237,\ 149,\ 56,\ \ 87,\ \ 174,\ 20,\ \ 125,\ 136,\ 171,\ 168,\ 68,\ \ 175,\ 74,\ \ 165,}
+\DoxyCodeLine{00062\ \ \ 71,\ \ 134,\ 139,\ 48,\ \ 27,\ \ 166,\ 77,\ \ 146,\ 158,\ 231,\ 83,\ \ 111,\ 229,\ 122,\ 60,\ \ 211,\ 133,\ 230,\ 220,\ 105,\ 92,\ \ 41,}
+\DoxyCodeLine{00063\ \ \ 55,\ \ 46,\ \ 245,\ 40,\ \ 244,\ 102,\ 143,\ 54,\ \ 65,\ \ 25,\ \ 63,\ \ 161,\ 1,\ \ \ 216,\ 80,\ \ 73,\ \ 209,\ 76,\ \ 132,\ 187,\ 208,\ 89,}
+\DoxyCodeLine{00064\ \ \ 18,\ \ 169,\ 200,\ 196,\ 135,\ 130,\ 116,\ 188,\ 159,\ 86,\ \ 164,\ 100,\ 109,\ 198,\ 173,\ 186,\ 3,\ \ \ 64,\ \ 52,\ \ 217,\ 226,\ 250,}
+\DoxyCodeLine{00065\ \ \ 124,\ 123,\ 5,\ \ \ 202,\ 38,\ \ 147,\ 118,\ 126,\ 255,\ 82,\ \ 85,\ \ 212,\ 207,\ 206,\ 59,\ \ 227,\ 47,\ \ 16,\ \ 58,\ \ 17,\ \ 182,\ 189,}
+\DoxyCodeLine{00066\ \ \ 28,\ \ 42,\ \ 223,\ 183,\ 170,\ 213,\ 119,\ 248,\ 152,\ 2,\ \ \ 44,\ \ 154,\ 163,\ 70,\ \ 221,\ 153,\ 101,\ 155,\ 167,\ 43,\ \ 172,\ 9,}
+\DoxyCodeLine{00067\ \ \ 129,\ 22,\ \ 39,\ \ 253,\ 19,\ \ 98,\ \ 108,\ 110,\ 79,\ \ 113,\ 224,\ 232,\ 178,\ 185,\ 112,\ 104,\ 218,\ 246,\ 97,\ \ 228,\ 251,\ 34,}
+\DoxyCodeLine{00068\ \ \ 242,\ 193,\ 238,\ 210,\ 144,\ 12,\ \ 191,\ 179,\ 162,\ 241,\ 81,\ \ 51,\ \ 145,\ 235,\ 249,\ 14,\ \ 239,\ 107,\ 49,\ \ 192,\ 214,\ 31,}
+\DoxyCodeLine{00069\ \ \ 181,\ 199,\ 106,\ 157,\ 184,\ 84,\ \ 204,\ 176,\ 115,\ 121,\ 50,\ \ 45,\ \ 127,\ 4,\ \ \ 150,\ 254,\ 138,\ 236,\ 205,\ 93,\ \ 222,\ 114,}
+\DoxyCodeLine{00070\ \ \ 67,\ \ 29,\ \ 24,\ \ 72,\ \ 243,\ 141,\ 128,\ 195,\ 78,\ \ 66,\ \ 215,\ 61,\ \ 156,\ 180\};}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00075\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00076\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classPlaneSDF}{PlaneSDF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<T>}
+\DoxyCodeLine{00077\ \{}
+\DoxyCodeLine{00078\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00082\ \ \ \mbox{\hyperlink{classPlaneSDF_acbd51b3dace74b7fd8bc94ce6c8715c2}{PlaneSDF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00089\ \ \ \mbox{\hyperlink{classPlaneSDF_a3dcadc8c318fb90ab43ef526c48b5eca}{PlaneSDF}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_normal}})\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{00090\ \ \ \{}
+\DoxyCodeLine{00091\ \ \ \ \ \mbox{\hyperlink{classPlaneSDF_a55ad2cfd1d65504efd2c0bbdaca77a1f}{m\_point}}\ \ =\ \mbox{\hyperlink{classVec3T}{a\_point}};}
+\DoxyCodeLine{00092\ \ \ \ \ \mbox{\hyperlink{classPlaneSDF_a1d41c3df2c6eaa345cebd9734ae7d850}{m\_normal}}\ =\ \mbox{\hyperlink{classVec3T}{a\_normal}}\ /\ \mbox{\hyperlink{classVec3T}{a\_normal}}.\mbox{\hyperlink{classVec3T_aa619b8a5badb60bb8e251c4bd6864c4f}{length}}();}
+\DoxyCodeLine{00093\ \ \ \}}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00099\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00100\ \ \ \mbox{\hyperlink{classPlaneSDF_a75c2d73156caac10eefce9b431542d88}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override}}
+\DoxyCodeLine{00101\ \ \ \{}
+\DoxyCodeLine{00102\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_adfdac8ac7b17d6c165b7296d8f1b8780}{dot}}((\mbox{\hyperlink{classVec3T}{a\_point}}\ -\/\ \mbox{\hyperlink{classPlaneSDF_a55ad2cfd1d65504efd2c0bbdaca77a1f}{m\_point}}),\ \mbox{\hyperlink{classPlaneSDF_a1d41c3df2c6eaa345cebd9734ae7d850}{m\_normal}});}
+\DoxyCodeLine{00103\ \ \ \}}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00109\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classPlaneSDF_a55ad2cfd1d65504efd2c0bbdaca77a1f}{m\_point}};}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00114\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classPlaneSDF_a1d41c3df2c6eaa345cebd9734ae7d850}{m\_normal}};}
+\DoxyCodeLine{00115\ \};}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00120\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00121\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classSphereSDF}{SphereSDF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<T>}
+\DoxyCodeLine{00122\ \{}
+\DoxyCodeLine{00123\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00127\ \ \ \mbox{\hyperlink{classSphereSDF_ad5f6d20f6ccd77ba91c00acd2aeea28f}{SphereSDF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00128\ }
+\DoxyCodeLine{00134\ \ \ \mbox{\hyperlink{classSphereSDF_a5b655d372efcf2aaf161930ed59c9021}{SphereSDF}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_center}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a\_radius}})\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{00135\ \ \ \{}
+\DoxyCodeLine{00136\ \ \ \ \ this-\/>\mbox{\hyperlink{classSphereSDF_ab3caacb26a72b3ada01f09a248f5cb83}{m\_center}}\ =\ \mbox{\hyperlink{classVec3T}{a\_center}};}
+\DoxyCodeLine{00137\ \ \ \ \ this-\/>\mbox{\hyperlink{classSphereSDF_ac4b0f786ea2b53530512ce3fa4e7bdbd}{m\_radius}}\ =\ \mbox{\hyperlink{classVec3T}{a\_radius}};}
+\DoxyCodeLine{00138\ \ \ \}}
+\DoxyCodeLine{00139\ }
+\DoxyCodeLine{00143\ \ \ \mbox{\hyperlink{classSphereSDF_aa8b1dc622a46ec731d614eee53baa530}{SphereSDF}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classSphereSDF}{SphereSDF}}\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{00144\ \ \ \{}
+\DoxyCodeLine{00145\ \ \ \ \ this-\/>\mbox{\hyperlink{classSphereSDF_ab3caacb26a72b3ada01f09a248f5cb83}{m\_center}}\ =\ \mbox{\hyperlink{classVec3T}{a\_other}}.m\_center;}
+\DoxyCodeLine{00146\ \ \ \ \ this-\/>\mbox{\hyperlink{classSphereSDF_ac4b0f786ea2b53530512ce3fa4e7bdbd}{m\_radius}}\ =\ \mbox{\hyperlink{classVec3T}{a\_other}}.m\_radius;}
+\DoxyCodeLine{00147\ \ \ \}}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00152\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classSphereSDF_a287e108c767242ef66004a43ed904054}{\string~SphereSDF}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}\ =\ \mbox{\hyperlink{classVec3T}{default}};}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00157\ \ \ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00158\ \ \ \mbox{\hyperlink{classSphereSDF_ac0225f1bcf5270ca022bf3ab0cc4e037}{getCenter}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00159\ \ \ \{}
+\DoxyCodeLine{00160\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classSphereSDF_ab3caacb26a72b3ada01f09a248f5cb83}{m\_center}};}
+\DoxyCodeLine{00161\ \ \ \}}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00166\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&}
+\DoxyCodeLine{00167\ \ \ \mbox{\hyperlink{classSphereSDF_a7da4788aec32bb9d96260bad9f3080e1}{getCenter}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00168\ \ \ \{}
+\DoxyCodeLine{00169\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classSphereSDF_ab3caacb26a72b3ada01f09a248f5cb83}{m\_center}};}
+\DoxyCodeLine{00170\ \ \ \}}
+\DoxyCodeLine{00171\ }
+\DoxyCodeLine{00175\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&}
+\DoxyCodeLine{00176\ \ \ \mbox{\hyperlink{classSphereSDF_a284036d5dc79717f63e2121dc2f5d134}{getRadius}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00177\ \ \ \{}
+\DoxyCodeLine{00178\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classSphereSDF_ac4b0f786ea2b53530512ce3fa4e7bdbd}{m\_radius}};}
+\DoxyCodeLine{00179\ \ \ \}}
+\DoxyCodeLine{00180\ }
+\DoxyCodeLine{00184\ \ \ \mbox{\hyperlink{classVec3T}{T}}\&}
+\DoxyCodeLine{00185\ \ \ \mbox{\hyperlink{classSphereSDF_af312091464d336d318665f60e79d2586}{getRadius}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00186\ \ \ \{}
+\DoxyCodeLine{00187\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classSphereSDF_ac4b0f786ea2b53530512ce3fa4e7bdbd}{m\_radius}};}
+\DoxyCodeLine{00188\ \ \ \}}
+\DoxyCodeLine{00189\ }
+\DoxyCodeLine{00194\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00195\ \ \ \mbox{\hyperlink{classSphereSDF_a9b0c5f0b1af2c4b62bee1c873e0158e8}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override}}
+\DoxyCodeLine{00196\ \ \ \{}
+\DoxyCodeLine{00197\ \ \ \ \ \textcolor{keywordflow}{return}\ (\mbox{\hyperlink{classVec3T}{a\_point}}\ -\/\ \mbox{\hyperlink{classSphereSDF_ab3caacb26a72b3ada01f09a248f5cb83}{m\_center}}).\mbox{\hyperlink{classVec3T_aa619b8a5badb60bb8e251c4bd6864c4f}{length}}()\ -\/\ \mbox{\hyperlink{classSphereSDF_ac4b0f786ea2b53530512ce3fa4e7bdbd}{m\_radius}};}
+\DoxyCodeLine{00198\ \ \ \}}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00200\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00204\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classSphereSDF_ab3caacb26a72b3ada01f09a248f5cb83}{m\_center}};}
+\DoxyCodeLine{00205\ }
+\DoxyCodeLine{00209\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classSphereSDF_ac4b0f786ea2b53530512ce3fa4e7bdbd}{m\_radius}};}
+\DoxyCodeLine{00210\ \};}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00215\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00216\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classBoxSDF}{BoxSDF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<T>}
+\DoxyCodeLine{00217\ \{}
+\DoxyCodeLine{00218\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00222\ \ \ \mbox{\hyperlink{classBoxSDF_a59b774b2a6fc27001e1a40662f49c5cb}{BoxSDF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00223\ }
+\DoxyCodeLine{00229\ \ \ \mbox{\hyperlink{classBoxSDF_aa7afe04758bd8c6f147fffae61b5e282}{BoxSDF}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_loCorner}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_hiCorner}})\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{00230\ \ \ \{}
+\DoxyCodeLine{00231\ \ \ \ \ this-\/>\mbox{\hyperlink{classBoxSDF_a7286bfb7a6669127b4902b1b2e9a2c80}{m\_loCorner}}\ =\ \mbox{\hyperlink{classVec3T}{a\_loCorner}};}
+\DoxyCodeLine{00232\ \ \ \ \ this-\/>\mbox{\hyperlink{classBoxSDF_a96181447700a9106e937fa2ff73499b1}{m\_hiCorner}}\ =\ \mbox{\hyperlink{classVec3T}{a\_hiCorner}};}
+\DoxyCodeLine{00233\ \ \ \}}
+\DoxyCodeLine{00234\ }
+\DoxyCodeLine{00238\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classBoxSDF_ab6aa46df303f7f64da40fda003fd8468}{\string~BoxSDF}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00239\ \ \ \{\}}
+\DoxyCodeLine{00240\ }
+\DoxyCodeLine{00245\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&}
+\DoxyCodeLine{00246\ \ \ \mbox{\hyperlink{classBoxSDF_aa5fd345575a7547be8395d6841709ee4}{getLowCorner}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00247\ \ \ \{}
+\DoxyCodeLine{00248\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classBoxSDF_a7286bfb7a6669127b4902b1b2e9a2c80}{m\_loCorner}};}
+\DoxyCodeLine{00249\ \ \ \}}
+\DoxyCodeLine{00250\ }
+\DoxyCodeLine{00255\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&}
+\DoxyCodeLine{00256\ \ \ \mbox{\hyperlink{classBoxSDF_a4f56dc413d14c444d997aeca1ce32b2d}{getLowCorner}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00257\ \ \ \{}
+\DoxyCodeLine{00258\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classBoxSDF_a7286bfb7a6669127b4902b1b2e9a2c80}{m\_loCorner}};}
+\DoxyCodeLine{00259\ \ \ \}}
+\DoxyCodeLine{00260\ }
+\DoxyCodeLine{00265\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&}
+\DoxyCodeLine{00266\ \ \ \mbox{\hyperlink{classBoxSDF_a2d18cdeafbfe5a45115e00e708d8c490}{getHighCorner}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00267\ \ \ \{}
+\DoxyCodeLine{00268\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classBoxSDF_a96181447700a9106e937fa2ff73499b1}{m\_hiCorner}};}
+\DoxyCodeLine{00269\ \ \ \}}
+\DoxyCodeLine{00270\ }
+\DoxyCodeLine{00275\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&}
+\DoxyCodeLine{00276\ \ \ \mbox{\hyperlink{classBoxSDF_a61256601d0a334b5c93297dbc1d80fe2}{getHighCorner}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00277\ \ \ \{}
+\DoxyCodeLine{00278\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classBoxSDF_a96181447700a9106e937fa2ff73499b1}{m\_hiCorner}};}
+\DoxyCodeLine{00279\ \ \ \}}
+\DoxyCodeLine{00280\ }
+\DoxyCodeLine{00285\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00286\ \ \ \mbox{\hyperlink{classBoxSDF_a6e7a72790061423e5c9ea47d9e26736f}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override}}
+\DoxyCodeLine{00287\ \ \ \{}
+\DoxyCodeLine{00288\ \ \ \ \ \textcolor{comment}{//\ For\ each\ coordinate\ direction,\ we\ have\ delta[dir]\ if\ a\_point[dir]\ falls}}
+\DoxyCodeLine{00289\ \ \ \ \ \textcolor{comment}{//\ between\ xLo\ and\ xHi.\ In\ this\ case\ delta[dir]\ will\ be\ the\ signed\ distance}}
+\DoxyCodeLine{00290\ \ \ \ \ \textcolor{comment}{//\ to\ the\ closest\ box\ face\ in\ the\ dir-\/direction.\ Otherwise,\ if\ a\_point[dir]}}
+\DoxyCodeLine{00291\ \ \ \ \ \textcolor{comment}{//\ is\ outside\ the\ corner\ we\ have\ delta[dir]\ >\ 0.}}
+\DoxyCodeLine{00292\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{delta}}(std::max(\mbox{\hyperlink{classBoxSDF_a7286bfb7a6669127b4902b1b2e9a2c80}{m\_loCorner}}[0]\ -\/\ \mbox{\hyperlink{classVec3T}{a\_point}}[0],\ \mbox{\hyperlink{classVec3T}{a\_point}}[0]\ -\/\ \mbox{\hyperlink{classBoxSDF_a96181447700a9106e937fa2ff73499b1}{m\_hiCorner}}[0]),}
+\DoxyCodeLine{00293\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::max(\mbox{\hyperlink{classBoxSDF_a7286bfb7a6669127b4902b1b2e9a2c80}{m\_loCorner}}[1]\ -\/\ \mbox{\hyperlink{classVec3T}{a\_point}}[1],\ \mbox{\hyperlink{classVec3T}{a\_point}}[1]\ -\/\ \mbox{\hyperlink{classBoxSDF_a96181447700a9106e937fa2ff73499b1}{m\_hiCorner}}[1]),}
+\DoxyCodeLine{00294\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::max(\mbox{\hyperlink{classBoxSDF_a7286bfb7a6669127b4902b1b2e9a2c80}{m\_loCorner}}[2]\ -\/\ \mbox{\hyperlink{classVec3T}{a\_point}}[2],\ \mbox{\hyperlink{classVec3T}{a\_point}}[2]\ -\/\ \mbox{\hyperlink{classBoxSDF_a96181447700a9106e937fa2ff73499b1}{m\_hiCorner}}[2]));}
+\DoxyCodeLine{00295\ }
+\DoxyCodeLine{00296\ \ \ \ \ \textcolor{comment}{//\ Note:\ max\ is\ max(Vec3T<T>,\ Vec3T<T>)\ and\ not\ std::max.\ It\ returns\ a}}
+\DoxyCodeLine{00297\ \ \ \ \ \textcolor{comment}{//\ vector\ with\ coordinate-\/wise\ largest\ components.\ Note\ that\ the\ first\ part}}
+\DoxyCodeLine{00298\ \ \ \ \ \textcolor{comment}{//\ std::min(...)\ is\ the\ signed\ distance\ on\ the\ inside\ of\ the\ box\ (delta\ will}}
+\DoxyCodeLine{00299\ \ \ \ \ \textcolor{comment}{//\ have\ negative\ components).\ The\ other\ part\ max(Vec3T<T>::zero(),\ ...)\ is}}
+\DoxyCodeLine{00300\ \ \ \ \ \textcolor{comment}{//\ for\ outside\ the\ box.}}
+\DoxyCodeLine{00301\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{d}}\ =\ std::min(\mbox{\hyperlink{classVec3T}{T}}(0.0),\ \mbox{\hyperlink{classVec3T}{delta}}[\mbox{\hyperlink{classVec3T}{delta}}.\mbox{\hyperlink{classVec3T_aa90d6fed4944605109090f0b1a3bcef4}{maxDir}}(\textcolor{keyword}{false})])\ +\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_a098ea9f8784cd748ba840d05e2ba0bdf}{max}}(\mbox{\hyperlink{classVec3T}{Vec3T<T>::zero}}(),\ \mbox{\hyperlink{classVec3T}{delta}}).\mbox{\hyperlink{classVec3T_aa619b8a5badb60bb8e251c4bd6864c4f}{length}}();}
+\DoxyCodeLine{00302\ }
+\DoxyCodeLine{00303\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{d}};}
+\DoxyCodeLine{00304\ \ \ \}}
+\DoxyCodeLine{00305\ }
+\DoxyCodeLine{00306\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00310\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classBoxSDF_a7286bfb7a6669127b4902b1b2e9a2c80}{m\_loCorner}};}
+\DoxyCodeLine{00311\ }
+\DoxyCodeLine{00315\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classBoxSDF_a96181447700a9106e937fa2ff73499b1}{m\_hiCorner}};}
+\DoxyCodeLine{00316\ \};}
+\DoxyCodeLine{00317\ }
+\DoxyCodeLine{00322\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00323\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classTorusSDF}{TorusSDF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<T>}
+\DoxyCodeLine{00324\ \{}
+\DoxyCodeLine{00325\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00329\ \ \ \mbox{\hyperlink{classTorusSDF_a4591d7c3cdbbed45fdbaf414f0d096ee}{TorusSDF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00330\ }
+\DoxyCodeLine{00337\ \ \ \mbox{\hyperlink{classTorusSDF_a86d946c2613e7977e77bb8b3d4101e19}{TorusSDF}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_center}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a\_majorRadius}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a\_minorRadius}})\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{00338\ \ \ \{}
+\DoxyCodeLine{00339\ \ \ \ \ this-\/>\mbox{\hyperlink{classTorusSDF_aa097ba79346768486083bf5269b20821}{m\_center}}\ \ \ \ \ \ =\ \mbox{\hyperlink{classVec3T}{a\_center}};}
+\DoxyCodeLine{00340\ \ \ \ \ this-\/>\mbox{\hyperlink{classTorusSDF_a21d443b0a0f8af98856cdc7bce0363ba}{m\_majorRadius}}\ =\ \mbox{\hyperlink{classVec3T}{a\_majorRadius}};}
+\DoxyCodeLine{00341\ \ \ \ \ this-\/>\mbox{\hyperlink{classTorusSDF_afedc4aacff95c95b97d1d540dddd2e99}{m\_minorRadius}}\ =\ \mbox{\hyperlink{classVec3T}{a\_minorRadius}};}
+\DoxyCodeLine{00342\ \ \ \}}
+\DoxyCodeLine{00343\ }
+\DoxyCodeLine{00347\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classTorusSDF_abf1ec12368536cbde5581330c1f1033d}{\string~TorusSDF}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00348\ \ \ \{\}}
+\DoxyCodeLine{00349\ }
+\DoxyCodeLine{00354\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&}
+\DoxyCodeLine{00355\ \ \ \mbox{\hyperlink{classTorusSDF_a4e2b199628ed063f61396f48e7d6c0e1}{getCenter}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00356\ \ \ \{}
+\DoxyCodeLine{00357\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classTorusSDF_aa097ba79346768486083bf5269b20821}{m\_center}};}
+\DoxyCodeLine{00358\ \ \ \}}
+\DoxyCodeLine{00359\ }
+\DoxyCodeLine{00364\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&}
+\DoxyCodeLine{00365\ \ \ \mbox{\hyperlink{classTorusSDF_a1c1078a5cfdafd87b3c350f6cb5ce808}{getCenter}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00366\ \ \ \{}
+\DoxyCodeLine{00367\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classTorusSDF_aa097ba79346768486083bf5269b20821}{m\_center}};}
+\DoxyCodeLine{00368\ \ \ \}}
+\DoxyCodeLine{00369\ }
+\DoxyCodeLine{00374\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&}
+\DoxyCodeLine{00375\ \ \ \mbox{\hyperlink{classTorusSDF_a533f1b78a676918d5d6cee0cccf0237b}{getMajorRadius}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00376\ \ \ \{}
+\DoxyCodeLine{00377\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classTorusSDF_a21d443b0a0f8af98856cdc7bce0363ba}{m\_majorRadius}};}
+\DoxyCodeLine{00378\ \ \ \}}
+\DoxyCodeLine{00379\ }
+\DoxyCodeLine{00384\ \ \ \mbox{\hyperlink{classVec3T}{T}}\&}
+\DoxyCodeLine{00385\ \ \ \mbox{\hyperlink{classTorusSDF_a736474fa84b7b9ca15e6d6e8becc5a23}{getMajorRadius}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00386\ \ \ \{}
+\DoxyCodeLine{00387\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classTorusSDF_a21d443b0a0f8af98856cdc7bce0363ba}{m\_majorRadius}};}
+\DoxyCodeLine{00388\ \ \ \}}
+\DoxyCodeLine{00389\ }
+\DoxyCodeLine{00394\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&}
+\DoxyCodeLine{00395\ \ \ \mbox{\hyperlink{classTorusSDF_ab86efbc83b4311503b1f8114c6674c54}{getMinorRadius}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00396\ \ \ \{}
+\DoxyCodeLine{00397\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classTorusSDF_afedc4aacff95c95b97d1d540dddd2e99}{m\_minorRadius}};}
+\DoxyCodeLine{00398\ \ \ \}}
+\DoxyCodeLine{00399\ }
+\DoxyCodeLine{00404\ \ \ \mbox{\hyperlink{classVec3T}{T}}\&}
+\DoxyCodeLine{00405\ \ \ \mbox{\hyperlink{classTorusSDF_ad87f72f07d14665fb2b9bb5ae4db513d}{getMinorRadius}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00406\ \ \ \{}
+\DoxyCodeLine{00407\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classTorusSDF_afedc4aacff95c95b97d1d540dddd2e99}{m\_minorRadius}};}
+\DoxyCodeLine{00408\ \ \ \}}
+\DoxyCodeLine{00413\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00414\ \ \ \mbox{\hyperlink{classTorusSDF_a23b4d455de2b7b9988ce81833ccd5302}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override}}
+\DoxyCodeLine{00415\ \ \ \{}
+\DoxyCodeLine{00416\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{p}}\ \ \ =\ \mbox{\hyperlink{classVec3T}{a\_point}}\ -\/\ \mbox{\hyperlink{classTorusSDF_aa097ba79346768486083bf5269b20821}{m\_center}};}
+\DoxyCodeLine{00417\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{rho}}\ =\ \mbox{\hyperlink{classVec3T}{sqrt}}(\mbox{\hyperlink{classVec3T}{p}}[0]\ *\ \mbox{\hyperlink{classVec3T}{p}}[0]\ +\ \mbox{\hyperlink{classVec3T}{p}}[1]\ *\ \mbox{\hyperlink{classVec3T}{p}}[1])\ -\/\ \mbox{\hyperlink{classTorusSDF_a21d443b0a0f8af98856cdc7bce0363ba}{m\_majorRadius}};}
+\DoxyCodeLine{00418\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{d}}\ \ \ =\ \mbox{\hyperlink{classVec3T}{sqrt}}(\mbox{\hyperlink{classVec3T}{rho}}\ *\ \mbox{\hyperlink{classVec3T}{rho}}\ +\ \mbox{\hyperlink{classVec3T}{p}}[2]\ *\ \mbox{\hyperlink{classVec3T}{p}}[2])\ -\/\ \mbox{\hyperlink{classTorusSDF_afedc4aacff95c95b97d1d540dddd2e99}{m\_minorRadius}};}
+\DoxyCodeLine{00419\ }
+\DoxyCodeLine{00420\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{d}};}
+\DoxyCodeLine{00421\ \ \ \}}
+\DoxyCodeLine{00422\ }
+\DoxyCodeLine{00423\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00427\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classTorusSDF_aa097ba79346768486083bf5269b20821}{m\_center}};}
+\DoxyCodeLine{00428\ }
+\DoxyCodeLine{00432\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classTorusSDF_a21d443b0a0f8af98856cdc7bce0363ba}{m\_majorRadius}};}
+\DoxyCodeLine{00433\ }
+\DoxyCodeLine{00437\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classTorusSDF_afedc4aacff95c95b97d1d540dddd2e99}{m\_minorRadius}};}
+\DoxyCodeLine{00438\ \};}
+\DoxyCodeLine{00439\ }
+\DoxyCodeLine{00443\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00444\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classCylinderSDF}{CylinderSDF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<T>}
+\DoxyCodeLine{00445\ \{}
+\DoxyCodeLine{00446\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00450\ \ \ \mbox{\hyperlink{classCylinderSDF_a4cad4283fea40d7e4f865a29f6b5bb20}{CylinderSDF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00451\ }
+\DoxyCodeLine{00458\ \ \ \mbox{\hyperlink{classCylinderSDF_a6f683053367ce344723e7884669e7a7b}{CylinderSDF}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_center1}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_center2}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a\_radius}})\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{00459\ \ \ \{}
+\DoxyCodeLine{00460\ \ \ \ \ this-\/>\mbox{\hyperlink{classCylinderSDF_ac69f666234c9625306153be47295cdbc}{m\_center1}}\ =\ \mbox{\hyperlink{classVec3T}{a\_center1}};}
+\DoxyCodeLine{00461\ \ \ \ \ this-\/>\mbox{\hyperlink{classCylinderSDF_a02b8aea5350ad933ed53abea6cb58103}{m\_center2}}\ =\ \mbox{\hyperlink{classVec3T}{a\_center2}};}
+\DoxyCodeLine{00462\ \ \ \ \ this-\/>\mbox{\hyperlink{classCylinderSDF_ad5ff6ceb3b872fcea0534f89d73f0268}{m\_radius}}\ \ =\ \mbox{\hyperlink{classVec3T}{a\_radius}};}
+\DoxyCodeLine{00463\ }
+\DoxyCodeLine{00464\ \ \ \ \ \textcolor{comment}{//\ Some\ derived\ quantities\ that\ are\ needed\ for\ SDF\ computations.}}
+\DoxyCodeLine{00465\ \ \ \ \ \mbox{\hyperlink{classCylinderSDF_a38e901843de5889a3c3eee35bc2a534c}{m\_center}}\ =\ (\mbox{\hyperlink{classCylinderSDF_a02b8aea5350ad933ed53abea6cb58103}{m\_center2}}\ +\ \mbox{\hyperlink{classCylinderSDF_ac69f666234c9625306153be47295cdbc}{m\_center1}})\ *\ 0.5;}
+\DoxyCodeLine{00466\ \ \ \ \ \mbox{\hyperlink{classCylinderSDF_a715c9888a921083d827bad94b4660626}{m\_length}}\ =\ (\mbox{\hyperlink{classCylinderSDF_a02b8aea5350ad933ed53abea6cb58103}{m\_center2}}\ -\/\ \mbox{\hyperlink{classCylinderSDF_ac69f666234c9625306153be47295cdbc}{m\_center1}}).\mbox{\hyperlink{EBGeometry__Vec_8hpp_ac7cf88fcdf43f2f197b741a126274cab}{length}}();}
+\DoxyCodeLine{00467\ \ \ \ \ \mbox{\hyperlink{classCylinderSDF_a034a7baec832c8a19fd2cd33ec1358eb}{m\_axis}}\ \ \ =\ (\mbox{\hyperlink{classCylinderSDF_a02b8aea5350ad933ed53abea6cb58103}{m\_center2}}\ -\/\ \mbox{\hyperlink{classCylinderSDF_ac69f666234c9625306153be47295cdbc}{m\_center1}})\ /\ \mbox{\hyperlink{classCylinderSDF_a715c9888a921083d827bad94b4660626}{m\_length}};}
+\DoxyCodeLine{00468\ \ \ \}}
+\DoxyCodeLine{00469\ }
+\DoxyCodeLine{00473\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classCylinderSDF_ab243f04eed732f6aa7502c86029c4090}{\string~CylinderSDF}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00474\ \ \ \{\}}
+\DoxyCodeLine{00475\ }
+\DoxyCodeLine{00480\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&}
+\DoxyCodeLine{00481\ \ \ \mbox{\hyperlink{classCylinderSDF_a263645d1e2a89d3e7b4d822ce9dbe3f0}{getCenter1}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00482\ \ \ \{}
+\DoxyCodeLine{00483\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classCylinderSDF_ac69f666234c9625306153be47295cdbc}{m\_center1}};}
+\DoxyCodeLine{00484\ \ \ \}}
+\DoxyCodeLine{00485\ }
+\DoxyCodeLine{00490\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&}
+\DoxyCodeLine{00491\ \ \ \mbox{\hyperlink{classCylinderSDF_a45ecc57d386722265a57485ac902996d}{getCenter2}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00492\ \ \ \{}
+\DoxyCodeLine{00493\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classCylinderSDF_a02b8aea5350ad933ed53abea6cb58103}{m\_center2}};}
+\DoxyCodeLine{00494\ \ \ \}}
+\DoxyCodeLine{00495\ }
+\DoxyCodeLine{00500\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&}
+\DoxyCodeLine{00501\ \ \ \mbox{\hyperlink{classCylinderSDF_af367a3674d76b6cb3d613135e18ed948}{getRadius}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00502\ \ \ \{}
+\DoxyCodeLine{00503\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classCylinderSDF_ad5ff6ceb3b872fcea0534f89d73f0268}{m\_radius}};}
+\DoxyCodeLine{00504\ \ \ \}}
+\DoxyCodeLine{00505\ }
+\DoxyCodeLine{00510\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00511\ \ \ \mbox{\hyperlink{classCylinderSDF_a082c08089b07402d55020ed8186cc992}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override}}
+\DoxyCodeLine{00512\ \ \ \{}
+\DoxyCodeLine{00513\ \ \ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{d}}\ =\ std::numeric\_limits<T>::infinity();}
+\DoxyCodeLine{00514\ }
+\DoxyCodeLine{00515\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{classCylinderSDF_a715c9888a921083d827bad94b4660626}{m\_length}}\ >\ 0.0\ \&\&\ \mbox{\hyperlink{classCylinderSDF_ad5ff6ceb3b872fcea0534f89d73f0268}{m\_radius}}\ >\ 0.0)\ \{}
+\DoxyCodeLine{00516\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{point}}\ =\ \mbox{\hyperlink{classVec3T}{a\_point}}\ -\/\ \mbox{\hyperlink{classCylinderSDF_a38e901843de5889a3c3eee35bc2a534c}{m\_center}};}
+\DoxyCodeLine{00517\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{para}}\ \ =\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_adfdac8ac7b17d6c165b7296d8f1b8780}{dot}}(\mbox{\hyperlink{classVec3T}{point}},\ \mbox{\hyperlink{classCylinderSDF_a034a7baec832c8a19fd2cd33ec1358eb}{m\_axis}});}
+\DoxyCodeLine{00518\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{ortho}}\ =\ \mbox{\hyperlink{classVec3T}{point}}\ -\/\ \mbox{\hyperlink{classVec3T}{para}}\ *\ \mbox{\hyperlink{classCylinderSDF_a034a7baec832c8a19fd2cd33ec1358eb}{m\_axis}};\ \textcolor{comment}{//\ Distance\ from\ cylinder\ axis.}}
+\DoxyCodeLine{00519\ }
+\DoxyCodeLine{00520\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{w}}\ =\ \mbox{\hyperlink{classVec3T}{ortho}}.\mbox{\hyperlink{classVec3T_aa619b8a5badb60bb8e251c4bd6864c4f}{length}}()\ -\/\ \mbox{\hyperlink{classCylinderSDF_ad5ff6ceb3b872fcea0534f89d73f0268}{m\_radius}};\ \ \ \ \ \ \ \textcolor{comment}{//\ Distance\ from\ cylinder\ wall.\ <\ 0}}
+\DoxyCodeLine{00521\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ on\ inside\ and\ >\ 0\ on\ outside.}}
+\DoxyCodeLine{00522\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{h}}\ =\ std::abs(\mbox{\hyperlink{classVec3T}{para}})\ -\/\ 0.5\ *\ \mbox{\hyperlink{classCylinderSDF_a715c9888a921083d827bad94b4660626}{m\_length}};\ \textcolor{comment}{//\ Distance\ from\ cylinder\ top.\ \ <\ 0\ on}}
+\DoxyCodeLine{00523\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ inside\ and\ >\ 0\ on\ outside.}}
+\DoxyCodeLine{00524\ }
+\DoxyCodeLine{00525\ \ \ \ \ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classVec3T}{T}}\ zero\ =\ \mbox{\hyperlink{classVec3T}{T}}(0.0);}
+\DoxyCodeLine{00526\ }
+\DoxyCodeLine{00527\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{classVec3T}{w}}\ <=\ zero\ \&\&\ \mbox{\hyperlink{classVec3T}{h}}\ <=\ zero)\ \{\ \textcolor{comment}{//\ Inside\ cylinder}}
+\DoxyCodeLine{00528\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{d}}\ =\ (std::abs(\mbox{\hyperlink{classVec3T}{w}})\ <\ std::abs(\mbox{\hyperlink{classVec3T}{h}}))\ ?\ \mbox{\hyperlink{classVec3T}{w}}\ :\ \mbox{\hyperlink{classVec3T}{h}};}
+\DoxyCodeLine{00529\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00530\ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{classVec3T}{w\ <=\ zero\ \&\&\ h\ >}}\ zero)\ \{\ \textcolor{comment}{//\ Above\ one\ of\ the\ endcaps.}}
+\DoxyCodeLine{00531\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{d}}\ =\ \mbox{\hyperlink{classVec3T}{h}};}
+\DoxyCodeLine{00532\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00533\ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{classVec3T}{w}}\ >\ zero\ \&\&\ \mbox{\hyperlink{classVec3T}{h}}\ <\ zero)\ \{\ \textcolor{comment}{//\ Outside\ radius\ but\ between\ the}}
+\DoxyCodeLine{00534\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ endcaps.}}
+\DoxyCodeLine{00535\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{d}}\ =\ \mbox{\hyperlink{classVec3T}{w}};}
+\DoxyCodeLine{00536\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00537\ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00538\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{d}}\ =\ \mbox{\hyperlink{classVec3T}{sqrt}}(\mbox{\hyperlink{classVec3T}{w}}\ *\ \mbox{\hyperlink{classVec3T}{w}}\ +\ \mbox{\hyperlink{classVec3T}{h}}\ *\ \mbox{\hyperlink{classVec3T}{h}});}
+\DoxyCodeLine{00539\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00540\ \ \ \ \ \}}
+\DoxyCodeLine{00541\ }
+\DoxyCodeLine{00542\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{d}};}
+\DoxyCodeLine{00543\ \ \ \}}
+\DoxyCodeLine{00544\ }
+\DoxyCodeLine{00545\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00549\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classCylinderSDF_ac69f666234c9625306153be47295cdbc}{m\_center1}};}
+\DoxyCodeLine{00550\ }
+\DoxyCodeLine{00554\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classCylinderSDF_a02b8aea5350ad933ed53abea6cb58103}{m\_center2}};}
+\DoxyCodeLine{00555\ }
+\DoxyCodeLine{00559\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classCylinderSDF_a38e901843de5889a3c3eee35bc2a534c}{m\_center}};}
+\DoxyCodeLine{00560\ }
+\DoxyCodeLine{00564\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classCylinderSDF_a034a7baec832c8a19fd2cd33ec1358eb}{m\_axis}};}
+\DoxyCodeLine{00565\ }
+\DoxyCodeLine{00569\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classCylinderSDF_a715c9888a921083d827bad94b4660626}{m\_length}};}
+\DoxyCodeLine{00570\ }
+\DoxyCodeLine{00574\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classCylinderSDF_ad5ff6ceb3b872fcea0534f89d73f0268}{m\_radius}};}
+\DoxyCodeLine{00575\ \};}
+\DoxyCodeLine{00576\ }
+\DoxyCodeLine{00580\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00581\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classInfiniteCylinderSDF}{InfiniteCylinderSDF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<T>}
+\DoxyCodeLine{00582\ \{}
+\DoxyCodeLine{00583\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00587\ \ \ \mbox{\hyperlink{classInfiniteCylinderSDF_abc81fa508a1a13fca1758709e0248271}{InfiniteCylinderSDF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00588\ }
+\DoxyCodeLine{00595\ \ \ \mbox{\hyperlink{classInfiniteCylinderSDF_a8620142c917dc5aec4083983f3254a92}{InfiniteCylinderSDF}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_center}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a\_radius}},\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{a\_axis}})\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{00596\ \ \ \{}
+\DoxyCodeLine{00597\ \ \ \ \ \mbox{\hyperlink{classInfiniteCylinderSDF_a02b7b8fa4346f819552a3a5c2f5a0306}{m\_center}}\ =\ \mbox{\hyperlink{classVec3T}{a\_center}};}
+\DoxyCodeLine{00598\ \ \ \ \ \mbox{\hyperlink{classInfiniteCylinderSDF_aa8442ccd669243ad7b71179816d0c422}{m\_radius}}\ =\ \mbox{\hyperlink{classVec3T}{a\_radius}};}
+\DoxyCodeLine{00599\ \ \ \ \ \mbox{\hyperlink{classInfiniteCylinderSDF_acc7d841abcd49df2db5d0df5cfd2b024}{m\_axis}}\ \ \ =\ \mbox{\hyperlink{classVec3T}{a\_axis}};}
+\DoxyCodeLine{00600\ \ \ \}}
+\DoxyCodeLine{00601\ }
+\DoxyCodeLine{00606\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00607\ \ \ \mbox{\hyperlink{classInfiniteCylinderSDF_a2481e68ea21c304c858878ae1d7fc031}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override}}
+\DoxyCodeLine{00608\ \ \ \{}
+\DoxyCodeLine{00609\ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{delta}}\ =\ \mbox{\hyperlink{classVec3T}{a\_point}}\ -\/\ \mbox{\hyperlink{classInfiniteCylinderSDF_a02b7b8fa4346f819552a3a5c2f5a0306}{m\_center}};}
+\DoxyCodeLine{00610\ \ \ \ \ \mbox{\hyperlink{classVec3T}{delta}}[\mbox{\hyperlink{classInfiniteCylinderSDF_acc7d841abcd49df2db5d0df5cfd2b024}{m\_axis}}]\ \ =\ 0.0;}
+\DoxyCodeLine{00611\ }
+\DoxyCodeLine{00612\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{d}}\ =\ \mbox{\hyperlink{classVec3T}{delta}}.\mbox{\hyperlink{classVec3T_aa619b8a5badb60bb8e251c4bd6864c4f}{length}}()\ -\/\ \mbox{\hyperlink{classInfiniteCylinderSDF_aa8442ccd669243ad7b71179816d0c422}{m\_radius}};}
+\DoxyCodeLine{00613\ }
+\DoxyCodeLine{00614\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{d}};}
+\DoxyCodeLine{00615\ \ \ \}}
+\DoxyCodeLine{00616\ }
+\DoxyCodeLine{00617\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00621\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classInfiniteCylinderSDF_a02b7b8fa4346f819552a3a5c2f5a0306}{m\_center}};}
+\DoxyCodeLine{00622\ }
+\DoxyCodeLine{00626\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classInfiniteCylinderSDF_aa8442ccd669243ad7b71179816d0c422}{m\_radius}};}
+\DoxyCodeLine{00627\ }
+\DoxyCodeLine{00631\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classInfiniteCylinderSDF_acc7d841abcd49df2db5d0df5cfd2b024}{m\_axis}};}
+\DoxyCodeLine{00632\ \};}
+\DoxyCodeLine{00633\ }
+\DoxyCodeLine{00638\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00639\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classCapsuleSDF}{CapsuleSDF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<T>}
+\DoxyCodeLine{00640\ \{}
+\DoxyCodeLine{00641\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00645\ \ \ \mbox{\hyperlink{classCapsuleSDF_abe45c31d0f966369f53e9a2af2708e96}{CapsuleSDF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00646\ }
+\DoxyCodeLine{00653\ \ \ \mbox{\hyperlink{classCapsuleSDF_a4d12884cae228c4d9284997b5f58ecc3}{CapsuleSDF}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_tip1}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{a\_tip2}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a\_radius}})\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{00654\ \ \ \{}
+\DoxyCodeLine{00655\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{axis}}\ =\ (\mbox{\hyperlink{classVec3T}{a\_tip2}}\ -\/\ \mbox{\hyperlink{classVec3T}{a\_tip1}})\ /\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_ac7cf88fcdf43f2f197b741a126274cab}{length}}(\mbox{\hyperlink{classVec3T}{a\_tip2}}\ -\/\ \mbox{\hyperlink{classVec3T}{a\_tip1}});}
+\DoxyCodeLine{00656\ \ \ \ \ \mbox{\hyperlink{classCapsuleSDF_a44023476198b5a0a91c9616c09a08707}{m\_center1}}\ \ \ \ \ \ \ \ \ \ \ =\ \mbox{\hyperlink{classVec3T}{a\_tip1}}\ +\ \mbox{\hyperlink{classVec3T}{a\_radius}}\ *\ \mbox{\hyperlink{classVec3T}{axis}};}
+\DoxyCodeLine{00657\ \ \ \ \ \mbox{\hyperlink{classCapsuleSDF_ab5bec024afd80e282ff02e471e0354b6}{m\_center2}}\ \ \ \ \ \ \ \ \ \ \ =\ \mbox{\hyperlink{classVec3T}{a\_tip2}}\ -\/\ \mbox{\hyperlink{classVec3T}{a\_radius}}\ *\ \mbox{\hyperlink{classVec3T}{axis}};}
+\DoxyCodeLine{00658\ \ \ \ \ \mbox{\hyperlink{classCapsuleSDF_ab4970d97731be17b0851d1e4966e65bb}{m\_radius}}\ \ \ \ \ \ \ \ \ \ \ \ =\ \mbox{\hyperlink{classVec3T}{a\_radius}};}
+\DoxyCodeLine{00659\ \ \ \}}
+\DoxyCodeLine{00660\ }
+\DoxyCodeLine{00665\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00666\ \ \ \mbox{\hyperlink{classCapsuleSDF_a2fa33052a5d93eb0f7fb0a6ff32122e9}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override}}
+\DoxyCodeLine{00667\ \ \ \{}
+\DoxyCodeLine{00668\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{v1}}\ =\ \mbox{\hyperlink{classVec3T}{a\_point}}\ -\/\ \mbox{\hyperlink{classCapsuleSDF_a44023476198b5a0a91c9616c09a08707}{m\_center1}};}
+\DoxyCodeLine{00669\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{v2}}\ =\ \mbox{\hyperlink{classCapsuleSDF_ab5bec024afd80e282ff02e471e0354b6}{m\_center2}}\ -\/\ \mbox{\hyperlink{classCapsuleSDF_a44023476198b5a0a91c9616c09a08707}{m\_center1}};}
+\DoxyCodeLine{00670\ }
+\DoxyCodeLine{00671\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{h}}\ =\ \mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}{clamp}}(\mbox{\hyperlink{EBGeometry__Vec_8hpp_adfdac8ac7b17d6c165b7296d8f1b8780}{dot}}(\mbox{\hyperlink{classVec3T}{v1}},\ \mbox{\hyperlink{classVec3T}{v2}})\ /\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_adfdac8ac7b17d6c165b7296d8f1b8780}{dot}}(\mbox{\hyperlink{classVec3T}{v2}},\ \mbox{\hyperlink{classVec3T}{v2}}),\ \mbox{\hyperlink{classVec3T}{T}}(0.0),\ \mbox{\hyperlink{classVec3T}{T}}(1.0));}
+\DoxyCodeLine{00672\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{d}}\ =\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_ac7cf88fcdf43f2f197b741a126274cab}{length}}(\mbox{\hyperlink{classVec3T}{v1}}\ -\/\ \mbox{\hyperlink{classVec3T}{h}}\ *\ \mbox{\hyperlink{classVec3T}{v2}})\ -\/\ \mbox{\hyperlink{classCapsuleSDF_ab4970d97731be17b0851d1e4966e65bb}{m\_radius}};}
+\DoxyCodeLine{00673\ }
+\DoxyCodeLine{00674\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{d}};}
+\DoxyCodeLine{00675\ \ \ \}}
+\DoxyCodeLine{00676\ }
+\DoxyCodeLine{00677\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00681\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classCapsuleSDF_a44023476198b5a0a91c9616c09a08707}{m\_center1}};}
+\DoxyCodeLine{00682\ }
+\DoxyCodeLine{00686\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classCapsuleSDF_ab5bec024afd80e282ff02e471e0354b6}{m\_center2}};}
+\DoxyCodeLine{00687\ }
+\DoxyCodeLine{00691\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classCapsuleSDF_ab4970d97731be17b0851d1e4966e65bb}{m\_radius}};}
+\DoxyCodeLine{00692\ \};}
+\DoxyCodeLine{00693\ }
+\DoxyCodeLine{00697\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00698\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classInfiniteConeSDF}{InfiniteConeSDF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<T>}
+\DoxyCodeLine{00699\ \{}
+\DoxyCodeLine{00700\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00704\ \ \ \mbox{\hyperlink{classInfiniteConeSDF_a45ccd0929c04d3cd3c3f287609936c6d}{InfiniteConeSDF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00705\ }
+\DoxyCodeLine{00711\ \ \ \mbox{\hyperlink{classInfiniteConeSDF_a54bb144091cc3e0133bc7e9bd2f7a571}{InfiniteConeSDF}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_tip}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a\_angle}})\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{00712\ \ \ \{}
+\DoxyCodeLine{00713\ \ \ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{pi}}\ =\ 3.14159265358979323846;}
+\DoxyCodeLine{00714\ }
+\DoxyCodeLine{00715\ \ \ \ \ \mbox{\hyperlink{classInfiniteConeSDF_af13a6b42eb0a8eae7d0f17041bc2ec52}{m\_tip}}\ =\ \mbox{\hyperlink{classVec3T}{a\_tip}};}
+\DoxyCodeLine{00716\ \ \ \ \ \mbox{\hyperlink{classInfiniteConeSDF_a35dd714fb6784f60e541a298e02ab937}{m\_c}}.x\ =\ std::sin(0.5\ *\ \mbox{\hyperlink{classVec3T}{a\_angle}}\ *\ \mbox{\hyperlink{classVec3T}{pi}}\ /\ 180.0);}
+\DoxyCodeLine{00717\ \ \ \ \ \mbox{\hyperlink{classInfiniteConeSDF_a35dd714fb6784f60e541a298e02ab937}{m\_c}}.y\ =\ std::cos(0.5\ *\ \mbox{\hyperlink{classVec3T}{a\_angle}}\ *\ \mbox{\hyperlink{classVec3T}{pi}}\ /\ 180.0);}
+\DoxyCodeLine{00718\ \ \ \}}
+\DoxyCodeLine{00719\ }
+\DoxyCodeLine{00723\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classInfiniteConeSDF_ac33ec944efc7214c9516e4683a0d7e39}{\string~InfiniteConeSDF}}()}
+\DoxyCodeLine{00724\ \ \ \{\}}
+\DoxyCodeLine{00725\ }
+\DoxyCodeLine{00730\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00731\ \ \ \mbox{\hyperlink{classInfiniteConeSDF_a98232920c669d548b84493d9e55ddc0a}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override}}
+\DoxyCodeLine{00732\ \ \ \{}
+\DoxyCodeLine{00733\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{delta}}\ =\ \mbox{\hyperlink{classVec3T}{a\_point}}\ -\/\ \mbox{\hyperlink{classInfiniteConeSDF_af13a6b42eb0a8eae7d0f17041bc2ec52}{m\_tip}};}
+\DoxyCodeLine{00734\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec2T<T>}}\ \mbox{\hyperlink{classVec3T}{q}}(\mbox{\hyperlink{classVec3T}{sqrt}}(\mbox{\hyperlink{classVec3T}{delta}}[0]\ *\ \mbox{\hyperlink{classVec3T}{delta}}[0]\ +\ \mbox{\hyperlink{classVec3T}{delta}}[1]\ *\ \mbox{\hyperlink{classVec3T}{delta}}[1]),\ -\/\mbox{\hyperlink{classVec3T}{delta}}[2]);}
+\DoxyCodeLine{00735\ }
+\DoxyCodeLine{00736\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{d1}}\ =\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_ac7cf88fcdf43f2f197b741a126274cab}{length}}(\mbox{\hyperlink{classVec3T}{q}}\ -\/\ \mbox{\hyperlink{classInfiniteConeSDF_a35dd714fb6784f60e541a298e02ab937}{m\_c}}\ *\ std::max(\mbox{\hyperlink{EBGeometry__Vec_8hpp_adfdac8ac7b17d6c165b7296d8f1b8780}{dot}}(\mbox{\hyperlink{classVec3T}{q}},\ \mbox{\hyperlink{classInfiniteConeSDF_a35dd714fb6784f60e541a298e02ab937}{m\_c}}),\ \mbox{\hyperlink{classVec3T}{T}}(0.0)));}
+\DoxyCodeLine{00737\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{d2}}\ =\ \mbox{\hyperlink{classVec3T}{d1}}\ *\ ((\mbox{\hyperlink{classVec3T}{q}}.x\ *\ \mbox{\hyperlink{classInfiniteConeSDF_a35dd714fb6784f60e541a298e02ab937}{m\_c}}.y\ -\/\ \mbox{\hyperlink{classVec3T}{q}}.y\ *\ \mbox{\hyperlink{classInfiniteConeSDF_a35dd714fb6784f60e541a298e02ab937}{m\_c}}.x\ <\ 0.0)\ ?\ -\/1.0\ :\ 1.0);}
+\DoxyCodeLine{00738\ }
+\DoxyCodeLine{00739\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{d2}};}
+\DoxyCodeLine{00740\ \ \ \}}
+\DoxyCodeLine{00741\ }
+\DoxyCodeLine{00742\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00746\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classInfiniteConeSDF_af13a6b42eb0a8eae7d0f17041bc2ec52}{m\_tip}};}
+\DoxyCodeLine{00747\ }
+\DoxyCodeLine{00751\ \ \ \mbox{\hyperlink{classVec3T}{Vec2T<T>}}\ \mbox{\hyperlink{classInfiniteConeSDF_a35dd714fb6784f60e541a298e02ab937}{m\_c}};}
+\DoxyCodeLine{00752\ \};}
+\DoxyCodeLine{00753\ }
+\DoxyCodeLine{00757\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00758\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classConeSDF}{ConeSDF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<T>}
+\DoxyCodeLine{00759\ \{}
+\DoxyCodeLine{00760\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00764\ \ \ \mbox{\hyperlink{classConeSDF_ae1fae3348eef9bf84f7c800ce4efc6fc}{ConeSDF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00765\ }
+\DoxyCodeLine{00772\ \ \ \mbox{\hyperlink{classConeSDF_abf2276ba406b0fe177dcfd20d6189c58}{ConeSDF}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_tip}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a\_height}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a\_angle}})\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{00773\ \ \ \{}
+\DoxyCodeLine{00774\ \ \ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{pi}}\ =\ 3.14159265358979323846;}
+\DoxyCodeLine{00775\ }
+\DoxyCodeLine{00776\ \ \ \ \ \mbox{\hyperlink{classConeSDF_a601849cf515c10342f80b854d42a3017}{m\_tip}}\ \ \ \ =\ \mbox{\hyperlink{classVec3T}{a\_tip}};}
+\DoxyCodeLine{00777\ \ \ \ \ \mbox{\hyperlink{classConeSDF_a051ec1389b463c0a3691ce1096840439}{m\_height}}\ =\ \mbox{\hyperlink{classVec3T}{a\_height}};}
+\DoxyCodeLine{00778\ \ \ \ \ \mbox{\hyperlink{classConeSDF_a9b5c714000f34f0426b2ab9c1f8bca7a}{m\_c}}.x\ \ \ \ =\ std::sin(0.5\ *\ \mbox{\hyperlink{classVec3T}{a\_angle}}\ *\ \mbox{\hyperlink{classVec3T}{pi}}\ /\ 180.0);}
+\DoxyCodeLine{00779\ \ \ \ \ \mbox{\hyperlink{classConeSDF_a9b5c714000f34f0426b2ab9c1f8bca7a}{m\_c}}.y\ \ \ \ =\ std::cos(0.5\ *\ \mbox{\hyperlink{classVec3T}{a\_angle}}\ *\ \mbox{\hyperlink{classVec3T}{pi}}\ /\ 180.0);}
+\DoxyCodeLine{00780\ \ \ \}}
+\DoxyCodeLine{00781\ }
+\DoxyCodeLine{00785\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classConeSDF_a4050413f73cfd2b091d9b28e985736a0}{\string~ConeSDF}}()}
+\DoxyCodeLine{00786\ \ \ \{\}}
+\DoxyCodeLine{00787\ }
+\DoxyCodeLine{00792\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00793\ \ \ \mbox{\hyperlink{classConeSDF_a4ef38df98e9831c25297cb93a5b41da5}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override}}
+\DoxyCodeLine{00794\ \ \ \{}
+\DoxyCodeLine{00795\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{delta}}\ =\ \mbox{\hyperlink{classVec3T}{a\_point}}\ -\/\ \mbox{\hyperlink{classConeSDF_a601849cf515c10342f80b854d42a3017}{m\_tip}};}
+\DoxyCodeLine{00796\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{dr}}\ \ \ \ =\ \mbox{\hyperlink{classVec3T}{sqrt}}(\mbox{\hyperlink{classVec3T}{delta}}[0]\ *\ \mbox{\hyperlink{classVec3T}{delta}}[0]\ +\ \mbox{\hyperlink{classVec3T}{delta}}[1]\ *\ \mbox{\hyperlink{classVec3T}{delta}}[1]);}
+\DoxyCodeLine{00797\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{dz}}\ \ \ \ =\ \mbox{\hyperlink{classVec3T}{delta}}[2];}
+\DoxyCodeLine{00798\ }
+\DoxyCodeLine{00799\ \ \ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classVec3T}{T}}\ zero\ =\ \mbox{\hyperlink{classVec3T}{T}}(0.0);}
+\DoxyCodeLine{00800\ \ \ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classVec3T}{T}}\ one\ \ =\ \mbox{\hyperlink{classVec3T}{T}}(1.0);}
+\DoxyCodeLine{00801\ }
+\DoxyCodeLine{00802\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec2T<T>}}\ \mbox{\hyperlink{classVec3T}{q}}\ =\ \mbox{\hyperlink{classConeSDF_a051ec1389b463c0a3691ce1096840439}{m\_height}}\ *\ \mbox{\hyperlink{classVec3T}{Vec2T<T>}}(\mbox{\hyperlink{classConeSDF_a9b5c714000f34f0426b2ab9c1f8bca7a}{m\_c}}.x\ /\ \mbox{\hyperlink{classConeSDF_a9b5c714000f34f0426b2ab9c1f8bca7a}{m\_c}}.y,\ -\/1.0);}
+\DoxyCodeLine{00803\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec2T<T>}}\ \mbox{\hyperlink{classVec3T}{w}}\ =\ \mbox{\hyperlink{classVec3T}{Vec2T<T>}}(\mbox{\hyperlink{classVec3T}{dr}},\ \mbox{\hyperlink{classVec3T}{dz}});}
+\DoxyCodeLine{00804\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec2T<T>}}\ \mbox{\hyperlink{classVec3T}{a}}\ =\ \mbox{\hyperlink{classVec3T}{w}}\ -\/\ \mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}{clamp}}(\mbox{\hyperlink{EBGeometry__Vec_8hpp_adfdac8ac7b17d6c165b7296d8f1b8780}{dot}}(\mbox{\hyperlink{classVec3T}{w}},\ \mbox{\hyperlink{classVec3T}{q}})\ /\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_adfdac8ac7b17d6c165b7296d8f1b8780}{dot}}(\mbox{\hyperlink{classVec3T}{q}},\ \mbox{\hyperlink{classVec3T}{q}}),\ zero,\ one)\ *\ \mbox{\hyperlink{classVec3T}{q}};}
+\DoxyCodeLine{00805\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec2T<T>}}\ \mbox{\hyperlink{classVec3T}{b}}\ =\ \mbox{\hyperlink{classVec3T}{w}}\ -\/\ \mbox{\hyperlink{classVec3T}{Vec2T<T>}}(\mbox{\hyperlink{classVec3T}{q}}.x\ *\ \mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}{clamp}}(\mbox{\hyperlink{classVec3T}{w}}.x\ /\ \mbox{\hyperlink{classVec3T}{q}}.x,\ zero,\ one),\ \mbox{\hyperlink{classVec3T}{q}}.y);}
+\DoxyCodeLine{00806\ }
+\DoxyCodeLine{00807\ \ \ \ \ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classVec3T}{sign}}\ =\ [](\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ x)\ \{\ \textcolor{keywordflow}{return}\ (x\ >\ zero)\ -\/\ (x\ <\ zero);\ \};}
+\DoxyCodeLine{00808\ }
+\DoxyCodeLine{00809\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{k}}\ =\ \mbox{\hyperlink{classVec3T}{sign}}(\mbox{\hyperlink{classVec3T}{q}}.y);}
+\DoxyCodeLine{00810\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{d}}\ =\ std::min(\mbox{\hyperlink{EBGeometry__Vec_8hpp_adfdac8ac7b17d6c165b7296d8f1b8780}{dot}}(\mbox{\hyperlink{classVec3T}{a}},\ \mbox{\hyperlink{classVec3T}{a}}),\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_adfdac8ac7b17d6c165b7296d8f1b8780}{dot}}(\mbox{\hyperlink{classVec3T}{b}},\ \mbox{\hyperlink{classVec3T}{b}}));}
+\DoxyCodeLine{00811\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{s}}\ =\ std::max(\mbox{\hyperlink{classVec3T}{k}}\ *\ (\mbox{\hyperlink{classVec3T}{w}}.x\ *\ \mbox{\hyperlink{classVec3T}{q}}.y\ -\/\ \mbox{\hyperlink{classVec3T}{w}}.y\ *\ \mbox{\hyperlink{classVec3T}{q}}.x),\ \mbox{\hyperlink{classVec3T}{k}}\ *\ (\mbox{\hyperlink{classVec3T}{w}}.y\ -\/\ \mbox{\hyperlink{classVec3T}{q}}.y));}
+\DoxyCodeLine{00812\ }
+\DoxyCodeLine{00813\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{sqrt}}(\mbox{\hyperlink{classVec3T}{d}})\ *\ \mbox{\hyperlink{classVec3T}{sign}}(\mbox{\hyperlink{classVec3T}{s}});}
+\DoxyCodeLine{00814\ \ \ \}}
+\DoxyCodeLine{00815\ }
+\DoxyCodeLine{00816\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00820\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classConeSDF_a601849cf515c10342f80b854d42a3017}{m\_tip}};}
+\DoxyCodeLine{00821\ }
+\DoxyCodeLine{00825\ \ \ \mbox{\hyperlink{classVec3T}{Vec2T<T>}}\ \mbox{\hyperlink{classConeSDF_a9b5c714000f34f0426b2ab9c1f8bca7a}{m\_c}};}
+\DoxyCodeLine{00826\ }
+\DoxyCodeLine{00830\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classConeSDF_a051ec1389b463c0a3691ce1096840439}{m\_height}};}
+\DoxyCodeLine{00831\ \};}
+\DoxyCodeLine{00832\ }
+\DoxyCodeLine{00836\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00837\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classRoundedBoxSDF}{RoundedBoxSDF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<T>}
+\DoxyCodeLine{00838\ \{}
+\DoxyCodeLine{00839\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00843\ \ \ \mbox{\hyperlink{classRoundedBoxSDF_a7c46113a8a626d4e6610d127268d4fe7}{RoundedBoxSDF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00844\ }
+\DoxyCodeLine{00852\ \ \ \mbox{\hyperlink{classRoundedBoxSDF_a486da48af139692e9c52ecc171c189e0}{RoundedBoxSDF}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_dimensions}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{a\_curvature}})\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{00853\ \ \ \{}
+\DoxyCodeLine{00854\ \ \ \ \ this-\/>\mbox{\hyperlink{classRoundedBoxSDF_af05fd714e72785776a28fcc0e0c19559}{m\_dimensions}}\ =\ 0.5\ *\ \mbox{\hyperlink{classVec3T}{a\_dimensions}};}
+\DoxyCodeLine{00855\ }
+\DoxyCodeLine{00856\ \ \ \ \ \mbox{\hyperlink{classRoundedBoxSDF_a46ad3193e8c1d61abc101192edf89b39}{m\_sphere}}\ =\ std::make\_shared<SphereSDF<T>>(\mbox{\hyperlink{classVec3T_ad76cd4e2626be44372b48853d97d87d7}{Vec3T<T>::zero}}(),\ \mbox{\hyperlink{classVec3T}{a\_curvature}});}
+\DoxyCodeLine{00857\ \ \ \}}
+\DoxyCodeLine{00858\ }
+\DoxyCodeLine{00862\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classRoundedBoxSDF_ab29d9a81a78959f5915222fcef1a436e}{\string~RoundedBoxSDF}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00863\ \ \ \{\}}
+\DoxyCodeLine{00864\ }
+\DoxyCodeLine{00868\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00869\ \ \ \mbox{\hyperlink{classRoundedBoxSDF_ae8b57dc86dcd306f306e1896c66d4326}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override}}
+\DoxyCodeLine{00870\ \ \ \{}
+\DoxyCodeLine{00871\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classRoundedBoxSDF_a46ad3193e8c1d61abc101192edf89b39}{m\_sphere}}-\/>value(\mbox{\hyperlink{classVec3T}{a\_point}}\ -\/\ \mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}{clamp}}(\mbox{\hyperlink{classVec3T}{a\_point}},\ -\/\mbox{\hyperlink{classRoundedBoxSDF_af05fd714e72785776a28fcc0e0c19559}{m\_dimensions}},\ \mbox{\hyperlink{classRoundedBoxSDF_af05fd714e72785776a28fcc0e0c19559}{m\_dimensions}}));}
+\DoxyCodeLine{00872\ \ \ \}}
+\DoxyCodeLine{00873\ }
+\DoxyCodeLine{00874\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00878\ \ \ std::shared\_ptr<SphereSDF<T>>\ \mbox{\hyperlink{classRoundedBoxSDF_a46ad3193e8c1d61abc101192edf89b39}{m\_sphere}};}
+\DoxyCodeLine{00879\ }
+\DoxyCodeLine{00883\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classRoundedBoxSDF_af05fd714e72785776a28fcc0e0c19559}{m\_dimensions}};}
+\DoxyCodeLine{00884\ \};}
+\DoxyCodeLine{00885\ }
+\DoxyCodeLine{00889\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00890\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classPerlinSDF}{PerlinSDF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<T>}
+\DoxyCodeLine{00891\ \{}
+\DoxyCodeLine{00892\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00900\ \ \ \mbox{\hyperlink{classPerlinSDF_a5e17712af08f5f6360ef5290736d00f9}{PerlinSDF}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_noiseAmplitude}},}
+\DoxyCodeLine{00901\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_noiseFrequency}},}
+\DoxyCodeLine{00902\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_noisePersistence}},}
+\DoxyCodeLine{00903\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{a\_noiseOctaves}})\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{00904\ \ \ \{}
+\DoxyCodeLine{00905\ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_acc066e02830ba15e7b7218afaf3ca5fe}{m\_noiseAmplitude}}\ \ \ =\ \mbox{\hyperlink{classVec3T}{a\_noiseAmplitude}};}
+\DoxyCodeLine{00906\ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_ac012b10725b20136e308f78ba22bbe1a}{m\_noiseFrequency}}\ \ \ =\ \mbox{\hyperlink{classVec3T}{a\_noiseFrequency}};}
+\DoxyCodeLine{00907\ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_a28a5d74cbffe155b189aa9dfb20db943}{m\_noisePersistence}}\ =\ std::min(1.0,\ \mbox{\hyperlink{classVec3T}{a\_noisePersistence}});}
+\DoxyCodeLine{00908\ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_a182b7c7f99d178e539f3cf192bc75fc8}{m\_noiseOctaves}}\ \ \ \ \ =\ std::max(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\textcolor{keyword}{>}(1),\ \mbox{\hyperlink{classVec3T}{a\_noiseOctaves}});}
+\DoxyCodeLine{00909\ }
+\DoxyCodeLine{00910\ \ \ \ \ \textcolor{comment}{//\ By\ default,\ use\ Ken\ Perlin's\ original\ permutation\ table}}
+\DoxyCodeLine{00911\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{i}}\ =\ 0;\ \mbox{\hyperlink{classVec3T}{i}}\ <\ 256;\ \mbox{\hyperlink{classVec3T}{i}}++)\ \{}
+\DoxyCodeLine{00912\ \ \ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{i}}]\ \ \ \ \ \ \ =\ s\_perlinPermutationTable[\mbox{\hyperlink{classVec3T}{i}}];}
+\DoxyCodeLine{00913\ \ \ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{i}}\ +\ 256]\ =\ s\_perlinPermutationTable[\mbox{\hyperlink{classVec3T}{i}}];}
+\DoxyCodeLine{00914\ \ \ \ \ \}}
+\DoxyCodeLine{00915\ }
+\DoxyCodeLine{00916\ \textcolor{preprocessor}{\#if\ 1\ }\textcolor{comment}{//\ Development\ code}}
+\DoxyCodeLine{00917\ \ \ \ \ std::random\_device\ \mbox{\hyperlink{classVec3T}{rd}};}
+\DoxyCodeLine{00918\ \ \ \ \ std::mt19937\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{g}}(0);}
+\DoxyCodeLine{00919\ }
+\DoxyCodeLine{00920\ \ \ \ \ this-\/>\mbox{\hyperlink{classPerlinSDF_a03a95e8290a0b42c16e7666446909c70}{shuffle}}(g);}
+\DoxyCodeLine{00921\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00922\ \ \ \}}
+\DoxyCodeLine{00923\ }
+\DoxyCodeLine{00927\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classPerlinSDF_a515932653d4f38a7511c5488f74122c3}{\string~PerlinSDF}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00928\ \ \ \{\}}
+\DoxyCodeLine{00929\ }
+\DoxyCodeLine{00934\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00935\ \ \ \mbox{\hyperlink{classPerlinSDF_ae09237cf05912698478602e4ddbeb228}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override}}
+\DoxyCodeLine{00936\ \ \ \{}
+\DoxyCodeLine{00937\ \ \ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{ret}}\ =\ 0.0;}
+\DoxyCodeLine{00938\ }
+\DoxyCodeLine{00939\ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{curFreq}}\ =\ \mbox{\hyperlink{classPerlinSDF_ac012b10725b20136e308f78ba22bbe1a}{m\_noiseFrequency}};}
+\DoxyCodeLine{00940\ \ \ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{curAmp}}\ \ =\ 1.0;}
+\DoxyCodeLine{00941\ }
+\DoxyCodeLine{00942\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{curOctave}}\ =\ 0;\ \mbox{\hyperlink{classVec3T}{curOctave}}\ <\ \mbox{\hyperlink{classPerlinSDF_a182b7c7f99d178e539f3cf192bc75fc8}{m\_noiseOctaves}};\ \mbox{\hyperlink{classVec3T}{curOctave}}++)\ \{}
+\DoxyCodeLine{00943\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{ret}}\ +=\ 0.5\ *\ \mbox{\hyperlink{classVec3T}{curAmp}}\ *\ (1\ +\ this-\/>\mbox{\hyperlink{classPerlinSDF_a81da3c917766b8dace69f3e4c32fcfae}{noise}}(\mbox{\hyperlink{classVec3T}{a\_point}}\ *\ \mbox{\hyperlink{classVec3T}{curFreq}}));}
+\DoxyCodeLine{00944\ }
+\DoxyCodeLine{00945\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{curFreq}}\ =\ \mbox{\hyperlink{classVec3T}{curFreq}}\ /\ \mbox{\hyperlink{classPerlinSDF_a28a5d74cbffe155b189aa9dfb20db943}{m\_noisePersistence}};}
+\DoxyCodeLine{00946\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{curAmp}}\ \ =\ \mbox{\hyperlink{classVec3T}{curAmp}}\ *\ \mbox{\hyperlink{classPerlinSDF_a28a5d74cbffe155b189aa9dfb20db943}{m\_noisePersistence}};}
+\DoxyCodeLine{00947\ \ \ \ \ \}}
+\DoxyCodeLine{00948\ }
+\DoxyCodeLine{00949\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{ret}}\ *\ \mbox{\hyperlink{classPerlinSDF_acc066e02830ba15e7b7218afaf3ca5fe}{m\_noiseAmplitude}};}
+\DoxyCodeLine{00950\ \ \ \};}
+\DoxyCodeLine{00951\ }
+\DoxyCodeLine{00960\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ URNG>}
+\DoxyCodeLine{00961\ \ \ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00962\ \ \ \mbox{\hyperlink{classPerlinSDF_a03a95e8290a0b42c16e7666446909c70}{shuffle}}(\mbox{\hyperlink{classVec3T}{URNG}}\&\ \mbox{\hyperlink{classVec3T}{g}})\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{00963\ \ \ \{}
+\DoxyCodeLine{00964\ }
+\DoxyCodeLine{00965\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{i}}\ =\ 0;\ \mbox{\hyperlink{classVec3T}{i}}\ <\ 256;\ \mbox{\hyperlink{classVec3T}{i}}++)\ \{}
+\DoxyCodeLine{00966\ \ \ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{i}}]\ =\ \mbox{\hyperlink{classVec3T}{i}};}
+\DoxyCodeLine{00967\ \ \ \ \ \}}
+\DoxyCodeLine{00968\ }
+\DoxyCodeLine{00969\ \ \ \ \ std::shuffle(\mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}.begin(),\ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}.begin()\ +\ 256,\ \mbox{\hyperlink{classVec3T}{g}});}
+\DoxyCodeLine{00970\ }
+\DoxyCodeLine{00971\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{i}}\ =\ 0;\ \mbox{\hyperlink{classVec3T}{i}}\ <\ 256;\ \mbox{\hyperlink{classVec3T}{i}}++)\ \{}
+\DoxyCodeLine{00972\ \ \ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{i}}\ +\ 256]\ =\ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{i}}];}
+\DoxyCodeLine{00973\ \ \ \ \ \}}
+\DoxyCodeLine{00974\ \ \ \}}
+\DoxyCodeLine{00975\ }
+\DoxyCodeLine{00980\ \ \ std::array<int,\ 512>\&}
+\DoxyCodeLine{00981\ \ \ \mbox{\hyperlink{classPerlinSDF_aa954ad59e856f28603221c574cc1415e}{getPermutationTable}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{00982\ \ \ \{}
+\DoxyCodeLine{00983\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}};}
+\DoxyCodeLine{00984\ \ \ \}}
+\DoxyCodeLine{00985\ }
+\DoxyCodeLine{00986\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00990\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classPerlinSDF_ac012b10725b20136e308f78ba22bbe1a}{m\_noiseFrequency}};}
+\DoxyCodeLine{00991\ }
+\DoxyCodeLine{00995\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classPerlinSDF_acc066e02830ba15e7b7218afaf3ca5fe}{m\_noiseAmplitude}};}
+\DoxyCodeLine{00996\ }
+\DoxyCodeLine{01000\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classPerlinSDF_a28a5d74cbffe155b189aa9dfb20db943}{m\_noisePersistence}};}
+\DoxyCodeLine{01001\ }
+\DoxyCodeLine{01005\ \ \ std::array<T,\ 512>\ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}};}
+\DoxyCodeLine{01006\ }
+\DoxyCodeLine{01010\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classPerlinSDF_a182b7c7f99d178e539f3cf192bc75fc8}{m\_noiseOctaves}};}
+\DoxyCodeLine{01011\ }
+\DoxyCodeLine{01018\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{01019\ \ \ \mbox{\hyperlink{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}{lerp}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{t}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{a}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{b}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{01020\ \ \ \{}
+\DoxyCodeLine{01021\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{a}}\ +\ \mbox{\hyperlink{classVec3T}{t}}\ *\ (\mbox{\hyperlink{classVec3T}{b}}\ -\/\ \mbox{\hyperlink{classVec3T}{a}});}
+\DoxyCodeLine{01022\ \ \ \};}
+\DoxyCodeLine{01023\ }
+\DoxyCodeLine{01028\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{01029\ \ \ \mbox{\hyperlink{classPerlinSDF_a2a2e57d92c95ff84ad928a9e43cce000}{fade}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{t}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{01030\ \ \ \{}
+\DoxyCodeLine{01031\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{t}}\ *\ \mbox{\hyperlink{classVec3T}{t}}\ *\ \mbox{\hyperlink{classVec3T}{t}}\ *\ (\mbox{\hyperlink{classVec3T}{t}}\ *\ (\mbox{\hyperlink{classVec3T}{t}}\ *\ 6\ -\/\ 15)\ +\ 10);}
+\DoxyCodeLine{01032\ \ \ \};}
+\DoxyCodeLine{01033\ }
+\DoxyCodeLine{01041\ \ \ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{01042\ \ \ \mbox{\hyperlink{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}{grad}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{hash}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ x,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ y,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{z}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{01043\ \ \ \{}
+\DoxyCodeLine{01044\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{h}}\ =\ \mbox{\hyperlink{classVec3T}{hash}}\ \&\ 15;}
+\DoxyCodeLine{01045\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \ \ \mbox{\hyperlink{classVec3T}{u}}\ =\ \mbox{\hyperlink{classVec3T}{h}}\ <\ 8\ ?\ x\ :\ y;}
+\DoxyCodeLine{01046\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \ \ \mbox{\hyperlink{classVec3T}{v}}\ =\ \mbox{\hyperlink{classVec3T}{h}}\ <\ 4\ ?\ y\ :\ \mbox{\hyperlink{classVec3T}{h}}\ ==\ 12\ ||\ \mbox{\hyperlink{classVec3T}{h}}\ ==\ 14\ ?\ x\ :\ y;}
+\DoxyCodeLine{01047\ \ \ \ \ \textcolor{keywordflow}{return}\ ((\mbox{\hyperlink{classVec3T}{h}}\ \&\ 1)\ ==\ 0\ ?\ \mbox{\hyperlink{classVec3T}{u}}\ :\ -\/\mbox{\hyperlink{classVec3T}{u}})\ +\ ((\mbox{\hyperlink{classVec3T}{h}}\ \&\ 2)\ ==\ 0\ ?\ \mbox{\hyperlink{classVec3T}{v}}\ :\ -\/\mbox{\hyperlink{classVec3T}{v}});}
+\DoxyCodeLine{01048\ \ \ \}}
+\DoxyCodeLine{01049\ }
+\DoxyCodeLine{01054\ \ \ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{01055\ \ \ \mbox{\hyperlink{classPerlinSDF_a81da3c917766b8dace69f3e4c32fcfae}{noise}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{01056\ \ \ \{}
+\DoxyCodeLine{01057\ \ \ \ \ \textcolor{comment}{//\ Lower\ cube\ corner}}
+\DoxyCodeLine{01058\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{X}}\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(std::floor(\mbox{\hyperlink{classVec3T}{a\_point}}[0]))\ \&\ 255;}
+\DoxyCodeLine{01059\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{Y}}\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(std::floor(\mbox{\hyperlink{classVec3T}{a\_point}}[1]))\ \&\ 255;}
+\DoxyCodeLine{01060\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{Z}}\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(std::floor(\mbox{\hyperlink{classVec3T}{a\_point}}[2]))\ \&\ 255;}
+\DoxyCodeLine{01061\ }
+\DoxyCodeLine{01062\ \ \ \ \ \textcolor{comment}{//\ Relative\ distance\ wrt\ lower\ cube\ corner}}
+\DoxyCodeLine{01063\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ x\ =\ \mbox{\hyperlink{classVec3T}{a\_point}}[0]\ -\/\ std::floor(\mbox{\hyperlink{classVec3T}{a\_point}}[0]);}
+\DoxyCodeLine{01064\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ y\ =\ \mbox{\hyperlink{classVec3T}{a\_point}}[1]\ -\/\ std::floor(\mbox{\hyperlink{classVec3T}{a\_point}}[1]);}
+\DoxyCodeLine{01065\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classVec3T}{z}}\ =\ \mbox{\hyperlink{classVec3T}{a\_point}}[2]\ -\/\ std::floor(\mbox{\hyperlink{classVec3T}{a\_point}}[2]);}
+\DoxyCodeLine{01066\ }
+\DoxyCodeLine{01067\ \ \ \ \ \textcolor{comment}{//\ Fade\ curves}}
+\DoxyCodeLine{01068\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classVec3T}{u}}\ =\ \mbox{\hyperlink{classPerlinSDF_a2a2e57d92c95ff84ad928a9e43cce000}{fade}}(x);}
+\DoxyCodeLine{01069\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classVec3T}{v}}\ =\ \mbox{\hyperlink{classPerlinSDF_a2a2e57d92c95ff84ad928a9e43cce000}{fade}}(y);}
+\DoxyCodeLine{01070\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classVec3T}{w}}\ =\ \mbox{\hyperlink{classPerlinSDF_a2a2e57d92c95ff84ad928a9e43cce000}{fade}}(\mbox{\hyperlink{classVec3T}{z}});}
+\DoxyCodeLine{01071\ }
+\DoxyCodeLine{01072\ \ \ \ \ \textcolor{comment}{//\ Hash\ coordinates\ of\ 8\ cube\ corners}}
+\DoxyCodeLine{01073\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{A}}\ \ =\ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{X}}]\ +\ \mbox{\hyperlink{classVec3T}{Y}};}
+\DoxyCodeLine{01074\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{AA}}\ =\ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{A}}]\ +\ \mbox{\hyperlink{classVec3T}{Z}};}
+\DoxyCodeLine{01075\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{AB}}\ =\ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{A}}\ +\ 1]\ +\ \mbox{\hyperlink{classVec3T}{Z}};}
+\DoxyCodeLine{01076\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{B}}\ \ =\ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{X}}\ +\ 1]\ +\ \mbox{\hyperlink{classVec3T}{Y}};}
+\DoxyCodeLine{01077\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{BA}}\ =\ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{B}}]\ +\ \mbox{\hyperlink{classVec3T}{Z}};}
+\DoxyCodeLine{01078\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{BB}}\ =\ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{B}}\ +\ 1]\ +\ \mbox{\hyperlink{classVec3T}{Z}};}
+\DoxyCodeLine{01079\ }
+\DoxyCodeLine{01080\ \ \ \ \ \textcolor{comment}{//\ Add\ blended\ results\ from\ 8\ corners\ of\ cube}}
+\DoxyCodeLine{01081\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}{lerp}}(}
+\DoxyCodeLine{01082\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{w}},}
+\DoxyCodeLine{01083\ \ \ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}{lerp}}(\mbox{\hyperlink{classVec3T}{v}},}
+\DoxyCodeLine{01084\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}{lerp}}(\mbox{\hyperlink{classVec3T}{u}},\ \mbox{\hyperlink{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}{grad}}(\mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{AA}}],\ x,\ y,\ \mbox{\hyperlink{classVec3T}{z}}),\ \mbox{\hyperlink{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}{grad}}(\mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{BA}}],\ x\ -\/\ 1,\ y,\ \mbox{\hyperlink{classVec3T}{z}})),}
+\DoxyCodeLine{01085\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}{lerp}}(\mbox{\hyperlink{classVec3T}{u}},\ \mbox{\hyperlink{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}{grad}}(\mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{AB}}],\ x,\ y\ -\/\ 1,\ \mbox{\hyperlink{classVec3T}{z}}),\ \mbox{\hyperlink{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}{grad}}(\mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{BB}}],\ x\ -\/\ 1,\ y\ -\/\ 1,\ \mbox{\hyperlink{classVec3T}{z}}))),}
+\DoxyCodeLine{01086\ \ \ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}{lerp}}(\mbox{\hyperlink{classVec3T}{v}},}
+\DoxyCodeLine{01087\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}{lerp}}(\mbox{\hyperlink{classVec3T}{u}},\ \mbox{\hyperlink{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}{grad}}(\mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{AA}}\ +\ 1],\ x,\ y,\ \mbox{\hyperlink{classVec3T}{z}}\ -\/\ 1),\ \mbox{\hyperlink{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}{grad}}(\mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{BA}}\ +\ 1],\ x\ -\/\ 1,\ y,\ \mbox{\hyperlink{classVec3T}{z}}\ -\/\ 1)),}
+\DoxyCodeLine{01088\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}{lerp}}(\mbox{\hyperlink{classVec3T}{u}},}
+\DoxyCodeLine{01089\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}{grad}}(\mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{AB}}\ +\ 1],\ x,\ y\ -\/\ 1,\ \mbox{\hyperlink{classVec3T}{z}}\ -\/\ 1),}
+\DoxyCodeLine{01090\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}{grad}}(\mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\_permutationTable}}[\mbox{\hyperlink{classVec3T}{BB}}\ +\ 1],\ x\ -\/\ 1,\ y\ -\/\ 1,\ \mbox{\hyperlink{classVec3T}{z}}\ -\/\ 1))));}
+\DoxyCodeLine{01091\ \ \ \};}
+\DoxyCodeLine{01092\ \};}
+\DoxyCodeLine{01093\ }
+\DoxyCodeLine{01094\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceFooter_8hpp}{EBGeometry\_NamespaceFooter.hpp}}"{}}}
+\DoxyCodeLine{01095\ }
+\DoxyCodeLine{01096\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

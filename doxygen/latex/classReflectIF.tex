@@ -1,5 +1,5 @@
-\hypertarget{classReflectIF}{}\doxysection{Reflect\+IF$<$ T $>$ Class Template Reference}
-\label{classReflectIF}\index{ReflectIF$<$ T $>$@{ReflectIF$<$ T $>$}}
+\doxysection{Reflect\+IF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classReflectIF}{}\label{classReflectIF}\index{ReflectIF$<$ T $>$@{ReflectIF$<$ T $>$}}
 
 
 Implicit function which is a reflection of another implicit function.  
@@ -11,7 +11,7 @@ Implicit function which is a reflection of another implicit function.
 
 
 
-Inheritance diagram for Reflect\+IF$<$ T $>$\+:
+Inheritance diagram for Reflect\+IF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>}\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -21,7 +21,7 @@ Inheritance diagram for Reflect\+IF$<$ T $>$\+:
 \end{figure}
 
 
-Collaboration diagram for Reflect\+IF$<$ T $>$\+:
+Collaboration diagram for Reflect\+IF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>}\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -29,43 +29,53 @@ Collaboration diagram for Reflect\+IF$<$ T $>$\+:
 \includegraphics[width=203pt]{classReflectIF__coll__graph}
 \end{center}
 \end{figure}
-\doxysubsection*{Public Member Functions}
+\doxysubsubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classReflectIF_af7d90310b8ffd5d7bb2bdd898d12750b}\label{classReflectIF_af7d90310b8ffd5d7bb2bdd898d12750b}} 
-\mbox{\hyperlink{classReflectIF_af7d90310b8ffd5d7bb2bdd898d12750b}{Reflect\+IF}} ()=delete
+\Hypertarget{classReflectIF_af7d90310b8ffd5d7bb2bdd898d12750b}\label{classReflectIF_af7d90310b8ffd5d7bb2bdd898d12750b} 
+{\bfseries Reflect\+IF} ()=\mbox{\hyperlink{classVec3T}{delete}}
 \begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classReflectIF_ac625e1111a9f0fad4186a4f2e6b11c34}{Reflect\+IF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const size\+\_\+t \&a\+\_\+reflect\+Plane) noexcept
+\mbox{\hyperlink{classReflectIF_abf07a28439edac54652d642d7cd50536}{Reflect\+IF}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Function}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{size\+\_\+t}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+reflect\+Plane}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Full constructor. Reflects around the input plane (0=yz-\/plane, 1=xz-\/plane, 2=xy-\/plane). \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classReflectIF_a3d30ee709ab8cba1ea049aaa23c92ca8}\label{classReflectIF_a3d30ee709ab8cba1ea049aaa23c92ca8}} 
-virtual \mbox{\hyperlink{classReflectIF_a3d30ee709ab8cba1ea049aaa23c92ca8}{$\sim$\+Reflect\+IF}} () noexcept
+\Hypertarget{classReflectIF_a3d30ee709ab8cba1ea049aaa23c92ca8}\label{classReflectIF_a3d30ee709ab8cba1ea049aaa23c92ca8} 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Reflect\+IF} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
-virtual T \mbox{\hyperlink{classReflectIF_a92d7d5e235328b8525f5806d084f4726}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classReflectIF_a92d7d5e235328b8525f5806d084f4726}{value}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}} \mbox{\hyperlink{classVec3T}{override}}
 \begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Attributes}
+\doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function$<$ T $>$}}}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classReflectIF_affe54f8158d0cdbb362573ad5934621a}\label{classReflectIF_affe54f8158d0cdbb362573ad5934621a}} 
-std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{classReflectIF_affe54f8158d0cdbb362573ad5934621a}{m\+\_\+implicit\+Function}}
+{\bfseries Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classImplicitFunction_a361afffb3619a6e06172bdef96c41b91}{operator()}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Alternative signature for the value function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} $>$ }\\\mbox{\hyperlink{classVec3T}{BV}} \mbox{\hyperlink{classImplicitFunction_a844c5123cf9cbad3a140fc40494b4071}{approximate\+Bounding\+Volume\+Octree}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+Low\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+High\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{unsigned}} \mbox{\hyperlink{classVec3T}{int}} \mbox{\hyperlink{classVec3T}{a\+\_\+max\+Tree\+Depth}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+safety}}=0.\+0) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Compute an approximation to the bounding volume for the implicit surface, using octrees. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classReflectIF_affe54f8158d0cdbb362573ad5934621a}\label{classReflectIF_affe54f8158d0cdbb362573ad5934621a} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ {\bfseries m\+\_\+implicit\+Function}
 \begin{DoxyCompactList}\small\item\em Underlying implicit function to be reflected. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classReflectIF_a6593cf1053834292ee91018426ffd29d}\label{classReflectIF_a6593cf1053834292ee91018426ffd29d}} 
-\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classReflectIF_a6593cf1053834292ee91018426ffd29d}{m\+\_\+reflect\+Params}}
+\Hypertarget{classReflectIF_a6593cf1053834292ee91018426ffd29d}\label{classReflectIF_a6593cf1053834292ee91018426ffd29d} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries m\+\_\+reflect\+Params}
 \begin{DoxyCompactList}\small\item\em Reflection parameters. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-\subsubsection*{template$<$class T$>$\newline
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}}$>$\newline
 class Reflect\+IF$<$ T $>$}
-
 Implicit function which is a reflection of another implicit function. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classReflectIF_ac625e1111a9f0fad4186a4f2e6b11c34}\label{classReflectIF_ac625e1111a9f0fad4186a4f2e6b11c34}} 
+\Hypertarget{classReflectIF_abf07a28439edac54652d642d7cd50536}\label{classReflectIF_abf07a28439edac54652d642d7cd50536} 
 \index{ReflectIF$<$ T $>$@{ReflectIF$<$ T $>$}!ReflectIF@{ReflectIF}}
 \index{ReflectIF@{ReflectIF}!ReflectIF$<$ T $>$@{ReflectIF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{ReflectIF()}{ReflectIF()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classReflectIF}{Reflect\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classReflectIF}{Reflect\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const size\+\_\+t \&}]{a\+\_\+reflect\+Plane }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classReflectIF}{Reflect\+IF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classReflectIF}{\+::\+Reflect\+IF}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&}]{a\+\_\+implicit\+Function,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{size\+\_\+t}} \&}]{a\+\_\+reflect\+Plane }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -81,12 +91,12 @@ Full constructor. Reflects around the input plane (0=yz-\/plane, 1=xz-\/plane, 2
 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classReflectIF_a92d7d5e235328b8525f5806d084f4726}\label{classReflectIF_a92d7d5e235328b8525f5806d084f4726}} 
+\Hypertarget{classReflectIF_a92d7d5e235328b8525f5806d084f4726}\label{classReflectIF_a92d7d5e235328b8525f5806d084f4726} 
 \index{ReflectIF$<$ T $>$@{ReflectIF$<$ T $>$}!value@{value}}
 \index{value@{value}!ReflectIF$<$ T $>$@{ReflectIF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{value()}{value()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-virtual T \mbox{\hyperlink{classReflectIF}{Reflect\+IF}}$<$ T $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classReflectIF}{Reflect\+IF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::value (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
 
 
 

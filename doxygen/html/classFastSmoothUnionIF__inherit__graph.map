@@ -1,5 +1,7 @@
 <map id="FastSmoothUnionIF&lt; T, P, BV, K &gt;" name="FastSmoothUnionIF&lt; T, P, BV, K &gt;">
-<area shape="rect" id="node1" title="Implicit function smoothed union using BVHs." alt="" coords="8,169,167,211"/>
-<area shape="rect" id="node2" href="$classFastUnionIF.html" title="Implicit function union using BVHs." alt="" coords="17,80,158,121"/>
-<area shape="rect" id="node3" href="$classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="5,5,169,32"/>
+<area shape="rect" id="Node000001" title="Implicit function smoothed union using BVHs." alt="" coords="8,167,167,207"/>
+<area shape="rect" id="Node000002" href="$classFastUnionIF.html" title="Implicit function union using BVHs." alt="" coords="17,79,158,119"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="90,133,90,166,85,166,85,133"/>
+<area shape="rect" id="Node000003" href="$classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="5,5,169,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="90,44,90,79,85,79,85,44"/>
 </map>

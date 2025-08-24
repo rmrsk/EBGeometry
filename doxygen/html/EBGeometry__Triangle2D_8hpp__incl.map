@@ -1,0 +1,18 @@
+<map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Triangle2D.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Triangle2D.hpp">
+<area shape="rect" id="Node000001" title="Declaration of a class that encapsulates the projection of a 3D triangle into a 2D plane." alt="" coords="157,5,400,60"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,181,61,207"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="240,62,64,176,61,172,237,58"/>
+<area shape="rect" id="Node000003" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="197,108,360,133"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="281,60,281,94,276,94,276,60"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="384,108,643,133"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="351,58,470,101,468,106,349,63"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="240,136,76,183,74,178,239,131"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="85,181,165,207"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="255,136,164,178,162,173,253,131"/>
+<area shape="rect" id="Node000005" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="190,181,453,207"/>
+<area shape="poly" id="edge5_Node000003_Node000005" title=" " alt="" coords="288,132,310,168,305,171,283,135"/>
+<area shape="rect" id="Node000006" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="477,181,733,207"/>
+<area shape="poly" id="edge6_Node000003_Node000006" title=" " alt="" coords="332,131,540,176,538,181,331,136"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="758,181,970,207"/>
+<area shape="poly" id="edge7_Node000003_Node000007" title=" " alt="" coords="360,129,372,131,756,177,756,182,372,136,360,135"/>
+</map>

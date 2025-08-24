@@ -1,5 +1,5 @@
-\hypertarget{classConeSDF}{}\doxysection{Cone\+SDF$<$ T $>$ Class Template Reference}
-\label{classConeSDF}\index{ConeSDF$<$ T $>$@{ConeSDF$<$ T $>$}}
+\doxysection{Cone\+SDF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classConeSDF}{}\label{classConeSDF}\index{ConeSDF$<$ T $>$@{ConeSDF$<$ T $>$}}
 
 
 Signed distance field for an finite cone. Oriented along +z.  
@@ -11,7 +11,7 @@ Signed distance field for an finite cone. Oriented along +z.
 
 
 
-Inheritance diagram for Cone\+SDF$<$ T $>$\+:
+Inheritance diagram for Cone\+SDF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>}\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -21,7 +21,7 @@ Inheritance diagram for Cone\+SDF$<$ T $>$\+:
 \end{figure}
 
 
-Collaboration diagram for Cone\+SDF$<$ T $>$\+:
+Collaboration diagram for Cone\+SDF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>}\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -29,46 +29,67 @@ Collaboration diagram for Cone\+SDF$<$ T $>$\+:
 \includegraphics[width=242pt]{classConeSDF__coll__graph}
 \end{center}
 \end{figure}
-\doxysubsection*{Public Member Functions}
+\doxysubsubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classConeSDF_ae1fae3348eef9bf84f7c800ce4efc6fc}\label{classConeSDF_ae1fae3348eef9bf84f7c800ce4efc6fc}} 
-\mbox{\hyperlink{classConeSDF_ae1fae3348eef9bf84f7c800ce4efc6fc}{Cone\+SDF}} ()=delete
+\Hypertarget{classConeSDF_ae1fae3348eef9bf84f7c800ce4efc6fc}\label{classConeSDF_ae1fae3348eef9bf84f7c800ce4efc6fc} 
+{\bfseries Cone\+SDF} ()=\mbox{\hyperlink{classVec3T}{delete}}
 \begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classConeSDF_abf2276ba406b0fe177dcfd20d6189c58}{Cone\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+tip, const T \&a\+\_\+height, const T \&a\+\_\+angle) noexcept
+\mbox{\hyperlink{classConeSDF_abf2276ba406b0fe177dcfd20d6189c58}{Cone\+SDF}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+tip}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+height}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+angle}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Finite cone function. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classConeSDF_a4050413f73cfd2b091d9b28e985736a0}\label{classConeSDF_a4050413f73cfd2b091d9b28e985736a0}} 
-virtual \mbox{\hyperlink{classConeSDF_a4050413f73cfd2b091d9b28e985736a0}{$\sim$\+Cone\+SDF}} ()
+\Hypertarget{classConeSDF_a4050413f73cfd2b091d9b28e985736a0}\label{classConeSDF_a4050413f73cfd2b091d9b28e985736a0} 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Cone\+SDF} ()
 \begin{DoxyCompactList}\small\item\em Destructor -- does nothing. \end{DoxyCompactList}\item 
-virtual T \mbox{\hyperlink{classConeSDF_a4ef38df98e9831c25297cb93a5b41da5}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classConeSDF_a4ef38df98e9831c25297cb93a5b41da5}{signed\+Distance}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}} \mbox{\hyperlink{classVec3T}{override}}
 \begin{DoxyCompactList}\small\item\em Implementation of the signed distance function. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Attributes}
+\doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classSignedDistanceFunction}{Signed\+Distance\+Function$<$ T $>$}}}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classConeSDF_a601849cf515c10342f80b854d42a3017}\label{classConeSDF_a601849cf515c10342f80b854d42a3017}} 
-\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classConeSDF_a601849cf515c10342f80b854d42a3017}{m\+\_\+tip}}
+{\bfseries Signed\+Distance\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Signed\+Distance\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classSignedDistanceFunction_a76f283b0c732de5a71faa665a97530f2}{value}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}} \mbox{\hyperlink{classVec3T}{override}} \mbox{\hyperlink{classVec3T}{final}}
+\begin{DoxyCompactList}\small\item\em Implementation of \doxylink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function\+::value}. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classSignedDistanceFunction_aa8c8f6bd9788f107f60fd7781fb16d19}{normal}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+delta}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Signed distance normal vector. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function$<$ T $>$}}}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classImplicitFunction_a361afffb3619a6e06172bdef96c41b91}{operator()}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Alternative signature for the value function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} $>$ }\\\mbox{\hyperlink{classVec3T}{BV}} \mbox{\hyperlink{classImplicitFunction_a844c5123cf9cbad3a140fc40494b4071}{approximate\+Bounding\+Volume\+Octree}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+Low\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+High\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{unsigned}} \mbox{\hyperlink{classVec3T}{int}} \mbox{\hyperlink{classVec3T}{a\+\_\+max\+Tree\+Depth}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+safety}}=0.\+0) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Compute an approximation to the bounding volume for the implicit surface, using octrees. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classConeSDF_a601849cf515c10342f80b854d42a3017}\label{classConeSDF_a601849cf515c10342f80b854d42a3017} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries m\+\_\+tip}
 \begin{DoxyCompactList}\small\item\em Tip position. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classConeSDF_a9b5c714000f34f0426b2ab9c1f8bca7a}\label{classConeSDF_a9b5c714000f34f0426b2ab9c1f8bca7a}} 
-\mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{classConeSDF_a9b5c714000f34f0426b2ab9c1f8bca7a}{m\+\_\+c}}
+\Hypertarget{classConeSDF_a9b5c714000f34f0426b2ab9c1f8bca7a}\label{classConeSDF_a9b5c714000f34f0426b2ab9c1f8bca7a} 
+\mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries m\+\_\+c}
 \begin{DoxyCompactList}\small\item\em Sine/cosine of angle. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classConeSDF_a051ec1389b463c0a3691ce1096840439}\label{classConeSDF_a051ec1389b463c0a3691ce1096840439}} 
-T \mbox{\hyperlink{classConeSDF_a051ec1389b463c0a3691ce1096840439}{m\+\_\+height}}
+\Hypertarget{classConeSDF_a051ec1389b463c0a3691ce1096840439}\label{classConeSDF_a051ec1389b463c0a3691ce1096840439} 
+\mbox{\hyperlink{classVec3T}{T}} {\bfseries m\+\_\+height}
 \begin{DoxyCompactList}\small\item\em Cone height. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-\subsubsection*{template$<$class T$>$\newline
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}}$>$\newline
 class Cone\+SDF$<$ T $>$}
-
 Signed distance field for an finite cone. Oriented along +z. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classConeSDF_abf2276ba406b0fe177dcfd20d6189c58}\label{classConeSDF_abf2276ba406b0fe177dcfd20d6189c58}} 
+\Hypertarget{classConeSDF_abf2276ba406b0fe177dcfd20d6189c58}\label{classConeSDF_abf2276ba406b0fe177dcfd20d6189c58} 
 \index{ConeSDF$<$ T $>$@{ConeSDF$<$ T $>$}!ConeSDF@{ConeSDF}}
 \index{ConeSDF@{ConeSDF}!ConeSDF$<$ T $>$@{ConeSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{ConeSDF()}{ConeSDF()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classConeSDF}{Cone\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classConeSDF}{Cone\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+tip,  }\item[{const T \&}]{a\+\_\+height,  }\item[{const T \&}]{a\+\_\+angle }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classConeSDF}{Cone\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classConeSDF}{\+::\+Cone\+SDF}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+tip,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&}]{a\+\_\+height,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&}]{a\+\_\+angle }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -86,12 +107,12 @@ Finite cone function.
 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classConeSDF_a4ef38df98e9831c25297cb93a5b41da5}\label{classConeSDF_a4ef38df98e9831c25297cb93a5b41da5}} 
+\Hypertarget{classConeSDF_a4ef38df98e9831c25297cb93a5b41da5}\label{classConeSDF_a4ef38df98e9831c25297cb93a5b41da5} 
 \index{ConeSDF$<$ T $>$@{ConeSDF$<$ T $>$}!signedDistance@{signedDistance}}
 \index{signedDistance@{signedDistance}!ConeSDF$<$ T $>$@{ConeSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-virtual T \mbox{\hyperlink{classConeSDF}{Cone\+SDF}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classConeSDF}{Cone\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
 
 
 

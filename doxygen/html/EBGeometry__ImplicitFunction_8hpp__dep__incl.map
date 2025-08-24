@@ -1,10 +1,22 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_ImplicitFunction.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_ImplicitFunction.hpp">
-<area shape="rect" id="node1" title="Abstract base class for representing an implicit function." alt="" coords="323,5,565,61"/>
-<area shape="rect" id="node2" href="$EBGeometry__CSG_8hpp.html" title="Declaration of a CSG operations for implicit functions." alt="" coords="5,317,248,373"/>
-<area shape="rect" id="node4" href="$EBGeometry__SignedDistanceFunction_8hpp.html" title="Abstract base class for representing a signed distance function." alt="" coords="323,109,565,165"/>
-<area shape="rect" id="node8" href="$EBGeometry__Transform_8hpp.html" title="Various transformations for implicit functions and distance fields." alt="" coords="668,109,911,165"/>
-<area shape="rect" id="node3" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="397,421,627,463"/>
-<area shape="rect" id="node5" href="$EBGeometry__AnalyticDistanceFunctions_8hpp.html" title="Declaration of various analytic distance functions." alt="" coords="323,213,565,269"/>
-<area shape="rect" id="node6" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="589,213,832,269"/>
-<area shape="rect" id="node7" href="$EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="583,317,825,373"/>
+<area shape="rect" id="Node000001" title="Abstract base class for representing an implicit function." alt="" coords="323,5,565,60"/>
+<area shape="rect" id="Node000002" href="$EBGeometry__CSG_8hpp.html" title="Declaration of a CSG operations for implicit functions." alt="" coords="5,313,248,368"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="375,69,343,88,312,110,259,162,212,218,145,314,140,311,208,215,255,158,309,106,340,83,372,64"/>
+<area shape="rect" id="Node000004" href="$EBGeometry__SignedDistanceFunction_8hpp.html" title="Abstract base class for representing a signed distance function." alt="" coords="323,108,565,163"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="447,74,447,108,441,108,441,74"/>
+<area shape="rect" id="Node000008" href="$EBGeometry__Transform_8hpp.html" title="Various transformations for implicit functions and distance fields." alt="" coords="668,108,911,163"/>
+<area shape="poly" id="edge11_Node000001_Node000008" title=" " alt="" coords="548,61,700,105,699,111,546,66"/>
+<area shape="rect" id="Node000003" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="397,416,627,456"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="249,369,435,413,434,419,248,374"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="355,172,331,190,313,212,307,226,305,237,313,264,328,290,345,314,388,356,434,389,475,414,472,418,431,394,385,360,341,317,323,293,308,266,300,238,301,224,308,209,328,186,352,167"/>
+<area shape="rect" id="Node000005" href="$EBGeometry__AnalyticDistanceFunctions_8hpp.html" title="Declaration of various analytic distance functions." alt="" coords="323,211,565,265"/>
+<area shape="poly" id="edge5_Node000004_Node000005" title=" " alt="" coords="447,176,447,211,441,211,441,176"/>
+<area shape="rect" id="Node000006" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="589,211,832,265"/>
+<area shape="poly" id="edge7_Node000004_Node000006" title=" " alt="" coords="527,165,642,208,640,213,525,170"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="460,277,508,415,503,417,455,279"/>
+<area shape="poly" id="edge8_Node000006_Node000003" title=" " alt="" coords="630,274,600,292,573,315,553,340,538,367,520,417,515,415,534,365,549,337,569,311,597,288,628,269"/>
+<area shape="rect" id="Node000007" href="$EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="583,313,825,368"/>
+<area shape="poly" id="edge9_Node000006_Node000007" title=" " alt="" coords="711,279,708,313,703,313,705,279"/>
+<area shape="poly" id="edge10_Node000007_Node000003" title=" " alt="" coords="639,376,552,418,550,413,637,372"/>
+<area shape="poly" id="edge12_Node000008_Node000003" title=" " alt="" coords="826,172,847,210,851,246,850,297,845,344,840,369,825,381,806,391,754,408,691,420,628,428,627,423,691,415,752,403,803,387,822,377,835,367,840,344,844,297,845,246,841,211,821,175"/>
 </map>

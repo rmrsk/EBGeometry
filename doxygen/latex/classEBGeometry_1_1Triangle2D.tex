@@ -1,0 +1,248 @@
+\doxysection{EBGeometry\+::Triangle2D\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classEBGeometry_1_1Triangle2D}{}\label{classEBGeometry_1_1Triangle2D}\index{EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}}
+
+
+Class for embedding a triangle face into 2D.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Triangle2\+D.\+hpp$>$}
+
+\doxysubsubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classEBGeometry_1_1Triangle2D_a3e6ec1e9700c7ea2f9ee4dcc54041f17}\label{classEBGeometry_1_1Triangle2D_a3e6ec1e9700c7ea2f9ee4dcc54041f17} 
+enum class \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a3e6ec1e9700c7ea2f9ee4dcc54041f17}{Inside\+Outside\+Algorithm}} \{ {\bfseries Subtended\+Angle}
+, {\bfseries Crossing\+Number}
+, {\bfseries Winding\+Number}
+ \}
+\begin{DoxyCompactList}\small\item\em Supported algorithms for performing inside/outside tests when checking if a point projects to the inside or outside of a polygon face. \end{DoxyCompactList}\item 
+\Hypertarget{classEBGeometry_1_1Triangle2D_aa57f2e9f78ea31e148903801bd0fba1c}\label{classEBGeometry_1_1Triangle2D_aa57f2e9f78ea31e148903801bd0fba1c} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Vec2} = \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$
+\begin{DoxyCompactList}\small\item\em Alias for 2D vector type. \end{DoxyCompactList}\item 
+\Hypertarget{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}\label{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Vec3} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$
+\begin{DoxyCompactList}\small\item\em Alias for 3D vector type. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classEBGeometry_1_1Triangle2D_a8cd4660e83fcb7c8b25857c92a126deb}\label{classEBGeometry_1_1Triangle2D_a8cd4660e83fcb7c8b25857c92a126deb} 
+{\bfseries Triangle2D} () \mbox{\hyperlink{classVec3T}{noexcept}}=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Default constructor. Must subsequently call the define function. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classEBGeometry_1_1Triangle2D_ae1265888ea98467c9b6e212c9a746d79}{Triangle2D}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+normal}}, \mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}}, 3 $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+vertices}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a9c5c728f889d7cf6e3d5f5cacb5af964}{Triangle2D}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+triangle2D}}) \mbox{\hyperlink{classVec3T}{noexcept}}=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Copy constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a2920dcb0ea755d91c46d6f072c6c07ce}{Triangle2D}} (\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}} \&\&\mbox{\hyperlink{classVec3T}{a\+\_\+triangle2D}}) \mbox{\hyperlink{classVec3T}{noexcept}}=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Move constructor. \end{DoxyCompactList}\item 
+\Hypertarget{classEBGeometry_1_1Triangle2D_a2f287a5235a714fb93ad0714287c4c67}\label{classEBGeometry_1_1Triangle2D_a2f287a5235a714fb93ad0714287c4c67} 
+{\bfseries \texorpdfstring{$\sim$}{\string~}\+Triangle2D} () \mbox{\hyperlink{classVec3T}{noexcept}}=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a660df385368022e5d3263a70ec639fec}{operator=}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+triangle2D}}) \mbox{\hyperlink{classVec3T}{noexcept}}=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Copy assignment. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_acac8e1c6892df561313dc3250cae26c0}{operator=}} (\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}} \&\&\mbox{\hyperlink{classVec3T}{a\+\_\+triangle2D}}) \mbox{\hyperlink{classVec3T}{noexcept}}=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Move assignment. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_abb7609cdcb04b410e9ce776709f5060a}{define}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+normal}}, \mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}}, 3 $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+vertices}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Define function. Puts object in usable state. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a0e67131bdb4ba3904ba5075b4e8b9d68}{is\+Point\+Inside}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}, \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a3e6ec1e9700c7ea2f9ee4dcc54041f17}{Inside\+Outside\+Algorithm}} \mbox{\hyperlink{classVec3T}{a\+\_\+algorithm}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Check if a point is inside or outside the 2D polygon. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a25fd8b2be4a524d2dbc2b838b88c049e}{is\+Point\+Inside\+Winding\+Number}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Check if a point is inside a 2D polygon, using the winding number algorithm. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a35a0caecb41b91425e810a4777c308cb}{is\+Point\+Inside\+Crossing\+Number}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Check if a point is inside a 2D polygon, by computing the number of times a ray crosses the polygon edges. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a02657e2282128a3576ca5d6aa5ff4f1b}{is\+Point\+Inside\+Subtend}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Check if a point is inside a 2D polygon, using the subtended angles. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}}$>$\newline
+class EBGeometry\+::\+Triangle2\+D$<$ T $>$}
+Class for embedding a triangle face into 2D. 
+
+This class is required for determining whether or not a 3D point projected to the plane of a triangle lies inside or outside the triangle. To do this we compute the 2D embedding of the triangle face, reducing the problem to a tractable dimension where we can use well-\/tested algorithm. Once the 2D embedding is computed, we can use well-\/known algorithms for checking if a point lies inside or outside. The supported algorithms are 1) The winding number algorithm (computing the winding number), 2) Computing the subtended angle of the point with the edges of the polygon (sums to 360 degrees if the point is inside), or computing the crossing number which checks how many times a ray cast from the point crosses the edges of the triangle. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{classEBGeometry_1_1Triangle2D_ae1265888ea98467c9b6e212c9a746d79}\label{classEBGeometry_1_1Triangle2D_ae1265888ea98467c9b6e212c9a746d79} 
+\index{EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}!Triangle2D@{Triangle2D}}
+\index{Triangle2D@{Triangle2D}!EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{Triangle2D()}{Triangle2D()}\hspace{0.1cm}{\footnotesize\ttfamily [1/3]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{EBGeometry\+::\+Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::\+Triangle2D (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}} \&}]{a\+\_\+normal,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}}, 3 $>$ \&}]{a\+\_\+vertices }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+normal} & Normal vector of the 3D triangle \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+vertices} & Vertex coordinates of the 3D triangle \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classEBGeometry_1_1Triangle2D_a9c5c728f889d7cf6e3d5f5cacb5af964}\label{classEBGeometry_1_1Triangle2D_a9c5c728f889d7cf6e3d5f5cacb5af964} 
+\index{EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}!Triangle2D@{Triangle2D}}
+\index{Triangle2D@{Triangle2D}!EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{Triangle2D()}{Triangle2D()}\hspace{0.1cm}{\footnotesize\ttfamily [2/3]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{EBGeometry\+::\+Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::\+Triangle2D (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+triangle2D }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [default]}, {\ttfamily [noexcept]}}
+
+
+
+Copy constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+triangle2D} & Other triangle \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classEBGeometry_1_1Triangle2D_a2920dcb0ea755d91c46d6f072c6c07ce}\label{classEBGeometry_1_1Triangle2D_a2920dcb0ea755d91c46d6f072c6c07ce} 
+\index{EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}!Triangle2D@{Triangle2D}}
+\index{Triangle2D@{Triangle2D}!EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{Triangle2D()}{Triangle2D()}\hspace{0.1cm}{\footnotesize\ttfamily [3/3]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{EBGeometry\+::\+Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::\+Triangle2D (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\&}]{a\+\_\+triangle2D }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [default]}, {\ttfamily [noexcept]}}
+
+
+
+Move constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in,out}}  & {\em a\+\_\+triangle2D} & Other triangle \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classEBGeometry_1_1Triangle2D_abb7609cdcb04b410e9ce776709f5060a}\label{classEBGeometry_1_1Triangle2D_abb7609cdcb04b410e9ce776709f5060a} 
+\index{EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}!define@{define}}
+\index{define@{define}!EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{define()}{define()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{EBGeometry\+::\+Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::define (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}} \&}]{a\+\_\+normal,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}}, 3 $>$ \&}]{a\+\_\+vertices }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Define function. Puts object in usable state. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+normal} & Normal vector of the 3D triangle \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+vertices} & Vertex coordinates of the 3D triangle \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classEBGeometry_1_1Triangle2D_a0e67131bdb4ba3904ba5075b4e8b9d68}\label{classEBGeometry_1_1Triangle2D_a0e67131bdb4ba3904ba5075b4e8b9d68} 
+\index{EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}!isPointInside@{isPointInside}}
+\index{isPointInside@{isPointInside}!EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{isPointInside()}{isPointInside()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{EBGeometry\+::\+Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::is\+Point\+Inside (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}} \&}]{a\+\_\+point,  }\item[{\mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a3e6ec1e9700c7ea2f9ee4dcc54041f17}{Inside\+Outside\+Algorithm}}}]{a\+\_\+algorithm }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Check if a point is inside or outside the 2D polygon. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point coordinates \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+algorithm} & Inside/outside algorithm\\
+\hline
+\end{DoxyParams}
+This will call the function corresponding to a\+\_\+algorithm. \Hypertarget{classEBGeometry_1_1Triangle2D_a35a0caecb41b91425e810a4777c308cb}\label{classEBGeometry_1_1Triangle2D_a35a0caecb41b91425e810a4777c308cb} 
+\index{EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}!isPointInsideCrossingNumber@{isPointInsideCrossingNumber}}
+\index{isPointInsideCrossingNumber@{isPointInsideCrossingNumber}!EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{isPointInsideCrossingNumber()}{isPointInsideCrossingNumber()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{EBGeometry\+::\+Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::is\+Point\+Inside\+Crossing\+Number (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Check if a point is inside a 2D polygon, by computing the number of times a ray crosses the polygon edges. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point coordinates \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns true if the 3D point projects to the inside of the 2D polygon 
+\end{DoxyReturn}
+\Hypertarget{classEBGeometry_1_1Triangle2D_a02657e2282128a3576ca5d6aa5ff4f1b}\label{classEBGeometry_1_1Triangle2D_a02657e2282128a3576ca5d6aa5ff4f1b} 
+\index{EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}!isPointInsideSubtend@{isPointInsideSubtend}}
+\index{isPointInsideSubtend@{isPointInsideSubtend}!EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{isPointInsideSubtend()}{isPointInsideSubtend()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{EBGeometry\+::\+Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::is\+Point\+Inside\+Subtend (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Check if a point is inside a 2D polygon, using the subtended angles. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point coordinates \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns true if the 3D point projects to the inside of the 2D polygon 
+\end{DoxyReturn}
+\Hypertarget{classEBGeometry_1_1Triangle2D_a25fd8b2be4a524d2dbc2b838b88c049e}\label{classEBGeometry_1_1Triangle2D_a25fd8b2be4a524d2dbc2b838b88c049e} 
+\index{EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}!isPointInsideWindingNumber@{isPointInsideWindingNumber}}
+\index{isPointInsideWindingNumber@{isPointInsideWindingNumber}!EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{isPointInsideWindingNumber()}{isPointInsideWindingNumber()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{EBGeometry\+::\+Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::is\+Point\+Inside\+Winding\+Number (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Check if a point is inside a 2D polygon, using the winding number algorithm. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & 3D point coordinates \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Returns true if the 3D point projects to the inside of the 2D polygon 
+\end{DoxyReturn}
+\Hypertarget{classEBGeometry_1_1Triangle2D_a660df385368022e5d3263a70ec639fec}\label{classEBGeometry_1_1Triangle2D_a660df385368022e5d3263a70ec639fec} 
+\index{EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}!operator=@{operator=}}
+\index{operator=@{operator=}!EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{EBGeometry\+::\+Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classVec3T}{\+::operator}}= (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+triangle2D }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [default]}, {\ttfamily [noexcept]}}
+
+
+
+Copy assignment. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+triangle2D} & Other triangle \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classEBGeometry_1_1Triangle2D_acac8e1c6892df561313dc3250cae26c0}\label{classEBGeometry_1_1Triangle2D_acac8e1c6892df561313dc3250cae26c0} 
+\index{EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}!operator=@{operator=}}
+\index{operator=@{operator=}!EBGeometry::Triangle2D$<$ T $>$@{EBGeometry::Triangle2D$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{EBGeometry\+::\+Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classVec3T}{\+::operator}}= (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\&}]{a\+\_\+triangle2D }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [default]}, {\ttfamily [noexcept]}}
+
+
+
+Move assignment. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in,out}}  & {\em a\+\_\+triangle2D} & Other triangle \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__Triangle2D_8hpp}{EBGeometry\+\_\+\+Triangle2\+D.\+hpp}}\end{DoxyCompactItemize}

@@ -1,5 +1,7 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_DCEL.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_DCEL.hpp">
-<area shape="rect" id="node1" title="Namespace documentation." alt="" coords="157,5,399,61"/>
-<area shape="rect" id="node2" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="5,109,268,136"/>
-<area shape="rect" id="node3" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="293,109,549,136"/>
+<area shape="rect" id="Node000001" title="Namespace documentation." alt="" coords="157,5,399,60"/>
+<area shape="rect" id="Node000002" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="5,108,268,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="236,62,169,103,166,98,233,58"/>
+<area shape="rect" id="Node000003" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="293,108,549,133"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="323,58,391,99,389,103,320,62"/>
 </map>

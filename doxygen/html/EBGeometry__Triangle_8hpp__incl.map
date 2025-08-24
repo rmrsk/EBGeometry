@@ -1,0 +1,24 @@
+<map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Triangle.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Triangle.hpp">
+<area shape="rect" id="Node000001" title="Declaration of a triangle class with signed distance functionality." alt="" coords="149,5,392,60"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,255,61,280"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="172,63,127,83,86,110,69,126,58,142,43,182,37,212,35,240,30,240,31,211,37,181,53,139,65,123,82,106,124,78,169,58"/>
+<area shape="rect" id="Node000003" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="353,181,516,207"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="297,58,369,131,412,171,409,175,365,135,293,62"/>
+<area shape="rect" id="Node000008" href="$EBGeometry__Triangle2D_8hpp.html" title="Declaration of a class that encapsulates the projection of a 3D triangle into a 2D plane." alt="" coords="96,108,304,133"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="251,62,220,99,216,96,247,58"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="379,108,619,133"/>
+<area shape="poly" id="edge12_Node000001_Node000010" title=" " alt="" coords="341,58,456,101,454,106,339,63"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="371,209,75,261,74,256,370,204"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="141,255,221,280"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="395,209,236,254,234,248,393,204"/>
+<area shape="rect" id="Node000005" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="246,255,509,280"/>
+<area shape="poly" id="edge5_Node000003_Node000005" title=" " alt="" coords="427,209,397,246,393,242,423,205"/>
+<area shape="rect" id="Node000006" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="533,255,789,280"/>
+<area shape="poly" id="edge6_Node000003_Node000006" title=" " alt="" coords="472,204,612,248,611,253,470,209"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="814,255,1026,280"/>
+<area shape="poly" id="edge7_Node000003_Node000007" title=" " alt="" coords="513,204,829,250,828,255,512,209"/>
+<area shape="poly" id="edge9_Node000008_Node000002" title=" " alt="" coords="145,136,100,154,79,167,61,183,45,211,38,242,33,240,40,209,57,180,76,163,98,149,143,131"/>
+<area shape="poly" id="edge10_Node000008_Node000003" title=" " alt="" coords="238,131,384,175,383,180,237,136"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="71,181,329,207"/>
+<area shape="poly" id="edge11_Node000008_Node000009" title=" " alt="" coords="203,134,203,168,197,168,197,134"/>
+</map>

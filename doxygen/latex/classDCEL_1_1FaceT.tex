@@ -1,5 +1,5 @@
-\hypertarget{classDCEL_1_1FaceT}{}\doxysection{DCEL\+::FaceT$<$ T, Meta $>$ Class Template Reference}
-\label{classDCEL_1_1FaceT}\index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
+\doxysection{DCEL\+::FaceT\texorpdfstring{$<$}{<} T, Meta \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classDCEL_1_1FaceT}{}\label{classDCEL_1_1FaceT}\index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 
 
 Face class.  
@@ -9,171 +9,172 @@ Face class.
 
 {\ttfamily \#include $<$EBGeometry\+\_\+\+DCEL\+\_\+\+Face.\+hpp$>$}
 
-\doxysubsection*{Public Types}
+\doxysubsubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}\label{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}} 
-using \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$
+\Hypertarget{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}\label{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Vec3} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$
 \begin{DoxyCompactList}\small\item\em Alias for vector type. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_aaac87d0fa7b10534426679a106bc08c1}\label{classDCEL_1_1FaceT_aaac87d0fa7b10534426679a106bc08c1}} 
-using \mbox{\hyperlink{classDCEL_1_1FaceT_aaac87d0fa7b10534426679a106bc08c1}{Vertex}} = \mbox{\hyperlink{classDCEL_1_1VertexT}{VertexT}}$<$ T, Meta $>$
+\Hypertarget{classDCEL_1_1FaceT_aaac87d0fa7b10534426679a106bc08c1}\label{classDCEL_1_1FaceT_aaac87d0fa7b10534426679a106bc08c1} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Vertex} = \mbox{\hyperlink{classDCEL_1_1VertexT}{VertexT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$
 \begin{DoxyCompactList}\small\item\em Alias for vertex type. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a77608fed0a5f104c4b1e87d93a88c8da}\label{classDCEL_1_1FaceT_a77608fed0a5f104c4b1e87d93a88c8da}} 
-using \mbox{\hyperlink{classDCEL_1_1FaceT_a77608fed0a5f104c4b1e87d93a88c8da}{Edge}} = \mbox{\hyperlink{classDCEL_1_1EdgeT}{EdgeT}}$<$ T, Meta $>$
+\Hypertarget{classDCEL_1_1FaceT_a77608fed0a5f104c4b1e87d93a88c8da}\label{classDCEL_1_1FaceT_a77608fed0a5f104c4b1e87d93a88c8da} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Edge} = \mbox{\hyperlink{classDCEL_1_1EdgeT}{EdgeT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$
 \begin{DoxyCompactList}\small\item\em Alias for edge type. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_ad171458e6506fa6dd6eed25058e22bd7}\label{classDCEL_1_1FaceT_ad171458e6506fa6dd6eed25058e22bd7}} 
-using \mbox{\hyperlink{classDCEL_1_1FaceT_ad171458e6506fa6dd6eed25058e22bd7}{Face}} = \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}$<$ T, Meta $>$
+\Hypertarget{classDCEL_1_1FaceT_ad171458e6506fa6dd6eed25058e22bd7}\label{classDCEL_1_1FaceT_ad171458e6506fa6dd6eed25058e22bd7} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Face} = \mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$
 \begin{DoxyCompactList}\small\item\em Alias for face type. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a142e9c0ebaabc1809159de2a3f19085d}\label{classDCEL_1_1FaceT_a142e9c0ebaabc1809159de2a3f19085d}} 
-using \mbox{\hyperlink{classDCEL_1_1FaceT_a142e9c0ebaabc1809159de2a3f19085d}{Vertex\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1FaceT_aaac87d0fa7b10534426679a106bc08c1}{Vertex}} $>$
+\Hypertarget{classDCEL_1_1FaceT_a142e9c0ebaabc1809159de2a3f19085d}\label{classDCEL_1_1FaceT_a142e9c0ebaabc1809159de2a3f19085d} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Vertex\+Ptr} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1FaceT_aaac87d0fa7b10534426679a106bc08c1}{Vertex}} $>$
 \begin{DoxyCompactList}\small\item\em Alias for vertex pointer type. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}\label{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}} 
-using \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1FaceT_a77608fed0a5f104c4b1e87d93a88c8da}{Edge}} $>$
+\Hypertarget{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}\label{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Edge\+Ptr} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1FaceT_a77608fed0a5f104c4b1e87d93a88c8da}{Edge}} $>$
 \begin{DoxyCompactList}\small\item\em Alias for edge pointer type. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a73cfb5569ceaf84e9be63d5fb4817bdc}\label{classDCEL_1_1FaceT_a73cfb5569ceaf84e9be63d5fb4817bdc}} 
-using \mbox{\hyperlink{classDCEL_1_1FaceT_a73cfb5569ceaf84e9be63d5fb4817bdc}{Face\+Ptr}} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1FaceT_ad171458e6506fa6dd6eed25058e22bd7}{Face}} $>$
+\Hypertarget{classDCEL_1_1FaceT_a73cfb5569ceaf84e9be63d5fb4817bdc}\label{classDCEL_1_1FaceT_a73cfb5569ceaf84e9be63d5fb4817bdc} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Face\+Ptr} = std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classDCEL_1_1FaceT_ad171458e6506fa6dd6eed25058e22bd7}{Face}} $>$
 \begin{DoxyCompactList}\small\item\em Alias for face pointer type. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a2f5e0cd8fd3f1bd85192c19ad23aa741}\label{classDCEL_1_1FaceT_a2f5e0cd8fd3f1bd85192c19ad23aa741}} 
-using \mbox{\hyperlink{classDCEL_1_1FaceT_a2f5e0cd8fd3f1bd85192c19ad23aa741}{Edge\+Iterator}} = \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{Edge\+IteratorT}}$<$ T, Meta $>$
+\Hypertarget{classDCEL_1_1FaceT_a2f5e0cd8fd3f1bd85192c19ad23aa741}\label{classDCEL_1_1FaceT_a2f5e0cd8fd3f1bd85192c19ad23aa741} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Edge\+Iterator} = \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{Edge\+IteratorT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$
 \begin{DoxyCompactList}\small\item\em Alias for edge iterator. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Public Member Functions}
+\doxysubsubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_af1e01d92750dde56b2a900c8e9b83650}\label{classDCEL_1_1FaceT_af1e01d92750dde56b2a900c8e9b83650}} 
-\mbox{\hyperlink{classDCEL_1_1FaceT_af1e01d92750dde56b2a900c8e9b83650}{FaceT}} ()
+\Hypertarget{classDCEL_1_1FaceT_af1e01d92750dde56b2a900c8e9b83650}\label{classDCEL_1_1FaceT_af1e01d92750dde56b2a900c8e9b83650} 
+{\bfseries FaceT} ()
 \begin{DoxyCompactList}\small\item\em Default constructor. Sets the half-\/edge to zero and the inside/outside algorithm to crossing number algorithm. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classDCEL_1_1FaceT_a6e5158ddec212b19f816e5a9ad652bce}{FaceT}} (const \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \&a\+\_\+edge)
+\mbox{\hyperlink{classDCEL_1_1FaceT_a6e5158ddec212b19f816e5a9ad652bce}{FaceT}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+edge}})
 \begin{DoxyCompactList}\small\item\em Partial constructor. Calls default constructor but associates a half-\/edge. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classDCEL_1_1FaceT_ac26156b61e6c7dffda08ce756f5a9caa}{FaceT}} (const \mbox{\hyperlink{classDCEL_1_1FaceT_ad171458e6506fa6dd6eed25058e22bd7}{Face}} \&a\+\_\+other\+Face)
+\mbox{\hyperlink{classDCEL_1_1FaceT_ac26156b61e6c7dffda08ce756f5a9caa}{FaceT}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_ad171458e6506fa6dd6eed25058e22bd7}{Face}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+other\+Face}})
 \begin{DoxyCompactList}\small\item\em Partial constructor. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a0f2c35406b68d5cd28a160bd92f88c97}\label{classDCEL_1_1FaceT_a0f2c35406b68d5cd28a160bd92f88c97}} 
-virtual \mbox{\hyperlink{classDCEL_1_1FaceT_a0f2c35406b68d5cd28a160bd92f88c97}{$\sim$\+FaceT}} ()
+\Hypertarget{classDCEL_1_1FaceT_a0f2c35406b68d5cd28a160bd92f88c97}\label{classDCEL_1_1FaceT_a0f2c35406b68d5cd28a160bd92f88c97} 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+FaceT} ()
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
-void \mbox{\hyperlink{classDCEL_1_1FaceT_ae721653a8417912982f45ce58e7752a2}{define}} (const \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&a\+\_\+normal, const \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \&a\+\_\+edge) noexcept
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1FaceT_ae721653a8417912982f45ce58e7752a2}{define}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+normal}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+edge}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Define function which sets the normal vector and half-\/edge. \end{DoxyCompactList}\item 
-void \mbox{\hyperlink{classDCEL_1_1FaceT_a56cc532ce56e95efb4464ca4a184247a}{reconcile}} () noexcept
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1FaceT_a56cc532ce56e95efb4464ca4a184247a}{reconcile}} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Reconcile face. This will compute the normal vector, area, centroid, and the 2D embedding of the polygon. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a9863e0b00d3efd206fa1414bfbb39831}\label{classDCEL_1_1FaceT_a9863e0b00d3efd206fa1414bfbb39831}} 
-void \mbox{\hyperlink{classDCEL_1_1FaceT_a9863e0b00d3efd206fa1414bfbb39831}{flip}} () noexcept
+\Hypertarget{classDCEL_1_1FaceT_a9863e0b00d3efd206fa1414bfbb39831}\label{classDCEL_1_1FaceT_a9863e0b00d3efd206fa1414bfbb39831} 
+\mbox{\hyperlink{classVec3T}{void}} {\bfseries flip} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Flip the normal vector. \end{DoxyCompactList}\item 
-void \mbox{\hyperlink{classDCEL_1_1FaceT_a2d33ba144bc3841d6930efa73479f21a}{set\+Half\+Edge}} (const \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \&a\+\_\+half\+Edge) noexcept
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1FaceT_a2d33ba144bc3841d6930efa73479f21a}{set\+Half\+Edge}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+half\+Edge}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Set the half edge. \end{DoxyCompactList}\item 
-void \mbox{\hyperlink{classDCEL_1_1FaceT_a7fb0d19284b3692d11d0d495334467db}{set\+Inside\+Outside\+Algorithm}} (typename \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ T $>$\+::Inside\+Outside\+Algorithm \&a\+\_\+algorithm) noexcept
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1FaceT_a7fb0d19284b3692d11d0d495334467db}{set\+Inside\+Outside\+Algorithm}} (\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::\+Inside\+Outside\+Algorithm \&\mbox{\hyperlink{classVec3T}{a\+\_\+algorithm}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Set the inside/outside algorithm when determining if a point projects to the inside or outside of the polygon. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_ae2a2058969fd288145554fc609b63ff5}\label{classDCEL_1_1FaceT_ae2a2058969fd288145554fc609b63ff5}} 
-\mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \& \mbox{\hyperlink{classDCEL_1_1FaceT_ae2a2058969fd288145554fc609b63ff5}{get\+Half\+Edge}} () noexcept
+\Hypertarget{classDCEL_1_1FaceT_a6b21a6e677af4337115677db872f01bb}\label{classDCEL_1_1FaceT_a6b21a6e677af4337115677db872f01bb} 
+\mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \& {\bfseries get\+Half\+Edge} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get modifiable half-\/edge. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_ad165db88ffd5dcda3d025a6ba435b752}\label{classDCEL_1_1FaceT_ad165db88ffd5dcda3d025a6ba435b752}} 
-const \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \& \mbox{\hyperlink{classDCEL_1_1FaceT_ad165db88ffd5dcda3d025a6ba435b752}{get\+Half\+Edge}} () const noexcept
+\Hypertarget{classDCEL_1_1FaceT_a404414d14b5c20d67079e49ac7a82ad5}\label{classDCEL_1_1FaceT_a404414d14b5c20d67079e49ac7a82ad5} 
+\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \& {\bfseries get\+Half\+Edge} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get immutable half-\/edge. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a93be073872a7c29b4a562c30733131c5}\label{classDCEL_1_1FaceT_a93be073872a7c29b4a562c30733131c5}} 
-\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classDCEL_1_1FaceT_a93be073872a7c29b4a562c30733131c5}{get\+Centroid}} () noexcept
+\Hypertarget{classDCEL_1_1FaceT_a3284dc947094d9a76746f49a9d8f0b4e}\label{classDCEL_1_1FaceT_a3284dc947094d9a76746f49a9d8f0b4e} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& {\bfseries get\+Centroid} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get modifiable centroid. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a90d66c1fbc2c7c7ce5de9dd0e8f38ab6}\label{classDCEL_1_1FaceT_a90d66c1fbc2c7c7ce5de9dd0e8f38ab6}} 
-const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classDCEL_1_1FaceT_a90d66c1fbc2c7c7ce5de9dd0e8f38ab6}{get\+Centroid}} () const noexcept
+\Hypertarget{classDCEL_1_1FaceT_acabb28be249a5d74750f75451ab9ae18}\label{classDCEL_1_1FaceT_acabb28be249a5d74750f75451ab9ae18} 
+\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& {\bfseries get\+Centroid} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get immutable centroid. \end{DoxyCompactList}\item 
-T \& \mbox{\hyperlink{classDCEL_1_1FaceT_ade09221357519acffef2a94ba1053165}{get\+Centroid}} (const size\+\_\+t a\+\_\+dir) noexcept
+\mbox{\hyperlink{classVec3T}{T}} \& \mbox{\hyperlink{classDCEL_1_1FaceT_a30271f70249dd4e6bd4ef155c17d8368}{get\+Centroid}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{size\+\_\+t}} \mbox{\hyperlink{classVec3T}{a\+\_\+dir}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get modifiable centroid position in specified coordinate direction. \end{DoxyCompactList}\item 
-const T \& \mbox{\hyperlink{classDCEL_1_1FaceT_a47d81c80322102d050f324fc189f7861}{get\+Centroid}} (const size\+\_\+t a\+\_\+dir) const noexcept
+\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \& \mbox{\hyperlink{classDCEL_1_1FaceT_a7b100199922e215eaf0a33487773d0a9}{get\+Centroid}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{size\+\_\+t}} \mbox{\hyperlink{classVec3T}{a\+\_\+dir}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get immutable centroid position in specified coordinate direction. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a90067e068ae9a0fc526e6997dec3f0fd}\label{classDCEL_1_1FaceT_a90067e068ae9a0fc526e6997dec3f0fd}} 
-\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classDCEL_1_1FaceT_a90067e068ae9a0fc526e6997dec3f0fd}{get\+Normal}} () noexcept
+\Hypertarget{classDCEL_1_1FaceT_ab18a44ba177cdcc100e3fd89abdee1b7}\label{classDCEL_1_1FaceT_ab18a44ba177cdcc100e3fd89abdee1b7} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& {\bfseries get\+Normal} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get modifiable normal vector. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_ad9498e1c8d7f30a30afd79ca231921aa}\label{classDCEL_1_1FaceT_ad9498e1c8d7f30a30afd79ca231921aa}} 
-const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \& \mbox{\hyperlink{classDCEL_1_1FaceT_ad9498e1c8d7f30a30afd79ca231921aa}{get\+Normal}} () const noexcept
+\Hypertarget{classDCEL_1_1FaceT_ab11d461719479d08f66f16cfe3210099}\label{classDCEL_1_1FaceT_ab11d461719479d08f66f16cfe3210099} 
+\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& {\bfseries get\+Normal} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get immutable normal vector. \end{DoxyCompactList}\item 
-Meta \& \mbox{\hyperlink{classDCEL_1_1FaceT_a5dad4d959603944b208b061960c4c3d7}{get\+Meta\+Data}} () noexcept
+\mbox{\hyperlink{classVec3T}{Meta}} \& \mbox{\hyperlink{classDCEL_1_1FaceT_a46d1f4998e099e01fe689e1979f46cb2}{get\+Meta\+Data}} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get meta-\/data. \end{DoxyCompactList}\item 
-const Meta \& \mbox{\hyperlink{classDCEL_1_1FaceT_a5e44d2b2f2a5ba313b84bcaab0077ff2}{get\+Meta\+Data}} () const noexcept
+\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Meta}} \& \mbox{\hyperlink{classDCEL_1_1FaceT_a6692af6e94ae4c5b39ad0c7513a9d2f8}{get\+Meta\+Data}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get meta-\/data. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a958517ea38515a407c79073e97c9a2e5}\label{classDCEL_1_1FaceT_a958517ea38515a407c79073e97c9a2e5}} 
-T \mbox{\hyperlink{classDCEL_1_1FaceT_a958517ea38515a407c79073e97c9a2e5}{compute\+Area}} () noexcept
+\Hypertarget{classDCEL_1_1FaceT_a958517ea38515a407c79073e97c9a2e5}\label{classDCEL_1_1FaceT_a958517ea38515a407c79073e97c9a2e5} 
+\mbox{\hyperlink{classVec3T}{T}} {\bfseries compute\+Area} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Compute the area of this polygon. \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classDCEL_1_1FaceT_a759cfbca44864b9df9093d4676a6fa12}{signed\+Distance}} (const \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&a\+\_\+x0) const noexcept
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classDCEL_1_1FaceT_a759cfbca44864b9df9093d4676a6fa12}{signed\+Distance}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+x0}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Compute the signed distance to a point. \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classDCEL_1_1FaceT_ad6619ef7d57813440879971a8a2f41a8}{unsigned\+Distance2}} (const \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&a\+\_\+x0) const noexcept
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classDCEL_1_1FaceT_ad6619ef7d57813440879971a8a2f41a8}{unsigned\+Distance2}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+x0}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Compute the unsigned squared distance to a point. \end{DoxyCompactList}\item 
-std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ $>$ \mbox{\hyperlink{classDCEL_1_1FaceT_a1dccbbc27d361c9abf9a075c7aeb7ae7}{get\+All\+Vertex\+Coordinates}} () const noexcept
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{classDCEL_1_1FaceT_af6a33213a23988d453f475a64b4cf1d7}{get\+All\+Vertex\+Coordinates}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Return the coordinates of all the vertices on this polygon. \end{DoxyCompactList}\item 
-std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1FaceT_a142e9c0ebaabc1809159de2a3f19085d}{Vertex\+Ptr}} $>$ \mbox{\hyperlink{classDCEL_1_1FaceT_a6e0a7e0ebfe909f59694175782873060}{gather\+Vertices}} () const noexcept
+std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1FaceT_a142e9c0ebaabc1809159de2a3f19085d}{Vertex\+Ptr}} $>$ \mbox{\hyperlink{classDCEL_1_1FaceT_a43b0ab0264f93390b32b0d9f5e9bbcb9}{gather\+Vertices}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Return all the vertices on this polygon. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a8b80858a4fed84cd8d4e945f0fc8ad4c}\label{classDCEL_1_1FaceT_a8b80858a4fed84cd8d4e945f0fc8ad4c}} 
-\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classDCEL_1_1FaceT_a8b80858a4fed84cd8d4e945f0fc8ad4c}{get\+Smallest\+Coordinate}} () const noexcept
+std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} $>$ \mbox{\hyperlink{classDCEL_1_1FaceT_a9140ef882421ccb5565153807af2a4b3}{gather\+Edges}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Return all the half-\/edges on this polygon. \end{DoxyCompactList}\item 
+\Hypertarget{classDCEL_1_1FaceT_af36f983834aacba72370b6ddd9cffcbb}\label{classDCEL_1_1FaceT_af36f983834aacba72370b6ddd9cffcbb} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries get\+Smallest\+Coordinate} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get the lower-\/left-\/most coordinate of this polygon face. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a73d09b6f43e170689cbb128c32f9a83f}\label{classDCEL_1_1FaceT_a73d09b6f43e170689cbb128c32f9a83f}} 
-\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classDCEL_1_1FaceT_a73d09b6f43e170689cbb128c32f9a83f}{get\+Highest\+Coordinate}} () const noexcept
+\Hypertarget{classDCEL_1_1FaceT_a23e69a267b1370a39f716e19c18325d8}\label{classDCEL_1_1FaceT_a23e69a267b1370a39f716e19c18325d8} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries get\+Highest\+Coordinate} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get the upper-\/right-\/most coordinate of this polygon face. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Member Functions}
+\doxysubsubsection*{Protected Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a966676fbdee217d7fc17cdb67c1e17c4}\label{classDCEL_1_1FaceT_a966676fbdee217d7fc17cdb67c1e17c4}} 
-void \mbox{\hyperlink{classDCEL_1_1FaceT_a966676fbdee217d7fc17cdb67c1e17c4}{compute\+Centroid}} () noexcept
+\Hypertarget{classDCEL_1_1FaceT_a966676fbdee217d7fc17cdb67c1e17c4}\label{classDCEL_1_1FaceT_a966676fbdee217d7fc17cdb67c1e17c4} 
+\mbox{\hyperlink{classVec3T}{void}} {\bfseries compute\+Centroid} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Compute the centroid position of this polygon. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a795983a741ad2a49fa7f8e4718b9a3d7}\label{classDCEL_1_1FaceT_a795983a741ad2a49fa7f8e4718b9a3d7}} 
-void \mbox{\hyperlink{classDCEL_1_1FaceT_a795983a741ad2a49fa7f8e4718b9a3d7}{compute\+Normal}} () noexcept
+\Hypertarget{classDCEL_1_1FaceT_a795983a741ad2a49fa7f8e4718b9a3d7}\label{classDCEL_1_1FaceT_a795983a741ad2a49fa7f8e4718b9a3d7} 
+\mbox{\hyperlink{classVec3T}{void}} {\bfseries compute\+Normal} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Compute the normal position of this polygon. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a6032fa0626d1867d4410b981cc8324c9}\label{classDCEL_1_1FaceT_a6032fa0626d1867d4410b981cc8324c9}} 
-void \mbox{\hyperlink{classDCEL_1_1FaceT_a6032fa0626d1867d4410b981cc8324c9}{compute\+Polygon2D}} () noexcept
+\Hypertarget{classDCEL_1_1FaceT_a6032fa0626d1867d4410b981cc8324c9}\label{classDCEL_1_1FaceT_a6032fa0626d1867d4410b981cc8324c9} 
+\mbox{\hyperlink{classVec3T}{void}} {\bfseries compute\+Polygon2D} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Compute the 2D embedding of this polygon. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a0766f629aec138c3be9b3e7bebcdede0}\label{classDCEL_1_1FaceT_a0766f629aec138c3be9b3e7bebcdede0}} 
-void \mbox{\hyperlink{classDCEL_1_1FaceT_a0766f629aec138c3be9b3e7bebcdede0}{normalize\+Normal\+Vector}} () noexcept
+\Hypertarget{classDCEL_1_1FaceT_a0766f629aec138c3be9b3e7bebcdede0}\label{classDCEL_1_1FaceT_a0766f629aec138c3be9b3e7bebcdede0} 
+\mbox{\hyperlink{classVec3T}{void}} {\bfseries normalize\+Normal\+Vector} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Normalize the normal vector, ensuring it has a length of 1. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_aa1241aaf329260cf376cc662d87425b7}\label{classDCEL_1_1FaceT_aa1241aaf329260cf376cc662d87425b7}} 
-T \mbox{\hyperlink{classDCEL_1_1FaceT_aa1241aaf329260cf376cc662d87425b7}{get\+Area}} () noexcept
+\Hypertarget{classDCEL_1_1FaceT_aa1241aaf329260cf376cc662d87425b7}\label{classDCEL_1_1FaceT_aa1241aaf329260cf376cc662d87425b7} 
+\mbox{\hyperlink{classVec3T}{T}} {\bfseries get\+Area} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get the area of this polygon face. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_ae0847e171f31ae4e407df591f260bb81}\label{classDCEL_1_1FaceT_ae0847e171f31ae4e407df591f260bb81}} 
-T \mbox{\hyperlink{classDCEL_1_1FaceT_ae0847e171f31ae4e407df591f260bb81}{get\+Area}} () const noexcept
+\Hypertarget{classDCEL_1_1FaceT_ae0847e171f31ae4e407df591f260bb81}\label{classDCEL_1_1FaceT_ae0847e171f31ae4e407df591f260bb81} 
+\mbox{\hyperlink{classVec3T}{T}} {\bfseries get\+Area} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get the area of this polygon face. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_af9ec719ca854eab03598d929062131f8}\label{classDCEL_1_1FaceT_af9ec719ca854eab03598d929062131f8}} 
-void \mbox{\hyperlink{classDCEL_1_1FaceT_af9ec719ca854eab03598d929062131f8}{compute\+And\+Store\+Edges}} () noexcept
+\Hypertarget{classDCEL_1_1FaceT_af9ec719ca854eab03598d929062131f8}\label{classDCEL_1_1FaceT_af9ec719ca854eab03598d929062131f8} 
+\mbox{\hyperlink{classVec3T}{void}} {\bfseries compute\+And\+Store\+Edges} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Compute and store all the half-\/edges around this polygon face. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classDCEL_1_1FaceT_a0f520a931cebb51bf1e8b9284908ad5f}{project\+Point\+Into\+Face\+Plane}} (const \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&a\+\_\+p) const noexcept
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classDCEL_1_1FaceT_a782121ad93f3d41f2e79407929c77509}{project\+Point\+Into\+Face\+Plane}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+p}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Compute the projection of a point onto the polygon face plane. \end{DoxyCompactList}\item 
-bool \mbox{\hyperlink{classDCEL_1_1FaceT_af32056ed7d4a4eab9b4f310474b1ca0b}{is\+Point\+Inside\+Face}} (const \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&a\+\_\+p) const noexcept
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classDCEL_1_1FaceT_af32056ed7d4a4eab9b4f310474b1ca0b}{is\+Point\+Inside\+Face}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+p}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Check if a point projects to inside or outside the polygon face. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Attributes}
+\doxysubsubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a38e7f66781188e76709cfa569eb63dfa}\label{classDCEL_1_1FaceT_a38e7f66781188e76709cfa569eb63dfa}} 
-\mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \mbox{\hyperlink{classDCEL_1_1FaceT_a38e7f66781188e76709cfa569eb63dfa}{m\+\_\+half\+Edge}}
+\Hypertarget{classDCEL_1_1FaceT_a38e7f66781188e76709cfa569eb63dfa}\label{classDCEL_1_1FaceT_a38e7f66781188e76709cfa569eb63dfa} 
+\mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} {\bfseries m\+\_\+half\+Edge}
 \begin{DoxyCompactList}\small\item\em This polygon\textquotesingle{}s half-\/edge. A valid face will always have != nullptr. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a5003c16ede8f18d34ed8f490f0ab3e73}\label{classDCEL_1_1FaceT_a5003c16ede8f18d34ed8f490f0ab3e73}} 
-\mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \mbox{\hyperlink{classDCEL_1_1FaceT_a5003c16ede8f18d34ed8f490f0ab3e73}{m\+\_\+normal}}
+\Hypertarget{classDCEL_1_1FaceT_a5003c16ede8f18d34ed8f490f0ab3e73}\label{classDCEL_1_1FaceT_a5003c16ede8f18d34ed8f490f0ab3e73} 
+\mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} {\bfseries m\+\_\+normal}
 \begin{DoxyCompactList}\small\item\em Polygon face normal vector. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a8eb8a538f6420de8c4d3dca4eb3024d9}\label{classDCEL_1_1FaceT_a8eb8a538f6420de8c4d3dca4eb3024d9}} 
-\mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \mbox{\hyperlink{classDCEL_1_1FaceT_a8eb8a538f6420de8c4d3dca4eb3024d9}{m\+\_\+centroid}}
+\Hypertarget{classDCEL_1_1FaceT_a8eb8a538f6420de8c4d3dca4eb3024d9}\label{classDCEL_1_1FaceT_a8eb8a538f6420de8c4d3dca4eb3024d9} 
+\mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} {\bfseries m\+\_\+centroid}
 \begin{DoxyCompactList}\small\item\em Polygon face centroid position. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_aa5091d33d9611b7db062a82fa8b675fe}\label{classDCEL_1_1FaceT_aa5091d33d9611b7db062a82fa8b675fe}} 
-Meta \mbox{\hyperlink{classDCEL_1_1FaceT_aa5091d33d9611b7db062a82fa8b675fe}{m\+\_\+meta\+Data}}
+\Hypertarget{classDCEL_1_1FaceT_aa5091d33d9611b7db062a82fa8b675fe}\label{classDCEL_1_1FaceT_aa5091d33d9611b7db062a82fa8b675fe} 
+\mbox{\hyperlink{classVec3T}{Meta}} {\bfseries m\+\_\+meta\+Data}
 \begin{DoxyCompactList}\small\item\em Meta-\/data attached to this face. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_ae3fe3013ddef332ddf0b2d96f18238fe}\label{classDCEL_1_1FaceT_ae3fe3013ddef332ddf0b2d96f18238fe}} 
-std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ T $>$ $>$ \mbox{\hyperlink{classDCEL_1_1FaceT_ae3fe3013ddef332ddf0b2d96f18238fe}{m\+\_\+poly2}}
+\Hypertarget{classDCEL_1_1FaceT_ae3fe3013ddef332ddf0b2d96f18238fe}\label{classDCEL_1_1FaceT_ae3fe3013ddef332ddf0b2d96f18238fe} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ {\bfseries m\+\_\+poly2}
 \begin{DoxyCompactList}\small\item\em 2D embedding of this polygon. This is the 2D view of the current object projected along its normal vector cardinal. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a6faab46effacf270c31000e6b4670642}\label{classDCEL_1_1FaceT_a6faab46effacf270c31000e6b4670642}} 
-\mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ T $>$\+::Inside\+Outside\+Algorithm \mbox{\hyperlink{classDCEL_1_1FaceT_a6faab46effacf270c31000e6b4670642}{m\+\_\+poly2\+Algorithm}}
+\Hypertarget{classDCEL_1_1FaceT_a6faab46effacf270c31000e6b4670642}\label{classDCEL_1_1FaceT_a6faab46effacf270c31000e6b4670642} 
+\mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::\+Inside\+Outside\+Algorithm {\bfseries m\+\_\+poly2\+Algorithm}
 \begin{DoxyCompactList}\small\item\em Algorithm for inside/outside tests. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-\subsubsection*{template$<$class T, class Meta$>$\newline
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}}$>$\newline
 class DCEL\+::\+Face\+T$<$ T, Meta $>$}
-
 Face class. 
 
-Class which represents a polygon face in a double-\/edge connected list (\mbox{\hyperlink{namespaceDCEL}{DCEL}}).
+Class which represents a polygon face in a double-\/edge connected list (\doxylink{namespaceDCEL}{DCEL}).
 
-This class is a polygon face in a \mbox{\hyperlink{namespaceDCEL}{DCEL}} mesh. It contains pointer storage to one of the half-\/edges that circulate the inside of the polygon face, as well as having a normal vector, a centroid, and an area. This class supports signed distance computations. These computations require algorithms that compute e.\+g. the winding number of the polygon, or the number of times a ray cast passes through it. Thus, one of its central features is that it can be embedded in 2D by projecting it along the cardinal direction of its normal vector. To be fully consistent with a \mbox{\hyperlink{namespaceDCEL}{DCEL}} structure the class stores a reference to one of its half edges, but for performance reasons it also stores references to the other half edges. \begin{DoxyNote}{Note}
-To compute the distance from a point to the face one must determine if the point projects \char`\"{}inside\char`\"{} or \char`\"{}outside\char`\"{} the polygon. There are several algorithms for this, and by default this class uses a crossing number algorithm. 
+This class is a polygon face in a \doxylink{namespaceDCEL}{DCEL} mesh. It contains pointer storage to one of the half-\/edges that circulate the inside of the polygon face, as well as having a normal vector, a centroid, and an area. This class supports signed distance computations. These computations require algorithms that compute \doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{e.\+g}. the winding number of the polygon, or the number of times a ray cast passes through it. Thus, one of its central features is that it can be embedded in 2D by projecting it along the cardinal direction of its normal vector. To be fully consistent with a \doxylink{namespaceDCEL}{DCEL} structure the class stores a reference to one of its half edges, but for performance reasons it also stores references to the other half edges. \begin{DoxyNote}{Note}
+To compute the distance from a point to the face one must determine if the point projects "{}inside"{} or "{}outside"{} the polygon. There are several algorithms for this, and by default this class uses a crossing number algorithm. 
 \end{DoxyNote}
 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a6e5158ddec212b19f816e5a9ad652bce}\label{classDCEL_1_1FaceT_a6e5158ddec212b19f816e5a9ad652bce}} 
+\Hypertarget{classDCEL_1_1FaceT_a6e5158ddec212b19f816e5a9ad652bce}\label{classDCEL_1_1FaceT_a6e5158ddec212b19f816e5a9ad652bce} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!FaceT@{FaceT}}
 \index{FaceT@{FaceT}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{FaceT()}{FaceT()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-\mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::\mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \&}]{a\+\_\+edge }\end{DoxyParamCaption})}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::\+FaceT (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \&}]{a\+\_\+edge }\end{DoxyParamCaption})}
 
 
 
@@ -184,12 +185,12 @@ Partial constructor. Calls default constructor but associates a half-\/edge.
 \mbox{\texttt{ in}}  & {\em a\+\_\+edge} & Half-\/edge \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classDCEL_1_1FaceT_ac26156b61e6c7dffda08ce756f5a9caa}\label{classDCEL_1_1FaceT_ac26156b61e6c7dffda08ce756f5a9caa}} 
+\Hypertarget{classDCEL_1_1FaceT_ac26156b61e6c7dffda08ce756f5a9caa}\label{classDCEL_1_1FaceT_ac26156b61e6c7dffda08ce756f5a9caa} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!FaceT@{FaceT}}
 \index{FaceT@{FaceT}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{FaceT()}{FaceT()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-\mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::\mbox{\hyperlink{classDCEL_1_1FaceT}{FaceT}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1FaceT_ad171458e6506fa6dd6eed25058e22bd7}{Face}} \&}]{a\+\_\+other\+Face }\end{DoxyParamCaption})}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::\+FaceT (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_ad171458e6506fa6dd6eed25058e22bd7}{Face}} \&}]{a\+\_\+other\+Face }\end{DoxyParamCaption})}
 
 
 
@@ -198,12 +199,12 @@ Partial constructor.
 Calls default constructor but sets the normal vector and half-\/edge equal to the other face\textquotesingle{}s (rest is undefined) 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classDCEL_1_1FaceT_ae721653a8417912982f45ce58e7752a2}\label{classDCEL_1_1FaceT_ae721653a8417912982f45ce58e7752a2}} 
+\Hypertarget{classDCEL_1_1FaceT_ae721653a8417912982f45ce58e7752a2}\label{classDCEL_1_1FaceT_ae721653a8417912982f45ce58e7752a2} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!define@{define}}
 \index{define@{define}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{define()}{define()}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-void \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::define (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&}]{a\+\_\+normal,  }\item[{const \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \&}]{a\+\_\+edge }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::define (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&}]{a\+\_\+normal,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \&}]{a\+\_\+edge }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -216,34 +217,45 @@ Define function which sets the normal vector and half-\/edge.
 \mbox{\texttt{ in}}  & {\em a\+\_\+edge} & Half edge \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a6e0a7e0ebfe909f59694175782873060}\label{classDCEL_1_1FaceT_a6e0a7e0ebfe909f59694175782873060}} 
+\Hypertarget{classDCEL_1_1FaceT_a9140ef882421ccb5565153807af2a4b3}\label{classDCEL_1_1FaceT_a9140ef882421ccb5565153807af2a4b3} 
+\index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!gatherEdges@{gatherEdges}}
+\index{gatherEdges@{gatherEdges}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{gatherEdges()}{gatherEdges()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} $>$ \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::gather\+Edges (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Return all the half-\/edges on this polygon. 
+
+This builds a list of all the edges and returns it. \Hypertarget{classDCEL_1_1FaceT_a43b0ab0264f93390b32b0d9f5e9bbcb9}\label{classDCEL_1_1FaceT_a43b0ab0264f93390b32b0d9f5e9bbcb9} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!gatherVertices@{gatherVertices}}
 \index{gatherVertices@{gatherVertices}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{gatherVertices()}{gatherVertices()}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-std\+::vector$<$\mbox{\hyperlink{classDCEL_1_1FaceT_a142e9c0ebaabc1809159de2a3f19085d}{Vertex\+Ptr}}$>$ \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::gather\+Vertices (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1FaceT_a142e9c0ebaabc1809159de2a3f19085d}{Vertex\+Ptr}} $>$ \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::gather\+Vertices (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
 Return all the vertices on this polygon. 
 
-This builds a list of all the vertices and returns it. \mbox{\Hypertarget{classDCEL_1_1FaceT_a1dccbbc27d361c9abf9a075c7aeb7ae7}\label{classDCEL_1_1FaceT_a1dccbbc27d361c9abf9a075c7aeb7ae7}} 
+This builds a list of all the vertices and returns it. \Hypertarget{classDCEL_1_1FaceT_af6a33213a23988d453f475a64b4cf1d7}\label{classDCEL_1_1FaceT_af6a33213a23988d453f475a64b4cf1d7} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!getAllVertexCoordinates@{getAllVertexCoordinates}}
 \index{getAllVertexCoordinates@{getAllVertexCoordinates}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{getAllVertexCoordinates()}{getAllVertexCoordinates()}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-std\+::vector$<$\mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$ $>$ \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::get\+All\+Vertex\+Coordinates (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::get\+All\+Vertex\+Coordinates (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
 Return the coordinates of all the vertices on this polygon. 
 
-This builds a list of all the vertex coordinates and returns it. \mbox{\Hypertarget{classDCEL_1_1FaceT_a47d81c80322102d050f324fc189f7861}\label{classDCEL_1_1FaceT_a47d81c80322102d050f324fc189f7861}} 
+This builds a list of all the vertex coordinates and returns it. \Hypertarget{classDCEL_1_1FaceT_a7b100199922e215eaf0a33487773d0a9}\label{classDCEL_1_1FaceT_a7b100199922e215eaf0a33487773d0a9} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!getCentroid@{getCentroid}}
 \index{getCentroid@{getCentroid}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{getCentroid()}{getCentroid()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-const T\& \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::get\+Centroid (\begin{DoxyParamCaption}\item[{const size\+\_\+t}]{a\+\_\+dir }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \& \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::get\+Centroid (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{size\+\_\+t}}}]{a\+\_\+dir }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -254,12 +266,12 @@ Get immutable centroid position in specified coordinate direction.
 \mbox{\texttt{ in}}  & {\em a\+\_\+dir} & Coordinate direction \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classDCEL_1_1FaceT_ade09221357519acffef2a94ba1053165}\label{classDCEL_1_1FaceT_ade09221357519acffef2a94ba1053165}} 
+\Hypertarget{classDCEL_1_1FaceT_a30271f70249dd4e6bd4ef155c17d8368}\label{classDCEL_1_1FaceT_a30271f70249dd4e6bd4ef155c17d8368} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!getCentroid@{getCentroid}}
 \index{getCentroid@{getCentroid}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{getCentroid()}{getCentroid()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-T\& \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::get\+Centroid (\begin{DoxyParamCaption}\item[{const size\+\_\+t}]{a\+\_\+dir }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{T}} \& \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::get\+Centroid (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{size\+\_\+t}}}]{a\+\_\+dir }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -270,12 +282,12 @@ Get modifiable centroid position in specified coordinate direction.
 \mbox{\texttt{ in}}  & {\em a\+\_\+dir} & Coordinate direction \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a5e44d2b2f2a5ba313b84bcaab0077ff2}\label{classDCEL_1_1FaceT_a5e44d2b2f2a5ba313b84bcaab0077ff2}} 
+\Hypertarget{classDCEL_1_1FaceT_a6692af6e94ae4c5b39ad0c7513a9d2f8}\label{classDCEL_1_1FaceT_a6692af6e94ae4c5b39ad0c7513a9d2f8} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!getMetaData@{getMetaData}}
 \index{getMetaData@{getMetaData}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{getMetaData()}{getMetaData()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-const Meta\& \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::get\+Meta\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Meta}} \& \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::get\+Meta\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -284,12 +296,12 @@ Get meta-\/data.
 \begin{DoxyReturn}{Returns}
 m\+\_\+meta\+Data 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a5dad4d959603944b208b061960c4c3d7}\label{classDCEL_1_1FaceT_a5dad4d959603944b208b061960c4c3d7}} 
+\Hypertarget{classDCEL_1_1FaceT_a46d1f4998e099e01fe689e1979f46cb2}\label{classDCEL_1_1FaceT_a46d1f4998e099e01fe689e1979f46cb2} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!getMetaData@{getMetaData}}
 \index{getMetaData@{getMetaData}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{getMetaData()}{getMetaData()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-Meta\& \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::get\+Meta\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{Meta}} \& \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::get\+Meta\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -298,12 +310,12 @@ Get meta-\/data.
 \begin{DoxyReturn}{Returns}
 m\+\_\+meta\+Data 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classDCEL_1_1FaceT_af32056ed7d4a4eab9b4f310474b1ca0b}\label{classDCEL_1_1FaceT_af32056ed7d4a4eab9b4f310474b1ca0b}} 
+\Hypertarget{classDCEL_1_1FaceT_af32056ed7d4a4eab9b4f310474b1ca0b}\label{classDCEL_1_1FaceT_af32056ed7d4a4eab9b4f310474b1ca0b} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!isPointInsideFace@{isPointInsideFace}}
 \index{isPointInsideFace@{isPointInsideFace}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{isPointInsideFace()}{isPointInsideFace()}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-bool \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::is\+Point\+Inside\+Face (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&}]{a\+\_\+p }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::is\+Point\+Inside\+Face (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&}]{a\+\_\+p }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
@@ -317,12 +329,12 @@ Check if a point projects to inside or outside the polygon face.
 \begin{DoxyReturn}{Returns}
 Returns true if a\+\_\+p projects to inside the polygon and false otherwise. 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a0f520a931cebb51bf1e8b9284908ad5f}\label{classDCEL_1_1FaceT_a0f520a931cebb51bf1e8b9284908ad5f}} 
+\Hypertarget{classDCEL_1_1FaceT_a782121ad93f3d41f2e79407929c77509}\label{classDCEL_1_1FaceT_a782121ad93f3d41f2e79407929c77509} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!projectPointIntoFacePlane@{projectPointIntoFacePlane}}
 \index{projectPointIntoFacePlane@{projectPointIntoFacePlane}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{projectPointIntoFacePlane()}{projectPointIntoFacePlane()}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-\mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$ \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::project\+Point\+Into\+Face\+Plane (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&}]{a\+\_\+p }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::project\+Point\+Into\+Face\+Plane (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&}]{a\+\_\+p }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
@@ -333,26 +345,26 @@ Compute the projection of a point onto the polygon face plane.
 \mbox{\texttt{ in}}  & {\em a\+\_\+p} & Point in space \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a56cc532ce56e95efb4464ca4a184247a}\label{classDCEL_1_1FaceT_a56cc532ce56e95efb4464ca4a184247a}} 
+\Hypertarget{classDCEL_1_1FaceT_a56cc532ce56e95efb4464ca4a184247a}\label{classDCEL_1_1FaceT_a56cc532ce56e95efb4464ca4a184247a} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!reconcile@{reconcile}}
 \index{reconcile@{reconcile}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{reconcile()}{reconcile()}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-void \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::reconcile (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::reconcile (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
 Reconcile face. This will compute the normal vector, area, centroid, and the 2D embedding of the polygon. 
 
 \begin{DoxyNote}{Note}
-\char`\"{}\+Everything\char`\"{} must be set before doing this, i.\+e. the face must be complete with half edges and there can be no dangling edges. 
+"{}\+Everything"{} must be set before doing this, \doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{i.\+e}. the face must be complete with half edges and there can be no dangling edges. 
 \end{DoxyNote}
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a2d33ba144bc3841d6930efa73479f21a}\label{classDCEL_1_1FaceT_a2d33ba144bc3841d6930efa73479f21a}} 
+\Hypertarget{classDCEL_1_1FaceT_a2d33ba144bc3841d6930efa73479f21a}\label{classDCEL_1_1FaceT_a2d33ba144bc3841d6930efa73479f21a} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!setHalfEdge@{setHalfEdge}}
 \index{setHalfEdge@{setHalfEdge}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{setHalfEdge()}{setHalfEdge()}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-void \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::set\+Half\+Edge (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \&}]{a\+\_\+half\+Edge }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::set\+Half\+Edge (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_a3536e6f1e0ed404831940ce20ec152af}{Edge\+Ptr}} \&}]{a\+\_\+half\+Edge }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -363,12 +375,12 @@ Set the half edge.
 \mbox{\texttt{ in}}  & {\em a\+\_\+half\+Edge} & Half edge \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a7fb0d19284b3692d11d0d495334467db}\label{classDCEL_1_1FaceT_a7fb0d19284b3692d11d0d495334467db}} 
+\Hypertarget{classDCEL_1_1FaceT_a7fb0d19284b3692d11d0d495334467db}\label{classDCEL_1_1FaceT_a7fb0d19284b3692d11d0d495334467db} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!setInsideOutsideAlgorithm@{setInsideOutsideAlgorithm}}
 \index{setInsideOutsideAlgorithm@{setInsideOutsideAlgorithm}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{setInsideOutsideAlgorithm()}{setInsideOutsideAlgorithm()}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-void \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::set\+Inside\+Outside\+Algorithm (\begin{DoxyParamCaption}\item[{typename \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ T $>$\+::Inside\+Outside\+Algorithm \&}]{a\+\_\+algorithm }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::set\+Inside\+Outside\+Algorithm (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::\+Inside\+Outside\+Algorithm \&}]{a\+\_\+algorithm }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -380,14 +392,14 @@ Set the inside/outside algorithm when determining if a point projects to the ins
 \hline
 \end{DoxyParams}
 \begin{DoxyNote}{Note}
-See CD\+\_\+\+DCELAlgorithms.\+H for options (and CD\+\_\+\+DCELPoly\+Implem.\+H for how the algorithms operate). 
+See \doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{CD\+\_\+\+DCELAlgorithms.\+H} for options (and \doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{CD\+\_\+\+DCELPoly\+Implem.\+H} for how the algorithms operate). 
 \end{DoxyNote}
-\mbox{\Hypertarget{classDCEL_1_1FaceT_a759cfbca44864b9df9093d4676a6fa12}\label{classDCEL_1_1FaceT_a759cfbca44864b9df9093d4676a6fa12}} 
+\Hypertarget{classDCEL_1_1FaceT_a759cfbca44864b9df9093d4676a6fa12}\label{classDCEL_1_1FaceT_a759cfbca44864b9df9093d4676a6fa12} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!signedDistance@{signedDistance}}
 \index{signedDistance@{signedDistance}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-T \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -398,12 +410,12 @@ Compute the signed distance to a point.
 \mbox{\texttt{ in}}  & {\em a\+\_\+x0} & Point in space\\
 \hline
 \end{DoxyParams}
-This algorithm operates by checking if the input point projects to the inside of the polygon. If it does then the distance is just the projected distance onto the polygon plane and the sign is well-\/defined. Otherwise, we check the distance to the edges of the polygon. \mbox{\Hypertarget{classDCEL_1_1FaceT_ad6619ef7d57813440879971a8a2f41a8}\label{classDCEL_1_1FaceT_ad6619ef7d57813440879971a8a2f41a8}} 
+This algorithm operates by checking if the input point projects to the inside of the polygon. If it does then the distance is just the projected distance onto the polygon plane and the sign is well-\/defined. Otherwise, we check the distance to the edges of the polygon. \Hypertarget{classDCEL_1_1FaceT_ad6619ef7d57813440879971a8a2f41a8}\label{classDCEL_1_1FaceT_ad6619ef7d57813440879971a8a2f41a8} 
 \index{DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}!unsignedDistance2@{unsignedDistance2}}
 \index{unsignedDistance2@{unsignedDistance2}!DCEL::FaceT$<$ T, Meta $>$@{DCEL::FaceT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{unsignedDistance2()}{unsignedDistance2()}}
-{\footnotesize\ttfamily template$<$class T , class Meta $>$ \\
-T \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ T, Meta $>$\+::unsigned\+Distance2 (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classDCEL_1_1FaceT}{DCEL\+::\+FaceT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::unsigned\+Distance2 (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1FaceT_abde8d4511c8f18e5d91aaa3b7f8933e5}{Vec3}} \&}]{a\+\_\+x0 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 

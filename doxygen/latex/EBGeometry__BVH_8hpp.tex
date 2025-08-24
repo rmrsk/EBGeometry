@@ -1,8 +1,8 @@
-\hypertarget{EBGeometry__BVH_8hpp}{}\doxysection{/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\+EBGeometry\+\_\+\+BVH.hpp File Reference}
-\label{EBGeometry__BVH_8hpp}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_BVH.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_BVH.hpp}}
+\doxysection{/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\+EBGeometry\+\_\+\+BVH.hpp File Reference}
+\hypertarget{EBGeometry__BVH_8hpp}{}\label{EBGeometry__BVH_8hpp}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_BVH.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_BVH.hpp}}
 
 
-Declaration of a bounding volume hierarchy (\mbox{\hyperlink{namespaceBVH}{BVH}}) class.  
+Declaration of a bounding volume hierarchy (\doxylink{namespaceBVH}{BVH}) class.  
 
 
 {\ttfamily \#include $<$memory$>$}\newline
@@ -10,11 +10,11 @@ Declaration of a bounding volume hierarchy (\mbox{\hyperlink{namespaceBVH}{BVH}}
 {\ttfamily \#include $<$array$>$}\newline
 {\ttfamily \#include $<$functional$>$}\newline
 {\ttfamily \#include $<$queue$>$}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Vec.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+SFC.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Namespace\+Header.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Namespace\+Footer.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+BVHImplem.\+hpp\char`\"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Vec.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+SFC.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Header.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Footer.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+BVHImplem.\+hpp"{}}\newline
 Include dependency graph for EBGeometry\+\_\+\+BVH.\+hpp\+:
 \nopagebreak
 \begin{figure}[H]
@@ -31,68 +31,68 @@ This graph shows which files directly or indirectly include this file\+:
 \includegraphics[width=350pt]{EBGeometry__BVH_8hpp__dep__incl}
 \end{center}
 \end{figure}
-\doxysubsection*{Classes}
+\doxysubsubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
 class \mbox{\hyperlink{classBVH_1_1NodeT}{BVH\+::\+Node\+T$<$ T, P, BV, K $>$}}
-\begin{DoxyCompactList}\small\item\em Forward declare the \mbox{\hyperlink{namespaceBVH}{BVH}} node since it is needed for the polymorphic lambdas. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Forward declare the \doxylink{namespaceBVH}{BVH} node since it is needed for the polymorphic lambdas. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::\+Linear\+Node\+T$<$ T, P, BV, K $>$}}
 \begin{DoxyCompactList}\small\item\em Forward declare linear node class. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classBVH_1_1LinearBVH}{BVH\+::\+Linear\+BVH$<$ T, P, BV, K $>$}}
-\begin{DoxyCompactList}\small\item\em Forward declare linear \mbox{\hyperlink{namespaceBVH}{BVH}} class. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Namespaces}
+\begin{DoxyCompactList}\small\item\em Forward declare linear \doxylink{namespaceBVH}{BVH} class. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Namespaces}
 \begin{DoxyCompactItemize}
 \item 
- \mbox{\hyperlink{namespaceBVH}{BVH}}
-\begin{DoxyCompactList}\small\item\em Namespace for various bounding volume hierarchy (\mbox{\hyperlink{namespaceBVH}{BVH}}) functionality. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Typedefs}
+namespace \mbox{\hyperlink{namespaceBVH}{BVH}}
+\begin{DoxyCompactList}\small\item\em Namespace for various bounding volume hierarchy (\doxylink{namespaceBVH}{BVH}) functionality. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
 \begin{DoxyCompactItemize}
 \item 
-{\footnotesize template$<$class P $>$ }\\using \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{BVH\+::\+Primitive\+ListT}} = std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} $>$ }\\\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{BVH\+::\+Primitive\+ListT}} = std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{P}} $>$ $>$
 \begin{DoxyCompactList}\small\item\em List of primitives. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}\label{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}} 
-{\footnotesize template$<$class P , class BV $>$ }\\using \mbox{\hyperlink{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}{BVH\+::\+Prim\+And\+BV}} = std\+::pair$<$ std\+::shared\+\_\+ptr$<$ const P $>$, BV $>$
+\Hypertarget{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}\label{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce} 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} $>$ }\\\mbox{\hyperlink{classVec3T}{using}} {\bfseries BVH\+::\+Prim\+And\+BV} = std\+::pair$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{P}} $>$, \mbox{\hyperlink{classVec3T}{BV}} $>$
 \begin{DoxyCompactList}\small\item\em Alias for a list geometric primitive and BV. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class P , class BV $>$ }\\using \mbox{\hyperlink{namespaceBVH_a1edeb7c10026d6fba3e35536a6719a3a}{BVH\+::\+Prim\+And\+BVListT}} = std\+::vector$<$ Prim\+And\+BV$<$ P, BV $>$ $>$
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} $>$ }\\\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{namespaceBVH_a1edeb7c10026d6fba3e35536a6719a3a}{BVH\+::\+Prim\+And\+BVListT}} = std\+::vector$<$ \mbox{\hyperlink{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}{Prim\+And\+BV}}$<$ \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}} $>$ $>$
 \begin{DoxyCompactList}\small\item\em List of primitives and their bounding volumes. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class P , class BV , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_ae7e5e97e86dfe5a7103cbf2918f0cfc9}{BVH\+::\+PartitionerT}} = std\+::function$<$ std\+::array$<$ Prim\+And\+BVListT$<$ P, BV $>$, K $>$(const Prim\+And\+BVListT$<$ P, BV $>$ \&a\+\_\+prims\+And\+BVs)$>$
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ }\\\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{namespaceBVH_ae7e5e97e86dfe5a7103cbf2918f0cfc9}{BVH\+::\+PartitionerT}} = std\+::function$<$ std\+::array$<$ \mbox{\hyperlink{namespaceBVH_a1edeb7c10026d6fba3e35536a6719a3a}{Prim\+And\+BVListT}}$<$ \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}} $>$, \mbox{\hyperlink{classVec3T}{K}} $>$(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_a1edeb7c10026d6fba3e35536a6719a3a}{Prim\+And\+BVListT}}$<$ \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+prims\+And\+BVs}})$>$
 \begin{DoxyCompactList}\small\item\em Polymorphic partitioner for splitting a list of primitives and BVs into K new subsets. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}{BVH\+::\+Stop\+FunctionT}} = std\+::function$<$ bool(const NodeT$<$ T, P, BV, K $>$ \&a\+\_\+node)$>$
-\begin{DoxyCompactList}\small\item\em Stop function for deciding when a \mbox{\hyperlink{namespaceBVH}{BVH}} node can\textquotesingle{}t be divided into sub-\/volumes. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class P $>$ }\\using \mbox{\hyperlink{namespaceBVH_a9098188477f08a345cf059a431ae23aa}{BVH\+::\+Updater}} = std\+::function$<$ void(const Primitive\+ListT$<$ P $>$ \&a\+\_\+primitives)$>$
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ }\\\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}{BVH\+::\+Stop\+FunctionT}} = std\+::function$<$ \mbox{\hyperlink{classVec3T}{bool}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+node}})$>$
+\begin{DoxyCompactList}\small\item\em Stop function for deciding when a \doxylink{namespaceBVH}{BVH} node can\textquotesingle{}t be divided into sub-\/volumes. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} $>$ }\\\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{namespaceBVH_a9098188477f08a345cf059a431ae23aa}{BVH\+::\+Updater}} = std\+::function$<$ \mbox{\hyperlink{classVec3T}{void}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{Primitive\+ListT}}$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+primitives}})$>$
 \begin{DoxyCompactList}\small\item\em Updater for tree traversal. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class Node\+Type , class Meta $>$ }\\using \mbox{\hyperlink{namespaceBVH_a8ac51cce05479b4821bf8c0e2543696a}{BVH\+::\+Visiter}} = std\+::function$<$ bool(const Node\+Type \&a\+\_\+node, const Meta \&a\+\_\+meta)$>$
-\begin{DoxyCompactList}\small\item\em Visiter pattern for \mbox{\hyperlink{classBVH_1_1LinearBVH_a213b07e1c41dec5b4c6bac80f0716f1d}{Linear\+BVH\+::traverse}}. Must return true if we should visit the node and false otherwise. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{namespaceBVH_a98593a87354ca9c46938b74c50a10f91}\label{namespaceBVH_a98593a87354ca9c46938b74c50a10f91}} 
-{\footnotesize template$<$class Node\+Type , class Meta , size\+\_\+t K$>$ }\\using \mbox{\hyperlink{namespaceBVH_a98593a87354ca9c46938b74c50a10f91}{BVH\+::\+Sorter}} = std\+::function$<$ void(std\+::array$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ const Node\+Type $>$, Meta $>$, K $>$ \&a\+\_\+children)$>$
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Node\+Type}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ }\\\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{namespaceBVH_a8ac51cce05479b4821bf8c0e2543696a}{BVH\+::\+Visiter}} = std\+::function$<$ \mbox{\hyperlink{classVec3T}{bool}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Node\+Type}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+node}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Meta}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+meta}})$>$
+\begin{DoxyCompactList}\small\item\em Visiter pattern for \doxylink{classBVH_1_1LinearBVH_a213b07e1c41dec5b4c6bac80f0716f1d}{Linear\+BVH\+::traverse}. Must return true if we should visit the node and false otherwise. \end{DoxyCompactList}\item 
+\Hypertarget{namespaceBVH_a98593a87354ca9c46938b74c50a10f91}\label{namespaceBVH_a98593a87354ca9c46938b74c50a10f91} 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Node\+Type}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ }\\\mbox{\hyperlink{classVec3T}{using}} {\bfseries BVH\+::\+Sorter} = std\+::function$<$ \mbox{\hyperlink{classVec3T}{void}}(std\+::array$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Node\+Type}} $>$, \mbox{\hyperlink{classVec3T}{Meta}} $>$, \mbox{\hyperlink{classVec3T}{K}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+children}})$>$
 \begin{DoxyCompactList}\small\item\em Sorting criterion for which child node to visit first. This takes an input list of child nodes and sorts it. When further into the sub-\/tree, the first node is investigated first, then the second, etc. The Meta template parameter is a door left open to the user for attaching additional data to the sorter/visiter pattern. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}\label{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}} 
-{\footnotesize template$<$class Node\+Type , class Meta $>$ }\\using \mbox{\hyperlink{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}{BVH\+::\+Meta\+Updater}} = std\+::function$<$ Meta(const Node\+Type \&a\+\_\+node)$>$
-\begin{DoxyCompactList}\small\item\em Updater for when user wants to add some meta-\/data to his \mbox{\hyperlink{namespaceBVH}{BVH}} traversal. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Enumerations}
+\Hypertarget{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}\label{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38} 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Node\+Type}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ }\\\mbox{\hyperlink{classVec3T}{using}} {\bfseries BVH\+::\+Meta\+Updater} = std\+::function$<$ \mbox{\hyperlink{classVec3T}{Meta}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Node\+Type}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+node}})$>$
+\begin{DoxyCompactList}\small\item\em Updater for when user wants to add some meta-\/data to his \doxylink{namespaceBVH}{BVH} traversal. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{namespaceBVH_a6f2491cf571e9012cb840916ab730688}\label{namespaceBVH_a6f2491cf571e9012cb840916ab730688}} 
+\Hypertarget{namespaceBVH_a6f2491cf571e9012cb840916ab730688}\label{namespaceBVH_a6f2491cf571e9012cb840916ab730688} 
 enum class \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH\+::\+Build}} \{ {\bfseries Top\+Down}
 , {\bfseries Morton}
 , {\bfseries Nested}
  \}
 \begin{DoxyCompactList}\small\item\em Enum for specifying whether or not the construction is top-\/down or bottom-\/up. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Variables}
+\doxysubsubsection*{Variables}
 \begin{DoxyCompactItemize}
 \item 
-{\footnotesize template$<$class X , size\+\_\+t K$>$ }\\auto \mbox{\hyperlink{namespaceBVH_affa56504a4aa040e09ce300dae222e5b}{BVH\+::equal\+Counts}}
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{X}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ }\\\mbox{\hyperlink{classVec3T}{auto}} \mbox{\hyperlink{namespaceBVH_affa56504a4aa040e09ce300dae222e5b}{BVH\+::equal\+Counts}}
 \begin{DoxyCompactList}\small\item\em Function for splitting a vector of some size into K almost-\/equal chunks. This is a utility function. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\auto \mbox{\hyperlink{namespaceBVH_aa7c7fa51a4c99cebf11a6261b6be2b8a}{BVH\+::\+Primitive\+Centroid\+Partitioner}}
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ }\\\mbox{\hyperlink{classVec3T}{auto}} \mbox{\hyperlink{namespaceBVH_aa7c7fa51a4c99cebf11a6261b6be2b8a}{BVH\+::\+Primitive\+Centroid\+Partitioner}}
 \begin{DoxyCompactList}\small\item\em Simple partitioner which sorts the primitives based on their centroids, and then splits into K pieces. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\auto \mbox{\hyperlink{namespaceBVH_a5d49380a6db6e29200da88b68b1ba0a6}{BVH\+::\+BVCentroid\+Partitioner}}
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ }\\\mbox{\hyperlink{classVec3T}{auto}} \mbox{\hyperlink{namespaceBVH_a5d49380a6db6e29200da88b68b1ba0a6}{BVH\+::\+BVCentroid\+Partitioner}}
 \begin{DoxyCompactList}\small\item\em Simple partitioner which sorts the BVs based on their bounding volume centroids, and then splits into K pieces. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\auto \mbox{\hyperlink{namespaceBVH_a21d8f7ec763e9a30d43c68abe2e63f18}{BVH\+::\+Default\+Stop\+Function}}
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ }\\\mbox{\hyperlink{classVec3T}{auto}} \mbox{\hyperlink{namespaceBVH_a21d8f7ec763e9a30d43c68abe2e63f18}{BVH\+::\+Default\+Stop\+Function}}
 \begin{DoxyCompactList}\small\item\em Simple stop function which ends the recursion when there aren\textquotesingle{}t enough primitives in the node. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-Declaration of a bounding volume hierarchy (\mbox{\hyperlink{namespaceBVH}{BVH}}) class. 
+Declaration of a bounding volume hierarchy (\doxylink{namespaceBVH}{BVH}) class. 
 
 \begin{DoxyAuthor}{Author}
 Robert Marskar 

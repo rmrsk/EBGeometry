@@ -1,5 +1,5 @@
-\hypertarget{EBGeometry__Octree_8hpp}{}\doxysection{/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\+EBGeometry\+\_\+\+Octree.hpp File Reference}
-\label{EBGeometry__Octree_8hpp}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Octree.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Octree.hpp}}
+\doxysection{/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\+EBGeometry\+\_\+\+Octree.hpp File Reference}
+\hypertarget{EBGeometry__Octree_8hpp}{}\label{EBGeometry__Octree_8hpp}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Octree.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Octree.hpp}}
 
 
 Declaration of a simple octree class.  
@@ -8,10 +8,10 @@ Declaration of a simple octree class.
 {\ttfamily \#include $<$array$>$}\newline
 {\ttfamily \#include $<$functional$>$}\newline
 {\ttfamily \#include $<$memory$>$}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Vec.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Namespace\+Header.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Namespace\+Footer.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Octree\+Implem.\+hpp\char`\"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Vec.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Header.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Footer.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Octree\+Implem.\+hpp"{}}\newline
 Include dependency graph for EBGeometry\+\_\+\+Octree.\+hpp\+:
 \nopagebreak
 \begin{figure}[H]
@@ -28,20 +28,20 @@ This graph shows which files directly or indirectly include this file\+:
 \includegraphics[width=262pt]{EBGeometry__Octree_8hpp__dep__incl}
 \end{center}
 \end{figure}
-\doxysubsection*{Classes}
+\doxysubsubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
 class \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node$<$ Meta, Data $>$}}
-\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{namespaceOctree}{Octree}} class without anything special (this uses full tree representation rather than linear/pointerless). \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Namespaces}
+\begin{DoxyCompactList}\small\item\em \doxylink{namespaceOctree}{Octree} class without anything special (this uses full tree representation rather than linear/pointerless). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Namespaces}
 \begin{DoxyCompactItemize}
 \item 
- \mbox{\hyperlink{namespaceOctree}{Octree}}
+namespace \mbox{\hyperlink{namespaceOctree}{Octree}}
 \begin{DoxyCompactList}\small\item\em Namespace for octree functionality. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Enumerations}
+\doxysubsubsection*{Enumerations}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}\label{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}} 
+\Hypertarget{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}\label{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60} 
 enum \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octree\+::\+Octant\+Index}} \+: size\+\_\+t \{ \newline
 {\bfseries Bottom\+Left\+Front} = 0
 , {\bfseries Bottom\+Right\+Front} = 1
@@ -54,12 +54,12 @@ enum \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octree\
 , {\bfseries Top\+Right\+Back} = 7
  \}
 \begin{DoxyCompactList}\small\item\em Lexicographical x-\/y-\/z octant indexing. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Variables}
+\doxysubsubsection*{Variables}
 \begin{DoxyCompactItemize}
 \item 
-{\footnotesize template$<$typename T $>$ }\\constexpr std\+::array$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$, 8 $>$ \mbox{\hyperlink{namespaceOctree_a36a6ec1d276bf30f3e6bdaec2b7ae133}{Octree\+::\+Low\+Corner}}
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\\mbox{\hyperlink{classVec3T}{constexpr}} std\+::array$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$, 8 $>$ \mbox{\hyperlink{namespaceOctree_a36a6ec1d276bf30f3e6bdaec2b7ae133}{Octree\+::\+Low\+Corner}}
 \begin{DoxyCompactList}\small\item\em Lower-\/left corners of the octants on the unit cube, indexed lexicographically in x-\/y-\/z. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename T $>$ }\\constexpr std\+::array$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$, 8 $>$ \mbox{\hyperlink{namespaceOctree_acce5a94561596fb4bf09b75d7b82694a}{Octree\+::\+High\+Corner}}
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\\mbox{\hyperlink{classVec3T}{constexpr}} std\+::array$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$, 8 $>$ \mbox{\hyperlink{namespaceOctree_acce5a94561596fb4bf09b75d7b82694a}{Octree\+::\+High\+Corner}}
 \begin{DoxyCompactList}\small\item\em Upper-\/right corners of the octants on the unit cube, indexed lexicographically in x-\/y-\/z. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 

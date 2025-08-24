@@ -1,0 +1,90 @@
+\doxysection{EBGeometry\+\_\+\+Triangle2\+D.\+hpp}
+\hypertarget{EBGeometry__Triangle2D_8hpp_source}{}\label{EBGeometry__Triangle2D_8hpp_source}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Triangle2D.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Triangle2D.hpp}}
+\mbox{\hyperlink{EBGeometry__Triangle2D_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*\ EBGeometry}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ Copyright\ ©\ 2024\ Robert\ Marskar}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ Please\ refer\ to\ Copyright.txt\ and\ LICENSE\ in\ the\ EBGeometry\ root\ directory.}}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#ifndef\ EBGeometry\_Triangle2D}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#define\ EBGeometry\_Triangle2D}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ Std\ includes}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ <array>}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ Our\ includes}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__Vec_8hpp}{EBGeometry\_Vec.hpp}}"{}}}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceEBGeometry}{EBGeometry}}\ \{}
+\DoxyCodeLine{00036\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00037\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}}
+\DoxyCodeLine{00038\ \ \ \{}
+\DoxyCodeLine{00039\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00043\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Vec2}}\ =\ \mbox{\hyperlink{classVec3T}{Vec2T<T>}};}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00048\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Vec3}}\ =\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}};}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00054\ \ \ \ \ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a3e6ec1e9700c7ea2f9ee4dcc54041f17}{InsideOutsideAlgorithm}}\ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00055\ \ \ \ \ \{}
+\DoxyCodeLine{00056\ \ \ \ \ \ \ SubtendedAngle,}
+\DoxyCodeLine{00057\ \ \ \ \ \ \ CrossingNumber,}
+\DoxyCodeLine{00058\ \ \ \ \ \ \ WindingNumber}
+\DoxyCodeLine{00059\ \ \ \ \ \};}
+\DoxyCodeLine{00060\ }
+\DoxyCodeLine{00064\ \ \ \ \ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8cd4660e83fcb7c8b25857c92a126deb}{Triangle2D}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}\ =\ \mbox{\hyperlink{classVec3T}{default}};}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00071\ \ \ \ \ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&\ \mbox{\hyperlink{classVec3T}{a\_normal}},\ \mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{array}}<\mbox{\hyperlink{classVec3T}{Vec3}},\ 3>\&\ \mbox{\hyperlink{classVec3T}{a\_vertices}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00077\ \ \ \ \ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}\&\ \mbox{\hyperlink{classVec3T}{a\_triangle2D}})\ \mbox{\hyperlink{classVec3T}{noexcept}}\ =\ \mbox{\hyperlink{classVec3T}{default}};}
+\DoxyCodeLine{00078\ }
+\DoxyCodeLine{00083\ \ \ \ \ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}(\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}\&\&\ \mbox{\hyperlink{classVec3T}{a\_triangle2D}})\ \mbox{\hyperlink{classVec3T}{noexcept}}\ =\ \mbox{\hyperlink{classVec3T}{default}};}
+\DoxyCodeLine{00084\ }
+\DoxyCodeLine{00088\ \ \ \ \ \string~\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}\ =\ \mbox{\hyperlink{classVec3T}{default}};}
+\DoxyCodeLine{00089\ }
+\DoxyCodeLine{00094\ \ \ \ \ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}\&}
+\DoxyCodeLine{00095\ \ \ \ \ \mbox{\hyperlink{classVec3T}{operator}}=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}\&\ \mbox{\hyperlink{classVec3T}{a\_triangle2D}})\ \mbox{\hyperlink{classVec3T}{noexcept}}\ =\ \mbox{\hyperlink{classVec3T}{default}};}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00101\ \ \ \ \ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}\&}
+\DoxyCodeLine{00102\ \ \ \ \ \mbox{\hyperlink{classVec3T}{operator}}=(\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}\&\&\ \mbox{\hyperlink{classVec3T}{a\_triangle2D}})\ \mbox{\hyperlink{classVec3T}{noexcept}}\ =\ \mbox{\hyperlink{classVec3T}{default}};}
+\DoxyCodeLine{00103\ }
+\DoxyCodeLine{00109\ \ \ \ \ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00110\ \ \ \ \ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_abb7609cdcb04b410e9ce776709f5060a}{define}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&\ \mbox{\hyperlink{classVec3T}{a\_normal}},\ \mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{array}}<\mbox{\hyperlink{classVec3T}{Vec3}},\ 3>\&\ \mbox{\hyperlink{classVec3T}{a\_vertices}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00118\ \ \ \ \ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00119\ \ \ \ \ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a0e67131bdb4ba3904ba5075b4e8b9d68}{isPointInside}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}},\ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a3e6ec1e9700c7ea2f9ee4dcc54041f17}{InsideOutsideAlgorithm}}\ \mbox{\hyperlink{classVec3T}{a\_algorithm}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00120\ }
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00129\ \ \ \ \ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a25fd8b2be4a524d2dbc2b838b88c049e}{isPointInsideWindingNumber}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00130\ }
+\DoxyCodeLine{00138\ \ \ \ \ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00139\ \ \ \ \ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a35a0caecb41b91425e810a4777c308cb}{isPointInsideCrossingNumber}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00140\ }
+\DoxyCodeLine{00147\ \ \ \ \ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00148\ \ \ \ \ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a02657e2282128a3576ca5d6aa5ff4f1b}{isPointInsideSubtend}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00149\ }
+\DoxyCodeLine{00150\ \ \ \mbox{\hyperlink{classVec3T}{private}}:}
+\DoxyCodeLine{00154\ \ \ \ \ \textcolor{keywordtype}{int}\ m\_xDir\ =\ -\/1;}
+\DoxyCodeLine{00155\ }
+\DoxyCodeLine{00159\ \ \ \ \ \textcolor{keywordtype}{int}\ m\_yDir\ =\ -\/1;}
+\DoxyCodeLine{00160\ }
+\DoxyCodeLine{00165\ \ \ \ \ std::\mbox{\hyperlink{classVec3T}{array}}<\mbox{\hyperlink{classVec3T}{Vec2}},\ 2>\ m\_vertices\{\mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec2::max}}(),\ \mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec2::max}}()\};}
+\DoxyCodeLine{00166\ }
+\DoxyCodeLine{00173\ \ \ \ \ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_aa57f2e9f78ea31e148903801bd0fba1c}{Vec2}}}
+\DoxyCodeLine{00174\ \ \ \ \ projectPoint(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_a8df9a76cd2416e19c6934965529cb8ea}{Vec3}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00175\ }
+\DoxyCodeLine{00181\ \ \ \ \ \textcolor{keywordtype}{int}}
+\DoxyCodeLine{00182\ \ \ \ \ computeWindingNumber(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_aa57f2e9f78ea31e148903801bd0fba1c}{Vec2}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00189\ \ \ \ \ \textcolor{keywordtype}{int}}
+\DoxyCodeLine{00190\ \ \ \ \ computeCrossingNumber(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_aa57f2e9f78ea31e148903801bd0fba1c}{Vec2}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00191\ }
+\DoxyCodeLine{00197\ \ \ \ \ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00198\ \ \ \ \ computeSubtendedAngle(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEBGeometry_1_1Triangle2D_aa57f2e9f78ea31e148903801bd0fba1c}{Vec2}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00199\ \ \ \};}
+\DoxyCodeLine{00200\ \}\ \textcolor{comment}{//\ namespace\ EBGeometry}}
+\DoxyCodeLine{00201\ }
+\DoxyCodeLine{00202\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_Triangle2DImplem.hpp"{}}\ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00203\ }
+\DoxyCodeLine{00204\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

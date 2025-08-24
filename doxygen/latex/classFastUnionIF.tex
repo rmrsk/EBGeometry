@@ -1,5 +1,5 @@
-\hypertarget{classFastUnionIF}{}\doxysection{Fast\+Union\+IF$<$ T, P, BV, K $>$ Class Template Reference}
-\label{classFastUnionIF}\index{FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}}
+\doxysection{Fast\+Union\+IF\texorpdfstring{$<$}{<} T, P, BV, K \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classFastUnionIF}{}\label{classFastUnionIF}\index{FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}}
 
 
 Implicit function union using BVHs.  
@@ -11,7 +11,7 @@ Implicit function union using BVHs.
 
 
 
-Inheritance diagram for Fast\+Union\+IF$<$ T, P, BV, K $>$\+:
+Inheritance diagram for Fast\+Union\+IF\texorpdfstring{$<$}{<} T, P, BV, K \texorpdfstring{$>$}{>}\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -21,7 +21,7 @@ Inheritance diagram for Fast\+Union\+IF$<$ T, P, BV, K $>$\+:
 \end{figure}
 
 
-Collaboration diagram for Fast\+Union\+IF$<$ T, P, BV, K $>$\+:
+Collaboration diagram for Fast\+Union\+IF\texorpdfstring{$<$}{<} T, P, BV, K \texorpdfstring{$>$}{>}\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -29,59 +29,69 @@ Collaboration diagram for Fast\+Union\+IF$<$ T, P, BV, K $>$\+:
 \includegraphics[width=203pt]{classFastUnionIF__coll__graph}
 \end{center}
 \end{figure}
-\doxysubsection*{Public Types}
+\doxysubsubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classFastUnionIF_a76c2a52e83d11ffe9a683c1600250d42}\label{classFastUnionIF_a76c2a52e83d11ffe9a683c1600250d42}} 
-using \mbox{\hyperlink{classFastUnionIF_a76c2a52e83d11ffe9a683c1600250d42}{Root}} = typename EBGeometry\+::\+BVH\+::\+Linear\+BVH$<$ T, P, BV, K $>$
-\begin{DoxyCompactList}\small\item\em Alias for linear \mbox{\hyperlink{namespaceBVH}{BVH}} type. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classFastUnionIF_ac29ab863add030f25e4c45f2dd75ab73}\label{classFastUnionIF_ac29ab863add030f25e4c45f2dd75ab73}} 
-using \mbox{\hyperlink{classFastUnionIF_ac29ab863add030f25e4c45f2dd75ab73}{Node}} = typename Root\+::\+Linear\+Node
-\begin{DoxyCompactList}\small\item\em Alias for linear \mbox{\hyperlink{namespaceBVH}{BVH}} node. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Public Member Functions}
+\Hypertarget{classFastUnionIF_a76c2a52e83d11ffe9a683c1600250d42}\label{classFastUnionIF_a76c2a52e83d11ffe9a683c1600250d42} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Root} = \mbox{\hyperlink{classVec3T}{typename}} EBGeometry\+::\+BVH\+::\+Linear\+BVH$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$
+\begin{DoxyCompactList}\small\item\em Alias for linear \doxylink{namespaceBVH}{BVH} type. \end{DoxyCompactList}\item 
+\Hypertarget{classFastUnionIF_ac29ab863add030f25e4c45f2dd75ab73}\label{classFastUnionIF_ac29ab863add030f25e4c45f2dd75ab73} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Node} = \mbox{\hyperlink{classVec3T}{typename}} Root\+::\+Linear\+Node
+\begin{DoxyCompactList}\small\item\em Alias for linear \doxylink{namespaceBVH}{BVH} node. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classFastUnionIF_a3c01a0591fa38e6592c4db4d36daaf56}\label{classFastUnionIF_a3c01a0591fa38e6592c4db4d36daaf56}} 
-\mbox{\hyperlink{classFastUnionIF_a3c01a0591fa38e6592c4db4d36daaf56}{Fast\+Union\+IF}} ()=delete
+\Hypertarget{classFastUnionIF_a3c01a0591fa38e6592c4db4d36daaf56}\label{classFastUnionIF_a3c01a0591fa38e6592c4db4d36daaf56} 
+{\bfseries Fast\+Union\+IF} ()=\mbox{\hyperlink{classVec3T}{delete}}
 \begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classFastUnionIF_ab7beddf28f4ede606bffa12899cf9579}{Fast\+Union\+IF}} (const std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ const P $>$, BV $>$$>$ \&a\+\_\+prims\+And\+BVs) noexcept
+\mbox{\hyperlink{classFastUnionIF_a031cadc467003995a2b4570cef5e9b6a}{Fast\+Union\+IF}} (\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{P}} $>$, \mbox{\hyperlink{classVec3T}{BV}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+prims\+And\+BVs}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Full constructor -\/ constructs bounding volumes in place. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classFastUnionIF_a60dd3fb7c67dd19f06965202d708824c}{Fast\+Union\+IF}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+primitives, const std\+::vector$<$ BV $>$ \&a\+\_\+bounding\+Volumes) noexcept
+\mbox{\hyperlink{classFastUnionIF_a26f7ad365c3f024819c51d49b2c194fb}{Fast\+Union\+IF}} (\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+primitives}}, \mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{BV}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+bounding\+Volumes}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Full constructor -\/ constructs bounding volumes in place. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classFastUnionIF_aef8d73d72bcf3d764914d55ed16eef77}\label{classFastUnionIF_aef8d73d72bcf3d764914d55ed16eef77}} 
-virtual \mbox{\hyperlink{classFastUnionIF_aef8d73d72bcf3d764914d55ed16eef77}{$\sim$\+Fast\+Union\+IF}} ()=default
+\Hypertarget{classFastUnionIF_aef8d73d72bcf3d764914d55ed16eef77}\label{classFastUnionIF_aef8d73d72bcf3d764914d55ed16eef77} 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Fast\+Union\+IF} ()=\mbox{\hyperlink{classVec3T}{default}}
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
-virtual T \mbox{\hyperlink{classFastUnionIF_ad913d0fc57aa3f6079e7e54bfbbd7938}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classFastUnionIF_ad913d0fc57aa3f6079e7e54bfbbd7938}{value}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}} \mbox{\hyperlink{classVec3T}{override}}
 \begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classFastUnionIF_add9a3c155acb4e69f9578c7b458ddfa2}\label{classFastUnionIF_add9a3c155acb4e69f9578c7b458ddfa2}} 
-const BV \& \mbox{\hyperlink{classFastUnionIF_add9a3c155acb4e69f9578c7b458ddfa2}{get\+Bounding\+Volume}} () const noexcept
+\Hypertarget{classFastUnionIF_a8dd57b49b5213a26989197b9bae544b3}\label{classFastUnionIF_a8dd57b49b5213a26989197b9bae544b3} 
+\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{BV}} \& {\bfseries get\+Bounding\+Volume} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get the bounding volume. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Member Functions}
+\doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function$<$ T $>$}}}
 \begin{DoxyCompactItemize}
 \item 
-void \mbox{\hyperlink{classFastUnionIF_ac9ae6bbbf4dac42e3274b7411c0e546f}{build\+Tree}} (const std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ const P $>$, BV $>$$>$ \&a\+\_\+prims\+And\+BVs, const \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH\+::\+Build}} a\+\_\+build=BVH\+::\+Build\+::\+Top\+Down) noexcept
-\begin{DoxyCompactList}\small\item\em Build \mbox{\hyperlink{namespaceBVH}{BVH}} tree for the input objects. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Attributes}
+{\bfseries Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classImplicitFunction_a361afffb3619a6e06172bdef96c41b91}{operator()}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Alternative signature for the value function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} $>$ }\\\mbox{\hyperlink{classVec3T}{BV}} \mbox{\hyperlink{classImplicitFunction_a844c5123cf9cbad3a140fc40494b4071}{approximate\+Bounding\+Volume\+Octree}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+Low\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+High\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{unsigned}} \mbox{\hyperlink{classVec3T}{int}} \mbox{\hyperlink{classVec3T}{a\+\_\+max\+Tree\+Depth}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+safety}}=0.\+0) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Compute an approximation to the bounding volume for the implicit surface, using octrees. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classFastUnionIF_a5e2819d1ee3e24755e89fb9a83d44205}\label{classFastUnionIF_a5e2819d1ee3e24755e89fb9a83d44205}} 
-std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+BVH\+::\+Linear\+BVH$<$ T, P, BV, K $>$ $>$ \mbox{\hyperlink{classFastUnionIF_a5e2819d1ee3e24755e89fb9a83d44205}{m\+\_\+bvh}}
-\begin{DoxyCompactList}\small\item\em Root node for linearized \mbox{\hyperlink{namespaceBVH}{BVH}} tree. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classFastUnionIF_a2aae4de168a0932cab6a765ccc8cdff6}{build\+Tree}} (\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{P}} $>$, \mbox{\hyperlink{classVec3T}{BV}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+prims\+And\+BVs}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH\+::\+Build}} \mbox{\hyperlink{classVec3T}{a\+\_\+build}}=BVH\+::\+Build\+::\+Top\+Down) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Build \doxylink{namespaceBVH}{BVH} tree for the input objects. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classFastUnionIF_a5e2819d1ee3e24755e89fb9a83d44205}\label{classFastUnionIF_a5e2819d1ee3e24755e89fb9a83d44205} 
+std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+BVH\+::\+Linear\+BVH$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$ $>$ {\bfseries m\+\_\+bvh}
+\begin{DoxyCompactList}\small\item\em Root node for linearized \doxylink{namespaceBVH}{BVH} tree. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-\subsubsection*{template$<$class T, class P, class BV, size\+\_\+t K$>$\newline
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$\newline
 class Fast\+Union\+IF$<$ T, P, BV, K $>$}
-
 Implicit function union using BVHs. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classFastUnionIF_ab7beddf28f4ede606bffa12899cf9579}\label{classFastUnionIF_ab7beddf28f4ede606bffa12899cf9579}} 
+\Hypertarget{classFastUnionIF_a031cadc467003995a2b4570cef5e9b6a}\label{classFastUnionIF_a031cadc467003995a2b4570cef5e9b6a} 
 \index{FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}!FastUnionIF@{FastUnionIF}}
 \index{FastUnionIF@{FastUnionIF}!FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{FastUnionIF()}{FastUnionIF()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-\mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ const P $>$, BV $>$$>$ \&}]{a\+\_\+prims\+And\+BVs }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ \\
+\mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$\mbox{\hyperlink{classFastUnionIF}{\+::\+Fast\+Union\+IF}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{P}} $>$, \mbox{\hyperlink{classVec3T}{BV}} $>$ $>$ \&}]{a\+\_\+prims\+And\+BVs }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -92,12 +102,12 @@ Full constructor -\/ constructs bounding volumes in place.
 \mbox{\texttt{ in}}  & {\em a\+\_\+prims\+And\+BVs} & Primitives and their bounding volumes. \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classFastUnionIF_a60dd3fb7c67dd19f06965202d708824c}\label{classFastUnionIF_a60dd3fb7c67dd19f06965202d708824c}} 
+\Hypertarget{classFastUnionIF_a26f7ad365c3f024819c51d49b2c194fb}\label{classFastUnionIF_a26f7ad365c3f024819c51d49b2c194fb} 
 \index{FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}!FastUnionIF@{FastUnionIF}}
 \index{FastUnionIF@{FastUnionIF}!FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{FastUnionIF()}{FastUnionIF()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-\mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+primitives,  }\item[{const std\+::vector$<$ BV $>$ \&}]{a\+\_\+bounding\+Volumes }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ \\
+\mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$\mbox{\hyperlink{classFastUnionIF}{\+::\+Fast\+Union\+IF}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&}]{a\+\_\+primitives,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{BV}} $>$ \&}]{a\+\_\+bounding\+Volumes }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -113,30 +123,30 @@ Full constructor -\/ constructs bounding volumes in place.
 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classFastUnionIF_ac9ae6bbbf4dac42e3274b7411c0e546f}\label{classFastUnionIF_ac9ae6bbbf4dac42e3274b7411c0e546f}} 
+\Hypertarget{classFastUnionIF_a2aae4de168a0932cab6a765ccc8cdff6}\label{classFastUnionIF_a2aae4de168a0932cab6a765ccc8cdff6} 
 \index{FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}!buildTree@{buildTree}}
 \index{buildTree@{buildTree}!FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{buildTree()}{buildTree()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-void \mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}}$<$ T, P, BV, K $>$\+::build\+Tree (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ const P $>$, BV $>$$>$ \&}]{a\+\_\+prims\+And\+BVs,  }\item[{const \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH\+::\+Build}}}]{a\+\_\+build = {\ttfamily BVH\+:\+:Build\+:\+:TopDown} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$\+::build\+Tree (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{P}} $>$, \mbox{\hyperlink{classVec3T}{BV}} $>$ $>$ \&}]{a\+\_\+prims\+And\+BVs,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH\+::\+Build}}}]{a\+\_\+build = {\ttfamily BVH\+:\+:Build\+:\+:TopDown} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
-Build \mbox{\hyperlink{namespaceBVH}{BVH}} tree for the input objects. 
+Build \doxylink{namespaceBVH}{BVH} tree for the input objects. 
 
 
 \begin{DoxyParams}[1]{Parameters}
 \mbox{\texttt{ in}}  & {\em a\+\_\+prims\+And\+BVs} & Geometric primitives and their bounding volumes. \\
 \hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+build} & Build method (see \mbox{\hyperlink{EBGeometry__BVH_8hpp}{EBGeometry\+\_\+\+BVH.\+hpp}}) \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+build} & Build method (see \doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{EBGeometry\+\_\+\+BVH.\+hpp}) \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classFastUnionIF_ad913d0fc57aa3f6079e7e54bfbbd7938}\label{classFastUnionIF_ad913d0fc57aa3f6079e7e54bfbbd7938}} 
+\Hypertarget{classFastUnionIF_ad913d0fc57aa3f6079e7e54bfbbd7938}\label{classFastUnionIF_ad913d0fc57aa3f6079e7e54bfbbd7938} 
 \index{FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}!value@{value}}
 \index{value@{value}!FastUnionIF$<$ T, P, BV, K $>$@{FastUnionIF$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{value()}{value()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-virtual T \mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}}$<$ T, P, BV, K $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ \\
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classFastUnionIF}{Fast\+Union\+IF}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$\+::value (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
 
 
 

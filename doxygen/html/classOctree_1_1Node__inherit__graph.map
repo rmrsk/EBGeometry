@@ -1,4 +1,5 @@
 <map id="Octree::Node&lt; Meta, Data &gt;" name="Octree::Node&lt; Meta, Data &gt;">
-<area shape="rect" id="node1" title="Octree class without anything special (this uses full tree representation rather than linear/pointerl..." alt="" coords="22,109,181,151"/>
-<area shape="rect" id="node2" title=" " alt="" coords="5,5,197,61"/>
+<area shape="rect" id="Node000001" title="Octree class without anything special (this uses full tree representation rather than linear/pointerl..." alt="" coords="22,108,181,148"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,5,197,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="104,74,104,108,99,108,99,74"/>
 </map>

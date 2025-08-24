@@ -1,19 +1,56 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_DCEL_Edge.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_DCEL_Edge.hpp">
-<area shape="rect" id="node1" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations." alt="" coords="610,5,853,61"/>
-<area shape="rect" id="node2" title=" " alt="" coords="32,259,95,285"/>
-<area shape="rect" id="node3" title=" " alt="" coords="504,259,581,285"/>
-<area shape="rect" id="node4" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="1250,259,1413,285"/>
-<area shape="rect" id="node7" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="427,333,690,360"/>
-<area shape="rect" id="node8" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="797,333,1053,360"/>
-<area shape="rect" id="node10" href="$EBGeometry__DCEL__Face_8hpp.html" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations." alt="" coords="627,109,836,136"/>
-<area shape="rect" id="node17" title=" " alt="" coords="1488,109,1751,136"/>
-<area shape="rect" id="node5" title=" " alt="" coords="1212,333,1268,360"/>
-<area shape="rect" id="node6" title=" " alt="" coords="1292,333,1372,360"/>
-<area shape="rect" id="node9" title=" " alt="" coords="1395,333,1607,360"/>
-<area shape="rect" id="node11" href="$EBGeometry__DCEL__Vertex_8hpp.html" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations." alt="" coords="620,184,843,211"/>
-<area shape="rect" id="node14" href="$EBGeometry__Polygon2D_8hpp.html" title="Declaration of a two&#45;dimensional polygon class for embedding 3D polygon faces." alt="" coords="286,184,495,211"/>
-<area shape="rect" id="node16" title=" " alt="" coords="917,184,1176,211"/>
-<area shape="rect" id="node12" href="$EBGeometry__DCEL_8hpp.html" title="Namespace documentation." alt="" coords="656,259,829,285"/>
-<area shape="rect" id="node13" title=" " alt="" coords="904,259,1176,285"/>
-<area shape="rect" id="node15" title=" " alt="" coords="120,259,378,285"/>
+<area shape="rect" id="Node000001" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations." alt="" coords="610,5,853,60"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="32,255,95,280"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="610,58,517,79,411,106,300,141,193,184,136,215,90,248,87,244,133,211,190,179,298,136,409,101,516,74,609,53"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="503,255,581,280"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="679,62,647,84,617,110,593,142,575,178,551,242,546,240,570,176,589,139,614,106,644,79,677,58"/>
+<area shape="rect" id="Node000004" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="1250,255,1413,280"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="854,57,936,78,1028,105,1124,139,1215,179,1267,211,1310,243,1307,248,1264,215,1213,184,1122,144,1027,110,935,83,853,62"/>
+<area shape="rect" id="Node000007" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="427,328,689,353"/>
+<area shape="poly" id="edge35_Node000001_Node000007" title=" " alt="" coords="610,41,493,54,357,79,286,97,216,121,148,149,84,184,40,213,25,230,13,256,8,268,12,278,30,288,63,297,164,312,289,323,413,331,413,336,289,329,164,318,62,302,28,293,8,282,3,268,8,254,21,227,36,209,81,179,145,144,214,116,284,92,356,74,492,49,609,36"/>
+<area shape="rect" id="Node000008" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="797,328,1053,353"/>
+<area shape="poly" id="edge36_Node000001_Node000008" title=" " alt="" coords="853,51,1010,83,1184,128,1265,155,1335,185,1391,218,1412,235,1427,253,1433,268,1427,282,1409,292,1379,301,1290,315,1067,335,1067,329,1289,310,1378,295,1407,287,1423,278,1427,268,1423,256,1408,239,1388,222,1333,190,1263,160,1182,133,1009,88,852,57"/>
+<area shape="rect" id="Node000010" href="$EBGeometry__DCEL__Face_8hpp.html" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations." alt="" coords="627,108,836,133"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="726,60,726,94,721,94,720,60"/>
+<area shape="rect" id="Node000017" title=" " alt="" coords="1488,108,1751,133"/>
+<area shape="poly" id="edge37_Node000001_Node000017" title=" " alt="" coords="853,43,1488,104,1488,109,853,48"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="1211,328,1267,353"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="1318,282,1267,322,1264,317,1315,278"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="1291,328,1371,353"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="1334,280,1334,314,1329,314,1329,280"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="1250,279,696,329,695,324,1250,273"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="1267,283,1004,328,1003,323,1266,277"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="1395,328,1607,353"/>
+<area shape="poly" id="edge8_Node000004_Node000009" title=" " alt="" coords="1360,278,1461,320,1459,325,1358,282"/>
+<area shape="poly" id="edge24_Node000010_Node000001" title=" " alt="" coords="735,107,738,73,743,74,741,108"/>
+<area shape="poly" id="edge11_Node000010_Node000002" title=" " alt="" coords="627,131,460,148,366,163,274,184,178,216,99,251,97,246,176,211,272,179,365,158,459,143,626,125"/>
+<area shape="poly" id="edge10_Node000010_Node000003" title=" " alt="" coords="699,136,655,155,610,183,581,213,558,244,554,241,577,210,607,179,652,151,697,131"/>
+<area shape="poly" id="edge12_Node000010_Node000004" title=" " alt="" coords="757,131,857,179,881,193,906,204,968,218,1054,232,1237,254,1236,259,1053,237,967,224,904,209,878,198,854,184,755,136"/>
+<area shape="poly" id="edge32_Node000010_Node000007" title=" " alt="" coords="627,127,465,136,372,144,280,157,193,174,118,196,58,223,37,239,22,256,17,267,19,277,26,286,39,294,79,309,134,320,272,333,413,337,413,343,272,338,134,325,77,314,36,299,22,290,14,279,12,267,17,253,33,235,56,218,116,191,192,169,279,152,372,139,464,130,627,121"/>
+<area shape="poly" id="edge33_Node000010_Node000008" title=" " alt="" coords="837,126,1052,146,1142,161,1172,170,1189,179,1206,205,1211,230,1206,256,1189,282,1168,298,1135,311,1051,329,1049,323,1133,305,1165,293,1186,278,1201,254,1206,230,1201,207,1186,183,1170,174,1140,166,1051,151,836,131"/>
+<area shape="rect" id="Node000011" href="$EBGeometry__DCEL__Vertex_8hpp.html" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations." alt="" coords="620,181,843,207"/>
+<area shape="poly" id="edge13_Node000010_Node000011" title=" " alt="" coords="727,134,726,168,720,168,722,134"/>
+<area shape="rect" id="Node000014" href="$EBGeometry__Polygon2D_8hpp.html" title="Declaration of a two&#45;dimensional polygon class for embedding 3D polygon faces." alt="" coords="285,181,495,207"/>
+<area shape="poly" id="edge25_Node000010_Node000014" title=" " alt="" coords="677,136,459,181,458,176,676,131"/>
+<area shape="rect" id="Node000016" title=" " alt="" coords="917,181,1175,207"/>
+<area shape="poly" id="edge34_Node000010_Node000016" title=" " alt="" coords="783,131,983,176,981,181,781,136"/>
+<area shape="poly" id="edge14_Node000011_Node000002" title=" " alt="" coords="620,203,388,221,250,237,109,258,108,252,249,231,388,216,620,198"/>
+<area shape="poly" id="edge15_Node000011_Node000003" title=" " alt="" coords="702,209,587,252,585,247,700,204"/>
+<area shape="poly" id="edge16_Node000011_Node000004" title=" " alt="" coords="828,204,1237,252,1236,257,828,209"/>
+<area shape="poly" id="edge21_Node000011_Node000007" title=" " alt="" coords="714,209,645,257,580,320,576,316,642,253,711,205"/>
+<area shape="poly" id="edge22_Node000011_Node000008" title=" " alt="" coords="759,204,799,225,842,253,879,284,908,316,905,319,875,288,839,257,797,230,756,209"/>
+<area shape="poly" id="edge20_Node000011_Node000010" title=" " alt="" coords="736,181,737,147,743,147,741,181"/>
+<area shape="rect" id="Node000012" href="$EBGeometry__DCEL_8hpp.html" title="Namespace documentation." alt="" coords="655,255,829,280"/>
+<area shape="poly" id="edge17_Node000011_Node000012" title=" " alt="" coords="736,207,741,241,736,242,731,207"/>
+<area shape="rect" id="Node000013" title=" " alt="" coords="903,255,1175,280"/>
+<area shape="poly" id="edge23_Node000011_Node000013" title=" " alt="" coords="782,204,977,249,976,254,780,209"/>
+<area shape="poly" id="edge18_Node000012_Node000007" title=" " alt="" coords="714,283,602,325,600,320,712,278"/>
+<area shape="poly" id="edge19_Node000012_Node000008" title=" " alt="" coords="772,278,883,320,881,325,771,283"/>
+<area shape="poly" id="edge27_Node000014_Node000002" title=" " alt="" coords="333,209,109,257,108,252,332,204"/>
+<area shape="poly" id="edge26_Node000014_Node000003" title=" " alt="" coords="416,204,506,246,504,251,413,209"/>
+<area shape="poly" id="edge28_Node000014_Node000004" title=" " alt="" coords="495,200,1188,252,1237,256,1236,261,1187,257,495,206"/>
+<area shape="poly" id="edge29_Node000014_Node000007" title=" " alt="" coords="398,206,418,241,449,278,482,302,517,320,514,325,479,306,446,282,414,244,393,208"/>
+<area shape="poly" id="edge30_Node000014_Node000008" title=" " alt="" coords="402,205,439,242,465,262,493,278,544,293,617,306,784,326,783,331,616,312,543,298,490,282,462,266,436,246,398,209"/>
+<area shape="rect" id="Node000015" title=" " alt="" coords="119,255,378,280"/>
+<area shape="poly" id="edge31_Node000014_Node000015" title=" " alt="" coords="369,209,285,251,283,246,366,204"/>
 </map>

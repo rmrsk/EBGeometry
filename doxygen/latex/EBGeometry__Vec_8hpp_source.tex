@@ -1,0 +1,278 @@
+\doxysection{EBGeometry\+\_\+\+Vec.\+hpp}
+\hypertarget{EBGeometry__Vec_8hpp_source}{}\label{EBGeometry__Vec_8hpp_source}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Vec.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Vec.hpp}}
+\mbox{\hyperlink{EBGeometry__Vec_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*\ EBGeometry}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ Copyright\ ©\ 2022\ Robert\ Marskar}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ Please\ refer\ to\ Copyright.txt\ and\ LICENSE\ in\ the\ EBGeometry\ root\ directory.}}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#ifndef\ EBGeometry\_Vec}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#define\ EBGeometry\_Vec}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ Std\ includes}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ <array>}}
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <iostream>}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ Our\ includes}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceHeader_8hpp}{EBGeometry\_NamespaceHeader.hpp}}"{}}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00029\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00030\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classVec2T}{Vec2T}}}
+\DoxyCodeLine{00031\ \{}
+\DoxyCodeLine{00032\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00036\ \ \ \mbox{\hyperlink{classVec2T_a4aa6e0bd3922abd84449278429a03418}{Vec2T}}();}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00043\ \ \ \mbox{\hyperlink{classVec2T_ae58412c19542cb4c76553e53e74a1203}{Vec2T}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec2T}{Vec2T}}\&\ \mbox{\hyperlink{classVec3T}{u}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00051\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classVec2T_a6ab40f6698f98b18934ff65046277540}{Vec2T}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a\_x}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a\_y}});}
+\DoxyCodeLine{00052\ }
+\DoxyCodeLine{00056\ \ \ \mbox{\hyperlink{classVec2T_a15a9bac13b94b58f0907443bc551dbee}{\string~Vec2T}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00061\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec2T_a66ea295b52114b22de1f76cce1aa7f51}{x}};}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00066\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec2T_a71ce5251d618a6dbd4e0e7a0f867b6cf}{y}};}
+\DoxyCodeLine{00067\ }
+\DoxyCodeLine{00071\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classVec3T}{Vec2T<T>}}}
+\DoxyCodeLine{00072\ \ \ \mbox{\hyperlink{classVec2T_ac7324f5c659845c47a7c31dcf035a645}{zero}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00073\ }
+\DoxyCodeLine{00077\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{static}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00078\ \ \ \mbox{\hyperlink{classVec2T_a365145f47737b718a657c0f02518d36f}{one}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00083\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{static}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00084\ \ \ \mbox{\hyperlink{classVec2T_a290920a19d8bb1db42bc00e8fed113ee}{min}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00089\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{static}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00090\ \ \ \mbox{\hyperlink{classVec2T_a37947ad199b90a6089103a8b4aa503a5}{max}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00095\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{static}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00096\ \ \ \mbox{\hyperlink{classVec2T_af54de0b68a225e07540468504d94edfe}{infinity}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00102\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00103\ \ \ \mbox{\hyperlink{classVec3T}{operator}}=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00111\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00112\ \ \ \mbox{\hyperlink{classVec3T}{operator}}+(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00113\ }
+\DoxyCodeLine{00120\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00121\ \ \ \mbox{\hyperlink{classVec3T}{operator}}-\/(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00126\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00127\ \ \ \mbox{\hyperlink{classVec3T}{operator}}-\/()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00128\ }
+\DoxyCodeLine{00135\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00136\ \ \ \mbox{\hyperlink{classVec3T}{operator}}*(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{s}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00137\ }
+\DoxyCodeLine{00144\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00145\ \ \ \mbox{\hyperlink{classVec3T}{operator}}/(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{s}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00146\ }
+\DoxyCodeLine{00153\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00154\ \ \ \mbox{\hyperlink{classVec3T}{operator}}+=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00155\ }
+\DoxyCodeLine{00162\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00163\ \ \ \mbox{\hyperlink{classVec3T}{operator}}-\/=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00164\ }
+\DoxyCodeLine{00171\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00172\ \ \ \mbox{\hyperlink{classVec3T}{operator}}*=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{s}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00173\ }
+\DoxyCodeLine{00180\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00181\ \ \ \mbox{\hyperlink{classVec3T}{operator}}/=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{s}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00182\ }
+\DoxyCodeLine{00188\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00189\ \ \ \mbox{\hyperlink{classVec2T_a8b7cb7e36ad7739929bcebdbce3a30de}{dot}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00196\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00197\ \ \ \mbox{\hyperlink{classVec2T_a006955e162c59d5d4988032be46b173c}{length}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00198\ }
+\DoxyCodeLine{00204\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00205\ \ \ \mbox{\hyperlink{classVec2T_a29e28df03549a51e58e25bee8ef92b23}{length2}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00206\ \};}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00216\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00217\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}}
+\DoxyCodeLine{00218\ \{}
+\DoxyCodeLine{00219\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00223\ \ \ \textcolor{keyword}{friend}\ std::ostream\&}
+\DoxyCodeLine{00224\ \ \ \mbox{\hyperlink{classVec3T}{operator<<}}(std::ostream\&\ \mbox{\hyperlink{classVec3T}{os}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{vec}})}
+\DoxyCodeLine{00225\ \ \ \{}
+\DoxyCodeLine{00226\ \ \ \ \ \mbox{\hyperlink{classVec3T}{os}}\ <<\ \textcolor{charliteral}{'('}\ <<\ \mbox{\hyperlink{classVec3T}{vec}}[0]\ <<\ \textcolor{charliteral}{','}\ <<\ \mbox{\hyperlink{classVec3T}{vec}}[1]\ <<\ \textcolor{charliteral}{','}\ <<\ \mbox{\hyperlink{classVec3T}{vec}}[2]\ <<\ \textcolor{charliteral}{')'};}
+\DoxyCodeLine{00227\ }
+\DoxyCodeLine{00228\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{os}};}
+\DoxyCodeLine{00229\ \ \ \}}
+\DoxyCodeLine{00230\ }
+\DoxyCodeLine{00234\ \ \ \mbox{\hyperlink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{Vec3T}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00235\ }
+\DoxyCodeLine{00241\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_u}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00242\ }
+\DoxyCodeLine{00250\ \ \ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a\_x}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a\_y}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a\_z}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00251\ }
+\DoxyCodeLine{00255\ \ \ \string~\mbox{\hyperlink{classVec3T}{Vec3T}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}\ =\ \mbox{\hyperlink{classVec3T}{default}};}
+\DoxyCodeLine{00256\ }
+\DoxyCodeLine{00260\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{static}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00261\ \ \ \mbox{\hyperlink{classVec2T_ac7324f5c659845c47a7c31dcf035a645}{zero}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00262\ }
+\DoxyCodeLine{00266\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{static}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00267\ \ \ \mbox{\hyperlink{classVec2T_a365145f47737b718a657c0f02518d36f}{one}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00268\ }
+\DoxyCodeLine{00273\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{static}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00274\ \ \ unit(\mbox{\hyperlink{classVec3T}{const}}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{a\_dir}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00275\ }
+\DoxyCodeLine{00279\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{static}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00280\ \ \ \mbox{\hyperlink{classVec2T_a290920a19d8bb1db42bc00e8fed113ee}{min}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00281\ }
+\DoxyCodeLine{00285\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{static}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00286\ \ \ \mbox{\hyperlink{classVec2T_a37947ad199b90a6089103a8b4aa503a5}{max}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00287\ }
+\DoxyCodeLine{00291\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{static}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00292\ \ \ \mbox{\hyperlink{classVec2T_af54de0b68a225e07540468504d94edfe}{infinity}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00293\ }
+\DoxyCodeLine{00299\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00300\ \ \ lessLX(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00301\ }
+\DoxyCodeLine{00306\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{T}}\&}
+\DoxyCodeLine{00307\ \ \ \mbox{\hyperlink{classVec3T}{operator}}[](\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{i}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00308\ }
+\DoxyCodeLine{00313\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&}
+\DoxyCodeLine{00314\ \ \ \mbox{\hyperlink{classVec3T}{operator}}[](\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{i}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00315\ }
+\DoxyCodeLine{00320\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00321\ \ \ \mbox{\hyperlink{classVec3T}{operator}}==(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00322\ }
+\DoxyCodeLine{00327\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00328\ \ \ \mbox{\hyperlink{classVec3T}{operator}}!=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00329\ }
+\DoxyCodeLine{00336\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00337\ \ \ \mbox{\hyperlink{classVec3T}{operator}}<(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00338\ }
+\DoxyCodeLine{00344\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00345\ \ \ \mbox{\hyperlink{classVec3T}{operator}}>(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00346\ }
+\DoxyCodeLine{00353\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00354\ \ \ \mbox{\hyperlink{classVec3T}{operator}}<=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00355\ }
+\DoxyCodeLine{00362\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00363\ \ \ \mbox{\hyperlink{classVec3T}{operator}}>=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00364\ }
+\DoxyCodeLine{00370\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00371\ \ \ \mbox{\hyperlink{classVec3T}{operator}}=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00372\ }
+\DoxyCodeLine{00378\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00379\ \ \ \mbox{\hyperlink{classVec3T}{operator}}+(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00380\ }
+\DoxyCodeLine{00386\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00387\ \ \ \mbox{\hyperlink{classVec3T}{operator}}-\/(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00388\ }
+\DoxyCodeLine{00392\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00393\ \ \ \mbox{\hyperlink{classVec3T}{operator}}-\/()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00394\ }
+\DoxyCodeLine{00401\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00402\ \ \ \mbox{\hyperlink{classVec3T}{operator}}*(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{s}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00403\ }
+\DoxyCodeLine{00410\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00411\ \ \ \mbox{\hyperlink{classVec3T}{operator}}*(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{s}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00412\ }
+\DoxyCodeLine{00418\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00419\ \ \ \mbox{\hyperlink{classVec3T}{operator}}/(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{s}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00420\ }
+\DoxyCodeLine{00426\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00427\ \ \ \mbox{\hyperlink{classVec3T}{operator}}/(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{v}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00428\ }
+\DoxyCodeLine{00435\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00436\ \ \ \mbox{\hyperlink{classVec3T}{operator}}+=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00437\ }
+\DoxyCodeLine{00444\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00445\ \ \ \mbox{\hyperlink{classVec3T}{operator}}-\/=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00446\ }
+\DoxyCodeLine{00453\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00454\ \ \ \mbox{\hyperlink{classVec3T}{operator}}*=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{s}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00455\ }
+\DoxyCodeLine{00462\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00463\ \ \ \mbox{\hyperlink{classVec3T}{operator}}/=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{s}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00464\ }
+\DoxyCodeLine{00472\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00473\ \ \ \mbox{\hyperlink{classVec2T_a290920a19d8bb1db42bc00e8fed113ee}{min}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00474\ }
+\DoxyCodeLine{00482\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00483\ \ \ \mbox{\hyperlink{classVec2T_a37947ad199b90a6089103a8b4aa503a5}{max}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00484\ }
+\DoxyCodeLine{00490\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00491\ \ \ cross(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00492\ }
+\DoxyCodeLine{00498\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00499\ \ \ \mbox{\hyperlink{classVec2T_a8b7cb7e36ad7739929bcebdbce3a30de}{dot}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00500\ }
+\DoxyCodeLine{00508\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{size\_t}}
+\DoxyCodeLine{00509\ \ \ minDir(\mbox{\hyperlink{classVec3T}{const}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classVec3T}{a\_doAbs}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00510\ }
+\DoxyCodeLine{00518\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{size\_t}}
+\DoxyCodeLine{00519\ \ \ maxDir(\mbox{\hyperlink{classVec3T}{const}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classVec3T}{a\_doAbs}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00520\ }
+\DoxyCodeLine{00526\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00527\ \ \ \mbox{\hyperlink{classVec2T_a006955e162c59d5d4988032be46b173c}{length}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00528\ }
+\DoxyCodeLine{00534\ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00535\ \ \ \mbox{\hyperlink{classVec2T_a29e28df03549a51e58e25bee8ef92b23}{length2}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00536\ }
+\DoxyCodeLine{00537\ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00541\ \ \ std::\mbox{\hyperlink{classVec3T}{array}}<\mbox{\hyperlink{classVec3T}{T}},\ 3>\ m\_X;}
+\DoxyCodeLine{00542\ \};}
+\DoxyCodeLine{00543\ }
+\DoxyCodeLine{00550\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00551\ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00552\ \mbox{\hyperlink{classVec3T}{operator}}*(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{s}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00553\ }
+\DoxyCodeLine{00561\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00562\ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00563\ \mbox{\hyperlink{classVec3T}{operator}}/(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{s}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00564\ }
+\DoxyCodeLine{00571\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00572\ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00573\ \mbox{\hyperlink{classVec2T_a290920a19d8bb1db42bc00e8fed113ee}{min}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{v}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00574\ }
+\DoxyCodeLine{00581\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00582\ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00583\ \mbox{\hyperlink{classVec2T_a37947ad199b90a6089103a8b4aa503a5}{max}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{v}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00584\ }
+\DoxyCodeLine{00590\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00591\ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00592\ \mbox{\hyperlink{classVec2T_a8b7cb7e36ad7739929bcebdbce3a30de}{dot}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{v}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00593\ }
+\DoxyCodeLine{00598\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00599\ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00600\ \mbox{\hyperlink{classVec2T_a006955e162c59d5d4988032be46b173c}{length}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec2T}{Vec2T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{v}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00601\ }
+\DoxyCodeLine{00608\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{R}},\ \mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00609\ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00610\ \mbox{\hyperlink{classVec3T}{operator}}*(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{R}}\&\ \mbox{\hyperlink{classVec3T}{s}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00611\ }
+\DoxyCodeLine{00618\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00619\ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00620\ \mbox{\hyperlink{classVec3T}{operator}}*(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{v}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00621\ }
+\DoxyCodeLine{00628\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{R}},\ \mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00629\ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00630\ \mbox{\hyperlink{classVec3T}{operator}}/(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{R}}\&\ \mbox{\hyperlink{classVec3T}{s}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00631\ }
+\DoxyCodeLine{00639\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00640\ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00641\ \mbox{\hyperlink{classVec2T_a290920a19d8bb1db42bc00e8fed113ee}{min}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{v}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00642\ }
+\DoxyCodeLine{00650\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00651\ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00652\ \mbox{\hyperlink{classVec2T_a37947ad199b90a6089103a8b4aa503a5}{max}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{v}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00653\ }
+\DoxyCodeLine{00659\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00660\ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00661\ \mbox{\hyperlink{classVec2T_a8b7cb7e36ad7739929bcebdbce3a30de}{dot}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{u}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{v}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00662\ }
+\DoxyCodeLine{00667\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00668\ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{constexpr}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00669\ \mbox{\hyperlink{classVec2T_a006955e162c59d5d4988032be46b173c}{length}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{v}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00670\ }
+\DoxyCodeLine{00671\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_NamespaceFooter.hpp"{}}}
+\DoxyCodeLine{00672\ }
+\DoxyCodeLine{00673\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_VecImplem.hpp"{}}}
+\DoxyCodeLine{00674\ }
+\DoxyCodeLine{00675\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

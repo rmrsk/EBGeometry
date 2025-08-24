@@ -1,5 +1,5 @@
-\hypertarget{classEBGeometry_1_1SimpleTimer}{}\doxysection{EBGeometry\+::Simple\+Timer Class Reference}
-\label{classEBGeometry_1_1SimpleTimer}\index{EBGeometry::SimpleTimer@{EBGeometry::SimpleTimer}}
+\doxysection{EBGeometry\+::Simple\+Timer Class Reference}
+\hypertarget{classEBGeometry_1_1SimpleTimer}{}\label{classEBGeometry_1_1SimpleTimer}\index{EBGeometry::SimpleTimer@{EBGeometry::SimpleTimer}}
 
 
 Simple timer class used for local performance profiling. Does not include MPI capabilities and is therefore local to each rank.  
@@ -9,41 +9,41 @@ Simple timer class used for local performance profiling. Does not include MPI ca
 
 {\ttfamily \#include $<$EBGeometry\+\_\+\+Simple\+Timer.\+hpp$>$}
 
-\doxysubsection*{Public Types}
+\doxysubsubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classEBGeometry_1_1SimpleTimer_a87627dee64a13e6a6fc19ab308ca804b}\label{classEBGeometry_1_1SimpleTimer_a87627dee64a13e6a6fc19ab308ca804b}} 
-using \mbox{\hyperlink{classEBGeometry_1_1SimpleTimer_a87627dee64a13e6a6fc19ab308ca804b}{Clock}} = std\+::chrono\+::steady\+\_\+clock
+\Hypertarget{classEBGeometry_1_1SimpleTimer_a87627dee64a13e6a6fc19ab308ca804b}\label{classEBGeometry_1_1SimpleTimer_a87627dee64a13e6a6fc19ab308ca804b} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Clock} = std\+::chrono\+::steady\+\_\+clock
 \begin{DoxyCompactList}\small\item\em Clock alias. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classEBGeometry_1_1SimpleTimer_a76df636acfbd3198a92be2e7c99afd62}\label{classEBGeometry_1_1SimpleTimer_a76df636acfbd3198a92be2e7c99afd62}} 
-using \mbox{\hyperlink{classEBGeometry_1_1SimpleTimer_a76df636acfbd3198a92be2e7c99afd62}{Time\+Point}} = Clock\+::time\+\_\+point
+\Hypertarget{classEBGeometry_1_1SimpleTimer_a76df636acfbd3198a92be2e7c99afd62}\label{classEBGeometry_1_1SimpleTimer_a76df636acfbd3198a92be2e7c99afd62} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Time\+Point} = Clock\+::time\+\_\+point
 \begin{DoxyCompactList}\small\item\em Time point alias. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Public Member Functions}
+\doxysubsubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classEBGeometry_1_1SimpleTimer_aef66af61492bc0f7f6c2300a1e69741a}\label{classEBGeometry_1_1SimpleTimer_aef66af61492bc0f7f6c2300a1e69741a}} 
-\mbox{\hyperlink{classEBGeometry_1_1SimpleTimer_aef66af61492bc0f7f6c2300a1e69741a}{Simple\+Timer}} () noexcept
+\Hypertarget{classEBGeometry_1_1SimpleTimer_aef66af61492bc0f7f6c2300a1e69741a}\label{classEBGeometry_1_1SimpleTimer_aef66af61492bc0f7f6c2300a1e69741a} 
+{\bfseries Simple\+Timer} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Constructor. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classEBGeometry_1_1SimpleTimer_abe8b9c84e8c5388376f70fd9b03e4bb8}\label{classEBGeometry_1_1SimpleTimer_abe8b9c84e8c5388376f70fd9b03e4bb8}} 
-\mbox{\hyperlink{classEBGeometry_1_1SimpleTimer_abe8b9c84e8c5388376f70fd9b03e4bb8}{$\sim$\+Simple\+Timer}} () noexcept=default
+\Hypertarget{classEBGeometry_1_1SimpleTimer_abe8b9c84e8c5388376f70fd9b03e4bb8}\label{classEBGeometry_1_1SimpleTimer_abe8b9c84e8c5388376f70fd9b03e4bb8} 
+{\bfseries \texorpdfstring{$\sim$}{\string~}\+Simple\+Timer} () \mbox{\hyperlink{classVec3T}{noexcept}}=\mbox{\hyperlink{classVec3T}{default}}
 \begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classEBGeometry_1_1SimpleTimer_a60ee0b03a3097ddccefd365280624083}\label{classEBGeometry_1_1SimpleTimer_a60ee0b03a3097ddccefd365280624083}} 
-void \mbox{\hyperlink{classEBGeometry_1_1SimpleTimer_a60ee0b03a3097ddccefd365280624083}{start}} () noexcept
+\Hypertarget{classEBGeometry_1_1SimpleTimer_a60ee0b03a3097ddccefd365280624083}\label{classEBGeometry_1_1SimpleTimer_a60ee0b03a3097ddccefd365280624083} 
+\mbox{\hyperlink{classVec3T}{void}} {\bfseries start} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Start timing. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classEBGeometry_1_1SimpleTimer_ad16937495dd71c6cdafd9bfec463f2c8}\label{classEBGeometry_1_1SimpleTimer_ad16937495dd71c6cdafd9bfec463f2c8}} 
-void \mbox{\hyperlink{classEBGeometry_1_1SimpleTimer_ad16937495dd71c6cdafd9bfec463f2c8}{stop}} () noexcept
+\Hypertarget{classEBGeometry_1_1SimpleTimer_ad16937495dd71c6cdafd9bfec463f2c8}\label{classEBGeometry_1_1SimpleTimer_ad16937495dd71c6cdafd9bfec463f2c8} 
+\mbox{\hyperlink{classVec3T}{void}} {\bfseries stop} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Stop timing. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classEBGeometry_1_1SimpleTimer_a809155fed4fbba8a25cc2b0dc07d284f}\label{classEBGeometry_1_1SimpleTimer_a809155fed4fbba8a25cc2b0dc07d284f}} 
-double \mbox{\hyperlink{classEBGeometry_1_1SimpleTimer_a809155fed4fbba8a25cc2b0dc07d284f}{seconds}} () const noexcept
+\Hypertarget{classEBGeometry_1_1SimpleTimer_a809155fed4fbba8a25cc2b0dc07d284f}\label{classEBGeometry_1_1SimpleTimer_a809155fed4fbba8a25cc2b0dc07d284f} 
+\mbox{\hyperlink{classVec3T}{double}} {\bfseries seconds} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Report result -- prints result in seconds. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Attributes}
+\doxysubsubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classEBGeometry_1_1SimpleTimer_a37360be4c0d7212c979acd86d24b5ec9}\label{classEBGeometry_1_1SimpleTimer_a37360be4c0d7212c979acd86d24b5ec9}} 
-\mbox{\hyperlink{classEBGeometry_1_1SimpleTimer_a76df636acfbd3198a92be2e7c99afd62}{Time\+Point}} \mbox{\hyperlink{classEBGeometry_1_1SimpleTimer_a37360be4c0d7212c979acd86d24b5ec9}{m\+\_\+start}}
+\Hypertarget{classEBGeometry_1_1SimpleTimer_a37360be4c0d7212c979acd86d24b5ec9}\label{classEBGeometry_1_1SimpleTimer_a37360be4c0d7212c979acd86d24b5ec9} 
+\mbox{\hyperlink{classEBGeometry_1_1SimpleTimer_a76df636acfbd3198a92be2e7c99afd62}{Time\+Point}} {\bfseries m\+\_\+start}
 \begin{DoxyCompactList}\small\item\em Start point. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classEBGeometry_1_1SimpleTimer_a6fdfce94049ab1d7f09863f030523cf0}\label{classEBGeometry_1_1SimpleTimer_a6fdfce94049ab1d7f09863f030523cf0}} 
-\mbox{\hyperlink{classEBGeometry_1_1SimpleTimer_a76df636acfbd3198a92be2e7c99afd62}{Time\+Point}} \mbox{\hyperlink{classEBGeometry_1_1SimpleTimer_a6fdfce94049ab1d7f09863f030523cf0}{m\+\_\+stop}}
+\Hypertarget{classEBGeometry_1_1SimpleTimer_a6fdfce94049ab1d7f09863f030523cf0}\label{classEBGeometry_1_1SimpleTimer_a6fdfce94049ab1d7f09863f030523cf0} 
+\mbox{\hyperlink{classEBGeometry_1_1SimpleTimer_a76df636acfbd3198a92be2e7c99afd62}{Time\+Point}} {\bfseries m\+\_\+stop}
 \begin{DoxyCompactList}\small\item\em Stop point. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 

@@ -1,0 +1,173 @@
+\doxysection{EBGeometry\+\_\+\+Mesh\+Distance\+Functions.\+hpp}
+\hypertarget{EBGeometry__MeshDistanceFunctions_8hpp_source}{}\label{EBGeometry__MeshDistanceFunctions_8hpp_source}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_MeshDistanceFunctions.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_MeshDistanceFunctions.hpp}}
+\mbox{\hyperlink{EBGeometry__MeshDistanceFunctions_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*\ EBGeometry}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ Copyright\ ©\ 2023\ Robert\ Marskar}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ Please\ refer\ to\ Copyright.txt\ and\ LICENSE\ in\ the\ EBGeometry\ root\ directory.}}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#ifndef\ EBGeometry\_MeshDistanceFunctions}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#define\ EBGeometry\_MeshDistanceFunctions}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ Our\ includes}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__BoundingVolumes_8hpp}{EBGeometry\_BoundingVolumes.hpp}}"{}}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__SignedDistanceFunction_8hpp}{EBGeometry\_SignedDistanceFunction.hpp}}"{}}}
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__DCEL__Mesh_8hpp}{EBGeometry\_DCEL\_Mesh.hpp}}"{}}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__BVH_8hpp}{EBGeometry\_BVH.hpp}}"{}}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__Triangle_8hpp}{EBGeometry\_Triangle.hpp}}"{}}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceHeader_8hpp}{EBGeometry\_NamespaceHeader.hpp}}"{}}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceDCEL}{DCEL}}\ \{}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00031\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ Meta,\ \textcolor{keyword}{class}\ BV,\ \textcolor{keywordtype}{size\_t}\ K>}
+\DoxyCodeLine{00032\ \ \ std::shared\_ptr<EBGeometry::BVH::NodeT<T,\ FaceT<T,\ Meta>,\ \mbox{\hyperlink{classVec3T}{BV}},\ \mbox{\hyperlink{classVec3T}{K}}>>}
+\DoxyCodeLine{00033\ \ \ \mbox{\hyperlink{namespaceDCEL_af6d68396b7bf6e38e5b2cec88693aca2}{buildFullBVH}}(\textcolor{keyword}{const}\ std::shared\_ptr<EBGeometry::DCEL::MeshT<T,\ Meta>>\&\ \mbox{\hyperlink{classVec3T}{a\_dcelMesh}},}
+\DoxyCodeLine{00034\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH::Build}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_build}}\ =\ BVH::Build::TopDown)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00035\ \}\ \textcolor{comment}{//\ namespace\ DCEL}}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00040\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ Meta\ =\ DCEL::DefaultMetaData>}
+\DoxyCodeLine{00041\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classMeshSDF}{MeshSDF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<T>}
+\DoxyCodeLine{00042\ \{}
+\DoxyCodeLine{00043\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00047\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classMeshSDF_a7dd8ee2d369c67fa3646dd8ed3c7cc6d}{Mesh}}\ =\ EBGeometry::DCEL::MeshT<T,\ Meta>;}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00052\ \ \ \mbox{\hyperlink{classMeshSDF_a71d0a3570ecc99e8971009173814a610}{MeshSDF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00058\ \ \ \mbox{\hyperlink{classMeshSDF_a50ac293aad2de66880bdd218a981d23c}{MeshSDF}}(\textcolor{keyword}{const}\ std::shared\_ptr<Mesh>\&\ \mbox{\hyperlink{classVec3T}{a\_mesh}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00063\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classMeshSDF_a8a0bb1ee16f1a966496b0e764562a982}{\string~MeshSDF}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00068\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00069\ \ \ \mbox{\hyperlink{classMeshSDF_a4e1662cc199a263b0f6a0183e10bd0eb}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00070\ }
+\DoxyCodeLine{00074\ \ \ \textcolor{keyword}{const}\ std::shared\_ptr<Mesh>}
+\DoxyCodeLine{00075\ \ \ \mbox{\hyperlink{classMeshSDF_ab88931c84934a292a38aeb478341638c}{getMesh}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00080\ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{BV}}>}
+\DoxyCodeLine{00081\ \ \ \mbox{\hyperlink{classVec3T}{BV}}}
+\DoxyCodeLine{00082\ \ \ \mbox{\hyperlink{classMeshSDF_ae8401d4ba40c622e86cc3e9c3cc6f5ae}{computeBoundingVolume}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00084\ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00088\ \ \ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classMeshSDF_a7dd8ee2d369c67fa3646dd8ed3c7cc6d}{Mesh}}>\ \mbox{\hyperlink{classMeshSDF_a223d6b2c6d86a6ea3edd9028c842374a}{m\_mesh}};}
+\DoxyCodeLine{00089\ \};}
+\DoxyCodeLine{00090\ }
+\DoxyCodeLine{00094\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}},\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{Meta}},\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{BV}},\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{K}}>}
+\DoxyCodeLine{00095\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classFastMeshSDF}{FastMeshSDF}}\ :\ \mbox{\hyperlink{classVec3T}{public}}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00096\ \{}
+\DoxyCodeLine{00097\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00101\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classFastMeshSDF_acae970bf9f08f39b718a1f65b9476b2e}{Face}}\ =\ \textcolor{keyword}{typename}\ EBGeometry::DCEL::FaceT<T,\ Meta>;}
+\DoxyCodeLine{00102\ }
+\DoxyCodeLine{00106\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classFastMeshSDF_af87a9e618ed040a580b834a156bd405f}{Mesh}}\ =\ \textcolor{keyword}{typename}\ EBGeometry::DCEL::MeshT<T,\ Meta>;}
+\DoxyCodeLine{00107\ }
+\DoxyCodeLine{00111\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classFastMeshSDF_a04a7a7e74554051c3040637d543dccdf}{Node}}\ =\ EBGeometry::BVH::NodeT<T,\ Face,\ BV,\ K>;}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00116\ \ \ \mbox{\hyperlink{classFastMeshSDF_aa82738d8df17c7e9864e99a2d02d1f98}{FastMeshSDF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00117\ }
+\DoxyCodeLine{00123\ \ \ \mbox{\hyperlink{classFastMeshSDF_a342fe25e8cebbc41fef1f8a83b60660d}{FastMeshSDF}}(\textcolor{keyword}{const}\ std::shared\_ptr<Mesh>\&\ \mbox{\hyperlink{classVec3T}{a\_mesh}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH::Build}}\ \mbox{\hyperlink{classVec3T}{a\_build}}\ =\ BVH::Build::TopDown)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00124\ }
+\DoxyCodeLine{00128\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classFastMeshSDF_abf7cef9dc0d6294a1d305cfa18d3f89e}{\string~FastMeshSDF}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00129\ }
+\DoxyCodeLine{00134\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00135\ \ \ \mbox{\hyperlink{classFastMeshSDF_af7a84bec6a411abc96869e131d3b627f}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00136\ }
+\DoxyCodeLine{00145\ \ \ \textcolor{keyword}{virtual}\ std::vector<std::pair<std::shared\_ptr<const\ Face>,\ \mbox{\hyperlink{classVec3T}{T}}>>}
+\DoxyCodeLine{00146\ \ \ \mbox{\hyperlink{classFastMeshSDF_a2591829b4a5e0e81abea9ad3d488ae04}{getClosestFaces}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}},\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classVec3T}{a\_sorted}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00147\ }
+\DoxyCodeLine{00151\ \ \ \textcolor{keyword}{virtual}\ std::shared\_ptr<Node>\&}
+\DoxyCodeLine{00152\ \ \ \mbox{\hyperlink{classFastMeshSDF_af29a7f4c2d2e890b2132a78bfa0632ac}{getBVH}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00157\ \ \ \mbox{\hyperlink{classVec3T}{virtual}}\ \mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classFastMeshSDF_a04a7a7e74554051c3040637d543dccdf}{Node}}>\&}
+\DoxyCodeLine{00158\ \ \ getBVH()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00159\ }
+\DoxyCodeLine{00163\ \ \ \mbox{\hyperlink{classVec3T}{BV}}}
+\DoxyCodeLine{00164\ \ \ \mbox{\hyperlink{classMeshSDF_ae8401d4ba40c622e86cc3e9c3cc6f5ae}{computeBoundingVolume}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00165\ }
+\DoxyCodeLine{00166\ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00170\ \ \ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classFastMeshSDF_a04a7a7e74554051c3040637d543dccdf}{Node}}>\ m\_bvh;}
+\DoxyCodeLine{00171\ \};}
+\DoxyCodeLine{00172\ }
+\DoxyCodeLine{00176\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}},\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{Meta}},\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{BV}},\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{K}}>}
+\DoxyCodeLine{00177\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classFastCompactMeshSDF}{FastCompactMeshSDF}}\ :\ \mbox{\hyperlink{classVec3T}{public}}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00178\ \{}
+\DoxyCodeLine{00179\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00183\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classFastCompactMeshSDF_abf8d2c07e72367f75c6a651b2d98a901}{Face}}\ =\ \textcolor{keyword}{typename}\ EBGeometry::DCEL::FaceT<T,\ Meta>;}
+\DoxyCodeLine{00184\ }
+\DoxyCodeLine{00188\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classFastCompactMeshSDF_ab69d271504a00c6585b9d71d58a999d8}{Mesh}}\ =\ \textcolor{keyword}{typename}\ EBGeometry::DCEL::MeshT<T,\ Meta>;}
+\DoxyCodeLine{00189\ }
+\DoxyCodeLine{00193\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classFastCompactMeshSDF_a4c50c76f38b0bc8e738a463a0b641539}{Root}}\ =\ \textcolor{keyword}{typename}\ EBGeometry::BVH::LinearBVH<T,\ Face,\ BV,\ K>;}
+\DoxyCodeLine{00194\ }
+\DoxyCodeLine{00198\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classFastCompactMeshSDF_a5c9219c7a7aa9d2b422673e6d300925f}{Node}}\ =\ \textcolor{keyword}{typename}\ Root::LinearNode;}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00203\ \ \ \mbox{\hyperlink{classFastCompactMeshSDF_a1d6ffa8833bb9581af2545d320db333c}{FastCompactMeshSDF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00204\ }
+\DoxyCodeLine{00210\ \ \ \mbox{\hyperlink{classFastCompactMeshSDF_a5b64a86bb57d7da15b3efeb8d9e8c95e}{FastCompactMeshSDF}}(\textcolor{keyword}{const}\ std::shared\_ptr<Mesh>\&\ \mbox{\hyperlink{classVec3T}{a\_mesh}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH::Build}}\ \mbox{\hyperlink{classVec3T}{a\_build}}\ =\ BVH::Build::TopDown)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00215\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classFastCompactMeshSDF_a44cae40029f0241bf1959a5644f0db1b}{\string~FastCompactMeshSDF}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00216\ }
+\DoxyCodeLine{00221\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00222\ \ \ \mbox{\hyperlink{classFastCompactMeshSDF_ac44c1842ce35c33ff183dd9eb47d6753}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00223\ }
+\DoxyCodeLine{00232\ \ \ \textcolor{keyword}{virtual}\ std::vector<std::pair<std::shared\_ptr<const\ Face>,\ \mbox{\hyperlink{classVec3T}{T}}>>}
+\DoxyCodeLine{00233\ \ \ \mbox{\hyperlink{classFastCompactMeshSDF_a6e6d9bc38787d18b815fa02952eefd89}{getClosestFaces}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}},\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classVec3T}{a\_sorted}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00234\ }
+\DoxyCodeLine{00238\ \ \ \textcolor{keyword}{virtual}\ std::shared\_ptr<Root>\&}
+\DoxyCodeLine{00239\ \ \ \mbox{\hyperlink{classFastCompactMeshSDF_aac412b83e245a699281417639ea87cd7}{getRoot}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00240\ }
+\DoxyCodeLine{00244\ \ \ \mbox{\hyperlink{classVec3T}{virtual}}\ \mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classFastCompactMeshSDF_a4c50c76f38b0bc8e738a463a0b641539}{Root}}>\&}
+\DoxyCodeLine{00245\ \ \ getRoot()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00246\ }
+\DoxyCodeLine{00250\ \ \ \mbox{\hyperlink{classVec3T}{BV}}}
+\DoxyCodeLine{00251\ \ \ \mbox{\hyperlink{classMeshSDF_ae8401d4ba40c622e86cc3e9c3cc6f5ae}{computeBoundingVolume}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00252\ }
+\DoxyCodeLine{00253\ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00257\ \ \ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classFastCompactMeshSDF_a4c50c76f38b0bc8e738a463a0b641539}{Root}}>\ m\_bvh;}
+\DoxyCodeLine{00258\ \};}
+\DoxyCodeLine{00259\ }
+\DoxyCodeLine{00263\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}},\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{Meta}},\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{BV}},\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{K}}>}
+\DoxyCodeLine{00264\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classFastTriMeshSDF}{FastTriMeshSDF}}\ :\ \mbox{\hyperlink{classVec3T}{public}}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00265\ \{}
+\DoxyCodeLine{00266\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00270\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classFastTriMeshSDF_a27512e51f6ecdac0a8e1bb79a6c8f9c8}{Mesh}}\ =\ EBGeometry::DCEL::MeshT<T,\ Meta>;}
+\DoxyCodeLine{00271\ }
+\DoxyCodeLine{00275\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classFastTriMeshSDF_adb1a16ebd7671cf5247994e87853db5e}{Tri}}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry::Triangle<T,\ Meta>}};}
+\DoxyCodeLine{00276\ }
+\DoxyCodeLine{00280\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classFastTriMeshSDF_a89d8676ba95d21981962312fa55f1ef5}{Root}}\ =\ \textcolor{keyword}{typename}\ EBGeometry::BVH::LinearBVH<T,\ Tri,\ BV,\ K>;}
+\DoxyCodeLine{00281\ }
+\DoxyCodeLine{00285\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classFastTriMeshSDF_af62a17c0076167db4f47e31aa1ff441e}{Node}}\ =\ \textcolor{keyword}{typename}\ Root::LinearNode;}
+\DoxyCodeLine{00286\ }
+\DoxyCodeLine{00290\ \ \ \mbox{\hyperlink{classFastTriMeshSDF_a7f723ab07c1cd50e58c2c7b8ae559916}{FastTriMeshSDF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00291\ }
+\DoxyCodeLine{00297\ \ \ \mbox{\hyperlink{classFastTriMeshSDF_a9107574a71735c81d0f4a37f11ab2e90}{FastTriMeshSDF}}(\textcolor{keyword}{const}\ std::shared\_ptr<Mesh>\&\ \mbox{\hyperlink{classVec3T}{a\_mesh}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH::Build}}\ \mbox{\hyperlink{classVec3T}{a\_build}}\ =\ BVH::Build::TopDown)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00298\ }
+\DoxyCodeLine{00304\ \ \ \mbox{\hyperlink{classFastTriMeshSDF_a5574bcd14f832d167b8b185be9452d12}{FastTriMeshSDF}}(\textcolor{keyword}{const}\ std::vector<std::shared\_ptr<Tri>>\&\ \mbox{\hyperlink{classVec3T}{a\_triangles}},}
+\DoxyCodeLine{00305\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH::Build}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_build}}\ =\ BVH::Build::TopDown)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00306\ }
+\DoxyCodeLine{00310\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classFastTriMeshSDF_a1dc2b41d9e9855d8c4fe5fe4ef9539ce}{\string~FastTriMeshSDF}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00311\ }
+\DoxyCodeLine{00316\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00317\ \ \ \mbox{\hyperlink{classFastTriMeshSDF_a9715d836498503de5b5f718a2dee5d0d}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00318\ }
+\DoxyCodeLine{00327\ \ \ \textcolor{keyword}{virtual}\ std::vector<std::pair<std::shared\_ptr<const\ Tri>,\ \mbox{\hyperlink{classVec3T}{T}}>>}
+\DoxyCodeLine{00328\ \ \ \mbox{\hyperlink{classFastTriMeshSDF_a0038313c96a957a322beaa0b1d906f37}{getClosestTriangles}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}},\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classVec3T}{a\_sorted}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00329\ }
+\DoxyCodeLine{00333\ \ \ \textcolor{keyword}{virtual}\ std::shared\_ptr<Root>\&}
+\DoxyCodeLine{00334\ \ \ \mbox{\hyperlink{classFastTriMeshSDF_a4accba5e4df7dbcdc4e5c8b507b466ef}{getRoot}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00335\ }
+\DoxyCodeLine{00339\ \ \ \mbox{\hyperlink{classVec3T}{virtual}}\ \mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classFastTriMeshSDF_a89d8676ba95d21981962312fa55f1ef5}{Root}}>\&}
+\DoxyCodeLine{00340\ \ \ getRoot()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00341\ }
+\DoxyCodeLine{00345\ \ \ \mbox{\hyperlink{classVec3T}{BV}}}
+\DoxyCodeLine{00346\ \ \ \mbox{\hyperlink{classMeshSDF_ae8401d4ba40c622e86cc3e9c3cc6f5ae}{computeBoundingVolume}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00347\ }
+\DoxyCodeLine{00348\ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00352\ \ \ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classFastTriMeshSDF_a89d8676ba95d21981962312fa55f1ef5}{Root}}>\ m\_bvh;}
+\DoxyCodeLine{00353\ \};}
+\DoxyCodeLine{00354\ }
+\DoxyCodeLine{00355\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_NamespaceFooter.hpp"{}}}
+\DoxyCodeLine{00356\ }
+\DoxyCodeLine{00357\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_MeshDistanceFunctionsImplem.hpp"{}}}
+\DoxyCodeLine{00358\ }
+\DoxyCodeLine{00359\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

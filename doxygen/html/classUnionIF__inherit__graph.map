@@ -1,4 +1,5 @@
 <map id="UnionIF&lt; T &gt;" name="UnionIF&lt; T &gt;">
-<area shape="rect" id="node1" title="CSG union. Computes the minimum value of all input primitives." alt="" coords="32,80,143,107"/>
-<area shape="rect" id="node2" href="$classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="5,5,169,32"/>
+<area shape="rect" id="Node000001" title="CSG union. Computes the minimum value of all input primitives." alt="" coords="32,79,143,104"/>
+<area shape="rect" id="Node000002" href="$classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="5,5,169,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="90,44,90,79,85,79,85,44"/>
 </map>

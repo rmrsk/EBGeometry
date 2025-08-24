@@ -1,15 +1,15 @@
-\hypertarget{EBGeometry__Transform_8hpp}{}\doxysection{/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\+EBGeometry\+\_\+\+Transform.hpp File Reference}
-\label{EBGeometry__Transform_8hpp}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Transform.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Transform.hpp}}
+\doxysection{/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\+EBGeometry\+\_\+\+Transform.hpp File Reference}
+\hypertarget{EBGeometry__Transform_8hpp}{}\label{EBGeometry__Transform_8hpp}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Transform.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Transform.hpp}}
 
 
 Various transformations for implicit functions and distance fields.  
 
 
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Implicit\+Function.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Vec.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Namespace\+Header.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Namespace\+Footer.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Transform\+Implem.\+hpp\char`\"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Implicit\+Function.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Vec.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Header.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Footer.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Transform\+Implem.\+hpp"{}}\newline
 Include dependency graph for EBGeometry\+\_\+\+Transform.\+hpp\+:
 \nopagebreak
 \begin{figure}[H]
@@ -26,7 +26,7 @@ This graph shows which files directly or indirectly include this file\+:
 \includegraphics[width=262pt]{EBGeometry__Transform_8hpp__dep__incl}
 \end{center}
 \end{figure}
-\doxysubsection*{Classes}
+\doxysubsubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
 class \mbox{\hyperlink{classComplementIF}{Complement\+IF$<$ T $>$}}
@@ -49,28 +49,28 @@ class \mbox{\hyperlink{classElongateIF}{Elongate\+IF$<$ T $>$}}
 \begin{DoxyCompactList}\small\item\em Implicit function which is an elongation of another implicit function along some axis. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classReflectIF}{Reflect\+IF$<$ T $>$}}
 \begin{DoxyCompactList}\small\item\em Implicit function which is a reflection of another implicit function. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Functions}
+\doxysubsubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
-{\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_abc4135b402db858259561dfa4ebd8073}{Complement}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a834e58d00296c995b7b7a00d9ef27570}{Complement}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Function}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the complement of an implicit function. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a81014952fd6a37af21c711f63ff46f77}{Translate}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+shift) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a99d93ae26c02b39969032bd4d9ab515e}{Translate}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Function}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+shift}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for translating an implicit function. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a779a2e9b52de6332451ec3444550cc20}{Rotate}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const T a\+\_\+angle, const size\+\_\+t a\+\_\+axis) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_af9bf0179451a6f1e848dcd1eadaff103}{Rotate}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Function}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+angle}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{size\+\_\+t}} \mbox{\hyperlink{classVec3T}{a\+\_\+axis}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for rotating an implicit function. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a701474a26e7d1e88da235edcb0c5847f}{Scale}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const T a\+\_\+scale) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_ac88590a5e9b5399935be34a595593294}{Scale}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Function}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+scale}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for scaling an implicit function. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a4fceea7ea9cf2b9241da9612a6a21f8c}{Offset}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const T a\+\_\+offset) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a93e27974defb1010201e072ec8b58bb3}{Offset}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Function}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+offset}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for offsetting an implicit function. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a05a397cc4999eeb2632b936ac60d2b14}{Annular}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const T a\+\_\+delta) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_afc540523ccb4b113424870b13be05369}{Annular}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Function}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+delta}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for creating a shell out of an implicit function. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a758f8af9ce46bc2769cdfff1d74b04b5}{Blur}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const T a\+\_\+blur\+Distance) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a7c350fc4293a3186c7396748d0e04409}{Blur}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Function}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+blur\+Distance}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for blurring an implicit function. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a258ed801787b09603c1d633c3d8427c3}{Mollify}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const T a\+\_\+dist, const size\+\_\+t a\+\_\+mollifier\+Samples=2) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a26439546cd6e66946b3df4c646ec1405}{Mollify}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Function}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+dist}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{size\+\_\+t}} \mbox{\hyperlink{classVec3T}{a\+\_\+mollifier\+Samples}}=2) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for mollification with an input sphere. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_ac5bf383e3d5e7b34b97e0ad72e0e0ef8}{Elongate}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+elongation) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a3440983aac141e5958e1bc6b2c2caa94}{Elongate}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Function}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+elongation}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for elongating (stretching) an implicit function. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_ad0b6c6277cc8fdeaec43e56eae5336f7}{Reflect}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const size\+\_\+t \&a\+\_\+reflect\+Plane) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a0f58fa8985d53bad23fbdea5789804f1}{Reflect}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Function}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{size\+\_\+t}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+reflect\+Plane}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for reflecting an implicit function. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
@@ -83,12 +83,12 @@ Robert Marskar
 
 
 \doxysubsection{Function Documentation}
-\mbox{\Hypertarget{EBGeometry__Transform_8hpp_a05a397cc4999eeb2632b936ac60d2b14}\label{EBGeometry__Transform_8hpp_a05a397cc4999eeb2632b936ac60d2b14}} 
+\Hypertarget{EBGeometry__Transform_8hpp_afc540523ccb4b113424870b13be05369}\label{EBGeometry__Transform_8hpp_afc540523ccb4b113424870b13be05369} 
 \index{EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}!Annular@{Annular}}
 \index{Annular@{Annular}!EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}}
 \doxysubsubsection{\texorpdfstring{Annular()}{Annular()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Annular (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const T}]{a\+\_\+delta }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Annular (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&}]{a\+\_\+implicit\+Function,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+delta }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -101,12 +101,12 @@ Convenience function for creating a shell out of an implicit function.
 \mbox{\texttt{ in}}  & {\em a\+\_\+delta} & Shell thickness \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{EBGeometry__Transform_8hpp_a758f8af9ce46bc2769cdfff1d74b04b5}\label{EBGeometry__Transform_8hpp_a758f8af9ce46bc2769cdfff1d74b04b5}} 
+\Hypertarget{EBGeometry__Transform_8hpp_a7c350fc4293a3186c7396748d0e04409}\label{EBGeometry__Transform_8hpp_a7c350fc4293a3186c7396748d0e04409} 
 \index{EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}!Blur@{Blur}}
 \index{Blur@{Blur}!EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}}
 \doxysubsubsection{\texorpdfstring{Blur()}{Blur()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Blur (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const T}]{a\+\_\+blur\+Distance }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Blur (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&}]{a\+\_\+implicit\+Function,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+blur\+Distance }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -119,12 +119,12 @@ Convenience function for blurring an implicit function.
 \mbox{\texttt{ in}}  & {\em a\+\_\+blur\+Distance} & Smoothing distance \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{EBGeometry__Transform_8hpp_abc4135b402db858259561dfa4ebd8073}\label{EBGeometry__Transform_8hpp_abc4135b402db858259561dfa4ebd8073}} 
+\Hypertarget{EBGeometry__Transform_8hpp_a834e58d00296c995b7b7a00d9ef27570}\label{EBGeometry__Transform_8hpp_a834e58d00296c995b7b7a00d9ef27570} 
 \index{EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}!Complement@{Complement}}
 \index{Complement@{Complement}!EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}}
 \doxysubsubsection{\texorpdfstring{Complement()}{Complement()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Complement (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Complement (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&}]{a\+\_\+implicit\+Function }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -135,12 +135,12 @@ Convenience function for taking the complement of an implicit function.
 \mbox{\texttt{ in}}  & {\em a\+\_\+implicit\+Function} & Input implicit function \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{EBGeometry__Transform_8hpp_ac5bf383e3d5e7b34b97e0ad72e0e0ef8}\label{EBGeometry__Transform_8hpp_ac5bf383e3d5e7b34b97e0ad72e0e0ef8}} 
+\Hypertarget{EBGeometry__Transform_8hpp_a3440983aac141e5958e1bc6b2c2caa94}\label{EBGeometry__Transform_8hpp_a3440983aac141e5958e1bc6b2c2caa94} 
 \index{EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}!Elongate@{Elongate}}
 \index{Elongate@{Elongate}!EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}}
 \doxysubsubsection{\texorpdfstring{Elongate()}{Elongate()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Elongate (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+elongation }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Elongate (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&}]{a\+\_\+implicit\+Function,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+elongation }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -153,12 +153,12 @@ Convenience function for elongating (stretching) an implicit function.
 \mbox{\texttt{ in}}  & {\em a\+\_\+elongation} & Elongation \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{EBGeometry__Transform_8hpp_a258ed801787b09603c1d633c3d8427c3}\label{EBGeometry__Transform_8hpp_a258ed801787b09603c1d633c3d8427c3}} 
+\Hypertarget{EBGeometry__Transform_8hpp_a26439546cd6e66946b3df4c646ec1405}\label{EBGeometry__Transform_8hpp_a26439546cd6e66946b3df4c646ec1405} 
 \index{EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}!Mollify@{Mollify}}
 \index{Mollify@{Mollify}!EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}}
 \doxysubsubsection{\texorpdfstring{Mollify()}{Mollify()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Mollify (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const T}]{a\+\_\+dist,  }\item[{const size\+\_\+t}]{a\+\_\+mollifier\+Samples = {\ttfamily 2} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Mollify (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&}]{a\+\_\+implicit\+Function,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+dist,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{size\+\_\+t}}}]{a\+\_\+mollifier\+Samples = {\ttfamily 2} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -173,12 +173,12 @@ Convenience function for mollification with an input sphere.
 \mbox{\texttt{ in}}  & {\em a\+\_\+mollifier\+Samples} & Number of samples for the mollifier \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{EBGeometry__Transform_8hpp_a4fceea7ea9cf2b9241da9612a6a21f8c}\label{EBGeometry__Transform_8hpp_a4fceea7ea9cf2b9241da9612a6a21f8c}} 
+\Hypertarget{EBGeometry__Transform_8hpp_a93e27974defb1010201e072ec8b58bb3}\label{EBGeometry__Transform_8hpp_a93e27974defb1010201e072ec8b58bb3} 
 \index{EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}!Offset@{Offset}}
 \index{Offset@{Offset}!EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}}
 \doxysubsubsection{\texorpdfstring{Offset()}{Offset()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Offset (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const T}]{a\+\_\+offset }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Offset (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&}]{a\+\_\+implicit\+Function,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+offset }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -191,12 +191,12 @@ Convenience function for offsetting an implicit function.
 \mbox{\texttt{ in}}  & {\em a\+\_\+offset} & Offset distance \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{EBGeometry__Transform_8hpp_ad0b6c6277cc8fdeaec43e56eae5336f7}\label{EBGeometry__Transform_8hpp_ad0b6c6277cc8fdeaec43e56eae5336f7}} 
+\Hypertarget{EBGeometry__Transform_8hpp_a0f58fa8985d53bad23fbdea5789804f1}\label{EBGeometry__Transform_8hpp_a0f58fa8985d53bad23fbdea5789804f1} 
 \index{EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}!Reflect@{Reflect}}
 \index{Reflect@{Reflect}!EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}}
 \doxysubsubsection{\texorpdfstring{Reflect()}{Reflect()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Reflect (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const size\+\_\+t \&}]{a\+\_\+reflect\+Plane }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Reflect (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&}]{a\+\_\+implicit\+Function,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{size\+\_\+t}} \&}]{a\+\_\+reflect\+Plane }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -209,12 +209,12 @@ Convenience function for reflecting an implicit function.
 \mbox{\texttt{ in}}  & {\em a\+\_\+reflect\+Plane} & Plane to reflect across (0=yz-\/plane, 1=xz-\/plane, 2=xy-\/plane). \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{EBGeometry__Transform_8hpp_a779a2e9b52de6332451ec3444550cc20}\label{EBGeometry__Transform_8hpp_a779a2e9b52de6332451ec3444550cc20}} 
+\Hypertarget{EBGeometry__Transform_8hpp_af9bf0179451a6f1e848dcd1eadaff103}\label{EBGeometry__Transform_8hpp_af9bf0179451a6f1e848dcd1eadaff103} 
 \index{EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}!Rotate@{Rotate}}
 \index{Rotate@{Rotate}!EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}}
 \doxysubsubsection{\texorpdfstring{Rotate()}{Rotate()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Rotate (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const T}]{a\+\_\+angle,  }\item[{const size\+\_\+t}]{a\+\_\+axis }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Rotate (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&}]{a\+\_\+implicit\+Function,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+angle,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{size\+\_\+t}}}]{a\+\_\+axis }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -229,12 +229,12 @@ Convenience function for rotating an implicit function.
 \mbox{\texttt{ in}}  & {\em a\+\_\+axis} & Axis to rotate about \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{EBGeometry__Transform_8hpp_a701474a26e7d1e88da235edcb0c5847f}\label{EBGeometry__Transform_8hpp_a701474a26e7d1e88da235edcb0c5847f}} 
+\Hypertarget{EBGeometry__Transform_8hpp_ac88590a5e9b5399935be34a595593294}\label{EBGeometry__Transform_8hpp_ac88590a5e9b5399935be34a595593294} 
 \index{EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}!Scale@{Scale}}
 \index{Scale@{Scale}!EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}}
 \doxysubsubsection{\texorpdfstring{Scale()}{Scale()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Scale (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const T}]{a\+\_\+scale }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Scale (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&}]{a\+\_\+implicit\+Function,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+scale }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -247,12 +247,12 @@ Convenience function for scaling an implicit function.
 \mbox{\texttt{ in}}  & {\em a\+\_\+scale} & Scaling factor \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{EBGeometry__Transform_8hpp_a81014952fd6a37af21c711f63ff46f77}\label{EBGeometry__Transform_8hpp_a81014952fd6a37af21c711f63ff46f77}} 
+\Hypertarget{EBGeometry__Transform_8hpp_a99d93ae26c02b39969032bd4d9ab515e}\label{EBGeometry__Transform_8hpp_a99d93ae26c02b39969032bd4d9ab515e} 
 \index{EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}!Translate@{Translate}}
 \index{Translate@{Translate}!EBGeometry\_Transform.hpp@{EBGeometry\_Transform.hpp}}
 \doxysubsubsection{\texorpdfstring{Translate()}{Translate()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Translate (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+shift }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Translate (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&}]{a\+\_\+implicit\+Function,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+shift }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 

@@ -1,7 +1,14 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_SFC.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_SFC.hpp">
-<area shape="rect" id="node1" title="Declaration of various space&#45;filling curves." alt="" coords="5,5,248,61"/>
-<area shape="rect" id="node2" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="9,421,239,463"/>
-<area shape="rect" id="node3" href="$EBGeometry__BVH_8hpp.html" title="Declaration of a bounding volume hierarchy (BVH) class." alt="" coords="85,109,328,165"/>
-<area shape="rect" id="node4" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="136,213,379,269"/>
-<area shape="rect" id="node5" href="$EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="187,317,429,373"/>
+<area shape="rect" id="Node000001" title="Declaration of various space&#45;filling curves." alt="" coords="5,5,248,60"/>
+<area shape="rect" id="Node000002" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="9,416,239,456"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="96,72,76,109,66,152,64,197,67,241,75,285,96,361,118,415,113,417,91,363,69,286,62,242,59,197,61,151,71,107,91,69"/>
+<area shape="rect" id="Node000003" href="$EBGeometry__BVH_8hpp.html" title="Declaration of a bounding volume hierarchy (BVH) class." alt="" coords="85,108,328,163"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="158,69,188,106,184,110,154,72"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="156,173,139,191,126,212,117,239,111,267,109,324,114,376,122,415,116,416,109,377,104,324,106,266,112,237,122,210,135,188,152,170"/>
+<area shape="rect" id="Node000004" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="136,211,379,265"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="228,174,246,209,242,212,224,176"/>
+<area shape="poly" id="edge5_Node000004_Node000002" title=" " alt="" coords="213,276,177,315,148,368,132,417,127,415,143,366,172,312,209,272"/>
+<area shape="rect" id="Node000005" href="$EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="187,313,429,368"/>
+<area shape="poly" id="edge6_Node000004_Node000005" title=" " alt="" coords="279,276,297,312,292,314,274,279"/>
+<area shape="poly" id="edge7_Node000005_Node000002" title=" " alt="" coords="245,376,163,418,160,413,243,372"/>
 </map>

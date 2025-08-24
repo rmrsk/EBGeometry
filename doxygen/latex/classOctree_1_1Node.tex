@@ -1,8 +1,8 @@
-\hypertarget{classOctree_1_1Node}{}\doxysection{Octree\+::Node$<$ Meta, Data $>$ Class Template Reference}
-\label{classOctree_1_1Node}\index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
+\doxysection{Octree\+::Node\texorpdfstring{$<$}{<} Meta, Data \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classOctree_1_1Node}{}\label{classOctree_1_1Node}\index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 
 
-\mbox{\hyperlink{namespaceOctree}{Octree}} class without anything special (this uses full tree representation rather than linear/pointerless).  
+\doxylink{namespaceOctree}{Octree} class without anything special (this uses full tree representation rather than linear/pointerless).  
 
 
 
@@ -11,7 +11,7 @@
 
 
 
-Inheritance diagram for Octree\+::Node$<$ Meta, Data $>$\+:
+Inheritance diagram for Octree\+::Node\texorpdfstring{$<$}{<} Meta, Data \texorpdfstring{$>$}{>}\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -21,7 +21,7 @@ Inheritance diagram for Octree\+::Node$<$ Meta, Data $>$\+:
 \end{figure}
 
 
-Collaboration diagram for Octree\+::Node$<$ Meta, Data $>$\+:
+Collaboration diagram for Octree\+::Node\texorpdfstring{$<$}{<} Meta, Data \texorpdfstring{$>$}{>}\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -29,83 +29,82 @@ Collaboration diagram for Octree\+::Node$<$ Meta, Data $>$\+:
 \includegraphics[width=224pt]{classOctree_1_1Node__coll__graph}
 \end{center}
 \end{figure}
-\doxysubsection*{Public Types}
+\doxysubsubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
-using \mbox{\hyperlink{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b}{Stop\+Function}} = std\+::function$<$ bool(const \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ Meta, Data $>$ \&a\+\_\+node)$>$
+\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b}{Stop\+Function}} = std\+::function$<$ \mbox{\hyperlink{classVec3T}{bool}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+node}})$>$
 \begin{DoxyCompactList}\small\item\em Function for deciding whether or not to split a node. \end{DoxyCompactList}\item 
-using \mbox{\hyperlink{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}{Meta\+Constructor}} = std\+::function$<$ Meta(const \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}} \&a\+\_\+index, const Meta \&a\+\_\+parent\+Meta)$>$
+\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}{Meta\+Constructor}} = std\+::function$<$ \mbox{\hyperlink{classVec3T}{Meta}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+index}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Meta}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+parent\+Meta}})$>$
 \begin{DoxyCompactList}\small\item\em For assigning meta-\/data to the child octs during the build process. \end{DoxyCompactList}\item 
-using \mbox{\hyperlink{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}{Data\+Constructor}} = std\+::function$<$ std\+::shared\+\_\+ptr$<$ Data $>$(const \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}} \&a\+\_\+index, const std\+::shared\+\_\+ptr$<$ Data $>$ \&a\+\_\+parent\+Data)$>$
+\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}{Data\+Constructor}} = std\+::function$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{Data}} $>$(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+index}}, \mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{Data}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+parent\+Data}})$>$
 \begin{DoxyCompactList}\small\item\em For assigning data to child octs during the build process. \end{DoxyCompactList}\item 
-using \mbox{\hyperlink{classOctree_1_1Node_a2706769e036e137fa6f8c0f5cbc8b7f4}{Updater}} = std\+::function$<$ void(const \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ Meta, Data $>$ \&a\+\_\+node)$>$
-\begin{DoxyCompactList}\small\item\em Updater pattern for \mbox{\hyperlink{classOctree_1_1Node_aac6e9decba3ab712870af74dcad89a9d}{Node\+::traverse}}. This is called when visiting a leaf node. \end{DoxyCompactList}\item 
-using \mbox{\hyperlink{classOctree_1_1Node_a884e146418122a03b80b2952cb967a66}{Visiter}} = std\+::function$<$ bool(const \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ Meta, Data $>$ \&a\+\_\+node)$>$
-\begin{DoxyCompactList}\small\item\em Visiter pattern for \mbox{\hyperlink{classOctree_1_1Node_aac6e9decba3ab712870af74dcad89a9d}{Node\+::traverse}}. This is called on interior and leaf nodes. Must return true if we should query the node and false otherwise. \end{DoxyCompactList}\item 
-using \mbox{\hyperlink{classOctree_1_1Node_a1df8c08c0daaba3c80cdc264c948f3f6}{Sorter}} = std\+::function$<$ void(std\+::array$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ Meta, Data $>$ $>$, 8 $>$ \&a\+\_\+children)$>$
+\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{classOctree_1_1Node_a2706769e036e137fa6f8c0f5cbc8b7f4}{Updater}} = std\+::function$<$ \mbox{\hyperlink{classVec3T}{void}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+node}})$>$
+\begin{DoxyCompactList}\small\item\em Updater pattern for \doxylink{classOctree_1_1Node_a6888081a8da980315894651fd0cbd969}{Node\+::traverse}. This is called when visiting a leaf node. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{classOctree_1_1Node_a884e146418122a03b80b2952cb967a66}{Visiter}} = std\+::function$<$ \mbox{\hyperlink{classVec3T}{bool}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+node}})$>$
+\begin{DoxyCompactList}\small\item\em Visiter pattern for \doxylink{classOctree_1_1Node_a6888081a8da980315894651fd0cbd969}{Node\+::traverse}. This is called on interior and leaf nodes. Must return true if we should query the node and false otherwise. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{classOctree_1_1Node_a1df8c08c0daaba3c80cdc264c948f3f6}{Sorter}} = std\+::function$<$ \mbox{\hyperlink{classVec3T}{void}}(std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$ $>$, 8 $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+children}})$>$
 \begin{DoxyCompactList}\small\item\em Sorter for traverse pattern. This is called on interior nodes for deciding which sub-\/tree to visit first. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Public Member Functions}
+\doxysubsubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classOctree_1_1Node_a5bd56913eac23dbe47237b58a35a31cf}\label{classOctree_1_1Node_a5bd56913eac23dbe47237b58a35a31cf}} 
-\mbox{\hyperlink{classOctree_1_1Node_a5bd56913eac23dbe47237b58a35a31cf}{Node}} ()
+\Hypertarget{classOctree_1_1Node_a5bd56913eac23dbe47237b58a35a31cf}\label{classOctree_1_1Node_a5bd56913eac23dbe47237b58a35a31cf} 
+{\bfseries Node} ()
 \begin{DoxyCompactList}\small\item\em Default constructor. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classOctree_1_1Node_aa9e964a1a02a805fbbe6bf003ead24a4}\label{classOctree_1_1Node_aa9e964a1a02a805fbbe6bf003ead24a4}} 
-virtual \mbox{\hyperlink{classOctree_1_1Node_aa9e964a1a02a805fbbe6bf003ead24a4}{$\sim$\+Node}} ()
+\Hypertarget{classOctree_1_1Node_aa9e964a1a02a805fbbe6bf003ead24a4}\label{classOctree_1_1Node_aa9e964a1a02a805fbbe6bf003ead24a4} 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Node} ()
 \begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
-const std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ Meta, Data $>$ $>$, 8 $>$ \& \mbox{\hyperlink{classOctree_1_1Node_a07f31c287129ddb2e4d9c6348c972a2a}{get\+Children}} () const noexcept
+\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$ $>$, 8 $>$ \& \mbox{\hyperlink{classOctree_1_1Node_a6bb9dac4d12844b6ac7c1aac73461ab4}{get\+Children}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get children. \end{DoxyCompactList}\item 
-std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ Meta, Data $>$ $>$, 8 $>$ \& \mbox{\hyperlink{classOctree_1_1Node_a79a0eda3778b0097b9dcb7e0e0cdd949}{get\+Children}} () noexcept
+std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$ $>$, 8 $>$ \& \mbox{\hyperlink{classOctree_1_1Node_a5565024b0383497220f4336d940f4157}{get\+Children}} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get children. \end{DoxyCompactList}\item 
-Meta \& \mbox{\hyperlink{classOctree_1_1Node_a9e88161f5951faee6e6330a4d064e69e}{get\+Meta\+Data}} () noexcept
+\mbox{\hyperlink{classVec3T}{Meta}} \& \mbox{\hyperlink{classOctree_1_1Node_abb80827cfb54cd5422b016dc67e12407}{get\+Meta\+Data}} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get node meta-\/data. \end{DoxyCompactList}\item 
-const Meta \& \mbox{\hyperlink{classOctree_1_1Node_ac5084c341e64f3eba9590781a7766432}{get\+Meta\+Data}} () const noexcept
+\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Meta}} \& \mbox{\hyperlink{classOctree_1_1Node_ad59ed123448fc141658d3900647ac3c5}{get\+Meta\+Data}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get node meta-\/data. \end{DoxyCompactList}\item 
-std\+::shared\+\_\+ptr$<$ Data $>$ \& \mbox{\hyperlink{classOctree_1_1Node_af68fe3f9d28d3ba73d72ccef58f1b6f3}{get\+Data}} () noexcept
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{Data}} $>$ \& \mbox{\hyperlink{classOctree_1_1Node_aef3819820402805b143eb316f5e7ebcb}{get\+Data}} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get node data. \end{DoxyCompactList}\item 
-const std\+::shared\+\_\+ptr$<$ Data $>$ \& \mbox{\hyperlink{classOctree_1_1Node_afdabdbe493970a20464c83779248979e}{get\+Data}} () const noexcept
+\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{Data}} $>$ \& \mbox{\hyperlink{classOctree_1_1Node_a1cd2eef262406f254d3182c4da35ebdc}{get\+Data}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get node data. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classOctree_1_1Node_a7f5a5754fceadf47ead64a8893a32d79}\label{classOctree_1_1Node_a7f5a5754fceadf47ead64a8893a32d79}} 
-bool \mbox{\hyperlink{classOctree_1_1Node_a7f5a5754fceadf47ead64a8893a32d79}{is\+Leaf}} () const noexcept
+\Hypertarget{classOctree_1_1Node_a7f5a5754fceadf47ead64a8893a32d79}\label{classOctree_1_1Node_a7f5a5754fceadf47ead64a8893a32d79} 
+\mbox{\hyperlink{classVec3T}{bool}} {\bfseries is\+Leaf} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Check if this is a leaf node. \end{DoxyCompactList}\item 
-void \mbox{\hyperlink{classOctree_1_1Node_a7ffae86c835c0a59648056ac04050472}{build\+Depth\+First}} (const \mbox{\hyperlink{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b}{Stop\+Function}} \&a\+\_\+stop\+Function, const \mbox{\hyperlink{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}{Meta\+Constructor}} \&a\+\_\+meta\+Constructor, const \mbox{\hyperlink{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}{Data\+Constructor}} \&a\+\_\+data\+Constructor) noexcept
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classOctree_1_1Node_a7ffae86c835c0a59648056ac04050472}{build\+Depth\+First}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b}{Stop\+Function}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+stop\+Function}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}{Meta\+Constructor}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+meta\+Constructor}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}{Data\+Constructor}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+data\+Constructor}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Build the octree in depth-\/first order. User decides if the node should be split, and how to split it. \end{DoxyCompactList}\item 
-void \mbox{\hyperlink{classOctree_1_1Node_a2c4f1e176c29611c6f1037386ea2beb8}{build\+Breadth\+First}} (const \mbox{\hyperlink{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b}{Stop\+Function}} \&a\+\_\+stop\+Function, const \mbox{\hyperlink{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}{Meta\+Constructor}} \&a\+\_\+meta\+Constructor, const \mbox{\hyperlink{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}{Data\+Constructor}} \&a\+\_\+data\+Constructor) noexcept
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classOctree_1_1Node_a2c4f1e176c29611c6f1037386ea2beb8}{build\+Breadth\+First}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b}{Stop\+Function}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+stop\+Function}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}{Meta\+Constructor}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+meta\+Constructor}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}{Data\+Constructor}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+data\+Constructor}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Build the octree in breadth-\/first order. User decides if the node should be split, and how to split it. \end{DoxyCompactList}\item 
-void \mbox{\hyperlink{classOctree_1_1Node_aac6e9decba3ab712870af74dcad89a9d}{traverse}} (const \mbox{\hyperlink{classOctree_1_1Node_a2706769e036e137fa6f8c0f5cbc8b7f4}{Updater}} \&a\+\_\+updater, const \mbox{\hyperlink{classOctree_1_1Node_a884e146418122a03b80b2952cb967a66}{Visiter}} \&a\+\_\+visiter, const \mbox{\hyperlink{classOctree_1_1Node_a1df8c08c0daaba3c80cdc264c948f3f6}{Sorter}} \&a\+\_\+sorter=\mbox{[}$\,$\mbox{]}(std\+::array$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ Meta, Data $>$$>$, 8 $>$ \&a\+\_\+children) -\/$>$ void \{ return;\}) const noexcept
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classOctree_1_1Node_a6888081a8da980315894651fd0cbd969}{traverse}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_a2706769e036e137fa6f8c0f5cbc8b7f4}{Updater}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+updater}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_a884e146418122a03b80b2952cb967a66}{Visiter}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+visiter}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_a1df8c08c0daaba3c80cdc264c948f3f6}{Sorter}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+sorter}}=\mbox{[}$\,$\mbox{]}(std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$ $>$, 8 $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+children}}) -\/$>$ \mbox{\hyperlink{classVec3T}{void}} \{ \mbox{\hyperlink{classVec3T}{return}};\}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Traverse the tree. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Attributes}
+\doxysubsubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classOctree_1_1Node_ad2d0b0b1838aedae0ac555c6ebeec68a}\label{classOctree_1_1Node_ad2d0b0b1838aedae0ac555c6ebeec68a}} 
-Meta \mbox{\hyperlink{classOctree_1_1Node_ad2d0b0b1838aedae0ac555c6ebeec68a}{m\+\_\+meta}}
+\Hypertarget{classOctree_1_1Node_ad2d0b0b1838aedae0ac555c6ebeec68a}\label{classOctree_1_1Node_ad2d0b0b1838aedae0ac555c6ebeec68a} 
+\mbox{\hyperlink{classVec3T}{Meta}} {\bfseries m\+\_\+meta}
 \begin{DoxyCompactList}\small\item\em Meta-\/data for the node. This is typically the lower-\/left and upper-\/right corners of the node, but it\textquotesingle{}s the users\textquotesingle{} responsibility to fill this with the meta-\/information they need for the tree. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classOctree_1_1Node_ab0bd3f8504e644ff8a878b05403c7f29}\label{classOctree_1_1Node_ab0bd3f8504e644ff8a878b05403c7f29}} 
-std\+::shared\+\_\+ptr$<$ Data $>$ \mbox{\hyperlink{classOctree_1_1Node_ab0bd3f8504e644ff8a878b05403c7f29}{m\+\_\+data}}
-\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classOctree_1_1Node}{Node}} contents. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classOctree_1_1Node_af0debc784ab7a961f82f1a66a9f4f1e9}\label{classOctree_1_1Node_af0debc784ab7a961f82f1a66a9f4f1e9}} 
-std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ Meta, Data $>$ $>$, 8 $>$ \mbox{\hyperlink{classOctree_1_1Node_af0debc784ab7a961f82f1a66a9f4f1e9}{m\+\_\+children}}
-\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classOctree_1_1Node}{Node}} children. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\Hypertarget{classOctree_1_1Node_ab0bd3f8504e644ff8a878b05403c7f29}\label{classOctree_1_1Node_ab0bd3f8504e644ff8a878b05403c7f29} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{Data}} $>$ {\bfseries m\+\_\+data}
+\begin{DoxyCompactList}\small\item\em \doxylink{classOctree_1_1Node}{Node} contents. \end{DoxyCompactList}\item 
+\Hypertarget{classOctree_1_1Node_af0debc784ab7a961f82f1a66a9f4f1e9}\label{classOctree_1_1Node_af0debc784ab7a961f82f1a66a9f4f1e9} 
+std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$ $>$, 8 $>$ {\bfseries m\+\_\+children}
+\begin{DoxyCompactList}\small\item\em \doxylink{classOctree_1_1Node}{Node} children. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-\subsubsection*{template$<$typename Meta, typename Data = void$>$\newline
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}} = void$>$\newline
 class Octree\+::\+Node$<$ Meta, Data $>$}
+\doxylink{namespaceOctree}{Octree} class without anything special (this uses full tree representation rather than linear/pointerless). 
 
-\mbox{\hyperlink{namespaceOctree}{Octree}} class without anything special (this uses full tree representation rather than linear/pointerless). 
-
-Meta is the meta-\/data for the node (user can put in e.\+g. level, volume, etc) and Data is the leaf node contents. \begin{DoxyNote}{Note}
-This class should only be used with smart pointers. I.\+e. std\+::shared\+\_\+ptr$<$\+Node$>$ rather than \mbox{\hyperlink{classOctree_1_1Node}{Node}}. 
+Meta is the meta-\/data for the node (user can put in \doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{e.\+g}. level, volume, etc) and Data is the leaf node contents. \begin{DoxyNote}{Note}
+This class should only be used with smart pointers. \doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{I.\+e}. std\+::shared\+\_\+ptr$<$\+Node$>$ rather than \doxylink{classOctree_1_1Node}{Node}. 
 \end{DoxyNote}
 
 
 \doxysubsection{Member Typedef Documentation}
-\mbox{\Hypertarget{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}\label{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}} 
+\Hypertarget{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}\label{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2} 
 \index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}!DataConstructor@{DataConstructor}}
 \index{DataConstructor@{DataConstructor}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{DataConstructor}{DataConstructor}}
-{\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-using \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::\mbox{\hyperlink{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}{Data\+Constructor}} =  std\+::function$<$std\+::shared\+\_\+ptr$<$Data$>$(const \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}}\& a\+\_\+index, const std\+::shared\+\_\+ptr$<$Data$>$\& a\+\_\+parent\+Data)$>$}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}}  = void$>$ \\
+\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$\+::\+Data\+Constructor =  std\+::function$<$std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classVec3T}{Data}}$>$(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}}\& \mbox{\hyperlink{classVec3T}{a\+\_\+index}}, \mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classVec3T}{Data}}$>$\& \mbox{\hyperlink{classVec3T}{a\+\_\+parent\+Data}})$>$}
 
 
 
@@ -118,12 +117,12 @@ For assigning data to child octs during the build process.
 \mbox{\texttt{ in}}  & {\em a\+\_\+parent\+Data} & Parent data. \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}\label{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}} 
+\Hypertarget{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}\label{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8} 
 \index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}!MetaConstructor@{MetaConstructor}}
 \index{MetaConstructor@{MetaConstructor}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{MetaConstructor}{MetaConstructor}}
-{\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-using \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::\mbox{\hyperlink{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}{Meta\+Constructor}} =  std\+::function$<$Meta(const \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}}\& a\+\_\+index, const Meta\& a\+\_\+parent\+Meta)$>$}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}}  = void$>$ \\
+\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$\+::\+Meta\+Constructor =  std\+::function$<$\mbox{\hyperlink{classVec3T}{Meta}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}}\& \mbox{\hyperlink{classVec3T}{a\+\_\+index}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Meta}}\& \mbox{\hyperlink{classVec3T}{a\+\_\+parent\+Meta}})$>$}
 
 
 
@@ -136,12 +135,12 @@ For assigning meta-\/data to the child octs during the build process.
 \mbox{\texttt{ in}}  & {\em a\+\_\+parent\+Meta} & Parent meta data \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classOctree_1_1Node_a1df8c08c0daaba3c80cdc264c948f3f6}\label{classOctree_1_1Node_a1df8c08c0daaba3c80cdc264c948f3f6}} 
+\Hypertarget{classOctree_1_1Node_a1df8c08c0daaba3c80cdc264c948f3f6}\label{classOctree_1_1Node_a1df8c08c0daaba3c80cdc264c948f3f6} 
 \index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}!Sorter@{Sorter}}
 \index{Sorter@{Sorter}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{Sorter}{Sorter}}
-{\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-using \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::\mbox{\hyperlink{classOctree_1_1Node_a1df8c08c0daaba3c80cdc264c948f3f6}{Sorter}} =  std\+::function$<$void(std\+::array$<$std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$Meta, Data$>$ $>$, 8$>$\& a\+\_\+children)$>$}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}}  = void$>$ \\
+\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$\+::\+Sorter =  std\+::function$<$\mbox{\hyperlink{classVec3T}{void}}(std\+::array$<$std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$\mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}}$>$ $>$, 8$>$\& \mbox{\hyperlink{classVec3T}{a\+\_\+children}})$>$}
 
 
 
@@ -152,12 +151,12 @@ Sorter for traverse pattern. This is called on interior nodes for deciding which
 \mbox{\texttt{ in,out}}  & {\em a\+\_\+children} & Sortable children nodes, first node is visited first, then the second, etc. \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b}\label{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b}} 
+\Hypertarget{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b}\label{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b} 
 \index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}!StopFunction@{StopFunction}}
 \index{StopFunction@{StopFunction}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{StopFunction}{StopFunction}}
-{\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-using \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::\mbox{\hyperlink{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b}{Stop\+Function}} =  std\+::function$<$bool(const \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$Meta, Data$>$\& a\+\_\+node)$>$}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}}  = void$>$ \\
+\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$\+::\+Stop\+Function =  std\+::function$<$\mbox{\hyperlink{classVec3T}{bool}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$\mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}}$>$\& \mbox{\hyperlink{classVec3T}{a\+\_\+node}})$>$}
 
 
 
@@ -165,50 +164,50 @@ Function for deciding whether or not to split a node.
 
 This is called on leaf nodes -- if the function returns true the node will be split. 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+node} & \mbox{\hyperlink{classOctree_1_1Node}{Node}} to split. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+node} & \doxylink{classOctree_1_1Node}{Node} to split. \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classOctree_1_1Node_a2706769e036e137fa6f8c0f5cbc8b7f4}\label{classOctree_1_1Node_a2706769e036e137fa6f8c0f5cbc8b7f4}} 
+\Hypertarget{classOctree_1_1Node_a2706769e036e137fa6f8c0f5cbc8b7f4}\label{classOctree_1_1Node_a2706769e036e137fa6f8c0f5cbc8b7f4} 
 \index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}!Updater@{Updater}}
 \index{Updater@{Updater}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{Updater}{Updater}}
-{\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-using \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::\mbox{\hyperlink{classOctree_1_1Node_a2706769e036e137fa6f8c0f5cbc8b7f4}{Updater}} =  std\+::function$<$void(const \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$Meta, Data$>$\& a\+\_\+node)$>$}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}}  = void$>$ \\
+\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$\+::\+Updater =  std\+::function$<$\mbox{\hyperlink{classVec3T}{void}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$\mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}}$>$\& \mbox{\hyperlink{classVec3T}{a\+\_\+node}})$>$}
 
 
 
-Updater pattern for \mbox{\hyperlink{classOctree_1_1Node_aac6e9decba3ab712870af74dcad89a9d}{Node\+::traverse}}. This is called when visiting a leaf node. 
+Updater pattern for \doxylink{classOctree_1_1Node_a6888081a8da980315894651fd0cbd969}{Node\+::traverse}. This is called when visiting a leaf node. 
 
 
 \begin{DoxyParams}[1]{Parameters}
 \mbox{\texttt{ in}}  & {\em a\+\_\+node} & Leaf node that is visited. \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classOctree_1_1Node_a884e146418122a03b80b2952cb967a66}\label{classOctree_1_1Node_a884e146418122a03b80b2952cb967a66}} 
+\Hypertarget{classOctree_1_1Node_a884e146418122a03b80b2952cb967a66}\label{classOctree_1_1Node_a884e146418122a03b80b2952cb967a66} 
 \index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}!Visiter@{Visiter}}
 \index{Visiter@{Visiter}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{Visiter}{Visiter}}
-{\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-using \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::\mbox{\hyperlink{classOctree_1_1Node_a884e146418122a03b80b2952cb967a66}{Visiter}} =  std\+::function$<$bool(const \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$Meta, Data$>$\& a\+\_\+node)$>$}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}}  = void$>$ \\
+\mbox{\hyperlink{classVec3T}{using}} \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$\+::\+Visiter =  std\+::function$<$\mbox{\hyperlink{classVec3T}{bool}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$\mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}}$>$\& \mbox{\hyperlink{classVec3T}{a\+\_\+node}})$>$}
 
 
 
-Visiter pattern for \mbox{\hyperlink{classOctree_1_1Node_aac6e9decba3ab712870af74dcad89a9d}{Node\+::traverse}}. This is called on interior and leaf nodes. Must return true if we should query the node and false otherwise. 
+Visiter pattern for \doxylink{classOctree_1_1Node_a6888081a8da980315894651fd0cbd969}{Node\+::traverse}. This is called on interior and leaf nodes. Must return true if we should query the node and false otherwise. 
 
 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+node} & \mbox{\hyperlink{classOctree_1_1Node}{Node}} to visit or not. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+node} & \doxylink{classOctree_1_1Node}{Node} to visit or not. \\
 \hline
 \end{DoxyParams}
 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classOctree_1_1Node_a2c4f1e176c29611c6f1037386ea2beb8}\label{classOctree_1_1Node_a2c4f1e176c29611c6f1037386ea2beb8}} 
+\Hypertarget{classOctree_1_1Node_a2c4f1e176c29611c6f1037386ea2beb8}\label{classOctree_1_1Node_a2c4f1e176c29611c6f1037386ea2beb8} 
 \index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}!buildBreadthFirst@{buildBreadthFirst}}
 \index{buildBreadthFirst@{buildBreadthFirst}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{buildBreadthFirst()}{buildBreadthFirst()}}
-{\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-void \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::build\+Breadth\+First (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b}{Stop\+Function}} \&}]{a\+\_\+stop\+Function,  }\item[{const \mbox{\hyperlink{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}{Meta\+Constructor}} \&}]{a\+\_\+meta\+Constructor,  }\item[{const \mbox{\hyperlink{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}{Data\+Constructor}} \&}]{a\+\_\+data\+Constructor }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}}  = void$>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$\+::build\+Breadth\+First (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b}{Stop\+Function}} \&}]{a\+\_\+stop\+Function,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}{Meta\+Constructor}} \&}]{a\+\_\+meta\+Constructor,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}{Data\+Constructor}} \&}]{a\+\_\+data\+Constructor }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -223,12 +222,12 @@ Build the octree in breadth-\/first order. User decides if the node should be sp
 \mbox{\texttt{ in}}  & {\em a\+\_\+data\+Constructor} & Constructor for node data \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classOctree_1_1Node_a7ffae86c835c0a59648056ac04050472}\label{classOctree_1_1Node_a7ffae86c835c0a59648056ac04050472}} 
+\Hypertarget{classOctree_1_1Node_a7ffae86c835c0a59648056ac04050472}\label{classOctree_1_1Node_a7ffae86c835c0a59648056ac04050472} 
 \index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}!buildDepthFirst@{buildDepthFirst}}
 \index{buildDepthFirst@{buildDepthFirst}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{buildDepthFirst()}{buildDepthFirst()}}
-{\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-void \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::build\+Depth\+First (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b}{Stop\+Function}} \&}]{a\+\_\+stop\+Function,  }\item[{const \mbox{\hyperlink{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}{Meta\+Constructor}} \&}]{a\+\_\+meta\+Constructor,  }\item[{const \mbox{\hyperlink{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}{Data\+Constructor}} \&}]{a\+\_\+data\+Constructor }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}}  = void$>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$\+::build\+Depth\+First (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_a76ef6d051df43996a35f446250e5a44b}{Stop\+Function}} \&}]{a\+\_\+stop\+Function,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_ac6f2f5eed98ce36d71962f3aedaaa0b8}{Meta\+Constructor}} \&}]{a\+\_\+meta\+Constructor,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_aaec57ddb147bd9b8ac190f2c4d0e2eb2}{Data\+Constructor}} \&}]{a\+\_\+data\+Constructor }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -243,12 +242,12 @@ Build the octree in depth-\/first order. User decides if the node should be spli
 \mbox{\texttt{ in}}  & {\em a\+\_\+data\+Constructor} & Constructor for node data \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classOctree_1_1Node_a07f31c287129ddb2e4d9c6348c972a2a}\label{classOctree_1_1Node_a07f31c287129ddb2e4d9c6348c972a2a}} 
+\Hypertarget{classOctree_1_1Node_a6bb9dac4d12844b6ac7c1aac73461ab4}\label{classOctree_1_1Node_a6bb9dac4d12844b6ac7c1aac73461ab4} 
 \index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}!getChildren@{getChildren}}
 \index{getChildren@{getChildren}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{getChildren()}{getChildren()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-const std\+::array$<$std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$Meta, Data$>$ $>$, 8$>$\& \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::get\+Children (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}}  = void$>$ \\
+\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$ $>$, 8 $>$ \& \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$\+::get\+Children (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -257,12 +256,12 @@ Get children.
 \begin{DoxyReturn}{Returns}
 m\+\_\+children 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classOctree_1_1Node_a79a0eda3778b0097b9dcb7e0e0cdd949}\label{classOctree_1_1Node_a79a0eda3778b0097b9dcb7e0e0cdd949}} 
+\Hypertarget{classOctree_1_1Node_a5565024b0383497220f4336d940f4157}\label{classOctree_1_1Node_a5565024b0383497220f4336d940f4157} 
 \index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}!getChildren@{getChildren}}
 \index{getChildren@{getChildren}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{getChildren()}{getChildren()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-std\+::array$<$std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$Meta, Data$>$ $>$, 8$>$\& \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::get\+Children (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}}  = void$>$ \\
+std\+::array$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$ $>$, 8 $>$ \& \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$\+::get\+Children (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -271,12 +270,12 @@ Get children.
 \begin{DoxyReturn}{Returns}
 m\+\_\+children 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classOctree_1_1Node_afdabdbe493970a20464c83779248979e}\label{classOctree_1_1Node_afdabdbe493970a20464c83779248979e}} 
+\Hypertarget{classOctree_1_1Node_a1cd2eef262406f254d3182c4da35ebdc}\label{classOctree_1_1Node_a1cd2eef262406f254d3182c4da35ebdc} 
 \index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}!getData@{getData}}
 \index{getData@{getData}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{getData()}{getData()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-const std\+::shared\+\_\+ptr$<$Data$>$\& \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::get\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}}  = void$>$ \\
+\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{Data}} $>$ \& \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$\+::get\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -285,12 +284,12 @@ Get node data.
 \begin{DoxyReturn}{Returns}
 m\+\_\+data 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classOctree_1_1Node_af68fe3f9d28d3ba73d72ccef58f1b6f3}\label{classOctree_1_1Node_af68fe3f9d28d3ba73d72ccef58f1b6f3}} 
+\Hypertarget{classOctree_1_1Node_aef3819820402805b143eb316f5e7ebcb}\label{classOctree_1_1Node_aef3819820402805b143eb316f5e7ebcb} 
 \index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}!getData@{getData}}
 \index{getData@{getData}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{getData()}{getData()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-std\+::shared\+\_\+ptr$<$Data$>$\& \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::get\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}}  = void$>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{Data}} $>$ \& \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$\+::get\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -299,12 +298,12 @@ Get node data.
 \begin{DoxyReturn}{Returns}
 m\+\_\+data 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classOctree_1_1Node_ac5084c341e64f3eba9590781a7766432}\label{classOctree_1_1Node_ac5084c341e64f3eba9590781a7766432}} 
+\Hypertarget{classOctree_1_1Node_ad59ed123448fc141658d3900647ac3c5}\label{classOctree_1_1Node_ad59ed123448fc141658d3900647ac3c5} 
 \index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}!getMetaData@{getMetaData}}
 \index{getMetaData@{getMetaData}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{getMetaData()}{getMetaData()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-const Meta\& \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::get\+Meta\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}}  = void$>$ \\
+\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Meta}} \& \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$\+::get\+Meta\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -313,12 +312,12 @@ Get node meta-\/data.
 \begin{DoxyReturn}{Returns}
 m\+\_\+meta 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classOctree_1_1Node_a9e88161f5951faee6e6330a4d064e69e}\label{classOctree_1_1Node_a9e88161f5951faee6e6330a4d064e69e}} 
+\Hypertarget{classOctree_1_1Node_abb80827cfb54cd5422b016dc67e12407}\label{classOctree_1_1Node_abb80827cfb54cd5422b016dc67e12407} 
 \index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}!getMetaData@{getMetaData}}
 \index{getMetaData@{getMetaData}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{getMetaData()}{getMetaData()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-Meta\& \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::get\+Meta\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}}  = void$>$ \\
+\mbox{\hyperlink{classVec3T}{Meta}} \& \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$\+::get\+Meta\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -327,12 +326,12 @@ Get node meta-\/data.
 \begin{DoxyReturn}{Returns}
 m\+\_\+meta 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classOctree_1_1Node_aac6e9decba3ab712870af74dcad89a9d}\label{classOctree_1_1Node_aac6e9decba3ab712870af74dcad89a9d}} 
+\Hypertarget{classOctree_1_1Node_a6888081a8da980315894651fd0cbd969}\label{classOctree_1_1Node_a6888081a8da980315894651fd0cbd969} 
 \index{Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}!traverse@{traverse}}
 \index{traverse@{traverse}!Octree::Node$<$ Meta, Data $>$@{Octree::Node$<$ Meta, Data $>$}}
 \doxysubsubsection{\texorpdfstring{traverse()}{traverse()}}
-{\footnotesize\ttfamily template$<$typename Meta , typename Data  = void$>$ \\
-void \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ Meta, Data $>$\+::traverse (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classOctree_1_1Node_a2706769e036e137fa6f8c0f5cbc8b7f4}{Updater}} \&}]{a\+\_\+updater,  }\item[{const \mbox{\hyperlink{classOctree_1_1Node_a884e146418122a03b80b2952cb967a66}{Visiter}} \&}]{a\+\_\+visiter,  }\item[{const \mbox{\hyperlink{classOctree_1_1Node_a1df8c08c0daaba3c80cdc264c948f3f6}{Sorter}} \&}]{a\+\_\+sorter = {\ttfamily \mbox{[}\mbox{]}(std\+:\+:array$<$~std\+:\+:shared\+\_\+ptr$<$~const~\mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$~Meta,~Data~$>$$>$,~8~$>$~\&a\+\_\+children)~-\/$>$~void~\{~return;\}} }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Data}}  = void$>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classOctree_1_1Node}{Octree\+::\+Node}}$<$ \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{Data}} $>$\+::traverse (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_a2706769e036e137fa6f8c0f5cbc8b7f4}{Updater}} \&}]{a\+\_\+updater,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_a884e146418122a03b80b2952cb967a66}{Visiter}} \&}]{a\+\_\+visiter,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classOctree_1_1Node_a1df8c08c0daaba3c80cdc264c948f3f6}{Sorter}} \&}]{a\+\_\+sorter = {\ttfamily \mbox{[}\mbox{]}(std\+:\+:array$<$~std\+:\+:shared\+\_\+ptr$<$~\mbox{\hyperlink{classVec3T}{const}}~\mbox{\hyperlink{classOctree_1_1Node}{Node}}$<$~\mbox{\hyperlink{classVec3T}{Meta}},~\mbox{\hyperlink{classVec3T}{Data}}~$>$~$>$,~8~$>$~\&\mbox{\hyperlink{classVec3T}{a\+\_\+children}})~-\/$>$~\mbox{\hyperlink{classVec3T}{void}}~\{~\mbox{\hyperlink{classVec3T}{return}};\}} }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 

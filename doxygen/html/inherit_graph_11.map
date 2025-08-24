@@ -1,37 +1,3 @@
 <map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node1" href="$classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="5,477,169,504"/>
-<area shape="rect" id="node2" href="$classAnnularIF.html" title="Annular implicit function function. Creates a shell out of the implicit function." alt="" coords="264,5,387,32"/>
-<area shape="rect" id="node3" href="$classBlurIF.html" title="Blurred/interpolated implicit function &#45; can be used for smoothing." alt="" coords="276,56,375,83"/>
-<area shape="rect" id="node4" href="$classComplementIF.html" title="Complemented implicit function." alt="" coords="247,107,403,133"/>
-<area shape="rect" id="node5" href="$classDifferenceIF.html" title="CSG difference between two implicit functions." alt="" coords="256,157,395,184"/>
-<area shape="rect" id="node6" href="$classElongateIF.html" title="Implicit function which is an elongation of another implicit function along some axis." alt="" coords="261,208,390,235"/>
-<area shape="rect" id="node7" href="$classFastUnionIF.html" title="Implicit function union using BVHs." alt="" coords="255,259,396,301"/>
-<area shape="rect" id="node9" href="$classFiniteRepetitionIF.html" title="Class which creates a periodic repetition of an implicit function." alt="" coords="238,325,413,352"/>
-<area shape="rect" id="node10" href="$classIntersectionIF.html" title="CSG intersection. Computes the maximum value of all input primitives." alt="" coords="251,376,400,403"/>
-<area shape="rect" id="node11" href="$classMollifyIF.html" title="Mollified implicit function." alt="" coords="267,427,383,453"/>
-<area shape="rect" id="node12" href="$classOffsetIF.html" title="Offset implicit function. Offsets the implicit function using the input value." alt="" coords="270,477,381,504"/>
-<area shape="rect" id="node13" href="$classReflectIF.html" title="Implicit function which is a reflection of another implicit function." alt="" coords="267,528,384,555"/>
-<area shape="rect" id="node14" href="$classRotateIF.html" title="Rotated implicit function. Rotates an implicit function about an axis." alt="" coords="268,579,383,605"/>
-<area shape="rect" id="node15" href="$classScaleIF.html" title="Scaled implicit function." alt="" coords="272,629,379,656"/>
-<area shape="rect" id="node16" href="$classSignedDistanceFunction.html" title="Abstract representation of a signed distance function." alt="" coords="217,680,433,707"/>
-<area shape="rect" id="node31" href="$classSmoothDifferenceIF.html" title="CSG difference between two implicit functions." alt="" coords="231,731,420,757"/>
-<area shape="rect" id="node32" href="$classSmoothIntersectionIF.html" title="Smooth intersection." alt="" coords="226,781,425,808"/>
-<area shape="rect" id="node33" href="$classSmoothUnionIF.html" title="Smooth CSG union. Computes the minimum value of all input primitives." alt="" coords="245,832,405,859"/>
-<area shape="rect" id="node34" href="$classTranslateIF.html" title="Translated implicit function." alt="" coords="260,883,391,909"/>
-<area shape="rect" id="node35" href="$classUnionIF.html" title="CSG union. Computes the minimum value of all input primitives." alt="" coords="270,933,381,960"/>
-<area shape="rect" id="node8" href="$classFastSmoothUnionIF.html" title="Implicit function smoothed union using BVHs." alt="" coords="495,259,653,301"/>
-<area shape="rect" id="node17" href="$classBoxSDF.html" title="Signed distance field for an axis&#45;aligned box." alt="" coords="519,335,629,361"/>
-<area shape="rect" id="node18" href="$classCapsuleSDF.html" title="Capsulate/pill SDF. Basically a cylinder with spherical endcaps, oriented along the specified axis." alt="" coords="505,385,643,412"/>
-<area shape="rect" id="node19" href="$classConeSDF.html" title="Signed distance field for an finite cone. Oriented along +z." alt="" coords="515,436,633,463"/>
-<area shape="rect" id="node20" href="$classCylinderSDF.html" title="Signed distance field for a cylinder." alt="" coords="504,487,644,513"/>
-<area shape="rect" id="node21" href="$classFastCompactMeshSDF.html" title="Signed distance function for a DCEL mesh. This class uses the compact BVH representation." alt="" coords="491,538,657,579"/>
-<area shape="rect" id="node22" href="$classFastMeshSDF.html" title="Signed distance function for a DCEL mesh. This class uses the full BVH representation." alt="" coords="485,603,663,645"/>
-<area shape="rect" id="node23" href="$classInfiniteConeSDF.html" title="Signed distance field for an infinite cone. Oriented along +z." alt="" coords="492,669,656,696"/>
-<area shape="rect" id="node24" href="$classInfiniteCylinderSDF.html" title="Inifinitely long cylinder class. Oriented along the y&#45;axis." alt="" coords="481,720,667,747"/>
-<area shape="rect" id="node25" href="$classMeshSDF.html" title="Signed distance function for a DCEL mesh. Does not use BVHs." alt="" coords="493,771,655,797"/>
-<area shape="rect" id="node26" href="$classPerlinSDF.html" title="Ken Perlins gradient noise function." alt="" coords="513,821,635,848"/>
-<area shape="rect" id="node27" href="$classPlaneSDF.html" title="Signed distance function for a plane." alt="" coords="513,872,635,899"/>
-<area shape="rect" id="node28" href="$classRoundedBoxSDF.html" title="Box of arbitrary dimensions centered at the origin, with rounded corners." alt="" coords="490,923,658,949"/>
-<area shape="rect" id="node29" href="$classSphereSDF.html" title="Signed distance field for sphere." alt="" coords="509,973,639,1000"/>
-<area shape="rect" id="node30" href="$classTorusSDF.html" title="Signed distance field for a torus." alt="" coords="514,1024,634,1051"/>
+<area shape="rect" id="Node000000" href="$classEBGeometry_1_1Triangle.html" title="Triangle class with signed distance functionality." alt="" coords="5,5,168,45"/>
 </map>

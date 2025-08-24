@@ -1,0 +1,335 @@
+\doxysection{EBGeometry\+\_\+\+BVH.\+hpp}
+\hypertarget{EBGeometry__BVH_8hpp_source}{}\label{EBGeometry__BVH_8hpp_source}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_BVH.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_BVH.hpp}}
+\mbox{\hyperlink{EBGeometry__BVH_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*\ EBGeometry}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ Copyright\ ©\ 2022\ Robert\ Marskar}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ Please\ refer\ to\ Copyright.txt\ and\ LICENSE\ in\ the\ EBGeometry\ root\ directory.}}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#ifndef\ EBGeometry\_BVH}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#define\ EBGeometry\_BVH}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ Std\ includes}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <array>}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <functional>}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <queue>}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ Our\ includes}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__Vec_8hpp}{EBGeometry\_Vec.hpp}}"{}}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__SFC_8hpp}{EBGeometry\_SFC.hpp}}"{}}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceHeader_8hpp}{EBGeometry\_NamespaceHeader.hpp}}"{}}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00030\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceBVH}{BVH}}\ \{}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00035\ \ \ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{Build}}}
+\DoxyCodeLine{00036\ \ \ \{}
+\DoxyCodeLine{00037\ \ \ \ \ TopDown,}
+\DoxyCodeLine{00038\ \ \ \ \ Morton,}
+\DoxyCodeLine{00039\ \ \ \ \ Nested}
+\DoxyCodeLine{00040\ \ \ \};}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00048\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ P,\ \textcolor{keyword}{class}\ BV,\ \textcolor{keywordtype}{size\_t}\ K>}
+\DoxyCodeLine{00049\ \ \ \textcolor{keyword}{class\ }NodeT;}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00056\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ P,\ \textcolor{keyword}{class}\ BV,\ \textcolor{keywordtype}{size\_t}\ K>}
+\DoxyCodeLine{00057\ \ \ \textcolor{keyword}{class\ }LinearNodeT;}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00064\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ P,\ \textcolor{keyword}{class}\ BV,\ \textcolor{keywordtype}{size\_t}\ K>}
+\DoxyCodeLine{00065\ \ \ \textcolor{keyword}{class\ }LinearBVH;}
+\DoxyCodeLine{00066\ }
+\DoxyCodeLine{00071\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ P>}
+\DoxyCodeLine{00072\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceBVH_aa1e753bda451b85cd5b948722a2ad7c7}{PrimitiveListT}}\ =\ std::vector<std::shared\_ptr<const\ P>>;}
+\DoxyCodeLine{00073\ }
+\DoxyCodeLine{00077\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ P,\ \textcolor{keyword}{class}\ BV>}
+\DoxyCodeLine{00078\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}{PrimAndBV}}\ =\ std::pair<std::shared\_ptr<const\ P>,\ \mbox{\hyperlink{classVec3T}{BV}}>;}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00084\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ P,\ \textcolor{keyword}{class}\ BV>}
+\DoxyCodeLine{00085\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceBVH_a1edeb7c10026d6fba3e35536a6719a3a}{PrimAndBVListT}}\ =\ std::vector<PrimAndBV<P,\ BV>>;}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00093\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ P,\ \textcolor{keyword}{class}\ BV,\ \textcolor{keywordtype}{size\_t}\ K>}
+\DoxyCodeLine{00094\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceBVH_ae7e5e97e86dfe5a7103cbf2918f0cfc9}{PartitionerT}}\ =\ std::function<std::array<PrimAndBVListT<P,\ BV>,\ \mbox{\hyperlink{classVec3T}{K}}>(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{PrimAndBVListT<P,\ BV>}}\&\ \mbox{\hyperlink{classVec3T}{a\_primsAndBVs}})>;}
+\DoxyCodeLine{00095\ }
+\DoxyCodeLine{00104\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ P,\ \textcolor{keyword}{class}\ BV,\ \textcolor{keywordtype}{size\_t}\ K>}
+\DoxyCodeLine{00105\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceBVH_afef1c5979c34a11d23b756cc09654bf9}{StopFunctionT}}\ =\ std::function<\mbox{\hyperlink{classVec3T}{bool}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{NodeT<T,\ P,\ BV,\ K>}}\&\ \mbox{\hyperlink{classVec3T}{a\_node}})>;}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00111\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ P>}
+\DoxyCodeLine{00112\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceBVH_a9098188477f08a345cf059a431ae23aa}{Updater}}\ =\ std::function<\mbox{\hyperlink{classVec3T}{void}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{PrimitiveListT<P>}}\&\ \mbox{\hyperlink{classVec3T}{a\_primitives}})>;}
+\DoxyCodeLine{00113\ }
+\DoxyCodeLine{00121\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ NodeType,\ \textcolor{keyword}{class}\ Meta>}
+\DoxyCodeLine{00122\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceBVH_a8ac51cce05479b4821bf8c0e2543696a}{Visiter}}\ =\ std::function<\mbox{\hyperlink{classVec3T}{bool}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{NodeType}}\&\ \mbox{\hyperlink{classVec3T}{a\_node}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Meta}}\&\ \mbox{\hyperlink{classVec3T}{a\_meta}})>;}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00130\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ NodeType,\ \textcolor{keyword}{class}\ Meta,\ \textcolor{keywordtype}{size\_t}\ K>}
+\DoxyCodeLine{00131\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceBVH_a98593a87354ca9c46938b74c50a10f91}{Sorter}}\ =\ std::function<\mbox{\hyperlink{classVec3T}{void}}(std::array<std::pair<std::shared\_ptr<const\ NodeType>,\ \mbox{\hyperlink{classVec3T}{Meta}}>,\ \mbox{\hyperlink{classVec3T}{K}}>\&\ \mbox{\hyperlink{classVec3T}{a\_children}})>;}
+\DoxyCodeLine{00132\ }
+\DoxyCodeLine{00136\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ NodeType,\ \textcolor{keyword}{class}\ Meta>}
+\DoxyCodeLine{00137\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}{MetaUpdater}}\ =\ std::function<\mbox{\hyperlink{classVec3T}{Meta}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{NodeType}}\&\ \mbox{\hyperlink{classVec3T}{a\_node}})>;}
+\DoxyCodeLine{00138\ }
+\DoxyCodeLine{00142\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ X,\ \textcolor{keywordtype}{size\_t}\ K>}
+\DoxyCodeLine{00143\ \ \ \textcolor{keyword}{auto}\ \mbox{\hyperlink{namespaceBVH_affa56504a4aa040e09ce300dae222e5b}{equalCounts}}\ =\ [](\textcolor{keyword}{const}\ std::vector<X>\&\ \mbox{\hyperlink{classVec3T}{a\_primitives}})\ \textcolor{keyword}{noexcept}\ -\/>\ std::array<std::vector<X>,\ \mbox{\hyperlink{classVec3T}{K}}>\ \{}
+\DoxyCodeLine{00144\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_ac7cf88fcdf43f2f197b741a126274cab}{length}}\ =\ \mbox{\hyperlink{classVec3T}{a\_primitives}}.size()\ /\ \mbox{\hyperlink{classVec3T}{K}};}
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{remain}}\ =\ \mbox{\hyperlink{classVec3T}{a\_primitives}}.size()\ \%\ \mbox{\hyperlink{classVec3T}{K}};}
+\DoxyCodeLine{00146\ }
+\DoxyCodeLine{00147\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{begin}}\ =\ 0;}
+\DoxyCodeLine{00148\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classVec3T}{end}}\ \ \ =\ 0;}
+\DoxyCodeLine{00149\ }
+\DoxyCodeLine{00150\ \ \ \ \ std::array<std::vector<X>,\ \mbox{\hyperlink{classVec3T}{K}}>\ \mbox{\hyperlink{classVec3T}{chunks}};}
+\DoxyCodeLine{00151\ }
+\DoxyCodeLine{00152\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{k}}\ =\ 0;\ \mbox{\hyperlink{classVec3T}{k}}\ <\ \mbox{\hyperlink{classVec3T}{K}};\ \mbox{\hyperlink{classVec3T}{k}}++)\ \{}
+\DoxyCodeLine{00153\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{end}}\ +=\ (\mbox{\hyperlink{classVec3T}{remain}}\ >\ 0)\ ?\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_ac7cf88fcdf43f2f197b741a126274cab}{length}}\ +\ 1\ :\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_ac7cf88fcdf43f2f197b741a126274cab}{length}};}
+\DoxyCodeLine{00154\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{remain}}-\/-\/;}
+\DoxyCodeLine{00155\ }
+\DoxyCodeLine{00156\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{chunks}}[\mbox{\hyperlink{classVec3T}{k}}]\ =\ std::vector<X>(\mbox{\hyperlink{classVec3T}{a\_primitives}}.begin()\ +\ \mbox{\hyperlink{classVec3T}{begin}},\ \mbox{\hyperlink{classVec3T}{a\_primitives}}.begin()\ +\ \mbox{\hyperlink{classVec3T}{end}});}
+\DoxyCodeLine{00157\ }
+\DoxyCodeLine{00158\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{begin}}\ =\ \mbox{\hyperlink{classVec3T}{end}};}
+\DoxyCodeLine{00159\ \ \ \ \ \}}
+\DoxyCodeLine{00160\ }
+\DoxyCodeLine{00161\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{chunks}};}
+\DoxyCodeLine{00162\ \ \ \};}
+\DoxyCodeLine{00163\ }
+\DoxyCodeLine{00168\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ P,\ \textcolor{keyword}{class}\ BV,\ \textcolor{keywordtype}{size\_t}\ K>}
+\DoxyCodeLine{00169\ \ \ \textcolor{keyword}{auto}\ \mbox{\hyperlink{namespaceBVH_aa7c7fa51a4c99cebf11a6261b6be2b8a}{PrimitiveCentroidPartitioner}}\ =}
+\DoxyCodeLine{00170\ \ \ \ \ [](\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{PrimAndBVListT<P,\ BV>}}\&\ \mbox{\hyperlink{classVec3T}{a\_primsAndBVs}})\ \textcolor{keyword}{noexcept}\ -\/>\ std::array<\mbox{\hyperlink{classVec3T}{PrimAndBVListT<P,\ BV>}},\ \mbox{\hyperlink{classVec3T}{K}}>\ \{}
+\DoxyCodeLine{00171\ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{lo}}\ =\ \mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3T<T>::max}}();}
+\DoxyCodeLine{00172\ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{hi}}\ =\ -\/\mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3T<T>::max}}();}
+\DoxyCodeLine{00173\ }
+\DoxyCodeLine{00174\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keyword}{const}\ \textcolor{keyword}{auto}\&\ \mbox{\hyperlink{classVec3T}{pbv}}\ :\ \mbox{\hyperlink{classVec3T}{a\_primsAndBVs}})\ \{}
+\DoxyCodeLine{00175\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{lo}}\ =\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_a71d03341d22b2fee8615d0e09beeb3fe}{min}}(\mbox{\hyperlink{classVec3T}{lo}},\ \mbox{\hyperlink{classVec3T}{pbv}}.first-\/>getCentroid());}
+\DoxyCodeLine{00176\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{hi}}\ =\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_a098ea9f8784cd748ba840d05e2ba0bdf}{max}}(\mbox{\hyperlink{classVec3T}{hi}},\ \mbox{\hyperlink{classVec3T}{pbv}}.first-\/>getCentroid());}
+\DoxyCodeLine{00177\ \ \ \ \ \}}
+\DoxyCodeLine{00178\ }
+\DoxyCodeLine{00179\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{splitDir}}\ =\ (\mbox{\hyperlink{classVec3T}{hi}}\ -\/\ \mbox{\hyperlink{classVec3T}{lo}}).maxDir(\textcolor{keyword}{true});}
+\DoxyCodeLine{00180\ }
+\DoxyCodeLine{00181\ \ \ \ \ \textcolor{comment}{//\ Sort\ the\ primitives\ along\ the\ above\ coordinate\ direction.}}
+\DoxyCodeLine{00182\ \ \ \ \ \mbox{\hyperlink{classVec3T}{PrimAndBVListT<P,\ BV>}}\ \mbox{\hyperlink{classVec3T}{sortedPrimsAndBVs}}(\mbox{\hyperlink{classVec3T}{a\_primsAndBVs}});}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00184\ \ \ \ \ std::sort(\mbox{\hyperlink{classVec3T}{sortedPrimsAndBVs}}.begin(),}
+\DoxyCodeLine{00185\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{sortedPrimsAndBVs}}.end(),}
+\DoxyCodeLine{00186\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [\mbox{\hyperlink{classVec3T}{splitDir}}](\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{PrimAndBV<P,\ BV>}}\&\ \mbox{\hyperlink{classVec3T}{pbv1}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{PrimAndBV<P,\ BV>}}\&\ \mbox{\hyperlink{classVec3T}{pbv2}})\ -\/>\ \textcolor{keywordtype}{bool}\ \{}
+\DoxyCodeLine{00187\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ return\ pbv1.first-\/>getCentroid(splitDir)\ <\ pbv2.first-\/>getCentroid(splitDir);}
+\DoxyCodeLine{00188\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \});}
+\DoxyCodeLine{00189\ }
+\DoxyCodeLine{00190\ \ \ \ \ \textcolor{keywordflow}{return}\ BVH::equalCounts<PrimAndBV<P,\ BV>,\ \mbox{\hyperlink{classVec3T}{K}}>(\mbox{\hyperlink{classVec3T}{sortedPrimsAndBVs}});}
+\DoxyCodeLine{00191\ \ \ \};}
+\DoxyCodeLine{00192\ }
+\DoxyCodeLine{00197\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ P,\ \textcolor{keyword}{class}\ BV,\ \textcolor{keywordtype}{size\_t}\ K>}
+\DoxyCodeLine{00198\ \ \ \textcolor{keyword}{auto}\ \mbox{\hyperlink{namespaceBVH_a5d49380a6db6e29200da88b68b1ba0a6}{BVCentroidPartitioner}}\ =\ [](\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{PrimAndBVListT<P,\ BV>}}\&\ \mbox{\hyperlink{classVec3T}{a\_primsAndBVs}})\ -\/>\ std::array<\mbox{\hyperlink{classVec3T}{PrimAndBVListT<P,\ BV>}},\ \mbox{\hyperlink{classVec3T}{K}}>\ \{}
+\DoxyCodeLine{00199\ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{lo}}\ =\ \mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3T<T>::max}}();}
+\DoxyCodeLine{00200\ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classVec3T}{hi}}\ =\ -\/\mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3T<T>::max}}();}
+\DoxyCodeLine{00201\ }
+\DoxyCodeLine{00202\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keyword}{const}\ \textcolor{keyword}{auto}\&\ \mbox{\hyperlink{classVec3T}{pbv}}\ :\ \mbox{\hyperlink{classVec3T}{a\_primsAndBVs}})\ \{}
+\DoxyCodeLine{00203\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{lo}}\ =\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_a71d03341d22b2fee8615d0e09beeb3fe}{min}}(\mbox{\hyperlink{classVec3T}{lo}},\ \mbox{\hyperlink{classVec3T}{pbv}}.second.getCentroid());}
+\DoxyCodeLine{00204\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{hi}}\ =\ \mbox{\hyperlink{EBGeometry__Vec_8hpp_a098ea9f8784cd748ba840d05e2ba0bdf}{max}}(\mbox{\hyperlink{classVec3T}{hi}},\ \mbox{\hyperlink{classVec3T}{pbv}}.second.getCentroid());}
+\DoxyCodeLine{00205\ \ \ \ \ \}}
+\DoxyCodeLine{00206\ }
+\DoxyCodeLine{00207\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{splitDir}}\ =\ (\mbox{\hyperlink{classVec3T}{hi}}\ -\/\ \mbox{\hyperlink{classVec3T}{lo}}).maxDir(\textcolor{keyword}{true});}
+\DoxyCodeLine{00208\ }
+\DoxyCodeLine{00209\ \ \ \ \ \textcolor{comment}{//\ Sort\ the\ primitives\ along\ the\ above\ coordinate\ direction.}}
+\DoxyCodeLine{00210\ \ \ \ \ \mbox{\hyperlink{classVec3T}{PrimAndBVListT<P,\ BV>}}\ \mbox{\hyperlink{classVec3T}{sortedPrimsAndBVs}}(\mbox{\hyperlink{classVec3T}{a\_primsAndBVs}});}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00212\ \ \ \ \ std::sort(\mbox{\hyperlink{classVec3T}{sortedPrimsAndBVs}}.begin(),}
+\DoxyCodeLine{00213\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{sortedPrimsAndBVs}}.end(),}
+\DoxyCodeLine{00214\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [\mbox{\hyperlink{classVec3T}{splitDir}}](\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{PrimAndBV<P,\ BV>}}\&\ \mbox{\hyperlink{classVec3T}{pbv1}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{PrimAndBV<P,\ BV>}}\&\ \mbox{\hyperlink{classVec3T}{pbv2}})\ -\/>\ \textcolor{keywordtype}{bool}\ \{}
+\DoxyCodeLine{00215\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ return\ pbv1.second.getCentroid()[splitDir]\ <\ pbv2.second.getCentroid()[splitDir];}
+\DoxyCodeLine{00216\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \});}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \ \ \ \ \textcolor{keywordflow}{return}\ BVH::equalCounts<PrimAndBV<P,\ BV>,\ \mbox{\hyperlink{classVec3T}{K}}>(\mbox{\hyperlink{classVec3T}{sortedPrimsAndBVs}});}
+\DoxyCodeLine{00219\ \ \ \};}
+\DoxyCodeLine{00220\ }
+\DoxyCodeLine{00225\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ P,\ \textcolor{keyword}{class}\ BV,\ \textcolor{keywordtype}{size\_t}\ K>}
+\DoxyCodeLine{00226\ \ \ \textcolor{keyword}{auto}\ \mbox{\hyperlink{namespaceBVH_a21d8f7ec763e9a30d43c68abe2e63f18}{DefaultStopFunction}}\ =}
+\DoxyCodeLine{00227\ \ \ \ \ [](\textcolor{keyword}{const}\ \mbox{\hyperlink{classBVH_1_1NodeT}{BVH::NodeT<T,\ P,\ BV,\ K>}}\&\ \mbox{\hyperlink{classVec3T}{a\_node}})\ \textcolor{keyword}{noexcept}\ -\/>\ \textcolor{keywordtype}{bool}\ \{\ \textcolor{keywordflow}{return}\ (\mbox{\hyperlink{classVec3T}{a\_node}}.getPrimitives()).size()\ <\ \mbox{\hyperlink{classVec3T}{K}};\ \};}
+\DoxyCodeLine{00228\ }
+\DoxyCodeLine{00236\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ P,\ \textcolor{keyword}{class}\ BV,\ \textcolor{keywordtype}{size\_t}\ K>}
+\DoxyCodeLine{00237\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}\ :\ \textcolor{keyword}{public}\ std::enable\_shared\_from\_this<NodeT<T,\ P,\ BV,\ K>>}
+\DoxyCodeLine{00238\ \ \ \{}
+\DoxyCodeLine{00239\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00243\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{PrimitiveList}}\ =\ \mbox{\hyperlink{classVec3T}{PrimitiveListT<P>}};}
+\DoxyCodeLine{00244\ }
+\DoxyCodeLine{00248\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Vec3}}\ =\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}};}
+\DoxyCodeLine{00249\ }
+\DoxyCodeLine{00253\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Node}}\ =\ \mbox{\hyperlink{classVec3T}{NodeT<T,\ P,\ BV,\ K>}};}
+\DoxyCodeLine{00254\ }
+\DoxyCodeLine{00258\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classBVH_1_1NodeT_a008f5c2c53adb1f5730d8478b48529b1}{NodePtr}}\ =\ std::shared\_ptr<Node>;}
+\DoxyCodeLine{00259\ }
+\DoxyCodeLine{00263\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Partitioner}}\ =\ \mbox{\hyperlink{classVec3T}{PartitionerT<P,\ BV,\ K>}};}
+\DoxyCodeLine{00264\ }
+\DoxyCodeLine{00268\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{StopFunction}}\ =\ \mbox{\hyperlink{classVec3T}{StopFunctionT<T,\ P,\ BV,\ K>}};}
+\DoxyCodeLine{00269\ }
+\DoxyCodeLine{00273\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_a7d0568132459d93b219633fdc58d110d}{NodeT}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00274\ }
+\DoxyCodeLine{00279\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}(\mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{vector}}<\mbox{\hyperlink{namespaceBVH_a2f1baf3f4361b542e8b582b2d64954ce}{PrimAndBV}}<\mbox{\hyperlink{classVec3T}{P}},\ \mbox{\hyperlink{classVec3T}{BV}}>>\&\ \mbox{\hyperlink{classVec3T}{a\_primsAndBVs}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00280\ }
+\DoxyCodeLine{00284\ \ \ \ \ \mbox{\hyperlink{classVec3T}{virtual}}\ \string~\mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00285\ }
+\DoxyCodeLine{00294\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00295\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_a96febb1814ab25d04b719350a93f5e7f}{topDownSortAndPartition}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Partitioner}}\&\ \ \mbox{\hyperlink{classVec3T}{a\_partitioner}}\ =\ \mbox{\hyperlink{namespaceBVH_a5d49380a6db6e29200da88b68b1ba0a6}{BVCentroidPartitioner}}<\mbox{\hyperlink{classVec3T}{T}},\ \mbox{\hyperlink{classVec3T}{P}},\ \mbox{\hyperlink{classVec3T}{BV}},\ \mbox{\hyperlink{classVec3T}{K}}>,}
+\DoxyCodeLine{00296\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{StopFunction}}\&\ \mbox{\hyperlink{classVec3T}{a\_stopCrit}}\ \ \ \ =\ \mbox{\hyperlink{namespaceBVH_a21d8f7ec763e9a30d43c68abe2e63f18}{DefaultStopFunction}}<\mbox{\hyperlink{classVec3T}{T}},\ \mbox{\hyperlink{classVec3T}{P}},\ \mbox{\hyperlink{classVec3T}{BV}},\ \mbox{\hyperlink{classVec3T}{K}}>)\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00297\ }
+\DoxyCodeLine{00307\ \ \ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{S}}>}
+\DoxyCodeLine{00308\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00309\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_ac6b444e11b909bd69faef8e8c875b135}{bottomUpSortAndPartition}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00310\ }
+\DoxyCodeLine{00314\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00315\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_a5c57552524601da9bf20e722e2433aa0}{isLeaf}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00316\ }
+\DoxyCodeLine{00320\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00321\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_abb00d39b9a03ad602f1a47efe6272b24}{isPartitioned}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00322\ }
+\DoxyCodeLine{00327\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{BV}}\&}
+\DoxyCodeLine{00328\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_a02cba4dcb065ebfaeea7e4d251b89d04}{getBoundingVolume}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00329\ }
+\DoxyCodeLine{00334\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{PrimitiveList}}\&}
+\DoxyCodeLine{00335\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_a4c606aec7d62e492b51619e200d989ad}{getPrimitives}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00336\ }
+\DoxyCodeLine{00341\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{vector}}<\mbox{\hyperlink{classVec3T}{BV}}>\&}
+\DoxyCodeLine{00342\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_aac29c68b6a91384fa95e115c25e6f5c2}{getBoundingVolumes}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00343\ }
+\DoxyCodeLine{00350\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00351\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_a8da9f78078b0a579868d026bd61a2947}{getDistanceToBoundingVolume}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00352\ }
+\DoxyCodeLine{00357\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{array}}<std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}<\mbox{\hyperlink{classVec3T}{T}},\ \mbox{\hyperlink{classVec3T}{P}},\ \mbox{\hyperlink{classVec3T}{BV}},\ \mbox{\hyperlink{classVec3T}{K}}>>,\ \mbox{\hyperlink{classVec3T}{K}}>\&}
+\DoxyCodeLine{00358\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_ac8df9e7b154186207263b8727e1084a8}{getChildren}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00359\ }
+\DoxyCodeLine{00368\ \ \ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{Meta}}>}
+\DoxyCodeLine{00369\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00370\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_aeff5c037a8b4b332542af68566154def}{traverse}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{namespaceBVH}{BVH}}::\mbox{\hyperlink{namespaceBVH_a9098188477f08a345cf059a431ae23aa}{Updater}}<\mbox{\hyperlink{classVec3T}{P}}>\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_updater}},}
+\DoxyCodeLine{00371\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{namespaceBVH}{BVH}}::\mbox{\hyperlink{namespaceBVH_a8ac51cce05479b4821bf8c0e2543696a}{Visiter}}<\mbox{\hyperlink{classVec3T}{Node}},\ \mbox{\hyperlink{classVec3T}{Meta}}>\&\ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_visiter}},}
+\DoxyCodeLine{00372\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{namespaceBVH}{BVH}}::\mbox{\hyperlink{namespaceBVH_a98593a87354ca9c46938b74c50a10f91}{Sorter}}<\mbox{\hyperlink{classVec3T}{Node}},\ \mbox{\hyperlink{classVec3T}{Meta}},\ \mbox{\hyperlink{classVec3T}{K}}>\&\ \ \ \mbox{\hyperlink{classVec3T}{a\_sorter}},}
+\DoxyCodeLine{00373\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{namespaceBVH}{BVH}}::\mbox{\hyperlink{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}{MetaUpdater}}<\mbox{\hyperlink{classVec3T}{Node}},\ \mbox{\hyperlink{classVec3T}{Meta}}>\&\ \mbox{\hyperlink{classVec3T}{a\_metaUpdater}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00374\ }
+\DoxyCodeLine{00381\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classBVH_1_1LinearBVH}{LinearBVH}}<\mbox{\hyperlink{classVec3T}{T}},\ \mbox{\hyperlink{classVec3T}{P}},\ \mbox{\hyperlink{classVec3T}{BV}},\ \mbox{\hyperlink{classVec3T}{K}}>>}
+\DoxyCodeLine{00382\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_acb801f1e446a6472f5d330e85318bdb3}{flattenTree}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00383\ }
+\DoxyCodeLine{00384\ \ \ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00388\ \ \ \ \ \mbox{\hyperlink{classVec3T}{BV}}\ \mbox{\hyperlink{classBVH_1_1NodeT_a7f8720f2ab03ee9e81de114c479cb2e5}{m\_boundingVolume}};}
+\DoxyCodeLine{00389\ }
+\DoxyCodeLine{00393\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classBVH_1_1NodeT_a5f4bee1536ec2fb6ef8c99159e3e730c}{m\_partitioned}};}
+\DoxyCodeLine{00394\ }
+\DoxyCodeLine{00398\ \ \ \ \ std::\mbox{\hyperlink{classVec3T}{vector}}<std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{P}}>>\ \mbox{\hyperlink{classBVH_1_1NodeT_a3c45be2075d8cdfd0dc0a9e73373b64d}{m\_primitives}};}
+\DoxyCodeLine{00399\ }
+\DoxyCodeLine{00403\ \ \ \ \ std::\mbox{\hyperlink{classVec3T}{vector}}<\mbox{\hyperlink{classVec3T}{BV}}>\ \mbox{\hyperlink{classBVH_1_1NodeT_aa490d577a276c3fce47f3baebb27bf03}{m\_boundingVolumes}};}
+\DoxyCodeLine{00404\ }
+\DoxyCodeLine{00408\ \ \ \ \ std::\mbox{\hyperlink{classVec3T}{array}}<std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}<\mbox{\hyperlink{classVec3T}{T}},\ \mbox{\hyperlink{classVec3T}{P}},\ \mbox{\hyperlink{classVec3T}{BV}},\ \mbox{\hyperlink{classVec3T}{K}}>>,\ \mbox{\hyperlink{classVec3T}{K}}>\ \mbox{\hyperlink{classBVH_1_1NodeT_afaf556d6faa78c2cc2b27c82feb0145c}{m\_children}};}
+\DoxyCodeLine{00409\ }
+\DoxyCodeLine{00414\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{PrimitiveList}}\&}
+\DoxyCodeLine{00415\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_a4c606aec7d62e492b51619e200d989ad}{getPrimitives}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00416\ }
+\DoxyCodeLine{00421\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ std::\mbox{\hyperlink{classVec3T}{vector}}<\mbox{\hyperlink{classVec3T}{BV}}>\&}
+\DoxyCodeLine{00422\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_aac29c68b6a91384fa95e115c25e6f5c2}{getBoundingVolumes}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00423\ }
+\DoxyCodeLine{00429\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00430\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_a14c34d025f21030489543be01e1aec1c}{setChildren}}(\mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{array}}<std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classBVH_1_1NodeT}{NodeT}}<\mbox{\hyperlink{classVec3T}{T}},\ \mbox{\hyperlink{classVec3T}{P}},\ \mbox{\hyperlink{classVec3T}{BV}},\ \mbox{\hyperlink{classVec3T}{K}}>>,\ \mbox{\hyperlink{classVec3T}{K}}>\&\ \mbox{\hyperlink{classVec3T}{a\_children}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00431\ }
+\DoxyCodeLine{00444\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{size\_t}}
+\DoxyCodeLine{00445\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_acb801f1e446a6472f5d330e85318bdb3}{flattenTree}}(std::\mbox{\hyperlink{classVec3T}{vector}}<std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classBVH_1_1LinearNodeT}{LinearNodeT}}<\mbox{\hyperlink{classVec3T}{T}},\ \mbox{\hyperlink{classVec3T}{P}},\ \mbox{\hyperlink{classVec3T}{BV}},\ \mbox{\hyperlink{classVec3T}{K}}>>>\&\ \mbox{\hyperlink{classVec3T}{a\_linearNodes}},}
+\DoxyCodeLine{00446\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::\mbox{\hyperlink{classVec3T}{vector}}<std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{P}}>>\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_sortedPrimitives}},}
+\DoxyCodeLine{00447\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_offset}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00448\ \ \ \};}
+\DoxyCodeLine{00449\ }
+\DoxyCodeLine{00480\ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}},\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{P}},\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{BV}},\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{K}}>}
+\DoxyCodeLine{00481\ \ \ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{LinearNodeT}}}
+\DoxyCodeLine{00482\ \ \ \{}
+\DoxyCodeLine{00483\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00487\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Vec3}}\ =\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}};}
+\DoxyCodeLine{00488\ }
+\DoxyCodeLine{00492\ \ \ \ \ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classBVH_1_1LinearNodeT_ad38f1888fbd8512b749e6b78557729c4}{LinearNodeT}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00493\ }
+\DoxyCodeLine{00497\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{virtual}}\ \string~\mbox{\hyperlink{classBVH_1_1LinearNodeT}{LinearNodeT}}();}
+\DoxyCodeLine{00498\ }
+\DoxyCodeLine{00503\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00504\ \ \ \ \ setBoundingVolume(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{BV}}\&\ \mbox{\hyperlink{classVec3T}{a\_boundingVolume}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00505\ }
+\DoxyCodeLine{00509\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00510\ \ \ \ \ setPrimitivesOffset(\mbox{\hyperlink{classVec3T}{const}}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{a\_primitivesOffset}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00511\ }
+\DoxyCodeLine{00516\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00517\ \ \ \ \ setNumPrimitives(\mbox{\hyperlink{classVec3T}{const}}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{a\_numPrimitives}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00518\ }
+\DoxyCodeLine{00524\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00525\ \ \ \ \ setChildOffset(\mbox{\hyperlink{classVec3T}{const}}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{a\_childOffset}},\ \mbox{\hyperlink{classVec3T}{const}}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{a\_whichChild}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00526\ }
+\DoxyCodeLine{00531\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{BV}}\&}
+\DoxyCodeLine{00532\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_a02cba4dcb065ebfaeea7e4d251b89d04}{getBoundingVolume}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00533\ }
+\DoxyCodeLine{00538\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \textcolor{keywordtype}{size\_t}\&}
+\DoxyCodeLine{00539\ \ \ \ \ getPrimitivesOffset()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00540\ }
+\DoxyCodeLine{00545\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \textcolor{keywordtype}{size\_t}\&}
+\DoxyCodeLine{00546\ \ \ \ \ getNumPrimitives()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00547\ }
+\DoxyCodeLine{00552\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{array}}<\textcolor{keywordtype}{size\_t},\ \mbox{\hyperlink{classVec3T}{K}}>\&}
+\DoxyCodeLine{00553\ \ \ \ \ getChildOffsets()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00554\ }
+\DoxyCodeLine{00558\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00559\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_a5c57552524601da9bf20e722e2433aa0}{isLeaf}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00560\ }
+\DoxyCodeLine{00564\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00565\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_abb00d39b9a03ad602f1a47efe6272b24}{isPartitioned}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00566\ }
+\DoxyCodeLine{00573\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00574\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_a8da9f78078b0a579868d026bd61a2947}{getDistanceToBoundingVolume}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00575\ }
+\DoxyCodeLine{00582\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ std::\mbox{\hyperlink{classVec3T}{vector}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00583\ \ \ \ \ getDistances(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}},\ \mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{vector}}<std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{P}}>>\&\ \mbox{\hyperlink{classVec3T}{a\_primitives}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00584\ }
+\DoxyCodeLine{00585\ \ \ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00589\ \ \ \ \ \mbox{\hyperlink{classVec3T}{BV}}\ \mbox{\hyperlink{classBVH_1_1NodeT_a7f8720f2ab03ee9e81de114c479cb2e5}{m\_boundingVolume}};}
+\DoxyCodeLine{00590\ }
+\DoxyCodeLine{00594\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classBVH_1_1NodeT_a5f4bee1536ec2fb6ef8c99159e3e730c}{m\_partitioned}};}
+\DoxyCodeLine{00595\ }
+\DoxyCodeLine{00599\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ m\_primitivesOffset;}
+\DoxyCodeLine{00600\ }
+\DoxyCodeLine{00604\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ m\_numPrimitives;}
+\DoxyCodeLine{00605\ }
+\DoxyCodeLine{00609\ \ \ \ \ std::\mbox{\hyperlink{classVec3T}{array}}<\textcolor{keywordtype}{size\_t},\ \mbox{\hyperlink{classVec3T}{K}}>\ m\_childOffsets;}
+\DoxyCodeLine{00610\ \ \ \};}
+\DoxyCodeLine{00611\ }
+\DoxyCodeLine{00615\ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}},\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{P}},\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{BV}},\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{K}}>}
+\DoxyCodeLine{00616\ \ \ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classBVH_1_1LinearBVH}{LinearBVH}}}
+\DoxyCodeLine{00617\ \ \ \{}
+\DoxyCodeLine{00618\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00622\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Vec3}}\ =\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}};}
+\DoxyCodeLine{00623\ }
+\DoxyCodeLine{00627\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{LinearNode}}\ =\ \mbox{\hyperlink{classVec3T}{LinearNodeT<T,\ P,\ BV,\ K>}};}
+\DoxyCodeLine{00628\ }
+\DoxyCodeLine{00632\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classBVH_1_1LinearBVH_a94ee5da1670e2ef85eeabf7cf6a2da92}{PrimitiveList}}\ =\ std::vector<std::shared\_ptr<const\ P>>;}
+\DoxyCodeLine{00633\ }
+\DoxyCodeLine{00637\ \ \ \ \ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classBVH_1_1LinearBVH_a5f10356de5f87989b0d27520ffd688f9}{LinearBVH}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00638\ }
+\DoxyCodeLine{00642\ \ \ \ \ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classBVH_1_1LinearBVH_a7cd5b4ef45b8740d9566b64616c7c52c}{LinearBVH}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classBVH_1_1LinearBVH}{LinearBVH}}\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00643\ }
+\DoxyCodeLine{00649\ \ \ \ \ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classBVH_1_1LinearBVH_a34fcf759d0b39c9d83aca039cd0b18a8}{LinearBVH}}(\textcolor{keyword}{const}\ std::vector<std::shared\_ptr<\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{LinearNodeT<T,\ P,\ BV,\ K>}}>>\&\ \mbox{\hyperlink{classVec3T}{a\_linearNodes}},}
+\DoxyCodeLine{00650\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::shared\_ptr<const\ P>>\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_primitives}});}
+\DoxyCodeLine{00651\ }
+\DoxyCodeLine{00657\ \ \ \ \ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classBVH_1_1LinearBVH_a413ba6da95c3839b90c4a3441aa5395b}{LinearBVH}}(\textcolor{keyword}{const}\ std::vector<std::shared\_ptr<\mbox{\hyperlink{classVec3T}{LinearNodeT<T,\ P,\ BV,\ K>}}>>\&\ \mbox{\hyperlink{classVec3T}{a\_linearNodes}},}
+\DoxyCodeLine{00658\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::shared\_ptr<const\ P>>\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_primitives}});}
+\DoxyCodeLine{00659\ }
+\DoxyCodeLine{00663\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classBVH_1_1LinearBVH_a9737547d3857bc90c2d6ed9b142663ea}{\string~LinearBVH}}();}
+\DoxyCodeLine{00664\ }
+\DoxyCodeLine{00668\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{BV}}\&}
+\DoxyCodeLine{00669\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1LinearBVH_aea132bc8cff5062a8740bd93dbcb0fb8}{getBoundingVolume}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00670\ }
+\DoxyCodeLine{00679\ \ \ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{Meta}}>}
+\DoxyCodeLine{00680\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00681\ \ \ \ \ \mbox{\hyperlink{classBVH_1_1NodeT_aeff5c037a8b4b332542af68566154def}{traverse}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{namespaceBVH}{BVH}}::\mbox{\hyperlink{namespaceBVH_a9098188477f08a345cf059a431ae23aa}{Updater}}<\mbox{\hyperlink{classVec3T}{P}}>\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_updater}},}
+\DoxyCodeLine{00682\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{namespaceBVH}{BVH}}::\mbox{\hyperlink{namespaceBVH_a8ac51cce05479b4821bf8c0e2543696a}{Visiter}}<\mbox{\hyperlink{classVec3T}{LinearNode}},\ \mbox{\hyperlink{classVec3T}{Meta}}>\&\ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_visiter}},}
+\DoxyCodeLine{00683\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{namespaceBVH}{BVH}}::\mbox{\hyperlink{namespaceBVH_a98593a87354ca9c46938b74c50a10f91}{Sorter}}<\mbox{\hyperlink{classVec3T}{LinearNode}},\ \mbox{\hyperlink{classVec3T}{Meta}},\ \mbox{\hyperlink{classVec3T}{K}}>\&\ \ \ \mbox{\hyperlink{classVec3T}{a\_sorter}},}
+\DoxyCodeLine{00684\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{namespaceBVH}{BVH}}::\mbox{\hyperlink{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}{MetaUpdater}}<\mbox{\hyperlink{classVec3T}{LinearNode}},\ \mbox{\hyperlink{classVec3T}{Meta}}>\&\ \mbox{\hyperlink{classVec3T}{a\_metaUpdater}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00685\ }
+\DoxyCodeLine{00686\ \ \ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00690\ \ \ \ \ std::\mbox{\hyperlink{classVec3T}{vector}}<std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{LinearNodeT}}<\mbox{\hyperlink{classVec3T}{T}},\ \mbox{\hyperlink{classVec3T}{P}},\ \mbox{\hyperlink{classVec3T}{BV}},\ \mbox{\hyperlink{classVec3T}{K}}>>>\ m\_linearNodes;}
+\DoxyCodeLine{00691\ }
+\DoxyCodeLine{00696\ \ \ \ \ std::\mbox{\hyperlink{classVec3T}{vector}}<std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{P}}>>\ \mbox{\hyperlink{classBVH_1_1NodeT_a3c45be2075d8cdfd0dc0a9e73373b64d}{m\_primitives}};}
+\DoxyCodeLine{00697\ \ \ \};}
+\DoxyCodeLine{00698\ \}\ \textcolor{comment}{//\ namespace\ BVH}}
+\DoxyCodeLine{00699\ }
+\DoxyCodeLine{00700\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_NamespaceFooter.hpp"{}}}
+\DoxyCodeLine{00701\ }
+\DoxyCodeLine{00702\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_BVHImplem.hpp"{}}}
+\DoxyCodeLine{00703\ }
+\DoxyCodeLine{00704\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

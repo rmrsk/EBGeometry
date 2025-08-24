@@ -1,0 +1,75 @@
+\doxysection{EBGeometry\+\_\+\+DCEL\+\_\+\+Iterator.\+hpp}
+\hypertarget{EBGeometry__DCEL__Iterator_8hpp_source}{}\label{EBGeometry__DCEL__Iterator_8hpp_source}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_DCEL\_Iterator.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_DCEL\_Iterator.hpp}}
+\mbox{\hyperlink{EBGeometry__DCEL__Iterator_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*\ EBGeometry}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ Copyright\ ©\ 2022\ Robert\ Marskar}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ Please\ refer\ to\ Copyright.txt\ and\ LICENSE\ in\ the\ EBGeometry\ root\ directory.}}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#ifndef\ EBGeometry\_DCEL\_Iterator}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#define\ EBGeometry\_DCEL\_Iterator}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ Std\ includes}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ Our\ includes}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceHeader_8hpp}{EBGeometry\_NamespaceHeader.hpp}}"{}}}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceDCEL}{DCEL}}\ \{}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00026\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ Meta>}
+\DoxyCodeLine{00027\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT}{EdgeIteratorT}}}
+\DoxyCodeLine{00028\ \ \ \{}
+\DoxyCodeLine{00029\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Vertex}}\ =\ \mbox{\hyperlink{classVec3T}{VertexT<T,\ Meta>}};}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00038\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Edge}}\ =\ \mbox{\hyperlink{classVec3T}{EdgeT<T,\ Meta>}};}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00043\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Face}}\ =\ \mbox{\hyperlink{classVec3T}{FaceT<T,\ Meta>}};}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00048\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_acd022341379608fb61ce3baff8d939e5}{VertexPtr}}\ =\ std::shared\_ptr<Vertex>;}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00053\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_aaa081381d4978b504cf2bbacf1f10add}{EdgePtr}}\ =\ std::shared\_ptr<Edge>;}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_ac17d90d54b7afc322a361abffb3a57fb}{FacePtr}}\ =\ std::shared\_ptr<Face>;}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00063\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_af1da648772ab2dcce4ab28ef5598212b}{EdgeIteratorT}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00072\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a590b08bbc8f9a3d7e66e67dfe82f6957}{EdgeIteratorT}}(\mbox{\hyperlink{classVec3T}{Face}}\&\ \mbox{\hyperlink{classVec3T}{a\_face}});}
+\DoxyCodeLine{00073\ }
+\DoxyCodeLine{00081\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a146de39dd4e7b6eddf774b046c3fed32}{EdgeIteratorT}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Face}}\&\ \mbox{\hyperlink{classVec3T}{a\_face}});}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00086\ \ \ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a71f81f08d693f3f07bdf98e45d2eab82}{\string~EdgeIteratorT}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00091\ \ \ \ \ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_aaa081381d4978b504cf2bbacf1f10add}{EdgePtr}}\&}
+\DoxyCodeLine{00092\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_add61710f54abfdcb2c0ffaf74555bb0a}{operator()}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00097\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_aaa081381d4978b504cf2bbacf1f10add}{EdgePtr}}\&}
+\DoxyCodeLine{00098\ \ \ \ \ \mbox{\hyperlink{classVec3T}{operator}}()()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00104\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00105\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a136dc9ec23775ec0a326a97c11df63d7}{reset}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00110\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00111\ \ \ \ \ \mbox{\hyperlink{classVec3T}{operator}}++()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00119\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00120\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_aaa5be7b2db03adb98b04f9932480eb9f}{ok}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00122\ \ \ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00126\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a2a0088732de845a12b43d997574578fe}{m\_fullLoop}};}
+\DoxyCodeLine{00127\ }
+\DoxyCodeLine{00131\ \ \ \ \ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classVec3T}{Edge}}>\ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a3ea67d6b9753535bda1d326df79a1078}{m\_startEdge}};}
+\DoxyCodeLine{00132\ }
+\DoxyCodeLine{00136\ \ \ \ \ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classVec3T}{Edge}}>\ \mbox{\hyperlink{classDCEL_1_1EdgeIteratorT_a0b2b3704ffca56cf53dbc386f3168583}{m\_curEdge}};}
+\DoxyCodeLine{00137\ \ \ \};}
+\DoxyCodeLine{00138\ \}\ \textcolor{comment}{//\ namespace\ DCEL}}
+\DoxyCodeLine{00139\ }
+\DoxyCodeLine{00140\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_NamespaceFooter.hpp"{}}}
+\DoxyCodeLine{00141\ }
+\DoxyCodeLine{00142\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_DCEL\_IteratorImplem.hpp"{}}}
+\DoxyCodeLine{00143\ }
+\DoxyCodeLine{00144\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

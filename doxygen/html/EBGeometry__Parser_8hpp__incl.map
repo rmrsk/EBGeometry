@@ -1,34 +1,116 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Parser.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Parser.hpp">
-<area shape="rect" id="node1" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="792,5,1035,61"/>
-<area shape="rect" id="node2" title=" " alt="" coords="449,459,511,486"/>
-<area shape="rect" id="node3" title=" " alt="" coords="1208,459,1285,486"/>
-<area shape="rect" id="node4" title=" " alt="" coords="1467,370,1517,397"/>
-<area shape="rect" id="node5" href="$EBGeometry__DCEL__Mesh_8hpp.html" title="Declaration of a mesh class which stores a DCEL mesh (with signed distance functions)" alt="" coords="662,281,877,307"/>
-<area shape="rect" id="node8" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="418,541,681,568"/>
-<area shape="rect" id="node9" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="2049,541,2305,568"/>
-<area shape="rect" id="node17" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="767,109,1060,136"/>
-<area shape="rect" id="node18" href="$EBGeometry__BoundingVolumes_8hpp.html" title="Declaration of a various bounding volumes used for bounding volume hierarchy." alt="" coords="67,370,323,397"/>
-<area shape="rect" id="node32" title=" " alt="" coords="2541,109,2771,136"/>
-<area shape="rect" id="node6" title=" " alt="" coords="1310,459,1397,486"/>
-<area shape="rect" id="node7" href="$EBGeometry__DCEL_8hpp.html" title="Namespace documentation." alt="" coords="2091,459,2264,486"/>
-<area shape="rect" id="node10" href="$EBGeometry__Polygon2D_8hpp.html" title="Declaration of a two&#45;dimensional polygon class for embedding 3D polygon faces." alt="" coords="841,370,1050,397"/>
-<area shape="rect" id="node16" title=" " alt="" coords="499,370,765,397"/>
-<area shape="rect" id="node11" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="920,459,1083,486"/>
-<area shape="rect" id="node15" title=" " alt="" coords="637,459,896,486"/>
-<area shape="rect" id="node12" title=" " alt="" coords="1293,541,1349,568"/>
-<area shape="rect" id="node13" title=" " alt="" coords="140,541,220,568"/>
-<area shape="rect" id="node14" title=" " alt="" coords="895,541,1107,568"/>
-<area shape="rect" id="node20" href="$EBGeometry__SignedDistanceFunction_8hpp.html" title="Abstract base class for representing a signed distance function." alt="" coords="1094,184,1306,225"/>
-<area shape="rect" id="node25" href="$EBGeometry__BVH_8hpp.html" title="Declaration of a bounding volume hierarchy (BVH) class." alt="" coords="1643,370,1810,397"/>
-<area shape="rect" id="node31" title=" " alt="" coords="610,184,875,225"/>
-<area shape="rect" id="node19" title=" " alt="" coords="94,452,322,493"/>
-<area shape="rect" id="node21" title=" " alt="" coords="1169,281,1231,307"/>
-<area shape="rect" id="node22" href="$EBGeometry__ImplicitFunction_8hpp.html" title="Abstract base class for representing an implicit function." alt="" coords="901,281,1144,307"/>
-<area shape="rect" id="node24" title=" " alt="" coords="1255,273,1467,315"/>
-<area shape="rect" id="node23" title=" " alt="" coords="1227,363,1442,404"/>
-<area shape="rect" id="node26" title=" " alt="" coords="1523,459,1586,486"/>
-<area shape="rect" id="node27" href="$EBGeometry__SFC_8hpp.html" title="Declaration of various space&#45;filling curves." alt="" coords="1851,459,2015,486"/>
-<area shape="rect" id="node30" title=" " alt="" coords="1610,459,1827,486"/>
-<area shape="rect" id="node28" title=" " alt="" coords="1929,541,1996,568"/>
-<area shape="rect" id="node29" title=" " alt="" coords="1690,541,1905,568"/>
+<area shape="rect" id="Node000001" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="2225,5,2468,60"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="2117,453,2179,478"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="2225,45,2147,62,2109,74,2075,90,2044,111,2021,135,2005,165,2000,200,2000,291,2003,316,2012,340,2025,362,2041,383,2079,418,2116,443,2113,448,2076,422,2037,386,2020,365,2007,342,1998,317,1995,291,1995,200,2000,163,2016,132,2041,107,2072,86,2108,69,2146,56,2224,40"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="2735,453,2812,478"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="2468,43,2605,63,2677,77,2746,94,2807,114,2857,139,2890,167,2899,183,2903,200,2903,291,2900,316,2892,340,2867,383,2834,419,2803,446,2799,442,2830,415,2862,380,2887,338,2895,315,2897,291,2897,200,2894,185,2886,170,2854,143,2805,119,2744,99,2676,82,2604,68,2468,48"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="2761,365,2812,390"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="2382,58,2762,354,2759,358,2379,62"/>
+<area shape="rect" id="Node000005" href="$EBGeometry__BoundingVolumes_8hpp.html" title="Declaration of a various bounding volumes used for bounding volume hierarchy." alt="" coords="597,365,853,390"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="2225,37,1895,39,1480,49,1281,58,1107,71,974,89,928,99,898,110,865,134,835,164,810,197,788,231,755,299,735,353,730,351,750,297,783,229,805,194,831,160,862,130,896,106,926,94,973,83,1106,66,1280,53,1480,44,1895,34,2225,31"/>
+<area shape="rect" id="Node000009" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="1947,533,2210,559"/>
+<area shape="poly" id="edge76_Node000001_Node000009" title=" " alt="" coords="2468,37,2632,53,2720,65,2806,81,2883,102,2946,129,2970,144,2988,161,3000,179,3004,200,3004,379,3001,404,2993,424,2981,439,2965,451,2925,470,2877,488,2824,504,2754,517,2581,534,2393,544,2224,547,2223,542,2392,538,2581,529,2753,511,2822,499,2875,483,2923,465,2963,447,2978,435,2989,421,2996,402,2999,379,2999,200,2995,181,2984,164,2967,148,2943,133,2882,108,2805,87,2720,70,2631,58,2468,43"/>
+<area shape="rect" id="Node000010" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="965,533,1221,559"/>
+<area shape="poly" id="edge77_Node000001_Node000010" title=" " alt="" coords="2225,38,1925,49,1740,63,1550,84,1367,114,1283,132,1205,154,1135,178,1076,206,1028,237,994,271,971,296,961,310,955,328,955,352,962,384,980,428,1010,484,1030,507,1055,525,1052,529,1026,511,1006,487,975,430,957,386,950,352,950,327,956,308,967,293,990,267,1025,233,1073,201,1133,173,1203,149,1281,127,1366,108,1549,78,1740,58,1924,44,2225,32"/>
+<area shape="rect" id="Node000013" href="$EBGeometry__DCEL__Mesh_8hpp.html" title="Declaration of a mesh class which stores a DCEL mesh (with signed distance functions)" alt="" coords="2162,277,2377,302"/>
+<area shape="poly" id="edge16_Node000001_Node000013" title=" " alt="" coords="2341,61,2279,264,2274,263,2336,59"/>
+<area shape="rect" id="Node000019" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="1667,108,1960,133"/>
+<area shape="poly" id="edge34_Node000001_Node000019" title=" " alt="" coords="2226,56,1898,109,1897,103,2225,51"/>
+<area shape="rect" id="Node000031" href="$EBGeometry__Triangle_8hpp.html" title="Declaration of a triangle class with signed distance functionality." alt="" coords="279,277,470,302"/>
+<area shape="poly" id="edge75_Node000001_Node000031" title=" " alt="" coords="2225,39,1861,48,1394,63,966,84,812,97,721,111,625,145,535,189,458,234,403,271,400,266,455,230,532,184,623,140,719,105,811,91,966,79,1394,58,1861,43,2225,34"/>
+<area shape="rect" id="Node000036" title=" " alt="" coords="3039,108,3268,133"/>
+<area shape="poly" id="edge78_Node000001_Node000036" title=" " alt="" coords="2468,44,3032,104,3032,109,2468,50"/>
+<area shape="poly" id="edge5_Node000005_Node000002" title=" " alt="" coords="853,385,1019,395,1295,407,1511,413,1726,422,2003,443,2103,455,2103,460,2002,448,1726,428,1511,419,1295,412,1018,400,853,390"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="436,533,516,559"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="653,393,480,422,408,437,376,447,371,456,370,464,377,484,399,508,427,525,424,530,395,512,372,487,364,465,366,454,373,443,407,432,479,417,652,387"/>
+<area shape="rect" id="Node000007" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="691,453,853,478"/>
+<area shape="poly" id="edge7_Node000005_Node000007" title=" " alt="" coords="734,389,761,439,757,442,729,391"/>
+<area shape="poly" id="edge13_Node000005_Node000009" title=" " alt="" coords="854,384,1210,410,1370,426,1427,435,1461,443,1477,452,1488,463,1498,474,1513,483,1589,502,1697,517,1933,536,1933,541,1697,523,1588,508,1511,488,1494,478,1484,467,1474,457,1459,448,1426,440,1369,431,1209,415,853,389"/>
+<area shape="poly" id="edge14_Node000005_Node000010" title=" " alt="" coords="754,388,807,412,867,443,895,464,924,483,982,508,1038,527,1036,532,980,513,921,488,892,468,864,448,804,417,752,393"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="387,445,615,485"/>
+<area shape="poly" id="edge15_Node000005_Node000012" title=" " alt="" coords="696,393,564,443,563,438,694,388"/>
+<area shape="poly" id="edge9_Node000007_Node000006" title=" " alt="" coords="729,481,530,533,529,528,728,475"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="236,533,292,559"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="714,481,672,488,306,542,305,537,671,483,713,475"/>
+<area shape="poly" id="edge10_Node000007_Node000009" title=" " alt="" coords="854,469,1933,533,1933,539,853,474"/>
+<area shape="poly" id="edge11_Node000007_Node000010" title=" " alt="" coords="819,475,1034,528,1033,533,818,481"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="666,533,878,559"/>
+<area shape="poly" id="edge12_Node000007_Node000011" title=" " alt="" coords="775,478,775,519,769,519,769,478"/>
+<area shape="poly" id="edge17_Node000013_Node000002" title=" " alt="" coords="2200,305,2152,324,2131,340,2114,359,2108,379,2111,400,2120,421,2132,440,2127,443,2115,424,2105,401,2102,378,2110,356,2127,336,2150,320,2198,300"/>
+<area shape="poly" id="edge18_Node000013_Node000003" title=" " alt="" coords="2377,292,2440,299,2510,311,2581,329,2649,355,2699,392,2754,441,2750,445,2696,396,2647,360,2579,334,2509,316,2440,304,2376,297"/>
+<area shape="poly" id="edge20_Node000013_Node000004" title=" " alt="" coords="2377,295,2550,315,2648,332,2743,355,2751,357,2749,362,2742,360,2647,337,2549,321,2376,300"/>
+<area shape="poly" id="edge31_Node000013_Node000009" title=" " alt="" coords="2377,292,2449,298,2529,310,2613,328,2693,355,2723,373,2751,395,2773,407,2793,414,2811,424,2826,444,2834,466,2833,477,2826,487,2796,503,2743,515,2586,532,2399,542,2224,546,2224,541,2399,536,2586,527,2742,509,2794,498,2822,483,2828,475,2829,467,2822,447,2807,428,2791,419,2771,412,2748,400,2720,377,2691,360,2611,334,2529,315,2448,304,2377,297"/>
+<area shape="poly" id="edge32_Node000013_Node000010" title=" " alt="" coords="2162,302,1915,324,1624,360,1391,396,1246,423,1194,436,1164,448,1145,463,1129,483,1106,522,1101,519,1124,480,1141,460,1161,443,1192,431,1245,418,1390,391,1623,355,1915,319,2161,296"/>
+<area shape="rect" id="Node000014" title=" " alt="" coords="1903,453,1990,478"/>
+<area shape="poly" id="edge19_Node000013_Node000014" title=" " alt="" coords="2234,305,2170,328,2100,360,2029,404,1973,446,1970,442,2026,399,2097,355,2168,323,2232,300"/>
+<area shape="rect" id="Node000015" href="$EBGeometry__DCEL_8hpp.html" title="Namespace documentation." alt="" coords="2204,453,2377,478"/>
+<area shape="poly" id="edge21_Node000013_Node000015" title=" " alt="" coords="2211,304,2164,324,2144,340,2127,359,2121,377,2127,396,2143,409,2170,423,2236,446,2234,451,2168,428,2140,414,2123,399,2115,377,2123,356,2140,336,2162,320,2209,300"/>
+<area shape="rect" id="Node000016" href="$EBGeometry__Polygon2D_8hpp.html" title="Declaration of a two&#45;dimensional polygon class for embedding 3D polygon faces." alt="" coords="2426,365,2635,390"/>
+<area shape="poly" id="edge24_Node000013_Node000016" title=" " alt="" coords="2305,300,2483,358,2482,363,2304,305"/>
+<area shape="rect" id="Node000018" title=" " alt="" coords="2137,365,2402,390"/>
+<area shape="poly" id="edge33_Node000013_Node000018" title=" " alt="" coords="2272,302,2272,350,2267,350,2267,302"/>
+<area shape="poly" id="edge22_Node000015_Node000009" title=" " alt="" coords="2261,481,2123,531,2121,526,2259,476"/>
+<area shape="poly" id="edge23_Node000015_Node000010" title=" " alt="" coords="2238,481,2192,488,2048,503,1926,513,1717,521,1509,524,1241,536,1235,536,1235,531,1241,531,1509,519,1717,515,1925,508,2047,498,2192,483,2237,475"/>
+<area shape="poly" id="edge26_Node000016_Node000002" title=" " alt="" coords="2465,393,2316,420,2193,448,2186,450,2184,445,2191,443,2315,415,2464,387"/>
+<area shape="poly" id="edge25_Node000016_Node000003" title=" " alt="" coords="2564,388,2729,446,2727,451,2562,393"/>
+<area shape="poly" id="edge27_Node000016_Node000007" title=" " alt="" coords="2469,393,2415,400,2081,427,1821,436,1561,439,1227,448,867,463,867,457,1226,443,1561,434,1821,430,2081,421,2414,395,2468,387"/>
+<area shape="poly" id="edge28_Node000016_Node000009" title=" " alt="" coords="2570,388,2614,404,2656,427,2672,440,2682,455,2683,471,2674,487,2652,499,2613,509,2499,525,2360,536,2224,543,2224,537,2359,531,2499,520,2612,504,2650,494,2670,483,2678,470,2677,456,2668,444,2653,431,2612,409,2568,393"/>
+<area shape="poly" id="edge29_Node000016_Node000010" title=" " alt="" coords="2468,393,2415,400,2303,406,2163,407,1838,403,1672,403,1516,409,1380,423,1322,434,1273,448,1256,456,1245,465,1217,488,1134,530,1131,525,1214,483,1241,461,1253,451,1271,443,1321,429,1379,418,1516,404,1672,398,1839,397,2163,401,2303,401,2414,395,2468,387"/>
+<area shape="rect" id="Node000017" title=" " alt="" coords="2401,453,2660,478"/>
+<area shape="poly" id="edge30_Node000016_Node000017" title=" " alt="" coords="2533,390,2533,438,2528,438,2528,390"/>
+<area shape="poly" id="edge35_Node000019_Node000005" title=" " alt="" coords="1667,136,1492,154,1304,184,1147,221,993,272,867,319,765,362,763,357,865,314,991,267,1145,216,1303,179,1492,149,1666,130"/>
+<area shape="poly" id="edge72_Node000019_Node000009" title=" " alt="" coords="1960,130,2194,154,2328,173,2462,197,2589,227,2701,263,2749,283,2790,306,2823,330,2847,356,2867,390,2875,423,2869,455,2847,487,2816,503,2761,516,2598,533,2404,542,2224,546,2224,541,2404,537,2598,528,2760,510,2814,498,2843,483,2864,453,2869,423,2862,392,2843,359,2819,334,2787,310,2747,288,2699,268,2588,232,2461,202,2327,178,2193,159,1960,135"/>
+<area shape="poly" id="edge73_Node000019_Node000010" title=" " alt="" coords="1822,133,1838,174,1840,199,1832,223,1808,253,1785,277,1760,295,1735,308,1683,324,1627,328,1506,330,1439,338,1368,360,1349,369,1337,379,1324,389,1305,400,1277,409,1251,413,1205,414,1183,415,1163,420,1142,430,1120,447,1109,463,1101,482,1095,520,1090,519,1096,481,1104,461,1117,444,1139,425,1161,415,1183,410,1204,409,1250,408,1275,404,1303,395,1321,385,1333,375,1347,365,1366,355,1438,333,1506,325,1627,323,1682,318,1733,304,1757,291,1781,273,1804,249,1827,220,1834,199,1833,175,1817,135"/>
+<area shape="poly" id="edge48_Node000019_Node000013" title=" " alt="" coords="1845,131,2226,269,2224,274,1844,136"/>
+<area shape="rect" id="Node000020" href="$EBGeometry__SignedDistanceFunction_8hpp.html" title="Abstract base class for representing a signed distance function." alt="" coords="1315,181,1527,221"/>
+<area shape="poly" id="edge36_Node000019_Node000020" title=" " alt="" coords="1757,136,1529,181,1528,176,1756,131"/>
+<area shape="rect" id="Node000025" href="$EBGeometry__BVH_8hpp.html" title="Declaration of a bounding volume hierarchy (BVH) class." alt="" coords="1635,365,1802,390"/>
+<area shape="poly" id="edge49_Node000019_Node000025" title=" " alt="" coords="1833,132,1856,152,1876,180,1889,216,1896,247,1892,277,1875,311,1860,329,1842,343,1800,363,1798,358,1839,339,1857,325,1871,308,1887,276,1890,247,1884,218,1871,183,1852,156,1829,136"/>
+<area shape="poly" id="edge64_Node000019_Node000031" title=" " alt="" coords="1667,130,1337,147,1142,163,948,184,805,205,663,230,439,276,438,271,662,225,804,200,948,179,1142,158,1337,142,1666,124"/>
+<area shape="rect" id="Node000035" title=" " alt="" coords="1551,181,1817,221"/>
+<area shape="poly" id="edge74_Node000019_Node000035" title=" " alt="" coords="1795,136,1728,177,1725,172,1793,131"/>
+<area shape="poly" id="edge37_Node000020_Node000003" title=" " alt="" coords="1528,217,1540,219,1788,231,2201,251,2416,267,2605,289,2684,302,2749,318,2797,335,2826,356,2832,367,2834,379,2829,402,2815,425,2798,445,2794,441,2811,422,2824,400,2829,378,2827,368,2822,359,2795,340,2748,323,2683,307,2605,294,2415,272,2201,256,1788,236,1540,224,1527,223"/>
+<area shape="poly" id="edge45_Node000020_Node000009" title=" " alt="" coords="1491,219,1671,274,1778,312,1884,355,1966,394,2010,419,2041,444,2063,481,2076,519,2071,520,2058,483,2037,447,2007,423,1963,399,1881,360,1776,317,1669,279,1490,224"/>
+<area shape="poly" id="edge46_Node000020_Node000010" title=" " alt="" coords="1495,219,1538,235,1574,255,1586,267,1593,281,1593,296,1585,311,1555,338,1524,352,1493,356,1461,353,1393,346,1355,348,1316,360,1299,369,1287,379,1276,389,1258,400,1230,409,1204,413,1157,412,1135,413,1115,417,1096,428,1077,447,1069,464,1069,483,1082,520,1077,522,1064,483,1064,463,1072,444,1092,424,1113,412,1134,408,1156,407,1204,408,1229,404,1256,395,1272,385,1284,375,1296,365,1314,355,1354,343,1393,341,1462,348,1493,350,1523,347,1552,334,1580,308,1588,294,1588,282,1582,271,1571,260,1536,240,1494,224"/>
+<area shape="rect" id="Node000021" title=" " alt="" coords="1271,277,1334,302"/>
+<area shape="poly" id="edge38_Node000020_Node000021" title=" " alt="" coords="1396,224,1331,271,1328,266,1393,219"/>
+<area shape="rect" id="Node000022" href="$EBGeometry__ImplicitFunction_8hpp.html" title="Abstract base class for representing an implicit function." alt="" coords="1004,277,1247,302"/>
+<area shape="poly" id="edge39_Node000020_Node000022" title=" " alt="" coords="1357,224,1179,275,1177,270,1355,219"/>
+<area shape="rect" id="Node000024" title=" " alt="" coords="1358,269,1570,309"/>
+<area shape="poly" id="edge47_Node000020_Node000024" title=" " alt="" coords="1433,220,1451,256,1446,258,1428,223"/>
+<area shape="poly" id="edge41_Node000022_Node000005" title=" " alt="" coords="1072,305,792,364,791,359,1071,299"/>
+<area shape="poly" id="edge40_Node000022_Node000007" title=" " alt="" coords="1099,305,974,360,805,448,803,444,972,355,1096,300"/>
+<area shape="poly" id="edge42_Node000022_Node000009" title=" " alt="" coords="1202,299,1260,307,1345,314,1417,317,1540,317,1599,319,1662,324,1733,335,1815,355,1913,393,1966,419,2004,443,2041,481,2067,520,2063,523,2037,485,2001,447,1963,423,1911,397,1814,360,1732,341,1661,329,1599,324,1540,322,1417,322,1344,319,1260,312,1202,305"/>
+<area shape="poly" id="edge43_Node000022_Node000010" title=" " alt="" coords="1091,305,1052,326,1035,340,1021,358,1016,381,1015,417,1018,455,1026,484,1042,506,1063,523,1059,528,1038,510,1021,486,1013,456,1009,418,1010,381,1016,356,1031,337,1049,321,1089,300"/>
+<area shape="rect" id="Node000023" title=" " alt="" coords="1030,357,1245,397"/>
+<area shape="poly" id="edge44_Node000022_Node000023" title=" " alt="" coords="1129,302,1135,343,1130,344,1124,303"/>
+<area shape="poly" id="edge51_Node000025_Node000002" title=" " alt="" coords="1776,387,2104,453,2103,458,1775,393"/>
+<area shape="poly" id="edge50_Node000025_Node000003" title=" " alt="" coords="1802,381,2249,408,2494,426,2672,443,2721,451,2721,456,2672,448,2493,431,2249,413,1802,386"/>
+<area shape="poly" id="edge55_Node000025_Node000007" title=" " alt="" coords="1635,389,867,458,867,453,1635,384"/>
+<area shape="poly" id="edge52_Node000025_Node000008" title=" " alt="" coords="1635,385,1084,415,813,433,723,441,679,448,664,456,654,467,644,478,628,488,564,506,476,522,306,543,305,538,475,516,563,501,625,483,640,474,650,463,661,452,678,443,722,436,813,427,1084,409,1635,380"/>
+<area shape="poly" id="edge61_Node000025_Node000009" title=" " alt="" coords="1743,388,1841,443,1867,464,1893,483,1954,509,2014,527,2012,532,1952,514,1891,488,1864,468,1838,448,1741,393"/>
+<area shape="poly" id="edge62_Node000025_Node000010" title=" " alt="" coords="1635,388,1413,410,1304,427,1228,448,1177,481,1119,526,1116,522,1174,476,1225,443,1303,422,1412,405,1635,382"/>
+<area shape="poly" id="edge53_Node000025_Node000014" title=" " alt="" coords="1750,388,1904,445,1902,450,1748,393"/>
+<area shape="rect" id="Node000026" title=" " alt="" coords="1523,453,1586,478"/>
+<area shape="poly" id="edge54_Node000025_Node000026" title=" " alt="" coords="1698,393,1590,449,1588,444,1695,388"/>
+<area shape="rect" id="Node000027" href="$EBGeometry__SFC_8hpp.html" title="Declaration of various space&#45;filling curves." alt="" coords="1283,453,1447,478"/>
+<area shape="poly" id="edge56_Node000025_Node000027" title=" " alt="" coords="1672,393,1426,452,1425,447,1671,387"/>
+<area shape="rect" id="Node000030" title=" " alt="" coords="1610,453,1827,478"/>
+<area shape="poly" id="edge63_Node000025_Node000030" title=" " alt="" coords="1721,390,1721,438,1716,438,1716,390"/>
+<area shape="poly" id="edge58_Node000027_Node000009" title=" " alt="" coords="1423,475,1467,483,1713,512,1934,531,1933,537,1713,517,1466,488,1422,481"/>
+<area shape="poly" id="edge59_Node000027_Node000010" title=" " alt="" coords="1326,481,1147,532,1145,527,1325,475"/>
+<area shape="rect" id="Node000028" title=" " alt="" coords="1492,533,1559,559"/>
+<area shape="poly" id="edge57_Node000027_Node000028" title=" " alt="" coords="1390,476,1491,525,1488,530,1387,480"/>
+<area shape="rect" id="Node000029" title=" " alt="" coords="1253,533,1467,559"/>
+<area shape="poly" id="edge60_Node000027_Node000029" title=" " alt="" coords="1367,478,1364,520,1359,519,1362,478"/>
+<area shape="poly" id="edge66_Node000031_Node000007" title=" " alt="" coords="363,304,343,323,325,347,316,373,317,385,323,395,361,404,452,418,677,449,676,454,452,423,360,409,320,399,312,386,311,372,320,345,339,320,359,300"/>
+<area shape="poly" id="edge65_Node000031_Node000008" title=" " alt="" coords="279,300,209,308,138,320,78,337,56,347,40,359,18,390,9,420,13,451,31,484,43,494,62,503,113,519,223,538,222,543,111,524,60,508,40,498,27,487,8,453,4,420,14,388,37,355,53,343,76,332,137,315,208,303,279,295"/>
+<area shape="rect" id="Node000032" href="$EBGeometry__Triangle2D_8hpp.html" title="Declaration of a class that encapsulates the projection of a 3D triangle into a 2D plane." alt="" coords="51,365,259,390"/>
+<area shape="poly" id="edge67_Node000031_Node000032" title=" " alt="" coords="346,305,198,362,196,357,344,300"/>
+<area shape="rect" id="Node000034" title=" " alt="" coords="333,365,573,390"/>
+<area shape="poly" id="edge71_Node000031_Node000034" title=" " alt="" coords="387,300,435,352,431,356,383,304"/>
+<area shape="poly" id="edge69_Node000032_Node000007" title=" " alt="" coords="228,387,278,395,677,449,676,454,277,400,227,393"/>
+<area shape="poly" id="edge68_Node000032_Node000008" title=" " alt="" coords="117,392,76,413,58,428,44,447,36,466,43,484,54,493,72,502,119,518,223,537,222,542,117,523,69,507,51,498,39,487,31,466,39,444,54,424,73,409,115,388"/>
+<area shape="rect" id="Node000033" title=" " alt="" coords="53,453,312,478"/>
+<area shape="poly" id="edge70_Node000032_Node000033" title=" " alt="" coords="161,389,177,438,172,440,156,391"/>
 </map>

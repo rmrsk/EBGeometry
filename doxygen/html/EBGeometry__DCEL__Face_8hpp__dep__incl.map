@@ -1,6 +1,13 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_DCEL_Face.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_DCEL_Face.hpp">
-<area shape="rect" id="node1" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations." alt="" coords="27,5,270,61"/>
-<area shape="rect" id="node2" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="33,213,264,255"/>
-<area shape="rect" id="node3" href="$EBGeometry__DCEL__Edge_8hpp.html" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations." alt="" coords="27,109,270,165"/>
-<area shape="rect" id="node4" href="$EBGeometry__DCEL__Vertex_8hpp.html" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations." alt="" coords="294,109,536,165"/>
+<area shape="rect" id="Node000001" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations." alt="" coords="27,5,269,60"/>
+<area shape="rect" id="Node000002" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="33,211,263,251"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="59,69,35,87,17,109,10,123,8,135,10,148,17,161,29,176,44,189,78,208,76,213,41,194,25,180,13,164,5,149,3,135,5,122,13,107,32,83,56,65"/>
+<area shape="rect" id="Node000003" href="$EBGeometry__DCEL__Edge_8hpp.html" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations." alt="" coords="27,108,269,163"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="142,74,143,108,137,108,137,74"/>
+<area shape="rect" id="Node000004" href="$EBGeometry__DCEL__Vertex_8hpp.html" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations." alt="" coords="293,108,536,163"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="223,62,338,105,336,110,221,67"/>
+<area shape="poly" id="edge4_Node000003_Node000001" title=" " alt="" coords="154,95,153,60,159,60,160,94"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="151,176,151,211,145,211,145,176"/>
+<area shape="poly" id="edge7_Node000004_Node000001" title=" " alt="" coords="340,105,225,63,226,58,341,100"/>
+<area shape="poly" id="edge6_Node000004_Node000002" title=" " alt="" coords="328,170,203,213,201,208,326,165"/>
 </map>

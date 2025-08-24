@@ -1,18 +1,35 @@
 <map id="SignedDistanceFunction&lt; T &gt;" name="SignedDistanceFunction&lt; T &gt;">
-<area shape="rect" id="node1" title="Abstract representation of a signed distance function." alt="" coords="217,365,433,392"/>
-<area shape="rect" id="node3" href="$classBoxSDF.html" title="Signed distance field for an axis&#45;aligned box." alt="" coords="519,5,629,32"/>
-<area shape="rect" id="node4" href="$classCapsuleSDF.html" title="Capsulate/pill SDF. Basically a cylinder with spherical endcaps, oriented along the specified axis." alt="" coords="505,56,643,83"/>
-<area shape="rect" id="node5" href="$classConeSDF.html" title="Signed distance field for an finite cone. Oriented along +z." alt="" coords="515,107,633,133"/>
-<area shape="rect" id="node6" href="$classCylinderSDF.html" title="Signed distance field for a cylinder." alt="" coords="504,157,644,184"/>
-<area shape="rect" id="node7" href="$classFastCompactMeshSDF.html" title="Signed distance function for a DCEL mesh. This class uses the compact BVH representation." alt="" coords="491,209,657,250"/>
-<area shape="rect" id="node8" href="$classFastMeshSDF.html" title="Signed distance function for a DCEL mesh. This class uses the full BVH representation." alt="" coords="485,274,663,315"/>
-<area shape="rect" id="node9" href="$classInfiniteConeSDF.html" title="Signed distance field for an infinite cone. Oriented along +z." alt="" coords="492,340,656,367"/>
-<area shape="rect" id="node10" href="$classInfiniteCylinderSDF.html" title="Inifinitely long cylinder class. Oriented along the y&#45;axis." alt="" coords="481,391,667,417"/>
-<area shape="rect" id="node11" href="$classMeshSDF.html" title="Signed distance function for a DCEL mesh. Does not use BVHs." alt="" coords="493,441,655,468"/>
-<area shape="rect" id="node12" href="$classPerlinSDF.html" title="Ken Perlins gradient noise function." alt="" coords="513,492,635,519"/>
-<area shape="rect" id="node13" href="$classPlaneSDF.html" title="Signed distance function for a plane." alt="" coords="513,543,635,569"/>
-<area shape="rect" id="node14" href="$classRoundedBoxSDF.html" title="Box of arbitrary dimensions centered at the origin, with rounded corners." alt="" coords="490,593,658,620"/>
-<area shape="rect" id="node15" href="$classSphereSDF.html" title="Signed distance field for sphere." alt="" coords="509,644,639,671"/>
-<area shape="rect" id="node16" href="$classTorusSDF.html" title="Signed distance field for a torus." alt="" coords="514,695,634,721"/>
-<area shape="rect" id="node2" href="$classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="5,365,169,392"/>
+<area shape="rect" id="Node000001" title="Abstract representation of a signed distance function." alt="" coords="217,396,433,421"/>
+<area shape="rect" id="Node000003" href="$classBoxSDF.html" title="Signed distance field for an axis&#45;aligned box." alt="" coords="519,5,629,31"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="327,382,340,313,366,221,386,172,411,124,442,79,480,40,498,28,518,21,519,26,500,33,483,44,446,82,416,126,391,174,371,223,345,314,332,383"/>
+<area shape="rect" id="Node000004" href="$classCapsuleSDF.html" title="Capsulate/pill SDF. Basically a cylinder with spherical endcaps, oriented along the specified axis." alt="" coords="505,55,643,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="329,382,345,321,373,242,393,200,417,160,446,122,480,89,503,76,506,80,483,93,450,126,422,163,398,203,378,244,350,323,334,383"/>
+<area shape="rect" id="Node000005" href="$classConeSDF.html" title="Signed distance field for an finite cone. Oriented along +z." alt="" coords="515,104,633,129"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="332,382,350,330,380,264,423,196,450,165,480,138,513,122,516,127,483,143,453,169,427,200,385,267,355,332,337,384"/>
+<area shape="rect" id="Node000006" href="$classCylinderSDF.html" title="Signed distance field for a cylinder." alt="" coords="504,153,644,179"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="335,382,357,340,388,288,429,234,480,189,505,176,507,181,483,194,433,238,393,291,361,342,340,384"/>
+<area shape="rect" id="Node000007" href="$classFastCompactMeshSDF.html" title="Signed distance function for a DCEL mesh. This class uses the compact BVH representation." alt="" coords="491,203,657,243"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="343,383,400,319,438,284,480,253,503,241,505,246,483,258,441,288,403,323,347,387"/>
+<area shape="rect" id="Node000008" href="$classFastMeshSDF.html" title="Signed distance function for a DCEL mesh. This class uses the full BVH representation." alt="" coords="485,267,663,307"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="356,386,413,352,480,317,509,305,511,310,482,322,416,357,359,391"/>
+<area shape="rect" id="Node000009" href="$classFastTriMeshSDF.html" title="Signed distance function for a triangle mesh. This class uses the full BVH representation." alt="" coords="499,331,649,371"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="394,390,498,366,499,371,395,395"/>
+<area shape="rect" id="Node000010" href="$classInfiniteConeSDF.html" title="Signed distance field for an infinite cone. Oriented along +z." alt="" coords="492,396,656,421"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="447,406,492,406,492,411,447,411"/>
+<area shape="rect" id="Node000011" href="$classInfiniteCylinderSDF.html" title="Inifinitely long cylinder class. Oriented along the y&#45;axis." alt="" coords="481,445,667,471"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="404,421,510,443,509,448,403,427"/>
+<area shape="rect" id="Node000012" href="$classMeshSDF.html" title="Signed distance function for a DCEL mesh. Does not use BVHs." alt="" coords="493,495,655,520"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="363,425,418,453,482,481,518,492,516,497,480,486,416,458,360,430"/>
+<area shape="rect" id="Node000013" href="$classPerlinSDF.html" title="Ken Perlins gradient noise function." alt="" coords="513,544,635,569"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="350,429,407,480,444,507,482,530,513,542,511,547,480,535,441,512,404,485,347,433"/>
+<area shape="rect" id="Node000014" href="$classPlaneSDF.html" title="Signed distance function for a plane." alt="" coords="513,593,635,619"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="344,431,367,465,399,505,438,546,483,580,514,593,512,598,480,584,434,550,395,509,362,468,339,434"/>
+<area shape="rect" id="Node000015" href="$classRoundedBoxSDF.html" title="Box of arbitrary dimensions centered at the origin, with rounded corners." alt="" coords="490,643,658,668"/>
+<area shape="poly" id="edge14_Node000001_Node000015" title=" " alt="" coords="340,433,360,476,392,530,433,584,457,608,483,629,504,640,502,645,480,634,453,612,429,587,387,532,356,479,335,435"/>
+<area shape="rect" id="Node000016" href="$classSphereSDF.html" title="Signed distance field for sphere." alt="" coords="509,692,639,717"/>
+<area shape="poly" id="edge15_Node000001_Node000016" title=" " alt="" coords="337,434,355,486,384,553,427,621,453,652,483,678,509,692,507,697,480,683,449,655,423,624,380,555,350,488,332,436"/>
+<area shape="rect" id="Node000017" href="$classTorusSDF.html" title="Signed distance field for a torus." alt="" coords="514,741,634,767"/>
+<area shape="poly" id="edge16_Node000001_Node000017" title=" " alt="" coords="334,434,349,495,377,574,397,616,421,657,450,695,483,728,515,744,512,749,480,732,446,699,417,660,392,619,372,576,344,496,329,435"/>
+<area shape="rect" id="Node000002" href="$classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="5,396,169,421"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="183,406,217,406,217,411,183,411"/>
 </map>

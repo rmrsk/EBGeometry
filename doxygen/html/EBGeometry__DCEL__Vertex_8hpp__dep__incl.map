@@ -1,6 +1,13 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_DCEL_Vertex.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_DCEL_Vertex.hpp">
-<area shape="rect" id="node1" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations." alt="" coords="133,5,375,61"/>
-<area shape="rect" id="node2" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="5,317,236,359"/>
-<area shape="rect" id="node3" href="$EBGeometry__DCEL__Face_8hpp.html" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations." alt="" coords="133,109,375,165"/>
-<area shape="rect" id="node4" href="$EBGeometry__DCEL__Edge_8hpp.html" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations." alt="" coords="158,213,401,269"/>
+<area shape="rect" id="Node000001" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations." alt="" coords="133,5,375,60"/>
+<area shape="rect" id="Node000002" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="5,313,236,353"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="166,69,142,87,123,109,111,135,104,163,101,220,108,272,117,312,112,314,102,273,96,220,99,162,106,133,118,107,138,83,162,65"/>
+<area shape="rect" id="Node000003" href="$EBGeometry__DCEL__Face_8hpp.html" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations." alt="" coords="133,108,375,163"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="248,74,249,108,243,108,243,74"/>
+<area shape="poly" id="edge7_Node000003_Node000001" title=" " alt="" coords="260,95,259,60,265,60,265,94"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="190,172,167,190,148,212,136,237,128,265,123,313,118,313,123,264,131,235,144,209,163,187,186,168"/>
+<area shape="rect" id="Node000004" href="$EBGeometry__DCEL__Edge_8hpp.html" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations." alt="" coords="158,211,401,265"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="258,176,267,210,262,211,253,177"/>
+<area shape="poly" id="edge5_Node000004_Node000002" title=" " alt="" coords="224,275,154,315,152,311,221,270"/>
+<area shape="poly" id="edge6_Node000004_Node000003" title=" " alt="" coords="276,198,266,164,271,162,281,196"/>
 </map>

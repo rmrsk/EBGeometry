@@ -1,0 +1,71 @@
+\doxysection{EBGeometry\+\_\+\+SFC.\+hpp}
+\hypertarget{EBGeometry__SFC_8hpp_source}{}\label{EBGeometry__SFC_8hpp_source}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_SFC.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_SFC.hpp}}
+\mbox{\hyperlink{EBGeometry__SFC_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*\ EBGeometry}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ Copyright\ ©\ 2024\ Robert\ Marskar}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ Please\ refer\ to\ Copyright.txt\ and\ LICENSE\ in\ the\ EBGeometry\ root\ directory.}}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#ifndef\ EBGeometry\_SFC}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#define\ EBGeometry\_SFC}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ Std\ includes}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ Our\ includes}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceHeader_8hpp}{EBGeometry\_NamespaceHeader.hpp}}"{}}}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{keyword}{namespace\ }SFC\ \{}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00026\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Code}}\ =\ \mbox{\hyperlink{classVec3T}{uint64\_t}};}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00031\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{EBGeometry__SFC_8hpp_afa50aff77363cab5737ed5d9a1d11483}{Index}}\ =\ std::array<unsigned\ int,\ 3>;}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00036\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ ValidBits\ =\ 21;}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00041\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classVec3T}{Code}}\ ValidSpan\ =\ (\textcolor{keyword}{static\_cast<}\mbox{\hyperlink{classVec3T}{uint64\_t}}\textcolor{keyword}{>}(1)\ <<\ ValidBits)\ -\/\ 1;}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#if\ \_\_cplusplus\ >=\ 202002L}}
+\DoxyCodeLine{00047\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ S>}
+\DoxyCodeLine{00048\ \ \ \textcolor{keyword}{concept\ }\mbox{\hyperlink{classVec3T}{Encodable}}\ =\ \textcolor{keyword}{requires}(\textcolor{keyword}{const}\ \mbox{\hyperlink{EBGeometry__SFC_8hpp_afa50aff77363cab5737ed5d9a1d11483}{Index}}\&\ \mbox{\hyperlink{classVec3T}{point}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{SFC::Code}}\ \mbox{\hyperlink{classVec3T}{code}})\ \{}
+\DoxyCodeLine{00049\ \ \ \ \ \{\ S::encode(\mbox{\hyperlink{classVec3T}{point}})\ \}\ -\/>\ std::same\_as<SFC::Code>;}
+\DoxyCodeLine{00050\ \ \ \ \ \{\ S::decode(\mbox{\hyperlink{classVec3T}{code}})\ \}\ -\/>\ std::same\_as<Index>;}
+\DoxyCodeLine{00051\ \ \ \};}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00057\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structSFC_1_1Morton}{Morton}}}
+\DoxyCodeLine{00058\ \ \ \{}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{classVec3T}{uint64\_t}}}
+\DoxyCodeLine{00064\ \ \ \ \ \mbox{\hyperlink{structSFC_1_1Morton_ae4bb2ac28769bc7e4f434a4e6663b48d}{encode}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{EBGeometry__SFC_8hpp_afa50aff77363cab5737ed5d9a1d11483}{Index}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00070\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{EBGeometry__SFC_8hpp_afa50aff77363cab5737ed5d9a1d11483}{Index}}}
+\DoxyCodeLine{00071\ \ \ \ \ \mbox{\hyperlink{structSFC_1_1Morton_a5e8fb26d87cc37e6a8430aed9b352364}{decode}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{uint64\_t}}\&\ \mbox{\hyperlink{classVec3T}{a\_code}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00073\ \ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00077\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classVec3T}{uint\_fast64\_t}}\ \mbox{\hyperlink{structSFC_1_1Morton_ad6c2fe2c2940e91d5cf3a851862fb645}{Mask\_64}}[6]\{}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ 0x1fffff,\ 0x1f00000000ffff,\ 0x1f0000ff0000ff,\ 0x100f00f00f00f00f,\ 0x10c30c30c30c30c3,\ 0x1249249249249249\};}
+\DoxyCodeLine{00079\ \ \ \};}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00085\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structSFC_1_1Nested}{Nested}}}
+\DoxyCodeLine{00086\ \ \ \{}
+\DoxyCodeLine{00091\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{classVec3T}{uint64\_t}}}
+\DoxyCodeLine{00092\ \ \ \ \ \mbox{\hyperlink{structSFC_1_1Nested_aeef8c2f5e30873209c33a7ca5d072a38}{encode}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{EBGeometry__SFC_8hpp_afa50aff77363cab5737ed5d9a1d11483}{Index}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00098\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{EBGeometry__SFC_8hpp_afa50aff77363cab5737ed5d9a1d11483}{Index}}}
+\DoxyCodeLine{00099\ \ \ \ \ \mbox{\hyperlink{structSFC_1_1Nested_a26aab46c288a303123b9ccf6a6e83843}{decode}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{uint64\_t}}\&\ \mbox{\hyperlink{classVec3T}{a\_code}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00100\ \ \ \};}
+\DoxyCodeLine{00101\ \}\ \textcolor{comment}{//\ namespace\ SFC}}
+\DoxyCodeLine{00102\ }
+\DoxyCodeLine{00103\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceFooter_8hpp}{EBGeometry\_NamespaceFooter.hpp}}"{}}}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \textcolor{preprocessor}{\#if\ \_\_cplusplus\ >=\ 202002L}}
+\DoxyCodeLine{00106\ \textcolor{keyword}{static\_assert}(EBGeometry::SFC::Encodable<EBGeometry::SFC::Morton>);}
+\DoxyCodeLine{00107\ \textcolor{keyword}{static\_assert}(EBGeometry::SFC::Encodable<EBGeometry::SFC::Nested>);}
+\DoxyCodeLine{00108\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_SFCImplem.hpp"{}}}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

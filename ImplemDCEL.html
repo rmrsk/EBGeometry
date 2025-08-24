@@ -55,6 +55,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html">Geometry representations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html#dcel">DCEL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Concepts.html#triangles">Triangles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html#bounding-volume-hierarchies">Bounding volume hierarchies</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html#octree">Octree</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Concepts.html#constructive-solid-geometry">Constructive solid geometry</a></li>
@@ -126,8 +127,8 @@
 <li><p><strong>Vertices</strong> are implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::DCEL::EdgeT</span></code></p></li>
 </ul>
 <blockquote>
-<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="o">&gt;</span><span class="w"></span>
-<span class="k">class</span><span class="w"> </span><span class="nc">VertexT</span><span class="w"></span>
+<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="o">&gt;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VertexT</span>
 </pre></div>
 </div>
 <p>The DCEL vertex class stores the vertex position, normal vector, and the outgoing half-edge from the vertex.
@@ -138,8 +139,8 @@ Note that the class has member functions for computing the vertex pseudonormal, 
 <li><p><strong>Edges</strong> are implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::DCEL::EdgeT</span></code></p></li>
 </ul>
 <blockquote>
-<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="o">&gt;</span><span class="w"></span>
-<span class="k">class</span><span class="w"> </span><span class="nc">EdgeT</span><span class="w"></span>
+<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="o">&gt;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">EdgeT</span>
 </pre></div>
 </div>
 <p>The half-edges store a reference to their face, as well as pointers to the next edge, pair edge, and starting vertex.</p>
@@ -149,8 +150,8 @@ Note that the class has member functions for computing the vertex pseudonormal, 
 <li><p><strong>Faces</strong> are implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::DCEL::FaceT</span></code></p></li>
 </ul>
 <blockquote>
-<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="o">&gt;</span><span class="w"></span>
-<span class="k">class</span><span class="w"> </span><span class="nc">FaceT</span><span class="w"></span>
+<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="o">&gt;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">FaceT</span>
 </pre></div>
 </div>
 <p>Faces also store</p>
@@ -167,16 +168,16 @@ The centroid position exists only because BVH partitioners will use it for parti
 <li><p><strong>Mesh</strong> is implemented as a template <code class="docutils literal notranslate"><span class="pre">EBGeometry::DCEL::MeshT</span></code></p></li>
 </ul>
 <blockquote>
-<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="o">&gt;</span><span class="w"></span>
-<span class="k">class</span><span class="w"> </span><span class="nc">MeshT</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"></span>
+<div><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="o">&gt;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MeshT</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">SignedDistanceFunction</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <p>The mesh stores all the vertices, half-edges, and faces, and if it is watertight and orientable it is also a signed distance function.
 Typically, the mesh is not created by the user but automatically created when reading the mesh from an input file.</p>
 </div></blockquote>
 <p>The above DCEL classes have member functions of the type:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">T</span><span class="w"> </span><span class="nf">signedDistance</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
-<span class="n">T</span><span class="w"> </span><span class="nf">unsignedDistance2</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"></span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">T</span><span class="w"> </span><span class="nf">signedDistance</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span>
+<span class="n">T</span><span class="w"> </span><span class="nf">unsignedDistance2</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">a_point</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span>
 </pre></div>
 </div>
 <p>which can be used to compute the distance to the various features on the mesh.</p>

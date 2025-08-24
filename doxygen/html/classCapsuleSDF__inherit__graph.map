@@ -1,5 +1,7 @@
 <map id="CapsuleSDF&lt; T &gt;" name="CapsuleSDF&lt; T &gt;">
-<area shape="rect" id="node1" title="Capsulate/pill SDF. Basically a cylinder with spherical endcaps, oriented along the specified axis." alt="" coords="44,155,183,181"/>
-<area shape="rect" id="node2" href="$classSignedDistanceFunction.html" title="Abstract representation of a signed distance function." alt="" coords="5,80,221,107"/>
-<area shape="rect" id="node3" href="$classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="31,5,195,32"/>
+<area shape="rect" id="Node000001" title="Capsulate/pill SDF. Basically a cylinder with spherical endcaps, oriented along the specified axis." alt="" coords="44,152,183,177"/>
+<area shape="rect" id="Node000002" href="$classSignedDistanceFunction.html" title="Abstract representation of a signed distance function." alt="" coords="5,79,221,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="116,118,116,152,111,152,111,118"/>
+<area shape="rect" id="Node000003" href="$classImplicitFunction.html" title="Abstract representation of an implicit function function (not necessarily signed distance)." alt="" coords="31,5,195,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="116,44,116,79,111,79,111,44"/>
 </map>

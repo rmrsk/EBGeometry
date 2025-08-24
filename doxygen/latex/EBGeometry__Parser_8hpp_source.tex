@@ -1,0 +1,208 @@
+\doxysection{EBGeometry\+\_\+\+Parser.\+hpp}
+\hypertarget{EBGeometry__Parser_8hpp_source}{}\label{EBGeometry__Parser_8hpp_source}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Parser.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Parser.hpp}}
+\mbox{\hyperlink{EBGeometry__Parser_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*\ EBGeometry}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ Copyright\ ©\ 2022\ Robert\ Marskar}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ Please\ refer\ to\ Copyright.txt\ and\ LICENSE\ in\ the\ EBGeometry\ root\ directory.}}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#ifndef\ EBGeometry\_Parser}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#define\ EBGeometry\_Parser}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ Std\ includes}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <map>}}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ Our\ includes}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__BoundingVolumes_8hpp}{EBGeometry\_BoundingVolumes.hpp}}"{}}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__DCEL__Mesh_8hpp}{EBGeometry\_DCEL\_Mesh.hpp}}"{}}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__MeshDistanceFunctions_8hpp}{EBGeometry\_MeshDistanceFunctions.hpp}}"{}}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__Triangle_8hpp}{EBGeometry\_Triangle.hpp}}"{}}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceHeader_8hpp}{EBGeometry\_NamespaceHeader.hpp}}"{}}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00032\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceParser}{Parser}}\ \{}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00037\ \ \ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{namespaceParser_a4335203a05b102e71ece262ddb2a38a0}{Encoding}}}
+\DoxyCodeLine{00038\ \ \ \{}
+\DoxyCodeLine{00039\ \ \ \ \ ASCII,}
+\DoxyCodeLine{00040\ \ \ \ \ Binary,}
+\DoxyCodeLine{00041\ \ \ \ \ Unknown}
+\DoxyCodeLine{00042\ \ \ \};}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00047\ \ \ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{namespaceParser_a8fc8b809825e25aef6d1cc003b88b60f}{FileType}}}
+\DoxyCodeLine{00048\ \ \ \{}
+\DoxyCodeLine{00049\ \ \ \ \ \mbox{\hyperlink{classParser_1_1STL}{STL}},}
+\DoxyCodeLine{00050\ \ \ \ \ \mbox{\hyperlink{classParser_1_1PLY}{PLY}},}
+\DoxyCodeLine{00051\ \ \ \ \ Unsupported}
+\DoxyCodeLine{00052\ \ \ \};}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00058\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ Meta\ =\ DCEL::DefaultMetaData>}
+\DoxyCodeLine{00059\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::shared\_ptr<EBGeometry::DCEL::MeshT<T,\ Meta>>}
+\DoxyCodeLine{00060\ \ \ readIntoDCEL(\textcolor{keyword}{const}\ std::string\ \mbox{\hyperlink{classVec3T}{a\_filename}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00066\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ Meta\ =\ DCEL::DefaultMetaData>}
+\DoxyCodeLine{00067\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::vector<std::shared\_ptr<EBGeometry::DCEL::MeshT<T,\ Meta>>>}
+\DoxyCodeLine{00068\ \ \ readIntoDCEL(\textcolor{keyword}{const}\ std::vector<std::string>\ \mbox{\hyperlink{classVec3T}{a\_files}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00069\ }
+\DoxyCodeLine{00074\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ Meta\ =\ DCEL::DefaultMetaData>}
+\DoxyCodeLine{00075\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::shared\_ptr<MeshSDF<T,\ Meta>>}
+\DoxyCodeLine{00076\ \ \ readIntoMesh(\textcolor{keyword}{const}\ std::string\ \mbox{\hyperlink{classVec3T}{a\_filename}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00077\ }
+\DoxyCodeLine{00082\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ Meta\ =\ DCEL::DefaultMetaData>}
+\DoxyCodeLine{00083\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::vector<std::shared\_ptr<MeshSDF<T,\ Meta>>>}
+\DoxyCodeLine{00084\ \ \ readIntoMesh(\textcolor{keyword}{const}\ std::vector<std::string>\ \mbox{\hyperlink{classVec3T}{a\_files}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00090\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ \mbox{\hyperlink{classVec3T}{T}},}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classVec3T}{Meta}}\ =\ \mbox{\hyperlink{namespaceDCEL_ad8f2940fada08cf162f8c01adf6d7bd6}{DCEL::DefaultMetaData}},}
+\DoxyCodeLine{00092\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classVec3T}{BV}}\ \ \ =\ EBGeometry::BoundingVolumes::AABBT<T>,}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{K}}\ \ \ \ \ \ =\ 4>}
+\DoxyCodeLine{00094\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::shared\_ptr<FastMeshSDF<T,\ Meta,\ BV,\ K>>}
+\DoxyCodeLine{00095\ \ \ readIntoFullBVH(\textcolor{keyword}{const}\ std::string\ \mbox{\hyperlink{classVec3T}{a\_filename}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00101\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ \mbox{\hyperlink{classVec3T}{T}},}
+\DoxyCodeLine{00102\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classVec3T}{Meta}}\ =\ \mbox{\hyperlink{namespaceDCEL_ad8f2940fada08cf162f8c01adf6d7bd6}{DCEL::DefaultMetaData}},}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classVec3T}{BV}}\ \ \ =\ EBGeometry::BoundingVolumes::AABBT<T>,}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{K}}\ \ \ \ \ \ =\ 4>}
+\DoxyCodeLine{00105\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::vector<std::shared\_ptr<FastMeshSDF<T,\ Meta,\ BV,\ K>>>}
+\DoxyCodeLine{00106\ \ \ readIntoFullBVH(\textcolor{keyword}{const}\ std::vector<std::string>\ \mbox{\hyperlink{classVec3T}{a\_files}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00107\ }
+\DoxyCodeLine{00112\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ \mbox{\hyperlink{classVec3T}{T}},}
+\DoxyCodeLine{00113\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classVec3T}{Meta}}\ =\ \mbox{\hyperlink{namespaceDCEL_ad8f2940fada08cf162f8c01adf6d7bd6}{DCEL::DefaultMetaData}},}
+\DoxyCodeLine{00114\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classVec3T}{BV}}\ \ \ =\ EBGeometry::BoundingVolumes::AABBT<T>,}
+\DoxyCodeLine{00115\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{K}}\ \ \ \ \ \ =\ 4>}
+\DoxyCodeLine{00116\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::shared\_ptr<FastCompactMeshSDF<T,\ Meta,\ BV,\ K>>}
+\DoxyCodeLine{00117\ \ \ readIntoLinearBVH(\textcolor{keyword}{const}\ std::string\ \mbox{\hyperlink{classVec3T}{a\_filename}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00118\ }
+\DoxyCodeLine{00123\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ \mbox{\hyperlink{classVec3T}{T}},}
+\DoxyCodeLine{00124\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classVec3T}{Meta}}\ =\ \mbox{\hyperlink{namespaceDCEL_ad8f2940fada08cf162f8c01adf6d7bd6}{DCEL::DefaultMetaData}},}
+\DoxyCodeLine{00125\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classVec3T}{BV}}\ \ \ =\ EBGeometry::BoundingVolumes::AABBT<T>,}
+\DoxyCodeLine{00126\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{K}}\ \ \ \ \ \ =\ 4>}
+\DoxyCodeLine{00127\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::vector<std::shared\_ptr<FastCompactMeshSDF<T,\ Meta,\ BV,\ K>>>}
+\DoxyCodeLine{00128\ \ \ readIntoLinearBVH(\textcolor{keyword}{const}\ std::vector<std::string>\ \mbox{\hyperlink{classVec3T}{a\_files}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00129\ }
+\DoxyCodeLine{00134\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ Meta,\ \textcolor{keyword}{typename}\ BV\ =\ EBGeometry::BoundingVolumes::AABBT<T>,\ \textcolor{keywordtype}{size\_t}\ K\ =\ 4>}
+\DoxyCodeLine{00135\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::shared\_ptr<FastTriMeshSDF<T,\ Meta,\ BV,\ K>>}
+\DoxyCodeLine{00136\ \ \ readIntoTriangleBVH(\textcolor{keyword}{const}\ std::string\ \mbox{\hyperlink{classVec3T}{a\_filename}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00137\ }
+\DoxyCodeLine{00142\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ \mbox{\hyperlink{classVec3T}{T}},}
+\DoxyCodeLine{00143\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classVec3T}{Meta}}\ =\ \mbox{\hyperlink{namespaceDCEL_ad8f2940fada08cf162f8c01adf6d7bd6}{DCEL::DefaultMetaData}},}
+\DoxyCodeLine{00144\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classVec3T}{BV}}\ \ \ =\ EBGeometry::BoundingVolumes::AABBT<T>,}
+\DoxyCodeLine{00145\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{K}}\ \ \ \ \ \ =\ 4>}
+\DoxyCodeLine{00146\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::vector<std::shared\_ptr<FastMeshSDF<T,\ Meta,\ BV,\ K>>>}
+\DoxyCodeLine{00147\ \ \ readIntoTriangleBVH(\textcolor{keyword}{const}\ std::vector<std::string>\ \mbox{\hyperlink{classVec3T}{a\_files}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00153\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ Meta>}
+\DoxyCodeLine{00154\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::vector<std::shared\_ptr<Triangle<T,\ Meta>>>}
+\DoxyCodeLine{00155\ \ \ readIntoTriangles(\textcolor{keyword}{const}\ std::string\ \mbox{\hyperlink{classVec3T}{a\_filename}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00156\ }
+\DoxyCodeLine{00161\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ Meta>}
+\DoxyCodeLine{00162\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::vector<std::vector<std::shared\_ptr<Triangle<T,\ Meta>>>>}
+\DoxyCodeLine{00163\ \ \ readIntoTriangles(\textcolor{keyword}{const}\ std::vector<std::string>\ \mbox{\hyperlink{classVec3T}{a\_files}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00164\ }
+\DoxyCodeLine{00169\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceParser_a8fc8b809825e25aef6d1cc003b88b60f}{Parser::FileType}}}
+\DoxyCodeLine{00170\ \ \ getFileType(\textcolor{keyword}{const}\ std::string\ \mbox{\hyperlink{classVec3T}{a\_filename}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00171\ }
+\DoxyCodeLine{00177\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00178\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00179\ \ \ containsDegeneratePolygons(\textcolor{keyword}{const}\ std::vector<EBGeometry::Vec3T<T>>\&\ \mbox{\hyperlink{classVec3T}{a\_vertices}},}
+\DoxyCodeLine{00180\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::vector<size\_t>>\&\ \ \mbox{\hyperlink{classVec3T}{a\_facets}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00181\ }
+\DoxyCodeLine{00187\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00188\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00189\ \ \ compress(std::vector<EBGeometry::Vec3T<T>>\&\ \mbox{\hyperlink{classVec3T}{a\_vertices}},\ std::vector<std::vector<size\_t>>\&\ \mbox{\hyperlink{classVec3T}{a\_facets}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00197\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ Meta>}
+\DoxyCodeLine{00198\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00199\ \ \ soupToDCEL(EBGeometry::DCEL::MeshT<T,\ Meta>\&\ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_mesh}},}
+\DoxyCodeLine{00200\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<EBGeometry::Vec3T<T>>\&\ \mbox{\hyperlink{classVec3T}{a\_vertices}},}
+\DoxyCodeLine{00201\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::vector<size\_t>>\&\ \ \mbox{\hyperlink{classVec3T}{a\_facets}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00208\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ Meta>}
+\DoxyCodeLine{00209\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00210\ \ \ reconcilePairEdgesDCEL(std::vector<std::shared\_ptr<EBGeometry::DCEL::EdgeT<T,\ Meta>>>\&\ \mbox{\hyperlink{classVec3T}{a\_edges}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00216\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ Meta>}
+\DoxyCodeLine{00217\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{classParser_1_1STL}{STL}}}
+\DoxyCodeLine{00218\ \ \ \{}
+\DoxyCodeLine{00219\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00223\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classParser_1_1STL_a66896d3c4ecedffd20536d8c8ba6f58e}{Vec3}}\ =\ EBGeometry::Vec3T<T>;}
+\DoxyCodeLine{00224\ }
+\DoxyCodeLine{00228\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classParser_1_1STL_aebf6d50ac5179717a76936484398f4b6}{Vertex}}\ =\ EBGeometry::DCEL::VertexT<T,\ Meta>;}
+\DoxyCodeLine{00229\ }
+\DoxyCodeLine{00233\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classParser_1_1STL_a41785ae3e3568fd380566ad8b202ce9b}{Edge}}\ =\ EBGeometry::DCEL::EdgeT<T,\ Meta>;}
+\DoxyCodeLine{00234\ }
+\DoxyCodeLine{00238\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classParser_1_1STL_a68e2c46d78006f0158c1fa3f3bf9bf7b}{Face}}\ =\ EBGeometry::DCEL::FaceT<T,\ Meta>;}
+\DoxyCodeLine{00239\ }
+\DoxyCodeLine{00243\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classParser_1_1STL_a874b9d76f76aa8a0b32467ed67a00c2d}{Mesh}}\ =\ EBGeometry::DCEL::MeshT<T,\ Meta>;}
+\DoxyCodeLine{00244\ }
+\DoxyCodeLine{00248\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classParser_1_1STL_ac2f0fe849640c492ede85dbea00fb6ed}{EdgeIterator}}\ =\ EBGeometry::DCEL::EdgeIteratorT<T,\ Meta>;}
+\DoxyCodeLine{00249\ }
+\DoxyCodeLine{00255\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::shared\_ptr<Mesh>}
+\DoxyCodeLine{00256\ \ \ \ \ \mbox{\hyperlink{classParser_1_1STL_aa4f1063cc8b8594f044b9197692d72e9}{readSingle}}(\textcolor{keyword}{const}\ std::string\ \mbox{\hyperlink{classVec3T}{a\_filename}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00257\ }
+\DoxyCodeLine{00262\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::vector<std::pair<std::shared\_ptr<Mesh>,\ std::string>>}
+\DoxyCodeLine{00263\ \ \ \ \ \mbox{\hyperlink{classParser_1_1STL_acc14bbc567050b9ad13c18d0f0d19492}{readMulti}}(\textcolor{keyword}{const}\ std::string\ \mbox{\hyperlink{classVec3T}{a\_filename}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00264\ }
+\DoxyCodeLine{00265\ \ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00271\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceParser_a4335203a05b102e71ece262ddb2a38a0}{Encoding}}}
+\DoxyCodeLine{00272\ \ \ \ \ \mbox{\hyperlink{classParser_1_1STL_ad665ff685fcee42e1dd065ffab4e8b0b}{getEncoding}}(\textcolor{keyword}{const}\ std::string\ \mbox{\hyperlink{classVec3T}{a\_filename}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00273\ }
+\DoxyCodeLine{00278\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::vector<std::pair<std::shared\_ptr<Mesh>,\ std::string>>}
+\DoxyCodeLine{00279\ \ \ \ \ \mbox{\hyperlink{classParser_1_1STL_ad75635ec2a651698d4cc692eb582ce9e}{readASCII}}(\textcolor{keyword}{const}\ std::string\ \mbox{\hyperlink{classVec3T}{a\_filename}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00280\ }
+\DoxyCodeLine{00285\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::vector<std::pair<std::shared\_ptr<Mesh>,\ std::string>>}
+\DoxyCodeLine{00286\ \ \ \ \ \mbox{\hyperlink{classParser_1_1STL_a423ecd74c683d3b7f2af96457879ab60}{readBinary}}(\textcolor{keyword}{const}\ std::string\ \mbox{\hyperlink{classVec3T}{a\_filename}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00287\ }
+\DoxyCodeLine{00297\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00298\ \ \ \ \ \mbox{\hyperlink{classParser_1_1STL_a75dc5efeaabfef387b3987d986ae41bc}{readSTLSoupASCII}}(std::vector<Vec3>\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_vertices}},}
+\DoxyCodeLine{00299\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::vector<std::vector<size\_t>>\&\ \mbox{\hyperlink{classVec3T}{a\_facets}},}
+\DoxyCodeLine{00300\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::string\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_objectName}},}
+\DoxyCodeLine{00301\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::string>\&\ \ \ \mbox{\hyperlink{classVec3T}{a\_fileContents}},}
+\DoxyCodeLine{00302\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_firstLine}},}
+\DoxyCodeLine{00303\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_lastLine}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00304\ \ \ \};}
+\DoxyCodeLine{00305\ }
+\DoxyCodeLine{00310\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00311\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{classParser_1_1PLY}{PLY}}}
+\DoxyCodeLine{00312\ \ \ \{}
+\DoxyCodeLine{00313\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00317\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classParser_1_1PLY_abc7c0704b550d515c6cd26afefc7800e}{Vec3}}\ =\ EBGeometry::Vec3T<T>;}
+\DoxyCodeLine{00318\ }
+\DoxyCodeLine{00322\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classParser_1_1PLY_a94b1569dea1dd4e519c92d75be969a73}{Vertex}}\ =\ EBGeometry::DCEL::VertexT<T>;}
+\DoxyCodeLine{00323\ }
+\DoxyCodeLine{00327\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classParser_1_1PLY_a618540a78748c09a155ff48fe42120f4}{Edge}}\ =\ EBGeometry::DCEL::EdgeT<T>;}
+\DoxyCodeLine{00328\ }
+\DoxyCodeLine{00332\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classParser_1_1PLY_a52f3bb1d805c1b9908fcc73d13dca70e}{Face}}\ =\ EBGeometry::DCEL::FaceT<T>;}
+\DoxyCodeLine{00333\ }
+\DoxyCodeLine{00337\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classParser_1_1PLY_a3c8dd58c2755d26e23836dbd80faf07e}{Mesh}}\ =\ EBGeometry::DCEL::MeshT<T>;}
+\DoxyCodeLine{00338\ }
+\DoxyCodeLine{00342\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classParser_1_1PLY_aa12479104a62c8a2eef8c83989eb6cc9}{EdgeIterator}}\ =\ EBGeometry::DCEL::EdgeIteratorT<T>;}
+\DoxyCodeLine{00343\ }
+\DoxyCodeLine{00349\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::shared\_ptr<Mesh>}
+\DoxyCodeLine{00350\ \ \ \ \ \mbox{\hyperlink{classParser_1_1PLY_a7462e795d4c8ec982c21589ef633ee57}{read}}(\textcolor{keyword}{const}\ std::string\ \mbox{\hyperlink{classVec3T}{a\_filename}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00351\ }
+\DoxyCodeLine{00352\ \ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00358\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceParser_a4335203a05b102e71ece262ddb2a38a0}{Encoding}}}
+\DoxyCodeLine{00359\ \ \ \ \ \mbox{\hyperlink{classParser_1_1PLY_a2d7ba9ea7f77c0259e0f32294b6eed9f}{getEncoding}}(\textcolor{keyword}{const}\ std::string\ \mbox{\hyperlink{classVec3T}{a\_filename}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00360\ }
+\DoxyCodeLine{00368\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00369\ \ \ \ \ \mbox{\hyperlink{classParser_1_1PLY_ab9412f79eefdf0526b009aa755f78e15}{readPLYSoupASCII}}(std::vector<Vec3>\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_vertices}},}
+\DoxyCodeLine{00370\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::vector<std::vector<size\_t>>\&\ \mbox{\hyperlink{classVec3T}{a\_faces}},}
+\DoxyCodeLine{00371\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::ifstream\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_fileStream}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00372\ }
+\DoxyCodeLine{00380\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00381\ \ \ \ \ \mbox{\hyperlink{classParser_1_1PLY_a4ba2b81e5d4e01c5365d29e9802343cd}{readPLYSoupBinary}}(std::vector<Vec3>\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_vertices}},}
+\DoxyCodeLine{00382\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::vector<std::vector<size\_t>>\&\ \mbox{\hyperlink{classVec3T}{a\_faces}},}
+\DoxyCodeLine{00383\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::ifstream\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_fileStream}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00384\ \ \ \};}
+\DoxyCodeLine{00385\ \}\ \textcolor{comment}{//\ namespace\ Parser}}
+\DoxyCodeLine{00386\ }
+\DoxyCodeLine{00387\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceFooter_8hpp}{EBGeometry\_NamespaceFooter.hpp}}"{}}}
+\DoxyCodeLine{00388\ }
+\DoxyCodeLine{00389\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_ParserImplem.hpp"{}}}
+\DoxyCodeLine{00390\ }
+\DoxyCodeLine{00391\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

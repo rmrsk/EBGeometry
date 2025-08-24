@@ -1,75 +1,74 @@
-\hypertarget{classBVH_1_1LinearBVH}{}\doxysection{BVH\+::Linear\+BVH$<$ T, P, BV, K $>$ Class Template Reference}
-\label{classBVH_1_1LinearBVH}\index{BVH::LinearBVH$<$ T, P, BV, K $>$@{BVH::LinearBVH$<$ T, P, BV, K $>$}}
+\doxysection{BVH\+::Linear\+BVH\texorpdfstring{$<$}{<} T, P, BV, K \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classBVH_1_1LinearBVH}{}\label{classBVH_1_1LinearBVH}\index{BVH::LinearBVH$<$ T, P, BV, K $>$@{BVH::LinearBVH$<$ T, P, BV, K $>$}}
 
 
-Forward declare linear \mbox{\hyperlink{namespaceBVH}{BVH}} class.  
+Forward declare linear \doxylink{namespaceBVH}{BVH} class.  
 
 
 
 
 {\ttfamily \#include $<$EBGeometry\+\_\+\+BVH.\+hpp$>$}
 
-\doxysubsection*{Public Types}
+\doxysubsubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_a13b0083e8b7ff1a5e170d39d69e6a15a}\label{classBVH_1_1LinearBVH_a13b0083e8b7ff1a5e170d39d69e6a15a}} 
-using \mbox{\hyperlink{classBVH_1_1LinearBVH_a13b0083e8b7ff1a5e170d39d69e6a15a}{Vec3}} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$
+\Hypertarget{classBVH_1_1LinearBVH_a13b0083e8b7ff1a5e170d39d69e6a15a}\label{classBVH_1_1LinearBVH_a13b0083e8b7ff1a5e170d39d69e6a15a} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Vec3} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$
 \begin{DoxyCompactList}\small\item\em Alias for vector type. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}\label{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}} 
-using \mbox{\hyperlink{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}{Linear\+Node}} = \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ T, P, BV, K $>$
+\Hypertarget{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}\label{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Linear\+Node} = \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$
 \begin{DoxyCompactList}\small\item\em Alias for linear node type. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_a94ee5da1670e2ef85eeabf7cf6a2da92}\label{classBVH_1_1LinearBVH_a94ee5da1670e2ef85eeabf7cf6a2da92}} 
-using \mbox{\hyperlink{classBVH_1_1LinearBVH_a94ee5da1670e2ef85eeabf7cf6a2da92}{Primitive\+List}} = std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$
+\Hypertarget{classBVH_1_1LinearBVH_a94ee5da1670e2ef85eeabf7cf6a2da92}\label{classBVH_1_1LinearBVH_a94ee5da1670e2ef85eeabf7cf6a2da92} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Primitive\+List} = std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{P}} $>$ $>$
 \begin{DoxyCompactList}\small\item\em Alias for list of primitives. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Public Member Functions}
+\doxysubsubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_a5f10356de5f87989b0d27520ffd688f9}\label{classBVH_1_1LinearBVH_a5f10356de5f87989b0d27520ffd688f9}} 
-\mbox{\hyperlink{classBVH_1_1LinearBVH_a5f10356de5f87989b0d27520ffd688f9}{Linear\+BVH}} ()=default
+\Hypertarget{classBVH_1_1LinearBVH_a5f10356de5f87989b0d27520ffd688f9}\label{classBVH_1_1LinearBVH_a5f10356de5f87989b0d27520ffd688f9} 
+{\bfseries Linear\+BVH} ()=\mbox{\hyperlink{classVec3T}{default}}
 \begin{DoxyCompactList}\small\item\em Disallowed. Use the full constructor please. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_a7cd5b4ef45b8740d9566b64616c7c52c}\label{classBVH_1_1LinearBVH_a7cd5b4ef45b8740d9566b64616c7c52c}} 
-\mbox{\hyperlink{classBVH_1_1LinearBVH_a7cd5b4ef45b8740d9566b64616c7c52c}{Linear\+BVH}} (const \mbox{\hyperlink{classBVH_1_1LinearBVH}{Linear\+BVH}} \&)=default
+\Hypertarget{classBVH_1_1LinearBVH_a7cd5b4ef45b8740d9566b64616c7c52c}\label{classBVH_1_1LinearBVH_a7cd5b4ef45b8740d9566b64616c7c52c} 
+{\bfseries Linear\+BVH} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classBVH_1_1LinearBVH}{Linear\+BVH}} \&)=\mbox{\hyperlink{classVec3T}{default}}
 \begin{DoxyCompactList}\small\item\em Copy constructor. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classBVH_1_1LinearBVH_af6555a1a22c9d8e44e47ee968336643c}{Linear\+BVH}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ T, P, BV, K $>$$>$$>$ \&a\+\_\+linear\+Nodes, const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&a\+\_\+primitives)
+\mbox{\hyperlink{classBVH_1_1LinearBVH_a34fcf759d0b39c9d83aca039cd0b18a8}{Linear\+BVH}} (\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$ $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+linear\+Nodes}}, \mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+primitives}})
 \begin{DoxyCompactList}\small\item\em Full constructor. Associates the nodes and primitives. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classBVH_1_1LinearBVH_afe11c7156d4de20130563a223c8d7b0d}{Linear\+BVH}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ T, P, BV, K $>$$>$$>$ \&a\+\_\+linear\+Nodes, const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&a\+\_\+primitives)
+\mbox{\hyperlink{classBVH_1_1LinearBVH_a413ba6da95c3839b90c4a3441aa5395b}{Linear\+BVH}} (\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$ $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+linear\+Nodes}}, \mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+primitives}})
 \begin{DoxyCompactList}\small\item\em Full constructor. Associates the nodes and primitives. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_a9737547d3857bc90c2d6ed9b142663ea}\label{classBVH_1_1LinearBVH_a9737547d3857bc90c2d6ed9b142663ea}} 
-virtual \mbox{\hyperlink{classBVH_1_1LinearBVH_a9737547d3857bc90c2d6ed9b142663ea}{$\sim$\+Linear\+BVH}} ()
+\Hypertarget{classBVH_1_1LinearBVH_a9737547d3857bc90c2d6ed9b142663ea}\label{classBVH_1_1LinearBVH_a9737547d3857bc90c2d6ed9b142663ea} 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Linear\+BVH} ()
 \begin{DoxyCompactList}\small\item\em Destructor. Does nothing. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_a841fbfc0c1dc5c7fdf0074d289e9a9bf}\label{classBVH_1_1LinearBVH_a841fbfc0c1dc5c7fdf0074d289e9a9bf}} 
-const BV \& \mbox{\hyperlink{classBVH_1_1LinearBVH_a841fbfc0c1dc5c7fdf0074d289e9a9bf}{get\+Bounding\+Volume}} () const noexcept
-\begin{DoxyCompactList}\small\item\em Get the bounding volume for this \mbox{\hyperlink{namespaceBVH}{BVH}}. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class Meta $>$ }\\void \mbox{\hyperlink{classBVH_1_1LinearBVH_a213b07e1c41dec5b4c6bac80f0716f1d}{traverse}} (const \mbox{\hyperlink{namespaceBVH_a9098188477f08a345cf059a431ae23aa}{BVH\+::\+Updater}}$<$ P $>$ \&a\+\_\+updater, const \mbox{\hyperlink{namespaceBVH_a8ac51cce05479b4821bf8c0e2543696a}{BVH\+::\+Visiter}}$<$ \mbox{\hyperlink{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}{Linear\+Node}}, Meta $>$ \&a\+\_\+visiter, const \mbox{\hyperlink{namespaceBVH_a98593a87354ca9c46938b74c50a10f91}{BVH\+::\+Sorter}}$<$ \mbox{\hyperlink{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}{Linear\+Node}}, Meta, K $>$ \&a\+\_\+sorter, const \mbox{\hyperlink{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}{BVH\+::\+Meta\+Updater}}$<$ \mbox{\hyperlink{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}{Linear\+Node}}, Meta $>$ \&a\+\_\+meta\+Updater) const noexcept
-\begin{DoxyCompactList}\small\item\em Recursion-\/less \mbox{\hyperlink{namespaceBVH}{BVH}} traversal algorithm. The user inputs the update rule, a pruning criterion, and a criterion of who to visit first. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Attributes}
+\Hypertarget{classBVH_1_1LinearBVH_aea132bc8cff5062a8740bd93dbcb0fb8}\label{classBVH_1_1LinearBVH_aea132bc8cff5062a8740bd93dbcb0fb8} 
+\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{BV}} \& {\bfseries get\+Bounding\+Volume} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the bounding volume for this \doxylink{namespaceBVH}{BVH}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ }\\\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classBVH_1_1LinearBVH_a213b07e1c41dec5b4c6bac80f0716f1d}{traverse}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_a9098188477f08a345cf059a431ae23aa}{BVH\+::\+Updater}}$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+updater}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_a8ac51cce05479b4821bf8c0e2543696a}{BVH\+::\+Visiter}}$<$ \mbox{\hyperlink{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}{Linear\+Node}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+visiter}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_a98593a87354ca9c46938b74c50a10f91}{BVH\+::\+Sorter}}$<$ \mbox{\hyperlink{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}{Linear\+Node}}, \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{K}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+sorter}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}{BVH\+::\+Meta\+Updater}}$<$ \mbox{\hyperlink{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}{Linear\+Node}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+meta\+Updater}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Recursion-\/less \doxylink{namespaceBVH}{BVH} traversal algorithm. The user inputs the update rule, a pruning criterion, and a criterion of who to visit first. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_ac11af18884c0568f3067ef12c7f53e39}\label{classBVH_1_1LinearBVH_ac11af18884c0568f3067ef12c7f53e39}} 
-std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ T, P, BV, K $>$ $>$ $>$ \mbox{\hyperlink{classBVH_1_1LinearBVH_ac11af18884c0568f3067ef12c7f53e39}{m\+\_\+linear\+Nodes}}
+\Hypertarget{classBVH_1_1LinearBVH_ac11af18884c0568f3067ef12c7f53e39}\label{classBVH_1_1LinearBVH_ac11af18884c0568f3067ef12c7f53e39} 
+std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$ $>$ $>$ {\bfseries m\+\_\+linear\+Nodes}
 \begin{DoxyCompactList}\small\item\em List of linearly stored nodes. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_aa4f627615c40d7230139ec1744384322}\label{classBVH_1_1LinearBVH_aa4f627615c40d7230139ec1744384322}} 
-std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$ $>$ \mbox{\hyperlink{classBVH_1_1LinearBVH_aa4f627615c40d7230139ec1744384322}{m\+\_\+primitives}}
-\begin{DoxyCompactList}\small\item\em Global list of primitives. Note that this is ALL primitives, sorted so that \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}} can interface into it. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\Hypertarget{classBVH_1_1LinearBVH_aa4f627615c40d7230139ec1744384322}\label{classBVH_1_1LinearBVH_aa4f627615c40d7230139ec1744384322} 
+std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ {\bfseries m\+\_\+primitives}
+\begin{DoxyCompactList}\small\item\em Global list of primitives. Note that this is ALL primitives, sorted so that \doxylink{classBVH_1_1LinearNodeT}{Linear\+NodeT} can interface into it. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-\subsubsection*{template$<$class T, class P, class BV, size\+\_\+t K$>$\newline
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$\newline
 class BVH\+::\+Linear\+BVH$<$ T, P, BV, K $>$}
+Forward declare linear \doxylink{namespaceBVH}{BVH} class. 
 
-Forward declare linear \mbox{\hyperlink{namespaceBVH}{BVH}} class. 
+Linear root node for \doxylink{namespaceBVH}{BVH} hierarchy.
 
-Linear root node for \mbox{\hyperlink{namespaceBVH}{BVH}} hierarchy.
-
-T is the precision used in the \mbox{\hyperlink{namespaceBVH}{BVH}} computations, P is the enclosing primitive and BV is the bounding volume used in the \mbox{\hyperlink{namespaceBVH}{BVH}}. K is the tree degree. 
+T is the precision used in the \doxylink{namespaceBVH}{BVH} computations, P is the enclosing primitive and BV is the bounding volume used in the \doxylink{namespaceBVH}{BVH}. K is the tree degree. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_af6555a1a22c9d8e44e47ee968336643c}\label{classBVH_1_1LinearBVH_af6555a1a22c9d8e44e47ee968336643c}} 
+\Hypertarget{classBVH_1_1LinearBVH_a34fcf759d0b39c9d83aca039cd0b18a8}\label{classBVH_1_1LinearBVH_a34fcf759d0b39c9d83aca039cd0b18a8} 
 \index{BVH::LinearBVH$<$ T, P, BV, K $>$@{BVH::LinearBVH$<$ T, P, BV, K $>$}!LinearBVH@{LinearBVH}}
 \index{LinearBVH@{LinearBVH}!BVH::LinearBVH$<$ T, P, BV, K $>$@{BVH::LinearBVH$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{LinearBVH()}{LinearBVH()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-\mbox{\hyperlink{classBVH_1_1LinearBVH}{BVH\+::\+Linear\+BVH}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classBVH_1_1LinearBVH}{Linear\+BVH}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ T, P, BV, K $>$$>$$>$ \&}]{a\+\_\+linear\+Nodes,  }\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&}]{a\+\_\+primitives }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ \\
+\mbox{\hyperlink{classBVH_1_1LinearBVH}{BVH\+::\+Linear\+BVH}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$\+::\+Linear\+BVH (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$ $>$ $>$ \&}]{a\+\_\+linear\+Nodes,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&}]{a\+\_\+primitives }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -77,17 +76,17 @@ Full constructor. Associates the nodes and primitives.
 
 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+linear\+Nodes} & Linearized \mbox{\hyperlink{namespaceBVH}{BVH}} nodes. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+linear\+Nodes} & Linearized \doxylink{namespaceBVH}{BVH} nodes. \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & Primitives. \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_afe11c7156d4de20130563a223c8d7b0d}\label{classBVH_1_1LinearBVH_afe11c7156d4de20130563a223c8d7b0d}} 
+\Hypertarget{classBVH_1_1LinearBVH_a413ba6da95c3839b90c4a3441aa5395b}\label{classBVH_1_1LinearBVH_a413ba6da95c3839b90c4a3441aa5395b} 
 \index{BVH::LinearBVH$<$ T, P, BV, K $>$@{BVH::LinearBVH$<$ T, P, BV, K $>$}!LinearBVH@{LinearBVH}}
 \index{LinearBVH@{LinearBVH}!BVH::LinearBVH$<$ T, P, BV, K $>$@{BVH::LinearBVH$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{LinearBVH()}{LinearBVH()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-\mbox{\hyperlink{classBVH_1_1LinearBVH}{BVH\+::\+Linear\+BVH}}$<$ T, P, BV, K $>$\+::\mbox{\hyperlink{classBVH_1_1LinearBVH}{Linear\+BVH}} (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ T, P, BV, K $>$$>$$>$ \&}]{a\+\_\+linear\+Nodes,  }\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const P $>$$>$ \&}]{a\+\_\+primitives }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ \\
+\mbox{\hyperlink{classBVH_1_1LinearBVH}{BVH\+::\+Linear\+BVH}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$\+::\+Linear\+BVH (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classBVH_1_1LinearNodeT}{Linear\+NodeT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$ $>$ $>$ \&}]{a\+\_\+linear\+Nodes,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&}]{a\+\_\+primitives }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -95,7 +94,7 @@ Full constructor. Associates the nodes and primitives.
 
 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+linear\+Nodes} & Linearized \mbox{\hyperlink{namespaceBVH}{BVH}} nodes. \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+linear\+Nodes} & Linearized \doxylink{namespaceBVH}{BVH} nodes. \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+primitives} & Primitives. \\
 \hline
@@ -103,17 +102,17 @@ Full constructor. Associates the nodes and primitives.
 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classBVH_1_1LinearBVH_a213b07e1c41dec5b4c6bac80f0716f1d}\label{classBVH_1_1LinearBVH_a213b07e1c41dec5b4c6bac80f0716f1d}} 
+\Hypertarget{classBVH_1_1LinearBVH_a213b07e1c41dec5b4c6bac80f0716f1d}\label{classBVH_1_1LinearBVH_a213b07e1c41dec5b4c6bac80f0716f1d} 
 \index{BVH::LinearBVH$<$ T, P, BV, K $>$@{BVH::LinearBVH$<$ T, P, BV, K $>$}!traverse@{traverse}}
 \index{traverse@{traverse}!BVH::LinearBVH$<$ T, P, BV, K $>$@{BVH::LinearBVH$<$ T, P, BV, K $>$}}
 \doxysubsubsection{\texorpdfstring{traverse()}{traverse()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-template$<$class Meta $>$ \\
-void \mbox{\hyperlink{classBVH_1_1LinearBVH}{BVH\+::\+Linear\+BVH}}$<$ T, P, BV, K $>$\+::traverse (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{namespaceBVH_a9098188477f08a345cf059a431ae23aa}{BVH\+::\+Updater}}$<$ P $>$ \&}]{a\+\_\+updater,  }\item[{const \mbox{\hyperlink{namespaceBVH_a8ac51cce05479b4821bf8c0e2543696a}{BVH\+::\+Visiter}}$<$ \mbox{\hyperlink{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}{Linear\+Node}}, Meta $>$ \&}]{a\+\_\+visiter,  }\item[{const \mbox{\hyperlink{namespaceBVH_a98593a87354ca9c46938b74c50a10f91}{BVH\+::\+Sorter}}$<$ \mbox{\hyperlink{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}{Linear\+Node}}, Meta, K $>$ \&}]{a\+\_\+sorter,  }\item[{const \mbox{\hyperlink{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}{BVH\+::\+Meta\+Updater}}$<$ \mbox{\hyperlink{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}{Linear\+Node}}, Meta $>$ \&}]{a\+\_\+meta\+Updater }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ \\
+template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classBVH_1_1LinearBVH}{BVH\+::\+Linear\+BVH}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{P}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$\+::traverse (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_a9098188477f08a345cf059a431ae23aa}{BVH\+::\+Updater}}$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ \&}]{a\+\_\+updater,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_a8ac51cce05479b4821bf8c0e2543696a}{BVH\+::\+Visiter}}$<$ \mbox{\hyperlink{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}{Linear\+Node}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$ \&}]{a\+\_\+visiter,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_a98593a87354ca9c46938b74c50a10f91}{BVH\+::\+Sorter}}$<$ \mbox{\hyperlink{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}{Linear\+Node}}, \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{K}} $>$ \&}]{a\+\_\+sorter,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_acaf9bd22eb434cf05f36d5ca61984b38}{BVH\+::\+Meta\+Updater}}$<$ \mbox{\hyperlink{classBVH_1_1LinearBVH_ad8c5e4f84138090dbd408a075dc91896}{Linear\+Node}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$ \&}]{a\+\_\+meta\+Updater }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
-Recursion-\/less \mbox{\hyperlink{namespaceBVH}{BVH}} traversal algorithm. The user inputs the update rule, a pruning criterion, and a criterion of who to visit first. 
+Recursion-\/less \doxylink{namespaceBVH}{BVH} traversal algorithm. The user inputs the update rule, a pruning criterion, and a criterion of who to visit first. 
 
 
 \begin{DoxyParams}[1]{Parameters}

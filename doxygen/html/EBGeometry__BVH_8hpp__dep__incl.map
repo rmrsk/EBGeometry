@@ -1,6 +1,11 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_BVH.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_BVH.hpp">
-<area shape="rect" id="node1" title="Declaration of a bounding volume hierarchy (BVH) class." alt="" coords="27,5,270,61"/>
-<area shape="rect" id="node2" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="5,317,236,359"/>
-<area shape="rect" id="node3" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="107,109,350,165"/>
-<area shape="rect" id="node4" href="$EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="158,213,401,269"/>
+<area shape="rect" id="Node000001" title="Declaration of a bounding volume hierarchy (BVH) class." alt="" coords="27,5,270,60"/>
+<area shape="rect" id="Node000002" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="5,313,236,353"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="118,72,98,109,91,137,89,165,93,223,104,274,116,312,111,314,99,275,88,223,84,165,86,136,93,107,113,69"/>
+<area shape="rect" id="Node000003" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="107,108,350,163"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="180,69,210,106,206,110,176,72"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="181,174,163,192,148,212,137,238,130,265,124,313,118,313,124,264,132,236,144,209,159,188,177,170"/>
+<area shape="rect" id="Node000004" href="$EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="158,211,401,265"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="250,174,268,209,264,212,246,176"/>
+<area shape="poly" id="edge5_Node000004_Node000002" title=" " alt="" coords="224,275,154,315,152,311,221,270"/>
 </map>

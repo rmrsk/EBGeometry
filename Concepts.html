@@ -65,6 +65,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#normal-vectors">Normal vectors</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="#triangles">Triangles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#bounding-volume-hierarchies">Bounding volume hierarchies</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#construction">Construction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#tree-traversal">Tree traversal</a></li>
@@ -238,6 +239,12 @@ The vertex pseudonormal is given by</p>
 </figcaption>
 </figure>
 </section>
+</section>
+<section id="triangles">
+<h1>Triangles<a class="headerlink" href="#triangles" title="Permalink to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> also supports using direct triangles rather than DCEL polygons.
+In this case the user can parse his/her files and ask for triangle description rather than a DCEL description.
+Internally, triangles are represented as <em>pseudo-triangles</em> that contain normal vectors on both the edges and vertices, completely similar to a DCEL polygon.</p>
 </section>
 <section id="bounding-volume-hierarchies">
 <span id="chap-bvh"></span><h1>Bounding volume hierarchies<a class="headerlink" href="#bounding-volume-hierarchies" title="Permalink to this heading"></a></h1>

@@ -1,5 +1,5 @@
-\hypertarget{classScaleIF}{}\doxysection{Scale\+IF$<$ T $>$ Class Template Reference}
-\label{classScaleIF}\index{ScaleIF$<$ T $>$@{ScaleIF$<$ T $>$}}
+\doxysection{Scale\+IF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classScaleIF}{}\label{classScaleIF}\index{ScaleIF$<$ T $>$@{ScaleIF$<$ T $>$}}
 
 
 Scaled implicit function.  
@@ -11,7 +11,7 @@ Scaled implicit function.
 
 
 
-Inheritance diagram for Scale\+IF$<$ T $>$\+:
+Inheritance diagram for Scale\+IF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>}\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -21,7 +21,7 @@ Inheritance diagram for Scale\+IF$<$ T $>$\+:
 \end{figure}
 
 
-Collaboration diagram for Scale\+IF$<$ T $>$\+:
+Collaboration diagram for Scale\+IF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>}\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -29,43 +29,53 @@ Collaboration diagram for Scale\+IF$<$ T $>$\+:
 \includegraphics[width=203pt]{classScaleIF__coll__graph}
 \end{center}
 \end{figure}
-\doxysubsection*{Public Member Functions}
+\doxysubsubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classScaleIF_a8cd39a3aa2e38241491fc1524f246efa}\label{classScaleIF_a8cd39a3aa2e38241491fc1524f246efa}} 
-\mbox{\hyperlink{classScaleIF_a8cd39a3aa2e38241491fc1524f246efa}{Scale\+IF}} ()=delete
+\Hypertarget{classScaleIF_a8cd39a3aa2e38241491fc1524f246efa}\label{classScaleIF_a8cd39a3aa2e38241491fc1524f246efa} 
+{\bfseries Scale\+IF} ()=\mbox{\hyperlink{classVec3T}{delete}}
 \begin{DoxyCompactList}\small\item\em Disallowed weak construction. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classScaleIF_a63e83e327eb81329a8bf60b03c5105f4}{Scale\+IF}} (const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&a\+\_\+implicit\+Function, const T a\+\_\+scale) noexcept
+\mbox{\hyperlink{classScaleIF_af25993d77e65ba5bef54e7e8754b7053}{Scale\+IF}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Function}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+scale}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Scaled implicit function. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classScaleIF_abb7c93cf82814f5b29021fc3430c834b}\label{classScaleIF_abb7c93cf82814f5b29021fc3430c834b}} 
-virtual \mbox{\hyperlink{classScaleIF_abb7c93cf82814f5b29021fc3430c834b}{$\sim$\+Scale\+IF}} () noexcept
+\Hypertarget{classScaleIF_abb7c93cf82814f5b29021fc3430c834b}\label{classScaleIF_abb7c93cf82814f5b29021fc3430c834b} 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Scale\+IF} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
-virtual T \mbox{\hyperlink{classScaleIF_a358197feb46e689351b8fa33074815a2}{value}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classScaleIF_a358197feb46e689351b8fa33074815a2}{value}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}} \mbox{\hyperlink{classVec3T}{override}}
 \begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Attributes}
+\doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function$<$ T $>$}}}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classScaleIF_a981319cf65d6479449b1444304ba2ec2}\label{classScaleIF_a981319cf65d6479449b1444304ba2ec2}} 
-std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{classScaleIF_a981319cf65d6479449b1444304ba2ec2}{m\+\_\+implicit\+Function}}
+{\bfseries Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classImplicitFunction_a361afffb3619a6e06172bdef96c41b91}{operator()}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Alternative signature for the value function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} $>$ }\\\mbox{\hyperlink{classVec3T}{BV}} \mbox{\hyperlink{classImplicitFunction_a844c5123cf9cbad3a140fc40494b4071}{approximate\+Bounding\+Volume\+Octree}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+Low\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+High\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{unsigned}} \mbox{\hyperlink{classVec3T}{int}} \mbox{\hyperlink{classVec3T}{a\+\_\+max\+Tree\+Depth}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+safety}}=0.\+0) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Compute an approximation to the bounding volume for the implicit surface, using octrees. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classScaleIF_a981319cf65d6479449b1444304ba2ec2}\label{classScaleIF_a981319cf65d6479449b1444304ba2ec2} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ {\bfseries m\+\_\+implicit\+Function}
 \begin{DoxyCompactList}\small\item\em Original implicit function. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classScaleIF_a056da7644722339795059d214453bc05}\label{classScaleIF_a056da7644722339795059d214453bc05}} 
-T \mbox{\hyperlink{classScaleIF_a056da7644722339795059d214453bc05}{m\+\_\+scale}}
+\Hypertarget{classScaleIF_a056da7644722339795059d214453bc05}\label{classScaleIF_a056da7644722339795059d214453bc05} 
+\mbox{\hyperlink{classVec3T}{T}} {\bfseries m\+\_\+scale}
 \begin{DoxyCompactList}\small\item\em Scaling factor. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-\subsubsection*{template$<$class T$>$\newline
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}}$>$\newline
 class Scale\+IF$<$ T $>$}
-
 Scaled implicit function. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classScaleIF_a63e83e327eb81329a8bf60b03c5105f4}\label{classScaleIF_a63e83e327eb81329a8bf60b03c5105f4}} 
+\Hypertarget{classScaleIF_af25993d77e65ba5bef54e7e8754b7053}\label{classScaleIF_af25993d77e65ba5bef54e7e8754b7053} 
 \index{ScaleIF$<$ T $>$@{ScaleIF$<$ T $>$}!ScaleIF@{ScaleIF}}
 \index{ScaleIF@{ScaleIF}!ScaleIF$<$ T $>$@{ScaleIF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{ScaleIF()}{ScaleIF()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classScaleIF}{Scale\+IF}}$<$ T $>$\+::\mbox{\hyperlink{classScaleIF}{Scale\+IF}} (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$$>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const T}]{a\+\_\+scale }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classScaleIF}{Scale\+IF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classScaleIF}{\+::\+Scale\+IF}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \&}]{a\+\_\+implicit\+Function,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+scale }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -81,12 +91,12 @@ Scaled implicit function.
 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classScaleIF_a358197feb46e689351b8fa33074815a2}\label{classScaleIF_a358197feb46e689351b8fa33074815a2}} 
+\Hypertarget{classScaleIF_a358197feb46e689351b8fa33074815a2}\label{classScaleIF_a358197feb46e689351b8fa33074815a2} 
 \index{ScaleIF$<$ T $>$@{ScaleIF$<$ T $>$}!value@{value}}
 \index{value@{value}!ScaleIF$<$ T $>$@{ScaleIF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{value()}{value()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-virtual T \mbox{\hyperlink{classScaleIF}{Scale\+IF}}$<$ T $>$\+::value (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classScaleIF}{Scale\+IF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::value (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
 
 
 

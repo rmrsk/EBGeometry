@@ -1,0 +1,149 @@
+\doxysection{EBGeometry\+\_\+\+DCEL\+\_\+\+Edge.\+hpp}
+\hypertarget{EBGeometry__DCEL__Edge_8hpp_source}{}\label{EBGeometry__DCEL__Edge_8hpp_source}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_DCEL\_Edge.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_DCEL\_Edge.hpp}}
+\mbox{\hyperlink{EBGeometry__DCEL__Edge_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*\ EBGeometry}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ Copyright\ ©\ 2022\ Robert\ Marskar}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ Please\ refer\ to\ Copyright.txt\ and\ LICENSE\ in\ the\ EBGeometry\ root\ directory.}}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#ifndef\ EBGeometry\_DCEL\_Edge}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#define\ EBGeometry\_DCEL\_Edge}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ Std\ includes}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ Our\ includes}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__Vec_8hpp}{EBGeometry\_Vec.hpp}}"{}}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__DCEL__Face_8hpp}{EBGeometry\_DCEL\_Face.hpp}}"{}}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceHeader_8hpp}{EBGeometry\_NamespaceHeader.hpp}}"{}}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceDCEL}{DCEL}}\ \{}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00045\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ Meta>}
+\DoxyCodeLine{00046\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{classDCEL_1_1EdgeT}{EdgeT}}}
+\DoxyCodeLine{00047\ \ \ \{}
+\DoxyCodeLine{00048\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00052\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Vec3}}\ =\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}};}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00057\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Vertex}}\ =\ \mbox{\hyperlink{classVec3T}{VertexT<T,\ Meta>}};}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Edge}}\ =\ \mbox{\hyperlink{classVec3T}{EdgeT<T,\ Meta>}};}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00067\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Face}}\ =\ \mbox{\hyperlink{classVec3T}{FaceT<T,\ Meta>}};}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classDCEL_1_1EdgeT_ab5d79a6663cd5e996a13747b55457013}{VertexPtr}}\ =\ std::shared\_ptr<Vertex>;}
+\DoxyCodeLine{00073\ }
+\DoxyCodeLine{00077\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classDCEL_1_1EdgeT_a48b8a5a2c50fd7376cf5c32ff045e6ba}{EdgePtr}}\ =\ std::shared\_ptr<Edge>;}
+\DoxyCodeLine{00078\ }
+\DoxyCodeLine{00082\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classDCEL_1_1EdgeT_a638f92abf9bd625ef1809123a8819bea}{FacePtr}}\ =\ std::shared\_ptr<Face>;}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00088\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a7d6a4bac06cf7700031b53588f89f37f}{EdgeT}}();}
+\DoxyCodeLine{00089\ }
+\DoxyCodeLine{00094\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a2ad0d44ec052d349c06a56a5dc97e386}{EdgeT}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Edge}}\&\ \mbox{\hyperlink{classVec3T}{a\_otherEdge}});}
+\DoxyCodeLine{00095\ }
+\DoxyCodeLine{00101\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a22beabe0c14e97d5b899cbbde23d2557}{EdgeT}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_ab5d79a6663cd5e996a13747b55457013}{VertexPtr}}\&\ \mbox{\hyperlink{classVec3T}{a\_vertex}});}
+\DoxyCodeLine{00102\ }
+\DoxyCodeLine{00106\ \ \ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_af109f236cf298660d755183e5adc64f3}{\string~EdgeT}}();}
+\DoxyCodeLine{00107\ }
+\DoxyCodeLine{00111\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{size\_t}}
+\DoxyCodeLine{00112\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_af66109de5c8d32c3c2cd6f437098e5ea}{size}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00113\ }
+\DoxyCodeLine{00120\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00121\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_aab8aa1da01bff6072fb20fd8b6603231}{define}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_ab5d79a6663cd5e996a13747b55457013}{VertexPtr}}\&\ \mbox{\hyperlink{classVec3T}{a\_vertex}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_a48b8a5a2c50fd7376cf5c32ff045e6ba}{EdgePtr}}\&\ \mbox{\hyperlink{classVec3T}{a\_pairEdge}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_a48b8a5a2c50fd7376cf5c32ff045e6ba}{EdgePtr}}\&\ \mbox{\hyperlink{classVec3T}{a\_nextEdge}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00127\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00128\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a33d26785005757d0ced31a6dff25325c}{reconcile}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00129\ }
+\DoxyCodeLine{00133\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00134\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_af8ca653a9e395cf4f74293885933c8c6}{flip}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00135\ }
+\DoxyCodeLine{00140\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00141\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_ac59ffbe1f850270559e1bd3ba6106fb7}{setVertex}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_ab5d79a6663cd5e996a13747b55457013}{VertexPtr}}\&\ \mbox{\hyperlink{classVec3T}{a\_vertex}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00142\ }
+\DoxyCodeLine{00147\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00148\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_aa43663143002611e6161da154b1aa813}{setPairEdge}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_a48b8a5a2c50fd7376cf5c32ff045e6ba}{EdgePtr}}\&\ \mbox{\hyperlink{classVec3T}{a\_pairEdge}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00149\ }
+\DoxyCodeLine{00154\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00155\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a4dbe68b4013bee78c8fe31b919769ad5}{setNextEdge}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_a48b8a5a2c50fd7376cf5c32ff045e6ba}{EdgePtr}}\&\ \mbox{\hyperlink{classVec3T}{a\_nextEdge}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00156\ }
+\DoxyCodeLine{00160\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00161\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a74724359b69fb391b483670a04b73709}{setFace}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_a638f92abf9bd625ef1809123a8819bea}{FacePtr}}\&\ \mbox{\hyperlink{classVec3T}{a\_face}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00167\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_ab5d79a6663cd5e996a13747b55457013}{VertexPtr}}\&}
+\DoxyCodeLine{00168\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_af7d1203baf945e41dceb9706225b4434}{getVertex}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00169\ }
+\DoxyCodeLine{00174\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_ab5d79a6663cd5e996a13747b55457013}{VertexPtr}}\&}
+\DoxyCodeLine{00175\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_af7d1203baf945e41dceb9706225b4434}{getVertex}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00176\ }
+\DoxyCodeLine{00181\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_ab5d79a6663cd5e996a13747b55457013}{VertexPtr}}\&}
+\DoxyCodeLine{00182\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a2448872f8c1e67768e71dac570d11469}{getOtherVertex}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00188\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_ab5d79a6663cd5e996a13747b55457013}{VertexPtr}}\&}
+\DoxyCodeLine{00189\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a2448872f8c1e67768e71dac570d11469}{getOtherVertex}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00195\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_a48b8a5a2c50fd7376cf5c32ff045e6ba}{EdgePtr}}\&}
+\DoxyCodeLine{00196\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a717cbf82e4b25cf6e14dd7faf49738cf}{getPairEdge}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00197\ }
+\DoxyCodeLine{00202\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_a48b8a5a2c50fd7376cf5c32ff045e6ba}{EdgePtr}}\&}
+\DoxyCodeLine{00203\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a717cbf82e4b25cf6e14dd7faf49738cf}{getPairEdge}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00204\ }
+\DoxyCodeLine{00209\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_a48b8a5a2c50fd7376cf5c32ff045e6ba}{EdgePtr}}\&}
+\DoxyCodeLine{00210\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a97164323b3f77af981384ebe3d1a916b}{getNextEdge}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00216\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_a48b8a5a2c50fd7376cf5c32ff045e6ba}{EdgePtr}}\&}
+\DoxyCodeLine{00217\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a97164323b3f77af981384ebe3d1a916b}{getNextEdge}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00218\ }
+\DoxyCodeLine{00222\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00223\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a3c8d982e439880b95c91f9d4390e0991}{computeNormal}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00224\ }
+\DoxyCodeLine{00228\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00229\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a7303619f2003a9fa027fd0bbad734ca3}{getNormal}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00230\ }
+\DoxyCodeLine{00234\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_a638f92abf9bd625ef1809123a8819bea}{FacePtr}}\&}
+\DoxyCodeLine{00235\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a39e7031bfa8e4366dba6995ea69b9afc}{getFace}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00236\ }
+\DoxyCodeLine{00240\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_a638f92abf9bd625ef1809123a8819bea}{FacePtr}}\&}
+\DoxyCodeLine{00241\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a39e7031bfa8e4366dba6995ea69b9afc}{getFace}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00242\ }
+\DoxyCodeLine{00247\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{Meta}}\&}
+\DoxyCodeLine{00248\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a9f3f6491e652a21f1384fa6de308125e}{getMetaData}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00249\ }
+\DoxyCodeLine{00254\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Meta}}\&}
+\DoxyCodeLine{00255\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a9f3f6491e652a21f1384fa6de308125e}{getMetaData}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00256\ }
+\DoxyCodeLine{00264\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00265\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_aadeb669045861bea4c55c5bd5bcb2649}{signedDistance}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&\ \mbox{\hyperlink{classVec3T}{a\_x0}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00266\ }
+\DoxyCodeLine{00275\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00276\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_abd25e92deeae55a569a67d503b1d18ed}{unsignedDistance2}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&\ \mbox{\hyperlink{classVec3T}{a\_x0}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00277\ }
+\DoxyCodeLine{00278\ \ \ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00282\ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_aaa09ba81495619c68f5ac2ea116f2af4}{m\_normal}};}
+\DoxyCodeLine{00283\ }
+\DoxyCodeLine{00287\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_ab5d79a6663cd5e996a13747b55457013}{VertexPtr}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_a28df026b6d9929c8516d19c0a6ca1691}{m\_vertex}};}
+\DoxyCodeLine{00288\ }
+\DoxyCodeLine{00292\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a48b8a5a2c50fd7376cf5c32ff045e6ba}{EdgePtr}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_affc4540d9577d941399ed46d3a028473}{m\_pairEdge}};}
+\DoxyCodeLine{00293\ }
+\DoxyCodeLine{00297\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a48b8a5a2c50fd7376cf5c32ff045e6ba}{EdgePtr}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_a07d7bf0ffb15a58590611bdf1a2d028d}{m\_nextEdge}};}
+\DoxyCodeLine{00298\ }
+\DoxyCodeLine{00302\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a638f92abf9bd625ef1809123a8819bea}{FacePtr}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_ac583a0c4ad4afaff31bb96c2f40eda40}{m\_face}};}
+\DoxyCodeLine{00303\ }
+\DoxyCodeLine{00307\ \ \ \ \ \mbox{\hyperlink{classVec3T}{Meta}}\ \mbox{\hyperlink{classDCEL_1_1EdgeT_a89b904780df8bf86cd8ed74c674123fa}{m\_metaData}};}
+\DoxyCodeLine{00308\ }
+\DoxyCodeLine{00315\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00316\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a21db14521528521ada23da7f22c05dab}{projectPointToEdge}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&\ \mbox{\hyperlink{classVec3T}{a\_x0}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00317\ }
+\DoxyCodeLine{00321\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00322\ \ \ \ \ \mbox{\hyperlink{classDCEL_1_1EdgeT_a609a8d102d67bb2ecf1d09cbb5eea2af}{getX2X1}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00323\ \ \ \};}
+\DoxyCodeLine{00324\ \}\ \textcolor{comment}{//\ namespace\ DCEL}}
+\DoxyCodeLine{00325\ }
+\DoxyCodeLine{00326\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_NamespaceFooter.hpp"{}}}
+\DoxyCodeLine{00327\ }
+\DoxyCodeLine{00328\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_DCEL\_EdgeImplem.hpp"{}}}
+\DoxyCodeLine{00329\ }
+\DoxyCodeLine{00330\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

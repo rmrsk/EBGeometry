@@ -1,0 +1,271 @@
+\doxysection{EBGeometry\+\_\+\+Transform.\+hpp}
+\hypertarget{EBGeometry__Transform_8hpp_source}{}\label{EBGeometry__Transform_8hpp_source}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Transform.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Transform.hpp}}
+\mbox{\hyperlink{EBGeometry__Transform_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*\ EBGeometry}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ Copyright\ ©\ 2022\ Robert\ Marskar}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ Please\ refer\ to\ Copyright.txt\ and\ LICENSE\ in\ the\ EBGeometry\ root\ directory.}}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#ifndef\ EBGeometry\_Transform}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#define\ EBGeometry\_Transform}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ Our\ includes}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__ImplicitFunction_8hpp}{EBGeometry\_ImplicitFunction.hpp}}"{}}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__Vec_8hpp}{EBGeometry\_Vec.hpp}}"{}}}
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceHeader_8hpp}{EBGeometry\_NamespaceHeader.hpp}}"{}}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00024\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00025\ std::shared\_ptr<ImplicitFunction<T>>}
+\DoxyCodeLine{00026\ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a834e58d00296c995b7b7a00d9ef27570}{Complement}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00033\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00034\ std::shared\_ptr<ImplicitFunction<T>>}
+\DoxyCodeLine{00035\ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a99d93ae26c02b39969032bd4d9ab515e}{Translate}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_shift}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00043\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00044\ std::shared\_ptr<ImplicitFunction<T>>}
+\DoxyCodeLine{00045\ \mbox{\hyperlink{EBGeometry__Transform_8hpp_af9bf0179451a6f1e848dcd1eadaff103}{Rotate}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{a\_angle}},\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classVec3T}{a\_axis}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00052\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00053\ std::shared\_ptr<ImplicitFunction<T>>}
+\DoxyCodeLine{00054\ \mbox{\hyperlink{EBGeometry__Transform_8hpp_ac88590a5e9b5399935be34a595593294}{Scale}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{a\_scale}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00061\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00062\ std::shared\_ptr<ImplicitFunction<T>>}
+\DoxyCodeLine{00063\ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a93e27974defb1010201e072ec8b58bb3}{Offset}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{a\_offset}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00070\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00071\ std::shared\_ptr<ImplicitFunction<T>>}
+\DoxyCodeLine{00072\ \mbox{\hyperlink{EBGeometry__Transform_8hpp_afc540523ccb4b113424870b13be05369}{Annular}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{a\_delta}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00073\ }
+\DoxyCodeLine{00079\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00080\ std::shared\_ptr<ImplicitFunction<T>>}
+\DoxyCodeLine{00081\ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a7c350fc4293a3186c7396748d0e04409}{Blur}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{a\_blurDistance}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00089\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00090\ std::shared\_ptr<ImplicitFunction<T>>}
+\DoxyCodeLine{00091\ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a26439546cd6e66946b3df4c646ec1405}{Mollify}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},}
+\DoxyCodeLine{00092\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_dist}},}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_mollifierSamples}}\ =\ 2)\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00100\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00101\ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<\mbox{\hyperlink{classVec3T}{T}}>>}
+\DoxyCodeLine{00102\ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a3440983aac141e5958e1bc6b2c2caa94}{Elongate}}(\mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<\mbox{\hyperlink{classVec3T}{T}}>>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_elongation}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00103\ }
+\DoxyCodeLine{00109\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00110\ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<\mbox{\hyperlink{classVec3T}{T}}>>}
+\DoxyCodeLine{00111\ \mbox{\hyperlink{EBGeometry__Transform_8hpp_a0f58fa8985d53bad23fbdea5789804f1}{Reflect}}(\mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<\mbox{\hyperlink{classVec3T}{T}}>>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},\ \mbox{\hyperlink{classVec3T}{const}}\ \textcolor{keywordtype}{size\_t}\&\ \mbox{\hyperlink{classVec3T}{a\_reflectPlane}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00116\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00117\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classComplementIF}{ComplementIF}}\ :\ \mbox{\hyperlink{classVec3T}{public}}\ \mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00118\ \{}
+\DoxyCodeLine{00119\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00123\ \ \ \mbox{\hyperlink{classComplementIF_ab87844b4c027641778fc23b018105dc4}{ComplementIF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00124\ }
+\DoxyCodeLine{00129\ \ \ \mbox{\hyperlink{classComplementIF_a45871a99d3dee4a208f756d2e28263d0}{ComplementIF}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00130\ }
+\DoxyCodeLine{00134\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classComplementIF_a6ad4a5e0689e4b90a44688e935388ff1}{\string~ComplementIF}}();}
+\DoxyCodeLine{00135\ }
+\DoxyCodeLine{00139\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00140\ \ \ \mbox{\hyperlink{classComplementIF_a922c5e2af86225eb0835d5b45bdba1fc}{value}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00141\ }
+\DoxyCodeLine{00142\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00146\ \ \ std::shared\_ptr<ImplicitFunction<T>>\ \mbox{\hyperlink{classComplementIF_a3eeccf1bd601dc98e9b256c4710e82b2}{m\_implicitFunction}};}
+\DoxyCodeLine{00147\ \};}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00152\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00153\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classTranslateIF}{TranslateIF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<T>}
+\DoxyCodeLine{00154\ \{}
+\DoxyCodeLine{00155\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00159\ \ \ \mbox{\hyperlink{classTranslateIF_a584cf2776c76f32a21bf3102b8ff2493}{TranslateIF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00160\ }
+\DoxyCodeLine{00166\ \ \ \mbox{\hyperlink{classTranslateIF_ad54ae6063784c02461a4cf21603c82ed}{TranslateIF}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_shift}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00167\ }
+\DoxyCodeLine{00171\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classTranslateIF_a2397e83bb51308629789e0ed6471a14c}{\string~TranslateIF}}();}
+\DoxyCodeLine{00172\ }
+\DoxyCodeLine{00176\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00177\ \ \ \mbox{\hyperlink{classTranslateIF_a36a6e48613ce6fa2d29bd2e12ba96c3b}{value}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00178\ }
+\DoxyCodeLine{00179\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00183\ \ \ std::shared\_ptr<ImplicitFunction<T>>\ \mbox{\hyperlink{classTranslateIF_ac51f1a69fa997e4bbda8b03ebc8134c3}{m\_implicitFunction}};}
+\DoxyCodeLine{00184\ }
+\DoxyCodeLine{00188\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\ \mbox{\hyperlink{classTranslateIF_a1ccb33b9df01ab5a565430165b61f4da}{m\_shift}};}
+\DoxyCodeLine{00189\ \};}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00194\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00195\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classRotateIF}{RotateIF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<T>}
+\DoxyCodeLine{00196\ \{}
+\DoxyCodeLine{00197\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00201\ \ \ \mbox{\hyperlink{classRotateIF_a868f884ca14126ec8916e9d41c8fa331}{RotateIF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00209\ \ \ \mbox{\hyperlink{classRotateIF_aa6ee2542d7f5dbde2cf197a612549bfe}{RotateIF}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},}
+\DoxyCodeLine{00210\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_angle}},}
+\DoxyCodeLine{00211\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_axis}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00212\ }
+\DoxyCodeLine{00216\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classRotateIF_a06ed907af69212da7f9ffca8c194538e}{\string~RotateIF}}();}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00221\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00222\ \ \ \mbox{\hyperlink{classRotateIF_ae6429ba9d4d8fd8e722dcba85f1b7d73}{value}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00223\ }
+\DoxyCodeLine{00224\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00228\ \ \ std::shared\_ptr<ImplicitFunction<T>>\ \mbox{\hyperlink{classRotateIF_a2f6b7cd9df900bc9ad917270770a1a84}{m\_implicitFunction}};}
+\DoxyCodeLine{00229\ }
+\DoxyCodeLine{00233\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classRotateIF_ae5eab2b16e5315d1fd47b6a561213881}{m\_axis}};}
+\DoxyCodeLine{00234\ }
+\DoxyCodeLine{00238\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classRotateIF_a91be042fbc386a6b658bd35fbbbee362}{m\_angle}};}
+\DoxyCodeLine{00239\ }
+\DoxyCodeLine{00243\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classRotateIF_ac4b4270a61d57374886d53a6d6cf0095}{m\_cosAngle}};}
+\DoxyCodeLine{00244\ }
+\DoxyCodeLine{00248\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classRotateIF_a206601f84d33476fe6975b935f1cdae1}{m\_sinAngle}};}
+\DoxyCodeLine{00249\ \};}
+\DoxyCodeLine{00250\ }
+\DoxyCodeLine{00254\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00255\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classOffsetIF}{OffsetIF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<T>}
+\DoxyCodeLine{00256\ \{}
+\DoxyCodeLine{00257\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00261\ \ \ \mbox{\hyperlink{classOffsetIF_adce918bad655eb62d8e2c133621ec602}{OffsetIF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00262\ }
+\DoxyCodeLine{00268\ \ \ \mbox{\hyperlink{classOffsetIF_a0711a5a9706b83c87733d22f96cf9885}{OffsetIF}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{a\_offset}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00269\ }
+\DoxyCodeLine{00273\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classOffsetIF_aa4d4c28214f7b0ba8f8494bcd1c8af9a}{\string~OffsetIF}}();}
+\DoxyCodeLine{00274\ }
+\DoxyCodeLine{00278\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00279\ \ \ \mbox{\hyperlink{classOffsetIF_aebf5318998fe4150c93107f43f752fc9}{value}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00280\ }
+\DoxyCodeLine{00281\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00285\ \ \ std::shared\_ptr<ImplicitFunction<T>>\ \mbox{\hyperlink{classOffsetIF_a740bae15d51a9490b9dec49cfbbeff4b}{m\_implicitFunction}};}
+\DoxyCodeLine{00286\ }
+\DoxyCodeLine{00290\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classOffsetIF_ab9be5afbf362019d352c21c0dc255cdb}{m\_offset}};}
+\DoxyCodeLine{00291\ \};}
+\DoxyCodeLine{00292\ }
+\DoxyCodeLine{00296\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00297\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classScaleIF}{ScaleIF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<T>}
+\DoxyCodeLine{00298\ \{}
+\DoxyCodeLine{00299\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00303\ \ \ \mbox{\hyperlink{classScaleIF_a8cd39a3aa2e38241491fc1524f246efa}{ScaleIF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00304\ }
+\DoxyCodeLine{00310\ \ \ \mbox{\hyperlink{classScaleIF_af25993d77e65ba5bef54e7e8754b7053}{ScaleIF}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{a\_scale}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00311\ }
+\DoxyCodeLine{00315\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classScaleIF_abb7c93cf82814f5b29021fc3430c834b}{\string~ScaleIF}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00316\ }
+\DoxyCodeLine{00321\ \ \ \mbox{\hyperlink{classVec3T}{virtual}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00322\ \ \ \mbox{\hyperlink{classScaleIF_a358197feb46e689351b8fa33074815a2}{value}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}}\ \mbox{\hyperlink{classVec3T}{override}};}
+\DoxyCodeLine{00323\ }
+\DoxyCodeLine{00324\ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00328\ \ \ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<\mbox{\hyperlink{classVec3T}{T}}>>\ \mbox{\hyperlink{classScaleIF_a981319cf65d6479449b1444304ba2ec2}{m\_implicitFunction}};}
+\DoxyCodeLine{00329\ }
+\DoxyCodeLine{00333\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classScaleIF_a056da7644722339795059d214453bc05}{m\_scale}};}
+\DoxyCodeLine{00334\ \};}
+\DoxyCodeLine{00335\ }
+\DoxyCodeLine{00339\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00340\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classAnnularIF}{AnnularIF}}\ :\ \mbox{\hyperlink{classVec3T}{public}}\ \mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00341\ \{}
+\DoxyCodeLine{00342\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00346\ \ \ \mbox{\hyperlink{classAnnularIF_a9c49bab6518c13dccf77fbdd1c54bcde}{AnnularIF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00347\ }
+\DoxyCodeLine{00353\ \ \ \mbox{\hyperlink{classAnnularIF_a0db2fa6bdc367165f2de7a568333752b}{AnnularIF}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{a\_delta}});}
+\DoxyCodeLine{00354\ }
+\DoxyCodeLine{00358\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classAnnularIF_acfdcfe298b74dde5c53d9bce8b9b3d1c}{\string~AnnularIF}}();}
+\DoxyCodeLine{00359\ }
+\DoxyCodeLine{00364\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00365\ \ \ \mbox{\hyperlink{classAnnularIF_a0259d2d361f9d07f3cc259bac424b8ef}{value}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00366\ }
+\DoxyCodeLine{00367\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00371\ \ \ std::shared\_ptr<const\ ImplicitFunction<T>>\ \mbox{\hyperlink{classAnnularIF_a07f482f9a7a44e9946a0ca994acd6ecb}{m\_implicitFunction}};}
+\DoxyCodeLine{00372\ }
+\DoxyCodeLine{00376\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classAnnularIF_a6023ea880d6666a556e3e263c8506aab}{m\_delta}};}
+\DoxyCodeLine{00377\ \};}
+\DoxyCodeLine{00378\ }
+\DoxyCodeLine{00385\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00386\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classBlurIF}{BlurIF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<T>}
+\DoxyCodeLine{00387\ \{}
+\DoxyCodeLine{00388\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00392\ \ \ \mbox{\hyperlink{classBlurIF_a8882abc41882b09b8a8ab5ca01fb378c}{BlurIF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00393\ }
+\DoxyCodeLine{00400\ \ \ \mbox{\hyperlink{classBlurIF_acdf935a4de73dd6aba977019bdb9f545}{BlurIF}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},}
+\DoxyCodeLine{00401\ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_blurDistance}},}
+\DoxyCodeLine{00402\ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_alpha}}\ =\ 0.5)\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00403\ }
+\DoxyCodeLine{00407\ \ \ \mbox{\hyperlink{classVec3T}{virtual}}\ \string~\mbox{\hyperlink{classBlurIF}{BlurIF}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00408\ }
+\DoxyCodeLine{00413\ \ \ \mbox{\hyperlink{classVec3T}{virtual}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00414\ \ \ value(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}}\ \mbox{\hyperlink{classVec3T}{override}};}
+\DoxyCodeLine{00415\ }
+\DoxyCodeLine{00416\ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00420\ \ \ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<\mbox{\hyperlink{classVec3T}{T}}>>\ m\_implicitFunction;}
+\DoxyCodeLine{00421\ }
+\DoxyCodeLine{00425\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ m\_blurDistance;}
+\DoxyCodeLine{00426\ }
+\DoxyCodeLine{00430\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ m\_alpha;}
+\DoxyCodeLine{00431\ \};}
+\DoxyCodeLine{00432\ }
+\DoxyCodeLine{00436\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00437\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classMollifyIF}{MollifyIF}}\ :\ \mbox{\hyperlink{classVec3T}{public}}\ \mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00438\ \{}
+\DoxyCodeLine{00439\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00443\ \ \ \mbox{\hyperlink{classMollifyIF_aec9606ccf33996e7f38b66fb4261e024}{MollifyIF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00444\ }
+\DoxyCodeLine{00452\ \ \ \mbox{\hyperlink{classMollifyIF_af25cec1030c73b29b6d6d5352cde1cff}{MollifyIF}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},}
+\DoxyCodeLine{00453\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_mollifier}},}
+\DoxyCodeLine{00454\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_maxValue}},}
+\DoxyCodeLine{00455\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_numPoints}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00456\ }
+\DoxyCodeLine{00460\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classMollifyIF_aca5b8c7bc1c3b6c9db6076e633022443}{\string~MollifyIF}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00461\ }
+\DoxyCodeLine{00466\ \ \ \mbox{\hyperlink{classVec3T}{virtual}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00467\ \ \ value(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}}\ \mbox{\hyperlink{classVec3T}{override}};}
+\DoxyCodeLine{00468\ }
+\DoxyCodeLine{00469\ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00473\ \ \ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<\mbox{\hyperlink{classVec3T}{T}}>>\ m\_implicitFunction;}
+\DoxyCodeLine{00474\ }
+\DoxyCodeLine{00478\ \ \ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<\mbox{\hyperlink{classVec3T}{T}}>>\ m\_mollifier;}
+\DoxyCodeLine{00479\ }
+\DoxyCodeLine{00483\ \ \ std::\mbox{\hyperlink{classVec3T}{vector}}<std::\mbox{\hyperlink{classVec3T}{pair}}<\mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>,\ \mbox{\hyperlink{classVec3T}{T}}>>\ m\_sampledMollifier;}
+\DoxyCodeLine{00484\ \};}
+\DoxyCodeLine{00485\ }
+\DoxyCodeLine{00489\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00490\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classElongateIF}{ElongateIF}}\ :\ \mbox{\hyperlink{classVec3T}{public}}\ \mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00491\ \{}
+\DoxyCodeLine{00492\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00496\ \ \ \mbox{\hyperlink{classElongateIF_a3a79aab1e41b5e88433d18a836c566f4}{ElongateIF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00497\ }
+\DoxyCodeLine{00503\ \ \ \mbox{\hyperlink{classElongateIF_a52a5d9fa25e584c5586ca4a30d35f5ff}{ElongateIF}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_elongation}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00504\ }
+\DoxyCodeLine{00508\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classElongateIF_a31d68f0f0cf54ebeb3957bcd430b37c9}{\string~ElongateIF}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00509\ }
+\DoxyCodeLine{00514\ \ \ \mbox{\hyperlink{classVec3T}{virtual}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00515\ \ \ value(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}}\ \mbox{\hyperlink{classVec3T}{override}};}
+\DoxyCodeLine{00516\ }
+\DoxyCodeLine{00517\ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00521\ \ \ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<\mbox{\hyperlink{classVec3T}{T}}>>\ m\_implicitFunction;}
+\DoxyCodeLine{00522\ }
+\DoxyCodeLine{00526\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\ m\_elongation;}
+\DoxyCodeLine{00527\ \};}
+\DoxyCodeLine{00528\ }
+\DoxyCodeLine{00532\ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00533\ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classReflectIF}{ReflectIF}}\ :\ \mbox{\hyperlink{classVec3T}{public}}\ \mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<\mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00534\ \{}
+\DoxyCodeLine{00535\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00539\ \ \ \mbox{\hyperlink{classReflectIF_af7d90310b8ffd5d7bb2bdd898d12750b}{ReflectIF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00540\ }
+\DoxyCodeLine{00546\ \ \ \mbox{\hyperlink{classReflectIF_abf07a28439edac54652d642d7cd50536}{ReflectIF}}(\textcolor{keyword}{const}\ std::shared\_ptr<\mbox{\hyperlink{classVec3T}{ImplicitFunction<T>}}>\&\ \mbox{\hyperlink{classVec3T}{a\_implicitFunction}},\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\&\ \mbox{\hyperlink{classVec3T}{a\_reflectPlane}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00547\ }
+\DoxyCodeLine{00551\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classReflectIF_a3d30ee709ab8cba1ea049aaa23c92ca8}{\string~ReflectIF}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00552\ }
+\DoxyCodeLine{00557\ \ \ \mbox{\hyperlink{classVec3T}{virtual}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00558\ \ \ value(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}}\ \mbox{\hyperlink{classVec3T}{override}};}
+\DoxyCodeLine{00559\ }
+\DoxyCodeLine{00560\ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00564\ \ \ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classImplicitFunction}{ImplicitFunction}}<\mbox{\hyperlink{classVec3T}{T}}>>\ m\_implicitFunction;}
+\DoxyCodeLine{00565\ }
+\DoxyCodeLine{00569\ \ \ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\ m\_reflectParams;}
+\DoxyCodeLine{00570\ \};}
+\DoxyCodeLine{00571\ }
+\DoxyCodeLine{00572\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_NamespaceFooter.hpp"{}}}
+\DoxyCodeLine{00573\ }
+\DoxyCodeLine{00574\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_TransformImplem.hpp"{}}}
+\DoxyCodeLine{00575\ }
+\DoxyCodeLine{00576\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

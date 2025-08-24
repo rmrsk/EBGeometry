@@ -1,0 +1,193 @@
+\doxysection{Fast\+Tri\+Mesh\+SDF\texorpdfstring{$<$}{<} T, Meta, BV, K \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classFastTriMeshSDF}{}\label{classFastTriMeshSDF}\index{FastTriMeshSDF$<$ T, Meta, BV, K $>$@{FastTriMeshSDF$<$ T, Meta, BV, K $>$}}
+
+
+Signed distance function for a triangle mesh. This class uses the full \doxylink{namespaceBVH}{BVH} representation.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Mesh\+Distance\+Functions.\+hpp$>$}
+
+
+
+Inheritance diagram for Fast\+Tri\+Mesh\+SDF\texorpdfstring{$<$}{<} T, Meta, BV, K \texorpdfstring{$>$}{>}\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classFastTriMeshSDF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Fast\+Tri\+Mesh\+SDF\texorpdfstring{$<$}{<} T, Meta, BV, K \texorpdfstring{$>$}{>}\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classFastTriMeshSDF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classFastTriMeshSDF_a27512e51f6ecdac0a8e1bb79a6c8f9c8}\label{classFastTriMeshSDF_a27512e51f6ecdac0a8e1bb79a6c8f9c8} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Mesh} = EBGeometry\+::\+DCEL\+::\+MeshT$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$
+\begin{DoxyCompactList}\small\item\em Alias for \doxylink{namespaceDCEL}{DCEL} mesh type. \end{DoxyCompactList}\item 
+\Hypertarget{classFastTriMeshSDF_adb1a16ebd7671cf5247994e87853db5e}\label{classFastTriMeshSDF_adb1a16ebd7671cf5247994e87853db5e} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Tri} = \mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$
+\begin{DoxyCompactList}\small\item\em Alias for \doxylink{namespaceDCEL}{DCEL} face type. \end{DoxyCompactList}\item 
+\Hypertarget{classFastTriMeshSDF_a89d8676ba95d21981962312fa55f1ef5}\label{classFastTriMeshSDF_a89d8676ba95d21981962312fa55f1ef5} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Root} = \mbox{\hyperlink{classVec3T}{typename}} EBGeometry\+::\+BVH\+::\+Linear\+BVH$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classFastTriMeshSDF_adb1a16ebd7671cf5247994e87853db5e}{Tri}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$
+\begin{DoxyCompactList}\small\item\em Alias for which \doxylink{namespaceBVH}{BVH} root node. \end{DoxyCompactList}\item 
+\Hypertarget{classFastTriMeshSDF_af62a17c0076167db4f47e31aa1ff441e}\label{classFastTriMeshSDF_af62a17c0076167db4f47e31aa1ff441e} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Node} = \mbox{\hyperlink{classVec3T}{typename}} Root\+::\+Linear\+Node
+\begin{DoxyCompactList}\small\item\em Alias for linearized \doxylink{namespaceBVH}{BVH}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classFastTriMeshSDF_a7f723ab07c1cd50e58c2c7b8ae559916}\label{classFastTriMeshSDF_a7f723ab07c1cd50e58c2c7b8ae559916} 
+{\bfseries Fast\+Tri\+Mesh\+SDF} ()=\mbox{\hyperlink{classVec3T}{delete}}
+\begin{DoxyCompactList}\small\item\em Default disallowed constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classFastTriMeshSDF_a9107574a71735c81d0f4a37f11ab2e90}{Fast\+Tri\+Mesh\+SDF}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastTriMeshSDF_a27512e51f6ecdac0a8e1bb79a6c8f9c8}{Mesh}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+mesh}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH\+::\+Build}} \mbox{\hyperlink{classVec3T}{a\+\_\+build}}=BVH\+::\+Build\+::\+Top\+Down) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Full constructor. Takes a \doxylink{namespaceDCEL}{DCEL} mesh and creates the input triangles. Then creates the \doxylink{namespaceBVH}{BVH}. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classFastTriMeshSDF_a5574bcd14f832d167b8b185be9452d12}{Fast\+Tri\+Mesh\+SDF}} (\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastTriMeshSDF_adb1a16ebd7671cf5247994e87853db5e}{Tri}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+triangles}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH\+::\+Build}} \mbox{\hyperlink{classVec3T}{a\+\_\+build}}=BVH\+::\+Build\+::\+Top\+Down) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Full constructor. Takes the input triangles and creates the \doxylink{namespaceBVH}{BVH}. \end{DoxyCompactList}\item 
+\Hypertarget{classFastTriMeshSDF_a1dc2b41d9e9855d8c4fe5fe4ef9539ce}\label{classFastTriMeshSDF_a1dc2b41d9e9855d8c4fe5fe4ef9539ce} 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Fast\+Tri\+Mesh\+SDF} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classFastTriMeshSDF_a9715d836498503de5b5f718a2dee5d0d}{signed\+Distance}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}} \mbox{\hyperlink{classVec3T}{override}}
+\begin{DoxyCompactList}\small\item\em Value function. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classFastTriMeshSDF_adb1a16ebd7671cf5247994e87853db5e}{Tri}} $>$, \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{classFastTriMeshSDF_a0038313c96a957a322beaa0b1d906f37}{get\+Closest\+Triangles}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classVec3T}{a\+\_\+sorted}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the closest triangles to the input point. \end{DoxyCompactList}\item 
+\Hypertarget{classFastTriMeshSDF_a4accba5e4df7dbcdc4e5c8b507b466ef}\label{classFastTriMeshSDF_a4accba5e4df7dbcdc4e5c8b507b466ef} 
+\mbox{\hyperlink{classVec3T}{virtual}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastTriMeshSDF_a89d8676ba95d21981962312fa55f1ef5}{Root}} $>$ \& {\bfseries get\+Root} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the bounding volume hierarchy enclosing the mesh. \end{DoxyCompactList}\item 
+\Hypertarget{classFastTriMeshSDF_a0904fa15cd43d9384c1a02d78b5c920c}\label{classFastTriMeshSDF_a0904fa15cd43d9384c1a02d78b5c920c} 
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastTriMeshSDF_a89d8676ba95d21981962312fa55f1ef5}{Root}} $>$ \& {\bfseries get\+Root} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the bounding volume hierarchy enclosing the mesh. \end{DoxyCompactList}\item 
+\Hypertarget{classFastTriMeshSDF_af069d4282c563db73aaba68131c62686}\label{classFastTriMeshSDF_af069d4282c563db73aaba68131c62686} 
+\mbox{\hyperlink{classVec3T}{BV}} {\bfseries compute\+Bounding\+Volume} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Compute bounding volume for this mesh. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classSignedDistanceFunction}{Signed\+Distance\+Function$<$ T $>$}}}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries Signed\+Distance\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Signed\+Distance\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classSignedDistanceFunction_a76f283b0c732de5a71faa665a97530f2}{value}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}} \mbox{\hyperlink{classVec3T}{override}} \mbox{\hyperlink{classVec3T}{final}}
+\begin{DoxyCompactList}\small\item\em Implementation of \doxylink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function\+::value}. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classSignedDistanceFunction_aa8c8f6bd9788f107f60fd7781fb16d19}{normal}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+delta}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Signed distance normal vector. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function$<$ T $>$}}}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classImplicitFunction_a361afffb3619a6e06172bdef96c41b91}{operator()}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Alternative signature for the value function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} $>$ }\\\mbox{\hyperlink{classVec3T}{BV}} \mbox{\hyperlink{classImplicitFunction_a844c5123cf9cbad3a140fc40494b4071}{approximate\+Bounding\+Volume\+Octree}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+Low\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+High\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{unsigned}} \mbox{\hyperlink{classVec3T}{int}} \mbox{\hyperlink{classVec3T}{a\+\_\+max\+Tree\+Depth}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+safety}}=0.\+0) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Compute an approximation to the bounding volume for the implicit surface, using octrees. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classFastTriMeshSDF_a754f16e9bca95a34607e3facd402ced5}\label{classFastTriMeshSDF_a754f16e9bca95a34607e3facd402ced5} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastTriMeshSDF_a89d8676ba95d21981962312fa55f1ef5}{Root}} $>$ {\bfseries m\+\_\+bvh}
+\begin{DoxyCompactList}\small\item\em Bounding volume hierarchy. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$\newline
+class Fast\+Tri\+Mesh\+SDF$<$ T, Meta, BV, K $>$}
+Signed distance function for a triangle mesh. This class uses the full \doxylink{namespaceBVH}{BVH} representation. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{classFastTriMeshSDF_a9107574a71735c81d0f4a37f11ab2e90}\label{classFastTriMeshSDF_a9107574a71735c81d0f4a37f11ab2e90} 
+\index{FastTriMeshSDF$<$ T, Meta, BV, K $>$@{FastTriMeshSDF$<$ T, Meta, BV, K $>$}!FastTriMeshSDF@{FastTriMeshSDF}}
+\index{FastTriMeshSDF@{FastTriMeshSDF}!FastTriMeshSDF$<$ T, Meta, BV, K $>$@{FastTriMeshSDF$<$ T, Meta, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{FastTriMeshSDF()}{FastTriMeshSDF()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ \\
+\mbox{\hyperlink{classFastTriMeshSDF}{Fast\+Tri\+Mesh\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$\mbox{\hyperlink{classFastTriMeshSDF}{\+::\+Fast\+Tri\+Mesh\+SDF}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastTriMeshSDF_a27512e51f6ecdac0a8e1bb79a6c8f9c8}{Mesh}} $>$ \&}]{a\+\_\+mesh,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH\+::\+Build}}}]{a\+\_\+build = {\ttfamily BVH\+:\+:Build\+:\+:TopDown} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. Takes a \doxylink{namespaceDCEL}{DCEL} mesh and creates the input triangles. Then creates the \doxylink{namespaceBVH}{BVH}. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+mesh} & \doxylink{namespaceDCEL}{DCEL} mesh \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+build} & Specification of build method. Must be Top\+Down, Morton, or Nested. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classFastTriMeshSDF_a5574bcd14f832d167b8b185be9452d12}\label{classFastTriMeshSDF_a5574bcd14f832d167b8b185be9452d12} 
+\index{FastTriMeshSDF$<$ T, Meta, BV, K $>$@{FastTriMeshSDF$<$ T, Meta, BV, K $>$}!FastTriMeshSDF@{FastTriMeshSDF}}
+\index{FastTriMeshSDF@{FastTriMeshSDF}!FastTriMeshSDF$<$ T, Meta, BV, K $>$@{FastTriMeshSDF$<$ T, Meta, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{FastTriMeshSDF()}{FastTriMeshSDF()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ \\
+\mbox{\hyperlink{classFastTriMeshSDF}{Fast\+Tri\+Mesh\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$\mbox{\hyperlink{classFastTriMeshSDF}{\+::\+Fast\+Tri\+Mesh\+SDF}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classFastTriMeshSDF_adb1a16ebd7671cf5247994e87853db5e}{Tri}} $>$ $>$ \&}]{a\+\_\+triangles,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{namespaceBVH_a6f2491cf571e9012cb840916ab730688}{BVH\+::\+Build}}}]{a\+\_\+build = {\ttfamily BVH\+:\+:Build\+:\+:TopDown} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. Takes the input triangles and creates the \doxylink{namespaceBVH}{BVH}. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+triangles} & Input triangle soup \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+build} & Specification of build method. Must be Top\+Down, Morton, or Nested. \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classFastTriMeshSDF_a0038313c96a957a322beaa0b1d906f37}\label{classFastTriMeshSDF_a0038313c96a957a322beaa0b1d906f37} 
+\index{FastTriMeshSDF$<$ T, Meta, BV, K $>$@{FastTriMeshSDF$<$ T, Meta, BV, K $>$}!getClosestTriangles@{getClosestTriangles}}
+\index{getClosestTriangles@{getClosestTriangles}!FastTriMeshSDF$<$ T, Meta, BV, K $>$@{FastTriMeshSDF$<$ T, Meta, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{getClosestTriangles()}{getClosestTriangles()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ \\
+\mbox{\hyperlink{classVec3T}{virtual}} std\+::vector$<$ std\+::pair$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classFastTriMeshSDF_adb1a16ebd7671cf5247994e87853db5e}{Tri}} $>$, \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{classFastTriMeshSDF}{Fast\+Tri\+Mesh\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$\+::get\+Closest\+Triangles (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+point,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{bool}}}]{a\+\_\+sorted }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Get the closest triangles to the input point. 
+
+This returns a list of candidate triangles that are close to the input point. The returned argment consists of the triangles and the unsigned distance to the triangles. 
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Input point \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+sorted} & Sort the output vector by distance or not. Closest go first. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+List of candidate triangles (potentially sorted) 
+\end{DoxyReturn}
+\Hypertarget{classFastTriMeshSDF_a9715d836498503de5b5f718a2dee5d0d}\label{classFastTriMeshSDF_a9715d836498503de5b5f718a2dee5d0d} 
+\index{FastTriMeshSDF$<$ T, Meta, BV, K $>$@{FastTriMeshSDF$<$ T, Meta, BV, K $>$}!signedDistance@{signedDistance}}
+\index{signedDistance@{signedDistance}!FastTriMeshSDF$<$ T, Meta, BV, K $>$@{FastTriMeshSDF$<$ T, Meta, BV, K $>$}}
+\doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ \\
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classFastTriMeshSDF}{Fast\+Tri\+Mesh\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}}, \mbox{\hyperlink{classVec3T}{BV}}, \mbox{\hyperlink{classVec3T}{K}} $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Value function. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Input point. \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{Signed\+Distance\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__MeshDistanceFunctions_8hpp}{EBGeometry\+\_\+\+Mesh\+Distance\+Functions.\+hpp}}\end{DoxyCompactItemize}

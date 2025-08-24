@@ -1,5 +1,5 @@
-\hypertarget{EBGeometry__BoundingVolumes_8hpp}{}\doxysection{/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\+EBGeometry\+\_\+\+Bounding\+Volumes.hpp File Reference}
-\label{EBGeometry__BoundingVolumes_8hpp}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_BoundingVolumes.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_BoundingVolumes.hpp}}
+\doxysection{/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\+EBGeometry\+\_\+\+Bounding\+Volumes.hpp File Reference}
+\hypertarget{EBGeometry__BoundingVolumes_8hpp}{}\label{EBGeometry__BoundingVolumes_8hpp}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_BoundingVolumes.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_BoundingVolumes.hpp}}
 
 
 Declaration of a various bounding volumes used for bounding volume hierarchy.  
@@ -7,10 +7,10 @@ Declaration of a various bounding volumes used for bounding volume hierarchy.
 
 {\ttfamily \#include $<$vector$>$}\newline
 {\ttfamily \#include $<$iostream$>$}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Vec.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Namespace\+Header.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Namespace\+Footer.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Bounding\+Volumes\+Implem.\+hpp\char`\"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Vec.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Header.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Footer.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Bounding\+Volumes\+Implem.\+hpp"{}}\newline
 Include dependency graph for EBGeometry\+\_\+\+Bounding\+Volumes.\+hpp\+:
 \nopagebreak
 \begin{figure}[H]
@@ -27,28 +27,28 @@ This graph shows which files directly or indirectly include this file\+:
 \includegraphics[width=350pt]{EBGeometry__BoundingVolumes_8hpp__dep__incl}
 \end{center}
 \end{figure}
-\doxysubsection*{Classes}
+\doxysubsubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
 class \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+Volumes\+::\+Bounding\+Sphere\+T$<$ T $>$}}
 \begin{DoxyCompactList}\small\item\em Class which encloses a set of points using a bounding sphere. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{Bounding\+Volumes\+::\+AABBT$<$ T $>$}}
 \begin{DoxyCompactList}\small\item\em Axis-\/aligned bounding box as bounding volume. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Namespaces}
+\doxysubsubsection*{Namespaces}
 \begin{DoxyCompactItemize}
 \item 
- \mbox{\hyperlink{namespaceBoundingVolumes}{Bounding\+Volumes}}
+namespace \mbox{\hyperlink{namespaceBoundingVolumes}{Bounding\+Volumes}}
 \begin{DoxyCompactList}\small\item\em Namespace for encapsulating various bounding volumes for usage with BVHs. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Functions}
+\doxysubsubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
-{\footnotesize template$<$class T $>$ }\\bool \mbox{\hyperlink{namespaceBoundingVolumes_af35f33c5f319a466550d9ad1040beced}{Bounding\+Volumes\+::intersects}} (const Bounding\+SphereT$<$ T $>$ \&a\+\_\+u, const Bounding\+SphereT$<$ T $>$ \&a\+\_\+v) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{namespaceBoundingVolumes_af35f33c5f319a466550d9ad1040beced}{Bounding\+Volumes\+::intersects}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+u}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+v}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Intersection method for testing if two bounding spheres overlap. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\bool \mbox{\hyperlink{namespaceBoundingVolumes_a5c360ccd42017c01acbe1caf2cfd1efe}{Bounding\+Volumes\+::intersects}} (const AABBT$<$ T $>$ \&a\+\_\+u, const AABBT$<$ T $>$ \&a\+\_\+v) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{namespaceBoundingVolumes_a5c360ccd42017c01acbe1caf2cfd1efe}{Bounding\+Volumes\+::intersects}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+u}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+v}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Intersection method for testing if two bounding boxes overlap. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\T \mbox{\hyperlink{namespaceBoundingVolumes_a4f159289c317e02beedb4b38136ad692}{Bounding\+Volumes\+::get\+Overlapping\+Volume}} (const Bounding\+SphereT$<$ T $>$ \&a\+\_\+u, const Bounding\+SphereT$<$ T $>$ \&a\+\_\+v) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{namespaceBoundingVolumes_a4f159289c317e02beedb4b38136ad692}{Bounding\+Volumes\+::get\+Overlapping\+Volume}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+u}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{Bounding\+SphereT}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+v}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Compute the overlapping volume between two bounding spheres. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\T \mbox{\hyperlink{namespaceBoundingVolumes_ae5716e39e88aaeec0c204f453cac2acd}{Bounding\+Volumes\+::get\+Overlapping\+Volume}} (const AABBT$<$ T $>$ \&a\+\_\+u, const AABBT$<$ T $>$ \&a\+\_\+v) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{namespaceBoundingVolumes_ae5716e39e88aaeec0c204f453cac2acd}{Bounding\+Volumes\+::get\+Overlapping\+Volume}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+u}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+v}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Compute the overlapping volume between two bounding boxes. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 

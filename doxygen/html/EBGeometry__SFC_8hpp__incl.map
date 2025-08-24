@@ -1,7 +1,11 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_SFC.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_SFC.hpp">
-<area shape="rect" id="node1" title="Declaration of various space&#45;filling curves." alt="" coords="248,5,491,61"/>
-<area shape="rect" id="node2" title=" " alt="" coords="5,109,72,136"/>
-<area shape="rect" id="node3" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="97,109,359,136"/>
-<area shape="rect" id="node4" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="384,109,640,136"/>
-<area shape="rect" id="node5" title=" " alt="" coords="665,109,879,136"/>
+<area shape="rect" id="Node000001" title="Declaration of various space&#45;filling curves." alt="" coords="248,5,491,60"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,108,72,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="269,63,86,110,85,105,268,57"/>
+<area shape="rect" id="Node000003" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="97,108,359,133"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="328,62,260,103,258,98,325,58"/>
+<area shape="rect" id="Node000004" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="384,108,640,133"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="414,58,483,99,480,103,412,62"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="665,108,879,133"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="491,57,705,103,704,108,490,62"/>
 </map>

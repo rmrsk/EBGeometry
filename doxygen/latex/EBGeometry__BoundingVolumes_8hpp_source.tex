@@ -1,0 +1,193 @@
+\doxysection{EBGeometry\+\_\+\+Bounding\+Volumes.\+hpp}
+\hypertarget{EBGeometry__BoundingVolumes_8hpp_source}{}\label{EBGeometry__BoundingVolumes_8hpp_source}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_BoundingVolumes.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_BoundingVolumes.hpp}}
+\mbox{\hyperlink{EBGeometry__BoundingVolumes_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*\ EBGeometry}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ Copyright\ ©\ 2022\ Robert\ Marskar}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ Please\ refer\ to\ Copyright.txt\ and\ LICENSE\ in\ the\ EBGeometry\ root\ directory.}}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#ifndef\ EBGeometry\_BoundingVolumes\_H}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#define\ EBGeometry\_BoundingVolumes\_H}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ Std\ includes}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <iostream>}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ Our\ includes}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__Vec_8hpp}{EBGeometry\_Vec.hpp}}"{}}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceHeader_8hpp}{EBGeometry\_NamespaceHeader.hpp}}"{}}}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00028\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceBoundingVolumes}{BoundingVolumes}}\ \{}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00035\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00036\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}}
+\DoxyCodeLine{00037\ \ \ \{}
+\DoxyCodeLine{00038\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00042\ \ \ \ \ \textcolor{keyword}{friend}\ std::ostream\&}
+\DoxyCodeLine{00043\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a25adc2589609371ae841fd4bc7edfc2f}{operator<<}}(std::ostream\&\ \mbox{\hyperlink{classVec3T}{os}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{BoundingSphereT<T>}}\&\ \mbox{\hyperlink{classVec3T}{sphere}})}
+\DoxyCodeLine{00044\ \ \ \ \ \{}
+\DoxyCodeLine{00045\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{os}}\ <<\ \textcolor{charliteral}{'('}\ <<\ \mbox{\hyperlink{classVec3T}{sphere}}.getCentroid()\ <<\ \textcolor{stringliteral}{"{},\ "{}}\ <<\ \mbox{\hyperlink{classVec3T}{sphere}}.getRadius()\ <<\ \textcolor{charliteral}{')'};}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{os}};}
+\DoxyCodeLine{00048\ \ \ \ \ \}}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00054\ \ \ \ \ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}{BoundingVolumeAlgorithm}}}
+\DoxyCodeLine{00055\ \ \ \ \ \{}
+\DoxyCodeLine{00056\ \ \ \ \ \ \ Ritter,}
+\DoxyCodeLine{00057\ \ \ \ \ \};}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Vec3}}\ =\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}};}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00067\ \ \ \ \ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a8e23ae827ad1f87f27ada16632ee0e78}{BoundingSphereT}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00074\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_center}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a\_radius}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00081\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}(\mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{vector}}<\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}<\mbox{\hyperlink{classVec3T}{T}}>>\&\ \mbox{\hyperlink{classVec3T}{a\_otherSpheres}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00087\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00088\ }
+\DoxyCodeLine{00097\ \ \ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{P}}>}
+\DoxyCodeLine{00098\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}(\mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{vector}}<\mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{P}}>>\&\ \ \ \mbox{\hyperlink{classVec3T}{a\_points}},}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}{BoundingVolumeAlgorithm}}\&\ \mbox{\hyperlink{classVec3T}{a\_alg}}\ =\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}{BoundingVolumeAlgorithm}}::Ritter)\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00104\ \ \ \ \ \mbox{\hyperlink{classVec3T}{virtual}}\ \string~\mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00105\ }
+\DoxyCodeLine{00110\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}\&}
+\DoxyCodeLine{00111\ \ \ \ \ \mbox{\hyperlink{classVec3T}{operator}}=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ =\ \mbox{\hyperlink{classVec3T}{default}};}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00120\ \ \ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{P}}>}
+\DoxyCodeLine{00121\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00122\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_aac21650a7d3f65081483512064cbcfa8}{define}}(\mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{vector}}<\mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{P}}>>\&\ \mbox{\hyperlink{classVec3T}{a\_points}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}{BoundingVolumeAlgorithm}}\&\ \mbox{\hyperlink{classVec3T}{a\_alg}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00129\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00130\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a90baad0c400aac7645a7e8c1ab13096a}{intersects}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00135\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}\&}
+\DoxyCodeLine{00136\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a8c4f10492e97aa460b1207f384e1c081}{getRadius}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00137\ }
+\DoxyCodeLine{00141\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{T}}\&}
+\DoxyCodeLine{00142\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a8c4f10492e97aa460b1207f384e1c081}{getRadius}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00143\ }
+\DoxyCodeLine{00147\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&}
+\DoxyCodeLine{00148\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ada59c2aa62b2d0e2e4013a7b811aedfe}{getCentroid}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00149\ }
+\DoxyCodeLine{00153\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&}
+\DoxyCodeLine{00154\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ada59c2aa62b2d0e2e4013a7b811aedfe}{getCentroid}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00155\ }
+\DoxyCodeLine{00162\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00163\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a4581b87c7a3ccd3b58168bfdae9436cb}{getOverlappingVolume}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00164\ }
+\DoxyCodeLine{00172\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00173\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a06ec858b7349e6a926ad476990c774cb}{getDistance}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&\ \mbox{\hyperlink{classVec3T}{a\_x0}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00174\ }
+\DoxyCodeLine{00179\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00180\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a44e0069495c19069fced07aab8e614c6}{getVolume}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00181\ }
+\DoxyCodeLine{00186\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00187\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a303fd50d1b8d27c7014c50ba0867a0b3}{getArea}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00188\ }
+\DoxyCodeLine{00189\ \ \ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00193\ \ \ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_adb424c867ed93cf5fdb62afe07a96a05}{m\_radius}};}
+\DoxyCodeLine{00194\ }
+\DoxyCodeLine{00198\ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ad65d5be68c4028651d959dc8b88fe944}{m\_center}};}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00204\ \ \ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{P}}>}
+\DoxyCodeLine{00205\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00206\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_abea0326be2d1843f3ad7c6de1ebe2418}{buildRitter}}(\mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{vector}}<\mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{P}}>>\&\ \mbox{\hyperlink{classVec3T}{a\_points}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00207\ \ \ \};}
+\DoxyCodeLine{00208\ }
+\DoxyCodeLine{00215\ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00216\ \ \ \mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}}
+\DoxyCodeLine{00217\ \ \ \{}
+\DoxyCodeLine{00218\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00222\ \ \ \ \ \textcolor{keyword}{friend}\ std::ostream\&}
+\DoxyCodeLine{00223\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a25adc2589609371ae841fd4bc7edfc2f}{operator<<}}(std::ostream\&\ \mbox{\hyperlink{classVec3T}{os}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{AABBT<T>}}\&\ \mbox{\hyperlink{classVec3T}{aabb}})}
+\DoxyCodeLine{00224\ \ \ \ \ \{}
+\DoxyCodeLine{00225\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{os}}\ <<\ \textcolor{charliteral}{'('}\ <<\ \mbox{\hyperlink{classVec3T}{aabb}}.getLowCorner()\ <<\ \textcolor{stringliteral}{"{},\ "{}}\ <<\ \mbox{\hyperlink{classVec3T}{aabb}}.getHighCorner()\ <<\ \textcolor{charliteral}{')'};}
+\DoxyCodeLine{00226\ }
+\DoxyCodeLine{00227\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{os}};}
+\DoxyCodeLine{00228\ \ \ \ \ \}}
+\DoxyCodeLine{00229\ }
+\DoxyCodeLine{00233\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Vec3}}\ =\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}};}
+\DoxyCodeLine{00234\ }
+\DoxyCodeLine{00238\ \ \ \ \ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT_a8bc8264ddbe93e8c31e71750bd520c04}{AABBT}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00239\ }
+\DoxyCodeLine{00245\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_lo}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_hi}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00246\ }
+\DoxyCodeLine{00251\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00252\ }
+\DoxyCodeLine{00258\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}(\mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{vector}}<\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}<\mbox{\hyperlink{classVec3T}{T}}>>\&\ \mbox{\hyperlink{classVec3T}{a\_others}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00259\ }
+\DoxyCodeLine{00266\ \ \ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{P}}>}
+\DoxyCodeLine{00267\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}(\mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{vector}}<\mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{P}}>>\&\ \mbox{\hyperlink{classVec3T}{a\_points}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00268\ }
+\DoxyCodeLine{00272\ \ \ \ \ \mbox{\hyperlink{classVec3T}{virtual}}\ \string~\mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00273\ }
+\DoxyCodeLine{00278\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}\&}
+\DoxyCodeLine{00279\ \ \ \ \ \mbox{\hyperlink{classVec3T}{operator}}=(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ =\ \mbox{\hyperlink{classVec3T}{default}};}
+\DoxyCodeLine{00280\ }
+\DoxyCodeLine{00286\ \ \ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{P}}>}
+\DoxyCodeLine{00287\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00288\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_aac21650a7d3f65081483512064cbcfa8}{define}}(\mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{vector}}<\mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{P}}>>\&\ \mbox{\hyperlink{classVec3T}{a\_points}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00289\ }
+\DoxyCodeLine{00295\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00296\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a90baad0c400aac7645a7e8c1ab13096a}{intersects}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00297\ }
+\DoxyCodeLine{00301\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00302\ \ \ \ \ getLowCorner()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00303\ }
+\DoxyCodeLine{00307\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00308\ \ \ \ \ getLowCorner()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00309\ }
+\DoxyCodeLine{00313\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00314\ \ \ \ \ getHighCorner()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00315\ }
+\DoxyCodeLine{00319\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>\&}
+\DoxyCodeLine{00320\ \ \ \ \ getHighCorner()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00321\ }
+\DoxyCodeLine{00325\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{Vec3}}}
+\DoxyCodeLine{00326\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ada59c2aa62b2d0e2e4013a7b811aedfe}{getCentroid}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00327\ }
+\DoxyCodeLine{00333\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00334\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a4581b87c7a3ccd3b58168bfdae9436cb}{getOverlappingVolume}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_other}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00335\ }
+\DoxyCodeLine{00343\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00344\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a06ec858b7349e6a926ad476990c774cb}{getDistance}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{Vec3}}\&\ \mbox{\hyperlink{classVec3T}{a\_x0}})\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00345\ }
+\DoxyCodeLine{00349\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00350\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a44e0069495c19069fced07aab8e614c6}{getVolume}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00351\ }
+\DoxyCodeLine{00355\ \ \ \ \ \mbox{\hyperlink{classVec3T}{inline}}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00356\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a303fd50d1b8d27c7014c50ba0867a0b3}{getArea}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00357\ }
+\DoxyCodeLine{00358\ \ \ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00362\ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3}}\ m\_loCorner;}
+\DoxyCodeLine{00363\ }
+\DoxyCodeLine{00367\ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3}}\ m\_hiCorner;}
+\DoxyCodeLine{00368\ \ \ \};}
+\DoxyCodeLine{00369\ }
+\DoxyCodeLine{00375\ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00376\ \ \ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00377\ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a90baad0c400aac7645a7e8c1ab13096a}{intersects}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_u}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_v}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00378\ }
+\DoxyCodeLine{00384\ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00385\ \ \ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00386\ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a90baad0c400aac7645a7e8c1ab13096a}{intersects}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_u}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_v}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00387\ }
+\DoxyCodeLine{00393\ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00394\ \ \ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00395\ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a4581b87c7a3ccd3b58168bfdae9436cb}{getOverlappingVolume}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_u}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT}{BoundingSphereT}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_v}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00396\ }
+\DoxyCodeLine{00402\ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{class}}\ \mbox{\hyperlink{classVec3T}{T}}>}
+\DoxyCodeLine{00403\ \ \ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{00404\ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a4581b87c7a3ccd3b58168bfdae9436cb}{getOverlappingVolume}}(\mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_u}},\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classBoundingVolumes_1_1AABBT}{AABBT}}<\mbox{\hyperlink{classVec3T}{T}}>\&\ \mbox{\hyperlink{classVec3T}{a\_v}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00405\ \}\ \textcolor{comment}{//\ namespace\ BoundingVolumes}}
+\DoxyCodeLine{00406\ }
+\DoxyCodeLine{00407\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_NamespaceFooter.hpp"{}}}
+\DoxyCodeLine{00408\ }
+\DoxyCodeLine{00409\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_BoundingVolumesImplem.hpp"{}}}
+\DoxyCodeLine{00410\ }
+\DoxyCodeLine{00411\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

@@ -1,5 +1,5 @@
-\hypertarget{classPerlinSDF}{}\doxysection{Perlin\+SDF$<$ T $>$ Class Template Reference}
-\label{classPerlinSDF}\index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
+\doxysection{Perlin\+SDF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classPerlinSDF}{}\label{classPerlinSDF}\index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
 
 
 Ken Perlins gradient noise function.  
@@ -11,7 +11,7 @@ Ken Perlins gradient noise function.
 
 
 
-Inheritance diagram for Perlin\+SDF$<$ T $>$\+:
+Inheritance diagram for Perlin\+SDF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>}\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -21,7 +21,7 @@ Inheritance diagram for Perlin\+SDF$<$ T $>$\+:
 \end{figure}
 
 
-Collaboration diagram for Perlin\+SDF$<$ T $>$\+:
+Collaboration diagram for Perlin\+SDF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>}\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -29,64 +29,85 @@ Collaboration diagram for Perlin\+SDF$<$ T $>$\+:
 \includegraphics[width=242pt]{classPerlinSDF__coll__graph}
 \end{center}
 \end{figure}
-\doxysubsection*{Public Member Functions}
+\doxysubsubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\hyperlink{classPerlinSDF_a5e17712af08f5f6360ef5290736d00f9}{Perlin\+SDF}} (const T a\+\_\+noise\+Amplitude, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ a\+\_\+noise\+Frequency, const T a\+\_\+noise\+Persistence, const unsigned int a\+\_\+noise\+Octaves) noexcept
+\mbox{\hyperlink{classPerlinSDF_a5e17712af08f5f6360ef5290736d00f9}{Perlin\+SDF}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+noise\+Amplitude}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classVec3T}{a\+\_\+noise\+Frequency}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+noise\+Persistence}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{unsigned}} \mbox{\hyperlink{classVec3T}{int}} \mbox{\hyperlink{classVec3T}{a\+\_\+noise\+Octaves}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classPerlinSDF_a515932653d4f38a7511c5488f74122c3}\label{classPerlinSDF_a515932653d4f38a7511c5488f74122c3}} 
-virtual \mbox{\hyperlink{classPerlinSDF_a515932653d4f38a7511c5488f74122c3}{$\sim$\+Perlin\+SDF}} () noexcept
+\Hypertarget{classPerlinSDF_a515932653d4f38a7511c5488f74122c3}\label{classPerlinSDF_a515932653d4f38a7511c5488f74122c3} 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Perlin\+SDF} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
-virtual T \mbox{\hyperlink{classPerlinSDF_ae09237cf05912698478602e4ddbeb228}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classPerlinSDF_ae09237cf05912698478602e4ddbeb228}{signed\+Distance}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}} \mbox{\hyperlink{classVec3T}{override}}
 \begin{DoxyCompactList}\small\item\em Signed distance function. Generates a distance on \mbox{[}0,cur\+Amplitude\mbox{]}. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class URNG $>$ }\\void \mbox{\hyperlink{classPerlinSDF_a03a95e8290a0b42c16e7666446909c70}{shuffle}} (URNG \&g) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{URNG}} $>$ }\\\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classPerlinSDF_a03a95e8290a0b42c16e7666446909c70}{shuffle}} (\mbox{\hyperlink{classVec3T}{URNG}} \&\mbox{\hyperlink{classVec3T}{g}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Shuffle the permutation with the input RNG. \end{DoxyCompactList}\item 
-std\+::array$<$ int, 512 $>$ \& \mbox{\hyperlink{classPerlinSDF_a8197aab12159714a62fd372394e30e54}{get\+Permutation\+Table}} () noexcept
+std\+::array$<$ \mbox{\hyperlink{classVec3T}{int}}, 512 $>$ \& \mbox{\hyperlink{classPerlinSDF_aa954ad59e856f28603221c574cc1415e}{get\+Permutation\+Table}} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Get the internal permutation table. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Member Functions}
+\doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classSignedDistanceFunction}{Signed\+Distance\+Function$<$ T $>$}}}
 \begin{DoxyCompactItemize}
 \item 
-virtual T \mbox{\hyperlink{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}{lerp}} (const T t, const T a, const T b) const noexcept
+{\bfseries Signed\+Distance\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Signed\+Distance\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classSignedDistanceFunction_a76f283b0c732de5a71faa665a97530f2}{value}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}} \mbox{\hyperlink{classVec3T}{override}} \mbox{\hyperlink{classVec3T}{final}}
+\begin{DoxyCompactList}\small\item\em Implementation of \doxylink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function\+::value}. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classSignedDistanceFunction_aa8c8f6bd9788f107f60fd7781fb16d19}{normal}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+delta}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Signed distance normal vector. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function$<$ T $>$}}}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classImplicitFunction_a361afffb3619a6e06172bdef96c41b91}{operator()}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Alternative signature for the value function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} $>$ }\\\mbox{\hyperlink{classVec3T}{BV}} \mbox{\hyperlink{classImplicitFunction_a844c5123cf9cbad3a140fc40494b4071}{approximate\+Bounding\+Volume\+Octree}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+Low\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+High\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{unsigned}} \mbox{\hyperlink{classVec3T}{int}} \mbox{\hyperlink{classVec3T}{a\+\_\+max\+Tree\+Depth}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+safety}}=0.\+0) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Compute an approximation to the bounding volume for the implicit surface, using octrees. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}{lerp}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{t}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{b}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Ken Perlin\textquotesingle{}s lerp function. \end{DoxyCompactList}\item 
-virtual T \mbox{\hyperlink{classPerlinSDF_a2a2e57d92c95ff84ad928a9e43cce000}{fade}} (const T t) const noexcept
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classPerlinSDF_a2a2e57d92c95ff84ad928a9e43cce000}{fade}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{t}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Ken Perlin\textquotesingle{}s fade function. \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}{grad}} (const int hash, const T x, const T y, const T z) const noexcept
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}{grad}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{int}} \mbox{\hyperlink{classVec3T}{hash}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} x, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} y, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{z}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Ken Perlins grad function. \end{DoxyCompactList}\item 
-T \mbox{\hyperlink{classPerlinSDF_a81da3c917766b8dace69f3e4c32fcfae}{noise}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classPerlinSDF_a81da3c917766b8dace69f3e4c32fcfae}{noise}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Octave noise function. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Attributes}
+\doxysubsubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classPerlinSDF_ac012b10725b20136e308f78ba22bbe1a}\label{classPerlinSDF_ac012b10725b20136e308f78ba22bbe1a}} 
-\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classPerlinSDF_ac012b10725b20136e308f78ba22bbe1a}{m\+\_\+noise\+Frequency}}
+\Hypertarget{classPerlinSDF_ac012b10725b20136e308f78ba22bbe1a}\label{classPerlinSDF_ac012b10725b20136e308f78ba22bbe1a} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries m\+\_\+noise\+Frequency}
 \begin{DoxyCompactList}\small\item\em Noise frequency. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classPerlinSDF_acc066e02830ba15e7b7218afaf3ca5fe}\label{classPerlinSDF_acc066e02830ba15e7b7218afaf3ca5fe}} 
-T \mbox{\hyperlink{classPerlinSDF_acc066e02830ba15e7b7218afaf3ca5fe}{m\+\_\+noise\+Amplitude}}
+\Hypertarget{classPerlinSDF_acc066e02830ba15e7b7218afaf3ca5fe}\label{classPerlinSDF_acc066e02830ba15e7b7218afaf3ca5fe} 
+\mbox{\hyperlink{classVec3T}{T}} {\bfseries m\+\_\+noise\+Amplitude}
 \begin{DoxyCompactList}\small\item\em Noise amplitude. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classPerlinSDF_a28a5d74cbffe155b189aa9dfb20db943}\label{classPerlinSDF_a28a5d74cbffe155b189aa9dfb20db943}} 
-T \mbox{\hyperlink{classPerlinSDF_a28a5d74cbffe155b189aa9dfb20db943}{m\+\_\+noise\+Persistence}}
+\Hypertarget{classPerlinSDF_a28a5d74cbffe155b189aa9dfb20db943}\label{classPerlinSDF_a28a5d74cbffe155b189aa9dfb20db943} 
+\mbox{\hyperlink{classVec3T}{T}} {\bfseries m\+\_\+noise\+Persistence}
 \begin{DoxyCompactList}\small\item\em Noise persistence. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}\label{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}} 
-std\+::array$<$ T, 512 $>$ \mbox{\hyperlink{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}{m\+\_\+permutation\+Table}}
+\Hypertarget{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65}\label{classPerlinSDF_a9dc28de010793ee31b1c351d31551b65} 
+std\+::array$<$ \mbox{\hyperlink{classVec3T}{T}}, 512 $>$ {\bfseries m\+\_\+permutation\+Table}
 \begin{DoxyCompactList}\small\item\em Permutation table. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classPerlinSDF_a182b7c7f99d178e539f3cf192bc75fc8}\label{classPerlinSDF_a182b7c7f99d178e539f3cf192bc75fc8}} 
-unsigned int \mbox{\hyperlink{classPerlinSDF_a182b7c7f99d178e539f3cf192bc75fc8}{m\+\_\+noise\+Octaves}}
+\Hypertarget{classPerlinSDF_a182b7c7f99d178e539f3cf192bc75fc8}\label{classPerlinSDF_a182b7c7f99d178e539f3cf192bc75fc8} 
+\mbox{\hyperlink{classVec3T}{unsigned}} \mbox{\hyperlink{classVec3T}{int}} {\bfseries m\+\_\+noise\+Octaves}
 \begin{DoxyCompactList}\small\item\em Number of noise octaves. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-\subsubsection*{template$<$class T$>$\newline
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}}$>$\newline
 class Perlin\+SDF$<$ T $>$}
-
 Ken Perlins gradient noise function. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classPerlinSDF_a5e17712af08f5f6360ef5290736d00f9}\label{classPerlinSDF_a5e17712af08f5f6360ef5290736d00f9}} 
+\Hypertarget{classPerlinSDF_a5e17712af08f5f6360ef5290736d00f9}\label{classPerlinSDF_a5e17712af08f5f6360ef5290736d00f9} 
 \index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!PerlinSDF@{PerlinSDF}}
 \index{PerlinSDF@{PerlinSDF}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{PerlinSDF()}{PerlinSDF()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}} (\begin{DoxyParamCaption}\item[{const T}]{a\+\_\+noise\+Amplitude,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$}]{a\+\_\+noise\+Frequency,  }\item[{const T}]{a\+\_\+noise\+Persistence,  }\item[{const unsigned int}]{a\+\_\+noise\+Octaves }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classPerlinSDF}{\+::\+Perlin\+SDF}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+noise\+Amplitude,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$}]{a\+\_\+noise\+Frequency,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+noise\+Persistence,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{unsigned}} \mbox{\hyperlink{classVec3T}{int}}}]{a\+\_\+noise\+Octaves }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -98,20 +119,20 @@ Full constructor.
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+noise\+Frequency} & Spatial noise frequency along the three Cartesian axes \\
 \hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+noise\+Persistence} & Noise amplitude drop-\/off and frequency increase for octave noise. Should be $<$ 1 \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+noise\+Persistence} & Noise amplitude drop-\/off and frequency increase for octave noise. Should be \texorpdfstring{$<$}{<} 1 \\
 \hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+noise\+Octaves} & Number of octaves. Should be $>$ 0 \\
+\mbox{\texttt{ in}}  & {\em a\+\_\+noise\+Octaves} & Number of octaves. Should be \texorpdfstring{$>$}{>} 0 \\
 \hline
 \end{DoxyParams}
 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classPerlinSDF_a2a2e57d92c95ff84ad928a9e43cce000}\label{classPerlinSDF_a2a2e57d92c95ff84ad928a9e43cce000}} 
+\Hypertarget{classPerlinSDF_a2a2e57d92c95ff84ad928a9e43cce000}\label{classPerlinSDF_a2a2e57d92c95ff84ad928a9e43cce000} 
 \index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!fade@{fade}}
 \index{fade@{fade}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{fade()}{fade()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-virtual T \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::fade (\begin{DoxyParamCaption}\item[{const T}]{t }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::fade (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{t }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
 
 
 
@@ -122,12 +143,12 @@ Ken Perlin\textquotesingle{}s fade function.
 \mbox{\texttt{ in}}  & {\em t} & Input parameter \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classPerlinSDF_a8197aab12159714a62fd372394e30e54}\label{classPerlinSDF_a8197aab12159714a62fd372394e30e54}} 
+\Hypertarget{classPerlinSDF_aa954ad59e856f28603221c574cc1415e}\label{classPerlinSDF_aa954ad59e856f28603221c574cc1415e} 
 \index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!getPermutationTable@{getPermutationTable}}
 \index{getPermutationTable@{getPermutationTable}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{getPermutationTable()}{getPermutationTable()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-std\+::array$<$int, 512$>$\& \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::get\+Permutation\+Table (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::array$<$ \mbox{\hyperlink{classVec3T}{int}}, 512 $>$ \& \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Permutation\+Table (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -136,12 +157,12 @@ Get the internal permutation table.
 \begin{DoxyReturn}{Returns}
 m\+\_\+permutation\+Table. 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}\label{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}} 
+\Hypertarget{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5}\label{classPerlinSDF_a868e229d125a1bfe502d2fef390672c5} 
 \index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!grad@{grad}}
 \index{grad@{grad}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{grad()}{grad()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-T \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::grad (\begin{DoxyParamCaption}\item[{const int}]{hash,  }\item[{const T}]{x,  }\item[{const T}]{y,  }\item[{const T}]{z }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::grad (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{int}}}]{hash,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{x,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{y,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{z }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
@@ -158,12 +179,12 @@ Ken Perlins grad function.
 \mbox{\texttt{ in}}  & {\em z} & Input parameter \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}\label{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}} 
+\Hypertarget{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f}\label{classPerlinSDF_a9fc80a06e175b20cdf8a6573da5df45f} 
 \index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!lerp@{lerp}}
 \index{lerp@{lerp}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{lerp()}{lerp()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-virtual T \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::lerp (\begin{DoxyParamCaption}\item[{const T}]{t,  }\item[{const T}]{a,  }\item[{const T}]{b }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::lerp (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{t,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{b }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
 
 
 
@@ -178,12 +199,12 @@ Ken Perlin\textquotesingle{}s lerp function.
 \mbox{\texttt{ in}}  & {\em b} & Input parameter \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classPerlinSDF_a81da3c917766b8dace69f3e4c32fcfae}\label{classPerlinSDF_a81da3c917766b8dace69f3e4c32fcfae}} 
+\Hypertarget{classPerlinSDF_a81da3c917766b8dace69f3e4c32fcfae}\label{classPerlinSDF_a81da3c917766b8dace69f3e4c32fcfae} 
 \index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!noise@{noise}}
 \index{noise@{noise}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{noise()}{noise()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-T \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::noise (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::noise (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
 
 
 
@@ -194,32 +215,32 @@ Octave noise function.
 \mbox{\texttt{ in}}  & {\em a\+\_\+point} & Input point \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{classPerlinSDF_a03a95e8290a0b42c16e7666446909c70}\label{classPerlinSDF_a03a95e8290a0b42c16e7666446909c70}} 
+\Hypertarget{classPerlinSDF_a03a95e8290a0b42c16e7666446909c70}\label{classPerlinSDF_a03a95e8290a0b42c16e7666446909c70} 
 \index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!shuffle@{shuffle}}
 \index{shuffle@{shuffle}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{shuffle()}{shuffle()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-template$<$class URNG $>$ \\
-void \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::shuffle (\begin{DoxyParamCaption}\item[{URNG \&}]{g }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{URNG}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::shuffle (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{URNG}} \&}]{g }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
 Shuffle the permutation with the input RNG. 
 
-URNG should be a uniform random number generator, e.\+g. 
+URNG should be a uniform random number generator, \doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{e.\+g}. 
 \begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em g} & Uniform random number generator (e.\+g., std\+::mt19937) \\
+\mbox{\texttt{ in}}  & {\em g} & Uniform random number generator (\doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{e.\+g}., std\+::mt19937) \\
 \hline
 \end{DoxyParams}
 \begin{DoxyNote}{Note}
 When using parallel calculations it is exceptionally important that the input RNG is the same across all threads/ranks. Otherwise, the user must manually ensure that the permutation table is the same. Failure to do so implies that each thread/rank generates it\textquotesingle{}s own gradient noise and there is correspondingly no single geometry. 
 \end{DoxyNote}
-\mbox{\Hypertarget{classPerlinSDF_ae09237cf05912698478602e4ddbeb228}\label{classPerlinSDF_ae09237cf05912698478602e4ddbeb228}} 
+\Hypertarget{classPerlinSDF_ae09237cf05912698478602e4ddbeb228}\label{classPerlinSDF_ae09237cf05912698478602e4ddbeb228} 
 \index{PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}!signedDistance@{signedDistance}}
 \index{signedDistance@{signedDistance}!PerlinSDF$<$ T $>$@{PerlinSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-virtual T \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
 
 
 

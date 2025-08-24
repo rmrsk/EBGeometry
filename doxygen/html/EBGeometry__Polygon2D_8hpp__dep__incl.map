@@ -1,10 +1,25 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Polygon2D.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Polygon2D.hpp">
-<area shape="rect" id="node1" title="Declaration of a two&#45;dimensional polygon class for embedding 3D polygon faces." alt="" coords="389,5,631,61"/>
-<area shape="rect" id="node2" href="$EBGeometry__DCEL__Face_8hpp.html" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations." alt="" coords="165,213,407,269"/>
-<area shape="rect" id="node6" href="$EBGeometry__DCEL__Mesh_8hpp.html" title="Declaration of a mesh class which stores a DCEL mesh (with signed distance functions)" alt="" coords="535,109,778,165"/>
-<area shape="rect" id="node3" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="383,421,613,463"/>
-<area shape="rect" id="node4" href="$EBGeometry__DCEL__Edge_8hpp.html" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations." alt="" coords="31,317,274,373"/>
-<area shape="rect" id="node5" href="$EBGeometry__DCEL__Vertex_8hpp.html" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations." alt="" coords="298,317,541,373"/>
-<area shape="rect" id="node7" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="615,213,858,269"/>
-<area shape="rect" id="node8" href="$EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="666,317,909,373"/>
+<area shape="rect" id="Node000001" title="Declaration of a two&#45;dimensional polygon class for embedding 3D polygon faces." alt="" coords="389,5,631,60"/>
+<area shape="rect" id="Node000002" href="$EBGeometry__DCEL__Face_8hpp.html" title="Declaration of a polygon face class for use in DCEL descriptions of polygon tesselations." alt="" coords="165,211,407,265"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="473,71,317,212,313,208,469,67"/>
+<area shape="rect" id="Node000006" href="$EBGeometry__DCEL__Mesh_8hpp.html" title="Declaration of a mesh class which stores a DCEL mesh (with signed distance functions)" alt="" coords="535,108,778,163"/>
+<area shape="poly" id="edge9_Node000001_Node000006" title=" " alt="" coords="561,66,620,106,617,110,558,70"/>
+<area shape="rect" id="Node000003" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="383,416,613,456"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="152,262,87,279,35,302,18,316,9,331,10,347,21,366,44,384,79,398,122,409,171,418,279,429,383,433,382,438,279,434,171,423,121,415,77,403,42,388,17,370,5,349,4,329,14,312,32,297,85,274,151,257"/>
+<area shape="rect" id="Node000004" href="$EBGeometry__DCEL__Edge_8hpp.html" title="Declaration of a half&#45;edge class for use in DCEL descriptions of polygon tesselations." alt="" coords="31,313,274,368"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="234,275,181,315,178,311,231,271"/>
+<area shape="rect" id="Node000005" href="$EBGeometry__DCEL__Vertex_8hpp.html" title="Declaration of a vertex class for use in DCEL descriptions of polygon tesselations." alt="" coords="298,313,541,368"/>
+<area shape="poly" id="edge6_Node000002_Node000005" title=" " alt="" coords="326,272,378,311,375,315,322,276"/>
+<area shape="poly" id="edge5_Node000004_Node000002" title=" " alt="" coords="205,303,257,263,261,268,208,308"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="264,369,429,413,428,419,262,374"/>
+<area shape="poly" id="edge8_Node000005_Node000002" title=" " alt="" coords="380,307,327,267,330,263,383,302"/>
+<area shape="poly" id="edge7_Node000005_Node000003" title=" " alt="" coords="453,377,484,414,480,418,449,380"/>
+<area shape="poly" id="edge10_Node000006_Node000003" title=" " alt="" coords="629,175,606,212,589,255,581,290,573,326,555,369,538,395,519,417,515,414,534,392,550,367,568,325,576,289,584,253,601,209,624,172"/>
+<area shape="rect" id="Node000007" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="615,211,858,265"/>
+<area shape="poly" id="edge11_Node000006_Node000007" title=" " alt="" coords="688,172,718,209,714,212,684,175"/>
+<area shape="rect" id="Node000008" href="$EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="666,313,909,368"/>
+<area shape="poly" id="edge15_Node000006_Node000008" title=" " alt="" coords="792,153,836,175,856,190,872,209,880,224,882,237,872,266,855,294,831,315,828,311,850,290,868,264,876,237,875,225,868,212,852,194,834,180,790,158"/>
+<area shape="poly" id="edge12_Node000007_Node000003" title=" " alt="" coords="699,276,656,315,628,343,598,370,530,418,527,414,595,366,624,339,652,311,695,272"/>
+<area shape="poly" id="edge13_Node000007_Node000008" title=" " alt="" coords="759,276,777,312,772,314,754,279"/>
+<area shape="poly" id="edge14_Node000008_Node000003" title=" " alt="" coords="694,375,557,419,556,413,692,370"/>
 </map>

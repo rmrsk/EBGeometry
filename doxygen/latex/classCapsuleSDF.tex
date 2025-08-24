@@ -1,5 +1,5 @@
-\hypertarget{classCapsuleSDF}{}\doxysection{Capsule\+SDF$<$ T $>$ Class Template Reference}
-\label{classCapsuleSDF}\index{CapsuleSDF$<$ T $>$@{CapsuleSDF$<$ T $>$}}
+\doxysection{Capsule\+SDF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classCapsuleSDF}{}\label{classCapsuleSDF}\index{CapsuleSDF$<$ T $>$@{CapsuleSDF$<$ T $>$}}
 
 
 Capsulate/pill SDF. Basically a cylinder with spherical endcaps, oriented along the specified axis.  
@@ -11,7 +11,7 @@ Capsulate/pill SDF. Basically a cylinder with spherical endcaps, oriented along 
 
 
 
-Inheritance diagram for Capsule\+SDF$<$ T $>$\+:
+Inheritance diagram for Capsule\+SDF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>}\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -21,7 +21,7 @@ Inheritance diagram for Capsule\+SDF$<$ T $>$\+:
 \end{figure}
 
 
-Collaboration diagram for Capsule\+SDF$<$ T $>$\+:
+Collaboration diagram for Capsule\+SDF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>}\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -29,43 +29,64 @@ Collaboration diagram for Capsule\+SDF$<$ T $>$\+:
 \includegraphics[width=242pt]{classCapsuleSDF__coll__graph}
 \end{center}
 \end{figure}
-\doxysubsection*{Public Member Functions}
+\doxysubsubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classCapsuleSDF_abe45c31d0f966369f53e9a2af2708e96}\label{classCapsuleSDF_abe45c31d0f966369f53e9a2af2708e96}} 
-\mbox{\hyperlink{classCapsuleSDF_abe45c31d0f966369f53e9a2af2708e96}{Capsule\+SDF}} ()=delete
+\Hypertarget{classCapsuleSDF_abe45c31d0f966369f53e9a2af2708e96}\label{classCapsuleSDF_abe45c31d0f966369f53e9a2af2708e96} 
+{\bfseries Capsule\+SDF} ()=\mbox{\hyperlink{classVec3T}{delete}}
 \begin{DoxyCompactList}\small\item\em No weak construction. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classCapsuleSDF_a4d12884cae228c4d9284997b5f58ecc3}{Capsule\+SDF}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+tip1, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ a\+\_\+tip2, const T \&a\+\_\+radius) noexcept
+\mbox{\hyperlink{classCapsuleSDF_a4d12884cae228c4d9284997b5f58ecc3}{Capsule\+SDF}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+tip1}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classVec3T}{a\+\_\+tip2}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+radius}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
-virtual T \mbox{\hyperlink{classCapsuleSDF_a2fa33052a5d93eb0f7fb0a6ff32122e9}{signed\+Distance}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+point) const noexcept override
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classCapsuleSDF_a2fa33052a5d93eb0f7fb0a6ff32122e9}{signed\+Distance}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}} \mbox{\hyperlink{classVec3T}{override}}
 \begin{DoxyCompactList}\small\item\em Implementation of the signed distance function. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Attributes}
+\doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classSignedDistanceFunction}{Signed\+Distance\+Function$<$ T $>$}}}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classCapsuleSDF_a44023476198b5a0a91c9616c09a08707}\label{classCapsuleSDF_a44023476198b5a0a91c9616c09a08707}} 
-\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classCapsuleSDF_a44023476198b5a0a91c9616c09a08707}{m\+\_\+center1}}
+{\bfseries Signed\+Distance\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Signed\+Distance\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classSignedDistanceFunction_a76f283b0c732de5a71faa665a97530f2}{value}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}} \mbox{\hyperlink{classVec3T}{override}} \mbox{\hyperlink{classVec3T}{final}}
+\begin{DoxyCompactList}\small\item\em Implementation of \doxylink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function\+::value}. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classSignedDistanceFunction_aa8c8f6bd9788f107f60fd7781fb16d19}{normal}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+delta}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Signed distance normal vector. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function$<$ T $>$}}}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classImplicitFunction_a361afffb3619a6e06172bdef96c41b91}{operator()}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Alternative signature for the value function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} $>$ }\\\mbox{\hyperlink{classVec3T}{BV}} \mbox{\hyperlink{classImplicitFunction_a844c5123cf9cbad3a140fc40494b4071}{approximate\+Bounding\+Volume\+Octree}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+Low\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+High\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{unsigned}} \mbox{\hyperlink{classVec3T}{int}} \mbox{\hyperlink{classVec3T}{a\+\_\+max\+Tree\+Depth}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+safety}}=0.\+0) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Compute an approximation to the bounding volume for the implicit surface, using octrees. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classCapsuleSDF_a44023476198b5a0a91c9616c09a08707}\label{classCapsuleSDF_a44023476198b5a0a91c9616c09a08707} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries m\+\_\+center1}
 \begin{DoxyCompactList}\small\item\em Capsule center1. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classCapsuleSDF_ab5bec024afd80e282ff02e471e0354b6}\label{classCapsuleSDF_ab5bec024afd80e282ff02e471e0354b6}} 
-\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{classCapsuleSDF_ab5bec024afd80e282ff02e471e0354b6}{m\+\_\+center2}}
+\Hypertarget{classCapsuleSDF_ab5bec024afd80e282ff02e471e0354b6}\label{classCapsuleSDF_ab5bec024afd80e282ff02e471e0354b6} 
+\mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries m\+\_\+center2}
 \begin{DoxyCompactList}\small\item\em Capsule center2. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classCapsuleSDF_ab4970d97731be17b0851d1e4966e65bb}\label{classCapsuleSDF_ab4970d97731be17b0851d1e4966e65bb}} 
-T \mbox{\hyperlink{classCapsuleSDF_ab4970d97731be17b0851d1e4966e65bb}{m\+\_\+radius}}
+\Hypertarget{classCapsuleSDF_ab4970d97731be17b0851d1e4966e65bb}\label{classCapsuleSDF_ab4970d97731be17b0851d1e4966e65bb} 
+\mbox{\hyperlink{classVec3T}{T}} {\bfseries m\+\_\+radius}
 \begin{DoxyCompactList}\small\item\em Capsule radius. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-\subsubsection*{template$<$class T$>$\newline
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}}$>$\newline
 class Capsule\+SDF$<$ T $>$}
-
 Capsulate/pill SDF. Basically a cylinder with spherical endcaps, oriented along the specified axis. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classCapsuleSDF_a4d12884cae228c4d9284997b5f58ecc3}\label{classCapsuleSDF_a4d12884cae228c4d9284997b5f58ecc3}} 
+\Hypertarget{classCapsuleSDF_a4d12884cae228c4d9284997b5f58ecc3}\label{classCapsuleSDF_a4d12884cae228c4d9284997b5f58ecc3} 
 \index{CapsuleSDF$<$ T $>$@{CapsuleSDF$<$ T $>$}!CapsuleSDF@{CapsuleSDF}}
 \index{CapsuleSDF@{CapsuleSDF}!CapsuleSDF$<$ T $>$@{CapsuleSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{CapsuleSDF()}{CapsuleSDF()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classCapsuleSDF}{Capsule\+SDF}}$<$ T $>$\+::\mbox{\hyperlink{classCapsuleSDF}{Capsule\+SDF}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+tip1,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$}]{a\+\_\+tip2,  }\item[{const T \&}]{a\+\_\+radius }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classCapsuleSDF}{Capsule\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classCapsuleSDF}{\+::\+Capsule\+SDF}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+tip1,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$}]{a\+\_\+tip2,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&}]{a\+\_\+radius }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -83,12 +104,12 @@ Full constructor.
 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classCapsuleSDF_a2fa33052a5d93eb0f7fb0a6ff32122e9}\label{classCapsuleSDF_a2fa33052a5d93eb0f7fb0a6ff32122e9}} 
+\Hypertarget{classCapsuleSDF_a2fa33052a5d93eb0f7fb0a6ff32122e9}\label{classCapsuleSDF_a2fa33052a5d93eb0f7fb0a6ff32122e9} 
 \index{CapsuleSDF$<$ T $>$@{CapsuleSDF$<$ T $>$}!signedDistance@{signedDistance}}
 \index{signedDistance@{signedDistance}!CapsuleSDF$<$ T $>$@{CapsuleSDF$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-virtual T \mbox{\hyperlink{classCapsuleSDF}{Capsule\+SDF}}$<$ T $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classCapsuleSDF}{Capsule\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
 
 
 

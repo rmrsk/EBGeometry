@@ -1,6 +1,8 @@
-\label{index_md__home_runner_work_EBGeometry_EBGeometry_README}%
-\Hypertarget{index_md__home_runner_work_EBGeometry_EBGeometry_README}%
- \mbox{\hyperlink{namespaceEBGeometry}{EBGeometry}} is a code for
+\chapter{EBGeometry}
+\hypertarget{index}{}\label{index}\index{EBGeometry@{EBGeometry}}
+\label{index_md__2home_2runner_2work_2EBGeometry_2EBGeometry_2README}%
+\Hypertarget{index_md__2home_2runner_2work_2EBGeometry_2EBGeometry_2README}%
+ \doxylink{namespaceEBGeometry}{EBGeometry} is a code for
 
 
 \begin{DoxyEnumerate}
@@ -9,9 +11,9 @@
 \item Providing fast constructive solid geometry (CSG) unions using BVHs.
 \end{DoxyEnumerate}
 
-This code is header-\/only and can be dropped into any C++ project that supports C++14. It was originally written to be used with embedded-\/boundary (EB) codes like Chombo or AMReX. However, \mbox{\hyperlink{namespaceEBGeometry}{EBGeometry}} provides quite general SDFs, implicit functions, and CSG unions, and is useful beyond those codes.
+This code is header-\/only and can be dropped into any C++ project that supports C++14. It was originally written to be used with embedded-\/boundary (EB) codes like Chombo or AMReX. However, \doxylink{namespaceEBGeometry}{EBGeometry} provides quite general SDFs, implicit functions, and CSG unions, and is useful beyond those codes.
 
-To clone \mbox{\hyperlink{namespaceEBGeometry}{EBGeometry}}\+: \begin{DoxyVerb}git clone git@github.com:rmrsk/EBGeometry.git
+To clone \doxylink{namespaceEBGeometry}{EBGeometry}\+: \begin{DoxyVerb}git clone git@github.com:rmrsk/EBGeometry.git
 \end{DoxyVerb}
  \doxysection*{Requirements}
 
@@ -20,7 +22,7 @@ To clone \mbox{\hyperlink{namespaceEBGeometry}{EBGeometry}}\+: \begin{DoxyVerb}g
 \item A C++ compiler which supports C++14.
 \end{DoxyItemize}
 
-\mbox{\hyperlink{namespaceEBGeometry}{EBGeometry}} is a header-\/only library in C++ and has no external dependencies. To use it, simply make \mbox{\hyperlink{EBGeometry_8hpp_source}{EBGeometry.\+hpp}} visible to your code and include it.
+\doxylink{namespaceEBGeometry}{EBGeometry} is a header-\/only library in C++ and has no external dependencies. To use it, simply make \doxylink{EBGeometry_8hpp_source}{EBGeometry.\+hpp} visible to your code and include it.
 
 \doxysection*{Documentation}
 
@@ -32,12 +34,12 @@ Several examples are given in the Examples folder. To run one of the examples, n
 
 \doxysubsection*{1. Analytic distance fields}
 
-Use one of the analytic signed distance fields in \mbox{\hyperlink{namespaceEBGeometry}{EBGeometry}}\+:
+Use one of the analytic signed distance fields in \doxylink{namespaceEBGeometry}{EBGeometry}\+:
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{cd Examples/EBGeometry\_Shapes}
-\DoxyCodeLine{g++ -\/O3 -\/std=c++14 main.cpp}
+\DoxyCodeLine{cd\ Examples/EBGeometry\_Shapes}
+\DoxyCodeLine{g++\ -\/O3\ -\/std=c++14\ main.cpp}
 \DoxyCodeLine{./a.out}
 
 \end{DoxyCode}
@@ -49,8 +51,8 @@ Read in an STL file and turn it into a signed distance field.
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{cd Examples/EBGeometry\_DCEL}
-\DoxyCodeLine{g++ -\/O3 -\/std=c++14 main.cpp}
+\DoxyCodeLine{cd\ Examples/EBGeometry\_DCEL}
+\DoxyCodeLine{g++\ -\/O3\ -\/std=c++14\ main.cpp}
 \DoxyCodeLine{./a.out}
 
 \end{DoxyCode}
@@ -67,8 +69,8 @@ Read in an STL file and turn it into a signed distance field.
 
 Generate a spherical packed bed geometry using analytic representations of spheres. BVH-\/accelerated CSG unions lead to order-\/of-\/magnitude faster implicit function evaluation. 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{cd Examples/EBGeometry\_PackedSpheres}
-\DoxyCodeLine{g++ -\/O3 -\/std=c++14 main.cpp}
+\DoxyCodeLine{cd\ Examples/EBGeometry\_PackedSpheres}
+\DoxyCodeLine{g++\ -\/O3\ -\/std=c++14\ main.cpp}
 \DoxyCodeLine{./a.out}
 
 \end{DoxyCode}
@@ -87,8 +89,8 @@ Create an F18 implicit function using CSG on each part (65 parts in total).
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{cd Examples/EBGeometry\_F18}
-\DoxyCodeLine{g++ -\/O3 -\/std=c++17 main.cpp -\/lstdc++fs}
+\DoxyCodeLine{cd\ Examples/EBGeometry\_F18}
+\DoxyCodeLine{g++\ -\/O3\ -\/std=c++17\ main.cpp\ -\/lstdc++fs}
 \DoxyCodeLine{./a.out}
 
 \end{DoxyCode}
@@ -110,61 +112,45 @@ Some complex examples that use Chombo3 or AMReX are also provided in the Example
 
 \begin{DoxyEnumerate}
 \item Create a branch for the new feature.
-\end{DoxyEnumerate}
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{git checkout main}
-\DoxyCodeLine{git pull}
-\DoxyCodeLine{git checkout -\/b my\_branch}
+\DoxyCodeLine{git\ checkout\ main}
+\DoxyCodeLine{git\ pull}
+\DoxyCodeLine{git\ checkout\ -\/b\ my\_branch}
 
 \end{DoxyCode}
 
-
-
-\begin{DoxyEnumerate}
 \item Develop the feature.
-\end{DoxyEnumerate}
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{git add .}
-\DoxyCodeLine{git commit -\/m "{}my commit message"{}}
+\DoxyCodeLine{git\ add\ .}
+\DoxyCodeLine{git\ commit\ -\/m\ "{}my\ commit\ message"{}}
 
 \end{DoxyCode}
 
 
 If relevant, add Sphinx and doxygen documentation.
-
-
-\begin{DoxyEnumerate}
 \item Format the source and example codes using {\ttfamily clang-\/format}\+:
-\end{DoxyEnumerate}
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{find Source Examples \(\backslash\)( -\/name "{}*.hpp"{} -\/o -\/name "{}*.cpp"{} \(\backslash\)) -\/exec clang-\/format -\/i \{\} +}
+\DoxyCodeLine{find\ Source\ Examples\ \(\backslash\)(\ -\/name\ "{}*.hpp"{}\ -\/o\ -\/name\ "{}*.cpp"{}\ \(\backslash\))\ -\/exec\ clang-\/format\ -\/i\ \{\}\ +}
 
 \end{DoxyCode}
 
-
-
-\begin{DoxyEnumerate}
 \item Push the changes to Git\+Hub
-\end{DoxyEnumerate}
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{git push -\/-\/set-\/upstream origin my\_branch}
+\DoxyCodeLine{git\ push\ -\/-\/set-\/upstream\ origin\ my\_branch}
 
 \end{DoxyCode}
 
-
-
-\begin{DoxyEnumerate}
 \item Create a pull request and make sure the Git\+Hub continuous integration tests pass.
 \end{DoxyEnumerate}
 
 \doxysection*{License }
 
-See LICENSE and Copyright.\+txt for redistribution rights. 
+See LICENSE and \doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{Copyright.\+txt} for redistribution rights. 

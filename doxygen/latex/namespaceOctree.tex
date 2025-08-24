@@ -1,19 +1,19 @@
-\hypertarget{namespaceOctree}{}\doxysection{Octree Namespace Reference}
-\label{namespaceOctree}\index{Octree@{Octree}}
+\doxysection{Octree Namespace Reference}
+\hypertarget{namespaceOctree}{}\label{namespaceOctree}\index{Octree@{Octree}}
 
 
 Namespace for octree functionality.  
 
 
-\doxysubsection*{Classes}
+\doxysubsubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
 class \mbox{\hyperlink{classOctree_1_1Node}{Node}}
-\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{namespaceOctree}{Octree}} class without anything special (this uses full tree representation rather than linear/pointerless). \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Enumerations}
+\begin{DoxyCompactList}\small\item\em \doxylink{namespaceOctree}{Octree} class without anything special (this uses full tree representation rather than linear/pointerless). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}\label{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}} 
+\Hypertarget{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}\label{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60} 
 enum \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\+Index}} \+: size\+\_\+t \{ \newline
 {\bfseries Bottom\+Left\+Front} = 0
 , {\bfseries Bottom\+Right\+Front} = 1
@@ -26,12 +26,12 @@ enum \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\
 , {\bfseries Top\+Right\+Back} = 7
  \}
 \begin{DoxyCompactList}\small\item\em Lexicographical x-\/y-\/z octant indexing. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Variables}
+\doxysubsubsection*{Variables}
 \begin{DoxyCompactItemize}
 \item 
-{\footnotesize template$<$typename T $>$ }\\constexpr std\+::array$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$, 8 $>$ \mbox{\hyperlink{namespaceOctree_a36a6ec1d276bf30f3e6bdaec2b7ae133}{Low\+Corner}}
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\\mbox{\hyperlink{classVec3T}{constexpr}} std\+::array$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$, 8 $>$ \mbox{\hyperlink{namespaceOctree_a36a6ec1d276bf30f3e6bdaec2b7ae133}{Low\+Corner}}
 \begin{DoxyCompactList}\small\item\em Lower-\/left corners of the octants on the unit cube, indexed lexicographically in x-\/y-\/z. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename T $>$ }\\constexpr std\+::array$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$, 8 $>$ \mbox{\hyperlink{namespaceOctree_acce5a94561596fb4bf09b75d7b82694a}{High\+Corner}}
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\\mbox{\hyperlink{classVec3T}{constexpr}} std\+::array$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$, 8 $>$ \mbox{\hyperlink{namespaceOctree_acce5a94561596fb4bf09b75d7b82694a}{High\+Corner}}
 \begin{DoxyCompactList}\small\item\em Upper-\/right corners of the octants on the unit cube, indexed lexicographically in x-\/y-\/z. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
@@ -39,46 +39,46 @@ enum \mbox{\hyperlink{namespaceOctree_acda140bb7c781f38a7e6ec64b25d7e60}{Octant\
 Namespace for octree functionality. 
 
 \doxysubsection{Variable Documentation}
-\mbox{\Hypertarget{namespaceOctree_acce5a94561596fb4bf09b75d7b82694a}\label{namespaceOctree_acce5a94561596fb4bf09b75d7b82694a}} 
+\Hypertarget{namespaceOctree_acce5a94561596fb4bf09b75d7b82694a}\label{namespaceOctree_acce5a94561596fb4bf09b75d7b82694a} 
 \index{Octree@{Octree}!HighCorner@{HighCorner}}
 \index{HighCorner@{HighCorner}!Octree@{Octree}}
 \doxysubsubsection{\texorpdfstring{HighCorner}{HighCorner}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr std\+::array$<$\mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$, 8$>$ Octree\+::\+High\+Corner\hspace{0.3cm}{\ttfamily [constexpr]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} std\+::array$<$\mbox{\hyperlink{classVec3T}{Vec3T}}$<$\mbox{\hyperlink{classVec3T}{T}}$>$, 8$>$ Octree\+::\+High\+Corner\hspace{0.3cm}{\ttfamily [constexpr]}}
 
 {\bfseries Initial value\+:}
 \begin{DoxyCode}{0}
-\DoxyCodeLine{= \{LowCorner<T>[0] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}(),}
-\DoxyCodeLine{                                                  LowCorner<T>[1] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}(),}
-\DoxyCodeLine{                                                  LowCorner<T>[2] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}(),}
-\DoxyCodeLine{                                                  LowCorner<T>[3] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}(),}
-\DoxyCodeLine{                                                  LowCorner<T>[4] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}(),}
-\DoxyCodeLine{                                                  LowCorner<T>[5] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}(),}
-\DoxyCodeLine{                                                  LowCorner<T>[6] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}(),}
-\DoxyCodeLine{                                                  LowCorner<T>[7] + 0.5 * \mbox{\hyperlink{classVec3T_a7abddd25eef8b7e2b4e802ba972e13d2}{Vec3T<T>::one}}()\}}
+\DoxyCodeLine{=\ \{\mbox{\hyperlink{classVec3T}{LowCorner<T>}}[0]\ +\ 0.5\ *\ \mbox{\hyperlink{classVec3T_ac5e84bc16c1997e6e7bcfdf490a29838}{Vec3T<T>::one}}(),}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{LowCorner<T>}}[1]\ +\ 0.5\ *\ \mbox{\hyperlink{classVec3T_ac5e84bc16c1997e6e7bcfdf490a29838}{Vec3T<T>::one}}(),}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{LowCorner<T>}}[2]\ +\ 0.5\ *\ \mbox{\hyperlink{classVec3T_ac5e84bc16c1997e6e7bcfdf490a29838}{Vec3T<T>::one}}(),}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{LowCorner<T>}}[3]\ +\ 0.5\ *\ \mbox{\hyperlink{classVec3T_ac5e84bc16c1997e6e7bcfdf490a29838}{Vec3T<T>::one}}(),}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{LowCorner<T>}}[4]\ +\ 0.5\ *\ \mbox{\hyperlink{classVec3T_ac5e84bc16c1997e6e7bcfdf490a29838}{Vec3T<T>::one}}(),}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{LowCorner<T>}}[5]\ +\ 0.5\ *\ \mbox{\hyperlink{classVec3T_ac5e84bc16c1997e6e7bcfdf490a29838}{Vec3T<T>::one}}(),}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{LowCorner<T>}}[6]\ +\ 0.5\ *\ \mbox{\hyperlink{classVec3T_ac5e84bc16c1997e6e7bcfdf490a29838}{Vec3T<T>::one}}(),}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{LowCorner<T>}}[7]\ +\ 0.5\ *\ \mbox{\hyperlink{classVec3T_ac5e84bc16c1997e6e7bcfdf490a29838}{Vec3T<T>::one}}()\}}
 
 \end{DoxyCode}
 
 
 Upper-\/right corners of the octants on the unit cube, indexed lexicographically in x-\/y-\/z. 
 
-\mbox{\Hypertarget{namespaceOctree_a36a6ec1d276bf30f3e6bdaec2b7ae133}\label{namespaceOctree_a36a6ec1d276bf30f3e6bdaec2b7ae133}} 
+\Hypertarget{namespaceOctree_a36a6ec1d276bf30f3e6bdaec2b7ae133}\label{namespaceOctree_a36a6ec1d276bf30f3e6bdaec2b7ae133} 
 \index{Octree@{Octree}!LowCorner@{LowCorner}}
 \index{LowCorner@{LowCorner}!Octree@{Octree}}
 \doxysubsubsection{\texorpdfstring{LowCorner}{LowCorner}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr std\+::array$<$\mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$, 8$>$ Octree\+::\+Low\+Corner\hspace{0.3cm}{\ttfamily [constexpr]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} std\+::array$<$\mbox{\hyperlink{classVec3T}{Vec3T}}$<$\mbox{\hyperlink{classVec3T}{T}}$>$, 8$>$ Octree\+::\+Low\+Corner\hspace{0.3cm}{\ttfamily [constexpr]}}
 
 {\bfseries Initial value\+:}
 \begin{DoxyCode}{0}
-\DoxyCodeLine{= \{\mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.0, 0.0, 0.0),}
-\DoxyCodeLine{                                                 \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.5, 0.0, 0.0),}
-\DoxyCodeLine{                                                 \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.0, 0.5, 0.0),}
-\DoxyCodeLine{                                                 \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.5, 0.5, 0.0),}
-\DoxyCodeLine{                                                 \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.0, 0.0, 0.5),}
-\DoxyCodeLine{                                                 \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.5, 0.0, 0.5),}
-\DoxyCodeLine{                                                 \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.0, 0.5, 0.5),}
-\DoxyCodeLine{                                                 \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.5, 0.5, 0.5)\}}
+\DoxyCodeLine{=\ \{\mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.0,\ 0.0,\ 0.0),}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.5,\ 0.0,\ 0.0),}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.0,\ 0.5,\ 0.0),}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.5,\ 0.5,\ 0.0),}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.0,\ 0.0,\ 0.5),}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.5,\ 0.0,\ 0.5),}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.0,\ 0.5,\ 0.5),}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}(0.5,\ 0.5,\ 0.5)\}}
 
 \end{DoxyCode}
 

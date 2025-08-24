@@ -1,12 +1,23 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Polygon2D.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Polygon2D.hpp">
-<area shape="rect" id="node1" title="Declaration of a two&#45;dimensional polygon class for embedding 3D polygon faces." alt="" coords="375,5,617,61"/>
-<area shape="rect" id="node2" title=" " alt="" coords="167,109,244,136"/>
-<area shape="rect" id="node3" title=" " alt="" coords="269,109,331,136"/>
-<area shape="rect" id="node4" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="356,109,519,136"/>
-<area shape="rect" id="node7" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="425,184,687,211"/>
-<area shape="rect" id="node8" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="712,184,968,211"/>
-<area shape="rect" id="node10" title=" " alt="" coords="644,109,903,136"/>
-<area shape="rect" id="node5" title=" " alt="" coords="5,184,61,211"/>
-<area shape="rect" id="node6" title=" " alt="" coords="85,184,165,211"/>
-<area shape="rect" id="node9" title=" " alt="" coords="189,184,401,211"/>
+<area shape="rect" id="Node000001" title="Declaration of a two&#45;dimensional polygon class for embedding 3D polygon faces." alt="" coords="375,5,617,60"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="167,108,244,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="408,63,258,107,256,102,406,58"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="269,108,331,133"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="437,63,340,105,338,100,435,58"/>
+<area shape="rect" id="Node000004" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="356,108,519,133"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="480,62,455,98,451,95,476,59"/>
+<area shape="rect" id="Node000007" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="425,181,687,207"/>
+<area shape="poly" id="edge9_Node000001_Node000007" title=" " alt="" coords="512,59,533,107,552,167,547,169,528,109,507,61"/>
+<area shape="rect" id="Node000008" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="712,181,968,207"/>
+<area shape="poly" id="edge10_Node000001_Node000008" title=" " alt="" coords="527,58,575,96,633,131,700,157,767,176,765,181,699,162,631,136,572,100,524,62"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="644,108,903,133"/>
+<area shape="poly" id="edge11_Node000001_Node000010" title=" " alt="" coords="582,58,724,102,723,107,580,63"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="5,181,61,207"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="356,135,228,155,75,184,74,179,227,149,355,130"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="85,181,165,207"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="388,136,179,183,178,178,387,131"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="458,131,526,172,523,176,455,136"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="502,131,762,176,761,182,502,136"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="189,181,401,207"/>
+<area shape="poly" id="edge8_Node000004_Node000009" title=" " alt="" coords="416,136,331,177,329,173,413,131"/>
 </map>

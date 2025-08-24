@@ -1,0 +1,456 @@
+\doxysection{EBGeometry\+::Triangle\texorpdfstring{$<$}{<} T, Meta \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classEBGeometry_1_1Triangle}{}\label{classEBGeometry_1_1Triangle}\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+
+
+\doxylink{classEBGeometry_1_1Triangle}{Triangle} class with signed distance functionality.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Triangle.\+hpp$>$}
+
+\doxysubsubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classEBGeometry_1_1Triangle_acde39d4387b945a624ea8f5a70aa5e73}\label{classEBGeometry_1_1Triangle_acde39d4387b945a624ea8f5a70aa5e73} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Vec2} = \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$
+\begin{DoxyCompactList}\small\item\em Alias for 2D vector type. \end{DoxyCompactList}\item 
+\Hypertarget{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}\label{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Vec3} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$
+\begin{DoxyCompactList}\small\item\em Alias for 3D vector type. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classEBGeometry_1_1Triangle_ae24bf0be50a2339348a285b424b88671}\label{classEBGeometry_1_1Triangle_ae24bf0be50a2339348a285b424b88671} 
+{\bfseries Triangle} () \mbox{\hyperlink{classVec3T}{noexcept}}=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Default constructor. Does not put the triangle in a usable state. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classEBGeometry_1_1Triangle_a0bb04d5c3c3e16ceec1735c4278b1cad}{Triangle}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle}{Triangle}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+other\+Triangle}}) \mbox{\hyperlink{classVec3T}{noexcept}}=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Copy constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classEBGeometry_1_1Triangle_aa1986df2142355fac6ff0d813ae126d4}{Triangle}} (\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+vertex\+Positions}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
+\Hypertarget{classEBGeometry_1_1Triangle_a4f6d3a74dab8a871ae94a0e1882a9a3c}\label{classEBGeometry_1_1Triangle_a4f6d3a74dab8a871ae94a0e1882a9a3c} 
+{\bfseries \texorpdfstring{$\sim$}{\string~}\+Triangle} () \mbox{\hyperlink{classVec3T}{noexcept}}=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing). \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classEBGeometry_1_1Triangle}{Triangle}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle_a72293d86e1019c527250fec7a34fed91}{operator=}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle}{Triangle}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+other\+Triangle}}) \mbox{\hyperlink{classVec3T}{noexcept}}=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Copy assignment. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classEBGeometry_1_1Triangle}{Triangle}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle_ad48c6d9efa2b922911e22cc51cb9b0db}{operator=}} (\mbox{\hyperlink{classEBGeometry_1_1Triangle}{Triangle}} \&\&\mbox{\hyperlink{classVec3T}{a\+\_\+other\+Triangle}}) \mbox{\hyperlink{classVec3T}{noexcept}}=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Move assignment. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a1ca284a27be1f778a61766af347562c2}{set\+Normal}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+normal}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Set the triangle normal vector. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_af87dce6b0de02244a8de109b77587acb}{set\+Vertex\+Positions}} (\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+vertex\+Positions}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Set the triangle vertex positions. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_abed6784e27dfcb7c772419643359bb13}{set\+Vertex\+Normals}} (\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+vertex\+Normals}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Set the triangle vertex normals. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a759ae1410a8878d5e1fac380252c74bd}{set\+Edge\+Normals}} (\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+edge\+Normals}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Set the triangle edge normals. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a992e2527392bc67d16a8690f6d1405f0}{set\+Meta\+Data}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Meta}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+meta\+Data}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Set the triangle meta-\/data. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a8f7c28cfafcc6738aaab7a58c929f88d}{compute\+Normal}} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Compute the triangle normal vector. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle_ac568b0dccd8cd43d60dfbe0e80611fb4}{get\+Normal}} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the triangle normal vector. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle_ac01db072264663efcf78c637d47d353b}{get\+Normal}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the triangle normal vector. \end{DoxyCompactList}\item 
+std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \& \mbox{\hyperlink{classEBGeometry_1_1Triangle_a14d5145a69a52ebb4edebfe86c04eb9d}{get\+Vertex\+Positions}} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the vertex positions. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \& \mbox{\hyperlink{classEBGeometry_1_1Triangle_a2dbfe18b5567519c21bbd9053d40e0bc}{get\+Vertex\+Positions}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the vertex positions. \end{DoxyCompactList}\item 
+std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \& \mbox{\hyperlink{classEBGeometry_1_1Triangle_a055e6d7cb74df614889c9c3b648e3663}{get\+Vertex\+Normals}} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the vertex normals. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \& \mbox{\hyperlink{classEBGeometry_1_1Triangle_a1c09f437e882da8e750a18e534f897c7}{get\+Vertex\+Normals}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the vertex normals. \end{DoxyCompactList}\item 
+std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \& \mbox{\hyperlink{classEBGeometry_1_1Triangle_a0ad81317b1acf0750c8bfb9170bed88e}{get\+Edge\+Normals}} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the edge normals. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \& \mbox{\hyperlink{classEBGeometry_1_1Triangle_a3f9561ecfaf2053cd00677b622bef231}{get\+Edge\+Normals}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the edge normals. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{Meta}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle_a893c6d7b8bccdea97ea21ab6062d3fb5}{get\+Meta\+Data}} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the triangle meta-\/data. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Meta}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle_a663dba5df1cd9da626b61a4f088e3d1d}{get\+Meta\+Data}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the triangle meta-\/data. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_ae0fdc42e8e24cb4af0e6eb7c383d7635}{signed\+Distance}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Compute the signed distance from the input point x to the triangle. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a45d2de05e4ede228feb9a09f8b38227a}{project\+Point\+To\+Edge}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+x0}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+x1}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Returns the "{}projection"{} of a point to an edge. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classEBGeometry_1_1Triangle_a66dbde646a2f32b35379c88668df8d6a}\label{classEBGeometry_1_1Triangle_a66dbde646a2f32b35379c88668df8d6a} 
+\mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} {\bfseries m\+\_\+triangle\+Normal} = \mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3\+::max}}()
+\begin{DoxyCompactList}\small\item\em \doxylink{classEBGeometry_1_1Triangle}{Triangle} face normal. \end{DoxyCompactList}\item 
+\Hypertarget{classEBGeometry_1_1Triangle_abe623543c59c63471e705a349c267b93}\label{classEBGeometry_1_1Triangle_abe623543c59c63471e705a349c267b93} 
+std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ {\bfseries m\+\_\+vertex\+Positions} \{\mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3\+::max}}(), \mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3\+::max}}(), \mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3\+::max}}()\}
+\begin{DoxyCompactList}\small\item\em \doxylink{classEBGeometry_1_1Triangle}{Triangle} vertex positions. \end{DoxyCompactList}\item 
+\Hypertarget{classEBGeometry_1_1Triangle_a40ad60a88fb751832ef81a3317b0ea22}\label{classEBGeometry_1_1Triangle_a40ad60a88fb751832ef81a3317b0ea22} 
+std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ {\bfseries m\+\_\+vertex\+Normals} \{\mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3\+::max}}(), \mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3\+::max}}(), \mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3\+::max}}()\}
+\begin{DoxyCompactList}\small\item\em \doxylink{classEBGeometry_1_1Triangle}{Triangle} vertex normals. \end{DoxyCompactList}\item 
+\Hypertarget{classEBGeometry_1_1Triangle_a3983d92af13b5c2453881fa0f58f7481}\label{classEBGeometry_1_1Triangle_a3983d92af13b5c2453881fa0f58f7481} 
+std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ {\bfseries m\+\_\+edge\+Normals} \{\mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3\+::max}}(), \mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3\+::max}}(), \mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3\+::max}}()\}
+\begin{DoxyCompactList}\small\item\em \doxylink{classEBGeometry_1_1Triangle}{Triangle} edge normals. \end{DoxyCompactList}\item 
+\Hypertarget{classEBGeometry_1_1Triangle_a7760a87ba414df609eeb1f972a3b58f2}\label{classEBGeometry_1_1Triangle_a7760a87ba414df609eeb1f972a3b58f2} 
+\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries m\+\_\+triangle2D}
+\begin{DoxyCompactList}\small\item\em 2D projection of the triangle to one of the Cartesian coordinate directions \end{DoxyCompactList}\item 
+\Hypertarget{classEBGeometry_1_1Triangle_aa1959883288304d6330e459cc4f0565d}\label{classEBGeometry_1_1Triangle_aa1959883288304d6330e459cc4f0565d} 
+\mbox{\hyperlink{classVec3T}{Meta}} {\bfseries m\+\_\+meta\+Data}
+\begin{DoxyCompactList}\small\item\em \doxylink{classEBGeometry_1_1Triangle}{Triangle} meta-\/data normals. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}}$>$\newline
+class EBGeometry\+::\+Triangle$<$ T, Meta $>$}
+\doxylink{classEBGeometry_1_1Triangle}{Triangle} class with signed distance functionality. 
+
+This class represents a planar triangle and has a signed distance functionality. It is self-\/contained such that it can be directly copied to GPUs. The class contains a triangle face normal vector; three vertex positions, and normal vectors for the three vertices and three edges.
+
+This class assumes that the vertices are organized with the right-\/hand rule. \doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{I.\+e}., edges are enumerated as follows\+:
+
+Edge 1 points from vertex 1 to vertex 2 Edge 2 points from vertex 2 to vertex 3 Edge 3 points from vertex 3 to vertex 0 ~\newline
+
+
+This class can compute its own normal vector from the vertex positions, and the triangle orientation is then implicitly given by the vertex order.
+
+To compute the distance from a point to the triangle, one must determine if the point projects to the "{}inside"{} or "{}outside"{} of the triangle. This class contains a 2D embedding of the triangle that can perform this project. If the query point projects to the inside of the triangle, the distance is simply the projected distance onto the triangle plane. If it projects to the outside of the triangle, we check the distance against the triangle edges and vertices. the ed 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{classEBGeometry_1_1Triangle_a0bb04d5c3c3e16ceec1735c4278b1cad}\label{classEBGeometry_1_1Triangle_a0bb04d5c3c3e16ceec1735c4278b1cad} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!Triangle@{Triangle}}
+\index{Triangle@{Triangle}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{Triangle()}{Triangle()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::\+Triangle (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle}{Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$ \&}]{a\+\_\+other\+Triangle }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [default]}, {\ttfamily [noexcept]}}
+
+
+
+Copy constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+other\+Triangle} & Other triangle. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classEBGeometry_1_1Triangle_aa1986df2142355fac6ff0d813ae126d4}\label{classEBGeometry_1_1Triangle_aa1986df2142355fac6ff0d813ae126d4} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!Triangle@{Triangle}}
+\index{Triangle@{Triangle}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{Triangle()}{Triangle()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::\+Triangle (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \&}]{a\+\_\+vertex\+Positions }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Full constructor. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+vertex\+Positions} & \doxylink{classEBGeometry_1_1Triangle}{Triangle} vertex positions \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classEBGeometry_1_1Triangle_a8f7c28cfafcc6738aaab7a58c929f88d}\label{classEBGeometry_1_1Triangle_a8f7c28cfafcc6738aaab7a58c929f88d} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!computeNormal@{computeNormal}}
+\index{computeNormal@{computeNormal}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{computeNormal()}{computeNormal()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::compute\+Normal (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Compute the triangle normal vector. 
+
+This computes the normal vector from two of the triangle edges. \Hypertarget{classEBGeometry_1_1Triangle_a3f9561ecfaf2053cd00677b622bef231}\label{classEBGeometry_1_1Triangle_a3f9561ecfaf2053cd00677b622bef231} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!getEdgeNormals@{getEdgeNormals}}
+\index{getEdgeNormals@{getEdgeNormals}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{getEdgeNormals()}{getEdgeNormals()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \& \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::get\+Edge\+Normals (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the edge normals. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+edge\+Normals 
+\end{DoxyReturn}
+\Hypertarget{classEBGeometry_1_1Triangle_a0ad81317b1acf0750c8bfb9170bed88e}\label{classEBGeometry_1_1Triangle_a0ad81317b1acf0750c8bfb9170bed88e} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!getEdgeNormals@{getEdgeNormals}}
+\index{getEdgeNormals@{getEdgeNormals}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{getEdgeNormals()}{getEdgeNormals()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \& \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::get\+Edge\+Normals (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the edge normals. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+edge\+Normals 
+\end{DoxyReturn}
+\Hypertarget{classEBGeometry_1_1Triangle_a663dba5df1cd9da626b61a4f088e3d1d}\label{classEBGeometry_1_1Triangle_a663dba5df1cd9da626b61a4f088e3d1d} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!getMetaData@{getMetaData}}
+\index{getMetaData@{getMetaData}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{getMetaData()}{getMetaData()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Meta}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::get\+Meta\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the triangle meta-\/data. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+meta\+Data 
+\end{DoxyReturn}
+\Hypertarget{classEBGeometry_1_1Triangle_a893c6d7b8bccdea97ea21ab6062d3fb5}\label{classEBGeometry_1_1Triangle_a893c6d7b8bccdea97ea21ab6062d3fb5} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!getMetaData@{getMetaData}}
+\index{getMetaData@{getMetaData}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{getMetaData()}{getMetaData()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{Meta}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::get\+Meta\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the triangle meta-\/data. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+meta\+Data 
+\end{DoxyReturn}
+\Hypertarget{classEBGeometry_1_1Triangle_ac01db072264663efcf78c637d47d353b}\label{classEBGeometry_1_1Triangle_ac01db072264663efcf78c637d47d353b} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!getNormal@{getNormal}}
+\index{getNormal@{getNormal}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{getNormal()}{getNormal()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::get\+Normal (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the triangle normal vector. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+triangle\+Normal 
+\end{DoxyReturn}
+\Hypertarget{classEBGeometry_1_1Triangle_ac568b0dccd8cd43d60dfbe0e80611fb4}\label{classEBGeometry_1_1Triangle_ac568b0dccd8cd43d60dfbe0e80611fb4} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!getNormal@{getNormal}}
+\index{getNormal@{getNormal}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{getNormal()}{getNormal()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::get\+Normal (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the triangle normal vector. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+triangle\+Normal 
+\end{DoxyReturn}
+\Hypertarget{classEBGeometry_1_1Triangle_a1c09f437e882da8e750a18e534f897c7}\label{classEBGeometry_1_1Triangle_a1c09f437e882da8e750a18e534f897c7} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!getVertexNormals@{getVertexNormals}}
+\index{getVertexNormals@{getVertexNormals}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{getVertexNormals()}{getVertexNormals()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \& \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::get\+Vertex\+Normals (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the vertex normals. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+vertex\+Normals 
+\end{DoxyReturn}
+\Hypertarget{classEBGeometry_1_1Triangle_a055e6d7cb74df614889c9c3b648e3663}\label{classEBGeometry_1_1Triangle_a055e6d7cb74df614889c9c3b648e3663} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!getVertexNormals@{getVertexNormals}}
+\index{getVertexNormals@{getVertexNormals}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{getVertexNormals()}{getVertexNormals()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \& \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::get\+Vertex\+Normals (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the vertex normals. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+vertex\+Normals 
+\end{DoxyReturn}
+\Hypertarget{classEBGeometry_1_1Triangle_a2dbfe18b5567519c21bbd9053d40e0bc}\label{classEBGeometry_1_1Triangle_a2dbfe18b5567519c21bbd9053d40e0bc} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!getVertexPositions@{getVertexPositions}}
+\index{getVertexPositions@{getVertexPositions}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{getVertexPositions()}{getVertexPositions()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \& \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::get\+Vertex\+Positions (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the vertex positions. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+vertex\+Positions 
+\end{DoxyReturn}
+\Hypertarget{classEBGeometry_1_1Triangle_a14d5145a69a52ebb4edebfe86c04eb9d}\label{classEBGeometry_1_1Triangle_a14d5145a69a52ebb4edebfe86c04eb9d} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!getVertexPositions@{getVertexPositions}}
+\index{getVertexPositions@{getVertexPositions}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{getVertexPositions()}{getVertexPositions()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \& \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::get\+Vertex\+Positions (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the vertex positions. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+vertex\+Positions 
+\end{DoxyReturn}
+\Hypertarget{classEBGeometry_1_1Triangle_a72293d86e1019c527250fec7a34fed91}\label{classEBGeometry_1_1Triangle_a72293d86e1019c527250fec7a34fed91} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!operator=@{operator=}}
+\index{operator=@{operator=}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classEBGeometry_1_1Triangle}{Triangle}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\mbox{\hyperlink{classVec3T}{\+::operator}}= (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle}{Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$ \&}]{a\+\_\+other\+Triangle }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [default]}, {\ttfamily [noexcept]}}
+
+
+
+Copy assignment. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+other\+Triangle} & Other triangle. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classEBGeometry_1_1Triangle_ad48c6d9efa2b922911e22cc51cb9b0db}\label{classEBGeometry_1_1Triangle_ad48c6d9efa2b922911e22cc51cb9b0db} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!operator=@{operator=}}
+\index{operator=@{operator=}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classEBGeometry_1_1Triangle}{Triangle}} \& \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\mbox{\hyperlink{classVec3T}{\+::operator}}= (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classEBGeometry_1_1Triangle}{Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$ \&\&}]{a\+\_\+other\+Triangle }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [default]}, {\ttfamily [noexcept]}}
+
+
+
+Move assignment. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in,out}}  & {\em a\+\_\+other\+Triangle} & Other triangle. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classEBGeometry_1_1Triangle_a45d2de05e4ede228feb9a09f8b38227a}\label{classEBGeometry_1_1Triangle_a45d2de05e4ede228feb9a09f8b38227a} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!projectPointToEdge@{projectPointToEdge}}
+\index{projectPointToEdge@{projectPointToEdge}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{projectPointToEdge()}{projectPointToEdge()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::project\+Point\+To\+Edge (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&}]{a\+\_\+point,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&}]{a\+\_\+x0,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&}]{a\+\_\+x1 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [protected]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the "{}projection"{} of a point to an edge. 
+
+This function parametrizes the edge as x(t) = x0 + (x1-\/x0)\texorpdfstring{$\ast$}{*}t and returns where on the this edge the point a\+\_\+x0 projects. If projects onto the edge if t = \mbox{[}0,1\mbox{]} and to one of the start/end vertices otherwise. 
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Query point \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+x0} & Starting edge coordinate \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+x1} & Final edge coordinate ~\newline
+ \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classEBGeometry_1_1Triangle_a759ae1410a8878d5e1fac380252c74bd}\label{classEBGeometry_1_1Triangle_a759ae1410a8878d5e1fac380252c74bd} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!setEdgeNormals@{setEdgeNormals}}
+\index{setEdgeNormals@{setEdgeNormals}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{setEdgeNormals()}{setEdgeNormals()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::set\+Edge\+Normals (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \&}]{a\+\_\+edge\+Normals }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Set the triangle edge normals. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+edge\+Normals} & Edge normals \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classEBGeometry_1_1Triangle_a992e2527392bc67d16a8690f6d1405f0}\label{classEBGeometry_1_1Triangle_a992e2527392bc67d16a8690f6d1405f0} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!setMetaData@{setMetaData}}
+\index{setMetaData@{setMetaData}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{setMetaData()}{setMetaData()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::set\+Meta\+Data (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Meta}} \&}]{a\+\_\+meta\+Data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Set the triangle meta-\/data. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+meta\+Data} & \doxylink{classEBGeometry_1_1Triangle}{Triangle} metadata. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classEBGeometry_1_1Triangle_a1ca284a27be1f778a61766af347562c2}\label{classEBGeometry_1_1Triangle_a1ca284a27be1f778a61766af347562c2} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!setNormal@{setNormal}}
+\index{setNormal@{setNormal}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{setNormal()}{setNormal()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::set\+Normal (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&}]{a\+\_\+normal }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Set the triangle normal vector. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+normal} & Normal vector (should be consistent with the vertex ordering!). \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classEBGeometry_1_1Triangle_abed6784e27dfcb7c772419643359bb13}\label{classEBGeometry_1_1Triangle_abed6784e27dfcb7c772419643359bb13} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!setVertexNormals@{setVertexNormals}}
+\index{setVertexNormals@{setVertexNormals}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{setVertexNormals()}{setVertexNormals()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::set\+Vertex\+Normals (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \&}]{a\+\_\+vertex\+Normals }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Set the triangle vertex normals. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+vertex\+Normals} & Vertex normals \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classEBGeometry_1_1Triangle_af87dce6b0de02244a8de109b77587acb}\label{classEBGeometry_1_1Triangle_af87dce6b0de02244a8de109b77587acb} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!setVertexPositions@{setVertexPositions}}
+\index{setVertexPositions@{setVertexPositions}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{setVertexPositions()}{setVertexPositions()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::set\+Vertex\+Positions (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ \&}]{a\+\_\+vertex\+Positions }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Set the triangle vertex positions. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+vertex\+Positions} & Vertex positions \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classEBGeometry_1_1Triangle_ae0fdc42e8e24cb4af0e6eb7c383d7635}\label{classEBGeometry_1_1Triangle_ae0fdc42e8e24cb4af0e6eb7c383d7635} 
+\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!signedDistance@{signedDistance}}
+\index{signedDistance@{signedDistance}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Compute the signed distance from the input point x to the triangle. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Point \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__Triangle_8hpp}{EBGeometry\+\_\+\+Triangle.\+hpp}}\end{DoxyCompactItemize}

@@ -1,19 +1,20 @@
-\hypertarget{EBGeometry__Parser_8hpp}{}\doxysection{/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\+EBGeometry\+\_\+\+Parser.hpp File Reference}
-\label{EBGeometry__Parser_8hpp}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Parser.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Parser.hpp}}
+\doxysection{/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\+EBGeometry\+\_\+\+Parser.hpp File Reference}
+\hypertarget{EBGeometry__Parser_8hpp}{}\label{EBGeometry__Parser_8hpp}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Parser.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Parser.hpp}}
 
 
-Declaration of utilities for reading files into \mbox{\hyperlink{namespaceEBGeometry}{EBGeometry}} data structures.  
+Declaration of utilities for reading files into \doxylink{namespaceEBGeometry}{EBGeometry} data structures.  
 
 
 {\ttfamily \#include $<$vector$>$}\newline
 {\ttfamily \#include $<$memory$>$}\newline
 {\ttfamily \#include $<$map$>$}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+DCEL\+\_\+\+Mesh.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Mesh\+Distance\+Functions.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Bounding\+Volumes.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Namespace\+Header.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Namespace\+Footer.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Parser\+Implem.\+hpp\char`\"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Bounding\+Volumes.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+DCEL\+\_\+\+Mesh.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Mesh\+Distance\+Functions.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Triangle.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Header.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Footer.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Parser\+Implem.\+hpp"{}}\newline
 Include dependency graph for EBGeometry\+\_\+\+Parser.\+hpp\+:
 \nopagebreak
 \begin{figure}[H]
@@ -30,28 +31,28 @@ This graph shows which files directly or indirectly include this file\+:
 \includegraphics[width=262pt]{EBGeometry__Parser_8hpp__dep__incl}
 \end{center}
 \end{figure}
-\doxysubsection*{Classes}
+\doxysubsubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
 class \mbox{\hyperlink{classParser_1_1STL}{Parser\+::\+STL$<$ T, Meta $>$}}
-\begin{DoxyCompactList}\small\item\em Class for reading \mbox{\hyperlink{classParser_1_1STL}{STL}} files. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Class for reading \doxylink{classParser_1_1STL}{STL} files. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classParser_1_1PLY}{Parser\+::\+PLY$<$ T $>$}}
-\begin{DoxyCompactList}\small\item\em Class for reading Stanford \mbox{\hyperlink{classParser_1_1PLY}{PLY}} files. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Namespaces}
+\begin{DoxyCompactList}\small\item\em Class for reading Stanford \doxylink{classParser_1_1PLY}{PLY} files. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Namespaces}
 \begin{DoxyCompactItemize}
 \item 
- \mbox{\hyperlink{namespaceParser}{Parser}}
-\begin{DoxyCompactList}\small\item\em Namespace which encapsulates possible file parsers for building \mbox{\hyperlink{namespaceEBGeometry}{EBGeometry}} data structures. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Enumerations}
+namespace \mbox{\hyperlink{namespaceParser}{Parser}}
+\begin{DoxyCompactList}\small\item\em Namespace which encapsulates possible file parsers for building \doxylink{namespaceEBGeometry}{EBGeometry} data structures. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{namespaceParser_a4335203a05b102e71ece262ddb2a38a0}\label{namespaceParser_a4335203a05b102e71ece262ddb2a38a0}} 
+\Hypertarget{namespaceParser_a4335203a05b102e71ece262ddb2a38a0}\label{namespaceParser_a4335203a05b102e71ece262ddb2a38a0} 
 enum class \mbox{\hyperlink{namespaceParser_a4335203a05b102e71ece262ddb2a38a0}{Parser\+::\+Encoding}} \{ {\bfseries ASCII}
 , {\bfseries Binary}
 , {\bfseries Unknown}
  \}
 \begin{DoxyCompactList}\small\item\em Simple enum for separating ASCII and binary files. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{namespaceParser_a8fc8b809825e25aef6d1cc003b88b60f}\label{namespaceParser_a8fc8b809825e25aef6d1cc003b88b60f}} 
+\Hypertarget{namespaceParser_a8fc8b809825e25aef6d1cc003b88b60f}\label{namespaceParser_a8fc8b809825e25aef6d1cc003b88b60f} 
 enum class \mbox{\hyperlink{namespaceParser_a8fc8b809825e25aef6d1cc003b88b60f}{Parser\+::\+File\+Type}} \{ {\bfseries STL}
 , {\bfseries PLY}
 , {\bfseries Unsupported}
@@ -60,7 +61,7 @@ enum class \mbox{\hyperlink{namespaceParser_a8fc8b809825e25aef6d1cc003b88b60f}{P
 
 
 \doxysubsection{Detailed Description}
-Declaration of utilities for reading files into \mbox{\hyperlink{namespaceEBGeometry}{EBGeometry}} data structures. 
+Declaration of utilities for reading files into \doxylink{namespaceEBGeometry}{EBGeometry} data structures. 
 
 \begin{DoxyAuthor}{Author}
 Robert Marskar 

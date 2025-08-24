@@ -1,5 +1,5 @@
-\hypertarget{classPolygon2D}{}\doxysection{Polygon2D$<$ T $>$ Class Template Reference}
-\label{classPolygon2D}\index{Polygon2D$<$ T $>$@{Polygon2D$<$ T $>$}}
+\doxysection{Polygon2D\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classPolygon2D}{}\label{classPolygon2D}\index{Polygon2D$<$ T $>$@{Polygon2D$<$ T $>$}}
 
 
 Class for embedding a polygon face into 2D.  
@@ -9,57 +9,56 @@ Class for embedding a polygon face into 2D.
 
 {\ttfamily \#include $<$EBGeometry\+\_\+\+Polygon2\+D.\+hpp$>$}
 
-\doxysubsection*{Public Types}
+\doxysubsubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classPolygon2D_a1fbebae900d177089d0233412d282600}\label{classPolygon2D_a1fbebae900d177089d0233412d282600}} 
+\Hypertarget{classPolygon2D_a1fbebae900d177089d0233412d282600}\label{classPolygon2D_a1fbebae900d177089d0233412d282600} 
 enum class \mbox{\hyperlink{classPolygon2D_a1fbebae900d177089d0233412d282600}{Inside\+Outside\+Algorithm}} \{ {\bfseries Subtended\+Angle}
 , {\bfseries Crossing\+Number}
 , {\bfseries Winding\+Number}
  \}
 \begin{DoxyCompactList}\small\item\em Supported algorithms for performing inside/outside tests when checking if a point projects to the inside or outside of a polygon face. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classPolygon2D_ac00d7bdde1d15e381c188086bab9e8f2}\label{classPolygon2D_ac00d7bdde1d15e381c188086bab9e8f2}} 
-using \mbox{\hyperlink{classPolygon2D_ac00d7bdde1d15e381c188086bab9e8f2}{Vec2}} = \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$
+\Hypertarget{classPolygon2D_ac00d7bdde1d15e381c188086bab9e8f2}\label{classPolygon2D_ac00d7bdde1d15e381c188086bab9e8f2} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Vec2} = \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$
 \begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}\label{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}} 
-using \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$
+\Hypertarget{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}\label{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4} 
+\mbox{\hyperlink{classVec3T}{using}} {\bfseries Vec3} = \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$
 \begin{DoxyCompactList}\small\item\em Alias to cut down on typing. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Public Member Functions}
+\doxysubsubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classPolygon2D_a9733800001f7eba9faebcd86617699ae}\label{classPolygon2D_a9733800001f7eba9faebcd86617699ae}} 
-\mbox{\hyperlink{classPolygon2D_a9733800001f7eba9faebcd86617699ae}{Polygon2D}} ()=delete
+\Hypertarget{classPolygon2D_a9733800001f7eba9faebcd86617699ae}\label{classPolygon2D_a9733800001f7eba9faebcd86617699ae} 
+{\bfseries Polygon2D} ()=\mbox{\hyperlink{classVec3T}{delete}}
 \begin{DoxyCompactList}\small\item\em Disallowed constructor, use the one with the normal vector and points. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classPolygon2D_adf4ae9b914197276beb7cc3925ad24f0}{Polygon2D}} (const \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&a\+\_\+normal, const std\+::vector$<$ \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} $>$ \&a\+\_\+points)
+\mbox{\hyperlink{classPolygon2D_adf4ae9b914197276beb7cc3925ad24f0}{Polygon2D}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+normal}}, \mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+points}})
 \begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classPolygon2D_acb7943d6adc578c3e4c099c06d431bd5}\label{classPolygon2D_acb7943d6adc578c3e4c099c06d431bd5}} 
-\mbox{\hyperlink{classPolygon2D_acb7943d6adc578c3e4c099c06d431bd5}{$\sim$\+Polygon2D}} ()=default
+\Hypertarget{classPolygon2D_acb7943d6adc578c3e4c099c06d431bd5}\label{classPolygon2D_acb7943d6adc578c3e4c099c06d431bd5} 
+{\bfseries \texorpdfstring{$\sim$}{\string~}\+Polygon2D} ()=\mbox{\hyperlink{classVec3T}{default}}
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing. \end{DoxyCompactList}\item 
-bool \mbox{\hyperlink{classPolygon2D_a55bada055bc746026235acd900be5b00}{is\+Point\+Inside}} (const \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&a\+\_\+point, const \mbox{\hyperlink{classPolygon2D_a1fbebae900d177089d0233412d282600}{Inside\+Outside\+Algorithm}} a\+\_\+algorithm) const noexcept
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classPolygon2D_a55bada055bc746026235acd900be5b00}{is\+Point\+Inside}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classPolygon2D_a1fbebae900d177089d0233412d282600}{Inside\+Outside\+Algorithm}} \mbox{\hyperlink{classVec3T}{a\+\_\+algorithm}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Check if a point is inside or outside the 2D polygon. \end{DoxyCompactList}\item 
-bool \mbox{\hyperlink{classPolygon2D_ac6f795b6861a53f39ddc2cc5a9af11b3}{is\+Point\+Inside\+Polygon\+Winding\+Number}} (const \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&a\+\_\+point) const noexcept
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classPolygon2D_ac6f795b6861a53f39ddc2cc5a9af11b3}{is\+Point\+Inside\+Polygon\+Winding\+Number}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Check if a point is inside a 2D polygon, using the winding number algorithm. \end{DoxyCompactList}\item 
-bool \mbox{\hyperlink{classPolygon2D_a16f21b4f3000ff991f85b27b2945e0dd}{is\+Point\+Inside\+Polygon\+Subtend}} (const \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&a\+\_\+point) const noexcept
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classPolygon2D_a16f21b4f3000ff991f85b27b2945e0dd}{is\+Point\+Inside\+Polygon\+Subtend}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Check if a point is inside a 2D polygon, using the subtended angles. \end{DoxyCompactList}\item 
-bool \mbox{\hyperlink{classPolygon2D_afa903d20e99611868a4328429466f4a0}{is\+Point\+Inside\+Polygon\+Crossing\+Number}} (const \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&a\+\_\+point) const noexcept
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classPolygon2D_afa903d20e99611868a4328429466f4a0}{is\+Point\+Inside\+Polygon\+Crossing\+Number}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Check if a point is inside a 2D polygon, by computing the number of times a ray crosses the polygon edges. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-\subsubsection*{template$<$class T$>$\newline
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}}$>$\newline
 class Polygon2\+D$<$ T $>$}
-
 Class for embedding a polygon face into 2D. 
 
 This class is required for determining whether or not a 3D point projected to the plane of an N-\/sided polygon lies inside or outside the polygon face. To do this we compute the 2D embedding of the polygon face, reducing the problem to a tractable dimension where we can use well-\/tested algorithm. The 2D embedding of a polygon occurs by taking a set of 3D points and a corresponding normal vector, and projecting those points along one of the 3D Cartesian axes such that the polygon has the largest area. In essence, we simply find the direction with the smallest normal vector component and ignore that. Once the 2D embedding is computed, we can use well-\/known algorithms for checking if a point lies inside or outside. The supported algorithms are 1) The winding number algorithm (computing the winding number), 2) Computing the subtended angle of the point with the edges of the polygon (sums to 360 degrees if the point is inside), or computing the crossing number which checks how many times a ray cast from the point crosses the edges of the polygon. 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classPolygon2D_adf4ae9b914197276beb7cc3925ad24f0}\label{classPolygon2D_adf4ae9b914197276beb7cc3925ad24f0}} 
+\Hypertarget{classPolygon2D_adf4ae9b914197276beb7cc3925ad24f0}\label{classPolygon2D_adf4ae9b914197276beb7cc3925ad24f0} 
 \index{Polygon2D$<$ T $>$@{Polygon2D$<$ T $>$}!Polygon2D@{Polygon2D}}
 \index{Polygon2D@{Polygon2D}!Polygon2D$<$ T $>$@{Polygon2D$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{Polygon2D()}{Polygon2D()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-\mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ T $>$\+::\mbox{\hyperlink{classPolygon2D}{Polygon2D}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&}]{a\+\_\+normal,  }\item[{const std\+::vector$<$ \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} $>$ \&}]{a\+\_\+points }\end{DoxyParamCaption})}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classPolygon2D}{\+::\+Polygon2D}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&}]{a\+\_\+normal,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} $>$ \&}]{a\+\_\+points }\end{DoxyParamCaption})}
 
 
 
@@ -75,12 +74,12 @@ Full constructor.
 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classPolygon2D_a55bada055bc746026235acd900be5b00}\label{classPolygon2D_a55bada055bc746026235acd900be5b00}} 
+\Hypertarget{classPolygon2D_a55bada055bc746026235acd900be5b00}\label{classPolygon2D_a55bada055bc746026235acd900be5b00} 
 \index{Polygon2D$<$ T $>$@{Polygon2D$<$ T $>$}!isPointInside@{isPointInside}}
 \index{isPointInside@{isPointInside}!Polygon2D$<$ T $>$@{Polygon2D$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{isPointInside()}{isPointInside()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-bool \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ T $>$\+::is\+Point\+Inside (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&}]{a\+\_\+point,  }\item[{const \mbox{\hyperlink{classPolygon2D_a1fbebae900d177089d0233412d282600}{Inside\+Outside\+Algorithm}}}]{a\+\_\+algorithm }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::is\+Point\+Inside (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&}]{a\+\_\+point,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classPolygon2D_a1fbebae900d177089d0233412d282600}{Inside\+Outside\+Algorithm}}}]{a\+\_\+algorithm }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -93,12 +92,12 @@ Check if a point is inside or outside the 2D polygon.
 \mbox{\texttt{ in}}  & {\em a\+\_\+algorithm} & Inside/outside algorithm\\
 \hline
 \end{DoxyParams}
-This will call the function corresponding to a\+\_\+algorithm. \mbox{\Hypertarget{classPolygon2D_afa903d20e99611868a4328429466f4a0}\label{classPolygon2D_afa903d20e99611868a4328429466f4a0}} 
+This will call the function corresponding to a\+\_\+algorithm. \Hypertarget{classPolygon2D_afa903d20e99611868a4328429466f4a0}\label{classPolygon2D_afa903d20e99611868a4328429466f4a0} 
 \index{Polygon2D$<$ T $>$@{Polygon2D$<$ T $>$}!isPointInsidePolygonCrossingNumber@{isPointInsidePolygonCrossingNumber}}
 \index{isPointInsidePolygonCrossingNumber@{isPointInsidePolygonCrossingNumber}!Polygon2D$<$ T $>$@{Polygon2D$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{isPointInsidePolygonCrossingNumber()}{isPointInsidePolygonCrossingNumber()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-bool \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ T $>$\+::is\+Point\+Inside\+Polygon\+Crossing\+Number (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::is\+Point\+Inside\+Polygon\+Crossing\+Number (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -112,12 +111,12 @@ Check if a point is inside a 2D polygon, by computing the number of times a ray 
 \begin{DoxyReturn}{Returns}
 Returns true if the 3D point projects to the inside of the 2D polygon 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classPolygon2D_a16f21b4f3000ff991f85b27b2945e0dd}\label{classPolygon2D_a16f21b4f3000ff991f85b27b2945e0dd}} 
+\Hypertarget{classPolygon2D_a16f21b4f3000ff991f85b27b2945e0dd}\label{classPolygon2D_a16f21b4f3000ff991f85b27b2945e0dd} 
 \index{Polygon2D$<$ T $>$@{Polygon2D$<$ T $>$}!isPointInsidePolygonSubtend@{isPointInsidePolygonSubtend}}
 \index{isPointInsidePolygonSubtend@{isPointInsidePolygonSubtend}!Polygon2D$<$ T $>$@{Polygon2D$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{isPointInsidePolygonSubtend()}{isPointInsidePolygonSubtend()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-bool \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ T $>$\+::is\+Point\+Inside\+Polygon\+Subtend (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::is\+Point\+Inside\+Polygon\+Subtend (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -131,12 +130,12 @@ Check if a point is inside a 2D polygon, using the subtended angles.
 \begin{DoxyReturn}{Returns}
 Returns true if the 3D point projects to the inside of the 2D polygon 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classPolygon2D_ac6f795b6861a53f39ddc2cc5a9af11b3}\label{classPolygon2D_ac6f795b6861a53f39ddc2cc5a9af11b3}} 
+\Hypertarget{classPolygon2D_ac6f795b6861a53f39ddc2cc5a9af11b3}\label{classPolygon2D_ac6f795b6861a53f39ddc2cc5a9af11b3} 
 \index{Polygon2D$<$ T $>$@{Polygon2D$<$ T $>$}!isPointInsidePolygonWindingNumber@{isPointInsidePolygonWindingNumber}}
 \index{isPointInsidePolygonWindingNumber@{isPointInsidePolygonWindingNumber}!Polygon2D$<$ T $>$@{Polygon2D$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{isPointInsidePolygonWindingNumber()}{isPointInsidePolygonWindingNumber()}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-bool \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ T $>$\+::is\+Point\+Inside\+Polygon\+Winding\+Number (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{bool}} \mbox{\hyperlink{classPolygon2D}{Polygon2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::is\+Point\+Inside\+Polygon\+Winding\+Number (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classPolygon2D_a3efc3674f907d26837cdbb1f9a2182d4}{Vec3}} \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 

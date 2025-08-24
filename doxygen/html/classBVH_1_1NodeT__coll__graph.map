@@ -1,4 +1,5 @@
 <map id="BVH::NodeT&lt; T, P, BV, K &gt;" name="BVH::NodeT&lt; T, P, BV, K &gt;">
-<area shape="rect" id="node1" title="Forward declare the BVH node since it is needed for the polymorphic lambdas." alt="" coords="5,109,203,136"/>
-<area shape="rect" id="node2" title=" " alt="" coords="17,5,191,61"/>
+<area shape="rect" id="Node000001" title="Forward declare the BVH node since it is needed for the polymorphic lambdas." alt="" coords="5,108,203,133"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="17,5,191,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="107,74,107,108,101,108,101,74"/>
 </map>

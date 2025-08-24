@@ -1,5 +1,5 @@
-\hypertarget{classVec2T}{}\doxysection{Vec2T$<$ T $>$ Class Template Reference}
-\label{classVec2T}\index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
+\doxysection{Vec2T\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classVec2T}{}\label{classVec2T}\index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
 
 
 Two-\/dimensional vector class with arithmetic operators.  
@@ -9,93 +9,92 @@ Two-\/dimensional vector class with arithmetic operators.
 
 {\ttfamily \#include $<$EBGeometry\+\_\+\+Vec.\+hpp$>$}
 
-\doxysubsection*{Public Member Functions}
+\doxysubsubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classVec2T_a4aa6e0bd3922abd84449278429a03418}\label{classVec2T_a4aa6e0bd3922abd84449278429a03418}} 
-\mbox{\hyperlink{classVec2T_a4aa6e0bd3922abd84449278429a03418}{Vec2T}} ()
+\Hypertarget{classVec2T_a4aa6e0bd3922abd84449278429a03418}\label{classVec2T_a4aa6e0bd3922abd84449278429a03418} 
+{\bfseries Vec2T} ()
 \begin{DoxyCompactList}\small\item\em Default constructor. Sets the vector to the zero vector. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classVec2T_ae58412c19542cb4c76553e53e74a1203}{Vec2T}} (const \mbox{\hyperlink{classVec2T}{Vec2T}} \&u) noexcept
+\mbox{\hyperlink{classVec2T_ae58412c19542cb4c76553e53e74a1203}{Vec2T}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec2T}{Vec2T}} \&\mbox{\hyperlink{classVec3T}{u}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Copy constructor. \end{DoxyCompactList}\item 
-constexpr \mbox{\hyperlink{classVec2T_a6ab40f6698f98b18934ff65046277540}{Vec2T}} (const T \&a\+\_\+x, const T \&a\+\_\+y)
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T_a6ab40f6698f98b18934ff65046277540}{Vec2T}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+x}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+y}})
 \begin{DoxyCompactList}\small\item\em Full constructor. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classVec2T_a15a9bac13b94b58f0907443bc551dbee}\label{classVec2T_a15a9bac13b94b58f0907443bc551dbee}} 
-\mbox{\hyperlink{classVec2T_a15a9bac13b94b58f0907443bc551dbee}{$\sim$\+Vec2T}} ()=default
+\Hypertarget{classVec2T_a15a9bac13b94b58f0907443bc551dbee}\label{classVec2T_a15a9bac13b94b58f0907443bc551dbee} 
+{\bfseries \texorpdfstring{$\sim$}{\string~}\+Vec2T} ()=\mbox{\hyperlink{classVec3T}{default}}
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \& \mbox{\hyperlink{classVec2T_adb211f83d3075c8e90bc7bd2367f0595}{operator=}} (const \mbox{\hyperlink{classVec2T}{Vec2T}} \&a\+\_\+other) noexcept
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVec2T_afa09b532012ed765c6f7d092cda8914e}{operator=}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec2T}{Vec2T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+other}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Assignment operator. Sets this.\+x = a\+\_\+other.\+x and this.\+y = a\+\_\+other.\+y. \end{DoxyCompactList}\item 
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{classVec2T_a8ea575fe13a084e34b52d4a41f280c0e}{operator+}} (const \mbox{\hyperlink{classVec2T}{Vec2T}} \&a\+\_\+other) const noexcept
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classVec2T_a19f0466682c96bbca613269fd56e54dc}{operator+}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec2T}{Vec2T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+other}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Addition operator. \end{DoxyCompactList}\item 
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{classVec2T_a99adc1e31339edeb7972cb4dee35ff79}{operator-\/}} (const \mbox{\hyperlink{classVec2T}{Vec2T}} \&a\+\_\+other) const noexcept
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classVec2T_aab4f502a375b99861d65bfee5ea65e38}{operator-\/}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec2T}{Vec2T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+other}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Subtraction operator. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classVec2T_aaf91f8ec851e9757665de800e8d54b1e}\label{classVec2T_aaf91f8ec851e9757665de800e8d54b1e}} 
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{classVec2T_aaf91f8ec851e9757665de800e8d54b1e}{operator-\/}} () const noexcept
+\Hypertarget{classVec2T_a9f84a60adbcb47825eb9d7d930fc4191}\label{classVec2T_a9f84a60adbcb47825eb9d7d930fc4191} 
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries operator-\/} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Negation operator. Returns a new Vec2\+T$<$\+T$>$ with negated components. \end{DoxyCompactList}\item 
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{classVec2T_a0d4c29c9de8965647f7ddf18a6df2b7f}{operator$\ast$}} (const T \&s) const noexcept
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classVec2T_abc34d4cfce8df2a0c1554e4cacfe3c74}{operator\texorpdfstring{$\ast$}{*}}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{s}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Multiplication operator. \end{DoxyCompactList}\item 
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{classVec2T_a670dafb9e1cc73148839bb78655b3392}{operator/}} (const T \&s) const noexcept
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classVec2T_a7976fd4d3c03c9fdb08b4675673560ac}{operator/}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{s}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Division operator. \end{DoxyCompactList}\item 
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \& \mbox{\hyperlink{classVec2T_a0f4161352341bef3c90c4c08c0bbb713}{operator+=}} (const \mbox{\hyperlink{classVec2T}{Vec2T}} \&a\+\_\+other) noexcept
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVec2T_ab021c9a052a592460445df8d7d17b0a9}{operator+=}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec2T}{Vec2T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+other}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Addition operator. \end{DoxyCompactList}\item 
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \& \mbox{\hyperlink{classVec2T_ace969c60a66c09ccf0efafc3447c3e27}{operator-\/=}} (const \mbox{\hyperlink{classVec2T}{Vec2T}} \&a\+\_\+other) noexcept
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVec2T_a23c4e34e4569dc010b1286ca2121755a}{operator-\/=}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec2T}{Vec2T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+other}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Subtraction operator. \end{DoxyCompactList}\item 
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \& \mbox{\hyperlink{classVec2T_ad0f92374027e7fc6288c8f4d524dfec8}{operator$\ast$=}} (const T \&s) noexcept
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVec2T_a1fb475dc16d3bd7c58cd59f4e56e2089}{operator\texorpdfstring{$\ast$}{*}=}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{s}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Multiplication operator. \end{DoxyCompactList}\item 
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \& \mbox{\hyperlink{classVec2T_ae28b03fbebd9cdb961af47fc447a7f9e}{operator/=}} (const T \&s) noexcept
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVec2T_a35116541013e0cbfd9204e8e72e17ed2}{operator/=}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{s}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Division operator operator. \end{DoxyCompactList}\item 
-constexpr T \mbox{\hyperlink{classVec2T_a8b7cb7e36ad7739929bcebdbce3a30de}{dot}} (const \mbox{\hyperlink{classVec2T}{Vec2T}} \&a\+\_\+other) const noexcept
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec2T_a8b7cb7e36ad7739929bcebdbce3a30de}{dot}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec2T}{Vec2T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+other}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Dot product operator. \end{DoxyCompactList}\item 
-constexpr T \mbox{\hyperlink{classVec2T_a006955e162c59d5d4988032be46b173c}{length}} () const noexcept
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec2T_a006955e162c59d5d4988032be46b173c}{length}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Compute length of vector. \end{DoxyCompactList}\item 
-constexpr T \mbox{\hyperlink{classVec2T_a29e28df03549a51e58e25bee8ef92b23}{length2}} () const noexcept
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec2T_a29e28df03549a51e58e25bee8ef92b23}{length2}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Compute square of vector. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Static Public Member Functions}
+\doxysubsubsection*{Static Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classVec2T_a55c716414b5db6d83d736b0e5a2363b9}\label{classVec2T_a55c716414b5db6d83d736b0e5a2363b9}} 
-static constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{classVec2T_a55c716414b5db6d83d736b0e5a2363b9}{zero}} () noexcept
+\Hypertarget{classVec2T_ac7324f5c659845c47a7c31dcf035a645}\label{classVec2T_ac7324f5c659845c47a7c31dcf035a645} 
+\mbox{\hyperlink{classVec3T}{static}} \mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries zero} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Return av vector with x = y = 0. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classVec2T_ac5c9ebc02a898817386d3114d5d88da0}\label{classVec2T_ac5c9ebc02a898817386d3114d5d88da0}} 
-static constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{classVec2T_ac5c9ebc02a898817386d3114d5d88da0}{one}} () noexcept
+\Hypertarget{classVec2T_a365145f47737b718a657c0f02518d36f}\label{classVec2T_a365145f47737b718a657c0f02518d36f} 
+\mbox{\hyperlink{classVec3T}{static}} \mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries one} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Return av vector with x = y = 1. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classVec2T_a8683604bcdccc2e4d0b04bb473ace422}\label{classVec2T_a8683604bcdccc2e4d0b04bb473ace422}} 
-static constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{classVec2T_a8683604bcdccc2e4d0b04bb473ace422}{min}} () noexcept
+\Hypertarget{classVec2T_a290920a19d8bb1db42bc00e8fed113ee}\label{classVec2T_a290920a19d8bb1db42bc00e8fed113ee} 
+\mbox{\hyperlink{classVec3T}{static}} \mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries min} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Return minimum possible representative vector. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classVec2T_a3d59b621d38a154f108c01cdd153a1ef}\label{classVec2T_a3d59b621d38a154f108c01cdd153a1ef}} 
-static constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{classVec2T_a3d59b621d38a154f108c01cdd153a1ef}{max}} () noexcept
+\Hypertarget{classVec2T_a37947ad199b90a6089103a8b4aa503a5}\label{classVec2T_a37947ad199b90a6089103a8b4aa503a5} 
+\mbox{\hyperlink{classVec3T}{static}} \mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries max} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Return maximum possible representative vector. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classVec2T_aae152c05bb2b8912703076f0c811ab82}\label{classVec2T_aae152c05bb2b8912703076f0c811ab82}} 
-static constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \mbox{\hyperlink{classVec2T_aae152c05bb2b8912703076f0c811ab82}{infinity}} () noexcept
+\Hypertarget{classVec2T_af54de0b68a225e07540468504d94edfe}\label{classVec2T_af54de0b68a225e07540468504d94edfe} 
+\mbox{\hyperlink{classVec3T}{static}} \mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries infinity} () \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Return a vector with inf components. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Public Attributes}
+\doxysubsubsection*{Public Attributes}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classVec2T_a66ea295b52114b22de1f76cce1aa7f51}\label{classVec2T_a66ea295b52114b22de1f76cce1aa7f51}} 
-T \mbox{\hyperlink{classVec2T_a66ea295b52114b22de1f76cce1aa7f51}{x}}
+\Hypertarget{classVec2T_a66ea295b52114b22de1f76cce1aa7f51}\label{classVec2T_a66ea295b52114b22de1f76cce1aa7f51} 
+\mbox{\hyperlink{classVec3T}{T}} {\bfseries x}
 \begin{DoxyCompactList}\small\item\em First component in the vector. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classVec2T_a71ce5251d618a6dbd4e0e7a0f867b6cf}\label{classVec2T_a71ce5251d618a6dbd4e0e7a0f867b6cf}} 
-T \mbox{\hyperlink{classVec2T_a71ce5251d618a6dbd4e0e7a0f867b6cf}{y}}
+\Hypertarget{classVec2T_a71ce5251d618a6dbd4e0e7a0f867b6cf}\label{classVec2T_a71ce5251d618a6dbd4e0e7a0f867b6cf} 
+\mbox{\hyperlink{classVec3T}{T}} {\bfseries y}
 \begin{DoxyCompactList}\small\item\em Second component in the vector. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-\subsubsection*{template$<$typename T$>$\newline
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}}$>$\newline
 class Vec2\+T$<$ T $>$}
-
 Two-\/dimensional vector class with arithmetic operators. 
 
-The class has a public-\/only interface. To change it\textquotesingle{}s components one can call the member functions, or set components directly, e.\+g. vec.\+x = 5.\+0 \begin{DoxyNote}{Note}
-\mbox{\hyperlink{classVec2T}{Vec2T}} is a templated class primarily used with \mbox{\hyperlink{namespaceDCEL}{DCEL}} grids. 
+The class has a public-\/only interface. To change it\textquotesingle{}s components one can call the member functions, or set components directly, \doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{e.\+g}. vec.\+x = \doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{5.\+0} \begin{DoxyNote}{Note}
+\doxylink{classVec2T}{Vec2T} is a templated class primarily used with \doxylink{namespaceDCEL}{DCEL} grids. 
 \end{DoxyNote}
 
 
 \doxysubsection{Constructor \& Destructor Documentation}
-\mbox{\Hypertarget{classVec2T_ae58412c19542cb4c76553e53e74a1203}\label{classVec2T_ae58412c19542cb4c76553e53e74a1203}} 
+\Hypertarget{classVec2T_ae58412c19542cb4c76553e53e74a1203}\label{classVec2T_ae58412c19542cb4c76553e53e74a1203} 
 \index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!Vec2T@{Vec2T}}
 \index{Vec2T@{Vec2T}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{Vec2T()}{Vec2T()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-\mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$\+::\mbox{\hyperlink{classVec2T}{Vec2T}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{u }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classVec2T}{\+::\+Vec2T}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{u }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -106,12 +105,12 @@ Copy constructor.
 \mbox{\texttt{ in}}  & {\em u} & Other vector\\
 \hline
 \end{DoxyParams}
-Sets $\ast$this = u \mbox{\Hypertarget{classVec2T_a6ab40f6698f98b18934ff65046277540}\label{classVec2T_a6ab40f6698f98b18934ff65046277540}} 
+Sets \texorpdfstring{$\ast$}{*}this = u \Hypertarget{classVec2T_a6ab40f6698f98b18934ff65046277540}\label{classVec2T_a6ab40f6698f98b18934ff65046277540} 
 \index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!Vec2T@{Vec2T}}
 \index{Vec2T@{Vec2T}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{Vec2T()}{Vec2T()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$\+::\mbox{\hyperlink{classVec2T}{Vec2T}} (\begin{DoxyParamCaption}\item[{const T \&}]{a\+\_\+x,  }\item[{const T \&}]{a\+\_\+y }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [constexpr]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classVec2T}{\+::\+Vec2T}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&}]{a\+\_\+x,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&}]{a\+\_\+y }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [constexpr]}}
 
 
 
@@ -124,15 +123,15 @@ Full constructor.
 \mbox{\texttt{ in}}  & {\em a\+\_\+y} & Second vector component\\
 \hline
 \end{DoxyParams}
-Sets this-\/$>$x = a\+\_\+x and this-\/$>$y = a\+\_\+y 
+Sets this-\/\texorpdfstring{$>$}{>}x = a\+\_\+x and this-\/\texorpdfstring{$>$}{>}y = a\+\_\+y 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classVec2T_a8b7cb7e36ad7739929bcebdbce3a30de}\label{classVec2T_a8b7cb7e36ad7739929bcebdbce3a30de}} 
+\Hypertarget{classVec2T_a8b7cb7e36ad7739929bcebdbce3a30de}\label{classVec2T_a8b7cb7e36ad7739929bcebdbce3a30de} 
 \index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!dot@{dot}}
 \index{dot@{dot}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{dot()}{dot()}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr T \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$\+::dot (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::dot (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
 
 
 
@@ -143,40 +142,40 @@ Dot product operator.
 \mbox{\texttt{ in}}  & {\em a\+\_\+other} & other vector\\
 \hline
 \end{DoxyParams}
-Returns the dot product, i.\+e. this-\/$>$x$\ast$a\+\_\+other.x + this-\/$>$y+a\+\_\+other.y \mbox{\Hypertarget{classVec2T_a006955e162c59d5d4988032be46b173c}\label{classVec2T_a006955e162c59d5d4988032be46b173c}} 
+Returns the dot product, \doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{i.\+e}. this-\/\texorpdfstring{$>$}{>}x\texorpdfstring{$\ast$}{*}a\+\_\+other.x + this-\/\texorpdfstring{$>$}{>}y+a\+\_\+other.y \Hypertarget{classVec2T_a006955e162c59d5d4988032be46b173c}\label{classVec2T_a006955e162c59d5d4988032be46b173c} 
 \index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!length@{length}}
 \index{length@{length}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{length()}{length()}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr T \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$\+::length (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::length (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
 
 
 
 Compute length of vector. 
 
 \begin{DoxyReturn}{Returns}
-Returns length of vector, i.\+e. sqrt\mbox{[}(this-\/$>$x)$\ast$(this-\/$>$x) + (this-\/$>$y)$\ast$(this-\/$>$y)\mbox{]} 
+Returns length of vector, \doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{i.\+e}. sqrt\mbox{[}(this-\/\texorpdfstring{$>$}{>}x)\texorpdfstring{$\ast$}{*}(this-\/\texorpdfstring{$>$}{>}x) + (this-\/\texorpdfstring{$>$}{>}y)\texorpdfstring{$\ast$}{*}(this-\/\texorpdfstring{$>$}{>}y)\mbox{]} 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classVec2T_a29e28df03549a51e58e25bee8ef92b23}\label{classVec2T_a29e28df03549a51e58e25bee8ef92b23}} 
+\Hypertarget{classVec2T_a29e28df03549a51e58e25bee8ef92b23}\label{classVec2T_a29e28df03549a51e58e25bee8ef92b23} 
 \index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!length2@{length2}}
 \index{length2@{length2}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{length2()}{length2()}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr T \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$\+::length2 (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::length2 (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
 
 
 
 Compute square of vector. 
 
 \begin{DoxyReturn}{Returns}
-Returns length of vector, i.\+e. (this-\/$>$x)$\ast$(this-\/$>$x) + (this-\/$>$y)$\ast$(this-\/$>$y) 
+Returns length of vector, \doxylink{classVec3T_a314b7c2fe3a793f2e307a0093050f426}{i.\+e}. (this-\/\texorpdfstring{$>$}{>}x)\texorpdfstring{$\ast$}{*}(this-\/\texorpdfstring{$>$}{>}x) + (this-\/\texorpdfstring{$>$}{>}y)\texorpdfstring{$\ast$}{*}(this-\/\texorpdfstring{$>$}{>}y) 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classVec2T_a0d4c29c9de8965647f7ddf18a6df2b7f}\label{classVec2T_a0d4c29c9de8965647f7ddf18a6df2b7f}} 
-\index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!operator$\ast$@{operator$\ast$}}
-\index{operator$\ast$@{operator$\ast$}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
-\doxysubsubsection{\texorpdfstring{operator$\ast$()}{operator*()}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$T$>$ \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$\+::operator$\ast$ (\begin{DoxyParamCaption}\item[{const T \&}]{s }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+\Hypertarget{classVec2T_abc34d4cfce8df2a0c1554e4cacfe3c74}\label{classVec2T_abc34d4cfce8df2a0c1554e4cacfe3c74} 
+\index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!operator\texorpdfstring{$\ast$}{*}@{operator\texorpdfstring{$\ast$}{*}}}
+\index{operator\texorpdfstring{$\ast$}{*}@{operator\texorpdfstring{$\ast$}{*}}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{operator\texorpdfstring{$\ast$}{*}()}{operator*()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classVec3T}{\+::operator}}\texorpdfstring{$\ast$}{*} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&}]{s }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
 
 
 
@@ -187,12 +186,12 @@ Multiplication operator.
 \mbox{\texttt{ in}}  & {\em s} & Scalar to be multiplied\\
 \hline
 \end{DoxyParams}
-Returns a new Vec2\+T$<$\+T$>$ with components x = s$\ast$this-\/$>$x (and same for y) \mbox{\Hypertarget{classVec2T_ad0f92374027e7fc6288c8f4d524dfec8}\label{classVec2T_ad0f92374027e7fc6288c8f4d524dfec8}} 
-\index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!operator$\ast$=@{operator$\ast$=}}
-\index{operator$\ast$=@{operator$\ast$=}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
-\doxysubsubsection{\texorpdfstring{operator$\ast$=()}{operator*=()}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$T$>$\& \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$\+::operator$\ast$= (\begin{DoxyParamCaption}\item[{const T \&}]{s }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+Returns a new Vec2\+T$<$\+T$>$ with components x = s\texorpdfstring{$\ast$}{*}this-\/\texorpdfstring{$>$}{>}x (and same for y) \Hypertarget{classVec2T_a1fb475dc16d3bd7c58cd59f4e56e2089}\label{classVec2T_a1fb475dc16d3bd7c58cd59f4e56e2089} 
+\index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!operator\texorpdfstring{$\ast$}{*}=@{operator\texorpdfstring{$\ast$}{*}=}}
+\index{operator\texorpdfstring{$\ast$}{*}=@{operator\texorpdfstring{$\ast$}{*}=}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{operator\texorpdfstring{$\ast$}{*}=()}{operator*=()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classVec3T}{\+::operator}}\texorpdfstring{$\ast$}{*}= (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&}]{s }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
 
 
 
@@ -203,12 +202,12 @@ Multiplication operator.
 \mbox{\texttt{ in}}  & {\em s} & Scalar to multiply by\\
 \hline
 \end{DoxyParams}
-Returns ($\ast$this) with components this-\/$>$x = s$\ast$this-\/$>$x (and same for y) \mbox{\Hypertarget{classVec2T_a8ea575fe13a084e34b52d4a41f280c0e}\label{classVec2T_a8ea575fe13a084e34b52d4a41f280c0e}} 
+Returns (\texorpdfstring{$\ast$}{*}this) with components this-\/\texorpdfstring{$>$}{>}x = s\texorpdfstring{$\ast$}{*}this-\/\texorpdfstring{$>$}{>}x (and same for y) \Hypertarget{classVec2T_a19f0466682c96bbca613269fd56e54dc}\label{classVec2T_a19f0466682c96bbca613269fd56e54dc} 
 \index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!operator+@{operator+}}
 \index{operator+@{operator+}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{operator+()}{operator+()}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$T$>$ \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$\+::operator+ (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classVec3T}{\+::operator}}+ (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
 
 
 
@@ -219,12 +218,12 @@ Addition operator.
 \mbox{\texttt{ in}}  & {\em a\+\_\+other} & Other vector\\
 \hline
 \end{DoxyParams}
-Returns a new object with component x = this-\/$>$x + a\+\_\+other.\+x (same for y-\/component) \mbox{\Hypertarget{classVec2T_a0f4161352341bef3c90c4c08c0bbb713}\label{classVec2T_a0f4161352341bef3c90c4c08c0bbb713}} 
+Returns a new object with component x = this-\/\texorpdfstring{$>$}{>}x + a\+\_\+other.\+x (same for y-\/component) \Hypertarget{classVec2T_ab021c9a052a592460445df8d7d17b0a9}\label{classVec2T_ab021c9a052a592460445df8d7d17b0a9} 
 \index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!operator+=@{operator+=}}
 \index{operator+=@{operator+=}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{operator+=()}{operator+=()}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$T$>$\& \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$\+::operator+= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classVec3T}{\+::operator}}+= (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
 
 
 
@@ -235,12 +234,12 @@ Addition operator.
 \mbox{\texttt{ in}}  & {\em a\+\_\+other} & Other vector to add\\
 \hline
 \end{DoxyParams}
-Returns ($\ast$this) with components this-\/$>$x = this-\/$>$x + a\+\_\+other.\+x (and same for y) \mbox{\Hypertarget{classVec2T_a99adc1e31339edeb7972cb4dee35ff79}\label{classVec2T_a99adc1e31339edeb7972cb4dee35ff79}} 
+Returns (\texorpdfstring{$\ast$}{*}this) with components this-\/\texorpdfstring{$>$}{>}x = this-\/\texorpdfstring{$>$}{>}x + a\+\_\+other.\+x (and same for y) \Hypertarget{classVec2T_aab4f502a375b99861d65bfee5ea65e38}\label{classVec2T_aab4f502a375b99861d65bfee5ea65e38} 
 \index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!operator-\/@{operator-\/}}
 \index{operator-\/@{operator-\/}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{operator-\/()}{operator-()}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$T$>$ \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$\+::operator-\/ (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classVec3T}{\+::operator}}-\/ (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
 
 
 
@@ -251,12 +250,12 @@ Subtraction operator.
 \mbox{\texttt{ in}}  & {\em a\+\_\+other} & Other vector\\
 \hline
 \end{DoxyParams}
-Returns a new object with component x = this-\/$>$x -\/ a\+\_\+other.\+x (same for y-\/component) \mbox{\Hypertarget{classVec2T_ace969c60a66c09ccf0efafc3447c3e27}\label{classVec2T_ace969c60a66c09ccf0efafc3447c3e27}} 
+Returns a new object with component x = this-\/\texorpdfstring{$>$}{>}x -\/ a\+\_\+other.\+x (same for y-\/component) \Hypertarget{classVec2T_a23c4e34e4569dc010b1286ca2121755a}\label{classVec2T_a23c4e34e4569dc010b1286ca2121755a} 
 \index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!operator-\/=@{operator-\/=}}
 \index{operator-\/=@{operator-\/=}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{operator-\/=()}{operator-=()}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$T$>$\& \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$\+::operator-\/= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classVec3T}{\+::operator}}-\/= (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
 
 
 
@@ -267,12 +266,12 @@ Subtraction operator.
 \mbox{\texttt{ in}}  & {\em a\+\_\+other} & Other vector to subtract\\
 \hline
 \end{DoxyParams}
-Returns ($\ast$this) with components this-\/$>$x = this-\/$>$x -\/ a\+\_\+other.\+x (and same for y) \mbox{\Hypertarget{classVec2T_a670dafb9e1cc73148839bb78655b3392}\label{classVec2T_a670dafb9e1cc73148839bb78655b3392}} 
+Returns (\texorpdfstring{$\ast$}{*}this) with components this-\/\texorpdfstring{$>$}{>}x = this-\/\texorpdfstring{$>$}{>}x -\/ a\+\_\+other.\+x (and same for y) \Hypertarget{classVec2T_a7976fd4d3c03c9fdb08b4675673560ac}\label{classVec2T_a7976fd4d3c03c9fdb08b4675673560ac} 
 \index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!operator/@{operator/}}
 \index{operator/@{operator/}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{operator/()}{operator/()}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$T$>$ \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$\+::operator/ (\begin{DoxyParamCaption}\item[{const T \&}]{s }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classVec3T}{\+::operator}}/ (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&}]{s }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
 
 
 
@@ -283,12 +282,12 @@ Division operator.
 \mbox{\texttt{ in}}  & {\em s} & Scalar to be multiplied\\
 \hline
 \end{DoxyParams}
-Returns a new Vec2\+T$<$\+T$>$ with components x = (1/s)$\ast$this-\/$>$x (and same for y) \mbox{\Hypertarget{classVec2T_ae28b03fbebd9cdb961af47fc447a7f9e}\label{classVec2T_ae28b03fbebd9cdb961af47fc447a7f9e}} 
+Returns a new Vec2\+T$<$\+T$>$ with components x = (1/s)\texorpdfstring{$\ast$}{*}this-\/\texorpdfstring{$>$}{>}x (and same for y) \Hypertarget{classVec2T_a35116541013e0cbfd9204e8e72e17ed2}\label{classVec2T_a35116541013e0cbfd9204e8e72e17ed2} 
 \index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!operator/=@{operator/=}}
 \index{operator/=@{operator/=}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{operator/=()}{operator/=()}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$T$>$\& \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$\+::operator/= (\begin{DoxyParamCaption}\item[{const T \&}]{s }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classVec3T}{\+::operator}}/= (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&}]{s }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
 
 
 
@@ -299,12 +298,12 @@ Division operator operator.
 \mbox{\texttt{ in}}  & {\em s} & Scalar to divide by\\
 \hline
 \end{DoxyParams}
-Returns ($\ast$this) with components this-\/$>$x = (1/s)$\ast$this-\/$>$x (and same for y) \mbox{\Hypertarget{classVec2T_adb211f83d3075c8e90bc7bd2367f0595}\label{classVec2T_adb211f83d3075c8e90bc7bd2367f0595}} 
+Returns (\texorpdfstring{$\ast$}{*}this) with components this-\/\texorpdfstring{$>$}{>}x = (1/s)\texorpdfstring{$\ast$}{*}this-\/\texorpdfstring{$>$}{>}x (and same for y) \Hypertarget{classVec2T_afa09b532012ed765c6f7d092cda8914e}\label{classVec2T_afa09b532012ed765c6f7d092cda8914e} 
 \index{Vec2T$<$ T $>$@{Vec2T$<$ T $>$}!operator=@{operator=}}
 \index{operator=@{operator=}!Vec2T$<$ T $>$@{Vec2T$<$ T $>$}}
 \doxysubsubsection{\texorpdfstring{operator=()}{operator=()}}
-{\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr \mbox{\hyperlink{classVec2T}{Vec2T}}$<$T$>$\& \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ T $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classVec3T}{\+::operator}}= (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec2T}{Vec2T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
 
 
 

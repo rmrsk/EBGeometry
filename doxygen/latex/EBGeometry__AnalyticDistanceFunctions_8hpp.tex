@@ -1,5 +1,5 @@
-\hypertarget{EBGeometry__AnalyticDistanceFunctions_8hpp}{}\doxysection{/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\+EBGeometry\+\_\+\+Analytic\+Distance\+Functions.hpp File Reference}
-\label{EBGeometry__AnalyticDistanceFunctions_8hpp}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_AnalyticDistanceFunctions.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_AnalyticDistanceFunctions.hpp}}
+\doxysection{/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\+EBGeometry\+\_\+\+Analytic\+Distance\+Functions.hpp File Reference}
+\hypertarget{EBGeometry__AnalyticDistanceFunctions_8hpp}{}\label{EBGeometry__AnalyticDistanceFunctions_8hpp}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_AnalyticDistanceFunctions.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_AnalyticDistanceFunctions.hpp}}
 
 
 Declaration of various analytic distance functions.  
@@ -7,10 +7,10 @@ Declaration of various analytic distance functions.
 
 {\ttfamily \#include $<$algorithm$>$}\newline
 {\ttfamily \#include $<$random$>$}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Bounding\+Volumes.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Signed\+Distance\+Function.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Namespace\+Header.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Namespace\+Footer.\+hpp\char`\"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Bounding\+Volumes.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Signed\+Distance\+Function.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Header.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Footer.\+hpp"{}}\newline
 Include dependency graph for EBGeometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp\+:
 \nopagebreak
 \begin{figure}[H]
@@ -27,7 +27,7 @@ This graph shows which files directly or indirectly include this file\+:
 \includegraphics[width=262pt]{EBGeometry__AnalyticDistanceFunctions_8hpp__dep__incl}
 \end{center}
 \end{figure}
-\doxysubsection*{Classes}
+\doxysubsubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
 class \mbox{\hyperlink{classPlaneSDF}{Plane\+SDF$<$ T $>$}}
@@ -52,13 +52,13 @@ class \mbox{\hyperlink{classRoundedBoxSDF}{Rounded\+Box\+SDF$<$ T $>$}}
 \begin{DoxyCompactList}\small\item\em Box of arbitrary dimensions centered at the origin, with rounded corners. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classPerlinSDF}{Perlin\+SDF$<$ T $>$}}
 \begin{DoxyCompactList}\small\item\em Ken Perlins gradient noise function. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Functions}
+\doxysubsubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
-{\footnotesize template$<$class T $>$ }\\constexpr const T \mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}{clamp}} (const T \&v, const T \&lo, const T \&hi)
-\begin{DoxyCompactList}\small\item\em Clamp function. Returns lo if v $<$ lo and hi if v $>$ hi. Otherwise returns v. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\constexpr const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_ae7100fa6728b8df189188ee09d6ef343}{clamp}} (const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&v, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&lo, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&hi)
-\begin{DoxyCompactList}\small\item\em Clamp function. Returns lo if v $<$ lo and hi if v $>$ hi. Otherwise returns v. \end{DoxyCompactList}\end{DoxyCompactItemize}
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}{clamp}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{v}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{lo}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{hi}})
+\begin{DoxyCompactList}\small\item\em Clamp function. Returns lo if v \texorpdfstring{$<$}{<} lo and hi if v \texorpdfstring{$>$}{>} hi. Otherwise returns v. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp_ac2f2ed21dbc61eac5d3992b95f715900}{clamp}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{v}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{lo}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{hi}})
+\begin{DoxyCompactList}\small\item\em Clamp function. Returns lo if v \texorpdfstring{$<$}{<} lo and hi if v \texorpdfstring{$>$}{>} hi. Otherwise returns v. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -70,16 +70,16 @@ Robert Marskar
 
 
 \doxysubsection{Function Documentation}
-\mbox{\Hypertarget{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}\label{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}} 
+\Hypertarget{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a}\label{EBGeometry__AnalyticDistanceFunctions_8hpp_a7b6dc4ea78c14bbf8054dd1b0bd74c7a} 
 \index{EBGeometry\_AnalyticDistanceFunctions.hpp@{EBGeometry\_AnalyticDistanceFunctions.hpp}!clamp@{clamp}}
 \index{clamp@{clamp}!EBGeometry\_AnalyticDistanceFunctions.hpp@{EBGeometry\_AnalyticDistanceFunctions.hpp}}
 \doxysubsubsection{\texorpdfstring{clamp()}{clamp()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-constexpr const T clamp (\begin{DoxyParamCaption}\item[{const T \&}]{v,  }\item[{const T \&}]{lo,  }\item[{const T \&}]{hi }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [constexpr]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} clamp (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&}]{v,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&}]{lo,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&}]{hi }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [constexpr]}}
 
 
 
-Clamp function. Returns lo if v $<$ lo and hi if v $>$ hi. Otherwise returns v. 
+Clamp function. Returns lo if v \texorpdfstring{$<$}{<} lo and hi if v \texorpdfstring{$>$}{>} hi. Otherwise returns v. 
 
 
 \begin{DoxyParams}[1]{Parameters}
@@ -90,16 +90,16 @@ Clamp function. Returns lo if v $<$ lo and hi if v $>$ hi. Otherwise returns v.
 \mbox{\texttt{ in}}  & {\em hi} & Higher clamping value. \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{EBGeometry__AnalyticDistanceFunctions_8hpp_ae7100fa6728b8df189188ee09d6ef343}\label{EBGeometry__AnalyticDistanceFunctions_8hpp_ae7100fa6728b8df189188ee09d6ef343}} 
+\Hypertarget{EBGeometry__AnalyticDistanceFunctions_8hpp_ac2f2ed21dbc61eac5d3992b95f715900}\label{EBGeometry__AnalyticDistanceFunctions_8hpp_ac2f2ed21dbc61eac5d3992b95f715900} 
 \index{EBGeometry\_AnalyticDistanceFunctions.hpp@{EBGeometry\_AnalyticDistanceFunctions.hpp}!clamp@{clamp}}
 \index{clamp@{clamp}!EBGeometry\_AnalyticDistanceFunctions.hpp@{EBGeometry\_AnalyticDistanceFunctions.hpp}}
 \doxysubsubsection{\texorpdfstring{clamp()}{clamp()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-constexpr const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$T$>$ clamp (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{v,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{lo,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{hi }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [constexpr]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{constexpr}} \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ clamp (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{v,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{lo,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{hi }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [constexpr]}}
 
 
 
-Clamp function. Returns lo if v $<$ lo and hi if v $>$ hi. Otherwise returns v. 
+Clamp function. Returns lo if v \texorpdfstring{$<$}{<} lo and hi if v \texorpdfstring{$>$}{>} hi. Otherwise returns v. 
 
 
 \begin{DoxyParams}[1]{Parameters}

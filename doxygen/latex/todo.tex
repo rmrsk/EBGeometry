@@ -1,6 +1,8 @@
+\chapter{Todo List}
+\hypertarget{todo}{}\label{todo}\index{Todo List@{Todo List}}
 
 \begin{DoxyRefList}
-\item[Class \mbox{\hyperlink{classBVH_1_1LinearNodeT}{BVH\+::Linear\+NodeT$<$ T, P, BV, K $>$}} ]\label{todo__todo000001}%
+\item[Class \doxylink{classBVH_1_1LinearNodeT}{BVH\+::Linear\+NodeT\texorpdfstring{$<$}{<} T, P, BV, K \texorpdfstring{$>$}{>}} ]\label{todo__todo000001}%
 \Hypertarget{todo__todo000001}%
 There\textquotesingle{}s a minor optimization that can be made to the memory alignment, which is as follows\+: For a leaf node we never really need the m\+\_\+child\+Offsets array, and for a regular node we never really need the m\+\_\+primitives\+Offset member. Moreover, m\+\_\+child\+Offsets could be made into a K-\/1 sized array because we happen to know that the linearized hierarchy will store the first child node immediately after the regular node. We could shave off 16 bytes of storage, which would mean that a double-\/precision binary tree only takes up one word of CPU memory. 
 \end{DoxyRefList}

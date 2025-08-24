@@ -1,12 +1,24 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Octree.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Octree.hpp">
-<area shape="rect" id="node1" title="Declaration of a simple octree class." alt="" coords="465,5,708,61"/>
-<area shape="rect" id="node2" title=" " alt="" coords="5,184,61,211"/>
-<area shape="rect" id="node3" title=" " alt="" coords="625,109,711,136"/>
-<area shape="rect" id="node4" title=" " alt="" coords="736,109,813,136"/>
-<area shape="rect" id="node5" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="297,109,460,136"/>
-<area shape="rect" id="node7" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="425,184,687,211"/>
-<area shape="rect" id="node8" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="712,184,968,211"/>
-<area shape="rect" id="node10" title=" " alt="" coords="837,109,1069,136"/>
-<area shape="rect" id="node6" title=" " alt="" coords="320,184,400,211"/>
-<area shape="rect" id="node9" title=" " alt="" coords="85,184,297,211"/>
+<area shape="rect" id="Node000001" title="Declaration of a simple octree class." alt="" coords="465,5,708,60"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,181,61,207"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="472,63,286,111,171,147,75,180,74,175,169,142,285,105,470,57"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="625,108,711,133"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="613,58,649,96,645,100,610,62"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="736,108,813,133"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="645,58,738,100,736,105,643,62"/>
+<area shape="rect" id="Node000005" href="$EBGeometry__Vec_8hpp.html" title="Declaration of 2D and 3D point/vector classes with templated precision. Used with DCEL tools." alt="" coords="297,108,460,133"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="524,63,420,105,418,100,522,58"/>
+<area shape="rect" id="Node000007" href="$EBGeometry__NamespaceHeader_8hpp.html" title="Name space header." alt="" coords="425,181,687,207"/>
+<area shape="poly" id="edge10_Node000001_Node000007" title=" " alt="" coords="582,61,571,109,561,168,556,167,565,107,577,60"/>
+<area shape="rect" id="Node000008" href="$EBGeometry__NamespaceFooter_8hpp.html" title="Name space footer." alt="" coords="712,181,968,207"/>
+<area shape="poly" id="edge11_Node000001_Node000008" title=" " alt="" coords="589,60,596,97,604,116,615,131,654,159,700,177,698,182,652,164,611,135,599,118,591,99,584,61"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="837,108,1069,133"/>
+<area shape="poly" id="edge12_Node000001_Node000010" title=" " alt="" coords="699,57,892,102,891,108,698,63"/>
+<area shape="poly" id="edge5_Node000005_Node000002" title=" " alt="" coords="311,136,204,156,76,183,74,178,202,151,310,131"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="320,181,400,207"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="378,134,369,169,364,168,373,133"/>
+<area shape="poly" id="edge7_Node000005_Node000007" title=" " alt="" coords="408,131,516,174,514,179,406,136"/>
+<area shape="poly" id="edge8_Node000005_Node000008" title=" " alt="" coords="453,131,753,177,752,182,452,136"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="85,181,297,207"/>
+<area shape="poly" id="edge9_Node000005_Node000009" title=" " alt="" coords="349,136,235,179,233,174,348,131"/>
 </map>

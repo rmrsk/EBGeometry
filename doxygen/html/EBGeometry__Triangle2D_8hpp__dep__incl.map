@@ -1,0 +1,15 @@
+<map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Triangle2D.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_Triangle2D.hpp">
+<area shape="rect" id="Node000001" title="Declaration of a class that encapsulates the projection of a 3D triangle into a 2D plane." alt="" coords="5,5,248,60"/>
+<area shape="rect" id="Node000002" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="9,416,239,456"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="112,73,101,109,89,181,85,238,88,295,100,367,117,415,112,417,95,369,83,296,79,238,84,180,96,107,107,72"/>
+<area shape="rect" id="Node000003" href="$EBGeometry__Triangle_8hpp.html" title="Declaration of a triangle class with signed distance functionality." alt="" coords="111,108,353,163"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="166,68,206,106,203,110,162,72"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="164,172,142,190,126,212,116,238,109,266,106,324,112,376,121,415,116,416,107,377,101,324,104,265,110,237,122,209,138,186,160,168"/>
+<area shape="rect" id="Node000004" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="136,211,379,265"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="245,175,253,210,248,211,239,177"/>
+<area shape="rect" id="Node000005" href="$EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="187,313,429,368"/>
+<area shape="poly" id="edge8_Node000003_Node000005" title=" " alt="" coords="346,167,372,185,393,209,400,224,402,238,393,266,375,294,352,315,348,311,371,290,388,264,397,237,395,226,388,212,368,189,343,171"/>
+<area shape="poly" id="edge5_Node000004_Node000002" title=" " alt="" coords="213,276,177,315,148,368,132,417,127,415,143,366,172,312,209,272"/>
+<area shape="poly" id="edge6_Node000004_Node000005" title=" " alt="" coords="279,276,297,312,292,314,274,279"/>
+<area shape="poly" id="edge7_Node000005_Node000002" title=" " alt="" coords="245,376,163,418,160,413,243,372"/>
+</map>

@@ -1,5 +1,5 @@
-\hypertarget{EBGeometry__CSG_8hpp}{}\doxysection{/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\+EBGeometry\+\_\+\+CSG.hpp File Reference}
-\label{EBGeometry__CSG_8hpp}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_CSG.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_CSG.hpp}}
+\doxysection{/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\+EBGeometry\+\_\+\+CSG.hpp File Reference}
+\hypertarget{EBGeometry__CSG_8hpp}{}\label{EBGeometry__CSG_8hpp}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_CSG.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_CSG.hpp}}
 
 
 Declaration of a CSG operations for implicit functions.  
@@ -7,10 +7,10 @@ Declaration of a CSG operations for implicit functions.
 
 {\ttfamily \#include $<$vector$>$}\newline
 {\ttfamily \#include $<$type\+\_\+traits$>$}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Implicit\+Function.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Namespace\+Header.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+Namespace\+Footer.\+hpp\char`\"{}}\newline
-{\ttfamily \#include \char`\"{}EBGeometry\+\_\+\+CSGImplem.\+hpp\char`\"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Implicit\+Function.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Header.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Footer.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+CSGImplem.\+hpp"{}}\newline
 Include dependency graph for EBGeometry\+\_\+\+CSG.\+hpp\+:
 \nopagebreak
 \begin{figure}[H]
@@ -27,7 +27,7 @@ This graph shows which files directly or indirectly include this file\+:
 \includegraphics[width=262pt]{EBGeometry__CSG_8hpp__dep__incl}
 \end{center}
 \end{figure}
-\doxysubsection*{Classes}
+\doxysubsubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
 class \mbox{\hyperlink{classUnionIF}{Union\+IF$<$ T $>$}}
@@ -48,43 +48,43 @@ class \mbox{\hyperlink{classSmoothDifferenceIF}{Smooth\+Difference\+IF$<$ T $>$}
 \begin{DoxyCompactList}\small\item\em CSG difference between two implicit functions. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classFiniteRepetitionIF}{Finite\+Repetition\+IF$<$ T $>$}}
 \begin{DoxyCompactList}\small\item\em Class which creates a periodic repetition of an implicit function. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Functions}
+\doxysubsubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
-{\footnotesize template$<$class T , class P  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a9036c684833f5d24cc8691438b4af2e8}{Union}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+implicit\+Functions) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}}  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a22c71bfef6fedb44e07d6f74976555d1}{Union}} (\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Functions}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the union of a bunch of a implicit functions. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P1 , class P2 $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_ac4655ab5d0b64fd1f0cb63640608caad}{Union}} (const std\+::shared\+\_\+ptr$<$ P1 $>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ P2 $>$ \&a\+\_\+implicit\+FunctionB) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P1}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P2}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_afe92817c3e731f76ba587b155dd98267}{Union}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P1}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+FunctionA}}, \mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P2}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+FunctionB}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the union of two implicit functions. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_ae60c7e34d1ad34ee2d75f48480e58fd7}{Smooth\+Union}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+implicit\+Functions, const T a\+\_\+smooth) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}}  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_ad90bac9179fe80c118c5703f608d18f9}{Smooth\+Union}} (\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Functions}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+smooth}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the union of a bunch of a implicit functions. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P1 , class P2 $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a5a8dd7e226e420c4268e101d859fbc29}{Smooth\+Union}} (const std\+::shared\+\_\+ptr$<$ P1 $>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ P2 $>$ \&a\+\_\+implicit\+FunctionB, const T a\+\_\+smooth) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P1}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P2}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a099c2ebd7d38f5373dc8ef0c9c66c39f}{Smooth\+Union}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P1}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+FunctionA}}, \mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P2}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+FunctionB}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+smooth}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the union of two implicit functions. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a93d8216b391726ba65a47409e5d37534}{Fast\+Union}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+implicit\+Functions, const std\+::vector$<$ BV $>$ \&a\+\_\+bounding\+Volumes) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_ac6bb0b7ba21e75966a879c87812dabe1}{Fast\+Union}} (\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Functions}}, \mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{BV}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+bounding\+Volumes}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the BVH-\/accelerated union of a bunch of a implicit functions. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P , class BV , size\+\_\+t K$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a46f23b756414e6a98e16c5e80ca11153}{Fast\+Smooth\+Union}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+implicit\+Functions, const std\+::vector$<$ BV $>$ \&a\+\_\+bounding\+Volumes, const T a\+\_\+smooth\+Len) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a75312b2de4639bb64e017fbd53163e49}{Fast\+Smooth\+Union}} (\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Functions}}, \mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{BV}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+bounding\+Volumes}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+smooth\+Len}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the BVH-\/accelerated union of a bunch of a implicit functions. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a4805c0fb0ce70cfc3bc7c06d0614a0e4}{Intersection}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+implicit\+Functions) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_ab5ba3c7c1c49aa5996b086a8acab29d8}{Intersection}} (\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Functions}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the intersection of a bunch of a implicit functions. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P1 , class P2 $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_ac7865f00b63b398cc6f4ad500cc8c90b}{Intersection}} (const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P1 $>$$>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P2 $>$$>$ \&a\+\_\+implicit\+FunctionB) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P1}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P2}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a8766e471bdc3b568b2b31f2ad3f2aa48}{Intersection}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P1}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+FunctionA}}, \mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P2}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+FunctionB}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the intersection of two implicit functions. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a48bdc4adc87a547195ccb6987de6f6c2}{Smooth\+Intersection}} (const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&a\+\_\+implicit\+Functions, const T a\+\_\+smooth) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a660d2589c55fd0d6ed49fd9192a80450}{Smooth\+Intersection}} (\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Functions}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+smooth}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the smooth intersection of a bunch of a implicit functions. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P1 , class P2 $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a31e4079fd5d60ead64b3eefe7e6a6b2f}{Smooth\+Intersection}} (const std\+::shared\+\_\+ptr$<$ P1 $>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ P2 $>$ \&a\+\_\+implicit\+FunctionB, const T a\+\_\+smooth) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P1}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P2}} $>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_afc517217e7b4175cc3974694725e8a40}{Smooth\+Intersection}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P1}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+FunctionA}}, \mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P2}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+FunctionB}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+smooth}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the smooth intersection of two implicit functions. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P1  = Implicit\+Function$<$\+T$>$, class P2  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_aadab2bfc61b1eaf75a8362c293a321b2}{Difference}} (const std\+::shared\+\_\+ptr$<$ P1 $>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ P2 $>$ \&a\+\_\+implicit\+FunctionB) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P1}}  = Implicit\+Function$<$\+T$>$, \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P2}}  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_aef2e44572121f046e9343e3350689b8c}{Difference}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P1}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+FunctionA}}, \mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P2}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+FunctionB}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the CSG difference. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P1  = Implicit\+Function$<$\+T$>$, class P2  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a59e14e6d19f2b4a9844ef26ad3c5db2e}{Smooth\+Difference}} (const std\+::shared\+\_\+ptr$<$ P1 $>$ \&a\+\_\+implicit\+FunctionA, const std\+::shared\+\_\+ptr$<$ P2 $>$ \&a\+\_\+implicit\+FunctionB, const T a\+\_\+smooth\+Len) noexcept
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P1}}  = Implicit\+Function$<$\+T$>$, \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P2}}  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a4a2d8b1f56fcf72da0f89820dbdadb9e}{Smooth\+Difference}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P1}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+FunctionA}}, \mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P2}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+FunctionB}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+smooth\+Len}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Convenience function for taking the smooth CSG difference. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T , class P  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ T $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a918f4fe53a991acccdfd23ac317d8e43}{Finite\+Repetition}} (const std\+::shared\+\_\+ptr$<$ P $>$ \&a\+\_\+implicit\+Function, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+period, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+repeat\+Lo, const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&a\+\_\+repeat\+Hi) noexcept
-\begin{DoxyCompactList}\small\item\em Convenience function for creating a periodically repeated implicit function (\mbox{\hyperlink{classFiniteRepetitionIF}{Finite\+Repetition\+IF}}). \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Variables}
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}}  = Implicit\+Function$<$\+T$>$$>$ }\\std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a2ff79886738b70616ba278f46e13c2a8}{Finite\+Repetition}} (\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+implicit\+Function}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+period}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+repeat\+Lo}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+repeat\+Hi}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Convenience function for creating a periodically repeated implicit function (\doxylink{classFiniteRepetitionIF}{Finite\+Repetition\+IF}). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
 \begin{DoxyCompactItemize}
 \item 
-{\footnotesize template$<$class T $>$ }\\std\+::function$<$ T(const T \&a, const T \&b, const T \&s)$>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a11c96ee776b8a66b75739c6b1419966b}{exp\+Min}}
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::function$<$ \mbox{\hyperlink{classVec3T}{T}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{b}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{s}})$>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_a11c96ee776b8a66b75739c6b1419966b}{exp\+Min}}
 \begin{DoxyCompactList}\small\item\em Exponential minimum function for CSG. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\std\+::function$<$ T(const T \&a, const T \&b, const T \&s)$>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_aa6a6befc82e122b0943c4653290b3259}{smooth\+Min}}
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::function$<$ \mbox{\hyperlink{classVec3T}{T}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{b}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{s}})$>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_aa6a6befc82e122b0943c4653290b3259}{smooth\+Min}}
 \begin{DoxyCompactList}\small\item\em Smooth minimum function for CSG. \end{DoxyCompactList}\item 
-{\footnotesize template$<$class T $>$ }\\std\+::function$<$ T(const T \&a, const T \&b, const T \&s)$>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_ae88258939353042593b6ab1401d3bc46}{smooth\+Max}}
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::function$<$ \mbox{\hyperlink{classVec3T}{T}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{b}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{s}})$>$ \mbox{\hyperlink{EBGeometry__CSG_8hpp_ae88258939353042593b6ab1401d3bc46}{smooth\+Max}}
 \begin{DoxyCompactList}\small\item\em Smooth maximum function for CSG. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
@@ -97,12 +97,12 @@ Robert Marskar
 
 
 \doxysubsection{Function Documentation}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_aadab2bfc61b1eaf75a8362c293a321b2}\label{EBGeometry__CSG_8hpp_aadab2bfc61b1eaf75a8362c293a321b2}} 
+\Hypertarget{EBGeometry__CSG_8hpp_aef2e44572121f046e9343e3350689b8c}\label{EBGeometry__CSG_8hpp_aef2e44572121f046e9343e3350689b8c} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!Difference@{Difference}}
 \index{Difference@{Difference}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{Difference()}{Difference()}}
-{\footnotesize\ttfamily template$<$class T , class P1  = Implicit\+Function$<$\+T$>$, class P2  = Implicit\+Function$<$\+T$>$$>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Difference (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ P1 $>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::shared\+\_\+ptr$<$ P2 $>$ \&}]{a\+\_\+implicit\+FunctionB }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P1}}  = Implicit\+Function$<$\+T$>$, \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P2}}  = Implicit\+Function$<$\+T$>$$>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Difference (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P1}} $>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P2}} $>$ \&}]{a\+\_\+implicit\+FunctionB }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -118,12 +118,12 @@ Convenience function for taking the CSG difference.
 \begin{DoxyNote}{Note}
 P1 and P2 must derive from Implicit\+Function$<$\+T$>$ 
 \end{DoxyNote}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_a46f23b756414e6a98e16c5e80ca11153}\label{EBGeometry__CSG_8hpp_a46f23b756414e6a98e16c5e80ca11153}} 
+\Hypertarget{EBGeometry__CSG_8hpp_a75312b2de4639bb64e017fbd53163e49}\label{EBGeometry__CSG_8hpp_a75312b2de4639bb64e017fbd53163e49} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!FastSmoothUnion@{FastSmoothUnion}}
 \index{FastSmoothUnion@{FastSmoothUnion}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{FastSmoothUnion()}{FastSmoothUnion()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Fast\+Smooth\+Union (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+implicit\+Functions,  }\item[{const std\+::vector$<$ BV $>$ \&}]{a\+\_\+bounding\+Volumes,  }\item[{const T}]{a\+\_\+smooth\+Len }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Fast\+Smooth\+Union (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&}]{a\+\_\+implicit\+Functions,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{BV}} $>$ \&}]{a\+\_\+bounding\+Volumes,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+smooth\+Len }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -141,12 +141,12 @@ Convenience function for taking the BVH-\/accelerated union of a bunch of a impl
 \begin{DoxyNote}{Note}
 P must derive from Implicit\+Function$<$\+T$>$ 
 \end{DoxyNote}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_a93d8216b391726ba65a47409e5d37534}\label{EBGeometry__CSG_8hpp_a93d8216b391726ba65a47409e5d37534}} 
+\Hypertarget{EBGeometry__CSG_8hpp_ac6bb0b7ba21e75966a879c87812dabe1}\label{EBGeometry__CSG_8hpp_ac6bb0b7ba21e75966a879c87812dabe1} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!FastUnion@{FastUnion}}
 \index{FastUnion@{FastUnion}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{FastUnion()}{FastUnion()}}
-{\footnotesize\ttfamily template$<$class T , class P , class BV , size\+\_\+t K$>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Fast\+Union (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+implicit\+Functions,  }\item[{const std\+::vector$<$ BV $>$ \&}]{a\+\_\+bounding\+Volumes }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} , \mbox{\hyperlink{classVec3T}{size\+\_\+t}} K$>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Fast\+Union (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&}]{a\+\_\+implicit\+Functions,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{BV}} $>$ \&}]{a\+\_\+bounding\+Volumes }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -162,16 +162,16 @@ Convenience function for taking the BVH-\/accelerated union of a bunch of a impl
 \begin{DoxyNote}{Note}
 P must derive from Implicit\+Function$<$\+T$>$ 
 \end{DoxyNote}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_a918f4fe53a991acccdfd23ac317d8e43}\label{EBGeometry__CSG_8hpp_a918f4fe53a991acccdfd23ac317d8e43}} 
+\Hypertarget{EBGeometry__CSG_8hpp_a2ff79886738b70616ba278f46e13c2a8}\label{EBGeometry__CSG_8hpp_a2ff79886738b70616ba278f46e13c2a8} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!FiniteRepetition@{FiniteRepetition}}
 \index{FiniteRepetition@{FiniteRepetition}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{FiniteRepetition()}{FiniteRepetition()}}
-{\footnotesize\ttfamily template$<$class T , class P  = Implicit\+Function$<$\+T$>$$>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Finite\+Repetition (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ P $>$ \&}]{a\+\_\+implicit\+Function,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+period,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+repeat\+Lo,  }\item[{const \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ T $>$ \&}]{a\+\_\+repeat\+Hi }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}}  = Implicit\+Function$<$\+T$>$$>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Finite\+Repetition (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ \&}]{a\+\_\+implicit\+Function,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+period,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+repeat\+Lo,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+repeat\+Hi }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
-Convenience function for creating a periodically repeated implicit function (\mbox{\hyperlink{classFiniteRepetitionIF}{Finite\+Repetition\+IF}}). 
+Convenience function for creating a periodically repeated implicit function (\doxylink{classFiniteRepetitionIF}{Finite\+Repetition\+IF}). 
 
 User inputs the implicit function and the repetition parameters. 
 \begin{DoxyParams}[1]{Parameters}
@@ -184,12 +184,12 @@ User inputs the implicit function and the repetition parameters.
 \mbox{\texttt{ in}}  & {\em a\+\_\+repeat\+Hi} & Number of repetitions for increasing coordinates (should contain integers) \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_ac7865f00b63b398cc6f4ad500cc8c90b}\label{EBGeometry__CSG_8hpp_ac7865f00b63b398cc6f4ad500cc8c90b}} 
+\Hypertarget{EBGeometry__CSG_8hpp_a8766e471bdc3b568b2b31f2ad3f2aa48}\label{EBGeometry__CSG_8hpp_a8766e471bdc3b568b2b31f2ad3f2aa48} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!Intersection@{Intersection}}
 \index{Intersection@{Intersection}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{Intersection()}{Intersection()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T , class P1 , class P2 $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Intersection (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P1 $>$$>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ P2 $>$$>$ \&}]{a\+\_\+implicit\+FunctionB }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P1}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P2}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Intersection (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P1}} $>$ $>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P2}} $>$ $>$ \&}]{a\+\_\+implicit\+FunctionB }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -205,12 +205,12 @@ Convenience function for taking the intersection of two implicit functions.
 \begin{DoxyNote}{Note}
 P1 and P2 must derive from Implicit\+Function$<$\+T$>$ 
 \end{DoxyNote}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_a4805c0fb0ce70cfc3bc7c06d0614a0e4}\label{EBGeometry__CSG_8hpp_a4805c0fb0ce70cfc3bc7c06d0614a0e4}} 
+\Hypertarget{EBGeometry__CSG_8hpp_ab5ba3c7c1c49aa5996b086a8acab29d8}\label{EBGeometry__CSG_8hpp_ab5ba3c7c1c49aa5996b086a8acab29d8} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!Intersection@{Intersection}}
 \index{Intersection@{Intersection}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{Intersection()}{Intersection()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T , class P $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Intersection (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+implicit\+Functions }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Intersection (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&}]{a\+\_\+implicit\+Functions }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -224,12 +224,12 @@ Convenience function for taking the intersection of a bunch of a implicit functi
 \begin{DoxyNote}{Note}
 P must derive from Implicit\+Function$<$\+T$>$ 
 \end{DoxyNote}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_a59e14e6d19f2b4a9844ef26ad3c5db2e}\label{EBGeometry__CSG_8hpp_a59e14e6d19f2b4a9844ef26ad3c5db2e}} 
+\Hypertarget{EBGeometry__CSG_8hpp_a4a2d8b1f56fcf72da0f89820dbdadb9e}\label{EBGeometry__CSG_8hpp_a4a2d8b1f56fcf72da0f89820dbdadb9e} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!SmoothDifference@{SmoothDifference}}
 \index{SmoothDifference@{SmoothDifference}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{SmoothDifference()}{SmoothDifference()}}
-{\footnotesize\ttfamily template$<$class T , class P1  = Implicit\+Function$<$\+T$>$, class P2  = Implicit\+Function$<$\+T$>$$>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Smooth\+Difference (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ P1 $>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::shared\+\_\+ptr$<$ P2 $>$ \&}]{a\+\_\+implicit\+FunctionB,  }\item[{const T}]{a\+\_\+smooth\+Len }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P1}}  = Implicit\+Function$<$\+T$>$, \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P2}}  = Implicit\+Function$<$\+T$>$$>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Smooth\+Difference (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P1}} $>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P2}} $>$ \&}]{a\+\_\+implicit\+FunctionB,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+smooth\+Len }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -247,12 +247,12 @@ Convenience function for taking the smooth CSG difference.
 \begin{DoxyNote}{Note}
 P1 and P2 must derive from Implicit\+Function$<$\+T$>$. This uses the default smooth\+Max function. 
 \end{DoxyNote}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_a31e4079fd5d60ead64b3eefe7e6a6b2f}\label{EBGeometry__CSG_8hpp_a31e4079fd5d60ead64b3eefe7e6a6b2f}} 
+\Hypertarget{EBGeometry__CSG_8hpp_afc517217e7b4175cc3974694725e8a40}\label{EBGeometry__CSG_8hpp_afc517217e7b4175cc3974694725e8a40} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!SmoothIntersection@{SmoothIntersection}}
 \index{SmoothIntersection@{SmoothIntersection}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{SmoothIntersection()}{SmoothIntersection()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T , class P1 , class P2 $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Smooth\+Intersection (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ P1 $>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::shared\+\_\+ptr$<$ P2 $>$ \&}]{a\+\_\+implicit\+FunctionB,  }\item[{const T}]{a\+\_\+smooth }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P1}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P2}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Smooth\+Intersection (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P1}} $>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P2}} $>$ \&}]{a\+\_\+implicit\+FunctionB,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+smooth }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -270,12 +270,12 @@ Convenience function for taking the smooth intersection of two implicit function
 \begin{DoxyNote}{Note}
 P1 and P2 must derive from Implicit\+Function$<$\+T$>$ 
 \end{DoxyNote}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_a48bdc4adc87a547195ccb6987de6f6c2}\label{EBGeometry__CSG_8hpp_a48bdc4adc87a547195ccb6987de6f6c2}} 
+\Hypertarget{EBGeometry__CSG_8hpp_a660d2589c55fd0d6ed49fd9192a80450}\label{EBGeometry__CSG_8hpp_a660d2589c55fd0d6ed49fd9192a80450} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!SmoothIntersection@{SmoothIntersection}}
 \index{SmoothIntersection@{SmoothIntersection}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{SmoothIntersection()}{SmoothIntersection()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T , class P $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Smooth\+Intersection (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+implicit\+Functions,  }\item[{const T}]{a\+\_\+smooth }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Smooth\+Intersection (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&}]{a\+\_\+implicit\+Functions,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+smooth }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -291,12 +291,12 @@ Convenience function for taking the smooth intersection of a bunch of a implicit
 \begin{DoxyNote}{Note}
 P must derive from Implicit\+Function$<$\+T$>$ 
 \end{DoxyNote}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_a5a8dd7e226e420c4268e101d859fbc29}\label{EBGeometry__CSG_8hpp_a5a8dd7e226e420c4268e101d859fbc29}} 
+\Hypertarget{EBGeometry__CSG_8hpp_a099c2ebd7d38f5373dc8ef0c9c66c39f}\label{EBGeometry__CSG_8hpp_a099c2ebd7d38f5373dc8ef0c9c66c39f} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!SmoothUnion@{SmoothUnion}}
 \index{SmoothUnion@{SmoothUnion}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{SmoothUnion()}{SmoothUnion()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T , class P1 , class P2 $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Smooth\+Union (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ P1 $>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::shared\+\_\+ptr$<$ P2 $>$ \&}]{a\+\_\+implicit\+FunctionB,  }\item[{const T}]{a\+\_\+smooth }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P1}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P2}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Smooth\+Union (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P1}} $>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P2}} $>$ \&}]{a\+\_\+implicit\+FunctionB,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+smooth }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -314,12 +314,12 @@ Convenience function for taking the union of two implicit functions.
 \begin{DoxyNote}{Note}
 P1 and P2 must derive from Implicit\+Function$<$\+T$>$ 
 \end{DoxyNote}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_ae60c7e34d1ad34ee2d75f48480e58fd7}\label{EBGeometry__CSG_8hpp_ae60c7e34d1ad34ee2d75f48480e58fd7}} 
+\Hypertarget{EBGeometry__CSG_8hpp_ad90bac9179fe80c118c5703f608d18f9}\label{EBGeometry__CSG_8hpp_ad90bac9179fe80c118c5703f608d18f9} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!SmoothUnion@{SmoothUnion}}
 \index{SmoothUnion@{SmoothUnion}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{SmoothUnion()}{SmoothUnion()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T , class P  = Implicit\+Function$<$\+T$>$$>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Smooth\+Union (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+implicit\+Functions,  }\item[{const T}]{a\+\_\+smooth }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}}  = Implicit\+Function$<$\+T$>$$>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Smooth\+Union (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&}]{a\+\_\+implicit\+Functions,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+smooth }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -335,12 +335,12 @@ Convenience function for taking the union of a bunch of a implicit functions.
 \begin{DoxyNote}{Note}
 P must derive from Implicit\+Function$<$\+T$>$ 
 \end{DoxyNote}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_ac4655ab5d0b64fd1f0cb63640608caad}\label{EBGeometry__CSG_8hpp_ac4655ab5d0b64fd1f0cb63640608caad}} 
+\Hypertarget{EBGeometry__CSG_8hpp_afe92817c3e731f76ba587b155dd98267}\label{EBGeometry__CSG_8hpp_afe92817c3e731f76ba587b155dd98267} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!Union@{Union}}
 \index{Union@{Union}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{Union()}{Union()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$class T , class P1 , class P2 $>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Union (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ P1 $>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{const std\+::shared\+\_\+ptr$<$ P2 $>$ \&}]{a\+\_\+implicit\+FunctionB }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P1}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P2}} $>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Union (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P1}} $>$ \&}]{a\+\_\+implicit\+FunctionA,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P2}} $>$ \&}]{a\+\_\+implicit\+FunctionB }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -356,12 +356,12 @@ Convenience function for taking the union of two implicit functions.
 \begin{DoxyNote}{Note}
 P1 and P2 must derive from Implicit\+Function$<$\+T$>$ 
 \end{DoxyNote}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_a9036c684833f5d24cc8691438b4af2e8}\label{EBGeometry__CSG_8hpp_a9036c684833f5d24cc8691438b4af2e8}} 
+\Hypertarget{EBGeometry__CSG_8hpp_a22c71bfef6fedb44e07d6f74976555d1}\label{EBGeometry__CSG_8hpp_a22c71bfef6fedb44e07d6f74976555d1} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!Union@{Union}}
 \index{Union@{Union}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{Union()}{Union()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily template$<$class T , class P  = Implicit\+Function$<$\+T$>$$>$ \\
-std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$T$>$ $>$ Union (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ P $>$$>$ \&}]{a\+\_\+implicit\+Functions }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{P}}  = Implicit\+Function$<$\+T$>$$>$ \\
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ Union (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classVec3T}{P}} $>$ $>$ \&}]{a\+\_\+implicit\+Functions }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
 
 
 
@@ -378,19 +378,19 @@ P must derive from Implicit\+Function$<$\+T$>$
 
 
 \doxysubsection{Variable Documentation}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_a11c96ee776b8a66b75739c6b1419966b}\label{EBGeometry__CSG_8hpp_a11c96ee776b8a66b75739c6b1419966b}} 
+\Hypertarget{EBGeometry__CSG_8hpp_a11c96ee776b8a66b75739c6b1419966b}\label{EBGeometry__CSG_8hpp_a11c96ee776b8a66b75739c6b1419966b} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!expMin@{expMin}}
 \index{expMin@{expMin}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{expMin}{expMin}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-std\+::function$<$T(const T\& a, const T\& b, const T\& s)$>$ exp\+Min}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::function$<$\mbox{\hyperlink{classVec3T}{T}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}\& \mbox{\hyperlink{classVec3T}{a}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}\& \mbox{\hyperlink{classVec3T}{b}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}\& \mbox{\hyperlink{classVec3T}{s}})$>$ exp\+Min}
 
 {\bfseries Initial value\+:}
 \begin{DoxyCode}{0}
-\DoxyCodeLine{= [](\textcolor{keyword}{const} T\& a, \textcolor{keyword}{const} T\& b, \textcolor{keyword}{const} T\& s) -\/> T \{}
-\DoxyCodeLine{  T ret = exp(-\/a / s) + exp(-\/b / s);}
+\DoxyCodeLine{=\ [](\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{b}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{s}})\ -\/>\ \mbox{\hyperlink{classVec3T}{T}}\ \{}
+\DoxyCodeLine{\ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{ret}}\ =\ \mbox{\hyperlink{classVec3T}{exp}}(-\/\mbox{\hyperlink{classVec3T}{a}}\ /\ \mbox{\hyperlink{classVec3T}{s}})\ +\ \mbox{\hyperlink{classVec3T}{exp}}(-\/\mbox{\hyperlink{classVec3T}{b}}\ /\ \mbox{\hyperlink{classVec3T}{s}});}
 \DoxyCodeLine{}
-\DoxyCodeLine{  \textcolor{keywordflow}{return} -\/log(ret) * s;}
+\DoxyCodeLine{\ \ \textcolor{keywordflow}{return}\ -\/\mbox{\hyperlink{classVec3T}{log}}(\mbox{\hyperlink{classVec3T}{ret}})\ *\ \mbox{\hyperlink{classVec3T}{s}};}
 \DoxyCodeLine{\}}
 
 \end{DoxyCode}
@@ -407,19 +407,19 @@ Exponential minimum function for CSG.
 \mbox{\texttt{ in}}  & {\em s} & Smoothing distance. \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_ae88258939353042593b6ab1401d3bc46}\label{EBGeometry__CSG_8hpp_ae88258939353042593b6ab1401d3bc46}} 
+\Hypertarget{EBGeometry__CSG_8hpp_ae88258939353042593b6ab1401d3bc46}\label{EBGeometry__CSG_8hpp_ae88258939353042593b6ab1401d3bc46} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!smoothMax@{smoothMax}}
 \index{smoothMax@{smoothMax}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{smoothMax}{smoothMax}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-std\+::function$<$T(const T\& a, const T\& b, const T\& s)$>$ smooth\+Max}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::function$<$\mbox{\hyperlink{classVec3T}{T}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}\& \mbox{\hyperlink{classVec3T}{a}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}\& \mbox{\hyperlink{classVec3T}{b}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}\& \mbox{\hyperlink{classVec3T}{s}})$>$ smooth\+Max}
 
 {\bfseries Initial value\+:}
 \begin{DoxyCode}{0}
-\DoxyCodeLine{= [](\textcolor{keyword}{const} T\& a, \textcolor{keyword}{const} T\& b, \textcolor{keyword}{const} T\& s) -\/> T \{}
-\DoxyCodeLine{  \textcolor{keyword}{const} T h = \mbox{\hyperlink{EBGeometry__Vec_8hpp_a49e4d83079ba2af66014b14d2cf9fffd}{std::max}}(s -\/ std::abs(a -\/ b), 0.0) / s;}
+\DoxyCodeLine{=\ [](\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{b}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{s}})\ -\/>\ \mbox{\hyperlink{classVec3T}{T}}\ \{}
+\DoxyCodeLine{\ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{h}}\ =\ std::max(\mbox{\hyperlink{classVec3T}{s}}\ -\/\ std::abs(\mbox{\hyperlink{classVec3T}{a}}\ -\/\ \mbox{\hyperlink{classVec3T}{b}}),\ 0.0)\ /\ \mbox{\hyperlink{classVec3T}{s}};}
 \DoxyCodeLine{}
-\DoxyCodeLine{  \textcolor{keywordflow}{return} \mbox{\hyperlink{EBGeometry__Vec_8hpp_a49e4d83079ba2af66014b14d2cf9fffd}{std::max}}(a, b) + 0.25 * h * h * s;}
+\DoxyCodeLine{\ \ \textcolor{keywordflow}{return}\ std::max(\mbox{\hyperlink{classVec3T}{a}},\ \mbox{\hyperlink{classVec3T}{b}})\ +\ 0.25\ *\ \mbox{\hyperlink{classVec3T}{h}}\ *\ \mbox{\hyperlink{classVec3T}{h}}\ *\ \mbox{\hyperlink{classVec3T}{s}};}
 \DoxyCodeLine{\}}
 
 \end{DoxyCode}
@@ -436,19 +436,19 @@ Smooth maximum function for CSG.
 \mbox{\texttt{ in}}  & {\em s} & Smoothing distance. \\
 \hline
 \end{DoxyParams}
-\mbox{\Hypertarget{EBGeometry__CSG_8hpp_aa6a6befc82e122b0943c4653290b3259}\label{EBGeometry__CSG_8hpp_aa6a6befc82e122b0943c4653290b3259}} 
+\Hypertarget{EBGeometry__CSG_8hpp_aa6a6befc82e122b0943c4653290b3259}\label{EBGeometry__CSG_8hpp_aa6a6befc82e122b0943c4653290b3259} 
 \index{EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}!smoothMin@{smoothMin}}
 \index{smoothMin@{smoothMin}!EBGeometry\_CSG.hpp@{EBGeometry\_CSG.hpp}}
 \doxysubsubsection{\texorpdfstring{smoothMin}{smoothMin}}
-{\footnotesize\ttfamily template$<$class T $>$ \\
-std\+::function$<$T(const T\& a, const T\& b, const T\& s)$>$ smooth\+Min}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::function$<$\mbox{\hyperlink{classVec3T}{T}}(\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}\& \mbox{\hyperlink{classVec3T}{a}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}\& \mbox{\hyperlink{classVec3T}{b}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}\& \mbox{\hyperlink{classVec3T}{s}})$>$ smooth\+Min}
 
 {\bfseries Initial value\+:}
 \begin{DoxyCode}{0}
-\DoxyCodeLine{= [](\textcolor{keyword}{const} T\& a, \textcolor{keyword}{const} T\& b, \textcolor{keyword}{const} T\& s) -\/> T \{}
-\DoxyCodeLine{  \textcolor{keyword}{const} T h = \mbox{\hyperlink{EBGeometry__Vec_8hpp_a49e4d83079ba2af66014b14d2cf9fffd}{std::max}}(s -\/ std::abs(a -\/ b), 0.0) / s;}
+\DoxyCodeLine{=\ [](\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{a}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{b}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\&\ \mbox{\hyperlink{classVec3T}{s}})\ -\/>\ \mbox{\hyperlink{classVec3T}{T}}\ \{}
+\DoxyCodeLine{\ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{h}}\ =\ std::max(\mbox{\hyperlink{classVec3T}{s}}\ -\/\ std::abs(\mbox{\hyperlink{classVec3T}{a}}\ -\/\ \mbox{\hyperlink{classVec3T}{b}}),\ 0.0)\ /\ \mbox{\hyperlink{classVec3T}{s}};}
 \DoxyCodeLine{}
-\DoxyCodeLine{  \textcolor{keywordflow}{return} \mbox{\hyperlink{EBGeometry__Vec_8hpp_af9ce43058d66582ec3736b13a7ca5dc2}{std::min}}(a, b) -\/ 0.25 * h * h * s;}
+\DoxyCodeLine{\ \ \textcolor{keywordflow}{return}\ std::min(\mbox{\hyperlink{classVec3T}{a}},\ \mbox{\hyperlink{classVec3T}{b}})\ -\/\ 0.25\ *\ \mbox{\hyperlink{classVec3T}{h}}\ *\ \mbox{\hyperlink{classVec3T}{h}}\ *\ \mbox{\hyperlink{classVec3T}{s}};}
 \DoxyCodeLine{\}}
 
 \end{DoxyCode}

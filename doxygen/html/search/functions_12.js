@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['zero_758',['zero',['../classVec2T.html#a55c716414b5db6d83d736b0e5a2363b9',1,'Vec2T::zero()'],['../classVec3T.html#a3f888d0eba86adf8b4f76fa8ec7c099b',1,'Vec3T::zero()']]]
+  ['zero_0',['zero',['../classVec2T.html#ac7324f5c659845c47a7c31dcf035a645',1,'Vec2T::zero()'],['../classVec3T.html#ad76cd4e2626be44372b48853d97d87d7',1,'Vec3T::zero()']]]
 ];
