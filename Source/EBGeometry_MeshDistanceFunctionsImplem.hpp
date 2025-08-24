@@ -184,7 +184,6 @@ template <class T, class Meta, class BV, size_t K>
 std::vector<std::pair<std::shared_ptr<const EBGeometry::DCEL::FaceT<T, Meta>>, T>>
 FastMeshSDF<T, Meta, BV, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const noexcept
 {
-
   using FaceAndDist = std::pair<std::shared_ptr<const Face>, T>;
 
   // List of candidate faces.
@@ -446,6 +445,72 @@ FastTriMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const no
   m_bvh->traverse(updater, visiter, sorter, metaUpdater);
 
   return minDist;
+}
+
+template <class T, class Meta, class BV, size_t K>
+std::vector<std::pair<std::shared_ptr<const Triangle<T, Meta>>, T>>
+FastTriMeshSDF<T, Meta, BV, K>::getClosestTriangles(const Vec3T<T>& a_point, const bool a_sorted) const noexcept
+{
+  using TriAndDist = std::pair<std::shared_ptr<const Tri>, T>;
+
+  // List of candidate faces.
+  std::vector<TriAndDist> candidateTriangles;
+
+  // Declaration of the BVH metadata attached to each node - this will be the distance to the node itself.
+  using BVHMeta = T;
+
+  // Shortest distance so far.
+  BVHMeta shortestDistanceSoFar = std::numeric_limits<T>::infinity();
+
+  // Visitation pattern - go into the node if the point is inside or the distance to the BV is shorter than
+  // the shortest distance so far.
+  EBGeometry::BVH::Visiter<Node, T> visiter = [&shortestDistanceSoFar](const Node&    a_node,
+                                                                       const BVHMeta& a_bvDist) noexcept -> bool {
+    return a_bvDist <= 0.0 || a_bvDist <= shortestDistanceSoFar;
+  };
+
+  // Sorter for BVH nodes, visit closest nodes first
+  EBGeometry::BVH::Sorter<Node, T, K> sorter =
+    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
+    std::sort(
+      a_leaves.begin(),
+      a_leaves.end(),
+      [&a_point](const std::pair<std::shared_ptr<const Node>, T>& n1,
+                 const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
+  };
+
+  // Meta-data updater - this meta-data enters into the visitor pattern.
+  EBGeometry::BVH::MetaUpdater<Node, BVHMeta> metaUpdater = [&a_point](const Node& a_node) noexcept -> BVHMeta {
+    return a_node.getDistanceToBoundingVolume(a_point);
+  };
+
+  // Update rule for the BVH. Go through the faces and check
+  EBGeometry::BVH::Updater<Tri> updater = [&shortestDistanceSoFar, &a_point, &candidateTriangles](
+                                            const std::vector<std::shared_ptr<const Tri>>& a_faces) noexcept -> void {
+    // Calculate the distance to each face in the leaf node. If it is shorter than the shortest distance so far, add this face
+    // to the list of faces and update the shortest distance.
+    for (const auto& f : a_faces) {
+      const T distToTri = std::abs(f->signedDistance(a_point));
+
+      if (distToTri <= shortestDistanceSoFar) {
+        candidateTriangles.emplace_back(f, distToTri);
+
+        shortestDistanceSoFar = distToTri;
+      }
+    }
+  };
+
+  // Traverse the tree
+  m_bvh->traverse(updater, visiter, sorter, metaUpdater);
+
+  // Sort if the user asks for it
+  if (a_sorted) {
+    std::sort(candidateTriangles.begin(), candidateTriangles.end(), [](const TriAndDist& a, const TriAndDist& b) {
+      return a.second < b.second;
+    });
+  }
+
+  return candidateTriangles;
 }
 
 template <class T, class Meta, class BV, size_t K>

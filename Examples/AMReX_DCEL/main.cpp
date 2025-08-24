@@ -13,6 +13,8 @@
 // Our include
 #include "../../EBGeometry.hpp"
 
+#warning "Example must be updated to use the trimesh class"
+
 using namespace amrex;
 
 /*!

@@ -20,8 +20,6 @@
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-#warning "Must add the getClosestTriangles functions to TriMesh"
-
 namespace DCEL {
 
   /*!
@@ -305,6 +303,17 @@ public:
   */
   virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
+
+  /*!
+    @brief Get the closest triangles to the input point
+    @details This returns a list of candidate triangles that are close to the input point. The returned
+    argment consists of the triangles and the unsigned distance to the triangles.
+    @param[in] a_point Input point
+    @param[in] a_sorted Sort the output vector by distance or not. Closest go first. 
+    @return List of candidate triangles (potentially sorted)
+  */
+  virtual std::vector<std::pair<std::shared_ptr<const Tri>, T>>
+  getClosestTriangles(const Vec3T<T>& a_point, const bool a_sorted) const noexcept;  
 
   /*!
     @brief Get the bounding volume hierarchy enclosing the mesh

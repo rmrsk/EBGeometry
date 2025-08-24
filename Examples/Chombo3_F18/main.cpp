@@ -16,6 +16,8 @@
 // Our includes
 #include "EBGeometry.hpp"
 
+#warning "Example must be updated to use the trimesh class"
+
 constexpr size_t K = 4;
 using T            = Real;
 using MetaData     = EBGeometry::DCEL::DefaultMetaData;

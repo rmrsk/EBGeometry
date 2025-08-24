@@ -18,6 +18,8 @@
 // Our includes
 #include "EBGeometry.hpp"
 
+#warning "Example must be updated to use the trimesh class"
+
 // Binding for exposing EBGeometry's signed distance functions to Chombo
 template <class T, class Meta, class BV, int K>
 class ChomboSDF : public BaseIF
