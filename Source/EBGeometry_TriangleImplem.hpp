@@ -14,7 +14,6 @@
 
 // Our includes
 #include "EBGeometry_Triangle.hpp"
-#include "EBGeometry_Polygon2D.hpp"
 
 namespace EBGeometry {
 
@@ -147,32 +146,12 @@ namespace EBGeometry {
   T
   Triangle<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
   {
+    T ret = std::numeric_limits<T>::max();
+
     // Check if projection falls inside. x is the projected point
     const auto x = a_point - m_triangleNormal * (m_triangleNormal.dot(a_point - m_vertexPositions[0]));
 
-#if 1
     const bool isPointInside = m_triangle2D.isPointInsideCrossingNumber(x);
-#else
-#warning "Restore original code when debugging is done"    
-    std::vector<Vec3T<T>> vertices;
-    for (const auto& v : m_vertexPositions) {
-      vertices.emplace_back(v);
-    }
-
-    auto tri2  = std::make_shared<Triangle2D<T>>(m_triangleNormal, m_vertexPositions);
-    auto poly2 = std::make_shared<Polygon2D<T>>(m_triangleNormal, vertices);
-
-    const bool isPointInsideTri  = tri2->isPointInsideCrossingNumber(x);
-    const bool isPointInsidePoly = poly2->isPointInside(x, Polygon2D<T>::InsideOutsideAlgorithm::CrossingNumber);
-
-    const bool isPointInside = isPointInsidePoly;
-
-    if (isPointInsideTri != isPointInsidePoly) {
-      std::cout << "should not happen" << std::endl;
-    }
-#endif
-
-    T ret = std::numeric_limits<T>::max();
 
     if (isPointInside) {
       ret = m_triangleNormal.dot(a_point - m_vertexPositions[0]);
