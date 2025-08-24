@@ -18,8 +18,6 @@
 // Our includes
 #include "EBGeometry.hpp"
 
-#warning "Example must be updated to use the trimesh class"
-
 // Binding for exposing EBGeometry's signed distance functions to Chombo
 template <class T, class Meta, class BV, int K>
 class ChomboSDF : public BaseIF
@@ -29,7 +27,7 @@ public:
 
   ChomboSDF(const std::string a_filename)
   {
-    m_implicitFunction = EBGeometry::Parser::readIntoLinearBVH<T, Meta, BV, K>(a_filename);
+    m_implicitFunction = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, BV, K>(a_filename);
     m_implicitFunction = EBGeometry::Complement<T>(m_implicitFunction);
   }
 

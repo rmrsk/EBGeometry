@@ -16,8 +16,6 @@
 // Our include
 #include "../../EBGeometry.hpp"
 
-#warning "Example must be updated to use the trimesh class"
-
 using namespace amrex;
 
 constexpr size_t K = 4;
@@ -27,7 +25,7 @@ using Vec3         = EBGeometry::Vec3T<T>;
 using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
 using Face         = EBGeometry::DCEL::FaceT<T, MetaData>;
 using Mesh         = EBGeometry::DCEL::MeshT<T, MetaData>;
-using FastSDF      = EBGeometry::FastCompactMeshSDF<T, MetaData, BV, K>;
+using FastSDF      = EBGeometry::FastTriMeshSDF<T, MetaData, BV, K>;
 
 // F18 geometry, using nifty EBGeometry bindings and accelerators.
 class F18

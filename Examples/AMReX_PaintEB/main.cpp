@@ -13,8 +13,6 @@
 // Our include
 #include "../../EBGeometry.hpp"
 
-#warning "Example must be updated to use the trimesh class"
-
 using namespace amrex;
 
 /*!
@@ -39,7 +37,7 @@ public:
   {
     // Read in the mesh into a DCEL mesh and partition it into a bounding volume hierarchy
     auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
-
+    
     // Set the meta-data for all facets to their "index", i.e. position in the list of facets
     auto& faces = mesh->getFaces();
     for (size_t i = 0; i < faces.size(); i++) {

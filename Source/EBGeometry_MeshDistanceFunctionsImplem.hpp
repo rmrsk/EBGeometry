@@ -411,7 +411,7 @@ FastTriMeshSDF<T, Meta, BV, K>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_me
     const auto vertices = f->gatherVertices();
     const auto edges    = f->gatherEdges();
 
-    if (vertices.size() != 3) {
+    if ((vertices.size() != 3) || (edges.size() != 3)) {
       std::cerr << "Parser::readIntoTriangles -- DCEL mesh not composed of only triangles!" << "\n";
     }
 
@@ -421,9 +421,8 @@ FastTriMeshSDF<T, Meta, BV, K>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_me
     tri->setNormal(normal);
     tri->setVertexPositions({vertices[0]->getPosition(), vertices[1]->getPosition(), vertices[2]->getPosition()});
     tri->setVertexNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
-    tri->setEdgeNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
-
-#warning "Must set metadata here"
+    tri->setEdgeNormals({edges[0]->getNormal(), edges[1]->getNormal(), edges[2]->getNormal()});
+    tri->setMetaData(f->getMetaData());
 
     triangles.emplace_back(tri);
   }
