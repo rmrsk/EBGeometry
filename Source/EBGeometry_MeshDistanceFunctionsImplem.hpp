@@ -146,7 +146,7 @@ template <class T, class Meta, class BV, size_t K>
 T
 FastMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
-  T minDist = std::numeric_limits<T>::infinity();
+  T minDist = std::numeric_limits<T>::max();
 
   BVH::Updater<Face> updater = [&minDist,
                                 &a_point](const std::vector<std::shared_ptr<const Face>>& faces) noexcept -> void {
@@ -157,16 +157,15 @@ FastMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexc
     }
   };
 
-  BVH::Visiter<Node, T> visiter = [&minDist, &a_point](const Node& a_node, const T& a_bvDist) noexcept -> bool {
+  BVH::Visiter<Node, T> visiter = [&minDist](const Node& a_node, const T& a_bvDist) noexcept -> bool {
     return a_bvDist <= std::abs(minDist);
   };
 
   BVH::Sorter<Node, T, K> sorter =
-    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
-    std::sort(
-      a_leaves.begin(),
-      a_leaves.end(),
-      [&a_point](const std::pair<std::shared_ptr<const Node>, T>& n1,
+    [](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
+    std::sort(a_leaves.begin(),
+              a_leaves.end(),
+              [](const std::pair<std::shared_ptr<const Node>, T>& n1,
                  const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
   };
 
@@ -193,7 +192,7 @@ FastMeshSDF<T, Meta, BV, K>::getClosestFaces(const Vec3T<T>& a_point, const bool
   using BVHMeta = T;
 
   // Shortest distance so far.
-  BVHMeta shortestDistanceSoFar = std::numeric_limits<T>::infinity();
+  BVHMeta shortestDistanceSoFar = std::numeric_limits<T>::max();
 
   // Visitation pattern - go into the node if the point is inside or the distance to the BV is shorter than
   // the shortest distance so far.
@@ -204,11 +203,10 @@ FastMeshSDF<T, Meta, BV, K>::getClosestFaces(const Vec3T<T>& a_point, const bool
 
   // Sorter for BVH nodes, visit closest nodes first
   EBGeometry::BVH::Sorter<Node, T, K> sorter =
-    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
-    std::sort(
-      a_leaves.begin(),
-      a_leaves.end(),
-      [&a_point](const std::pair<std::shared_ptr<const Node>, T>& n1,
+    [](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
+    std::sort(a_leaves.begin(),
+              a_leaves.end(),
+              [](const std::pair<std::shared_ptr<const Node>, T>& n1,
                  const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
   };
 
@@ -280,7 +278,7 @@ template <class T, class Meta, class BV, size_t K>
 T
 FastCompactMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
-  T minDist = std::numeric_limits<T>::infinity();
+  T minDist = std::numeric_limits<T>::max();
 
   BVH::Updater<Face> updater = [&minDist,
                                 &a_point](const std::vector<std::shared_ptr<const Face>>& faces) noexcept -> void {
@@ -291,16 +289,15 @@ FastCompactMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) cons
     }
   };
 
-  BVH::Visiter<Node, T> visiter = [&minDist, &a_point](const Node& a_node, const T& a_bvDist) noexcept -> bool {
+  BVH::Visiter<Node, T> visiter = [&minDist](const Node& a_node, const T& a_bvDist) noexcept -> bool {
     return a_bvDist <= std::abs(minDist);
   };
 
   BVH::Sorter<Node, T, K> sorter =
-    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
-    std::sort(
-      a_leaves.begin(),
-      a_leaves.end(),
-      [&a_point](const std::pair<std::shared_ptr<const Node>, T>& n1,
+    [](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
+    std::sort(a_leaves.begin(),
+              a_leaves.end(),
+              [](const std::pair<std::shared_ptr<const Node>, T>& n1,
                  const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
   };
 
@@ -326,7 +323,7 @@ FastCompactMeshSDF<T, Meta, BV, K>::getClosestFaces(const Vec3T<T>& a_point, con
   using BVHMeta = T;
 
   // Shortest distance so far.
-  BVHMeta shortestDistanceSoFar = std::numeric_limits<T>::infinity();
+  BVHMeta shortestDistanceSoFar = std::numeric_limits<T>::max();
 
   // Visitation pattern - go into the node if the point is inside or the distance to the BV is shorter than
   // the shortest distance so far.
@@ -337,11 +334,10 @@ FastCompactMeshSDF<T, Meta, BV, K>::getClosestFaces(const Vec3T<T>& a_point, con
 
   // Sorter for BVH nodes, visit closest nodes first
   EBGeometry::BVH::Sorter<Node, T, K> sorter =
-    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
-    std::sort(
-      a_leaves.begin(),
-      a_leaves.end(),
-      [&a_point](const std::pair<std::shared_ptr<const Node>, T>& n1,
+    [](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
+    std::sort(a_leaves.begin(),
+              a_leaves.end(),
+              [](const std::pair<std::shared_ptr<const Node>, T>& n1,
                  const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
   };
 
@@ -445,7 +441,7 @@ template <class T, class Meta, class BV, size_t K>
 T
 FastTriMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
-  T minDist = std::numeric_limits<T>::infinity();
+  T minDist = std::numeric_limits<T>::max();
 
   BVH::Updater<Tri> updater = [&minDist,
                                &a_point](const std::vector<std::shared_ptr<const Tri>>& triangles) noexcept -> void {
@@ -456,16 +452,15 @@ FastTriMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const no
     }
   };
 
-  BVH::Visiter<Node, T> visiter = [&minDist, &a_point](const Node& a_node, const T& a_bvDist) noexcept -> bool {
+  BVH::Visiter<Node, T> visiter = [&minDist](const Node& a_node, const T& a_bvDist) noexcept -> bool {
     return a_bvDist <= std::abs(minDist);
   };
 
   BVH::Sorter<Node, T, K> sorter =
-    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
-    std::sort(
-      a_leaves.begin(),
-      a_leaves.end(),
-      [&a_point](const std::pair<std::shared_ptr<const Node>, T>& n1,
+    [](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
+    std::sort(a_leaves.begin(),
+              a_leaves.end(),
+              [](const std::pair<std::shared_ptr<const Node>, T>& n1,
                  const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
   };
 
@@ -492,7 +487,7 @@ FastTriMeshSDF<T, Meta, BV, K>::getClosestTriangles(const Vec3T<T>& a_point, con
   using BVHMeta = T;
 
   // Shortest distance so far.
-  BVHMeta shortestDistanceSoFar = std::numeric_limits<T>::infinity();
+  BVHMeta shortestDistanceSoFar = std::numeric_limits<T>::max();
 
   // Visitation pattern - go into the node if the point is inside or the distance to the BV is shorter than
   // the shortest distance so far.
@@ -503,11 +498,10 @@ FastTriMeshSDF<T, Meta, BV, K>::getClosestTriangles(const Vec3T<T>& a_point, con
 
   // Sorter for BVH nodes, visit closest nodes first
   EBGeometry::BVH::Sorter<Node, T, K> sorter =
-    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
-    std::sort(
-      a_leaves.begin(),
-      a_leaves.end(),
-      [&a_point](const std::pair<std::shared_ptr<const Node>, T>& n1,
+    [](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
+    std::sort(a_leaves.begin(),
+              a_leaves.end(),
+              [](const std::pair<std::shared_ptr<const Node>, T>& n1,
                  const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
   };
 
