@@ -12,8 +12,6 @@
 
 #include "../../EBGeometry.hpp"
 
-#warning "Example must be updated to use the trimesh class"
-
 using namespace EBGeometry;
 using namespace EBGeometry::DCEL;
 
@@ -23,7 +21,7 @@ using MetaData     = std::map<int, std::vector<unsigned long long>>; // Attach s
 using Vec3         = EBGeometry::Vec3T<T>;
 using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
 using SlowSDF      = EBGeometry::MeshSDF<T, MetaData>;
-using FastSDF      = EBGeometry::FastCompactMeshSDF<T, MetaData, BV, K>;
+using FastSDF      = EBGeometry::FastTriMeshSDF<T, MetaData, BV, K>;
 
 int
 main(int argc, char* argv[])

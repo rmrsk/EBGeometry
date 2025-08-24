@@ -10,8 +10,6 @@
 
 #include "../../EBGeometry.hpp"
 
-#warning "When the TriMesh class is done, all example files should be updated to use the new functionality."
-
 using namespace EBGeometry;
 using namespace EBGeometry::DCEL;
 
