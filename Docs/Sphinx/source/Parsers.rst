@@ -25,6 +25,18 @@ If you have one or multiple STL files, you can quickly turn them into signed dis
 This will build DCEL meshes for each input file, and wrap the meshes in BVHs.
 See :ref:`Chap:LinearSTL` for further details.
 
+.. tip::
+
+   If the input files consist only of triangles, use the version
+
+   .. code-block:: c++
+
+      std::vector<std::string> files; // <---- List of file names.
+   
+      const auto distanceFields = EBGeometry::Parser::readIntoTriangleBVH<float>(files);
+
+   This version will convert all DCEL polygons to triangles, and usually provides a nice code speedup.
+
 Reading STL files
 -----------------
 
@@ -42,7 +54,8 @@ To read one or multiple STL files and turn it into DCEL meshes, use
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 53-67
+   :lines: 54-68
+   :dedent: 2	   
 
 Note that this will only expose the DCEL mesh, but not include any signed distance functionality.
 
@@ -53,7 +66,8 @@ To read one or multiple STL files and also turn it into signed distance represen
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 69-83
+   :lines: 70-84
+   :dedent: 2	   
 
 DCEL mesh SDF with full BVH
 ___________________________
@@ -62,7 +76,8 @@ To read one or multiple STL files and turn it into signed distance representatio
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 85-105
+   :lines: 86-106
+   :dedent: 2	   
 
 .. _Chap:LinearSTL:
 
@@ -73,7 +88,22 @@ To read one or multiple STL files and turn it into signed distance representatio
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 107-127
+   :lines: 107-128
+   :dedent: 2
+
+	   
+Triangle meshes with BVH
+________________________
+
+To read one or multiple STL files and turn it into signed distance representations using a compact BVH representation, use
+
+.. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
+   :language: c++
+   :lines: 130-147
+   :dedent: 2	   
+
+This version differs from the DCEL meshes in that each DCEL polygon is converted into triangles after parsing.
+The code will throw an error if not all DCEL polygon are not actual triangles.
 
 .. _Chap:PolySoups:
 
@@ -94,7 +124,7 @@ To turn this into a DCEL mesh, one should compress the triangle soup (get rid of
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 146-165
+   :lines: 182-201
 
 The ``compress`` function will discard duplicate vertices from the soup, while the ``soupToDCEL`` will tie the remaining polygons into a DCEL mesh.
 This function will also compute the vertex and edge normal vectors.

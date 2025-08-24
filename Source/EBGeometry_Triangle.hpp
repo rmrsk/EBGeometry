@@ -213,16 +213,6 @@ namespace EBGeometry {
     T
     signedDistance(const Vec3& a_point) const noexcept;
 
-    /*!
-      @brief Check if a line passes through the triangle.
-      @details Returns true if the line segment passes through the triangle, edges of the triangle,
-      or through one of the vertices.
-      @param[in] a_x0 One endpoint of the line
-      @param[in] a_x1 Other endpoint of the line
-    */
-    bool
-    intersects(const Vec3& a_x0, const Vec3& a_x1) const noexcept;
-
   protected:
     /*!
       @brief Triangle face normal

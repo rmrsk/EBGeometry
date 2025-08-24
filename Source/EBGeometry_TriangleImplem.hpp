@@ -200,34 +200,6 @@ namespace EBGeometry {
 
     return a.dot(b) / (b.dot(b));
   }
-
-  template <class T, class Meta>
-  bool
-  Triangle<T, Meta>::intersects(const Vec3T<T>& a_x0, const Vec3T<T>& a_x1) const noexcept
-  {
-    const T epsilon = std::numeric_limits<T>::eps();
-
-    const Vec3T<T> edge1 = m_vertexPositions[1] - m_vertexPositions[0];
-    const Vec3T<T> edge2 = m_vertexPositions[2] - m_vertexPositions[0];
-    const Vec3T<T> ray   = a_x1 - a_x0;
-
-    const T det    = -dot(ray, m_triangleNormal);
-    const T invDet = T(1.0) / det;
-
-    const Vec3T<T> AO  = a_x0 - m_vertexPositions[0];
-    const Vec3T<T> DAO = AO.cross(ray);
-
-    const T u = dot(edge2, DAO) * invDet;
-    const T v = -dot(edge1, DAO) * invDet;
-    const T t = dot(AO, m_triangleNormal) * invDet;
-
-    const bool a = std::abs(det) > epsilon;
-    const bool b = (t >= 0.0) && (t <= 1.0);
-    const bool c = (u >= 0.0) && (std::abs(u - 1.0) >= 0.0);
-    const bool d = (v >= 0.0) && (std::abs(u + v - 1.0) >= 0.0);
-
-    return (a && b && c && d);
-  }
 } // namespace EBGeometry
 
 #endif
