@@ -85,6 +85,7 @@ To use bottom-up construction, one may use the member function
 .. literalinclude:: ../../../Source/EBGeometry_BVH.hpp
    :language: c++
    :lines: 298-309
+   :dedent: 4
 
 The template argument is the space-filling curve that the user wants to apply.
 Currently, we support Morton codes and nested indices.
@@ -273,6 +274,7 @@ If the traversal decides to visit a node, it immediately computes the specified 
 .. literalinclude:: ../../../Source/EBGeometry_BVHImplem.hpp
    :language: c++
    :lines: 284-322
+   :dedent: 2
    :caption: Tree traversal algorithm for the BVH tree.
 
 Traversal examples
@@ -294,7 +296,7 @@ These rules are given below.
 
 .. literalinclude:: ../../../Source/EBGeometry_MeshDistanceFunctionsImplem.hpp
    :language: c++
-   :lines: 97-132
+   :lines: 145-181
    :caption: Tree traversal criterion for computing the signed distance to a DCEL mesh using the BVH accelerator.
 	     See :file:`Source/EBGeometry_MeshDistanceFunctionsImplem.hpp` for details.
 

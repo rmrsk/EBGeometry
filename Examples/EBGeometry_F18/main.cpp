@@ -21,7 +21,7 @@ using MetaData     = std::map<int, std::vector<unsigned long long>>; // Attach s
 using Vec3         = EBGeometry::Vec3T<T>;
 using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
 using SlowSDF      = EBGeometry::MeshSDF<T, MetaData>;
-using FastSDF      = EBGeometry::FastCompactMeshSDF<T, MetaData, BV, K>;
+using FastSDF      = EBGeometry::FastTriMeshSDF<T, MetaData, BV, K>;
 
 int
 main(int argc, char* argv[])
@@ -136,6 +136,9 @@ main(int argc, char* argv[])
   // Debug -- make sure all functions produce the same result!.
   if (std::abs(sumSlowSlow) - std::abs(sumFastFast) > std::numeric_limits<T>::min()) {
     std::cerr << "Got wrong distance! Diff = " << std::abs(sumSlowFast) - std::abs(sumFastFast) << "\n";
+  }
+  if (std::abs(sumSlowSlow) - std::abs(sumFastSlow) > std::numeric_limits<T>::min()) {
+    std::cerr << "Got wrong distance! Diff = " << std::abs(sumSlowFast) - std::abs(sumFastSlow) << "\n";
   }
 
   const std::chrono::duration<T, std::micro> slowSlowTime = (t1 - t0);

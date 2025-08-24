@@ -260,6 +260,13 @@ namespace DCEL {
     gatherVertices() const noexcept;
 
     /*!
+      @brief Return all the half-edges on this polygon
+      @details This builds a list of all the edges and returns it.
+    */
+    inline std::vector<EdgePtr>
+    gatherEdges() const noexcept;
+
+    /*!
       @brief Get the lower-left-most coordinate of this polygon face
     */
     inline Vec3T<T>
