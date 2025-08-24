@@ -85,7 +85,7 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: |
           source /opt/intel/oneapi/setvars.sh
-          icx -std=c++17 -O0 \
+          icpx -std=c++17 -O0 \
           -Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
           -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
           -Wunused-variable -Wwrite-strings -Werror \

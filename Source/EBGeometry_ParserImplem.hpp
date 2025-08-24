@@ -169,7 +169,7 @@ Parser::readIntoTriangleBVH(const std::string a_filename) noexcept
 }
 
 template <typename T, typename Meta, typename BV, size_t K>
-inline std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, BV, K>>>
+inline std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>>
 Parser::readIntoTriangleBVH(const std::vector<std::string> a_files) noexcept
 {
   std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, BV, K>>> implicitFunctions;
