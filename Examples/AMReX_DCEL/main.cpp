@@ -13,8 +13,6 @@
 // Our include
 #include "../../EBGeometry.hpp"
 
-#warning "Example must be updated to use the trimesh class"
-
 using namespace amrex;
 
 /*!
@@ -33,7 +31,7 @@ public:
   AMReXSDF(const std::string a_filename, const bool a_use_bvh)
   {
     if (a_use_bvh) {
-      m_sdf = EBGeometry::Parser::readIntoLinearBVH<T, Meta, BV, K>(a_filename);
+      m_sdf = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, BV, K>(a_filename);
     }
     else {
       m_sdf = EBGeometry::Parser::readIntoMesh<T, Meta>(a_filename);

@@ -39,13 +39,14 @@ public:
   {
     // Read in the mesh into a DCEL mesh and partition it into a bounding volume hierarchy
     auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
-    m_sdf     = std::make_shared<EBGeometry::FastCompactMeshSDF<T, Meta, BV, K>>(mesh);
 
     // Set the meta-data for all facets to their "index", i.e. position in the list of facets
     auto& faces = mesh->getFaces();
     for (size_t i = 0; i < faces.size(); i++) {
       faces[i]->getMetaData() = 1.0 * i;
     }
+
+    m_sdf = std::make_shared<EBGeometry::FastTriMeshSDF<T, Meta, BV, K>>(mesh);
   }
 
   /*!
