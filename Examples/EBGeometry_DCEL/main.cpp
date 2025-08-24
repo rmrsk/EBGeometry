@@ -10,6 +10,8 @@
 
 #include "../../EBGeometry.hpp"
 
+#warning "When the TriMesh class is done, all example files should be updated to use the new functionality."
+
 using namespace EBGeometry;
 using namespace EBGeometry::DCEL;
 
@@ -21,6 +23,7 @@ using T    = float;
 using Meta = short;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Vec3 = EBGeometry::Vec3T<T>;
+using Tri  = EBGeometry::Triangle<T, Meta>;
 
 int
 main(int argc, char* argv[])
@@ -48,6 +51,7 @@ main(int argc, char* argv[])
   const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file);
   const auto bvhSDF  = EBGeometry::Parser::readIntoFullBVH<T, Meta, BV, K>(file);
   const auto linSDF  = EBGeometry::Parser::readIntoLinearBVH<T, Meta, BV, K>(file);
+  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, BV, K>(file);
 
   // Sample some random points around the object.
   constexpr size_t Nsamp = 100;
@@ -74,6 +78,7 @@ main(int argc, char* argv[])
   T dcelSum = 0.0;
   T bvhSum  = 0.0;
   T linSum  = 0.0;
+  T triSum  = 0.0;
 
   const auto t0 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
@@ -88,10 +93,15 @@ main(int argc, char* argv[])
     linSum += linSDF->signedDistance(x);
   }
   const auto t3 = std::chrono::high_resolution_clock::now();
+  for (const auto& x : ranPoints) {
+    triSum += triSDF->signedDistance(x);
+  }
+  const auto t4 = std::chrono::high_resolution_clock::now();
 
   const std::chrono::duration<T, std::micro> dcelTime = t1 - t0;
   const std::chrono::duration<T, std::micro> bvhTime  = t2 - t1;
   const std::chrono::duration<T, std::micro> linTime  = t3 - t2;
+  const std::chrono::duration<T, std::micro> triTime  = t4 - t3;
 
   if (std::abs(bvhSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
     std::cerr << "Full BVH did not give same distance! Diff = " << bvhSum - dcelSum << "\n";
@@ -99,12 +109,16 @@ main(int argc, char* argv[])
   if (std::abs(linSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
     std::cerr << "Linearized BVH did not give same distance! Diff = " << linSum - dcelSum << "\n";
   }
+  if (std::abs(triSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
+    std::cerr << "TriMesh BVH did not give same distance! Diff = " << triSum - dcelSum << "\n";
+  }
 
   // clang-format off
   std::cout << "Bounding box = " << lo << "\t" << hi << "\n";
   std::cout << "Accumulated distance and time using direct DCEL = " << dcelSum << ", which took " << dcelTime.count() / Nsamp << " us\n";
   std::cout << "Accumulated distance and time using full BVH    = " << bvhSum  << ", which took " << bvhTime.count()  / Nsamp << " us\n";
   std::cout << "Accumulated distance and time using compact BVH = " << linSum  << ", which took " << linTime.count()  / Nsamp << " us\n";
+  std::cout << "Accumulated distance and time using trimesh BVH = " << triSum  << ", which took " << triTime.count()  / Nsamp << " us\n";  
   std::cout << "Relative speedup using BVH vs direct DCL        = " << dcelTime.count()/linTime.count() << "\n";
   // clang-format on  
 

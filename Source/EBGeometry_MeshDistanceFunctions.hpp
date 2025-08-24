@@ -17,7 +17,10 @@
 #include "EBGeometry_SignedDistanceFunction.hpp"
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_BVH.hpp"
+#include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
+
+#warning "Must add the getClosestTriangles functions to TriMesh"
 
 namespace DCEL {
 
@@ -230,6 +233,78 @@ public:
   */
   virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
   getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const noexcept;
+
+  /*!
+    @brief Get the bounding volume hierarchy enclosing the mesh
+  */
+  virtual std::shared_ptr<Root>&
+  getRoot() noexcept;
+
+  /*!
+    @brief Get the bounding volume hierarchy enclosing the mesh
+  */
+  virtual const std::shared_ptr<Root>&
+  getRoot() const noexcept;
+
+  /*!
+    @brief Compute bounding volume for this mesh. 
+  */
+  BV
+  computeBoundingVolume() const noexcept;
+
+protected:
+  /*!
+    @brief Bounding volume hierarchy
+  */
+  std::shared_ptr<Root> m_bvh;
+};
+
+/*!
+  @brief Signed distance function for a triangle mesh. This class uses the full BVH representation. 
+*/
+template <class T, class Meta, class BV, size_t K>
+class FastTriMeshSDF : public SignedDistanceFunction<T>
+{
+public:
+  /*!
+    @brief Alias for DCEL face type
+  */
+  using Tri = typename EBGeometry::Triangle<T, Meta>;
+
+  /*!
+    @brief Alias for which BVH root node 
+  */
+  using Root = typename EBGeometry::BVH::LinearBVH<T, Tri, BV, K>;
+
+  /*!
+    @brief Alias for linearized BVH
+  */
+  using Node = typename Root::LinearNode;
+
+  /*!
+    @brief Default disallowed constructor
+  */
+  FastTriMeshSDF() = delete;
+
+  /*!
+    @brief Full constructor. Takes the input triangles and creates the BVH.
+    @param[in] a_triangles Input triangle soup
+    @param[in] a_build Specification of build method. Must be TopDown, Morton, or Nested.
+  */
+  FastTriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
+                 const BVH::Build                         a_build = BVH::Build::TopDown) noexcept;
+
+  /*!
+    @brief Destructor
+  */
+  virtual ~FastTriMeshSDF() = default;
+
+  /*!
+    @brief Value function
+    @param[in] a_point Input point. 
+  */
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
   /*!
     @brief Get the bounding volume hierarchy enclosing the mesh

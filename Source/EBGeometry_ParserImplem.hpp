@@ -93,6 +93,50 @@ Parser::readIntoMesh(const std::vector<std::string> a_files) noexcept
   return implicitFunctions;
 }
 
+template <typename T, typename Meta>
+std::vector<std::shared_ptr<Triangle<T, Meta>>>
+Parser::readIntoTriangles(const std::string a_filename) noexcept
+{
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename);
+
+  std::vector<std::shared_ptr<Triangle<T, Meta>>> triangles;
+
+  for (const auto& f : mesh->getFaces()) {
+    const auto normal   = f->getNormal();
+    const auto vertices = f->gatherVertices();
+    const auto edges    = f->gatherEdges();
+
+    if (vertices.size() != 3) {
+      std::cerr << "Parser::readIntoTriangles -- DCEL mesh not composed of only triangles!" << "\n";
+    }
+
+    // Create the triangle
+    auto tri = std::make_shared<Triangle<T, Meta>>();
+
+    tri->setNormal(normal);
+    tri->setVertexPositions({vertices[0]->getPosition(), vertices[1]->getPosition(), vertices[2]->getPosition()});
+    tri->setVertexNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
+    tri->setEdgeNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
+
+    triangles.emplace_back(tri);
+  }
+
+  return triangles;
+}
+
+template <typename T, typename Meta>
+std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
+Parser::readIntoTriangles(const std::vector<std::string> a_files) noexcept
+{
+  std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>> triangles;
+
+  for (const auto& file : a_files) {
+    triangles.emplace_back(Parser::readIntoTriangles<T, Meta>(file));
+  }
+
+  return triangles;
+}
+
 template <typename T, typename Meta, typename BV, size_t K>
 inline std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>
 Parser::readIntoFullBVH(const std::string a_filename) noexcept
@@ -110,6 +154,28 @@ Parser::readIntoFullBVH(const std::vector<std::string> a_files) noexcept
 
   for (const auto& file : a_files) {
     implicitFunctions.emplace_back(Parser::readIntoFullBVH<T, Meta, BV, K>(file));
+  }
+
+  return implicitFunctions;
+}
+
+template <typename T, typename Meta, typename BV, size_t K>
+inline std::shared_ptr<FastTriMeshSDF<T, Meta, BV, K>>
+Parser::readIntoTriangleBVH(const std::string a_filename) noexcept
+{
+  auto triangles = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename);
+
+  return std::make_shared<FastTriMeshSDF<T, Meta, BV, K>>(triangles);
+}
+
+template <typename T, typename Meta, typename BV, size_t K>
+inline std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, BV, K>>>
+Parser::readIntoTriangleBVH(const std::vector<std::string> a_files) noexcept
+{
+  std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, BV, K>>> implicitFunctions;
+
+  for (const auto& file : a_files) {
+    implicitFunctions.emplace_back(Parser::readIntoTriangleBVH<T, Meta, BV, K>(file));
   }
 
   return implicitFunctions;

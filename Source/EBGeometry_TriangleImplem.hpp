@@ -75,7 +75,7 @@ namespace EBGeometry {
     const Vec3T<T> x1x0 = m_vertexPositions[1] - m_vertexPositions[0];
     const Vec3T<T> x2x1 = m_vertexPositions[2] - m_vertexPositions[1];
 
-    m_triangleNormal = cross(x1x0, x2x1);
+    m_triangleNormal = x1x0.cross(x2x1);
     m_triangleNormal = m_triangleNormal / m_triangleNormal.length();
   }
 
@@ -198,8 +198,6 @@ namespace EBGeometry {
     const Vec3T<T> a = a_point - a_x0;
     const Vec3T<T> b = a_x1 - a_x0;
 
-    EBGEOMETRY_EXPECT(b.length() > std::numeric_limits<T>::min());
-
     return a.dot(b) / (b.dot(b));
   }
 
@@ -217,7 +215,7 @@ namespace EBGeometry {
     const T invDet = T(1.0) / det;
 
     const Vec3T<T> AO  = a_x0 - m_vertexPositions[0];
-    const Vec3T<T> DAO = cross(AO, ray);
+    const Vec3T<T> DAO = AO.cross(ray);
 
     const T u = dot(edge2, DAO) * invDet;
     const T v = -dot(edge1, DAO) * invDet;

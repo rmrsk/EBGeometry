@@ -131,7 +131,7 @@ namespace EBGeometry {
     constexpr T zero = T(0.0);
 
     auto isLeft = [](const Vec2T<T>& p0, const Vec2T<T>& p1, const Vec2T<T>& p2) {
-      return (p1.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (p1.y() - p0.y());
+      return (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y);
     };
 
     // Loop through all edges of the polygon
@@ -143,13 +143,13 @@ namespace EBGeometry {
 
       const T res = isLeft(p1, p2, P);
 
-      if (p1.y() <= P.y()) {
-        if (p2.y() > P.y() && res > zero) {
+      if (p1.y <= P.y) {
+        if (p2.y > P.y && res > zero) {
           windingNumber += 1;
         }
       }
       else {
-        if (p2.y() <= P.y() && res < zero) {
+        if (p2.y <= P.y && res < zero) {
           windingNumber -= 1;
         }
       }
@@ -168,13 +168,13 @@ namespace EBGeometry {
       const Vec2T<T>& p1 = m_vertices[i];
       const Vec2T<T>& p2 = m_vertices[(i + 1) % 3];
 
-      const bool upwardCrossing   = (p1.y() <= a_point.y()) && (p2.y() > a_point.y());
-      const bool downwardCrossing = (p1.y() > a_point.y()) && (p2.y() <= a_point.y());
+      const bool upwardCrossing   = (p1.y <= a_point.y) && (p2.y > a_point.y);
+      const bool downwardCrossing = (p1.y > a_point.y) && (p2.y <= a_point.y);
 
       if (upwardCrossing || downwardCrossing) {
-        const T t = (a_point.y() - p1.y()) / (p2.y() - p1.y());
+        const T t = (a_point.y - p1.y) / (p2.y - p1.y);
 
-        if (a_point.x() < p1.x() + t * (p2.x() - p1.x())) {
+        if (a_point.x < p1.x + t * (p2.x - p1.x)) {
           crossingNumber += 1;
         }
       }
@@ -193,8 +193,8 @@ namespace EBGeometry {
       const Vec2T<T> p1 = m_vertices[i] - a_point;
       const Vec2T<T> p2 = m_vertices[(i + 1) % 3] - a_point;
 
-      const T theta1 = static_cast<T>(atan2(p1.y(), p1.x()));
-      const T theta2 = static_cast<T>(atan2(p2.y(), p2.x()));
+      const T theta1 = static_cast<T>(atan2(p1.y, p1.x));
+      const T theta2 = static_cast<T>(atan2(p2.y, p2.x));
 
       T dTheta = theta2 - theta1;
 

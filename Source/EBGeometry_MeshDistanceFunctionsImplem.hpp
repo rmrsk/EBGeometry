@@ -60,6 +60,54 @@ DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dc
   return bvh;
 }
 
+template <class T, class Meta, class BV, size_t K>
+std::shared_ptr<EBGeometry::BVH::NodeT<T, Triangle<T, Meta>, BV, K>>
+buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Meta>>>& a_triangles,
+                    const BVH::Build a_build = BVH::Build::TopDown) noexcept
+{
+  using Prim          = EBGeometry::Triangle<T, Meta>;
+  using PrimAndBVList = std::vector<std::pair<std::shared_ptr<const Prim>, BV>>;
+
+  // Create a pair-wise list of DCEL faces and their bounding volumes.
+  PrimAndBVList primsAndBVs;
+
+  for (const auto& tri : a_triangles) {
+    const auto& vertexPositions = tri->getVertexPositions();
+
+    std::vector<EBGeometry::Vec3T<T>> vertices{vertexPositions[0], vertexPositions[1], vertexPositions[2]};
+
+    primsAndBVs.emplace_back(std::make_pair(tri, BV(vertices)));
+  }
+
+  // Partition the BVH using the default input arguments.
+  auto bvh = std::make_shared<EBGeometry::BVH::NodeT<T, Prim, BV, K>>(primsAndBVs);
+
+  switch (a_build) {
+  case BVH::Build::TopDown: {
+    bvh->topDownSortAndPartition();
+
+    break;
+  }
+  case BVH::Build::Morton: {
+    bvh->template bottomUpSortAndPartition<SFC::Morton>();
+
+    break;
+  }
+  case BVH::Build::Nested: {
+    bvh->template bottomUpSortAndPartition<SFC::Nested>();
+
+    break;
+  }
+  default: {
+    std::cerr << "EBGeometry::DCEL::buildFullBVH - unsupported build method requested" << std::endl;
+
+    break;
+  }
+  }
+
+  return bvh;
+}
+
 template <class T, class Meta>
 MeshSDF<T, Meta>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
 {
@@ -349,6 +397,74 @@ FastCompactMeshSDF<T, Meta, BV, K>::getRoot() const noexcept
 template <class T, class Meta, class BV, size_t K>
 BV
 FastCompactMeshSDF<T, Meta, BV, K>::computeBoundingVolume() const noexcept
+{
+  return m_bvh->getBoundingVolume();
+};
+
+template <class T, class Meta, class BV, size_t K>
+FastTriMeshSDF<T, Meta, BV, K>::FastTriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
+                                               const BVH::Build                         a_build) noexcept
+{
+  auto bvh = EBGeometry::buildTriMeshFullBVH<T, Meta, BV, K>(a_triangles, a_build);
+
+  m_bvh = bvh->flattenTree();
+}
+
+template <class T, class Meta, class BV, size_t K>
+T
+FastTriMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
+{
+  T minDist = std::numeric_limits<T>::infinity();
+
+  BVH::Updater<Tri> updater = [&minDist,
+                               &a_point](const std::vector<std::shared_ptr<const Tri>>& triangles) noexcept -> void {
+    for (const auto& tri : triangles) {
+      const T curDist = tri->signedDistance(a_point);
+
+      minDist = std::abs(curDist) < std::abs(minDist) ? curDist : minDist;
+    }
+  };
+
+  BVH::Visiter<Node, T> visiter = [&minDist, &a_point](const Node& a_node, const T& a_bvDist) noexcept -> bool {
+    return a_bvDist <= std::abs(minDist);
+  };
+
+  BVH::Sorter<Node, T, K> sorter =
+    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
+    std::sort(
+      a_leaves.begin(),
+      a_leaves.end(),
+      [&a_point](const std::pair<std::shared_ptr<const Node>, T>& n1,
+                 const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
+  };
+
+  BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
+    return a_node.getDistanceToBoundingVolume(a_point);
+  };
+
+  // Traverse the tree.
+  m_bvh->traverse(updater, visiter, sorter, metaUpdater);
+
+  return minDist;
+}
+
+template <class T, class Meta, class BV, size_t K>
+std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::Triangle<T, Meta>, BV, K>>&
+FastTriMeshSDF<T, Meta, BV, K>::getRoot() noexcept
+{
+  return (m_bvh);
+}
+
+template <class T, class Meta, class BV, size_t K>
+const std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::Triangle<T, Meta>, BV, K>>&
+FastTriMeshSDF<T, Meta, BV, K>::getRoot() const noexcept
+{
+  return (m_bvh);
+}
+
+template <class T, class Meta, class BV, size_t K>
+BV
+FastTriMeshSDF<T, Meta, BV, K>::computeBoundingVolume() const noexcept
 {
   return m_bvh->getBoundingVolume();
 };
