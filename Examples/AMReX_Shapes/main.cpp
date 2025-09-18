@@ -169,6 +169,11 @@ main(int argc, char* argv[])
 
     func = std::make_shared<EBGeometry::PerlinSDF<T>>(0.5, 2.0 * Vec3::one(), 0.5, 4);
   }
+  else if (whichGeom == 14) { // Rounded cylinder
+    rb = RealBox({-1, -1, -1}, {1, 1, 1});
+
+    func = std::make_shared<EBGeometry::RoundedCylinderSDF<T>>(0.5,0.1,1.0);
+  }  
 
   // AMReX uses the opposite sign.
   func = EBGeometry::Complement<T>(func);
