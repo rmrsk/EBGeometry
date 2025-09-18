@@ -227,10 +227,12 @@ namespace EBGeometry {
       @brief Triangle vertex normals
     */
     std::array<Vec3, 3> m_vertexNormals{Vec3::max(), Vec3::max(), Vec3::max()};
+    
     /*!
       @brief Triangle edge normals
     */
     std::array<Vec3, 3> m_edgeNormals{Vec3::max(), Vec3::max(), Vec3::max()};
+
 
     /*!
       @brief Triangle meta-data normals
