@@ -37,8 +37,6 @@ namespace EBGeometry {
     m_vertexPositions = a_vertexPositions;
 
     this->computeNormal();
-
-    m_triangle2D.define(m_triangleNormal, m_vertexPositions);
   }
 
   template <class T, class Meta>
@@ -148,25 +146,33 @@ namespace EBGeometry {
   {
     T ret = std::numeric_limits<T>::max();
 
-    // Check if projection falls inside. x is the projected point
-    const auto x = a_point - m_triangleNormal * (m_triangleNormal.dot(a_point - m_vertexPositions[0]));
+    const T eps = std::numeric_limits<T>::epsilon();
 
-    const bool isPointInside = m_triangle2D.isPointInsideCrossingNumber(x);
+    auto sgn = [](const T x) -> int { return (x >= 0.0) ? 1 : -1; };
+
+    const Vec3 e0 = m_vertexPositions[1] - m_vertexPositions[0];
+    const Vec3 e1 = m_vertexPositions[2] - m_vertexPositions[1];
+    const Vec3 e2 = m_vertexPositions[0] - m_vertexPositions[2];
+
+    const Vec3 dv0 = a_point - m_vertexPositions[0];
+    const Vec3 dv1 = a_point - m_vertexPositions[1];
+    const Vec3 dv2 = a_point - m_vertexPositions[2];
+
+    const T s0 = dot(m_triangleNormal, e0.cross(dv0));
+    const T s1 = dot(m_triangleNormal, e1.cross(dv1));
+    const T s2 = dot(m_triangleNormal, e2.cross(dv2));
+
+    const bool isPointInside = (s0 >= -eps) && (s1 >= -eps) && (s2 >= -eps);
 
     if (isPointInside) {
-      ret = m_triangleNormal.dot(a_point - m_vertexPositions[0]);
+      ret = m_triangleNormal.dot(dv0);
     }
     else {
-      // If this triggers then
-      auto sgn = [](const T x) -> int { return (x > 0.0) ? 1 : -1; };
+      ret = (dv0.length() > std::abs(ret)) ? ret : dv0.length() * sgn(m_vertexNormals[0].dot(dv0));
+      ret = (dv1.length() > std::abs(ret)) ? ret : dv1.length() * sgn(m_vertexNormals[1].dot(dv1));
+      ret = (dv2.length() > std::abs(ret)) ? ret : dv2.length() * sgn(m_vertexNormals[2].dot(dv2));
 
-      // Check distances to vertices.
-      for (int i = 0; i < 3; i++) {
-        const Vec3T<T> delta = a_point - m_vertexPositions[i];
-
-        ret = (delta.length() > std::abs(ret)) ? ret : delta.length() * sgn(m_vertexNormals[i].dot(delta));
-      }
-
+      // Check edges
       for (int i = 0; i < 3; i++) {
         const Vec3T<T>& a = m_vertexPositions[i];
         const Vec3T<T>& b = m_vertexPositions[(i + 1) % 3];

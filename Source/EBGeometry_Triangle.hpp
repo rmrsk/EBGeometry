@@ -17,7 +17,6 @@
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
-#include "EBGeometry_Triangle2D.hpp"
 
 namespace EBGeometry {
 
@@ -232,11 +231,6 @@ namespace EBGeometry {
       @brief Triangle edge normals
     */
     std::array<Vec3, 3> m_edgeNormals{Vec3::max(), Vec3::max(), Vec3::max()};
-
-    /*!
-      @brief 2D projection of the triangle to one of the Cartesian coordinate directions
-    */
-    Triangle2D<T> m_triangle2D;
 
     /*!
       @brief Triangle meta-data normals
