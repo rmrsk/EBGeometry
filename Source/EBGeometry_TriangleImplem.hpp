@@ -37,8 +37,6 @@ namespace EBGeometry {
     m_vertexPositions = a_vertexPositions;
 
     this->computeNormal();
-
-    m_triangle2D.define(m_triangleNormal, m_vertexPositions);
   }
 
   template <class T, class Meta>
@@ -146,54 +144,45 @@ namespace EBGeometry {
   T
   Triangle<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
   {
+    // Here is a message from the past: If one wants, one can precompute v21, v32, v13
+    // as well as many other quantities (e.g., v21.cross(m_triangleNormal)). This might
+    // be helpful in order to speed things up a little bit.
     T ret = std::numeric_limits<T>::max();
 
-    // Check if projection falls inside. x is the projected point
-    const auto x = a_point - m_triangleNormal * (m_triangleNormal.dot(a_point - m_vertexPositions[0]));
+    auto sgn = [](const T x) -> int { return (x > 0.0) ? 1 : -1; };
 
-    const bool isPointInside = m_triangle2D.isPointInsideCrossingNumber(x);
+    const Vec3 v21 = m_vertexPositions[1] - m_vertexPositions[0];
+    const Vec3 v32 = m_vertexPositions[2] - m_vertexPositions[1];
+    const Vec3 v13 = m_vertexPositions[0] - m_vertexPositions[2];
 
-    if (isPointInside) {
-      ret = m_triangleNormal.dot(a_point - m_vertexPositions[0]);
-    }
-    else {
-      // If this triggers then
-      auto sgn = [](const T x) -> int { return (x > 0.0) ? 1 : -1; };
+    const Vec3 p1 = a_point - m_vertexPositions[0];
+    const Vec3 p2 = a_point - m_vertexPositions[1];
+    const Vec3 p3 = a_point - m_vertexPositions[2];
 
-      // Check distances to vertices.
-      for (int i = 0; i < 3; i++) {
-        const Vec3T<T> delta = a_point - m_vertexPositions[i];
+    const T s0 = sgn(dot(v21.cross(m_triangleNormal), p1));
+    const T s1 = sgn(dot(v32.cross(m_triangleNormal), p2));
+    const T s2 = sgn(dot(v13.cross(m_triangleNormal), p3));
 
-        ret = (delta.length() > std::abs(ret)) ? ret : delta.length() * sgn(m_vertexNormals[i].dot(delta));
-      }
+    const T t1 = dot(p1, v21) / dot(v21, v21);
+    const T t2 = dot(p2, v32) / dot(v32, v32);
+    const T t3 = dot(p3, v13) / dot(v13, v13);
 
-      for (int i = 0; i < 3; i++) {
-        const Vec3T<T>& a = m_vertexPositions[i];
-        const Vec3T<T>& b = m_vertexPositions[(i + 1) % 3];
+    const Vec3 y1 = p1 - t1 * v21;
+    const Vec3 y2 = p2 - t2 * v32;
+    const Vec3 y3 = p3 - t3 * v13;
 
-        const T t = this->projectPointToEdge(a_point, a, b);
+    // Distance to vertices
+    ret = (p1.length() > std::abs(ret)) ? ret : p1.length() * sgn(m_vertexNormals[0].dot(p1));
+    ret = (p2.length() > std::abs(ret)) ? ret : p2.length() * sgn(m_vertexNormals[1].dot(p2));
+    ret = (p3.length() > std::abs(ret)) ? ret : p3.length() * sgn(m_vertexNormals[2].dot(p3));
 
-        if (t > 0.0 && t < 1.0) {
-          const Vec3T<T> delta = a_point - (a + t * (b - a));
+    // Distance to edges
+    ret = (t1 > 0.0 && t1 < 1.0 && y1.length() < std::abs(ret)) ? y1.length() * sgn(m_edgeNormals[0].dot(y1)) : ret;
+    ret = (t2 > 0.0 && t2 < 1.0 && y2.length() < std::abs(ret)) ? y2.length() * sgn(m_edgeNormals[1].dot(y2)) : ret;
+    ret = (t3 > 0.0 && t3 < 1.0 && y3.length() < std::abs(ret)) ? y3.length() * sgn(m_edgeNormals[2].dot(y3)) : ret;
 
-          ret = (delta.length() > std::abs(ret)) ? ret : delta.length() * sgn(m_edgeNormals[i].dot(delta));
-        }
-      }
-    }
-
-    return ret;
-  }
-
-  template <class T, class Meta>
-  T
-  Triangle<T, Meta>::projectPointToEdge(const Vec3T<T>& a_point,
-                                        const Vec3T<T>& a_x0,
-                                        const Vec3T<T>& a_x1) const noexcept
-  {
-    const Vec3T<T> a = a_point - a_x0;
-    const Vec3T<T> b = a_x1 - a_x0;
-
-    return a.dot(b) / (b.dot(b));
+    // Note that s0 + s1 + s2 >= 2.0 is a point-in-polygon test.
+    return (s0 + s1 + s2 >= 2.0) ? m_triangleNormal.dot(p1) : ret;
   }
 } // namespace EBGeometry
 
