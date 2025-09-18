@@ -146,7 +146,7 @@ namespace EBGeometry {
   {
     // Here is a message from the past: If one wants, one can precompute v21, v32, v13
     // as well as many other quantities (e.g., v21.cross(m_triangleNormal)). This might
-    // be helpful in order to speed things up a little bit, but consumes more memory.
+    // be helpful in order to speed things up a little bit.
     T ret = std::numeric_limits<T>::max();
 
     auto sgn = [](const T x) -> int { return (x > 0.0) ? 1 : -1; };
@@ -181,6 +181,7 @@ namespace EBGeometry {
     ret = (t2 > 0.0 && t2 < 1.0 && y2.length() < std::abs(ret)) ? y2.length() * sgn(m_edgeNormals[1].dot(y2)) : ret;
     ret = (t3 > 0.0 && t3 < 1.0 && y3.length() < std::abs(ret)) ? y3.length() * sgn(m_edgeNormals[2].dot(y3)) : ret;
 
+    // Note that s0 + s1 + s2 >= 2.0 is a point-in-polygon test.
     return (s0 + s1 + s2 >= 2.0) ? m_triangleNormal.dot(p1) : ret;
   }
 } // namespace EBGeometry
