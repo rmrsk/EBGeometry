@@ -1091,6 +1091,67 @@ protected:
   };
 };
 
+/*!
+  @brief Rounded cylinder signed-distance function
+*/
+template <class T>
+class RoundedCylinderSDF : public SignedDistanceFunction<T>
+{
+public:
+  /*!
+    @brief Disallowed default constructor
+  */
+  RoundedCylinderSDF() = delete;
+
+  /*!
+    @brief Full constructor. User inputs the radius, curvature, and height. Adjust parameters as necessary.
+    @param[in] a_radius Cylinder outer radius
+    @param[in] a_curvature Corner curvature
+    @param[in] a_height Cylinder height
+  */
+  RoundedCylinderSDF(const T a_radius, const T a_curvature, const T a_height) noexcept
+  {
+    m_majorRadius = a_radius - a_curvature;
+    m_minorRadius = a_curvature;
+    m_height      = 0.5 * a_height - a_curvature;
+  }
+
+  /*!
+    @brief Destructor (does nothing).
+  */
+  virtual ~RoundedCylinderSDF() noexcept
+  {}
+
+  /*!
+    @brief Signed distance function for the rounded box
+  */
+  virtual T
+  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  {
+    const auto xz = sqrt(a_point[2] * a_point[2] + a_point[0] * a_point[0]);
+    const auto d1 = Vec2T<T>(xz - 2.0 * m_majorRadius + m_minorRadius, std::abs(a_point[1]) - m_height);
+    const auto d2 = Vec2T<T>(std::max(d1.x, 0.0), std::max(d1.y, 0.0));
+
+    return std::min(std::max(d1.x, d1.y), 0.0) + sqrt(d2.x * d2.x + d2.y * d2.y) - m_minorRadius;
+  }
+
+protected:
+  /*!
+    @brief Major radius
+  */
+  T m_majorRadius;
+
+  /*!
+    @brief Minor radius
+  */
+  T m_minorRadius;
+
+  /*!
+    @brief Minor radius
+  */
+  T m_height;
+};
+
 #include "EBGeometry_NamespaceFooter.hpp"
 
 #endif
