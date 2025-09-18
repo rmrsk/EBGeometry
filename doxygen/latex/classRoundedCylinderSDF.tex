@@ -1,0 +1,129 @@
+\doxysection{Rounded\+Cylinder\+SDF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classRoundedCylinderSDF}{}\label{classRoundedCylinderSDF}\index{RoundedCylinderSDF$<$ T $>$@{RoundedCylinderSDF$<$ T $>$}}
+
+
+Rounded cylinder signed-\/distance function.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp$>$}
+
+
+
+Inheritance diagram for Rounded\+Cylinder\+SDF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>}\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classRoundedCylinderSDF__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Rounded\+Cylinder\+SDF\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>}\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classRoundedCylinderSDF__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classRoundedCylinderSDF_a8341b7eff0380f92c5436bdb040f3635}\label{classRoundedCylinderSDF_a8341b7eff0380f92c5436bdb040f3635} 
+{\bfseries Rounded\+Cylinder\+SDF} ()=\mbox{\hyperlink{classVec3T}{delete}}
+\begin{DoxyCompactList}\small\item\em Disallowed default constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classRoundedCylinderSDF_aac670550b97223478a3f5cfbf3f24826}{Rounded\+Cylinder\+SDF}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+radius}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+curvature}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classVec3T}{a\+\_\+height}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Full constructor. User inputs the radius, curvature, and height. Adjust parameters as necessary. \end{DoxyCompactList}\item 
+\Hypertarget{classRoundedCylinderSDF_a05bec28b2b2464f0e2a18fc6bf3eaa16}\label{classRoundedCylinderSDF_a05bec28b2b2464f0e2a18fc6bf3eaa16} 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Rounded\+Cylinder\+SDF} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing). \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classRoundedCylinderSDF_a6dfc7792719fb36c068dca6e04b022e8}{signed\+Distance}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}} \mbox{\hyperlink{classVec3T}{override}}
+\begin{DoxyCompactList}\small\item\em Signed distance function for the rounded box. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classSignedDistanceFunction}{Signed\+Distance\+Function$<$ T $>$}}}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries Signed\+Distance\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Signed\+Distance\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classSignedDistanceFunction_a76f283b0c732de5a71faa665a97530f2}{value}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}} \mbox{\hyperlink{classVec3T}{override}} \mbox{\hyperlink{classVec3T}{final}}
+\begin{DoxyCompactList}\small\item\em Implementation of \doxylink{classImplicitFunction_a1c8f809231cdf88e0c53d47442b5d9af}{Implicit\+Function\+::value}. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{classSignedDistanceFunction_aa8c8f6bd9788f107f60fd7781fb16d19}{normal}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+delta}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Signed distance normal vector. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classImplicitFunction}{Implicit\+Function$<$ T $>$}}}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Disallowed, use the full constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+Implicit\+Function} ()=\mbox{\hyperlink{classVec3T}{default}}
+\begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classImplicitFunction_a361afffb3619a6e06172bdef96c41b91}{operator()}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Alternative signature for the value function. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{BV}} $>$ }\\\mbox{\hyperlink{classVec3T}{BV}} \mbox{\hyperlink{classImplicitFunction_a844c5123cf9cbad3a140fc40494b4071}{approximate\+Bounding\+Volume\+Octree}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+Low\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+initial\+High\+Corner}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{unsigned}} \mbox{\hyperlink{classVec3T}{int}} \mbox{\hyperlink{classVec3T}{a\+\_\+max\+Tree\+Depth}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+safety}}=0.\+0) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Compute an approximation to the bounding volume for the implicit surface, using octrees. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classRoundedCylinderSDF_a484050afa9d4c475af2fd1b403565496}\label{classRoundedCylinderSDF_a484050afa9d4c475af2fd1b403565496} 
+\mbox{\hyperlink{classVec3T}{T}} {\bfseries m\+\_\+major\+Radius}
+\begin{DoxyCompactList}\small\item\em Major radius. \end{DoxyCompactList}\item 
+\Hypertarget{classRoundedCylinderSDF_a3b7c4425ddd4ed7d653232e87d924a70}\label{classRoundedCylinderSDF_a3b7c4425ddd4ed7d653232e87d924a70} 
+\mbox{\hyperlink{classVec3T}{T}} {\bfseries m\+\_\+minor\+Radius}
+\begin{DoxyCompactList}\small\item\em Minor radius. \end{DoxyCompactList}\item 
+\Hypertarget{classRoundedCylinderSDF_a3da0e984bd65a906a82c17b3fa824b88}\label{classRoundedCylinderSDF_a3da0e984bd65a906a82c17b3fa824b88} 
+\mbox{\hyperlink{classVec3T}{T}} {\bfseries m\+\_\+height}
+\begin{DoxyCompactList}\small\item\em Minor radius. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}}$>$\newline
+class Rounded\+Cylinder\+SDF$<$ T $>$}
+Rounded cylinder signed-\/distance function. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{classRoundedCylinderSDF_aac670550b97223478a3f5cfbf3f24826}\label{classRoundedCylinderSDF_aac670550b97223478a3f5cfbf3f24826} 
+\index{RoundedCylinderSDF$<$ T $>$@{RoundedCylinderSDF$<$ T $>$}!RoundedCylinderSDF@{RoundedCylinderSDF}}
+\index{RoundedCylinderSDF@{RoundedCylinderSDF}!RoundedCylinderSDF$<$ T $>$@{RoundedCylinderSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{RoundedCylinderSDF()}{RoundedCylinderSDF()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classRoundedCylinderSDF}{Rounded\+Cylinder\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classRoundedCylinderSDF}{\+::\+Rounded\+Cylinder\+SDF}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+radius,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+curvature,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{T}}}]{a\+\_\+height }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Full constructor. User inputs the radius, curvature, and height. Adjust parameters as necessary. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+radius} & Cylinder outer radius \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+curvature} & Corner curvature \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+height} & Cylinder height \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classRoundedCylinderSDF_a6dfc7792719fb36c068dca6e04b022e8}\label{classRoundedCylinderSDF_a6dfc7792719fb36c068dca6e04b022e8} 
+\index{RoundedCylinderSDF$<$ T $>$@{RoundedCylinderSDF$<$ T $>$}!signedDistance@{signedDistance}}
+\index{signedDistance@{signedDistance}!RoundedCylinderSDF$<$ T $>$@{RoundedCylinderSDF$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{signedDistance()}{signedDistance()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{virtual}} \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classRoundedCylinderSDF}{Rounded\+Cylinder\+SDF}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::signed\+Distance (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+point }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Signed distance function for the rounded box. 
+
+
+
+Implements \mbox{\hyperlink{classSignedDistanceFunction_af5912280ca51dc21a2d6949a30ec7d21}{Signed\+Distance\+Function$<$ T $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/\mbox{\hyperlink{EBGeometry__AnalyticDistanceFunctions_8hpp}{EBGeometry\+\_\+\+Analytic\+Distance\+Functions.\+hpp}}\end{DoxyCompactItemize}

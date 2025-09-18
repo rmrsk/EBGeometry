@@ -69,11 +69,6 @@ std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c47398
 \begin{DoxyCompactList}\small\item\em Get the triangle meta-\/data. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_ae0fdc42e8e24cb4af0e6eb7c383d7635}{signed\+Distance}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Compute the signed distance from the input point x to the triangle. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsubsection*{Protected Member Functions}
-\begin{DoxyCompactItemize}
-\item 
-\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a45d2de05e4ede228feb9a09f8b38227a}{project\+Point\+To\+Edge}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+x0}}, \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+x1}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
-\begin{DoxyCompactList}\small\item\em Returns the "{}projection"{} of a point to an edge. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
 \item 
@@ -89,9 +84,6 @@ std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c47398
 \Hypertarget{classEBGeometry_1_1Triangle_a3983d92af13b5c2453881fa0f58f7481}\label{classEBGeometry_1_1Triangle_a3983d92af13b5c2453881fa0f58f7481} 
 std\+::array$<$ \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}}, 3 $>$ {\bfseries m\+\_\+edge\+Normals} \{\mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3\+::max}}(), \mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3\+::max}}(), \mbox{\hyperlink{classVec3T_a0bcf8ad5ed952e50b856c1704bdd6efc}{Vec3\+::max}}()\}
 \begin{DoxyCompactList}\small\item\em \doxylink{classEBGeometry_1_1Triangle}{Triangle} edge normals. \end{DoxyCompactList}\item 
-\Hypertarget{classEBGeometry_1_1Triangle_a7760a87ba414df609eeb1f972a3b58f2}\label{classEBGeometry_1_1Triangle_a7760a87ba414df609eeb1f972a3b58f2} 
-\mbox{\hyperlink{classEBGeometry_1_1Triangle2D}{Triangle2D}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ {\bfseries m\+\_\+triangle2D}
-\begin{DoxyCompactList}\small\item\em 2D projection of the triangle to one of the Cartesian coordinate directions \end{DoxyCompactList}\item 
 \Hypertarget{classEBGeometry_1_1Triangle_aa1959883288304d6330e459cc4f0565d}\label{classEBGeometry_1_1Triangle_aa1959883288304d6330e459cc4f0565d} 
 \mbox{\hyperlink{classVec3T}{Meta}} {\bfseries m\+\_\+meta\+Data}
 \begin{DoxyCompactList}\small\item\em \doxylink{classEBGeometry_1_1Triangle}{Triangle} meta-\/data normals. \end{DoxyCompactList}\end{DoxyCompactItemize}
@@ -330,27 +322,6 @@ Move assignment.
 
 \begin{DoxyParams}[1]{Parameters}
 \mbox{\texttt{ in,out}}  & {\em a\+\_\+other\+Triangle} & Other triangle. \\
-\hline
-\end{DoxyParams}
-\Hypertarget{classEBGeometry_1_1Triangle_a45d2de05e4ede228feb9a09f8b38227a}\label{classEBGeometry_1_1Triangle_a45d2de05e4ede228feb9a09f8b38227a} 
-\index{EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}!projectPointToEdge@{projectPointToEdge}}
-\index{projectPointToEdge@{projectPointToEdge}!EBGeometry::Triangle$<$ T, Meta $>$@{EBGeometry::Triangle$<$ T, Meta $>$}}
-\doxysubsubsection{\texorpdfstring{projectPointToEdge()}{projectPointToEdge()}}
-{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
-\mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classEBGeometry_1_1Triangle}{EBGeometry\+::\+Triangle}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::project\+Point\+To\+Edge (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&}]{a\+\_\+point,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&}]{a\+\_\+x0,  }\item[{\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classEBGeometry_1_1Triangle_a6ddba1c58340c473983f740227b4196d}{Vec3}} \&}]{a\+\_\+x1 }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [protected]}, {\ttfamily [noexcept]}}
-
-
-
-Returns the "{}projection"{} of a point to an edge. 
-
-This function parametrizes the edge as x(t) = x0 + (x1-\/x0)\texorpdfstring{$\ast$}{*}t and returns where on the this edge the point a\+\_\+x0 projects. If projects onto the edge if t = \mbox{[}0,1\mbox{]} and to one of the start/end vertices otherwise. 
-\begin{DoxyParams}[1]{Parameters}
-\mbox{\texttt{ in}}  & {\em a\+\_\+point} & Query point \\
-\hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+x0} & Starting edge coordinate \\
-\hline
-\mbox{\texttt{ in}}  & {\em a\+\_\+x1} & Final edge coordinate ~\newline
- \\
 \hline
 \end{DoxyParams}
 \Hypertarget{classEBGeometry_1_1Triangle_a759ae1410a8878d5e1fac380252c74bd}\label{classEBGeometry_1_1Triangle_a759ae1410a8878d5e1fac380252c74bd} 

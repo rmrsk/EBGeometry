@@ -22,6 +22,5 @@ var searchData=
   ['ebgeometry_5fsimpletimer_2ehpp_19',['EBGeometry_SimpleTimer.hpp',['../EBGeometry__SimpleTimer_8hpp.html',1,'']]],
   ['ebgeometry_5ftransform_2ehpp_20',['EBGeometry_Transform.hpp',['../EBGeometry__Transform_8hpp.html',1,'']]],
   ['ebgeometry_5ftriangle_2ehpp_21',['EBGeometry_Triangle.hpp',['../EBGeometry__Triangle_8hpp.html',1,'']]],
-  ['ebgeometry_5ftriangle2d_2ehpp_22',['EBGeometry_Triangle2D.hpp',['../EBGeometry__Triangle2D_8hpp.html',1,'']]],
-  ['ebgeometry_5fvec_2ehpp_23',['EBGeometry_Vec.hpp',['../EBGeometry__Vec_8hpp.html',1,'']]]
+  ['ebgeometry_5fvec_2ehpp_22',['EBGeometry_Vec.hpp',['../EBGeometry__Vec_8hpp.html',1,'']]]
 ];

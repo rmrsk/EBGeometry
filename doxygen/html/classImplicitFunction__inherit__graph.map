@@ -28,46 +28,48 @@
 <area shape="poly" id="edge14_Node000001_Node000015" title=" " alt="" coords="109,500,155,550,185,576,219,598,245,609,272,617,271,622,243,614,216,603,182,581,151,554,105,503"/>
 <area shape="rect" id="Node000016" href="$classSignedDistanceFunction.html" title="Abstract representation of a signed distance function." alt="" coords="217,663,433,688"/>
 <area shape="poly" id="edge15_Node000001_Node000016" title=" " alt="" coords="103,502,121,535,147,575,180,615,219,648,245,660,242,665,216,652,176,619,142,578,116,538,98,504"/>
-<area shape="rect" id="Node000032" href="$classSmoothDifferenceIF.html" title="CSG difference between two implicit functions." alt="" coords="231,712,420,737"/>
-<area shape="poly" id="edge31_Node000001_Node000032" title=" " alt="" coords="99,503,114,546,139,599,174,653,195,676,219,697,241,709,239,714,216,702,191,680,170,656,135,602,110,548,94,505"/>
-<area shape="rect" id="Node000033" href="$classSmoothIntersectionIF.html" title="Smooth intersection." alt="" coords="226,761,425,787"/>
-<area shape="poly" id="edge32_Node000001_Node000033" title=" " alt="" coords="96,504,109,556,132,622,168,690,192,720,219,747,240,759,237,764,216,751,188,724,164,693,127,624,104,558,91,505"/>
-<area shape="rect" id="Node000034" href="$classSmoothUnionIF.html" title="Smooth CSG union. Computes the minimum value of all input primitives." alt="" coords="245,811,405,836"/>
-<area shape="poly" id="edge33_Node000001_Node000034" title=" " alt="" coords="94,504,104,564,125,644,142,685,162,726,188,764,219,796,247,812,244,816,216,800,184,767,158,729,137,688,120,645,99,566,89,505"/>
-<area shape="rect" id="Node000035" href="$classTranslateIF.html" title="Translated implicit function." alt="" coords="260,860,391,885"/>
-<area shape="poly" id="edge34_Node000001_Node000035" title=" " alt="" coords="92,504,99,573,119,666,135,715,157,763,184,807,219,845,238,858,261,866,259,871,236,863,216,849,180,810,152,765,130,717,114,667,94,574,87,505"/>
-<area shape="rect" id="Node000036" href="$classUnionIF.html" title="CSG union. Computes the minimum value of all input primitives." alt="" coords="270,909,381,935"/>
-<area shape="poly" id="edge35_Node000001_Node000036" title=" " alt="" coords="91,504,95,581,102,632,112,687,128,744,151,799,181,850,219,895,243,910,270,917,269,922,241,914,216,899,176,853,146,801,123,745,107,688,96,633,90,582,86,505"/>
-<area shape="rect" id="Node000008" href="$classFastSmoothUnionIF.html" title="Implicit function smoothed union using BVHs." alt="" coords="495,230,653,270"/>
-<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="410,262,494,255,495,260,410,268"/>
-<area shape="rect" id="Node000017" href="$classBoxSDF.html" title="Signed distance field for an axis&#45;aligned box." alt="" coords="519,295,629,320"/>
-<area shape="poly" id="edge16_Node000016_Node000017" title=" " alt="" coords="426,653,431,648,447,629,457,609,466,571,463,531,455,492,447,452,444,411,453,370,464,350,479,329,497,316,517,309,519,314,499,321,483,333,468,353,458,372,450,411,452,451,460,491,469,531,471,571,462,611,451,632,435,652,430,657"/>
-<area shape="rect" id="Node000018" href="$classCapsuleSDF.html" title="Capsulate/pill SDF. Basically a cylinder with spherical endcaps, oriented along the specified axis." alt="" coords="505,344,643,369"/>
-<area shape="poly" id="edge17_Node000016_Node000018" title=" " alt="" coords="426,653,431,648,454,616,462,583,461,550,455,516,449,482,448,448,457,413,479,379,503,363,506,367,483,383,461,415,453,448,455,482,460,515,466,549,467,583,458,618,435,652,430,657"/>
-<area shape="rect" id="Node000019" href="$classConeSDF.html" title="Signed distance field for an finite cone. Oriented along +z." alt="" coords="515,393,633,419"/>
-<area shape="poly" id="edge18_Node000016_Node000019" title=" " alt="" coords="426,653,431,648,450,622,458,595,458,568,455,541,452,513,452,484,460,456,479,428,495,416,513,409,515,414,498,421,483,432,465,458,457,485,457,512,460,540,464,568,463,596,455,624,435,652,430,657"/>
-<area shape="rect" id="Node000020" href="$classCylinderSDF.html" title="Signed distance field for a cylinder." alt="" coords="504,443,644,468"/>
-<area shape="poly" id="edge19_Node000016_Node000020" title=" " alt="" coords="425,653,431,648,447,628,454,608,455,566,456,522,463,500,480,479,502,464,505,468,483,483,468,503,461,523,460,566,459,609,452,631,435,652,429,657"/>
-<area shape="rect" id="Node000021" href="$classFastCompactMeshSDF.html" title="Signed distance function for a DCEL mesh. This class uses the compact BVH representation." alt="" coords="491,493,657,533"/>
-<area shape="poly" id="edge20_Node000016_Node000021" title=" " alt="" coords="423,654,432,648,443,636,450,624,455,598,461,570,468,556,480,543,496,531,499,535,483,547,472,559,466,572,461,599,455,626,447,639,435,652,426,658"/>
-<area shape="rect" id="Node000022" href="$classFastMeshSDF.html" title="Signed distance function for a DCEL mesh. This class uses the full BVH representation." alt="" coords="485,557,663,597"/>
-<area shape="poly" id="edge21_Node000016_Node000022" title=" " alt="" coords="413,656,432,648,446,638,456,628,465,617,480,606,505,594,507,599,483,611,469,621,460,632,450,642,435,652,415,661"/>
-<area shape="rect" id="Node000023" href="$classFastTriMeshSDF.html" title="Signed distance function for a triangle mesh. This class uses the full BVH representation." alt="" coords="499,621,649,661"/>
-<area shape="poly" id="edge22_Node000016_Node000023" title=" " alt="" coords="430,658,498,648,499,654,431,663"/>
-<area shape="rect" id="Node000024" href="$classInfiniteConeSDF.html" title="Signed distance field for an infinite cone. Oriented along +z." alt="" coords="492,685,656,711"/>
-<area shape="poly" id="edge23_Node000016_Node000024" title=" " alt="" coords="447,684,492,688,492,693,447,689"/>
-<area shape="rect" id="Node000025" href="$classInfiniteCylinderSDF.html" title="Inifinitely long cylinder class. Oriented along the y&#45;axis." alt="" coords="481,735,667,760"/>
-<area shape="poly" id="edge24_Node000016_Node000025" title=" " alt="" coords="408,689,434,697,482,720,522,732,520,737,480,724,432,702,406,694"/>
-<area shape="rect" id="Node000026" href="$classMeshSDF.html" title="Signed distance function for a DCEL mesh. Does not use BVHs." alt="" coords="493,784,655,809"/>
-<area shape="poly" id="edge25_Node000016_Node000026" title=" " alt="" coords="426,692,435,697,452,715,460,734,467,752,483,769,506,782,504,786,480,773,463,755,455,736,448,718,432,701,423,696"/>
-<area shape="rect" id="Node000027" href="$classPerlinSDF.html" title="Ken Perlins gradient noise function." alt="" coords="513,833,635,859"/>
-<area shape="poly" id="edge26_Node000016_Node000027" title=" " alt="" coords="429,693,435,697,449,712,456,728,460,759,464,790,471,804,483,819,497,828,514,835,512,840,495,833,480,823,466,807,459,791,455,760,451,730,444,715,432,701,426,697"/>
-<area shape="rect" id="Node000028" href="$classPlaneSDF.html" title="Signed distance function for a plane." alt="" coords="513,883,635,908"/>
-<area shape="poly" id="edge27_Node000016_Node000028" title=" " alt="" coords="431,694,435,697,452,719,460,741,461,784,461,827,468,848,483,868,497,878,513,886,511,890,494,883,479,872,463,850,456,828,455,784,454,742,447,721,431,701,427,698"/>
-<area shape="rect" id="Node000029" href="$classRoundedBoxSDF.html" title="Box of arbitrary dimensions centered at the origin, with rounded corners." alt="" coords="490,932,658,957"/>
-<area shape="poly" id="edge28_Node000016_Node000029" title=" " alt="" coords="431,694,435,698,455,725,464,753,464,781,461,809,457,837,457,864,465,891,483,917,500,930,497,934,479,921,460,893,452,865,452,836,455,808,459,781,458,754,450,727,431,701,428,698"/>
-<area shape="rect" id="Node000030" href="$classSphereSDF.html" title="Signed distance field for sphere." alt="" coords="509,981,639,1007"/>
-<area shape="poly" id="edge29_Node000016_Node000030" title=" " alt="" coords="432,694,435,698,459,731,467,766,467,800,461,834,455,867,454,901,462,934,483,967,495,977,510,984,507,989,492,981,479,970,457,936,448,901,450,867,456,833,461,799,462,766,454,734,431,701,428,698"/>
-<area shape="rect" id="Node000031" href="$classTorusSDF.html" title="Signed distance field for a torus." alt="" coords="514,1031,634,1056"/>
-<area shape="poly" id="edge30_Node000016_Node000031" title=" " alt="" coords="432,694,435,698,451,718,462,738,471,778,469,819,461,859,452,899,450,939,458,978,468,998,483,1017,498,1029,515,1036,513,1041,495,1033,479,1021,464,1001,453,980,444,939,447,898,455,858,464,818,466,779,457,740,447,721,431,701,428,698"/>
+<area shape="rect" id="Node000033" href="$classSmoothDifferenceIF.html" title="CSG difference between two implicit functions." alt="" coords="231,712,420,737"/>
+<area shape="poly" id="edge32_Node000001_Node000033" title=" " alt="" coords="99,503,114,546,139,599,174,653,195,676,219,697,241,709,239,714,216,702,191,680,170,656,135,602,110,548,94,505"/>
+<area shape="rect" id="Node000034" href="$classSmoothIntersectionIF.html" title="Smooth intersection." alt="" coords="226,761,425,787"/>
+<area shape="poly" id="edge33_Node000001_Node000034" title=" " alt="" coords="96,504,109,556,132,622,168,690,192,720,219,747,240,759,237,764,216,751,188,724,164,693,127,624,104,558,91,505"/>
+<area shape="rect" id="Node000035" href="$classSmoothUnionIF.html" title="Smooth CSG union. Computes the minimum value of all input primitives." alt="" coords="245,811,405,836"/>
+<area shape="poly" id="edge34_Node000001_Node000035" title=" " alt="" coords="94,504,104,564,125,644,142,685,162,726,188,764,219,796,247,812,244,816,216,800,184,767,158,729,137,688,120,645,99,566,89,505"/>
+<area shape="rect" id="Node000036" href="$classTranslateIF.html" title="Translated implicit function." alt="" coords="260,860,391,885"/>
+<area shape="poly" id="edge35_Node000001_Node000036" title=" " alt="" coords="92,504,99,573,119,666,135,715,157,763,184,807,219,845,238,858,261,866,259,871,236,863,216,849,180,810,152,765,130,717,114,667,94,574,87,505"/>
+<area shape="rect" id="Node000037" href="$classUnionIF.html" title="CSG union. Computes the minimum value of all input primitives." alt="" coords="270,909,381,935"/>
+<area shape="poly" id="edge36_Node000001_Node000037" title=" " alt="" coords="91,504,95,581,102,632,112,687,128,744,151,799,181,850,219,895,243,910,270,917,269,922,241,914,216,899,176,853,146,801,123,745,107,688,96,633,90,582,86,505"/>
+<area shape="rect" id="Node000008" href="$classFastSmoothUnionIF.html" title="Implicit function smoothed union using BVHs." alt="" coords="501,207,659,247"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="409,255,500,239,501,244,410,260"/>
+<area shape="rect" id="Node000017" href="$classBoxSDF.html" title="Signed distance field for an axis&#45;aligned box." alt="" coords="525,272,635,297"/>
+<area shape="poly" id="edge16_Node000016_Node000017" title=" " alt="" coords="426,653,431,648,447,627,458,607,467,565,464,523,455,480,446,437,442,394,452,350,463,329,479,307,500,292,523,284,525,289,502,297,483,311,467,331,457,352,448,394,451,436,460,479,469,522,473,565,463,608,452,630,435,652,430,657"/>
+<area shape="rect" id="Node000018" href="$classCapsuleSDF.html" title="Capsulate/pill SDF. Basically a cylinder with spherical endcaps, oriented along the specified axis." alt="" coords="511,321,649,347"/>
+<area shape="poly" id="edge17_Node000016_Node000018" title=" " alt="" coords="426,653,431,648,455,613,463,577,462,541,455,505,448,468,446,431,455,393,479,356,493,345,509,338,511,343,496,350,483,360,460,395,451,431,453,467,460,504,467,540,469,578,460,615,435,652,430,657"/>
+<area shape="rect" id="Node000019" href="$classConeSDF.html" title="Signed distance field for an finite cone. Oriented along +z." alt="" coords="521,371,639,396"/>
+<area shape="poly" id="edge18_Node000016_Node000019" title=" " alt="" coords="426,653,431,648,452,619,460,590,459,560,455,529,450,498,450,467,458,436,479,405,498,392,520,384,521,389,501,397,483,409,463,438,455,468,456,498,460,528,465,559,465,590,457,621,435,652,430,657"/>
+<area shape="rect" id="Node000020" href="$classCylinderSDF.html" title="Signed distance field for a cylinder." alt="" coords="510,420,650,445"/>
+<area shape="poly" id="edge19_Node000016_Node000020" title=" " alt="" coords="425,653,431,648,448,625,456,602,457,579,455,554,453,530,454,505,462,480,479,456,493,446,509,438,511,443,496,450,483,460,466,483,459,506,458,530,460,554,462,579,461,603,453,628,435,652,429,657"/>
+<area shape="rect" id="Node000021" href="$classFastCompactMeshSDF.html" title="Signed distance function for a DCEL mesh. This class uses the compact BVH representation." alt="" coords="497,470,663,510"/>
+<area shape="poly" id="edge20_Node000016_Node000021" title=" " alt="" coords="424,654,432,648,444,633,451,618,455,586,459,553,466,537,479,520,496,508,499,512,483,524,471,539,464,555,461,587,456,620,449,636,435,652,427,658"/>
+<area shape="rect" id="Node000022" href="$classFastMeshSDF.html" title="Signed distance function for a DCEL mesh. This class uses the full BVH representation." alt="" coords="491,534,669,574"/>
+<area shape="poly" id="edge21_Node000016_Node000022" title=" " alt="" coords="419,655,432,648,447,633,455,617,464,600,480,584,501,572,503,576,483,588,468,604,460,620,451,636,435,652,421,660"/>
+<area shape="rect" id="Node000023" href="$classFastTriMeshSDF.html" title="Signed distance function for a triangle mesh. This class uses the full BVH representation." alt="" coords="505,598,655,638"/>
+<area shape="poly" id="edge22_Node000016_Node000023" title=" " alt="" coords="395,657,504,632,505,638,396,662"/>
+<area shape="rect" id="Node000024" href="$classInfiniteConeSDF.html" title="Signed distance field for an infinite cone. Oriented along +z." alt="" coords="498,663,662,688"/>
+<area shape="poly" id="edge23_Node000016_Node000024" title=" " alt="" coords="447,673,498,673,498,678,447,678"/>
+<area shape="rect" id="Node000025" href="$classInfiniteCylinderSDF.html" title="Inifinitely long cylinder class. Oriented along the y&#45;axis." alt="" coords="487,712,673,737"/>
+<area shape="poly" id="edge24_Node000016_Node000025" title=" " alt="" coords="406,688,514,709,513,715,405,693"/>
+<area shape="rect" id="Node000026" href="$classMeshSDF.html" title="Signed distance function for a DCEL mesh. Does not use BVHs." alt="" coords="499,761,661,787"/>
+<area shape="poly" id="edge25_Node000016_Node000026" title=" " alt="" coords="421,690,435,697,450,709,460,722,468,735,483,746,511,759,509,764,480,751,464,738,455,725,446,713,432,702,419,695"/>
+<area shape="rect" id="Node000027" href="$classPerlinSDF.html" title="Ken Perlins gradient noise function." alt="" coords="519,811,641,836"/>
+<area shape="poly" id="edge26_Node000016_Node000027" title=" " alt="" coords="428,692,435,697,447,709,454,722,460,748,466,773,472,785,483,796,500,806,519,814,517,819,498,811,480,800,468,788,461,775,455,749,449,724,443,713,432,701,425,697"/>
+<area shape="rect" id="Node000028" href="$classPlaneSDF.html" title="Signed distance function for a plane." alt="" coords="519,860,641,885"/>
+<area shape="poly" id="edge27_Node000016_Node000028" title=" " alt="" coords="430,693,435,697,450,716,458,735,460,773,462,810,469,828,483,845,500,857,519,864,517,869,497,862,480,849,465,831,457,811,455,773,453,736,446,718,431,701,427,697"/>
+<area shape="rect" id="Node000029" href="$classRoundedBoxSDF.html" title="Box of arbitrary dimensions centered at the origin, with rounded corners." alt="" coords="496,909,664,935"/>
+<area shape="poly" id="edge28_Node000016_Node000029" title=" " alt="" coords="431,694,435,698,454,722,462,747,463,773,460,798,458,823,459,847,466,871,483,895,500,907,497,911,479,899,461,873,454,848,453,823,455,797,457,773,456,748,449,725,431,701,428,698"/>
+<area shape="rect" id="Node000030" href="$classRoundedCylinderSDF.html" title="Rounded cylinder signed&#45;distance function." alt="" coords="481,959,679,984"/>
+<area shape="poly" id="edge29_Node000016_Node000030" title=" " alt="" coords="431,694,435,698,457,728,466,760,465,791,460,823,456,854,455,884,463,914,483,944,500,956,496,961,479,948,458,916,450,885,450,853,455,822,460,791,460,761,452,731,431,701,428,698"/>
+<area shape="rect" id="Node000031" href="$classSphereSDF.html" title="Signed distance field for sphere." alt="" coords="515,1008,645,1033"/>
+<area shape="poly" id="edge30_Node000016_Node000031" title=" " alt="" coords="432,694,435,698,450,716,460,735,469,772,468,810,461,847,453,884,451,921,460,957,469,975,483,993,498,1005,515,1013,513,1017,495,1010,479,997,465,978,455,959,446,921,448,884,455,846,462,809,464,773,455,737,446,719,431,701,428,698"/>
+<area shape="rect" id="Node000032" href="$classTorusSDF.html" title="Signed distance field for a torus." alt="" coords="520,1057,640,1083"/>
+<area shape="poly" id="edge31_Node000016_Node000032" title=" " alt="" coords="432,694,435,698,452,719,464,741,471,763,473,785,470,829,460,873,451,916,447,959,450,980,456,1002,467,1023,483,1044,500,1057,521,1064,519,1069,498,1062,479,1048,463,1026,451,1004,445,981,442,959,446,915,455,872,465,828,468,786,465,764,459,743,448,722,431,701,428,698"/>
 </map>

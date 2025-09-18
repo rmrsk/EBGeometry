@@ -674,8 +674,42 @@
 \DoxyCodeLine{01091\ \ \ \};}
 \DoxyCodeLine{01092\ \};}
 \DoxyCodeLine{01093\ }
-\DoxyCodeLine{01094\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceFooter_8hpp}{EBGeometry\_NamespaceFooter.hpp}}"{}}}
-\DoxyCodeLine{01095\ }
-\DoxyCodeLine{01096\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01097\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{01098\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classRoundedCylinderSDF}{RoundedCylinderSDF}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classSignedDistanceFunction}{SignedDistanceFunction}}<T>}
+\DoxyCodeLine{01099\ \{}
+\DoxyCodeLine{01100\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{01104\ \ \ \mbox{\hyperlink{classRoundedCylinderSDF_a8341b7eff0380f92c5436bdb040f3635}{RoundedCylinderSDF}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{01105\ }
+\DoxyCodeLine{01112\ \ \ \mbox{\hyperlink{classRoundedCylinderSDF_aac670550b97223478a3f5cfbf3f24826}{RoundedCylinderSDF}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{a\_radius}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{a\_curvature}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classVec3T}{a\_height}})\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{01113\ \ \ \{}
+\DoxyCodeLine{01114\ \ \ \ \ \mbox{\hyperlink{classRoundedCylinderSDF_a484050afa9d4c475af2fd1b403565496}{m\_majorRadius}}\ =\ \mbox{\hyperlink{classVec3T}{a\_radius}}\ -\/\ \mbox{\hyperlink{classVec3T}{a\_curvature}};}
+\DoxyCodeLine{01115\ \ \ \ \ \mbox{\hyperlink{classRoundedCylinderSDF_a3b7c4425ddd4ed7d653232e87d924a70}{m\_minorRadius}}\ =\ \mbox{\hyperlink{classVec3T}{a\_curvature}};}
+\DoxyCodeLine{01116\ \ \ \ \ \mbox{\hyperlink{classRoundedCylinderSDF_a3da0e984bd65a906a82c17b3fa824b88}{m\_height}}\ \ \ \ \ \ =\ 0.5\ *\ \mbox{\hyperlink{classVec3T}{a\_height}}\ -\/\ \mbox{\hyperlink{classVec3T}{a\_curvature}};}
+\DoxyCodeLine{01117\ \ \ \}}
+\DoxyCodeLine{01118\ }
+\DoxyCodeLine{01122\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classRoundedCylinderSDF_a05bec28b2b2464f0e2a18fc6bf3eaa16}{\string~RoundedCylinderSDF}}()\ \mbox{\hyperlink{classVec3T}{noexcept}}}
+\DoxyCodeLine{01123\ \ \ \{\}}
+\DoxyCodeLine{01124\ }
+\DoxyCodeLine{01128\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classVec3T}{T}}}
+\DoxyCodeLine{01129\ \ \ \mbox{\hyperlink{classRoundedCylinderSDF_a6dfc7792719fb36c068dca6e04b022e8}{signedDistance}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}}\&\ \mbox{\hyperlink{classVec3T}{a\_point}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \textcolor{keyword}{override}}
+\DoxyCodeLine{01130\ \ \ \{}
+\DoxyCodeLine{01131\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classVec3T}{xz}}\ =\ \mbox{\hyperlink{classVec3T}{sqrt}}(\mbox{\hyperlink{classVec3T}{a\_point}}[2]\ *\ \mbox{\hyperlink{classVec3T}{a\_point}}[2]\ +\ \mbox{\hyperlink{classVec3T}{a\_point}}[0]\ *\ \mbox{\hyperlink{classVec3T}{a\_point}}[0]);}
+\DoxyCodeLine{01132\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classVec3T}{d1}}\ =\ \mbox{\hyperlink{classVec3T}{Vec2T<T>}}(\mbox{\hyperlink{classVec3T}{xz}}\ -\/\ 2.0\ *\ \mbox{\hyperlink{classRoundedCylinderSDF_a484050afa9d4c475af2fd1b403565496}{m\_majorRadius}}\ +\ \mbox{\hyperlink{classRoundedCylinderSDF_a3b7c4425ddd4ed7d653232e87d924a70}{m\_minorRadius}},\ std::abs(\mbox{\hyperlink{classVec3T}{a\_point}}[1])\ -\/\ \mbox{\hyperlink{classRoundedCylinderSDF_a3da0e984bd65a906a82c17b3fa824b88}{m\_height}});}
+\DoxyCodeLine{01133\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classVec3T}{d2}}\ =\ \mbox{\hyperlink{classVec3T}{Vec2T<T>}}(std::max(\mbox{\hyperlink{classVec3T}{d1}}.x,\ 0.0),\ std::max(\mbox{\hyperlink{classVec3T}{d1}}.y,\ 0.0));}
+\DoxyCodeLine{01134\ }
+\DoxyCodeLine{01135\ \ \ \ \ \textcolor{keywordflow}{return}\ std::min(std::max(\mbox{\hyperlink{classVec3T}{d1}}.x,\ \mbox{\hyperlink{classVec3T}{d1}}.y),\ 0.0)\ +\ \mbox{\hyperlink{classVec3T}{sqrt}}(\mbox{\hyperlink{classVec3T}{d2}}.x\ *\ \mbox{\hyperlink{classVec3T}{d2}}.x\ +\ \mbox{\hyperlink{classVec3T}{d2}}.y\ *\ \mbox{\hyperlink{classVec3T}{d2}}.y)\ -\/\ \mbox{\hyperlink{classRoundedCylinderSDF_a3b7c4425ddd4ed7d653232e87d924a70}{m\_minorRadius}};}
+\DoxyCodeLine{01136\ \ \ \}}
+\DoxyCodeLine{01137\ }
+\DoxyCodeLine{01138\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{01142\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classRoundedCylinderSDF_a484050afa9d4c475af2fd1b403565496}{m\_majorRadius}};}
+\DoxyCodeLine{01143\ }
+\DoxyCodeLine{01147\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classRoundedCylinderSDF_a3b7c4425ddd4ed7d653232e87d924a70}{m\_minorRadius}};}
+\DoxyCodeLine{01148\ }
+\DoxyCodeLine{01152\ \ \ \mbox{\hyperlink{classVec3T}{T}}\ \mbox{\hyperlink{classRoundedCylinderSDF_a3da0e984bd65a906a82c17b3fa824b88}{m\_height}};}
+\DoxyCodeLine{01153\ \};}
+\DoxyCodeLine{01154\ }
+\DoxyCodeLine{01155\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceFooter_8hpp}{EBGeometry\_NamespaceFooter.hpp}}"{}}}
+\DoxyCodeLine{01156\ }
+\DoxyCodeLine{01157\ \textcolor{preprocessor}{\#endif}}
 
 \end{DoxyCode}

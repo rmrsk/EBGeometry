@@ -10,12 +10,9 @@ var searchData=
   ['intersects_7',['intersects',['../namespaceBoundingVolumes.html#a5c360ccd42017c01acbe1caf2cfd1efe',1,'BoundingVolumes::intersects(const AABBT&lt; T &gt; &amp;a_u, const AABBT&lt; T &gt; &amp;a_v) noexcept'],['../namespaceBoundingVolumes.html#af35f33c5f319a466550d9ad1040beced',1,'BoundingVolumes::intersects(const BoundingSphereT&lt; T &gt; &amp;a_u, const BoundingSphereT&lt; T &gt; &amp;a_v) noexcept'],['../classBoundingVolumes_1_1AABBT.html#a87d160a3e05082e34e37d8b4472bad7d',1,'BoundingVolumes::AABBT::intersects()'],['../classBoundingVolumes_1_1BoundingSphereT.html#a90baad0c400aac7645a7e8c1ab13096a',1,'BoundingVolumes::BoundingSphereT::intersects()']]],
   ['isleaf_8',['isleaf',['../classOctree_1_1Node.html#a7f5a5754fceadf47ead64a8893a32d79',1,'Octree::Node::isLeaf()'],['../classBVH_1_1LinearNodeT.html#aba361834e3d013725a92ec4b45633584',1,'BVH::LinearNodeT::isLeaf()'],['../classBVH_1_1NodeT.html#a5c57552524601da9bf20e722e2433aa0',1,'BVH::NodeT::isLeaf() const noexcept']]],
   ['ispartitioned_9',['ispartitioned',['../classBVH_1_1NodeT.html#abb00d39b9a03ad602f1a47efe6272b24',1,'BVH::NodeT::isPartitioned()'],['../classBVH_1_1LinearNodeT.html#a6552a1ef54d1173b53d6baa435bde6a4',1,'BVH::LinearNodeT::isPartitioned()']]],
-  ['ispointinside_10',['ispointinside',['../classPolygon2D.html#a55bada055bc746026235acd900be5b00',1,'Polygon2D::isPointInside()'],['../classEBGeometry_1_1Triangle2D.html#a0e67131bdb4ba3904ba5075b4e8b9d68',1,'EBGeometry::Triangle2D::isPointInside(const Vec3 &amp;a_point, InsideOutsideAlgorithm a_algorithm) const noexcept']]],
-  ['ispointinsidecrossingnumber_11',['isPointInsideCrossingNumber',['../classEBGeometry_1_1Triangle2D.html#a35a0caecb41b91425e810a4777c308cb',1,'EBGeometry::Triangle2D']]],
-  ['ispointinsideface_12',['isPointInsideFace',['../classDCEL_1_1FaceT.html#af32056ed7d4a4eab9b4f310474b1ca0b',1,'DCEL::FaceT']]],
-  ['ispointinsidepolygoncrossingnumber_13',['isPointInsidePolygonCrossingNumber',['../classPolygon2D.html#afa903d20e99611868a4328429466f4a0',1,'Polygon2D']]],
-  ['ispointinsidepolygonsubtend_14',['isPointInsidePolygonSubtend',['../classPolygon2D.html#a16f21b4f3000ff991f85b27b2945e0dd',1,'Polygon2D']]],
-  ['ispointinsidepolygonwindingnumber_15',['isPointInsidePolygonWindingNumber',['../classPolygon2D.html#ac6f795b6861a53f39ddc2cc5a9af11b3',1,'Polygon2D']]],
-  ['ispointinsidesubtend_16',['isPointInsideSubtend',['../classEBGeometry_1_1Triangle2D.html#a02657e2282128a3576ca5d6aa5ff4f1b',1,'EBGeometry::Triangle2D']]],
-  ['ispointinsidewindingnumber_17',['isPointInsideWindingNumber',['../classEBGeometry_1_1Triangle2D.html#a25fd8b2be4a524d2dbc2b838b88c049e',1,'EBGeometry::Triangle2D']]]
+  ['ispointinside_10',['isPointInside',['../classPolygon2D.html#a55bada055bc746026235acd900be5b00',1,'Polygon2D']]],
+  ['ispointinsideface_11',['isPointInsideFace',['../classDCEL_1_1FaceT.html#af32056ed7d4a4eab9b4f310474b1ca0b',1,'DCEL::FaceT']]],
+  ['ispointinsidepolygoncrossingnumber_12',['isPointInsidePolygonCrossingNumber',['../classPolygon2D.html#afa903d20e99611868a4328429466f4a0',1,'Polygon2D']]],
+  ['ispointinsidepolygonsubtend_13',['isPointInsidePolygonSubtend',['../classPolygon2D.html#a16f21b4f3000ff991f85b27b2945e0dd',1,'Polygon2D']]],
+  ['ispointinsidepolygonwindingnumber_14',['isPointInsidePolygonWindingNumber',['../classPolygon2D.html#ac6f795b6861a53f39ddc2cc5a9af11b3',1,'Polygon2D']]]
 ];
