@@ -145,32 +145,30 @@ namespace EBGeometry {
   Triangle<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
   {
     T ret = std::numeric_limits<T>::max();
+    
+    auto sgn = [](const T x) -> int { return (x > 0.0) ? 1 : -1; };
 
-    const T eps = std::numeric_limits<T>::epsilon();
+    const Vec3 v21 = m_vertexPositions[1] - m_vertexPositions[0];
+    const Vec3 v32 = m_vertexPositions[2] - m_vertexPositions[1];
+    const Vec3 v13 = m_vertexPositions[0] - m_vertexPositions[2];
 
-    auto sgn = [](const T x) -> int { return (x >= 0.0) ? 1 : -1; };
+    const Vec3 p1 = a_point - m_vertexPositions[0];
+    const Vec3 p2 = a_point - m_vertexPositions[1];
+    const Vec3 p3 = a_point - m_vertexPositions[2];
 
-    const Vec3 e0 = m_vertexPositions[1] - m_vertexPositions[0];
-    const Vec3 e1 = m_vertexPositions[2] - m_vertexPositions[1];
-    const Vec3 e2 = m_vertexPositions[0] - m_vertexPositions[2];
+    const T s0 = sgn(dot(v21.cross(m_triangleNormal), p1));
+    const T s1 = sgn(dot(v32.cross(m_triangleNormal), p2));
+    const T s2 = sgn(dot(v13.cross(m_triangleNormal), p3));
 
-    const Vec3 dv0 = a_point - m_vertexPositions[0];
-    const Vec3 dv1 = a_point - m_vertexPositions[1];
-    const Vec3 dv2 = a_point - m_vertexPositions[2];
-
-    const T s0 = dot(m_triangleNormal, e0.cross(dv0));
-    const T s1 = dot(m_triangleNormal, e1.cross(dv1));
-    const T s2 = dot(m_triangleNormal, e2.cross(dv2));
-
-    const bool isPointInside = (s0 >= -eps) && (s1 >= -eps) && (s2 >= -eps);
+    const bool isPointInside = s0 + s1 + s2 >= 2.0;
 
     if (isPointInside) {
-      ret = m_triangleNormal.dot(dv0);
+      ret = m_triangleNormal.dot(p1);
     }
     else {
-      ret = (dv0.length() > std::abs(ret)) ? ret : dv0.length() * sgn(m_vertexNormals[0].dot(dv0));
-      ret = (dv1.length() > std::abs(ret)) ? ret : dv1.length() * sgn(m_vertexNormals[1].dot(dv1));
-      ret = (dv2.length() > std::abs(ret)) ? ret : dv2.length() * sgn(m_vertexNormals[2].dot(dv2));
+      ret = (p1.length() > std::abs(ret)) ? ret : p1.length() * sgn(m_vertexNormals[0].dot(p1));
+      ret = (p2.length() > std::abs(ret)) ? ret : p2.length() * sgn(m_vertexNormals[1].dot(p2));
+      ret = (p3.length() > std::abs(ret)) ? ret : p3.length() * sgn(m_vertexNormals[2].dot(p3));
 
       // Check edges
       for (int i = 0; i < 3; i++) {
