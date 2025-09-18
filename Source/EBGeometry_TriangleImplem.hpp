@@ -183,18 +183,6 @@ namespace EBGeometry {
 
     return (s0 + s1 + s2 >= 2.0) ? m_triangleNormal.dot(p1) : ret;
   }
-
-  template <class T, class Meta>
-  T
-  Triangle<T, Meta>::projectPointToEdge(const Vec3T<T>& a_point,
-                                        const Vec3T<T>& a_x0,
-                                        const Vec3T<T>& a_x1) const noexcept
-  {
-    const Vec3T<T> a = a_point - a_x0;
-    const Vec3T<T> b = a_x1 - a_x0;
-
-    return a.dot(b) / (b.dot(b));
-  }
 } // namespace EBGeometry
 
 #endif
