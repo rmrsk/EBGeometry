@@ -61,6 +61,13 @@ public:
   const std::vector<Vec3T<T>>&
   getTriangleNormals() const noexcept;
 
+  /*!
+    @brief Turn the STL mesh into a DCEL mesh. 
+  */
+  template <typename Meta>
+  std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+  convertToDCEL() const noexcept;
+
 protected:
   /*!
     @brief Vertex coordinates
