@@ -23,6 +23,7 @@
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_MeshDistanceFunctions.hpp"
 #include "EBGeometry_Triangle.hpp"
+#include "EBGeometry_PLY.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
