@@ -37,11 +37,11 @@ Parser::readIntoDCEL(const std::string a_filename) noexcept
 
     break;
   }
-  // case Parser::FileType::PLY: {
-  //   mesh = Parser::PLY<T>::read(a_filename);
+  case Parser::FileType::PLY: {
+    mesh = Parser::PLY<T>::read(a_filename);
 
-  //   break;
-  // }
+    break;
+  }
   case Parser::FileType::Unsupported: {
     std::cerr << "Parser::read - file type unsupported for '" + a_filename + "'\n";
 
@@ -218,6 +218,81 @@ Parser::getFileType(const std::string a_filename) noexcept
   }
 
   return ft;
+}
+
+inline static Parser::Encoding
+Parser::getFileEncoding(const std::string a_filename) noexcept
+{
+  Parser::Encoding encoding = Parser::Encoding::Unknown;
+
+  const Parser::FileType ft = Parser::getFileType(a_filename);
+
+  switch (ft) {
+  case Parser::FileType::STL: {
+    std::ifstream is(a_filename, std::istringstream::in | std::ios::binary);
+
+    if (is.good()) {
+      char chars[256];
+      is.read(chars, 256);
+
+      std::string buffer(chars, static_cast<size_t>(is.gcount()));
+      std::transform(buffer.begin(), buffer.end(), buffer.begin(), ::tolower);
+
+      if (buffer.find("solid") != std::string::npos && buffer.find("\n") != std::string::npos &&
+          buffer.find("facet") != std::string::npos && buffer.find("normal") != std::string::npos) {
+
+        encoding = Parser::Encoding::ASCII;
+      }
+      else {
+        encoding = Parser::Encoding::Binary;
+      }
+    }
+    else {
+      std::cerr << "Parser::getEncoding -- could not open file '" + a_filename + "'\n";
+    }
+
+    break;
+  }
+  case Parser::FileType::PLY: {
+    std::ifstream is(a_filename, std::istringstream::in | std::ios::binary);
+    if (is.good()) {
+
+      std::string line;
+      std::string str1;
+      std::string str2;
+
+      // Ignore first line.
+      std::getline(is, line);
+      std::getline(is, line);
+
+      std::stringstream ss(line);
+
+      ss >> str1 >> str2;
+
+      if (str2 == "ascii") {
+        encoding = Parser::Encoding::ASCII;
+      }
+      else if (str2 == "binary_little_endian") {
+        encoding = Parser::Encoding::Binary;
+      }
+      else if (str2 == "binary_big_endian") {
+        encoding = Parser::Encoding::Binary;
+      }
+    }
+    else {
+      std::cerr << "Parser::getEncoding -- could not open file '" + a_filename + "'\n";
+    }
+
+    break;
+  }
+  default: {
+    std::cerr << "Parser::getFileEncoding - file type unsupported for '" + a_filename + "'\n";
+
+    break;
+  }
+  }
+
+  return encoding;
 }
 
 template <typename T>

@@ -1,5 +1,5 @@
 /* EBGeometry
- * Copyright © 2022 Robert Marskar
+ * Copyright © 2026 Robert Marskar
  * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
  */
 
@@ -7,8 +7,8 @@
 #define EBGeometry_PLY
 
 // Std includes
+#include <array> 
 #include <vector>
-#include <map>
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
