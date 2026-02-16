@@ -23,13 +23,63 @@
 #include "EBGeometry_Parser.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
+template <typename T>
+PLY<T>
+Parser::readPLY(const std::string& a_filename) noexcept
+{
+  PLY<T> ply;
+
+#warning "Not implemented"
+
+  return ply;
+}
+
+template <typename T>
+std::vector<PLY<T>>
+Parser::readPLY(const std::vector<std::string>& a_filenames) noexcept
+{
+  std::vector<PLY<T>> ply;
+
+  for (const auto& f : a_filenames) {
+    ply.emplace_back(Parser::readPLY<T>(f));
+  }
+
+  return ply;
+}
+
+#warning "Commented because I can't pass this in before the other STL stuff is completely destroyed"
+#if 0
+template <typename T>
+STL<T>
+Parser::readSTL(const std::string& a_filename) noexcept
+{
+  STL<T> stl;
+
+#warning "Not implemented"
+  return stl;
+}
+
+template <typename T>
+std::vector<STL<T>>
+Parser::readSTL(const std::vector<std::string>& a_filenames) noexcept
+{
+  std::vector<STL<T>> stl;
+
+  for (const auto& f : a_filenames) {
+    stl.emplace_back(Parser::readSTL(f));
+  }
+
+  return stl;
+}
+#endif
+
 template <typename T, typename Meta>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
 Parser::readIntoDCEL(const std::string a_filename) noexcept
 {
   auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
 
-  const auto ft = Parser::getFileType(a_filename);
+  const auto ft = Parser::detail::getFileType(a_filename);
 
   switch (ft) {
   case Parser::FileType::STL: {
@@ -204,7 +254,7 @@ Parser::readIntoLinearBVH(const std::vector<std::string> a_files) noexcept
 }
 
 inline Parser::FileType
-Parser::getFileType(const std::string a_filename) noexcept
+Parser::detail::getFileType(const std::string a_filename) noexcept
 {
   auto ft = Parser::FileType::Unsupported;
 
@@ -221,11 +271,11 @@ Parser::getFileType(const std::string a_filename) noexcept
 }
 
 inline static Parser::Encoding
-Parser::getFileEncoding(const std::string a_filename) noexcept
+Parser::detail::getFileEncoding(const std::string a_filename) noexcept
 {
   Parser::Encoding encoding = Parser::Encoding::Unknown;
 
-  const Parser::FileType ft = Parser::getFileType(a_filename);
+  const Parser::FileType ft = Parser::detail::getFileType(a_filename);
 
   switch (ft) {
   case Parser::FileType::STL: {
@@ -248,7 +298,7 @@ Parser::getFileEncoding(const std::string a_filename) noexcept
       }
     }
     else {
-      std::cerr << "Parser::getEncoding -- could not open file '" + a_filename + "'\n";
+      std::cerr << "Parser::getFileEncoding -- could not open file '" + a_filename + "'\n";
     }
 
     break;
@@ -280,7 +330,7 @@ Parser::getFileEncoding(const std::string a_filename) noexcept
       }
     }
     else {
-      std::cerr << "Parser::getEncoding -- could not open file '" + a_filename + "'\n";
+      std::cerr << "Parser::getFileEncoding -- could not open file '" + a_filename + "'\n";
     }
 
     break;
@@ -297,8 +347,8 @@ Parser::getFileEncoding(const std::string a_filename) noexcept
 
 template <typename T>
 inline bool
-Parser::containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-                                   const std::vector<std::vector<size_t>>&  a_facets) noexcept
+Parser::detail::containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
+                                           const std::vector<std::vector<size_t>>&  a_facets) noexcept
 {
   using Vec3 = EBGeometry::Vec3T<T>;
 
@@ -333,7 +383,8 @@ Parser::containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_ve
 
 template <typename T>
 inline void
-Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets) noexcept
+Parser::detail::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices,
+                         std::vector<std::vector<size_t>>&  a_facets) noexcept
 {
   using Vec3 = EBGeometry::Vec3T<T>;
 
@@ -387,9 +438,9 @@ Parser::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std:
 
 template <typename T, typename Meta>
 inline void
-Parser::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
-                   const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-                   const std::vector<std::vector<size_t>>&  a_facets) noexcept
+Parser::detail::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
+                           const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
+                           const std::vector<std::vector<size_t>>&  a_facets) noexcept
 {
 
   using Vec3   = EBGeometry::Vec3T<T>;
@@ -448,7 +499,7 @@ Parser::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
   }
 
   // Reconcile the pair edges and run a sanity check.
-  Parser::reconcilePairEdgesDCEL(edges);
+  Parser::detail::reconcilePairEdgesDCEL(edges);
 
   a_mesh.sanityCheck();
 
@@ -457,7 +508,7 @@ Parser::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
 
 template <typename T, typename Meta>
 inline void
-Parser::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T, Meta>>>& a_edges) noexcept
+Parser::detail::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T, Meta>>>& a_edges) noexcept
 {
   for (auto& curEdge : a_edges) {
     const auto& nextEdge = curEdge->getNextEdge();
@@ -483,37 +534,6 @@ Parser::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::Edg
 }
 
 template <typename T, typename Meta>
-inline Parser::Encoding
-Parser::STL<T, Meta>::getEncoding(const std::string a_filename) noexcept
-{
-  Parser::Encoding ft = Parser::Encoding::Unknown;
-
-  std::ifstream is(a_filename, std::istringstream::in | std::ios::binary);
-  if (is.good()) {
-    char chars[256];
-    is.read(chars, 256);
-
-    std::string buffer(chars, static_cast<size_t>(is.gcount()));
-    std::transform(buffer.begin(), buffer.end(), buffer.begin(), ::tolower);
-
-    // clang-format off
-    if(buffer.find("solid") != std::string::npos && buffer.find("\n")    != std::string::npos &&
-       buffer.find("facet") != std::string::npos && buffer.find("normal")!= std::string::npos) {
-      ft = Parser::Encoding::ASCII;
-    }
-    else {
-      ft = Parser::Encoding::Binary;
-    }
-    // clang-format on
-  }
-  else {
-    std::cerr << "Parser::STL::getEncoding -- could not open file '" + a_filename + "'\n";
-  }
-
-  return ft;
-}
-
-template <typename T, typename Meta>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
 Parser::STL<T, Meta>::readSingle(const std::string a_filename) noexcept
 {
@@ -525,7 +545,7 @@ inline std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>, 
 Parser::STL<T, Meta>::readMulti(const std::string a_filename) noexcept
 {
 
-  const Parser::Encoding ft = Parser::STL<T, Meta>::getEncoding(a_filename);
+  const Parser::Encoding ft = Parser::detail::getFileEncoding(a_filename);
 
   std::vector<std::pair<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>, std::string>> objectsDCEL;
 
@@ -603,15 +623,15 @@ Parser::STL<T, Meta>::readASCII(const std::string a_filename) noexcept
 
     Parser::STL<T, Meta>::readSTLSoupASCII(vertices, facets, objectName, fileContents, firstLine, lastLine);
 
-    if (Parser::containsDegeneratePolygons(vertices, facets)) {
+    if (Parser::detail::containsDegeneratePolygons(vertices, facets)) {
       std::cerr << "Parser::STL::readASCII - input STL has degenerate faces\n";
     }
 
-    Parser::compress(vertices, facets);
+    Parser::detail::compress(vertices, facets);
 
     // Turn soup into DCEL mesh and pack in into our return vector.
     std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
-    Parser::soupToDCEL(*mesh, vertices, facets);
+    Parser::detail::soupToDCEL(*mesh, vertices, facets);
 
     objectsDCEL.emplace_back(mesh, objectName);
   }
@@ -769,12 +789,12 @@ Parser::STL<T, Meta>::readBinary(const std::string a_filename) noexcept
 
       auto mesh = std::make_shared<Mesh>();
 
-      if (Parser::containsDegeneratePolygons(vertices, facets)) {
+      if (Parser::detail::containsDegeneratePolygons(vertices, facets)) {
         std::cerr << "Parser::STL::readBinary - input STL has degenerate faces\n";
       }
 
-      Parser::compress(vertices, facets);
-      Parser::soupToDCEL(*mesh, vertices, facets);
+      Parser::detail::compress(vertices, facets);
+      Parser::detail::soupToDCEL(*mesh, vertices, facets);
 
       const std::string strID = std::to_string(curID);
 
@@ -791,50 +811,12 @@ Parser::STL<T, Meta>::readBinary(const std::string a_filename) noexcept
 }
 
 template <typename T>
-inline Parser::Encoding
-Parser::PLY<T>::getEncoding(const std::string a_filename) noexcept
-{
-  Parser::Encoding ft = Parser::Encoding::Unknown;
-
-  std::ifstream is(a_filename, std::istringstream::in | std::ios::binary);
-  if (is.good()) {
-
-    std::string line;
-    std::string str1;
-    std::string str2;
-
-    // Ignore first line.
-    std::getline(is, line);
-    std::getline(is, line);
-
-    std::stringstream ss(line);
-
-    ss >> str1 >> str2;
-
-    if (str2 == "ascii") {
-      ft = Parser::Encoding::ASCII;
-    }
-    else if (str2 == "binary_little_endian") {
-      ft = Parser::Encoding::Binary;
-    }
-    else if (str2 == "binary_big_endian") {
-      ft = Parser::Encoding::Binary;
-    }
-  }
-  else {
-    std::cerr << "Parser::PLY::getEncoding -- could not open file '" + a_filename + "'\n";
-  }
-
-  return ft;
-}
-
-template <typename T>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
 Parser::PLY<T>::read(const std::string a_filename) noexcept
 {
   auto mesh = std::make_shared<Mesh>();
 
-  const auto encoding = Parser::PLY<T>::getEncoding(a_filename);
+  const auto encoding = Parser::detail::getFileEncoding(a_filename);
 
   std::ifstream filestream(a_filename);
 
@@ -865,7 +847,7 @@ Parser::PLY<T>::read(const std::string a_filename) noexcept
     }
     }
 
-    Parser::soupToDCEL(*mesh, vertices, faces);
+    Parser::detail::soupToDCEL(*mesh, vertices, faces);
   }
   else {
     const std::string error = "Parser::PLY::read - ERROR! Could not open file " + a_filename;
