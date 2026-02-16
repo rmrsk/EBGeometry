@@ -24,6 +24,7 @@
 #include "EBGeometry_MeshDistanceFunctions.hpp"
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_PLY.hpp"
+#include "EBGeometry_STL.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
@@ -51,6 +52,22 @@ namespace Parser {
     PLY,
     Unsupported
   };
+
+  /*!
+    @brief Read a single PLY file
+    @param[in] a_filename PLY file name.
+  */
+  template <typename T>
+  PLY<T>
+  readPLY(const std::string& a_filename) noexcept;
+
+  /*!
+    @brief Read multiple PLY files. 
+    @param[in] a_filenames PLY file names.
+  */
+  template <typename T>
+  std::vector<PLY<T>>
+  readPLY(const std::vector<std::string>& a_filenames) noexcept;  
 
   /*!
     @brief Read a file containing a single watertight object and return it as a DCEL mesh
@@ -165,10 +182,17 @@ namespace Parser {
 
   /*!
     @brief Get file type
-    @param[in] a_filenames 
+    @param[in] a_filename File name
   */
   inline static Parser::FileType
   getFileType(const std::string a_filename) noexcept;
+
+  /*!
+    @brief Get file encoding. 
+    @param[in] a_filename File name    
+  */
+  inline static Parser::Encoding
+  getFileEncoding(const std::string a_filename) noexcept;
 
   /*!
     @brief Check if triangle soup contains degenerate polygons
@@ -303,6 +327,8 @@ namespace Parser {
                      const size_t                      a_firstLine,
                      const size_t                      a_lastLine) noexcept;
   };
+
+
 
   /*!
     @brief Class for reading Stanford PLY files.
