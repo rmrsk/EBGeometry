@@ -250,6 +250,7 @@ namespace Parser {
       half-edge
       @param[in,out] a_edges Half edges.
     */
+#warning "This function should probably find a new home"
     template <typename T, typename Meta>
     inline static void
     reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T, Meta>>>& a_edges) noexcept;
