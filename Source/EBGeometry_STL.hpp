@@ -7,62 +7,65 @@
 #define EBGeometry_STL
 
 // Std includes
-#include <array>
 #include <vector>
 #include <map>
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
+#include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
+
+#warning "This class should be renamed back to STL once the Parser class is refactored"
 
 /*!
   @brief Class for storing STL meshes.
   @note T is the precision used for storing the mesh.
 */
 template <typename T>
-class STL
+class STL2
 {
 public:
   /*!
     @brief Default constructor. Initializes empty member data holder
   */
-  STL() noexcept;
+  STL2() noexcept;
 
   /*!
     @brief Destructor. Clears all data.
   */
-  virtual ~STL() noexcept;
+  virtual ~STL2() noexcept;
 
   /*!
     @brief Get the vertex coordinates
     @return m_vertexCoordinates
   */
-  std::vector<std::array<Vec3T<T>, 3>>&
+  std::vector<Vec3T<T>>&
   getVertexCoordinates() noexcept;
 
   /*!
     @brief Get the vertex coordinates
     @return m_vertexCoordinates    
   */
-  const std::vector<std::array<Vec3T<T>, 3>>&
+  const std::vector<Vec3T<T>>&
   getVertexCoordinates() const noexcept;
 
   /*!
-    @brief Get the triangle normals
-    @return m_normals
+    @brief Get the triangle facet indices
+    @return m_facets
   */
-  std::vector<Vec3T<T>>&
-  getTriangleNormals() noexcept;
+  std::vector<std::vector<size_t>>&
+  getFacets() noexcept;
 
   /*!
-    @brief Get the triangle normals
-    @return m_normals
+    @brief Get the triangle facet indices
+    @return m_facets
   */
-  const std::vector<Vec3T<T>>&
-  getTriangleNormals() const noexcept;
+  const std::vector<std::vector<size_t>>&
+  getFacets() const noexcept;
 
   /*!
-    @brief Turn the STL mesh into a DCEL mesh. 
+    @brief Turn the STL mesh into a DCEL mesh.
+    @note This call does not populate any meta-data in the DCEL mesh structures. 
   */
   template <typename Meta>
   std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
@@ -72,12 +75,12 @@ protected:
   /*!
     @brief Vertex coordinates
   */
-  std::vector<std::array<Vec3T<T>, 3>> m_vertexCoordinates;
+  std::vector<Vec3T<T>> m_vertexCoordinates;
 
   /*!
-    @brief Triangle normals
+    @brief Triangle facets
   */
-  std::vector<Vec3T<T>> m_triangleNormals;
+  std::vector<std::vector<size_t>> m_facets;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"
