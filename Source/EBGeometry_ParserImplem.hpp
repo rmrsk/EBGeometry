@@ -24,8 +24,6 @@
 #include "EBGeometry_Soup.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-#warning "Remember to remove the new STL and ply files from the Resources folder before merging"
-
 inline Parser::FileType
 Parser::getFileType(const std::string a_filename) noexcept
 {

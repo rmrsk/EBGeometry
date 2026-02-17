@@ -41,7 +41,7 @@ See :ref:`Chap:LinearSTL` for further details.
 Reading mesh files
 ------------------
 
-``EBGeometry`` supports a native parser for binary and ASCII STL files, which can be read into a few different representations:
+``EBGeometry`` supports a native parser for binary and ASCII files, which can be read into a few different representations:
 
 #. Into a DCEL mesh, see :ref:`Chap:ImplemDCEL`.
 #. Into a signed distance function representation of a DCEL mesh, see :ref:`Chap:ImplemCSG`.
@@ -57,7 +57,7 @@ Reading mesh files
 DCEL representation
 ___________________
 
-To read one or multiple STL files and turn it into DCEL meshes, use
+To read one or multiple files and turn it into DCEL meshes, use
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
@@ -69,7 +69,7 @@ Note that this will only expose the DCEL mesh, but not include any signed distan
 DCEL mesh SDF
 _____________
 
-To read one or multiple STL files and also turn it into signed distance representations, use
+To read one or multiple files and also turn it into signed distance representations, use
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
@@ -79,7 +79,7 @@ To read one or multiple STL files and also turn it into signed distance represen
 DCEL mesh SDF with full BVH
 ___________________________
 
-To read one or multiple STL files and turn it into signed distance representations using a full BVH representation, use
+To read one or multiple files and turn it into signed distance representations using a full BVH representation, use
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
@@ -102,7 +102,7 @@ To read one or multiple STL files and turn it into signed distance representatio
 Triangle meshes with BVH
 ________________________
 
-To read one or multiple STL files and turn it into signed distance representations using a compact BVH representation, use
+To read one or multiple files and turn it into signed distance representations using a compact BVH representation, use
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
