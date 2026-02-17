@@ -43,8 +43,6 @@ namespace Parser {
     Unknown
   };
 
-#warning "STL and PLY should both have functionality for converting into DCEL"
-#warning "First thing we should do is to remove the STL namespace and put everything in the readSTL file"
   /*!
     @brief Various supported file types
   */
