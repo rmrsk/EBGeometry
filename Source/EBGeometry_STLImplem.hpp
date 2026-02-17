@@ -8,6 +8,7 @@
 
 // Our includes
 #include "EBGeometry_STL.hpp"
+#include "EBGeometry_Soup.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 template <typename T>
@@ -56,7 +57,22 @@ template <typename T>
 template <typename Meta>
 std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
 STL2<T>::convertToDCEL() const noexcept
-{}
+{
+  // Hard-copy vertices and facets since they need to be compressed.
+  std::vector<Vec3T<T>>            vertices = m_vertexCoordinates;
+  std::vector<std::vector<size_t>> facets   = m_facets;
+
+  if (Soup::containsDegeneratePolygons(vertices, facets)) {
+    std::cerr << "STL::convertToDCEL - STL contains degenerate faces\n";
+  }
+
+  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
+
+  Soup::compress(vertices, facets);
+  Soup::soupToDCEL(*mesh, vertices, facets);
+
+  return mesh;
+}
 
 #include "EBGeometry_NamespaceFooter.hpp"
 

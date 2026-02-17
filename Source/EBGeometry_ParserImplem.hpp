@@ -24,6 +24,8 @@
 #include "EBGeometry_Soup.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
+#warning "Remember to remove the new STL and ply files from the Resources folder before merging"
+
 inline Parser::FileType
 Parser::getFileType(const std::string a_filename) noexcept
 {
@@ -353,7 +355,13 @@ Parser::readIntoDCEL(const std::string a_filename) noexcept
 
   switch (ft) {
   case Parser::FileType::STL: {
+#if 0
     mesh = Parser::STL<T, Meta>::readSingle(a_filename);
+#else
+    STL2<T> stl = readSTL<T>(a_filename);
+
+    mesh = stl.template convertToDCEL<Meta>();
+#endif
 
     break;
   }
