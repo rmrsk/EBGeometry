@@ -39,6 +39,9 @@ Parser::getFileType(const std::string a_filename) noexcept
   else if (ext == "ply" || ext == "PLY") {
     ft = Parser::FileType::PLY;
   }
+  else if (ext == "vtk" || ext == "VTK") {
+    ft = Parser::FileType::VTK;
+  }
 
   return ft;
 }
@@ -99,6 +102,36 @@ Parser::getFileEncoding(const std::string a_filename) noexcept
         encoding = Parser::Encoding::Binary;
       }
       else if (str2 == "binary_big_endian") {
+        encoding = Parser::Encoding::Binary;
+      }
+    }
+    else {
+      std::cerr << "Parser::getFileEncoding -- could not open file '" + a_filename + "'\n";
+    }
+
+    break;
+  }
+  case Parser::FileType::VTK: {
+    std::ifstream is(a_filename, std::istringstream::in | std::ios::binary);
+    if (is.good()) {
+
+      std::string line;
+      std::string str1;
+      std::string str2;
+
+      // Read first line (version identifier)
+      std::getline(is, line);
+      std::getline(is, line); // header/title
+      std::getline(is, line); // format line
+
+      std::stringstream ss(line);
+
+      ss >> str1;
+
+      if (str1 == "ASCII") {
+        encoding = Parser::Encoding::ASCII;
+      }
+      else if (str1 == "BINARY") {
         encoding = Parser::Encoding::Binary;
       }
     }
@@ -846,6 +879,446 @@ Parser::readPLY(const std::vector<std::string>& a_filenames) noexcept
   return ply;
 }
 
+template <typename T>
+VTK<T>
+Parser::readVTK(const std::string& a_filename) noexcept
+{
+  VTK<T> vtk;
+
+  const Parser::Encoding encoding = Parser::getFileEncoding(a_filename);
+
+  switch (encoding) {
+  case Parser::Encoding::ASCII: {
+    std::ifstream filestream(a_filename);
+
+    if (filestream.is_open()) {
+      std::string line;
+
+      // Read header (first 4 lines)
+      std::getline(filestream, line); // Version identifier (e.g., "# vtk DataFile Version 3.0")
+      std::getline(filestream, line); // Title/header comment
+      std::getline(filestream, line); // Format (ASCII or BINARY)
+      std::getline(filestream, line); // Dataset type (should be POLYDATA)
+
+      std::vector<Vec3T<T>>&            vertices = vtk.getVertexCoordinates();
+      std::vector<std::vector<size_t>>& facets   = vtk.getFacets();
+
+      size_t numPoints   = 0;
+      size_t numPolygons = 0;
+
+      // Read POINTS section
+      while (std::getline(filestream, line)) {
+        std::stringstream sstream(line);
+        std::string       keyword;
+        sstream >> keyword;
+
+        if (keyword == "POINTS") {
+          std::string dataType;
+          sstream >> numPoints >> dataType;
+
+          vertices.reserve(numPoints);
+
+          for (size_t i = 0; i < numPoints; i++) {
+            T x, y, z;
+            filestream >> x >> y >> z;
+            vertices.emplace_back(Vec3T<T>(x, y, z));
+          }
+          std::getline(filestream, line); // Consume rest of line after last point
+        }
+        else if (keyword == "POLYGONS") {
+          size_t listSize;
+          sstream >> numPolygons >> listSize;
+
+          facets.reserve(numPolygons);
+
+          for (size_t i = 0; i < numPolygons; i++) {
+            size_t numIndices;
+            filestream >> numIndices;
+
+            std::vector<size_t> faceIndices(numIndices);
+            for (size_t j = 0; j < numIndices; j++) {
+              filestream >> faceIndices[j];
+            }
+            facets.emplace_back(faceIndices);
+          }
+          std::getline(filestream, line); // Consume rest of line
+        }
+        else if (keyword == "POINT_DATA") {
+          size_t numData;
+          sstream >> numData;
+
+          // Read point data arrays
+          while (std::getline(filestream, line)) {
+            std::stringstream ss(line);
+            std::string       dataKeyword;
+            ss >> dataKeyword;
+
+            if (dataKeyword == "SCALARS") {
+              std::string arrayName, dataType;
+              size_t      numComponents = 1;
+              ss >> arrayName >> dataType;
+
+              // Check if there's a number of components
+              if (!(ss >> numComponents)) {
+                numComponents = 1;
+              }
+
+              // Next line should be LOOKUP_TABLE
+              std::getline(filestream, line);
+
+              std::vector<T> scalarData;
+              scalarData.reserve(numData);
+
+              for (size_t i = 0; i < numData; i++) {
+                T value;
+                filestream >> value;
+                scalarData.emplace_back(value);
+
+                // Skip additional components if numComponents > 1
+                for (size_t j = 1; j < numComponents; j++) {
+                  T dummy;
+                  filestream >> dummy;
+                }
+              }
+              std::getline(filestream, line); // Consume rest of line
+
+              vtk.setPointDataScalars(arrayName, scalarData);
+            }
+            else if (dataKeyword == "CELL_DATA") {
+              // Back up - we've hit the next section
+              filestream.seekg(-static_cast<int>(line.length()) - 1, std::ios_base::cur);
+              break;
+            }
+          }
+        }
+        else if (keyword == "CELL_DATA") {
+          size_t numData;
+          sstream >> numData;
+
+          // Read cell data arrays
+          while (std::getline(filestream, line)) {
+            std::stringstream ss(line);
+            std::string       dataKeyword;
+            ss >> dataKeyword;
+
+            if (dataKeyword == "SCALARS") {
+              std::string arrayName, dataType;
+              size_t      numComponents = 1;
+              ss >> arrayName >> dataType;
+
+              if (!(ss >> numComponents)) {
+                numComponents = 1;
+              }
+
+              // Next line should be LOOKUP_TABLE
+              std::getline(filestream, line);
+
+              std::vector<T> scalarData;
+              scalarData.reserve(numData);
+
+              for (size_t i = 0; i < numData; i++) {
+                T value;
+                filestream >> value;
+                scalarData.emplace_back(value);
+
+                // Skip additional components if numComponents > 1
+                for (size_t j = 1; j < numComponents; j++) {
+                  T dummy;
+                  filestream >> dummy;
+                }
+              }
+              std::getline(filestream, line); // Consume rest of line
+
+              vtk.setCellDataScalars(arrayName, scalarData);
+            }
+          }
+        }
+      }
+
+      filestream.close();
+    }
+    else {
+      std::cerr << "Parser::readVTK -- Error! Could not open ASCII file " + a_filename + "\n";
+    }
+
+    break;
+  }
+  case Parser::Encoding::Binary: {
+    std::ifstream filestream(a_filename, std::ios::binary);
+
+    if (filestream.is_open()) {
+      std::string line;
+
+      // Read ASCII header (first 4 lines)
+      std::getline(filestream, line); // Version identifier
+      std::getline(filestream, line); // Title/header comment
+      std::getline(filestream, line); // Format (should be BINARY)
+      std::getline(filestream, line); // Dataset type (should be POLYDATA)
+
+      std::vector<Vec3T<T>>&            vertices = vtk.getVertexCoordinates();
+      std::vector<std::vector<size_t>>& facets   = vtk.getFacets();
+
+      size_t numPoints   = 0;
+      size_t numPolygons = 0;
+
+      // Helper lambda to read binary data with big-endian conversion
+      // VTK binary files are big-endian by default
+      auto readBinaryFloat = [&]() -> float {
+        union {
+          char  bytes[4];
+          float f;
+        } data;
+        filestream.read(data.bytes, 4);
+        std::reverse(data.bytes, data.bytes + 4); // Convert big-endian to little-endian
+        return data.f;
+      };
+
+      auto readBinaryDouble = [&]() -> double {
+        union {
+          char   bytes[8];
+          double d;
+        } data;
+        filestream.read(data.bytes, 8);
+        std::reverse(data.bytes, data.bytes + 8); // Convert big-endian to little-endian
+        return data.d;
+      };
+
+      auto readBinaryInt = [&]() -> int32_t {
+        union {
+          char    bytes[4];
+          int32_t i;
+        } data;
+        filestream.read(data.bytes, 4);
+        std::reverse(data.bytes, data.bytes + 4); // Convert big-endian to little-endian
+        return data.i;
+      };
+
+      auto readBinaryUInt = [&]() -> uint32_t {
+        union {
+          char     bytes[4];
+          uint32_t u;
+        } data;
+        filestream.read(data.bytes, 4);
+        std::reverse(data.bytes, data.bytes + 4); // Convert big-endian to little-endian
+        return data.u;
+      };
+
+      // Read sections - they are still labeled in ASCII
+      while (std::getline(filestream, line)) {
+        std::stringstream sstream(line);
+        std::string       keyword;
+        sstream >> keyword;
+
+        if (keyword == "POINTS") {
+          std::string dataType;
+          sstream >> numPoints >> dataType;
+
+          vertices.reserve(numPoints);
+
+          // After this line, data is binary
+          if (dataType == "float") {
+            for (size_t i = 0; i < numPoints; i++) {
+              T x = static_cast<T>(readBinaryFloat());
+              T y = static_cast<T>(readBinaryFloat());
+              T z = static_cast<T>(readBinaryFloat());
+              vertices.emplace_back(Vec3T<T>(x, y, z));
+            }
+          }
+          else if (dataType == "double") {
+            for (size_t i = 0; i < numPoints; i++) {
+              T x = static_cast<T>(readBinaryDouble());
+              T y = static_cast<T>(readBinaryDouble());
+              T z = static_cast<T>(readBinaryDouble());
+              vertices.emplace_back(Vec3T<T>(x, y, z));
+            }
+          }
+        }
+        else if (keyword == "POLYGONS") {
+          size_t listSize;
+          sstream >> numPolygons >> listSize;
+
+          facets.reserve(numPolygons);
+
+          // After this line, data is binary
+          for (size_t i = 0; i < numPolygons; i++) {
+            int32_t numIndices = readBinaryInt();
+
+            std::vector<size_t> faceIndices;
+            faceIndices.reserve(numIndices);
+
+            for (int32_t j = 0; j < numIndices; j++) {
+              int32_t idx = readBinaryInt();
+              faceIndices.emplace_back(static_cast<size_t>(idx));
+            }
+            facets.emplace_back(faceIndices);
+          }
+        }
+        else if (keyword == "POINT_DATA") {
+          size_t numData;
+          sstream >> numData;
+
+          // Read point data arrays
+          while (std::getline(filestream, line)) {
+            std::stringstream ss(line);
+            std::string       dataKeyword;
+            ss >> dataKeyword;
+
+            if (dataKeyword == "SCALARS") {
+              std::string arrayName, dataType;
+              size_t      numComponents = 1;
+              ss >> arrayName >> dataType;
+
+              if (!(ss >> numComponents)) {
+                numComponents = 1;
+              }
+
+              // Next line should be LOOKUP_TABLE
+              std::getline(filestream, line);
+
+              std::vector<T> scalarData;
+              scalarData.reserve(numData);
+
+              // Read binary scalar data
+              if (dataType == "float") {
+                for (size_t i = 0; i < numData; i++) {
+                  T value = static_cast<T>(readBinaryFloat());
+                  scalarData.emplace_back(value);
+
+                  // Skip additional components if numComponents > 1
+                  for (size_t j = 1; j < numComponents; j++) {
+                    readBinaryFloat();
+                  }
+                }
+              }
+              else if (dataType == "double") {
+                for (size_t i = 0; i < numData; i++) {
+                  T value = static_cast<T>(readBinaryDouble());
+                  scalarData.emplace_back(value);
+
+                  // Skip additional components if numComponents > 1
+                  for (size_t j = 1; j < numComponents; j++) {
+                    readBinaryDouble();
+                  }
+                }
+              }
+              else if (dataType == "int") {
+                for (size_t i = 0; i < numData; i++) {
+                  T value = static_cast<T>(readBinaryInt());
+                  scalarData.emplace_back(value);
+
+                  // Skip additional components if numComponents > 1
+                  for (size_t j = 1; j < numComponents; j++) {
+                    readBinaryInt();
+                  }
+                }
+              }
+
+              vtk.setPointDataScalars(arrayName, scalarData);
+            }
+            else if (dataKeyword == "CELL_DATA") {
+              // Back up - we've hit the next section
+              filestream.seekg(-static_cast<int>(line.length()) - 1, std::ios_base::cur);
+              break;
+            }
+          }
+        }
+        else if (keyword == "CELL_DATA") {
+          size_t numData;
+          sstream >> numData;
+
+          // Read cell data arrays
+          while (std::getline(filestream, line)) {
+            std::stringstream ss(line);
+            std::string       dataKeyword;
+            ss >> dataKeyword;
+
+            if (dataKeyword == "SCALARS") {
+              std::string arrayName, dataType;
+              size_t      numComponents = 1;
+              ss >> arrayName >> dataType;
+
+              if (!(ss >> numComponents)) {
+                numComponents = 1;
+              }
+
+              // Next line should be LOOKUP_TABLE
+              std::getline(filestream, line);
+
+              std::vector<T> scalarData;
+              scalarData.reserve(numData);
+
+              // Read binary scalar data
+              if (dataType == "float") {
+                for (size_t i = 0; i < numData; i++) {
+                  T value = static_cast<T>(readBinaryFloat());
+                  scalarData.emplace_back(value);
+
+                  // Skip additional components if numComponents > 1
+                  for (size_t j = 1; j < numComponents; j++) {
+                    readBinaryFloat();
+                  }
+                }
+              }
+              else if (dataType == "double") {
+                for (size_t i = 0; i < numData; i++) {
+                  T value = static_cast<T>(readBinaryDouble());
+                  scalarData.emplace_back(value);
+
+                  // Skip additional components if numComponents > 1
+                  for (size_t j = 1; j < numComponents; j++) {
+                    readBinaryDouble();
+                  }
+                }
+              }
+              else if (dataType == "int") {
+                for (size_t i = 0; i < numData; i++) {
+                  T value = static_cast<T>(readBinaryInt());
+                  scalarData.emplace_back(value);
+
+                  // Skip additional components if numComponents > 1
+                  for (size_t j = 1; j < numComponents; j++) {
+                    readBinaryInt();
+                  }
+                }
+              }
+
+              vtk.setCellDataScalars(arrayName, scalarData);
+            }
+          }
+        }
+      }
+
+      filestream.close();
+    }
+    else {
+      std::cerr << "Parser::readVTK -- Error! Could not open binary file " + a_filename + "\n";
+    }
+
+    break;
+  }
+  default: {
+    std::cerr << "Parser::readVTK(std::string) -- logic bust. Unknown encoding\n";
+
+    break;
+  }
+  }
+
+  return vtk;
+}
+
+template <typename T>
+std::vector<VTK<T>>
+Parser::readVTK(const std::vector<std::string>& a_filenames) noexcept
+{
+  std::vector<VTK<T>> vtk;
+
+  for (const auto& f : a_filenames) {
+    vtk.emplace_back(Parser::readVTK<T>(f));
+  }
+
+  return vtk;
+}
+
 template <typename T, typename Meta>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
 Parser::readIntoDCEL(const std::string a_filename) noexcept
@@ -866,6 +1339,13 @@ Parser::readIntoDCEL(const std::string a_filename) noexcept
     PLY<T> ply = readPLY<T>(a_filename);
 
     mesh = ply.template convertToDCEL<Meta>();
+
+    break;
+  }
+  case Parser::FileType::VTK: {
+    VTK<T> vtk = readVTK<T>(a_filename);
+
+    mesh = vtk.template convertToDCEL<Meta>();
 
     break;
   }
