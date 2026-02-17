@@ -122,6 +122,14 @@ Parser::readSTL(const std::string& a_filename) noexcept
 {
   STL2<T> stl;
 
+  // Storage for vertices and facets from the STL object. Note that we do not care about the triangle normals when
+  // kraeding the file since they are always recalculated within EBGeometry.
+  std::vector<Vec3T<T>>&            vertices = stl.getVertexCoordinates();
+  std::vector<std::vector<size_t>>& facets   = stl.getFacets();
+
+  vertices.resize(0);
+  facets.resize(0);
+
   const Parser::Encoding encoding = Parser::getFileEncoding(a_filename);
 
   switch (encoding) {
@@ -133,13 +141,14 @@ Parser::readSTL(const std::string& a_filename) noexcept
     size_t solidBegin;
     size_t solidEnd;
 
-    std::ifstream filestream(a_filename);
+    std::ifstream     filestream(a_filename);
+    std::stringstream ss;
+    std::string       str;
+    std::string       line;
 
     if (filestream.is_open()) {
 
       // Figure out where to begin reading and where to stop reading
-      std::string line;
-
       while (std::getline(filestream, line)) {
         fileContents.emplace_back(line);
 
@@ -159,12 +168,30 @@ Parser::readSTL(const std::string& a_filename) noexcept
         curLine++;
       }
 
-      // Storage for vertices and facets.
-      std::vector<Vec3T<T>>&            vertices = stl.getVertexCoordinates();
-      std::vector<std::vector<size_t>>& facets   = stl.getFacets();
-
       for (size_t line = solidBegin + 1; line < solidEnd; line++) {
-        std::cout << fileContents[line] << std::endl;
+        ss = std::stringstream(fileContents[line]);
+
+        ss >> str;
+
+        if (str == "facet") {
+          facets.emplace_back(std::vector<size_t>());
+        }
+        else if (str == "vertex") {
+          T x;
+          T y;
+          T z;
+
+          ss >> x >> y >> z;
+
+          vertices.emplace_back(Vec3T<T>(x, y, z));
+          facets.back().emplace_back(vertices.size() - 1);
+        }
+
+        if (facets.back().size() > 100) {
+          std::cerr << "EBGeometry::readSTL (ASCII) -- unbounded facet detected in file '" + a_filename + "'\n";
+
+          break;
+        }
       }
     }
     else {
@@ -174,6 +201,99 @@ Parser::readSTL(const std::string& a_filename) noexcept
     break;
   }
   case Parser::Encoding::Binary: {
+    std::ifstream fstream(a_filename);
+
+    if (fstream.is_open()) {
+
+      // Read STL header and discard that info rightaway.
+      char header[80];
+      fstream.read(header, 80);
+
+      // Read the number of triangles
+      char tmp[4];
+      fstream.read(tmp, 4);
+      uint32_t numTriangles;
+      memcpy(&numTriangles, &tmp, 4);
+
+      using VertexList = std::vector<Vec3T<T>>;
+      using FacetList  = std::vector<std::vector<size_t>>;
+
+      std::map<uint16_t, std::pair<VertexList, FacetList>> verticesAndFacets;
+
+      // Read triangles into raw vertices and facets.
+      char normal[12];
+      char v1[12];
+      char v2[12];
+      char v3[12];
+      char att[2];
+
+      float x;
+      float y;
+      float z;
+
+      uint16_t id;
+
+      for (size_t i = 0; i < numTriangles; i++) {
+        fstream.read(normal, 12);
+        fstream.read(v1, 12);
+        fstream.read(v2, 12);
+        fstream.read(v3, 12);
+        fstream.read(att, 2);
+
+        char* ptr = nullptr;
+
+        Vec3T<T> v[3];
+
+        ptr = v1;
+        memcpy(&x, ptr, 4);
+        ptr += 4;
+        memcpy(&y, ptr, 4);
+        ptr += 4;
+        memcpy(&z, ptr, 4);
+        v[0] = Vec3T<T>(x, y, z);
+
+        ptr = v2;
+        memcpy(&x, ptr, 4);
+        ptr += 4;
+        memcpy(&y, ptr, 4);
+        ptr += 4;
+        memcpy(&z, ptr, 4);
+        v[1] = Vec3T<T>(x, y, z);
+
+        ptr = v3;
+        memcpy(&x, ptr, 4);
+        ptr += 4;
+        memcpy(&y, ptr, 4);
+        ptr += 4;
+        memcpy(&z, ptr, 4);
+        v[2] = Vec3T<T>(x, y, z);
+
+        memcpy(&id, &att, 2);
+
+        if (verticesAndFacets.find(id) == verticesAndFacets.end()) {
+          verticesAndFacets.emplace(id, std::make_pair(VertexList(), FacetList()));
+        }
+
+        auto& objectVertices = verticesAndFacets.at(id).first;
+        auto& objectFacets   = verticesAndFacets.at(id).second;
+
+        // Insert a new facet.
+        std::vector<size_t> curFacet;
+        for (size_t j = 0; j < 3; j++) {
+          objectVertices.emplace_back(v[j]);
+          curFacet.emplace_back(objectVertices.size() - 1);
+        }
+
+        objectFacets.emplace_back(curFacet);
+      }
+
+      vertices = verticesAndFacets.begin()->second.first;
+      facets   = verticesAndFacets.begin()->second.second;
+    }
+    else {
+      std::cerr << "Parser::readSTL -- Error! Could not open binary file " + a_filename + "\n";
+    }
+
     break;
   }
   default: {
@@ -182,6 +302,7 @@ Parser::readSTL(const std::string& a_filename) noexcept
     break;
   }
   }
+
   return stl;
 }
 
