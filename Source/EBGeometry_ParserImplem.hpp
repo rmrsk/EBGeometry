@@ -327,7 +327,21 @@ Parser::readPLY(const std::string& a_filename) noexcept
 {
   PLY<T> ply;
 
-#warning "Not implemented"
+  const Parser::Encoding encoding = Parser::getFileEncoding(a_filename);
+
+  switch (encoding) {
+  case Parser::Encoding::ASCII: {
+    break;
+  }
+  case Parser::Encoding::Binary: {
+    break;
+  }
+  default: {
+    std::cerr << "Parser::readPLY(std::string) -- logic bust. Unknown encoding\n";
+
+    break;
+  }
+  }
 
   return ply;
 }
@@ -362,7 +376,13 @@ Parser::readIntoDCEL(const std::string a_filename) noexcept
     break;
   }
   case Parser::FileType::PLY: {
+#if 1
+    PLY<T> ply = readPLY<T>(a_filename);
+
+    mesh = ply.template convertToDCEL<Meta>();
+#else
     mesh = Parser::PLY<T>::read(a_filename);
+#endif
 
     break;
   }
@@ -407,7 +427,6 @@ template <typename T, typename Meta>
 inline std::vector<std::shared_ptr<MeshSDF<T, Meta>>>
 Parser::readIntoMesh(const std::vector<std::string> a_files) noexcept
 {
-
   std::vector<std::shared_ptr<MeshSDF<T, Meta>>> implicitFunctions;
 
   for (const auto& file : a_files) {

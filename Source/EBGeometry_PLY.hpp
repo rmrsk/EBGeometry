@@ -51,14 +51,14 @@ public:
     @return m_facets
   */
   std::vector<std::vector<size_t>>&
-  getFaceIndices() noexcept;
+  getFacets() noexcept;
 
   /*!
     @brief Get the face indices
     @return m_facets
   */
   const std::vector<std::vector<size_t>>&
-  getFaceIndices() const noexcept;
+  getFacets() const noexcept;
 
   /*!
     @brief Get the vertex properties

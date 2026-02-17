@@ -45,14 +45,14 @@ PLY<T>::getVertexCoordinates() const noexcept
 
 template <typename T>
 std::vector<std::vector<size_t>>&
-PLY<T>::getFaceIndices() noexcept
+PLY<T>::getFacets() noexcept
 {
   return m_facets;
 }
 
 template <typename T>
 const std::vector<std::vector<size_t>>&
-PLY<T>::getFaceIndices() const noexcept
+PLY<T>::getFacets() const noexcept
 {
   return m_facets;
 }
