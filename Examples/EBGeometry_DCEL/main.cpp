@@ -40,7 +40,7 @@ main(int argc, char* argv[])
   else {
     std::cout << "Missing file name. Use ./a.out 'filename' where 'filename' "
                  "is one of the files in ../Resources. Setting this equal to the armadillo file\n";
-    file = "../Resources/armadillo.stl";
+    file = "../Resources/armadillo_binary.stl";
   }
 
   // Three representations of the same object. Note that this reads the mesh three
