@@ -11,46 +11,52 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 template <typename T>
-STL<T>::STL() noexcept
+STL2<T>::STL2() noexcept
 {
   m_vertexCoordinates.resize(0);
-  m_triangleNormals.resize(0);
+  m_facets.resize(0);
 }
 
 template <typename T>
-STL<T>::~STL() noexcept
+STL2<T>::~STL2() noexcept
 {
   m_vertexCoordinates.resize(0);
-  m_triangleNormals.resize(0);
-}
-
-template <typename T>
-std::vector<std::array<Vec3T<T>, 3>>&
-STL<T>::getVertexCoordinates() noexcept
-{
-  return m_vertexCoordinates;
-}
-
-template <typename T>
-const std::vector<std::array<Vec3T<T>, 3>>&
-STL<T>::getVertexCoordinates() const noexcept
-{
-  return m_vertexCoordinates;
+  m_facets.resize(0);
 }
 
 template <typename T>
 std::vector<Vec3T<T>>&
-STL<T>::getTriangleNormals() noexcept
+STL2<T>::getVertexCoordinates() noexcept
 {
-  return m_triangleNormals;
+  return m_vertexCoordinates;
 }
 
 template <typename T>
 const std::vector<Vec3T<T>>&
-STL<T>::getTriangleNormals() const noexcept
+STL2<T>::getVertexCoordinates() const noexcept
 {
-  return m_triangleNormals;
+  return m_vertexCoordinates;
 }
+
+template <typename T>
+std::vector<std::vector<size_t>>&
+STL2<T>::getFacets() noexcept
+{
+  return m_facets;
+}
+
+template <typename T>
+const std::vector<std::vector<size_t>>&
+STL2<T>::getFacets() const noexcept
+{
+  return m_facets;
+}
+
+template <typename T>
+template <typename Meta>
+std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+STL2<T>::convertToDCEL() const noexcept
+{}
 
 #include "EBGeometry_NamespaceFooter.hpp"
 

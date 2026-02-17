@@ -43,7 +43,6 @@ namespace Parser {
     Unknown
   };
 
-#warning "The stuff in the detail namespace should be moved to a soup file so we can have a single point of entry"
 #warning "STL and PLY should both have functionality for converting into DCEL"
 #warning "First thing we should do is to remove the STL namespace and put everything in the readSTL file"
   /*!
@@ -55,6 +54,20 @@ namespace Parser {
     PLY,
     Unsupported
   };
+
+  /*!
+    @brief Get file type
+    @param[in] a_filename File name
+  */
+  inline static Parser::FileType
+  getFileType(const std::string a_filename) noexcept;
+
+  /*!
+    @brief Get file encoding. 
+    @param[in] a_filename File name    
+  */
+  inline static Parser::Encoding
+  getFileEncoding(const std::string a_filename) noexcept;
 
   /*!
     @brief Read a single PLY file
@@ -75,17 +88,21 @@ namespace Parser {
   /*!
     @brief Read a single STL file
     @param[in] a_filename STL file name.
+    @note If the STL file contains multiple solids (which is uncommon but technically supported), this routine
+    will only read the first one. 
   */
   template <typename T>
-  STL<T>
+  STL2<T>
   readSTL(const std::string& a_filename) noexcept;
 
   /*!
     @brief Read multiple STL files. 
     @param[in] a_filenames STL file names.
+    @note If the STL file contains multiple solids (which is uncommon but technically supported), this routine
+    will only read the first one.     
   */
   template <typename T>
-  std::vector<STL<T>>
+  std::vector<STL2<T>>
   readSTL(const std::vector<std::string>& a_filenames) noexcept;
 
   /*!
@@ -199,63 +216,6 @@ namespace Parser {
   inline static std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
   readIntoTriangles(const std::vector<std::string> a_files) noexcept;
 
-  namespace detail {
-    /*!
-      @brief Get file type
-      @param[in] a_filename File name
-    */
-    inline static Parser::FileType
-    getFileType(const std::string a_filename) noexcept;
-
-    /*!
-      @brief Get file encoding. 
-      @param[in] a_filename File name    
-    */
-    inline static Parser::Encoding
-    getFileEncoding(const std::string a_filename) noexcept;
-
-    /*!
-      @brief Check if triangle soup contains degenerate polygons
-      @param[out] a_vertices Vertices
-      @param[out] a_facets   Facets
-    */
-    template <typename T>
-    inline static bool
-    containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-                               const std::vector<std::vector<size_t>>&  a_facets) noexcept;
-
-    /*!
-      @brief Compress triangle soup (removes duplicate vertices)
-      @param[out] a_vertices   Vertices
-      @param[out] a_facets     STL facets
-    */
-    template <typename T>
-    inline static void
-    compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets) noexcept;
-
-    /*!
-      @brief Turn raw vertices into DCEL vertices. 
-      @param[out] a_mesh Output DCEL mesh.
-      @param[in]  a_verticesRaw  Raw vertices
-      @param[in]  a_facets       Facets
-    */
-    template <typename T, typename Meta>
-    inline static void
-    soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
-               const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-               const std::vector<std::vector<size_t>>&  a_facets) noexcept;
-
-    /*!
-      @brief Reconcile pair edges, i.e. find the pair edge for every constructed
-      half-edge
-      @param[in,out] a_edges Half edges.
-    */
-#warning "This function should probably find a new home"
-    template <typename T, typename Meta>
-    inline static void
-    reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T, Meta>>>& a_edges) noexcept;
-  } // namespace detail
-
   /*!
     @brief Class for reading STL files.
     @note T is the precision used when storing the mesh. 
@@ -310,7 +270,6 @@ namespace Parser {
     readMulti(const std::string a_filename) noexcept;
 
   protected:
-
     /*!
       @brief ASCII reader STL files, possibly containing multiple objects. Each object becomes a DCEL mesh
       @param[in] a_filename Input filename
