@@ -339,7 +339,7 @@ Parser::readPLY(const std::string& a_filename) noexcept
 
       // Storage for header information
       size_t numVertices = 0;
-      size_t numFaces = 0;
+      size_t numFaces    = 0;
 
       // Property lists for vertices and faces
       std::vector<std::string> vertexPropertyNames;
@@ -348,7 +348,7 @@ Parser::readPLY(const std::string& a_filename) noexcept
       std::vector<std::string> facePropertyTypes;
 
       bool readingVertexProperties = false;
-      bool readingFaceProperties = false;
+      bool readingFaceProperties   = false;
 
       // Parse header
       while (std::getline(filestream, line)) {
@@ -359,18 +359,18 @@ Parser::readPLY(const std::string& a_filename) noexcept
           sstream >> str2 >> str3;
 
           if (str2 == "vertex") {
-            numVertices = std::stoull(str3);
+            numVertices             = std::stoull(str3);
             readingVertexProperties = true;
-            readingFaceProperties = false;
+            readingFaceProperties   = false;
           }
           else if (str2 == "face") {
-            numFaces = std::stoull(str3);
+            numFaces                = std::stoull(str3);
             readingVertexProperties = false;
-            readingFaceProperties = true;
+            readingFaceProperties   = true;
           }
           else {
             readingVertexProperties = false;
-            readingFaceProperties = false;
+            readingFaceProperties   = false;
           }
         }
         else if (str1 == "property") {
@@ -410,8 +410,8 @@ Parser::readPLY(const std::string& a_filename) noexcept
       }
 
       // Get references to the PLY data members
-      std::vector<Vec3T<T>>& vertices = ply.getVertexCoordinates();
-      std::vector<std::vector<size_t>>& facets = ply.getFacets();
+      std::vector<Vec3T<T>>&            vertices = ply.getVertexCoordinates();
+      std::vector<std::vector<size_t>>& facets   = ply.getFacets();
 
       // Initialize property storage
       std::map<std::string, std::vector<T>> vertexProps;
@@ -443,9 +443,15 @@ Parser::readPLY(const std::string& a_filename) noexcept
       // Find indices of x, y, z properties
       int xIndex = -1, yIndex = -1, zIndex = -1;
       for (size_t i = 0; i < vertexPropertyNames.size(); i++) {
-        if (vertexPropertyNames[i] == "x") xIndex = static_cast<int>(i);
-        else if (vertexPropertyNames[i] == "y") yIndex = static_cast<int>(i);
-        else if (vertexPropertyNames[i] == "z") zIndex = static_cast<int>(i);
+        if (vertexPropertyNames[i] == "x") {
+          xIndex = static_cast<int>(i);
+        }
+        else if (vertexPropertyNames[i] == "y") {
+          yIndex = static_cast<int>(i);
+        }
+        else if (vertexPropertyNames[i] == "z") {
+          zIndex = static_cast<int>(i);
+        }
       }
 
       // Read vertex data
@@ -453,7 +459,7 @@ Parser::readPLY(const std::string& a_filename) noexcept
         std::getline(filestream, line);
         std::stringstream sstream(line);
 
-        T x = 0, y = 0, z = 0;
+        T              x = 0, y = 0, z = 0;
         std::vector<T> propValues(vertexPropertyNames.size());
 
         for (size_t i = 0; i < vertexPropertyNames.size(); i++) {
@@ -461,9 +467,15 @@ Parser::readPLY(const std::string& a_filename) noexcept
           sstream >> value;
           propValues[i] = value;
 
-          if (static_cast<int>(i) == xIndex) x = value;
-          else if (static_cast<int>(i) == yIndex) y = value;
-          else if (static_cast<int>(i) == zIndex) z = value;
+          if (static_cast<int>(i) == xIndex) {
+            x = value;
+          }
+          else if (static_cast<int>(i) == yIndex) {
+            y = value;
+          }
+          else if (static_cast<int>(i) == zIndex) {
+            z = value;
+          }
         }
 
         vertices.emplace_back(Vec3T<T>(x, y, z));
@@ -479,7 +491,7 @@ Parser::readPLY(const std::string& a_filename) noexcept
         std::getline(filestream, line);
         std::stringstream sstream(line);
 
-        std::vector<T> scalarPropValues;
+        std::vector<T>      scalarPropValues;
         std::vector<size_t> faceIndices;
 
         for (size_t i = 0; i < facePropertyNames.size(); i++) {
@@ -533,6 +545,282 @@ Parser::readPLY(const std::string& a_filename) noexcept
     break;
   }
   case Parser::Encoding::Binary: {
+    std::ifstream filestream(a_filename, std::ios::binary);
+
+    if (filestream.is_open()) {
+      std::string line;
+      std::string str1, str2, str3;
+
+      // Storage for header information
+      size_t numVertices    = 0;
+      size_t numFaces       = 0;
+      bool   isLittleEndian = true;
+
+      // Property lists for vertices and faces
+      std::vector<std::string> vertexPropertyNames;
+      std::vector<std::string> vertexPropertyTypes;
+      std::vector<std::string> facePropertyNames;
+      std::vector<std::string> facePropertyTypes;
+      std::vector<std::string> faceListSizeTypes;  // For list properties
+      std::vector<std::string> faceListIndexTypes; // For list properties
+
+      bool readingVertexProperties = false;
+      bool readingFaceProperties   = false;
+
+      // Parse header (ASCII part)
+      while (std::getline(filestream, line)) {
+        std::stringstream sstream(line);
+        sstream >> str1;
+
+        if (str1 == "format") {
+          sstream >> str2;
+          if (str2 == "binary_big_endian") {
+            isLittleEndian = false;
+          }
+        }
+        else if (str1 == "element") {
+          sstream >> str2 >> str3;
+
+          if (str2 == "vertex") {
+            numVertices             = std::stoull(str3);
+            readingVertexProperties = true;
+            readingFaceProperties   = false;
+          }
+          else if (str2 == "face") {
+            numFaces                = std::stoull(str3);
+            readingVertexProperties = false;
+            readingFaceProperties   = true;
+          }
+          else {
+            readingVertexProperties = false;
+            readingFaceProperties   = false;
+          }
+        }
+        else if (str1 == "property") {
+          sstream >> str2;
+
+          if (str2 == "list") {
+            // List property (e.g., "property list uchar int vertex_indices")
+            std::string sizeType, indexType, propName;
+            sstream >> sizeType >> indexType >> propName;
+
+            if (readingFaceProperties) {
+              facePropertyNames.emplace_back(propName);
+              facePropertyTypes.emplace_back("list");
+              faceListSizeTypes.emplace_back(sizeType);
+              faceListIndexTypes.emplace_back(indexType);
+            }
+          }
+          else {
+            // Scalar property (e.g., "property float x")
+            std::string propName;
+            sstream >> propName;
+
+            if (readingVertexProperties) {
+              vertexPropertyNames.emplace_back(propName);
+              vertexPropertyTypes.emplace_back(str2);
+            }
+            else if (readingFaceProperties) {
+              facePropertyNames.emplace_back(propName);
+              facePropertyTypes.emplace_back(str2);
+              faceListSizeTypes.emplace_back("");
+              faceListIndexTypes.emplace_back("");
+            }
+          }
+        }
+        else if (str1 == "end_header") {
+          break;
+        }
+      }
+
+      // Helper lambda to read binary data with endian conversion
+      auto readBinaryValue = [&](const std::string& type) -> T {
+        union {
+          char     bytes[8];
+          float    f;
+          double   d;
+          int32_t  i32;
+          uint32_t u32;
+          int16_t  i16;
+          uint16_t u16;
+          int8_t   i8;
+          uint8_t  u8;
+        } data;
+
+        if (type == "float") {
+          filestream.read(data.bytes, 4);
+          if (!isLittleEndian) {
+            std::reverse(data.bytes, data.bytes + 4);
+          }
+          return static_cast<T>(data.f);
+        }
+        else if (type == "double") {
+          filestream.read(data.bytes, 8);
+          if (!isLittleEndian) {
+            std::reverse(data.bytes, data.bytes + 8);
+          }
+          return static_cast<T>(data.d);
+        }
+        else if (type == "int" || type == "int32") {
+          filestream.read(data.bytes, 4);
+          if (!isLittleEndian) {
+            std::reverse(data.bytes, data.bytes + 4);
+          }
+          return static_cast<T>(data.i32);
+        }
+        else if (type == "uint" || type == "uint32") {
+          filestream.read(data.bytes, 4);
+          if (!isLittleEndian) {
+            std::reverse(data.bytes, data.bytes + 4);
+          }
+          return static_cast<T>(data.u32);
+        }
+        else if (type == "short" || type == "int16") {
+          filestream.read(data.bytes, 2);
+          if (!isLittleEndian) {
+            std::reverse(data.bytes, data.bytes + 2);
+          }
+          return static_cast<T>(data.i16);
+        }
+        else if (type == "ushort" || type == "uint16") {
+          filestream.read(data.bytes, 2);
+          if (!isLittleEndian) {
+            std::reverse(data.bytes, data.bytes + 2);
+          }
+          return static_cast<T>(data.u16);
+        }
+        else if (type == "char" || type == "int8") {
+          filestream.read(data.bytes, 1);
+          return static_cast<T>(data.i8);
+        }
+        else if (type == "uchar" || type == "uint8") {
+          filestream.read(data.bytes, 1);
+          return static_cast<T>(data.u8);
+        }
+        return 0;
+      };
+
+      // Helper lambda to read size_t value (for list counts)
+      auto readBinarySizeT = [&](const std::string& type) -> size_t {
+        return static_cast<size_t>(readBinaryValue(type));
+      };
+
+      // Get references to the PLY data members
+      std::vector<Vec3T<T>>&            vertices = ply.getVertexCoordinates();
+      std::vector<std::vector<size_t>>& facets   = ply.getFacets();
+
+      // Initialize property storage
+      std::map<std::string, std::vector<T>> vertexProps;
+      std::map<std::string, std::vector<T>> faceProps;
+
+      for (const auto& propName : vertexPropertyNames) {
+        vertexProps[propName] = std::vector<T>();
+        vertexProps[propName].reserve(numVertices);
+      }
+
+      for (size_t i = 0; i < facePropertyNames.size(); i++) {
+        if (facePropertyTypes[i] != "list") {
+          faceProps[facePropertyNames[i]] = std::vector<T>();
+          faceProps[facePropertyNames[i]].reserve(numFaces);
+        }
+      }
+
+      vertices.reserve(numVertices);
+      facets.reserve(numFaces);
+
+      // Find indices of x, y, z properties
+      int xIndex = -1, yIndex = -1, zIndex = -1;
+      for (size_t i = 0; i < vertexPropertyNames.size(); i++) {
+        if (vertexPropertyNames[i] == "x") {
+          xIndex = static_cast<int>(i);
+        }
+        else if (vertexPropertyNames[i] == "y") {
+          yIndex = static_cast<int>(i);
+        }
+        else if (vertexPropertyNames[i] == "z") {
+          zIndex = static_cast<int>(i);
+        }
+      }
+
+      // Read binary vertex data
+      for (size_t v = 0; v < numVertices; v++) {
+        T              x = 0, y = 0, z = 0;
+        std::vector<T> propValues(vertexPropertyNames.size());
+
+        for (size_t i = 0; i < vertexPropertyNames.size(); i++) {
+          T value       = readBinaryValue(vertexPropertyTypes[i]);
+          propValues[i] = value;
+
+          if (static_cast<int>(i) == xIndex) {
+            x = value;
+          }
+          else if (static_cast<int>(i) == yIndex) {
+            y = value;
+          }
+          else if (static_cast<int>(i) == zIndex) {
+            z = value;
+          }
+        }
+
+        vertices.emplace_back(Vec3T<T>(x, y, z));
+
+        // Store all vertex properties
+        for (size_t i = 0; i < vertexPropertyNames.size(); i++) {
+          vertexProps[vertexPropertyNames[i]].emplace_back(propValues[i]);
+        }
+      }
+
+      // Read binary face data
+      for (size_t f = 0; f < numFaces; f++) {
+        std::vector<T>      scalarPropValues;
+        std::vector<size_t> faceIndices;
+
+        for (size_t i = 0; i < facePropertyNames.size(); i++) {
+          if (facePropertyTypes[i] == "list") {
+            // Read list property
+            size_t numIndices = readBinarySizeT(faceListSizeTypes[i]);
+
+            faceIndices.resize(numIndices);
+            for (size_t j = 0; j < numIndices; j++) {
+              faceIndices[j] = readBinarySizeT(faceListIndexTypes[i]);
+            }
+          }
+          else {
+            // Read scalar property
+            T value = readBinaryValue(facePropertyTypes[i]);
+            scalarPropValues.emplace_back(value);
+          }
+        }
+
+        facets.emplace_back(faceIndices);
+
+        // Store scalar face properties
+        size_t scalarIdx = 0;
+        for (size_t i = 0; i < facePropertyNames.size(); i++) {
+          if (facePropertyTypes[i] != "list") {
+            faceProps[facePropertyNames[i]].emplace_back(scalarPropValues[scalarIdx]);
+            scalarIdx++;
+          }
+        }
+      }
+
+      // Copy properties to PLY object using the setter methods
+      for (const auto& propName : vertexPropertyNames) {
+        ply.setVertexProperties(propName, vertexProps[propName]);
+      }
+
+      for (const auto& propName : facePropertyNames) {
+        if (faceProps.find(propName) != faceProps.end()) {
+          ply.setFaceProperties(propName, faceProps[propName]);
+        }
+      }
+
+      filestream.close();
+    }
+    else {
+      std::cerr << "Parser::readPLY -- Error! Could not open binary file " + a_filename + "\n";
+    }
+
     break;
   }
   default: {
@@ -575,13 +863,9 @@ Parser::readIntoDCEL(const std::string a_filename) noexcept
     break;
   }
   case Parser::FileType::PLY: {
-#if 1
     PLY<T> ply = readPLY<T>(a_filename);
 
     mesh = ply.template convertToDCEL<Meta>();
-#else
-    mesh = Parser::PLY<T>::read(a_filename);
-#endif
 
     break;
   }
