@@ -24,7 +24,8 @@
 #include "EBGeometry_Soup.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-#warning "Error messages should also warn about which file is not OK (particularly the parser, but perhaps also the CD_DCELMeshImplem sanityCheck, if possible"
+#warning \
+  "Error messages should also warn about which file is not OK (particularly the parser, but perhaps also the CD_DCELMeshImplem sanityCheck, if possible"
 #warning "Remove the VTK test files later"
 #warning "Before merging, check that all the distance functions remain the same"
 #warning "Binary VTK reader is still a fuck-up"
@@ -1250,16 +1251,22 @@ Parser::readVTK(const std::string& a_filename) noexcept
               offsets.emplace_back(data.val);
             }
 
-            // Read CONNECTIVITY line
-            std::getline(filestream, line);
-            std::stringstream connStream(line);
-            std::string       connKeyword, connType;
-            connStream >> connKeyword >> connType;
+            // Skip empty lines and find the CONNECTIVITY line. There is a trailing
+            // newline after the binary offset data that must be consumed first.
+            std::string connKeyword, connType;
+            while (std::getline(filestream, line)) {
+              std::stringstream connStream(line);
+              connStream >> connKeyword;
+              if (connKeyword == "CONNECTIVITY") {
+                connStream >> connType;
+                break;
+              }
+              connKeyword.clear();
+            }
 
-            // Read binary connectivity array - read until we can't read anymore or hit the limit
-            // In binary mode, we need to know how many to read. Try reading until EOF or next section.
-            // For now, estimate based on listSize - numPolygons
-            size_t estimatedConnSize = (listSize > numPolygons) ? (listSize - numPolygons) : 0;
+            // In the modern VTK format, listSize on the POLYGONS line is the total
+            // number of connectivity entries (not numPolygons + connectivity as in legacy).
+            size_t estimatedConnSize = listSize;
 
             std::vector<int64_t> connectivity;
             connectivity.reserve(estimatedConnSize);
