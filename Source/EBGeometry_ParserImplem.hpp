@@ -24,7 +24,6 @@
 #include "EBGeometry_Soup.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-#warning "Remove the VTK test files later"
 #warning "Before merging, check that all the distance functions remain the same"
 #warning "Debug the triangle distance function -- it might not be correct!"
 
