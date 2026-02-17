@@ -148,10 +148,7 @@ namespace EBGeometry {
     // as well as many other quantities (e.g., v21.cross(m_triangleNormal)). This might
     // be helpful in order to speed things up a little bit.
     T ret = std::numeric_limits<T>::max();
-    
-    auto sgn = [](const T x) -> int { return (x > 0.0) ? 1 : -1; };
 
-<<<<<<< HEAD
     auto sgn = [](const T x) -> int { return (x > 0.0) ? 1 : -1; };
 
     const Vec3 v21 = m_vertexPositions[1] - m_vertexPositions[0];
@@ -178,29 +175,6 @@ namespace EBGeometry {
     ret = (p1.length() > std::abs(ret)) ? ret : p1.length() * sgn(m_vertexNormals[0].dot(p1));
     ret = (p2.length() > std::abs(ret)) ? ret : p2.length() * sgn(m_vertexNormals[1].dot(p2));
     ret = (p3.length() > std::abs(ret)) ? ret : p3.length() * sgn(m_vertexNormals[2].dot(p3));
-=======
-    const Vec3 v21 = m_vertexPositions[1] - m_vertexPositions[0];
-    const Vec3 v32 = m_vertexPositions[2] - m_vertexPositions[1];
-    const Vec3 v13 = m_vertexPositions[0] - m_vertexPositions[2];
-
-    const Vec3 p1 = a_point - m_vertexPositions[0];
-    const Vec3 p2 = a_point - m_vertexPositions[1];
-    const Vec3 p3 = a_point - m_vertexPositions[2];
-
-    const T s0 = sgn(dot(v21.cross(m_triangleNormal), p1));
-    const T s1 = sgn(dot(v32.cross(m_triangleNormal), p2));
-    const T s2 = sgn(dot(v13.cross(m_triangleNormal), p3));
-
-    const bool isPointInside = s0 + s1 + s2 >= 2.0;
-
-    if (isPointInside) {
-      ret = m_triangleNormal.dot(p1);
-    }
-    else {
-      ret = (p1.length() > std::abs(ret)) ? ret : p1.length() * sgn(m_vertexNormals[0].dot(p1));
-      ret = (p2.length() > std::abs(ret)) ? ret : p2.length() * sgn(m_vertexNormals[1].dot(p2));
-      ret = (p3.length() > std::abs(ret)) ? ret : p3.length() * sgn(m_vertexNormals[2].dot(p3));
->>>>>>> 72a5133 (WIP)
 
     // Distance to edges
     ret = (t1 > 0.0 && t1 < 1.0 && y1.length() < std::abs(ret)) ? y1.length() * sgn(m_edgeNormals[0].dot(y1)) : ret;
