@@ -24,9 +24,6 @@
 #include "EBGeometry_Soup.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-#warning "Before merging, check that all the distance functions remain the same"
-#warning "Debug the triangle distance function -- it might not be correct!"
-
 inline Parser::FileType
 Parser::getFileType(const std::string a_filename) noexcept
 {
