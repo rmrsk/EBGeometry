@@ -90,20 +90,36 @@ public:
   /*!
     @brief Get the vertex properties
     @param[in] a_property Which property to fetch
-    @note Function will fail if the property does not exist    
+    @note Function will fail if the property does not exist
     @return m_vertexProperties at provided property
   */
   const std::vector<T>&
   getFaceProperties(const std::string a_property) const noexcept;
 
   /*!
-    @brief Turn the STL mesh into a DCEL mesh.
+    @brief Set vertex properties
+    @param[in] a_property Property name
+    @param[in] a_data Property data
+  */
+  void
+  setVertexProperties(const std::string a_property, const std::vector<T>& a_data) noexcept;
+
+  /*!
+    @brief Set face properties
+    @param[in] a_property Property name
+    @param[in] a_data Property data
+  */
+  void
+  setFaceProperties(const std::string a_property, const std::vector<T>& a_data) noexcept;
+
+  /*!
+    @brief Turn the PLY mesh into a DCEL mesh.
     @details This call does not populate any meta-data in the DCEL mesh structures. If you need to also populate
     the meta-data on vertices and faces, you should not use this function but supply your own constructor. 
   */
   template <typename Meta>
   std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-  convertToDCEL() const noexcept;    
+  convertToDCEL() const noexcept;
 
 protected:
   /*!
