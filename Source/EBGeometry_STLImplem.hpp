@@ -16,6 +16,13 @@ STL<T>::STL() noexcept
 {
   m_vertexCoordinates.resize(0);
   m_facets.resize(0);
+  m_id = std::string();
+}
+
+template <typename T>
+STL<T>::STL(const std::string a_id) noexcept : STL()
+{
+  m_id = a_id;
 }
 
 template <typename T>
@@ -23,6 +30,20 @@ STL<T>::~STL() noexcept
 {
   m_vertexCoordinates.resize(0);
   m_facets.resize(0);
+}
+
+template <typename T>
+std::string&
+STL<T>::getID() noexcept
+{
+  return m_id;
+}
+
+template <typename T>
+const std::string&
+STL<T>::getID() const noexcept
+{
+  return m_id;
 }
 
 template <typename T>

@@ -24,11 +24,8 @@
 #include "EBGeometry_Soup.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-#warning \
-  "Error messages should also warn about which file is not OK (particularly the parser, but perhaps also the CD_DCELMeshImplem sanityCheck, if possible"
 #warning "Remove the VTK test files later"
 #warning "Before merging, check that all the distance functions remain the same"
-#warning "Binary VTK reader is still a fuck-up"
 
 inline Parser::FileType
 Parser::getFileType(const std::string a_filename) noexcept
@@ -1013,7 +1010,6 @@ Parser::readVTK(const std::string& a_filename) noexcept
           else {
             // Legacy VTK format - rewind and read old way
             filestream.seekg(pos);
-            std::getline(filestream, line); // Consume rest of POLYGONS line
 
             for (size_t i = 0; i < numPolygons; i++) {
               size_t numIndices;
@@ -1578,13 +1574,16 @@ Parser::readIntoTriangles(const std::string a_filename) noexcept
 
   std::vector<std::shared_ptr<Triangle<T, Meta>>> triangles;
 
+  bool onlyTriangles = true;
+  
   for (const auto& f : mesh->getFaces()) {
     const auto normal   = f->getNormal();
     const auto vertices = f->gatherVertices();
     const auto edges    = f->gatherEdges();
 
     if (vertices.size() != 3) {
-      std::cerr << "Parser::readIntoTriangles -- file '" + a_filename + "' is not composed of only triangles!" << "\n";
+      onlyTriangles = false;
+
     }
 
     // Create the triangle
@@ -1596,6 +1595,10 @@ Parser::readIntoTriangles(const std::string a_filename) noexcept
     tri->setEdgeNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
 
     triangles.emplace_back(tri);
+  }
+
+  if(!onlyTriangles) {
+    std::cerr << "Parser::readIntoTriangles -- file '" + a_filename + "' is not composed of only triangles!" << "\n";
   }
 
   return triangles;
@@ -1640,7 +1643,7 @@ template <typename T, typename Meta, typename BV, size_t K>
 inline std::shared_ptr<FastTriMeshSDF<T, Meta, BV, K>>
 Parser::readIntoTriangleBVH(const std::string a_filename) noexcept
 {
-  const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
+  const auto mesh = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename);
 
   return std::make_shared<FastTriMeshSDF<T, Meta, BV, K>>(mesh);
 }

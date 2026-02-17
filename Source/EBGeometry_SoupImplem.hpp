@@ -171,6 +171,7 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
   // Reconcile the pair edges and run a sanity check.
   Soup::reconcilePairEdgesDCEL(edges);
 
+#warning "Should have a sanity check including an ID or file name here...?"
   a_mesh.sanityCheck();
 
   a_mesh.reconcile(EBGeometry::DCEL::VertexNormalWeight::Angle);
