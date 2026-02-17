@@ -25,6 +25,7 @@
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_PLY.hpp"
 #include "EBGeometry_STL.hpp"
+#include "EBGeometry_VTK.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
@@ -50,6 +51,7 @@ namespace Parser {
   {
     STL,
     PLY,
+    VTK,
     Unsupported
   };
 
@@ -94,14 +96,30 @@ namespace Parser {
   readSTL(const std::string& a_filename) noexcept;
 
   /*!
-    @brief Read multiple STL files. 
+    @brief Read multiple STL files.
     @param[in] a_filenames STL file names.
     @note If the STL file contains multiple solids (which is uncommon but technically supported), this routine
-    will only read the first one.     
+    will only read the first one.
   */
   template <typename T>
   std::vector<STL<T>>
   readSTL(const std::vector<std::string>& a_filenames) noexcept;
+
+  /*!
+    @brief Read a single VTK file
+    @param[in] a_filename VTK file name.
+  */
+  template <typename T>
+  VTK<T>
+  readVTK(const std::string& a_filename) noexcept;
+
+  /*!
+    @brief Read multiple VTK files.
+    @param[in] a_filenames VTK file names.
+  */
+  template <typename T>
+  std::vector<VTK<T>>
+  readVTK(const std::vector<std::string>& a_filenames) noexcept;
 
   /*!
     @brief Read a file containing a single watertight object and return it as a DCEL mesh
