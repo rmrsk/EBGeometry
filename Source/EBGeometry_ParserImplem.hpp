@@ -24,6 +24,11 @@
 #include "EBGeometry_Soup.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
+#warning "Error messages should also warn about which file is not OK (particularly the parser, but perhaps also the CD_DCELMeshImplem sanityCheck, if possible"
+#warning "Remove the VTK test files later"
+#warning "Before merging, check that all the distance functions remain the same"
+#warning "Binary VTK reader is still a fuck-up"
+
 inline Parser::FileType
 Parser::getFileType(const std::string a_filename) noexcept
 {
@@ -929,17 +934,98 @@ Parser::readVTK(const std::string& a_filename) noexcept
 
           facets.reserve(numPolygons);
 
-          for (size_t i = 0; i < numPolygons; i++) {
-            size_t numIndices;
-            filestream >> numIndices;
+          // Check if this is the modern format with OFFSETS/CONNECTIVITY
+          std::streampos pos = filestream.tellg();
+          std::getline(filestream, line); // Read next line after POLYGONS
 
-            std::vector<size_t> faceIndices(numIndices);
-            for (size_t j = 0; j < numIndices; j++) {
-              filestream >> faceIndices[j];
+          std::stringstream checkStream(line);
+          std::string       nextKeyword;
+          checkStream >> nextKeyword;
+
+          if (nextKeyword == "OFFSETS") {
+            // Modern VTK format with OFFSETS and CONNECTIVITY
+            std::vector<size_t> offsets;
+            offsets.reserve(numPolygons);
+
+            // Read offsets - should be exactly numPolygons values
+            size_t offset;
+            for (size_t i = 0; i < numPolygons; i++) {
+              if (!(filestream >> offset)) {
+                break;
+              }
+              offsets.emplace_back(offset);
             }
-            facets.emplace_back(faceIndices);
+
+            // Skip to CONNECTIVITY keyword - it should be on the next line after offsets
+            // Since we used >> to read offsets, we may be in the middle of a line
+            // Use getline repeatedly until we find CONNECTIVITY
+            bool foundConnectivity = false;
+            while (std::getline(filestream, line)) {
+              std::stringstream ss(line);
+              std::string       keyword;
+              ss >> keyword;
+              if (keyword == "CONNECTIVITY") {
+                foundConnectivity = true;
+                break;
+              }
+              // If line is not empty and not CONNECTIVITY, might be more offsets
+              // but we already read numPolygons, so just skip
+            }
+
+            if (!foundConnectivity) {
+              std::cerr << "Parser::readVTK - Warning: CONNECTIVITY keyword not found after OFFSETS\n";
+            }
+
+            // Read all connectivity values until we can't read anymore
+            // (will stop when it hits a keyword like POINT_DATA or CELL_DATA)
+            std::vector<size_t> connectivity;
+            size_t              idx;
+            while (filestream >> idx) {
+              connectivity.emplace_back(idx);
+            }
+            // Clear the error state so we can continue reading
+            filestream.clear();
+
+            // Reconstruct facets from offsets and connectivity
+            // For polygon i: vertices are connectivity[offsets[i]] to connectivity[offsets[i+1]-1]
+            // For the last polygon: vertices are connectivity[offsets[n-1]] to connectivity[end]
+            for (size_t i = 0; i < numPolygons; i++) {
+              size_t              startIdx = offsets[i];
+              size_t              endIdx   = (i + 1 < numPolygons) ? offsets[i + 1] : connectivity.size();
+              std::vector<size_t> faceIndices;
+
+              // Skip empty polygons (startIdx >= connectivity.size() or startIdx == endIdx)
+              if (startIdx >= connectivity.size() || startIdx >= endIdx) {
+                continue;
+              }
+
+              for (size_t j = startIdx; j < endIdx; j++) {
+                if (j < connectivity.size()) {
+                  faceIndices.emplace_back(connectivity[j]);
+                }
+              }
+              if (faceIndices.size() > 0) {
+                facets.emplace_back(faceIndices);
+              }
+            }
           }
-          std::getline(filestream, line); // Consume rest of line
+          else {
+            // Legacy VTK format - rewind and read old way
+            filestream.seekg(pos);
+            std::getline(filestream, line); // Consume rest of POLYGONS line
+
+            for (size_t i = 0; i < numPolygons; i++) {
+              size_t numIndices;
+              filestream >> numIndices;
+
+              std::vector<size_t> faceIndices(numIndices);
+              for (size_t j = 0; j < numIndices; j++) {
+                filestream >> faceIndices[j];
+              }
+              facets.emplace_back(faceIndices);
+            }
+            std::getline(filestream, line); // Consume rest of line
+          }
         }
         else if (keyword == "POINT_DATA") {
           size_t numData;
@@ -1137,18 +1223,98 @@ Parser::readVTK(const std::string& a_filename) noexcept
 
           facets.reserve(numPolygons);
 
-          // After this line, data is binary
-          for (size_t i = 0; i < numPolygons; i++) {
-            int32_t numIndices = readBinaryInt();
+          // Check if this is the modern format with OFFSETS/CONNECTIVITY
+          std::streampos pos = filestream.tellg();
+          std::getline(filestream, line); // Read next line
 
-            std::vector<size_t> faceIndices;
-            faceIndices.reserve(numIndices);
+          std::stringstream checkStream(line);
+          std::string       nextKeyword;
+          checkStream >> nextKeyword;
 
-            for (int32_t j = 0; j < numIndices; j++) {
-              int32_t idx = readBinaryInt();
-              faceIndices.emplace_back(static_cast<size_t>(idx));
+          if (nextKeyword == "OFFSETS") {
+            // Modern VTK format with binary OFFSETS and CONNECTIVITY
+            std::string offsetType;
+            checkStream >> offsetType;
+
+            std::vector<int64_t> offsets;
+            offsets.reserve(numPolygons);
+
+            // Read binary offsets (typically int64) - exactly numPolygons values
+            for (size_t i = 0; i < numPolygons; i++) {
+              union {
+                char    bytes[8];
+                int64_t val;
+              } data;
+              filestream.read(data.bytes, 8);
+              std::reverse(data.bytes, data.bytes + 8);
+              offsets.emplace_back(data.val);
             }
-            facets.emplace_back(faceIndices);
+
+            // Read CONNECTIVITY line
+            std::getline(filestream, line);
+            std::stringstream connStream(line);
+            std::string       connKeyword, connType;
+            connStream >> connKeyword >> connType;
+
+            // Read binary connectivity array - read until we can't read anymore or hit the limit
+            // In binary mode, we need to know how many to read. Try reading until EOF or next section.
+            // For now, estimate based on listSize - numPolygons
+            size_t estimatedConnSize = (listSize > numPolygons) ? (listSize - numPolygons) : 0;
+
+            std::vector<int64_t> connectivity;
+            connectivity.reserve(estimatedConnSize);
+
+            for (size_t i = 0; i < estimatedConnSize; i++) {
+              union {
+                char    bytes[8];
+                int64_t val;
+              } data;
+              if (filestream.read(data.bytes, 8)) {
+                std::reverse(data.bytes, data.bytes + 8);
+                connectivity.emplace_back(data.val);
+              }
+              else {
+                break;
+              }
+            }
+
+            // Reconstruct facets from offsets and connectivity
+            for (size_t i = 0; i < numPolygons; i++) {
+              size_t startIdx = static_cast<size_t>(offsets[i]);
+              size_t endIdx   = (i + 1 < numPolygons) ? static_cast<size_t>(offsets[i + 1]) : connectivity.size();
+              std::vector<size_t> faceIndices;
+
+              // Skip empty polygons
+              if (startIdx >= connectivity.size() || startIdx >= endIdx) {
+                continue;
+              }
+
+              for (size_t j = startIdx; j < endIdx; j++) {
+                if (j < connectivity.size()) {
+                  faceIndices.emplace_back(static_cast<size_t>(connectivity[j]));
+                }
+              }
+              if (faceIndices.size() > 0) {
+                facets.emplace_back(faceIndices);
+              }
+            }
+          }
+          else {
+            // Legacy VTK format - data is binary after POLYGONS line
+            filestream.seekg(pos);
+
+            for (size_t i = 0; i < numPolygons; i++) {
+              int32_t numIndices = readBinaryInt();
+
+              std::vector<size_t> faceIndices;
+              faceIndices.reserve(numIndices);
+
+              for (int32_t j = 0; j < numIndices; j++) {
+                int32_t idx = readBinaryInt();
+                faceIndices.emplace_back(static_cast<size_t>(idx));
+              }
+              facets.emplace_back(faceIndices);
+            }
           }
         }
         else if (keyword == "POINT_DATA") {
