@@ -90,7 +90,7 @@ STL<T>::convertToDCEL() const noexcept
   auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
 
   Soup::compress(vertices, facets);
-  Soup::soupToDCEL(*mesh, vertices, facets);
+  Soup::soupToDCEL(*mesh, vertices, facets, m_id);
 
   return mesh;
 }

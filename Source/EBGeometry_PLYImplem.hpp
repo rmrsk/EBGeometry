@@ -18,6 +18,13 @@ PLY<T>::PLY() noexcept
   m_facets.resize(0);
   m_vertexProperties.clear();
   m_faceProperties.clear();
+  m_id = std::string();
+}
+
+template <typename T>
+PLY<T>::PLY(const std::string a_id) noexcept : PLY()
+{
+  m_id = a_id;
 }
 
 template <typename T>
@@ -27,6 +34,20 @@ PLY<T>::~PLY() noexcept
   m_facets.resize(0);
   m_vertexProperties.clear();
   m_faceProperties.clear();
+}
+
+template <typename T>
+std::string&
+PLY<T>::getID() noexcept
+{
+  return m_id;
+}
+
+template <typename T>
+const std::string&
+PLY<T>::getID() const noexcept
+{
+  return m_id;
 }
 
 template <typename T>
@@ -115,7 +136,7 @@ PLY<T>::convertToDCEL() const noexcept
   auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
 
   Soup::compress(vertices, facets);
-  Soup::soupToDCEL(*mesh, vertices, facets);
+  Soup::soupToDCEL(*mesh, vertices, facets, m_id);
 
   return mesh;
 }

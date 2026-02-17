@@ -28,9 +28,27 @@ public:
   PLY() noexcept;
 
   /*!
+    @brief Constructor. Initializes empty vertices and facets but sets the PLY ID (usually the file name
+    @param[in] a_id Identifier for PLY object
+  */
+  PLY(const std::string a_id) noexcept;
+
+  /*!
     @brief Destructor. Clears all data.
   */
   virtual ~PLY() noexcept;
+
+  /*!
+    @brief Get the identifier for this object
+  */
+  std::string&
+  getID() noexcept;
+
+  /*!
+    @brief Get the identifier for this object
+  */
+  const std::string&
+  getID() const noexcept;
 
   /*!
     @brief Get the vertex coordinates
@@ -122,6 +140,11 @@ public:
   convertToDCEL() const noexcept;
 
 protected:
+  /*!
+    @brief PLY object ID.
+  */
+  std::string m_id;
+
   /*!
     @brief Vertex coordinates
   */

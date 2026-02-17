@@ -48,12 +48,14 @@ namespace Soup {
     @param[out] a_mesh Output DCEL mesh.
     @param[in]  a_verticesRaw  Raw vertices
     @param[in]  a_facets       Facets
+    @param[in]  a_id           Identifier for error messages
   */
   template <typename T, typename Meta>
   inline static void
   soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
              const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-             const std::vector<std::vector<size_t>>&  a_facets) noexcept;
+             const std::vector<std::vector<size_t>>&  a_facets,
+             const std::string                        a_id) noexcept;
 
   /*!
     @brief Reconcile pair edges, i.e. find the pair edge for every constructed

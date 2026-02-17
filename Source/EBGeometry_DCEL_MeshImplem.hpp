@@ -61,22 +61,27 @@ namespace DCEL {
 
   template <class T, class Meta>
   inline void
-  MeshT<T, Meta>::printWarnings(const std::map<std::string, size_t>& a_warnings) const noexcept
+  MeshT<T, Meta>::printWarnings(const std::map<std::string, size_t>& a_warnings, const std::string a_id) const noexcept
   {
+    std::string baseError = "MeshT<T, Meta>::sanityCheck(...)";
+
+    if(a_id != ""){
+      baseError += "for '" + a_id + "'";
+    }
+    
+    baseError += " - warnings about error '";
+
     for (const auto& warn : a_warnings) {
       if (warn.second > 0) {
-        std::cerr << "In file 'CD_DCELMeshImplem.H' function "
-                     "MeshT<T, Meta>::sanityCheck() - warnings about error '"
-                  << warn.first << "' = " << warn.second << "\n";
+        std::cerr << baseError << warn.first << "' = " << warn.second << "\n";
       }
     }
   }
 
   template <class T, class Meta>
   inline void
-  MeshT<T, Meta>::sanityCheck() const noexcept
+  MeshT<T, Meta>::sanityCheck(const std::string a_id) const noexcept
   {
-
     const std::string f_null       = "nullptr face";
     const std::string f_noEdge     = "face with no edge";
     const std::string f_degenerate = "degenerate face";
@@ -166,7 +171,7 @@ namespace DCEL {
       }
     }
 
-    this->printWarnings(warnings);
+    this->printWarnings(warnings, a_id);
   }
 
   template <class T, class Meta>

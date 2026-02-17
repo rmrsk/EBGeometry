@@ -110,7 +110,8 @@ template <typename T, typename Meta>
 inline void
 Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
                  const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-                 const std::vector<std::vector<size_t>>&  a_facets) noexcept
+                 const std::vector<std::vector<size_t>>&  a_facets,
+                 const std::string                        a_id) noexcept
 {
 
   using Vec3   = EBGeometry::Vec3T<T>;
@@ -171,8 +172,7 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
   // Reconcile the pair edges and run a sanity check.
   Soup::reconcilePairEdgesDCEL(edges);
 
-#warning "Should have a sanity check including an ID or file name here...?"
-  a_mesh.sanityCheck();
+  a_mesh.sanityCheck(a_id);
 
   a_mesh.reconcile(EBGeometry::DCEL::VertexNormalWeight::Angle);
 }

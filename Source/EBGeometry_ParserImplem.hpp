@@ -26,6 +26,7 @@
 
 #warning "Remove the VTK test files later"
 #warning "Before merging, check that all the distance functions remain the same"
+#warning "Debug the triangle distance function -- it might not be correct!"
 
 inline Parser::FileType
 Parser::getFileType(const std::string a_filename) noexcept
@@ -156,7 +157,7 @@ template <typename T>
 STL<T>
 Parser::readSTL(const std::string& a_filename) noexcept
 {
-  STL<T> stl;
+  STL<T> stl(a_filename);
 
   // Storage for vertices and facets from the STL object. Note that we do not care about the triangle normals when
   // raeding the file since they are always recalculated within EBGeometry.
@@ -359,7 +360,7 @@ template <typename T>
 PLY<T>
 Parser::readPLY(const std::string& a_filename) noexcept
 {
-  PLY<T> ply;
+  PLY<T> ply(a_filename);
 
   const Parser::Encoding encoding = Parser::getFileEncoding(a_filename);
 
@@ -884,7 +885,7 @@ template <typename T>
 VTK<T>
 Parser::readVTK(const std::string& a_filename) noexcept
 {
-  VTK<T> vtk;
+  VTK<T> vtk(a_filename);
 
   const Parser::Encoding encoding = Parser::getFileEncoding(a_filename);
 
