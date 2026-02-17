@@ -16,8 +16,8 @@ PLY<T>::PLY() noexcept
 {
   m_vertexCoordinates.resize(0);
   m_facets.resize(0);
-  m_vertexProperties.resize(0);
-  m_faceProperties.resize(0);
+  m_vertexProperties.clear();
+  m_faceProperties.clear();
 }
 
 template <typename T>
@@ -25,8 +25,8 @@ PLY<T>::~PLY() noexcept
 {
   m_vertexCoordinates.resize(0);
   m_facets.resize(0);
-  m_vertexProperties.resize(0);
-  m_faceProperties.resize(0);
+  m_vertexProperties.clear();
+  m_faceProperties.clear();
 }
 
 template <typename T>
@@ -86,16 +86,31 @@ PLY<T>::getFaceProperties(const std::string a_property) const noexcept
 }
 
 template <typename T>
+void
+PLY<T>::setVertexProperties(const std::string a_property, const std::vector<T>& a_data) noexcept
+{
+  m_vertexProperties[a_property] = a_data;
+}
+
+template <typename T>
+void
+PLY<T>::setFaceProperties(const std::string a_property, const std::vector<T>& a_data) noexcept
+{
+  m_faceProperties[a_property] = a_data;
+}
+
+template <typename T>
 template <typename Meta>
 std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-PLY<T>::convertToDCEL() const noexcept {
+PLY<T>::convertToDCEL() const noexcept
+{
 
   // Do a deep copy of the vertices and facets since they might need to be compressed.
   std::vector<Vec3T<T>>            vertices = m_vertexCoordinates;
   std::vector<std::vector<size_t>> facets   = m_facets;
 
   if (Soup::containsDegeneratePolygons(vertices, facets)) {
-    std::cerr << "STL::convertToDCEL - STL contains degenerate faces\n";
+    std::cerr << "PLY::convertToDCEL - PLY contains degenerate faces\n";
   }
 
   auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
@@ -103,7 +118,7 @@ PLY<T>::convertToDCEL() const noexcept {
   Soup::compress(vertices, facets);
   Soup::soupToDCEL(*mesh, vertices, facets);
 
-  return mesh;  
+  return mesh;
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"

@@ -331,6 +331,205 @@ Parser::readPLY(const std::string& a_filename) noexcept
 
   switch (encoding) {
   case Parser::Encoding::ASCII: {
+    std::ifstream filestream(a_filename);
+
+    if (filestream.is_open()) {
+      std::string line;
+      std::string str1, str2, str3;
+
+      // Storage for header information
+      size_t numVertices = 0;
+      size_t numFaces = 0;
+
+      // Property lists for vertices and faces
+      std::vector<std::string> vertexPropertyNames;
+      std::vector<std::string> vertexPropertyTypes;
+      std::vector<std::string> facePropertyNames;
+      std::vector<std::string> facePropertyTypes;
+
+      bool readingVertexProperties = false;
+      bool readingFaceProperties = false;
+
+      // Parse header
+      while (std::getline(filestream, line)) {
+        std::stringstream sstream(line);
+        sstream >> str1;
+
+        if (str1 == "element") {
+          sstream >> str2 >> str3;
+
+          if (str2 == "vertex") {
+            numVertices = std::stoull(str3);
+            readingVertexProperties = true;
+            readingFaceProperties = false;
+          }
+          else if (str2 == "face") {
+            numFaces = std::stoull(str3);
+            readingVertexProperties = false;
+            readingFaceProperties = true;
+          }
+          else {
+            readingVertexProperties = false;
+            readingFaceProperties = false;
+          }
+        }
+        else if (str1 == "property") {
+          sstream >> str2;
+
+          if (str2 == "list") {
+            // List property (e.g., "property list uchar int vertex_indices")
+            sstream >> str3; // size type (e.g., uchar)
+            std::string indexType;
+            sstream >> indexType; // index type (e.g., int)
+            std::string propName;
+            sstream >> propName;
+
+            if (readingFaceProperties) {
+              facePropertyNames.emplace_back(propName);
+              facePropertyTypes.emplace_back("list");
+            }
+          }
+          else {
+            // Scalar property (e.g., "property float x")
+            std::string propName;
+            sstream >> propName;
+
+            if (readingVertexProperties) {
+              vertexPropertyNames.emplace_back(propName);
+              vertexPropertyTypes.emplace_back(str2);
+            }
+            else if (readingFaceProperties) {
+              facePropertyNames.emplace_back(propName);
+              facePropertyTypes.emplace_back(str2);
+            }
+          }
+        }
+        else if (str1 == "end_header") {
+          break;
+        }
+      }
+
+      // Get references to the PLY data members
+      std::vector<Vec3T<T>>& vertices = ply.getVertexCoordinates();
+      std::vector<std::vector<size_t>>& facets = ply.getFacets();
+
+      // Initialize property storage
+      std::map<std::string, std::vector<T>> vertexProps;
+      std::map<std::string, std::vector<T>> faceProps;
+
+      for (const auto& propName : vertexPropertyNames) {
+        vertexProps[propName] = std::vector<T>();
+        vertexProps[propName].reserve(numVertices);
+      }
+
+      for (const auto& propName : facePropertyNames) {
+        // Skip list properties for now
+        bool isList = false;
+        for (size_t i = 0; i < facePropertyNames.size(); i++) {
+          if (facePropertyNames[i] == propName && facePropertyTypes[i] == "list") {
+            isList = true;
+            break;
+          }
+        }
+        if (!isList) {
+          faceProps[propName] = std::vector<T>();
+          faceProps[propName].reserve(numFaces);
+        }
+      }
+
+      vertices.reserve(numVertices);
+      facets.reserve(numFaces);
+
+      // Find indices of x, y, z properties
+      int xIndex = -1, yIndex = -1, zIndex = -1;
+      for (size_t i = 0; i < vertexPropertyNames.size(); i++) {
+        if (vertexPropertyNames[i] == "x") xIndex = static_cast<int>(i);
+        else if (vertexPropertyNames[i] == "y") yIndex = static_cast<int>(i);
+        else if (vertexPropertyNames[i] == "z") zIndex = static_cast<int>(i);
+      }
+
+      // Read vertex data
+      for (size_t v = 0; v < numVertices; v++) {
+        std::getline(filestream, line);
+        std::stringstream sstream(line);
+
+        T x = 0, y = 0, z = 0;
+        std::vector<T> propValues(vertexPropertyNames.size());
+
+        for (size_t i = 0; i < vertexPropertyNames.size(); i++) {
+          T value;
+          sstream >> value;
+          propValues[i] = value;
+
+          if (static_cast<int>(i) == xIndex) x = value;
+          else if (static_cast<int>(i) == yIndex) y = value;
+          else if (static_cast<int>(i) == zIndex) z = value;
+        }
+
+        vertices.emplace_back(Vec3T<T>(x, y, z));
+
+        // Store all vertex properties
+        for (size_t i = 0; i < vertexPropertyNames.size(); i++) {
+          vertexProps[vertexPropertyNames[i]].emplace_back(propValues[i]);
+        }
+      }
+
+      // Read face data
+      for (size_t f = 0; f < numFaces; f++) {
+        std::getline(filestream, line);
+        std::stringstream sstream(line);
+
+        std::vector<T> scalarPropValues;
+        std::vector<size_t> faceIndices;
+
+        for (size_t i = 0; i < facePropertyNames.size(); i++) {
+          if (facePropertyTypes[i] == "list") {
+            // Read list property (typically vertex_indices or similar)
+            size_t numIndices;
+            sstream >> numIndices;
+
+            faceIndices.resize(numIndices);
+            for (size_t j = 0; j < numIndices; j++) {
+              sstream >> faceIndices[j];
+            }
+          }
+          else {
+            // Read scalar property
+            T value;
+            sstream >> value;
+            scalarPropValues.emplace_back(value);
+          }
+        }
+
+        facets.emplace_back(faceIndices);
+
+        // Store scalar face properties
+        size_t scalarIdx = 0;
+        for (size_t i = 0; i < facePropertyNames.size(); i++) {
+          if (facePropertyTypes[i] != "list") {
+            faceProps[facePropertyNames[i]].emplace_back(scalarPropValues[scalarIdx]);
+            scalarIdx++;
+          }
+        }
+      }
+
+      // Copy properties to PLY object using the setter methods
+      for (const auto& propName : vertexPropertyNames) {
+        ply.setVertexProperties(propName, vertexProps[propName]);
+      }
+
+      for (const auto& propName : facePropertyNames) {
+        if (faceProps.find(propName) != faceProps.end()) {
+          ply.setFaceProperties(propName, faceProps[propName]);
+        }
+      }
+
+      filestream.close();
+    }
+    else {
+      std::cerr << "Parser::readPLY -- Error! Could not open ASCII file " + a_filename + "\n";
+    }
+
     break;
   }
   case Parser::Encoding::Binary: {
@@ -544,141 +743,6 @@ Parser::readIntoLinearBVH(const std::vector<std::string> a_files) noexcept
   }
 
   return implicitFunctions;
-}
-
-template <typename T>
-inline std::shared_ptr<EBGeometry::DCEL::MeshT<T>>
-Parser::PLY<T>::read(const std::string a_filename) noexcept
-{
-  auto mesh = std::make_shared<Mesh>();
-
-  const auto encoding = Parser::getFileEncoding(a_filename);
-
-  std::ifstream filestream(a_filename);
-
-  if (filestream.is_open()) {
-    std::vector<Vec3>                vertices;
-    std::vector<std::vector<size_t>> faces;
-
-    switch (encoding) {
-    case Parser::Encoding::ASCII: {
-      Parser::PLY<T>::readPLYSoupASCII(vertices, faces, filestream);
-
-      break;
-    }
-    case Parser::Encoding::Binary: {
-      Parser::PLY<T>::readPLYSoupBinary(vertices, faces, filestream);
-
-      break;
-    }
-    case Parser::Encoding::Unknown: {
-      const std::string error = "Parser::PLY::read - ERROR! Unknown encoding for '" + a_filename + "'\n";
-
-      break;
-    }
-    default: {
-      const std::string error = "Parser::PLY::read - logic bust\n";
-
-      break;
-    }
-    }
-
-    Soup::soupToDCEL(*mesh, vertices, faces);
-  }
-  else {
-    const std::string error = "Parser::PLY::read - ERROR! Could not open file " + a_filename;
-    std::cerr << error + "\n";
-  }
-
-  return mesh;
-}
-
-template <typename T>
-inline void
-Parser::PLY<T>::readPLYSoupASCII(std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-                                 std::vector<std::vector<size_t>>&  a_faces,
-                                 std::ifstream&                     a_inputStream) noexcept
-{
-  T x;
-  T y;
-  T z;
-
-  size_t numVertices;
-  size_t numFaces;
-  size_t numProcessed;
-  size_t numVertInPoly;
-
-  std::string str1;
-  std::string str2;
-  std::string line;
-
-  std::vector<size_t> faceVertices;
-
-  // Get number of vertices
-  a_inputStream.clear();
-  a_inputStream.seekg(0);
-  while (std::getline(a_inputStream, line)) {
-    std::stringstream sstream(line);
-    sstream >> str1 >> str2 >> numVertices;
-    if (str1 == "element" && str2 == "vertex") {
-      break;
-    }
-  }
-
-  // Get number of faces
-  a_inputStream.clear();
-  a_inputStream.seekg(0);
-  while (std::getline(a_inputStream, line)) {
-    std::stringstream sstream(line);
-    sstream >> str1 >> str2 >> numFaces;
-    if (str1 == "element" && str2 == "face") {
-      break;
-    }
-  }
-
-  // Find the line # containing "end_header" and halt the input stream there
-  a_inputStream.clear();
-  a_inputStream.seekg(0);
-  while (std::getline(a_inputStream, line)) {
-    std::stringstream sstream(line);
-    sstream >> str1;
-    if (str1 == "end_header") {
-      break;
-    }
-  }
-
-  // Now read the vertices and faces.
-  numProcessed = 0;
-  while (std::getline(a_inputStream, line)) {
-    std::stringstream ss(line);
-
-    if (numProcessed < numVertices) {
-      ss >> x >> y >> z;
-
-      a_vertices.emplace_back(EBGeometry::Vec3T<T>(x, y, z));
-    }
-    else {
-      ss >> numVertInPoly;
-
-      faceVertices.resize(numVertInPoly);
-      for (size_t i = 0; i < numVertInPoly; i++) {
-        ss >> faceVertices[i];
-      }
-
-      a_faces.emplace_back(faceVertices);
-    }
-
-    numProcessed++;
-  }
-}
-
-template <typename T>
-inline void
-Parser::PLY<T>::readPLYSoupBinary(std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-                                  std::vector<std::vector<size_t>>&  a_faces,
-                                  std::ifstream&                     a_fileStream) noexcept
-{
-  std::cerr << "Parser::PLY<T>::readPLYSoupBinary -- not implemented\n";
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"
