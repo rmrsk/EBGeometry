@@ -65,10 +65,10 @@ namespace DCEL {
   {
     std::string baseError = "MeshT<T, Meta>::sanityCheck(...)";
 
-    if(a_id != ""){
+    if (a_id != "") {
       baseError += "for '" + a_id + "'";
     }
-    
+
     baseError += " - warnings about error '";
 
     for (const auto& warn : a_warnings) {

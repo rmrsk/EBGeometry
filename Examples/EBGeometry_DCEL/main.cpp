@@ -45,9 +45,9 @@ main(int argc, char* argv[])
 
   // Representations of the same object. Note that this reads the mesh and builds the BVH
   // tree multiple times.
-  // 
+  //
   // There are converters that avoid this, but users will almost always only use one of
-  // these representations. 
+  // these representations.
   const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file);
   const auto bvhSDF  = EBGeometry::Parser::readIntoFullBVH<T, Meta, BV, K>(file);
   const auto linSDF  = EBGeometry::Parser::readIntoLinearBVH<T, Meta, BV, K>(file);

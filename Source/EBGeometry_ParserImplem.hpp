@@ -1572,7 +1572,7 @@ Parser::readIntoTriangles(const std::string a_filename) noexcept
   std::vector<std::shared_ptr<Triangle<T, Meta>>> triangles;
 
   bool onlyTriangles = true;
-  
+
   for (const auto& f : mesh->getFaces()) {
     const auto normal   = f->getNormal();
     const auto vertices = f->gatherVertices();
@@ -1580,7 +1580,6 @@ Parser::readIntoTriangles(const std::string a_filename) noexcept
 
     if (vertices.size() != 3) {
       onlyTriangles = false;
-
     }
 
     // Create the triangle
@@ -1594,7 +1593,7 @@ Parser::readIntoTriangles(const std::string a_filename) noexcept
     triangles.emplace_back(tri);
   }
 
-  if(!onlyTriangles) {
+  if (!onlyTriangles) {
     std::cerr << "Parser::readIntoTriangles -- file '" + a_filename + "' is not composed of only triangles!" << "\n";
   }
 
