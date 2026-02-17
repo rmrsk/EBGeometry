@@ -22,18 +22,18 @@
   @note T is the precision used for storing the mesh.
 */
 template <typename T>
-class STL2
+class STL
 {
 public:
   /*!
     @brief Default constructor. Initializes empty member data holder
   */
-  STL2() noexcept;
+  STL() noexcept;
 
   /*!
     @brief Destructor. Clears all data.
   */
-  virtual ~STL2() noexcept;
+  virtual ~STL() noexcept;
 
   /*!
     @brief Get the vertex coordinates

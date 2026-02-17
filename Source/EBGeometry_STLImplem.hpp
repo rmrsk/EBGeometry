@@ -12,14 +12,14 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 template <typename T>
-STL2<T>::STL2() noexcept
+STL<T>::STL() noexcept
 {
   m_vertexCoordinates.resize(0);
   m_facets.resize(0);
 }
 
 template <typename T>
-STL2<T>::~STL2() noexcept
+STL<T>::~STL() noexcept
 {
   m_vertexCoordinates.resize(0);
   m_facets.resize(0);
@@ -27,28 +27,28 @@ STL2<T>::~STL2() noexcept
 
 template <typename T>
 std::vector<Vec3T<T>>&
-STL2<T>::getVertexCoordinates() noexcept
+STL<T>::getVertexCoordinates() noexcept
 {
   return m_vertexCoordinates;
 }
 
 template <typename T>
 const std::vector<Vec3T<T>>&
-STL2<T>::getVertexCoordinates() const noexcept
+STL<T>::getVertexCoordinates() const noexcept
 {
   return m_vertexCoordinates;
 }
 
 template <typename T>
 std::vector<std::vector<size_t>>&
-STL2<T>::getFacets() noexcept
+STL<T>::getFacets() noexcept
 {
   return m_facets;
 }
 
 template <typename T>
 const std::vector<std::vector<size_t>>&
-STL2<T>::getFacets() const noexcept
+STL<T>::getFacets() const noexcept
 {
   return m_facets;
 }
@@ -56,7 +56,7 @@ STL2<T>::getFacets() const noexcept
 template <typename T>
 template <typename Meta>
 std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-STL2<T>::convertToDCEL() const noexcept
+STL<T>::convertToDCEL() const noexcept
 {
   // Hard-copy vertices and facets since they need to be compressed.
   std::vector<Vec3T<T>>            vertices = m_vertexCoordinates;

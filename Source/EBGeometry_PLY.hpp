@@ -7,7 +7,7 @@
 #define EBGeometry_PLY
 
 // Std includes
-#include <array> 
+#include <array>
 #include <vector>
 
 // Our includes
