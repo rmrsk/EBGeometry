@@ -15,10 +15,9 @@
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-#warning "This class should be renamed back to STL once the Parser class is refactored"
-
 /*!
-  @brief Class for storing STL meshes.
+  @brief Class for storing contents of STL files.
+  @details This structure is simply used as conversion utility between STL files and various EBGeometry objects (triangle soups, DCEL meshes, etc).
   @note T is the precision used for storing the mesh.
 */
 template <typename T>

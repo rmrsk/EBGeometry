@@ -48,14 +48,14 @@ public:
 
   /*!
     @brief Get the face indices
-    @return m_faceIndices
+    @return m_facets
   */
   std::vector<std::vector<size_t>>&
   getFaceIndices() noexcept;
 
   /*!
     @brief Get the face indices
-    @return m_faceIndices
+    @return m_facets
   */
   const std::vector<std::vector<size_t>>&
   getFaceIndices() const noexcept;
@@ -96,6 +96,15 @@ public:
   const std::vector<T>&
   getFaceProperties(const std::string a_property) const noexcept;
 
+  /*!
+    @brief Turn the STL mesh into a DCEL mesh.
+    @details This call does not populate any meta-data in the DCEL mesh structures. If you need to also populate
+    the meta-data on vertices and faces, you should not use this function but supply your own constructor. 
+  */
+  template <typename Meta>
+  std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+  convertToDCEL() const noexcept;    
+
 protected:
   /*!
     @brief Vertex coordinates
@@ -105,7 +114,7 @@ protected:
   /*!
     @brief Faces -- each entry in the outer vector contains the indices defining one face
   */
-  std::vector<std::vector<size_t>> m_faceIndices;
+  std::vector<std::vector<size_t>> m_facets;
 
   /*!
     @brief Vertex properties

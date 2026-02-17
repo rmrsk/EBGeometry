@@ -58,7 +58,7 @@ template <typename Meta>
 std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
 STL<T>::convertToDCEL() const noexcept
 {
-  // Hard-copy vertices and facets since they need to be compressed.
+  // Do a deep copy of the vertices and facets since they need to be compressed.
   std::vector<Vec3T<T>>            vertices = m_vertexCoordinates;
   std::vector<std::vector<size_t>> facets   = m_facets;
 

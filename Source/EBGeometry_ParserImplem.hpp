@@ -125,7 +125,7 @@ Parser::readSTL(const std::string& a_filename) noexcept
   STL<T> stl;
 
   // Storage for vertices and facets from the STL object. Note that we do not care about the triangle normals when
-  // kraeding the file since they are always recalculated within EBGeometry.
+  // raeding the file since they are always recalculated within EBGeometry.
   std::vector<Vec3T<T>>&            vertices = stl.getVertexCoordinates();
   std::vector<std::vector<size_t>>& facets   = stl.getFacets();
 
@@ -431,7 +431,7 @@ Parser::readIntoTriangles(const std::string a_filename) noexcept
     const auto edges    = f->gatherEdges();
 
     if (vertices.size() != 3) {
-      std::cerr << "Parser::readIntoTriangles -- DCEL mesh not composed of only triangles!" << "\n";
+      std::cerr << "Parser::readIntoTriangles -- file '" + a_filename + "' is not composed of only triangles!" << "\n";
     }
 
     // Create the triangle
