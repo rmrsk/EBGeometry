@@ -1,0 +1,297 @@
+\doxysection{VTK\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classVTK}{}\label{classVTK}\index{VTK$<$ T $>$@{VTK$<$ T $>$}}
+
+
+Class for storing \doxylink{classVTK}{VTK} Polydata meshes.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+VTK.\+hpp$>$}
+
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classVTK_ad4db6a90eaa655da34c50cf074917740}\label{classVTK_ad4db6a90eaa655da34c50cf074917740} 
+{\bfseries VTK} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Default constructor. Initializes empty member data holder. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVTK_a4878296acac730002ca98a0396f6b228}{VTK}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+id}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Constructor. Initializes empty vertices and facets but sets the \doxylink{classVTK}{VTK} ID (usually the file name. \end{DoxyCompactList}\item 
+\Hypertarget{classVTK_a9927169a2a4603c1dc23f866fddd35c7}\label{classVTK_a9927169a2a4603c1dc23f866fddd35c7} 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+VTK} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Destructor. Clears all data. \end{DoxyCompactList}\item 
+\Hypertarget{classVTK_a7e5c3c7ba33305ccaa5cf987a7c1a3be}\label{classVTK_a7e5c3c7ba33305ccaa5cf987a7c1a3be} 
+std\+::string \& {\bfseries get\+ID} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the identifier for this object. \end{DoxyCompactList}\item 
+\Hypertarget{classVTK_ac14383f6afaf9a6bd463c39265036274}\label{classVTK_ac14383f6afaf9a6bd463c39265036274} 
+\mbox{\hyperlink{classVec3T}{const}} std\+::string \& {\bfseries get\+ID} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the identifier for this object. \end{DoxyCompactList}\item 
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \& \mbox{\hyperlink{classVTK_aacc6fdb558cd3bc4f95db08ba9c41552}{get\+Vertex\+Coordinates}} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the vertex coordinates. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \& \mbox{\hyperlink{classVTK_a9710298f35ab2af8d29eb6b08fb35f52}{get\+Vertex\+Coordinates}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the vertex coordinates. \end{DoxyCompactList}\item 
+std\+::vector$<$ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ $>$ \& \mbox{\hyperlink{classVTK_a57c2694be46b257e7be34fd24543bab0}{get\+Facets}} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the face indices. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ $>$ \& \mbox{\hyperlink{classVTK_a48a3e813cc29e2d6347749ab531e90c9}{get\+Facets}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the face indices. \end{DoxyCompactList}\item 
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVTK_a7b9603b4921114909e0c3af3aba58a42}{get\+Point\+Data\+Scalars}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+name}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the point data scalars. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVTK_a3419ed70a2d7f8c5e8c7cefcd94eb612}{get\+Point\+Data\+Scalars}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+name}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the point data scalars. \end{DoxyCompactList}\item 
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVTK_ae654819f04c27c7ab951563dd7fa48d9}{get\+Cell\+Data\+Scalars}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+name}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the cell data scalars. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVTK_a2896228d8bdd898541feec55c8f338e1}{get\+Cell\+Data\+Scalars}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+name}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the cell data scalars. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classVTK_a3bd1cf17475a5b12472f857907003e71}{set\+Point\+Data\+Scalars}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+name}}, \mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+data}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Set point data scalars. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classVTK_aec71e0cbfa4628f2de0585020625dc87}{set\+Cell\+Data\+Scalars}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+name}}, \mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+data}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Set cell data scalars. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ }\\std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$ $>$ \mbox{\hyperlink{classVTK_a6f3dba67e44c1328cb695ff9f3c636ee}{convert\+To\+DCEL}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Turn the \doxylink{classVTK}{VTK} mesh into a \doxylink{namespaceDCEL}{DCEL} mesh. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classVTK_a0920f55f92fccfe7abe4c80d10336f5c}\label{classVTK_a0920f55f92fccfe7abe4c80d10336f5c} 
+std\+::string {\bfseries m\+\_\+id}
+\begin{DoxyCompactList}\small\item\em \doxylink{classVTK}{VTK} object ID. \end{DoxyCompactList}\item 
+\Hypertarget{classVTK_a695d6a00d6226a7be1a016b52f249cb8}\label{classVTK_a695d6a00d6226a7be1a016b52f249cb8} 
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ {\bfseries m\+\_\+vertex\+Coordinates}
+\begin{DoxyCompactList}\small\item\em Vertex coordinates. \end{DoxyCompactList}\item 
+\Hypertarget{classVTK_af43e47aab8ed2e204b6ff1afbe9b81c0}\label{classVTK_af43e47aab8ed2e204b6ff1afbe9b81c0} 
+std\+::vector$<$ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ $>$ {\bfseries m\+\_\+facets}
+\begin{DoxyCompactList}\small\item\em Faces -- each entry in the outer vector contains the indices defining one face. \end{DoxyCompactList}\item 
+\Hypertarget{classVTK_a4f02e02443067f8bee4cbacff64ceeae}\label{classVTK_a4f02e02443067f8bee4cbacff64ceeae} 
+std\+::map$<$ std\+::string, std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ {\bfseries m\+\_\+point\+Data\+Scalars}
+\begin{DoxyCompactList}\small\item\em Point data scalar arrays. \end{DoxyCompactList}\item 
+\Hypertarget{classVTK_af86c68d7d8bf33d97f70adcecbe33b13}\label{classVTK_af86c68d7d8bf33d97f70adcecbe33b13} 
+std\+::map$<$ std\+::string, std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ {\bfseries m\+\_\+cell\+Data\+Scalars}
+\begin{DoxyCompactList}\small\item\em Cell data scalar arrays. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}}$>$\newline
+class VTK$<$ T $>$}
+Class for storing \doxylink{classVTK}{VTK} Polydata meshes. 
+
+\begin{DoxyNote}{Note}
+T is the precision used for storing the mesh. 
+\end{DoxyNote}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{classVTK_a4878296acac730002ca98a0396f6b228}\label{classVTK_a4878296acac730002ca98a0396f6b228} 
+\index{VTK$<$ T $>$@{VTK$<$ T $>$}!VTK@{VTK}}
+\index{VTK@{VTK}!VTK$<$ T $>$@{VTK$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{VTK()}{VTK()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVTK}{VTK}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classVTK}{\+::\+VTK}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+id }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Constructor. Initializes empty vertices and facets but sets the \doxylink{classVTK}{VTK} ID (usually the file name. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+id} & Identifier for \doxylink{classVTK}{VTK} object \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classVTK_a6f3dba67e44c1328cb695ff9f3c636ee}\label{classVTK_a6f3dba67e44c1328cb695ff9f3c636ee} 
+\index{VTK$<$ T $>$@{VTK$<$ T $>$}!convertToDCEL@{convertToDCEL}}
+\index{convertToDCEL@{convertToDCEL}!VTK$<$ T $>$@{VTK$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{convertToDCEL()}{convertToDCEL()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$ $>$ \mbox{\hyperlink{classVTK}{VTK}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::convert\+To\+DCEL (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Turn the \doxylink{classVTK}{VTK} mesh into a \doxylink{namespaceDCEL}{DCEL} mesh. 
+
+This call does not populate any meta-\/data in the \doxylink{namespaceDCEL}{DCEL} mesh structures. If you need to also populate the meta-\/data on vertices and faces, you should not use this function but supply your own constructor. \Hypertarget{classVTK_a2896228d8bdd898541feec55c8f338e1}\label{classVTK_a2896228d8bdd898541feec55c8f338e1} 
+\index{VTK$<$ T $>$@{VTK$<$ T $>$}!getCellDataScalars@{getCellDataScalars}}
+\index{getCellDataScalars@{getCellDataScalars}!VTK$<$ T $>$@{VTK$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getCellDataScalars()}{getCellDataScalars()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVTK}{VTK}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Cell\+Data\+Scalars (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+name }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the cell data scalars. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+name} & Scalar array name \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+Function will fail if the array does not exist 
+\end{DoxyNote}
+\begin{DoxyReturn}{Returns}
+m\+\_\+cell\+Data\+Scalars at provided name 
+\end{DoxyReturn}
+\Hypertarget{classVTK_ae654819f04c27c7ab951563dd7fa48d9}\label{classVTK_ae654819f04c27c7ab951563dd7fa48d9} 
+\index{VTK$<$ T $>$@{VTK$<$ T $>$}!getCellDataScalars@{getCellDataScalars}}
+\index{getCellDataScalars@{getCellDataScalars}!VTK$<$ T $>$@{VTK$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getCellDataScalars()}{getCellDataScalars()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVTK}{VTK}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Cell\+Data\+Scalars (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+name }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the cell data scalars. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+name} & Scalar array name \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+Function will fail if the array does not exist 
+\end{DoxyNote}
+\begin{DoxyReturn}{Returns}
+m\+\_\+cell\+Data\+Scalars at provided name 
+\end{DoxyReturn}
+\Hypertarget{classVTK_a48a3e813cc29e2d6347749ab531e90c9}\label{classVTK_a48a3e813cc29e2d6347749ab531e90c9} 
+\index{VTK$<$ T $>$@{VTK$<$ T $>$}!getFacets@{getFacets}}
+\index{getFacets@{getFacets}!VTK$<$ T $>$@{VTK$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getFacets()}{getFacets()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ $>$ \& \mbox{\hyperlink{classVTK}{VTK}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Facets (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the face indices. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+facets 
+\end{DoxyReturn}
+\Hypertarget{classVTK_a57c2694be46b257e7be34fd24543bab0}\label{classVTK_a57c2694be46b257e7be34fd24543bab0} 
+\index{VTK$<$ T $>$@{VTK$<$ T $>$}!getFacets@{getFacets}}
+\index{getFacets@{getFacets}!VTK$<$ T $>$@{VTK$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getFacets()}{getFacets()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::vector$<$ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ $>$ \& \mbox{\hyperlink{classVTK}{VTK}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Facets (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the face indices. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+facets 
+\end{DoxyReturn}
+\Hypertarget{classVTK_a3419ed70a2d7f8c5e8c7cefcd94eb612}\label{classVTK_a3419ed70a2d7f8c5e8c7cefcd94eb612} 
+\index{VTK$<$ T $>$@{VTK$<$ T $>$}!getPointDataScalars@{getPointDataScalars}}
+\index{getPointDataScalars@{getPointDataScalars}!VTK$<$ T $>$@{VTK$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getPointDataScalars()}{getPointDataScalars()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVTK}{VTK}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Point\+Data\+Scalars (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+name }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the point data scalars. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+name} & Scalar array name \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+Function will fail if the array does not exist 
+\end{DoxyNote}
+\begin{DoxyReturn}{Returns}
+m\+\_\+point\+Data\+Scalars at provided name 
+\end{DoxyReturn}
+\Hypertarget{classVTK_a7b9603b4921114909e0c3af3aba58a42}\label{classVTK_a7b9603b4921114909e0c3af3aba58a42} 
+\index{VTK$<$ T $>$@{VTK$<$ T $>$}!getPointDataScalars@{getPointDataScalars}}
+\index{getPointDataScalars@{getPointDataScalars}!VTK$<$ T $>$@{VTK$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getPointDataScalars()}{getPointDataScalars()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classVTK}{VTK}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Point\+Data\+Scalars (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+name }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the point data scalars. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+name} & Scalar array name \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+Function will fail if the array does not exist 
+\end{DoxyNote}
+\begin{DoxyReturn}{Returns}
+m\+\_\+point\+Data\+Scalars at provided name 
+\end{DoxyReturn}
+\Hypertarget{classVTK_a9710298f35ab2af8d29eb6b08fb35f52}\label{classVTK_a9710298f35ab2af8d29eb6b08fb35f52} 
+\index{VTK$<$ T $>$@{VTK$<$ T $>$}!getVertexCoordinates@{getVertexCoordinates}}
+\index{getVertexCoordinates@{getVertexCoordinates}!VTK$<$ T $>$@{VTK$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getVertexCoordinates()}{getVertexCoordinates()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \& \mbox{\hyperlink{classVTK}{VTK}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Vertex\+Coordinates (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the vertex coordinates. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+vertex\+Coordinates 
+\end{DoxyReturn}
+\Hypertarget{classVTK_aacc6fdb558cd3bc4f95db08ba9c41552}\label{classVTK_aacc6fdb558cd3bc4f95db08ba9c41552} 
+\index{VTK$<$ T $>$@{VTK$<$ T $>$}!getVertexCoordinates@{getVertexCoordinates}}
+\index{getVertexCoordinates@{getVertexCoordinates}!VTK$<$ T $>$@{VTK$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getVertexCoordinates()}{getVertexCoordinates()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \& \mbox{\hyperlink{classVTK}{VTK}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Vertex\+Coordinates (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the vertex coordinates. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+vertex\+Coordinates 
+\end{DoxyReturn}
+\Hypertarget{classVTK_aec71e0cbfa4628f2de0585020625dc87}\label{classVTK_aec71e0cbfa4628f2de0585020625dc87} 
+\index{VTK$<$ T $>$@{VTK$<$ T $>$}!setCellDataScalars@{setCellDataScalars}}
+\index{setCellDataScalars@{setCellDataScalars}!VTK$<$ T $>$@{VTK$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{setCellDataScalars()}{setCellDataScalars()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classVTK}{VTK}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::set\+Cell\+Data\+Scalars (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+name,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Set cell data scalars. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+name} & Array name \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+data} & Array data \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classVTK_a3bd1cf17475a5b12472f857907003e71}\label{classVTK_a3bd1cf17475a5b12472f857907003e71} 
+\index{VTK$<$ T $>$@{VTK$<$ T $>$}!setPointDataScalars@{setPointDataScalars}}
+\index{setPointDataScalars@{setPointDataScalars}!VTK$<$ T $>$@{VTK$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{setPointDataScalars()}{setPointDataScalars()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classVTK}{VTK}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::set\+Point\+Data\+Scalars (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+name,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Set point data scalars. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+name} & Array name \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+data} & Array data \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/EBGeometry\+\_\+\+VTK.\+hpp\end{DoxyCompactItemize}

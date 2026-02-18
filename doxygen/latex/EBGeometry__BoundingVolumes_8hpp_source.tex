@@ -25,11 +25,11 @@
 \DoxyCodeLine{00037\ \ \ \{}
 \DoxyCodeLine{00038\ \ \ \textcolor{keyword}{public}:}
 \DoxyCodeLine{00042\ \ \ \ \ \textcolor{keyword}{friend}\ std::ostream\&}
-\DoxyCodeLine{00043\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a25adc2589609371ae841fd4bc7edfc2f}{operator<<}}(std::ostream\&\ \mbox{\hyperlink{classVec3T}{os}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{BoundingSphereT<T>}}\&\ \mbox{\hyperlink{classVec3T}{sphere}})}
+\DoxyCodeLine{00043\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a25adc2589609371ae841fd4bc7edfc2f}{operator<<}}(std::ostream\&\ os,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{BoundingSphereT<T>}}\&\ \mbox{\hyperlink{classVec3T}{sphere}})}
 \DoxyCodeLine{00044\ \ \ \ \ \{}
-\DoxyCodeLine{00045\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{os}}\ <<\ \textcolor{charliteral}{'('}\ <<\ \mbox{\hyperlink{classVec3T}{sphere}}.getCentroid()\ <<\ \textcolor{stringliteral}{"{},\ "{}}\ <<\ \mbox{\hyperlink{classVec3T}{sphere}}.getRadius()\ <<\ \textcolor{charliteral}{')'};}
+\DoxyCodeLine{00045\ \ \ \ \ \ \ os\ <<\ \textcolor{charliteral}{'('}\ <<\ \mbox{\hyperlink{classVec3T}{sphere}}.getCentroid()\ <<\ \textcolor{stringliteral}{"{},\ "{}}\ <<\ \mbox{\hyperlink{classVec3T}{sphere}}.getRadius()\ <<\ \textcolor{charliteral}{')'};}
 \DoxyCodeLine{00046\ }
-\DoxyCodeLine{00047\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{os}};}
+\DoxyCodeLine{00047\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ os;}
 \DoxyCodeLine{00048\ \ \ \ \ \}}
 \DoxyCodeLine{00049\ }
 \DoxyCodeLine{00054\ \ \ \ \ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_ae98cd00c8e45c93a0fc4fbabec63b007}{BoundingVolumeAlgorithm}}}
@@ -102,11 +102,11 @@
 \DoxyCodeLine{00217\ \ \ \{}
 \DoxyCodeLine{00218\ \ \ \textcolor{keyword}{public}:}
 \DoxyCodeLine{00222\ \ \ \ \ \textcolor{keyword}{friend}\ std::ostream\&}
-\DoxyCodeLine{00223\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a25adc2589609371ae841fd4bc7edfc2f}{operator<<}}(std::ostream\&\ \mbox{\hyperlink{classVec3T}{os}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{AABBT<T>}}\&\ \mbox{\hyperlink{classVec3T}{aabb}})}
+\DoxyCodeLine{00223\ \ \ \ \ \mbox{\hyperlink{classBoundingVolumes_1_1BoundingSphereT_a25adc2589609371ae841fd4bc7edfc2f}{operator<<}}(std::ostream\&\ os,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classVec3T}{AABBT<T>}}\&\ \mbox{\hyperlink{classVec3T}{aabb}})}
 \DoxyCodeLine{00224\ \ \ \ \ \{}
-\DoxyCodeLine{00225\ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{os}}\ <<\ \textcolor{charliteral}{'('}\ <<\ \mbox{\hyperlink{classVec3T}{aabb}}.getLowCorner()\ <<\ \textcolor{stringliteral}{"{},\ "{}}\ <<\ \mbox{\hyperlink{classVec3T}{aabb}}.getHighCorner()\ <<\ \textcolor{charliteral}{')'};}
+\DoxyCodeLine{00225\ \ \ \ \ \ \ os\ <<\ \textcolor{charliteral}{'('}\ <<\ \mbox{\hyperlink{classVec3T}{aabb}}.getLowCorner()\ <<\ \textcolor{stringliteral}{"{},\ "{}}\ <<\ \mbox{\hyperlink{classVec3T}{aabb}}.getHighCorner()\ <<\ \textcolor{charliteral}{')'};}
 \DoxyCodeLine{00226\ }
-\DoxyCodeLine{00227\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classVec3T}{os}};}
+\DoxyCodeLine{00227\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ os;}
 \DoxyCodeLine{00228\ \ \ \ \ \}}
 \DoxyCodeLine{00229\ }
 \DoxyCodeLine{00233\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classVec3T}{Vec3}}\ =\ \mbox{\hyperlink{classVec3T}{Vec3T<T>}};}

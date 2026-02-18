@@ -70,8 +70,8 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
-<a href="#nested-classes">Classes</a> &#124;
-<a href="#enum-members">Enumerations</a>  </div>
+<a href="#enum-members">Enumerations</a> &#124;
+<a href="#func-members">Functions</a>  </div>
   <div class="headertitle"><div class="title">Parser Namespace Reference</div></div>
 </div><!--header-->
 <div class="contents">
@@ -79,15 +79,6 @@ $(function() {
 <p>Namespace which encapsulates possible file parsers for building <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> data structures.  
 <a href="namespaceParser.html#details">More...</a></p>
 <table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
-Classes</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classParser_1_1PLY.html">PLY</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Class for reading Stanford <a class="el" href="classParser_1_1PLY.html" title="Class for reading Stanford PLY files.">PLY</a> files.  <a href="classParser_1_1PLY.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classParser_1_1STL.html">STL</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Class for reading <a class="el" href="classParser_1_1STL.html" title="Class for reading STL files.">STL</a> files.  <a href="classParser_1_1STL.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
 <tr class="memitem:a4335203a05b102e71ece262ddb2a38a0" id="r_a4335203a05b102e71ece262ddb2a38a0"><td class="memItemLeft" align="right" valign="top"><a id="a4335203a05b102e71ece262ddb2a38a0" name="a4335203a05b102e71ece262ddb2a38a0"></a>enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceParser.html#a4335203a05b102e71ece262ddb2a38a0">Encoding</a> { <b>ASCII</b>
@@ -98,14 +89,261 @@ Enumerations</h2></td></tr>
 <tr class="separator:a4335203a05b102e71ece262ddb2a38a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8fc8b809825e25aef6d1cc003b88b60f" id="r_a8fc8b809825e25aef6d1cc003b88b60f"><td class="memItemLeft" align="right" valign="top"><a id="a8fc8b809825e25aef6d1cc003b88b60f" name="a8fc8b809825e25aef6d1cc003b88b60f"></a>enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceParser.html#a8fc8b809825e25aef6d1cc003b88b60f">FileType</a> { <b>STL</b>
 , <b>PLY</b>
+, <b>VTK</b>
 , <b>Unsupported</b>
  }</td></tr>
 <tr class="memdesc:a8fc8b809825e25aef6d1cc003b88b60f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Various supported file types. <br /></td></tr>
 <tr class="separator:a8fc8b809825e25aef6d1cc003b88b60f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
+Functions</h2></td></tr>
+<tr class="memitem:ae7a859eae794978c992f003c8ee66b0c" id="r_ae7a859eae794978c992f003c8ee66b0c"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classVec3T.html">typename</a> <a class="el" href="classVec3T.html">T</a> &gt; </td></tr>
+<tr class="memitem:ae7a859eae794978c992f003c8ee66b0c"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classPLY.html">PLY</a>&lt; <a class="el" href="classVec3T.html">T</a> &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceParser.html#ae7a859eae794978c992f003c8ee66b0c">readPLY</a> (<a class="el" href="classVec3T.html">const</a> std::string &amp;<a class="el" href="classVec3T.html">a_filename</a>) <a class="el" href="classVec3T.html">noexcept</a></td></tr>
+<tr class="memdesc:ae7a859eae794978c992f003c8ee66b0c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read a single <a class="el" href="classPLY.html" title="Class for storing Stanford PLY meshes.">PLY</a> file.  <br /></td></tr>
+<tr class="separator:ae7a859eae794978c992f003c8ee66b0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a680c2f7258b073533936c51a29d5c2df" id="r_a680c2f7258b073533936c51a29d5c2df"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classVec3T.html">typename</a> <a class="el" href="classVec3T.html">T</a> &gt; </td></tr>
+<tr class="memitem:a680c2f7258b073533936c51a29d5c2df"><td class="memTemplItemLeft" align="right" valign="top">std::vector&lt; <a class="el" href="classPLY.html">PLY</a>&lt; <a class="el" href="classVec3T.html">T</a> &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceParser.html#a680c2f7258b073533936c51a29d5c2df">readPLY</a> (<a class="el" href="classVec3T.html">const</a> std::vector&lt; std::string &gt; &amp;<a class="el" href="classVec3T.html">a_filenames</a>) <a class="el" href="classVec3T.html">noexcept</a></td></tr>
+<tr class="memdesc:a680c2f7258b073533936c51a29d5c2df"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read multiple <a class="el" href="classPLY.html" title="Class for storing Stanford PLY meshes.">PLY</a> files.  <br /></td></tr>
+<tr class="separator:a680c2f7258b073533936c51a29d5c2df"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af4437fe67afc7de0a1b53765f05c318e" id="r_af4437fe67afc7de0a1b53765f05c318e"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classVec3T.html">typename</a> <a class="el" href="classVec3T.html">T</a> &gt; </td></tr>
+<tr class="memitem:af4437fe67afc7de0a1b53765f05c318e"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classSTL.html">STL</a>&lt; <a class="el" href="classVec3T.html">T</a> &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceParser.html#af4437fe67afc7de0a1b53765f05c318e">readSTL</a> (<a class="el" href="classVec3T.html">const</a> std::string &amp;<a class="el" href="classVec3T.html">a_filename</a>) <a class="el" href="classVec3T.html">noexcept</a></td></tr>
+<tr class="memdesc:af4437fe67afc7de0a1b53765f05c318e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read a single <a class="el" href="classSTL.html" title="Class for storing contents of STL files.">STL</a> file.  <br /></td></tr>
+<tr class="separator:af4437fe67afc7de0a1b53765f05c318e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abbc7d6aa62c439a5e46b4dcc02cdeb49" id="r_abbc7d6aa62c439a5e46b4dcc02cdeb49"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classVec3T.html">typename</a> <a class="el" href="classVec3T.html">T</a> &gt; </td></tr>
+<tr class="memitem:abbc7d6aa62c439a5e46b4dcc02cdeb49"><td class="memTemplItemLeft" align="right" valign="top">std::vector&lt; <a class="el" href="classSTL.html">STL</a>&lt; <a class="el" href="classVec3T.html">T</a> &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceParser.html#abbc7d6aa62c439a5e46b4dcc02cdeb49">readSTL</a> (<a class="el" href="classVec3T.html">const</a> std::vector&lt; std::string &gt; &amp;<a class="el" href="classVec3T.html">a_filenames</a>) <a class="el" href="classVec3T.html">noexcept</a></td></tr>
+<tr class="memdesc:abbc7d6aa62c439a5e46b4dcc02cdeb49"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read multiple <a class="el" href="classSTL.html" title="Class for storing contents of STL files.">STL</a> files.  <br /></td></tr>
+<tr class="separator:abbc7d6aa62c439a5e46b4dcc02cdeb49"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afd58656e0cc8bb83db404119ed0a9dc0" id="r_afd58656e0cc8bb83db404119ed0a9dc0"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classVec3T.html">typename</a> <a class="el" href="classVec3T.html">T</a> &gt; </td></tr>
+<tr class="memitem:afd58656e0cc8bb83db404119ed0a9dc0"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classVTK.html">VTK</a>&lt; <a class="el" href="classVec3T.html">T</a> &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceParser.html#afd58656e0cc8bb83db404119ed0a9dc0">readVTK</a> (<a class="el" href="classVec3T.html">const</a> std::string &amp;<a class="el" href="classVec3T.html">a_filename</a>) <a class="el" href="classVec3T.html">noexcept</a></td></tr>
+<tr class="memdesc:afd58656e0cc8bb83db404119ed0a9dc0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read a single <a class="el" href="classVTK.html" title="Class for storing VTK Polydata meshes.">VTK</a> file.  <br /></td></tr>
+<tr class="separator:afd58656e0cc8bb83db404119ed0a9dc0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a65db2a0b91ba4dd105274df5d307bc7b" id="r_a65db2a0b91ba4dd105274df5d307bc7b"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classVec3T.html">typename</a> <a class="el" href="classVec3T.html">T</a> &gt; </td></tr>
+<tr class="memitem:a65db2a0b91ba4dd105274df5d307bc7b"><td class="memTemplItemLeft" align="right" valign="top">std::vector&lt; <a class="el" href="classVTK.html">VTK</a>&lt; <a class="el" href="classVec3T.html">T</a> &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceParser.html#a65db2a0b91ba4dd105274df5d307bc7b">readVTK</a> (<a class="el" href="classVec3T.html">const</a> std::vector&lt; std::string &gt; &amp;<a class="el" href="classVec3T.html">a_filenames</a>) <a class="el" href="classVec3T.html">noexcept</a></td></tr>
+<tr class="memdesc:a65db2a0b91ba4dd105274df5d307bc7b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read multiple <a class="el" href="classVTK.html" title="Class for storing VTK Polydata meshes.">VTK</a> files.  <br /></td></tr>
+<tr class="separator:a65db2a0b91ba4dd105274df5d307bc7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Namespace which encapsulates possible file parsers for building <a class="el" href="namespaceEBGeometry.html" title="Name space for all of EBGeometry.">EBGeometry</a> data structures. </p>
-</div></div><!-- contents -->
+</div><h2 class="groupheader">Function Documentation</h2>
+<a id="ae7a859eae794978c992f003c8ee66b0c" name="ae7a859eae794978c992f003c8ee66b0c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae7a859eae794978c992f003c8ee66b0c">&#9670;&#160;</a></span>readPLY() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classVec3T.html">typename</a> <a class="el" href="classVec3T.html">T</a> &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classPLY.html">PLY</a>&lt; <a class="el" href="classVec3T.html">T</a> &gt; Parser::readPLY </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classVec3T.html">const</a> std::string &amp;&#160;</td>
+          <td class="paramname"><em>a_filename</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Read a single <a class="el" href="classPLY.html" title="Class for storing Stanford PLY meshes.">PLY</a> file. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_filename</td><td><a class="el" href="classPLY.html" title="Class for storing Stanford PLY meshes.">PLY</a> file name. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a680c2f7258b073533936c51a29d5c2df" name="a680c2f7258b073533936c51a29d5c2df"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a680c2f7258b073533936c51a29d5c2df">&#9670;&#160;</a></span>readPLY() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classVec3T.html">typename</a> <a class="el" href="classVec3T.html">T</a> &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::vector&lt; <a class="el" href="classPLY.html">PLY</a>&lt; <a class="el" href="classVec3T.html">T</a> &gt; &gt; Parser::readPLY </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classVec3T.html">const</a> std::vector&lt; std::string &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_filenames</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Read multiple <a class="el" href="classPLY.html" title="Class for storing Stanford PLY meshes.">PLY</a> files. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_filenames</td><td><a class="el" href="classPLY.html" title="Class for storing Stanford PLY meshes.">PLY</a> file names. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="af4437fe67afc7de0a1b53765f05c318e" name="af4437fe67afc7de0a1b53765f05c318e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af4437fe67afc7de0a1b53765f05c318e">&#9670;&#160;</a></span>readSTL() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classVec3T.html">typename</a> <a class="el" href="classVec3T.html">T</a> &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classSTL.html">STL</a>&lt; <a class="el" href="classVec3T.html">T</a> &gt; Parser::readSTL </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classVec3T.html">const</a> std::string &amp;&#160;</td>
+          <td class="paramname"><em>a_filename</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Read a single <a class="el" href="classSTL.html" title="Class for storing contents of STL files.">STL</a> file. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_filename</td><td><a class="el" href="classSTL.html" title="Class for storing contents of STL files.">STL</a> file name. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>If the <a class="el" href="classSTL.html" title="Class for storing contents of STL files.">STL</a> file contains multiple solids (which is uncommon but technically supported), this routine will only read the first one. </dd></dl>
+
+</div>
+</div>
+<a id="abbc7d6aa62c439a5e46b4dcc02cdeb49" name="abbc7d6aa62c439a5e46b4dcc02cdeb49"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abbc7d6aa62c439a5e46b4dcc02cdeb49">&#9670;&#160;</a></span>readSTL() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classVec3T.html">typename</a> <a class="el" href="classVec3T.html">T</a> &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::vector&lt; <a class="el" href="classSTL.html">STL</a>&lt; <a class="el" href="classVec3T.html">T</a> &gt; &gt; Parser::readSTL </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classVec3T.html">const</a> std::vector&lt; std::string &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_filenames</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Read multiple <a class="el" href="classSTL.html" title="Class for storing contents of STL files.">STL</a> files. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_filenames</td><td><a class="el" href="classSTL.html" title="Class for storing contents of STL files.">STL</a> file names. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>If the <a class="el" href="classSTL.html" title="Class for storing contents of STL files.">STL</a> file contains multiple solids (which is uncommon but technically supported), this routine will only read the first one. </dd></dl>
+
+</div>
+</div>
+<a id="afd58656e0cc8bb83db404119ed0a9dc0" name="afd58656e0cc8bb83db404119ed0a9dc0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afd58656e0cc8bb83db404119ed0a9dc0">&#9670;&#160;</a></span>readVTK() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classVec3T.html">typename</a> <a class="el" href="classVec3T.html">T</a> &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classVTK.html">VTK</a>&lt; <a class="el" href="classVec3T.html">T</a> &gt; Parser::readVTK </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classVec3T.html">const</a> std::string &amp;&#160;</td>
+          <td class="paramname"><em>a_filename</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Read a single <a class="el" href="classVTK.html" title="Class for storing VTK Polydata meshes.">VTK</a> file. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_filename</td><td><a class="el" href="classVTK.html" title="Class for storing VTK Polydata meshes.">VTK</a> file name. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a65db2a0b91ba4dd105274df5d307bc7b" name="a65db2a0b91ba4dd105274df5d307bc7b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a65db2a0b91ba4dd105274df5d307bc7b">&#9670;&#160;</a></span>readVTK() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classVec3T.html">typename</a> <a class="el" href="classVec3T.html">T</a> &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::vector&lt; <a class="el" href="classVTK.html">VTK</a>&lt; <a class="el" href="classVec3T.html">T</a> &gt; &gt; Parser::readVTK </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classVec3T.html">const</a> std::vector&lt; std::string &gt; &amp;&#160;</td>
+          <td class="paramname"><em>a_filenames</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Read multiple <a class="el" href="classVTK.html" title="Class for storing VTK Polydata meshes.">VTK</a> files. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_filenames</td><td><a class="el" href="classVTK.html" title="Class for storing VTK Polydata meshes.">VTK</a> file names. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+</div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8

@@ -1,0 +1,299 @@
+\doxysection{PLY\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classPLY}{}\label{classPLY}\index{PLY$<$ T $>$@{PLY$<$ T $>$}}
+
+
+Class for storing Stanford \doxylink{classPLY}{PLY} meshes.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+PLY.\+hpp$>$}
+
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classPLY_ae03bb8864f70e4281c40e5033b8c0cff}\label{classPLY_ae03bb8864f70e4281c40e5033b8c0cff} 
+{\bfseries PLY} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Default constructor. Initializes empty member data holder. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classPLY_a74e3eef08dbe52da9697680391977e5b}{PLY}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+id}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Constructor. Initializes empty vertices and facets but sets the \doxylink{classPLY}{PLY} ID (usually the file name. \end{DoxyCompactList}\item 
+\Hypertarget{classPLY_a5a59742f6a8e3e8f77dfe3db6d0e2249}\label{classPLY_a5a59742f6a8e3e8f77dfe3db6d0e2249} 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+PLY} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Destructor. Clears all data. \end{DoxyCompactList}\item 
+\Hypertarget{classPLY_aa4b0a49bb9066c2bf6273d418249d3ed}\label{classPLY_aa4b0a49bb9066c2bf6273d418249d3ed} 
+std\+::string \& {\bfseries get\+ID} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the identifier for this object. \end{DoxyCompactList}\item 
+\Hypertarget{classPLY_ab058cdc29a90ce7fff9baae9ffd7ae56}\label{classPLY_ab058cdc29a90ce7fff9baae9ffd7ae56} 
+\mbox{\hyperlink{classVec3T}{const}} std\+::string \& {\bfseries get\+ID} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the identifier for this object. \end{DoxyCompactList}\item 
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \& \mbox{\hyperlink{classPLY_ada26f28690ef4668b6de9cdd4a3c0cf7}{get\+Vertex\+Coordinates}} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the vertex coordinates. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \& \mbox{\hyperlink{classPLY_a3b9607874755e0f69442af0bee0eb263}{get\+Vertex\+Coordinates}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the vertex coordinates. \end{DoxyCompactList}\item 
+std\+::vector$<$ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ $>$ \& \mbox{\hyperlink{classPLY_aafe9e63c31abff42d5858a65c5167cd2}{get\+Facets}} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the face indices. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ $>$ \& \mbox{\hyperlink{classPLY_a5199e2ca1bcd5f8b2647427cd1f3a309}{get\+Facets}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the face indices. \end{DoxyCompactList}\item 
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classPLY_a9ce8474305773463b0dee009ef70503e}{get\+Vertex\+Properties}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+property}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the vertex properties. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classPLY_a59d8ef5acb9f57e73aa0f6af087d0331}{get\+Vertex\+Properties}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+property}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the vertex properties. \end{DoxyCompactList}\item 
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classPLY_a96b2fa15c72b91e6ddf458217300dc3f}{get\+Face\+Properties}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+property}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the face properties. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classPLY_a6831877b22564d10623349ce933e1aea}{get\+Face\+Properties}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+property}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the vertex properties. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classPLY_a1ee84d781048fa10c5a1550d71218948}{set\+Vertex\+Properties}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+property}}, \mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+data}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Set vertex properties. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classPLY_a465c0cbba8c53efc647973ad740aa9ad}{set\+Face\+Properties}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+property}}, \mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+data}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Set face properties. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ }\\std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$ $>$ \mbox{\hyperlink{classPLY_a8a223e69421d4b8b849f59e462cdc01f}{convert\+To\+DCEL}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Turn the \doxylink{classPLY}{PLY} mesh into a \doxylink{namespaceDCEL}{DCEL} mesh. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classPLY_ac6a1aacdde7531c300d02e6178eed834}\label{classPLY_ac6a1aacdde7531c300d02e6178eed834} 
+std\+::string {\bfseries m\+\_\+id}
+\begin{DoxyCompactList}\small\item\em \doxylink{classPLY}{PLY} object ID. \end{DoxyCompactList}\item 
+\Hypertarget{classPLY_a5794a8c7305191e6c04d5827daea2b3c}\label{classPLY_a5794a8c7305191e6c04d5827daea2b3c} 
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ {\bfseries m\+\_\+vertex\+Coordinates}
+\begin{DoxyCompactList}\small\item\em Vertex coordinates. \end{DoxyCompactList}\item 
+\Hypertarget{classPLY_a3d078b21d9e2bdbed53ade8dc9e5dc57}\label{classPLY_a3d078b21d9e2bdbed53ade8dc9e5dc57} 
+std\+::vector$<$ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ $>$ {\bfseries m\+\_\+facets}
+\begin{DoxyCompactList}\small\item\em Faces -- each entry in the outer vector contains the indices defining one face. \end{DoxyCompactList}\item 
+\Hypertarget{classPLY_a39672643959917a0cb3ce384d6e32dac}\label{classPLY_a39672643959917a0cb3ce384d6e32dac} 
+std\+::map$<$ std\+::string, std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ {\bfseries m\+\_\+vertex\+Properties}
+\begin{DoxyCompactList}\small\item\em Vertex properties. \end{DoxyCompactList}\item 
+\Hypertarget{classPLY_af57182df9181f7a6c68dd59fe197fe5a}\label{classPLY_af57182df9181f7a6c68dd59fe197fe5a} 
+std\+::map$<$ std\+::string, std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ {\bfseries m\+\_\+face\+Properties}
+\begin{DoxyCompactList}\small\item\em Face properties. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}}$>$\newline
+class PLY$<$ T $>$}
+Class for storing Stanford \doxylink{classPLY}{PLY} meshes. 
+
+\begin{DoxyNote}{Note}
+T is the precision used for storing the mesh. 
+\end{DoxyNote}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{classPLY_a74e3eef08dbe52da9697680391977e5b}\label{classPLY_a74e3eef08dbe52da9697680391977e5b} 
+\index{PLY$<$ T $>$@{PLY$<$ T $>$}!PLY@{PLY}}
+\index{PLY@{PLY}!PLY$<$ T $>$@{PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{PLY()}{PLY()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classPLY}{PLY}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classPLY}{\+::\+PLY}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+id }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Constructor. Initializes empty vertices and facets but sets the \doxylink{classPLY}{PLY} ID (usually the file name. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+id} & Identifier for \doxylink{classPLY}{PLY} object \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classPLY_a8a223e69421d4b8b849f59e462cdc01f}\label{classPLY_a8a223e69421d4b8b849f59e462cdc01f} 
+\index{PLY$<$ T $>$@{PLY$<$ T $>$}!convertToDCEL@{convertToDCEL}}
+\index{convertToDCEL@{convertToDCEL}!PLY$<$ T $>$@{PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{convertToDCEL()}{convertToDCEL()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$ $>$ \mbox{\hyperlink{classPLY}{PLY}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::convert\+To\+DCEL (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Turn the \doxylink{classPLY}{PLY} mesh into a \doxylink{namespaceDCEL}{DCEL} mesh. 
+
+This call does not populate any meta-\/data in the \doxylink{namespaceDCEL}{DCEL} mesh structures. If you need to also populate the meta-\/data on vertices and faces, you should not use this function but supply your own constructor. \Hypertarget{classPLY_a6831877b22564d10623349ce933e1aea}\label{classPLY_a6831877b22564d10623349ce933e1aea} 
+\index{PLY$<$ T $>$@{PLY$<$ T $>$}!getFaceProperties@{getFaceProperties}}
+\index{getFaceProperties@{getFaceProperties}!PLY$<$ T $>$@{PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getFaceProperties()}{getFaceProperties()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classPLY}{PLY}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Face\+Properties (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+property }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the vertex properties. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+property} & Which property to fetch \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+Function will fail if the property does not exist 
+\end{DoxyNote}
+\begin{DoxyReturn}{Returns}
+m\+\_\+vertex\+Properties at provided property 
+\end{DoxyReturn}
+\Hypertarget{classPLY_a96b2fa15c72b91e6ddf458217300dc3f}\label{classPLY_a96b2fa15c72b91e6ddf458217300dc3f} 
+\index{PLY$<$ T $>$@{PLY$<$ T $>$}!getFaceProperties@{getFaceProperties}}
+\index{getFaceProperties@{getFaceProperties}!PLY$<$ T $>$@{PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getFaceProperties()}{getFaceProperties()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classPLY}{PLY}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Face\+Properties (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+property }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the face properties. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+property} & Which property to fetch \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+Function will fail if the property does not exist 
+\end{DoxyNote}
+\begin{DoxyReturn}{Returns}
+m\+\_\+face\+Properties at provided property 
+\end{DoxyReturn}
+\Hypertarget{classPLY_a5199e2ca1bcd5f8b2647427cd1f3a309}\label{classPLY_a5199e2ca1bcd5f8b2647427cd1f3a309} 
+\index{PLY$<$ T $>$@{PLY$<$ T $>$}!getFacets@{getFacets}}
+\index{getFacets@{getFacets}!PLY$<$ T $>$@{PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getFacets()}{getFacets()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ $>$ \& \mbox{\hyperlink{classPLY}{PLY}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Facets (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the face indices. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+facets 
+\end{DoxyReturn}
+\Hypertarget{classPLY_aafe9e63c31abff42d5858a65c5167cd2}\label{classPLY_aafe9e63c31abff42d5858a65c5167cd2} 
+\index{PLY$<$ T $>$@{PLY$<$ T $>$}!getFacets@{getFacets}}
+\index{getFacets@{getFacets}!PLY$<$ T $>$@{PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getFacets()}{getFacets()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::vector$<$ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ $>$ \& \mbox{\hyperlink{classPLY}{PLY}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Facets (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the face indices. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+facets 
+\end{DoxyReturn}
+\Hypertarget{classPLY_a3b9607874755e0f69442af0bee0eb263}\label{classPLY_a3b9607874755e0f69442af0bee0eb263} 
+\index{PLY$<$ T $>$@{PLY$<$ T $>$}!getVertexCoordinates@{getVertexCoordinates}}
+\index{getVertexCoordinates@{getVertexCoordinates}!PLY$<$ T $>$@{PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getVertexCoordinates()}{getVertexCoordinates()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \& \mbox{\hyperlink{classPLY}{PLY}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Vertex\+Coordinates (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the vertex coordinates. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+vertex\+Coordinates ~\newline
+ 
+\end{DoxyReturn}
+\Hypertarget{classPLY_ada26f28690ef4668b6de9cdd4a3c0cf7}\label{classPLY_ada26f28690ef4668b6de9cdd4a3c0cf7} 
+\index{PLY$<$ T $>$@{PLY$<$ T $>$}!getVertexCoordinates@{getVertexCoordinates}}
+\index{getVertexCoordinates@{getVertexCoordinates}!PLY$<$ T $>$@{PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getVertexCoordinates()}{getVertexCoordinates()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \& \mbox{\hyperlink{classPLY}{PLY}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Vertex\+Coordinates (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the vertex coordinates. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+vertex\+Coordinates 
+\end{DoxyReturn}
+\Hypertarget{classPLY_a59d8ef5acb9f57e73aa0f6af087d0331}\label{classPLY_a59d8ef5acb9f57e73aa0f6af087d0331} 
+\index{PLY$<$ T $>$@{PLY$<$ T $>$}!getVertexProperties@{getVertexProperties}}
+\index{getVertexProperties@{getVertexProperties}!PLY$<$ T $>$@{PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getVertexProperties()}{getVertexProperties()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classPLY}{PLY}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Vertex\+Properties (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+property }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the vertex properties. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+property} & Which property to fetch \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+Function will fail if the property does not exist ~\newline
+ 
+\end{DoxyNote}
+\begin{DoxyReturn}{Returns}
+m\+\_\+vertex\+Properties at provided property 
+\end{DoxyReturn}
+\Hypertarget{classPLY_a9ce8474305773463b0dee009ef70503e}\label{classPLY_a9ce8474305773463b0dee009ef70503e} 
+\index{PLY$<$ T $>$@{PLY$<$ T $>$}!getVertexProperties@{getVertexProperties}}
+\index{getVertexProperties@{getVertexProperties}!PLY$<$ T $>$@{PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getVertexProperties()}{getVertexProperties()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \& \mbox{\hyperlink{classPLY}{PLY}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Vertex\+Properties (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+property }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the vertex properties. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+property} & Which property to fetch \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+Function will fail if the property does not exist 
+\end{DoxyNote}
+\begin{DoxyReturn}{Returns}
+m\+\_\+vertex\+Properties at provided property 
+\end{DoxyReturn}
+\Hypertarget{classPLY_a465c0cbba8c53efc647973ad740aa9ad}\label{classPLY_a465c0cbba8c53efc647973ad740aa9ad} 
+\index{PLY$<$ T $>$@{PLY$<$ T $>$}!setFaceProperties@{setFaceProperties}}
+\index{setFaceProperties@{setFaceProperties}!PLY$<$ T $>$@{PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{setFaceProperties()}{setFaceProperties()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classPLY}{PLY}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::set\+Face\+Properties (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+property,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Set face properties. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+property} & Property name \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+data} & Property data \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classPLY_a1ee84d781048fa10c5a1550d71218948}\label{classPLY_a1ee84d781048fa10c5a1550d71218948} 
+\index{PLY$<$ T $>$@{PLY$<$ T $>$}!setVertexProperties@{setVertexProperties}}
+\index{setVertexProperties@{setVertexProperties}!PLY$<$ T $>$@{PLY$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{setVertexProperties()}{setVertexProperties()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classPLY}{PLY}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::set\+Vertex\+Properties (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+property,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \&}]{a\+\_\+data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Set vertex properties. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+property} & Property name \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+data} & Property data \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/EBGeometry\+\_\+\+PLY.\+hpp\end{DoxyCompactItemize}

@@ -1,0 +1,68 @@
+\doxysection{EBGeometry\+\_\+\+STL.\+hpp}
+\hypertarget{EBGeometry__STL_8hpp_source}{}\label{EBGeometry__STL_8hpp_source}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_STL.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_STL.hpp}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*\ EBGeometry}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ Copyright\ ©\ 2026\ Robert\ Marskar}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ Please\ refer\ to\ Copyright.txt\ and\ LICENSE\ in\ the\ EBGeometry\ root\ directory.}}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#ifndef\ EBGeometry\_STL}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#define\ EBGeometry\_STL}}
+\DoxyCodeLine{00008\ }
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Std\ includes}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#include\ <map>}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ Our\ includes}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__Vec_8hpp}{EBGeometry\_Vec.hpp}}"{}}}
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__DCEL__Mesh_8hpp}{EBGeometry\_DCEL\_Mesh.hpp}}"{}}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceHeader_8hpp}{EBGeometry\_NamespaceHeader.hpp}}"{}}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00023\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00024\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classSTL}{STL}}}
+\DoxyCodeLine{00025\ \{}
+\DoxyCodeLine{00026\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00030\ \ \ \mbox{\hyperlink{classSTL_aee83733142bbd52841412902605b7e2b}{STL}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00036\ \ \ \mbox{\hyperlink{classSTL}{STL}}(\mbox{\hyperlink{classVec3T}{const}}\ std::\textcolor{keywordtype}{string}\ \mbox{\hyperlink{classVec3T}{a\_id}})\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00041\ \ \ \mbox{\hyperlink{classVec3T}{virtual}}\ \string~\mbox{\hyperlink{classSTL}{STL}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00046\ \ \ std::\textcolor{keywordtype}{string}\&}
+\DoxyCodeLine{00047\ \ \ \mbox{\hyperlink{classSTL_a0a2c44df9e120520787fcf2984359fc0}{getID}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00052\ \ \ \mbox{\hyperlink{classVec3T}{const}}\ std::\textcolor{keywordtype}{string}\&}
+\DoxyCodeLine{00053\ \ \ \mbox{\hyperlink{classSTL_a0a2c44df9e120520787fcf2984359fc0}{getID}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00059\ \ \ std::\mbox{\hyperlink{classVec3T}{vector}}<\mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>>\&}
+\DoxyCodeLine{00060\ \ \ \mbox{\hyperlink{classSTL_a827e5da639df16f170355c223cacbb68}{getVertexCoordinates}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00066\ \ \ \mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{vector}}<\mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>>\&}
+\DoxyCodeLine{00067\ \ \ \mbox{\hyperlink{classSTL_a827e5da639df16f170355c223cacbb68}{getVertexCoordinates}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00073\ \ \ std::\mbox{\hyperlink{classVec3T}{vector}}<std::\mbox{\hyperlink{classVec3T}{vector}}<\textcolor{keywordtype}{size\_t}>>\&}
+\DoxyCodeLine{00074\ \ \ \mbox{\hyperlink{classSTL_a251b033479e12f37c4fd9bea405dfad6}{getFacets}}()\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00080\ \ \ \mbox{\hyperlink{classVec3T}{const}}\ std::\mbox{\hyperlink{classVec3T}{vector}}<std::\mbox{\hyperlink{classVec3T}{vector}}<\textcolor{keywordtype}{size\_t}>>\&}
+\DoxyCodeLine{00081\ \ \ \mbox{\hyperlink{classSTL_a251b033479e12f37c4fd9bea405dfad6}{getFacets}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00087\ \ \ \mbox{\hyperlink{classVec3T}{template}}\ <\mbox{\hyperlink{classVec3T}{typename}}\ \mbox{\hyperlink{classVec3T}{Meta}}>}
+\DoxyCodeLine{00088\ \ \ std::\mbox{\hyperlink{classVec3T}{shared\_ptr}}<\mbox{\hyperlink{namespaceEBGeometry}{EBGeometry}}::\mbox{\hyperlink{namespaceDCEL}{DCEL}}::MeshT<\mbox{\hyperlink{classVec3T}{T}},\ \mbox{\hyperlink{classVec3T}{Meta}}>>}
+\DoxyCodeLine{00089\ \ \ \mbox{\hyperlink{classSTL_a62d7da710a8c73e2998d6f3245e31948}{convertToDCEL}}()\ \mbox{\hyperlink{classVec3T}{const}}\ \mbox{\hyperlink{classVec3T}{noexcept}};}
+\DoxyCodeLine{00090\ }
+\DoxyCodeLine{00091\ \mbox{\hyperlink{classVec3T}{protected}}:}
+\DoxyCodeLine{00095\ \ \ std::\textcolor{keywordtype}{string}\ \mbox{\hyperlink{classSTL_ac88d8377ce1f2aec9c59003e8b55d0d8}{m\_id}};}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00100\ \ \ std::\mbox{\hyperlink{classVec3T}{vector}}<\mbox{\hyperlink{classVec3T}{Vec3T}}<\mbox{\hyperlink{classVec3T}{T}}>>\ \mbox{\hyperlink{classSTL_a50d2ca32af46c80f41f37bb01e282800}{m\_vertexCoordinates}};}
+\DoxyCodeLine{00101\ }
+\DoxyCodeLine{00105\ \ \ std::\mbox{\hyperlink{classVec3T}{vector}}<std::\mbox{\hyperlink{classVec3T}{vector}}<\textcolor{keywordtype}{size\_t}>>\ \mbox{\hyperlink{classSTL_a9c06bb10145e8605397aa026d3c0f72a}{m\_facets}};}
+\DoxyCodeLine{00106\ \};}
+\DoxyCodeLine{00107\ }
+\DoxyCodeLine{00108\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_NamespaceFooter.hpp"{}}}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_STLImplem.hpp"{}}}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

@@ -1,0 +1,50 @@
+\doxysection{EBGeometry\+\_\+\+Soup.\+hpp}
+\hypertarget{EBGeometry__Soup_8hpp_source}{}\label{EBGeometry__Soup_8hpp_source}\index{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Soup.hpp@{/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry\_Soup.hpp}}
+\mbox{\hyperlink{EBGeometry__Soup_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*\ EBGeometry}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ Copyright\ ©\ 2026\ Robert\ Marskar}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *\ Please\ refer\ to\ Copyright.txt\ and\ LICENSE\ in\ the\ EBGeometry\ root\ directory.}}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#ifndef\ EBGeometry\_Soup}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#define\ EBGeometry\_Soup}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ Std\ includes}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ Our\ includes}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__Vec_8hpp}{EBGeometry\_Vec.hpp}}"{}}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__DCEL__Mesh_8hpp}{EBGeometry\_DCEL\_Mesh.hpp}}"{}}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceHeader_8hpp}{EBGeometry\_NamespaceHeader.hpp}}"{}}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00026\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceSoup}{Soup}}\ \{}
+\DoxyCodeLine{00032\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00033\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{00034\ \ \ containsDegeneratePolygons(\textcolor{keyword}{const}\ std::vector<EBGeometry::Vec3T<T>>\&\ \mbox{\hyperlink{classVec3T}{a\_vertices}},}
+\DoxyCodeLine{00035\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::vector<size\_t>>\&\ \ \mbox{\hyperlink{classVec3T}{a\_facets}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00042\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00043\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00044\ \ \ compress(std::vector<EBGeometry::Vec3T<T>>\&\ \mbox{\hyperlink{classVec3T}{a\_vertices}},\ std::vector<std::vector<size\_t>>\&\ \mbox{\hyperlink{classVec3T}{a\_facets}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00053\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ Meta>}
+\DoxyCodeLine{00054\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00055\ \ \ soupToDCEL(EBGeometry::DCEL::MeshT<T,\ Meta>\&\ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_mesh}},}
+\DoxyCodeLine{00056\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<EBGeometry::Vec3T<T>>\&\ \mbox{\hyperlink{classVec3T}{a\_vertices}},}
+\DoxyCodeLine{00057\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::vector<size\_t>>\&\ \ \mbox{\hyperlink{classVec3T}{a\_facets}},}
+\DoxyCodeLine{00058\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::string\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classVec3T}{a\_id}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00065\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ Meta>}
+\DoxyCodeLine{00066\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00067\ \ \ reconcilePairEdgesDCEL(std::vector<std::shared\_ptr<EBGeometry::DCEL::EdgeT<T,\ Meta>>>\&\ \mbox{\hyperlink{classVec3T}{a\_edges}})\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \}\ \textcolor{comment}{//\ namespace\ Soup}}
+\DoxyCodeLine{00070\ }
+\DoxyCodeLine{00071\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{EBGeometry__NamespaceFooter_8hpp}{EBGeometry\_NamespaceFooter.hpp}}"{}}}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00073\ \textcolor{preprocessor}{\#include\ "{}EBGeometry\_SoupImplem.hpp"{}}}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

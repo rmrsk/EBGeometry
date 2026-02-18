@@ -1,0 +1,159 @@
+\doxysection{STL\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{classSTL}{}\label{classSTL}\index{STL$<$ T $>$@{STL$<$ T $>$}}
+
+
+Class for storing contents of \doxylink{classSTL}{STL} files.  
+
+
+
+
+{\ttfamily \#include $<$EBGeometry\+\_\+\+STL.\+hpp$>$}
+
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classSTL_aee83733142bbd52841412902605b7e2b}\label{classSTL_aee83733142bbd52841412902605b7e2b} 
+{\bfseries STL} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Default constructor. Initializes empty member data holder. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classSTL_a2e0bff602ded88e5a323f797707b0e4a}{STL}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+id}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Constructor. Initializes empty vertices and facets but sets the \doxylink{classSTL}{STL} ID (usually the file name. \end{DoxyCompactList}\item 
+\Hypertarget{classSTL_a97dfc086fb4ed36d41b09edeb44ad134}\label{classSTL_a97dfc086fb4ed36d41b09edeb44ad134} 
+\mbox{\hyperlink{classVec3T}{virtual}} {\bfseries \texorpdfstring{$\sim$}{\string~}\+STL} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Destructor. Clears all data. \end{DoxyCompactList}\item 
+\Hypertarget{classSTL_a0a2c44df9e120520787fcf2984359fc0}\label{classSTL_a0a2c44df9e120520787fcf2984359fc0} 
+std\+::string \& {\bfseries get\+ID} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the identifier for this object. \end{DoxyCompactList}\item 
+\Hypertarget{classSTL_a6e95179dd54b506d5601b14bb23a621f}\label{classSTL_a6e95179dd54b506d5601b14bb23a621f} 
+\mbox{\hyperlink{classVec3T}{const}} std\+::string \& {\bfseries get\+ID} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the identifier for this object. \end{DoxyCompactList}\item 
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \& \mbox{\hyperlink{classSTL_a827e5da639df16f170355c223cacbb68}{get\+Vertex\+Coordinates}} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the vertex coordinates. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \& \mbox{\hyperlink{classSTL_aa54ca1c4e49850eadde7757b9f0cb72a}{get\+Vertex\+Coordinates}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the vertex coordinates. \end{DoxyCompactList}\item 
+std\+::vector$<$ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ $>$ \& \mbox{\hyperlink{classSTL_a251b033479e12f37c4fd9bea405dfad6}{get\+Facets}} () \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the triangle facet indices. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ $>$ \& \mbox{\hyperlink{classSTL_a8b41d45f87b6c0c91d963148f824055a}{get\+Facets}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Get the triangle facet indices. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ }\\std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$ $>$ \mbox{\hyperlink{classSTL_a62d7da710a8c73e2998d6f3245e31948}{convert\+To\+DCEL}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Turn the \doxylink{classSTL}{STL} mesh into a \doxylink{namespaceDCEL}{DCEL} mesh. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classSTL_ac88d8377ce1f2aec9c59003e8b55d0d8}\label{classSTL_ac88d8377ce1f2aec9c59003e8b55d0d8} 
+std\+::string {\bfseries m\+\_\+id}
+\begin{DoxyCompactList}\small\item\em \doxylink{classSTL}{STL} object ID. \end{DoxyCompactList}\item 
+\Hypertarget{classSTL_a50d2ca32af46c80f41f37bb01e282800}\label{classSTL_a50d2ca32af46c80f41f37bb01e282800} 
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ {\bfseries m\+\_\+vertex\+Coordinates}
+\begin{DoxyCompactList}\small\item\em Vertex coordinates. \end{DoxyCompactList}\item 
+\Hypertarget{classSTL_a9c06bb10145e8605397aa026d3c0f72a}\label{classSTL_a9c06bb10145e8605397aa026d3c0f72a} 
+std\+::vector$<$ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ $>$ {\bfseries m\+\_\+facets}
+\begin{DoxyCompactList}\small\item\em Triangle facets. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}}$>$\newline
+class STL$<$ T $>$}
+Class for storing contents of \doxylink{classSTL}{STL} files. 
+
+This structure is simply used as conversion utility between \doxylink{classSTL}{STL} files and various \doxylink{namespaceEBGeometry}{EBGeometry} objects (triangle soups, \doxylink{namespaceDCEL}{DCEL} meshes, etc). \begin{DoxyNote}{Note}
+T is the precision used for storing the mesh. 
+\end{DoxyNote}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{classSTL_a2e0bff602ded88e5a323f797707b0e4a}\label{classSTL_a2e0bff602ded88e5a323f797707b0e4a} 
+\index{STL$<$ T $>$@{STL$<$ T $>$}!STL@{STL}}
+\index{STL@{STL}!STL$<$ T $>$@{STL$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{STL()}{STL()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classSTL}{STL}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\mbox{\hyperlink{classSTL}{\+::\+STL}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+id }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Constructor. Initializes empty vertices and facets but sets the \doxylink{classSTL}{STL} ID (usually the file name. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+id} & Identifier for \doxylink{classSTL}{STL} object \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classSTL_a62d7da710a8c73e2998d6f3245e31948}\label{classSTL_a62d7da710a8c73e2998d6f3245e31948} 
+\index{STL$<$ T $>$@{STL$<$ T $>$}!convertToDCEL@{convertToDCEL}}
+\index{convertToDCEL@{convertToDCEL}!STL$<$ T $>$@{STL$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{convertToDCEL()}{convertToDCEL()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+std\+::shared\+\_\+ptr$<$ EBGeometry\+::\+DCEL\+::\+MeshT$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$ $>$ \mbox{\hyperlink{classSTL}{STL}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::convert\+To\+DCEL (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Turn the \doxylink{classSTL}{STL} mesh into a \doxylink{namespaceDCEL}{DCEL} mesh. 
+
+\begin{DoxyNote}{Note}
+This call does not populate any meta-\/data in the \doxylink{namespaceDCEL}{DCEL} mesh structures. 
+\end{DoxyNote}
+\Hypertarget{classSTL_a8b41d45f87b6c0c91d963148f824055a}\label{classSTL_a8b41d45f87b6c0c91d963148f824055a} 
+\index{STL$<$ T $>$@{STL$<$ T $>$}!getFacets@{getFacets}}
+\index{getFacets@{getFacets}!STL$<$ T $>$@{STL$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getFacets()}{getFacets()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ $>$ \& \mbox{\hyperlink{classSTL}{STL}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Facets (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the triangle facet indices. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+facets 
+\end{DoxyReturn}
+\Hypertarget{classSTL_a251b033479e12f37c4fd9bea405dfad6}\label{classSTL_a251b033479e12f37c4fd9bea405dfad6} 
+\index{STL$<$ T $>$@{STL$<$ T $>$}!getFacets@{getFacets}}
+\index{getFacets@{getFacets}!STL$<$ T $>$@{STL$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getFacets()}{getFacets()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::vector$<$ std\+::vector$<$ \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ $>$ \& \mbox{\hyperlink{classSTL}{STL}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Facets (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the triangle facet indices. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+facets 
+\end{DoxyReturn}
+\Hypertarget{classSTL_aa54ca1c4e49850eadde7757b9f0cb72a}\label{classSTL_aa54ca1c4e49850eadde7757b9f0cb72a} 
+\index{STL$<$ T $>$@{STL$<$ T $>$}!getVertexCoordinates@{getVertexCoordinates}}
+\index{getVertexCoordinates@{getVertexCoordinates}!STL$<$ T $>$@{STL$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getVertexCoordinates()}{getVertexCoordinates()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \& \mbox{\hyperlink{classSTL}{STL}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Vertex\+Coordinates (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the vertex coordinates. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+vertex\+Coordinates ~\newline
+ 
+\end{DoxyReturn}
+\Hypertarget{classSTL_a827e5da639df16f170355c223cacbb68}\label{classSTL_a827e5da639df16f170355c223cacbb68} 
+\index{STL$<$ T $>$@{STL$<$ T $>$}!getVertexCoordinates@{getVertexCoordinates}}
+\index{getVertexCoordinates@{getVertexCoordinates}!STL$<$ T $>$@{STL$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{getVertexCoordinates()}{getVertexCoordinates()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ \\
+std\+::vector$<$ \mbox{\hyperlink{classVec3T}{Vec3T}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \& \mbox{\hyperlink{classSTL}{STL}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$\+::get\+Vertex\+Coordinates (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Get the vertex coordinates. 
+
+\begin{DoxyReturn}{Returns}
+m\+\_\+vertex\+Coordinates 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/runner/work/\+EBGeometry/\+EBGeometry/\+Source/EBGeometry\+\_\+\+STL.\+hpp\end{DoxyCompactItemize}

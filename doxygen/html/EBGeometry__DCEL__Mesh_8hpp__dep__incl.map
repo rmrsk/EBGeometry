@@ -1,12 +1,18 @@
 <map id="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_DCEL_Mesh.hpp" name="/home/runner/work/EBGeometry/EBGeometry/Source/EBGeometry_DCEL_Mesh.hpp">
-<area shape="rect" id="Node000001" title="Declaration of a mesh class which stores a DCEL mesh (with signed distance functions)" alt="" coords="54,5,297,60"/>
-<area shape="rect" id="Node000002" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="5,313,236,353"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="86,69,63,87,44,109,34,136,32,164,37,192,47,221,76,272,106,311,101,315,72,275,42,223,32,194,27,164,29,135,40,107,59,83,83,65"/>
-<area shape="rect" id="Node000003" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="54,108,297,163"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="178,74,178,108,173,108,173,74"/>
-<area shape="rect" id="Node000004" href="$EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="158,211,401,265"/>
-<area shape="poly" id="edge6_Node000001_Node000004" title=" " alt="" coords="267,65,292,83,311,107,319,133,318,161,309,188,298,211,294,209,304,186,312,160,314,134,306,109,288,87,264,69"/>
-<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="161,176,149,211,135,267,126,314,121,313,130,266,143,210,156,175"/>
-<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="214,170,254,209,250,212,211,174"/>
-<area shape="poly" id="edge5_Node000004_Node000002" title=" " alt="" coords="224,275,154,315,152,311,221,270"/>
+<area shape="rect" id="Node000001" title="Declaration of a mesh class which stores a DCEL mesh (with signed distance functions)" alt="" coords="192,5,435,60"/>
+<area shape="rect" id="Node000002" href="$EBGeometry_8hpp_source.html" title=" " alt="" coords="118,313,349,353"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="179,55,83,77,46,92,23,110,14,124,10,139,12,169,28,197,54,225,87,251,123,275,191,311,189,315,120,279,84,256,51,229,24,201,7,170,4,138,9,122,19,106,44,88,82,72,178,49"/>
+<area shape="rect" id="Node000003" href="$EBGeometry__MeshDistanceFunctions_8hpp.html" title="Declaration of signed distance functions for DCEL meshes." alt="" coords="33,108,276,163"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="262,69,198,110,195,106,259,65"/>
+<area shape="rect" id="Node000004" href="$EBGeometry__Parser_8hpp.html" title="Declaration of utilities for reading files into EBGeometry data structures." alt="" coords="192,211,435,265"/>
+<area shape="poly" id="edge6_Node000001_Node000004" title=" " alt="" coords="316,74,316,210,311,210,311,74"/>
+<area shape="rect" id="Node000005" href="$EBGeometry__STL_8hpp_source.html" title=" " alt="" coords="351,108,593,163"/>
+<area shape="poly" id="edge7_Node000001_Node000005" title=" " alt="" coords="367,65,432,106,429,110,364,69"/>
+<area shape="rect" id="Node000006" href="$EBGeometry__Soup_8hpp.html" title="Implementation of EBGeometry_Soup.hpp." alt="" coords="484,211,727,265"/>
+<area shape="poly" id="edge9_Node000001_Node000006" title=" " alt="" coords="449,49,545,72,583,88,607,106,620,132,624,159,622,187,617,211,611,210,616,186,618,160,615,133,603,110,580,92,543,77,447,55"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="160,176,168,220,182,264,198,290,216,312,212,315,194,293,178,266,162,221,155,177"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="209,168,273,208,270,213,206,172"/>
+<area shape="poly" id="edge5_Node000004_Node000002" title=" " alt="" coords="284,278,251,315,247,312,280,274"/>
+<area shape="poly" id="edge8_Node000005_Node000004" title=" " alt="" coords="421,172,356,213,354,208,418,168"/>
+<area shape="poly" id="edge10_Node000006_Node000002" title=" " alt="" coords="488,271,309,316,308,311,487,266"/>
 </map>

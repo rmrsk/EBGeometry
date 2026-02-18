@@ -60,7 +60,7 @@ enum class \mbox{\hyperlink{classDCEL_1_1MeshT_a4548120cb514e736ae4cd8c13b418e91
 \begin{DoxyCompactList}\small\item\em Destructor (does nothing) \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1MeshT_a633c17f73f2744ff00fdf7add9560b73}{define}} (std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a704d6cfeaf536cbba6ebfa5deb7cd6d0}{Face\+Ptr}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+faces}}, std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a97ef9ce2e5298494176d84d25da3a50c}{Edge\+Ptr}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+edges}}, std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a1b1cc55cf04d1ff11df9c629a50bae63}{Vertex\+Ptr}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+vertices}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Define function. Puts Mesh in usable state. \end{DoxyCompactList}\item 
-\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1MeshT_ab76e4985909d57fec2ebb1f6a25130a5}{sanity\+Check}} () \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1MeshT_abc60a933d39b7d9d9b2b7e73e288bf4f}{sanity\+Check}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+id}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Perform a sanity check. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1MeshT_a7a0128df457b83722e9f63006151f906}{set\+Search\+Algorithm}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1MeshT_a2c124d7a678adb956790418f3dd237e9}{Search\+Algorithm}} \mbox{\hyperlink{classVec3T}{a\+\_\+algorithm}}) \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Search algorithm for direct signed distance computations. \end{DoxyCompactList}\item 
@@ -120,9 +120,8 @@ std\+::vector$<$ \mbox{\hyperlink{classDCEL_1_1MeshT_a704d6cfeaf536cbba6ebfa5deb
 \mbox{\hyperlink{classVec3T}{T}} \mbox{\hyperlink{classDCEL_1_1MeshT_aef8306194ffca99f87d6dc47d5ca792d}{Direct\+Signed\+Distance2}} (\mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classDCEL_1_1MeshT_a1437cd9ccdd33925815df6b8c3cccca9}{Vec3}} \&\mbox{\hyperlink{classVec3T}{a\+\_\+point}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Implementation of squared signed distance function which iterates through all faces. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1MeshT_ac93de47431b49bbe961fb36c2bdf3904}{increment\+Warning}} (std\+::map$<$ std\+::string, \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+warnings}}, \mbox{\hyperlink{classVec3T}{const}} std\+::string \&\mbox{\hyperlink{classVec3T}{a\+\_\+warn}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
-\begin{DoxyCompactList}\small\item\em Increment a warning. This is used in \doxylink{classDCEL_1_1MeshT_ab76e4985909d57fec2ebb1f6a25130a5}{sanity\+Check()} for locating holes or bad inputs in the mesh. \end{DoxyCompactList}\item 
-\Hypertarget{classDCEL_1_1MeshT_af5260841026cb9e692098ac0c998b348}\label{classDCEL_1_1MeshT_af5260841026cb9e692098ac0c998b348} 
-\mbox{\hyperlink{classVec3T}{void}} {\bfseries print\+Warnings} (\mbox{\hyperlink{classVec3T}{const}} std\+::map$<$ std\+::string, \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+warnings}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Increment a warning. This is used in \doxylink{classDCEL_1_1MeshT_abc60a933d39b7d9d9b2b7e73e288bf4f}{sanity\+Check()} for locating holes or bad inputs in the mesh. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1MeshT_afc1853d256ca26952485da2be23fe094}{print\+Warnings}} (\mbox{\hyperlink{classVec3T}{const}} std\+::map$<$ std\+::string, \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+warnings}}, \mbox{\hyperlink{classVec3T}{const}} std\+::string \mbox{\hyperlink{classVec3T}{a\+\_\+id}}) \mbox{\hyperlink{classVec3T}{const}} \mbox{\hyperlink{classVec3T}{noexcept}}
 \begin{DoxyCompactList}\small\item\em Print all warnings to std\+::cerr. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsubsection*{Protected Attributes}
 \begin{DoxyCompactItemize}
@@ -288,13 +287,31 @@ Should be called AFTER all normals have been computed.
 
 
 
-Increment a warning. This is used in \doxylink{classDCEL_1_1MeshT_ab76e4985909d57fec2ebb1f6a25130a5}{sanity\+Check()} for locating holes or bad inputs in the mesh. 
+Increment a warning. This is used in \doxylink{classDCEL_1_1MeshT_abc60a933d39b7d9d9b2b7e73e288bf4f}{sanity\+Check()} for locating holes or bad inputs in the mesh. 
 
 
 \begin{DoxyParams}[1]{Parameters}
 \mbox{\texttt{ in}}  & {\em a\+\_\+warnings} & Map of all registered warnings \\
 \hline
 \mbox{\texttt{ in}}  & {\em a\+\_\+warn} & Current warning to increment by \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classDCEL_1_1MeshT_afc1853d256ca26952485da2be23fe094}\label{classDCEL_1_1MeshT_afc1853d256ca26952485da2be23fe094} 
+\index{DCEL::MeshT$<$ T, Meta $>$@{DCEL::MeshT$<$ T, Meta $>$}!printWarnings@{printWarnings}}
+\index{printWarnings@{printWarnings}!DCEL::MeshT$<$ T, Meta $>$@{DCEL::MeshT$<$ T, Meta $>$}}
+\doxysubsubsection{\texorpdfstring{printWarnings()}{printWarnings()}}
+{\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1MeshT}{DCEL\+::\+MeshT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::print\+Warnings (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::map$<$ std\+::string, \mbox{\hyperlink{classVec3T}{size\+\_\+t}} $>$ \&}]{a\+\_\+warnings,  }\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+id }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [protected]}, {\ttfamily [noexcept]}}
+
+
+
+Print all warnings to std\+::cerr. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+warnings} & List of warnings (generated by sanity\+Check) \\
+\hline
+\mbox{\texttt{ in}}  & {\em a\+\_\+id} & Identifier used when printing warnings (can be empty string) \\
 \hline
 \end{DoxyParams}
 \Hypertarget{classDCEL_1_1MeshT_a94075698d7f8426db7684a029900dde3}\label{classDCEL_1_1MeshT_a94075698d7f8426db7684a029900dde3} 
@@ -360,18 +377,23 @@ Function which computes internal things for the vertices.
 \begin{DoxyNote}{Note}
 This calls \doxylink{classDCEL_1_1VertexT_a31d91587d8562ac0449f97bbbca54328}{DCEL\+::\+Vertex\+T$<$\+T, Meta$>$\+::compute\+Vertex\+Normal\+Average()} or \doxylink{classDCEL_1_1VertexT_ac3a81d4778ec8b064858e7867f96f4cc}{DCEL\+::\+Vertex\+T$<$\+T, Meta$>$\+::compute\+Vertex\+Normal\+Angle\+Weighted()} 
 \end{DoxyNote}
-\Hypertarget{classDCEL_1_1MeshT_ab76e4985909d57fec2ebb1f6a25130a5}\label{classDCEL_1_1MeshT_ab76e4985909d57fec2ebb1f6a25130a5} 
+\Hypertarget{classDCEL_1_1MeshT_abc60a933d39b7d9d9b2b7e73e288bf4f}\label{classDCEL_1_1MeshT_abc60a933d39b7d9d9b2b7e73e288bf4f} 
 \index{DCEL::MeshT$<$ T, Meta $>$@{DCEL::MeshT$<$ T, Meta $>$}!sanityCheck@{sanityCheck}}
 \index{sanityCheck@{sanityCheck}!DCEL::MeshT$<$ T, Meta $>$@{DCEL::MeshT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{sanityCheck()}{sanityCheck()}}
 {\footnotesize\ttfamily template$<$\mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{T}} , \mbox{\hyperlink{classVec3T}{class}} \mbox{\hyperlink{classVec3T}{Meta}} $>$ \\
-\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1MeshT}{DCEL\+::\+MeshT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::sanity\+Check (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+\mbox{\hyperlink{classVec3T}{void}} \mbox{\hyperlink{classDCEL_1_1MeshT}{DCEL\+::\+MeshT}}$<$ \mbox{\hyperlink{classVec3T}{T}}, \mbox{\hyperlink{classVec3T}{Meta}} $>$\+::sanity\+Check (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classVec3T}{const}} std\+::string}]{a\+\_\+id }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
 Perform a sanity check. 
 
-This will provide error messages if vertices are badly linked, faces are nullptr, and so on. These messages are logged by calling \doxylink{classDCEL_1_1MeshT_ac93de47431b49bbe961fb36c2bdf3904}{increment\+Warning()} which identifies types of errors that can occur, and how many of those errors have occurred. \Hypertarget{classDCEL_1_1MeshT_add8a0a7940a8e4dee4f655d76ccaa9fa}\label{classDCEL_1_1MeshT_add8a0a7940a8e4dee4f655d76ccaa9fa} 
+This will provide error messages if vertices are badly linked, faces are nullptr, and so on. These messages are logged by calling \doxylink{classDCEL_1_1MeshT_ac93de47431b49bbe961fb36c2bdf3904}{increment\+Warning()} which identifies types of errors that can occur, and how many of those errors have occurred. 
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{ in}}  & {\em a\+\_\+id} & Identifier when printing error messages (can be empty string). \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classDCEL_1_1MeshT_add8a0a7940a8e4dee4f655d76ccaa9fa}\label{classDCEL_1_1MeshT_add8a0a7940a8e4dee4f655d76ccaa9fa} 
 \index{DCEL::MeshT$<$ T, Meta $>$@{DCEL::MeshT$<$ T, Meta $>$}!setInsideOutsideAlgorithm@{setInsideOutsideAlgorithm}}
 \index{setInsideOutsideAlgorithm@{setInsideOutsideAlgorithm}!DCEL::MeshT$<$ T, Meta $>$@{DCEL::MeshT$<$ T, Meta $>$}}
 \doxysubsubsection{\texorpdfstring{setInsideOutsideAlgorithm()}{setInsideOutsideAlgorithm()}}

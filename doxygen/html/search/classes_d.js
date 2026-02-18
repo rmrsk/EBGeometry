@@ -7,5 +7,5 @@ var searchData=
   ['smoothintersectionif_4',['SmoothIntersectionIF',['../classSmoothIntersectionIF.html',1,'']]],
   ['smoothunionif_5',['SmoothUnionIF',['../classSmoothUnionIF.html',1,'']]],
   ['spheresdf_6',['SphereSDF',['../classSphereSDF.html',1,'']]],
-  ['stl_7',['STL',['../classParser_1_1STL.html',1,'Parser']]]
+  ['stl_7',['STL',['../classSTL.html',1,'']]]
 ];

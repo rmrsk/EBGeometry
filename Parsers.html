@@ -71,7 +71,7 @@
 <li class="toctree-l1"><a class="reference internal" href="ImplemOctree.html">Octree</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Reading data</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#quickstart">Quickstart</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#reading-stl-files">Reading STL files</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#reading-mesh-files">Reading mesh files</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#dcel-representation">DCEL representation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#dcel-mesh-sdf">DCEL mesh SDF</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#dcel-mesh-sdf-with-full-bvh">DCEL mesh SDF with full BVH</a></li>
@@ -123,14 +123,15 @@
 <span id="chap-parsers"></span><h1>Reading data<a class="headerlink" href="#reading-data" title="Permalink to this heading"></a></h1>
 <p>Routines for parsing surface grid from files into <code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code>’s DCEL grids are given in the namespace <code class="docutils literal notranslate"><span class="pre">EBGeometry::Parser</span></code>.
 The source code is implemented in <code class="file docutils literal notranslate"><span class="pre">Source/EBGeometry_Parser.hpp</span></code>.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p><code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> is currently limited to reading binary and ASCII STL files and reconstructing DCEL grids from those.
-However, it is also possible to build DCEL grids from polygon soups read using third-party codes (see <a class="reference internal" href="#chap-thirdpartyparser"><span class="std std-ref">Using third-party sources</span></a>).</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> is currently limited to reading STL, PLY, and VTK files, and then reconstructing DCEL grids from those.
+PLY and and VTK files can contain associated data on the nodes and faces, but this is not automatically populated when constructing the DCEL grids.
+It is also possible to build DCEL grids from polygon soups read using third-party codes (see <a class="reference internal" href="#chap-thirdpartyparser"><span class="std std-ref">Using third-party sources</span></a>).</p>
 </div>
 <section id="quickstart">
 <h2>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this heading"></a></h2>
-<p>If you have one or multiple STL files, you can quickly turn them into signed distance fields using</p>
+<p>If you have one or multiple files, you can quickly turn them into signed distance fields using</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="w"> </span><span class="n">files</span><span class="p">;</span><span class="w"> </span><span class="c1">// &lt;---- List of file names.</span>
 
 <span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">distanceFields</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Parser</span><span class="o">::</span><span class="n">readIntoLinearBVH</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">files</span><span class="p">);</span>
@@ -149,18 +150,24 @@ See <a class="reference internal" href="#chap-linearstl"><span class="std std-re
 <p>This version will convert all DCEL polygons to triangles, and usually provides a nice code speedup.</p>
 </div>
 </section>
-<section id="reading-stl-files">
-<h2>Reading STL files<a class="headerlink" href="#reading-stl-files" title="Permalink to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> supports a native parser for binary and ASCII STL files, which can be read into a few different representations:</p>
+<section id="reading-mesh-files">
+<h2>Reading mesh files<a class="headerlink" href="#reading-mesh-files" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> supports a native parser for binary and ASCII files, which can be read into a few different representations:</p>
 <ol class="arabic simple">
 <li><p>Into a DCEL mesh, see <a class="reference internal" href="ImplemDCEL.html#chap-implemdcel"><span class="std std-ref">DCEL</span></a>.</p></li>
 <li><p>Into a signed distance function representation of a DCEL mesh, see <a class="reference internal" href="ImplemCSG.html#chap-implemcsg"><span class="std std-ref">Geometry representation</span></a>.</p></li>
 <li><p>Into a signed distance function representation of a DCEL mesh, but using a BVH accelerator in full representation.</p></li>
 <li><p>Into a signed distance function representation of a DCEL mesh, but using a BVH accelerator in compact representation.</p></li>
 </ol>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">EBGeometry</span></code> parser will read input files into internal objects that represent each file type.
+Conversion of these objects into DCEL meshes is not required, and it is possible to creating bounding volume hierarchies directly from the facets.
+This is useful when only an acceleration structure is needed for looking up facets or triangles, but no signed distance function is otherwise required.</p>
+</div>
 <section id="dcel-representation">
 <h3>DCEL representation<a class="headerlink" href="#dcel-representation" title="Permalink to this heading"></a></h3>
-<p>To read one or multiple STL files and turn it into DCEL meshes, use</p>
+<p>To read one or multiple files and turn it into DCEL meshes, use</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cm">/*!</span>
 <span class="cm">  @brief Read a file containing a single watertight object and return it as a DCEL mesh</span>
 <span class="cm">  @param[in] a_filename File name</span>
@@ -182,7 +189,7 @@ See <a class="reference internal" href="#chap-linearstl"><span class="std std-re
 </section>
 <section id="dcel-mesh-sdf">
 <h3>DCEL mesh SDF<a class="headerlink" href="#dcel-mesh-sdf" title="Permalink to this heading"></a></h3>
-<p>To read one or multiple STL files and also turn it into signed distance representations, use</p>
+<p>To read one or multiple files and also turn it into signed distance representations, use</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cm">/*!</span>
 <span class="cm">  @brief Read a file containing a single watertight object and return it as an implicit function.</span>
 <span class="cm">  @param[in] a_filename File name</span>
@@ -203,7 +210,7 @@ See <a class="reference internal" href="#chap-linearstl"><span class="std std-re
 </section>
 <section id="dcel-mesh-sdf-with-full-bvh">
 <h3>DCEL mesh SDF with full BVH<a class="headerlink" href="#dcel-mesh-sdf-with-full-bvh" title="Permalink to this heading"></a></h3>
-<p>To read one or multiple STL files and turn it into signed distance representations using a full BVH representation, use</p>
+<p>To read one or multiple files and turn it into signed distance representations using a full BVH representation, use</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cm">/*!</span>
 <span class="cm">  @brief Read a file containing a single watertight object and return it as a DCEL mesh enclosed in a full BVH.</span>
 <span class="cm">  @param[in] a_filename File name</span>
@@ -257,7 +264,7 @@ See <a class="reference internal" href="#chap-linearstl"><span class="std std-re
 </section>
 <section id="triangle-meshes-with-bvh">
 <h3>Triangle meshes with BVH<a class="headerlink" href="#triangle-meshes-with-bvh" title="Permalink to this heading"></a></h3>
-<p>To read one or multiple STL files and turn it into signed distance representations using a compact BVH representation, use</p>
+<p>To read one or multiple files and turn it into signed distance representations using a compact BVH representation, use</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cm">/*!</span>
 <span class="cm">  @brief Read a file containing a single watertight object and return it as a DCEL mesh enclosed in a full BVH.</span>
 <span class="cm">  @param[in] a_filename File name</span>
@@ -306,12 +313,12 @@ A triangle soup is represented as</p>
 <span class="cm">  @param[out] a_mesh Output DCEL mesh.</span>
 <span class="cm">  @param[in]  a_verticesRaw  Raw vertices</span>
 <span class="cm">  @param[in]  a_facets       Facets</span>
+<span class="cm">  @param[in]  a_id           Identifier for error messages</span>
 <span class="cm">*/</span>
 <span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">typename</span><span class="w"> </span><span class="nc">Meta</span><span class="o">&gt;</span>
 <span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span>
 <span class="n">soupToDCEL</span><span class="p">(</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">DCEL</span><span class="o">::</span><span class="n">MeshT</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">Meta</span><span class="o">&gt;&amp;</span><span class="w">        </span><span class="n">a_mesh</span><span class="p">,</span>
 <span class="w">           </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">EBGeometry</span><span class="o">::</span><span class="n">Vec3T</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">a_vertices</span><span class="p">,</span>
-<span class="w">           </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;&gt;&amp;</span><span class="w">  </span><span class="n">a_facets</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span>
 </pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">compress</span></code> function will discard duplicate vertices from the soup, while the <code class="docutils literal notranslate"><span class="pre">soupToDCEL</span></code> will tie the remaining polygons into a DCEL mesh.

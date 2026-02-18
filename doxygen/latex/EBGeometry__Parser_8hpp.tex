@@ -12,6 +12,9 @@ Declaration of utilities for reading files into \doxylink{namespaceEBGeometry}{E
 {\ttfamily \#include "{}EBGeometry\+\_\+\+DCEL\+\_\+\+Mesh.\+hpp"{}}\newline
 {\ttfamily \#include "{}EBGeometry\+\_\+\+Mesh\+Distance\+Functions.\+hpp"{}}\newline
 {\ttfamily \#include "{}EBGeometry\+\_\+\+Triangle.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+PLY.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+STL.\+hpp"{}}\newline
+{\ttfamily \#include "{}EBGeometry\+\_\+\+VTK.\+hpp"{}}\newline
 {\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Header.\+hpp"{}}\newline
 {\ttfamily \#include "{}EBGeometry\+\_\+\+Namespace\+Footer.\+hpp"{}}\newline
 {\ttfamily \#include "{}EBGeometry\+\_\+\+Parser\+Implem.\+hpp"{}}\newline
@@ -31,13 +34,6 @@ This graph shows which files directly or indirectly include this file\+:
 \includegraphics[width=262pt]{EBGeometry__Parser_8hpp__dep__incl}
 \end{center}
 \end{figure}
-\doxysubsubsection*{Classes}
-\begin{DoxyCompactItemize}
-\item 
-class \mbox{\hyperlink{classParser_1_1STL}{Parser\+::\+STL$<$ T, Meta $>$}}
-\begin{DoxyCompactList}\small\item\em Class for reading \doxylink{classParser_1_1STL}{STL} files. \end{DoxyCompactList}\item 
-class \mbox{\hyperlink{classParser_1_1PLY}{Parser\+::\+PLY$<$ T $>$}}
-\begin{DoxyCompactList}\small\item\em Class for reading Stanford \doxylink{classParser_1_1PLY}{PLY} files. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsubsection*{Namespaces}
 \begin{DoxyCompactItemize}
 \item 
@@ -55,9 +51,25 @@ enum class \mbox{\hyperlink{namespaceParser_a4335203a05b102e71ece262ddb2a38a0}{P
 \Hypertarget{namespaceParser_a8fc8b809825e25aef6d1cc003b88b60f}\label{namespaceParser_a8fc8b809825e25aef6d1cc003b88b60f} 
 enum class \mbox{\hyperlink{namespaceParser_a8fc8b809825e25aef6d1cc003b88b60f}{Parser\+::\+File\+Type}} \{ {\bfseries STL}
 , {\bfseries PLY}
+, {\bfseries VTK}
 , {\bfseries Unsupported}
  \}
 \begin{DoxyCompactList}\small\item\em Various supported file types. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\\mbox{\hyperlink{classPLY}{PLY}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{namespaceParser_ae7a859eae794978c992f003c8ee66b0c}{Parser\+::read\+PLY}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \&\mbox{\hyperlink{classVec3T}{a\+\_\+filename}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Read a single \doxylink{classPLY}{PLY} file. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::vector$<$ \mbox{\hyperlink{classPLY}{PLY}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{namespaceParser_a680c2f7258b073533936c51a29d5c2df}{Parser\+::read\+PLY}} (\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::string $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+filenames}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Read multiple \doxylink{classPLY}{PLY} files. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\\mbox{\hyperlink{classSTL}{STL}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{namespaceParser_af4437fe67afc7de0a1b53765f05c318e}{Parser\+::read\+STL}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \&\mbox{\hyperlink{classVec3T}{a\+\_\+filename}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Read a single \doxylink{classSTL}{STL} file. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::vector$<$ \mbox{\hyperlink{classSTL}{STL}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{namespaceParser_abbc7d6aa62c439a5e46b4dcc02cdeb49}{Parser\+::read\+STL}} (\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::string $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+filenames}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Read multiple \doxylink{classSTL}{STL} files. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\\mbox{\hyperlink{classVTK}{VTK}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ \mbox{\hyperlink{namespaceParser_afd58656e0cc8bb83db404119ed0a9dc0}{Parser\+::read\+VTK}} (\mbox{\hyperlink{classVec3T}{const}} std\+::string \&\mbox{\hyperlink{classVec3T}{a\+\_\+filename}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Read a single \doxylink{classVTK}{VTK} file. \end{DoxyCompactList}\item 
+{\footnotesize template$<$\mbox{\hyperlink{classVec3T}{typename}} \mbox{\hyperlink{classVec3T}{T}} $>$ }\\std\+::vector$<$ \mbox{\hyperlink{classVTK}{VTK}}$<$ \mbox{\hyperlink{classVec3T}{T}} $>$ $>$ \mbox{\hyperlink{namespaceParser_a65db2a0b91ba4dd105274df5d307bc7b}{Parser\+::read\+VTK}} (\mbox{\hyperlink{classVec3T}{const}} std\+::vector$<$ std\+::string $>$ \&\mbox{\hyperlink{classVec3T}{a\+\_\+filenames}}) \mbox{\hyperlink{classVec3T}{noexcept}}
+\begin{DoxyCompactList}\small\item\em Read multiple \doxylink{classVTK}{VTK} files. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
