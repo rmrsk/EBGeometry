@@ -170,9 +170,9 @@ Parser::readSTL(const std::string& a_filename) noexcept
 
     std::vector<std::string> fileContents;
 
-    size_t curLine = 0;
-    size_t solidBegin;
-    size_t solidEnd;
+    size_t curLine    = 0;
+    size_t solidBegin = -1;
+    size_t solidEnd   = -1;
 
     std::ifstream     filestream(a_filename);
     std::stringstream ss;
@@ -1169,16 +1169,6 @@ Parser::readVTK(const std::string& a_filename) noexcept
         filestream.read(data.bytes, 4);
         std::reverse(data.bytes, data.bytes + 4); // Convert big-endian to little-endian
         return data.i;
-      };
-
-      auto readBinaryUInt = [&]() -> uint32_t {
-        union {
-          char     bytes[4];
-          uint32_t u;
-        } data;
-        filestream.read(data.bytes, 4);
-        std::reverse(data.bytes, data.bytes + 4); // Convert big-endian to little-endian
-        return data.u;
       };
 
       // Read sections - they are still labeled in ASCII
