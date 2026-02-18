@@ -408,7 +408,7 @@ FastTriMeshSDF<T, Meta, BV, K>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_me
     const auto edges    = f->gatherEdges();
 
     if ((vertices.size() != 3) || (edges.size() != 3)) {
-      std::cerr << "Parser::readIntoTriangles -- DCEL mesh not composed of only triangles!" << "\n";
+      std::cerr << "FastTriMeshSDF::readIntoTriangles -- DCEL mesh not composed of only triangles!" << "\n";
     }
 
     // Create the triangle

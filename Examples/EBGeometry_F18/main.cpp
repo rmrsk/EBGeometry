@@ -135,10 +135,12 @@ main(int argc, char* argv[])
 
   // Debug -- make sure all functions produce the same result!.
   if (std::abs(sumSlowSlow) - std::abs(sumFastFast) > std::numeric_limits<T>::min()) {
-    std::cerr << "Got wrong distance! Diff = " << std::abs(sumSlowFast) - std::abs(sumFastFast) << "\n";
+    std::cerr << "Got wrong slowslow-fastfast distance with diff = " << std::abs(sumSlowFast) - std::abs(sumFastFast)
+              << "\n";
   }
   if (std::abs(sumSlowSlow) - std::abs(sumFastSlow) > std::numeric_limits<T>::min()) {
-    std::cerr << "Got wrong distance! Diff = " << std::abs(sumSlowFast) - std::abs(sumFastSlow) << "\n";
+    std::cerr << "Got wrong slowslow-fastslow distance with diff = " << std::abs(sumSlowFast) - std::abs(sumFastSlow)
+              << "\n";
   }
 
   const std::chrono::duration<T, std::micro> slowSlowTime = (t1 - t0);
