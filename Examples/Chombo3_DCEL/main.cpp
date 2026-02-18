@@ -91,48 +91,48 @@ main(int argc, char* argv[])
     loCorner = -50 * RealVect::Unit;
     hiCorner = 250 * RealVect::Unit;
 
-    filename = "../Resources/airfoil.stl";
+    filename = "../Resources/airfoil_binary.stl";
   }
   else if (whichGeom == 1) { // Sphere
     loCorner = -400 * RealVect::Unit;
     hiCorner = 400 * RealVect::Unit;
 
-    filename = "../Resources/sphere.stl";
+    filename = "../Resources/sphere_binary.stl";
   }
   else if (whichGeom == 2) { // Dodecahedron
     loCorner = -2 * RealVect::Unit;
     hiCorner = 2 * RealVect::Unit;
 
-    filename = "../Resources/dodecahedron.stl";
+    filename = "../Resources/dodecahedron_binary.stl";
   }
   else if (whichGeom == 3) { // Horse
     loCorner = -0.12 * RealVect::Unit;
     hiCorner = 0.12 * RealVect::Unit;
 
-    filename = "../Resources/horse.stl";
+    filename = "../Resources/horse_binary.stl";
   }
   else if (whichGeom == 4) { // Porsche
     loCorner = -10 * RealVect::Unit;
     hiCorner = 10 * RealVect::Unit;
 
-    filename = "../Resources/porsche.stl";
+    filename = "../Resources/porsche_binary.stl";
   }
   else if (whichGeom == 5) { // Orion
     loCorner = -10 * RealVect::Unit;
     hiCorner = 10 * RealVect::Unit;
 
-    filename = "../Resources/orion.stl";
+    filename = "../Resources/orion_binary.stl";
   }
   else if (whichGeom == 6) { // Armadillo
     loCorner = -125 * RealVect::Unit;
     hiCorner = 125 * RealVect::Unit;
 
-    filename = "../Resources/armadillo.stl";
+    filename = "../Resources/armadillo_binary.stl";
   }
   else if (whichGeom == 7) { // Adirondacks
     loCorner = RealVect::Zero;
     hiCorner = 250 * RealVect::Unit;
-    filename = "../Resources/adirondack.stl";
+    filename = "../Resources/adirondack_binary.stl";
   }
 
   using Meta   = EBGeometry::DCEL::DefaultMetaData;

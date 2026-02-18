@@ -23,6 +23,9 @@
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_MeshDistanceFunctions.hpp"
 #include "EBGeometry_Triangle.hpp"
+#include "EBGeometry_PLY.hpp"
+#include "EBGeometry_STL.hpp"
+#include "EBGeometry_VTK.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
@@ -48,8 +51,75 @@ namespace Parser {
   {
     STL,
     PLY,
+    VTK,
     Unsupported
   };
+
+  /*!
+    @brief Get file type
+    @param[in] a_filename File name
+  */
+  inline static Parser::FileType
+  getFileType(const std::string a_filename) noexcept;
+
+  /*!
+    @brief Get file encoding. 
+    @param[in] a_filename File name    
+  */
+  inline static Parser::Encoding
+  getFileEncoding(const std::string a_filename) noexcept;
+
+  /*!
+    @brief Read a single PLY file
+    @param[in] a_filename PLY file name.
+  */
+  template <typename T>
+  PLY<T>
+  readPLY(const std::string& a_filename) noexcept;
+
+  /*!
+    @brief Read multiple PLY files. 
+    @param[in] a_filenames PLY file names.
+  */
+  template <typename T>
+  std::vector<PLY<T>>
+  readPLY(const std::vector<std::string>& a_filenames) noexcept;
+
+  /*!
+    @brief Read a single STL file
+    @param[in] a_filename STL file name.
+    @note If the STL file contains multiple solids (which is uncommon but technically supported), this routine
+    will only read the first one. 
+  */
+  template <typename T>
+  STL<T>
+  readSTL(const std::string& a_filename) noexcept;
+
+  /*!
+    @brief Read multiple STL files.
+    @param[in] a_filenames STL file names.
+    @note If the STL file contains multiple solids (which is uncommon but technically supported), this routine
+    will only read the first one.
+  */
+  template <typename T>
+  std::vector<STL<T>>
+  readSTL(const std::vector<std::string>& a_filenames) noexcept;
+
+  /*!
+    @brief Read a single VTK file
+    @param[in] a_filename VTK file name.
+  */
+  template <typename T>
+  VTK<T>
+  readVTK(const std::string& a_filename) noexcept;
+
+  /*!
+    @brief Read multiple VTK files.
+    @param[in] a_filenames VTK file names.
+  */
+  template <typename T>
+  std::vector<VTK<T>>
+  readVTK(const std::vector<std::string>& a_filenames) noexcept;
 
   /*!
     @brief Read a file containing a single watertight object and return it as a DCEL mesh
@@ -161,227 +231,6 @@ namespace Parser {
   template <typename T, typename Meta>
   inline static std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
   readIntoTriangles(const std::vector<std::string> a_files) noexcept;
-
-  /*!
-    @brief Get file type
-    @param[in] a_filenames 
-  */
-  inline static Parser::FileType
-  getFileType(const std::string a_filename) noexcept;
-
-  /*!
-    @brief Check if triangle soup contains degenerate polygons
-    @param[out] a_vertices Vertices
-    @param[out] a_facets   Facets
-  */
-  template <typename T>
-  inline static bool
-  containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-                             const std::vector<std::vector<size_t>>&  a_facets) noexcept;
-
-  /*!
-    @brief Compress triangle soup (removes duplicate vertices)
-    @param[out] a_vertices   Vertices
-    @param[out] a_facets     STL facets
-  */
-  template <typename T>
-  inline static void
-  compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets) noexcept;
-
-  /*!
-    @brief Turn raw vertices into DCEL vertices. 
-    @param[out] a_mesh Output DCEL mesh.
-    @param[in]  a_verticesRaw  Raw vertices
-    @param[in]  a_facets       Facets
-  */
-  template <typename T, typename Meta>
-  inline static void
-  soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
-             const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
-             const std::vector<std::vector<size_t>>&  a_facets) noexcept;
-
-  /*!
-    @brief Reconcile pair edges, i.e. find the pair edge for every constructed
-    half-edge
-    @param[in,out] a_edges Half edges.
-  */
-  template <typename T, typename Meta>
-  inline static void
-  reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T, Meta>>>& a_edges) noexcept;
-
-  /*!
-    @brief Class for reading STL files.
-    @note T is the precision used when storing the mesh. 
-  */
-  template <typename T, typename Meta>
-  class STL
-  {
-  public:
-    /*!
-      @brief Alias for vector type
-    */
-    using Vec3 = EBGeometry::Vec3T<T>;
-
-    /*!
-      @brief Alias for vertex type
-    */
-    using Vertex = EBGeometry::DCEL::VertexT<T, Meta>;
-
-    /*!
-      @brief Alias for edge type
-    */
-    using Edge = EBGeometry::DCEL::EdgeT<T, Meta>;
-
-    /*!
-      @brief Alias for face type
-    */
-    using Face = EBGeometry::DCEL::FaceT<T, Meta>;
-
-    /*!
-      @brief Alias for mesh type
-    */
-    using Mesh = EBGeometry::DCEL::MeshT<T, Meta>;
-
-    /*!
-      @brief Alias for edge iterator type
-    */
-    using EdgeIterator = EBGeometry::DCEL::EdgeIteratorT<T, Meta>;
-
-    /*!
-      @brief Read a single STL object from the input file. The file can be binary or ASCII. 
-      If the STL file contains multiple solids, this routine returns the first one. 
-      @param[in] a_filename STL file name. 
-    */
-    inline static std::shared_ptr<Mesh>
-    readSingle(const std::string a_filename) noexcept;
-
-    /*!
-      @brief Read a single STL object from the input file. The file can be binary or ASCII. 
-      @param[in] a_filename STL file name. 
-    */
-    inline static std::vector<std::pair<std::shared_ptr<Mesh>, std::string>>
-    readMulti(const std::string a_filename) noexcept;
-
-  protected:
-    /*!
-      @brief Check if the input STL file is an ASCII file or a binary
-      @param[in] a_filename File name
-      @return Returns Encoding::ASCII or Encoding::Binary,
-    */
-    inline static Encoding
-    getEncoding(const std::string a_filename) noexcept;
-
-    /*!
-      @brief ASCII reader STL files, possibly containing multiple objects. Each object becomes a DCEL mesh
-      @param[in] a_filename Input filename
-    */
-    inline static std::vector<std::pair<std::shared_ptr<Mesh>, std::string>>
-    readASCII(const std::string a_filename) noexcept;
-
-    /*!
-      @brief Binary reader for STL files, possibly containing multiple objects. Each object becomes a DCEL mesh
-      @param[in] a_filename Input filename
-    */
-    inline static std::vector<std::pair<std::shared_ptr<Mesh>, std::string>>
-    readBinary(const std::string a_filename) noexcept;
-
-    /*!
-      @brief Read an STL object as a triangle soup into a raw vertices and facets
-      @param[out] a_vertices   Vertices
-      @param[out] a_facets     STL facets
-      @param[out] a_objectName Object name
-      @param[out] a_fileContents File contents
-      @param[out] a_firstLine  Line number in a_filename containing the 'solid' identifier. 
-      @param[out] a_lastLine   Line number in a_filename containing the 'endsolid' identifier. 
-    */
-    inline static void
-    readSTLSoupASCII(std::vector<Vec3>&                a_vertices,
-                     std::vector<std::vector<size_t>>& a_facets,
-                     std::string&                      a_objectName,
-                     const std::vector<std::string>&   a_fileContents,
-                     const size_t                      a_firstLine,
-                     const size_t                      a_lastLine) noexcept;
-  };
-
-  /*!
-    @brief Class for reading Stanford PLY files.
-    @note T is the precision used for storing the mesh.
-  */
-  template <typename T>
-  class PLY
-  {
-  public:
-    /*!
-      @brief Alias for vector type
-    */
-    using Vec3 = EBGeometry::Vec3T<T>;
-
-    /*!
-      @brief Alias for vertex type
-    */
-    using Vertex = EBGeometry::DCEL::VertexT<T>;
-
-    /*!
-      @brief Alias for edge type
-    */
-    using Edge = EBGeometry::DCEL::EdgeT<T>;
-
-    /*!
-      @brief Alias for face type
-    */
-    using Face = EBGeometry::DCEL::FaceT<T>;
-
-    /*!
-      @brief Alias for mesh type
-    */
-    using Mesh = EBGeometry::DCEL::MeshT<T>;
-
-    /*!
-      @brief Alias for edge iterator type
-    */
-    using EdgeIterator = EBGeometry::DCEL::EdgeIteratorT<T>;
-
-    /*!
-      @brief Static function which reads an ASCII .ply file and returns a DCEL
-      mesh.
-      @param[in]  a_filename File name
-    */
-    inline static std::shared_ptr<Mesh>
-    read(const std::string a_filename) noexcept;
-
-  protected:
-    /*!
-      @brief Check if the input PLY file is an ASCII file or a binary
-      @param[in] a_filename File name
-      @return Returns Encoding::ASCII or Encoding::Binary,
-    */
-    inline static Encoding
-    getEncoding(const std::string a_filename) noexcept;
-
-    /*!
-      @brief Read an ASCII PLY file into a triangle soup. 
-      @details 
-      @param[out]   a_vertices   Raw vertices
-      @param[out]   a_faces      Raw polygon faces
-      @param[in]    a_fileStream File stream
-    */
-    inline static void
-    readPLYSoupASCII(std::vector<Vec3>&                a_vertices,
-                     std::vector<std::vector<size_t>>& a_faces,
-                     std::ifstream&                    a_fileStream) noexcept;
-
-    /*!
-      @brief Read a binary PLY file into a triangle soup. 
-      @details 
-      @param[out]   a_vertices   Raw vertices
-      @param[out]   a_faces      Raw polygon faces
-      @param[in]    a_fileStream File stream
-    */
-    inline static void
-    readPLYSoupBinary(std::vector<Vec3>&                a_vertices,
-                      std::vector<std::vector<size_t>>& a_faces,
-                      std::ifstream&                    a_fileStream) noexcept;
-  };
 } // namespace Parser
 
 #include "EBGeometry_NamespaceFooter.hpp"
