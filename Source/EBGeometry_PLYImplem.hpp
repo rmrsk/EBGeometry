@@ -3,144 +3,171 @@
  * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
  */
 
-#ifndef EBGeometry_PLYImplem
-#define EBGeometry_PLYImplem
+#ifndef EBGeometry_PLY
+#define EBGeometry_PLY
+
+// Std includes
+#include <array>
+#include <vector>
 
 // Our includes
-#include "EBGeometry_PLY.hpp"
-#include "EBGeometry_Soup.hpp"
+#include "EBGeometry_Vec.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
+/*!
+  @brief Class for storing Stanford PLY meshes.
+  @note T is the precision used for storing the mesh.
+*/
 template <typename T>
-PLY<T>::PLY() noexcept
+class PLY
 {
-  m_vertexCoordinates.resize(0);
-  m_facets.resize(0);
-  m_vertexProperties.clear();
-  m_faceProperties.clear();
-  m_id = std::string();
-}
+public:
+  /*!
+    @brief Default constructor. Initializes empty member data holder
+  */
+  PLY() noexcept;
 
-template <typename T>
-PLY<T>::PLY(const std::string a_id) noexcept : PLY()
-{
-  m_id = a_id;
-}
+  /*!
+    @brief Constructor. Initializes empty vertices and facets but sets the PLY ID (usually the file name
+    @param[in] a_id Identifier for PLY object
+  */
+  PLY(const std::string a_id) noexcept;
 
-template <typename T>
-PLY<T>::~PLY() noexcept
-{
-  m_vertexCoordinates.resize(0);
-  m_facets.resize(0);
-  m_vertexProperties.clear();
-  m_faceProperties.clear();
-}
+  /*!
+    @brief Destructor. Clears all data.
+  */
+  virtual ~PLY() noexcept;
 
-template <typename T>
-std::string&
-PLY<T>::getID() noexcept
-{
-  return m_id;
-}
+  /*!
+    @brief Get the identifier for this object
+  */
+  std::string&
+  getID() noexcept;
 
-template <typename T>
-const std::string&
-PLY<T>::getID() const noexcept
-{
-  return m_id;
-}
+  /*!
+    @brief Get the identifier for this object
+  */
+  const std::string&
+  getID() const noexcept;
 
-template <typename T>
-std::vector<Vec3T<T>>&
-PLY<T>::getVertexCoordinates() noexcept
-{
-  return m_vertexCoordinates;
-}
+  /*!
+    @brief Get the vertex coordinates
+    @return m_vertexCoordinates
+  */
+  std::vector<Vec3T<T>>&
+  getVertexCoordinates() noexcept;
 
-template <typename T>
-const std::vector<Vec3T<T>>&
-PLY<T>::getVertexCoordinates() const noexcept
-{
-  return m_vertexCoordinates;
-}
+  /*!
+    @brief Get the vertex coordinates
+    @return m_vertexCoordinates    
+  */
+  const std::vector<Vec3T<T>>&
+  getVertexCoordinates() const noexcept;
 
-template <typename T>
-std::vector<std::vector<size_t>>&
-PLY<T>::getFacets() noexcept
-{
-  return m_facets;
-}
+  /*!
+    @brief Get the face indices
+    @return m_facets
+  */
+  std::vector<std::vector<size_t>>&
+  getFacets() noexcept;
 
-template <typename T>
-const std::vector<std::vector<size_t>>&
-PLY<T>::getFacets() const noexcept
-{
-  return m_facets;
-}
+  /*!
+    @brief Get the face indices
+    @return m_facets
+  */
+  const std::vector<std::vector<size_t>>&
+  getFacets() const noexcept;
 
-template <typename T>
-std::vector<T>&
-PLY<T>::getVertexProperties(const std::string a_property) noexcept
-{
-  return m_vertexProperties.at(a_property);
-}
+  /*!
+    @brief Get the vertex properties
+    @param[in] a_property Which property to fetch
+    @note Function will fail if the property does not exist
+    @return m_vertexProperties at provided property
+  */
+  std::vector<T>&
+  getVertexProperties(const std::string a_property);
 
-template <typename T>
-const std::vector<T>&
-PLY<T>::getVertexProperties(const std::string a_property) const noexcept
-{
-  return m_vertexProperties.at(a_property);
-}
+  /*!
+    @brief Get the vertex properties
+    @param[in] a_property Which property to fetch
+    @note Function will fail if the property does not exist
+    @return m_vertexProperties at provided property
+  */
+  const std::vector<T>&
+  getVertexProperties(const std::string a_property) const;
 
-template <typename T>
-std::vector<T>&
-PLY<T>::getFaceProperties(const std::string a_property) noexcept
-{
-  return m_faceProperties.at(a_property);
-}
+  /*!
+    @brief Get the face properties
+    @param[in] a_property Which property to fetch
+    @note Function will fail if the property does not exist
+    @return m_faceProperties at provided property
+  */
+  std::vector<T>&
+  getFaceProperties(const std::string a_property);
 
-template <typename T>
-const std::vector<T>&
-PLY<T>::getFaceProperties(const std::string a_property) const noexcept
-{
-  return m_faceProperties.at(a_property);
-}
+  /*!
+    @brief Get the vertex properties
+    @param[in] a_property Which property to fetch
+    @note Function will fail if the property does not exist
+    @return m_vertexProperties at provided property
+  */
+  const std::vector<T>&
+  getFaceProperties(const std::string a_property) const;
 
-template <typename T>
-void
-PLY<T>::setVertexProperties(const std::string a_property, const std::vector<T>& a_data) noexcept
-{
-  m_vertexProperties[a_property] = a_data;
-}
+  /*!
+    @brief Set vertex properties
+    @param[in] a_property Property name
+    @param[in] a_data Property data
+  */
+  void
+  setVertexProperties(const std::string a_property, const std::vector<T>& a_data);
 
-template <typename T>
-void
-PLY<T>::setFaceProperties(const std::string a_property, const std::vector<T>& a_data) noexcept
-{
-  m_faceProperties[a_property] = a_data;
-}
+  /*!
+    @brief Set face properties
+    @param[in] a_property Property name
+    @param[in] a_data Property data
+  */
+  void
+  setFaceProperties(const std::string a_property, const std::vector<T>& a_data);
 
-template <typename T>
-template <typename Meta>
-std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-PLY<T>::convertToDCEL() const noexcept
-{
-  // Do a deep copy of the vertices and facets since they might need to be compressed.
-  std::vector<Vec3T<T>>            vertices = m_vertexCoordinates;
-  std::vector<std::vector<size_t>> facets   = m_facets;
+  /*!
+    @brief Turn the PLY mesh into a DCEL mesh.
+    @details This call does not populate any meta-data in the DCEL mesh structures. If you need to also populate
+    the meta-data on vertices and faces, you should not use this function but supply your own constructor. 
+  */
+  template <typename Meta>
+  std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+  convertToDCEL() const noexcept;
 
-  if (Soup::containsDegeneratePolygons(vertices, facets)) {
-    std::cerr << "PLY::convertToDCEL - PLY contains degenerate faces\n";
-  }
+  //protected:
+  /*!
+    @brief PLY object ID.
+  */
+  std::string m_id;
 
-  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
+  /*!
+    @brief Vertex coordinates
+  */
+  std::vector<Vec3T<T>> m_vertexCoordinates;
 
-  Soup::compress(vertices, facets);
-  Soup::soupToDCEL(*mesh, vertices, facets, m_id);
+  /*!
+    @brief Faces -- each entry in the outer vector contains the indices defining one face
+  */
+  std::vector<std::vector<size_t>> m_facets;
 
-  return mesh;
-}
+  /*!
+    @brief Vertex properties
+  */
+  std::map<std::string, std::vector<T>> m_vertexProperties;
+
+  /*!
+    @brief Face properties
+  */
+  std::map<std::string, std::vector<T>> m_faceProperties;
+};
 
 #include "EBGeometry_NamespaceFooter.hpp"
+
+#include "EBGeometry_PLYImplem.hpp"
 
 #endif
