@@ -80,42 +80,42 @@ PLY<T>::getFacets() const noexcept
 
 template <typename T>
 std::vector<T>&
-PLY<T>::getVertexProperties(const std::string a_property) noexcept
+PLY<T>::getVertexProperties(const std::string a_property)
 {
   return m_vertexProperties.at(a_property);
 }
 
 template <typename T>
 const std::vector<T>&
-PLY<T>::getVertexProperties(const std::string a_property) const noexcept
+PLY<T>::getVertexProperties(const std::string a_property) const
 {
   return m_vertexProperties.at(a_property);
 }
 
 template <typename T>
 std::vector<T>&
-PLY<T>::getFaceProperties(const std::string a_property) noexcept
+PLY<T>::getFaceProperties(const std::string a_property)
 {
   return m_faceProperties.at(a_property);
 }
 
 template <typename T>
 const std::vector<T>&
-PLY<T>::getFaceProperties(const std::string a_property) const noexcept
+PLY<T>::getFaceProperties(const std::string a_property) const
 {
   return m_faceProperties.at(a_property);
 }
 
 template <typename T>
 void
-PLY<T>::setVertexProperties(const std::string a_property, const std::vector<T>& a_data) noexcept
+PLY<T>::setVertexProperties(const std::string a_property, const std::vector<T>& a_data)
 {
   m_vertexProperties[a_property] = a_data;
 }
 
 template <typename T>
 void
-PLY<T>::setFaceProperties(const std::string a_property, const std::vector<T>& a_data) noexcept
+PLY<T>::setFaceProperties(const std::string a_property, const std::vector<T>& a_data)
 {
   m_faceProperties[a_property] = a_data;
 }

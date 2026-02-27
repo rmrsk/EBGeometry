@@ -86,7 +86,7 @@ public:
     @return m_pointDataScalars at provided name
   */
   std::vector<T>&
-  getPointDataScalars(const std::string a_name) noexcept;
+  getPointDataScalars(const std::string a_name);
 
   /*!
     @brief Get the point data scalars
@@ -95,7 +95,7 @@ public:
     @return m_pointDataScalars at provided name
   */
   const std::vector<T>&
-  getPointDataScalars(const std::string a_name) const noexcept;
+  getPointDataScalars(const std::string a_name) const;
 
   /*!
     @brief Get the cell data scalars
@@ -104,7 +104,7 @@ public:
     @return m_cellDataScalars at provided name
   */
   std::vector<T>&
-  getCellDataScalars(const std::string a_name) noexcept;
+  getCellDataScalars(const std::string a_name);
 
   /*!
     @brief Get the cell data scalars
@@ -113,7 +113,7 @@ public:
     @return m_cellDataScalars at provided name
   */
   const std::vector<T>&
-  getCellDataScalars(const std::string a_name) const noexcept;
+  getCellDataScalars(const std::string a_name) const;
 
   /*!
     @brief Set point data scalars
@@ -121,7 +121,7 @@ public:
     @param[in] a_data Array data
   */
   void
-  setPointDataScalars(const std::string a_name, const std::vector<T>& a_data) noexcept;
+  setPointDataScalars(const std::string a_name, const std::vector<T>& a_data);
 
   /*!
     @brief Set cell data scalars
@@ -129,7 +129,7 @@ public:
     @param[in] a_data Array data
   */
   void
-  setCellDataScalars(const std::string a_name, const std::vector<T>& a_data) noexcept;
+  setCellDataScalars(const std::string a_name, const std::vector<T>& a_data);
 
   /*!
     @brief Turn the VTK mesh into a DCEL mesh.
@@ -140,7 +140,7 @@ public:
   std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
   convertToDCEL() const noexcept;
 
-protected:
+  //protected:
   /*!
     @brief VTK object ID.
   */
