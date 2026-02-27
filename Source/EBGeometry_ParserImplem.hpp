@@ -556,9 +556,11 @@ Parser::readPLY(const std::string& a_filename) noexcept
         }
       }
 
-      // Copy properties to PLY object using the setter methods
+      // Copy properties to PLY object using the setter methods, skipping x/y/z coordinates
       for (const auto& propName : vertexPropertyNames) {
-        ply.setVertexProperties(propName, vertexProps[propName]);
+        if (propName != "x" && propName != "y" && propName != "z") {
+          ply.setVertexProperties(propName, vertexProps[propName]);
+        }
       }
 
       for (const auto& propName : facePropertyNames) {
@@ -835,9 +837,11 @@ Parser::readPLY(const std::string& a_filename) noexcept
         }
       }
 
-      // Copy properties to PLY object using the setter methods
+      // Copy properties to PLY object using the setter methods, skipping x/y/z coordinates
       for (const auto& propName : vertexPropertyNames) {
-        ply.setVertexProperties(propName, vertexProps[propName]);
+        if (propName != "x" && propName != "y" && propName != "z") {
+          ply.setVertexProperties(propName, vertexProps[propName]);
+        }
       }
 
       for (const auto& propName : facePropertyNames) {
@@ -889,6 +893,7 @@ Parser::readVTK(const std::string& a_filename) noexcept
   case Parser::Encoding::ASCII: {
     std::ifstream filestream(a_filename);
 
+    std::cout << "reading ascii" << std::endl;
     if (filestream.is_open()) {
       std::string line;
 
@@ -1025,6 +1030,8 @@ Parser::readVTK(const std::string& a_filename) noexcept
           size_t numData;
           sstream >> numData;
 
+          std::cout << "getting point data" << std::endl;
+
           // Read point data arrays
           while (std::getline(filestream, line)) {
             std::stringstream ss(line);
@@ -1061,6 +1068,23 @@ Parser::readVTK(const std::string& a_filename) noexcept
               std::getline(filestream, line); // Consume rest of line
 
               vtk.setPointDataScalars(arrayName, scalarData);
+            }
+            else if (dataKeyword == "FIELD") {
+              // Skip FIELD arrays within POINT_DATA
+              std::string fieldName;
+              size_t      numArrays;
+              ss >> fieldName >> numArrays;
+              for (size_t f = 0; f < numArrays; f++) {
+                std::string fieldArrayName, dataType;
+                size_t      numComponents, numTuples;
+                filestream >> fieldArrayName >> numComponents >> numTuples >> dataType;
+                std::getline(filestream, line);
+                for (size_t v = 0; v < numComponents * numTuples; v++) {
+                  std::string dummy;
+                  filestream >> dummy;
+                }
+                std::getline(filestream, line);
+              }
             }
             else if (dataKeyword == "CELL_DATA") {
               // Back up - we've hit the next section
@@ -1108,6 +1132,28 @@ Parser::readVTK(const std::string& a_filename) noexcept
               std::getline(filestream, line); // Consume rest of line
 
               vtk.setCellDataScalars(arrayName, scalarData);
+            }
+            else if (dataKeyword == "FIELD") {
+              // Skip FIELD arrays within CELL_DATA
+              std::string fieldName;
+              size_t      numArrays;
+              ss >> fieldName >> numArrays;
+              for (size_t f = 0; f < numArrays; f++) {
+                std::string fieldArrayName, dataType;
+                size_t      numComponents, numTuples;
+                filestream >> fieldArrayName >> numComponents >> numTuples >> dataType;
+                std::getline(filestream, line);
+                for (size_t v = 0; v < numComponents * numTuples; v++) {
+                  std::string dummy;
+                  filestream >> dummy;
+                }
+                std::getline(filestream, line);
+              }
+            }
+            else if (dataKeyword == "POINT_DATA") {
+              // Back up - we've hit the next section
+              filestream.seekg(-static_cast<int>(line.length()) - 1, std::ios_base::cur);
+              break;
             }
           }
         }
@@ -1310,6 +1356,8 @@ Parser::readVTK(const std::string& a_filename) noexcept
         else if (keyword == "POINT_DATA") {
           size_t numData;
           sstream >> numData;
+
+          std::cout << "getting point data" << std::endl;
 
           // Read point data arrays
           while (std::getline(filestream, line)) {

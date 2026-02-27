@@ -85,16 +85,16 @@ public:
     @return m_vertexProperties at provided property
   */
   std::vector<T>&
-  getVertexProperties(const std::string a_property) noexcept;
+  getVertexProperties(const std::string a_property);
 
   /*!
     @brief Get the vertex properties
     @param[in] a_property Which property to fetch
-    @note Function will fail if the property does not exist    
+    @note Function will fail if the property does not exist
     @return m_vertexProperties at provided property
   */
   const std::vector<T>&
-  getVertexProperties(const std::string a_property) const noexcept;
+  getVertexProperties(const std::string a_property) const;
 
   /*!
     @brief Get the face properties
@@ -103,7 +103,7 @@ public:
     @return m_faceProperties at provided property
   */
   std::vector<T>&
-  getFaceProperties(const std::string a_property) noexcept;
+  getFaceProperties(const std::string a_property);
 
   /*!
     @brief Get the vertex properties
@@ -112,7 +112,7 @@ public:
     @return m_vertexProperties at provided property
   */
   const std::vector<T>&
-  getFaceProperties(const std::string a_property) const noexcept;
+  getFaceProperties(const std::string a_property) const;
 
   /*!
     @brief Set vertex properties
@@ -120,7 +120,7 @@ public:
     @param[in] a_data Property data
   */
   void
-  setVertexProperties(const std::string a_property, const std::vector<T>& a_data) noexcept;
+  setVertexProperties(const std::string a_property, const std::vector<T>& a_data);
 
   /*!
     @brief Set face properties
@@ -128,7 +128,7 @@ public:
     @param[in] a_data Property data
   */
   void
-  setFaceProperties(const std::string a_property, const std::vector<T>& a_data) noexcept;
+  setFaceProperties(const std::string a_property, const std::vector<T>& a_data);
 
   /*!
     @brief Turn the PLY mesh into a DCEL mesh.
@@ -139,7 +139,7 @@ public:
   std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
   convertToDCEL() const noexcept;
 
-protected:
+  //protected:
   /*!
     @brief PLY object ID.
   */

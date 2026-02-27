@@ -80,42 +80,42 @@ VTK<T>::getFacets() const noexcept
 
 template <typename T>
 std::vector<T>&
-VTK<T>::getPointDataScalars(const std::string a_name) noexcept
+VTK<T>::getPointDataScalars(const std::string a_name)
 {
   return m_pointDataScalars.at(a_name);
 }
 
 template <typename T>
 const std::vector<T>&
-VTK<T>::getPointDataScalars(const std::string a_name) const noexcept
+VTK<T>::getPointDataScalars(const std::string a_name) const
 {
   return m_pointDataScalars.at(a_name);
 }
 
 template <typename T>
 std::vector<T>&
-VTK<T>::getCellDataScalars(const std::string a_name) noexcept
+VTK<T>::getCellDataScalars(const std::string a_name)
 {
   return m_cellDataScalars.at(a_name);
 }
 
 template <typename T>
 const std::vector<T>&
-VTK<T>::getCellDataScalars(const std::string a_name) const noexcept
+VTK<T>::getCellDataScalars(const std::string a_name) const
 {
   return m_cellDataScalars.at(a_name);
 }
 
 template <typename T>
 void
-VTK<T>::setPointDataScalars(const std::string a_name, const std::vector<T>& a_data) noexcept
+VTK<T>::setPointDataScalars(const std::string a_name, const std::vector<T>& a_data)
 {
   m_pointDataScalars[a_name] = a_data;
 }
 
 template <typename T>
 void
-VTK<T>::setCellDataScalars(const std::string a_name, const std::vector<T>& a_data) noexcept
+VTK<T>::setCellDataScalars(const std::string a_name, const std::vector<T>& a_data)
 {
   m_cellDataScalars[a_name] = a_data;
 }
