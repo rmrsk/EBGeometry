@@ -893,7 +893,6 @@ Parser::readVTK(const std::string& a_filename) noexcept
   case Parser::Encoding::ASCII: {
     std::ifstream filestream(a_filename);
 
-    std::cout << "reading ascii" << std::endl;
     if (filestream.is_open()) {
       std::string line;
 
@@ -1029,8 +1028,6 @@ Parser::readVTK(const std::string& a_filename) noexcept
         else if (keyword == "POINT_DATA") {
           size_t numData;
           sstream >> numData;
-
-          std::cout << "getting point data" << std::endl;
 
           // Read point data arrays
           while (std::getline(filestream, line)) {
@@ -1356,8 +1353,6 @@ Parser::readVTK(const std::string& a_filename) noexcept
         else if (keyword == "POINT_DATA") {
           size_t numData;
           sstream >> numData;
-
-          std::cout << "getting point data" << std::endl;
 
           // Read point data arrays
           while (std::getline(filestream, line)) {
