@@ -3,172 +3,144 @@
  * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
  */
 
-#ifndef EBGeometry_VTK
-#define EBGeometry_VTK
-
-// Std includes
-#include <array>
-#include <vector>
-#include <map>
+#ifndef EBGeometry_VTKImplem
+#define EBGeometry_VTKImplem
 
 // Our includes
-#include "EBGeometry_Vec.hpp"
+#include "EBGeometry_VTK.hpp"
+#include "EBGeometry_Soup.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-/*!
-  @brief Class for storing VTK Polydata meshes.
-  @note T is the precision used for storing the mesh.
-*/
 template <typename T>
-class VTK
+VTK<T>::VTK() noexcept
 {
-public:
-  /*!
-    @brief Default constructor. Initializes empty member data holder
-  */
-  VTK() noexcept;
+  m_vertexCoordinates.resize(0);
+  m_facets.resize(0);
+  m_pointDataScalars.clear();
+  m_cellDataScalars.clear();
+  m_id = std::string();
+}
 
-  /*!
-    @brief Constructor. Initializes empty vertices and facets but sets the VTK ID (usually the file name
-    @param[in] a_id Identifier for VTK object
-  */
-  VTK(const std::string a_id) noexcept;
+template <typename T>
+VTK<T>::VTK(const std::string a_id) noexcept : VTK()
+{
+  m_id = a_id;
+}
 
-  /*!
-    @brief Destructor. Clears all data.
-  */
-  virtual ~VTK() noexcept;
+template <typename T>
+VTK<T>::~VTK() noexcept
+{
+  m_vertexCoordinates.resize(0);
+  m_facets.resize(0);
+  m_pointDataScalars.clear();
+  m_cellDataScalars.clear();
+}
 
-  /*!
-    @brief Get the identifier for this object
-  */
-  std::string&
-  getID() noexcept;
+template <typename T>
+std::string&
+VTK<T>::getID() noexcept
+{
+  return m_id;
+}
 
-  /*!
-    @brief Get the identifier for this object
-  */
-  const std::string&
-  getID() const noexcept;
+template <typename T>
+const std::string&
+VTK<T>::getID() const noexcept
+{
+  return m_id;
+}
 
-  /*!
-    @brief Get the vertex coordinates
-    @return m_vertexCoordinates
-  */
-  std::vector<Vec3T<T>>&
-  getVertexCoordinates() noexcept;
+template <typename T>
+std::vector<Vec3T<T>>&
+VTK<T>::getVertexCoordinates() noexcept
+{
+  return m_vertexCoordinates;
+}
 
-  /*!
-    @brief Get the vertex coordinates
-    @return m_vertexCoordinates
-  */
-  const std::vector<Vec3T<T>>&
-  getVertexCoordinates() const noexcept;
+template <typename T>
+const std::vector<Vec3T<T>>&
+VTK<T>::getVertexCoordinates() const noexcept
+{
+  return m_vertexCoordinates;
+}
 
-  /*!
-    @brief Get the face indices
-    @return m_facets
-  */
-  std::vector<std::vector<size_t>>&
-  getFacets() noexcept;
+template <typename T>
+std::vector<std::vector<size_t>>&
+VTK<T>::getFacets() noexcept
+{
+  return m_facets;
+}
 
-  /*!
-    @brief Get the face indices
-    @return m_facets
-  */
-  const std::vector<std::vector<size_t>>&
-  getFacets() const noexcept;
+template <typename T>
+const std::vector<std::vector<size_t>>&
+VTK<T>::getFacets() const noexcept
+{
+  return m_facets;
+}
 
-  /*!
-    @brief Get the point data scalars
-    @param[in] a_name Scalar array name
-    @note Function will fail if the array does not exist
-    @return m_pointDataScalars at provided name
-  */
-  std::vector<T>&
-  getPointDataScalars(const std::string a_name);
+template <typename T>
+std::vector<T>&
+VTK<T>::getPointDataScalars(const std::string a_name)
+{
+  return m_pointDataScalars.at(a_name);
+}
 
-  /*!
-    @brief Get the point data scalars
-    @param[in] a_name Scalar array name
-    @note Function will fail if the array does not exist
-    @return m_pointDataScalars at provided name
-  */
-  const std::vector<T>&
-  getPointDataScalars(const std::string a_name) const;
+template <typename T>
+const std::vector<T>&
+VTK<T>::getPointDataScalars(const std::string a_name) const
+{
+  return m_pointDataScalars.at(a_name);
+}
 
-  /*!
-    @brief Get the cell data scalars
-    @param[in] a_name Scalar array name
-    @note Function will fail if the array does not exist
-    @return m_cellDataScalars at provided name
-  */
-  std::vector<T>&
-  getCellDataScalars(const std::string a_name);
+template <typename T>
+std::vector<T>&
+VTK<T>::getCellDataScalars(const std::string a_name)
+{
+  return m_cellDataScalars.at(a_name);
+}
 
-  /*!
-    @brief Get the cell data scalars
-    @param[in] a_name Scalar array name
-    @note Function will fail if the array does not exist
-    @return m_cellDataScalars at provided name
-  */
-  const std::vector<T>&
-  getCellDataScalars(const std::string a_name) const;
+template <typename T>
+const std::vector<T>&
+VTK<T>::getCellDataScalars(const std::string a_name) const
+{
+  return m_cellDataScalars.at(a_name);
+}
 
-  /*!
-    @brief Set point data scalars
-    @param[in] a_name Array name
-    @param[in] a_data Array data
-  */
-  void
-  setPointDataScalars(const std::string a_name, const std::vector<T>& a_data);
+template <typename T>
+void
+VTK<T>::setPointDataScalars(const std::string a_name, const std::vector<T>& a_data)
+{
+  m_pointDataScalars[a_name] = a_data;
+}
 
-  /*!
-    @brief Set cell data scalars
-    @param[in] a_name Array name
-    @param[in] a_data Array data
-  */
-  void
-  setCellDataScalars(const std::string a_name, const std::vector<T>& a_data);
+template <typename T>
+void
+VTK<T>::setCellDataScalars(const std::string a_name, const std::vector<T>& a_data)
+{
+  m_cellDataScalars[a_name] = a_data;
+}
 
-  /*!
-    @brief Turn the VTK mesh into a DCEL mesh.
-    @details This call does not populate any meta-data in the DCEL mesh structures. If you need to also populate
-    the meta-data on vertices and faces, you should not use this function but supply your own constructor.
-  */
-  template <typename Meta>
-  std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-  convertToDCEL() const noexcept;
+template <typename T>
+template <typename Meta>
+std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+VTK<T>::convertToDCEL() const noexcept
+{
+  // Do a deep copy of the vertices and facets since they might need to be compressed.
+  std::vector<Vec3T<T>>            vertices = m_vertexCoordinates;
+  std::vector<std::vector<size_t>> facets   = m_facets;
 
-  //protected:
-  /*!
-    @brief VTK object ID.
-  */
-  std::string m_id;
+  if (Soup::containsDegeneratePolygons(vertices, facets)) {
+    std::cerr << "VTK::convertToDCEL - VTK contains degenerate faces\n";
+  }
 
-  /*!
-    @brief Vertex coordinates
-  */
-  std::vector<Vec3T<T>> m_vertexCoordinates;
+  auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
 
-  /*!
-    @brief Faces -- each entry in the outer vector contains the indices defining one face
-  */
-  std::vector<std::vector<size_t>> m_facets;
+  Soup::compress(vertices, facets);
+  Soup::soupToDCEL(*mesh, vertices, facets, m_id);
 
-  /*!
-    @brief Point data scalar arrays
-  */
-  std::map<std::string, std::vector<T>> m_pointDataScalars;
-
-  /*!
-    @brief Cell data scalar arrays
-  */
-  std::map<std::string, std::vector<T>> m_cellDataScalars;
-};
+  return mesh;
+}
 
 #include "EBGeometry_NamespaceFooter.hpp"
-
-#include "EBGeometry_VTKImplem.hpp"
 
 #endif
