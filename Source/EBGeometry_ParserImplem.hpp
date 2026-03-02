@@ -1412,6 +1412,82 @@ Parser::readVTK(const std::string& a_filename) noexcept
 
               vtk.setPointDataScalars(arrayName, scalarData);
             }
+            else if (dataKeyword == "VECTORS" || dataKeyword == "NORMALS") {
+              std::string arrayName, dataType;
+              ss >> arrayName >> dataType;
+
+              const size_t bytesPerElem = (dataType == "double") ? 8 : 4;
+              filestream.seekg(numData * 3 * bytesPerElem, std::ios_base::cur);
+              filestream.get(); // consume trailing '\n'
+            }
+            else if (dataKeyword == "FIELD") {
+              std::string fieldName;
+              size_t      numArrays;
+              ss >> fieldName >> numArrays;
+
+              for (size_t a = 0; a < numArrays; a++) {
+                std::getline(filestream, line);
+                std::stringstream as(line);
+                std::string       arrayName, dataType;
+                size_t            numComponents, numTuples;
+                as >> arrayName >> numComponents >> numTuples >> dataType;
+
+                if (dataType == "float") {
+                  if (numComponents == 1) {
+                    std::vector<T> scalarData;
+                    scalarData.reserve(numTuples);
+                    for (size_t i = 0; i < numTuples; i++) {
+                      scalarData.emplace_back(static_cast<T>(readBinaryFloat()));
+                    }
+                    vtk.setPointDataScalars(arrayName, scalarData);
+                  }
+                  else {
+                    filestream.seekg(numComponents * numTuples * 4, std::ios_base::cur);
+                  }
+                }
+                else if (dataType == "double") {
+                  if (numComponents == 1) {
+                    std::vector<T> scalarData;
+                    scalarData.reserve(numTuples);
+                    for (size_t i = 0; i < numTuples; i++) {
+                      scalarData.emplace_back(static_cast<T>(readBinaryDouble()));
+                    }
+                    vtk.setPointDataScalars(arrayName, scalarData);
+                  }
+                  else {
+                    filestream.seekg(numComponents * numTuples * 8, std::ios_base::cur);
+                  }
+                }
+                else if (dataType == "int") {
+                  if (numComponents == 1) {
+                    std::vector<T> scalarData;
+                    scalarData.reserve(numTuples);
+                    for (size_t i = 0; i < numTuples; i++) {
+                      scalarData.emplace_back(static_cast<T>(readBinaryInt()));
+                    }
+                    vtk.setPointDataScalars(arrayName, scalarData);
+                  }
+                  else {
+                    filestream.seekg(numComponents * numTuples * 4, std::ios_base::cur);
+                  }
+                }
+                else if (dataType == "char" || dataType == "unsigned_char") {
+                  filestream.seekg(numComponents * numTuples * 1, std::ios_base::cur);
+                }
+                else if (dataType == "short" || dataType == "unsigned_short") {
+                  filestream.seekg(numComponents * numTuples * 2, std::ios_base::cur);
+                }
+                else if (dataType == "long" || dataType == "unsigned_long") {
+                  filestream.seekg(numComponents * numTuples * 8, std::ios_base::cur);
+                }
+                else {
+                  std::cerr << "Parser::readVTK - Unsupported FIELD data type: " << dataType << "\n";
+                  break;
+                }
+
+                filestream.get(); // consume trailing '\n' after binary data
+              }
+            }
             else if (dataKeyword == "CELL_DATA") {
               // Back up - we've hit the next section
               filestream.seekg(-static_cast<int>(line.length()) - 1, std::ios_base::cur);
@@ -1480,6 +1556,46 @@ Parser::readVTK(const std::string& a_filename) noexcept
               }
 
               vtk.setCellDataScalars(arrayName, scalarData);
+            }
+            else if (dataKeyword == "FIELD") {
+              std::string fieldName;
+              size_t      numArrays;
+              ss >> fieldName >> numArrays;
+
+              for (size_t a = 0; a < numArrays; a++) {
+                std::getline(filestream, line);
+                std::stringstream as(line);
+                std::string       arrayName, dataType;
+                size_t            numComponents, numTuples;
+                as >> arrayName >> numComponents >> numTuples >> dataType;
+
+                size_t bytesPerElem = 0;
+                if (dataType == "float" || dataType == "int")
+                  bytesPerElem = 4;
+                else if (dataType == "double")
+                  bytesPerElem = 8;
+                else if (dataType == "char" || dataType == "unsigned_char")
+                  bytesPerElem = 1;
+                else if (dataType == "short" || dataType == "unsigned_short")
+                  bytesPerElem = 2;
+                else if (dataType == "long" || dataType == "unsigned_long")
+                  bytesPerElem = 8;
+
+                if (bytesPerElem > 0) {
+                  filestream.seekg(numComponents * numTuples * bytesPerElem, std::ios_base::cur);
+                }
+                else {
+                  std::cerr << "Parser::readVTK - Unsupported CELL_DATA FIELD type: " << dataType << "\n";
+                  break;
+                }
+
+                filestream.get(); // consume trailing '\n'
+              }
+            }
+            else if (dataKeyword == "POINT_DATA") {
+              // Back up - we've hit the next section
+              filestream.seekg(-static_cast<int>(line.length()) - 1, std::ios_base::cur);
+              break;
             }
           }
         }
