@@ -13,8 +13,8 @@
 #define EBGeometry_BVHImplem
 
 // Std includes
-#include <stack>
 #include <tuple>
+#include <vector>
 
 // Our includes
 #include "EBGeometry_BVH.hpp"
@@ -327,58 +327,43 @@ namespace BVH {
   NodeT<T, P, BV, K>::flattenTree() const noexcept
   {
 
-    // Create a list of sorted primitives and nodes.
-    std::vector<std::shared_ptr<const P>>                  sortedPrimitives;
-    std::vector<std::shared_ptr<LinearNodeT<T, P, BV, K>>> linearNodes;
+    std::vector<std::shared_ptr<const P>> sortedPrimitives;
+    std::vector<LinearNodeT<T, P, BV, K>> linearNodes;
 
-    // Track the offset into the linearized node array.
     size_t offset = 0;
 
-    // Flatten recursively.
     this->flattenTree(linearNodes, sortedPrimitives, offset);
 
-    // Return the root node.
-    return std::make_shared<LinearBVH<T, P, BV, K>>(linearNodes, sortedPrimitives);
+    return std::make_shared<LinearBVH<T, P, BV, K>>(std::move(linearNodes), sortedPrimitives);
   }
 
   template <class T, class P, class BV, size_t K>
   inline size_t
-  NodeT<T, P, BV, K>::flattenTree(std::vector<std::shared_ptr<LinearNodeT<T, P, BV, K>>>& a_linearNodes,
-                                  std::vector<std::shared_ptr<const P>>&                  a_sortedPrimitives,
-                                  size_t&                                                 a_offset) const noexcept
+  NodeT<T, P, BV, K>::flattenTree(std::vector<LinearNodeT<T, P, BV, K>>& a_linearNodes,
+                                  std::vector<std::shared_ptr<const P>>& a_sortedPrimitives,
+                                  size_t&                                a_offset) const noexcept
   {
-
-    // TLDR: This is the main routine for flattening the hierarchy beneath the
-    // current node. When this is called we insert
-    //       this node into a_linearNodes and associate the array offsets so that
-    //       we can find the children in the linearized array.
-
-    // Current node we are dealing with.
     const auto curNode = a_offset;
 
-    // Insert a new node corresponding to this node and provide it with the
-    // current bounding volume.
-    a_linearNodes.emplace_back(std::make_shared<LinearNodeT<T, P, BV, K>>());
-    a_linearNodes[curNode]->setBoundingVolume(m_boundingVolume);
+    a_linearNodes.emplace_back();
+    a_linearNodes[curNode].setBoundingVolume(m_boundingVolume);
 
     a_offset++;
 
     if (this->isLeaf()) {
-      // Insert primitives and offsets.
-      a_linearNodes[curNode]->setNumPrimitives(m_primitives.size());
-      a_linearNodes[curNode]->setPrimitivesOffset(a_sortedPrimitives.size());
+      a_linearNodes[curNode].setNumPrimitives(static_cast<uint32_t>(m_primitives.size()));
+      a_linearNodes[curNode].setPrimitivesOffset(static_cast<uint32_t>(a_sortedPrimitives.size()));
 
       a_sortedPrimitives.insert(a_sortedPrimitives.end(), m_primitives.begin(), m_primitives.end());
     }
     else {
-      a_linearNodes[curNode]->setNumPrimitives(0);
-      a_linearNodes[curNode]->setPrimitivesOffset(0UL);
+      a_linearNodes[curNode].setNumPrimitives(0U);
+      a_linearNodes[curNode].setPrimitivesOffset(0U);
 
-      // Go through the children nodes and
       for (size_t k = 0; k < K; k++) {
         const size_t offset = m_children[k]->flattenTree(a_linearNodes, a_sortedPrimitives, a_offset);
 
-        a_linearNodes[curNode]->setChildOffset(offset, k);
+        a_linearNodes[curNode].setChildOffset(static_cast<uint32_t>(offset), k);
       }
     }
 
@@ -388,19 +373,17 @@ namespace BVH {
   template <class T, class P, class BV, size_t K>
   inline LinearNodeT<T, P, BV, K>::LinearNodeT() noexcept
   {
-
-    // Initialize everything.
     m_boundingVolume   = BV();
-    m_primitivesOffset = 0UL;
-    m_numPrimitives    = 0;
+    m_primitivesOffset = 0U;
+    m_numPrimitives    = 0U;
 
     for (auto& offset : m_childOffsets) {
-      offset = 0UL;
+      offset = 0U;
     }
   }
 
   template <class T, class P, class BV, size_t K>
-  inline LinearNodeT<T, P, BV, K>::~LinearNodeT()
+  inline LinearNodeT<T, P, BV, K>::~LinearNodeT() noexcept
   {}
 
   template <class T, class P, class BV, size_t K>
@@ -412,21 +395,21 @@ namespace BVH {
 
   template <class T, class P, class BV, size_t K>
   inline void
-  LinearNodeT<T, P, BV, K>::setPrimitivesOffset(const size_t a_primitivesOffset) noexcept
+  LinearNodeT<T, P, BV, K>::setPrimitivesOffset(const uint32_t a_primitivesOffset) noexcept
   {
     m_primitivesOffset = a_primitivesOffset;
   }
 
   template <class T, class P, class BV, size_t K>
   inline void
-  LinearNodeT<T, P, BV, K>::setNumPrimitives(const size_t a_numPrimitives) noexcept
+  LinearNodeT<T, P, BV, K>::setNumPrimitives(const uint32_t a_numPrimitives) noexcept
   {
     m_numPrimitives = a_numPrimitives;
   }
 
   template <class T, class P, class BV, size_t K>
   inline void
-  LinearNodeT<T, P, BV, K>::setChildOffset(const size_t a_childOffset, const size_t a_whichChild) noexcept
+  LinearNodeT<T, P, BV, K>::setChildOffset(const uint32_t a_childOffset, const size_t a_whichChild) noexcept
   {
     m_childOffsets[a_whichChild] = a_childOffset;
   }
@@ -439,21 +422,21 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
-  inline const size_t&
+  inline uint32_t
   LinearNodeT<T, P, BV, K>::getPrimitivesOffset() const noexcept
   {
-    return (m_primitivesOffset);
+    return m_primitivesOffset;
   }
 
   template <class T, class P, class BV, size_t K>
-  inline const size_t&
+  inline uint32_t
   LinearNodeT<T, P, BV, K>::getNumPrimitives() const noexcept
   {
-    return (m_numPrimitives);
+    return m_numPrimitives;
   }
 
   template <class T, class P, class BV, size_t K>
-  inline const std::array<size_t, K>&
+  inline const std::array<uint32_t, K>&
   LinearNodeT<T, P, BV, K>::getChildOffsets() const noexcept
   {
     return (m_childOffsets);
@@ -464,12 +447,6 @@ namespace BVH {
   LinearNodeT<T, P, BV, K>::isLeaf() const noexcept
   {
     return m_numPrimitives > 0;
-  }
-  template <class T, class P, class BV, size_t K>
-  inline bool
-  LinearNodeT<T, P, BV, K>::isPartitioned() const noexcept
-  {
-    return m_partitioned;
   }
 
   template <class T, class P, class BV, size_t K>
@@ -485,35 +462,22 @@ namespace BVH {
                                          const std::vector<std::shared_ptr<const P>>& a_primitives) const noexcept
   {
     std::vector<T> distances;
+    distances.resize(m_numPrimitives);
 
-    for (size_t i = 0; i < m_numPrimitives; i++) {
-      const T curDist = a_primitives[m_primitivesOffset + i]->signedDistance(a_point);
-
-      distances.emplace_back(curDist);
+#pragma GCC ivdep
+    for (uint32_t i = 0; i < m_numPrimitives; i++) {
+      distances[i] = a_primitives[m_primitivesOffset + i]->signedDistance(a_point);
     }
 
     return distances;
   }
 
   template <class T, class P, class BV, size_t K>
-  inline LinearBVH<T, P, BV, K>::LinearBVH(
-    const std::vector<std::shared_ptr<const LinearNodeT<T, P, BV, K>>>& a_linearNodes,
-    const std::vector<std::shared_ptr<const P>>&                        a_primitives)
+  inline LinearBVH<T, P, BV, K>::LinearBVH(std::vector<LinearNodeT<T, P, BV, K>>        a_linearNodes,
+                                           const std::vector<std::shared_ptr<const P>>& a_primitives)
   {
-    m_linearNodes = a_linearNodes;
+    m_linearNodes = std::move(a_linearNodes);
     m_primitives  = a_primitives;
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline LinearBVH<T, P, BV, K>::LinearBVH(const std::vector<std::shared_ptr<LinearNodeT<T, P, BV, K>>>& a_linearNodes,
-                                           const std::vector<std::shared_ptr<const P>>&                  a_primitives)
-  {
-
-    for (const auto& p : a_linearNodes) {
-      m_linearNodes.emplace_back(p);
-    }
-
-    m_primitives = a_primitives;
   }
 
   template <class T, class P, class BV, size_t K>
@@ -524,54 +488,60 @@ namespace BVH {
   inline const BV&
   LinearBVH<T, P, BV, K>::getBoundingVolume() const noexcept
   {
-    return m_linearNodes.front()->getBoundingVolume();
+    return m_linearNodes.front().getBoundingVolume();
+  }
+
+  template <class T, class P, class BV, size_t K>
+  inline const typename LinearBVH<T, P, BV, K>::PrimitiveList&
+  LinearBVH<T, P, BV, K>::getPrimitives() const noexcept
+  {
+    return m_primitives;
+  }
+
+  template <class T, class P, class BV, size_t K>
+  inline const std::vector<LinearNodeT<T, P, BV, K>>&
+  LinearBVH<T, P, BV, K>::getLinearNodes() const noexcept
+  {
+    return m_linearNodes;
   }
 
   template <class T, class P, class BV, size_t K>
   template <class Meta>
   inline void
-  LinearBVH<T, P, BV, K>::traverse(const BVH::Updater<P>&                    a_updater,
+  LinearBVH<T, P, BV, K>::traverse(const BVH::LinearUpdater<P>&              a_updater,
                                    const BVH::Visiter<LinearNode, Meta>&     a_visiter,
-                                   const BVH::Sorter<LinearNode, Meta, K>&   a_sorter,
+                                   const BVH::LinearSorter<Meta, K>&         a_sorter,
                                    const BVH::MetaUpdater<LinearNode, Meta>& a_metaUpdater) const noexcept
   {
-    std::array<std::pair<std::shared_ptr<const LinearNode>, Meta>, K> children;
-    std::stack<std::pair<std::shared_ptr<const LinearNode>, Meta>>    q;
+    std::array<std::pair<uint32_t, Meta>, K> children;
 
-    q.emplace(m_linearNodes[0], a_metaUpdater(*m_linearNodes[0]));
+    // Vector-backed stack avoids deque chunk allocations; reserve avoids reallocs.
+    std::vector<std::pair<uint32_t, Meta>> q;
+    q.reserve(64);
+    q.emplace_back(static_cast<uint32_t>(0), a_metaUpdater(m_linearNodes[0]));
 
-    while (!(q.empty())) {
-      const auto& node = q.top().first;
-      const auto& meta = q.top().second;
+    while (!q.empty()) {
+      const uint32_t nodeIdx = q.back().first;
+      const Meta     meta    = q.back().second;
+      q.pop_back();
 
-      q.pop();
+      const LinearNode& node = m_linearNodes[nodeIdx];
 
-      // User-based criterion for whether or not we need to check this node.
-      if (a_visiter(*node, meta)) {
-
-        if (node->isLeaf()) {
-          const size_t& offset  = node->getPrimitivesOffset();
-          const size_t& numPrim = node->getNumPrimitives();
-
-          const auto first = m_primitives.begin() + static_cast<long int>(offset);
-          const auto last  = first + static_cast<long int>(numPrim);
-
-          // User-based update rule.
-          a_updater(PrimitiveList(first, last));
+      if (a_visiter(node, meta)) {
+        if (node.isLeaf()) {
+          a_updater(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
         }
         else {
-
-          // Update the children visitation pattern.
           for (size_t k = 0; k < K; k++) {
-            children[k].first  = m_linearNodes[node->getChildOffsets()[k]];
-            children[k].second = a_metaUpdater(*children[k].first);
+            const uint32_t childIdx = node.getChildOffsets()[k];
+            children[k].first       = childIdx;
+            children[k].second      = a_metaUpdater(m_linearNodes[childIdx]);
           }
 
-          // User-based visit pattern.
           a_sorter(children);
 
           for (const auto& child : children) {
-            q.push(child);
+            q.push_back(child);
           }
         }
       }

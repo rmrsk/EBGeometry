@@ -54,7 +54,7 @@ main(int argc, char* argv[])
   const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, BV, K>(file);
 
   // Sample some random points around the object.
-  constexpr size_t Nsamp = 100;
+  constexpr size_t Nsamp = 1000;
 
   Vec3 lo = Vec3::infinity();
   Vec3 hi = -Vec3::infinity();
@@ -82,7 +82,7 @@ main(int argc, char* argv[])
 
   const auto t0 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    dcelSum += dcelSDF->signedDistance(x);
+    //    dcelSum += dcelSDF->signedDistance(x);
   }
   const auto t1 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
@@ -118,9 +118,9 @@ main(int argc, char* argv[])
   std::cout << "Accumulated distance and time using direct DCEL = " << dcelSum << ", which took " << dcelTime.count() / Nsamp << " us\n";
   std::cout << "Accumulated distance and time using full BVH    = " << bvhSum  << ", which took " << bvhTime.count()  / Nsamp << " us\n";
   std::cout << "Accumulated distance and time using compact BVH = " << linSum  << ", which took " << linTime.count()  / Nsamp << " us\n";
-  std::cout << "Accumulated distance and time using trimesh BVH = " << triSum  << ", which took " << triTime.count()  / Nsamp << " us\n";  
+  std::cout << "Accumulated distance and time using trimesh BVH = " << triSum  << ", which took " << triTime.count()  / Nsamp << " us\n";
   std::cout << "Relative speedup using BVH vs direct DCEL        = " << dcelTime.count()/triTime.count() << "\n";
-  // clang-format on  
+  // clang-format on
 
   return 0;
 }

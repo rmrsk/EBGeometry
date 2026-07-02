@@ -199,11 +199,14 @@ namespace Parser {
 
   /*!
     @brief Read a file containing a single watertight object and return it as a DCEL mesh enclosed in a full BVH.
-    @param[in] a_filename File name
+    @param[in] a_filename    File name
+    @param[in] a_maxLeafSize Maximum number of triangles per BVH leaf. Larger values amortize SSE
+    evaluation overhead over more triangles per visit; smaller values give tighter BVH culling.
+    Default 32 (fills 8 SSE-width groups) is a good balance for typical triangle meshes.
   */
   template <typename T, typename Meta, typename BV = EBGeometry::BoundingVolumes::AABBT<T>, size_t K = 4>
   inline static std::shared_ptr<FastTriMeshSDF<T, Meta, BV, K>>
-  readIntoTriangleBVH(const std::string a_filename) noexcept;
+  readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafSize = 32U) noexcept;
 
   /*!
     @brief Read multiple files containing single watertight objects and return them as DCEL meshes enclosed in BVHs.

@@ -18,6 +18,7 @@
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_BVH.hpp"
 #include "EBGeometry_Triangle.hpp"
+#include "EBGeometry_TriangleSoA.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 namespace DCEL {
@@ -293,16 +294,22 @@ public:
     @brief Full constructor. Takes a DCEL mesh and creates the input triangles. Then creates the BVH.
     @param[in] a_mesh DCEL mesh
     @param[in] a_build Specification of build method. Must be TopDown, Morton, or Nested.
+    @param[in] a_maxLeafSize Maximum number of primitives per BVH leaf. Larger values yield coarser
+    BVH culling but better SIMD throughput at leaf evaluation. Default is 4 (one SSE register-width).
   */
-  FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build = BVH::Build::TopDown) noexcept;
+  FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
+                 const BVH::Build             a_build       = BVH::Build::TopDown,
+                 const size_t                 a_maxLeafSize = 32U) noexcept;
 
   /*!
     @brief Full constructor. Takes the input triangles and creates the BVH.
     @param[in] a_triangles Input triangle soup
     @param[in] a_build Specification of build method. Must be TopDown, Morton, or Nested.
+    @param[in] a_maxLeafSize Maximum number of primitives per BVH leaf.
   */
   FastTriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
-                 const BVH::Build                         a_build = BVH::Build::TopDown) noexcept;
+                 const BVH::Build                         a_build       = BVH::Build::TopDown,
+                 const size_t                             a_maxLeafSize = 32U) noexcept;
 
   /*!
     @brief Destructor
@@ -350,6 +357,26 @@ protected:
     @brief Bounding volume hierarchy
   */
   std::shared_ptr<Root> m_bvh;
+
+  /*!
+    @brief Triangles stored contiguously in leaf-traversal order, matching the index space of m_bvh.
+    Used to build m_triSoA and as a fallback.
+  */
+  std::vector<Tri> m_triangleValues;
+
+  /*!
+    @brief Flat array of all SSE SoA groups (W=4 triangles each) for all leaves, in leaf order.
+    A leaf with N triangles contributes ceil(N/4) consecutive entries here.
+  */
+  using TriSoA = TriangleSoAT<T, 4>;
+  std::vector<TriSoA> m_soaFlat;
+
+  /*!
+    @brief Leaf SoA range: [start, start+count) into m_soaFlat.
+    Indexed by primitivesOffset; only leaf-start offsets hold valid entries.
+  */
+  std::vector<uint32_t> m_leafSoaStart;
+  std::vector<uint32_t> m_leafSoaCount;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

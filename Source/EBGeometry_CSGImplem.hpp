@@ -318,10 +318,13 @@ FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 {
   T minDist = std::numeric_limits<T>::infinity();
 
-  BVH::Updater<P> updater =
-    [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions) noexcept -> void {
-    for (const auto& implicitFunction : a_implicitFunctions) {
-      minDist = std::min(minDist, implicitFunction->value(a_point));
+  BVH::LinearUpdater<P> updater =
+    [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions,
+                         size_t                                        offset,
+                         size_t                                        count) noexcept -> void {
+#pragma GCC ivdep
+    for (size_t i = offset; i < offset + count; i++) {
+      minDist = std::min(minDist, a_implicitFunctions[i]->value(a_point));
     }
   };
 
@@ -329,12 +332,13 @@ FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
     return a_bvDist <= 0.0 || a_bvDist <= minDist;
   };
 
-  BVH::Sorter<Node, T, K> sorter =
-    [](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
+  BVH::LinearSorter<T, K> sorter =
+    [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
     std::sort(a_leaves.begin(),
               a_leaves.end(),
-              [](const std::pair<std::shared_ptr<const Node>, T>& n1,
-                 const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
+              [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
+                return n1.second > n2.second;
+              });
   };
 
   BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
@@ -376,10 +380,13 @@ FastSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
   T a = std::numeric_limits<T>::infinity();
   T b = std::numeric_limits<T>::infinity();
 
-  BVH::Updater<P> updater =
-    [&a, &b, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions) noexcept -> void {
-    for (const auto& implicitFunction : a_implicitFunctions) {
-      const auto& d = implicitFunction->value(a_point);
+  BVH::LinearUpdater<P> updater =
+    [&a, &b, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions,
+                       size_t                                        offset,
+                       size_t                                        count) noexcept -> void {
+#pragma GCC ivdep
+    for (size_t i = offset; i < offset + count; i++) {
+      const auto& d = a_implicitFunctions[i]->value(a_point);
 
       if (d < a) {
         b = a;
@@ -395,13 +402,13 @@ FastSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
     return a_bvDist <= 0.0 || a_bvDist <= a || a_bvDist <= b;
   };
 
-  BVH::Sorter<Node, T, K> sorter =
-    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
-    std::sort(
-      a_leaves.begin(),
-      a_leaves.end(),
-      [&a_point](const std::pair<std::shared_ptr<const Node>, T>& n1,
-                 const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
+  BVH::LinearSorter<T, K> sorter =
+    [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
+    std::sort(a_leaves.begin(),
+              a_leaves.end(),
+              [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
+                return n1.second > n2.second;
+              });
   };
 
   BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {

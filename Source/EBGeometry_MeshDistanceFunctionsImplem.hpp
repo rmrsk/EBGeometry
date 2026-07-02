@@ -63,7 +63,8 @@ DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dc
 template <class T, class Meta, class BV, size_t K>
 std::shared_ptr<EBGeometry::BVH::NodeT<T, Triangle<T, Meta>, BV, K>>
 buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Meta>>>& a_triangles,
-                    const BVH::Build a_build = BVH::Build::TopDown) noexcept
+                    const BVH::Build a_build       = BVH::Build::TopDown,
+                    const size_t     a_maxLeafSize = 4U) noexcept
 {
   using Prim          = EBGeometry::Triangle<T, Meta>;
   using PrimAndBVList = std::vector<std::pair<std::shared_ptr<const Prim>, BV>>;
@@ -84,7 +85,12 @@ buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Me
 
   switch (a_build) {
   case BVH::Build::TopDown: {
-    bvh->topDownSortAndPartition();
+    using Node     = EBGeometry::BVH::NodeT<T, Prim, BV, K>;
+    using StopFunc = typename Node::StopFunction;
+    const StopFunc stopCrit = [a_maxLeafSize](const Node& n) noexcept -> bool {
+      return n.getPrimitives().size() <= a_maxLeafSize;
+    };
+    bvh->topDownSortAndPartition(EBGeometry::BVH::BVCentroidPartitioner<T, Prim, BV, K>, stopCrit);
 
     break;
   }
@@ -280,12 +286,14 @@ FastCompactMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) cons
 {
   T minDist = std::numeric_limits<T>::max();
 
-  BVH::Updater<Face> updater = [&minDist,
-                                &a_point](const std::vector<std::shared_ptr<const Face>>& faces) noexcept -> void {
-    for (const auto& f : faces) {
-      const T curDist = f->signedDistance(a_point);
-
-      minDist = std::abs(curDist) < std::abs(minDist) ? curDist : minDist;
+  BVH::LinearUpdater<Face> updater =
+    [&minDist, &a_point](const std::vector<std::shared_ptr<const Face>>& faces,
+                         size_t                                           offset,
+                         size_t                                           count) noexcept -> void {
+#pragma GCC ivdep
+    for (size_t i = offset; i < offset + count; i++) {
+      const T curDist = faces[i]->signedDistance(a_point);
+      minDist         = std::abs(curDist) < std::abs(minDist) ? curDist : minDist;
     }
   };
 
@@ -293,12 +301,13 @@ FastCompactMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) cons
     return a_bvDist <= std::abs(minDist);
   };
 
-  BVH::Sorter<Node, T, K> sorter =
-    [](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
+  BVH::LinearSorter<T, K> sorter =
+    [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
     std::sort(a_leaves.begin(),
               a_leaves.end(),
-              [](const std::pair<std::shared_ptr<const Node>, T>& n1,
-                 const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
+              [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
+                return n1.second > n2.second;
+              });
   };
 
   BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
@@ -325,47 +334,41 @@ FastCompactMeshSDF<T, Meta, BV, K>::getClosestFaces(const Vec3T<T>& a_point, con
   // Shortest distance so far.
   BVHMeta shortestDistanceSoFar = std::numeric_limits<T>::max();
 
-  // Visitation pattern - go into the node if the point is inside or the distance to the BV is shorter than
-  // the shortest distance so far.
   EBGeometry::BVH::Visiter<Node, T> visiter = [&shortestDistanceSoFar](const Node&    a_node,
                                                                        const BVHMeta& a_bvDist) noexcept -> bool {
     return a_bvDist <= 0.0 || a_bvDist <= shortestDistanceSoFar;
   };
 
-  // Sorter for BVH nodes, visit closest nodes first
-  EBGeometry::BVH::Sorter<Node, T, K> sorter =
-    [](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
+  EBGeometry::BVH::LinearSorter<T, K> sorter =
+    [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
     std::sort(a_leaves.begin(),
               a_leaves.end(),
-              [](const std::pair<std::shared_ptr<const Node>, T>& n1,
-                 const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
+              [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
+                return n1.second > n2.second;
+              });
   };
 
-  // Meta-data updater - this meta-data enters into the visitor pattern.
   EBGeometry::BVH::MetaUpdater<Node, BVHMeta> metaUpdater = [&a_point](const Node& a_node) noexcept -> BVHMeta {
     return a_node.getDistanceToBoundingVolume(a_point);
   };
 
-  // Update rule for the BVH. Go through the faces and check
-  EBGeometry::BVH::Updater<Face> updater = [&shortestDistanceSoFar, &a_point, &candidateFaces](
-                                             const std::vector<std::shared_ptr<const Face>>& a_faces) noexcept -> void {
-    // Calculate the distance to each face in the leaf node. If it is shorter than the shortest distance so far, add this face
-    // to the list of faces and update the shortest distance.
-    for (const auto& f : a_faces) {
-      const T distToFace = sqrt(f->unsignedDistance2(a_point));
+  EBGeometry::BVH::LinearUpdater<Face> updater =
+    [&shortestDistanceSoFar, &a_point, &candidateFaces](const std::vector<std::shared_ptr<const Face>>& a_faces,
+                                                         size_t                                          offset,
+                                                         size_t                                          count) noexcept -> void {
+#pragma GCC ivdep
+    for (size_t i = offset; i < offset + count; i++) {
+      const T distToFace = sqrt(a_faces[i]->unsignedDistance2(a_point));
 
       if (distToFace <= shortestDistanceSoFar) {
-        candidateFaces.emplace_back(f, distToFace);
-
+        candidateFaces.emplace_back(a_faces[i], distToFace);
         shortestDistanceSoFar = distToFace;
       }
     }
   };
 
-  // Traverse the tree
   m_bvh->traverse(updater, visiter, sorter, metaUpdater);
 
-  // Sort if the user asks for it
   if (a_sorted) {
     std::sort(candidateFaces.begin(), candidateFaces.end(), [](const FaceAndDist& a, const FaceAndDist& b) {
       return a.second < b.second;
@@ -397,7 +400,9 @@ FastCompactMeshSDF<T, Meta, BV, K>::computeBoundingVolume() const noexcept
 };
 
 template <class T, class Meta, class BV, size_t K>
-FastTriMeshSDF<T, Meta, BV, K>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build) noexcept
+FastTriMeshSDF<T, Meta, BV, K>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
+                                               const BVH::Build             a_build,
+                                               const size_t                 a_maxLeafSize) noexcept
 {
   // Turn the input mesh into triangles
   std::vector<std::shared_ptr<Triangle<T, Meta>>> triangles;
@@ -411,30 +416,81 @@ FastTriMeshSDF<T, Meta, BV, K>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_me
       std::cerr << "FastTriMeshSDF::readIntoTriangles -- DCEL mesh not composed of only triangles!" << "\n";
     }
 
-    // Create the triangle
     auto tri = std::make_shared<Triangle<T, Meta>>();
-
     tri->setNormal(normal);
     tri->setVertexPositions({vertices[0]->getPosition(), vertices[1]->getPosition(), vertices[2]->getPosition()});
     tri->setVertexNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
     tri->setEdgeNormals({edges[0]->getNormal(), edges[1]->getNormal(), edges[2]->getNormal()});
     tri->setMetaData(f->getMetaData());
-
     triangles.emplace_back(tri);
   }
 
-  auto bvh = EBGeometry::buildTriMeshFullBVH<T, Meta, BV, K>(triangles, a_build);
+  auto bvh = EBGeometry::buildTriMeshFullBVH<T, Meta, BV, K>(triangles, a_build, a_maxLeafSize);
+  m_bvh    = bvh->flattenTree();
 
-  m_bvh = bvh->flattenTree();
+  const auto& prims = m_bvh->getPrimitives();
+  m_triangleValues.reserve(prims.size());
+  for (const auto& p : prims) {
+    m_triangleValues.emplace_back(*p);
+  }
+
+  // Build flat SoA array: ceil(count/4) groups per leaf, packed contiguously.
+  constexpr uint32_t W  = 4;
+  const auto&        nds = m_bvh->getLinearNodes();
+  m_leafSoaStart.resize(m_triangleValues.size(), UINT32_MAX);
+  m_leafSoaCount.resize(m_triangleValues.size(), 0U);
+  for (const auto& node : nds) {
+    if (node.isLeaf()) {
+      const uint32_t off       = node.getPrimitivesOffset();
+      const uint32_t cnt       = node.getNumPrimitives();
+      const uint32_t numGroups = (cnt + W - 1U) / W;
+      m_leafSoaStart[off]      = static_cast<uint32_t>(m_soaFlat.size());
+      m_leafSoaCount[off]      = numGroups;
+      for (uint32_t g = 0; g < numGroups; g++) {
+        const uint32_t bOff   = off + g * W;
+        const uint32_t bCount = std::min(W, cnt - g * W);
+        TriSoA         soa;
+        soa.pack(m_triangleValues.data() + bOff, bCount);
+        m_soaFlat.emplace_back(std::move(soa));
+      }
+    }
+  }
 }
 
 template <class T, class Meta, class BV, size_t K>
 FastTriMeshSDF<T, Meta, BV, K>::FastTriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
-                                               const BVH::Build                         a_build) noexcept
+                                               const BVH::Build                         a_build,
+                                               const size_t                             a_maxLeafSize) noexcept
 {
-  auto bvh = EBGeometry::buildTriMeshFullBVH<T, Meta, BV, K>(a_triangles, a_build);
+  auto bvh = EBGeometry::buildTriMeshFullBVH<T, Meta, BV, K>(a_triangles, a_build, a_maxLeafSize);
+  m_bvh    = bvh->flattenTree();
 
-  m_bvh = bvh->flattenTree();
+  const auto& prims = m_bvh->getPrimitives();
+  m_triangleValues.reserve(prims.size());
+  for (const auto& p : prims) {
+    m_triangleValues.emplace_back(*p);
+  }
+
+  constexpr uint32_t W   = 4;
+  const auto&        nds = m_bvh->getLinearNodes();
+  m_leafSoaStart.resize(m_triangleValues.size(), UINT32_MAX);
+  m_leafSoaCount.resize(m_triangleValues.size(), 0U);
+  for (const auto& node : nds) {
+    if (node.isLeaf()) {
+      const uint32_t off       = node.getPrimitivesOffset();
+      const uint32_t cnt       = node.getNumPrimitives();
+      const uint32_t numGroups = (cnt + W - 1U) / W;
+      m_leafSoaStart[off]      = static_cast<uint32_t>(m_soaFlat.size());
+      m_leafSoaCount[off]      = numGroups;
+      for (uint32_t g = 0; g < numGroups; g++) {
+        const uint32_t bOff   = off + g * W;
+        const uint32_t bCount = std::min(W, cnt - g * W);
+        TriSoA         soa;
+        soa.pack(m_triangleValues.data() + bOff, bCount);
+        m_soaFlat.emplace_back(std::move(soa));
+      }
+    }
+  }
 }
 
 template <class T, class Meta, class BV, size_t K>
@@ -443,12 +499,15 @@ FastTriMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const no
 {
   T minDist = std::numeric_limits<T>::max();
 
-  BVH::Updater<Tri> updater = [&minDist,
-                               &a_point](const std::vector<std::shared_ptr<const Tri>>& triangles) noexcept -> void {
-    for (const auto& tri : triangles) {
-      const T curDist = tri->signedDistance(a_point);
-
-      minDist = std::abs(curDist) < std::abs(minDist) ? curDist : minDist;
+  BVH::LinearUpdater<Tri> updater =
+    [this, &minDist, &a_point](const std::vector<std::shared_ptr<const Tri>>&,
+                               size_t                                           offset,
+                               size_t) noexcept -> void {
+    const uint32_t soaStart = m_leafSoaStart[offset];
+    const uint32_t soaEnd   = soaStart + m_leafSoaCount[offset];
+    for (uint32_t g = soaStart; g < soaEnd; g++) {
+      const T curDist = m_soaFlat[g].signedDistance(a_point);
+      if (std::abs(curDist) < std::abs(minDist)) minDist = curDist;
     }
   };
 
@@ -456,19 +515,19 @@ FastTriMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const no
     return a_bvDist <= std::abs(minDist);
   };
 
-  BVH::Sorter<Node, T, K> sorter =
-    [](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
+  BVH::LinearSorter<T, K> sorter =
+    [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
     std::sort(a_leaves.begin(),
               a_leaves.end(),
-              [](const std::pair<std::shared_ptr<const Node>, T>& n1,
-                 const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
+              [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
+                return n1.second > n2.second;
+              });
   };
 
   BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
     return a_node.getDistanceToBoundingVolume(a_point);
   };
 
-  // Traverse the tree.
   m_bvh->traverse(updater, visiter, sorter, metaUpdater);
 
   return minDist;
@@ -489,47 +548,41 @@ FastTriMeshSDF<T, Meta, BV, K>::getClosestTriangles(const Vec3T<T>& a_point, con
   // Shortest distance so far.
   BVHMeta shortestDistanceSoFar = std::numeric_limits<T>::max();
 
-  // Visitation pattern - go into the node if the point is inside or the distance to the BV is shorter than
-  // the shortest distance so far.
   EBGeometry::BVH::Visiter<Node, T> visiter = [&shortestDistanceSoFar](const Node&    a_node,
                                                                        const BVHMeta& a_bvDist) noexcept -> bool {
     return a_bvDist <= 0.0 || a_bvDist <= shortestDistanceSoFar;
   };
 
-  // Sorter for BVH nodes, visit closest nodes first
-  EBGeometry::BVH::Sorter<Node, T, K> sorter =
-    [](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
+  EBGeometry::BVH::LinearSorter<T, K> sorter =
+    [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
     std::sort(a_leaves.begin(),
               a_leaves.end(),
-              [](const std::pair<std::shared_ptr<const Node>, T>& n1,
-                 const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
+              [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
+                return n1.second > n2.second;
+              });
   };
 
-  // Meta-data updater - this meta-data enters into the visitor pattern.
   EBGeometry::BVH::MetaUpdater<Node, BVHMeta> metaUpdater = [&a_point](const Node& a_node) noexcept -> BVHMeta {
     return a_node.getDistanceToBoundingVolume(a_point);
   };
 
-  // Update rule for the BVH. Go through the faces and check
-  EBGeometry::BVH::Updater<Tri> updater = [&shortestDistanceSoFar, &a_point, &candidateTriangles](
-                                            const std::vector<std::shared_ptr<const Tri>>& a_faces) noexcept -> void {
-    // Calculate the distance to each face in the leaf node. If it is shorter than the shortest distance so far, add this face
-    // to the list of faces and update the shortest distance.
-    for (const auto& f : a_faces) {
-      const T distToTri = std::abs(f->signedDistance(a_point));
+  EBGeometry::BVH::LinearUpdater<Tri> updater =
+    [&shortestDistanceSoFar, &a_point, &candidateTriangles](const std::vector<std::shared_ptr<const Tri>>& a_tris,
+                                                             size_t                                         offset,
+                                                             size_t                                         count) noexcept -> void {
+#pragma GCC ivdep
+    for (size_t i = offset; i < offset + count; i++) {
+      const T distToTri = std::abs(a_tris[i]->signedDistance(a_point));
 
       if (distToTri <= shortestDistanceSoFar) {
-        candidateTriangles.emplace_back(f, distToTri);
-
+        candidateTriangles.emplace_back(a_tris[i], distToTri);
         shortestDistanceSoFar = distToTri;
       }
     }
   };
 
-  // Traverse the tree
   m_bvh->traverse(updater, visiter, sorter, metaUpdater);
 
-  // Sort if the user asks for it
   if (a_sorted) {
     std::sort(candidateTriangles.begin(), candidateTriangles.end(), [](const TriAndDist& a, const TriAndDist& b) {
       return a.second < b.second;

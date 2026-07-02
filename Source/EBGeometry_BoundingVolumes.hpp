@@ -101,7 +101,7 @@ namespace BoundingVolumes {
     /*!
       @brief Destructor (does nothing).
     */
-    virtual ~BoundingSphereT() noexcept;
+    ~BoundingSphereT() noexcept;
 
     /*!
       @brief Copy assignment operator
@@ -269,7 +269,7 @@ namespace BoundingVolumes {
     /*!
       @brief Destructor (does nothing)
     */
-    virtual ~AABBT() noexcept;
+    ~AABBT() noexcept;
 
     /*!
       @brief Copy assignment

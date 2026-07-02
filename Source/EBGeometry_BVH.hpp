@@ -13,6 +13,7 @@
 #define EBGeometry_BVH
 
 // Std includes
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <array>
@@ -106,10 +107,17 @@ namespace BVH {
 
   /*!
     @brief Updater for tree traversal
-    @param[in] a_primitives. 
+    @param[in] a_primitives.
   */
   template <class P>
   using Updater = std::function<void(const PrimitiveListT<P>& a_primitives)>;
+
+  /*!
+    @brief Updater for LinearBVH traversal. Receives the full primitive list with an offset and count
+    rather than a temporary sublist, avoiding a heap allocation per leaf visit.
+  */
+  template <class P>
+  using LinearUpdater = std::function<void(const PrimitiveListT<P>& a_primitives, size_t a_offset, size_t a_count)>;
 
   /*!
     @brief Visiter pattern for LinearBVH::traverse. Must return true if we should visit the node and false otherwise. 
@@ -122,13 +130,20 @@ namespace BVH {
   using Visiter = std::function<bool(const NodeType& a_node, const Meta& a_meta)>;
 
   /*!
-    @brief Sorting criterion for which child node to visit first. 
+    @brief Sorting criterion for which child node to visit first.
     This takes an input list of child nodes and sorts it. When further into the sub-tree, the first
     node is investigated first, then the second, etc. The Meta template parameter is a door left open to
-    the user for attaching additional data to the sorter/visiter pattern. 
+    the user for attaching additional data to the sorter/visiter pattern.
   */
   template <class NodeType, class Meta, size_t K>
   using Sorter = std::function<void(std::array<std::pair<std::shared_ptr<const NodeType>, Meta>, K>& a_children)>;
+
+  /*!
+    @brief Sorting criterion for LinearBVH traversal. Uses 32-bit node indices instead of shared_ptrs,
+    halving the stack element size (8 bytes vs 16 bytes for size_t+float).
+  */
+  template <class Meta, size_t K>
+  using LinearSorter = std::function<void(std::array<std::pair<uint32_t, Meta>, K>& a_children)>;
 
   /*!
     @brief Updater for when user wants to add some meta-data to his BVH traversal.
@@ -442,9 +457,9 @@ namespace BVH {
       should be empty and a_offset=0UL.
     */
     inline size_t
-    flattenTree(std::vector<std::shared_ptr<LinearNodeT<T, P, BV, K>>>& a_linearNodes,
-                std::vector<std::shared_ptr<const P>>&                  a_sortedPrimitives,
-                size_t&                                                 a_offset) const noexcept;
+    flattenTree(std::vector<LinearNodeT<T, P, BV, K>>& a_linearNodes,
+                std::vector<std::shared_ptr<const P>>& a_sortedPrimitives,
+                size_t&                                a_offset) const noexcept;
   };
 
   /*!
@@ -494,7 +509,7 @@ namespace BVH {
     /*!
       @brief Destructor.
     */
-    inline virtual ~LinearNodeT();
+    inline ~LinearNodeT() noexcept;
 
     /*!
       @brief Set the bounding volume
@@ -507,14 +522,14 @@ namespace BVH {
       @brief Set the offset into the primitives array.
     */
     inline void
-    setPrimitivesOffset(const size_t a_primitivesOffset) noexcept;
+    setPrimitivesOffset(const uint32_t a_primitivesOffset) noexcept;
 
     /*!
       @brief Set number of primitives.
       @param[in] a_numPrimitives Number of primitives.
     */
     inline void
-    setNumPrimitives(const size_t a_numPrimitives) noexcept;
+    setNumPrimitives(const uint32_t a_numPrimitives) noexcept;
 
     /*!
       @brief Set the child offsets.
@@ -522,7 +537,7 @@ namespace BVH {
       @param[in] a_whichChild  Child index in m_childrenOffsets. Must be [0,K-1]
     */
     inline void
-    setChildOffset(const size_t a_childOffset, const size_t a_whichChild) noexcept;
+    setChildOffset(const uint32_t a_childOffset, const size_t a_whichChild) noexcept;
 
     /*!
       @brief Get the node bounding volume.
@@ -535,21 +550,21 @@ namespace BVH {
       @brief Get the primitives offset
       @return Returns m_primitivesOffset
     */
-    inline const size_t&
+    inline uint32_t
     getPrimitivesOffset() const noexcept;
 
     /*!
       @brief Get the number of primitives.
       @return Returns m_numPrimitives
     */
-    inline const size_t&
+    inline uint32_t
     getNumPrimitives() const noexcept;
 
     /*!
       @brief Get the child offsets
       @return Returns m_childOffsets
     */
-    inline const std::array<size_t, K>&
+    inline const std::array<uint32_t, K>&
     getChildOffsets() const noexcept;
 
     /*!
@@ -557,12 +572,6 @@ namespace BVH {
     */
     inline bool
     isLeaf() const noexcept;
-
-    /*!
-      @brief Check if BVH is already partitioned
-    */
-    inline bool
-    isPartitioned() const noexcept;
 
     /*!
       @brief Get the distance from a 3D point to the bounding volume
@@ -589,24 +598,19 @@ namespace BVH {
     BV m_boundingVolume;
 
     /*!
-      @brief Determines whether or not the partitioning function has already been called
-    */
-    bool m_partitioned;
-
-    /*!
       @brief Offset into primitives array
     */
-    size_t m_primitivesOffset;
+    uint32_t m_primitivesOffset;
 
     /*!
-      @brief Number of primitives
+      @brief Number of primitives (0 for internal nodes).
     */
-    size_t m_numPrimitives;
+    uint32_t m_numPrimitives;
 
     /*!
       @brief Offset to child nodes.
     */
-    std::array<size_t, K> m_childOffsets;
+    std::array<uint32_t, K> m_childOffsets;
   };
 
   /*!
@@ -642,20 +646,12 @@ namespace BVH {
     inline LinearBVH(const LinearBVH&) = default;
 
     /*!
-      @brief Full constructor. Associates the nodes and primitives.
-      @param[in] a_linearNodes Linearized BVH nodes.
+      @brief Full constructor. Takes ownership of the node array and associates the primitives.
+      @param[in] a_linearNodes Linearized BVH nodes stored by value (moved in).
       @param[in] a_primitives  Primitives.
     */
-    inline LinearBVH(const std::vector<std::shared_ptr<const LinearNodeT<T, P, BV, K>>>& a_linearNodes,
-                     const std::vector<std::shared_ptr<const P>>&                        a_primitives);
-
-    /*!
-      @brief Full constructor. Associates the nodes and primitives.
-      @param[in] a_linearNodes Linearized BVH nodes.
-      @param[in] a_primitives  Primitives.
-    */
-    inline LinearBVH(const std::vector<std::shared_ptr<LinearNodeT<T, P, BV, K>>>& a_linearNodes,
-                     const std::vector<std::shared_ptr<const P>>&                  a_primitives);
+    inline LinearBVH(std::vector<LinearNodeT<T, P, BV, K>>        a_linearNodes,
+                     const std::vector<std::shared_ptr<const P>>& a_primitives);
 
     /*!
       @brief Destructor. Does nothing
@@ -663,10 +659,22 @@ namespace BVH {
     inline virtual ~LinearBVH();
 
     /*!
-      @brief Get the bounding volume for this BVH. 
+      @brief Get the bounding volume for this BVH.
     */
     inline const BV&
     getBoundingVolume() const noexcept;
+
+    /*!
+      @brief Get the primitives list (sorted in leaf-traversal order).
+    */
+    inline const PrimitiveList&
+    getPrimitives() const noexcept;
+
+    /*!
+      @brief Get the linearized node array.
+    */
+    inline const std::vector<LinearNodeT<T, P, BV, K>>&
+    getLinearNodes() const noexcept;
 
     /*!
       @brief Recursion-less BVH traversal algorithm. 
@@ -678,16 +686,16 @@ namespace BVH {
     */
     template <class Meta>
     inline void
-    traverse(const BVH::Updater<P>&                    a_updater,
+    traverse(const BVH::LinearUpdater<P>&              a_updater,
              const BVH::Visiter<LinearNode, Meta>&     a_visiter,
-             const BVH::Sorter<LinearNode, Meta, K>&   a_sorter,
+             const BVH::LinearSorter<Meta, K>&         a_sorter,
              const BVH::MetaUpdater<LinearNode, Meta>& a_metaUpdater) const noexcept;
 
   protected:
     /*!
-      @brief List of linearly stored nodes
+      @brief Linearly stored nodes by value for cache-friendly traversal.
     */
-    std::vector<std::shared_ptr<const LinearNodeT<T, P, BV, K>>> m_linearNodes;
+    std::vector<LinearNodeT<T, P, BV, K>> m_linearNodes;
 
     /*!
       @brief Global list of primitives. Note that this is ALL primitives, sorted
