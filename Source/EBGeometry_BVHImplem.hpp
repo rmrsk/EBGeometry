@@ -617,6 +617,74 @@ namespace BVH {
   inline T
   PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   {
+#if defined(__AVX__)
+    if constexpr (K == 4 && std::is_same_v<T, double>) {
+      double minDist = std::numeric_limits<double>::max();
+
+      BVH::LinearUpdater<P> updater =
+        [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
+                              size_t                                        offset,
+                              size_t                                        count) noexcept -> void {
+        for (size_t i = 0; i < count; i++) {
+          const double d = prims[offset + i]->signedDistance(a_point);
+          if (std::abs(d) < std::abs(minDist)) minDist = d;
+        }
+      };
+
+      const __m256d px   = _mm256_set1_pd(a_point[0]);
+      const __m256d py   = _mm256_set1_pd(a_point[1]);
+      const __m256d pz   = _mm256_set1_pd(a_point[2]);
+      const __m256d zero = _mm256_setzero_pd();
+
+      struct StackEntry { uint32_t idx; double dist2; };
+      alignas(32) StackEntry stack[256];
+      int top      = 0;
+      stack[top++] = {0U, 0.0};
+
+      while (top > 0) {
+        const StackEntry entry    = stack[--top];
+        const double     curBest2 = minDist * minDist;
+        if (entry.dist2 > curBest2) continue;
+
+        const LinearNode& node = this->m_linearNodes[entry.idx];
+        if (node.isLeaf()) {
+          updater(this->m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
+        }
+        else {
+          const auto& soa = m_childAabbSoA[entry.idx];
+
+          const __m256d lo_x = _mm256_load_pd(soa.lo[0]);
+          const __m256d lo_y = _mm256_load_pd(soa.lo[1]);
+          const __m256d lo_z = _mm256_load_pd(soa.lo[2]);
+          const __m256d hi_x = _mm256_load_pd(soa.hi[0]);
+          const __m256d hi_y = _mm256_load_pd(soa.hi[1]);
+          const __m256d hi_z = _mm256_load_pd(soa.hi[2]);
+
+          const __m256d dx = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x, px), _mm256_sub_pd(px, hi_x)));
+          const __m256d dy = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y, py), _mm256_sub_pd(py, hi_y)));
+          const __m256d dz = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z, pz), _mm256_sub_pd(pz, hi_z)));
+          const __m256d d2 = _mm256_add_pd(_mm256_mul_pd(dx, dx),
+                                            _mm256_add_pd(_mm256_mul_pd(dy, dy), _mm256_mul_pd(dz, dz)));
+
+          alignas(32) double dist2[K];
+          _mm256_store_pd(dist2, d2);
+
+          const auto& offsets = node.getChildOffsets();
+          std::array<std::pair<double, uint32_t>, K> children;
+          for (size_t k = 0; k < K; k++) children[k] = {dist2[k], offsets[k]};
+          std::sort(children.begin(), children.end(),
+                    [](const std::pair<double, uint32_t>& a,
+                       const std::pair<double, uint32_t>& b) noexcept { return a.first > b.first; });
+
+          const double newBest2 = minDist * minDist;
+          for (const auto& [d, idx] : children) {
+            if (d <= newBest2) stack[top++] = {idx, d};
+          }
+        }
+      }
+      return static_cast<T>(minDist);
+    }
+#endif
 #if defined(__SSE4_1__)
     if constexpr (K == 4 && std::is_same_v<T, float>) {
       T minDist = std::numeric_limits<T>::max();

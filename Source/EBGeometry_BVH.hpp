@@ -23,8 +23,8 @@
 #include <algorithm>
 #include <type_traits>
 
-#if defined(__SSE4_1__)
-#include <smmintrin.h>
+#if defined(__SSE4_1__) || defined(__AVX__)
+#include <immintrin.h>
 #endif
 
 // Our includes

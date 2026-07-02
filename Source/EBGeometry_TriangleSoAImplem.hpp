@@ -251,6 +251,145 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     return best;
   }
 #endif
+#if defined(__AVX__)
+  if constexpr (W == 4 && std::is_same_v<T, double>) {
+    const __m256d px  = _mm256_set1_pd(a_p[0]);
+    const __m256d py  = _mm256_set1_pd(a_p[1]);
+    const __m256d pz  = _mm256_set1_pd(a_p[2]);
+    const __m256d one = _mm256_set1_pd(1.0);
+    const __m256d zer = _mm256_setzero_pd();
+
+    const __m256d v0x = _mm256_load_pd(vx[0]), v0y = _mm256_load_pd(vy[0]), v0z = _mm256_load_pd(vz[0]);
+    const __m256d v1x = _mm256_load_pd(vx[1]), v1y = _mm256_load_pd(vy[1]), v1z = _mm256_load_pd(vz[1]);
+    const __m256d v2x = _mm256_load_pd(vx[2]), v2y = _mm256_load_pd(vy[2]), v2z = _mm256_load_pd(vz[2]);
+
+    const __m256d fnx = _mm256_load_pd(nx), fny = _mm256_load_pd(ny), fnz = _mm256_load_pd(nz);
+
+    const __m256d v21x = _mm256_sub_pd(v1x, v0x), v21y = _mm256_sub_pd(v1y, v0y), v21z = _mm256_sub_pd(v1z, v0z);
+    const __m256d v32x = _mm256_sub_pd(v2x, v1x), v32y = _mm256_sub_pd(v2y, v1y), v32z = _mm256_sub_pd(v2z, v1z);
+    const __m256d v13x = _mm256_sub_pd(v0x, v2x), v13y = _mm256_sub_pd(v0y, v2y), v13z = _mm256_sub_pd(v0z, v2z);
+
+    const __m256d p1x = _mm256_sub_pd(px, v0x), p1y = _mm256_sub_pd(py, v0y), p1z = _mm256_sub_pd(pz, v0z);
+    const __m256d p2x = _mm256_sub_pd(px, v1x), p2y = _mm256_sub_pd(py, v1y), p2z = _mm256_sub_pd(pz, v1z);
+    const __m256d p3x = _mm256_sub_pd(px, v2x), p3y = _mm256_sub_pd(py, v2y), p3z = _mm256_sub_pd(pz, v2z);
+
+    auto dot3 = [](const __m256d ax, const __m256d ay, const __m256d az,
+                   const __m256d bx, const __m256d by, const __m256d bz) -> __m256d {
+      return _mm256_add_pd(_mm256_add_pd(_mm256_mul_pd(ax, bx), _mm256_mul_pd(ay, by)), _mm256_mul_pd(az, bz));
+    };
+    auto crossdot = [&](const __m256d ax, const __m256d ay, const __m256d az,
+                         const __m256d bx, const __m256d by, const __m256d bz,
+                         const __m256d cx, const __m256d cy, const __m256d cz) -> __m256d {
+      const __m256d ex = _mm256_sub_pd(_mm256_mul_pd(ay, bz), _mm256_mul_pd(az, by));
+      const __m256d ey = _mm256_sub_pd(_mm256_mul_pd(az, bx), _mm256_mul_pd(ax, bz));
+      const __m256d ez = _mm256_sub_pd(_mm256_mul_pd(ax, by), _mm256_mul_pd(ay, bx));
+      return dot3(ex, ey, ez, cx, cy, cz);
+    };
+
+    const __m256d s0d = crossdot(v21x, v21y, v21z, fnx, fny, fnz, p1x, p1y, p1z);
+    const __m256d s1d = crossdot(v32x, v32y, v32z, fnx, fny, fnz, p2x, p2y, p2z);
+    const __m256d s2d = crossdot(v13x, v13y, v13z, fnx, fny, fnz, p3x, p3y, p3z);
+
+    const __m256d pos_mask = _mm256_set1_pd(-0.0);
+    const __m256d s0 = _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, s0d));
+    const __m256d s1 = _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, s1d));
+    const __m256d s2 = _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, s2d));
+
+    const __m256d ssum   = _mm256_add_pd(_mm256_add_pd(s0, s1), s2);
+    const __m256d in_tri = _mm256_cmp_pd(ssum, _mm256_set1_pd(2.0), _CMP_GE_OQ);
+    const __m256d face_d = dot3(fnx, fny, fnz, p1x, p1y, p1z);
+
+    const __m256d dp1v21  = dot3(p1x, p1y, p1z, v21x, v21y, v21z);
+    const __m256d dv21v21 = dot3(v21x, v21y, v21z, v21x, v21y, v21z);
+    const __m256d t1  = _mm256_div_pd(dp1v21, dv21v21);
+    const __m256d y1x = _mm256_sub_pd(p1x, _mm256_mul_pd(t1, v21x));
+    const __m256d y1y = _mm256_sub_pd(p1y, _mm256_mul_pd(t1, v21y));
+    const __m256d y1z = _mm256_sub_pd(p1z, _mm256_mul_pd(t1, v21z));
+
+    const __m256d dp2v32  = dot3(p2x, p2y, p2z, v32x, v32y, v32z);
+    const __m256d dv32v32 = dot3(v32x, v32y, v32z, v32x, v32y, v32z);
+    const __m256d t2  = _mm256_div_pd(dp2v32, dv32v32);
+    const __m256d y2x = _mm256_sub_pd(p2x, _mm256_mul_pd(t2, v32x));
+    const __m256d y2y = _mm256_sub_pd(p2y, _mm256_mul_pd(t2, v32y));
+    const __m256d y2z = _mm256_sub_pd(p2z, _mm256_mul_pd(t2, v32z));
+
+    const __m256d dp3v13  = dot3(p3x, p3y, p3z, v13x, v13y, v13z);
+    const __m256d dv13v13 = dot3(v13x, v13y, v13z, v13x, v13y, v13z);
+    const __m256d t3  = _mm256_div_pd(dp3v13, dv13v13);
+    const __m256d y3x = _mm256_sub_pd(p3x, _mm256_mul_pd(t3, v13x));
+    const __m256d y3y = _mm256_sub_pd(p3y, _mm256_mul_pd(t3, v13y));
+    const __m256d y3z = _mm256_sub_pd(p3z, _mm256_mul_pd(t3, v13z));
+
+    const __m256d vn0x = _mm256_load_pd(vnx[0]), vn0y = _mm256_load_pd(vny[0]), vn0z = _mm256_load_pd(vnz[0]);
+    const __m256d vn1x = _mm256_load_pd(vnx[1]), vn1y = _mm256_load_pd(vny[1]), vn1z = _mm256_load_pd(vnz[1]);
+    const __m256d vn2x = _mm256_load_pd(vnx[2]), vn2y = _mm256_load_pd(vny[2]), vn2z = _mm256_load_pd(vnz[2]);
+    const __m256d en0x = _mm256_load_pd(enx[0]), en0y = _mm256_load_pd(eny[0]), en0z = _mm256_load_pd(enz[0]);
+    const __m256d en1x = _mm256_load_pd(enx[1]), en1y = _mm256_load_pd(eny[1]), en1z = _mm256_load_pd(enz[1]);
+    const __m256d en2x = _mm256_load_pd(enx[2]), en2y = _mm256_load_pd(eny[2]), en2z = _mm256_load_pd(enz[2]);
+
+    const __m256d p1d2 = dot3(p1x, p1y, p1z, p1x, p1y, p1z);
+    const __m256d p2d2 = dot3(p2x, p2y, p2z, p2x, p2y, p2z);
+    const __m256d p3d2 = dot3(p3x, p3y, p3z, p3x, p3y, p3z);
+    const __m256d y1d2 = dot3(y1x, y1y, y1z, y1x, y1y, y1z);
+    const __m256d y2d2 = dot3(y2x, y2y, y2z, y2x, y2y, y2z);
+    const __m256d y3d2 = dot3(y3x, y3y, y3z, y3x, y3y, y3z);
+
+    auto sgnmul = [&](const __m256d ax, const __m256d ay, const __m256d az,
+                       const __m256d bx, const __m256d by, const __m256d bz,
+                       const __m256d r2) -> __m256d {
+      const __m256d d  = dot3(ax, ay, az, bx, by, bz);
+      const __m256d sg = _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, d));
+      return _mm256_mul_pd(sg, _mm256_sqrt_pd(r2));
+    };
+
+    const __m256d vd0 = sgnmul(vn0x, vn0y, vn0z, p1x, p1y, p1z, p1d2);
+    const __m256d vd1 = sgnmul(vn1x, vn1y, vn1z, p2x, p2y, p2z, p2d2);
+    const __m256d vd2 = sgnmul(vn2x, vn2y, vn2z, p3x, p3y, p3z, p3d2);
+    const __m256d ed0 = sgnmul(en0x, en0y, en0z, y1x, y1y, y1z, y1d2);
+    const __m256d ed1 = sgnmul(en1x, en1y, en1z, y2x, y2y, y2z, y2d2);
+    const __m256d ed2 = sgnmul(en2x, en2y, en2z, y3x, y3y, y3z, y3d2);
+
+    const __m256d t1_valid = _mm256_and_pd(_mm256_cmp_pd(t1, zer, _CMP_GT_OQ), _mm256_cmp_pd(t1, one, _CMP_LT_OQ));
+    const __m256d t2_valid = _mm256_and_pd(_mm256_cmp_pd(t2, zer, _CMP_GT_OQ), _mm256_cmp_pd(t2, one, _CMP_LT_OQ));
+    const __m256d t3_valid = _mm256_and_pd(_mm256_cmp_pd(t3, zer, _CMP_GT_OQ), _mm256_cmp_pd(t3, one, _CMP_LT_OQ));
+
+    __m256d best_d  = vd0;
+    __m256d best_d2 = p1d2;
+
+    const __m256d mask1 = _mm256_cmp_pd(p2d2, best_d2, _CMP_LT_OQ);
+    best_d  = _mm256_blendv_pd(best_d, vd1, mask1);
+    best_d2 = _mm256_blendv_pd(best_d2, p2d2, mask1);
+
+    const __m256d mask2 = _mm256_cmp_pd(p3d2, best_d2, _CMP_LT_OQ);
+    best_d  = _mm256_blendv_pd(best_d, vd2, mask2);
+    best_d2 = _mm256_blendv_pd(best_d2, p3d2, mask2);
+
+    const __m256d mask_e0 = _mm256_and_pd(t1_valid, _mm256_cmp_pd(y1d2, best_d2, _CMP_LT_OQ));
+    best_d  = _mm256_blendv_pd(best_d, ed0, mask_e0);
+    best_d2 = _mm256_blendv_pd(best_d2, y1d2, mask_e0);
+
+    const __m256d mask_e1 = _mm256_and_pd(t2_valid, _mm256_cmp_pd(y2d2, best_d2, _CMP_LT_OQ));
+    best_d  = _mm256_blendv_pd(best_d, ed1, mask_e1);
+    best_d2 = _mm256_blendv_pd(best_d2, y2d2, mask_e1);
+
+    const __m256d mask_e2 = _mm256_and_pd(t3_valid, _mm256_cmp_pd(y3d2, best_d2, _CMP_LT_OQ));
+    best_d  = _mm256_blendv_pd(best_d, ed2, mask_e2);
+    best_d2 = _mm256_blendv_pd(best_d2, y3d2, mask_e2);
+
+    best_d = _mm256_blendv_pd(best_d, face_d, in_tri);
+
+    alignas(32) double d4[4];
+    _mm256_store_pd(d4, best_d);
+
+    double best  = std::numeric_limits<double>::max();
+    double babs  = std::numeric_limits<double>::max();
+    for (uint32_t i = 0; i < validCount; i++) {
+      const double ad = std::abs(d4[i]);
+      if (ad < babs) { best = d4[i]; babs = ad; }
+    }
+    return static_cast<T>(best);
+  }
+#endif
 
   T best     = std::numeric_limits<T>::max();
   T best_abs = std::numeric_limits<T>::max();
