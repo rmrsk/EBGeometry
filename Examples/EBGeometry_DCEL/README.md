@@ -15,7 +15,7 @@ Compiling
 
 To compile the example, do
 
-    g++ -std=c++14 -O3 main.cpp
+    g++ -O3 -march=native main.cpp
 
 Running
 -------

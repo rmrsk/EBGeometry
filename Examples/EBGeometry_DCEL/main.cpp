@@ -1,5 +1,5 @@
 /* EBGeometry
- * Copyright © 2022 Robert Marskar
+um * Copyright © 2022 Robert Marskar
  * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
  */
 
@@ -82,7 +82,7 @@ main(int argc, char* argv[])
 
   const auto t0 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    //    dcelSum += dcelSDF->signedDistance(x);
+    dcelSum += dcelSDF->signedDistance(x);
   }
   const auto t1 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
@@ -118,9 +118,9 @@ main(int argc, char* argv[])
   std::cout << "Accumulated distance and time using direct DCEL = " << dcelSum << ", which took " << dcelTime.count() / Nsamp << " us\n";
   std::cout << "Accumulated distance and time using full BVH    = " << bvhSum  << ", which took " << bvhTime.count()  / Nsamp << " us\n";
   std::cout << "Accumulated distance and time using compact BVH = " << linSum  << ", which took " << linTime.count()  / Nsamp << " us\n";
-  std::cout << "Accumulated distance and time using trimesh BVH = " << triSum  << ", which took " << triTime.count()  / Nsamp << " us\n";
+  std::cout << "Accumulated distance and time using trimesh BVH = " << triSum  << ", which took " << triTime.count()  / Nsamp << " us\n";  
   std::cout << "Relative speedup using BVH vs direct DCEL        = " << dcelTime.count()/triTime.count() << "\n";
-  // clang-format on
+  // clang-format on  
 
   return 0;
 }
