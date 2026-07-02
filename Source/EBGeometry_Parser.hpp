@@ -206,7 +206,7 @@ namespace Parser {
   */
   template <typename T, typename Meta, typename BV = EBGeometry::BoundingVolumes::AABBT<T>, size_t K = 4>
   inline static std::shared_ptr<FastTriMeshSDF<T, Meta, BV, K>>
-  readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafSize = 32U) noexcept;
+  readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafSize = 8U) noexcept;
 
   /*!
     @brief Read multiple files containing single watertight objects and return them as DCEL meshes enclosed in BVHs.

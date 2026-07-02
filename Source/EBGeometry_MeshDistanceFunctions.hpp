@@ -299,7 +299,7 @@ public:
   */
   FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
                  const BVH::Build             a_build       = BVH::Build::TopDown,
-                 const size_t                 a_maxLeafSize = 32U) noexcept;
+                 const size_t                 a_maxLeafSize = 8U) noexcept;
 
   /*!
     @brief Full constructor. Takes the input triangles and creates the BVH.
@@ -309,7 +309,7 @@ public:
   */
   FastTriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
                  const BVH::Build                         a_build       = BVH::Build::TopDown,
-                 const size_t                             a_maxLeafSize = 32U) noexcept;
+                 const size_t                             a_maxLeafSize = 8U) noexcept;
 
   /*!
     @brief Destructor

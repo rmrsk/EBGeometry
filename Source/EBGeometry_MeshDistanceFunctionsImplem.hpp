@@ -511,24 +511,7 @@ FastTriMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const no
     }
   };
 
-  BVH::Visiter<Node, T> visiter = [&minDist](const Node& a_node, const T& a_bvDist) noexcept -> bool {
-    return a_bvDist <= std::abs(minDist);
-  };
-
-  BVH::LinearSorter<T, K> sorter =
-    [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
-    std::sort(a_leaves.begin(),
-              a_leaves.end(),
-              [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
-                return n1.second > n2.second;
-              });
-  };
-
-  BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
-    return a_node.getDistanceToBoundingVolume(a_point);
-  };
-
-  m_bvh->traverse(updater, visiter, sorter, metaUpdater);
+  m_bvh->traverseSimd(updater, minDist, a_point);
 
   return minDist;
 }

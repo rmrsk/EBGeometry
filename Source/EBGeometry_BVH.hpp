@@ -19,6 +19,12 @@
 #include <array>
 #include <functional>
 #include <queue>
+#include <algorithm>
+#include <type_traits>
+
+#if defined(__SSE4_1__)
+#include <smmintrin.h>
+#endif
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
@@ -493,6 +499,22 @@ namespace BVH {
     one word of CPU memory.
   */
   template <class T, class P, class BV, size_t K>
+  class LinearNodeT;
+
+  /*!
+    @brief SoA layout of K children's AABBs for a single interior LinearBVH node.
+    @details Used by LinearBVH::traverseSimd to test K axis-aligned bounding boxes
+    simultaneously with SSE instructions. lo[axis][child] and hi[axis][child], so
+    that each lo[axis] and hi[axis] row is a contiguous float[K] loadable as __m128.
+    Only meaningful and populated when T=float, BV=AABBT<float>, K=4.
+  */
+  template <size_t K>
+  struct ChildAabbSoA {
+    alignas(16) float lo[3][K];
+    alignas(16) float hi[3][K];
+  };
+
+  template <class T, class P, class BV, size_t K>
   class LinearNodeT
   {
   public:
@@ -691,6 +713,21 @@ namespace BVH {
              const BVH::LinearSorter<Meta, K>&         a_sorter,
              const BVH::MetaUpdater<LinearNode, Meta>& a_metaUpdater) const noexcept;
 
+    /*!
+      @brief SIMD-accelerated nearest-first traversal for signed-distance queries.
+      @details When T=float, BV=AABBT<float>, K=4 and SSE4.1 is available, tests all K
+      children's AABBs simultaneously with packed SSE instructions. Pruning and sorting
+      use squared distances to avoid sqrt during traversal. Falls back to scalar
+      traverse() for other template parameters.
+      @param[in] a_updater  Leaf callback (same signature as traverse's updater).
+      @param[in] a_minDist  Current best signed distance; updated by a_updater during traversal.
+      @param[in] a_point    Query point.
+    */
+    inline void
+    traverseSimd(const BVH::LinearUpdater<P>& a_updater,
+                 T&                           a_minDist,
+                 const Vec3T<T>&              a_point) const noexcept;
+
   protected:
     /*!
       @brief Linearly stored nodes by value for cache-friendly traversal.
@@ -702,6 +739,13 @@ namespace BVH {
       so that LinearNodeT can interface into it.
     */
     std::vector<std::shared_ptr<const P>> m_primitives;
+
+    /*!
+      @brief Per-node SoA packing of K children's AABBs for SIMD traversal.
+      @details Populated for all nodes when T=float, BV=AABBT<float>, K=4; empty otherwise.
+      Leaf entries are allocated but never read.
+    */
+    std::vector<ChildAabbSoA<K>> m_childAabbSoA;
   };
 } // namespace BVH
 
