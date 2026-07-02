@@ -115,7 +115,7 @@ buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Me
 }
 
 template <class T, class Meta, class BV, size_t K>
-std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::TriangleSoAT<T, 4>, BV, K>>
+std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleSoAT<T, 4>, K>>
 buildTriMeshLinearSoABVH(
   const std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::Triangle<T, Meta>, BV, K>>& a_triLinBvh) noexcept
 {
@@ -123,7 +123,8 @@ buildTriMeshLinearSoABVH(
 
   using Tri     = EBGeometry::Triangle<T, Meta>;
   using TriSoA  = EBGeometry::TriangleSoAT<T, W>;
-  using DstNode = EBGeometry::BVH::LinearNodeT<T, TriSoA, BV, K>;
+  using AABB    = EBGeometry::BoundingVolumes::AABBT<T>;
+  using DstNode = EBGeometry::BVH::LinearNodeT<T, TriSoA, AABB, K>;
 
   const auto& srcNodes = a_triLinBvh->getLinearNodes();
   const auto& srcPrims = a_triLinBvh->getPrimitives();
@@ -177,7 +178,7 @@ buildTriMeshLinearSoABVH(
     soaPtrs.emplace_back(soaStorage, &(*soaStorage)[i]);
   }
 
-  return std::make_shared<EBGeometry::BVH::LinearBVH<T, TriSoA, BV, K>>(
+  return std::make_shared<EBGeometry::BVH::PackedBVH<T, TriSoA, K>>(
     std::move(dstNodes), std::move(soaPtrs));
 }
 
@@ -512,14 +513,14 @@ FastTriMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const no
 }
 
 template <class T, class Meta, class BV, size_t K>
-std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::TriangleSoAT<T, 4>, BV, K>>&
+std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleSoAT<T, 4>, K>>&
 FastTriMeshSDF<T, Meta, BV, K>::getRoot() noexcept
 {
   return (m_bvh);
 }
 
 template <class T, class Meta, class BV, size_t K>
-const std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::TriangleSoAT<T, 4>, BV, K>>&
+const std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleSoAT<T, 4>, K>>&
 FastTriMeshSDF<T, Meta, BV, K>::getRoot() const noexcept
 {
   return (m_bvh);

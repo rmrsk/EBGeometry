@@ -283,7 +283,7 @@ public:
   /*!
     @brief Alias for which BVH root node
   */
-  using Root = typename EBGeometry::BVH::LinearBVH<T, TriSoA, BV, K>;
+  using Root = typename EBGeometry::BVH::PackedBVH<T, TriSoA, K>;
 
   /*!
     @brief Alias for linearized BVH

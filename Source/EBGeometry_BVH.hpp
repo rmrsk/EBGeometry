@@ -30,6 +30,7 @@
 // Our includes
 #include "EBGeometry_Vec.hpp"
 #include "EBGeometry_SFC.hpp"
+#include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /*!
@@ -71,6 +72,12 @@ namespace BVH {
   */
   template <class T, class P, class BV, size_t K>
   class LinearBVH;
+
+  /*!
+    @brief Forward declare PackedBVH.
+  */
+  template <class T, class P, size_t K>
+  class PackedBVH;
 
   /*!
     @brief List of primitives. 
@@ -503,16 +510,14 @@ namespace BVH {
   class LinearNodeT;
 
   /*!
-    @brief SoA layout of K children's AABBs for a single interior LinearBVH node.
-    @details Used by LinearBVH::traverseSimd to test K axis-aligned bounding boxes
-    simultaneously with SSE instructions. lo[axis][child] and hi[axis][child], so
-    that each lo[axis] and hi[axis] row is a contiguous float[K] loadable as __m128.
-    Only meaningful and populated when T=float, BV=AABBT<float>, K=4.
+    @brief SoA layout of K children's AABBs for a single interior PackedBVH node.
+    @details lo[axis][child] / hi[axis][child] layout makes each row a contiguous T[K]
+    array loadable as a single SIMD register. Used exclusively by PackedBVH.
   */
-  template <size_t K>
+  template <class T, size_t K>
   struct ChildAabbSoA {
-    alignas(16) float lo[3][K];
-    alignas(16) float hi[3][K];
+    alignas(sizeof(T) * K) T lo[3][K];
+    alignas(sizeof(T) * K) T hi[3][K];
   };
 
   template <class T, class P, class BV, size_t K>
@@ -715,23 +720,8 @@ namespace BVH {
              const BVH::MetaUpdater<LinearNode, Meta>& a_metaUpdater) const noexcept;
 
     /*!
-      @brief SIMD-accelerated nearest-first traversal for signed-distance queries.
-      @details When T=float, BV=AABBT<float>, K=4 and SSE4.1 is available, tests all K
-      children's AABBs simultaneously with packed SSE instructions. Pruning and sorting
-      use squared distances to avoid sqrt during traversal. Falls back to scalar
-      traverse() for other template parameters.
-      @param[in] a_updater  Leaf callback (same signature as traverse's updater).
-      @param[in] a_minDist  Current best signed distance; updated by a_updater during traversal.
-      @param[in] a_point    Query point.
-    */
-    inline void
-    traverseSimd(const BVH::LinearUpdater<P>& a_updater,
-                 T&                           a_minDist,
-                 const Vec3T<T>&              a_point) const noexcept;
-
-    /*!
       @brief Compute signed distance from a_point to the nearest primitive.
-      @details Uses traverseSimd internally. Requires P to provide signedDistance(Vec3T<T>).
+      @details Requires P to provide signedDistance(Vec3T<T>).
     */
     inline T
     signedDistance(const Vec3T<T>& a_point) const noexcept;
@@ -754,14 +744,50 @@ namespace BVH {
       so that LinearNodeT can interface into it.
     */
     std::vector<std::shared_ptr<const P>> m_primitives;
+  };
+
+  /*!
+    @brief LinearBVH specialised for AABB bounding volumes with SSE4.1-accelerated traversal.
+    @details Inherits LinearBVH<T,P,AABBT<T>,K> and adds a SoA cache of child AABBs that
+    lets signedDistance() test all K children simultaneously with packed SSE instructions.
+    Falls back to the base-class scalar traversal when SSE4.1 is unavailable or K != 4 or T != float.
+    @tparam T Floating-point precision.
+    @tparam P Primitive type. Must provide signedDistance(Vec3T<T>).
+    @tparam K BVH branching factor (SIMD path requires K==4).
+  */
+  template <class T, class P, size_t K>
+  class PackedBVH : public LinearBVH<T, P, EBGeometry::BoundingVolumes::AABBT<T>, K>
+  {
+  public:
+    using BV         = EBGeometry::BoundingVolumes::AABBT<T>;
+    using Base       = LinearBVH<T, P, BV, K>;
+    using LinearNode = typename Base::LinearNode;
+
+    PackedBVH() = delete;
 
     /*!
-      @brief Per-node SoA packing of K children's AABBs for SIMD traversal.
-      @details Populated for all nodes when T=float, BV=AABBT<float>, K=4; empty otherwise.
-      Leaf entries are allocated but never read.
+      @brief Full constructor. Passes nodes and primitives to LinearBVH, then builds the SoA AABB cache.
     */
-    std::vector<ChildAabbSoA<K>> m_childAabbSoA;
+    inline PackedBVH(std::vector<LinearNodeT<T, P, BV, K>>        a_linearNodes,
+                     const std::vector<std::shared_ptr<const P>>& a_primitives);
+
+    inline virtual ~PackedBVH() = default;
+
+    /*!
+      @brief Compute signed distance from a_point to the nearest primitive.
+      @details SSE4.1 path tests K children AABBs simultaneously when T=float and K==4.
+      Falls back to LinearBVH::signedDistance for other template parameters.
+    */
+    inline T
+    signedDistance(const Vec3T<T>& a_point) const noexcept;
+
+  protected:
+    /*!
+      @brief Per-node SoA cache of K children's AABBs.
+    */
+    std::vector<ChildAabbSoA<T, K>> m_childAabbSoA;
   };
+
 } // namespace BVH
 
 #include "EBGeometry_NamespaceFooter.hpp"

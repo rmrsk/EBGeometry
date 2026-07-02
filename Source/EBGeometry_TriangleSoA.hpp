@@ -13,6 +13,7 @@
 #define EBGeometry_TriangleSoA
 
 #include <cstdint>
+
 #if defined(__SSE4_1__)
 #include <smmintrin.h>
 #endif

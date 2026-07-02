@@ -481,29 +481,6 @@ namespace BVH {
   {
     m_linearNodes = std::move(a_linearNodes);
     m_primitives  = a_primitives;
-
-    if constexpr (K == 4 && std::is_same_v<T, float> &&
-                  std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<float>>) {
-      m_childAabbSoA.resize(m_linearNodes.size());
-      for (size_t i = 0; i < m_linearNodes.size(); i++) {
-        const auto& node = m_linearNodes[i];
-        if (!node.isLeaf()) {
-          const auto& offsets = node.getChildOffsets();
-          auto&       soa     = m_childAabbSoA[i];
-          for (size_t k = 0; k < K; k++) {
-            const auto& bv  = m_linearNodes[offsets[k]].getBoundingVolume();
-            const auto& lo  = bv.getLowCorner();
-            const auto& hi  = bv.getHighCorner();
-            soa.lo[0][k]    = lo[0];
-            soa.lo[1][k]    = lo[1];
-            soa.lo[2][k]    = lo[2];
-            soa.hi[0][k]    = hi[0];
-            soa.hi[1][k]    = hi[1];
-            soa.hi[2][k]    = hi[2];
-          }
-        }
-      }
-    }
   }
 
   template <class T, class P, class BV, size_t K>
@@ -575,95 +552,6 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
-  inline void
-  LinearBVH<T, P, BV, K>::traverseSimd(const BVH::LinearUpdater<P>& a_updater,
-                                        T&                           a_minDist,
-                                        const Vec3T<T>&              a_point) const noexcept
-  {
-#if defined(__SSE4_1__)
-    if constexpr (K == 4 && std::is_same_v<T, float> &&
-                  std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<float>>) {
-      const __m128 px   = _mm_set1_ps(a_point[0]);
-      const __m128 py   = _mm_set1_ps(a_point[1]);
-      const __m128 pz   = _mm_set1_ps(a_point[2]);
-      const __m128 zero = _mm_setzero_ps();
-
-      struct StackEntry {
-        uint32_t idx;
-        float    dist2;
-      };
-      alignas(16) StackEntry stack[256];
-      int top       = 0;
-      stack[top++]  = {0U, 0.0f};
-
-      while (top > 0) {
-        const StackEntry entry     = stack[--top];
-        const float      curBest2  = a_minDist * a_minDist;
-        if (entry.dist2 > curBest2) continue;
-
-        const LinearNode& node = m_linearNodes[entry.idx];
-        if (node.isLeaf()) {
-          a_updater(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
-        }
-        else {
-          const auto& soa = m_childAabbSoA[entry.idx];
-
-          const __m128 lo_x = _mm_load_ps(soa.lo[0]);
-          const __m128 lo_y = _mm_load_ps(soa.lo[1]);
-          const __m128 lo_z = _mm_load_ps(soa.lo[2]);
-          const __m128 hi_x = _mm_load_ps(soa.hi[0]);
-          const __m128 hi_y = _mm_load_ps(soa.hi[1]);
-          const __m128 hi_z = _mm_load_ps(soa.hi[2]);
-
-          // Point-to-AABB clamped distance components for all 4 children at once
-          const __m128 dx = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_x, px), _mm_sub_ps(px, hi_x)));
-          const __m128 dy = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_y, py), _mm_sub_ps(py, hi_y)));
-          const __m128 dz = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_z, pz), _mm_sub_ps(pz, hi_z)));
-          const __m128 d2 = _mm_add_ps(_mm_mul_ps(dx, dx),
-                                        _mm_add_ps(_mm_mul_ps(dy, dy), _mm_mul_ps(dz, dz)));
-
-          alignas(16) float dist2[K];
-          _mm_store_ps(dist2, d2);
-
-          const auto& offsets = node.getChildOffsets();
-
-          // Sort children descending by dist2 so the nearest child is popped first
-          std::array<std::pair<float, uint32_t>, K> children;
-          for (size_t k = 0; k < K; k++) {
-            children[k] = {dist2[k], offsets[k]};
-          }
-          std::sort(children.begin(), children.end(),
-                    [](const std::pair<float, uint32_t>& a,
-                       const std::pair<float, uint32_t>& b) noexcept { return a.first > b.first; });
-
-          const float newBest2 = a_minDist * a_minDist;
-          for (const auto& [d, idx] : children) {
-            if (d <= newBest2) {
-              stack[top++] = {idx, d};
-            }
-          }
-        }
-      }
-      return;
-    }
-#endif
-    // Scalar fallback: reconstruct the standard signed-distance traversal lambdas
-    BVH::Visiter<LinearNode, T> visiter = [&a_minDist](const LinearNode& /*n*/, const T& d) noexcept -> bool {
-      return d <= std::abs(a_minDist);
-    };
-    BVH::LinearSorter<T, K> sorter =
-      [](std::array<std::pair<uint32_t, T>, K>& ch) noexcept -> void {
-      std::sort(ch.begin(), ch.end(), [](const std::pair<uint32_t, T>& a, const std::pair<uint32_t, T>& b) noexcept {
-        return a.second > b.second;
-      });
-    };
-    BVH::MetaUpdater<LinearNode, T> metaUpdater = [&a_point](const LinearNode& n) noexcept -> T {
-      return n.getDistanceToBoundingVolume(a_point);
-    };
-    this->traverse(a_updater, visiter, sorter, metaUpdater);
-  }
-
-  template <class T, class P, class BV, size_t K>
   inline T
   LinearBVH<T, P, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   {
@@ -679,7 +567,20 @@ namespace BVH {
       }
     };
 
-    this->traverseSimd(updater, minDist, a_point);
+    BVH::Visiter<LinearNode, T> visiter = [&minDist](const LinearNode& /*n*/, const T& d) noexcept -> bool {
+      return d <= std::abs(minDist);
+    };
+    BVH::LinearSorter<T, K> sorter =
+      [](std::array<std::pair<uint32_t, T>, K>& ch) noexcept -> void {
+      std::sort(ch.begin(), ch.end(), [](const std::pair<uint32_t, T>& a, const std::pair<uint32_t, T>& b) noexcept {
+        return a.second > b.second;
+      });
+    };
+    BVH::MetaUpdater<LinearNode, T> metaUpdater = [&a_point](const LinearNode& n) noexcept -> T {
+      return n.getDistanceToBoundingVolume(a_point);
+    };
+
+    this->traverse(updater, visiter, sorter, metaUpdater);
     return minDist;
   }
 
@@ -688,6 +589,103 @@ namespace BVH {
   LinearBVH<T, P, BV, K>::computeBoundingVolume() const noexcept
   {
     return m_linearNodes.front().getBoundingVolume();
+  }
+
+  template <class T, class P, size_t K>
+  inline PackedBVH<T, P, K>::PackedBVH(std::vector<LinearNodeT<T, P, BV, K>>        a_linearNodes,
+                                        const std::vector<std::shared_ptr<const P>>& a_primitives)
+    : Base(std::move(a_linearNodes), a_primitives)
+  {
+    m_childAabbSoA.resize(this->m_linearNodes.size());
+    for (size_t i = 0; i < this->m_linearNodes.size(); i++) {
+      const auto& node = this->m_linearNodes[i];
+      if (!node.isLeaf()) {
+        const auto& offsets = node.getChildOffsets();
+        auto&       soa     = m_childAabbSoA[i];
+        for (size_t k = 0; k < K; k++) {
+          const auto& bv = this->m_linearNodes[offsets[k]].getBoundingVolume();
+          const auto& lo = bv.getLowCorner();
+          const auto& hi = bv.getHighCorner();
+          soa.lo[0][k] = lo[0]; soa.lo[1][k] = lo[1]; soa.lo[2][k] = lo[2];
+          soa.hi[0][k] = hi[0]; soa.hi[1][k] = hi[1]; soa.hi[2][k] = hi[2];
+        }
+      }
+    }
+  }
+
+  template <class T, class P, size_t K>
+  inline T
+  PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+#if defined(__SSE4_1__)
+    if constexpr (K == 4 && std::is_same_v<T, float>) {
+      T minDist = std::numeric_limits<T>::max();
+
+      BVH::LinearUpdater<P> updater =
+        [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
+                              size_t                                        offset,
+                              size_t                                        count) noexcept -> void {
+        for (size_t i = 0; i < count; i++) {
+          const T d = prims[offset + i]->signedDistance(a_point);
+          if (std::abs(d) < std::abs(minDist)) minDist = d;
+        }
+      };
+
+      const __m128 px   = _mm_set1_ps(a_point[0]);
+      const __m128 py   = _mm_set1_ps(a_point[1]);
+      const __m128 pz   = _mm_set1_ps(a_point[2]);
+      const __m128 zero = _mm_setzero_ps();
+
+      struct StackEntry { uint32_t idx; float dist2; };
+      alignas(16) StackEntry stack[256];
+      int top      = 0;
+      stack[top++] = {0U, 0.0f};
+
+      while (top > 0) {
+        const StackEntry entry    = stack[--top];
+        const float      curBest2 = minDist * minDist;
+        if (entry.dist2 > curBest2) continue;
+
+        const LinearNode& node = this->m_linearNodes[entry.idx];
+        if (node.isLeaf()) {
+          updater(this->m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
+        }
+        else {
+          const auto& soa = m_childAabbSoA[entry.idx];
+
+          const __m128 lo_x = _mm_load_ps(soa.lo[0]);
+          const __m128 lo_y = _mm_load_ps(soa.lo[1]);
+          const __m128 lo_z = _mm_load_ps(soa.lo[2]);
+          const __m128 hi_x = _mm_load_ps(soa.hi[0]);
+          const __m128 hi_y = _mm_load_ps(soa.hi[1]);
+          const __m128 hi_z = _mm_load_ps(soa.hi[2]);
+
+          const __m128 dx = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_x, px), _mm_sub_ps(px, hi_x)));
+          const __m128 dy = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_y, py), _mm_sub_ps(py, hi_y)));
+          const __m128 dz = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_z, pz), _mm_sub_ps(pz, hi_z)));
+          const __m128 d2 = _mm_add_ps(_mm_mul_ps(dx, dx),
+                                        _mm_add_ps(_mm_mul_ps(dy, dy), _mm_mul_ps(dz, dz)));
+
+          alignas(16) float dist2[K];
+          _mm_store_ps(dist2, d2);
+
+          const auto& offsets = node.getChildOffsets();
+          std::array<std::pair<float, uint32_t>, K> children;
+          for (size_t k = 0; k < K; k++) children[k] = {dist2[k], offsets[k]};
+          std::sort(children.begin(), children.end(),
+                    [](const std::pair<float, uint32_t>& a,
+                       const std::pair<float, uint32_t>& b) noexcept { return a.first > b.first; });
+
+          const float newBest2 = minDist * minDist;
+          for (const auto& [d, idx] : children) {
+            if (d <= newBest2) stack[top++] = {idx, d};
+          }
+        }
+      }
+      return minDist;
+    }
+#endif
+    return this->Base::signedDistance(a_point);
   }
 
 } // namespace BVH
