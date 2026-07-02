@@ -114,6 +114,73 @@ buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Me
   return bvh;
 }
 
+template <class T, class Meta, class BV, size_t K>
+std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::TriangleSoAT<T, 4>, BV, K>>
+buildTriMeshLinearSoABVH(
+  const std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::Triangle<T, Meta>, BV, K>>& a_triLinBvh) noexcept
+{
+  constexpr uint32_t W = 4U;
+
+  using Tri     = EBGeometry::Triangle<T, Meta>;
+  using TriSoA  = EBGeometry::TriangleSoAT<T, W>;
+  using DstNode = EBGeometry::BVH::LinearNodeT<T, TriSoA, BV, K>;
+
+  const auto& srcNodes = a_triLinBvh->getLinearNodes();
+  const auto& srcPrims = a_triLinBvh->getPrimitives();
+
+  // Contiguous by-value triangle array for pack()
+  std::vector<Tri> triValues;
+  triValues.reserve(srcPrims.size());
+  for (const auto& p : srcPrims) {
+    triValues.push_back(*p);
+  }
+
+  // Contiguous SoA storage — owned by the shared_ptr, aliased into LinearBVH
+  auto soaStorage = std::make_shared<std::vector<TriSoA>>();
+
+  // Build destination node array with updated leaf offsets
+  std::vector<DstNode> dstNodes;
+  dstNodes.reserve(srcNodes.size());
+
+  for (const auto& src : srcNodes) {
+    DstNode dst;
+    dst.setBoundingVolume(src.getBoundingVolume());
+    for (size_t k = 0; k < K; k++) {
+      dst.setChildOffset(src.getChildOffsets()[k], k);
+    }
+    if (src.isLeaf()) {
+      const uint32_t off      = src.getPrimitivesOffset();
+      const uint32_t cnt      = src.getNumPrimitives();
+      const uint32_t soaStart = static_cast<uint32_t>(soaStorage->size());
+      const uint32_t numGroups = (cnt + W - 1U) / W;
+      for (uint32_t g = 0; g < numGroups; g++) {
+        const uint32_t bOff   = off + g * W;
+        const uint32_t bCount = std::min(W, cnt - g * W);
+        TriSoA soa;
+        soa.pack(triValues.data() + bOff, bCount);
+        soaStorage->push_back(std::move(soa));
+      }
+      dst.setPrimitivesOffset(soaStart);
+      dst.setNumPrimitives(numGroups);
+    }
+    else {
+      dst.setPrimitivesOffset(0U);
+      dst.setNumPrimitives(0U);
+    }
+    dstNodes.push_back(std::move(dst));
+  }
+
+  // Aliased shared_ptrs into contiguous soaStorage — keeps data contiguous, ownership via shared_ptr
+  std::vector<std::shared_ptr<const TriSoA>> soaPtrs;
+  soaPtrs.reserve(soaStorage->size());
+  for (size_t i = 0; i < soaStorage->size(); i++) {
+    soaPtrs.emplace_back(soaStorage, &(*soaStorage)[i]);
+  }
+
+  return std::make_shared<EBGeometry::BVH::LinearBVH<T, TriSoA, BV, K>>(
+    std::move(dstNodes), std::move(soaPtrs));
+}
+
 template <class T, class Meta>
 MeshSDF<T, Meta>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
 {
@@ -404,7 +471,6 @@ FastTriMeshSDF<T, Meta, BV, K>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_me
                                                const BVH::Build             a_build,
                                                const size_t                 a_maxLeafSize) noexcept
 {
-  // Turn the input mesh into triangles
   std::vector<std::shared_ptr<Triangle<T, Meta>>> triangles;
 
   for (const auto& f : a_mesh->getFaces()) {
@@ -413,7 +479,7 @@ FastTriMeshSDF<T, Meta, BV, K>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_me
     const auto edges    = f->gatherEdges();
 
     if ((vertices.size() != 3) || (edges.size() != 3)) {
-      std::cerr << "FastTriMeshSDF::readIntoTriangles -- DCEL mesh not composed of only triangles!" << "\n";
+      std::cerr << "FastTriMeshSDF -- mesh not triangulated!\n";
     }
 
     auto tri = std::make_shared<Triangle<T, Meta>>();
@@ -425,36 +491,8 @@ FastTriMeshSDF<T, Meta, BV, K>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_me
     triangles.emplace_back(tri);
   }
 
-  auto bvh = EBGeometry::buildTriMeshFullBVH<T, Meta, BV, K>(triangles, a_build, a_maxLeafSize);
-  m_bvh    = bvh->flattenTree();
-
-  const auto& prims = m_bvh->getPrimitives();
-  m_triangleValues.reserve(prims.size());
-  for (const auto& p : prims) {
-    m_triangleValues.emplace_back(*p);
-  }
-
-  // Build flat SoA array: ceil(count/4) groups per leaf, packed contiguously.
-  constexpr uint32_t W  = 4;
-  const auto&        nds = m_bvh->getLinearNodes();
-  m_leafSoaStart.resize(m_triangleValues.size(), UINT32_MAX);
-  m_leafSoaCount.resize(m_triangleValues.size(), 0U);
-  for (const auto& node : nds) {
-    if (node.isLeaf()) {
-      const uint32_t off       = node.getPrimitivesOffset();
-      const uint32_t cnt       = node.getNumPrimitives();
-      const uint32_t numGroups = (cnt + W - 1U) / W;
-      m_leafSoaStart[off]      = static_cast<uint32_t>(m_soaFlat.size());
-      m_leafSoaCount[off]      = numGroups;
-      for (uint32_t g = 0; g < numGroups; g++) {
-        const uint32_t bOff   = off + g * W;
-        const uint32_t bCount = std::min(W, cnt - g * W);
-        TriSoA         soa;
-        soa.pack(m_triangleValues.data() + bOff, bCount);
-        m_soaFlat.emplace_back(std::move(soa));
-      }
-    }
-  }
+  auto triLinBvh = EBGeometry::buildTriMeshFullBVH<T, Meta, BV, K>(triangles, a_build, a_maxLeafSize)->flattenTree();
+  m_bvh          = EBGeometry::buildTriMeshLinearSoABVH<T, Meta, BV, K>(triLinBvh);
 }
 
 template <class T, class Meta, class BV, size_t K>
@@ -462,128 +500,26 @@ FastTriMeshSDF<T, Meta, BV, K>::FastTriMeshSDF(const std::vector<std::shared_ptr
                                                const BVH::Build                         a_build,
                                                const size_t                             a_maxLeafSize) noexcept
 {
-  auto bvh = EBGeometry::buildTriMeshFullBVH<T, Meta, BV, K>(a_triangles, a_build, a_maxLeafSize);
-  m_bvh    = bvh->flattenTree();
-
-  const auto& prims = m_bvh->getPrimitives();
-  m_triangleValues.reserve(prims.size());
-  for (const auto& p : prims) {
-    m_triangleValues.emplace_back(*p);
-  }
-
-  constexpr uint32_t W   = 4;
-  const auto&        nds = m_bvh->getLinearNodes();
-  m_leafSoaStart.resize(m_triangleValues.size(), UINT32_MAX);
-  m_leafSoaCount.resize(m_triangleValues.size(), 0U);
-  for (const auto& node : nds) {
-    if (node.isLeaf()) {
-      const uint32_t off       = node.getPrimitivesOffset();
-      const uint32_t cnt       = node.getNumPrimitives();
-      const uint32_t numGroups = (cnt + W - 1U) / W;
-      m_leafSoaStart[off]      = static_cast<uint32_t>(m_soaFlat.size());
-      m_leafSoaCount[off]      = numGroups;
-      for (uint32_t g = 0; g < numGroups; g++) {
-        const uint32_t bOff   = off + g * W;
-        const uint32_t bCount = std::min(W, cnt - g * W);
-        TriSoA         soa;
-        soa.pack(m_triangleValues.data() + bOff, bCount);
-        m_soaFlat.emplace_back(std::move(soa));
-      }
-    }
-  }
+  auto triLinBvh = EBGeometry::buildTriMeshFullBVH<T, Meta, BV, K>(a_triangles, a_build, a_maxLeafSize)->flattenTree();
+  m_bvh          = EBGeometry::buildTriMeshLinearSoABVH<T, Meta, BV, K>(triLinBvh);
 }
 
 template <class T, class Meta, class BV, size_t K>
 T
 FastTriMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
-  T minDist = std::numeric_limits<T>::max();
-
-  BVH::LinearUpdater<Tri> updater =
-    [this, &minDist, &a_point](const std::vector<std::shared_ptr<const Tri>>&,
-                               size_t                                           offset,
-                               size_t) noexcept -> void {
-    const uint32_t soaStart = m_leafSoaStart[offset];
-    const uint32_t soaEnd   = soaStart + m_leafSoaCount[offset];
-    for (uint32_t g = soaStart; g < soaEnd; g++) {
-      const T curDist = m_soaFlat[g].signedDistance(a_point);
-      if (std::abs(curDist) < std::abs(minDist)) minDist = curDist;
-    }
-  };
-
-  m_bvh->traverseSimd(updater, minDist, a_point);
-
-  return minDist;
+  return m_bvh->signedDistance(a_point);
 }
 
 template <class T, class Meta, class BV, size_t K>
-std::vector<std::pair<std::shared_ptr<const Triangle<T, Meta>>, T>>
-FastTriMeshSDF<T, Meta, BV, K>::getClosestTriangles(const Vec3T<T>& a_point, const bool a_sorted) const noexcept
-{
-  using TriAndDist = std::pair<std::shared_ptr<const Tri>, T>;
-
-  // List of candidate faces.
-  std::vector<TriAndDist> candidateTriangles;
-
-  // Declaration of the BVH metadata attached to each node - this will be the distance to the node itself.
-  using BVHMeta = T;
-
-  // Shortest distance so far.
-  BVHMeta shortestDistanceSoFar = std::numeric_limits<T>::max();
-
-  EBGeometry::BVH::Visiter<Node, T> visiter = [&shortestDistanceSoFar](const Node&    a_node,
-                                                                       const BVHMeta& a_bvDist) noexcept -> bool {
-    return a_bvDist <= 0.0 || a_bvDist <= shortestDistanceSoFar;
-  };
-
-  EBGeometry::BVH::LinearSorter<T, K> sorter =
-    [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
-    std::sort(a_leaves.begin(),
-              a_leaves.end(),
-              [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
-                return n1.second > n2.second;
-              });
-  };
-
-  EBGeometry::BVH::MetaUpdater<Node, BVHMeta> metaUpdater = [&a_point](const Node& a_node) noexcept -> BVHMeta {
-    return a_node.getDistanceToBoundingVolume(a_point);
-  };
-
-  EBGeometry::BVH::LinearUpdater<Tri> updater =
-    [&shortestDistanceSoFar, &a_point, &candidateTriangles](const std::vector<std::shared_ptr<const Tri>>& a_tris,
-                                                             size_t                                         offset,
-                                                             size_t                                         count) noexcept -> void {
-#pragma GCC ivdep
-    for (size_t i = offset; i < offset + count; i++) {
-      const T distToTri = std::abs(a_tris[i]->signedDistance(a_point));
-
-      if (distToTri <= shortestDistanceSoFar) {
-        candidateTriangles.emplace_back(a_tris[i], distToTri);
-        shortestDistanceSoFar = distToTri;
-      }
-    }
-  };
-
-  m_bvh->traverse(updater, visiter, sorter, metaUpdater);
-
-  if (a_sorted) {
-    std::sort(candidateTriangles.begin(), candidateTriangles.end(), [](const TriAndDist& a, const TriAndDist& b) {
-      return a.second < b.second;
-    });
-  }
-
-  return candidateTriangles;
-}
-
-template <class T, class Meta, class BV, size_t K>
-std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::Triangle<T, Meta>, BV, K>>&
+std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::TriangleSoAT<T, 4>, BV, K>>&
 FastTriMeshSDF<T, Meta, BV, K>::getRoot() noexcept
 {
   return (m_bvh);
 }
 
 template <class T, class Meta, class BV, size_t K>
-const std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::Triangle<T, Meta>, BV, K>>&
+const std::shared_ptr<EBGeometry::BVH::LinearBVH<T, EBGeometry::TriangleSoAT<T, 4>, BV, K>>&
 FastTriMeshSDF<T, Meta, BV, K>::getRoot() const noexcept
 {
   return (m_bvh);

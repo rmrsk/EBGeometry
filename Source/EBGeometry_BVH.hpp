@@ -14,6 +14,7 @@
 
 // Std includes
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <vector>
 #include <array>
@@ -727,6 +728,20 @@ namespace BVH {
     traverseSimd(const BVH::LinearUpdater<P>& a_updater,
                  T&                           a_minDist,
                  const Vec3T<T>&              a_point) const noexcept;
+
+    /*!
+      @brief Compute signed distance from a_point to the nearest primitive.
+      @details Uses traverseSimd internally. Requires P to provide signedDistance(Vec3T<T>).
+    */
+    inline T
+    signedDistance(const Vec3T<T>& a_point) const noexcept;
+
+    /*!
+      @brief Compute bounding volume of this BVH (the root node's BV).
+      @details Enables LinearBVH to serve as a primitive in an outer NodeT hierarchy.
+    */
+    inline BV
+    computeBoundingVolume() const noexcept;
 
   protected:
     /*!

@@ -276,9 +276,14 @@ public:
   using Tri = typename EBGeometry::Triangle<T, Meta>;
 
   /*!
-    @brief Alias for which BVH root node 
+    @brief Alias for the SoA triangle group type
   */
-  using Root = typename EBGeometry::BVH::LinearBVH<T, Tri, BV, K>;
+  using TriSoA = TriangleSoAT<T, 4>;
+
+  /*!
+    @brief Alias for which BVH root node
+  */
+  using Root = typename EBGeometry::BVH::LinearBVH<T, TriSoA, BV, K>;
 
   /*!
     @brief Alias for linearized BVH
@@ -295,7 +300,7 @@ public:
     @param[in] a_mesh DCEL mesh
     @param[in] a_build Specification of build method. Must be TopDown, Morton, or Nested.
     @param[in] a_maxLeafSize Maximum number of primitives per BVH leaf. Larger values yield coarser
-    BVH culling but better SIMD throughput at leaf evaluation. Default is 4 (one SSE register-width).
+    BVH culling but better SIMD throughput at leaf evaluation. Default is 8.
   */
   FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
                  const BVH::Build             a_build       = BVH::Build::TopDown,
@@ -318,21 +323,10 @@ public:
 
   /*!
     @brief Value function
-    @param[in] a_point Input point. 
+    @param[in] a_point Input point.
   */
   virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
-
-  /*!
-    @brief Get the closest triangles to the input point
-    @details This returns a list of candidate triangles that are close to the input point. The returned
-    argment consists of the triangles and the unsigned distance to the triangles.
-    @param[in] a_point Input point
-    @param[in] a_sorted Sort the output vector by distance or not. Closest go first. 
-    @return List of candidate triangles (potentially sorted)
-  */
-  virtual std::vector<std::pair<std::shared_ptr<const Tri>, T>>
-  getClosestTriangles(const Vec3T<T>& a_point, const bool a_sorted) const noexcept;
 
   /*!
     @brief Get the bounding volume hierarchy enclosing the mesh
@@ -347,36 +341,16 @@ public:
   getRoot() const noexcept;
 
   /*!
-    @brief Compute bounding volume for this mesh. 
+    @brief Compute bounding volume for this mesh.
   */
   BV
   computeBoundingVolume() const noexcept;
 
 protected:
   /*!
-    @brief Bounding volume hierarchy
+    @brief Bounding volume hierarchy storing SoA triangle groups.
   */
   std::shared_ptr<Root> m_bvh;
-
-  /*!
-    @brief Triangles stored contiguously in leaf-traversal order, matching the index space of m_bvh.
-    Used to build m_triSoA and as a fallback.
-  */
-  std::vector<Tri> m_triangleValues;
-
-  /*!
-    @brief Flat array of all SSE SoA groups (W=4 triangles each) for all leaves, in leaf order.
-    A leaf with N triangles contributes ceil(N/4) consecutive entries here.
-  */
-  using TriSoA = TriangleSoAT<T, 4>;
-  std::vector<TriSoA> m_soaFlat;
-
-  /*!
-    @brief Leaf SoA range: [start, start+count) into m_soaFlat.
-    Indexed by primitivesOffset; only leaf-start offsets hold valid entries.
-  */
-  std::vector<uint32_t> m_leafSoaStart;
-  std::vector<uint32_t> m_leafSoaCount;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

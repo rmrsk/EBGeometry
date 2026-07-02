@@ -84,6 +84,14 @@ struct TriangleSoAT
   */
   T
   signedDistance(const Vec3T<T>& a_point) const noexcept;
+
+  /*!
+    @brief Compute the bounding volume enclosing all valid triangles in this group.
+    @tparam BV Bounding volume type (e.g. AABBT<T>).
+  */
+  template <class BV>
+  BV
+  computeBoundingVolume() const noexcept;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

@@ -269,6 +269,21 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
   return best;
 }
 
+template <class T, size_t W>
+template <class BV>
+BV
+TriangleSoAT<T, W>::computeBoundingVolume() const noexcept
+{
+  std::vector<Vec3T<T>> pts;
+  pts.reserve(3 * validCount);
+  for (uint32_t j = 0; j < validCount; j++) {
+    pts.emplace_back(vx[0][j], vy[0][j], vz[0][j]);
+    pts.emplace_back(vx[1][j], vy[1][j], vz[1][j]);
+    pts.emplace_back(vx[2][j], vy[2][j], vz[2][j]);
+  }
+  return BV(pts);
+}
+
 } // namespace EBGeometry
 
 #endif

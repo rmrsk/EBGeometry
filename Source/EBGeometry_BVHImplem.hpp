@@ -13,6 +13,7 @@
 #define EBGeometry_BVHImplem
 
 // Std includes
+#include <limits>
 #include <tuple>
 #include <vector>
 #include <algorithm>
@@ -660,6 +661,33 @@ namespace BVH {
       return n.getDistanceToBoundingVolume(a_point);
     };
     this->traverse(a_updater, visiter, sorter, metaUpdater);
+  }
+
+  template <class T, class P, class BV, size_t K>
+  inline T
+  LinearBVH<T, P, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    T minDist = std::numeric_limits<T>::max();
+
+    BVH::LinearUpdater<P> updater =
+      [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
+                            size_t                                        offset,
+                            size_t                                        count) noexcept -> void {
+      for (size_t i = 0; i < count; i++) {
+        const T d = prims[offset + i]->signedDistance(a_point);
+        if (std::abs(d) < std::abs(minDist)) minDist = d;
+      }
+    };
+
+    this->traverseSimd(updater, minDist, a_point);
+    return minDist;
+  }
+
+  template <class T, class P, class BV, size_t K>
+  inline BV
+  LinearBVH<T, P, BV, K>::computeBoundingVolume() const noexcept
+  {
+    return m_linearNodes.front().getBoundingVolume();
   }
 
 } // namespace BVH
