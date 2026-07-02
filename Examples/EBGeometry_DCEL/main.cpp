@@ -1,5 +1,5 @@
 /* EBGeometry
-um * Copyright © 2022 Robert Marskar
+ * Copyright © 2022 Robert Marskar
  * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
  */
 
@@ -54,7 +54,7 @@ main(int argc, char* argv[])
   const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, BV, K>(file);
 
   // Sample some random points around the object.
-  constexpr size_t Nsamp = 1000;
+  constexpr size_t Nsamp = 100;
 
   Vec3 lo = Vec3::infinity();
   Vec3 hi = -Vec3::infinity();
