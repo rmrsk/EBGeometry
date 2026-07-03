@@ -6,6 +6,9 @@
 *.hdf5
 pout.*
 *.mod
+
+build
+
 docs/**
 Examples/AMReX_DCEL/plt*
 Examples/AMReX_DCEL/tmp_build_dir
