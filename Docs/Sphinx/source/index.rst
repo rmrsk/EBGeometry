@@ -53,6 +53,7 @@ Introduction
    :hidden:
 
    Introduction.rst
+   BuildingAndUsing.rst
 
 Concepts
 ********

@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2024 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2024 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_SFCImplem.hpp
   @brief  Implementation of EBGeometry_SFC.hpp
   @author Robert Marskar
 */
 
-#ifndef _EBGeometry_SFCImplem_
-#define _EBGeometry_SFCImplem_
+#ifndef EBGEOMETRY_SFCIMPLEM_HPP
+#define EBGEOMETRY_SFCIMPLEM_HPP
 
 // Std includes
 #include <climits>
@@ -72,23 +71,26 @@ namespace EBGeometry {
     inline uint64_t
     Nested::encode(const Index& a_point) noexcept
     {
-      uint64_t code = 0;
+      // Use base = ValidSpan + 1 = 2^ValidBits so that every coordinate in
+      // [0, ValidSpan] maps to a unique code. Using ValidSpan as the base would
+      // make coordinate == ValidSpan alias to coordinate 0 of the next "row".
+      constexpr uint64_t base = static_cast<uint64_t>(SFC::ValidSpan) + 1ULL;
 
-      const uint32_t x = a_point[0];
-      const uint32_t y = a_point[1];
-      const uint32_t z = a_point[2];
+      const uint64_t x = a_point[0];
+      const uint64_t y = a_point[1];
+      const uint64_t z = a_point[2];
 
-      code = x + (y * SFC::ValidSpan) + (z * SFC::ValidSpan * SFC::ValidSpan);
-
-      return code;
+      return x + y * base + z * base * base;
     }
 
     inline Index
     Nested::decode(const uint64_t& a_code) noexcept
     {
-      const unsigned int z = a_code / (SFC::ValidSpan * SFC::ValidSpan);
-      const unsigned int y = (a_code - z * SFC::ValidSpan * SFC::ValidSpan) / SFC::ValidSpan;
-      const unsigned int x = a_code - z * SFC::ValidSpan * SFC::ValidSpan - y * SFC::ValidSpan;
+      constexpr uint64_t base = static_cast<uint64_t>(SFC::ValidSpan) + 1ULL;
+
+      const unsigned int z = static_cast<unsigned int>(a_code / (base * base));
+      const unsigned int y = static_cast<unsigned int>((a_code - z * base * base) / base);
+      const unsigned int x = static_cast<unsigned int>(a_code - z * base * base - y * base);
 
       return Index({x, y, z});
     }

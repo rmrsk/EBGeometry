@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_Polygon2DImplem.hpp
   @brief  Implementation of EBGeometry_Polygon2D.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_Polygon2DImplem
-#define EBGeometry_Polygon2DImplem
+#ifndef EBGEOMETRY_POLYGON2DIMPLEM_HPP
+#define EBGEOMETRY_POLYGON2DIMPLEM_HPP
 
 // Std includes
 #include <iostream>
@@ -157,7 +156,9 @@ template <class T>
 inline T
 Polygon2D<T>::computeSubtendedAngle(const Vec2& p) const noexcept
 {
-  T sumTheta = 0.0;
+  constexpr T pi = T(4) * std::atan(T(1));
+
+  T sumTheta = T(0);
 
   const size_t N = m_points.size();
 
@@ -165,15 +166,15 @@ Polygon2D<T>::computeSubtendedAngle(const Vec2& p) const noexcept
     const Vec2 p1 = m_points[i] - p;
     const Vec2 p2 = m_points[(i + 1) % N] - p;
 
-    const T theta1 = atan2(p1.y, p1.x);
-    const T theta2 = atan2(p2.y, p2.x);
+    const T theta1 = std::atan2(p1.y, p1.x);
+    const T theta2 = std::atan2(p2.y, p2.x);
 
     T dTheta = theta2 - theta1;
 
-    while (dTheta > M_PI)
-      dTheta -= 2.0 * M_PI;
-    while (dTheta < -M_PI)
-      dTheta += 2.0 * M_PI;
+    while (dTheta > pi)
+      dTheta -= T(2) * pi;
+    while (dTheta < -pi)
+      dTheta += T(2) * pi;
 
     sumTheta += dTheta;
   }
@@ -211,11 +212,17 @@ Polygon2D<T>::isPointInsidePolygonSubtend(const Vec3& a_point) const noexcept
 {
   const Vec2 p = this->projectPoint(a_point);
 
-  T sumTheta = this->computeSubtendedAngle(p); // Should be = 2pi if point is inside.
+  constexpr T pi = T(4) * std::atan(T(1));
 
-  sumTheta = std::abs(sumTheta) / (2. * M_PI);
+  T sumTheta = this->computeSubtendedAngle(p); // Should be = 2*pi if point is inside.
 
-  const bool ret = (round(sumTheta) == 1); // 2PI if the polygon is inside.
+  sumTheta = std::abs(sumTheta) / (T(2) * pi);
+
+  // Tolerance-based comparison: inside if sumTheta rounds to 1 (i.e. the total
+  // subtended angle is 2*pi). Using std::abs instead of round() is more robust
+  // near the polygon boundary where floating-point accumulation can push sumTheta
+  // just past 0.5, causing round() to misclassify.
+  const bool ret = (std::abs(sumTheta - T(1)) < T(0.5));
 
   return ret;
 }

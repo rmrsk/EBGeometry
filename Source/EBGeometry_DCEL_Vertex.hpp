@@ -1,17 +1,16 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_DCEL_Vertex.hpp
   @brief  Declaration of a vertex class for use in DCEL descriptions of polygon
-  tesselations.
+  tessellations.
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DCEL_Vertex
-#define EBGeometry_DCEL_Vertex
+#ifndef EBGEOMETRY_DCEL_VERTEX_HPP
+#define EBGEOMETRY_DCEL_VERTEX_HPP
 
 // Std includes
 #include <vector>
@@ -25,7 +24,7 @@
 
 namespace DCEL {
 
-  /*!
+  /**
     @brief Class which represents a vertex node in a double-edge connected list
     (DCEL).
     @details This class is used in DCEL functionality which stores polygonal
@@ -34,59 +33,63 @@ namespace DCEL {
     we also include pointers to all the polygon faces that share this vertex.
     @note The normal vector is outgoing, i.e. a point x is "outside" the vertex if
     the dot product between n and (x - x0) is positive.
+    @tparam T    Floating-point precision.
+    @tparam Meta Meta-data type stored per vertex.
   */
   template <class T, class Meta>
   class VertexT
   {
+    static_assert(std::is_floating_point_v<T>, "VertexT<T,Meta>: T must be a floating-point type");
+
   public:
-    /*!
+    /**
       @brief Alias for vector type
     */
     using Vec3 = Vec3T<T>;
 
-    /*!
+    /**
       @brief Alias for vertex type
     */
     using Vertex = VertexT<T, Meta>;
 
-    /*!
+    /**
       @brief Alias for edge type
     */
     using Edge = EdgeT<T, Meta>;
 
-    /*!
+    /**
       @brief Alias for face type
     */
     using Face = FaceT<T, Meta>;
 
-    /*!
+    /**
       @brief Alias for vertex pointer type
     */
     using VertexPtr = std::shared_ptr<Vertex>;
 
-    /*!
+    /**
       @brief Alias for edge pointer type
     */
     using EdgePtr = std::shared_ptr<Edge>;
 
-    /*!
+    /**
       @brief Alias for face pointer type
     */
     using FacePtr = std::shared_ptr<Face>;
 
-    /*!
+    /**
       @brief Alias for edge iterator
     */
     using EdgeIterator = EdgeIteratorT<T, Meta>;
 
-    /*!
+    /**
       @brief Default constructor.
       @details This initializes the position and the normal vector to zero
       vectors, and the polygon face list is empty
     */
     VertexT();
 
-    /*!
+    /**
       @brief Partial constructor.
       @param[in] a_position Vertex position
       @details This initializes the position to a_position and the normal vector
@@ -94,7 +97,7 @@ namespace DCEL {
     */
     VertexT(const Vec3& a_position);
 
-    /*!
+    /**
       @brief Constructor.
       @param[in] a_position    Vertex position
       @param[in] a_normal Vertex normal vector
@@ -103,7 +106,7 @@ namespace DCEL {
     */
     VertexT(const Vec3& a_position, const Vec3& a_normal);
 
-    /*!
+    /**
       @brief Full copy constructor
       @param[in] a_otherVertex Other vertex
       @details This copies the position, normal vector, and outgoing edge pointer
@@ -111,12 +114,12 @@ namespace DCEL {
     */
     VertexT(const Vertex& a_otherVertex);
 
-    /*!
+    /**
       @brief Destructor (does nothing)
     */
     virtual ~VertexT();
 
-    /*!
+    /**
       @brief Define function
       @param[in] a_position    Vertex position
       @param[in] a_edge   Pointer to outgoing edge
@@ -126,48 +129,48 @@ namespace DCEL {
     inline void
     define(const Vec3& a_position, const EdgePtr& a_edge, const Vec3& a_normal) noexcept;
 
-    /*!
+    /**
       @brief Set the vertex position
       @param[in] a_position Vertex position
     */
     inline void
     setPosition(const Vec3& a_position) noexcept;
 
-    /*!
+    /**
       @brief Set the vertex normal vector
       @param[in] a_normal Vertex normal vector
     */
     inline void
     setNormal(const Vec3& a_normal) noexcept;
 
-    /*!
+    /**
       @brief Set the reference to the outgoing edge
       @param[in] a_edge Pointer to an outgoing edge
     */
     inline void
     setEdge(const EdgePtr& a_edge) noexcept;
 
-    /*!
+    /**
       @brief Add a face to the polygon face list.
       @param[in] a_face Pointer to face.
     */
     inline void
     addFace(const FacePtr& a_face) noexcept;
 
-    /*!
+    /**
       @brief Normalize the normal vector, ensuring its length is 1
     */
     inline void
     normalizeNormalVector() noexcept;
 
-    /*!
+    /**
       @brief Compute the vertex normal, using an average the normal vector in this
       vertex's face list (m_faces)
     */
     inline void
     computeVertexNormalAverage() noexcept;
 
-    /*!
+    /**
       @brief Compute the vertex normal, using an average of the normal vectors in
       the input face list
       @param[in] a_faces Faces
@@ -176,7 +179,7 @@ namespace DCEL {
     inline void
     computeVertexNormalAverage(const std::vector<FacePtr>& a_faces) noexcept;
 
-    /*!
+    /**
       @brief Compute the vertex normal, using the pseudonormal algorithm which
       weights the normal with the subtended angle to each connected face.
       @details This calls the other version with a_faces = m_faces
@@ -187,7 +190,7 @@ namespace DCEL {
     inline void
     computeVertexNormalAngleWeighted() noexcept;
 
-    /*!
+    /**
       @brief Compute the vertex normal, using the pseudonormal algorithm which
       weights the normal with the subtended angle to each connected face.
       @param[in] a_faces Faces to use for computation.
@@ -198,114 +201,123 @@ namespace DCEL {
     inline void
     computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a_faces) noexcept;
 
-    /*!
+    /**
       @brief Flip the normal vector
     */
     inline void
     flip() noexcept;
 
-    /*!
+    /**
       @brief Return modifiable vertex position.
+      @return Reference to m_position.
     */
-    inline Vec3T<T>&
+    [[nodiscard]] inline Vec3T<T>&
     getPosition() noexcept;
 
-    /*!
+    /**
       @brief Return immutable vertex position.
+      @return Const reference to m_position.
     */
-    inline const Vec3T<T>&
+    [[nodiscard]] inline const Vec3T<T>&
     getPosition() const noexcept;
 
-    /*!
+    /**
       @brief Return modifiable vertex normal vector.
+      @return Reference to m_normal.
     */
-    inline Vec3T<T>&
+    [[nodiscard]] inline Vec3T<T>&
     getNormal() noexcept;
 
-    /*!
+    /**
       @brief Return immutable vertex normal vector.
+      @return Const reference to m_normal.
     */
-    inline const Vec3T<T>&
+    [[nodiscard]] inline const Vec3T<T>&
     getNormal() const noexcept;
 
-    /*!
+    /**
       @brief Return modifiable pointer to outgoing edge.
+      @return Reference to m_outgoingEdge.
     */
-    inline EdgePtr&
+    [[nodiscard]] inline EdgePtr&
     getOutgoingEdge() noexcept;
 
-    /*!
+    /**
       @brief Return immutable pointer to outgoing edge.
+      @return Const reference to m_outgoingEdge.
     */
-    inline const EdgePtr&
+    [[nodiscard]] inline const EdgePtr&
     getOutgoingEdge() const noexcept;
 
-    /*!
+    /**
       @brief Get modifiable polygon face list for this vertex.
+      @return Reference to m_faces.
     */
-    inline std::vector<FacePtr>&
+    [[nodiscard]] inline std::vector<FacePtr>&
     getFaces() noexcept;
 
-    /*!
+    /**
       @brief Get immutable polygon face list for this vertex.
+      @return Const reference to m_faces.
     */
-    inline const std::vector<FacePtr>&
+    [[nodiscard]] inline const std::vector<FacePtr>&
     getFaces() const noexcept;
 
-    /*!
+    /**
       @brief Get the signed distance to this vertex
       @param[in] a_x0 Position in space.
       @return The returned distance is |a_x0 - m_position| and the sign is given
       by the sign of m_normal * |a_x0 - m_position|.
     */
-    inline T
+    [[nodiscard]] inline T
     signedDistance(const Vec3& a_x0) const noexcept;
 
-    /*!
-      @brief Get the squared unsigned distance to this vertex
+    /**
+      @brief Get the squared unsigned distance to this vertex.
       @details This is faster to compute than signedDistance, and might be
       preferred for some algorithms.
-      @return Returns the vector length of (a_x - m_position)
+      @param[in] a_x0 Query position.
+      @return Squared Euclidean distance |a_x0 - m_position|^2.
     */
-    inline T
+    [[nodiscard]] inline T
     unsignedDistance2(const Vec3& a_x0) const noexcept;
 
-    /*!
+    /**
       @brief Get meta-data
       @return m_metaData
     */
-    inline Meta&
+    [[nodiscard]] inline Meta&
     getMetaData() noexcept;
 
-    /*!
+    /**
       @brief Get meta-data
       @return m_metaData
     */
-    inline const Meta&
+    [[nodiscard]] inline const Meta&
     getMetaData() const noexcept;
 
   protected:
-    /*!
+    /**
       @brief Pointer to an outgoing edge from this vertex.
     */
     EdgePtr m_outgoingEdge;
 
-    /*!
+    /**
       @brief Vertex position
     */
     Vec3 m_position;
 
-    /*!
+    /**
       @brief Vertex normal vector
     */
     Vec3 m_normal;
 
-    /*!
+    /**
       @brief List of faces connected to this vertex (these must be "manually" added)
     */
     std::vector<FacePtr> m_faces;
 
-    /*!
+    /**
       @brief Meta-data for this vertex
     */
     Meta m_metaData;

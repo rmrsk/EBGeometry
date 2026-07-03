@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2026 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_SoupImplem.hpp
   @brief  Implementation of EBGeometry_Soup.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_SoupImplem
-#define EBGeometry_SoupImplem
+#ifndef EBGEOMETRY_SOUPIMPLEM_HPP
+#define EBGEOMETRY_SOUPIMPLEM_HPP
 
 // Our includes
 #include "EBGeometry_Soup.hpp"
@@ -78,6 +77,12 @@ Soup::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::v
   // Compress the vertex vector. While doing so we should build up the old-to-new index map
   a_vertices.resize(0);
 
+  if (vertexMap.empty()) {
+    a_facets.clear();
+    return;
+  }
+  EBGEOMETRY_EXPECT(!vertexMap.empty());
+
   std::map<size_t, size_t> indexMap;
 
   a_vertices.emplace_back(vertexMap.front().first);
@@ -111,7 +116,7 @@ inline void
 Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
                  const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
                  const std::vector<std::vector<size_t>>&  a_facets,
-                 const std::string                        a_id) noexcept
+                 const std::string&                       a_id) noexcept
 {
 
   using Vec3   = EBGeometry::Vec3T<T>;

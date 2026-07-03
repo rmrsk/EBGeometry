@@ -21,7 +21,7 @@ repos:
         files: ^(Source|Docs|Exec)/
         args:
           - "--ignore-words=.codespellignore"
-          - "--skip=*.bib,*.js,Docs/Sphinx/build,Docs/doxygen"
+          - "--skip=*.bib,*.js,*.log,Docs/Sphinx/build,Docs/doxygen"
 
   - repo: local
     hooks:
@@ -39,7 +39,7 @@ repos:
 
       - id: doxygen-check
         name: Check doxygen documentation (warnings as errors)
-        entry: doxygen Docs/doxygen.conf
+        entry: bash -c "cd Docs && doxygen doxygen.conf"
         language: system
         pass_filenames: false
         files: \.(H|cpp)$

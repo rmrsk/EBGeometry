@@ -156,7 +156,7 @@ Parser::readSTL(const std::string& a_filename) noexcept
   STL<T> stl(a_filename);
 
   // Storage for vertices and facets from the STL object. Note that we do not care about the triangle normals when
-  // raeding the file since they are always recalculated within EBGeometry.
+  // reading the file since they are always recalculated within EBGeometry.
   std::vector<Vec3T<T>>&            vertices = stl.getVertexCoordinates();
   std::vector<std::vector<size_t>>& facets   = stl.getFacets();
 

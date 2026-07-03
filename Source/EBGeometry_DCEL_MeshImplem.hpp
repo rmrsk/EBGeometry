@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_DCEL_MeshImplem.hpp
   @brief  Implementation of EBGeometry_DCEL_Mesh.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DCEL_MeshImplem
-#define EBGeometry_DCEL_MeshImplem
+#ifndef EBGEOMETRY_DCEL_MESHIMPLEM_HPP
+#define EBGEOMETRY_DCEL_MESHIMPLEM_HPP
 
 // Our includes
 #include "EBGeometry_DCEL_Mesh.hpp"
@@ -90,11 +89,8 @@ namespace DCEL {
     const std::string e_degenerate = "degenerate edge";
     const std::string e_noPairEdge = "no pair edge (not watertight)";
     const std::string e_noNextEdge = "no next edge (badly linked dcel)";
-    const std::string e_noPrevEdge = "no previous edge (badly linked dcel)";
     const std::string e_noOrigVert = "no origin vertex found for half edge (badly linked dcel)";
     const std::string e_noFace     = "no face found for half edge (badly linked dcel)";
-    const std::string e_noPrevNext = "previous edge's next edge is not this edge (badly linked dcel)";
-    const std::string e_noNextPrev = "next edge's previous edge is not this edge (badly linked dcel)";
 
     const std::string v_null   = "nullptr vertex";
     const std::string v_noEdge = "no referenced edge for vertex (unreferenced vertex)";
@@ -106,57 +102,50 @@ namespace DCEL {
                                               {e_degenerate, 0},
                                               {e_noPairEdge, 0},
                                               {e_noNextEdge, 0},
-                                              {e_noPrevEdge, 0},
                                               {e_noOrigVert, 0},
                                               {e_noFace, 0},
-                                              {e_noPrevNext, 0},
-                                              {e_noNextPrev, 0},
                                               {v_null, 0},
                                               {v_noEdge, 0}};
 
     for (const auto& f : m_faces) {
-      const auto& halfEdge = f->getHalfEdge();
+      if (f == nullptr) {
+        this->incrementWarning(warnings, f_null);
+        continue;
+      }
 
-      // Check for duplicate vertices
+      const auto& halfEdge = f->getHalfEdge();
+      if (halfEdge == nullptr) {
+        this->incrementWarning(warnings, f_noEdge);
+      }
+
       auto vertices = f->gatherVertices();
       std::sort(vertices.begin(), vertices.end());
       auto       it           = std::unique(vertices.begin(), vertices.end());
       const bool noDuplicates = (it == vertices.end());
-
-      if (f == nullptr) {
-        this->incrementWarning(warnings, f_null);
-      }
-      else if (halfEdge == nullptr) {
-        this->incrementWarning(warnings, f_noEdge);
-      }
       if (!noDuplicates) {
         this->incrementWarning(warnings, f_degenerate);
       }
     }
 
     for (const auto& e : m_edges) {
-      const auto& nextEdge  = e->getNextEdge();
-      const auto& pairEdge  = e->getPairEdge();
-      const auto& curVertex = e->getVertex();
-      const auto& curFace   = e->getFace();
-
-      // Check basic points for current edge.
       if (e == nullptr) {
         this->incrementWarning(warnings, e_null);
+        continue;
       }
-      else if (e->getVertex() == e->getOtherVertex()) {
+
+      if (e->getVertex() == e->getOtherVertex()) {
         this->incrementWarning(warnings, e_degenerate);
       }
-      else if (pairEdge == nullptr) {
+      if (e->getPairEdge() == nullptr) {
         this->incrementWarning(warnings, e_noPairEdge);
       }
-      else if (nextEdge == nullptr) {
+      if (e->getNextEdge() == nullptr) {
         this->incrementWarning(warnings, e_noNextEdge);
       }
-      else if (curVertex == nullptr) {
+      if (e->getVertex() == nullptr) {
         this->incrementWarning(warnings, e_noOrigVert);
       }
-      else if (curFace == nullptr) {
+      if (e->getFace() == nullptr) {
         this->incrementWarning(warnings, e_noFace);
       }
     }
@@ -243,7 +232,7 @@ namespace DCEL {
         break;
       }
       default: {
-        std::cerr << "In file 'CD_DCELMeshImplem.H' function "
+        std::cerr << "In file 'EBGeometry_DCEL_MeshImplem.hpp' function "
                      "DCEL::MeshT<T, Meta>::reconcileVertices(VertexNormalWeighting) - "
                      "unsupported algorithm requested\n";
 
@@ -374,7 +363,7 @@ namespace DCEL {
       break;
     }
     default: {
-      std::cerr << "Error in file 'CD_DCELMeshImplem.H' MeshT<T, Meta>::signedDistance "
+      std::cerr << "Error in file 'EBGeometry_DCEL_MeshImplem.hpp' MeshT<T, Meta>::signedDistance "
                    "unsupported algorithm requested\n";
 
       break;
@@ -388,6 +377,10 @@ namespace DCEL {
   inline T
   MeshT<T, Meta>::DirectSignedDistance(const Vec3& a_point) const noexcept
   {
+    if (m_faces.empty()) {
+      return std::numeric_limits<T>::infinity();
+    }
+
     T minDist  = m_faces.front()->signedDistance(a_point);
     T minDist2 = minDist * minDist;
 
@@ -408,6 +401,10 @@ namespace DCEL {
   inline T
   MeshT<T, Meta>::DirectSignedDistance2(const Vec3& a_point) const noexcept
   {
+    if (m_faces.empty()) {
+      return std::numeric_limits<T>::infinity();
+    }
+
     FacePtr closest  = m_faces.front();
     T       minDist2 = closest->unsignedDistance2(a_point);
 

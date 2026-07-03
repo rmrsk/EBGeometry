@@ -1,17 +1,16 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_DCEL_EdgeImplem.hpp
   @brief  Implementation of EBGeometry_DCEL_Edge.hpp
   @author Robert Marskar
   @todo   Include m_face in constructors
 */
 
-#ifndef CD_DCELEdgeImplem
-#define CD_DCELEdgeImplem
+#ifndef EBGEOMETRY_DCEL_EDGEIMPLEM_HPP
+#define EBGEOMETRY_DCEL_EDGEIMPLEM_HPP
 
 // Our includes
 #include "EBGeometry_DCEL_Vertex.hpp"
@@ -50,6 +49,13 @@ namespace DCEL {
   template <class T, class Meta>
   inline EdgeT<T, Meta>::~EdgeT()
   {}
+
+  template <class T, class Meta>
+  inline size_t
+  EdgeT<T, Meta>::size() const noexcept
+  {
+    return 2U;
+  }
 
   template <class T, class Meta>
   inline void
@@ -111,11 +117,12 @@ namespace DCEL {
     if (m_face) {
       normal += m_face->getNormal();
     }
-    if (m_pairEdge) {
+    if (m_pairEdge && m_pairEdge->getFace()) {
       normal += m_pairEdge->getFace()->getNormal();
     }
 
-    return normal / normal.length();
+    const T len = normal.length();
+    return (len > std::numeric_limits<T>::epsilon()) ? normal / len : Vec3T<T>::zero();
   }
 
   template <class T, class Meta>
@@ -143,6 +150,7 @@ namespace DCEL {
   inline std::shared_ptr<VertexT<T, Meta>>&
   EdgeT<T, Meta>::getOtherVertex() noexcept
   {
+    EBGEOMETRY_EXPECT(m_nextEdge != nullptr);
     return (m_nextEdge->getVertex());
   }
 
@@ -150,6 +158,7 @@ namespace DCEL {
   inline const std::shared_ptr<VertexT<T, Meta>>&
   EdgeT<T, Meta>::getOtherVertex() const noexcept
   {
+    EBGEOMETRY_EXPECT(m_nextEdge != nullptr);
     return (m_nextEdge->getVertex());
   }
 

@@ -1,10 +1,9 @@
-/* EBGeometry
- * Copyright © 2026 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef EBGeometry_PLYImplem
-#define EBGeometry_PLYImplem
+#ifndef EBGEOMETRY_PLYIMPLEM_HPP
+#define EBGEOMETRY_PLYIMPLEM_HPP
 
 // Our includes
 #include "EBGeometry_PLY.hpp"

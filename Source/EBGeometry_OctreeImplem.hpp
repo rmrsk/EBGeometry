@@ -1,18 +1,18 @@
-/* EBGeometry
- * Copyright © 2023 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2023 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_OctreeImplem.hpp
   @brief  Implementation of EBGeometry_Octree.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_OctreeImplem
-#define EBGeometry_OctreeImplem
+#ifndef EBGEOMETRY_OCTREEIMPLEM_HPP
+#define EBGEOMETRY_OCTREEIMPLEM_HPP
 
 // Std includes
+#include <queue>
 #include <stack>
 
 // Our includes
@@ -84,12 +84,12 @@ namespace Octree {
 
   template <typename Meta, typename Data>
   inline void
-  Node<Meta, Data>::buildDepthFirst(const StopFunction&    a_stopFunction,
+  Node<Meta, Data>::buildDepthFirst(const SplitFunction&   a_splitFunction,
                                     const MetaConstructor& a_metaConstructor,
                                     const DataConstructor& a_dataConstructor) noexcept
   {
     if (this->isLeaf()) {
-      if (!(a_stopFunction(*this))) {
+      if (a_splitFunction(*this)) {
 
         // Initialize children.
         for (size_t k = 0; k < 8; k++) {
@@ -100,7 +100,7 @@ namespace Octree {
 
         // Recurse.
         for (auto& c : m_children) {
-          c->buildDepthFirst(a_stopFunction, a_metaConstructor, a_dataConstructor);
+          c->buildDepthFirst(a_splitFunction, a_metaConstructor, a_dataConstructor);
         }
       }
     }
@@ -111,23 +111,23 @@ namespace Octree {
 
   template <typename Meta, typename Data>
   inline void
-  Node<Meta, Data>::buildBreadthFirst(const StopFunction&    a_stopFunction,
+  Node<Meta, Data>::buildBreadthFirst(const SplitFunction&   a_splitFunction,
                                       const MetaConstructor& a_metaConstructor,
                                       const DataConstructor& a_dataConstructor) noexcept
   {
     if (this->isLeaf()) {
-      std::stack<std::shared_ptr<Node<Meta, Data>>> q;
+      std::queue<std::shared_ptr<Node<Meta, Data>>> q;
 
       q.emplace(this->shared_from_this());
 
       while (!(q.empty())) {
-        auto& curNode = *q.top();
+        auto& curNode = *q.front();
 
         q.pop();
 
-        if (!(a_stopFunction(curNode))) {
+        if (a_splitFunction(curNode)) {
 
-          // Initialize children and push them onto the stack.
+          // Initialize children and push them onto the queue.
           auto& children = curNode.getChildren();
 
           for (size_t k = 0; k < 8; k++) {

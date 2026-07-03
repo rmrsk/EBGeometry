@@ -1,9 +1,8 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file    EBGeometry_AnalyticDistanceFunctions.hpp
   @brief   Declaration of various analytic distance functions.
   @details This file contains various analytic signed distance fields. Some of
@@ -12,8 +11,8 @@
   @author  Robert Marskar
 */
 
-#ifndef EBGeometry_AnalyticDistanceFunctions
-#define EBGeometry_AnalyticDistanceFunctions
+#ifndef EBGEOMETRY_ANALYTICDISTANCEFUNCTIONS_HPP
+#define EBGEOMETRY_ANALYTICDISTANCEFUNCTIONS_HPP
 
 // Std includes
 #include <algorithm>
@@ -24,12 +23,14 @@
 #include "EBGeometry_SignedDistanceFunction.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-/*!
+/**
   @brief Clamp function. Returns lo if v < lo and hi if v > hi. Otherwise
   returns v.
+  @tparam T  Scalar type.
   @param[in] v  Value to be clamped.
   @param[in] lo Lower clamping value.
   @param[in] hi Higher clamping value.
+  @return Clamped value in [lo, hi].
 */
 template <class T>
 constexpr const T
@@ -38,12 +39,14 @@ clamp(const T& v, const T& lo, const T& hi)
   return (v < lo) ? lo : (v > hi) ? hi : v;
 }
 
-/*!
+/**
   @brief Clamp function. Returns lo if v < lo and hi if v > hi. Otherwise
-  returns v.
-  @param[in] v  Value to be clamped.
-  @param[in] lo Lower clamping value.
-  @param[in] hi Higher clamping value.
+  returns v, component-wise.
+  @tparam T  Scalar type.
+  @param[in] v  Vector to be clamped.
+  @param[in] lo Component-wise lower bound.
+  @param[in] hi Component-wise upper bound.
+  @return Component-wise clamped vector.
 */
 template <class T>
 constexpr const Vec3T<T>
@@ -52,7 +55,7 @@ clamp(const Vec3T<T>& v, const Vec3T<T>& lo, const Vec3T<T>& hi)
   return Vec3T<T>(clamp(v[0], lo[0], hi[0]), clamp(v[1], lo[1], hi[1]), clamp(v[2], lo[2], hi[2]));
 }
 
-/*!
+/**
   @brief Ken Perlin's original permutation array. Use for initializing PerlinSDF
 */
 constexpr static std::array<int, 256> s_perlinPermutationTable = {
@@ -69,64 +72,73 @@ constexpr static std::array<int, 256> s_perlinPermutationTable = {
   181, 199, 106, 157, 184, 84,  204, 176, 115, 121, 50,  45,  127, 4,   150, 254, 138, 236, 205, 93,  222, 114,
   67,  29,  24,  72,  243, 141, 128, 195, 78,  66,  215, 61,  156, 180};
 
-/*!
-  @brief Signed distance function for a plane
+/**
+  @brief Signed distance function for a plane.
+  @tparam T Floating-point precision.
 */
 template <class T>
 class PlaneSDF : public SignedDistanceFunction<T>
 {
+  static_assert(std::is_floating_point_v<T>, "PlaneSDF<T>: T must be a floating-point type");
+
 public:
-  /*!
+  /**
     @brief Disallowed weak construction
   */
   PlaneSDF() = delete;
 
-  /*!
+  /**
     @brief Full constructor
     @param[in] a_point      Point on the plane
     @param[in] a_normal     Plane normal vector.
   */
   PlaneSDF(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) noexcept
   {
+    EBGEOMETRY_EXPECT(a_normal.length() > T(0));
+
     m_point  = a_point;
     m_normal = a_normal / a_normal.length();
   }
 
-  /*!
-    @brief Signed distance function for sphere.
+  /**
+    @brief Signed distance function for the plane.
     @param[in] a_point Position.
+    @return Signed distance from a_point to the plane; negative on the side opposite to the normal.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     return dot((a_point - m_point), m_normal);
   }
 
 protected:
-  /*!
+  /**
     @brief Point on plane
   */
   Vec3T<T> m_point;
 
-  /*!
+  /**
     @brief Plane normal vector
   */
   Vec3T<T> m_normal;
 };
 
-/*!
-  @brief Signed distance field for sphere.
+/**
+  @brief Signed distance field for a sphere.
+  @tparam T Floating-point precision.
 */
 template <class T>
 class SphereSDF : public SignedDistanceFunction<T>
 {
+  static_assert(std::is_floating_point_v<T>, "SphereSDF<T>: T must be a floating-point type");
+
 public:
-  /*!
+  /**
     @brief Disallowed weak construction.
   */
   SphereSDF() = delete;
 
-  /*!
+  /**
     @brief Default constructor
     @param[in] a_center Sphere center
     @param[in] a_radius Sphere radius
@@ -137,8 +149,9 @@ public:
     this->m_radius = a_radius;
   }
 
-  /*!
+  /**
     @brief Copy constructor
+    @param[in] a_other Other sphere to copy.
   */
   SphereSDF(const SphereSDF& a_other) noexcept
   {
@@ -146,22 +159,24 @@ public:
     this->m_radius = a_other.m_radius;
   }
 
-  /*!
+  /**
     @brief Destructor
   */
   virtual ~SphereSDF() noexcept = default;
 
-  /*!
-    @brief Get center
+  /**
+    @brief Get sphere center (const).
+    @return Const reference to the center position.
   */
-  const Vec3T<T>&
+  [[nodiscard]] const Vec3T<T>&
   getCenter() const noexcept
   {
     return m_center;
   }
 
-  /*!
-    @brief Get center
+  /**
+    @brief Get sphere center (mutable).
+    @return Mutable reference to the center position.
   */
   Vec3T<T>&
   getCenter() noexcept
@@ -169,17 +184,19 @@ public:
     return m_center;
   }
 
-  /*!
-    @brief Get radius
+  /**
+    @brief Get sphere radius (const).
+    @return Const reference to the radius.
   */
-  const T&
+  [[nodiscard]] const T&
   getRadius() const noexcept
   {
     return m_radius;
   }
 
-  /*!
-    @brief Get radius
+  /**
+    @brief Get sphere radius (mutable).
+    @return Mutable reference to the radius.
   */
   T&
   getRadius() noexcept
@@ -187,41 +204,45 @@ public:
     return m_radius;
   }
 
-  /*!
-    @brief Signed distance function for sphere.
+  /**
+    @brief Signed distance function for the sphere.
     @param[in] a_point Position.
+    @return Signed distance from a_point to the sphere surface; negative inside the sphere.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     return (a_point - m_center).length() - m_radius;
   }
 
 protected:
-  /*!
+  /**
     @brief Sphere center
   */
   Vec3T<T> m_center;
 
-  /*!
+  /**
     @brief Sphere radius
   */
   T m_radius;
 };
 
-/*!
+/**
   @brief Signed distance field for an axis-aligned box.
+  @tparam T Floating-point precision.
 */
 template <class T>
 class BoxSDF : public SignedDistanceFunction<T>
 {
+  static_assert(std::is_floating_point_v<T>, "BoxSDF<T>: T must be a floating-point type");
+
 public:
-  /*!
+  /**
     @brief Disallowed default constructor
   */
   BoxSDF() = delete;
 
-  /*!
+  /**
     @brief Full constructor. Sets the low and high corner
     @param[in] a_loCorner   Lower left corner
     @param[in] a_hiCorner   Upper right corner
@@ -232,23 +253,23 @@ public:
     this->m_hiCorner = a_hiCorner;
   }
 
-  /*!
+  /**
     @brief Destructor (does nothing).
   */
   virtual ~BoxSDF() noexcept
   {}
 
-  /*!
+  /**
     @brief Get lower-left corner
     @return m_loCorner
   */
-  const Vec3T<T>&
+  [[nodiscard]] const Vec3T<T>&
   getLowCorner() const noexcept
   {
     return m_loCorner;
   }
 
-  /*!
+  /**
     @brief Get lower-left corner
     @return m_loCorner
   */
@@ -258,17 +279,17 @@ public:
     return m_loCorner;
   }
 
-  /*!
+  /**
     @brief Get upper-right corner
     @return m_hiCorner
   */
-  const Vec3T<T>&
+  [[nodiscard]] const Vec3T<T>&
   getHighCorner() const noexcept
   {
     return m_hiCorner;
   }
 
-  /*!
+  /**
     @brief Get upper-right corner
     @return m_hiCorner
   */
@@ -278,11 +299,12 @@ public:
     return m_hiCorner;
   }
 
-  /*!
-    @brief Signed distance function for sphere.
+  /**
+    @brief Signed distance function for the axis-aligned box.
     @param[in] a_point Position.
+    @return Signed distance from a_point to the box surface; negative inside the box.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     // For each coordinate direction, we have delta[dir] if a_point[dir] falls
@@ -304,31 +326,34 @@ public:
   }
 
 protected:
-  /*!
+  /**
     @brief Low box corner
   */
   Vec3T<T> m_loCorner;
 
-  /*!
+  /**
     @brief High box corner
   */
   Vec3T<T> m_hiCorner;
 };
 
-/*!
+/**
   @brief Signed distance field for a torus.
-  @details This is constructed such that the donut lies in the xy-plane.
+  @details The torus ring lies in the xy-plane, centred at m_center.
+  @tparam T Floating-point precision.
 */
 template <class T>
 class TorusSDF : public SignedDistanceFunction<T>
 {
+  static_assert(std::is_floating_point_v<T>, "TorusSDF<T>: T must be a floating-point type");
+
 public:
-  /*!
+  /**
     @brief Disallowed weak construction.
   */
   TorusSDF() = delete;
 
-  /*!
+  /**
     @brief Full constructor.
     @param[in] a_center      Torus center.
     @param[in] a_majorRadius Major torus radius.
@@ -341,23 +366,23 @@ public:
     this->m_minorRadius = a_minorRadius;
   }
 
-  /*!
+  /**
     @brief Destructor (does nothing).
   */
   virtual ~TorusSDF() noexcept
   {}
 
-  /*!
+  /**
     @brief Get torus center.
     @return m_center
   */
-  const Vec3T<T>&
+  [[nodiscard]] const Vec3T<T>&
   getCenter() const noexcept
   {
     return m_center;
   }
 
-  /*!
+  /**
     @brief Get torus center.
     @return m_center
   */
@@ -367,17 +392,17 @@ public:
     return m_center;
   }
 
-  /*!
+  /**
     @brief Get major radius.
     @return m_majorRadius
   */
-  const T&
+  [[nodiscard]] const T&
   getMajorRadius() const noexcept
   {
     return m_majorRadius;
   }
 
-  /*!
+  /**
     @brief Get major radius.
     @return m_majorRadius
   */
@@ -387,17 +412,17 @@ public:
     return m_majorRadius;
   }
 
-  /*!
+  /**
     @brief Get minor radius.
     @return m_minorRadius
   */
-  const T&
+  [[nodiscard]] const T&
   getMinorRadius() const noexcept
   {
     return m_minorRadius;
   }
 
-  /*!
+  /**
     @brief Get minor radius.
     @return m_minorRadius
   */
@@ -406,11 +431,12 @@ public:
   {
     return m_minorRadius;
   }
-  /*!
-    @brief Signed distance function for a torus.
+  /**
+    @brief Signed distance function for the torus.
     @param[in] a_point Position.
+    @return Signed distance from a_point to the torus surface; negative inside the torus tube.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     const Vec3T<T> p   = a_point - m_center;
@@ -421,35 +447,38 @@ public:
   }
 
 protected:
-  /*!
+  /**
     @brief Torus center.
   */
   Vec3T<T> m_center;
 
-  /*!
+  /**
     @brief Major torus radius.
   */
   T m_majorRadius;
 
-  /*!
+  /**
     @brief Minor torus radius.
   */
   T m_minorRadius;
 };
 
-/*!
+/**
   @brief Signed distance field for a cylinder.
+  @tparam T Floating-point precision.
 */
 template <class T>
 class CylinderSDF : public SignedDistanceFunction<T>
 {
+  static_assert(std::is_floating_point_v<T>, "CylinderSDF<T>: T must be a floating-point type");
+
 public:
-  /*!
+  /**
     @brief Disallowed weak construction. Use one of the full constructors.
   */
   CylinderSDF() = delete;
 
-  /*!
+  /**
     @brief Full constructor.
     @param[in] a_center1    One endpoint.
     @param[in] a_center2    Other endpoint.
@@ -467,47 +496,48 @@ public:
     m_axis   = (m_center2 - m_center1) / m_length;
   }
 
-  /*!
+  /**
     @brief Destructor (does nothing).
   */
   virtual ~CylinderSDF() noexcept
   {}
 
-  /*!
+  /**
     @brief Get one endpoint
     @return m_center1
   */
-  const Vec3T<T>&
+  [[nodiscard]] const Vec3T<T>&
   getCenter1() const noexcept
   {
     return m_center1;
   }
 
-  /*!
+  /**
     @brief Get the other endpoint
     @return m_center2
   */
-  const Vec3T<T>&
+  [[nodiscard]] const Vec3T<T>&
   getCenter2() const noexcept
   {
     return m_center2;
   }
 
-  /*!
+  /**
     @brief Get radius.
     @return m_radius.
   */
-  const T&
+  [[nodiscard]] const T&
   getRadius() const noexcept
   {
     return m_radius;
   }
 
-  /*!
-    @brief Signed distance function for a torus.
+  /**
+    @brief Signed distance function for the cylinder.
     @param[in] a_point Position.
+    @return Signed distance from a_point to the cylinder surface; negative inside.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     T d = std::numeric_limits<T>::infinity();
@@ -543,50 +573,53 @@ public:
   }
 
 protected:
-  /*!
+  /**
     @brief One endpoint.
   */
   Vec3T<T> m_center1;
 
-  /*!
+  /**
     @brief The other endpoint.
   */
   Vec3T<T> m_center2;
 
-  /*!
+  /**
     @brief Halfway between center1 and m_center2
   */
   Vec3T<T> m_center;
 
-  /*!
+  /**
     @brief "Axis", pointing from m_center1 to m_center2.
   */
   Vec3T<T> m_axis;
 
-  /*!
+  /**
     @brief Cylinder length
   */
   T m_length;
 
-  /*!
+  /**
     @brief radius.
   */
   T m_radius;
 };
 
-/*!
-  @brief Inifinitely long cylinder class. Oriented along the y-axis.
+/**
+  @brief Infinitely long cylinder. Oriented along the specified axis.
+  @tparam T Floating-point precision.
 */
 template <class T>
 class InfiniteCylinderSDF : public SignedDistanceFunction<T>
 {
+  static_assert(std::is_floating_point_v<T>, "InfiniteCylinderSDF<T>: T must be a floating-point type");
+
 public:
-  /*!
+  /**
     @brief No weak construction.
   */
   InfiniteCylinderSDF() = delete;
 
-  /*!
+  /**
     @brief Full constructor.
     @param[in] a_center     Center point for the cylinder.
     @param[in] a_radius     Cylinder radius.
@@ -599,11 +632,12 @@ public:
     m_axis   = a_axis;
   }
 
-  /*!
-    @brief Signed distance function.
+  /**
+    @brief Signed distance function for the infinite cylinder.
     @param[in] a_point Position.
+    @return Signed distance from a_point to the cylinder surface; negative inside.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     Vec3T<T> delta = a_point - m_center;
@@ -615,42 +649,44 @@ public:
   }
 
 protected:
-  /*!
+  /**
     @brief Cylinder center.
   */
   Vec3T<T> m_center;
 
-  /*!
+  /**
     @brief Cylinder radius
   */
   T m_radius;
 
-  /*!
+  /**
     @brief Axis
   */
   size_t m_axis;
 };
 
-/*!
-  @brief Capsulate/pill SDF. Basically a cylinder with spherical endcaps,
-  oriented along the specified axis.
+/**
+  @brief Capsule (pill) SDF: a cylinder with hemispherical endcaps.
+  @tparam T Floating-point precision.
 */
 template <class T>
 class CapsuleSDF : public SignedDistanceFunction<T>
 {
+  static_assert(std::is_floating_point_v<T>, "CapsuleSDF<T>: T must be a floating-point type");
+
 public:
-  /*!
+  /**
     @brief No weak construction
   */
   CapsuleSDF() = delete;
 
-  /*!
+  /**
     @brief Full constructor.
-    @param[in] a_tip1       One tip point
-    @param[in] a_tip2       Other center point.
-    @param[in] a_radius     Radius.
+    @param[in] a_tip1   One end-tip point.
+    @param[in] a_tip2   Other end-tip point.
+    @param[in] a_radius Capsule radius.
   */
-  CapsuleSDF(const Vec3T<T>& a_tip1, const Vec3T<T> a_tip2, const T& a_radius) noexcept
+  CapsuleSDF(const Vec3T<T>& a_tip1, const Vec3T<T>& a_tip2, const T& a_radius) noexcept
   {
     const Vec3T<T> axis = (a_tip2 - a_tip1) / length(a_tip2 - a_tip1);
     m_center1           = a_tip1 + a_radius * axis;
@@ -658,11 +694,12 @@ public:
     m_radius            = a_radius;
   }
 
-  /*!
-    @brief Implementation of the signed distance function.
+  /**
+    @brief Signed distance function for the capsule.
     @param[in] a_point Position.
+    @return Signed distance from a_point to the capsule surface; negative inside.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     const Vec3T<T> v1 = a_point - m_center1;
@@ -675,35 +712,40 @@ public:
   }
 
 protected:
-  /*!
+  /**
     @brief Capsule center1.
   */
   Vec3T<T> m_center1;
 
-  /*!
+  /**
     @brief Capsule center2.
   */
   Vec3T<T> m_center2;
 
-  /*!
+  /**
     @brief Capsule radius.
   */
   T m_radius;
 };
 
-/*!
-  @brief Signed distance field for an infinite cone. Oriented along +z.
+/**
+  @brief Signed distance field for an infinite cone. Tip at a_tip, body opening along -z.
+  @note The formula uses q.y = -delta[2], so the cone body (interior) extends in the -z
+        direction from the tip.
+  @tparam T Floating-point precision.
 */
 template <class T>
 class InfiniteConeSDF : public SignedDistanceFunction<T>
 {
+  static_assert(std::is_floating_point_v<T>, "InfiniteConeSDF<T>: T must be a floating-point type");
+
 public:
-  /*!
+  /**
     @brief Disallowed weak construction
   */
   InfiniteConeSDF() = delete;
 
-  /*!
+  /**
     @brief Infinite cone function
     @param[in] a_tip        Cone tip position
     @param[in] a_angle      Cone opening angle.
@@ -717,17 +759,18 @@ public:
     m_c.y = std::cos(0.5 * a_angle * pi / 180.0);
   }
 
-  /*!
+  /**
     @brief Destructor -- does nothing
   */
   virtual ~InfiniteConeSDF()
   {}
 
-  /*!
-    @brief Implementation of the signed distance function.
+  /**
+    @brief Signed distance function for the infinite cone.
     @param[in] a_point Position.
+    @return Signed distance from a_point to the cone surface; negative inside the cone.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     const Vec3T<T> delta = a_point - m_tip;
@@ -740,30 +783,33 @@ public:
   }
 
 protected:
-  /*!
+  /**
     @brief Tip position
   */
   Vec3T<T> m_tip;
 
-  /*!
+  /**
     @brief Sine/cosine of angle
   */
   Vec2T<T> m_c;
 };
 
-/*!
-  @brief Signed distance field for an finite cone. Oriented along +z.
+/**
+  @brief Signed distance field for a finite cone. Tip at a_tip, body opening along -z (see InfiniteConeSDF).
+  @tparam T Floating-point precision.
 */
 template <class T>
 class ConeSDF : public SignedDistanceFunction<T>
 {
+  static_assert(std::is_floating_point_v<T>, "ConeSDF<T>: T must be a floating-point type");
+
 public:
-  /*!
+  /**
     @brief Disallowed weak construction
   */
   ConeSDF() = delete;
 
-  /*!
+  /**
     @brief Finite cone function
     @param[in] a_tip        Cone tip position
     @param[in] a_height     Cone height, measured from top to bottom.
@@ -779,17 +825,18 @@ public:
     m_c.y    = std::cos(0.5 * a_angle * pi / 180.0);
   }
 
-  /*!
+  /**
     @brief Destructor -- does nothing
   */
   virtual ~ConeSDF()
   {}
 
-  /*!
-    @brief Implementation of the signed distance function.
+  /**
+    @brief Signed distance function for the finite cone.
     @param[in] a_point Position.
+    @return Signed distance from a_point to the cone surface; negative inside the cone.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     const Vec3T<T> delta = a_point - m_tip;
@@ -814,35 +861,38 @@ public:
   }
 
 protected:
-  /*!
+  /**
     @brief Tip position
   */
   Vec3T<T> m_tip;
 
-  /*!
+  /**
     @brief Sine/cosine of angle
   */
   Vec2T<T> m_c;
 
-  /*!
+  /**
     @brief Cone height
   */
   T m_height;
 };
 
-/*!
-  @brief Box of arbitrary dimensions centered at the origin, with rounded corners. 
+/**
+  @brief Box of arbitrary dimensions centered at the origin, with rounded corners.
+  @tparam T Floating-point precision.
 */
 template <class T>
 class RoundedBoxSDF : public SignedDistanceFunction<T>
 {
+  static_assert(std::is_floating_point_v<T>, "RoundedBoxSDF<T>: T must be a floating-point type");
+
 public:
-  /*!
+  /**
     @brief Disallowed default constructor
   */
   RoundedBoxSDF() = delete;
 
-  /*!
+  /**
     @brief Full constructor. User inputs dimensions and corner curvature. 
     @note The extensions of the box in each direction 'dir' is a_dimensions[dir] + a_curvature. 
     @param[in] a_dimensions Box dimensions (width, length, height)
@@ -856,41 +906,46 @@ public:
     m_sphere = std::make_shared<SphereSDF<T>>(Vec3T<T>::zero(), a_curvature);
   }
 
-  /*!
+  /**
     @brief Destructor (does nothing).
   */
   virtual ~RoundedBoxSDF() noexcept
   {}
 
-  /*!
-    @brief Signed distance function for the rounded box
+  /**
+    @brief Signed distance function for the rounded box.
+    @param[in] a_point Position.
+    @return Signed distance from a_point to the rounded-box surface; negative inside.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
-    return m_sphere->value(a_point - clamp(a_point, -m_dimensions, m_dimensions));
+    return m_sphere->signedDistance(a_point - clamp(a_point, -m_dimensions, m_dimensions));
   }
 
 protected:
-  /*!
+  /**
     @brief Sphere at origin with radius a_curvature
   */
   std::shared_ptr<SphereSDF<T>> m_sphere;
 
-  /*!
+  /**
     @brief Box dimensions
   */
   Vec3T<T> m_dimensions;
 };
 
-/*!
-  @brief Ken Perlins gradient noise function
+/**
+  @brief Ken Perlin's gradient-noise implicit function.
+  @tparam T Floating-point precision.
 */
 template <class T>
 class PerlinSDF : public SignedDistanceFunction<T>
 {
+  static_assert(std::is_floating_point_v<T>, "PerlinSDF<T>: T must be a floating-point type");
+
 public:
-  /*!
+  /**
     @brief Full constructor. 
     @param[in] a_noiseAmplitude Noise amplitude
     @param[in] a_noiseFrequency Spatial noise frequency along the three Cartesian axes
@@ -904,7 +959,7 @@ public:
   {
     m_noiseAmplitude   = a_noiseAmplitude;
     m_noiseFrequency   = a_noiseFrequency;
-    m_noisePersistence = std::min(1.0, a_noisePersistence);
+    m_noisePersistence = std::min(T(1), a_noisePersistence);
     m_noiseOctaves     = std::max(static_cast<unsigned int>(1), a_noiseOctaves);
 
     // By default, use Ken Perlin's original permutation table
@@ -913,25 +968,22 @@ public:
       m_permutationTable[i + 256] = s_perlinPermutationTable[i];
     }
 
-#if 1 // Development code
-    std::random_device rd;
-    std::mt19937       g(0);
-
+    std::mt19937 g(0);
     this->shuffle(g);
-#endif
   }
 
-  /*!
+  /**
     @brief Destructor (does nothing)
   */
   virtual ~PerlinSDF() noexcept
   {}
 
-  /*!
-    @brief Signed distance function. Generates a distance on [0,curAmplitude]
-    @param[in] a_point Input point
+  /**
+    @brief Signed distance function. Generates a noise value on [0, m_noiseAmplitude].
+    @param[in] a_point Input point.
+    @return Octave-summed Perlin noise value scaled by m_noiseAmplitude.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     T ret = 0.0;
@@ -949,13 +1001,17 @@ public:
     return ret * m_noiseAmplitude;
   };
 
-  /*!
-    @brief Shuffle the permutation with the input RNG. 
-    @details URNG should be a uniform random number generator, e.g. 
-    @param[in] g Uniform random number generator (e.g., std::mt19937)
-    @note When using parallel calculations it is exceptionally important that the input RNG is the same across all threads/ranks. Otherwise, the
-    user must manually ensure that the permutation table is the same. Failure to do so implies that each thread/rank generates it's own gradient noise
-    and there is correspondingly no single geometry. 
+  /**
+    @brief Shuffle the permutation table with the provided uniform random number generator.
+    @details Reseeds the 256-entry permutation table using std::shuffle and then mirrors it
+    into the upper 256 entries. The URNG type must satisfy the C++ UniformRandomBitGenerator
+    concept (e.g., std::mt19937).
+    @tparam URNG Uniform random number generator type (e.g., std::mt19937).
+    @param[in] g Uniform random number generator instance to drive the shuffle.
+    @note When using parallel calculations it is exceptionally important that the input RNG
+    produces the same sequence across all threads/ranks. Otherwise, each thread/rank will
+    generate a different permutation table and therefore a different noise field, resulting
+    in no single coherent geometry.
   */
   template <class URNG>
   void
@@ -973,7 +1029,7 @@ public:
     }
   }
 
-  /*!
+  /**
     @brief Get the internal permutation table
     @return m_permutationTable.
   */
@@ -984,36 +1040,37 @@ public:
   }
 
 protected:
-  /*!
+  /**
     @brief Noise frequency
   */
   Vec3T<T> m_noiseFrequency;
 
-  /*!
+  /**
     @brief Noise amplitude
   */
   T m_noiseAmplitude;
 
-  /*!
+  /**
     @brief Noise persistence
   */
   T m_noisePersistence;
 
-  /*!
-    @brief Permutation table
+  /**
+    @brief Permutation table (integer hash indices, not floating-point).
   */
-  std::array<T, 512> m_permutationTable;
+  std::array<int, 512> m_permutationTable;
 
-  /*!
+  /**
     @brief Number of noise octaves
   */
   unsigned int m_noiseOctaves;
 
-  /*!
-    @brief Ken Perlin's lerp function
-    @param[in] t Input parameter
-    @param[in] a Input parameter
-    @param[in] b Input parameter
+  /**
+    @brief Ken Perlin's linear interpolation helper.
+    @param[in] t Interpolation weight in [0,1].
+    @param[in] a Start value.
+    @param[in] b End value.
+    @return a + t*(b - a).
   */
   virtual T
   lerp(const T t, const T a, const T b) const noexcept
@@ -1021,9 +1078,10 @@ protected:
     return a + t * (b - a);
   };
 
-  /*!
-    @brief Ken Perlin's fade function
-    @param[in] t Input parameter
+  /**
+    @brief Ken Perlin's fade (smoothstep) function: 6t^5 - 15t^4 + 10t^3.
+    @param[in] t Input in [0,1].
+    @return Smoothed value in [0,1].
   */
   virtual T
   fade(const T t) const noexcept
@@ -1031,25 +1089,27 @@ protected:
     return t * t * t * (t * (t * 6 - 15) + 10);
   };
 
-  /*!
-    @brief Ken Perlins grad function
-    @param[in] hash Input parameter
-    @param[in] x Input parameter
-    @param[in] y Input parameter
-    @param[in] z Input parameter
+  /**
+    @brief Ken Perlin's gradient hash function.
+    @param[in] hash Hash value selecting one of 16 gradient directions.
+    @param[in] x    x-component of the relative position.
+    @param[in] y    y-component of the relative position.
+    @param[in] z    z-component of the relative position.
+    @return Dot product of the selected pseudo-random gradient with (x, y, z).
   */
   T
   grad(const int hash, const T x, const T y, const T z) const noexcept
   {
     const int h = hash & 15;
     const T   u = h < 8 ? x : y;
-    const T   v = h < 4 ? y : h == 12 || h == 14 ? x : y;
+    const T   v = h < 4 ? y : h == 12 || h == 14 ? x : z;
     return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
   }
 
-  /*!
-    @brief Octave noise function
-    @param[in] a_point Input point
+  /**
+    @brief Single-octave Perlin noise evaluation.
+    @param[in] a_point Input point in noise space.
+    @return Noise value in [-1, 1].
   */
   T
   noise(const Vec3T<T>& a_point) const noexcept
@@ -1060,14 +1120,14 @@ protected:
     const int Z = static_cast<int>(std::floor(a_point[2])) & 255;
 
     // Relative distance wrt lower cube corner
-    const double x = a_point[0] - std::floor(a_point[0]);
-    const double y = a_point[1] - std::floor(a_point[1]);
-    const double z = a_point[2] - std::floor(a_point[2]);
+    const T x = a_point[0] - std::floor(a_point[0]);
+    const T y = a_point[1] - std::floor(a_point[1]);
+    const T z = a_point[2] - std::floor(a_point[2]);
 
     // Fade curves
-    const double u = fade(x);
-    const double v = fade(y);
-    const double w = fade(z);
+    const T u = fade(x);
+    const T v = fade(y);
+    const T w = fade(z);
 
     // Hash coordinates of 8 cube corners
     const int A  = m_permutationTable[X] + Y;
@@ -1091,19 +1151,22 @@ protected:
   };
 };
 
-/*!
-  @brief Rounded cylinder signed-distance function
+/**
+  @brief Rounded cylinder signed-distance function (cylinder with hemispherically rounded edges).
+  @tparam T Floating-point precision.
 */
 template <class T>
 class RoundedCylinderSDF : public SignedDistanceFunction<T>
 {
+  static_assert(std::is_floating_point_v<T>, "RoundedCylinderSDF<T>: T must be a floating-point type");
+
 public:
-  /*!
+  /**
     @brief Disallowed default constructor
   */
   RoundedCylinderSDF() = delete;
 
-  /*!
+  /**
     @brief Full constructor. User inputs the radius, curvature, and height. Adjust parameters as necessary.
     @param[in] a_radius Cylinder outer radius
     @param[in] a_curvature Corner curvature
@@ -1116,38 +1179,40 @@ public:
     m_height      = 0.5 * a_height - a_curvature;
   }
 
-  /*!
+  /**
     @brief Destructor (does nothing).
   */
   virtual ~RoundedCylinderSDF() noexcept
   {}
 
-  /*!
-    @brief Signed distance function for the rounded box
+  /**
+    @brief Signed distance function for the rounded cylinder.
+    @param[in] a_point Position.
+    @return Signed distance from a_point to the rounded-cylinder surface; negative inside.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
-    const auto xz = sqrt(a_point[2] * a_point[2] + a_point[0] * a_point[0]);
-    const auto d1 = Vec2T<T>(xz - 2.0 * m_majorRadius + m_minorRadius, std::abs(a_point[1]) - m_height);
-    const auto d2 = Vec2T<T>(std::max(d1.x, 0.0), std::max(d1.y, 0.0));
+    const T    xz = sqrt(a_point[2] * a_point[2] + a_point[0] * a_point[0]);
+    const auto d1 = Vec2T<T>(xz - m_majorRadius, std::abs(a_point[1]) - m_height);
+    const auto d2 = Vec2T<T>(std::max(d1.x, T(0)), std::max(d1.y, T(0)));
 
-    return std::min(std::max(d1.x, d1.y), 0.0) + sqrt(d2.x * d2.x + d2.y * d2.y) - m_minorRadius;
+    return std::min(std::max(d1.x, d1.y), T(0)) + sqrt(d2.x * d2.x + d2.y * d2.y) - m_minorRadius;
   }
 
 protected:
-  /*!
+  /**
     @brief Major radius
   */
   T m_majorRadius;
 
-  /*!
+  /**
     @brief Minor radius
   */
   T m_minorRadius;
 
-  /*!
-    @brief Minor radius
+  /**
+    @brief Half-height of the cylinder (adjusted for rounding: 0.5*a_height - a_curvature).
   */
   T m_height;
 };

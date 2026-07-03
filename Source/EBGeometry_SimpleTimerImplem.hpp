@@ -1,16 +1,15 @@
-/* chombo-discharge
- * Copyright © 2024 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the chombo-discharge root directory.
- */
+// SPDX-FileCopyrightText: 2024 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_SimpleTimerImplem.hpp
   @brief  Implementation of EBGeometry_SimpleTimer.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_SimpleTimerImplem
-#define EBGeometry_SimpleTimerImplem
+#ifndef EBGEOMETRY_SIMPLETIMERIMPLEM_HPP
+#define EBGEOMETRY_SIMPLETIMERIMPLEM_HPP
 
 // Our includes
 #include "EBGeometry_SimpleTimer.hpp"

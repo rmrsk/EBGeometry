@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2024 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2024 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_Triangle.hpp
   @brief  Declaration of a triangle class with signed distance functionality.
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_Triangle
-#define EBGeometry_Triangle
+#ifndef EBGEOMETRY_TRIANGLE_HPP
+#define EBGEOMETRY_TRIANGLE_HPP
 
 // Std includes
 #include <array>
@@ -20,7 +19,7 @@
 
 namespace EBGeometry {
 
-  /*!
+  /**
     @brief Triangle class with signed distance functionality.
     @details This class represents a planar triangle and has a signed distance functionality. It is
     self-contained such that it can be directly copied to GPUs. The class contains a triangle face normal
@@ -40,200 +39,204 @@ namespace EBGeometry {
     "inside" or "outside" of the triangle. This class contains a 2D embedding of the triangle that can perform
     this project. If the query point projects to the inside of the triangle, the distance is simply the
     projected distance onto the triangle plane. If it projects to the outside of the triangle, we check the
-    distance against the triangle edges and vertices. 
-    the ed
+    distance against the triangle edges and vertices.
+    @tparam T    Floating-point precision.
+    @tparam Meta User-defined metadata type stored with the triangle.
   */
   template <class T, class Meta>
   class Triangle
   {
+    static_assert(std::is_floating_point_v<T>, "T must be a floating-point type");
+
   public:
-    /*!
+    /**
       @brief Alias for 2D vector type
     */
     using Vec2 = Vec2T<T>;
 
-    /*!
+    /**
       @brief Alias for 3D vector type
     */
     using Vec3 = Vec3T<T>;
 
-    /*!
+    /**
       @brief Default constructor. Does not put the triangle in a usable state.
     */
     Triangle() noexcept = default;
 
-    /*!
+    /**
       @brief Copy constructor. 
       @param[in] a_otherTriangle Other triangle.
     */
     Triangle(const Triangle& a_otherTriangle) noexcept = default;
 
-    /*!
+    /**
       @brief Full constructor. 
       @param[in] a_vertexPositions Triangle vertex positions
     */
     Triangle(const std::array<Vec3, 3>& a_vertexPositions) noexcept;
 
-    /*!
+    /**
       @brief Destructor (does nothing).
     */
     ~Triangle() noexcept = default;
 
-    /*!
+    /**
       @brief Copy assignment. 
       @param[in] a_otherTriangle Other triangle.
     */
     Triangle&
     operator=(const Triangle& a_otherTriangle) noexcept = default;
 
-    /*!
+    /**
       @brief Move assignment. 
       @param[in, out] a_otherTriangle Other triangle.
     */
     Triangle&
     operator=(Triangle&& a_otherTriangle) noexcept = default;
 
-    /*!
+    /**
       @brief Set the triangle normal vector.
       @param[in] a_normal Normal vector (should be consistent with the vertex ordering!).
     */
     void
     setNormal(const Vec3& a_normal) noexcept;
 
-    /*!
+    /**
       @brief Set the triangle vertex positions
       @param[in] a_vertexPositions Vertex positions
     */
     void
     setVertexPositions(const std::array<Vec3, 3>& a_vertexPositions) noexcept;
 
-    /*!
+    /**
       @brief Set the triangle vertex normals
       @param[in] a_vertexNormals Vertex normals
     */
     void
     setVertexNormals(const std::array<Vec3, 3>& a_vertexNormals) noexcept;
 
-    /*!
+    /**
       @brief Set the triangle edge normals
       @param[in] a_edgeNormals Edge normals
     */
     void
     setEdgeNormals(const std::array<Vec3, 3>& a_edgeNormals) noexcept;
 
-    /*!
+    /**
       @brief Set the triangle meta-data
       @param[in] a_metaData Triangle metadata.
     */
     void
     setMetaData(const Meta& a_metaData) noexcept;
 
-    /*!
+    /**
       @brief Compute the triangle normal vector.
       @details This computes the normal vector from two of the triangle edges.
     */
     void
     computeNormal() noexcept;
 
-    /*!
+    /**
       @brief Get the triangle normal vector.
       @return m_triangleNormal
     */
-    Vec3&
+    [[nodiscard]] Vec3&
     getNormal() noexcept;
 
-    /*!
+    /**
       @brief Get the triangle normal vector.
       @return m_triangleNormal
     */
-    const Vec3&
+    [[nodiscard]] const Vec3&
     getNormal() const noexcept;
 
-    /*!
+    /**
       @brief Get the vertex positions
       @return m_vertexPositions
     */
-    std::array<Vec3, 3>&
+    [[nodiscard]] std::array<Vec3, 3>&
     getVertexPositions() noexcept;
 
-    /*!
+    /**
       @brief Get the vertex positions
       @return m_vertexPositions
     */
-    const std::array<Vec3, 3>&
+    [[nodiscard]] const std::array<Vec3, 3>&
     getVertexPositions() const noexcept;
 
-    /*!
+    /**
       @brief Get the vertex normals
       @return m_vertexNormals
     */
-    std::array<Vec3, 3>&
+    [[nodiscard]] std::array<Vec3, 3>&
     getVertexNormals() noexcept;
 
-    /*!
+    /**
       @brief Get the vertex normals
       @return m_vertexNormals
     */
-    const std::array<Vec3, 3>&
+    [[nodiscard]] const std::array<Vec3, 3>&
     getVertexNormals() const noexcept;
 
-    /*!
+    /**
       @brief Get the edge normals
       @return m_edgeNormals
     */
-    std::array<Vec3, 3>&
+    [[nodiscard]] std::array<Vec3, 3>&
     getEdgeNormals() noexcept;
 
-    /*!
+    /**
       @brief Get the edge normals
       @return m_edgeNormals
     */
-    const std::array<Vec3, 3>&
+    [[nodiscard]] const std::array<Vec3, 3>&
     getEdgeNormals() const noexcept;
 
-    /*!
+    /**
       @brief Get the triangle meta-data
       @return m_metaData
     */
-    Meta&
+    [[nodiscard]] Meta&
     getMetaData() noexcept;
 
-    /*!
+    /**
       @brief Get the triangle meta-data
       @return m_metaData
     */
-    const Meta&
+    [[nodiscard]] const Meta&
     getMetaData() const noexcept;
 
-    /*!
-      @brief Compute the signed distance from the input point x to the triangle
-      @param[in] a_point Point
+    /**
+      @brief Compute the signed distance from the input point x to the triangle.
+      @param[in] a_point Query point.
+      @return Signed distance; negative inside, positive outside.
     */
-    T
+    [[nodiscard]] T
     signedDistance(const Vec3& a_point) const noexcept;
 
   protected:
-    /*!
+    /**
       @brief Triangle face normal
     */
     Vec3 m_triangleNormal = Vec3::max();
 
-    /*!
+    /**
       @brief Triangle vertex positions
     */
     std::array<Vec3, 3> m_vertexPositions{Vec3::max(), Vec3::max(), Vec3::max()};
 
-    /*!
+    /**
       @brief Triangle vertex normals
     */
     std::array<Vec3, 3> m_vertexNormals{Vec3::max(), Vec3::max(), Vec3::max()};
 
-    /*!
+    /**
       @brief Triangle edge normals
     */
     std::array<Vec3, 3> m_edgeNormals{Vec3::max(), Vec3::max(), Vec3::max()};
 
-    /*!
+    /**
       @brief Triangle meta-data normals
     */
     Meta m_metaData;

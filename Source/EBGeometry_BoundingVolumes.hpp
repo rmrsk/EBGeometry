@@ -133,7 +133,7 @@ namespace BoundingVolumes {
       @param[in] a_other Other bounding sphere.
       @return True if the two sphere intersect.
     */
-    inline bool
+    [[nodiscard]] inline bool
     intersects(const BoundingSphereT& a_other) const noexcept;
 
     /**
@@ -147,7 +147,7 @@ namespace BoundingVolumes {
       @brief Get immutable radius for this sphere.
       @return Const reference to the sphere radius.
     */
-    inline const T&
+    [[nodiscard]] inline const T&
     getRadius() const noexcept;
 
     /**
@@ -161,7 +161,7 @@ namespace BoundingVolumes {
       @brief Get immutable centroid of this sphere.
       @return Const reference to the sphere centroid.
     */
-    inline const Vec3&
+    [[nodiscard]] inline const Vec3&
     getCentroid() const noexcept;
 
     /**
@@ -170,7 +170,7 @@ namespace BoundingVolumes {
       @param[in] a_other Other bounding sphere
       @return The overlapping volume, computing using standard expressions.
     */
-    inline T
+    [[nodiscard]] inline T
     getOverlappingVolume(const BoundingSphereT<T>& a_other) const noexcept;
 
     /**
@@ -180,21 +180,21 @@ namespace BoundingVolumes {
       @return Returns the distance to the sphere (a point inside has a zero
       distance)
     */
-    inline T
+    [[nodiscard]] inline T
     getDistance(const Vec3& a_x0) const noexcept;
 
     /**
       @brief Get the sphere volume
       @return Sphere volume
     */
-    inline T
+    [[nodiscard]] inline T
     getVolume() const noexcept;
 
     /**
       @brief Get the sphere area
       @return Sphere area.
     */
-    inline T
+    [[nodiscard]] inline T
     getArea() const noexcept;
 
   protected:
@@ -310,7 +310,7 @@ namespace BoundingVolumes {
       @param[in] a_other The other AABB
       @return True if they intersect and false otherwise.
     */
-    inline bool
+    [[nodiscard]] inline bool
     intersects(const AABBT& a_other) const noexcept;
 
     /**
@@ -324,7 +324,7 @@ namespace BoundingVolumes {
       @brief Get the immutable lower-left corner of the AABB.
       @return Const reference to the lower-left corner.
     */
-    inline const Vec3T<T>&
+    [[nodiscard]] inline const Vec3T<T>&
     getLowCorner() const noexcept;
 
     /**
@@ -338,14 +338,14 @@ namespace BoundingVolumes {
       @brief Get the immutable upper-right corner of the AABB.
       @return Const reference to the upper-right corner.
     */
-    inline const Vec3T<T>&
+    [[nodiscard]] inline const Vec3T<T>&
     getHighCorner() const noexcept;
 
     /**
       @brief Get the centroid of the bounding box.
       @return Midpoint of the lower and upper corners.
     */
-    inline Vec3
+    [[nodiscard]] inline Vec3
     getCentroid() const noexcept;
 
     /**
@@ -353,7 +353,7 @@ namespace BoundingVolumes {
       @param[in] a_other The other AABB
       @return Returns overlapping volume
     */
-    inline T
+    [[nodiscard]] inline T
     getOverlappingVolume(const AABBT<T>& a_other) const noexcept;
 
     /**
@@ -363,21 +363,21 @@ namespace BoundingVolumes {
       @return Returns the distance to the bounding box (a point inside has a zero
       distance)
     */
-    inline T
+    [[nodiscard]] inline T
     getDistance(const Vec3& a_x0) const noexcept;
 
     /**
       @brief Compute the bounding box volume.
       @return Product of the box side lengths.
     */
-    inline T
+    [[nodiscard]] inline T
     getVolume() const noexcept;
 
     /**
       @brief Compute the bounding box surface area.
       @return Sum of the six face areas (2*(dx*dy + dy*dz + dz*dx)).
     */
-    inline T
+    [[nodiscard]] inline T
     getArea() const noexcept;
 
   protected:
@@ -400,7 +400,7 @@ namespace BoundingVolumes {
     @return True if the two spheres intersect, false otherwise.
   */
   template <class T>
-  bool
+  [[nodiscard]] bool
   intersects(const BoundingSphereT<T>& a_u, const BoundingSphereT<T>& a_v) noexcept;
 
   /**
@@ -411,7 +411,7 @@ namespace BoundingVolumes {
     @return True if the two boxes intersect, false otherwise.
   */
   template <class T>
-  bool
+  [[nodiscard]] bool
   intersects(const AABBT<T>& a_u, const AABBT<T>& a_v) noexcept;
 
   /**
@@ -422,7 +422,7 @@ namespace BoundingVolumes {
     @return Overlapping volume; zero if the spheres do not intersect.
   */
   template <class T>
-  T
+  [[nodiscard]] T
   getOverlappingVolume(const BoundingSphereT<T>& a_u, const BoundingSphereT<T>& a_v) noexcept;
 
   /**
@@ -433,7 +433,7 @@ namespace BoundingVolumes {
     @return Overlapping volume; zero if the boxes do not intersect.
   */
   template <class T>
-  T
+  [[nodiscard]] T
   getOverlappingVolume(const AABBT<T>& a_u, const AABBT<T>& a_v) noexcept;
 } // namespace BoundingVolumes
 

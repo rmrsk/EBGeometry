@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_BoundingVolumesImplem.hpp
   @brief  Implementation of EBGeometry_BoundingVolumes.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_BoundingVolumesImplem
-#define EBGeometry_BoundingVolumesImplem
+#ifndef EBGEOMETRY_BOUNDINGVOLUMESIMPLEM_HPP
+#define EBGEOMETRY_BOUNDINGVOLUMESIMPLEM_HPP
 
 // Std includes
 #include <iostream>
@@ -138,6 +137,10 @@ namespace BoundingVolumes {
     m_radius = 0.0;
     m_center = Vec3::zero();
 
+    if (a_points.empty()) {
+      return;
+    }
+
     constexpr T half = 0.5;
 
     constexpr size_t BoundingVolumeDIM = 3;
@@ -208,8 +211,18 @@ namespace BoundingVolumes {
 
       const auto d = (m_center - a_other.getCentroid()).length();
 
-      retval =
-        M_PI / (12. * d) * (r1 + r2 - d) * (r1 + r2 - d) * (d * d + 2 * d * (r1 + r2) - 3 * (r1 - r2) * (r1 - r2));
+      if (d <= std::abs(r1 - r2)) {
+        /** One sphere is entirely contained within the other; the overlapping
+            volume equals the volume of the smaller sphere. The lens formula
+            below is undefined for d <= |r1 - r2| (and singular at d == 0). */
+        const auto rMin = std::min(r1, r2);
+        retval          = T(4.0 / 3.0) * T(M_PI) * rMin * rMin * rMin;
+      }
+      else {
+        /** Standard lens-intersection formula, valid for |r1-r2| < d < r1+r2. */
+        retval =
+          M_PI / (12. * d) * (r1 + r2 - d) * (r1 + r2 - d) * (d * d + 2 * d * (r1 + r2) - 3 * (r1 - r2) * (r1 - r2));
+      }
     }
 
     return retval;
@@ -418,28 +431,28 @@ namespace BoundingVolumes {
   }
 
   template <class T>
-  bool
+  [[nodiscard]] bool
   intersects(const BoundingSphereT<T>& u, const BoundingSphereT<T>& v) noexcept
   {
     return u.intersects(v);
   }
 
   template <class T>
-  bool
+  [[nodiscard]] bool
   intersects(const AABBT<T>& u, const AABBT<T>& v) noexcept
   {
     return u.intersects(v);
   }
 
   template <class T>
-  T
+  [[nodiscard]] T
   getOverlappingVolume(const BoundingSphereT<T>& u, const BoundingSphereT<T>& v) noexcept
   {
     return u.getOverlappingVolume(v);
   }
 
   template <class T>
-  T
+  [[nodiscard]] T
   getOverlappingVolume(const AABBT<T>& u, const AABBT<T>& v) noexcept
   {
     return u.getOverlappingVolume(v);

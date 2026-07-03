@@ -68,5 +68,5 @@ However, more complicated implicit functions require us to compute the bounding 
                                    const T&           a_safety = 0.0) const noexcept;
 
 This function initializes a cubic region in space and uses octree refinement near the implicit surface.
-At the end of the octree recusion the vertices of the octree leaves are collected and a bounding volume of type ``BV`` that encloses them is computed.
+At the end of the octree recursion the vertices of the octree leaves are collected and a bounding volume of type ``BV`` that encloses them is computed.
 The success of this method relies on the implicit function being a signed distance function (or at least an approximation to it).

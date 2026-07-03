@@ -1,17 +1,16 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_DCEL_Face.hpp
   @brief  Declaration of a polygon face class for use in DCEL descriptions of
-  polygon tesselations.
+  polygon tessellations.
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DCEL_Face
-#define EBGeometry_DCEL_Face
+#ifndef EBGEOMETRY_DCEL_FACE_HPP
+#define EBGEOMETRY_DCEL_FACE_HPP
 
 // Std includes
 #include <memory>
@@ -26,7 +25,7 @@
 
 namespace DCEL {
 
-  /*!
+  /**
     @brief Class which represents a polygon face in a double-edge connected list
     (DCEL).
     @details This class is a polygon face in a DCEL mesh. It contains pointer
@@ -43,77 +42,82 @@ namespace DCEL {
     the point projects "inside" or "outside" the polygon. There are several
     algorithms for this, and by default this class uses a crossing number
     algorithm.
+    @tparam T    Floating-point precision type.
+    @tparam Meta User-defined metadata type.
   */
   template <class T, class Meta>
   class FaceT
   {
+    static_assert(std::is_floating_point_v<T>, "FaceT requires a floating-point T");
+
   public:
-    /*!
+    /**
       @brief Alias for vector type
     */
     using Vec3 = Vec3T<T>;
 
-    /*!
+    /**
       @brief Alias for vertex type
     */
     using Vertex = VertexT<T, Meta>;
 
-    /*!
+    /**
       @brief Alias for edge type
     */
     using Edge = EdgeT<T, Meta>;
 
-    /*!
+    /**
       @brief Alias for face type
     */
     using Face = FaceT<T, Meta>;
 
-    /*!
+    /**
       @brief Alias for vertex pointer type
     */
     using VertexPtr = std::shared_ptr<Vertex>;
 
-    /*!
+    /**
       @brief Alias for edge pointer type
     */
     using EdgePtr = std::shared_ptr<Edge>;
 
-    /*!
+    /**
       @brief Alias for face pointer type
     */
     using FacePtr = std::shared_ptr<Face>;
 
-    /*!
+    /**
       @brief Alias for edge iterator
     */
     using EdgeIterator = EdgeIteratorT<T, Meta>;
 
-    /*!
+    /**
       @brief Default constructor. Sets the half-edge to zero and the
       inside/outside algorithm to crossing number algorithm
     */
     FaceT();
 
-    /*!
+    /**
       @brief Partial constructor. Calls default constructor but associates a
       half-edge
       @param[in] a_edge Half-edge
     */
     FaceT(const EdgePtr& a_edge);
 
-    /*!
+    /**
       @brief Partial constructor.
       @details Calls default constructor but sets the normal vector and half-edge
       equal to the other face's (rest is undefined)
+      @param[in] a_otherFace Other face to copy normal and half-edge from.
     */
     FaceT(const Face& a_otherFace);
 
-    /*!
+    /**
       @brief Destructor (does nothing)
     */
     virtual ~FaceT();
 
-    /*!
+    /**
       @brief Define function which sets the normal vector and half-edge
       @param[in] a_normal Normal vector
       @param[in] a_edge   Half edge
@@ -121,7 +125,7 @@ namespace DCEL {
     inline void
     define(const Vec3& a_normal, const EdgePtr& a_edge) noexcept;
 
-    /*!
+    /**
       @brief Reconcile face. This will compute the normal vector, area, centroid,
       and the 2D embedding of the polygon
       @note "Everything" must be set before doing this, i.e. the face must be
@@ -130,20 +134,20 @@ namespace DCEL {
     inline void
     reconcile() noexcept;
 
-    /*!
+    /**
       @brief Flip the normal vector
     */
     inline void
     flip() noexcept;
 
-    /*!
+    /**
       @brief Set the half edge
       @param[in] a_halfEdge Half edge
     */
     inline void
     setHalfEdge(const EdgePtr& a_halfEdge) noexcept;
 
-    /*!
+    /**
       @brief Set the inside/outside algorithm when determining if a point projects
       to the inside or outside of the polygon.
       @param[in] a_algorithm Desired algorithm
@@ -153,219 +157,230 @@ namespace DCEL {
     inline void
     setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm& a_algorithm) noexcept;
 
-    /*!
+    /**
       @brief Get modifiable half-edge
+      @return Reference to the shared pointer to the starting half-edge.
     */
-    inline EdgePtr&
+    [[nodiscard]] inline EdgePtr&
     getHalfEdge() noexcept;
 
-    /*!
+    /**
       @brief Get immutable half-edge
+      @return Const reference to the shared pointer to the starting half-edge.
     */
-    inline const EdgePtr&
+    [[nodiscard]] inline const EdgePtr&
     getHalfEdge() const noexcept;
 
-    /*!
+    /**
       @brief Get modifiable centroid
+      @return Reference to the centroid vector.
     */
-    inline Vec3T<T>&
+    [[nodiscard]] inline Vec3T<T>&
     getCentroid() noexcept;
 
-    /*!
+    /**
       @brief Get immutable centroid
+      @return Const reference to the centroid vector.
     */
-    inline const Vec3T<T>&
+    [[nodiscard]] inline const Vec3T<T>&
     getCentroid() const noexcept;
 
-    /*!
+    /**
       @brief Get modifiable centroid position in specified coordinate direction
       @param[in] a_dir Coordinate direction
+      @return Reference to the a_dir-th coordinate of the centroid.
     */
-    inline T&
+    [[nodiscard]] inline T&
     getCentroid(const size_t a_dir) noexcept;
 
-    /*!
+    /**
       @brief Get immutable centroid position in specified coordinate direction
       @param[in] a_dir Coordinate direction
+      @return Const reference to the a_dir-th coordinate of the centroid.
     */
-    inline const T&
+    [[nodiscard]] inline const T&
     getCentroid(const size_t a_dir) const noexcept;
 
-    /*!
+    /**
       @brief Get modifiable normal vector
+      @return Reference to the normal vector.
     */
-    inline Vec3T<T>&
+    [[nodiscard]] inline Vec3T<T>&
     getNormal() noexcept;
 
-    /*!
+    /**
       @brief Get immutable normal vector
+      @return Const reference to the normal vector.
     */
-    inline const Vec3T<T>&
+    [[nodiscard]] inline const Vec3T<T>&
     getNormal() const noexcept;
 
-    /*!
-      @brief Get meta-data
-      @return m_metaData
+    /**
+      @brief Get the stored polygon area (computed during reconcile()).
+      @return Area of this polygon face.
     */
-    inline Meta&
+    [[nodiscard]] inline T
+    getArea() const noexcept;
+
+    /**
+      @brief Get meta-data
+      @return Reference to the metadata.
+    */
+    [[nodiscard]] inline Meta&
     getMetaData() noexcept;
 
-    /*!
-      @brief Get meta-data
-      @return m_metaData
+    /**
+      @brief Get meta-data (const overload)
+      @return Const reference to the metadata.
     */
-    inline const Meta&
+    [[nodiscard]] inline const Meta&
     getMetaData() const noexcept;
 
-    /*!
+    /**
       @brief Compute the area of this polygon
+      @return Area of this polygon face.
     */
-    inline T
+    [[nodiscard]] inline T
     computeArea() noexcept;
 
-    /*!
+    /**
       @brief Compute the signed distance to a point.
       @param[in] a_x0 Point in space
       @details This algorithm operates by checking if the input point projects to
       the inside of the polygon. If it does then the distance is just the
       projected distance onto the polygon plane and the sign is well-defined.
       Otherwise, we check the distance to the edges of the polygon.
+      @return Signed distance to the face; sign determined by normal direction.
     */
-    inline T
+    [[nodiscard]] inline T
     signedDistance(const Vec3& a_x0) const noexcept;
 
-    /*!
+    /**
       @brief Compute the unsigned squared distance to a point.
       @param[in] a_x0 Point in space
       @details This algorithm operates by checking if the input point projects to
       the inside of the polygon. If it does then the distance is just the
       projected distance onto the polygon plane. Otherwise, we check the distance
       to the edges of the polygon.
+      @return Squared unsigned distance to the face.
     */
-    inline T
+    [[nodiscard]] inline T
     unsignedDistance2(const Vec3& a_x0) const noexcept;
 
-    /*!
+    /**
       @brief Return the coordinates of all the vertices on this polygon.
       @details This builds a list of all the vertex coordinates and returns it.
+      @return Vector of 3D coordinates of all vertices on this polygon.
     */
-    inline std::vector<Vec3T<T>>
+    [[nodiscard]] inline std::vector<Vec3T<T>>
     getAllVertexCoordinates() const noexcept;
 
-    /*!
+    /**
       @brief Return all the vertices on this polygon
       @details This builds a list of all the vertices and returns it.
+      @return Vector of shared pointers to all vertices on this polygon.
     */
-    inline std::vector<VertexPtr>
+    [[nodiscard]] inline std::vector<VertexPtr>
     gatherVertices() const noexcept;
 
-    /*!
+    /**
       @brief Return all the half-edges on this polygon
       @details This builds a list of all the edges and returns it.
+      @return Vector of shared pointers to all half-edges on this polygon.
     */
-    inline std::vector<EdgePtr>
+    [[nodiscard]] inline std::vector<EdgePtr>
     gatherEdges() const noexcept;
 
-    /*!
+    /**
       @brief Get the lower-left-most coordinate of this polygon face
+      @return Lower-left-most coordinate of this polygon face.
     */
-    inline Vec3T<T>
+    [[nodiscard]] inline Vec3T<T>
     getSmallestCoordinate() const noexcept;
 
-    /*!
+    /**
       @brief Get the upper-right-most coordinate of this polygon face
+      @return Upper-right-most coordinate of this polygon face.
     */
-    inline Vec3T<T>
+    [[nodiscard]] inline Vec3T<T>
     getHighestCoordinate() const noexcept;
 
   protected:
-    /*!
+    /**
       @brief This polygon's half-edge. A valid face will always have != nullptr
     */
     EdgePtr m_halfEdge;
 
-    /*!
+    /**
       @brief Polygon face normal vector
     */
     Vec3 m_normal;
 
-    /*!
+    /**
       @brief Polygon face centroid position
     */
     Vec3 m_centroid;
 
-    /*!
+    /**
       @brief Meta-data attached to this face
     */
     Meta m_metaData;
 
-    /*!
+    /**
+      @brief Cached polygon face area (stored by reconcile()).
+    */
+    T m_area{T(0)};
+
+    /**
       @brief 2D embedding of this polygon. This is the 2D view of the current
       object projected along its normal vector cardinal.
     */
     std::shared_ptr<Polygon2D<T>> m_poly2;
 
-    /*!
+    /**
       @brief Algorithm for inside/outside tests
     */
     typename Polygon2D<T>::InsideOutsideAlgorithm m_poly2Algorithm;
 
-    /*!
+    /**
       @brief Compute the centroid position of this polygon
     */
     inline void
     computeCentroid() noexcept;
 
-    /*!
+    /**
       @brief Compute the normal position of this polygon
     */
     inline void
     computeNormal() noexcept;
 
-    /*!
+    /**
       @brief Compute the 2D embedding of this polygon
     */
     inline void
     computePolygon2D() noexcept;
 
-    /*!
+    /**
       @brief Normalize the normal vector, ensuring it has a length of 1
     */
     inline void
     normalizeNormalVector() noexcept;
 
-    /*!
-      @brief Get the area of this polygon face
-    */
-    inline T
-    getArea() noexcept;
-
-    /*!
-      @brief Get the area of this polygon face
-    */
-    inline T
-    getArea() const noexcept;
-
-    /*!
-      @brief Compute and store all the half-edges around this polygon face
-    */
-    inline void
-    computeAndStoreEdges() noexcept;
-
-    /*!
+    /**
       @brief Compute the projection of a point onto the polygon face plane
       @param[in] a_p Point in space
+      @return Projected point in the face plane.
     */
-    inline Vec3T<T>
+    [[nodiscard]] inline Vec3T<T>
     projectPointIntoFacePlane(const Vec3& a_p) const noexcept;
 
-    /*!
+    /**
       @brief Check if a point projects to inside or outside the polygon face
       @param[in] a_p Point in space
       @return Returns true if a_p projects to inside the polygon and false
       otherwise.
     */
-    inline bool
+    [[nodiscard]] inline bool
     isPointInsideFace(const Vec3& a_p) const noexcept;
   };
 } // namespace DCEL

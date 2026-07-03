@@ -28,7 +28,7 @@
   @note P must derive from ImplicitFunction<T>
 */
 template <class T, class P = ImplicitFunction<T>>
-std::shared_ptr<ImplicitFunction<T>>
+[[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept;
 
 /**
@@ -42,7 +42,7 @@ Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept;
   @note P1 and P2 must derive from ImplicitFunction<T>
 */
 template <class T, class P1, class P2>
-std::shared_ptr<ImplicitFunction<T>>
+[[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 Union(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB) noexcept;
 
 /**
@@ -55,7 +55,7 @@ Union(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>&
   @note P must derive from ImplicitFunction<T>
 */
 template <class T, class P = ImplicitFunction<T>>
-std::shared_ptr<ImplicitFunction<T>>
+[[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth) noexcept;
 
 /**
@@ -70,7 +70,7 @@ SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T 
   @note P1 and P2 must derive from ImplicitFunction<T>
 */
 template <class T, class P1, class P2>
-std::shared_ptr<ImplicitFunction<T>>
+[[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 SmoothUnion(const std::shared_ptr<P1>& a_implicitFunctionA,
             const std::shared_ptr<P2>& a_implicitFunctionB,
             const T                    a_smooth) noexcept;
@@ -87,7 +87,7 @@ SmoothUnion(const std::shared_ptr<P1>& a_implicitFunctionA,
   @note P must derive from ImplicitFunction<T>
 */
 template <class T, class P, class BV, size_t K>
-std::shared_ptr<ImplicitFunction<T>>
+[[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 FastUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
           const std::vector<BV>&                 a_boundingVolumes) noexcept;
 
@@ -104,7 +104,7 @@ FastUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
   @note P must derive from ImplicitFunction<T>
 */
 template <class T, class P, class BV, size_t K>
-std::shared_ptr<ImplicitFunction<T>>
+[[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 FastSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
                 const std::vector<BV>&                 a_boundingVolumes,
                 const T                                a_smoothLen) noexcept;
@@ -118,7 +118,7 @@ FastSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
   @note P must derive from ImplicitFunction<T>
 */
 template <class T, class P>
-std::shared_ptr<ImplicitFunction<T>>
+[[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept;
 
 /**
@@ -132,9 +132,8 @@ Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcep
   @note P1 and P2 must derive from ImplicitFunction<T>
 */
 template <class T, class P1, class P2>
-std::shared_ptr<ImplicitFunction<T>>
-Intersection(const std::shared_ptr<std::shared_ptr<P1>>& a_implicitFunctionA,
-             const std::shared_ptr<std::shared_ptr<P2>>& a_implicitFunctionB) noexcept;
+[[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
+Intersection(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB) noexcept;
 
 /**
   @brief Convenience function for taking the smooth intersection of a bunch of implicit functions.
@@ -146,7 +145,7 @@ Intersection(const std::shared_ptr<std::shared_ptr<P1>>& a_implicitFunctionA,
   @note P must derive from ImplicitFunction<T>
 */
 template <class T, class P>
-std::shared_ptr<ImplicitFunction<T>>
+[[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth) noexcept;
 
 /**
@@ -161,7 +160,7 @@ SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, c
   @note P1 and P2 must derive from ImplicitFunction<T>
 */
 template <class T, class P1, class P2>
-std::shared_ptr<ImplicitFunction<T>>
+[[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunctionA,
                    const std::shared_ptr<P2>& a_implicitFunctionB,
                    const T                    a_smooth) noexcept;
@@ -177,7 +176,7 @@ SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunctionA,
   @note P1 and P2 must derive from ImplicitFunction<T>
 */
 template <class T, class P1 = ImplicitFunction<T>, class P2 = ImplicitFunction<T>>
-std::shared_ptr<ImplicitFunction<T>>
+[[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB) noexcept;
 
 /**
@@ -192,7 +191,7 @@ Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr
   @note P1 and P2 must derive from ImplicitFunction<T>. This uses the default smoothMax function.
 */
 template <class T, class P1 = ImplicitFunction<T>, class P2 = ImplicitFunction<T>>
-std::shared_ptr<ImplicitFunction<T>>
+[[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
                  const std::shared_ptr<P2>& a_implicitFunctionB,
                  const T                    a_smoothLen) noexcept;
@@ -209,7 +208,7 @@ SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
   @return Shared pointer to a FiniteRepetitionIF<T>.
 */
 template <class T, class P = ImplicitFunction<T>>
-std::shared_ptr<ImplicitFunction<T>>
+[[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
                  const Vec3T<T>&           a_period,
                  const Vec3T<T>&           a_repeatLo,
@@ -225,9 +224,9 @@ FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
 */
 template <class T>
 std::function<T(const T& a, const T& b, const T& s)> expMin = [](const T& a, const T& b, const T& s) -> T {
-  T ret = exp(-a / s) + exp(-b / s);
+  T ret = std::exp(-a / s) + std::exp(-b / s);
 
-  return -log(ret) * s;
+  return -std::log(ret) * s;
 };
 
 /**
@@ -240,9 +239,9 @@ std::function<T(const T& a, const T& b, const T& s)> expMin = [](const T& a, con
 */
 template <class T>
 std::function<T(const T& a, const T& b, const T& s)> smoothMin = [](const T& a, const T& b, const T& s) -> T {
-  const T h = std::max(s - std::abs(a - b), 0.0) / s;
+  const T h = std::max(s - std::abs(a - b), T(0)) / s;
 
-  return std::min(a, b) - 0.25 * h * h * s;
+  return std::min(a, b) - T(0.25) * h * h * s;
 };
 
 /**
@@ -255,9 +254,9 @@ std::function<T(const T& a, const T& b, const T& s)> smoothMin = [](const T& a, 
 */
 template <class T>
 std::function<T(const T& a, const T& b, const T& s)> smoothMax = [](const T& a, const T& b, const T& s) -> T {
-  const T h = std::max(s - std::abs(a - b), 0.0) / s;
+  const T h = std::max(s - std::abs(a - b), T(0)) / s;
 
-  return std::max(a, b) + 0.25 * h * h * s;
+  return std::max(a, b) + T(0.25) * h * h * s;
 };
 
 /**
@@ -291,7 +290,7 @@ public:
     @param[in] a_point 3D query point.
     @return Minimum signed distance value among all stored primitives.
   */
-  T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -336,7 +335,7 @@ public:
     @param[in] a_point 3D query point.
     @return Smooth minimum signed distance value.
   */
-  T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -381,7 +380,7 @@ public:
   /**
     @brief Alias for linearized BVH node
   */
-  using Node = typename Root::LinearNode;
+  using Node = typename Root::Node;
 
   /**
     @brief Disallowed, use the full constructor
@@ -411,14 +410,14 @@ public:
     @param[in] a_point 3D query point.
     @return Minimum signed distance among all primitives, culled via BVH.
   */
-  virtual T
+  [[nodiscard]] virtual T
   value(const Vec3T<T>& a_point) const noexcept override;
 
   /**
     @brief Get the axis-aligned bounding box enclosing all primitives.
     @return Const reference to the root bounding volume of the BVH.
   */
-  const EBGeometry::BoundingVolumes::AABBT<T>&
+  [[nodiscard]] const EBGeometry::BoundingVolumes::AABBT<T>&
   getBoundingVolume() const noexcept;
 
 protected:
@@ -462,7 +461,7 @@ public:
   /**
     @brief Alias for linearized BVH node
   */
-  using Node = typename Root::LinearNode;
+  using Node = typename Root::Node;
 
   /**
     @brief Disallowed, use the full constructor
@@ -491,7 +490,7 @@ public:
     @param[in] a_point 3D query point.
     @return Smooth minimum signed distance, blending the two closest primitives.
   */
-  virtual T
+  [[nodiscard]] virtual T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -537,7 +536,7 @@ public:
     @param[in] a_point 3D query point.
     @return Maximum signed distance value among all stored primitives.
   */
-  T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -594,7 +593,7 @@ public:
     @param[in] a_point 3D query point.
     @return Smooth maximum signed distance value.
   */
-  T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -655,7 +654,7 @@ public:
     @param[in] a_point 3D query point.
     @return Signed distance representing A \ B.
   */
-  T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -719,7 +718,7 @@ public:
     @param[in] a_point 3D query point.
     @return Smooth signed distance representing A \ B.
   */
-  T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -767,7 +766,7 @@ public:
     @param[in] a_point 3D query point.
     @return Signed distance from the folded point to the underlying implicit function.
   */
-  T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -782,7 +781,7 @@ protected:
   Vec3T<T> m_repeatHi;
 
   /**
-    @brief Number of repetition over increasing coordinate direction
+    @brief Number of repetitions over decreasing coordinate direction.
   */
   Vec3T<T> m_repeatLo;
 

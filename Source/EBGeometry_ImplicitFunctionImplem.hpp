@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2023 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2023 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_ImplicitFunctionImplem.hpp
   @brief  Implementation of EBGeometry_ImplicitFunction.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_ImplicitFunctionImplem
-#define EBGeometry_ImplicitFunctionImplem
+#ifndef EBGEOMETRY_IMPLICITFUNCTIONIMPLEM_HPP
+#define EBGEOMETRY_IMPLICITFUNCTIONIMPLEM_HPP
 
 // Std includes
 #include <tuple>
@@ -58,7 +57,7 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
     const auto containsIntersection = std::get<3>(a_node.getMetaData());
     const auto nodeLevel            = std::get<2>(a_node.getMetaData());
 
-    return (nodeLevel >= a_maxTreeDepth) || !containsIntersection;
+    return containsIntersection && (nodeLevel < a_maxTreeDepth);
   };
 
   // Update meta-information for the leaf node. This updates the two corners of the node, the node level, and

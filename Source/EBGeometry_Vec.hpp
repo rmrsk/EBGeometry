@@ -1,48 +1,50 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_Vec.hpp
   @brief  Declaration of 2D and 3D point/vector classes with templated
   precision. Used with DCEL tools.
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_Vec
-#define EBGeometry_Vec
+#ifndef EBGEOMETRY_VEC_HPP
+#define EBGEOMETRY_VEC_HPP
 
 // Std includes
 #include <array>
 #include <iostream>
+#include <type_traits>
 
 // Our includes
 #include "EBGeometry_NamespaceHeader.hpp"
 
-/*!
+/**
   @brief Two-dimensional vector class with arithmetic operators.
   @details The class has a public-only interface. To change it's components one
   can call the member functions, or set components directly, e.g. vec.x = 5.0
   @note Vec2T is a templated class primarily used with DCEL grids.
+  @tparam T Floating-point precision (float or double).
 */
 template <typename T>
 class Vec2T
 {
 public:
-  /*!
+  static_assert(std::is_floating_point_v<T>, "Vec2T<T>: T must be a floating-point type");
+  /**
     @brief Default constructor. Sets the vector to the zero vector.
   */
   Vec2T();
 
-  /*!
+  /**
     @brief Copy constructor
     @param[in] u Other vector
     @details Sets *this = u
   */
   Vec2T(const Vec2T& u) noexcept;
 
-  /*!
+  /**
     @brief Full constructor
     @param[in] a_x First vector component
     @param[in] a_y Second vector component
@@ -50,175 +52,180 @@ public:
   */
   constexpr Vec2T(const T& a_x, const T& a_y);
 
-  /*!
+  /**
     @brief Destructor (does nothing)
   */
   ~Vec2T() = default;
 
-  /*!
+  /**
     @brief First component in the vector
   */
   T x;
 
-  /*!
+  /**
     @brief Second component in the vector
   */
   T y;
 
-  /*!
-    @brief Return av vector with x = y = 0
+  /**
+    @brief Return av vector with x = y = 0.
+    @return Zero vector (0, 0).
   */
-  inline static constexpr Vec2T<T>
+  [[nodiscard]] inline static constexpr Vec2T<T>
   zero() noexcept;
 
-  /*!
-    @brief Return av vector with x = y = 1
+  /**
+    @brief Return a vector with x = y = 1.
+    @return Unit vector (1, 1).
   */
-  inline static constexpr Vec2T<T>
+  [[nodiscard]] inline static constexpr Vec2T<T>
   one() noexcept;
 
-  /*!
-    @brief Return minimum possible representative vector.
+  /**
+    @brief Return the most-negative representable vector.
+    @return Vector with each component equal to -std::numeric_limits<T>::max().
   */
-  inline static constexpr Vec2T<T>
+  [[nodiscard]] inline static constexpr Vec2T<T>
   min() noexcept;
 
-  /*!
-    @brief Return maximum possible representative vector.
+  /**
+    @brief Return the most-positive representable vector.
+    @return Vector with each component equal to std::numeric_limits<T>::max().
   */
-  inline static constexpr Vec2T<T>
+  [[nodiscard]] inline static constexpr Vec2T<T>
   max() noexcept;
 
-  /*!
-    @brief Return a vector with inf components.
+  /**
+    @brief Return a vector with infinite components.
+    @return Vector with each component equal to std::numeric_limits<T>::infinity().
   */
-  inline static constexpr Vec2T<T>
+  [[nodiscard]] inline static constexpr Vec2T<T>
   infinity() noexcept;
 
-  /*!
-    @brief Assignment operator. Sets this.x = a_other.x and this.y = a_other.y
-    @param[in] a_other Other vector
+  /**
+    @brief Assignment operator.
+    @param[in] a_other Other vector.
+    @return Reference to *this after assignment.
   */
   inline constexpr Vec2T<T>&
   operator=(const Vec2T& a_other) noexcept;
 
-  /*!
+  /**
     @brief Addition operator.
-    @param[in] a_other Other vector
-    @details Returns a new object with component x = this->x + a_other.x (same
-    for y-component)
+    @param[in] a_other Other vector.
+    @return New vector with x = this->x + a_other.x, y = this->y + a_other.y.
   */
-  inline constexpr Vec2T<T>
+  [[nodiscard]] inline constexpr Vec2T<T>
   operator+(const Vec2T& a_other) const noexcept;
 
-  /*!
+  /**
     @brief Subtraction operator.
-    @param[in] a_other Other vector
-    @details Returns a new object with component x = this->x - a_other.x (same
-    for y-component)
+    @param[in] a_other Other vector.
+    @return New vector with x = this->x - a_other.x, y = this->y - a_other.y.
   */
-  inline constexpr Vec2T<T>
+  [[nodiscard]] inline constexpr Vec2T<T>
   operator-(const Vec2T& a_other) const noexcept;
 
-  /*!
-    @brief Negation operator. Returns a new Vec2T<T> with negated components
+  /**
+    @brief Negation operator.
+    @return New Vec2T<T> with negated components.
   */
-  inline constexpr Vec2T<T>
+  [[nodiscard]] inline constexpr Vec2T<T>
   operator-() const noexcept;
 
-  /*!
-    @brief Multiplication operator
-    @param[in] s Scalar to be multiplied
-    @details Returns a new Vec2T<T> with components x = s*this->x (and same for
-    y)
+  /**
+    @brief Scalar multiplication operator.
+    @param[in] s Scalar.
+    @return New vector with x = s*this->x, y = s*this->y.
   */
-  inline constexpr Vec2T<T>
+  [[nodiscard]] inline constexpr Vec2T<T>
   operator*(const T& s) const noexcept;
 
-  /*!
-    @brief Division operator
-    @param[in] s Scalar to be multiplied
-    @details Returns a new Vec2T<T> with components x = (1/s)*this->x (and same
-    for y)
+  /**
+    @brief Scalar division operator.
+    @param[in] s Scalar divisor.
+    @return New vector with x = this->x/s, y = this->y/s.
   */
-  inline constexpr Vec2T<T>
+  [[nodiscard]] inline constexpr Vec2T<T>
   operator/(const T& s) const noexcept;
 
-  /*!
-    @brief Addition operator
-    @param[in] a_other Other vector to add
-    @details Returns (*this) with components this->x = this->x + a_other.x (and
-    same for y)
+  /**
+    @brief In-place addition operator.
+    @param[in] a_other Other vector to add.
+    @return Reference to *this after addition.
   */
   inline constexpr Vec2T<T>&
   operator+=(const Vec2T& a_other) noexcept;
 
-  /*!
-    @brief Subtraction operator
-    @param[in] a_other Other vector to subtract
-    @details Returns (*this) with components this->x = this->x - a_other.x (and
-    same for y)
+  /**
+    @brief In-place subtraction operator.
+    @param[in] a_other Other vector to subtract.
+    @return Reference to *this after subtraction.
   */
   inline constexpr Vec2T<T>&
   operator-=(const Vec2T& a_other) noexcept;
 
-  /*!
-    @brief Multiplication operator
-    @param[in] s Scalar to multiply by
-    @details Returns (*this) with components this->x = s*this->x (and same for
-    y)
+  /**
+    @brief In-place scalar multiplication operator.
+    @param[in] s Scalar.
+    @return Reference to *this after multiplication.
   */
   inline constexpr Vec2T<T>&
   operator*=(const T& s) noexcept;
 
-  /*!
-    @brief Division operator operator
-    @param[in] s Scalar to divide by
-    @details Returns (*this) with components this->x = (1/s)*this->x (and same
-    for y)
+  /**
+    @brief In-place scalar division operator.
+    @param[in] s Scalar divisor.
+    @return Reference to *this after division.
   */
   inline constexpr Vec2T<T>&
   operator/=(const T& s) noexcept;
 
-  /*!
-    @brief Dot product operator
-    @param[in] a_other other vector
-    @details Returns the dot product, i.e. this->x*a_other.x + this->y+a_other.y
+  /**
+    @brief Dot product.
+    @param[in] a_other Other vector.
+    @return Scalar dot product: this->x*a_other.x + this->y*a_other.y.
   */
-  inline constexpr T
+  [[nodiscard]] inline constexpr T
   dot(const Vec2T& a_other) const noexcept;
 
-  /*!
+  /**
     @brief Compute length of vector
     @return Returns length of vector, i.e. sqrt[(this->x)*(this->x) +
     (this->y)*(this->y)]
   */
-  inline constexpr T
+  [[nodiscard]] inline constexpr T
   length() const noexcept;
 
-  /*!
+  /**
     @brief Compute square of vector
     @return Returns length of vector, i.e. (this->x)*(this->x) +
     (this->y)*(this->y)
   */
-  inline constexpr T
+  [[nodiscard]] inline constexpr T
   length2() const noexcept;
 };
 
-/*!
+/**
   @brief Three-dimensional vector class with arithmetic operators.
   @details The class has a public-only interface. To change it's components one
   can call the member functions, or set components directly, e.g. vec.x = 5.0
   @note Vec3T is a templated class primarily used with DCEL grids. It is always
   3D, i.e. independent of Chombo configuration settings. This lets one use DCEL
   functionality even though the simulation might only be 2D.
+  @tparam T Floating-point precision (float or double).
 */
 template <typename T>
 class Vec3T
 {
 public:
-  /*!
-    @brief For outputting a vector to an output stream. 
+  static_assert(std::is_floating_point_v<T>, "Vec3T<T>: T must be a floating-point type");
+
+  /**
+    @brief Stream insertion operator.
+    @param[in,out] os  Output stream.
+    @param[in]     vec Vector to print.
+    @return Reference to the output stream after insertion.
   */
   friend std::ostream&
   operator<<(std::ostream& os, const Vec3T<T>& vec)
@@ -228,19 +235,19 @@ public:
     return os;
   }
 
-  /*!
+  /**
     @brief Default constructor. Sets the vector to the zero vector.
   */
   Vec3T() noexcept;
 
-  /*!
+  /**
     @brief Copy constructor
     @param[in] a_u Other vector
     @details Sets *this = u
   */
   Vec3T(const Vec3T<T>& a_u) noexcept;
 
-  /*!
+  /**
     @brief Full constructor
     @param[in] a_x First vector component
     @param[in] a_y Second vector component
@@ -249,184 +256,206 @@ public:
   */
   constexpr Vec3T(const T& a_x, const T& a_y, const T& a_z) noexcept;
 
-  /*!
+  /**
     @brief Destructor (does nothing)
   */
   ~Vec3T() noexcept = default;
 
-  /*!
-    @brief Return av vector with x = y = z = 0
+  /**
+    @brief Return a vector with x = y = z = 0.
+    @return Zero vector (0, 0, 0).
   */
-  inline static constexpr Vec3T<T>
+  [[nodiscard]] inline static constexpr Vec3T<T>
   zero() noexcept;
 
-  /*!
-    @brief Return av vector with x = y = z = 1
+  /**
+    @brief Return a vector with x = y = z = 1.
+    @return Ones vector (1, 1, 1).
   */
-  inline static constexpr Vec3T<T>
+  [[nodiscard]] inline static constexpr Vec3T<T>
   one() noexcept;
 
-  /*!
-    @brief Return av vector with x = y = z = 1
-    @param[in] a_dir Dircetion
+  /**
+    @brief Return the unit basis vector for the given coordinate axis.
+    @param[in] a_dir Axis index (0 = x, 1 = y, 2 = z).
+    @return Basis vector e_{a_dir} with a 1 in position a_dir and 0 elsewhere.
   */
-  inline static constexpr Vec3T<T>
+  [[nodiscard]] inline static constexpr Vec3T<T>
   unit(const size_t a_dir) noexcept;
 
-  /*!
-    @brief Return a vector with minimum representable components.
+  /**
+    @brief Return the most-negative representable vector.
+    @return Vector with each component equal to -std::numeric_limits<T>::max().
   */
-  inline static constexpr Vec3T<T>
+  [[nodiscard]] inline static constexpr Vec3T<T>
   min() noexcept;
 
-  /*!
-    @brief Return a vector with maximum representable components.
+  /**
+    @brief Return the most-positive representable vector.
+    @return Vector with each component equal to std::numeric_limits<T>::max().
   */
-  inline static constexpr Vec3T<T>
+  [[nodiscard]] inline static constexpr Vec3T<T>
   max() noexcept;
 
-  /*!
-    @brief Return a vector with inf components.
+  /**
+    @brief Return a vector with infinite components.
+    @return Vector with each component equal to std::numeric_limits<T>::infinity().
   */
-  inline static constexpr Vec3T<T>
+  [[nodiscard]] inline static constexpr Vec3T<T>
   infinity() noexcept;
 
-  /*!
-    @brief Lexicographical comparison operator. 
-    This returns to true 
-    @param[in] u Other vector. 
+  /**
+    @brief Lexicographic comparison (x first, then y, then z).
+    @details Returns true if this vector is lexicographically less than u,
+    i.e. the first differing component of (*this) is less than the corresponding
+    component of u.
+    @param[in] u Other vector.
+    @return True if (*this) is lexicographically less than u.
   */
-  inline constexpr bool
+  [[nodiscard]] inline constexpr bool
   lessLX(const Vec3T<T>& u) const noexcept;
 
-  /*!
-    @brief Return component in vector. (i=0 => x and so on)
-    @param[in] i Index. Must be < 3
+  /**
+    @brief Mutable element access.
+    @param[in] i Component index (0 = x, 1 = y, 2 = z). Must be < 3.
+    @return Reference to the i-th component.
   */
   inline constexpr T&
   operator[](size_t i) noexcept;
 
-  /*!
-    @brief Return non-modifiable component in vector. (i=0 => x and so on)
-    @param[in] i Index. Must be < 3
+  /**
+    @brief Const element access.
+    @param[in] i Component index (0 = x, 1 = y, 2 = z). Must be < 3.
+    @return Const reference to the i-th component.
   */
-  inline constexpr const T&
+  [[nodiscard]] inline constexpr const T&
   operator[](size_t i) const noexcept;
 
-  /*!
-    @brief Comparison operator. Returns true if all components are the same
-    @param[in] u Other vector
+  /**
+    @brief Equality comparison.
+    @param[in] u Other vector.
+    @return True if all three components are equal.
   */
-  inline constexpr bool
+  [[nodiscard]] inline constexpr bool
   operator==(const Vec3T<T>& u) const noexcept;
 
-  /*!
-    @brief Comparison operator. Returns false if all components are the same
-    @param[in] u Other vector
+  /**
+    @brief Inequality comparison.
+    @param[in] u Other vector.
+    @return True if any component differs.
   */
-  inline constexpr bool
+  [[nodiscard]] inline constexpr bool
   operator!=(const Vec3T<T>& u) const noexcept;
 
-  /*!
+  /**
     @brief "Smaller than" operator.
     @details Returns true if this->x < u.x AND this->y < u.y AND this->z < u.z
     and false otherwise
     @param[in] u Other vector
+    @return True if all three components of *this are strictly less than the
+    corresponding components of u, false otherwise.
   */
-  inline constexpr bool
+  [[nodiscard]] inline constexpr bool
   operator<(const Vec3T<T>& u) const noexcept;
 
-  /*!
+  /**
     @brief "Greater than" operator.
     @details Returns true if this->x > u.x AND this->y > u.y AND this->z > u.z
     @param[in] u Other vector
+    @return True if all three components of *this are strictly greater than the
+    corresponding components of u, false otherwise.
   */
-  inline constexpr bool
+  [[nodiscard]] inline constexpr bool
   operator>(const Vec3T<T>& u) const noexcept;
 
-  /*!
+  /**
     @brief "Smaller or equal to" operator.
     @details Returns true if this->x <= u.x AND this->y <= u.y AND this->z <=
     u.z
     @param[in] u Other vector
+    @return True if all three components of *this are less than or equal to the
+    corresponding components of u, false otherwise.
   */
-  inline constexpr bool
+  [[nodiscard]] inline constexpr bool
   operator<=(const Vec3T<T>& u) const noexcept;
 
-  /*!
+  /**
     @brief "Greater or equal to" operator.
     @details Returns true if this->x >= u.x AND this->y >= u.y AND this->z >=
     u.z
     @param[in] u Other vector
+    @return True if all three components of *this are greater than or equal to
+    the corresponding components of u, false otherwise.
   */
-  inline constexpr bool
+  [[nodiscard]] inline constexpr bool
   operator>=(const Vec3T<T>& u) const noexcept;
 
-  /*!
-    @brief Assignment operator. Sets components equal to the argument vector's
-    components
-    @param[in] u Other vector
+  /**
+    @brief Assignment operator.
+    @param[in] u Other vector.
+    @return Reference to *this after assignment.
   */
   inline constexpr Vec3T<T>&
   operator=(const Vec3T<T>& u) noexcept;
 
-  /*!
-    @brief Addition operator. Returns a new vector with added components
-    @return Returns a new vector with x = this->x - u.x and so on.
-    @param[in] u Other vector
+  /**
+    @brief Addition operator.
+    @param[in] u Other vector.
+    @return New vector with X[i] = this->X[i] + u[i] for each component.
   */
-  inline constexpr Vec3T<T>
+  [[nodiscard]] inline constexpr Vec3T<T>
   operator+(const Vec3T<T>& u) const noexcept;
 
-  /*!
+  /**
     @brief Subtraction operator. Returns a new vector with subtracted components
     @return Returns a new vector with x = this->x - u.x and so on.
     @param[in] u Other vector
   */
-  inline constexpr Vec3T<T>
+  [[nodiscard]] inline constexpr Vec3T<T>
   operator-(const Vec3T<T>& u) const noexcept;
 
-  /*!
-    @brief Negation operator. Returns a vector with negated components
+  /**
+    @brief Negation operator.
+    @return New vector with each component negated.
   */
-  inline constexpr Vec3T<T>
+  [[nodiscard]] inline constexpr Vec3T<T>
   operator-() const noexcept;
 
-  /*!
+  /**
     @brief Multiplication operator. Returns a vector with scalar multiplied
     components
     @param[in] s Scalar to multiply by
     @return Returns a new vector with X[i] = this->X[i] * s
   */
-  inline constexpr Vec3T<T>
+  [[nodiscard]] inline constexpr Vec3T<T>
   operator*(const T& s) const noexcept;
 
-  /*!
+  /**
     @brief Component-wise multiplication operator
     @param[in] s Scalar to multiply by
     @return Returns a new vector with X[i] = this->X[i] * s[i] for each
     component.
   */
-  inline constexpr Vec3T<T>
+  [[nodiscard]] inline constexpr Vec3T<T>
   operator*(const Vec3T<T>& s) const noexcept;
 
-  /*!
+  /**
     @brief Division operator. Returns a vector with scalar divided components
     @param[in] s Scalar to divided by
     @return Returns a new vector with X[i] = this->X[i] / s
   */
-  inline constexpr Vec3T<T>
+  [[nodiscard]] inline constexpr Vec3T<T>
   operator/(const T& s) const noexcept;
 
-  /*!
+  /**
     @brief Component-wise division operator.
     @param[in] v Other vector
     @return Returns a new vector with X[i] = this->X[i]/v[i] for each component.
   */
-  inline constexpr Vec3T<T>
+  [[nodiscard]] inline constexpr Vec3T<T>
   operator/(const Vec3T<T>& v) const noexcept;
 
-  /*!
+  /**
     @brief Vector addition operator.
     @param[in] u Vector to add
     @return Returns (*this) with incremented components, e.g. this->X[0] =
@@ -435,7 +464,7 @@ public:
   inline constexpr Vec3T<T>&
   operator+=(const Vec3T<T>& u) noexcept;
 
-  /*!
+  /**
     @brief Vector subtraction operator.
     @param[in] u Vector to subtraction
     @return Returns (*this) with subtracted components, e.g. this->X[0] =
@@ -444,7 +473,7 @@ public:
   inline constexpr Vec3T<T>&
   operator-=(const Vec3T<T>& u) noexcept;
 
-  /*!
+  /**
     @brief Vector multiplication operator.
     @param[in] s Scalar to multiply by
     @return Returns (*this) with multiplied components, e.g. this->X[0] =
@@ -453,7 +482,7 @@ public:
   inline constexpr Vec3T<T>&
   operator*=(const T& s) noexcept;
 
-  /*!
+  /**
     @brief Vector division operator.
     @param[in] s Scalar to divide by
     @return Returns (*this) with multiplied components, e.g. this->X[0] =
@@ -462,210 +491,224 @@ public:
   inline constexpr Vec3T<T>&
   operator/=(const T& s) noexcept;
 
-  /*!
-    @brief Vector minimum function. Returns a new vector with componentwise
-    minimums.
-    @param[in] u Other vector
-    @return Returns a new vector with X[0] = std::min(this->X[0], u.X[0]) (and
-    same for the other components)
+  /**
+    @brief In-place component-wise minimum.
+    @details Updates *this so that each component becomes the minimum of itself
+    and the corresponding component of u, then returns a copy of *this.
+    @param[in] u Other vector.
+    @return Copy of *this after the in-place update.
   */
   inline constexpr Vec3T<T>
   min(const Vec3T<T>& u) noexcept;
 
-  /*!
-    @brief Vector maximum function. Returns a new vector with componentwise
-    maximums.
-    @param[in] u Other vector
-    @return Returns a new vector with X[0] = std::minmax->X[0], u.X[0]) (and
-    same for the other components)
+  /**
+    @brief In-place component-wise maximum.
+    @details Updates *this so that each component becomes the maximum of itself
+    and the corresponding component of u, then returns a copy of *this.
+    @param[in] u Other vector.
+    @return Copy of *this after the in-place update.
   */
   inline constexpr Vec3T<T>
   max(const Vec3T<T>& u) noexcept;
 
-  /*!
-    @brief Vector cross product
-    @param[in] u Other vector
-    @returns Returns the cross product between (*this) and u
+  /**
+    @brief Vector cross product.
+    @param[in] u Other vector.
+    @return Cross product (*this) × u.
   */
-  inline constexpr Vec3T<T>
+  [[nodiscard]] inline constexpr Vec3T<T>
   cross(const Vec3T<T>& u) const noexcept;
 
-  /*!
-    @brief Vector dot product
-    @param[in] u Other vector
-    @returns Returns the dot product between (*this) and u
+  /**
+    @brief Vector dot product.
+    @param[in] u Other vector.
+    @return Scalar dot product (*this) · u.
   */
-  inline constexpr T
+  [[nodiscard]] inline constexpr T
   dot(const Vec3T<T>& u) const noexcept;
 
-  /*!
-    @brief Return the direction which has the smallest component (can be
-    absolute)
-    @param[in] a_doAbs If true, evaluate component magnitudes rather than
-    values.
-    @return Direction with the biggest component
+  /**
+    @brief Return the index of the smallest component (optionally by magnitude).
+    @param[in] a_doAbs If true, compare |X[i]| instead of X[i].
+    @return Index (0, 1, or 2) of the component with the smallest value (or magnitude).
   */
-  inline size_t
+  [[nodiscard]] inline size_t
   minDir(const bool a_doAbs) const noexcept;
 
-  /*!
+  /**
     @brief Return the direction which has the largest component (can be
     absolute)
     @param[in] a_doAbs If true, evaluate component magnitudes rather than
     values.
     @return Direction with the biggest component
   */
-  inline size_t
+  [[nodiscard]] inline size_t
   maxDir(const bool a_doAbs) const noexcept;
 
-  /*!
-    @brief Compute vector length
-    @return Returns the vector length, i.e. sqrt(X[0]*X[0] + X[1]*X[1] +
-    Y[0]*Y[0])
+  /**
+    @brief Compute vector length.
+    @return Euclidean length: sqrt(X[0]*X[0] + X[1]*X[1] + X[2]*X[2]).
   */
-  inline constexpr T
+  [[nodiscard]] inline constexpr T
   length() const noexcept;
 
-  /*!
-    @brief Compute vector length squared
-    @return Returns the vector length squared, i.e. (X[0]*X[0] + X[1]*X[1] +
-    Y[0]*Y[0])
+  /**
+    @brief Compute squared vector length.
+    @return Squared Euclidean length: X[0]*X[0] + X[1]*X[1] + X[2]*X[2].
   */
-  inline constexpr T
+  [[nodiscard]] inline constexpr T
   length2() const noexcept;
 
 protected:
-  /*!
+  /**
     @brief Vector components
   */
   std::array<T, 3> m_X;
 };
 
-/*!
-  @brief Multiplication operator in the form s*Vec2T
-  @param[in] s Multiplication factor
-  @param[in] a_other Other vector
-  @return Returns a new vector with components x = s*a_other.x (and same for y)
+/**
+  @brief Scalar-left multiplication: s * vec.
+  @tparam T Floating-point precision.
+  @param[in] s       Scalar multiplier.
+  @param[in] a_other Vector.
+  @return New vector with x = s*a_other.x, y = s*a_other.y.
 */
 template <typename T>
-inline constexpr Vec2T<T>
+[[nodiscard]] inline constexpr Vec2T<T>
 operator*(const T& s, const Vec2T<T>& a_other) noexcept;
 
-/*!
-  @brief Division operator in the form s*Vec2T.
-  @param[in] s Division factor
-  @param[in] a_other Other vector
-  @return Returns a new vector with components x = (1/s)*a_other.x (and same for
-  y)
+/**
+  @brief Component-wise scalar-left division: s / vec.
+  @details Returns a new vector where each component i is s / a_other[i].
+  @tparam T Floating-point precision.
+  @param[in] s       Scalar numerator.
+  @param[in] a_other Vector whose components are the denominators.
+  @return New vector with x = s/a_other.x, y = s/a_other.y.
 */
 template <typename T>
-inline constexpr Vec2T<T>
+[[nodiscard]] inline constexpr Vec2T<T>
 operator/(const T& s, const Vec2T<T>& a_other) noexcept;
 
-/*!
-  @brief Minimum function. Returns new vector with component-wise minimums.
-  @param[in] u Vector
-  @param[in] v Other vector
-  @return Returns new vector with components x = std::min(u.x, v.x).
+/**
+  @brief Component-wise minimum of two vectors.
+  @tparam T Floating-point precision.
+  @param[in] u First vector.
+  @param[in] v Second vector.
+  @return New vector with x = std::min(u.x, v.x), y = std::min(u.y, v.y).
 */
 template <typename T>
-inline Vec2T<T>
+[[nodiscard]] inline Vec2T<T>
 min(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
 
-/*!
-  @brief Maximum function. Returns new vector with component-wise minimums.
-  @param[in] u Vector
-  @param[in] v Other vector
-  @return Returns new vector with components x = std::max(u.x, v.x).
+/**
+  @brief Component-wise maximum of two vectors.
+  @tparam T Floating-point precision.
+  @param[in] u First vector.
+  @param[in] v Second vector.
+  @return New vector with x = std::max(u.x, v.x), y = std::max(u.y, v.y).
 */
 template <typename T>
-inline Vec2T<T>
+[[nodiscard]] inline Vec2T<T>
 max(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
 
-/*!
-  @brief Dot product function.
-  @param[in] u Vector
-  @param[in] v Other vector
+/**
+  @brief Dot product of two 2D vectors.
+  @tparam T Floating-point precision.
+  @param[in] u First vector.
+  @param[in] v Second vector.
+  @return Scalar dot product u · v.
 */
 template <typename T>
-inline T
+[[nodiscard]] inline T
 dot(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
 
-/*!
-  @brief Length function
+/**
+  @brief Euclidean length of a 2D vector.
+  @tparam T Floating-point precision.
   @param[in] v Vector.
+  @return sqrt(v.x*v.x + v.y*v.y).
 */
 template <typename T>
-inline T
+[[nodiscard]] inline T
 length(const Vec2T<T>& v) noexcept;
 
-/*!
-  @brief Multiplication operator.
-  @param[in] s Multiplication scalar
-  @param[in] u Vector
-  @return Returns new vector with components X[0] = s*X[0] and so on.
+/**
+  @brief Scalar-left multiplication: s * vec.
+  @tparam R Type of scalar (may differ from T, e.g. int * Vec3T<double>).
+  @tparam T Floating-point precision of the vector.
+  @param[in] s Scalar multiplier.
+  @param[in] u Vector.
+  @return New vector with X[i] = s * u[i].
 */
 template <class R, typename T>
-inline constexpr Vec3T<T>
+[[nodiscard]] inline constexpr Vec3T<T>
 operator*(const R& s, const Vec3T<T>& u) noexcept;
 
-/*!
-  @brief Multiplication operator.
-  @param[in] u One vector
-  @param[in] v Other vector
-  @return Returns new vector with components X[0] = u[0]*[v0] and so on
+/**
+  @brief Component-wise multiplication of two vectors.
+  @tparam T Floating-point precision.
+  @param[in] u First vector.
+  @param[in] v Second vector.
+  @return New vector with X[i] = u[i] * v[i].
 */
 template <typename T>
-inline constexpr Vec3T<T>
+[[nodiscard]] inline constexpr Vec3T<T>
 operator*(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
-/*!
-  @brief Division operator.
-  @param[in] s Division scalar
-  @param[in] u Vector
-  @return Returns new vector with components X[0] = X[0]/s and so on.
+/**
+  @brief Component-wise scalar-left division: s / vec.
+  @details Returns a new vector where each component i is s / u[i].
+  @tparam R Type of scalar numerator.
+  @tparam T Floating-point precision of the vector.
+  @param[in] s Scalar numerator.
+  @param[in] u Vector whose components are the denominators.
+  @return New vector with X[i] = s / u[i].
 */
 template <class R, typename T>
-inline constexpr Vec3T<T>
+[[nodiscard]] inline constexpr Vec3T<T>
 operator/(const R& s, const Vec3T<T>& u) noexcept;
 
-/*!
-  @brief Minimum function. Returns new vector with component-wise minimums.
-  @param[in] u Vector
-  @param[in] v Other vector
-  @return Returns new vector with components X[0] = std::min(u.X[0], v.X[0]) and
-  so on
+/**
+  @brief Component-wise minimum of two 3D vectors.
+  @tparam T Floating-point precision.
+  @param[in] u First vector.
+  @param[in] v Second vector.
+  @return New vector with X[i] = std::min(u[i], v[i]).
 */
 template <typename T>
-inline constexpr Vec3T<T>
+[[nodiscard]] inline constexpr Vec3T<T>
 min(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
-/*!
-  @brief Maximum function. Returns new vector with component-wise minimums.
-  @param[in] u Vector
-  @param[in] v Other vector
-  @return Returns new vector with components X[0] = std::max(u.X[0], v.X[0]) and
-  so on
+/**
+  @brief Component-wise maximum of two 3D vectors.
+  @tparam T Floating-point precision.
+  @param[in] u First vector.
+  @param[in] v Second vector.
+  @return New vector with X[i] = std::max(u[i], v[i]).
 */
 template <typename T>
-inline constexpr Vec3T<T>
+[[nodiscard]] inline constexpr Vec3T<T>
 max(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
-/*!
-  @brief Dot product function.
-  @param[in] u Vector
-  @param[in] v Other vector
+/**
+  @brief Dot product of two 3D vectors.
+  @tparam T Floating-point precision.
+  @param[in] u First vector.
+  @param[in] v Second vector.
+  @return Scalar dot product u · v.
 */
 template <typename T>
-inline constexpr T
+[[nodiscard]] inline constexpr T
 dot(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
-/*!
-  @brief Length function
+/**
+  @brief Euclidean length of a 3D vector.
+  @tparam T Floating-point precision.
   @param[in] v Vector.
+  @return sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]).
 */
 template <typename T>
-inline constexpr T
+[[nodiscard]] inline constexpr T
 length(const Vec3T<T>& v) noexcept;
 
 #include "EBGeometry_NamespaceFooter.hpp"

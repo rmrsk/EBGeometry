@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_TransformImplem.hpp
   @brief  Implementation of EBGeometry_Transform.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_TransformImplem
-#define EBGeometry_TransformImplem
+#ifndef EBGEOMETRY_TRANSFORMIMPLEM_HPP
+#define EBGEOMETRY_TRANSFORMIMPLEM_HPP
 
 // Our includes
 #include "EBGeometry_AnalyticDistanceFunctions.hpp"
@@ -134,11 +133,13 @@ RotateIF<T>::RotateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunc
                       const size_t                                a_axis) noexcept
 {
 
+  EBGEOMETRY_EXPECT(a_axis <= 2U);
+
   m_implicitFunction = a_implicitFunction;
   m_angle            = a_angle;
   m_axis             = a_axis;
 
-  const T theta = m_angle * M_PI / 180.0;
+  const T theta = m_angle * (T(4) * std::atan(T(1))) / T(180);
 
   m_cosAngle = std::cos(theta);
   m_sinAngle = std::sin(theta);
@@ -177,6 +178,10 @@ RotateIF<T>::value(const Vec3T<T>& a_point) const noexcept
 
     break;
   }
+  default: {
+    EBGEOMETRY_EXPECT(false && "RotateIF: m_axis must be 0, 1, or 2");
+    break;
+  }
   }
 
   return m_implicitFunction->value(rotatedPoint);
@@ -203,6 +208,8 @@ OffsetIF<T>::value(const Vec3T<T>& a_point) const noexcept
 template <class T>
 ScaleIF<T>::ScaleIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_scale) noexcept
 {
+  EBGEOMETRY_EXPECT(a_scale != T(0));
+
   m_implicitFunction = a_implicitFunction;
   m_scale            = a_scale;
 }
@@ -273,10 +280,9 @@ BlurIF<T>::value(const Vec3T<T>& a_point) const noexcept
   value += B * (f(p + x) + f(p - x) + f(p + y) + f(p - y) + f(p + z) + f(p - z));
   value += C * (f(p + x + y) + f(p + x - y) + f(p - x + y) + f(p - x - y));
   value += C * (f(p + x + z) + f(p + x - z) + f(p - x + z) + f(p - x - z));
-  value += C * (f(p + y + y) + f(p + y - y) + f(p - y + y) + f(p - y - y));
   value += C * (f(p + y + z) + f(p + y - z) + f(p - y + z) + f(p - y - z));
   value += D * (f(p + x + y + z) + f(p + x + y - z) + f(p + x - y + z) + f(p + x - y - z));
-  value += D * (f(p - z + y + z) + f(p - z + y - z) + f(p - z - y + z) + f(p - z - y - z));
+  value += D * (f(p - x + y + z) + f(p - x + y - z) + f(p - x - y + z) + f(p - x - y - z));
 
   return value;
 }
@@ -360,10 +366,12 @@ template <class T>
 ReflectIF<T>::ReflectIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
                         const size_t&                               a_reflectPlane) noexcept
 {
+  EBGEOMETRY_EXPECT(a_reflectPlane <= 2U);
+
   m_implicitFunction = a_implicitFunction;
   m_reflectParams    = Vec3T<T>::one();
 
-  if (a_reflectPlane >= 0 && a_reflectPlane <= 2) {
+  if (a_reflectPlane <= 2) {
     m_reflectParams[a_reflectPlane] = -1;
   }
 }

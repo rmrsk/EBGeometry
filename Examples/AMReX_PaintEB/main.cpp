@@ -44,7 +44,7 @@ public:
       faces[i]->getMetaData() = 1.0 * i;
     }
 
-    m_sdf = std::make_shared<EBGeometry::FastTriMeshSDF<T, Meta, BV, K>>(mesh);
+    m_sdf = std::make_shared<EBGeometry::FastTriMeshSDF<T, Meta, K>>(mesh);
   }
 
   /*!

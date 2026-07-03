@@ -23,12 +23,6 @@
 namespace DCEL {
 
   /**
-    @brief One-liner for turning a DCEL mesh into a full-tree BVH. 
-    @param[in] a_dcelMesh Input DCEL mesh.
-    @param[in] a_build Build specification for BVH.
-    @return Returns a pointer to a full-tree BVH representation of the DCEL faces.
-  */
-  /**
     @brief Build a full (tree) BVH from a DCEL mesh.
     @tparam T    Floating-point precision type.
     @tparam Meta Triangle metadata type.
@@ -39,7 +33,7 @@ namespace DCEL {
     @return Shared pointer to the root of the resulting tree BVH.
   */
   template <class T, class Meta, class BV, size_t K>
-  std::shared_ptr<EBGeometry::BVH::TreeBVH<T, FaceT<T, Meta>, BV, K>>
+  [[nodiscard]] std::shared_ptr<EBGeometry::BVH::TreeBVH<T, FaceT<T, Meta>, BV, K>>
   buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh,
                const BVH::Build                                         a_build = BVH::Build::TopDown) noexcept;
 } // namespace DCEL
@@ -83,14 +77,14 @@ public:
     @param[in] a_point Query point.
     @return Signed distance to the nearest face; negative inside the mesh.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
   /**
     @brief Get the underlying DCEL mesh.
     @return Shared pointer to the mesh.
   */
-  const std::shared_ptr<Mesh>
+  [[nodiscard]] const std::shared_ptr<Mesh>
   getMesh() const noexcept;
 
   /**
@@ -99,7 +93,7 @@ public:
     @return Bounding volume that encloses all mesh vertices.
   */
   template <class BV>
-  BV
+  [[nodiscard]] BV
   computeBoundingVolume() const noexcept;
 
 protected:
@@ -160,7 +154,7 @@ public:
     @param[in] a_point Query point.
     @return Signed distance to the nearest face; negative inside the mesh.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
   /**
@@ -173,28 +167,28 @@ public:
                         unsigned distance (closest face first).
     @return Vector of (face, unsigned_distance) pairs, optionally sorted.
   */
-  virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
+  [[nodiscard]] virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
   getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const noexcept;
 
   /**
     @brief Get the bounding volume hierarchy enclosing the mesh.
     @return Mutable reference to the shared-pointer owning the BVH root.
   */
-  virtual std::shared_ptr<Node>&
+  [[nodiscard]] virtual std::shared_ptr<Node>&
   getBVH() noexcept;
 
   /**
     @brief Get the bounding volume hierarchy enclosing the mesh (const overload).
     @return Const reference to the shared-pointer owning the BVH root.
   */
-  virtual const std::shared_ptr<Node>&
+  [[nodiscard]] virtual const std::shared_ptr<Node>&
   getBVH() const noexcept;
 
   /**
     @brief Compute the bounding volume of the root node.
     @return Bounding volume enclosing the entire mesh.
   */
-  BV
+  [[nodiscard]] BV
   computeBoundingVolume() const noexcept;
 
 protected:
@@ -261,7 +255,7 @@ public:
     @param[in] a_point Query point.
     @return Signed distance to the nearest face; negative inside the mesh.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
   /**
@@ -273,28 +267,28 @@ public:
                         unsigned distance (closest face first).
     @return Vector of (face, unsigned_distance) pairs, optionally sorted.
   */
-  virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
+  [[nodiscard]] virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
   getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const noexcept;
 
   /**
     @brief Get the compact BVH enclosing the mesh.
     @return Mutable reference to the shared-pointer owning the packed BVH root.
   */
-  virtual std::shared_ptr<Root>&
+  [[nodiscard]] virtual std::shared_ptr<Root>&
   getRoot() noexcept;
 
   /**
     @brief Get the compact BVH enclosing the mesh (const overload).
     @return Const reference to the shared-pointer owning the packed BVH root.
   */
-  virtual const std::shared_ptr<Root>&
+  [[nodiscard]] virtual const std::shared_ptr<Root>&
   getRoot() const noexcept;
 
   /**
     @brief Compute the AABB enclosing the entire mesh.
     @return Axis-aligned bounding box of the mesh.
   */
-  EBGeometry::BoundingVolumes::AABBT<T>
+  [[nodiscard]] EBGeometry::BoundingVolumes::AABBT<T>
   computeBoundingVolume() const noexcept;
 
 protected:
@@ -386,28 +380,28 @@ public:
     @param[in] a_point Query point.
     @return Signed distance to the nearest triangle; negative inside the mesh.
   */
-  virtual T
+  [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
   /**
     @brief Get the compact BVH storing SoA triangle groups.
     @return Mutable reference to the shared-pointer owning the packed BVH root.
   */
-  virtual std::shared_ptr<Root>&
+  [[nodiscard]] virtual std::shared_ptr<Root>&
   getRoot() noexcept;
 
   /**
     @brief Get the compact BVH storing SoA triangle groups (const overload).
     @return Const reference to the shared-pointer owning the packed BVH root.
   */
-  virtual const std::shared_ptr<Root>&
+  [[nodiscard]] virtual const std::shared_ptr<Root>&
   getRoot() const noexcept;
 
   /**
     @brief Compute the AABB enclosing the entire triangle mesh.
     @return Axis-aligned bounding box of the mesh.
   */
-  EBGeometry::BoundingVolumes::AABBT<T>
+  [[nodiscard]] EBGeometry::BoundingVolumes::AABBT<T>
   computeBoundingVolume() const noexcept;
 
 protected:

@@ -375,21 +375,21 @@ namespace BVH {
       @brief Return true if this is a leaf node (no children, non-empty primitive list).
       @return True if this node holds primitives directly (i.e. is a leaf).
     */
-    inline bool
+    [[nodiscard]] inline bool
     isLeaf() const noexcept;
 
     /**
       @brief Return true if the tree has already been partitioned.
       @return True if topDownSortAndPartition() or bottomUpSortAndPartition() has been called.
     */
-    inline bool
+    [[nodiscard]] inline bool
     isPartitioned() const noexcept;
 
     /**
       @brief Get the bounding volume for this node.
       @return Reference to m_boundingVolume.
     */
-    inline const BV&
+    [[nodiscard]] inline const BV&
     getBoundingVolume() const noexcept;
 
     /**
@@ -397,7 +397,7 @@ namespace BVH {
       @details Non-empty only for leaf nodes.
       @return Reference to m_primitives.
     */
-    inline const PrimitiveList&
+    [[nodiscard]] inline const PrimitiveList&
     getPrimitives() const noexcept;
 
     /**
@@ -405,7 +405,7 @@ namespace BVH {
       @details Non-empty only for leaf nodes.
       @return Reference to m_boundingVolumes.
     */
-    inline const std::vector<BV>&
+    [[nodiscard]] inline const std::vector<BV>&
     getBoundingVolumes() const noexcept;
 
     /**
@@ -414,7 +414,7 @@ namespace BVH {
       @param[in] a_point Query point.
       @return Distance to the bounding volume surface, or zero if inside.
     */
-    inline T
+    [[nodiscard]] inline T
     getDistanceToBoundingVolume(const Vec3& a_point) const noexcept;
 
     /**
@@ -422,7 +422,7 @@ namespace BVH {
       @details All K children are non-null for interior nodes; the array is unused for leaf nodes.
       @return Reference to m_children.
     */
-    inline const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>&
+    [[nodiscard]] inline const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>&
     getChildren() const noexcept;
 
     /**
@@ -467,7 +467,7 @@ namespace BVH {
       @details Requires BV == AABBT<T>; enforced by static_assert at instantiation.
       @return Shared pointer to the resulting PackedBVH.
     */
-    inline std::shared_ptr<PackedBVH<T, P, K>>
+    [[nodiscard]] inline std::shared_ptr<PackedBVH<T, P, K>>
     pack() const noexcept;
 
     /**
@@ -483,7 +483,7 @@ namespace BVH {
       @return Shared pointer to the resulting PackedBVH<T, Q, K>.
     */
     template <class Q, class Converter>
-    inline std::shared_ptr<PackedBVH<T, Q, K>>
+    [[nodiscard]] inline std::shared_ptr<PackedBVH<T, Q, K>>
     packWith(Converter&& a_converter) const noexcept;
 
   protected:
@@ -639,7 +639,7 @@ namespace BVH {
         @brief Get the bounding volume.
         @return Reference to bv.
       */
-      inline const BV&
+      [[nodiscard]] inline const BV&
       getBoundingVolume() const noexcept
       {
         return bv;
@@ -649,7 +649,7 @@ namespace BVH {
         @brief Get the primitive offset (leaf nodes only).
         @return Index of the first primitive in the global list.
       */
-      inline uint32_t
+      [[nodiscard]] inline uint32_t
       getPrimitivesOffset() const noexcept
       {
         return primOff;
@@ -659,7 +659,7 @@ namespace BVH {
         @brief Get the primitive count.
         @return Number of primitives; zero for interior nodes.
       */
-      inline uint32_t
+      [[nodiscard]] inline uint32_t
       getNumPrimitives() const noexcept
       {
         return numPrims;
@@ -669,7 +669,7 @@ namespace BVH {
         @brief Get the child index table.
         @return Reference to the K-element child-offset array.
       */
-      inline const std::array<uint32_t, K>&
+      [[nodiscard]] inline const std::array<uint32_t, K>&
       getChildOffsets() const noexcept
       {
         return childOff;
@@ -679,7 +679,7 @@ namespace BVH {
         @brief Return true if this is a leaf node.
         @return True if numPrims > 0 (leaf), false otherwise (interior).
       */
-      inline bool
+      [[nodiscard]] inline bool
       isLeaf() const noexcept
       {
         return numPrims > 0;
@@ -690,7 +690,7 @@ namespace BVH {
         @param[in] a_point Query point.
         @return Distance to the bounding-box surface, or zero if inside.
       */
-      inline T
+      [[nodiscard]] inline T
       getDistanceToBoundingVolume(const Vec3T<T>& a_point) const noexcept
       {
         return bv.getDistance(a_point);
@@ -736,14 +736,14 @@ namespace BVH {
       @brief Get the global primitive list (in leaf-traversal order).
       @return Reference to m_primitives.
     */
-    inline const std::vector<std::shared_ptr<const P>>&
+    [[nodiscard]] inline const std::vector<std::shared_ptr<const P>>&
     getPrimitives() const noexcept;
 
     /**
       @brief Get the bounding volume of the root node.
       @return Reference to the root node's bounding volume.
     */
-    inline const BV&
+    [[nodiscard]] inline const BV&
     getBoundingVolume() const noexcept;
 
     /**
@@ -752,7 +752,7 @@ namespace BVH {
       interface, enabling PackedBVH to serve as a primitive in an outer TreeBVH hierarchy.
       @return Root node bounding volume.
     */
-    inline BV
+    [[nodiscard]] inline BV
     computeBoundingVolume() const noexcept;
 
     /**
@@ -807,7 +807,7 @@ namespace BVH {
       @param[in] a_point Query point.
       @return Signed distance to the nearest primitive surface.
     */
-    inline T
+    [[nodiscard]] inline T
     signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   protected:

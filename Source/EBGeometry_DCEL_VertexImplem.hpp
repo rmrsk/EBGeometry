@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_DCEL_VertexImplem.hpp
   @brief  Implementation of EBGeometry_DCEL_Vertex.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DCEL_VertexImplem
-#define EBGeometry_DCEL_VertexImplem
+#ifndef EBGEOMETRY_DCEL_VERTEXIMPLEM_HPP
+#define EBGEOMETRY_DCEL_VERTEXIMPLEM_HPP
 
 // Our includes
 #include "EBGeometry_DCEL_Vertex.hpp"
@@ -96,7 +95,10 @@ namespace DCEL {
   inline void
   VertexT<T, Meta>::normalizeNormalVector() noexcept
   {
-    m_normal = m_normal / m_normal.length();
+    const T len = m_normal.length();
+    if (len > std::numeric_limits<T>::epsilon()) {
+      m_normal = m_normal / len;
+    }
   }
 
   template <class T, class Meta>
@@ -158,6 +160,7 @@ namespace DCEL {
     // face to find the endpoints of the edges the have the current vertex as the
     // common vertex, and then compute the subtended angle between those. Sigh...
 
+    EBGEOMETRY_EXPECT(m_outgoingEdge != nullptr);
     const VertexPtr& originVertex = m_outgoingEdge->getVertex(); // AKA 'this'
 
     for (const auto& f : a_faces) {
@@ -177,15 +180,15 @@ namespace DCEL {
             inoutVertices.emplace_back(v1);
           }
           else {
-            std::cerr << "In file 'CD_DCELVertexImplem.H' function "
-                         "vertexT<T, Meta>::computeVertexNormalAngleWeighted() - logic bust.\n";
+            std::cerr << "In file 'EBGeometry_DCEL_VertexImplem.hpp' function "
+                         "VertexT<T, Meta>::computeVertexNormalAngleWeighted() - logic bust.\n";
           }
         }
       }
 
       if (inoutVertices.size() != 2) {
-        std::cerr << "In file 'CD_DCELVertexImplem.H' function "
-                     "vertexT<T, Meta>::computeVertexNormalAngleWeighted() - logic bust 2.\n";
+        std::cerr << "In file 'EBGeometry_DCEL_VertexImplem.hpp' function "
+                     "VertexT<T, Meta>::computeVertexNormalAngleWeighted() - logic bust 2.\n";
       }
 
       const Vec3& x0 = originVertex->getPosition();
@@ -193,8 +196,8 @@ namespace DCEL {
       const Vec3& x2 = inoutVertices[1]->getPosition();
 
       if (x0 == x1 || x0 == x2 || x1 == x2) {
-        std::cerr << "In file 'CD_DCELVertexImplem.H' function "
-                     "vertexT<T, Meta>::computeVertexNormalAngleWeighted() - logic bust 3.\n";
+        std::cerr << "In file 'EBGeometry_DCEL_VertexImplem.hpp' function "
+                     "VertexT<T, Meta>::computeVertexNormalAngleWeighted() - logic bust 3.\n";
       }
 
       Vec3 v1 = x1 - x0;
@@ -205,7 +208,8 @@ namespace DCEL {
 
       const Vec3& norm = f->getNormal();
 
-      const T alpha = acos(v1.dot(v2));
+      // Clamp to [-1,1] to guard against acos(NaN) from floating-point rounding.
+      const T alpha = std::acos(std::max(T(-1), std::min(T(1), v1.dot(v2))));
 
       m_normal += alpha * norm;
     }

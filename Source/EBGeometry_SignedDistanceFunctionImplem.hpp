@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_SignedDistanceFunctionImplem.hpp
   @brief  Implementation of EBGeometry_SignedDistanceFunctionImplem.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_SignedDistanceFunctionImplem
-#define EBGeometry_SignedDistanceFunctionImplem
+#ifndef EBGEOMETRY_SIGNEDDISTANCEFUNCTIONIMPLEM_HPP
+#define EBGEOMETRY_SIGNEDDISTANCEFUNCTIONIMPLEM_HPP
 
 // Our includes
 #include "EBGeometry_SignedDistanceFunction.hpp"
@@ -36,7 +35,7 @@ SignedDistanceFunction<T>::normal(const Vec3T<T>& a_point, const T& a_delta) con
     const T hi = this->signedDistance(a_point + a_delta * Vec3T<T>::unit(dir));
     const T lo = this->signedDistance(a_point - a_delta * Vec3T<T>::unit(dir));
 
-    n[dir] = (hi - lo) / id;
+    n[dir] = (hi - lo) * id;
   }
 
   n /= n.length();

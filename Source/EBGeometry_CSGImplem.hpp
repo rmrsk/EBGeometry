@@ -133,7 +133,7 @@ SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, c
     implicitFunctions.emplace_back(f);
   }
 
-  return std::make_shared<SmoothIntersection<T>>(implicitFunctions, a_smooth);
+  return std::make_shared<SmoothIntersectionIF<T>>(implicitFunctions, a_smooth);
 }
 
 template <class T, class P1, class P2>

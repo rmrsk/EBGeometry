@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_DCEL_IteratorImplem.hpp
   @brief  Implementation of EBGeometry_DCEL_Iterator.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DCEL_IteratorImplem
-#define EBGeometry_DCEL_IteratorImplem
+#ifndef EBGEOMETRY_DCEL_ITERATORIMPLEM_HPP
+#define EBGEOMETRY_DCEL_ITERATORIMPLEM_HPP
 
 // Our includes
 #include "EBGeometry_DCEL_Vertex.hpp"

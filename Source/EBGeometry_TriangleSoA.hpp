@@ -17,9 +17,15 @@
 #include <immintrin.h>
 #endif
 
-// Best SoA width for the current target ISA.
-// W=8 uses a full 256-bit AVX register for float (or two passes for double).
-// W=4 uses a 128-bit SSE4.1 register for float, or one AVX pass for double.
+/**
+  @def EBGEOMETRY_SOA_DEFAULT_WIDTH
+  @brief Default SIMD lane width (number of triangles per SoA group) for the current target ISA.
+  @details Set to 8 when @c __AVX__ is defined (256-bit YMM register holds 8 floats),
+           4 when only @c __SSE4_1__ is defined (128-bit XMM register holds 4 floats),
+           and 4 as a scalar-safe fallback when neither is available.
+           Used as the default @c W template argument for @c TriangleSoAT, @c FastTriMeshSDF,
+           and @c Parser::readIntoTriangleBVH.
+*/
 #if defined(__AVX__)
 #define EBGEOMETRY_SOA_DEFAULT_WIDTH 8
 #elif defined(__SSE4_1__)
@@ -131,7 +137,7 @@ struct TriangleSoAT
     @return Signed distance from a_point to the closest valid triangle, with sign determined by
     the outward normal of the nearest feature (face, edge, or vertex).
   */
-  T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
@@ -141,7 +147,7 @@ struct TriangleSoAT
     @return Bounding volume enclosing all vertices of the validCount triangles.
   */
   template <class BV>
-  BV
+  [[nodiscard]] BV
   computeBoundingVolume() const noexcept;
 };
 

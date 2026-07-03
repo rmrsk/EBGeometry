@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_VecImplem.hpp
   @brief  Implementation of EBGeometry_Vec.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_VecImplem
-#define EBGeometry_VecImplem
+#ifndef EBGEOMETRY_VECIMPLEM_HPP
+#define EBGEOMETRY_VECIMPLEM_HPP
 
 // Std includes
 #include <math.h>
@@ -196,7 +195,7 @@ template <typename T>
 inline constexpr Vec2T<T>
 operator/(const T& s, const Vec2T<T>& a_other) noexcept
 {
-  return a_other / s;
+  return Vec2T<T>(s / a_other.x, s / a_other.y);
 }
 
 template <typename T>
@@ -576,7 +575,7 @@ template <class R, typename T>
 inline constexpr Vec3T<T>
 operator/(const R& s, const Vec3T<T>& a_other) noexcept
 {
-  return a_other / s;
+  return Vec3T<T>(T(s) / a_other[0], T(s) / a_other[1], T(s) / a_other[2]);
 }
 
 template <typename T>

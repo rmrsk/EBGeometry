@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_DCEL_FaceImplem.hpp
   @brief  Implementation of EBGeometry_DCEL_Face.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_DCEL_FaceImplem
-#define EBGeometry_DCEL_FaceImplem
+#ifndef EBGEOMETRY_DCEL_FACEIMPLEM_HPP
+#define EBGEOMETRY_DCEL_FACEIMPLEM_HPP
 
 // Our includes
 #include "EBGeometry_DCEL_Face.hpp"
@@ -59,7 +58,7 @@ namespace DCEL {
     this->computeNormal();
     this->normalizeNormalVector();
     this->computeCentroid();
-    this->computeArea();
+    m_area = this->computeArea();
     this->computePolygon2D();
   }
 
@@ -158,6 +157,13 @@ namespace DCEL {
     area = 0.5 * std::abs(area);
 
     return area;
+  }
+
+  template <class T, class Meta>
+  inline T
+  FaceT<T, Meta>::getArea() const noexcept
+  {
+    return m_area;
   }
 
   template <class T, class Meta>
