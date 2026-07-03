@@ -30,7 +30,7 @@ namespace DCEL {
     @return Returns a pointer to a full-tree BVH representation of the DCEL faces.
   */
   template <class T, class Meta, class BV, size_t K>
-  std::shared_ptr<EBGeometry::BVH::NodeT<T, FaceT<T, Meta>, BV, K>>
+  std::shared_ptr<EBGeometry::BVH::TreeBVH<T, FaceT<T, Meta>, BV, K>>
   buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh,
                const BVH::Build                                         a_build = BVH::Build::TopDown) noexcept;
 } // namespace DCEL
@@ -107,9 +107,9 @@ public:
   using Mesh = typename EBGeometry::DCEL::MeshT<T, Meta>;
 
   /*!
-    @brief Alias for BVH root node 
+    @brief Alias for BVH root node
   */
-  using Node = EBGeometry::BVH::NodeT<T, Face, BV, K>;
+  using Node = EBGeometry::BVH::TreeBVH<T, Face, BV, K>;
 
   /*!
     @brief Default disallowed constructor
@@ -172,9 +172,9 @@ protected:
 };
 
 /*!
-  @brief Signed distance function for a DCEL mesh. This class uses the compact BVH representation. 
+  @brief Signed distance function for a DCEL mesh. This class uses the compact (linearized) BVH.
 */
-template <class T, class Meta, class BV, size_t K>
+template <class T, class Meta, size_t K>
 class FastCompactMeshSDF : public SignedDistanceFunction<T>
 {
 public:
@@ -189,12 +189,12 @@ public:
   using Mesh = typename EBGeometry::DCEL::MeshT<T, Meta>;
 
   /*!
-    @brief Alias for which BVH root node 
+    @brief Alias for the linearized BVH root
   */
-  using Root = typename EBGeometry::BVH::LinearBVH<T, Face, BV, K>;
+  using Root = EBGeometry::BVH::PackedBVH<T, Face, K>;
 
   /*!
-    @brief Alias for linearized BVH
+    @brief Alias for a single linearized node
   */
   using Node = typename Root::LinearNode;
 
@@ -217,7 +217,7 @@ public:
 
   /*!
     @brief Value function
-    @param[in] a_point Input point. 
+    @param[in] a_point Input point.
   */
   virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
@@ -225,9 +225,9 @@ public:
   /*!
     @brief Get the closest faces to the input point
     @details This returns a list of candidate faces that are close to the input point. The returned
-    argment consists of the faces and the unsigned distance to the face.
+    argument consists of the faces and the unsigned distance to the face.
     @param[in] a_point Input point
-    @param[in] a_sorted Sort the output vector by distance or not. Closest go first. 
+    @param[in] a_sorted Sort the output vector by distance or not. Closest go first.
     @return List of candidate faces (potentially sorted)
   */
   virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
@@ -246,14 +246,14 @@ public:
   getRoot() const noexcept;
 
   /*!
-    @brief Compute bounding volume for this mesh. 
+    @brief Compute bounding volume for this mesh.
   */
-  BV
+  EBGeometry::BoundingVolumes::AABBT<T>
   computeBoundingVolume() const noexcept;
 
 protected:
   /*!
-    @brief Bounding volume hierarchy
+    @brief Linearized BVH
   */
   std::shared_ptr<Root> m_bvh;
 };
@@ -261,7 +261,7 @@ protected:
 /*!
   @brief Signed distance function for a triangle mesh. This class uses the full BVH representation. 
 */
-template <class T, class Meta, class BV, size_t K>
+template <class T, class Meta, size_t K>
 class FastTriMeshSDF : public SignedDistanceFunction<T>
 {
 public:
@@ -343,7 +343,7 @@ public:
   /*!
     @brief Compute bounding volume for this mesh.
   */
-  BV
+  EBGeometry::BoundingVolumes::AABBT<T>
   computeBoundingVolume() const noexcept;
 
 protected:

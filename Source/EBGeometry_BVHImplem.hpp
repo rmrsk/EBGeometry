@@ -26,7 +26,7 @@
 namespace BVH {
 
   template <class T, class P, class BV, size_t K>
-  inline NodeT<T, P, BV, K>::NodeT() noexcept
+  inline TreeBVH<T, P, BV, K>::TreeBVH() noexcept
   {
     for (auto& c : m_children) {
       c = nullptr;
@@ -39,7 +39,8 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
-  inline NodeT<T, P, BV, K>::NodeT(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs) noexcept : NodeT<T, P, BV, K>()
+  inline TreeBVH<T, P, BV, K>::TreeBVH(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs) noexcept
+    : TreeBVH<T, P, BV, K>()
   {
     for (const auto& pbv : a_primsAndBVs) {
       m_primitives.emplace_back(pbv.first);
@@ -52,68 +53,69 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
-  inline NodeT<T, P, BV, K>::~NodeT() noexcept
+  inline TreeBVH<T, P, BV, K>::~TreeBVH() noexcept
   {}
 
   template <class T, class P, class BV, size_t K>
   inline bool
-  NodeT<T, P, BV, K>::isLeaf() const noexcept
+  TreeBVH<T, P, BV, K>::isLeaf() const noexcept
   {
     return m_primitives.size() > 0;
   }
 
   template <class T, class P, class BV, size_t K>
   inline bool
-  NodeT<T, P, BV, K>::isPartitioned() const noexcept
+  TreeBVH<T, P, BV, K>::isPartitioned() const noexcept
   {
     return m_partitioned;
   }
 
   template <class T, class P, class BV, size_t K>
   inline const BV&
-  NodeT<T, P, BV, K>::getBoundingVolume() const noexcept
+  TreeBVH<T, P, BV, K>::getBoundingVolume() const noexcept
   {
     return (m_boundingVolume);
   }
 
   template <class T, class P, class BV, size_t K>
   inline PrimitiveListT<P>&
-  NodeT<T, P, BV, K>::getPrimitives() noexcept
+  TreeBVH<T, P, BV, K>::getPrimitives() noexcept
   {
     return (m_primitives);
   }
 
   template <class T, class P, class BV, size_t K>
   inline const PrimitiveListT<P>&
-  NodeT<T, P, BV, K>::getPrimitives() const noexcept
+  TreeBVH<T, P, BV, K>::getPrimitives() const noexcept
   {
     return (m_primitives);
   }
 
   template <class T, class P, class BV, size_t K>
   inline std::vector<BV>&
-  NodeT<T, P, BV, K>::getBoundingVolumes() noexcept
+  TreeBVH<T, P, BV, K>::getBoundingVolumes() noexcept
   {
     return (m_boundingVolumes);
   }
 
   template <class T, class P, class BV, size_t K>
   inline const std::vector<BV>&
-  NodeT<T, P, BV, K>::getBoundingVolumes() const noexcept
+  TreeBVH<T, P, BV, K>::getBoundingVolumes() const noexcept
   {
     return (m_boundingVolumes);
   }
 
   template <class T, class P, class BV, size_t K>
-  inline const std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K>&
-  NodeT<T, P, BV, K>::getChildren() const noexcept
+  inline const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>&
+  TreeBVH<T, P, BV, K>::getChildren() const noexcept
   {
     return (m_children);
   }
 
   template <class T, class P, class BV, size_t K>
   inline void
-  NodeT<T, P, BV, K>::topDownSortAndPartition(const Partitioner& a_partitioner, const StopFunction& a_stopCrit) noexcept
+  TreeBVH<T, P, BV, K>::topDownSortAndPartition(const Partitioner&  a_partitioner,
+                                                 const StopFunction& a_stopCrit) noexcept
   {
     // Check if this node should be split into more nodes.
     const auto numPrimsInThisNode = m_primitives.size();
@@ -134,7 +136,7 @@ namespace BVH {
 
       // Create children nodes.
       for (size_t c = 0; c < K; c++) {
-        m_children[c] = std::make_shared<NodeT<T, P, BV, K>>(newPartitions[c]);
+        m_children[c] = std::make_shared<TreeBVH<T, P, BV, K>>(newPartitions[c]);
       }
 
       // This is no longer a leaf node.
@@ -153,7 +155,7 @@ namespace BVH {
   template <class T, class P, class BV, size_t K>
   template <typename S>
   inline void
-  NodeT<T, P, BV, K>::bottomUpSortAndPartition() noexcept
+  TreeBVH<T, P, BV, K>::bottomUpSortAndPartition() noexcept
   {
     // The space-filling curves operate on positive coordinates only, using up to 2^21 valid bits
     // per coordinate direction. The centroids of the bounding volumes use this coordinate system
@@ -205,7 +207,7 @@ namespace BVH {
 
     if (treeDepth > 0) {
 
-      std::vector<std::vector<std::shared_ptr<NodeT<T, P, BV, K>>>> nodes(treeDepth + 1);
+      std::vector<std::vector<std::shared_ptr<TreeBVH<T, P, BV, K>>>> nodes(treeDepth + 1);
 
       // Build the leaves by partitioning the primitives along the SFC.
       size_t startIndex = 0;
@@ -228,7 +230,7 @@ namespace BVH {
           primsAndBVs.emplace_back(std::get<0>(cur), std::get<1>(cur));
         }
 
-        nodes[treeDepth].emplace_back(std::make_shared<NodeT<T, P, BV, K>>(primsAndBVs));
+        nodes[treeDepth].emplace_back(std::make_shared<TreeBVH<T, P, BV, K>>(primsAndBVs));
 
         startIndex = endIndex + 1;
       }
@@ -239,14 +241,14 @@ namespace BVH {
 
         for (size_t inode = 0; inode < std::pow(K, lvl); inode++) {
 
-          std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K> children;
+          std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K> children;
 
           for (size_t child = 0; child < K; child++) {
             children[child] = nodes[static_cast<size_t>(lvl + 1)][inode * K + child];
           }
 
           if (lvl > 0) {
-            nodes[static_cast<size_t>(lvl)].emplace_back(std::make_shared<NodeT<T, P, BV, K>>());
+            nodes[static_cast<size_t>(lvl)].emplace_back(std::make_shared<TreeBVH<T, P, BV, K>>());
           }
           else {
             nodes[static_cast<size_t>(lvl)].emplace_back(this->shared_from_this());
@@ -262,7 +264,8 @@ namespace BVH {
 
   template <class T, class P, class BV, size_t K>
   inline void
-  NodeT<T, P, BV, K>::setChildren(const std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K>& a_children) noexcept
+  TreeBVH<T, P, BV, K>::setChildren(
+    const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children) noexcept
   {
 
     std::vector<BV> boundingVolumes;
@@ -280,7 +283,7 @@ namespace BVH {
 
   template <class T, class P, class BV, size_t K>
   inline T
-  NodeT<T, P, BV, K>::getDistanceToBoundingVolume(const Vec3& a_point) const noexcept
+  TreeBVH<T, P, BV, K>::getDistanceToBoundingVolume(const Vec3& a_point) const noexcept
   {
     return m_boundingVolume.getDistance(a_point);
   }
@@ -288,10 +291,10 @@ namespace BVH {
   template <class T, class P, class BV, size_t K>
   template <class Meta>
   inline void
-  NodeT<T, P, BV, K>::traverse(const BVH::Updater<P>&              a_updater,
-                               const BVH::Visiter<Node, Meta>&     a_visiter,
-                               const BVH::Sorter<Node, Meta, K>&   a_sorter,
-                               const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept
+  TreeBVH<T, P, BV, K>::traverse(const BVH::Updater<P>&              a_updater,
+                                  const BVH::Visiter<Node, Meta>&     a_visiter,
+                                  const BVH::Sorter<Node, Meta, K>&   a_sorter,
+                                  const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept
   {
     std::array<std::pair<std::shared_ptr<const Node>, Meta>, K> children;
     std::stack<std::pair<std::shared_ptr<const Node>, Meta>>    q;
@@ -326,195 +329,162 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
-  inline std::shared_ptr<LinearBVH<T, P, BV, K>>
-  NodeT<T, P, BV, K>::flattenTree() const noexcept
+  inline std::shared_ptr<PackedBVH<T, P, K>>
+  TreeBVH<T, P, BV, K>::pack() const noexcept
   {
-
-    std::vector<std::shared_ptr<const P>> sortedPrimitives;
-    std::vector<LinearNodeT<T, P, BV, K>> linearNodes;
-
-    size_t offset = 0;
-
-    this->flattenTree(linearNodes, sortedPrimitives, offset);
-
-    return std::make_shared<LinearBVH<T, P, BV, K>>(std::move(linearNodes), sortedPrimitives);
+    static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>,
+                  "TreeBVH::pack requires BV == AABBT<T>");
+    return std::make_shared<PackedBVH<T, P, K>>(*this);
   }
 
   template <class T, class P, class BV, size_t K>
-  inline size_t
-  NodeT<T, P, BV, K>::flattenTree(std::vector<LinearNodeT<T, P, BV, K>>& a_linearNodes,
-                                  std::vector<std::shared_ptr<const P>>& a_sortedPrimitives,
-                                  size_t&                                a_offset) const noexcept
+  template <class Q, class Converter>
+  inline std::shared_ptr<PackedBVH<T, Q, K>>
+  TreeBVH<T, P, BV, K>::packWith(Converter&& a_converter) const noexcept
   {
-    const auto curNode = a_offset;
+    static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>,
+                  "TreeBVH::packWith requires BV == AABBT<T>");
+    return std::make_shared<PackedBVH<T, Q, K>>(*this, std::forward<Converter>(a_converter));
+  }
 
-    a_linearNodes.emplace_back();
-    a_linearNodes[curNode].setBoundingVolume(m_boundingVolume);
+  // -------------------------------------------------------------------------
+  // PackedBVH implementation
+  // -------------------------------------------------------------------------
 
-    a_offset++;
-
-    if (this->isLeaf()) {
-      a_linearNodes[curNode].setNumPrimitives(static_cast<uint32_t>(m_primitives.size()));
-      a_linearNodes[curNode].setPrimitivesOffset(static_cast<uint32_t>(a_sortedPrimitives.size()));
-
-      a_sortedPrimitives.insert(a_sortedPrimitives.end(), m_primitives.begin(), m_primitives.end());
-    }
-    else {
-      a_linearNodes[curNode].setNumPrimitives(0U);
-      a_linearNodes[curNode].setPrimitivesOffset(0U);
-
-      for (size_t k = 0; k < K; k++) {
-        const size_t offset = m_children[k]->flattenTree(a_linearNodes, a_sortedPrimitives, a_offset);
-
-        a_linearNodes[curNode].setChildOffset(static_cast<uint32_t>(offset), k);
+  template <class T, class P, size_t K>
+  inline void
+  PackedBVH<T, P, K>::buildSoA() noexcept
+  {
+    m_childAabbSoA.resize(m_linearNodes.size());
+    for (size_t i = 0; i < m_linearNodes.size(); i++) {
+      const auto& node = m_linearNodes[i];
+      if (!node.isLeaf()) {
+        const auto& offsets = node.getChildOffsets();
+        auto&       soa     = m_childAabbSoA[i];
+        for (size_t k = 0; k < K; k++) {
+          const auto& bv = m_linearNodes[offsets[k]].getBoundingVolume();
+          const auto& lo = bv.getLowCorner();
+          const auto& hi = bv.getHighCorner();
+          soa.lo[0][k] = lo[0]; soa.lo[1][k] = lo[1]; soa.lo[2][k] = lo[2];
+          soa.hi[0][k] = hi[0]; soa.hi[1][k] = hi[1]; soa.hi[2][k] = hi[2];
+        }
       }
     }
-
-    return curNode;
   }
 
-  template <class T, class P, class BV, size_t K>
-  inline LinearNodeT<T, P, BV, K>::LinearNodeT() noexcept
+  template <class T, class P, size_t K>
+  template <class BV2>
+  inline PackedBVH<T, P, K>::PackedBVH(const TreeBVH<T, P, BV2, K>& a_tree)
   {
-    m_boundingVolume   = BV();
-    m_primitivesOffset = 0U;
-    m_numPrimitives    = 0U;
+    static_assert(std::is_same_v<BV2, EBGeometry::BoundingVolumes::AABBT<T>>,
+                  "PackedBVH<T,P,K>(TreeBVH) requires BV2 == AABBT<T>");
 
-    for (auto& offset : m_childOffsets) {
-      offset = 0U;
-    }
+    // Depth-first. Each call reserves a slot by index, then fills child offsets
+    // after recursion. Indexing by position (not pointer) is safe across
+    // vector reallocation; C++17 RHS-before-LHS ensures fresh re-fetch of
+    // m_linearNodes[idx] after any push_back inside the recursive call.
+    std::function<uint32_t(const TreeBVH<T, P, BV2, K>&)> dfs =
+      [&](const TreeBVH<T, P, BV2, K>& node) -> uint32_t {
+      const uint32_t idx = static_cast<uint32_t>(m_linearNodes.size());
+      m_linearNodes.push_back({});
+      m_linearNodes[idx].bv = node.getBoundingVolume();
+
+      if (node.isLeaf()) {
+        const auto& prims          = node.getPrimitives();
+        m_linearNodes[idx].primOff  = static_cast<uint32_t>(m_primitives.size());
+        m_linearNodes[idx].numPrims = static_cast<uint32_t>(prims.size());
+        m_primitives.insert(m_primitives.end(), prims.begin(), prims.end());
+      }
+      else {
+        m_linearNodes[idx].numPrims = 0U;
+        m_linearNodes[idx].primOff  = 0U;
+        const auto& children = node.getChildren();
+        for (size_t k = 0; k < K; k++) {
+          m_linearNodes[idx].childOff[k] = dfs(*children[k]);
+        }
+      }
+      return idx;
+    };
+
+    dfs(a_tree);
+    buildSoA();
   }
 
-  template <class T, class P, class BV, size_t K>
-  inline LinearNodeT<T, P, BV, K>::~LinearNodeT() noexcept
-  {}
-
-  template <class T, class P, class BV, size_t K>
-  inline void
-  LinearNodeT<T, P, BV, K>::setBoundingVolume(const BV& a_boundingVolume) noexcept
+  template <class T, class P, size_t K>
+  template <class P2, class BV2, class Converter>
+  inline PackedBVH<T, P, K>::PackedBVH(const TreeBVH<T, P2, BV2, K>& a_tree, Converter&& a_converter)
   {
-    m_boundingVolume = a_boundingVolume;
-  }
+    static_assert(std::is_same_v<BV2, EBGeometry::BoundingVolumes::AABBT<T>>,
+                  "PackedBVH<T,P,K>(TreeBVH, Converter) requires BV2 == AABBT<T>");
 
-  template <class T, class P, class BV, size_t K>
-  inline void
-  LinearNodeT<T, P, BV, K>::setPrimitivesOffset(const uint32_t a_primitivesOffset) noexcept
-  {
-    m_primitivesOffset = a_primitivesOffset;
-  }
+    // Accumulate converted P-values into a single contiguous buffer; aliased
+    // shared_ptrs are created after all push_backs so no dangling pointers.
+    auto dstStorage = std::make_shared<std::vector<P>>();
 
-  template <class T, class P, class BV, size_t K>
-  inline void
-  LinearNodeT<T, P, BV, K>::setNumPrimitives(const uint32_t a_numPrimitives) noexcept
-  {
-    m_numPrimitives = a_numPrimitives;
-  }
+    std::function<uint32_t(const TreeBVH<T, P2, BV2, K>&)> dfs =
+      [&](const TreeBVH<T, P2, BV2, K>& node) -> uint32_t {
+      const uint32_t idx = static_cast<uint32_t>(m_linearNodes.size());
+      m_linearNodes.push_back({});
+      m_linearNodes[idx].bv = node.getBoundingVolume();
 
-  template <class T, class P, class BV, size_t K>
-  inline void
-  LinearNodeT<T, P, BV, K>::setChildOffset(const uint32_t a_childOffset, const size_t a_whichChild) noexcept
-  {
-    m_childOffsets[a_whichChild] = a_childOffset;
-  }
+      if (node.isLeaf()) {
+        const auto&    prims  = node.getPrimitives();
+        const uint32_t dstOff = static_cast<uint32_t>(dstStorage->size());
+        auto newVals = a_converter(prims, 0U, static_cast<uint32_t>(prims.size()));
+        m_linearNodes[idx].primOff  = dstOff;
+        m_linearNodes[idx].numPrims = static_cast<uint32_t>(newVals.size());
+        for (auto&& v : newVals)
+          dstStorage->push_back(std::move(v));
+      }
+      else {
+        m_linearNodes[idx].numPrims = 0U;
+        m_linearNodes[idx].primOff  = 0U;
+        const auto& children = node.getChildren();
+        for (size_t k = 0; k < K; k++) {
+          m_linearNodes[idx].childOff[k] = dfs(*children[k]);
+        }
+      }
+      return idx;
+    };
 
-  template <class T, class P, class BV, size_t K>
-  inline const BV&
-  LinearNodeT<T, P, BV, K>::getBoundingVolume() const noexcept
-  {
-    return (m_boundingVolume);
-  }
+    dfs(a_tree);
 
-  template <class T, class P, class BV, size_t K>
-  inline uint32_t
-  LinearNodeT<T, P, BV, K>::getPrimitivesOffset() const noexcept
-  {
-    return m_primitivesOffset;
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline uint32_t
-  LinearNodeT<T, P, BV, K>::getNumPrimitives() const noexcept
-  {
-    return m_numPrimitives;
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline const std::array<uint32_t, K>&
-  LinearNodeT<T, P, BV, K>::getChildOffsets() const noexcept
-  {
-    return (m_childOffsets);
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline bool
-  LinearNodeT<T, P, BV, K>::isLeaf() const noexcept
-  {
-    return m_numPrimitives > 0;
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline T
-  LinearNodeT<T, P, BV, K>::getDistanceToBoundingVolume(const Vec3& a_point) const noexcept
-  {
-    return m_boundingVolume.getDistance(a_point);
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline std::vector<T>
-  LinearNodeT<T, P, BV, K>::getDistances(const Vec3T<T>&                              a_point,
-                                         const std::vector<std::shared_ptr<const P>>& a_primitives) const noexcept
-  {
-    std::vector<T> distances;
-    distances.resize(m_numPrimitives);
-
-#pragma GCC ivdep
-    for (uint32_t i = 0; i < m_numPrimitives; i++) {
-      distances[i] = a_primitives[m_primitivesOffset + i]->signedDistance(a_point);
+    m_primitives.reserve(dstStorage->size());
+    for (size_t i = 0; i < dstStorage->size(); i++) {
+      m_primitives.emplace_back(dstStorage, &(*dstStorage)[i]);
     }
 
-    return distances;
+    buildSoA();
   }
 
-  template <class T, class P, class BV, size_t K>
-  inline LinearBVH<T, P, BV, K>::LinearBVH(std::vector<LinearNodeT<T, P, BV, K>>        a_linearNodes,
-                                           const std::vector<std::shared_ptr<const P>>& a_primitives)
-  {
-    m_linearNodes = std::move(a_linearNodes);
-    m_primitives  = a_primitives;
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline LinearBVH<T, P, BV, K>::~LinearBVH()
-  {}
-
-  template <class T, class P, class BV, size_t K>
-  inline const BV&
-  LinearBVH<T, P, BV, K>::getBoundingVolume() const noexcept
-  {
-    return m_linearNodes.front().getBoundingVolume();
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline const typename LinearBVH<T, P, BV, K>::PrimitiveList&
-  LinearBVH<T, P, BV, K>::getPrimitives() const noexcept
+  template <class T, class P, size_t K>
+  inline const std::vector<std::shared_ptr<const P>>&
+  PackedBVH<T, P, K>::getPrimitives() const noexcept
   {
     return m_primitives;
   }
 
-  template <class T, class P, class BV, size_t K>
-  inline const std::vector<LinearNodeT<T, P, BV, K>>&
-  LinearBVH<T, P, BV, K>::getLinearNodes() const noexcept
+  template <class T, class P, size_t K>
+  inline const EBGeometry::BoundingVolumes::AABBT<T>&
+  PackedBVH<T, P, K>::getBoundingVolume() const noexcept
   {
-    return m_linearNodes;
+    return m_linearNodes.front().getBoundingVolume();
   }
 
-  template <class T, class P, class BV, size_t K>
+  template <class T, class P, size_t K>
+  inline EBGeometry::BoundingVolumes::AABBT<T>
+  PackedBVH<T, P, K>::computeBoundingVolume() const noexcept
+  {
+    return m_linearNodes.front().getBoundingVolume();
+  }
+
+  template <class T, class P, size_t K>
   template <class Meta>
   inline void
-  LinearBVH<T, P, BV, K>::traverse(const BVH::LinearUpdater<P>&              a_updater,
-                                   const BVH::Visiter<LinearNode, Meta>&     a_visiter,
-                                   const BVH::LinearSorter<Meta, K>&         a_sorter,
-                                   const BVH::MetaUpdater<LinearNode, Meta>& a_metaUpdater) const noexcept
+  PackedBVH<T, P, K>::traverse(const BVH::LinearUpdater<P>&              a_updater,
+                                const BVH::Visiter<LinearNode, Meta>&     a_visiter,
+                                const BVH::LinearSorter<Meta, K>&         a_sorter,
+                                const BVH::MetaUpdater<LinearNode, Meta>& a_metaUpdater) const noexcept
   {
     std::array<std::pair<uint32_t, Meta>, K> children;
 
@@ -546,68 +516,6 @@ namespace BVH {
           for (const auto& child : children) {
             q.push_back(child);
           }
-        }
-      }
-    }
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline T
-  LinearBVH<T, P, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
-  {
-    T minDist = std::numeric_limits<T>::max();
-
-    BVH::LinearUpdater<P> updater =
-      [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
-                            size_t                                        offset,
-                            size_t                                        count) noexcept -> void {
-      for (size_t i = 0; i < count; i++) {
-        const T d = prims[offset + i]->signedDistance(a_point);
-        if (std::abs(d) < std::abs(minDist)) minDist = d;
-      }
-    };
-
-    BVH::Visiter<LinearNode, T> visiter = [&minDist](const LinearNode& /*n*/, const T& d) noexcept -> bool {
-      return d <= std::abs(minDist);
-    };
-    BVH::LinearSorter<T, K> sorter =
-      [](std::array<std::pair<uint32_t, T>, K>& ch) noexcept -> void {
-      std::sort(ch.begin(), ch.end(), [](const std::pair<uint32_t, T>& a, const std::pair<uint32_t, T>& b) noexcept {
-        return a.second > b.second;
-      });
-    };
-    BVH::MetaUpdater<LinearNode, T> metaUpdater = [&a_point](const LinearNode& n) noexcept -> T {
-      return n.getDistanceToBoundingVolume(a_point);
-    };
-
-    this->traverse(updater, visiter, sorter, metaUpdater);
-    return minDist;
-  }
-
-  template <class T, class P, class BV, size_t K>
-  inline BV
-  LinearBVH<T, P, BV, K>::computeBoundingVolume() const noexcept
-  {
-    return m_linearNodes.front().getBoundingVolume();
-  }
-
-  template <class T, class P, size_t K>
-  inline PackedBVH<T, P, K>::PackedBVH(std::vector<LinearNodeT<T, P, BV, K>>        a_linearNodes,
-                                        const std::vector<std::shared_ptr<const P>>& a_primitives)
-    : Base(std::move(a_linearNodes), a_primitives)
-  {
-    m_childAabbSoA.resize(this->m_linearNodes.size());
-    for (size_t i = 0; i < this->m_linearNodes.size(); i++) {
-      const auto& node = this->m_linearNodes[i];
-      if (!node.isLeaf()) {
-        const auto& offsets = node.getChildOffsets();
-        auto&       soa     = m_childAabbSoA[i];
-        for (size_t k = 0; k < K; k++) {
-          const auto& bv = this->m_linearNodes[offsets[k]].getBoundingVolume();
-          const auto& lo = bv.getLowCorner();
-          const auto& hi = bv.getHighCorner();
-          soa.lo[0][k] = lo[0]; soa.lo[1][k] = lo[1]; soa.lo[2][k] = lo[2];
-          soa.hi[0][k] = hi[0]; soa.hi[1][k] = hi[1]; soa.hi[2][k] = hi[2];
         }
       }
     }
@@ -646,9 +554,9 @@ namespace BVH {
         const double     curBest2 = minDist * minDist;
         if (entry.dist2 > curBest2) continue;
 
-        const LinearNode& node = this->m_linearNodes[entry.idx];
+        const LinearNode& node = m_linearNodes[entry.idx];
         if (node.isLeaf()) {
-          updater(this->m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
+          updater(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
         }
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
@@ -668,6 +576,152 @@ namespace BVH {
 
           alignas(32) double dist2[K];
           _mm256_store_pd(dist2, d2);
+
+          const auto& offsets = node.getChildOffsets();
+          std::array<std::pair<double, uint32_t>, K> children;
+          for (size_t k = 0; k < K; k++) children[k] = {dist2[k], offsets[k]};
+          std::sort(children.begin(), children.end(),
+                    [](const std::pair<double, uint32_t>& a,
+                       const std::pair<double, uint32_t>& b) noexcept { return a.first > b.first; });
+
+          const double newBest2 = minDist * minDist;
+          for (const auto& [d, idx] : children) {
+            if (d <= newBest2) stack[top++] = {idx, d};
+          }
+        }
+      }
+      return static_cast<T>(minDist);
+    }
+    if constexpr (K == 8 && std::is_same_v<T, float>) {
+      float minDist = std::numeric_limits<float>::max();
+
+      BVH::LinearUpdater<P> updater =
+        [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
+                              size_t                                        offset,
+                              size_t                                        count) noexcept -> void {
+        for (size_t i = 0; i < count; i++) {
+          const float d = prims[offset + i]->signedDistance(a_point);
+          if (std::abs(d) < std::abs(minDist)) minDist = d;
+        }
+      };
+
+      const __m256 px   = _mm256_set1_ps((float)a_point[0]);
+      const __m256 py   = _mm256_set1_ps((float)a_point[1]);
+      const __m256 pz   = _mm256_set1_ps((float)a_point[2]);
+      const __m256 zero = _mm256_setzero_ps();
+
+      struct StackEntry { uint32_t idx; float dist2; };
+      alignas(32) StackEntry stack[256];
+      int top      = 0;
+      stack[top++] = {0U, 0.f};
+
+      while (top > 0) {
+        const StackEntry entry    = stack[--top];
+        const float      curBest2 = minDist * minDist;
+        if (entry.dist2 > curBest2) continue;
+
+        const LinearNode& node = m_linearNodes[entry.idx];
+        if (node.isLeaf()) {
+          updater(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
+        }
+        else {
+          const auto& soa = m_childAabbSoA[entry.idx];
+
+          const __m256 lo_x = _mm256_load_ps(soa.lo[0]);
+          const __m256 lo_y = _mm256_load_ps(soa.lo[1]);
+          const __m256 lo_z = _mm256_load_ps(soa.lo[2]);
+          const __m256 hi_x = _mm256_load_ps(soa.hi[0]);
+          const __m256 hi_y = _mm256_load_ps(soa.hi[1]);
+          const __m256 hi_z = _mm256_load_ps(soa.hi[2]);
+
+          const __m256 dx = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_x, px), _mm256_sub_ps(px, hi_x)));
+          const __m256 dy = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_y, py), _mm256_sub_ps(py, hi_y)));
+          const __m256 dz = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_z, pz), _mm256_sub_ps(pz, hi_z)));
+          const __m256 d2 = _mm256_add_ps(_mm256_mul_ps(dx, dx),
+                                           _mm256_add_ps(_mm256_mul_ps(dy, dy), _mm256_mul_ps(dz, dz)));
+
+          alignas(32) float dist2[K];
+          _mm256_store_ps(dist2, d2);
+
+          const auto& offsets = node.getChildOffsets();
+          std::array<std::pair<float, uint32_t>, K> children;
+          for (size_t k = 0; k < K; k++) children[k] = {dist2[k], offsets[k]};
+          std::sort(children.begin(), children.end(),
+                    [](const std::pair<float, uint32_t>& a,
+                       const std::pair<float, uint32_t>& b) noexcept { return a.first > b.first; });
+
+          const float newBest2 = minDist * minDist;
+          for (const auto& [d, idx] : children) {
+            if (d <= newBest2) stack[top++] = {idx, d};
+          }
+        }
+      }
+      return static_cast<T>(minDist);
+    }
+    if constexpr (K == 8 && std::is_same_v<T, double>) {
+      double minDist = std::numeric_limits<double>::max();
+
+      BVH::LinearUpdater<P> updater =
+        [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
+                              size_t                                        offset,
+                              size_t                                        count) noexcept -> void {
+        for (size_t i = 0; i < count; i++) {
+          const double d = prims[offset + i]->signedDistance(a_point);
+          if (std::abs(d) < std::abs(minDist)) minDist = d;
+        }
+      };
+
+      const __m256d px   = _mm256_set1_pd(a_point[0]);
+      const __m256d py   = _mm256_set1_pd(a_point[1]);
+      const __m256d pz   = _mm256_set1_pd(a_point[2]);
+      const __m256d zero = _mm256_setzero_pd();
+
+      struct StackEntry { uint32_t idx; double dist2; };
+      alignas(32) StackEntry stack[256];
+      int top      = 0;
+      stack[top++] = {0U, 0.0};
+
+      while (top > 0) {
+        const StackEntry entry    = stack[--top];
+        const double     curBest2 = minDist * minDist;
+        if (entry.dist2 > curBest2) continue;
+
+        const LinearNode& node = m_linearNodes[entry.idx];
+        if (node.isLeaf()) {
+          updater(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
+        }
+        else {
+          const auto& soa = m_childAabbSoA[entry.idx];
+
+          const __m256d lo_x0 = _mm256_load_pd(soa.lo[0]);
+          const __m256d lo_y0 = _mm256_load_pd(soa.lo[1]);
+          const __m256d lo_z0 = _mm256_load_pd(soa.lo[2]);
+          const __m256d hi_x0 = _mm256_load_pd(soa.hi[0]);
+          const __m256d hi_y0 = _mm256_load_pd(soa.hi[1]);
+          const __m256d hi_z0 = _mm256_load_pd(soa.hi[2]);
+
+          const __m256d dx0  = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x0, px), _mm256_sub_pd(px, hi_x0)));
+          const __m256d dy0  = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y0, py), _mm256_sub_pd(py, hi_y0)));
+          const __m256d dz0  = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z0, pz), _mm256_sub_pd(pz, hi_z0)));
+          const __m256d d2_0 = _mm256_add_pd(_mm256_mul_pd(dx0, dx0),
+                                              _mm256_add_pd(_mm256_mul_pd(dy0, dy0), _mm256_mul_pd(dz0, dz0)));
+
+          const __m256d lo_x1 = _mm256_load_pd(soa.lo[0] + 4);
+          const __m256d lo_y1 = _mm256_load_pd(soa.lo[1] + 4);
+          const __m256d lo_z1 = _mm256_load_pd(soa.lo[2] + 4);
+          const __m256d hi_x1 = _mm256_load_pd(soa.hi[0] + 4);
+          const __m256d hi_y1 = _mm256_load_pd(soa.hi[1] + 4);
+          const __m256d hi_z1 = _mm256_load_pd(soa.hi[2] + 4);
+
+          const __m256d dx1  = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x1, px), _mm256_sub_pd(px, hi_x1)));
+          const __m256d dy1  = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y1, py), _mm256_sub_pd(py, hi_y1)));
+          const __m256d dz1  = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z1, pz), _mm256_sub_pd(pz, hi_z1)));
+          const __m256d d2_1 = _mm256_add_pd(_mm256_mul_pd(dx1, dx1),
+                                              _mm256_add_pd(_mm256_mul_pd(dy1, dy1), _mm256_mul_pd(dz1, dz1)));
+
+          alignas(32) double dist2[K];
+          _mm256_store_pd(dist2,     d2_0);
+          _mm256_store_pd(dist2 + 4, d2_1);
 
           const auto& offsets = node.getChildOffsets();
           std::array<std::pair<double, uint32_t>, K> children;
@@ -714,9 +768,9 @@ namespace BVH {
         const float      curBest2 = minDist * minDist;
         if (entry.dist2 > curBest2) continue;
 
-        const LinearNode& node = this->m_linearNodes[entry.idx];
+        const LinearNode& node = m_linearNodes[entry.idx];
         if (node.isLeaf()) {
-          updater(this->m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
+          updater(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
         }
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
@@ -753,7 +807,35 @@ namespace BVH {
       return minDist;
     }
 #endif
-    return this->Base::signedDistance(a_point);
+
+    // Scalar fallback for all other (T, K) combinations.
+    T minDist = std::numeric_limits<T>::max();
+
+    BVH::LinearUpdater<P> updater =
+      [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
+                            size_t                                        offset,
+                            size_t                                        count) noexcept -> void {
+      for (size_t i = 0; i < count; i++) {
+        const T d = prims[offset + i]->signedDistance(a_point);
+        if (std::abs(d) < std::abs(minDist)) minDist = d;
+      }
+    };
+
+    BVH::Visiter<LinearNode, T> visiter = [&minDist](const LinearNode& /*n*/, const T& d) noexcept -> bool {
+      return d <= std::abs(minDist);
+    };
+    BVH::LinearSorter<T, K> sorter =
+      [](std::array<std::pair<uint32_t, T>, K>& ch) noexcept -> void {
+      std::sort(ch.begin(), ch.end(), [](const std::pair<uint32_t, T>& a, const std::pair<uint32_t, T>& b) noexcept {
+        return a.second > b.second;
+      });
+    };
+    BVH::MetaUpdater<LinearNode, T> metaUpdater = [&a_point](const LinearNode& n) noexcept -> T {
+      return n.getDistanceToBoundingVolume(a_point);
+    };
+
+    this->traverse(updater, visiter, sorter, metaUpdater);
+    return minDist;
   }
 
 } // namespace BVH

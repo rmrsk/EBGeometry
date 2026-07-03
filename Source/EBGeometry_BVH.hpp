@@ -49,38 +49,13 @@ namespace BVH {
   };
 
   /*!
-    @brief Forward declare the BVH node since it is needed for the polymorphic
-    lambdas.
-    @details T is the precision used in the BVH computations, P is the enclosing
-    primitive and BV is the bounding volume used in the BVH. K is the tree degree.
+    @brief Forward declare the tree BVH node (needed by StopFunctionT and lambdas below).
   */
   template <class T, class P, class BV, size_t K>
-  class NodeT;
+  class TreeBVH;
 
   /*!
-    @brief Forward declare linear node class.
-    @details T is the precision used in the BVH computations, P is the enclosing
-    primitive and BV is the bounding volume used in the BVH. K is the tree degree.
-  */
-  template <class T, class P, class BV, size_t K>
-  class LinearNodeT;
-
-  /*!
-    @brief Forward declare linear BVH class.
-    @details T is the precision used in the BVH computations, P is the enclosing
-    primitive and BV is the bounding volume used in the BVH. K is the tree degree.
-  */
-  template <class T, class P, class BV, size_t K>
-  class LinearBVH;
-
-  /*!
-    @brief Forward declare PackedBVH.
-  */
-  template <class T, class P, size_t K>
-  class PackedBVH;
-
-  /*!
-    @brief List of primitives. 
+    @brief List of primitives.
     @details P is the primitive bounded by the BVH.
   */
   template <class P>
@@ -93,17 +68,17 @@ namespace BVH {
   using PrimAndBV = std::pair<std::shared_ptr<const P>, BV>;
 
   /*!
-    @brief List of primitives and their bounding volumes. 
+    @brief List of primitives and their bounding volumes.
     @details P is the primitive type and BV is the bounding volume enclosing the implicit surface of each P.
   */
   template <class P, class BV>
   using PrimAndBVListT = std::vector<PrimAndBV<P, BV>>;
 
   /*!
-    @brief Polymorphic partitioner for splitting a list of primitives and BVs into K new subsets. 
+    @brief Polymorphic partitioner for splitting a list of primitives and BVs into K new subsets.
     @details P is the primitive type bound in the BVH and K is the BVH degrees. BV is the bounding volume type.
-    @param[in] a_primsAndBVs Vector of primitives and their bounding volumes. 
-    @return Return a K-length array of subset lists. 
+    @param[in] a_primsAndBVs Vector of primitives and their bounding volumes.
+    @return Return a K-length array of subset lists.
   */
   template <class P, class BV, size_t K>
   using PartitionerT = std::function<std::array<PrimAndBVListT<P, BV>, K>(const PrimAndBVListT<P, BV>& a_primsAndBVs)>;
@@ -117,7 +92,7 @@ namespace BVH {
     @return True if the node can't be divided into subvolumes and false otherwise.
   */
   template <class T, class P, class BV, size_t K>
-  using StopFunctionT = std::function<bool(const NodeT<T, P, BV, K>& a_node)>;
+  using StopFunctionT = std::function<bool(const TreeBVH<T, P, BV, K>& a_node)>;
 
   /*!
     @brief Updater for tree traversal
@@ -127,16 +102,16 @@ namespace BVH {
   using Updater = std::function<void(const PrimitiveListT<P>& a_primitives)>;
 
   /*!
-    @brief Updater for LinearBVH traversal. Receives the full primitive list with an offset and count
+    @brief Updater for PackedBVH traversal. Receives the full primitive list with an offset and count
     rather than a temporary sublist, avoiding a heap allocation per leaf visit.
   */
   template <class P>
   using LinearUpdater = std::function<void(const PrimitiveListT<P>& a_primitives, size_t a_offset, size_t a_count)>;
 
   /*!
-    @brief Visiter pattern for LinearBVH::traverse. Must return true if we should visit the node and false otherwise. 
-    @details The Meta template parameter is a door left open to the user for attaching additional data to the 
-    sorter/visiter pattern. 
+    @brief Visiter pattern for PackedBVH::traverse. Must return true if we should visit the node and false otherwise.
+    @details The Meta template parameter is a door left open to the user for attaching additional data to the
+    sorter/visiter pattern.
     @param[in] a_node Node to visit or not
     @param[in] a_meta Meta-data for node visit.
   */
@@ -153,7 +128,7 @@ namespace BVH {
   using Sorter = std::function<void(std::array<std::pair<std::shared_ptr<const NodeType>, Meta>, K>& a_children)>;
 
   /*!
-    @brief Sorting criterion for LinearBVH traversal. Uses 32-bit node indices instead of shared_ptrs,
+    @brief Sorting criterion for PackedBVH traversal. Uses 32-bit node indices instead of shared_ptrs,
     halving the stack element size (8 bytes vs 16 bytes for size_t+float).
   */
   template <class Meta, size_t K>
@@ -253,7 +228,195 @@ namespace BVH {
   */
   template <class T, class P, class BV, size_t K>
   auto DefaultStopFunction =
-    [](const BVH::NodeT<T, P, BV, K>& a_node) noexcept -> bool { return (a_node.getPrimitives()).size() < K; };
+    [](const BVH::TreeBVH<T, P, BV, K>& a_node) noexcept -> bool { return (a_node.getPrimitives()).size() < K; };
+
+  /*!
+    @brief SoA layout of K children's AABBs for a single interior PackedBVH node.
+    @details lo[axis][child] / hi[axis][child] layout makes each row a contiguous T[K]
+    array loadable as a single SIMD register. Used exclusively by PackedBVH.
+  */
+  template <class T, size_t K>
+  struct ChildAabbSoA {
+    alignas(sizeof(T) * K) T lo[3][K];
+    alignas(sizeof(T) * K) T hi[3][K];
+  };
+
+  /*!
+    @brief Linearised, AABB-backed BVH with SIMD-accelerated traversal.
+    @details PackedBVH is the runtime traversal class. It stores a flat array of Node
+    structs (depth-first order) together with the primitive list, and a SoA cache of
+    children AABBs that enables SIMD node tests.
+
+    Construct by calling TreeBVH::pack() or TreeBVH::packWith<Q>(converter).
+
+    SIMD paths are selected at compile time via if constexpr:
+      - K==4, T==float  → SSE4.1 (__m128)
+      - K==4, T==double → AVX    (__m256d)
+      - K==8, T==float  → AVX    (__m256)
+      - K==8, T==double → AVX    (two __m256d passes)
+    All other combinations fall back to scalar traversal.
+
+    @tparam T Floating-point precision.
+    @tparam P Primitive type. Must provide signedDistance(Vec3T<T>).
+    @tparam K BVH branching factor.
+  */
+  template <class T, class P, size_t K>
+  class PackedBVH
+  {
+  public:
+    using BV = EBGeometry::BoundingVolumes::AABBT<T>;
+
+    /*!
+      @brief Internal BVH node: bounding volume + child/primitive index tables.
+      @details This struct is the only internal representation needed for packed traversal.
+      It is exposed as a public nested type so that users can write custom traverse()
+      visitors (Visiter, MetaUpdater) without naming the old LinearNodeT class.
+    */
+    struct Node
+    {
+      BV                       bv{};
+      uint32_t                 primOff{};
+      uint32_t                 numPrims{};
+      std::array<uint32_t, K>  childOff{};
+
+      inline void
+      setBoundingVolume(const BV& a_bv) noexcept
+      {
+        bv = a_bv;
+      }
+      inline void
+      setPrimitivesOffset(uint32_t a_off) noexcept
+      {
+        primOff = a_off;
+      }
+      inline void
+      setNumPrimitives(uint32_t a_n) noexcept
+      {
+        numPrims = a_n;
+      }
+      inline void
+      setChildOffset(uint32_t a_off, size_t a_k) noexcept
+      {
+        childOff[a_k] = a_off;
+      }
+      inline const BV&
+      getBoundingVolume() const noexcept
+      {
+        return bv;
+      }
+      inline uint32_t
+      getPrimitivesOffset() const noexcept
+      {
+        return primOff;
+      }
+      inline uint32_t
+      getNumPrimitives() const noexcept
+      {
+        return numPrims;
+      }
+      inline const std::array<uint32_t, K>&
+      getChildOffsets() const noexcept
+      {
+        return childOff;
+      }
+      inline bool
+      isLeaf() const noexcept
+      {
+        return numPrims > 0;
+      }
+      inline T
+      getDistanceToBoundingVolume(const Vec3T<T>& a_point) const noexcept
+      {
+        return bv.getDistance(a_point);
+      }
+    };
+
+    using LinearNode = Node; ///< Backward-compat alias; prefer Node in new code.
+
+    PackedBVH() = delete;
+
+    /*!
+      @brief Construct by packing a TreeBVH (same primitive type).
+      @details Walks the tree depth-first, fills m_linearNodes and m_primitives
+      directly, then builds the SoA AABB cache. BV2 must be AABBT<T>.
+    */
+    template <class BV2>
+    inline PackedBVH(const TreeBVH<T, P, BV2, K>& a_tree);
+
+    /*!
+      @brief Construct by packing a TreeBVH with primitive-type conversion.
+      @details Same DFS as the identity constructor, but each leaf's primitives are
+      passed through a_converter: (prims, 0, count) → vector<P> (by value).
+      Returned values are stored contiguously with aliased shared_ptrs. BV2 must be AABBT<T>.
+    */
+    template <class P2, class BV2, class Converter>
+    inline PackedBVH(const TreeBVH<T, P2, BV2, K>& a_tree, Converter&& a_converter);
+
+    inline virtual ~PackedBVH() = default;
+
+    /*!
+      @brief Get the primitive list (sorted in leaf-traversal order).
+    */
+    inline const std::vector<std::shared_ptr<const P>>&
+    getPrimitives() const noexcept;
+
+    /*!
+      @brief Get the bounding volume for the root node.
+    */
+    inline const BV&
+    getBoundingVolume() const noexcept;
+
+    /*!
+      @brief Compute the bounding volume of this BVH (root node's BV).
+      @details Enables PackedBVH to serve as a primitive in an outer TreeBVH hierarchy.
+    */
+    inline BV
+    computeBoundingVolume() const noexcept;
+
+    /*!
+      @brief Recursion-less BVH traversal.
+      @param[in] a_updater     Leaf update rule.
+      @param[in] a_visiter     Node visit predicate (return true to visit).
+      @param[in] a_sorter      Children sort function.
+      @param[in] a_metaUpdater Meta-data updater.
+    */
+    template <class Meta>
+    inline void
+    traverse(const BVH::LinearUpdater<P>&              a_updater,
+             const BVH::Visiter<Node, Meta>&            a_visiter,
+             const BVH::LinearSorter<Meta, K>&          a_sorter,
+             const BVH::MetaUpdater<Node, Meta>&        a_metaUpdater) const noexcept;
+
+    /*!
+      @brief Compute signed distance from a_point to the nearest primitive.
+      @details Uses SIMD traversal where available; falls back to scalar otherwise.
+    */
+    inline T
+    signedDistance(const Vec3T<T>& a_point) const noexcept;
+
+  protected:
+    /*!
+      @brief Flat array of BVH nodes (depth-first order).
+    */
+    std::vector<Node> m_linearNodes;
+
+    /*!
+      @brief Global primitive list, sorted in leaf-traversal order.
+    */
+    std::vector<std::shared_ptr<const P>> m_primitives;
+
+    /*!
+      @brief Per-node SoA cache of K children's AABBs for SIMD node tests.
+    */
+    std::vector<ChildAabbSoA<T, K>> m_childAabbSoA;
+
+    /*!
+      @brief Build the per-node SoA AABB cache from m_linearNodes.
+      @details Called at the end of every constructor after m_linearNodes is populated.
+    */
+    inline void
+    buildSoA() noexcept;
+  };
 
   /*!
     @brief Class which encapsulates a node in a bounding volume hierarchy.
@@ -263,7 +426,7 @@ namespace BVH {
     on.
   */
   template <class T, class P, class BV, size_t K>
-  class NodeT : public std::enable_shared_from_this<NodeT<T, P, BV, K>>
+  class TreeBVH : public std::enable_shared_from_this<TreeBVH<T, P, BV, K>>
   {
   public:
     /*!
@@ -279,7 +442,7 @@ namespace BVH {
     /*!
       @brief Alias for node type
     */
-    using Node = NodeT<T, P, BV, K>;
+    using Node = TreeBVH<T, P, BV, K>;
 
     /*!
       @brief Alias for node type pointer
@@ -292,31 +455,31 @@ namespace BVH {
     using Partitioner = PartitionerT<P, BV, K>;
 
     /*!
-      @brief Alias for stop function 
+      @brief Alias for stop function
     */
     using StopFunction = StopFunctionT<T, P, BV, K>;
 
     /*!
       @brief Default constructor which sets a regular node.
     */
-    NodeT() noexcept;
+    TreeBVH() noexcept;
 
     /*!
       @brief Construct a BVH node from a set of primitives and their bounding volumes
       @param[in] a_primsAndBVs Primitives and their bounding volumes
     */
-    NodeT(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs) noexcept;
+    TreeBVH(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs) noexcept;
 
     /*!
       @brief Destructor (does nothing)
     */
-    virtual ~NodeT() noexcept;
+    virtual ~TreeBVH() noexcept;
 
     /*!
-      @brief Function for using top-down construction of the bounding volume hierarchy. 
+      @brief Function for using top-down construction of the bounding volume hierarchy.
       @details The rules for terminating the hierarchy construction, and how to partition them
       are encoded in the input arguments (a_partitioner, a_stopCrit).
-      @param[in] a_partitioner Partitioning function. This is a polymorphic function which divides a set of 
+      @param[in] a_partitioner Partitioning function. This is a polymorphic function which divides a set of
       primitives into two or more sub-lists.
       @param[in] a_stopCrit Termination function which tells us when to stop the recursion.
     */
@@ -331,7 +494,7 @@ namespace BVH {
       by placing at least K primitives in each leaf, and the leaves are then merged upwards until we reach the
       root node.
       @note S must have an encode and decode function which returns an SFC index. See the SFC namespace for
-      examples for Morton and Nested indices. 
+      examples for Morton and Nested indices.
     */
     template <typename S>
     inline void
@@ -383,15 +546,15 @@ namespace BVH {
       @brief Return this node's children.
       @return m_children.
     */
-    inline const std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K>&
+    inline const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>&
     getChildren() const noexcept;
 
     /*!
-      @brief Recursion-less BVH traversal algorithm. 
-      The user inputs the update rule, a pruning criterion, and a criterion of who to visit first. 
+      @brief Recursion-less BVH traversal algorithm.
+      The user inputs the update rule, a pruning criterion, and a criterion of who to visit first.
       @param[in] a_updater     Update rule (for updating whatever the user is interested in updated)
-      @param[in] a_visiter     Visiter rule. Must return true if we should visit the node. 
-      @param[in] a_sorter      Children sort function for deciding which subtrees and investigated first. 
+      @param[in] a_visiter     Visiter rule. Must return true if we should visit the node.
+      @param[in] a_sorter      Children sort function for deciding which subtrees and investigated first.
       @param[in] a_metaUpdater Updater for meta-information.
     */
     template <class Meta>
@@ -402,17 +565,26 @@ namespace BVH {
              const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept;
 
     /*!
-      @brief Flatten everything beneath this node into a depth-first sorted BVH
-      hierarchy.
-      @details This will compute the flattening of the standard BVH tree and
-      return a pointer to the linear corresponding to the current node.
+      @brief Flatten this tree into a PackedBVH with the same primitive type.
+      @details BV must be AABBT<T>; a static_assert enforces this at instantiation.
     */
-    inline std::shared_ptr<LinearBVH<T, P, BV, K>>
-    flattenTree() const noexcept;
+    inline std::shared_ptr<PackedBVH<T, P, K>>
+    pack() const noexcept;
+
+    /*!
+      @brief Flatten and convert this tree into a PackedBVH with a different primitive type Q.
+      @details a_converter is called once per leaf:
+        (prims, offset, count) → std::vector<Q>   (primitives by value)
+      packWith accumulates all returned values into a single contiguous buffer and exposes
+      them through aliased shared_ptrs, preserving cache locality. BV must be AABBT<T>.
+    */
+    template <class Q, class Converter>
+    inline std::shared_ptr<PackedBVH<T, Q, K>>
+    packWith(Converter&& a_converter) const noexcept;
 
   protected:
     /*!
-      @brief Bounding volume object for enclosing everything in this node. 
+      @brief Bounding volume object for enclosing everything in this node.
     */
     BV m_boundingVolume;
 
@@ -434,7 +606,7 @@ namespace BVH {
     /*!
       @brief Children nodes
     */
-    std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K> m_children;
+    std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K> m_children;
 
     /*!
       @brief Get the list of primitives in this node.
@@ -456,336 +628,8 @@ namespace BVH {
       @param[in] a_children Child nodes.
     */
     inline void
-    setChildren(const std::array<std::shared_ptr<NodeT<T, P, BV, K>>, K>& a_children) noexcept;
+    setChildren(const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children) noexcept;
 
-    /*!
-      @brief Flatten tree method.
-      @details This function will flatten everything beneath the current node and
-      linearize all the nodes and primitives beneath it to a_linearNodes and
-      a_sortedPrimitives. This function is called recursively.
-      @param[in,out] a_linearNodes      BVH nodes, linearized onto a vector.
-      @param[in,out] a_sortedPrimitives Sorted primitives (in leaf node order).
-      @param[in,out] a_offset           Supporting integer for figuring out where
-      in the tree we are.
-      @note When called from the root node, a_linearNodes and a_sortedPrimitives
-      should be empty and a_offset=0UL.
-    */
-    inline size_t
-    flattenTree(std::vector<LinearNodeT<T, P, BV, K>>& a_linearNodes,
-                std::vector<std::shared_ptr<const P>>& a_sortedPrimitives,
-                size_t&                                a_offset) const noexcept;
-  };
-
-  /*!
-    @brief Node type for linearized (flattened) BVH. This will be constructed from
-    the other (conventional) BVH type.
-
-    @details T is the precision for Vec3, P is the primitive type you want to
-    enclose, BV is the bounding volume you use for it.
-
-    @note P MUST supply function signedDistance(...) BV must supply a function
-    getDistance (had this been C++20, we would have use concepts to enforce this).
-    Note that LinearNode is the result of a flattened BVH hierarchy where nodes
-    are stored with depth-first ordering for improved cache-location in the
-    downward traversal.
-
-    @note This class exists so that we can fit the nodes with a smaller memory
-    footprint. The standard BVH node (NodeT) is very useful when building the tree
-    but less useful when traversing it since it stores references to the
-    primitives in the node itself. It will span multiple cache lines. This node
-    exists so that we can fit all the BVH info onto fewer cache lines. The number
-    of cache lines will depend on the tree degree, precision, and bounding volume
-    that is chosen.
-
-    @todo There's a minor optimization that can be made to the memory alignment,
-    which is as follows: For a leaf node we never really need the m_childOffsets
-    array, and for a regular node we never really need the m_primitivesOffset
-    member. Moreover, m_childOffsets could be made into a K-1 sized array because
-    we happen to know that the linearized hierarchy will store the first child
-    node immediately after the regular node. We could shave off 16 bytes of
-    storage, which would mean that a double-precision binary tree only takes up
-    one word of CPU memory.
-  */
-  template <class T, class P, class BV, size_t K>
-  class LinearNodeT;
-
-  /*!
-    @brief SoA layout of K children's AABBs for a single interior PackedBVH node.
-    @details lo[axis][child] / hi[axis][child] layout makes each row a contiguous T[K]
-    array loadable as a single SIMD register. Used exclusively by PackedBVH.
-  */
-  template <class T, size_t K>
-  struct ChildAabbSoA {
-    alignas(sizeof(T) * K) T lo[3][K];
-    alignas(sizeof(T) * K) T hi[3][K];
-  };
-
-  template <class T, class P, class BV, size_t K>
-  class LinearNodeT
-  {
-  public:
-    /*!
-      @brief Alias for vector type
-    */
-    using Vec3 = Vec3T<T>;
-
-    /*!
-      @brief Constructor.
-    */
-    inline LinearNodeT() noexcept;
-
-    /*!
-      @brief Destructor.
-    */
-    inline ~LinearNodeT() noexcept;
-
-    /*!
-      @brief Set the bounding volume
-      @param[in] a_boundingVolume Bounding volume for this node.
-    */
-    inline void
-    setBoundingVolume(const BV& a_boundingVolume) noexcept;
-
-    /*!
-      @brief Set the offset into the primitives array.
-    */
-    inline void
-    setPrimitivesOffset(const uint32_t a_primitivesOffset) noexcept;
-
-    /*!
-      @brief Set number of primitives.
-      @param[in] a_numPrimitives Number of primitives.
-    */
-    inline void
-    setNumPrimitives(const uint32_t a_numPrimitives) noexcept;
-
-    /*!
-      @brief Set the child offsets.
-      @param[in] a_childOffset Offset in node array.
-      @param[in] a_whichChild  Child index in m_childrenOffsets. Must be [0,K-1]
-    */
-    inline void
-    setChildOffset(const uint32_t a_childOffset, const size_t a_whichChild) noexcept;
-
-    /*!
-      @brief Get the node bounding volume.
-      return m_boundingVolume
-    */
-    inline const BV&
-    getBoundingVolume() const noexcept;
-
-    /*!
-      @brief Get the primitives offset
-      @return Returns m_primitivesOffset
-    */
-    inline uint32_t
-    getPrimitivesOffset() const noexcept;
-
-    /*!
-      @brief Get the number of primitives.
-      @return Returns m_numPrimitives
-    */
-    inline uint32_t
-    getNumPrimitives() const noexcept;
-
-    /*!
-      @brief Get the child offsets
-      @return Returns m_childOffsets
-    */
-    inline const std::array<uint32_t, K>&
-    getChildOffsets() const noexcept;
-
-    /*!
-      @brief Is leaf or not
-    */
-    inline bool
-    isLeaf() const noexcept;
-
-    /*!
-      @brief Get the distance from a 3D point to the bounding volume
-      @param[in] a_point 3D point
-      @return Returns distance to bounding volume. A zero distance implies that
-      the input point is inside the bounding volume.
-    */
-    inline T
-    getDistanceToBoundingVolume(const Vec3& a_point) const noexcept;
-
-    /*!
-      @brief Compute signed distance to primitives.
-      @param[in] a_point      Point
-      @param[in] a_primitives List of primitives
-      @note Only call if this is a leaf node.
-    */
-    inline std::vector<T>
-    getDistances(const Vec3& a_point, const std::vector<std::shared_ptr<const P>>& a_primitives) const noexcept;
-
-  protected:
-    /*!
-      @brief Bounding volume.
-    */
-    BV m_boundingVolume;
-
-    /*!
-      @brief Offset into primitives array
-    */
-    uint32_t m_primitivesOffset;
-
-    /*!
-      @brief Number of primitives (0 for internal nodes).
-    */
-    uint32_t m_numPrimitives;
-
-    /*!
-      @brief Offset to child nodes.
-    */
-    std::array<uint32_t, K> m_childOffsets;
-  };
-
-  /*!
-    @brief Linear root node for BVH hierarchy
-  */
-  template <class T, class P, class BV, size_t K>
-  class LinearBVH
-  {
-  public:
-    /*!
-      @brief Alias for vector type
-    */
-    using Vec3 = Vec3T<T>;
-
-    /*!
-      @brief Alias for linear node type
-    */
-    using LinearNode = LinearNodeT<T, P, BV, K>;
-
-    /*!
-      @brief Alias for list of primitives
-    */
-    using PrimitiveList = std::vector<std::shared_ptr<const P>>;
-
-    /*!
-      @brief Disallowed. Use the full constructor please.
-    */
-    inline LinearBVH() = default;
-
-    /*!
-      @brief Copy constructor
-    */
-    inline LinearBVH(const LinearBVH&) = default;
-
-    /*!
-      @brief Full constructor. Takes ownership of the node array and associates the primitives.
-      @param[in] a_linearNodes Linearized BVH nodes stored by value (moved in).
-      @param[in] a_primitives  Primitives.
-    */
-    inline LinearBVH(std::vector<LinearNodeT<T, P, BV, K>>        a_linearNodes,
-                     const std::vector<std::shared_ptr<const P>>& a_primitives);
-
-    /*!
-      @brief Destructor. Does nothing
-    */
-    inline virtual ~LinearBVH();
-
-    /*!
-      @brief Get the bounding volume for this BVH.
-    */
-    inline const BV&
-    getBoundingVolume() const noexcept;
-
-    /*!
-      @brief Get the primitives list (sorted in leaf-traversal order).
-    */
-    inline const PrimitiveList&
-    getPrimitives() const noexcept;
-
-    /*!
-      @brief Get the linearized node array.
-    */
-    inline const std::vector<LinearNodeT<T, P, BV, K>>&
-    getLinearNodes() const noexcept;
-
-    /*!
-      @brief Recursion-less BVH traversal algorithm. 
-      The user inputs the update rule, a pruning criterion, and a criterion of who to visit first. 
-      @param[in] a_updater     Update rule (for updating whatever the user is interested in updated)
-      @param[in] a_visiter     Visiter rule. Must return true if we should visit the node. 
-      @param[in] a_sorter      Children sort function for deciding which subtrees and investigated first. 
-      @param[in] a_metaUpdater Updater for meta-information.
-    */
-    template <class Meta>
-    inline void
-    traverse(const BVH::LinearUpdater<P>&              a_updater,
-             const BVH::Visiter<LinearNode, Meta>&     a_visiter,
-             const BVH::LinearSorter<Meta, K>&         a_sorter,
-             const BVH::MetaUpdater<LinearNode, Meta>& a_metaUpdater) const noexcept;
-
-    /*!
-      @brief Compute signed distance from a_point to the nearest primitive.
-      @details Requires P to provide signedDistance(Vec3T<T>).
-    */
-    inline T
-    signedDistance(const Vec3T<T>& a_point) const noexcept;
-
-    /*!
-      @brief Compute bounding volume of this BVH (the root node's BV).
-      @details Enables LinearBVH to serve as a primitive in an outer NodeT hierarchy.
-    */
-    inline BV
-    computeBoundingVolume() const noexcept;
-
-  protected:
-    /*!
-      @brief Linearly stored nodes by value for cache-friendly traversal.
-    */
-    std::vector<LinearNodeT<T, P, BV, K>> m_linearNodes;
-
-    /*!
-      @brief Global list of primitives. Note that this is ALL primitives, sorted
-      so that LinearNodeT can interface into it.
-    */
-    std::vector<std::shared_ptr<const P>> m_primitives;
-  };
-
-  /*!
-    @brief LinearBVH specialised for AABB bounding volumes with SSE4.1-accelerated traversal.
-    @details Inherits LinearBVH<T,P,AABBT<T>,K> and adds a SoA cache of child AABBs that
-    lets signedDistance() test all K children simultaneously with packed SSE instructions.
-    Falls back to the base-class scalar traversal when SSE4.1 is unavailable or K != 4 or T != float.
-    @tparam T Floating-point precision.
-    @tparam P Primitive type. Must provide signedDistance(Vec3T<T>).
-    @tparam K BVH branching factor (SIMD path requires K==4).
-  */
-  template <class T, class P, size_t K>
-  class PackedBVH : public LinearBVH<T, P, EBGeometry::BoundingVolumes::AABBT<T>, K>
-  {
-  public:
-    using BV         = EBGeometry::BoundingVolumes::AABBT<T>;
-    using Base       = LinearBVH<T, P, BV, K>;
-    using LinearNode = typename Base::LinearNode;
-
-    PackedBVH() = delete;
-
-    /*!
-      @brief Full constructor. Passes nodes and primitives to LinearBVH, then builds the SoA AABB cache.
-    */
-    inline PackedBVH(std::vector<LinearNodeT<T, P, BV, K>>        a_linearNodes,
-                     const std::vector<std::shared_ptr<const P>>& a_primitives);
-
-    inline virtual ~PackedBVH() = default;
-
-    /*!
-      @brief Compute signed distance from a_point to the nearest primitive.
-      @details SSE4.1 path tests K children AABBs simultaneously when T=float and K==4.
-      Falls back to LinearBVH::signedDistance for other template parameters.
-    */
-    inline T
-    signedDistance(const Vec3T<T>& a_point) const noexcept;
-
-  protected:
-    /*!
-      @brief Per-node SoA cache of K children's AABBs.
-    */
-    std::vector<ChildAabbSoA<T, K>> m_childAabbSoA;
   };
 
 } // namespace BVH

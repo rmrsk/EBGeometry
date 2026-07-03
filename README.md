@@ -6,7 +6,7 @@ EBGeometry is a code for
 2. Fast evaluation of such grids using bounding volume hierarchies (BVHs).
 3. Providing fast constructive solid geometry (CSG) unions using BVHs. 
 
-This code is header-only and can be dropped into any C++ project that supports C++14.
+This code is header-only and can be dropped into any C++ project that supports C++17.
 It was originally written to be used with embedded-boundary (EB) codes like Chombo or AMReX.
 However, EBGeometry provides quite general SDFs, implicit functions, and CSG unions, and is useful beyond those codes. 
 
@@ -16,7 +16,7 @@ To clone EBGeometry:
 
 ## Requirements
 
-* A C++ compiler which supports C++14.
+* A C++ compiler which supports C++17.
 
 EBGeometry is a header-only library in C++ and has no external dependencies.
 To use it, simply make EBGeometry.hpp visible to your code and include it.
@@ -37,7 +37,7 @@ Use one of the analytic signed distance fields in EBGeometry:
 
 ```
 cd Examples/EBGeometry_Shapes
-g++ -O3 -std=c++14 main.cpp
+g++ -O3 -std=c++17 main.cpp
 ./a.out
 ```
 
@@ -47,7 +47,7 @@ Read in an STL file and turn it into a signed distance field.
 
 ```
 cd Examples/EBGeometry_DCEL
-g++ -O3 -std=c++14 main.cpp
+g++ -O3 -std=c++17 main.cpp
 ./a.out
 ```
 
@@ -61,7 +61,7 @@ Generate a spherical packed bed geometry using analytic representations of spher
 BVH-accelerated CSG unions lead to order-of-magnitude faster implicit function evaluation.
 ```
 cd Examples/EBGeometry_PackedSpheres
-g++ -O3 -std=c++14 main.cpp
+g++ -O3 -std=c++17 main.cpp
 ./a.out
 ```
 

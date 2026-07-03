@@ -176,26 +176,20 @@ namespace Parser {
   readIntoFullBVH(const std::vector<std::string> a_files) noexcept;
 
   /*!
-    @brief Read a file containing a single watertight object and return it as a DCEL mesh enclosed in a linearized BVH
+    @brief Read a file containing a single watertight object and return it as a DCEL mesh enclosed in a linearized BVH.
     @param[in] a_filename File name
   */
-  template <typename T,
-            typename Meta = DCEL::DefaultMetaData,
-            typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
-            size_t K      = 4>
-  inline static std::shared_ptr<FastCompactMeshSDF<T, Meta, BV, K>>
-  readIntoLinearBVH(const std::string a_filename) noexcept;
+  template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
+  inline static std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>
+  readIntoCompactBVH(const std::string a_filename) noexcept;
 
   /*!
     @brief Read multiple files containing single watertight objects and return them as DCEL meshes enclosed in linearized BVHs.
     @param[in] a_files File names
   */
-  template <typename T,
-            typename Meta = DCEL::DefaultMetaData,
-            typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
-            size_t K      = 4>
-  inline static std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, BV, K>>>
-  readIntoLinearBVH(const std::vector<std::string> a_files) noexcept;
+  template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
+  inline static std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>>
+  readIntoCompactBVH(const std::vector<std::string> a_files) noexcept;
 
   /*!
     @brief Read a file containing a single watertight object and return it as a DCEL mesh enclosed in a full BVH.
@@ -204,20 +198,20 @@ namespace Parser {
     evaluation overhead over more triangles per visit; smaller values give tighter BVH culling.
     Default 32 (fills 8 SSE-width groups) is a good balance for typical triangle meshes.
   */
-  template <typename T, typename Meta, typename BV = EBGeometry::BoundingVolumes::AABBT<T>, size_t K = 4>
-  inline static std::shared_ptr<FastTriMeshSDF<T, Meta, BV, K>>
+  template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
+  inline static std::shared_ptr<FastTriMeshSDF<T, Meta, K>>
   readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafSize = 8U) noexcept;
 
   /*!
     @brief Read multiple files containing single watertight objects and return them as DCEL meshes enclosed in BVHs.
-    @param[in] a_files File names
+    @param[in] a_files       File names
+    @param[in] a_maxLeafSize Maximum number of triangles per BVH leaf.
   */
   template <typename T,
             typename Meta = DCEL::DefaultMetaData,
-            typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
             size_t K      = 4>
-  inline static std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>>
-  readIntoTriangleBVH(const std::vector<std::string> a_files) noexcept;
+  inline static std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K>>>
+  readIntoTriangleBVH(const std::vector<std::string> a_files, const size_t a_maxLeafSize = 8U) noexcept;
 
   /*!
     @brief Read a file containing a single watertight object and return it as an implicit function.

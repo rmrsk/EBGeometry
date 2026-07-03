@@ -17,7 +17,7 @@ using namespace EBGeometry::DCEL;
 // regular node has four children.
 constexpr int K = 4;
 
-using T    = float;
+using T    = double;
 using Meta = short;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Vec3 = EBGeometry::Vec3T<T>;
@@ -50,11 +50,11 @@ main(int argc, char* argv[])
   // these representations.
   const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file);
   const auto bvhSDF  = EBGeometry::Parser::readIntoFullBVH<T, Meta, BV, K>(file);
-  const auto linSDF  = EBGeometry::Parser::readIntoLinearBVH<T, Meta, BV, K>(file);
-  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, BV, K>(file);
+  const auto linSDF  = EBGeometry::Parser::readIntoCompactBVH<T, Meta, K>(file);
+  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, K>(file);
 
   // Sample some random points around the object.
-  constexpr size_t Nsamp = 100;
+  constexpr size_t Nsamp = 1000;
 
   Vec3 lo = Vec3::infinity();
   Vec3 hi = -Vec3::infinity();

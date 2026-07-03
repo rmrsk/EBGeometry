@@ -17,7 +17,7 @@ Compiling
 
 To compile the example, do
 
-    g++ -std=c++14 -O3 main.cpp
+    g++ -std=c++17 -O3 main.cpp
 
 Running
 -------

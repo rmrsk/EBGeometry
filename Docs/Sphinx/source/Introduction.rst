@@ -3,7 +3,7 @@
 Requirements
 ============
 
-* A C++ compiler which supports C++14.
+* A C++ compiler which supports C++17.
 
 ``EBGeometry`` is a header-only library and is comparatively simple to set up and use. 
 To use it, make :file:`EBGeometry.hpp` (stored at the top level) visible to your code and include it.  

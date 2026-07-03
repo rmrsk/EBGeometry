@@ -285,7 +285,7 @@ FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<
                                     const BVH::Build                                            a_build) noexcept
 {
   // Init the root node, partition it, and flatten it.
-  auto root = std::make_shared<EBGeometry::BVH::NodeT<T, P, BV, K>>(a_primsAndBVs);
+  auto root = std::make_shared<EBGeometry::BVH::TreeBVH<T, P, BV, K>>(a_primsAndBVs);
 
   switch (a_build) {
   case BVH::Build::TopDown: {
@@ -309,7 +309,7 @@ FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<
   }
   }
 
-  m_bvh = root->flattenTree();
+  m_bvh = root->pack();
 }
 
 template <class T, class P, class BV, size_t K>
@@ -351,7 +351,7 @@ FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T, class P, class BV, size_t K>
-const BV&
+const EBGeometry::BoundingVolumes::AABBT<T>&
 FastUnionIF<T, P, BV, K>::getBoundingVolume() const noexcept
 {
   return m_bvh->getBoundingVolume();

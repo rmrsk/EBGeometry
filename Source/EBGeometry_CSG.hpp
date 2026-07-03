@@ -305,12 +305,12 @@ public:
                 "FastUnionIF requires an implicit function");
 
   /*!
-    @brief Alias for linear BVH type
+    @brief Alias for linearized BVH type
   */
-  using Root = typename EBGeometry::BVH::LinearBVH<T, P, BV, K>;
+  using Root = EBGeometry::BVH::PackedBVH<T, P, K>;
 
   /*!
-    @brief Alias for linear BVH node
+    @brief Alias for linearized BVH node
   */
   using Node = typename Root::LinearNode;
 
@@ -320,15 +320,15 @@ public:
   FastUnionIF() = delete;
 
   /*!
-    @brief Full constructor - constructs bounding volumes in place. 
-    @param[in] a_primsAndBVs Primitives and their bounding volumes. 
+    @brief Full constructor - constructs bounding volumes in place.
+    @param[in] a_primsAndBVs Primitives and their bounding volumes.
   */
   FastUnionIF(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs) noexcept;
 
   /*!
-    @brief Full constructor - constructs bounding volumes in place. 
+    @brief Full constructor - constructs bounding volumes in place.
     @param[in] a_primitives Input primitives.
-    @param[in] a_boundingVolumes Bounding volumes for primitives. 
+    @param[in] a_boundingVolumes Bounding volumes for primitives.
   */
   FastUnionIF(const std::vector<std::shared_ptr<P>>& a_primitives, const std::vector<BV>& a_boundingVolumes) noexcept;
 
@@ -347,14 +347,14 @@ public:
   /*!
     @brief Get the bounding volume
   */
-  const BV&
+  const EBGeometry::BoundingVolumes::AABBT<T>&
   getBoundingVolume() const noexcept;
 
 protected:
   /*!
-    @brief Root node for linearized BVH tree
+    @brief Linearized BVH tree
   */
-  std::shared_ptr<EBGeometry::BVH::LinearBVH<T, P, BV, K>> m_bvh;
+  std::shared_ptr<EBGeometry::BVH::PackedBVH<T, P, K>> m_bvh;
 
   /*!
     @brief Build BVH tree for the input objects. 
@@ -379,12 +379,12 @@ public:
                 "FastSmoothUnionIF requires an implicit function");
 
   /*!
-    @brief Alias for linear BVH type
+    @brief Alias for linearized BVH type
   */
-  using Root = typename EBGeometry::BVH::LinearBVH<T, P, BV, K>;
+  using Root = EBGeometry::BVH::PackedBVH<T, P, K>;
 
   /*!
-    @brief Alias for linear BVH node
+    @brief Alias for linearized BVH node
   */
   using Node = typename Root::LinearNode;
 
