@@ -17,7 +17,7 @@ using namespace amrex;
 
 /*!
   @brief This is an AMReX-capable version of the EBGeometry BVH accelerator. It
-  is templated as T, Meta BV, K which indicate the EBGeometry precision, triangle meta-data, 
+  is templated as T, Meta BV, K which indicate the EBGeometry precision, triangle meta-data,
   bounding volume, and tree degree.
 */
 template <class T, class Meta, class BV, size_t K>
@@ -27,11 +27,12 @@ public:
   /*!
     @brief Full constructor.
     @param[in] a_filename File name. Must be an STL file.
+    @param[in] a_use_bvh  If true, accelerate with a BVH; otherwise query the raw mesh.
   */
   AMReXSDF(const std::string a_filename, const bool a_use_bvh)
   {
     if (a_use_bvh) {
-      m_sdf = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, BV, K>(a_filename);
+      m_sdf = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, K>(a_filename);
     }
     else {
       m_sdf = EBGeometry::Parser::readIntoMesh<T, Meta>(a_filename);
@@ -40,12 +41,8 @@ public:
 
   /*!
     @brief Copy constructor.
-    @param[in] a_other Other SDF.
   */
-  AMReXSDF(const AMReXSDF& a_other)
-  {
-    this->m_sdf = a_other.m_sdf;
-  }
+  AMReXSDF(const AMReXSDF& a_other) = default;
 
   /*!
     @brief AMReX's implicit function definition.
@@ -53,10 +50,8 @@ public:
   Real
   operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    using Vec3 = EBGeometry::Vec3T<T>;
-
-    return m_sdf->value(Vec3(x, y, z));
-  };
+    return m_sdf->value(EBGeometry::Vec3T<T>(x, y, z));
+  }
 
   /*!
     @brief Also an AMReX implicit function implementation
@@ -69,7 +64,7 @@ public:
 
 protected:
   /*!
-    @brief Root node of the linearized BVH hierarchy.
+    @brief Signed distance function (BVH-accelerated or flat mesh).
   */
   std::shared_ptr<EBGeometry::ImplicitFunction<T>> m_sdf;
 };
@@ -84,7 +79,7 @@ main(int argc, char* argv[])
     int  n_cell          = 128;
     int  max_grid_size   = 16;
     int  which_geom      = 0;
-    int  num_coarsen_opt = 0;
+    int  num_coarsen_opt = 4;
     bool use_bvh         = true;
 
     std::string filename;
@@ -153,6 +148,7 @@ main(int argc, char* argv[])
     AMReXSDF<T, Meta, BV, K> sdf(filename, use_bvh);
 
     auto gshop = EB2::makeShop(sdf);
+
     EB2::Build(gshop, geom, 0, 0, 1, true, true, num_coarsen_opt);
 
     // Put some data
