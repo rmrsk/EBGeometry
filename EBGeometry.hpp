@@ -1,3 +1,4 @@
+#include "Source/EBGeometry_Constants.hpp"
 #include "Source/EBGeometry_AnalyticDistanceFunctions.hpp"
 #include "Source/EBGeometry_BoundingVolumes.hpp"
 #include "Source/EBGeometry_BVH.hpp"

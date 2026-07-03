@@ -18,6 +18,7 @@
 
 // Our includes
 #include "EBGeometry_BoundingVolumes.hpp"
+#include "EBGeometry_Constants.hpp"
 #include "EBGeometry_SignedDistanceFunction.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
@@ -37,26 +38,11 @@ clamp(const Vec3T<T>& v, const Vec3T<T>& lo, const Vec3T<T>& hi)
 }
 
 /**
-  @brief Ken Perlin's original permutation array. Use for initializing PerlinSDF
-*/
-constexpr static std::array<int, 256> s_perlinPermutationTable = {
-  151, 160, 137, 91,  90,  15,  131, 13,  201, 95,  96,  53,  194, 233, 7,   225, 140, 36,  103, 30,  69,  142,
-  8,   99,  37,  240, 21,  10,  23,  190, 6,   148, 247, 120, 234, 75,  0,   26,  197, 62,  94,  252, 219, 203,
-  117, 35,  11,  32,  57,  177, 33,  88,  237, 149, 56,  87,  174, 20,  125, 136, 171, 168, 68,  175, 74,  165,
-  71,  134, 139, 48,  27,  166, 77,  146, 158, 231, 83,  111, 229, 122, 60,  211, 133, 230, 220, 105, 92,  41,
-  55,  46,  245, 40,  244, 102, 143, 54,  65,  25,  63,  161, 1,   216, 80,  73,  209, 76,  132, 187, 208, 89,
-  18,  169, 200, 196, 135, 130, 116, 188, 159, 86,  164, 100, 109, 198, 173, 186, 3,   64,  52,  217, 226, 250,
-  124, 123, 5,   202, 38,  147, 118, 126, 255, 82,  85,  212, 207, 206, 59,  227, 47,  16,  58,  17,  182, 189,
-  28,  42,  223, 183, 170, 213, 119, 248, 152, 2,   44,  154, 163, 70,  221, 153, 101, 155, 167, 43,  172, 9,
-  129, 22,  39,  253, 19,  98,  108, 110, 79,  113, 224, 232, 178, 185, 112, 104, 218, 246, 97,  228, 251, 34,
-  242, 193, 238, 210, 144, 12,  191, 179, 162, 241, 81,  51,  145, 235, 249, 14,  239, 107, 49,  192, 214, 31,
-  181, 199, 106, 157, 184, 84,  204, 176, 115, 121, 50,  45,  127, 4,   150, 254, 138, 236, 205, 93,  222, 114,
-  67,  29,  24,  72,  243, 141, 128, 195, 78,  66,  215, 61,  156, 180};
-
-/**
   @brief Signed distance function for a plane.
   @details The SDF evaluates to `dot(a_point - m_point, m_normal)`: positive on the half-space
   the normal points into, negative on the opposite side. The plane itself is the zero level-set.
+  `m_normal` must be unit length for the SDF to return a true distance; the full constructor
+  normalizes the input automatically. By default the plane is the y = 0 plane with normal (0,1,0).
   @tparam T Floating-point precision.
 */
 template <class T>
@@ -66,9 +52,9 @@ class PlaneSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs the z = 0 plane with outward normal (0, 0, 1).
-    @details The default plane passes through the origin and separates z < 0 (negative SDF) from
-    z > 0 (positive SDF).
+    @brief Default constructor. Constructs the y = 0 plane with outward normal (0, 1, 0).
+    @details The default plane passes through the origin and separates y < 0 (negative SDF) from
+    y > 0 (positive SDF).
   */
   PlaneSDF() = default;
 
@@ -79,6 +65,12 @@ public:
   */
   PlaneSDF(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) noexcept
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_normal[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_normal[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_normal[2]));
     EBGEOMETRY_EXPECT(a_normal.length() > T(0));
 
     m_point  = a_point;
@@ -120,6 +112,11 @@ public:
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+    EBGEOMETRY_EXPECT(std::abs(m_normal.length() - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+
     return dot((a_point - m_point), m_normal);
   }
 
@@ -132,7 +129,7 @@ protected:
   /**
     @brief Plane normal vector (unit length).
   */
-  Vec3T<T> m_normal = Vec3T<T>(T(0), T(0), T(1));
+  Vec3T<T> m_normal = Vec3T<T>(T(0), T(1), T(0));
 };
 
 /**
@@ -160,6 +157,10 @@ public:
   */
   SphereSDF(const Vec3T<T>& a_center, const T& a_radius) noexcept
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_center[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_radius));
     EBGEOMETRY_EXPECT(a_radius > T(0));
 
     m_center = a_center;
@@ -241,6 +242,10 @@ public:
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
     return (a_point - m_center).length() - m_radius;
   }
 
@@ -283,6 +288,12 @@ public:
   */
   BoxSDF(const Vec3T<T>& a_loCorner, const Vec3T<T>& a_hiCorner) noexcept
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_loCorner[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_loCorner[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_loCorner[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_hiCorner[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_hiCorner[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_hiCorner[2]));
     EBGEOMETRY_EXPECT(a_loCorner[0] < a_hiCorner[0]);
     EBGEOMETRY_EXPECT(a_loCorner[1] < a_hiCorner[1]);
     EBGEOMETRY_EXPECT(a_loCorner[2] < a_hiCorner[2]);
@@ -366,6 +377,10 @@ public:
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
     // For each coordinate direction, we have delta[dir] if a_point[dir] falls
     // between xLo and xHi. In this case delta[dir] will be the signed distance
     // to the closest box face in the dir-direction. Otherwise, if a_point[dir]
@@ -426,6 +441,11 @@ public:
   */
   TorusSDF(const Vec3T<T>& a_center, const T& a_majorRadius, const T& a_minorRadius) noexcept
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_center[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_majorRadius));
+    EBGEOMETRY_EXPECT(std::isfinite(a_minorRadius));
     EBGEOMETRY_EXPECT(a_majorRadius > T(0));
     EBGEOMETRY_EXPECT(a_minorRadius > T(0));
     EBGEOMETRY_EXPECT(a_minorRadius < a_majorRadius);
@@ -529,6 +549,10 @@ public:
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
     const Vec3T<T> p   = a_point - m_center;
     const T        rho = sqrt(p[0] * p[0] + p[1] * p[1]) - m_majorRadius;
     const T        d   = sqrt(rho * rho + p[2] * p[2]) - m_minorRadius;
@@ -559,7 +583,7 @@ protected:
   radius `m_radius`. The cylinder axis is the unit vector from `m_center1` to `m_center2`, and its
   height (distance between the two flat caps) equals `distance(m_center1, m_center2)`. The SDF is
   negative inside the cylinder and positive outside. By default the cylinder has radius 1 and
-  height 1, centred at the origin with its axis along z (cap centres at (0,0,-0.5) and (0,0,0.5)).
+  height 1, centred at the origin with its axis along y (cap centres at (0,-0.5,0) and (0,0.5,0)).
   @tparam T Floating-point precision.
 */
 template <class T>
@@ -569,8 +593,8 @@ class CylinderSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs a unit cylinder of radius 1 and height 1, centered at the
-    origin with its axis along z (endpoints at (0,0,-0.5) and (0,0,0.5)).
+    @brief Default constructor. Constructs a unit cylinder of radius 1 and height 1, centred at the
+    origin with its axis along y (cap centres at (0,-0.5,0) and (0,0.5,0)).
   */
   CylinderSDF() = default;
 
@@ -582,6 +606,13 @@ public:
   */
   CylinderSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T& a_radius) noexcept
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_center1[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center1[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center1[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center2[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center2[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center2[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_radius));
     EBGEOMETRY_EXPECT(a_radius > T(0));
     EBGEOMETRY_EXPECT((a_center2 - a_center1).length() > T(0));
 
@@ -659,28 +690,36 @@ public:
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
     T d = std::numeric_limits<T>::infinity();
 
     if (m_length > 0.0 && m_radius > 0.0) {
+      EBGEOMETRY_EXPECT(std::abs(m_axis.length() - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+
       const Vec3T<T> point = a_point - m_center;
       const T        para  = dot(point, m_axis);
       const Vec3T<T> ortho = point - para * m_axis; // Distance from cylinder axis.
 
-      const T w = ortho.length() - m_radius;       // Distance from cylinder wall. < 0
-                                                   // on inside and > 0 on outside.
-      const T h = std::abs(para) - 0.5 * m_length; // Distance from cylinder top.  < 0 on
-                                                   // inside and > 0 on outside.
+      // w: Distance from cylinder wall. < 0 on inside and > 0 on outside.
+      // h: Distance from cylinder top.  < 0 on inside and > 0 on outside.
+      const T w = ortho.length() - m_radius;
+      const T h = std::abs(para) - 0.5 * m_length;
 
       constexpr T zero = T(0.0);
 
-      if (w <= zero && h <= zero) { // Inside cylinder
+      if (w <= zero && h <= zero) {
+        // Inside cylinder
         d = (std::abs(w) < std::abs(h)) ? w : h;
       }
-      else if (w <= zero && h > zero) { // Above one of the endcaps.
+      else if (w <= zero && h > zero) {
+        // Above one of the endcaps.
         d = h;
       }
-      else if (w > zero && h < zero) { // Outside radius but between the
-                                       // endcaps.
+      else if (w > zero && h < zero) {
+        // Outside radius but between the endcaps.
         d = w;
       }
       else {
@@ -695,12 +734,12 @@ protected:
   /**
     @brief One endpoint (cap center).
   */
-  Vec3T<T> m_center1 = Vec3T<T>(T(0), T(0), T(-0.5));
+  Vec3T<T> m_center1 = Vec3T<T>(T(0), T(-0.5), T(0));
 
   /**
     @brief Other endpoint (cap center).
   */
-  Vec3T<T> m_center2 = Vec3T<T>(T(0), T(0), T(0.5));
+  Vec3T<T> m_center2 = Vec3T<T>(T(0), T(0.5), T(0));
 
   /**
     @brief Midpoint of m_center1 and m_center2.
@@ -710,7 +749,7 @@ protected:
   /**
     @brief Unit axis pointing from m_center1 to m_center2.
   */
-  Vec3T<T> m_axis = Vec3T<T>(T(0), T(0), T(1));
+  Vec3T<T> m_axis = Vec3T<T>(T(0), T(1), T(0));
 
   /**
     @brief Distance between the two endpoints.
@@ -729,7 +768,7 @@ protected:
   1 = y, 2 = z) and has a circular cross-section of radius `m_radius` centred at `m_center`
   in the plane perpendicular to that axis. The SDF is the radial distance from the axis minus
   the radius: negative inside the cylinder and positive outside. By default the cylinder has
-  radius 1, passes through the origin, and extends along z.
+  radius 1, passes through the origin, and extends along y.
   @tparam T Floating-point precision.
 */
 template <class T>
@@ -739,8 +778,8 @@ class InfiniteCylinderSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs an infinite cylinder of radius 1 centered at the origin
-    with its axis along z (axis index 2).
+    @brief Default constructor. Constructs an infinite cylinder of radius 1 centred at the origin
+    with its axis along y (axis index 1).
   */
   InfiniteCylinderSDF() = default;
 
@@ -752,6 +791,10 @@ public:
   */
   InfiniteCylinderSDF(const Vec3T<T>& a_center, const T& a_radius, const size_t a_axis) noexcept
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_center[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_radius));
     EBGEOMETRY_EXPECT(a_radius > T(0));
     EBGEOMETRY_EXPECT(a_axis < 3U);
 
@@ -795,6 +838,10 @@ public:
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
     Vec3T<T> delta = a_point - m_center;
     delta[m_axis]  = 0.0;
 
@@ -817,7 +864,7 @@ protected:
   /**
     @brief Coordinate axis index (0 = x, 1 = y, 2 = z).
   */
-  size_t m_axis = 2U;
+  size_t m_axis = 1U;
 };
 
 /**
@@ -833,7 +880,7 @@ protected:
   passed to the constructor.
 
   The SDF is negative inside the capsule and positive outside. By default the capsule is
-  centred at the origin, aligned along z, with tips at (0,0,-1) and (0,0,1) and radius 0.5,
+  centred at the origin, aligned along y, with tips at (0,-1,0) and (0,1,0) and radius 0.5,
   giving a total height of 2 and a cylindrical body of length 1.
   @tparam T Floating-point precision.
 */
@@ -844,9 +891,9 @@ class CapsuleSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs a capsule with tips at (0,0,-1) and (0,0,1), radius 0.5.
-    @details Total height = 2, cylindrical body length = 1, aligned along z, centred at origin.
-    The stored hemisphere centres are at (0,0,-0.5) and (0,0,0.5).
+    @brief Default constructor. Constructs a capsule with tips at (0,-1,0) and (0,1,0), radius 0.5.
+    @details Total height = 2, cylindrical body length = 1, aligned along y, centred at origin.
+    The stored hemisphere centres are at (0,-0.5,0) and (0,0.5,0).
   */
   CapsuleSDF() = default;
 
@@ -863,13 +910,21 @@ public:
   */
   CapsuleSDF(const Vec3T<T>& a_tip1, const Vec3T<T>& a_tip2, const T& a_radius) noexcept
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_tip1[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_tip1[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_tip1[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_tip2[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_tip2[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_tip2[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_radius));
     EBGEOMETRY_EXPECT(a_radius > T(0));
     EBGEOMETRY_EXPECT((a_tip2 - a_tip1).length() > T(0));
 
     const Vec3T<T> axis = (a_tip2 - a_tip1) / length(a_tip2 - a_tip1);
-    m_center1           = a_tip1 + a_radius * axis;
-    m_center2           = a_tip2 - a_radius * axis;
-    m_radius            = a_radius;
+
+    m_center1 = a_tip1 + a_radius * axis;
+    m_center2 = a_tip2 - a_radius * axis;
+    m_radius  = a_radius;
   }
 
   /**
@@ -907,6 +962,11 @@ public:
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+    EBGEOMETRY_EXPECT((m_center2 - m_center1).length() > T(0));
+
     const Vec3T<T> v1 = a_point - m_center1;
     const Vec3T<T> v2 = m_center2 - m_center1;
 
@@ -920,12 +980,12 @@ protected:
   /**
     @brief Center of one hemispherical cap.
   */
-  Vec3T<T> m_center1 = Vec3T<T>(T(0), T(0), T(-0.5));
+  Vec3T<T> m_center1 = Vec3T<T>(T(0), T(-0.5), T(0));
 
   /**
     @brief Center of the other hemispherical cap.
   */
-  Vec3T<T> m_center2 = Vec3T<T>(T(0), T(0), T(0.5));
+  Vec3T<T> m_center2 = Vec3T<T>(T(0), T(0.5), T(0));
 
   /**
     @brief Capsule radius.
@@ -968,14 +1028,16 @@ public:
   */
   InfiniteConeSDF(const Vec3T<T>& a_tip, const T& a_angle) noexcept
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_tip[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_tip[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_tip[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_angle));
     EBGEOMETRY_EXPECT(a_angle > T(0));
     EBGEOMETRY_EXPECT(a_angle < T(180));
 
-    constexpr T pi = T(3.14159265358979323846);
-
     m_tip = a_tip;
-    m_c.x = std::sin(T(0.5) * a_angle * pi / T(180));
-    m_c.y = std::cos(T(0.5) * a_angle * pi / T(180));
+    m_c.x = std::sin(T(0.5) * a_angle * pi<T> / T(180));
+    m_c.y = std::cos(T(0.5) * a_angle * pi<T> / T(180));
   }
 
   /**
@@ -1013,6 +1075,11 @@ public:
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+    EBGEOMETRY_EXPECT(std::abs(length(m_c) - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+
     const Vec3T<T> delta = a_point - m_tip;
     const Vec2T<T> q(sqrt(delta[0] * delta[0] + delta[1] * delta[1]), -delta[2]);
 
@@ -1031,7 +1098,7 @@ protected:
   /**
     @brief (sin, cos) of the half opening-angle. Default: 45° full angle → half-angle 22.5°.
   */
-  Vec2T<T> m_c = Vec2T<T>(std::sin(T(3.14159265358979323846) / T(8)), std::cos(T(3.14159265358979323846) / T(8)));
+  Vec2T<T> m_c = Vec2T<T>(std::sin(pi<T> / T(8)), std::cos(pi<T> / T(8)));
 };
 
 /**
@@ -1066,16 +1133,19 @@ public:
   */
   ConeSDF(const Vec3T<T>& a_tip, const T& a_height, const T& a_angle) noexcept
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_tip[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_tip[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_tip[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_height));
+    EBGEOMETRY_EXPECT(std::isfinite(a_angle));
     EBGEOMETRY_EXPECT(a_height > T(0));
     EBGEOMETRY_EXPECT(a_angle > T(0));
     EBGEOMETRY_EXPECT(a_angle < T(180));
 
-    constexpr T pi = T(3.14159265358979323846);
-
     m_tip    = a_tip;
     m_height = a_height;
-    m_c.x    = std::sin(T(0.5) * a_angle * pi / T(180));
-    m_c.y    = std::cos(T(0.5) * a_angle * pi / T(180));
+    m_c.x    = std::sin(T(0.5) * a_angle * pi<T> / T(180));
+    m_c.y    = std::cos(T(0.5) * a_angle * pi<T> / T(180));
   }
 
   /**
@@ -1113,6 +1183,12 @@ public:
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+    EBGEOMETRY_EXPECT(std::abs(length(m_c) - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+    EBGEOMETRY_EXPECT(m_c.y > T(0));
+
     const Vec3T<T> delta = a_point - m_tip;
     const T        dr    = sqrt(delta[0] * delta[0] + delta[1] * delta[1]);
     const T        dz    = delta[2];
@@ -1125,7 +1201,7 @@ public:
     const Vec2T<T> a = w - std::clamp(dot(w, q) / dot(q, q), zero, one) * q;
     const Vec2T<T> b = w - Vec2T<T>(q.x * std::clamp(w.x / q.x, zero, one), q.y);
 
-    auto sign = [](const T& x) { return (x > zero) - (x < zero); };
+    auto sign = [](const T& x) -> int { return (x > zero) - (x < zero); };
 
     const T k = sign(q.y);
     const T d = std::min(dot(a, a), dot(b, b));
@@ -1143,7 +1219,7 @@ protected:
   /**
     @brief (sin, cos) of the half opening-angle. Default: 45° full angle → half-angle 22.5°.
   */
-  Vec2T<T> m_c = Vec2T<T>(std::sin(T(3.14159265358979323846) / T(8)), std::cos(T(3.14159265358979323846) / T(8)));
+  Vec2T<T> m_c = Vec2T<T>(std::sin(pi<T> / T(8)), std::cos(pi<T> / T(8)));
 
   /**
     @brief Cone height (tip to base).
@@ -1182,6 +1258,10 @@ public:
   */
   RoundedBoxSDF(const Vec3T<T>& a_dimensions, const T a_curvature) noexcept
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_dimensions[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_dimensions[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_dimensions[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_curvature));
     EBGEOMETRY_EXPECT(a_dimensions[0] > T(0));
     EBGEOMETRY_EXPECT(a_dimensions[1] > T(0));
     EBGEOMETRY_EXPECT(a_dimensions[2] > T(0));
@@ -1226,6 +1306,10 @@ public:
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
     return m_sphere->signedDistance(a_point - clamp(a_point, -m_dimensions, m_dimensions));
   }
 
@@ -1282,6 +1366,12 @@ public:
             const T            a_noisePersistence,
             const unsigned int a_noiseOctaves) noexcept
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_noiseAmplitude));
+    EBGEOMETRY_EXPECT(std::isfinite(a_noiseFrequency[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_noiseFrequency[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_noiseFrequency[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_noisePersistence));
+
     m_noiseAmplitude   = a_noiseAmplitude;
     m_noiseFrequency   = a_noiseFrequency;
     m_noisePersistence = std::min(T(1), a_noisePersistence);
@@ -1331,6 +1421,10 @@ public:
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
     T ret = 0.0;
 
     Vec3T<T> curFreq = m_noiseFrequency;
@@ -1385,6 +1479,26 @@ public:
   }
 
 protected:
+  /**
+    @brief Ken Perlin's original 256-entry permutation table.
+    @details Used by the full constructor and shuffle() to seed m_permutationTable. Stored as a
+    static constexpr member so it is available to subclasses without polluting the enclosing
+    namespace.
+  */
+  static constexpr std::array<int, 256> s_perlinPermutationTable = {
+    151, 160, 137, 91,  90,  15,  131, 13,  201, 95,  96,  53,  194, 233, 7,   225, 140, 36,  103, 30,  69,  142,
+    8,   99,  37,  240, 21,  10,  23,  190, 6,   148, 247, 120, 234, 75,  0,   26,  197, 62,  94,  252, 219, 203,
+    117, 35,  11,  32,  57,  177, 33,  88,  237, 149, 56,  87,  174, 20,  125, 136, 171, 168, 68,  175, 74,  165,
+    71,  134, 139, 48,  27,  166, 77,  146, 158, 231, 83,  111, 229, 122, 60,  211, 133, 230, 220, 105, 92,  41,
+    55,  46,  245, 40,  244, 102, 143, 54,  65,  25,  63,  161, 1,   216, 80,  73,  209, 76,  132, 187, 208, 89,
+    18,  169, 200, 196, 135, 130, 116, 188, 159, 86,  164, 100, 109, 198, 173, 186, 3,   64,  52,  217, 226, 250,
+    124, 123, 5,   202, 38,  147, 118, 126, 255, 82,  85,  212, 207, 206, 59,  227, 47,  16,  58,  17,  182, 189,
+    28,  42,  223, 183, 170, 213, 119, 248, 152, 2,   44,  154, 163, 70,  221, 153, 101, 155, 167, 43,  172, 9,
+    129, 22,  39,  253, 19,  98,  108, 110, 79,  113, 224, 232, 178, 185, 112, 104, 218, 246, 97,  228, 251, 34,
+    242, 193, 238, 210, 144, 12,  191, 179, 162, 241, 81,  51,  145, 235, 249, 14,  239, 107, 49,  192, 214, 31,
+    181, 199, 106, 157, 184, 84,  204, 176, 115, 121, 50,  45,  127, 4,   150, 254, 138, 236, 205, 93,  222, 114,
+    67,  29,  24,  72,  243, 141, 128, 195, 78,  66,  215, 61,  156, 180};
+
   /**
     @brief Spatial noise frequency along each Cartesian axis.
   */
@@ -1541,6 +1655,9 @@ public:
   */
   RoundedCylinderSDF(const T a_radius, const T a_curvature, const T a_height) noexcept
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_radius));
+    EBGEOMETRY_EXPECT(std::isfinite(a_curvature));
+    EBGEOMETRY_EXPECT(std::isfinite(a_height));
     EBGEOMETRY_EXPECT(a_radius > T(0));
     EBGEOMETRY_EXPECT(a_curvature > T(0));
     EBGEOMETRY_EXPECT(a_height > T(0));
@@ -1587,6 +1704,10 @@ public:
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
     const T    xz = sqrt(a_point[2] * a_point[2] + a_point[0] * a_point[0]);
     const auto d1 = Vec2T<T>(xz - m_majorRadius, std::abs(a_point[1]) - m_height);
     const auto d2 = Vec2T<T>(std::max(d1.x, T(0)), std::max(d1.y, T(0)));

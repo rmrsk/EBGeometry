@@ -16,6 +16,7 @@
 
 // Our includes
 #include "EBGeometry_BoundingVolumes.hpp"
+#include "EBGeometry_Constants.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
 namespace BoundingVolumes {
@@ -216,12 +217,12 @@ namespace BoundingVolumes {
             volume equals the volume of the smaller sphere. The lens formula
             below is undefined for d <= |r1 - r2| (and singular at d == 0). */
         const auto rMin = std::min(r1, r2);
-        retval          = T(4.0 / 3.0) * T(M_PI) * rMin * rMin * rMin;
+        retval          = T(4.0 / 3.0) * pi<T> * rMin * rMin * rMin;
       }
       else {
         /** Standard lens-intersection formula, valid for |r1-r2| < d < r1+r2. */
         retval =
-          M_PI / (12. * d) * (r1 + r2 - d) * (r1 + r2 - d) * (d * d + 2 * d * (r1 + r2) - 3 * (r1 - r2) * (r1 - r2));
+          pi<T> / (T(12) * d) * (r1 + r2 - d) * (r1 + r2 - d) * (d * d + 2 * d * (r1 + r2) - 3 * (r1 - r2) * (r1 - r2));
       }
     }
 
@@ -241,14 +242,14 @@ namespace BoundingVolumes {
   inline T
   BoundingSphereT<T>::getVolume() const noexcept
   {
-    return 4. * M_PI * m_radius * m_radius * m_radius / 3.0;
+    return T(4) * pi<T> * m_radius * m_radius * m_radius / T(3);
   }
 
   template <class T>
   inline T
   BoundingSphereT<T>::getArea() const noexcept
   {
-    return T(4. * M_PI * m_radius * m_radius);
+    return T(4) * pi<T> * m_radius * m_radius;
   }
 
   template <class T>

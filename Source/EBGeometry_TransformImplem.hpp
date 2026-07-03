@@ -137,7 +137,7 @@ RotateIF<T>::RotateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunc
   m_angle            = a_angle;
   m_axis             = a_axis;
 
-  const T theta = m_angle * (T(4) * std::atan(T(1))) / T(180);
+  const T theta = m_angle * pi<T> / T(180);
 
   m_cosAngle = std::cos(theta);
   m_sinAngle = std::sin(theta);

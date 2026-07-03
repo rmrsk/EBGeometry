@@ -15,6 +15,7 @@
 #include <iostream>
 
 // Our includes
+#include "EBGeometry_Constants.hpp"
 #include "EBGeometry_Polygon2D.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
@@ -156,7 +157,7 @@ template <class T>
 inline T
 Polygon2D<T>::computeSubtendedAngle(const Vec2& p) const noexcept
 {
-  constexpr T pi = T(4) * std::atan(T(1));
+  constexpr T pi = EBGeometry::pi<T>;
 
   T sumTheta = T(0);
 
@@ -212,7 +213,7 @@ Polygon2D<T>::isPointInsidePolygonSubtend(const Vec3& a_point) const noexcept
 {
   const Vec2 p = this->projectPoint(a_point);
 
-  constexpr T pi = T(4) * std::atan(T(1));
+  constexpr T pi = EBGeometry::pi<T>;
 
   T sumTheta = this->computeSubtendedAngle(p); // Should be = 2*pi if point is inside.
 
