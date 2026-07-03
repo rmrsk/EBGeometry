@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_CSGImplem.hpp
   @brief  Implementation of EBGeometry_CSG.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_CSGImplem
-#define EBGeometry_CSGImplem
+#ifndef EBGEOMETRY_CSGIMPLEM_HPP
+#define EBGEOMETRY_CSGIMPLEM_HPP
 
 // Our includes
 #include "EBGeometry_CSG.hpp"

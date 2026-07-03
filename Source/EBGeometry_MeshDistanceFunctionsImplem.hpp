@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2023 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2023 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file    EBGeometry_MeshDistanceFunctionsImplem.hpp
   @brief   Implementation of EBGeometry_MeshDistanceFunctions.hpp
   @author  Robert Marskar
 */
 
-#ifndef EBGeometry_MeshDistanceFunctionsImplem
-#define EBGeometry_MeshDistanceFunctionsImplem
+#ifndef EBGEOMETRY_MESHDISTANCEFUNCTIONSIMPLEM_HPP
+#define EBGEOMETRY_MESHDISTANCEFUNCTIONSIMPLEM_HPP
 
 // Our includes
 #include "EBGeometry_MeshDistanceFunctions.hpp"
@@ -60,6 +59,21 @@ DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dc
   return bvh;
 }
 
+/**
+  @brief Build a full (tree) BVH from a flat triangle soup.
+  @details Creates one BV per triangle from its vertex positions, then
+  builds a K-ary tree BVH according to a_build.  For TopDown builds the
+  tree is partitioned until each leaf holds at most a_maxLeafSize triangles.
+  @tparam T    Floating-point precision type.
+  @tparam Meta Triangle metadata type.
+  @tparam BV   Bounding-volume type (e.g. AABBT<T>).
+  @tparam K    BVH branching factor (number of children per internal node).
+  @param[in] a_triangles   Triangle soup to build the BVH over.
+  @param[in] a_build       Build strategy (TopDown, Morton, or Nested).
+  @param[in] a_maxLeafSize Maximum number of triangles per BVH leaf node
+                           (TopDown only; ignored for Morton and Nested).
+  @return Shared pointer to the root of the resulting tree BVH.
+*/
 template <class T, class Meta, class BV, size_t K>
 std::shared_ptr<EBGeometry::BVH::TreeBVH<T, Triangle<T, Meta>, BV, K>>
 buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Meta>>>& a_triangles,

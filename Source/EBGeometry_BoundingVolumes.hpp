@@ -1,17 +1,16 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_BoundingVolumes.hpp
   @brief  Declaration of a various bounding volumes used for bounding volume
   hierarchy.
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_BoundingVolumes_H
-#define EBGeometry_BoundingVolumes_H
+#ifndef EBGEOMETRY_BOUNDINGVOLUMES_HPP
+#define EBGEOMETRY_BOUNDINGVOLUMES_HPP
 
 // Std includes
 #include <vector>
@@ -21,23 +20,29 @@
 #include "EBGeometry_Vec.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-/*!
+/**
   @brief Namespace for encapsulating various bounding volumes for usage with
   BVHs
 */
 namespace BoundingVolumes {
 
-  /*!
+  /**
     @brief Class which encloses a set of points using a bounding sphere.
     @details The template parameter T is the floating-point precision which is
     used.
+    @tparam T Floating-point precision (e.g., float or double).
   */
   template <class T>
   class BoundingSphereT
   {
+    static_assert(std::is_floating_point_v<T>, "BoundingSphereT<T>: T must be a floating-point type.");
+
   public:
-    /*!
-      @brief For outputting a vector to an output stream. 
+    /**
+      @brief Output a bounding sphere to a stream in the form "(centroid, radius)".
+      @param[in,out] os     Output stream.
+      @param[in]     sphere Bounding sphere to print.
+      @return Reference to @p os to allow chaining.
     */
     friend std::ostream&
     operator<<(std::ostream& os, const BoundingSphereT<T>& sphere)
@@ -47,7 +52,7 @@ namespace BoundingVolumes {
       return os;
     }
 
-    /*!
+    /**
       @brief Typename for possible algorithms that support the computation of a
       bounding sphere for a set of 3D points.
     */
@@ -56,41 +61,42 @@ namespace BoundingVolumes {
       Ritter,
     };
 
-    /*!
+    /**
       @brief Alias to cut down on typing
     */
     using Vec3 = Vec3T<T>;
 
-    /*!
+    /**
       @brief Default constructor. Leaves object in undefined state.
     */
     inline BoundingSphereT() noexcept;
 
-    /*!
+    /**
       @brief Full constructor. Sets the center and radius of the bounding sphere.
       @param[in] a_center Bounding sphere center
       @param[in] a_radius Bounding sphere radius
     */
     inline BoundingSphereT(const Vec3T<T>& a_center, const T& a_radius) noexcept;
 
-    /*!
+    /**
       @brief Full constructor. Constructs a bounding sphere that encloses all the
       other bounding spheres
       @param[in] a_otherSpheres Other bounding spheres.
     */
     inline BoundingSphereT(const std::vector<BoundingSphereT<T>>& a_otherSpheres) noexcept;
 
-    /*!
+    /**
       @brief Copy constructor. Sets the center and radius from the other sphere.
       @param[in] a_other Other sphere
     */
     inline BoundingSphereT(const BoundingSphereT& a_other) noexcept;
 
-    /*!
+    /**
       @brief Template constructor which takes a set of 3D points (mixed precision
       allowed).
       @details This computes the bounding sphere using the supplied algorithm.
-      @param[in] a_points Set of 3D points
+      @tparam P Floating-point precision of the input points (may differ from T).
+      @param[in] a_points Set of 3D points.
       @param[in] a_alg    Bounding sphere algorithm.
       @note This calls the define(...) function.
     */
@@ -98,30 +104,31 @@ namespace BoundingVolumes {
     inline BoundingSphereT(const std::vector<Vec3T<P>>&   a_points,
                            const BoundingVolumeAlgorithm& a_alg = BoundingVolumeAlgorithm::Ritter) noexcept;
 
-    /*!
+    /**
       @brief Destructor (does nothing).
     */
     ~BoundingSphereT() noexcept;
 
-    /*!
+    /**
       @brief Copy assignment operator
       @param[in] a_other Other sphere
     */
     BoundingSphereT&
     operator=(const BoundingSphereT& a_other) = default;
 
-    /*!
+    /**
       @brief Template define function which takes a set of 3D points (mixed
       precision allowed).
       @details This computes the bounding sphere using the supplied algorithm.
-      @param[in] a_points Set of 3D points
+      @tparam P Floating-point precision of the input points (may differ from T).
+      @param[in] a_points Set of 3D points.
       @param[in] a_alg    Bounding sphere algorithm.
     */
     template <class P>
     inline void
     define(const std::vector<Vec3T<P>>& a_points, const BoundingVolumeAlgorithm& a_alg) noexcept;
 
-    /*!
+    /**
       @brief Check if this bounding sphere intersect another bounding sphere
       @param[in] a_other Other bounding sphere.
       @return True if the two sphere intersect.
@@ -129,31 +136,35 @@ namespace BoundingVolumes {
     inline bool
     intersects(const BoundingSphereT& a_other) const noexcept;
 
-    /*!
-      @brief Get modifiable radius for this sphere
+    /**
+      @brief Get modifiable radius for this sphere.
+      @return Reference to the sphere radius.
     */
     inline T&
     getRadius() noexcept;
 
-    /*!
-      @brief Get immutable radius for this sphere
+    /**
+      @brief Get immutable radius for this sphere.
+      @return Const reference to the sphere radius.
     */
     inline const T&
     getRadius() const noexcept;
 
-    /*!
-      @brief Get modifiable center for this sphere
+    /**
+      @brief Get modifiable centroid of this sphere.
+      @return Reference to the sphere centroid.
     */
     inline Vec3&
     getCentroid() noexcept;
 
-    /*!
-      @brief Get immutable center for this sphere
+    /**
+      @brief Get immutable centroid of this sphere.
+      @return Const reference to the sphere centroid.
     */
     inline const Vec3&
     getCentroid() const noexcept;
 
-    /*!
+    /**
       @brief Compute the overlapping volume between this bounding sphere and
       another
       @param[in] a_other Other bounding sphere
@@ -162,7 +173,7 @@ namespace BoundingVolumes {
     inline T
     getOverlappingVolume(const BoundingSphereT<T>& a_other) const noexcept;
 
-    /*!
+    /**
       @brief Get the distance to this bounding sphere (points inside the sphere
       have a zero distance)
       @param[in] a_x0 3D point
@@ -172,14 +183,14 @@ namespace BoundingVolumes {
     inline T
     getDistance(const Vec3& a_x0) const noexcept;
 
-    /*!
+    /**
       @brief Get the sphere volume
       @return Sphere volume
     */
     inline T
     getVolume() const noexcept;
 
-    /*!
+    /**
       @brief Get the sphere area
       @return Sphere area.
     */
@@ -187,37 +198,43 @@ namespace BoundingVolumes {
     getArea() const noexcept;
 
   protected:
-    /*!
+    /**
       @brief Sphere radius
     */
     T m_radius;
 
-    /*!
+    /**
       @brief Sphere center
     */
     Vec3 m_center;
 
-    /*!
-      @brief Template function which computes the bounding sphere for a set of
-      points (mixed precision allowed) using Ritter's algorithm
+    /**
+      @brief Compute a bounding sphere enclosing @p a_points using Ritter's algorithm.
+      @tparam P Floating-point precision of the input points (may differ from T).
+      @param[in] a_points Set of 3D points to enclose.
     */
     template <class P>
     inline void
     buildRitter(const std::vector<Vec3T<P>>& a_points) noexcept;
   };
 
-  /*!
-    @brief Axis-aligned bounding box as bounding volume
+  /**
+    @brief Axis-aligned bounding box as bounding volume.
     @details This class represents a Cartesian box that encloses a set of 3D
     points.
-    @note The template parameter T is the precision.
+    @tparam T Floating-point precision (e.g., float or double).
   */
   template <class T>
   class AABBT
   {
+    static_assert(std::is_floating_point_v<T>, "AABBT<T>: T must be a floating-point type.");
+
   public:
-    /*!
-      @brief For outputting a vector to an output stream. 
+    /**
+      @brief Output an AABB to a stream in the form "(lo, hi)".
+      @param[in,out] os   Output stream.
+      @param[in]     aabb Bounding box to print.
+      @return Reference to @p os to allow chaining.
     */
     friend std::ostream&
     operator<<(std::ostream& os, const AABBT<T>& aabb)
@@ -227,67 +244,68 @@ namespace BoundingVolumes {
       return os;
     }
 
-    /*!
+    /**
       @brief Alias which cuts down on typing
     */
     using Vec3 = Vec3T<T>;
 
-    /*!
+    /**
       @brief Default constructor (does nothing)
     */
     inline AABBT() noexcept;
 
-    /*!
+    /**
       @brief Full constructor taking the low/high corners of the bounding box
       @param[in] a_lo Low corner
       @param[in] a_hi High
     */
     inline AABBT(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi) noexcept;
 
-    /*!
+    /**
       @brief Copy constructor of another bounding box
       @param[in] a_other Other bounding box
     */
     inline AABBT(const AABBT& a_other) noexcept;
 
-    /*!
+    /**
       @brief Constructor which creates an AABB which encloses a set of other
       AABBs.
       @param[in] a_others Other bounding boxes
     */
     inline AABBT(const std::vector<AABBT<T>>& a_others) noexcept;
 
-    /*!
+    /**
       @brief Template constructor (since mixed precision allowed) which creates an
-      AABB that encloses a set of 3D points
-      @param[in] a_points Set of 3D points
-      @note Calls the define function
+      AABB that encloses a set of 3D points.
+      @tparam P Floating-point precision of the input points (may differ from T).
+      @param[in] a_points Set of 3D points.
+      @note Calls the define function.
     */
     template <class P>
     inline AABBT(const std::vector<Vec3T<P>>& a_points) noexcept;
 
-    /*!
+    /**
       @brief Destructor (does nothing)
     */
     ~AABBT() noexcept;
 
-    /*!
+    /**
       @brief Copy assignment
       @param[in] a_other Other bounding box
     */
     AABBT&
     operator=(const AABBT<T>& a_other) = default;
 
-    /*!
-      @brief Define function (since mixed precision allowed) which sets this AABB
-      such that it encloses a set of 3D points
-      @param[in] a_points Set of 3D points
+    /**
+      @brief Set this AABB to the smallest box enclosing @p a_points.
+      @tparam P Floating-point precision of the input points (may differ from T).
+      @param[in] a_points Set of 3D points.
     */
     template <class P>
     inline void
     define(const std::vector<Vec3T<P>>& a_points) noexcept;
 
-    /*!
+    /**
       @brief Check if this AABB intersects another AABB
       @param[in] a_other The other AABB
       @return True if they intersect and false otherwise.
@@ -295,37 +313,42 @@ namespace BoundingVolumes {
     inline bool
     intersects(const AABBT& a_other) const noexcept;
 
-    /*!
-      @brief Get the modifiable lower-left corner of the AABB
+    /**
+      @brief Get the modifiable lower-left corner of the AABB.
+      @return Reference to the lower-left corner.
     */
     inline Vec3T<T>&
     getLowCorner() noexcept;
 
-    /*!
-      @brief Get the immutable lower-left corner of the AABB
+    /**
+      @brief Get the immutable lower-left corner of the AABB.
+      @return Const reference to the lower-left corner.
     */
     inline const Vec3T<T>&
     getLowCorner() const noexcept;
 
-    /*!
-      @brief Get the modifiable upper-right corner of the AABB
+    /**
+      @brief Get the modifiable upper-right corner of the AABB.
+      @return Reference to the upper-right corner.
     */
     inline Vec3T<T>&
     getHighCorner() noexcept;
 
-    /*!
-      @brief Get the immutable upper-right corner of the AABB
+    /**
+      @brief Get the immutable upper-right corner of the AABB.
+      @return Const reference to the upper-right corner.
     */
     inline const Vec3T<T>&
     getHighCorner() const noexcept;
 
-    /*!
-      @brief Get bounding volume centroid.
+    /**
+      @brief Get the centroid of the bounding box.
+      @return Midpoint of the lower and upper corners.
     */
     inline Vec3
     getCentroid() const noexcept;
 
-    /*!
+    /**
       @brief Compute the overlapping volume between this AABB and another AABB.
       @param[in] a_other The other AABB
       @return Returns overlapping volume
@@ -333,7 +356,7 @@ namespace BoundingVolumes {
     inline T
     getOverlappingVolume(const AABBT<T>& a_other) const noexcept;
 
-    /*!
+    /**
       @brief Get the distance to this AABB (points inside the bounding box have a
       zero distance)
       @param[in] a_x0 3D point
@@ -343,61 +366,71 @@ namespace BoundingVolumes {
     inline T
     getDistance(const Vec3& a_x0) const noexcept;
 
-    /*!
-      @brief Compute the bounding box volume
+    /**
+      @brief Compute the bounding box volume.
+      @return Product of the box side lengths.
     */
     inline T
     getVolume() const noexcept;
 
-    /*!
-      @brief Compute the bounding box area
+    /**
+      @brief Compute the bounding box surface area.
+      @return Sum of the six face areas (2*(dx*dy + dy*dz + dz*dx)).
     */
     inline T
     getArea() const noexcept;
 
   protected:
-    /*!
+    /**
       @brief Lower-left corner of bounding box
     */
     Vec3 m_loCorner;
 
-    /*!
+    /**
       @brief Upper-right corner of bounding box
     */
     Vec3 m_hiCorner;
   };
 
-  /*!
-    @brief Intersection method for testing if two bounding spheres overlap
-    @param[in] a_u One bounding sphere
-    @param[in] a_v The other bounding sphere
+  /**
+    @brief Test whether two bounding spheres overlap.
+    @tparam T Floating-point precision.
+    @param[in] a_u One bounding sphere.
+    @param[in] a_v The other bounding sphere.
+    @return True if the two spheres intersect, false otherwise.
   */
   template <class T>
   bool
   intersects(const BoundingSphereT<T>& a_u, const BoundingSphereT<T>& a_v) noexcept;
 
-  /*!
-    @brief Intersection method for testing if two bounding boxes overlap
-    @param[in] a_u One bounding box
-    @param[in] a_v The other bounding box
+  /**
+    @brief Test whether two axis-aligned bounding boxes overlap.
+    @tparam T Floating-point precision.
+    @param[in] a_u One bounding box.
+    @param[in] a_v The other bounding box.
+    @return True if the two boxes intersect, false otherwise.
   */
   template <class T>
   bool
   intersects(const AABBT<T>& a_u, const AABBT<T>& a_v) noexcept;
 
-  /*!
-    @brief Compute the overlapping volume between two bounding spheres
-    @param[in] a_u One bounding sphere
-    @param[in] a_v The other bounding sphere
+  /**
+    @brief Compute the overlapping volume between two bounding spheres.
+    @tparam T Floating-point precision.
+    @param[in] a_u One bounding sphere.
+    @param[in] a_v The other bounding sphere.
+    @return Overlapping volume; zero if the spheres do not intersect.
   */
   template <class T>
   T
   getOverlappingVolume(const BoundingSphereT<T>& a_u, const BoundingSphereT<T>& a_v) noexcept;
 
-  /*!
-    @brief Compute the overlapping volume between two bounding boxes
-    @param[in] a_u One bounding box
-    @param[in] a_v The other bounding box
+  /**
+    @brief Compute the overlapping volume between two axis-aligned bounding boxes.
+    @tparam T Floating-point precision.
+    @param[in] a_u One bounding box.
+    @param[in] a_v The other bounding box.
+    @return Overlapping volume; zero if the boxes do not intersect.
   */
   template <class T>
   T

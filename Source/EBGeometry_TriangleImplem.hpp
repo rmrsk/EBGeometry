@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2024 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2024 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_TriangleImplem.hpp
   @brief  Implementation of EBGeometry_Triangle.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_TriangleImplem
-#define EBGeometry_TriangleImplem
+#ifndef EBGEOMETRY_TRIANGLEIMPLEM_HPP
+#define EBGEOMETRY_TRIANGLEIMPLEM_HPP
 
 // Our includes
 #include "EBGeometry_Triangle.hpp"
@@ -144,6 +143,7 @@ namespace EBGeometry {
   T
   Triangle<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
   {
+    static_assert(std::is_floating_point_v<T>, "Triangle<T,Meta>: T must be a floating-point type.");
     T ret = std::numeric_limits<T>::max();
 
     auto sgn = [](const T x) -> int { return (x > 0.0) ? 1 : -1; };

@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_ParserImplem.hpp
   @brief  Implementation of EBGeometry_Parser.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_ParserImplem
-#define EBGeometry_ParserImplem
+#ifndef EBGEOMETRY_PARSERIMPLEM_HPP
+#define EBGEOMETRY_PARSERIMPLEM_HPP
 
 // Std includes
 #include <iostream>
@@ -153,6 +152,7 @@ template <typename T>
 STL<T>
 Parser::readSTL(const std::string& a_filename) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readSTL requires T to be a floating-point type");
   STL<T> stl(a_filename);
 
   // Storage for vertices and facets from the STL object. Note that we do not care about the triangle normals when
@@ -343,6 +343,7 @@ template <typename T>
 std::vector<STL<T>>
 Parser::readSTL(const std::vector<std::string>& a_filenames) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readSTL requires T to be a floating-point type");
   std::vector<STL<T>> stl;
 
   for (const auto& f : a_filenames) {
@@ -356,6 +357,7 @@ template <typename T>
 PLY<T>
 Parser::readPLY(const std::string& a_filename) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readPLY requires T to be a floating-point type");
   PLY<T> ply(a_filename);
 
   const Parser::Encoding encoding = Parser::getFileEncoding(a_filename);
@@ -872,6 +874,7 @@ template <typename T>
 std::vector<PLY<T>>
 Parser::readPLY(const std::vector<std::string>& a_filenames) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readPLY requires T to be a floating-point type");
   std::vector<PLY<T>> ply;
 
   for (const auto& f : a_filenames) {
@@ -885,6 +888,7 @@ template <typename T>
 VTK<T>
 Parser::readVTK(const std::string& a_filename) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readVTK requires T to be a floating-point type");
   VTK<T> vtk(a_filename);
 
   const Parser::Encoding encoding = Parser::getFileEncoding(a_filename);
@@ -1623,6 +1627,7 @@ template <typename T>
 std::vector<VTK<T>>
 Parser::readVTK(const std::vector<std::string>& a_filenames) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readVTK requires T to be a floating-point type");
   std::vector<VTK<T>> vtk;
 
   for (const auto& f : a_filenames) {
@@ -1636,6 +1641,7 @@ template <typename T, typename Meta>
 inline std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
 Parser::readIntoDCEL(const std::string a_filename) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoDCEL requires T to be a floating-point type");
   auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
 
   const auto ft = Parser::getFileType(a_filename);
@@ -1766,6 +1772,8 @@ template <typename T, typename Meta, typename BV, size_t K>
 inline std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>
 Parser::readIntoFullBVH(const std::string a_filename) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoFullBVH requires T to be a floating-point type");
+  static_assert(K > 0, "Parser::readIntoFullBVH requires K > 0");
   const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
 
   return std::make_shared<FastMeshSDF<T, Meta, BV, K>>(mesh);
@@ -1775,6 +1783,8 @@ template <typename T, typename Meta, typename BV, size_t K>
 inline std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>>
 Parser::readIntoFullBVH(const std::vector<std::string> a_files) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoFullBVH requires T to be a floating-point type");
+  static_assert(K > 0, "Parser::readIntoFullBVH requires K > 0");
   std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>> implicitFunctions;
 
   for (const auto& file : a_files) {
@@ -1788,6 +1798,9 @@ template <typename T, typename Meta, size_t K, size_t W>
 inline std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>
 Parser::readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafSize) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
+  static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
+  static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
   const auto mesh = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename);
 
   return std::make_shared<FastTriMeshSDF<T, Meta, K, W>>(mesh, BVH::Build::TopDown, a_maxLeafSize);
@@ -1797,6 +1810,9 @@ template <typename T, typename Meta, size_t K, size_t W>
 inline std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>>
 Parser::readIntoTriangleBVH(const std::vector<std::string> a_files, const size_t a_maxLeafSize) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
+  static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
+  static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
   std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>> implicitFunctions;
 
   for (const auto& file : a_files) {
@@ -1810,6 +1826,8 @@ template <typename T, typename Meta, size_t K>
 inline std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>
 Parser::readIntoCompactBVH(const std::string a_filename) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoCompactBVH requires T to be a floating-point type");
+  static_assert(K > 0, "Parser::readIntoCompactBVH requires K > 0");
   const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
 
   return std::make_shared<FastCompactMeshSDF<T, Meta, K>>(mesh);
@@ -1819,6 +1837,8 @@ template <typename T, typename Meta, size_t K>
 inline std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>>
 Parser::readIntoCompactBVH(const std::vector<std::string> a_files) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoCompactBVH requires T to be a floating-point type");
+  static_assert(K > 0, "Parser::readIntoCompactBVH requires K > 0");
   std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>> implicitFunctions;
 
   for (const auto& file : a_files) {

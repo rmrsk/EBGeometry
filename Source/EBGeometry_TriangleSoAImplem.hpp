@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2024 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2024 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_TriangleSoAImplem.hpp
   @brief  Implementation of EBGeometry_TriangleSoA.hpp
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_TriangleSoAImplem
-#define EBGeometry_TriangleSoAImplem
+#ifndef EBGEOMETRY_TRIANGLESOAIMPLEM_HPP
+#define EBGEOMETRY_TRIANGLESOAIMPLEM_HPP
 
 #include <cmath>
 #include <limits>

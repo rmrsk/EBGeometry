@@ -1,7 +1,6 @@
-/** EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
   @file   EBGeometry_BVH.hpp
@@ -9,8 +8,8 @@
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_BVH
-#define EBGeometry_BVH
+#ifndef EBGEOMETRY_BVH_HPP
+#define EBGEOMETRY_BVH_HPP
 
 // Std includes
 #include <algorithm>
@@ -301,6 +300,9 @@ namespace BVH {
   template <class T, class P, class BV, size_t K>
   class TreeBVH : public std::enable_shared_from_this<TreeBVH<T, P, BV, K>>
   {
+    static_assert(std::is_floating_point_v<T>, "TreeBVH: T must be a floating-point type");
+    static_assert(K >= 2, "TreeBVH: branching factor K must be at least 2");
+
   public:
     /**
       @brief Alias for the primitive list type.
@@ -371,12 +373,14 @@ namespace BVH {
 
     /**
       @brief Return true if this is a leaf node (no children, non-empty primitive list).
+      @return True if this node holds primitives directly (i.e. is a leaf).
     */
     inline bool
     isLeaf() const noexcept;
 
     /**
       @brief Return true if the tree has already been partitioned.
+      @return True if topDownSortAndPartition() or bottomUpSortAndPartition() has been called.
     */
     inline bool
     isPartitioned() const noexcept;
@@ -553,6 +557,9 @@ namespace BVH {
   template <class T, class P, size_t K>
   class PackedBVH
   {
+    static_assert(std::is_floating_point_v<T>, "PackedBVH: T must be a floating-point type");
+    static_assert(K >= 2, "PackedBVH: branching factor K must be at least 2");
+
   public:
     /**
       @brief AABB type used for all bounding volumes in this BVH.
@@ -670,6 +677,7 @@ namespace BVH {
 
       /**
         @brief Return true if this is a leaf node.
+        @return True if numPrims > 0 (leaf), false otherwise (interior).
       */
       inline bool
       isLeaf() const noexcept

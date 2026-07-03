@@ -1,16 +1,15 @@
-/* EBGeometry
- * Copyright © 2024 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
- */
+// SPDX-FileCopyrightText: 2024 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-/*!
+/**
   @file   EBGeometry_TriangleSoA.hpp
   @brief  Declaration of SoA triangle group for SIMD signed-distance evaluation.
   @author Robert Marskar
 */
 
-#ifndef EBGeometry_TriangleSoA
-#define EBGeometry_TriangleSoA
+#ifndef EBGEOMETRY_TRIANGLESOA_HPP
+#define EBGEOMETRY_TRIANGLESOA_HPP
 
 #include <cstdint>
 
@@ -32,7 +31,7 @@
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
-/*!
+/**
   @brief SoA (Structure of Arrays) layout for W triangles, enabling SIMD evaluation.
   @details For T=float and W=4 on SSE4.1 machines, signedDistance() uses packed SSE
   instructions to evaluate all W triangles simultaneously. Otherwise falls back to a
@@ -44,62 +43,102 @@ template <class T, size_t W>
 struct TriangleSoAT
 {
   static_assert(W > 0, "W must be positive");
+  static_assert(std::is_floating_point_v<T>, "TriangleSoAT requires a floating-point type T");
 
-  /*!
-    @brief Vertex positions in SoA layout. vx[i][j] = x-coord of vertex i for triangle j.
+  /**
+    @brief x-coordinates of vertex positions. vx[i][j] = x-coord of vertex i for triangle j.
   */
   alignas(W * sizeof(T)) T vx[3][W];
+
+  /**
+    @brief y-coordinates of vertex positions. vy[i][j] = y-coord of vertex i for triangle j.
+  */
   T vy[3][W];
+
+  /**
+    @brief z-coordinates of vertex positions. vz[i][j] = z-coord of vertex i for triangle j.
+  */
   T vz[3][W];
 
-  /*!
-    @brief Face normals in SoA layout.
+  /**
+    @brief x-components of face normals. nx[j] = x-component of the face normal for triangle j.
   */
   alignas(W * sizeof(T)) T nx[W];
+
+  /**
+    @brief y-components of face normals.
+  */
   T ny[W];
+
+  /**
+    @brief z-components of face normals.
+  */
   T nz[W];
 
-  /*!
-    @brief Vertex normals in SoA layout. vnx[i][j] = x of vertex normal i for triangle j.
+  /**
+    @brief x-components of vertex normals. vnx[i][j] = x of vertex normal i for triangle j.
   */
   alignas(W * sizeof(T)) T vnx[3][W];
+
+  /**
+    @brief y-components of vertex normals. vny[i][j] = y of vertex normal i for triangle j.
+  */
   T vny[3][W];
+
+  /**
+    @brief z-components of vertex normals. vnz[i][j] = z of vertex normal i for triangle j.
+  */
   T vnz[3][W];
 
-  /*!
-    @brief Edge normals in SoA layout. enx[i][j] = x of edge normal i for triangle j.
+  /**
+    @brief x-components of edge normals. enx[i][j] = x of edge normal i for triangle j.
   */
   alignas(W * sizeof(T)) T enx[3][W];
+
+  /**
+    @brief y-components of edge normals. eny[i][j] = y of edge normal i for triangle j.
+  */
   T eny[3][W];
+
+  /**
+    @brief z-components of edge normals. enz[i][j] = z of edge normal i for triangle j.
+  */
   T enz[3][W];
 
-  /*!
+  /**
     @brief Number of valid (non-padded) triangles in this group (1..W).
   */
   uint32_t validCount;
 
-  /*!
+  /**
     @brief Pack count triangles from tris[0..count-1] into this SoA group.
-    @details Pads lanes count..W-1 by repeating the last real triangle.
-    @param[in] tris  Source triangle array.
-    @param[in] count Number of valid triangles (1..W).
+    @details Pads lanes count..W-1 by repeating the last real triangle so that all W
+    lanes hold valid data and SIMD loads never read uninitialised memory.
+    @tparam Meta Triangle meta-data type (forwarded from Triangle<T,Meta>).
+    @param[in] tris  Source triangle array with at least count elements.
+    @param[in] count Number of valid triangles to pack (1 ≤ count ≤ W).
   */
   template <class Meta>
   void
   pack(const Triangle<T, Meta>* tris, uint32_t count) noexcept;
 
-  /*!
+  /**
     @brief Evaluate signed distance from a_point to the closest triangle in this group.
     @details Returns the signed distance with minimum absolute value among validCount triangles.
-    Uses SSE4.1 packed float instructions for T=float, W=4 when __SSE4_1__ is defined;
-    otherwise uses a scalar loop.
+    Dispatches to an SSE4.1 packed-float path for (T=float, W=4), to AVX packed-float for
+    (T=float, W=8), to AVX packed-double for (T=double, W=4 or W=8), or to a scalar fallback.
+    @param[in] a_point Query point.
+    @return Signed distance from a_point to the closest valid triangle, with sign determined by
+    the outward normal of the nearest feature (face, edge, or vertex).
   */
   T
   signedDistance(const Vec3T<T>& a_point) const noexcept;
 
-  /*!
+  /**
     @brief Compute the bounding volume enclosing all valid triangles in this group.
-    @tparam BV Bounding volume type (e.g. AABBT<T>).
+    @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a
+    std::vector<Vec3T<T>> of vertex positions.
+    @return Bounding volume enclosing all vertices of the validCount triangles.
   */
   template <class BV>
   BV
