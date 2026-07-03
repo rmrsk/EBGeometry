@@ -256,7 +256,7 @@ namespace DCEL {
       why this function is almost never called. Rather, MeshT<T, Meta> can be embedded
       in a bounding volume hierarchy for faster access.
       @note This will call the other version with the object's search algorithm.
-      @return Signed distance to the mesh; positive inside, negative outside (DCEL inward-normal convention).
+      @return Signed distance to the mesh; negative inside, positive outside.
     */
     [[nodiscard]] inline T
     signedDistance(const Vec3& a_x0) const noexcept;
@@ -269,7 +269,7 @@ namespace DCEL {
       the value with the smallest magnitude. This is horrendously slow, which is
       why this function is almost never called. Rather, MeshT<T, Meta> can be embedded
       in a bounding volume hierarchy for faster access.
-      @return Signed distance to the mesh; positive inside, negative outside (DCEL inward-normal convention).
+      @return Signed distance to the mesh; negative inside, positive outside.
     */
     [[nodiscard]] inline T
     signedDistance(const Vec3& a_x0, SearchAlgorithm a_algorithm) const noexcept;

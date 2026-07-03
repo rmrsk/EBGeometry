@@ -209,7 +209,7 @@ namespace DCEL {
       const Vec3& norm = f->getNormal();
 
       // Clamp to [-1,1] to guard against acos(NaN) from floating-point rounding.
-      const T alpha = std::acos(std::max(T(-1), std::min(T(1), v1.dot(v2))));
+      const T alpha = std::acos(std::clamp(v1.dot(v2), T(-1), T(1)));
 
       m_normal += alpha * norm;
     }

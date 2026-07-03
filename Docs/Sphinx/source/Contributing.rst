@@ -187,13 +187,13 @@ Test coverage
 
 .. note::
 
-   The DCEL signed-distance convention differs from that of the analytic SDFs:
-   face normals in the DCEL are computed as :math:`(\mathbf{x}_2 - \mathbf{x}_1)
-   \times (\mathbf{x}_2 - \mathbf{x}_0)` from the half-edge vertex order, which
-   yields inward-pointing normals for the default STL winding order.  Consequently
-   :cpp:class:`MeshSDF` returns a **positive** value inside the mesh and a
-   **negative** value outside — the opposite of :cpp:class:`SphereSDF` and other
-   analytic types.
+   The DCEL signed-distance convention matches the analytic SDF convention:
+   face normals are computed as :math:`(\mathbf{x}_2 - \mathbf{x}_0)
+   \times (\mathbf{x}_2 - \mathbf{x}_1)` from the half-edge vertex order, which
+   yields outward-pointing normals for the default STL winding order.
+   :cpp:class:`MeshSDF` therefore returns a **negative** value inside the mesh
+   and a **positive** value outside, consistent with :cpp:class:`SphereSDF` and
+   other analytic types.
 
 .. _Sec:CI:
 

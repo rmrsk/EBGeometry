@@ -66,7 +66,7 @@ namespace EBGeometry {
     const Vec3T<T> x2x0 = m_vertexPositions[2] - m_vertexPositions[0];
     const Vec3T<T> x2x1 = m_vertexPositions[2] - m_vertexPositions[1];
 
-    m_triangleNormal = x2x1.cross(x2x0);
+    m_triangleNormal = x2x0.cross(x2x1);
     m_triangleNormal = m_triangleNormal / m_triangleNormal.length();
   }
 
@@ -176,8 +176,9 @@ namespace EBGeometry {
     ret = (t2 > 0.0 && t2 < 1.0 && y2.length() < std::abs(ret)) ? y2.length() * sgn(m_edgeNormals[1].dot(y2)) : ret;
     ret = (t3 > 0.0 && t3 < 1.0 && y3.length() < std::abs(ret)) ? y3.length() * sgn(m_edgeNormals[2].dot(y3)) : ret;
 
-    // s0 + s1 + s2 >= 2 is a point-in-triangle test.
-    return (s0 + s1 + s2 >= 2.0) ? m_triangleNormal.dot(p1) : ret;
+    // With outward normals all three si are -1 for interior projections (sum=-3);
+    // with inward normals they are all +1 (sum=+3).  Check both.
+    return (std::abs(s0 + s1 + s2) >= T(2)) ? m_triangleNormal.dot(p1) : ret;
   }
 } // namespace EBGeometry
 

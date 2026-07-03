@@ -279,7 +279,7 @@ namespace DCEL {
     constexpr T one  = 1.0;
 
     // Project point to edge and restrict to edge length.
-    const auto t = std::min(std::max(zero, this->projectPointToEdge(a_x0)), one);
+    const auto t = std::clamp(this->projectPointToEdge(a_x0), zero, one);
 
     // Compute distance to this edge.
     const Vec3T<T> x2x1      = this->getX2X1();

@@ -56,7 +56,7 @@ public:
       for (int j = 0; j < M; j++) {
         const T W = Wmin + udist(rng) * (Wmax - Wmin);
         const T L = Lmin + udist(rng) * (Lmax - Lmin);
-        const T H = std::max(Hmin, std::min(Hmax, ndist(rng)));
+        const T H = std::clamp(ndist(rng), Hmin, Hmax);
 
         const T xLo = i * (Wmax + dx) + 0.5 * (dx + Wmax - W);
         const T xHi = xLo + W;

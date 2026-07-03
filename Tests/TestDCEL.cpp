@@ -26,6 +26,38 @@ loadTetrahedron()
   return Parser::readIntoDCEL<double>(g_dataDir + "/tetrahedron.stl");
 }
 
+// Build a tetrahedron DCEL mesh entirely from hard-coded data (no file I/O).
+// Vertices: A=(0,0,0) B=(1,0,0) C=(0,1,0) D=(0,0,1).
+// Face winding is CCW-from-outside so that the new (x2-x0)×(x2-x1) formula
+// yields outward normals — standard SDF convention: negative inside, positive
+// outside.
+static std::shared_ptr<MeshT<double, DefaultMetaData>>
+buildTetrahedron()
+{
+  std::vector<Vec3T<double>> verts = {
+    {0.0, 0.0, 0.0}, // 0 = A
+    {1.0, 0.0, 0.0}, // 1 = B
+    {0.0, 1.0, 0.0}, // 2 = C
+    {0.0, 0.0, 1.0}, // 3 = D
+  };
+
+  // Each row is one triangular face.  Winding chosen so outward normal follows
+  // from (x2-x0)×(x2-x1):
+  //   {0,2,1} → normal (0, 0,-1)   bottom face (z=0 plane)
+  //   {0,1,3} → normal (0,-1, 0)   front  face (y=0 plane)
+  //   {0,3,2} → normal (-1,0, 0)   left   face (x=0 plane)
+  //   {1,2,3} → normal (1, 1, 1)/√3 slant  face
+  std::vector<std::vector<size_t>> facets = {{0, 2, 1}, {0, 1, 3}, {0, 3, 2}, {1, 2, 3}};
+
+  Soup::compress(verts, facets);
+
+  auto mesh = std::make_shared<MeshT<double, DefaultMetaData>>();
+  Soup::soupToDCEL(*mesh, verts, facets, "tetrahedron-hard");
+  mesh->reconcile();
+
+  return mesh;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Structural tests
 // ─────────────────────────────────────────────────────────────────────────────
@@ -99,25 +131,23 @@ TEST_CASE("DCEL: sanityCheck completes without crashing", "[DCEL]")
 TEST_CASE("MeshSDF: tetrahedron signed distances", "[DCEL][MeshSDF]")
 {
   // Tetrahedron vertices: (0,0,0), (1,0,0), (0,1,0), (0,0,1).
-  // EBGeometry DCEL convention: face normals point inward, so
-  //   SDF > 0 inside the mesh, SDF < 0 outside.
-  // This is the opposite of the analytic SDF convention.
+  // Standard SDF convention: negative inside, positive outside.
 
   auto mesh = loadTetrahedron();
   REQUIRE(mesh != nullptr);
 
   MeshSDF<double> sdf(mesh);
 
-  SECTION("centroid is inside (SDF > 0 by DCEL convention)")
+  SECTION("centroid is inside (SDF < 0)")
   {
     const double d = sdf.signedDistance(Vec3T<double>(0.25, 0.25, 0.25));
-    REQUIRE(d > 0.0);
+    REQUIRE(d < 0.0);
   }
 
-  SECTION("exterior point has negative SDF (by DCEL convention)")
+  SECTION("exterior point has positive SDF")
   {
     const double d = sdf.signedDistance(Vec3T<double>(2.0, 2.0, 2.0));
-    REQUIRE(d < 0.0);
+    REQUIRE(d > 0.0);
   }
 
   SECTION("point on a face centroid is near-zero")
@@ -126,6 +156,34 @@ TEST_CASE("MeshSDF: tetrahedron signed distances", "[DCEL][MeshSDF]")
     const double d = sdf.signedDistance(Vec3T<double>(1.0 / 3.0, 1.0 / 3.0, 0.0));
     REQUIRE_THAT(d, WithinAbs(0.0, 1e-10));
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sign-convention regression: hard-coded DCEL, no file I/O.
+// If the cross-product in computeNormal is ever accidentally inverted this
+// test will immediately flip from pass to fail.
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST_CASE("DCEL sign convention: exterior point has positive SDF", "[DCEL][sign]")
+{
+  auto            mesh = buildTetrahedron();
+  MeshSDF<double> sdf(mesh);
+
+  // Far outside: must be positive.
+  REQUIRE(sdf.signedDistance(Vec3T<double>(2.0, 2.0, 2.0)) > 0.0);
+  // Outside along each axis.
+  REQUIRE(sdf.signedDistance(Vec3T<double>(-1.0, 0.0, 0.0)) > 0.0);
+  REQUIRE(sdf.signedDistance(Vec3T<double>(0.0, -1.0, 0.0)) > 0.0);
+  REQUIRE(sdf.signedDistance(Vec3T<double>(0.0, 0.0, -1.0)) > 0.0);
+}
+
+TEST_CASE("DCEL sign convention: interior point has negative SDF", "[DCEL][sign]")
+{
+  auto            mesh = buildTetrahedron();
+  MeshSDF<double> sdf(mesh);
+
+  // Centroid of the tetrahedron is clearly inside.
+  REQUIRE(sdf.signedDistance(Vec3T<double>(0.25, 0.25, 0.25)) < 0.0);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

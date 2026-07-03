@@ -5,9 +5,7 @@
 /**
   @file    EBGeometry_AnalyticDistanceFunctions.hpp
   @brief   Declaration of various analytic distance functions.
-  @details This file contains various analytic signed distance fields. Some of
-  these also include member function for fetching parameters, and users are free
-  to add such functions also to other shapes.
+  @details This file contains various analytic signed distance fields. 
   @author  Robert Marskar
 */
 
@@ -24,24 +22,7 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /**
-  @brief Clamp function. Returns lo if v < lo and hi if v > hi. Otherwise
-  returns v.
-  @tparam T  Scalar type.
-  @param[in] v  Value to be clamped.
-  @param[in] lo Lower clamping value.
-  @param[in] hi Higher clamping value.
-  @return Clamped value in [lo, hi].
-*/
-template <class T>
-constexpr const T
-clamp(const T& v, const T& lo, const T& hi)
-{
-  return (v < lo) ? lo : (v > hi) ? hi : v;
-}
-
-/**
-  @brief Clamp function. Returns lo if v < lo and hi if v > hi. Otherwise
-  returns v, component-wise.
+  @brief Component-wise clamp for Vec3T.
   @tparam T  Scalar type.
   @param[in] v  Vector to be clamped.
   @param[in] lo Component-wise lower bound.
@@ -52,7 +33,7 @@ template <class T>
 constexpr const Vec3T<T>
 clamp(const Vec3T<T>& v, const Vec3T<T>& lo, const Vec3T<T>& hi)
 {
-  return Vec3T<T>(clamp(v[0], lo[0], hi[0]), clamp(v[1], lo[1], hi[1]), clamp(v[2], lo[2], hi[2]));
+  return Vec3T<T>(std::clamp(v[0], lo[0], hi[0]), std::clamp(v[1], lo[1], hi[1]), std::clamp(v[2], lo[2], hi[2]));
 }
 
 /**
@@ -89,8 +70,8 @@ public:
 
   /**
     @brief Full constructor
-    @param[in] a_point      Point on the plane
-    @param[in] a_normal     Plane normal vector.
+    @param[in] a_point  Point on the plane
+    @param[in] a_normal Plane normal vector.
   */
   PlaneSDF(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) noexcept
   {
@@ -124,7 +105,7 @@ protected:
 };
 
 /**
-  @brief Signed distance field for a sphere.
+  @brief Signed distance field for a sphere at a specified position.
   @tparam T Floating-point precision.
 */
 template <class T>
@@ -705,7 +686,7 @@ public:
     const Vec3T<T> v1 = a_point - m_center1;
     const Vec3T<T> v2 = m_center2 - m_center1;
 
-    const T h = clamp(dot(v1, v2) / dot(v2, v2), T(0.0), T(1.0));
+    const T h = std::clamp(dot(v1, v2) / dot(v2, v2), T(0.0), T(1.0));
     const T d = length(v1 - h * v2) - m_radius;
 
     return d;
@@ -848,8 +829,8 @@ public:
 
     const Vec2T<T> q = m_height * Vec2T<T>(m_c.x / m_c.y, -1.0);
     const Vec2T<T> w = Vec2T<T>(dr, dz);
-    const Vec2T<T> a = w - clamp(dot(w, q) / dot(q, q), zero, one) * q;
-    const Vec2T<T> b = w - Vec2T<T>(q.x * clamp(w.x / q.x, zero, one), q.y);
+    const Vec2T<T> a = w - std::clamp(dot(w, q) / dot(q, q), zero, one) * q;
+    const Vec2T<T> b = w - Vec2T<T>(q.x * std::clamp(w.x / q.x, zero, one), q.y);
 
     auto sign = [](const T& x) { return (x > zero) - (x < zero); };
 

@@ -121,7 +121,7 @@ namespace DCEL {
       const auto& x1 = vertices[(i + 1) % N]->getPosition();
       const auto& x2 = vertices[(i + 2) % N]->getPosition();
 
-      m_normal = (x2 - x1).cross(x2 - x0);
+      m_normal = (x2 - x0).cross(x2 - x1);
 
       if (m_normal.length() > 0.0) {
         break; // Found one.

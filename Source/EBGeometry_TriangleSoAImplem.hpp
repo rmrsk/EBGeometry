@@ -136,9 +136,9 @@ namespace EBGeometry {
       const __m128 s1       = _mm_or_ps(_mm_andnot_ps(pos_mask, one), _mm_and_ps(pos_mask, s1d));
       const __m128 s2       = _mm_or_ps(_mm_andnot_ps(pos_mask, one), _mm_and_ps(pos_mask, s2d));
 
-      // Point-in-triangle test: s0+s1+s2 >= 2
+      // Point-in-triangle test: abs(s0+s1+s2) >= 2 (works for both inward and outward normals)
       const __m128 ssum   = _mm_add_ps(_mm_add_ps(s0, s1), s2);
-      const __m128 in_tri = _mm_cmpge_ps(ssum, _mm_set1_ps(2.f));
+      const __m128 in_tri = _mm_cmpge_ps(_mm_andnot_ps(pos_mask, ssum), _mm_set1_ps(2.f));
 
       // face distance = dot(fn, p1)
       const __m128 face_d = dot3(fnx, fny, fnz, p1x, p1y, p1z);
@@ -313,7 +313,7 @@ namespace EBGeometry {
       const __m256 s2       = _mm256_or_ps(_mm256_andnot_ps(pos_mask, one), _mm256_and_ps(pos_mask, s2d));
 
       const __m256 ssum   = _mm256_add_ps(_mm256_add_ps(s0, s1), s2);
-      const __m256 in_tri = _mm256_cmp_ps(ssum, _mm256_set1_ps(2.f), _CMP_GE_OQ);
+      const __m256 in_tri = _mm256_cmp_ps(_mm256_andnot_ps(pos_mask, ssum), _mm256_set1_ps(2.f), _CMP_GE_OQ);
       const __m256 face_d = dot3(fnx, fny, fnz, p1x, p1y, p1z);
 
       const __m256 dp1v21  = dot3(p1x, p1y, p1z, v21x, v21y, v21z);
@@ -494,8 +494,8 @@ namespace EBGeometry {
       const __m256d two       = _mm256_set1_pd(2.0);
       const __m256d ssum_lo   = _mm256_add_pd(_mm256_add_pd(s0_lo, s1_lo), s2_lo);
       const __m256d ssum_hi   = _mm256_add_pd(_mm256_add_pd(s0_hi, s1_hi), s2_hi);
-      const __m256d in_tri_lo = _mm256_cmp_pd(ssum_lo, two, _CMP_GE_OQ);
-      const __m256d in_tri_hi = _mm256_cmp_pd(ssum_hi, two, _CMP_GE_OQ);
+      const __m256d in_tri_lo = _mm256_cmp_pd(_mm256_andnot_pd(pos_mask, ssum_lo), two, _CMP_GE_OQ);
+      const __m256d in_tri_hi = _mm256_cmp_pd(_mm256_andnot_pd(pos_mask, ssum_hi), two, _CMP_GE_OQ);
       const __m256d face_d_lo = dot3(fnx_lo, fny_lo, fnz_lo, p1x_lo, p1y_lo, p1z_lo);
       const __m256d face_d_hi = dot3(fnx_hi, fny_hi, fnz_hi, p1x_hi, p1y_hi, p1z_hi);
 
@@ -717,7 +717,7 @@ namespace EBGeometry {
       const __m256d s2       = _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, s2d));
 
       const __m256d ssum   = _mm256_add_pd(_mm256_add_pd(s0, s1), s2);
-      const __m256d in_tri = _mm256_cmp_pd(ssum, _mm256_set1_pd(2.0), _CMP_GE_OQ);
+      const __m256d in_tri = _mm256_cmp_pd(_mm256_andnot_pd(pos_mask, ssum), _mm256_set1_pd(2.0), _CMP_GE_OQ);
       const __m256d face_d = dot3(fnx, fny, fnz, p1x, p1y, p1z);
 
       const __m256d dp1v21  = dot3(p1x, p1y, p1z, v21x, v21y, v21z);
@@ -847,7 +847,7 @@ namespace EBGeometry {
       const T ss2 = sgn(dot(v13.cross(n), p3));
 
       T d;
-      if (ss0 + ss1 + ss2 >= T(2)) {
+      if (std::abs(ss0 + ss1 + ss2) >= T(2)) {
         d = n.dot(p1);
       }
       else {

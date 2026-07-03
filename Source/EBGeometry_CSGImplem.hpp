@@ -573,7 +573,7 @@ FiniteRepetitionIF<T>::value(const Vec3T<T>& a_point) const noexcept
   Vec3T<T> q;
 
   for (size_t i = 0; i < 3; i++) {
-    q[i] = a_point[i] - m_period[i] * std::round(clamp((a_point[i] / m_period[i]), -m_repeatLo[i], m_repeatHi[i]));
+    q[i] = a_point[i] - m_period[i] * std::round(std::clamp((a_point[i] / m_period[i]), -m_repeatLo[i], m_repeatHi[i]));
   }
 
   return m_implicitFunction->value(q);
