@@ -189,54 +189,52 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m128 y2d2 = dot3(y2x, y2y, y2z, y2x, y2y, y2z);
     const __m128 y3d2 = dot3(y3x, y3y, y3z, y3x, y3y, y3z);
 
-    // sgn(dot(vn, p)) for each vertex candidate
-    auto sgnmul = [&](const __m128 ax, const __m128 ay, const __m128 az,
-                       const __m128 bx, const __m128 by, const __m128 bz,
-                       const __m128 r2) -> __m128 {
-      const __m128 d  = dot3(ax, ay, az, bx, by, bz);
-      const __m128 sg = _mm_or_ps(_mm_andnot_ps(pos_mask, one), _mm_and_ps(pos_mask, d));
-      return _mm_mul_ps(sg, _mm_sqrt_ps(r2));
+    // Extract sign bits only — sqrt is deferred to a single call after the blendv chain.
+    auto sgn_of = [&](const __m128 ax, const __m128 ay, const __m128 az,
+                       const __m128 bx, const __m128 by, const __m128 bz) -> __m128 {
+      const __m128 d = dot3(ax, ay, az, bx, by, bz);
+      return _mm_or_ps(_mm_andnot_ps(pos_mask, one), _mm_and_ps(pos_mask, d));
     };
 
-    const __m128 vd0 = sgnmul(vn0x, vn0y, vn0z, p1x, p1y, p1z, p1d2);
-    const __m128 vd1 = sgnmul(vn1x, vn1y, vn1z, p2x, p2y, p2z, p2d2);
-    const __m128 vd2 = sgnmul(vn2x, vn2y, vn2z, p3x, p3y, p3z, p3d2);
-    const __m128 ed0 = sgnmul(en0x, en0y, en0z, y1x, y1y, y1z, y1d2);
-    const __m128 ed1 = sgnmul(en1x, en1y, en1z, y2x, y2y, y2z, y2d2);
-    const __m128 ed2 = sgnmul(en2x, en2y, en2z, y3x, y3y, y3z, y3d2);
+    const __m128 vs0 = sgn_of(vn0x, vn0y, vn0z, p1x, p1y, p1z);
+    const __m128 vs1 = sgn_of(vn1x, vn1y, vn1z, p2x, p2y, p2z);
+    const __m128 vs2 = sgn_of(vn2x, vn2y, vn2z, p3x, p3y, p3z);
+    const __m128 es0 = sgn_of(en0x, en0y, en0z, y1x, y1y, y1z);
+    const __m128 es1 = sgn_of(en1x, en1y, en1z, y2x, y2y, y2z);
+    const __m128 es2 = sgn_of(en2x, en2y, en2z, y3x, y3y, y3z);
 
     // t valid masks: t > 0 and t < 1
     const __m128 t1_valid = _mm_and_ps(_mm_cmpgt_ps(t1, zer), _mm_cmplt_ps(t1, one));
     const __m128 t2_valid = _mm_and_ps(_mm_cmpgt_ps(t2, zer), _mm_cmplt_ps(t2, one));
     const __m128 t3_valid = _mm_and_ps(_mm_cmpgt_ps(t3, zer), _mm_cmplt_ps(t3, one));
 
-    // Reduction: pick minimum |d| among all valid features
-    // Start with vertex 0
-    __m128 best_d  = vd0;
-    __m128 best_d2 = p1d2;
-    // vertex 1
-    const __m128 mask1 = _mm_cmplt_ps(p2d2, best_d2);
-    best_d  = _mm_blendv_ps(best_d, vd1, mask1);
-    best_d2 = _mm_blendv_ps(best_d2, p2d2, mask1);
-    // vertex 2
-    const __m128 mask2 = _mm_cmplt_ps(p3d2, best_d2);
-    best_d  = _mm_blendv_ps(best_d, vd2, mask2);
-    best_d2 = _mm_blendv_ps(best_d2, p3d2, mask2);
-    // edge 0
-    const __m128 mask_e0 = _mm_and_ps(t1_valid, _mm_cmplt_ps(y1d2, best_d2));
-    best_d  = _mm_blendv_ps(best_d, ed0, mask_e0);
-    best_d2 = _mm_blendv_ps(best_d2, y1d2, mask_e0);
-    // edge 1
-    const __m128 mask_e1 = _mm_and_ps(t2_valid, _mm_cmplt_ps(y2d2, best_d2));
-    best_d  = _mm_blendv_ps(best_d, ed1, mask_e1);
-    best_d2 = _mm_blendv_ps(best_d2, y2d2, mask_e1);
-    // edge 2
-    const __m128 mask_e2 = _mm_and_ps(t3_valid, _mm_cmplt_ps(y3d2, best_d2));
-    best_d  = _mm_blendv_ps(best_d, ed2, mask_e2);
-    best_d2 = _mm_blendv_ps(best_d2, y3d2, mask_e2);
+    // Blendv chain: track (best_d2, best_sgn). No sqrt until the end.
+    __m128 best_d2  = p1d2;
+    __m128 best_sgn = vs0;
 
-    // Face distance overrides for in-triangle points
-    best_d = _mm_blendv_ps(best_d, face_d, in_tri);
+    const __m128 mask1 = _mm_cmplt_ps(p2d2, best_d2);
+    best_sgn = _mm_blendv_ps(best_sgn, vs1,  mask1);
+    best_d2  = _mm_blendv_ps(best_d2,  p2d2, mask1);
+
+    const __m128 mask2 = _mm_cmplt_ps(p3d2, best_d2);
+    best_sgn = _mm_blendv_ps(best_sgn, vs2,  mask2);
+    best_d2  = _mm_blendv_ps(best_d2,  p3d2, mask2);
+
+    const __m128 mask_e0 = _mm_and_ps(t1_valid, _mm_cmplt_ps(y1d2, best_d2));
+    best_sgn = _mm_blendv_ps(best_sgn, es0,  mask_e0);
+    best_d2  = _mm_blendv_ps(best_d2,  y1d2, mask_e0);
+
+    const __m128 mask_e1 = _mm_and_ps(t2_valid, _mm_cmplt_ps(y2d2, best_d2));
+    best_sgn = _mm_blendv_ps(best_sgn, es1,  mask_e1);
+    best_d2  = _mm_blendv_ps(best_d2,  y2d2, mask_e1);
+
+    const __m128 mask_e2 = _mm_and_ps(t3_valid, _mm_cmplt_ps(y3d2, best_d2));
+    best_sgn = _mm_blendv_ps(best_sgn, es2,  mask_e2);
+    best_d2  = _mm_blendv_ps(best_d2,  y3d2, mask_e2);
+
+    // Single sqrt for all vertex/edge lanes, then face override.
+    const __m128 ev_d   = _mm_mul_ps(best_sgn, _mm_sqrt_ps(best_d2));
+    const __m128 best_d = _mm_blendv_ps(ev_d, face_d, in_tri);
 
     // Horizontal reduction over W lanes (validCount lanes only)
     alignas(16) float d4[4];
@@ -334,49 +332,51 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m256d y2d2 = dot3(y2x, y2y, y2z, y2x, y2y, y2z);
     const __m256d y3d2 = dot3(y3x, y3y, y3z, y3x, y3y, y3z);
 
-    auto sgnmul = [&](const __m256d ax, const __m256d ay, const __m256d az,
-                       const __m256d bx, const __m256d by, const __m256d bz,
-                       const __m256d r2) -> __m256d {
-      const __m256d d  = dot3(ax, ay, az, bx, by, bz);
-      const __m256d sg = _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, d));
-      return _mm256_mul_pd(sg, _mm256_sqrt_pd(r2));
+    // Extract sign bits only — sqrt is deferred to a single call after the blendv chain.
+    auto sgn_of = [&](const __m256d ax, const __m256d ay, const __m256d az,
+                       const __m256d bx, const __m256d by, const __m256d bz) -> __m256d {
+      const __m256d d = dot3(ax, ay, az, bx, by, bz);
+      return _mm256_or_pd(_mm256_andnot_pd(pos_mask, one), _mm256_and_pd(pos_mask, d));
     };
 
-    const __m256d vd0 = sgnmul(vn0x, vn0y, vn0z, p1x, p1y, p1z, p1d2);
-    const __m256d vd1 = sgnmul(vn1x, vn1y, vn1z, p2x, p2y, p2z, p2d2);
-    const __m256d vd2 = sgnmul(vn2x, vn2y, vn2z, p3x, p3y, p3z, p3d2);
-    const __m256d ed0 = sgnmul(en0x, en0y, en0z, y1x, y1y, y1z, y1d2);
-    const __m256d ed1 = sgnmul(en1x, en1y, en1z, y2x, y2y, y2z, y2d2);
-    const __m256d ed2 = sgnmul(en2x, en2y, en2z, y3x, y3y, y3z, y3d2);
+    const __m256d vs0 = sgn_of(vn0x, vn0y, vn0z, p1x, p1y, p1z);
+    const __m256d vs1 = sgn_of(vn1x, vn1y, vn1z, p2x, p2y, p2z);
+    const __m256d vs2 = sgn_of(vn2x, vn2y, vn2z, p3x, p3y, p3z);
+    const __m256d es0 = sgn_of(en0x, en0y, en0z, y1x, y1y, y1z);
+    const __m256d es1 = sgn_of(en1x, en1y, en1z, y2x, y2y, y2z);
+    const __m256d es2 = sgn_of(en2x, en2y, en2z, y3x, y3y, y3z);
 
     const __m256d t1_valid = _mm256_and_pd(_mm256_cmp_pd(t1, zer, _CMP_GT_OQ), _mm256_cmp_pd(t1, one, _CMP_LT_OQ));
     const __m256d t2_valid = _mm256_and_pd(_mm256_cmp_pd(t2, zer, _CMP_GT_OQ), _mm256_cmp_pd(t2, one, _CMP_LT_OQ));
     const __m256d t3_valid = _mm256_and_pd(_mm256_cmp_pd(t3, zer, _CMP_GT_OQ), _mm256_cmp_pd(t3, one, _CMP_LT_OQ));
 
-    __m256d best_d  = vd0;
-    __m256d best_d2 = p1d2;
+    // Blendv chain: track (best_d2, best_sgn). No sqrt until the end.
+    __m256d best_d2  = p1d2;
+    __m256d best_sgn = vs0;
 
     const __m256d mask1 = _mm256_cmp_pd(p2d2, best_d2, _CMP_LT_OQ);
-    best_d  = _mm256_blendv_pd(best_d, vd1, mask1);
-    best_d2 = _mm256_blendv_pd(best_d2, p2d2, mask1);
+    best_sgn = _mm256_blendv_pd(best_sgn, vs1,  mask1);
+    best_d2  = _mm256_blendv_pd(best_d2,  p2d2, mask1);
 
     const __m256d mask2 = _mm256_cmp_pd(p3d2, best_d2, _CMP_LT_OQ);
-    best_d  = _mm256_blendv_pd(best_d, vd2, mask2);
-    best_d2 = _mm256_blendv_pd(best_d2, p3d2, mask2);
+    best_sgn = _mm256_blendv_pd(best_sgn, vs2,  mask2);
+    best_d2  = _mm256_blendv_pd(best_d2,  p3d2, mask2);
 
     const __m256d mask_e0 = _mm256_and_pd(t1_valid, _mm256_cmp_pd(y1d2, best_d2, _CMP_LT_OQ));
-    best_d  = _mm256_blendv_pd(best_d, ed0, mask_e0);
-    best_d2 = _mm256_blendv_pd(best_d2, y1d2, mask_e0);
+    best_sgn = _mm256_blendv_pd(best_sgn, es0,  mask_e0);
+    best_d2  = _mm256_blendv_pd(best_d2,  y1d2, mask_e0);
 
     const __m256d mask_e1 = _mm256_and_pd(t2_valid, _mm256_cmp_pd(y2d2, best_d2, _CMP_LT_OQ));
-    best_d  = _mm256_blendv_pd(best_d, ed1, mask_e1);
-    best_d2 = _mm256_blendv_pd(best_d2, y2d2, mask_e1);
+    best_sgn = _mm256_blendv_pd(best_sgn, es1,  mask_e1);
+    best_d2  = _mm256_blendv_pd(best_d2,  y2d2, mask_e1);
 
     const __m256d mask_e2 = _mm256_and_pd(t3_valid, _mm256_cmp_pd(y3d2, best_d2, _CMP_LT_OQ));
-    best_d  = _mm256_blendv_pd(best_d, ed2, mask_e2);
-    best_d2 = _mm256_blendv_pd(best_d2, y3d2, mask_e2);
+    best_sgn = _mm256_blendv_pd(best_sgn, es2,  mask_e2);
+    best_d2  = _mm256_blendv_pd(best_d2,  y3d2, mask_e2);
 
-    best_d = _mm256_blendv_pd(best_d, face_d, in_tri);
+    // Single sqrt for all vertex/edge lanes, then face override.
+    const __m256d ev_d   = _mm256_mul_pd(best_sgn, _mm256_sqrt_pd(best_d2));
+    const __m256d best_d = _mm256_blendv_pd(ev_d, face_d, in_tri);
 
     alignas(32) double d4[4];
     _mm256_store_pd(d4, best_d);

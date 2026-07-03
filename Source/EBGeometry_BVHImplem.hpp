@@ -3,7 +3,7 @@
  * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
  */
 
-/*!
+/**
   @file   EBGeometry_BVHImplem.hpp
   @brief  Implementation of EBGeometry_BVH.hpp
   @author Robert Marskar
@@ -48,8 +48,7 @@ namespace BVH {
     }
 
     m_boundingVolume = BV(m_boundingVolumes);
-
-    m_partitioned = false;
+    m_partitioned    = false;
   }
 
   template <class T, class P, class BV, size_t K>
@@ -78,14 +77,14 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
-  inline PrimitiveListT<P>&
+  inline PrimitiveList<P>&
   TreeBVH<T, P, BV, K>::getPrimitives() noexcept
   {
     return (m_primitives);
   }
 
   template <class T, class P, class BV, size_t K>
-  inline const PrimitiveListT<P>&
+  inline const PrimitiveList<P>&
   TreeBVH<T, P, BV, K>::getPrimitives() const noexcept
   {
     return (m_primitives);
@@ -126,7 +125,7 @@ namespace BVH {
     if (!stopRecursiveSplitting && hasEnoughPrimitives) {
 
       // Pack primitives and BVs.
-      PrimAndBVListT<P, BV> primsAndBVs;
+      PrimAndBVList<P, BV> primsAndBVs;
       for (size_t i = 0; i < numPrimsInThisNode; i++) {
         primsAndBVs.emplace_back(std::make_pair(m_primitives[i], m_boundingVolumes[i]));
       }
@@ -264,10 +263,8 @@ namespace BVH {
 
   template <class T, class P, class BV, size_t K>
   inline void
-  TreeBVH<T, P, BV, K>::setChildren(
-    const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children) noexcept
+  TreeBVH<T, P, BV, K>::setChildren(const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children) noexcept
   {
-
     std::vector<BV> boundingVolumes;
     for (const auto& child : a_children) {
       boundingVolumes.emplace_back(child->getBoundingVolume());
@@ -332,8 +329,8 @@ namespace BVH {
   inline std::shared_ptr<PackedBVH<T, P, K>>
   TreeBVH<T, P, BV, K>::pack() const noexcept
   {
-    static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>,
-                  "TreeBVH::pack requires BV == AABBT<T>");
+    static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "TreeBVH::pack requires BV == AABBT<T>");
+
     return std::make_shared<PackedBVH<T, P, K>>(*this);
   }
 
@@ -344,29 +341,35 @@ namespace BVH {
   {
     static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>,
                   "TreeBVH::packWith requires BV == AABBT<T>");
+
     return std::make_shared<PackedBVH<T, Q, K>>(*this, std::forward<Converter>(a_converter));
   }
-
-  // -------------------------------------------------------------------------
-  // PackedBVH implementation
-  // -------------------------------------------------------------------------
 
   template <class T, class P, size_t K>
   inline void
   PackedBVH<T, P, K>::buildSoA() noexcept
   {
     m_childAabbSoA.resize(m_linearNodes.size());
+
     for (size_t i = 0; i < m_linearNodes.size(); i++) {
       const auto& node = m_linearNodes[i];
+
       if (!node.isLeaf()) {
         const auto& offsets = node.getChildOffsets();
         auto&       soa     = m_childAabbSoA[i];
+
         for (size_t k = 0; k < K; k++) {
           const auto& bv = m_linearNodes[offsets[k]].getBoundingVolume();
           const auto& lo = bv.getLowCorner();
           const auto& hi = bv.getHighCorner();
-          soa.lo[0][k] = lo[0]; soa.lo[1][k] = lo[1]; soa.lo[2][k] = lo[2];
-          soa.hi[0][k] = hi[0]; soa.hi[1][k] = hi[1]; soa.hi[2][k] = hi[2];
+
+          soa.lo[0][k] = lo[0];
+          soa.lo[1][k] = lo[1];
+          soa.lo[2][k] = lo[2];
+
+          soa.hi[0][k] = hi[0];
+          soa.hi[1][k] = hi[1];
+          soa.hi[2][k] = hi[2];
         }
       }
     }
@@ -383,22 +386,26 @@ namespace BVH {
     // after recursion. Indexing by position (not pointer) is safe across
     // vector reallocation; C++17 RHS-before-LHS ensures fresh re-fetch of
     // m_linearNodes[idx] after any push_back inside the recursive call.
-    std::function<uint32_t(const TreeBVH<T, P, BV2, K>&)> dfs =
-      [&](const TreeBVH<T, P, BV2, K>& node) -> uint32_t {
+    std::function<uint32_t(const TreeBVH<T, P, BV2, K>&)> dfs = [&](const TreeBVH<T, P, BV2, K>& node) -> uint32_t {
       const uint32_t idx = static_cast<uint32_t>(m_linearNodes.size());
+
       m_linearNodes.push_back({});
       m_linearNodes[idx].bv = node.getBoundingVolume();
 
       if (node.isLeaf()) {
-        const auto& prims          = node.getPrimitives();
+        const auto& prims = node.getPrimitives();
+
         m_linearNodes[idx].primOff  = static_cast<uint32_t>(m_primitives.size());
         m_linearNodes[idx].numPrims = static_cast<uint32_t>(prims.size());
+
         m_primitives.insert(m_primitives.end(), prims.begin(), prims.end());
       }
       else {
         m_linearNodes[idx].numPrims = 0U;
         m_linearNodes[idx].primOff  = 0U;
+
         const auto& children = node.getChildren();
+
         for (size_t k = 0; k < K; k++) {
           m_linearNodes[idx].childOff[k] = dfs(*children[k]);
         }
@@ -421,40 +428,48 @@ namespace BVH {
     // shared_ptrs are created after all push_backs so no dangling pointers.
     auto dstStorage = std::make_shared<std::vector<P>>();
 
-    std::function<uint32_t(const TreeBVH<T, P2, BV2, K>&)> dfs =
-      [&](const TreeBVH<T, P2, BV2, K>& node) -> uint32_t {
+    std::function<uint32_t(const TreeBVH<T, P2, BV2, K>&)> dfs = [&](const TreeBVH<T, P2, BV2, K>& node) -> uint32_t {
       const uint32_t idx = static_cast<uint32_t>(m_linearNodes.size());
+
       m_linearNodes.push_back({});
       m_linearNodes[idx].bv = node.getBoundingVolume();
 
       if (node.isLeaf()) {
         const auto&    prims  = node.getPrimitives();
         const uint32_t dstOff = static_cast<uint32_t>(dstStorage->size());
+
         auto newVals = a_converter(prims, 0U, static_cast<uint32_t>(prims.size()));
+
         m_linearNodes[idx].primOff  = dstOff;
         m_linearNodes[idx].numPrims = static_cast<uint32_t>(newVals.size());
-        for (auto&& v : newVals)
+
+        for (auto&& v : newVals) {
           dstStorage->push_back(std::move(v));
+        }
       }
       else {
         m_linearNodes[idx].numPrims = 0U;
         m_linearNodes[idx].primOff  = 0U;
+
         const auto& children = node.getChildren();
+
         for (size_t k = 0; k < K; k++) {
           m_linearNodes[idx].childOff[k] = dfs(*children[k]);
         }
       }
+
       return idx;
     };
 
     dfs(a_tree);
 
     m_primitives.reserve(dstStorage->size());
+
     for (size_t i = 0; i < dstStorage->size(); i++) {
       m_primitives.emplace_back(dstStorage, &(*dstStorage)[i]);
     }
 
-    buildSoA();
+    this->buildSoA();
   }
 
   template <class T, class P, size_t K>
@@ -481,15 +496,16 @@ namespace BVH {
   template <class T, class P, size_t K>
   template <class Meta>
   inline void
-  PackedBVH<T, P, K>::traverse(const BVH::LinearUpdater<P>&              a_updater,
-                                const BVH::Visiter<LinearNode, Meta>&     a_visiter,
-                                const BVH::LinearSorter<Meta, K>&         a_sorter,
-                                const BVH::MetaUpdater<LinearNode, Meta>& a_metaUpdater) const noexcept
+  PackedBVH<T, P, K>::traverse(const BVH::LinearUpdater<P>&        a_updater,
+                               const BVH::Visiter<Node, Meta>&     a_visiter,
+                               const BVH::LinearSorter<Meta, K>&   a_sorter,
+                               const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept
   {
     std::array<std::pair<uint32_t, Meta>, K> children;
 
     // Vector-backed stack avoids deque chunk allocations; reserve avoids reallocs.
     std::vector<std::pair<uint32_t, Meta>> q;
+
     q.reserve(64);
     q.emplace_back(static_cast<uint32_t>(0), a_metaUpdater(m_linearNodes[0]));
 
@@ -498,7 +514,7 @@ namespace BVH {
       const Meta     meta    = q.back().second;
       q.pop_back();
 
-      const LinearNode& node = m_linearNodes[nodeIdx];
+      const Node& node = m_linearNodes[nodeIdx];
 
       if (a_visiter(node, meta)) {
         if (node.isLeaf()) {
@@ -529,13 +545,13 @@ namespace BVH {
     if constexpr (K == 4 && std::is_same_v<T, double>) {
       double minDist = std::numeric_limits<double>::max();
 
-      BVH::LinearUpdater<P> updater =
-        [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
-                              size_t                                        offset,
-                              size_t                                        count) noexcept -> void {
+      BVH::LinearUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
+                                                           size_t                                       offset,
+                                                           size_t count) noexcept -> void {
         for (size_t i = 0; i < count; i++) {
           const double d = prims[offset + i]->signedDistance(a_point);
-          if (std::abs(d) < std::abs(minDist)) minDist = d;
+          if (std::abs(d) < std::abs(minDist))
+            minDist = d;
         }
       };
 
@@ -544,17 +560,25 @@ namespace BVH {
       const __m256d pz   = _mm256_set1_pd(a_point[2]);
       const __m256d zero = _mm256_setzero_pd();
 
-      struct StackEntry { uint32_t idx; double dist2; };
+      struct StackEntry
+      {
+        uint32_t idx;
+        double   dist2;
+      };
       alignas(32) StackEntry stack[256];
+
       int top      = 0;
       stack[top++] = {0U, 0.0};
 
       while (top > 0) {
         const StackEntry entry    = stack[--top];
         const double     curBest2 = minDist * minDist;
-        if (entry.dist2 > curBest2) continue;
 
-        const LinearNode& node = m_linearNodes[entry.idx];
+        if (entry.dist2 > curBest2) {
+          continue;
+        }
+
+        const Node& node = m_linearNodes[entry.idx];
         if (node.isLeaf()) {
           updater(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
         }
@@ -571,37 +595,49 @@ namespace BVH {
           const __m256d dx = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x, px), _mm256_sub_pd(px, hi_x)));
           const __m256d dy = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y, py), _mm256_sub_pd(py, hi_y)));
           const __m256d dz = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z, pz), _mm256_sub_pd(pz, hi_z)));
-          const __m256d d2 = _mm256_add_pd(_mm256_mul_pd(dx, dx),
-                                            _mm256_add_pd(_mm256_mul_pd(dy, dy), _mm256_mul_pd(dz, dz)));
+          const __m256d d2 =
+            _mm256_add_pd(_mm256_mul_pd(dx, dx), _mm256_add_pd(_mm256_mul_pd(dy, dy), _mm256_mul_pd(dz, dz)));
 
           alignas(32) double dist2[K];
+
           _mm256_store_pd(dist2, d2);
 
-          const auto& offsets = node.getChildOffsets();
+          const auto&                                offsets = node.getChildOffsets();
           std::array<std::pair<double, uint32_t>, K> children;
-          for (size_t k = 0; k < K; k++) children[k] = {dist2[k], offsets[k]};
-          std::sort(children.begin(), children.end(),
-                    [](const std::pair<double, uint32_t>& a,
-                       const std::pair<double, uint32_t>& b) noexcept { return a.first > b.first; });
+
+          for (size_t k = 0; k < K; k++) {
+            children[k] = {dist2[k], offsets[k]};
+          }
+
+          std::sort(children.begin(),
+                    children.end(),
+                    [](const std::pair<double, uint32_t>& a, const std::pair<double, uint32_t>& b) noexcept {
+                      return a.first > b.first;
+                    });
 
           const double newBest2 = minDist * minDist;
+
           for (const auto& [d, idx] : children) {
-            if (d <= newBest2) stack[top++] = {idx, d};
+            if (d <= newBest2)
+              stack[top++] = {idx, d};
           }
         }
       }
+
       return static_cast<T>(minDist);
     }
     if constexpr (K == 8 && std::is_same_v<T, float>) {
       float minDist = std::numeric_limits<float>::max();
 
-      BVH::LinearUpdater<P> updater =
-        [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
-                              size_t                                        offset,
-                              size_t                                        count) noexcept -> void {
+      BVH::LinearUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
+                                                           size_t                                       offset,
+                                                           size_t count) noexcept -> void {
         for (size_t i = 0; i < count; i++) {
           const float d = prims[offset + i]->signedDistance(a_point);
-          if (std::abs(d) < std::abs(minDist)) minDist = d;
+
+          if (std::abs(d) < std::abs(minDist)) {
+            minDist = d;
+          }
         }
       };
 
@@ -610,17 +646,26 @@ namespace BVH {
       const __m256 pz   = _mm256_set1_ps((float)a_point[2]);
       const __m256 zero = _mm256_setzero_ps();
 
-      struct StackEntry { uint32_t idx; float dist2; };
+      struct StackEntry
+      {
+        uint32_t idx;
+        float    dist2;
+      };
+
       alignas(32) StackEntry stack[256];
+
       int top      = 0;
       stack[top++] = {0U, 0.f};
 
       while (top > 0) {
         const StackEntry entry    = stack[--top];
         const float      curBest2 = minDist * minDist;
-        if (entry.dist2 > curBest2) continue;
 
-        const LinearNode& node = m_linearNodes[entry.idx];
+        if (entry.dist2 > curBest2) {
+          continue;
+        }
+
+        const Node& node = m_linearNodes[entry.idx];
         if (node.isLeaf()) {
           updater(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
         }
@@ -637,37 +682,51 @@ namespace BVH {
           const __m256 dx = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_x, px), _mm256_sub_ps(px, hi_x)));
           const __m256 dy = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_y, py), _mm256_sub_ps(py, hi_y)));
           const __m256 dz = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_z, pz), _mm256_sub_ps(pz, hi_z)));
-          const __m256 d2 = _mm256_add_ps(_mm256_mul_ps(dx, dx),
-                                           _mm256_add_ps(_mm256_mul_ps(dy, dy), _mm256_mul_ps(dz, dz)));
+          const __m256 d2 =
+            _mm256_add_ps(_mm256_mul_ps(dx, dx), _mm256_add_ps(_mm256_mul_ps(dy, dy), _mm256_mul_ps(dz, dz)));
 
           alignas(32) float dist2[K];
           _mm256_store_ps(dist2, d2);
 
           const auto& offsets = node.getChildOffsets();
+
           std::array<std::pair<float, uint32_t>, K> children;
-          for (size_t k = 0; k < K; k++) children[k] = {dist2[k], offsets[k]};
-          std::sort(children.begin(), children.end(),
-                    [](const std::pair<float, uint32_t>& a,
-                       const std::pair<float, uint32_t>& b) noexcept { return a.first > b.first; });
+
+          for (size_t k = 0; k < K; k++) {
+            children[k] = {dist2[k], offsets[k]};
+          }
+
+          std::sort(children.begin(),
+                    children.end(),
+                    [](const std::pair<float, uint32_t>& a, const std::pair<float, uint32_t>& b) noexcept {
+                      return a.first > b.first;
+                    });
 
           const float newBest2 = minDist * minDist;
+
           for (const auto& [d, idx] : children) {
-            if (d <= newBest2) stack[top++] = {idx, d};
+            if (d <= newBest2) {
+              stack[top++] = {idx, d};
+            }
           }
         }
       }
+
       return static_cast<T>(minDist);
     }
+
     if constexpr (K == 8 && std::is_same_v<T, double>) {
       double minDist = std::numeric_limits<double>::max();
 
-      BVH::LinearUpdater<P> updater =
-        [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
-                              size_t                                        offset,
-                              size_t                                        count) noexcept -> void {
+      BVH::LinearUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
+                                                           size_t                                       offset,
+                                                           size_t count) noexcept -> void {
         for (size_t i = 0; i < count; i++) {
           const double d = prims[offset + i]->signedDistance(a_point);
-          if (std::abs(d) < std::abs(minDist)) minDist = d;
+
+          if (std::abs(d) < std::abs(minDist)) {
+            minDist = d;
+          }
         }
       };
 
@@ -676,17 +735,27 @@ namespace BVH {
       const __m256d pz   = _mm256_set1_pd(a_point[2]);
       const __m256d zero = _mm256_setzero_pd();
 
-      struct StackEntry { uint32_t idx; double dist2; };
+      struct StackEntry
+      {
+        uint32_t idx;
+        double   dist2;
+      };
+
       alignas(32) StackEntry stack[256];
+
       int top      = 0;
       stack[top++] = {0U, 0.0};
 
       while (top > 0) {
         const StackEntry entry    = stack[--top];
         const double     curBest2 = minDist * minDist;
-        if (entry.dist2 > curBest2) continue;
 
-        const LinearNode& node = m_linearNodes[entry.idx];
+        if (entry.dist2 > curBest2) {
+          continue;
+        }
+
+        const Node& node = m_linearNodes[entry.idx];
+
         if (node.isLeaf()) {
           updater(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
         }
@@ -700,11 +769,11 @@ namespace BVH {
           const __m256d hi_y0 = _mm256_load_pd(soa.hi[1]);
           const __m256d hi_z0 = _mm256_load_pd(soa.hi[2]);
 
-          const __m256d dx0  = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x0, px), _mm256_sub_pd(px, hi_x0)));
-          const __m256d dy0  = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y0, py), _mm256_sub_pd(py, hi_y0)));
-          const __m256d dz0  = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z0, pz), _mm256_sub_pd(pz, hi_z0)));
-          const __m256d d2_0 = _mm256_add_pd(_mm256_mul_pd(dx0, dx0),
-                                              _mm256_add_pd(_mm256_mul_pd(dy0, dy0), _mm256_mul_pd(dz0, dz0)));
+          const __m256d dx0 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x0, px), _mm256_sub_pd(px, hi_x0)));
+          const __m256d dy0 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y0, py), _mm256_sub_pd(py, hi_y0)));
+          const __m256d dz0 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z0, pz), _mm256_sub_pd(pz, hi_z0)));
+          const __m256d d2_0 =
+            _mm256_add_pd(_mm256_mul_pd(dx0, dx0), _mm256_add_pd(_mm256_mul_pd(dy0, dy0), _mm256_mul_pd(dz0, dz0)));
 
           const __m256d lo_x1 = _mm256_load_pd(soa.lo[0] + 4);
           const __m256d lo_y1 = _mm256_load_pd(soa.lo[1] + 4);
@@ -713,29 +782,40 @@ namespace BVH {
           const __m256d hi_y1 = _mm256_load_pd(soa.hi[1] + 4);
           const __m256d hi_z1 = _mm256_load_pd(soa.hi[2] + 4);
 
-          const __m256d dx1  = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x1, px), _mm256_sub_pd(px, hi_x1)));
-          const __m256d dy1  = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y1, py), _mm256_sub_pd(py, hi_y1)));
-          const __m256d dz1  = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z1, pz), _mm256_sub_pd(pz, hi_z1)));
-          const __m256d d2_1 = _mm256_add_pd(_mm256_mul_pd(dx1, dx1),
-                                              _mm256_add_pd(_mm256_mul_pd(dy1, dy1), _mm256_mul_pd(dz1, dz1)));
+          const __m256d dx1 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x1, px), _mm256_sub_pd(px, hi_x1)));
+          const __m256d dy1 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y1, py), _mm256_sub_pd(py, hi_y1)));
+          const __m256d dz1 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_z1, pz), _mm256_sub_pd(pz, hi_z1)));
+          const __m256d d2_1 =
+            _mm256_add_pd(_mm256_mul_pd(dx1, dx1), _mm256_add_pd(_mm256_mul_pd(dy1, dy1), _mm256_mul_pd(dz1, dz1)));
 
           alignas(32) double dist2[K];
-          _mm256_store_pd(dist2,     d2_0);
+          _mm256_store_pd(dist2, d2_0);
           _mm256_store_pd(dist2 + 4, d2_1);
 
           const auto& offsets = node.getChildOffsets();
+
           std::array<std::pair<double, uint32_t>, K> children;
-          for (size_t k = 0; k < K; k++) children[k] = {dist2[k], offsets[k]};
-          std::sort(children.begin(), children.end(),
-                    [](const std::pair<double, uint32_t>& a,
-                       const std::pair<double, uint32_t>& b) noexcept { return a.first > b.first; });
+
+          for (size_t k = 0; k < K; k++) {
+            children[k] = {dist2[k], offsets[k]};
+          }
+
+          std::sort(children.begin(),
+                    children.end(),
+                    [](const std::pair<double, uint32_t>& a, const std::pair<double, uint32_t>& b) noexcept {
+                      return a.first > b.first;
+                    });
 
           const double newBest2 = minDist * minDist;
+
           for (const auto& [d, idx] : children) {
-            if (d <= newBest2) stack[top++] = {idx, d};
+            if (d <= newBest2) {
+              stack[top++] = {idx, d};
+            }
           }
         }
       }
+
       return static_cast<T>(minDist);
     }
 #endif
@@ -743,13 +823,15 @@ namespace BVH {
     if constexpr (K == 4 && std::is_same_v<T, float>) {
       T minDist = std::numeric_limits<T>::max();
 
-      BVH::LinearUpdater<P> updater =
-        [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
-                              size_t                                        offset,
-                              size_t                                        count) noexcept -> void {
+      BVH::LinearUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
+                                                           size_t                                       offset,
+                                                           size_t count) noexcept -> void {
         for (size_t i = 0; i < count; i++) {
           const T d = prims[offset + i]->signedDistance(a_point);
-          if (std::abs(d) < std::abs(minDist)) minDist = d;
+
+          if (std::abs(d) < std::abs(minDist)) {
+            minDist = d;
+          }
         }
       };
 
@@ -758,17 +840,26 @@ namespace BVH {
       const __m128 pz   = _mm_set1_ps(a_point[2]);
       const __m128 zero = _mm_setzero_ps();
 
-      struct StackEntry { uint32_t idx; float dist2; };
+      struct StackEntry
+      {
+        uint32_t idx;
+        float    dist2;
+      };
+
       alignas(16) StackEntry stack[256];
-      int top      = 0;
-      stack[top++] = {0U, 0.0f};
+      int                    top = 0;
+      stack[top++]               = {0U, 0.0f};
 
       while (top > 0) {
         const StackEntry entry    = stack[--top];
         const float      curBest2 = minDist * minDist;
-        if (entry.dist2 > curBest2) continue;
 
-        const LinearNode& node = m_linearNodes[entry.idx];
+        if (entry.dist2 > curBest2) {
+          continue;
+        }
+
+        const Node& node = m_linearNodes[entry.idx];
+
         if (node.isLeaf()) {
           updater(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
         }
@@ -785,25 +876,35 @@ namespace BVH {
           const __m128 dx = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_x, px), _mm_sub_ps(px, hi_x)));
           const __m128 dy = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_y, py), _mm_sub_ps(py, hi_y)));
           const __m128 dz = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_z, pz), _mm_sub_ps(pz, hi_z)));
-          const __m128 d2 = _mm_add_ps(_mm_mul_ps(dx, dx),
-                                        _mm_add_ps(_mm_mul_ps(dy, dy), _mm_mul_ps(dz, dz)));
+          const __m128 d2 = _mm_add_ps(_mm_mul_ps(dx, dx), _mm_add_ps(_mm_mul_ps(dy, dy), _mm_mul_ps(dz, dz)));
 
           alignas(16) float dist2[K];
           _mm_store_ps(dist2, d2);
 
           const auto& offsets = node.getChildOffsets();
+
           std::array<std::pair<float, uint32_t>, K> children;
-          for (size_t k = 0; k < K; k++) children[k] = {dist2[k], offsets[k]};
-          std::sort(children.begin(), children.end(),
-                    [](const std::pair<float, uint32_t>& a,
-                       const std::pair<float, uint32_t>& b) noexcept { return a.first > b.first; });
+
+          for (size_t k = 0; k < K; k++) {
+            children[k] = {dist2[k], offsets[k]};
+          }
+
+          std::sort(children.begin(),
+                    children.end(),
+                    [](const std::pair<float, uint32_t>& a, const std::pair<float, uint32_t>& b) noexcept {
+                      return a.first > b.first;
+                    });
 
           const float newBest2 = minDist * minDist;
+
           for (const auto& [d, idx] : children) {
-            if (d <= newBest2) stack[top++] = {idx, d};
+            if (d <= newBest2) {
+              stack[top++] = {idx, d};
+            }
           }
         }
       }
+
       return minDist;
     }
 #endif
@@ -811,30 +912,34 @@ namespace BVH {
     // Scalar fallback for all other (T, K) combinations.
     T minDist = std::numeric_limits<T>::max();
 
-    BVH::LinearUpdater<P> updater =
-      [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
-                            size_t                                        offset,
-                            size_t                                        count) noexcept -> void {
+    BVH::LinearUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
+                                                         size_t                                       offset,
+                                                         size_t count) noexcept -> void {
       for (size_t i = 0; i < count; i++) {
         const T d = prims[offset + i]->signedDistance(a_point);
-        if (std::abs(d) < std::abs(minDist)) minDist = d;
+
+        if (std::abs(d) < std::abs(minDist)) {
+          minDist = d;
+        }
       }
     };
 
-    BVH::Visiter<LinearNode, T> visiter = [&minDist](const LinearNode& /*n*/, const T& d) noexcept -> bool {
+    BVH::Visiter<Node, T> visiter = [&minDist](const Node& /*n*/, const T& d) noexcept -> bool {
       return d <= std::abs(minDist);
     };
-    BVH::LinearSorter<T, K> sorter =
-      [](std::array<std::pair<uint32_t, T>, K>& ch) noexcept -> void {
+
+    BVH::LinearSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& ch) noexcept -> void {
       std::sort(ch.begin(), ch.end(), [](const std::pair<uint32_t, T>& a, const std::pair<uint32_t, T>& b) noexcept {
         return a.second > b.second;
       });
     };
-    BVH::MetaUpdater<LinearNode, T> metaUpdater = [&a_point](const LinearNode& n) noexcept -> T {
+
+    BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& n) noexcept -> T {
       return n.getDistanceToBoundingVolume(a_point);
     };
 
     this->traverse(updater, visiter, sorter, metaUpdater);
+
     return minDist;
   }
 

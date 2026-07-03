@@ -196,7 +196,7 @@ public:
   /*!
     @brief Alias for a single linearized node
   */
-  using Node = typename Root::LinearNode;
+  using Node = typename Root::Node;
 
   /*!
     @brief Default disallowed constructor
@@ -288,7 +288,7 @@ public:
   /*!
     @brief Alias for linearized BVH
   */
-  using Node = typename Root::LinearNode;
+  using Node = typename Root::Node;
 
   /*!
     @brief Default disallowed constructor
