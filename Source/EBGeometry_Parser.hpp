@@ -78,7 +78,7 @@ namespace Parser {
   */
   template <typename T>
   [[nodiscard]] PLY<T>
-  readPLY(const std::string& a_filename) noexcept;
+  readPLY(const std::string& a_filename);
 
   /**
     @brief Read multiple PLY files into raw PLY data structures.
@@ -88,7 +88,7 @@ namespace Parser {
   */
   template <typename T>
   [[nodiscard]] std::vector<PLY<T>>
-  readPLY(const std::vector<std::string>& a_filenames) noexcept;
+  readPLY(const std::vector<std::string>& a_filenames);
 
   /**
     @brief Read a single STL file into a raw STL data structure.
@@ -100,7 +100,7 @@ namespace Parser {
   */
   template <typename T>
   [[nodiscard]] STL<T>
-  readSTL(const std::string& a_filename) noexcept;
+  readSTL(const std::string& a_filename);
 
   /**
     @brief Read multiple STL files into raw STL data structures.
@@ -112,7 +112,7 @@ namespace Parser {
   */
   template <typename T>
   [[nodiscard]] std::vector<STL<T>>
-  readSTL(const std::vector<std::string>& a_filenames) noexcept;
+  readSTL(const std::vector<std::string>& a_filenames);
 
   /**
     @brief Read a single VTK legacy polydata file into a raw VTK data structure.
@@ -122,7 +122,7 @@ namespace Parser {
   */
   template <typename T>
   [[nodiscard]] VTK<T>
-  readVTK(const std::string& a_filename) noexcept;
+  readVTK(const std::string& a_filename);
 
   /**
     @brief Read multiple VTK legacy polydata files into raw VTK data structures.
@@ -132,7 +132,7 @@ namespace Parser {
   */
   template <typename T>
   [[nodiscard]] std::vector<VTK<T>>
-  readVTK(const std::vector<std::string>& a_filenames) noexcept;
+  readVTK(const std::vector<std::string>& a_filenames);
 
   /**
     @brief Read a file containing a single watertight object and return it as a DCEL mesh.
@@ -143,7 +143,7 @@ namespace Parser {
   */
   template <typename T, typename Meta = DCEL::DefaultMetaData>
   [[nodiscard]] inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-  readIntoDCEL(const std::string a_filename) noexcept;
+  readIntoDCEL(const std::string a_filename);
 
   /**
     @brief Read multiple files containing single watertight objects and return them as DCEL meshes.
@@ -154,7 +154,7 @@ namespace Parser {
   */
   template <typename T, typename Meta = DCEL::DefaultMetaData>
   [[nodiscard]] inline static std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>>
-  readIntoDCEL(const std::vector<std::string> a_files) noexcept;
+  readIntoDCEL(const std::vector<std::string> a_files);
 
   /**
     @brief Read a file containing a single watertight object and return it as a bare DCEL signed-distance function.
@@ -165,7 +165,7 @@ namespace Parser {
   */
   template <typename T, typename Meta = DCEL::DefaultMetaData>
   [[nodiscard]] inline static std::shared_ptr<MeshSDF<T, Meta>>
-  readIntoMesh(const std::string a_filename) noexcept;
+  readIntoMesh(const std::string a_filename);
 
   /**
     @brief Read multiple files containing single watertight objects and return them as bare DCEL signed-distance functions.
@@ -176,7 +176,7 @@ namespace Parser {
   */
   template <typename T, typename Meta = DCEL::DefaultMetaData>
   [[nodiscard]] inline static std::vector<std::shared_ptr<MeshSDF<T, Meta>>>
-  readIntoMesh(const std::vector<std::string> a_files) noexcept;
+  readIntoMesh(const std::vector<std::string> a_files);
 
   /**
     @brief Read a file containing a single watertight object and return it enclosed in a full (tree-based) BVH.
@@ -192,7 +192,7 @@ namespace Parser {
             typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
             size_t K      = 4>
   [[nodiscard]] inline static std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>
-  readIntoFullBVH(const std::string a_filename) noexcept;
+  readIntoFullBVH(const std::string a_filename);
 
   /**
     @brief Read multiple files and return each object enclosed in a full (tree-based) BVH.
@@ -208,7 +208,7 @@ namespace Parser {
             typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
             size_t K      = 4>
   [[nodiscard]] inline static std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>>
-  readIntoFullBVH(const std::vector<std::string> a_files) noexcept;
+  readIntoFullBVH(const std::vector<std::string> a_files);
 
   /**
     @brief Read a file containing a single watertight object and return it enclosed in a linearised (packed) BVH.
@@ -220,7 +220,7 @@ namespace Parser {
   */
   template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
   [[nodiscard]] inline static std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>
-  readIntoCompactBVH(const std::string a_filename) noexcept;
+  readIntoCompactBVH(const std::string a_filename);
 
   /**
     @brief Read multiple files and return each object enclosed in a linearised (packed) BVH.
@@ -232,7 +232,7 @@ namespace Parser {
   */
   template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
   [[nodiscard]] inline static std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>>
-  readIntoCompactBVH(const std::vector<std::string> a_files) noexcept;
+  readIntoCompactBVH(const std::vector<std::string> a_files);
 
   /**
     @brief Read a file and return the mesh enclosed in a SIMD-optimised triangle BVH.
@@ -250,7 +250,7 @@ namespace Parser {
   */
   template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4, size_t W = EBGEOMETRY_SOA_DEFAULT_WIDTH>
   [[nodiscard]] inline static std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>
-  readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafSize = 8U) noexcept;
+  readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafSize = 8U);
 
   /**
     @brief Read multiple files and return each mesh enclosed in a SIMD-optimised triangle BVH.
@@ -264,7 +264,7 @@ namespace Parser {
   */
   template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4, size_t W = EBGEOMETRY_SOA_DEFAULT_WIDTH>
   [[nodiscard]] inline static std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>>
-  readIntoTriangleBVH(const std::vector<std::string> a_files, const size_t a_maxLeafSize = 8U) noexcept;
+  readIntoTriangleBVH(const std::vector<std::string> a_files, const size_t a_maxLeafSize = 8U);
 
   /**
     @brief Read a file and return all faces as a flat list of Triangle objects.
@@ -277,7 +277,7 @@ namespace Parser {
   */
   template <typename T, typename Meta>
   [[nodiscard]] inline static std::vector<std::shared_ptr<Triangle<T, Meta>>>
-  readIntoTriangles(const std::string a_filename) noexcept;
+  readIntoTriangles(const std::string a_filename);
 
   /**
     @brief Read multiple files and return all faces from each as flat lists of Triangle objects.
@@ -288,7 +288,7 @@ namespace Parser {
   */
   template <typename T, typename Meta>
   [[nodiscard]] inline static std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
-  readIntoTriangles(const std::vector<std::string> a_files) noexcept;
+  readIntoTriangles(const std::vector<std::string> a_files);
 } // namespace Parser
 
 #include "EBGeometry_NamespaceFooter.hpp"

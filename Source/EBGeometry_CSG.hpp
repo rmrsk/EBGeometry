@@ -29,7 +29,7 @@
 */
 template <class T, class P = ImplicitFunction<T>>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept;
+Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions);
 
 /**
   @brief Convenience function for taking the union of two implicit functions.
@@ -43,7 +43,7 @@ Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept;
 */
 template <class T, class P1, class P2>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-Union(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB) noexcept;
+Union(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB);
 
 /**
   @brief Convenience function for taking the smooth union of a bunch of implicit functions.
@@ -56,7 +56,7 @@ Union(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>&
 */
 template <class T, class P = ImplicitFunction<T>>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth) noexcept;
+SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth);
 
 /**
   @brief Convenience function for taking the smooth union of two implicit functions.
@@ -73,7 +73,7 @@ template <class T, class P1, class P2>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 SmoothUnion(const std::shared_ptr<P1>& a_implicitFunctionA,
             const std::shared_ptr<P2>& a_implicitFunctionB,
-            const T                    a_smooth) noexcept;
+            const T                    a_smooth);
 
 /**
   @brief Convenience function for taking the BVH-accelerated union of a bunch of implicit functions.
@@ -88,8 +88,7 @@ SmoothUnion(const std::shared_ptr<P1>& a_implicitFunctionA,
 */
 template <class T, class P, class BV, size_t K>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-FastUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
-          const std::vector<BV>&                 a_boundingVolumes) noexcept;
+FastUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std::vector<BV>& a_boundingVolumes);
 
 /**
   @brief Convenience function for taking the BVH-accelerated smooth union of a bunch of implicit functions.
@@ -119,7 +118,7 @@ FastSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
 */
 template <class T, class P>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept;
+Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions);
 
 /**
   @brief Convenience function for taking the intersection of two implicit functions.
@@ -133,7 +132,7 @@ Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcep
 */
 template <class T, class P1, class P2>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-Intersection(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB) noexcept;
+Intersection(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB);
 
 /**
   @brief Convenience function for taking the smooth intersection of a bunch of implicit functions.
@@ -146,7 +145,7 @@ Intersection(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_p
 */
 template <class T, class P>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth) noexcept;
+SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth);
 
 /**
   @brief Convenience function for taking the smooth intersection of two implicit functions.
@@ -163,7 +162,7 @@ template <class T, class P1, class P2>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunctionA,
                    const std::shared_ptr<P2>& a_implicitFunctionB,
-                   const T                    a_smooth) noexcept;
+                   const T                    a_smooth);
 
 /**
   @brief Convenience function for taking the CSG difference A \ B.
@@ -177,7 +176,7 @@ SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunctionA,
 */
 template <class T, class P1 = ImplicitFunction<T>, class P2 = ImplicitFunction<T>>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB) noexcept;
+Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB);
 
 /**
   @brief Convenience function for taking the smooth CSG difference A \ B.
@@ -194,7 +193,7 @@ template <class T, class P1 = ImplicitFunction<T>, class P2 = ImplicitFunction<T
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
                  const std::shared_ptr<P2>& a_implicitFunctionB,
-                 const T                    a_smoothLen) noexcept;
+                 const T                    a_smoothLen);
 
 /**
   @brief Convenience function for creating a periodically repeated implicit function.
@@ -212,7 +211,7 @@ template <class T, class P = ImplicitFunction<T>>
 FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
                  const Vec3T<T>&           a_period,
                  const Vec3T<T>&           a_repeatLo,
-                 const Vec3T<T>&           a_repeatHi) noexcept;
+                 const Vec3T<T>&           a_repeatHi);
 
 /**
   @brief Exponential smooth-minimum function for CSG.
@@ -278,7 +277,7 @@ public:
     @brief Full constructor. Computes the CSG union
     @param[in] a_implicitFunctions List of primitives
   */
-  UnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions) noexcept;
+  UnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions);
 
   /**
     @brief Destructor (does nothing)
@@ -323,7 +322,7 @@ public:
   */
   SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>&   a_implicitFunctions,
                 const T                                                    a_smoothLen,
-                const std::function<T(const T& a, const T& b, const T& s)> a_smoothMin = smoothMin<T>) noexcept;
+                const std::function<T(const T& a, const T& b, const T& s)> a_smoothMin = smoothMin<T>);
 
   /**
     @brief Destructor (does nothing)
@@ -391,14 +390,14 @@ public:
     @brief Full constructor - constructs bounding volumes in place.
     @param[in] a_primsAndBVs Primitives and their bounding volumes.
   */
-  FastUnionIF(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs) noexcept;
+  FastUnionIF(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs);
 
   /**
     @brief Full constructor - constructs bounding volumes in place.
     @param[in] a_primitives Input primitives.
     @param[in] a_boundingVolumes Bounding volumes for primitives.
   */
-  FastUnionIF(const std::vector<std::shared_ptr<P>>& a_primitives, const std::vector<BV>& a_boundingVolumes) noexcept;
+  FastUnionIF(const std::vector<std::shared_ptr<P>>& a_primitives, const std::vector<BV>& a_boundingVolumes);
 
   /**
     @brief Destructor (does nothing)

@@ -343,7 +343,7 @@ namespace BVH {
       @brief Construct a leaf node from a set of (primitive, BV) pairs.
       @param[in] a_primsAndBVs Primitives and their bounding volumes.
     */
-    TreeBVH(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs) noexcept;
+    TreeBVH(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs);
 
     /**
       @brief Destructor.
@@ -358,7 +358,7 @@ namespace BVH {
     */
     inline void
     topDownSortAndPartition(const Partitioner&  a_partitioner = BVCentroidPartitioner<T, P, BV, K>,
-                            const StopFunction& a_stopCrit    = DefaultStopFunction<T, P, BV, K>) noexcept;
+                            const StopFunction& a_stopCrit    = DefaultStopFunction<T, P, BV, K>);
 
     /**
       @brief Recursively partition this node bottom-up along a space-filling curve.
@@ -369,7 +369,7 @@ namespace BVH {
     */
     template <typename S>
     inline void
-    bottomUpSortAndPartition() noexcept;
+    bottomUpSortAndPartition();
 
     /**
       @brief Return true if this is a leaf node (no children, non-empty primitive list).
@@ -468,7 +468,7 @@ namespace BVH {
       @return Shared pointer to the resulting PackedBVH.
     */
     [[nodiscard]] inline std::shared_ptr<PackedBVH<T, P, K>>
-    pack() const noexcept;
+    pack() const;
 
     /**
       @brief Flatten and convert this tree into a PackedBVH with a different primitive type Q.
@@ -484,7 +484,7 @@ namespace BVH {
     */
     template <class Q, class Converter>
     [[nodiscard]] inline std::shared_ptr<PackedBVH<T, Q, K>>
-    packWith(Converter&& a_converter) const noexcept;
+    packWith(Converter&& a_converter) const;
 
   protected:
     /**
@@ -850,7 +850,7 @@ namespace BVH {
       @details Called at the end of every constructor after m_linearNodes is fully built.
     */
     inline void
-    buildSoA() noexcept;
+    buildSoA();
   };
 
 } // namespace BVH

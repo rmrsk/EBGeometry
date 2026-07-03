@@ -72,7 +72,7 @@ public:
   approximateBoundingVolumeOctree(const Vec3T<T>&    a_initialLowCorner,
                                   const Vec3T<T>&    a_initialHighCorner,
                                   const unsigned int a_maxTreeDepth,
-                                  const T&           a_safety = 0.0) const noexcept;
+                                  const T&           a_safety = 0.0) const;
 };
 
 #include "EBGeometry_NamespaceFooter.hpp"

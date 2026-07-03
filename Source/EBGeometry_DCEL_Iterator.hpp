@@ -72,7 +72,7 @@ namespace DCEL {
       @note This constructor will will iterate through the half-edges in the
       polygon face.
     */
-    EdgeIteratorT(Face& a_face);
+    EdgeIteratorT(Face& a_face) noexcept;
 
     /**
       @brief Constructor, taking a face as argument. The iterator begins at the
@@ -81,7 +81,7 @@ namespace DCEL {
       @note This constructor will will iterate through the half-edges in the
       polygon face.
     */
-    EdgeIteratorT(const Face& a_face);
+    EdgeIteratorT(const Face& a_face) noexcept;
 
     /**
       @brief Destructor.

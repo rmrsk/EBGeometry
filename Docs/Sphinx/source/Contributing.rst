@@ -20,28 +20,91 @@ Running the unit tests locally
 test suite under ``Tests/``.  Catch2 is fetched automatically at CMake configure
 time via ``FetchContent`` — no manual installation is needed.
 
-Quick start
-~~~~~~~~~~~
+Quick start with CMake presets
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The repository ships ``CMakePresets.json`` (requires CMake ≥ 3.22) with
+pre-configured debug and release profiles.  The **debug preset** is the
+recommended starting point: it enables assertions, disables SIMD (cleaner
+debugger output), and turns on both the test suite and the examples.
 
 .. code-block:: bash
 
-   # 1. Configure — enable tests, assertions, choose a SIMD level
-   cmake -B build \
-         -DCMAKE_BUILD_TYPE=Release \
-         -DEBGEOMETRY_BUILD_TESTS=ON \
-         -DEBGEOMETRY_ENABLE_ASSERTIONS=ON \
-         -DEBGEOMETRY_SIMD=avx          # or: sse41 | none
+   # 1. Configure (Catch2 is fetched automatically on the first run)
+   cmake --preset debug
 
-   # 2. Build (Catch2 is fetched on first run — requires an internet connection)
-   cmake --build build --parallel $(nproc)
+   # 2. Build
+   cmake --build --preset debug --parallel $(nproc)
 
-   # 3. Run all tests
-   cd build && ctest --output-on-failure
+   # 3a. Run unit tests only  (< 1 s)
+   ctest --preset debug
 
-A successful run looks like::
+   # 3b. Run example programs (allow several minutes in Debug mode)
+   ctest --preset examples
+
+A successful unit-test run looks like::
 
    100% tests passed, 0 tests failed out of 50
-   Total Test time (real) =   0.11 sec
+   Label Time Summary:
+   unit    =   0.10 sec*proc (50 tests)
+
+Running with sanitizers (AddressSanitizer + UBSan)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+   cmake --preset debug-san
+   cmake --build --preset debug-san --parallel $(nproc)
+   ctest --preset debug-san
+
+Preset reference
+^^^^^^^^^^^^^^^^
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 12 14 12 40
+
+   * - Preset
+     - Build type
+     - Assertions
+     - SIMD
+     - Tests / Examples
+   * - ``debug``
+     - ``Debug``
+     - ON
+     - none
+     - Unit tests + examples (labelled separately)
+   * - ``debug-san``
+     - ``Debug``
+     - ON
+     - none
+     - Unit tests + examples with ASan/UBSan
+   * - ``release``
+     - ``Release``
+     - OFF
+     - avx
+     - OFF (library only)
+   * - ``release-test``
+     - ``Release``
+     - OFF
+     - avx
+     - Unit tests + examples
+
+Manual CMake options (without presets)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you cannot use presets (CMake < 3.22 or an IDE that does not support
+them), pass the variables directly:
+
+.. code-block:: bash
+
+   cmake -B build \
+         -DCMAKE_BUILD_TYPE=Debug \
+         -DEBGEOMETRY_BUILD_TESTS=ON \
+         -DEBGEOMETRY_ENABLE_ASSERTIONS=ON \
+         -DEBGEOMETRY_SIMD=none
+   cmake --build build --parallel $(nproc)
+   cd build && ctest -L unit --output-on-failure
 
 CMake options
 ~~~~~~~~~~~~~
@@ -56,11 +119,17 @@ CMake options
    * - ``EBGEOMETRY_BUILD_TESTS``
      - ``OFF``
      - Fetch Catch2 and build the ``Tests/`` suite.
+   * - ``EBGEOMETRY_BUILD_EXAMPLES``
+     - ``OFF``
+     - Build the standalone examples under ``Examples/``.
    * - ``EBGEOMETRY_ENABLE_ASSERTIONS``
      - ``OFF``
      - Compile with ``EBGEOMETRY_EXPECT()`` guards active. Strongly recommended
        when running tests so that precondition violations abort with a clear
        message rather than silently producing wrong results.
+   * - ``EBGEOMETRY_ENABLE_SANITIZERS``
+     - ``OFF``
+     - Add ``-fsanitize=address,undefined`` to tests and examples.
    * - ``EBGEOMETRY_SIMD``
      - ``avx``
      - ``avx`` enables ``-mavx -mfma -msse4.1``; ``sse41`` enables
@@ -163,10 +232,10 @@ Jobs overview
        documentation; uploads the result as a workflow artifact.  Depends on
        ``Formatting``.
    * - ``Unit-Tests``
-     - Configures and builds the Catch2 suite with CMake across a 2 × 2
-       matrix: compilers ``{g++-12, clang++-14}`` × SIMD levels
-       ``{none, avx}``.  Runs ``ctest --output-on-failure``.  Depends on
-       ``Formatting``.
+     - Configures with ``cmake --preset debug`` and builds the Catch2 suite
+       across a 2 × 2 matrix: compilers ``{g++-12, clang++-14}`` × SIMD levels
+       ``{none, avx}``.  Runs ``ctest --preset debug`` (unit label only).
+       Depends on ``Formatting``.
    * - ``CI-passed``
      - Dummy job whose only role is to aggregate all of the above as a
        single required status check.  Branch-protection rules can target

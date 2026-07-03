@@ -316,6 +316,7 @@ namespace DCEL {
   MeshT<T, Meta>::getAllVertexCoordinates() const noexcept
   {
     std::vector<Vec3> vertexCoordinates;
+    vertexCoordinates.reserve(m_vertices.size());
     for (const auto& v : m_vertices) {
       vertexCoordinates.emplace_back(v->getPosition());
     }

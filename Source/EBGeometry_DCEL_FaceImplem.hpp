@@ -54,7 +54,7 @@ namespace DCEL {
 
   template <class T, class Meta>
   inline void
-  FaceT<T, Meta>::reconcile() noexcept
+  FaceT<T, Meta>::reconcile()
   {
     this->computeNormal();
     this->normalizeNormalVector();
@@ -93,7 +93,7 @@ namespace DCEL {
 
   template <class T, class Meta>
   inline void
-  FaceT<T, Meta>::computeCentroid() noexcept
+  FaceT<T, Meta>::computeCentroid()
   {
     m_centroid = Vec3::zero();
 
@@ -108,7 +108,7 @@ namespace DCEL {
 
   template <class T, class Meta>
   inline void
-  FaceT<T, Meta>::computeNormal() noexcept
+  FaceT<T, Meta>::computeNormal()
   {
     const auto vertices = this->gatherVertices();
 
@@ -133,14 +133,14 @@ namespace DCEL {
 
   template <class T, class Meta>
   inline void
-  FaceT<T, Meta>::computePolygon2D() noexcept
+  FaceT<T, Meta>::computePolygon2D()
   {
     m_poly2 = std::make_shared<Polygon2D<T>>(m_normal, this->getAllVertexCoordinates());
   }
 
   template <class T, class Meta>
   inline T
-  FaceT<T, Meta>::computeArea() noexcept
+  FaceT<T, Meta>::computeArea()
   {
 
     T area = 0.0;
@@ -239,9 +239,10 @@ namespace DCEL {
 
   template <class T, class Meta>
   inline std::vector<std::shared_ptr<VertexT<T, Meta>>>
-  FaceT<T, Meta>::gatherVertices() const noexcept
+  FaceT<T, Meta>::gatherVertices() const
   {
     std::vector<VertexPtr> vertices;
+    vertices.reserve(3);
 
     for (EdgeIterator iter(*this); iter.ok(); ++iter) {
       EdgePtr& edge = iter();
@@ -253,9 +254,10 @@ namespace DCEL {
 
   template <class T, class Meta>
   inline std::vector<std::shared_ptr<EdgeT<T, Meta>>>
-  FaceT<T, Meta>::gatherEdges() const noexcept
+  FaceT<T, Meta>::gatherEdges() const
   {
     std::vector<EdgePtr> edges;
+    edges.reserve(3);
 
     for (EdgeIterator iter(*this); iter.ok(); ++iter) {
       EdgePtr& edge = iter();
@@ -268,9 +270,10 @@ namespace DCEL {
 
   template <class T, class Meta>
   inline std::vector<Vec3T<T>>
-  FaceT<T, Meta>::getAllVertexCoordinates() const noexcept
+  FaceT<T, Meta>::getAllVertexCoordinates() const
   {
     std::vector<Vec3> ret;
+    ret.reserve(3);
 
     for (EdgeIterator iter(*this); iter.ok(); ++iter) {
       EdgePtr& edge = iter();
@@ -283,7 +286,7 @@ namespace DCEL {
 
   template <class T, class Meta>
   inline Vec3T<T>
-  FaceT<T, Meta>::getSmallestCoordinate() const noexcept
+  FaceT<T, Meta>::getSmallestCoordinate() const
   {
     const auto coords = this->getAllVertexCoordinates();
 
@@ -298,7 +301,7 @@ namespace DCEL {
 
   template <class T, class Meta>
   inline Vec3T<T>
-  FaceT<T, Meta>::getHighestCoordinate() const noexcept
+  FaceT<T, Meta>::getHighestCoordinate() const
   {
     const auto coords = this->getAllVertexCoordinates();
 

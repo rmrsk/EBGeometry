@@ -60,7 +60,7 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: |
           ./a.out
-          if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
 
   Linux-Intel:
     needs: Formatting
@@ -69,12 +69,12 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]    
+        directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
 
     steps:
-      - uses: actions/checkout@v4      
+      - uses: actions/checkout@v4
       - name: Install Intel oneAPI
-        working-directory: /tmp        
+        working-directory: /tmp
         run: |
           wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
           sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
@@ -101,7 +101,7 @@ jobs:
     needs: Formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4      
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -110,15 +110,15 @@ jobs:
           sudo apt install texlive
           sudo apt install texlive-latex-extra
           sudo apt install latexmk
-          python3 -m pip install sphinx==5.0.0 sphinx_rtd_theme sphinxcontrib-bibtex          
-          
+          python3 -m pip install sphinx==5.0.0 sphinx_rtd_theme sphinxcontrib-bibtex
+
       - name: Build doxygen
         working-directory: ${{ github.workspace }}/Docs
         run: |
           doxygen doxyfile
 
       - name: Build HTML documentation
-        working-directory: ${{ github.workspace }}/Docs/Sphinx        
+        working-directory: ${{ github.workspace }}/Docs/Sphinx
         run: |
           make html
 
@@ -138,11 +138,11 @@ jobs:
         run: |
           cp -a Sphinx/build/html/* ./
           mv Sphinx/build/latex/ebgeometry.pdf ./
-          rm -rf Sphinx/build          
+          rm -rf Sphinx/build
 
   Unit-Tests:
     needs: Formatting
-    name: Unit tests
+    name: Unit tests (${{ matrix.compiler }}, SIMD=${{ matrix.simd }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -164,21 +164,18 @@ jobs:
             sudo apt-get install -y clang-14
           fi
 
-      - name: Configure
+      - name: Configure (debug preset)
         run: |
-          cmake -B build \
+          cmake --preset debug \
             -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DEBGEOMETRY_BUILD_TESTS=ON \
-            -DEBGEOMETRY_ENABLE_ASSERTIONS=ON \
-            -DEBGEOMETRY_SIMD=${{ matrix.simd }}
+            -DEBGEOMETRY_SIMD=${{ matrix.simd }} \
+            -DEBGEOMETRY_BUILD_EXAMPLES=OFF
 
       - name: Build
-        run: cmake --build build --parallel 2
+        run: cmake --build --preset debug --parallel 2
 
       - name: Run tests
-        working-directory: build
-        run: ctest --output-on-failure --timeout 60
+        run: ctest --preset debug
 
   CI-passed:
     needs: [Linux-GNU, Linux-Intel, Build-documentation, Unit-Tests]

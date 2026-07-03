@@ -18,7 +18,7 @@
 
 template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
-Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept
+Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions)
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
 
@@ -32,7 +32,7 @@ Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept
 
 template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
-Union(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>& a_implicitFunction2) noexcept
+Union(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>& a_implicitFunction2)
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
@@ -47,7 +47,7 @@ Union(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>&
 
 template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
-SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth) noexcept
+SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth)
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
 
@@ -63,7 +63,7 @@ template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
 SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
             const std::shared_ptr<P2>& a_implicitFunction2,
-            const T                    a_smooth) noexcept
+            const T                    a_smooth)
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
@@ -78,7 +78,7 @@ SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
 
 template <class T, class P, class BV, size_t K>
 std::shared_ptr<ImplicitFunction<T>>
-FastUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std::vector<BV>& a_boundingVolumes) noexcept
+FastUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std::vector<BV>& a_boundingVolumes)
 {
   return std::make_shared<EBGeometry::FastUnionIF<T, P, BV, K>>(a_implicitFunctions, a_boundingVolumes);
 }
@@ -95,7 +95,7 @@ FastSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
 
 template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
-Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept
+Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions)
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
 
@@ -109,7 +109,7 @@ Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcep
 
 template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
-Intersection(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>& a_implicitFunction2) noexcept
+Intersection(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>& a_implicitFunction2)
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
@@ -124,7 +124,7 @@ Intersection(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_p
 
 template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
-SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth) noexcept
+SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth)
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
 
@@ -140,7 +140,7 @@ template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
 SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
                    const std::shared_ptr<P2>& a_implicitFunction2,
-                   const T                    a_smooth) noexcept
+                   const T                    a_smooth)
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
@@ -155,7 +155,7 @@ SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
 
 template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
-Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB) noexcept
+Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB)
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
@@ -167,7 +167,7 @@ template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
 SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
                  const std::shared_ptr<P2>& a_implicitFunctionB,
-                 const T                    a_smoothLen) noexcept
+                 const T                    a_smoothLen)
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
@@ -180,7 +180,7 @@ std::shared_ptr<ImplicitFunction<T>>
 FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
                  const Vec3T<T>&           a_period,
                  const Vec3T<T>&           a_repeatLo,
-                 const Vec3T<T>&           a_repeatHi) noexcept
+                 const Vec3T<T>&           a_repeatHi)
 {
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
 
@@ -188,7 +188,7 @@ FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
 }
 
 template <class T>
-UnionIF<T>::UnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions) noexcept
+UnionIF<T>::UnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions)
 {
   for (const auto& prim : a_implicitFunctions) {
     m_implicitFunctions.emplace_back(prim);
@@ -211,7 +211,7 @@ UnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 template <class T>
 SmoothUnionIF<T>::SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>&    a_implicitFunctions,
                                 const T                                                     a_smoothLen,
-                                const std::function<T(const T& a_, const T& b, const T& s)> a_smoothMin) noexcept
+                                const std::function<T(const T& a_, const T& b, const T& s)> a_smoothMin)
 {
   for (const auto& prim : a_implicitFunctions) {
     m_implicitFunctions.emplace_back(prim);
@@ -254,15 +254,14 @@ SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T, class P, class BV, size_t K>
-FastUnionIF<T, P, BV, K>::FastUnionIF(
-  const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs) noexcept
+FastUnionIF<T, P, BV, K>::FastUnionIF(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs)
 {
   this->buildTree(a_primsAndBVs);
 }
 
 template <class T, class P, class BV, size_t K>
 FastUnionIF<T, P, BV, K>::FastUnionIF(const std::vector<std::shared_ptr<P>>& a_primitives,
-                                      const std::vector<BV>&                 a_boundingVolumes) noexcept
+                                      const std::vector<BV>&                 a_boundingVolumes)
 {
   if (a_primitives.size() != a_boundingVolumes.size()) {
     std::cerr << "FastUnionIF(std::vector, std::vector) - input arguments not same length!\n";

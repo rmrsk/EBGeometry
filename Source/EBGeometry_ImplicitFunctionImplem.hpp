@@ -32,7 +32,7 @@ BV
 ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initialLowCorner,
                                                      const Vec3T<T>&    a_initialHighCorner,
                                                      const unsigned int a_maxTreeDepth,
-                                                     const T&           a_safetyFactor) const noexcept
+                                                     const T&           a_safetyFactor) const
 {
   using namespace Octree;
 

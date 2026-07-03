@@ -132,7 +132,7 @@ namespace DCEL {
       complete with half edges and there can be no dangling edges.
     */
     inline void
-    reconcile() noexcept;
+    reconcile();
 
     /**
       @brief Flip the normal vector
@@ -241,7 +241,7 @@ namespace DCEL {
       @return Area of this polygon face.
     */
     [[nodiscard]] inline T
-    computeArea() noexcept;
+    computeArea();
 
     /**
       @brief Compute the signed distance to a point.
@@ -273,7 +273,7 @@ namespace DCEL {
       @return Vector of 3D coordinates of all vertices on this polygon.
     */
     [[nodiscard]] inline std::vector<Vec3T<T>>
-    getAllVertexCoordinates() const noexcept;
+    getAllVertexCoordinates() const;
 
     /**
       @brief Return all the vertices on this polygon
@@ -281,7 +281,7 @@ namespace DCEL {
       @return Vector of shared pointers to all vertices on this polygon.
     */
     [[nodiscard]] inline std::vector<VertexPtr>
-    gatherVertices() const noexcept;
+    gatherVertices() const;
 
     /**
       @brief Return all the half-edges on this polygon
@@ -289,21 +289,21 @@ namespace DCEL {
       @return Vector of shared pointers to all half-edges on this polygon.
     */
     [[nodiscard]] inline std::vector<EdgePtr>
-    gatherEdges() const noexcept;
+    gatherEdges() const;
 
     /**
       @brief Get the lower-left-most coordinate of this polygon face
       @return Lower-left-most coordinate of this polygon face.
     */
     [[nodiscard]] inline Vec3T<T>
-    getSmallestCoordinate() const noexcept;
+    getSmallestCoordinate() const;
 
     /**
       @brief Get the upper-right-most coordinate of this polygon face
       @return Upper-right-most coordinate of this polygon face.
     */
     [[nodiscard]] inline Vec3T<T>
-    getHighestCoordinate() const noexcept;
+    getHighestCoordinate() const;
 
   protected:
     /**
@@ -346,19 +346,19 @@ namespace DCEL {
       @brief Compute the centroid position of this polygon
     */
     inline void
-    computeCentroid() noexcept;
+    computeCentroid();
 
     /**
       @brief Compute the normal position of this polygon
     */
     inline void
-    computeNormal() noexcept;
+    computeNormal();
 
     /**
       @brief Compute the 2D embedding of this polygon
     */
     inline void
-    computePolygon2D() noexcept;
+    computePolygon2D();
 
     /**
       @brief Normalize the normal vector, ensuring it has a length of 1

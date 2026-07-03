@@ -21,7 +21,7 @@
 namespace DCEL {
 
   template <class T, class Meta>
-  inline EdgeT<T, Meta>::EdgeT()
+  inline EdgeT<T, Meta>::EdgeT() noexcept
   {
     m_normal   = Vec3::zero();
     m_face     = nullptr;
@@ -31,13 +31,13 @@ namespace DCEL {
   }
 
   template <class T, class Meta>
-  inline EdgeT<T, Meta>::EdgeT(const VertexPtr& a_vertex) : EdgeT<T, Meta>()
+  inline EdgeT<T, Meta>::EdgeT(const VertexPtr& a_vertex) noexcept : EdgeT<T, Meta>()
   {
     m_vertex = a_vertex;
   }
 
   template <class T, class Meta>
-  inline EdgeT<T, Meta>::EdgeT(const Edge& a_otherEdge) : EdgeT<T, Meta>()
+  inline EdgeT<T, Meta>::EdgeT(const Edge& a_otherEdge) noexcept : EdgeT<T, Meta>()
   {
     m_normal   = a_otherEdge.m_normal;
     m_face     = a_otherEdge.m_face;

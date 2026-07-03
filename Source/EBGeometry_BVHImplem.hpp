@@ -38,8 +38,7 @@ namespace BVH {
   }
 
   template <class T, class P, class BV, size_t K>
-  inline TreeBVH<T, P, BV, K>::TreeBVH(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs) noexcept
-    : TreeBVH<T, P, BV, K>()
+  inline TreeBVH<T, P, BV, K>::TreeBVH(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs) : TreeBVH<T, P, BV, K>()
   {
     for (const auto& pbv : a_primsAndBVs) {
       m_primitives.emplace_back(pbv.first);
@@ -112,8 +111,7 @@ namespace BVH {
 
   template <class T, class P, class BV, size_t K>
   inline void
-  TreeBVH<T, P, BV, K>::topDownSortAndPartition(const Partitioner&  a_partitioner,
-                                                const StopFunction& a_stopCrit) noexcept
+  TreeBVH<T, P, BV, K>::topDownSortAndPartition(const Partitioner& a_partitioner, const StopFunction& a_stopCrit)
   {
     // Check if this node should be split into more nodes.
     const auto numPrimsInThisNode = m_primitives.size();
@@ -153,7 +151,7 @@ namespace BVH {
   template <class T, class P, class BV, size_t K>
   template <typename S>
   inline void
-  TreeBVH<T, P, BV, K>::bottomUpSortAndPartition() noexcept
+  TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
   {
     // The space-filling curves operate on positive coordinates only, using up to 2^21 valid bits
     // per coordinate direction. The centroids of the bounding volumes use this coordinate system
@@ -326,7 +324,7 @@ namespace BVH {
 
   template <class T, class P, class BV, size_t K>
   inline std::shared_ptr<PackedBVH<T, P, K>>
-  TreeBVH<T, P, BV, K>::pack() const noexcept
+  TreeBVH<T, P, BV, K>::pack() const
   {
     static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "TreeBVH::pack requires BV == AABBT<T>");
 
@@ -336,7 +334,7 @@ namespace BVH {
   template <class T, class P, class BV, size_t K>
   template <class Q, class Converter>
   inline std::shared_ptr<PackedBVH<T, Q, K>>
-  TreeBVH<T, P, BV, K>::packWith(Converter&& a_converter) const noexcept
+  TreeBVH<T, P, BV, K>::packWith(Converter&& a_converter) const
   {
     static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>,
                   "TreeBVH::packWith requires BV == AABBT<T>");
@@ -346,7 +344,7 @@ namespace BVH {
 
   template <class T, class P, size_t K>
   inline void
-  PackedBVH<T, P, K>::buildSoA() noexcept
+  PackedBVH<T, P, K>::buildSoA()
   {
     m_childAabbSoA.resize(m_linearNodes.size());
 

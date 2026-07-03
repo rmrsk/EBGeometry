@@ -35,7 +35,7 @@ namespace DCEL {
   template <class T, class Meta, class BV, size_t K>
   [[nodiscard]] std::shared_ptr<EBGeometry::BVH::TreeBVH<T, FaceT<T, Meta>, BV, K>>
   buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh,
-               const BVH::Build                                         a_build = BVH::Build::TopDown) noexcept;
+               const BVH::Build                                         a_build = BVH::Build::TopDown);
 } // namespace DCEL
 
 /**
@@ -94,7 +94,7 @@ public:
   */
   template <class BV>
   [[nodiscard]] BV
-  computeBoundingVolume() const noexcept;
+  computeBoundingVolume() const;
 
 protected:
   /**
@@ -142,7 +142,7 @@ public:
     @param[in] a_mesh Input mesh
     @param[in] a_build Specification of build method. Must be TopDown, Morton, or Nested.
   */
-  FastMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build = BVH::Build::TopDown) noexcept;
+  FastMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build = BVH::Build::TopDown);
 
   /**
     @brief Destructor
@@ -168,7 +168,7 @@ public:
     @return Vector of (face, unsigned_distance) pairs, optionally sorted.
   */
   [[nodiscard]] virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
-  getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const noexcept;
+  getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const;
 
   /**
     @brief Get the bounding volume hierarchy enclosing the mesh.
@@ -243,7 +243,7 @@ public:
     @param[in] a_mesh Input mesh
     @param[in] a_build Build specification. Either top-down, Morton, or Nested.
   */
-  FastCompactMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build = BVH::Build::TopDown) noexcept;
+  FastCompactMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build = BVH::Build::TopDown);
 
   /**
     @brief Destructor
@@ -268,7 +268,7 @@ public:
     @return Vector of (face, unsigned_distance) pairs, optionally sorted.
   */
   [[nodiscard]] virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
-  getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const noexcept;
+  getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const;
 
   /**
     @brief Get the compact BVH enclosing the mesh.

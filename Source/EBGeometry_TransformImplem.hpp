@@ -18,58 +18,56 @@
 
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
-Complement(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction) noexcept
+Complement(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction)
 {
   return std::make_shared<ComplementIF<T>>(a_implicitFunction);
 }
 
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
-Translate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_shift) noexcept
+Translate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_shift)
 {
   return std::make_shared<TranslateIF<T>>(a_implicitFunction, a_shift);
 }
 
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
-Rotate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_angle, const size_t a_axis) noexcept
+Rotate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_angle, const size_t a_axis)
 {
   return std::make_shared<RotateIF<T>>(a_implicitFunction, a_angle, a_axis);
 }
 
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
-Scale(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_scale) noexcept
+Scale(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_scale)
 {
   return std::make_shared<ScaleIF<T>>(a_implicitFunction, a_scale);
 }
 
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
-Offset(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_offset) noexcept
+Offset(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_offset)
 {
   return std::make_shared<OffsetIF<T>>(a_implicitFunction, a_offset);
 }
 
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
-Annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_delta) noexcept
+Annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_delta)
 {
   return std::make_shared<AnnularIF<T>>(a_implicitFunction, a_delta);
 }
 
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
-Blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_blur) noexcept
+Blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_blur)
 {
   return std::make_shared<BlurIF<T>>(a_implicitFunction, a_blur);
 }
 
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
-Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
-        const T                                     a_dist,
-        const size_t                                a_mollifierSamples) noexcept
+Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_dist, const size_t a_mollifierSamples)
 {
   auto mollifier = std::make_shared<SphereSDF<T>>(Vec3T<T>::zero(), std::abs(a_dist));
 
@@ -78,14 +76,14 @@ Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
 
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
-Elongate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_elongation) noexcept
+Elongate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_elongation)
 {
   return std::make_shared<ElongateIF<T>>(a_implicitFunction, a_elongation);
 }
 
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
-Reflect(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const size_t& a_reflectPlane) noexcept
+Reflect(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const size_t& a_reflectPlane)
 {
   return std::make_shared<ReflectIF<T>>(a_implicitFunction, a_reflectPlane);
 }
@@ -98,7 +96,7 @@ ComplementIF<T>::ComplementIF(const std::shared_ptr<ImplicitFunction<T>>& a_impl
 }
 
 template <class T>
-ComplementIF<T>::~ComplementIF()
+ComplementIF<T>::~ComplementIF() noexcept
 {}
 
 template <class T>
@@ -117,7 +115,7 @@ TranslateIF<T>::TranslateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implic
 }
 
 template <class T>
-TranslateIF<T>::~TranslateIF()
+TranslateIF<T>::~TranslateIF() noexcept
 {}
 
 template <class T>
@@ -146,7 +144,7 @@ RotateIF<T>::RotateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunc
 }
 
 template <class T>
-RotateIF<T>::~RotateIF()
+RotateIF<T>::~RotateIF() noexcept
 {}
 
 template <class T>
@@ -195,7 +193,7 @@ OffsetIF<T>::OffsetIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunc
 }
 
 template <class T>
-OffsetIF<T>::~OffsetIF()
+OffsetIF<T>::~OffsetIF() noexcept
 {}
 
 template <class T>
@@ -233,7 +231,7 @@ AnnularIF<T>::AnnularIF(const std::shared_ptr<ImplicitFunction<T>> a_implicitFun
 }
 
 template <class T>
-AnnularIF<T>::~AnnularIF()
+AnnularIF<T>::~AnnularIF() noexcept
 {}
 
 template <class T>
@@ -300,9 +298,9 @@ MollifyIF<T>::MollifyIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFu
   if (maxVal > 0.0 && a_numPoints > 1) {
     const T dX = 2 * maxVal / (a_numPoints - 1);
 
-    for (int i = 0; i < a_numPoints; i++) {
-      for (int j = 0; j < a_numPoints; j++) {
-        for (int k = 0; k < a_numPoints; k++) {
+    for (size_t i = 0; i < a_numPoints; i++) {
+      for (size_t j = 0; j < a_numPoints; j++) {
+        for (size_t k = 0; k < a_numPoints; k++) {
           const Vec3T<T> pos    = Vec3T<T>(-maxVal + i * dX, -maxVal + j * dX, -maxVal + k * dX);
           const T        weight = a_mollifier->value(pos);
 

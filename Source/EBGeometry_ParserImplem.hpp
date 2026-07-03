@@ -149,8 +149,8 @@ Parser::getFileEncoding(const std::string a_filename) noexcept
 }
 
 template <typename T>
-STL<T>
-Parser::readSTL(const std::string& a_filename) noexcept
+[[nodiscard]] STL<T>
+Parser::readSTL(const std::string& a_filename)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readSTL requires T to be a floating-point type");
   STL<T> stl(a_filename);
@@ -340,8 +340,8 @@ Parser::readSTL(const std::string& a_filename) noexcept
 }
 
 template <typename T>
-std::vector<STL<T>>
-Parser::readSTL(const std::vector<std::string>& a_filenames) noexcept
+[[nodiscard]] std::vector<STL<T>>
+Parser::readSTL(const std::vector<std::string>& a_filenames)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readSTL requires T to be a floating-point type");
   std::vector<STL<T>> stl;
@@ -354,8 +354,8 @@ Parser::readSTL(const std::vector<std::string>& a_filenames) noexcept
 }
 
 template <typename T>
-PLY<T>
-Parser::readPLY(const std::string& a_filename) noexcept
+[[nodiscard]] PLY<T>
+Parser::readPLY(const std::string& a_filename)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readPLY requires T to be a floating-point type");
   PLY<T> ply(a_filename);
@@ -871,8 +871,8 @@ Parser::readPLY(const std::string& a_filename) noexcept
 }
 
 template <typename T>
-std::vector<PLY<T>>
-Parser::readPLY(const std::vector<std::string>& a_filenames) noexcept
+[[nodiscard]] std::vector<PLY<T>>
+Parser::readPLY(const std::vector<std::string>& a_filenames)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readPLY requires T to be a floating-point type");
   std::vector<PLY<T>> ply;
@@ -885,8 +885,8 @@ Parser::readPLY(const std::vector<std::string>& a_filenames) noexcept
 }
 
 template <typename T>
-VTK<T>
-Parser::readVTK(const std::string& a_filename) noexcept
+[[nodiscard]] VTK<T>
+Parser::readVTK(const std::string& a_filename)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readVTK requires T to be a floating-point type");
   VTK<T> vtk(a_filename);
@@ -1624,8 +1624,8 @@ Parser::readVTK(const std::string& a_filename) noexcept
 }
 
 template <typename T>
-std::vector<VTK<T>>
-Parser::readVTK(const std::vector<std::string>& a_filenames) noexcept
+[[nodiscard]] std::vector<VTK<T>>
+Parser::readVTK(const std::vector<std::string>& a_filenames)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readVTK requires T to be a floating-point type");
   std::vector<VTK<T>> vtk;
@@ -1638,8 +1638,8 @@ Parser::readVTK(const std::vector<std::string>& a_filenames) noexcept
 }
 
 template <typename T, typename Meta>
-inline std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-Parser::readIntoDCEL(const std::string a_filename) noexcept
+[[nodiscard]] inline std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+Parser::readIntoDCEL(const std::string a_filename)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoDCEL requires T to be a floating-point type");
   auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
@@ -1684,8 +1684,8 @@ Parser::readIntoDCEL(const std::string a_filename) noexcept
 }
 
 template <typename T, typename Meta>
-inline std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>>
-Parser::readIntoDCEL(const std::vector<std::string> a_files) noexcept
+[[nodiscard]] inline std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>>
+Parser::readIntoDCEL(const std::vector<std::string> a_files)
 {
   std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>> objects;
 
@@ -1697,8 +1697,8 @@ Parser::readIntoDCEL(const std::vector<std::string> a_files) noexcept
 }
 
 template <typename T, typename Meta>
-inline std::shared_ptr<MeshSDF<T, Meta>>
-Parser::readIntoMesh(const std::string a_filename) noexcept
+[[nodiscard]] inline std::shared_ptr<MeshSDF<T, Meta>>
+Parser::readIntoMesh(const std::string a_filename)
 {
   const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename);
 
@@ -1706,8 +1706,8 @@ Parser::readIntoMesh(const std::string a_filename) noexcept
 }
 
 template <typename T, typename Meta>
-inline std::vector<std::shared_ptr<MeshSDF<T, Meta>>>
-Parser::readIntoMesh(const std::vector<std::string> a_files) noexcept
+[[nodiscard]] inline std::vector<std::shared_ptr<MeshSDF<T, Meta>>>
+Parser::readIntoMesh(const std::vector<std::string> a_files)
 {
   std::vector<std::shared_ptr<MeshSDF<T, Meta>>> implicitFunctions;
 
@@ -1719,8 +1719,8 @@ Parser::readIntoMesh(const std::vector<std::string> a_files) noexcept
 }
 
 template <typename T, typename Meta>
-std::vector<std::shared_ptr<Triangle<T, Meta>>>
-Parser::readIntoTriangles(const std::string a_filename) noexcept
+[[nodiscard]] std::vector<std::shared_ptr<Triangle<T, Meta>>>
+Parser::readIntoTriangles(const std::string a_filename)
 {
   const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename);
 
@@ -1756,8 +1756,8 @@ Parser::readIntoTriangles(const std::string a_filename) noexcept
 }
 
 template <typename T, typename Meta>
-std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
-Parser::readIntoTriangles(const std::vector<std::string> a_files) noexcept
+[[nodiscard]] std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
+Parser::readIntoTriangles(const std::vector<std::string> a_files)
 {
   std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>> triangles;
 
@@ -1769,8 +1769,8 @@ Parser::readIntoTriangles(const std::vector<std::string> a_files) noexcept
 }
 
 template <typename T, typename Meta, typename BV, size_t K>
-inline std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>
-Parser::readIntoFullBVH(const std::string a_filename) noexcept
+[[nodiscard]] inline std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>
+Parser::readIntoFullBVH(const std::string a_filename)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoFullBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoFullBVH requires K > 0");
@@ -1780,8 +1780,8 @@ Parser::readIntoFullBVH(const std::string a_filename) noexcept
 }
 
 template <typename T, typename Meta, typename BV, size_t K>
-inline std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>>
-Parser::readIntoFullBVH(const std::vector<std::string> a_files) noexcept
+[[nodiscard]] inline std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>>
+Parser::readIntoFullBVH(const std::vector<std::string> a_files)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoFullBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoFullBVH requires K > 0");
@@ -1795,8 +1795,8 @@ Parser::readIntoFullBVH(const std::vector<std::string> a_files) noexcept
 }
 
 template <typename T, typename Meta, size_t K, size_t W>
-inline std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>
-Parser::readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafSize) noexcept
+[[nodiscard]] inline std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>
+Parser::readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafSize)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
@@ -1807,8 +1807,8 @@ Parser::readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeaf
 }
 
 template <typename T, typename Meta, size_t K, size_t W>
-inline std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>>
-Parser::readIntoTriangleBVH(const std::vector<std::string> a_files, const size_t a_maxLeafSize) noexcept
+[[nodiscard]] inline std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>>
+Parser::readIntoTriangleBVH(const std::vector<std::string> a_files, const size_t a_maxLeafSize)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
@@ -1823,8 +1823,8 @@ Parser::readIntoTriangleBVH(const std::vector<std::string> a_files, const size_t
 }
 
 template <typename T, typename Meta, size_t K>
-inline std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>
-Parser::readIntoCompactBVH(const std::string a_filename) noexcept
+[[nodiscard]] inline std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>
+Parser::readIntoCompactBVH(const std::string a_filename)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoCompactBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoCompactBVH requires K > 0");
@@ -1834,8 +1834,8 @@ Parser::readIntoCompactBVH(const std::string a_filename) noexcept
 }
 
 template <typename T, typename Meta, size_t K>
-inline std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>>
-Parser::readIntoCompactBVH(const std::vector<std::string> a_files) noexcept
+[[nodiscard]] inline std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>>
+Parser::readIntoCompactBVH(const std::vector<std::string> a_files)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoCompactBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoCompactBVH requires K > 0");

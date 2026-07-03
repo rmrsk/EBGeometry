@@ -155,7 +155,7 @@ namespace DCEL {
       @param[in] a_face Pointer to face.
     */
     inline void
-    addFace(const FacePtr& a_face) noexcept;
+    addFace(const FacePtr& a_face);
 
     /**
       @brief Normalize the normal vector, ensuring its length is 1
@@ -188,7 +188,7 @@ namespace DCEL {
       weighted pseudonormal" (DOI: 10.1109/TVCG.2005.49)
     */
     inline void
-    computeVertexNormalAngleWeighted() noexcept;
+    computeVertexNormalAngleWeighted();
 
     /**
       @brief Compute the vertex normal, using the pseudonormal algorithm which
@@ -199,7 +199,7 @@ namespace DCEL {
       weighted pseudonormal" (DOI: 10.1109/TVCG.2005.49)
     */
     inline void
-    computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a_faces) noexcept;
+    computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a_faces);
 
     /**
       @brief Flip the normal vector

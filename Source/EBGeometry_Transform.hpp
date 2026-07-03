@@ -24,7 +24,7 @@
 */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-Complement(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction) noexcept;
+Complement(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction);
 
 /**
   @brief Convenience function for translating an implicit function
@@ -35,7 +35,7 @@ Complement(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction) noexc
 */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-Translate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_shift) noexcept;
+Translate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_shift);
 
 /**
   @brief Convenience function for rotating an implicit function.
@@ -47,7 +47,7 @@ Translate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const 
 */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-Rotate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_angle, const size_t a_axis) noexcept;
+Rotate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_angle, const size_t a_axis);
 
 /**
   @brief Convenience function for scaling an implicit function.
@@ -58,7 +58,7 @@ Rotate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a
 */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-Scale(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_scale) noexcept;
+Scale(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_scale);
 
 /**
   @brief Convenience function for offsetting an implicit function
@@ -69,7 +69,7 @@ Scale(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_
 */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-Offset(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_offset) noexcept;
+Offset(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_offset);
 
 /**
   @brief Convenience function for creating a shell out of an implicit function
@@ -80,7 +80,7 @@ Offset(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a
 */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-Annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_delta) noexcept;
+Annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_delta);
 
 /**
   @brief Convenience function for blurring an implicit function
@@ -91,7 +91,7 @@ Annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T 
 */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-Blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_blurDistance) noexcept;
+Blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_blurDistance);
 
 /**
   @brief Convenience function for mollification with an input sphere.
@@ -105,7 +105,7 @@ template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
         const T                                     a_dist,
-        const size_t                                a_mollifierSamples = 2) noexcept;
+        const size_t                                a_mollifierSamples = 2);
 
 /**
   @brief Convenience function for elongating (stretching) an implicit function
@@ -116,7 +116,7 @@ Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
 */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-Elongate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_elongation) noexcept;
+Elongate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_elongation);
 
 /**
   @brief Convenience function for reflecting an implicit function
@@ -127,7 +127,7 @@ Elongate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const V
 */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-Reflect(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const size_t& a_reflectPlane) noexcept;
+Reflect(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const size_t& a_reflectPlane);
 
 /**
   @brief Complemented implicit function
@@ -153,7 +153,7 @@ public:
   /**
     @brief Destructor (does nothing)
   */
-  virtual ~ComplementIF();
+  virtual ~ComplementIF() noexcept;
 
   /**
     @brief Value function
@@ -195,7 +195,7 @@ public:
   /**
     @brief Destructor (does nothing)
   */
-  virtual ~TranslateIF();
+  virtual ~TranslateIF() noexcept;
 
   /**
     @brief Value function
@@ -245,7 +245,7 @@ public:
   /**
     @brief Destructor
   */
-  virtual ~RotateIF();
+  virtual ~RotateIF() noexcept;
 
   /**
     @brief Value function with rotation applied to the query point.
@@ -307,7 +307,7 @@ public:
   /**
     @brief Destructor
   */
-  virtual ~OffsetIF();
+  virtual ~OffsetIF() noexcept;
 
   /**
     @brief Value function with offset applied.
@@ -401,7 +401,7 @@ public:
   /**
     @brief Destructor
   */
-  virtual ~AnnularIF();
+  virtual ~AnnularIF() noexcept;
 
   /**
     @brief Value function.

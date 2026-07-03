@@ -17,8 +17,14 @@ target_include_directories(EBGeometry INTERFACE
 option(EBGEOMETRY_BUILD_TESTS
   "Build the EBGeometry unit-test suite (requires Catch2, fetched automatically)" OFF)
 
+option(EBGEOMETRY_BUILD_EXAMPLES
+  "Build the standalone EBGeometry examples" OFF)
+
 option(EBGEOMETRY_ENABLE_ASSERTIONS
   "Enable EBGEOMETRY_EXPECT() runtime assertion checks" OFF)
+
+option(EBGEOMETRY_ENABLE_SANITIZERS
+  "Enable AddressSanitizer and UndefinedBehaviourSanitizer for tests and examples" OFF)
 
 set(EBGEOMETRY_SIMD "avx" CACHE STRING
   "SIMD level to compile against: avx | sse41 | none")
@@ -39,4 +45,13 @@ endif()
 if(EBGEOMETRY_BUILD_TESTS)
   enable_testing()
   add_subdirectory(Tests)
+endif()
+
+# ── Examples ──────────────────────────────────────────────────────────────────
+if(EBGEOMETRY_BUILD_EXAMPLES)
+  if(NOT EBGEOMETRY_BUILD_TESTS)
+    # enable_testing is needed for add_test even when tests are not built
+    enable_testing()
+  endif()
+  add_subdirectory(Examples)
 endif()

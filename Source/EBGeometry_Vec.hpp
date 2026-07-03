@@ -35,7 +35,7 @@ public:
   /**
     @brief Default constructor. Sets the vector to the zero vector.
   */
-  Vec2T();
+  Vec2T() noexcept;
 
   /**
     @brief Copy constructor
@@ -50,7 +50,7 @@ public:
     @param[in] a_y Second vector component
     @details Sets this->x = a_x and this->y = a_y
   */
-  constexpr Vec2T(const T& a_x, const T& a_y);
+  constexpr Vec2T(const T& a_x, const T& a_y) noexcept;
 
   /**
     @brief Destructor (does nothing)

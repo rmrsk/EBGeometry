@@ -21,7 +21,7 @@
 namespace DCEL {
 
   template <class T, class Meta>
-  inline EdgeIteratorT<T, Meta>::EdgeIteratorT(Face& a_face)
+  inline EdgeIteratorT<T, Meta>::EdgeIteratorT(Face& a_face) noexcept
   {
     m_startEdge = a_face.getHalfEdge();
     m_curEdge   = m_startEdge;
@@ -29,7 +29,7 @@ namespace DCEL {
   }
 
   template <class T, class Meta>
-  inline EdgeIteratorT<T, Meta>::EdgeIteratorT(const Face& a_face)
+  inline EdgeIteratorT<T, Meta>::EdgeIteratorT(const Face& a_face) noexcept
   {
     m_startEdge = a_face.getHalfEdge();
     m_curEdge   = m_startEdge;

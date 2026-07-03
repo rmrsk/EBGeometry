@@ -86,7 +86,7 @@ namespace DCEL {
 
   template <class T, class Meta>
   inline void
-  VertexT<T, Meta>::addFace(const FacePtr& a_face) noexcept
+  VertexT<T, Meta>::addFace(const FacePtr& a_face)
   {
     m_faces.emplace_back(a_face);
   }
@@ -127,14 +127,14 @@ namespace DCEL {
 
   template <class T, class Meta>
   inline void
-  VertexT<T, Meta>::computeVertexNormalAngleWeighted() noexcept
+  VertexT<T, Meta>::computeVertexNormalAngleWeighted()
   {
     this->computeVertexNormalAngleWeighted(m_faces);
   }
 
   template <class T, class Meta>
   inline void
-  VertexT<T, Meta>::computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a_faces) noexcept
+  VertexT<T, Meta>::computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a_faces)
   {
     m_normal = Vec3::zero();
 

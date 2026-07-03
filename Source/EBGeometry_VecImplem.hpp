@@ -23,7 +23,7 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 template <typename T>
-inline Vec2T<T>::Vec2T()
+inline Vec2T<T>::Vec2T() noexcept
 {
   *this = Vec2T<T>::zero();
 }
@@ -36,7 +36,7 @@ inline Vec2T<T>::Vec2T(const Vec2T& u) noexcept
 }
 
 template <typename T>
-inline constexpr Vec2T<T>::Vec2T(const T& a_x, const T& a_y) : x(a_x), y(a_y)
+inline constexpr Vec2T<T>::Vec2T(const T& a_x, const T& a_y) noexcept : x(a_x), y(a_y)
 {}
 
 template <typename T>
@@ -445,6 +445,8 @@ Vec3T<T>::minDir(const bool a_doAbs) const noexcept
     }
   }
 
+  EBGEOMETRY_EXPECT(mDir < 3U);
+
   return mDir;
 }
 
@@ -466,6 +468,8 @@ Vec3T<T>::maxDir(const bool a_doAbs) const noexcept
       }
     }
   }
+
+  EBGEOMETRY_EXPECT(mDir < 3U);
 
   return mDir;
 }

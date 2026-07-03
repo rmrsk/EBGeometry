@@ -20,7 +20,13 @@ function(ebgeometry_add_test name)
   target_compile_definitions(${name} PRIVATE
     EBGEOMETRY_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
   )
-  catch_discover_tests(${name})
+
+  if(EBGEOMETRY_ENABLE_SANITIZERS)
+    target_compile_options(${name} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(${name} PRIVATE -fsanitize=address,undefined)
+  endif()
+
+  catch_discover_tests(${name} TEST_SPEC "*" PROPERTIES LABELS "unit")
 endfunction()
 
 ebgeometry_add_test(TestVec)

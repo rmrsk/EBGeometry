@@ -88,20 +88,20 @@ namespace DCEL {
       @brief Default constructor. Sets all pointers to zero and vectors to zero
       vectors
     */
-    EdgeT();
+    EdgeT() noexcept;
 
     /**
       @brief Copy constructor. Copies all information from the other half-edge.
       @param[in] a_otherEdge Other edge
     */
-    EdgeT(const Edge& a_otherEdge);
+    EdgeT(const Edge& a_otherEdge) noexcept;
 
     /**
       @brief Partial constructor. Calls the default constructor but sets the
       starting vertex.
       @param[in] a_vertex Starting vertex.
     */
-    EdgeT(const VertexPtr& a_vertex);
+    EdgeT(const VertexPtr& a_vertex) noexcept;
 
     /**
       @brief Destructor (does nothing)
