@@ -140,8 +140,48 @@ jobs:
           mv Sphinx/build/latex/ebgeometry.pdf ./
           rm -rf Sphinx/build          
 
+  Unit-Tests:
+    needs: Formatting
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++-12, clang++-14]
+        simd: [none, avx]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install compiler
+        run: |
+          sudo apt-get update
+          if [[ "${{ matrix.compiler }}" == g++* ]]; then
+            sudo apt-get install -y ${{ matrix.compiler }}
+          else
+            sudo apt-get install -y clang-14
+          fi
+
+      - name: Configure
+        run: |
+          cmake -B build \
+            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DEBGEOMETRY_BUILD_TESTS=ON \
+            -DEBGEOMETRY_ENABLE_ASSERTIONS=ON \
+            -DEBGEOMETRY_SIMD=${{ matrix.simd }}
+
+      - name: Build
+        run: cmake --build build --parallel 2
+
+      - name: Run tests
+        working-directory: build
+        run: ctest --output-on-failure --timeout 60
+
   CI-passed:
-    needs: [Linux-GNU, Linux-Intel, Build-documentation]
+    needs: [Linux-GNU, Linux-Intel, Build-documentation, Unit-Tests]
     runs-on: ubuntu-latest
     steps:
       - name: Do nothing

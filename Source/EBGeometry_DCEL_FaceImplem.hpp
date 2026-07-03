@@ -37,6 +37,7 @@ namespace DCEL {
   {
     m_normal   = a_otherFace.getNormal();
     m_halfEdge = a_otherFace.getHalfEdge();
+    m_area     = a_otherFace.getArea();
   }
 
   template <class T, class Meta>

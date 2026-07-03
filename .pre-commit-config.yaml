@@ -46,7 +46,12 @@ repos:
 
       - id: sphinx-build
         name: Build Sphinx documentation (warnings as errors)
-        entry: sphinx-build -W --keep-going -b html Docs/Sphinx/source Docs/Sphinx/build/html
-        language: system
+        entry: sphinx-build
+        args: [-W, --keep-going, -E, -b, html, Docs/Sphinx/source, Docs/Sphinx/build/html]
+        language: python
+        additional_dependencies:
+          - "sphinx==5.0.0"
+          - sphinx-rtd-theme
+          - sphinxcontrib-bibtex
         pass_filenames: false
         stages: [manual]

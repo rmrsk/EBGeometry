@@ -234,8 +234,9 @@ template <typename T>
 inline constexpr Vec3T<T>
 Vec3T<T>::unit(const size_t a_dir) noexcept
 {
-  Vec3T<T> v        = Vec3T<T>::zero();
-  (v.m_X).at(a_dir) = 1.0;
+  EBGEOMETRY_EXPECT(a_dir < 3U);
+  Vec3T<T> v   = Vec3T<T>::zero();
+  v.m_X[a_dir] = T(1);
 
   return v;
 }
@@ -266,10 +267,11 @@ template <typename T>
 inline constexpr bool
 Vec3T<T>::lessLX(const Vec3T<T>& u) const noexcept
 {
-  const auto& myComps = std::tuple_cat(m_X);
-  const auto& uComps  = std::tuple_cat(u.m_X);
-
-  return std::tie(myComps) < std::tie(uComps);
+  if (m_X[0] != u.m_X[0])
+    return m_X[0] < u.m_X[0];
+  if (m_X[1] != u.m_X[1])
+    return m_X[1] < u.m_X[1];
+  return m_X[2] < u.m_X[2];
 }
 
 template <typename T>
@@ -390,14 +392,16 @@ template <typename T>
 inline constexpr T&
 Vec3T<T>::operator[](size_t i) noexcept
 {
-  return m_X.at(i);
+  EBGEOMETRY_EXPECT(i < 3U);
+  return m_X[i];
 }
 
 template <typename T>
 inline constexpr const T&
 Vec3T<T>::operator[](size_t i) const noexcept
 {
-  return m_X.at(i);
+  EBGEOMETRY_EXPECT(i < 3U);
+  return m_X[i];
 }
 
 template <typename T>

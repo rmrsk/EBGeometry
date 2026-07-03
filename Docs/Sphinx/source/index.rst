@@ -54,6 +54,7 @@ Introduction
 
    Introduction.rst
    BuildingAndUsing.rst
+   Contributing.rst
 
 Concepts
 ********
