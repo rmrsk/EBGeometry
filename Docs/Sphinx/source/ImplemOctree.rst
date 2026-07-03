@@ -34,7 +34,8 @@ Constructing the octree is done by first initializing the root node and then bui
 
 .. literalinclude:: ../../../Source/EBGeometry_Octree.hpp
    :language: c++
-   :lines: 74-76, 83, 90, 97-98,104,111,117-118,183-187,194-198,229,230
+   :lines: 75-100, 180-200
+   :dedent: 2
 
 The input functions to ``buildDepthFirst`` and ``buildBreadthFirst`` are as follows:
 
@@ -47,7 +48,8 @@ Tree traversal
 
 .. literalinclude:: ../../../Source/EBGeometry_Octree.hpp
    :language: c++
-   :lines: 74-76,205-211,239
+   :lines: 75-76, 102-119, 202-214
+   :dedent: 2
 
 The input functions to ``traverse`` are as follows:
 

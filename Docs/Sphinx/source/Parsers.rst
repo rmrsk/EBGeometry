@@ -61,8 +61,8 @@ To read one or multiple files and turn it into DCEL meshes, use
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 124-138
-   :dedent: 2	   
+   :lines: 137-157
+   :dedent: 2
 
 Note that this will only expose the DCEL mesh, but not include any signed distance functionality.
 
@@ -73,8 +73,8 @@ To read one or multiple files and also turn it into signed distance representati
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 140-154
-   :dedent: 2	   
+   :lines: 159-179
+   :dedent: 2
 
 DCEL mesh SDF with full BVH
 ___________________________
@@ -83,8 +83,8 @@ To read one or multiple files and turn it into signed distance representations u
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 156-176
-   :dedent: 2	   
+   :lines: 181-211
+   :dedent: 2
 
 .. _Chap:LinearSTL:
 
@@ -95,7 +95,7 @@ To read one or multiple STL files and turn it into signed distance representatio
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 178-198
+   :lines: 213-235
    :dedent: 2
 
 	   
@@ -106,8 +106,8 @@ To read one or multiple files and turn it into signed distance representations u
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 200-217
-   :dedent: 2	   
+   :lines: 237-267
+   :dedent: 2
 
 This version differs from the DCEL meshes in that each DCEL polygon is converted into triangles after parsing.
 The code will throw an error if not all DCEL polygon are not actual triangles.

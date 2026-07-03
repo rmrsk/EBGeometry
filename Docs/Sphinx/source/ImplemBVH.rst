@@ -84,7 +84,7 @@ To use bottom-up construction, one may use the member function
 
 .. literalinclude:: ../../../Source/EBGeometry_BVH.hpp
    :language: c++
-   :lines: 298-309
+   :lines: 363-372
    :dedent: 4
 
 The template argument is the space-filling curve that the user wants to apply.

@@ -32,6 +32,7 @@ The basic features of EBGeometry are as follows:
    section#concepts,
    section#implementation,
    section#examples,
+   section#contributing-and-testing,
    section#references,
    section#bibliography,
    section#epilogue {
@@ -54,7 +55,6 @@ Introduction
 
    Introduction.rst
    BuildingAndUsing.rst
-   Contributing.rst
 
 Concepts
 ********
@@ -92,9 +92,19 @@ Examples
 
    Examples.rst
 
+Contributing and testing
+************************
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Contributing and testing
+   :hidden:
+
+   Contributing.rst
+
 .. toctree::
    :maxdepth: 3
    :caption: References
-   :hidden:	     
+   :hidden:
 
-   ZZReferences.rst      
+   ZZReferences.rst
