@@ -18,6 +18,17 @@
 #include <immintrin.h>
 #endif
 
+// Best SoA width for the current target ISA.
+// W=8 uses a full 256-bit AVX register for float (or two passes for double).
+// W=4 uses a 128-bit SSE4.1 register for float, or one AVX pass for double.
+#if defined(__AVX__)
+#define EBGEOMETRY_SOA_DEFAULT_WIDTH 8
+#elif defined(__SSE4_1__)
+#define EBGEOMETRY_SOA_DEFAULT_WIDTH 4
+#else
+#define EBGEOMETRY_SOA_DEFAULT_WIDTH 4
+#endif
+
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 

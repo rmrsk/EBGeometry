@@ -198,8 +198,8 @@ namespace Parser {
     evaluation overhead over more triangles per visit; smaller values give tighter BVH culling.
     Default 32 (fills 8 SSE-width groups) is a good balance for typical triangle meshes.
   */
-  template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
-  inline static std::shared_ptr<FastTriMeshSDF<T, Meta, K>>
+  template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4, size_t W = EBGEOMETRY_SOA_DEFAULT_WIDTH>
+  inline static std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>
   readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafSize = 8U) noexcept;
 
   /*!
@@ -207,10 +207,8 @@ namespace Parser {
     @param[in] a_files       File names
     @param[in] a_maxLeafSize Maximum number of triangles per BVH leaf.
   */
-  template <typename T,
-            typename Meta = DCEL::DefaultMetaData,
-            size_t K      = 4>
-  inline static std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K>>>
+  template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4, size_t W = EBGEOMETRY_SOA_DEFAULT_WIDTH>
+  inline static std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>>
   readIntoTriangleBVH(const std::vector<std::string> a_files, const size_t a_maxLeafSize = 8U) noexcept;
 
   /*!

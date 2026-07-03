@@ -261,7 +261,7 @@ protected:
 /*!
   @brief Signed distance function for a triangle mesh. This class uses the full BVH representation. 
 */
-template <class T, class Meta, size_t K>
+template <class T, class Meta, size_t K, size_t W = EBGEOMETRY_SOA_DEFAULT_WIDTH>
 class FastTriMeshSDF : public SignedDistanceFunction<T>
 {
 public:
@@ -278,7 +278,7 @@ public:
   /*!
     @brief Alias for the SoA triangle group type
   */
-  using TriSoA = TriangleSoAT<T, 4>;
+  using TriSoA = TriangleSoAT<T, W>;
 
   /*!
     @brief Alias for which BVH root node

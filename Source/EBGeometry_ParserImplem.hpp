@@ -1784,23 +1784,23 @@ Parser::readIntoFullBVH(const std::vector<std::string> a_files) noexcept
   return implicitFunctions;
 }
 
-template <typename T, typename Meta, size_t K>
-inline std::shared_ptr<FastTriMeshSDF<T, Meta, K>>
+template <typename T, typename Meta, size_t K, size_t W>
+inline std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>
 Parser::readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafSize) noexcept
 {
   const auto mesh = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename);
 
-  return std::make_shared<FastTriMeshSDF<T, Meta, K>>(mesh, BVH::Build::TopDown, a_maxLeafSize);
+  return std::make_shared<FastTriMeshSDF<T, Meta, K, W>>(mesh, BVH::Build::TopDown, a_maxLeafSize);
 }
 
-template <typename T, typename Meta, size_t K>
-inline std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K>>>
+template <typename T, typename Meta, size_t K, size_t W>
+inline std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>>
 Parser::readIntoTriangleBVH(const std::vector<std::string> a_files, const size_t a_maxLeafSize) noexcept
 {
-  std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K>>> implicitFunctions;
+  std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>> implicitFunctions;
 
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoTriangleBVH<T, Meta, K>(file, a_maxLeafSize));
+    implicitFunctions.emplace_back(Parser::readIntoTriangleBVH<T, Meta, K, W>(file, a_maxLeafSize));
   }
 
   return implicitFunctions;

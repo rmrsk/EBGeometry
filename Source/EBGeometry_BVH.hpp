@@ -788,9 +788,9 @@ namespace BVH {
     */
     template <class Meta>
     inline void
-    traverse(const BVH::LinearUpdater<P>&       a_updater,
-             const BVH::Visiter<Node, Meta>&    a_visiter,
-             const BVH::LinearSorter<Meta, K>&  a_sorter,
+    traverse(const BVH::LinearUpdater<P>&        a_updater,
+             const BVH::Visiter<Node, Meta>&     a_visiter,
+             const BVH::LinearSorter<Meta, K>&   a_sorter,
              const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept;
 
     /**

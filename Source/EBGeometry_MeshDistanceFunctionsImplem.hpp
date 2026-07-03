@@ -63,8 +63,8 @@ DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dc
 template <class T, class Meta, class BV, size_t K>
 std::shared_ptr<EBGeometry::BVH::TreeBVH<T, Triangle<T, Meta>, BV, K>>
 buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Meta>>>& a_triangles,
-                    const BVH::Build a_build       = BVH::Build::TopDown,
-                    const size_t     a_maxLeafSize = 4U) noexcept
+                    const BVH::Build                                                   a_build = BVH::Build::TopDown,
+                    const size_t                                                       a_maxLeafSize = 4U) noexcept
 {
   using Prim          = EBGeometry::Triangle<T, Meta>;
   using PrimAndBVList = std::vector<std::pair<std::shared_ptr<const Prim>, BV>>;
@@ -85,8 +85,8 @@ buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Me
 
   switch (a_build) {
   case BVH::Build::TopDown: {
-    using Node     = EBGeometry::BVH::TreeBVH<T, Prim, BV, K>;
-    using StopFunc = typename Node::StopFunction;
+    using Node              = EBGeometry::BVH::TreeBVH<T, Prim, BV, K>;
+    using StopFunc          = typename Node::StopFunction;
     const StopFunc stopCrit = [a_maxLeafSize](const Node& n) noexcept -> bool {
       return n.getPrimitives().size() <= a_maxLeafSize;
     };
@@ -273,7 +273,7 @@ FastMeshSDF<T, Meta, BV, K>::computeBoundingVolume() const noexcept
 
 template <class T, class Meta, size_t K>
 FastCompactMeshSDF<T, Meta, K>::FastCompactMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
-                                                    const BVH::Build             a_build) noexcept
+                                                   const BVH::Build             a_build) noexcept
 {
   using AABB     = EBGeometry::BoundingVolumes::AABBT<T>;
   const auto bvh = EBGeometry::DCEL::buildFullBVH<T, Meta, AABB, K>(a_mesh, a_build);
@@ -287,10 +287,9 @@ FastCompactMeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const no
 {
   T minDist = std::numeric_limits<T>::max();
 
-  BVH::LinearUpdater<Face> updater =
-    [&minDist, &a_point](const std::vector<std::shared_ptr<const Face>>& faces,
-                         size_t                                           offset,
-                         size_t                                           count) noexcept -> void {
+  BVH::LinearUpdater<Face> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const Face>>& faces,
+                                                          size_t                                          offset,
+                                                          size_t count) noexcept -> void {
 #pragma GCC ivdep
     for (size_t i = offset; i < offset + count; i++) {
       const T curDist = faces[i]->signedDistance(a_point);
@@ -302,13 +301,11 @@ FastCompactMeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const no
     return a_bvDist <= std::abs(minDist);
   };
 
-  BVH::LinearSorter<T, K> sorter =
-    [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
-    std::sort(a_leaves.begin(),
-              a_leaves.end(),
-              [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
-                return n1.second > n2.second;
-              });
+  BVH::LinearSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
+    std::sort(
+      a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
+        return n1.second > n2.second;
+      });
   };
 
   BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
@@ -340,13 +337,11 @@ FastCompactMeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const b
     return a_bvDist <= 0.0 || a_bvDist <= shortestDistanceSoFar;
   };
 
-  EBGeometry::BVH::LinearSorter<T, K> sorter =
-    [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
-    std::sort(a_leaves.begin(),
-              a_leaves.end(),
-              [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
-                return n1.second > n2.second;
-              });
+  EBGeometry::BVH::LinearSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
+    std::sort(
+      a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
+        return n1.second > n2.second;
+      });
   };
 
   EBGeometry::BVH::MetaUpdater<Node, BVHMeta> metaUpdater = [&a_point](const Node& a_node) noexcept -> BVHMeta {
@@ -354,9 +349,8 @@ FastCompactMeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const b
   };
 
   EBGeometry::BVH::LinearUpdater<Face> updater =
-    [&shortestDistanceSoFar, &a_point, &candidateFaces](const std::vector<std::shared_ptr<const Face>>& a_faces,
-                                                         size_t                                          offset,
-                                                         size_t                                          count) noexcept -> void {
+    [&shortestDistanceSoFar, &a_point, &candidateFaces](
+      const std::vector<std::shared_ptr<const Face>>& a_faces, size_t offset, size_t count) noexcept -> void {
 #pragma GCC ivdep
     for (size_t i = offset; i < offset + count; i++) {
       const T distToFace = sqrt(a_faces[i]->unsignedDistance2(a_point));
@@ -400,14 +394,14 @@ FastCompactMeshSDF<T, Meta, K>::computeBoundingVolume() const noexcept
   return m_bvh->getBoundingVolume();
 };
 
-template <class T, class Meta, size_t K>
-FastTriMeshSDF<T, Meta, K>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
-                                           const BVH::Build             a_build,
-                                           const size_t                 a_maxLeafSize) noexcept
+template <class T, class Meta, size_t K, size_t W>
+FastTriMeshSDF<T, Meta, K, W>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
+                                              const BVH::Build             a_build,
+                                              const size_t                 a_maxLeafSize) noexcept
 {
   using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
   using Tri    = Triangle<T, Meta>;
-  using TriSoA = TriangleSoAT<T, 4>;
+  using TriSoA = TriangleSoAT<T, W>;
 
   std::vector<std::shared_ptr<Tri>> triangles;
 
@@ -430,16 +424,16 @@ FastTriMeshSDF<T, Meta, K>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
   }
 
   auto soa_grouper = [](const std::vector<std::shared_ptr<const Tri>>& srcPrims,
-                         uint32_t                                        offset,
-                         uint32_t                                        count) -> std::vector<TriSoA> {
-    constexpr uint32_t W = 4U;
+                        uint32_t                                       offset,
+                        uint32_t                                       count) -> std::vector<TriSoA> {
+    constexpr uint32_t  soa_w = static_cast<uint32_t>(W);
     std::vector<TriSoA> groups;
-    const uint32_t numGroups = (count + W - 1U) / W;
+    const uint32_t      numGroups = (count + soa_w - 1U) / soa_w;
     groups.reserve(numGroups);
     for (uint32_t g = 0; g < numGroups; g++) {
-      const uint32_t bOff   = offset + g * W;
-      const uint32_t bCount = std::min(W, count - g * W);
-      Tri             trisArr[W];
+      const uint32_t bOff   = offset + g * soa_w;
+      const uint32_t bCount = std::min(soa_w, count - g * soa_w);
+      Tri            trisArr[soa_w];
       for (uint32_t i = 0; i < bCount; i++)
         trisArr[i] = *srcPrims[bOff + i];
       TriSoA soa;
@@ -450,28 +444,28 @@ FastTriMeshSDF<T, Meta, K>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
   };
 
   m_bvh = EBGeometry::buildTriMeshFullBVH<T, Meta, AABB, K>(triangles, a_build, a_maxLeafSize)
-              ->template packWith<TriSoA>(soa_grouper);
+            ->template packWith<TriSoA>(soa_grouper);
 }
 
-template <class T, class Meta, size_t K>
-FastTriMeshSDF<T, Meta, K>::FastTriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
-                                           const BVH::Build                         a_build,
-                                           const size_t                             a_maxLeafSize) noexcept
+template <class T, class Meta, size_t K, size_t W>
+FastTriMeshSDF<T, Meta, K, W>::FastTriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
+                                              const BVH::Build                         a_build,
+                                              const size_t                             a_maxLeafSize) noexcept
 {
   using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
-  using TriSoA = TriangleSoAT<T, 4>;
+  using TriSoA = TriangleSoAT<T, W>;
 
   auto soa_grouper = [](const std::vector<std::shared_ptr<const Tri>>& srcPrims,
-                         uint32_t                                        offset,
-                         uint32_t                                        count) -> std::vector<TriSoA> {
-    constexpr uint32_t W = 4U;
+                        uint32_t                                       offset,
+                        uint32_t                                       count) -> std::vector<TriSoA> {
+    constexpr uint32_t  soa_w = static_cast<uint32_t>(W);
     std::vector<TriSoA> groups;
-    const uint32_t numGroups = (count + W - 1U) / W;
+    const uint32_t      numGroups = (count + soa_w - 1U) / soa_w;
     groups.reserve(numGroups);
     for (uint32_t g = 0; g < numGroups; g++) {
-      const uint32_t bOff   = offset + g * W;
-      const uint32_t bCount = std::min(W, count - g * W);
-      Tri             trisArr[W];
+      const uint32_t bOff   = offset + g * soa_w;
+      const uint32_t bCount = std::min(soa_w, count - g * soa_w);
+      Tri            trisArr[soa_w];
       for (uint32_t i = 0; i < bCount; i++)
         trisArr[i] = *srcPrims[bOff + i];
       TriSoA soa;
@@ -482,33 +476,33 @@ FastTriMeshSDF<T, Meta, K>::FastTriMeshSDF(const std::vector<std::shared_ptr<Tri
   };
 
   m_bvh = EBGeometry::buildTriMeshFullBVH<T, Meta, AABB, K>(a_triangles, a_build, a_maxLeafSize)
-              ->template packWith<TriSoA>(soa_grouper);
+            ->template packWith<TriSoA>(soa_grouper);
 }
 
-template <class T, class Meta, size_t K>
+template <class T, class Meta, size_t K, size_t W>
 T
-FastTriMeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
+FastTriMeshSDF<T, Meta, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
   return m_bvh->signedDistance(a_point);
 }
 
-template <class T, class Meta, size_t K>
-std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleSoAT<T, 4>, K>>&
-FastTriMeshSDF<T, Meta, K>::getRoot() noexcept
+template <class T, class Meta, size_t K, size_t W>
+std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleSoAT<T, W>, K>>&
+FastTriMeshSDF<T, Meta, K, W>::getRoot() noexcept
 {
   return (m_bvh);
 }
 
-template <class T, class Meta, size_t K>
-const std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleSoAT<T, 4>, K>>&
-FastTriMeshSDF<T, Meta, K>::getRoot() const noexcept
+template <class T, class Meta, size_t K, size_t W>
+const std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleSoAT<T, W>, K>>&
+FastTriMeshSDF<T, Meta, K, W>::getRoot() const noexcept
 {
   return (m_bvh);
 }
 
-template <class T, class Meta, size_t K>
+template <class T, class Meta, size_t K, size_t W>
 EBGeometry::BoundingVolumes::AABBT<T>
-FastTriMeshSDF<T, Meta, K>::computeBoundingVolume() const noexcept
+FastTriMeshSDF<T, Meta, K, W>::computeBoundingVolume() const noexcept
 {
   return m_bvh->getBoundingVolume();
 };

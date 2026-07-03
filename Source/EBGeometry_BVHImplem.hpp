@@ -1,6 +1,6 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
+/** EBGeometry
+ *  Copyright © 2022 Robert Marskar
+ *  Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
  */
 
 /**
@@ -114,7 +114,7 @@ namespace BVH {
   template <class T, class P, class BV, size_t K>
   inline void
   TreeBVH<T, P, BV, K>::topDownSortAndPartition(const Partitioner&  a_partitioner,
-                                                 const StopFunction& a_stopCrit) noexcept
+                                                const StopFunction& a_stopCrit) noexcept
   {
     // Check if this node should be split into more nodes.
     const auto numPrimsInThisNode = m_primitives.size();
@@ -289,9 +289,9 @@ namespace BVH {
   template <class Meta>
   inline void
   TreeBVH<T, P, BV, K>::traverse(const BVH::Updater<P>&              a_updater,
-                                  const BVH::Visiter<Node, Meta>&     a_visiter,
-                                  const BVH::Sorter<Node, Meta, K>&   a_sorter,
-                                  const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept
+                                 const BVH::Visiter<Node, Meta>&     a_visiter,
+                                 const BVH::Sorter<Node, Meta, K>&   a_sorter,
+                                 const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept
   {
     std::array<std::pair<std::shared_ptr<const Node>, Meta>, K> children;
     std::stack<std::pair<std::shared_ptr<const Node>, Meta>>    q;
@@ -543,17 +543,9 @@ namespace BVH {
   {
 #if defined(__AVX__)
     if constexpr (K == 4 && std::is_same_v<T, double>) {
+      static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,
+                    "ChildAABBSoA alignment mismatch: _mm256_load_pd requires 32-byte alignment");
       double minDist = std::numeric_limits<double>::max();
-
-      BVH::LinearUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
-                                                           size_t                                       offset,
-                                                           size_t count) noexcept -> void {
-        for (size_t i = 0; i < count; i++) {
-          const double d = prims[offset + i]->signedDistance(a_point);
-          if (std::abs(d) < std::abs(minDist))
-            minDist = d;
-        }
-      };
 
       const __m256d px   = _mm256_set1_pd(a_point[0]);
       const __m256d py   = _mm256_set1_pd(a_point[1]);
@@ -580,7 +572,13 @@ namespace BVH {
 
         const Node& node = m_linearNodes[entry.idx];
         if (node.isLeaf()) {
-          updater(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
+          const size_t offset = node.getPrimitivesOffset();
+          const size_t count  = node.getNumPrimitives();
+          for (size_t i = 0; i < count; i++) {
+            const auto d = m_primitives[offset + i]->signedDistance(a_point);
+            if (std::abs(d) < std::abs(minDist))
+              minDist = d;
+          }
         }
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
@@ -627,19 +625,9 @@ namespace BVH {
       return static_cast<T>(minDist);
     }
     if constexpr (K == 8 && std::is_same_v<T, float>) {
+      static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,
+                    "ChildAABBSoA alignment mismatch: _mm256_load_ps requires 32-byte alignment");
       float minDist = std::numeric_limits<float>::max();
-
-      BVH::LinearUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
-                                                           size_t                                       offset,
-                                                           size_t count) noexcept -> void {
-        for (size_t i = 0; i < count; i++) {
-          const float d = prims[offset + i]->signedDistance(a_point);
-
-          if (std::abs(d) < std::abs(minDist)) {
-            minDist = d;
-          }
-        }
-      };
 
       const __m256 px   = _mm256_set1_ps((float)a_point[0]);
       const __m256 py   = _mm256_set1_ps((float)a_point[1]);
@@ -667,7 +655,13 @@ namespace BVH {
 
         const Node& node = m_linearNodes[entry.idx];
         if (node.isLeaf()) {
-          updater(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
+          const size_t offset = node.getPrimitivesOffset();
+          const size_t count  = node.getNumPrimitives();
+          for (size_t i = 0; i < count; i++) {
+            const auto d = m_primitives[offset + i]->signedDistance(a_point);
+            if (std::abs(d) < std::abs(minDist))
+              minDist = d;
+          }
         }
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
@@ -716,19 +710,9 @@ namespace BVH {
     }
 
     if constexpr (K == 8 && std::is_same_v<T, double>) {
+      static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,
+                    "ChildAABBSoA alignment mismatch: _mm256_load_pd requires 32-byte alignment");
       double minDist = std::numeric_limits<double>::max();
-
-      BVH::LinearUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
-                                                           size_t                                       offset,
-                                                           size_t count) noexcept -> void {
-        for (size_t i = 0; i < count; i++) {
-          const double d = prims[offset + i]->signedDistance(a_point);
-
-          if (std::abs(d) < std::abs(minDist)) {
-            minDist = d;
-          }
-        }
-      };
 
       const __m256d px   = _mm256_set1_pd(a_point[0]);
       const __m256d py   = _mm256_set1_pd(a_point[1]);
@@ -757,7 +741,13 @@ namespace BVH {
         const Node& node = m_linearNodes[entry.idx];
 
         if (node.isLeaf()) {
-          updater(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
+          const size_t offset = node.getPrimitivesOffset();
+          const size_t count  = node.getNumPrimitives();
+          for (size_t i = 0; i < count; i++) {
+            const auto d = m_primitives[offset + i]->signedDistance(a_point);
+            if (std::abs(d) < std::abs(minDist))
+              minDist = d;
+          }
         }
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
@@ -821,19 +811,9 @@ namespace BVH {
 #endif
 #if defined(__SSE4_1__)
     if constexpr (K == 4 && std::is_same_v<T, float>) {
+      static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,
+                    "ChildAABBSoA alignment mismatch: _mm_load_ps requires 16-byte alignment");
       T minDist = std::numeric_limits<T>::max();
-
-      BVH::LinearUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
-                                                           size_t                                       offset,
-                                                           size_t count) noexcept -> void {
-        for (size_t i = 0; i < count; i++) {
-          const T d = prims[offset + i]->signedDistance(a_point);
-
-          if (std::abs(d) < std::abs(minDist)) {
-            minDist = d;
-          }
-        }
-      };
 
       const __m128 px   = _mm_set1_ps(a_point[0]);
       const __m128 py   = _mm_set1_ps(a_point[1]);
@@ -861,7 +841,13 @@ namespace BVH {
         const Node& node = m_linearNodes[entry.idx];
 
         if (node.isLeaf()) {
-          updater(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
+          const size_t offset = node.getPrimitivesOffset();
+          const size_t count  = node.getNumPrimitives();
+          for (size_t i = 0; i < count; i++) {
+            const auto d = m_primitives[offset + i]->signedDistance(a_point);
+            if (std::abs(d) < std::abs(minDist))
+              minDist = d;
+          }
         }
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
