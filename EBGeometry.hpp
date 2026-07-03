@@ -20,6 +20,4 @@
 /*!
   @brief Name space for all of EBGeometry
 */
-namespace EBGeometry {
-
-}
+namespace EBGeometry {}

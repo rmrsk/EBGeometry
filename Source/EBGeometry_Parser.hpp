@@ -38,9 +38,9 @@ namespace Parser {
   */
   enum class Encoding
   {
-    ASCII,   ///< File is plain text
-    Binary,  ///< File is binary-encoded
-    Unknown  ///< Encoding could not be determined
+    ASCII,  ///< File is plain text
+    Binary, ///< File is binary-encoded
+    Unknown ///< Encoding could not be determined
   };
 
   /**
@@ -48,10 +48,10 @@ namespace Parser {
   */
   enum class FileType
   {
-    STL,         ///< Stereolithography format (.stl)
-    PLY,         ///< Polygon File Format (.ply)
-    VTK,         ///< VTK legacy or XML polydata format (.vtk)
-    Unsupported  ///< File type is not recognised
+    STL,        ///< Stereolithography format (.stl)
+    PLY,        ///< Polygon File Format (.ply)
+    VTK,        ///< VTK legacy or XML polydata format (.vtk)
+    Unsupported ///< File type is not recognised
   };
 
   /**
