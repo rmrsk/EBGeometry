@@ -160,7 +160,7 @@ namespace DCEL {
       @param[in] a_id Identifier when printing error messages (can be empty string).
     */
     inline void
-    sanityCheck(const std::string a_id) const noexcept;
+    sanityCheck(const std::string a_id) const;
 
     /**
       @brief Search algorithm for direct signed distance computations
@@ -377,7 +377,7 @@ namespace DCEL {
       @param[in] a_warn     Current warning to increment by
     */
     inline void
-    incrementWarning(std::map<std::string, size_t>& a_warnings, const std::string& a_warn) const noexcept;
+    incrementWarning(std::map<std::string, size_t>& a_warnings, const std::string& a_warn) const;
 
     /**
       @brief Print all warnings to std::cerr
@@ -385,7 +385,7 @@ namespace DCEL {
       @param[in] a_id Identifier used when printing warnings (can be empty string)
     */
     inline void
-    printWarnings(const std::map<std::string, size_t>& a_warnings, const std::string a_id) const noexcept;
+    printWarnings(const std::map<std::string, size_t>& a_warnings, const std::string a_id) const;
   };
 } // namespace DCEL
 

@@ -53,14 +53,14 @@ namespace DCEL {
 
   template <class T, class Meta>
   inline void
-  MeshT<T, Meta>::incrementWarning(std::map<std::string, size_t>& a_warnings, const std::string& a_warn) const noexcept
+  MeshT<T, Meta>::incrementWarning(std::map<std::string, size_t>& a_warnings, const std::string& a_warn) const
   {
-    a_warnings.at(a_warn) += 1;
+    a_warnings[a_warn] += 1;
   }
 
   template <class T, class Meta>
   inline void
-  MeshT<T, Meta>::printWarnings(const std::map<std::string, size_t>& a_warnings, const std::string a_id) const noexcept
+  MeshT<T, Meta>::printWarnings(const std::map<std::string, size_t>& a_warnings, const std::string a_id) const
   {
     std::string baseError = "MeshT<T, Meta>::sanityCheck(...)";
 
@@ -79,7 +79,7 @@ namespace DCEL {
 
   template <class T, class Meta>
   inline void
-  MeshT<T, Meta>::sanityCheck(const std::string a_id) const noexcept
+  MeshT<T, Meta>::sanityCheck(const std::string a_id) const
   {
     const std::string f_null       = "nullptr face";
     const std::string f_noEdge     = "face with no edge";
