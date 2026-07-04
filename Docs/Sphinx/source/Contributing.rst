@@ -176,8 +176,8 @@ Test coverage
    * - ``TestDCEL``
      - DCEL topology of a hardcoded tetrahedron (face/vertex/edge counts,
        half-edge pairing, unit normals, ``sanityCheck``); signed-distance
-       correctness for :cpp:class:`MeshSDF`; agreement between
-       :cpp:class:`MeshSDF` (brute-force) and :cpp:class:`FastTriMeshSDF`
+       correctness for :cpp:class:`FlatMeshSDF`; agreement between
+       :cpp:class:`FlatMeshSDF` (brute-force) and :cpp:class:`TriMeshSDF`
        (SIMD BVH).
    * - ``TestSFC``
      - :cpp:class:`Morton` and :cpp:class:`Nested` space-filling curves:
@@ -191,7 +191,7 @@ Test coverage
    face normals are computed as :math:`(\mathbf{x}_2 - \mathbf{x}_0)
    \times (\mathbf{x}_2 - \mathbf{x}_1)` from the half-edge vertex order, which
    yields outward-pointing normals for the default STL winding order.
-   :cpp:class:`MeshSDF` therefore returns a **negative** value inside the mesh
+   :cpp:class:`FlatMeshSDF` therefore returns a **negative** value inside the mesh
    and a **positive** value outside, consistent with :cpp:class:`SphereSDF` and
    other analytic types.
 

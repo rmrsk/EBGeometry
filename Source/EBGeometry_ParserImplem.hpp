@@ -1697,19 +1697,19 @@ Parser::readIntoDCEL(const std::vector<std::string> a_files)
 }
 
 template <typename T, typename Meta>
-[[nodiscard]] inline std::shared_ptr<MeshSDF<T, Meta>>
+[[nodiscard]] inline std::shared_ptr<FlatMeshSDF<T, Meta>>
 Parser::readIntoMesh(const std::string a_filename)
 {
   const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename);
 
-  return std::make_shared<MeshSDF<T, Meta>>(mesh);
+  return std::make_shared<FlatMeshSDF<T, Meta>>(mesh);
 }
 
 template <typename T, typename Meta>
-[[nodiscard]] inline std::vector<std::shared_ptr<MeshSDF<T, Meta>>>
+[[nodiscard]] inline std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>>
 Parser::readIntoMesh(const std::vector<std::string> a_files)
 {
-  std::vector<std::shared_ptr<MeshSDF<T, Meta>>> implicitFunctions;
+  std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>> implicitFunctions;
 
   for (const auto& file : a_files) {
     implicitFunctions.emplace_back(Parser::readIntoMesh<T, Meta>(file));
@@ -1768,34 +1768,8 @@ Parser::readIntoTriangles(const std::vector<std::string> a_files)
   return triangles;
 }
 
-template <typename T, typename Meta, typename BV, size_t K>
-[[nodiscard]] inline std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>
-Parser::readIntoFullBVH(const std::string a_filename)
-{
-  static_assert(std::is_floating_point_v<T>, "Parser::readIntoFullBVH requires T to be a floating-point type");
-  static_assert(K > 0, "Parser::readIntoFullBVH requires K > 0");
-  const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
-
-  return std::make_shared<FastMeshSDF<T, Meta, BV, K>>(mesh);
-}
-
-template <typename T, typename Meta, typename BV, size_t K>
-[[nodiscard]] inline std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>>
-Parser::readIntoFullBVH(const std::vector<std::string> a_files)
-{
-  static_assert(std::is_floating_point_v<T>, "Parser::readIntoFullBVH requires T to be a floating-point type");
-  static_assert(K > 0, "Parser::readIntoFullBVH requires K > 0");
-  std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>> implicitFunctions;
-
-  for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoFullBVH<T, Meta, BV, K>(file));
-  }
-
-  return implicitFunctions;
-}
-
 template <typename T, typename Meta, size_t K, size_t W>
-[[nodiscard]] inline std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>
+[[nodiscard]] inline std::shared_ptr<TriMeshSDF<T, Meta, K, W>>
 Parser::readIntoTriangleBVH(const std::string a_filename, const BVH::Build a_build, const size_t a_maxLeafSize)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
@@ -1803,11 +1777,11 @@ Parser::readIntoTriangleBVH(const std::string a_filename, const BVH::Build a_bui
   static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
   const auto mesh = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename);
 
-  return std::make_shared<FastTriMeshSDF<T, Meta, K, W>>(mesh, a_build, a_maxLeafSize);
+  return std::make_shared<TriMeshSDF<T, Meta, K, W>>(mesh, a_build, a_maxLeafSize);
 }
 
 template <typename T, typename Meta, size_t K, size_t W>
-[[nodiscard]] inline std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>>
+[[nodiscard]] inline std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>>
 Parser::readIntoTriangleBVH(const std::vector<std::string> a_files,
                             const BVH::Build               a_build,
                             const size_t                   a_maxLeafSize)
@@ -1815,7 +1789,7 @@ Parser::readIntoTriangleBVH(const std::vector<std::string> a_files,
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
   static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
-  std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>> implicitFunctions;
+  std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>> implicitFunctions;
 
   for (const auto& file : a_files) {
     implicitFunctions.emplace_back(Parser::readIntoTriangleBVH<T, Meta, K, W>(file, a_build, a_maxLeafSize));
@@ -1825,26 +1799,26 @@ Parser::readIntoTriangleBVH(const std::vector<std::string> a_files,
 }
 
 template <typename T, typename Meta, size_t K>
-[[nodiscard]] inline std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>
-Parser::readIntoCompactBVH(const std::string a_filename)
+[[nodiscard]] inline std::shared_ptr<MeshSDF<T, Meta, K>>
+Parser::readIntoPackedBVH(const std::string a_filename)
 {
-  static_assert(std::is_floating_point_v<T>, "Parser::readIntoCompactBVH requires T to be a floating-point type");
-  static_assert(K > 0, "Parser::readIntoCompactBVH requires K > 0");
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
+  static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
   const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
 
-  return std::make_shared<FastCompactMeshSDF<T, Meta, K>>(mesh);
+  return std::make_shared<MeshSDF<T, Meta, K>>(mesh);
 }
 
 template <typename T, typename Meta, size_t K>
-[[nodiscard]] inline std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>>
-Parser::readIntoCompactBVH(const std::vector<std::string> a_files)
+[[nodiscard]] inline std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>>
+Parser::readIntoPackedBVH(const std::vector<std::string> a_files)
 {
-  static_assert(std::is_floating_point_v<T>, "Parser::readIntoCompactBVH requires T to be a floating-point type");
-  static_assert(K > 0, "Parser::readIntoCompactBVH requires K > 0");
-  std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>> implicitFunctions;
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
+  static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
+  std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>> implicitFunctions;
 
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoCompactBVH<T, Meta, K>(file));
+    implicitFunctions.emplace_back(Parser::readIntoPackedBVH<T, Meta, K>(file));
   }
 
   return implicitFunctions;

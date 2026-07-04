@@ -45,8 +45,8 @@ Reading mesh files
 
 #. Into a DCEL mesh, see :ref:`Chap:ImplemDCEL`.
 #. Into a signed distance function representation of a DCEL mesh, see :ref:`Chap:ImplemCSG`.
-#. Into a signed distance function representation of a DCEL mesh, but using a BVH accelerator in full representation.
-#. Into a signed distance function representation of a DCEL mesh, but using a BVH accelerator in compact representation.
+#. Into a signed distance function representation of a DCEL mesh, using a ``PackedBVH`` over DCEL faces (any polygon).
+#. Into a signed distance function representation of a triangle mesh, using a ``PackedBVH`` over SoA triangle groups.
 
 .. important::
 
@@ -76,41 +76,32 @@ To read one or multiple files and also turn it into signed distance representati
    :lines: 159-179
    :dedent: 2
 
-DCEL mesh SDF with full BVH
-___________________________
-
-To read one or multiple files and turn it into signed distance representations using a full BVH representation, use
-
-.. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
-   :language: c++
-   :lines: 181-211
-   :dedent: 2
-
 .. _Chap:LinearSTL:
 
-DCEL mesh SDF with compact BVH
-_______________________________
+DCEL mesh SDF with PackedBVH
+_____________________________
 
-To read one or multiple STL files and turn it into signed distance representations using a compact BVH representation, use
-
-.. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
-   :language: c++
-   :lines: 213-235
-   :dedent: 2
-
-	   
-Triangle meshes with BVH
-________________________
-
-To read one or multiple files and turn it into signed distance representations using a compact BVH representation, use
+``readIntoPackedBVH`` wraps a DCEL mesh in a ``PackedBVH`` (depth-first flat layout) with SIMD traversal.
+It supports any polygon, not just triangles.
+For maximum throughput on triangle-only meshes, prefer ``readIntoTriangleBVH`` below.
 
 .. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
    :language: c++
-   :lines: 237-267
+   :lines: 181-205
    :dedent: 2
 
-This version differs from the DCEL meshes in that each DCEL polygon is converted into triangles after parsing.
-The code will throw an error if not all DCEL polygon are not actual triangles.
+Triangle meshes with PackedBVH
+________________________________
+
+``readIntoTriangleBVH`` converts all DCEL polygons to triangles, packs them into SoA groups of ``W``,
+and builds a ``PackedBVH``.
+SIMD intrinsics evaluate up to ``W`` triangles per leaf visit.
+The code will raise an error if any face is not a triangle.
+
+.. literalinclude:: ../../../Source/EBGeometry_Parser.hpp
+   :language: c++
+   :lines: 207-250
+   :dedent: 2
 
 .. _Chap:PolySoups:
 

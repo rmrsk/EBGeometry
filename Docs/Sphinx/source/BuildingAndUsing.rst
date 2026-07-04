@@ -347,7 +347,7 @@ Choosing W and K explicitly
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``W`` and the BVH branching factor ``K`` are explicit template parameters on
-:cpp:class:`FastTriMeshSDF` and :cpp:func:`Parser::readIntoTriangleBVH`:
+:cpp:class:`TriMeshSDF` and :cpp:func:`Parser::readIntoTriangleBVH`:
 
 .. code-block:: cpp
 

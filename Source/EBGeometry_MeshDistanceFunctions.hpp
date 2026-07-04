@@ -46,9 +46,9 @@ namespace DCEL {
   @tparam Meta Triangle metadata type stored on each DCEL face.
 */
 template <class T, class Meta = DCEL::DefaultMetaData>
-class MeshSDF : public SignedDistanceFunction<T>
+class FlatMeshSDF : public SignedDistanceFunction<T>
 {
-  static_assert(std::is_floating_point_v<T>, "MeshSDF requires a floating-point T");
+  static_assert(std::is_floating_point_v<T>, "FlatMeshSDF requires a floating-point T");
 
 public:
   /**
@@ -59,18 +59,18 @@ public:
   /**
     @brief Disallowed constructor
   */
-  MeshSDF() = delete;
+  FlatMeshSDF() = delete;
 
   /**
     @brief Full constructor.
     @param[in] a_mesh Input mesh
   */
-  MeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept;
+  FlatMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept;
 
   /**
     @brief Destructor
   */
-  virtual ~MeshSDF() = default;
+  virtual ~FlatMeshSDF() = default;
 
   /**
     @brief Compute the signed distance from a_point to the mesh.
@@ -104,113 +104,19 @@ protected:
 };
 
 /**
-  @brief Signed distance function for a DCEL mesh. This class uses the full BVH representation.
-  @tparam T    Floating-point precision type (float or double).
-  @tparam Meta Triangle metadata type stored on each DCEL face.
-  @tparam BV   Bounding-volume type used by the tree (e.g. AABBT<T>).
-  @tparam K    BVH branching factor (number of children per internal node).
-*/
-template <class T, class Meta, class BV, size_t K>
-class FastMeshSDF : public SignedDistanceFunction<T>
-{
-  static_assert(std::is_floating_point_v<T>, "FastMeshSDF requires a floating-point T");
-  static_assert(K >= 2, "FastMeshSDF requires branching factor K >= 2");
-
-public:
-  /**
-    @brief Alias for DCEL face type
-  */
-  using Face = typename EBGeometry::DCEL::FaceT<T, Meta>;
-
-  /**
-    @brief Alias for DCEL mesh type
-  */
-  using Mesh = typename EBGeometry::DCEL::MeshT<T, Meta>;
-
-  /**
-    @brief Alias for BVH root node
-  */
-  using Node = EBGeometry::BVH::TreeBVH<T, Face, BV, K>;
-
-  /**
-    @brief Default disallowed constructor
-  */
-  FastMeshSDF() = delete;
-
-  /**
-    @brief Full constructor. Takes the input mesh and creates the BVH.
-    @param[in] a_mesh Input mesh
-    @param[in] a_build Specification of build method. Must be TopDown, Morton, or Nested.
-  */
-  FastMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build = BVH::Build::TopDown);
-
-  /**
-    @brief Destructor
-  */
-  virtual ~FastMeshSDF() = default;
-
-  /**
-    @brief Compute the signed distance from a_point to the mesh.
-    @param[in] a_point Query point.
-    @return Signed distance to the nearest face; negative inside the mesh.
-  */
-  [[nodiscard]] virtual T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override;
-
-  /**
-    @brief Return faces within BVH-pruned candidate distance of a_point.
-    @details Traverses the tree BVH and collects all faces whose leaf
-    bounding volume is within the current best unsigned distance.  The
-    result pairs each candidate face with its unsigned distance to a_point.
-    @param[in] a_point  Query point.
-    @param[in] a_sorted If true, the returned vector is sorted by ascending
-                        unsigned distance (closest face first).
-    @return Vector of (face, unsigned_distance) pairs, optionally sorted.
-  */
-  [[nodiscard]] virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
-  getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const;
-
-  /**
-    @brief Get the bounding volume hierarchy enclosing the mesh.
-    @return Mutable reference to the shared-pointer owning the BVH root.
-  */
-  [[nodiscard]] virtual std::shared_ptr<Node>&
-  getBVH() noexcept;
-
-  /**
-    @brief Get the bounding volume hierarchy enclosing the mesh (const overload).
-    @return Const reference to the shared-pointer owning the BVH root.
-  */
-  [[nodiscard]] virtual const std::shared_ptr<Node>&
-  getBVH() const noexcept;
-
-  /**
-    @brief Compute the bounding volume of the root node.
-    @return Bounding volume enclosing the entire mesh.
-  */
-  [[nodiscard]] BV
-  computeBoundingVolume() const noexcept;
-
-protected:
-  /**
-    @brief Bounding volume hierarchy
-  */
-  std::shared_ptr<Node> m_bvh;
-};
-
-/**
-  @brief Signed distance function for a DCEL mesh backed by a compact (linearized) BVH.
-  @details The mesh is stored in a flat-array PackedBVH for better cache behaviour
-  than the tree BVH. SIMD traversal is used when T and K match an available ISA path.
+  @brief Signed distance function for a DCEL mesh. Stores the mesh in a PackedBVH for
+  SIMD-accelerated traversal. Accepts any polygon, not just triangles.
+  @details The mesh faces are packed into a flat-array PackedBVH. SIMD traversal
+  is used when T and K match an available ISA path.
   @tparam T    Floating-point precision type (float or double).
   @tparam Meta Triangle metadata type stored on each DCEL face.
   @tparam K    BVH branching factor (number of children per internal node).
 */
 template <class T, class Meta, size_t K>
-class FastCompactMeshSDF : public SignedDistanceFunction<T>
+class MeshSDF : public SignedDistanceFunction<T>
 {
-  static_assert(std::is_floating_point_v<T>, "FastCompactMeshSDF requires a floating-point T");
-  static_assert(K >= 2, "FastCompactMeshSDF requires branching factor K >= 2");
+  static_assert(std::is_floating_point_v<T>, "MeshSDF requires a floating-point T");
+  static_assert(K >= 2, "MeshSDF requires branching factor K >= 2");
 
 public:
   /**
@@ -236,19 +142,19 @@ public:
   /**
     @brief Default disallowed constructor
   */
-  FastCompactMeshSDF() = delete;
+  MeshSDF() = delete;
 
   /**
     @brief Full constructor. Takes the input mesh and creates the BVH.
-    @param[in] a_mesh Input mesh
-    @param[in] a_build Build specification. Either top-down, Morton, or Nested.
+    @param[in] a_mesh   Input mesh.
+    @param[in] a_build  BVH build strategy. SAH is the default and recommended choice.
   */
-  FastCompactMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build = BVH::Build::TopDown);
+  MeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build = BVH::Build::SAH);
 
   /**
     @brief Destructor
   */
-  virtual ~FastCompactMeshSDF() = default;
+  virtual ~MeshSDF() = default;
 
   /**
     @brief Compute the signed distance from a_point to the mesh.
@@ -260,7 +166,7 @@ public:
 
   /**
     @brief Return faces within BVH-pruned candidate distance of a_point.
-    @details Traverses the compact BVH and collects candidate faces.  The
+    @details Traverses the PackedBVH and collects candidate faces.  The
     result pairs each face with its unsigned distance to a_point.
     @param[in] a_point  Query point.
     @param[in] a_sorted If true, the returned vector is sorted by ascending
@@ -271,14 +177,14 @@ public:
   getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const;
 
   /**
-    @brief Get the compact BVH enclosing the mesh.
+    @brief Get the PackedBVH enclosing the mesh.
     @return Mutable reference to the shared-pointer owning the packed BVH root.
   */
   [[nodiscard]] virtual std::shared_ptr<Root>&
   getRoot() noexcept;
 
   /**
-    @brief Get the compact BVH enclosing the mesh (const overload).
+    @brief Get the PackedBVH enclosing the mesh (const overload).
     @return Const reference to the shared-pointer owning the packed BVH root.
   */
   [[nodiscard]] virtual const std::shared_ptr<Root>&
@@ -314,11 +220,11 @@ protected:
                Defaults to EBGEOMETRY_SOA_DEFAULT_WIDTH (ISA-optimal; 16 on AVX-512F, 8 on AVX, 4 otherwise).
 */
 template <class T, class Meta, size_t K = BVH::defaultK<T>(), size_t W = EBGEOMETRY_SOA_DEFAULT_WIDTH>
-class FastTriMeshSDF : public SignedDistanceFunction<T>
+class TriMeshSDF : public SignedDistanceFunction<T>
 {
-  static_assert(std::is_floating_point_v<T>, "FastTriMeshSDF requires a floating-point T");
-  static_assert(K >= 2, "FastTriMeshSDF requires branching factor K >= 2");
-  static_assert(W > 0, "FastTriMeshSDF requires SoA width W > 0");
+  static_assert(std::is_floating_point_v<T>, "TriMeshSDF<T,Meta,K,W> requires a floating-point T");
+  static_assert(K >= 2, "TriMeshSDF requires branching factor K >= 2");
+  static_assert(W > 0, "TriMeshSDF requires SoA width W > 0");
 
 public:
   /**
@@ -349,7 +255,7 @@ public:
   /**
     @brief Default disallowed constructor
   */
-  FastTriMeshSDF() = delete;
+  TriMeshSDF() = delete;
 
   /**
     @brief Full constructor. Takes a DCEL mesh and creates the input triangles. Then creates the BVH.
@@ -360,9 +266,9 @@ public:
     @param[in] a_maxLeafSize  Maximum number of primitives per BVH leaf. Should be a multiple of
                               EBGEOMETRY_SOA_DEFAULT_WIDTH (16 on AVX-512, 8 on AVX, 4 otherwise).
   */
-  FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
-                 const BVH::Build             a_build       = BVH::Build::SAH,
-                 const size_t                 a_maxLeafSize = 8U) noexcept;
+  TriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
+             const BVH::Build             a_build       = BVH::Build::SAH,
+             const size_t                 a_maxLeafSize = 8U) noexcept;
 
   /**
     @brief Full constructor. Takes the input triangles and creates the BVH.
@@ -370,14 +276,14 @@ public:
     @param[in] a_build       BVH build strategy (see the mesh-based constructor for details).
     @param[in] a_maxLeafSize Maximum number of primitives per BVH leaf.
   */
-  FastTriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
-                 const BVH::Build                         a_build       = BVH::Build::SAH,
-                 const size_t                             a_maxLeafSize = 8U) noexcept;
+  TriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
+             const BVH::Build                         a_build       = BVH::Build::SAH,
+             const size_t                             a_maxLeafSize = 8U) noexcept;
 
   /**
     @brief Destructor
   */
-  virtual ~FastTriMeshSDF() = default;
+  virtual ~TriMeshSDF() = default;
 
   /**
     @brief Compute the signed distance from a_point to the triangle mesh.
@@ -388,14 +294,14 @@ public:
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
   /**
-    @brief Get the compact BVH storing SoA triangle groups.
+    @brief Get the PackedBVH storing SoA triangle groups.
     @return Mutable reference to the shared-pointer owning the packed BVH root.
   */
   [[nodiscard]] virtual std::shared_ptr<Root>&
   getRoot() noexcept;
 
   /**
-    @brief Get the compact BVH storing SoA triangle groups (const overload).
+    @brief Get the PackedBVH storing SoA triangle groups (const overload).
     @return Const reference to the shared-pointer owning the packed BVH root.
   */
   [[nodiscard]] virtual const std::shared_ptr<Root>&

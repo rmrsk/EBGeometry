@@ -157,82 +157,52 @@ namespace Parser {
   readIntoDCEL(const std::vector<std::string> a_files);
 
   /**
-    @brief Read a file containing a single watertight object and return it as a bare DCEL signed-distance function.
+    @brief Read a file and return it as a bare DCEL signed-distance function (O(N) scan, no BVH).
     @tparam T    Floating-point precision for signed-distance evaluation.
     @tparam Meta Per-face metadata type stored in the DCEL mesh.
     @param[in] a_filename File name (STL, PLY, or VTK).
-    @return Shared pointer to the MeshSDF wrapping the parsed DCEL mesh.
+    @return Shared pointer to the FlatMeshSDF wrapping the parsed DCEL mesh.
   */
   template <typename T, typename Meta = DCEL::DefaultMetaData>
-  [[nodiscard]] inline static std::shared_ptr<MeshSDF<T, Meta>>
+  [[nodiscard]] inline static std::shared_ptr<FlatMeshSDF<T, Meta>>
   readIntoMesh(const std::string a_filename);
 
   /**
-    @brief Read multiple files containing single watertight objects and return them as bare DCEL signed-distance functions.
+    @brief Read multiple files and return each as a bare DCEL signed-distance function.
     @tparam T    Floating-point precision for signed-distance evaluation.
     @tparam Meta Per-face metadata type stored in the DCEL mesh.
     @param[in] a_files List of file names (STL, PLY, or VTK).
-    @return Vector of shared pointers to MeshSDF objects, one per file.
+    @return Vector of shared pointers to FlatMeshSDF objects, one per file.
   */
   template <typename T, typename Meta = DCEL::DefaultMetaData>
-  [[nodiscard]] inline static std::vector<std::shared_ptr<MeshSDF<T, Meta>>>
+  [[nodiscard]] inline static std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>>
   readIntoMesh(const std::vector<std::string> a_files);
 
   /**
-    @brief Read a file containing a single watertight object and return it enclosed in a full (tree-based) BVH.
-    @tparam T    Floating-point precision for signed-distance evaluation.
-    @tparam Meta Per-face metadata type stored in the DCEL mesh.
-    @tparam BV   Bounding volume type (e.g. AABBT<T>).
-    @tparam K    BVH branching factor (number of children per internal node).
-    @param[in] a_filename File name (STL, PLY, or VTK).
-    @return Shared pointer to the FastMeshSDF enclosing the mesh in a K-ary BVH.
-  */
-  template <typename T,
-            typename Meta = DCEL::DefaultMetaData,
-            typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
-            size_t K      = 4>
-  [[nodiscard]] inline static std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>
-  readIntoFullBVH(const std::string a_filename);
-
-  /**
-    @brief Read multiple files and return each object enclosed in a full (tree-based) BVH.
-    @tparam T    Floating-point precision for signed-distance evaluation.
-    @tparam Meta Per-face metadata type stored in the DCEL mesh.
-    @tparam BV   Bounding volume type (e.g. AABBT<T>).
-    @tparam K    BVH branching factor (number of children per internal node).
-    @param[in] a_files List of file names (STL, PLY, or VTK).
-    @return Vector of shared pointers to FastMeshSDF objects, one per file.
-  */
-  template <typename T,
-            typename Meta = DCEL::DefaultMetaData,
-            typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
-            size_t K      = 4>
-  [[nodiscard]] inline static std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>>
-  readIntoFullBVH(const std::vector<std::string> a_files);
-
-  /**
-    @brief Read a file containing a single watertight object and return it enclosed in a linearised (packed) BVH.
+    @brief Read a file and return it enclosed in a SIMD-accelerated PackedBVH over DCEL faces.
+    @details Supports any polygon mesh, not just triangles. For triangle-only meshes with
+    maximum throughput, prefer readIntoTriangleBVH which uses SoA leaf grouping.
     @tparam T    Floating-point precision for signed-distance evaluation.
     @tparam Meta Per-face metadata type stored in the DCEL mesh.
     @tparam K    BVH branching factor (number of children per internal node).
     @param[in] a_filename File name (STL, PLY, or VTK).
-    @return Shared pointer to the FastCompactMeshSDF enclosing the mesh in a linearised K-ary BVH.
+    @return Shared pointer to the MeshSDF enclosing the mesh.
   */
   template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
-  [[nodiscard]] inline static std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>
-  readIntoCompactBVH(const std::string a_filename);
+  [[nodiscard]] inline static std::shared_ptr<MeshSDF<T, Meta, K>>
+  readIntoPackedBVH(const std::string a_filename);
 
   /**
-    @brief Read multiple files and return each object enclosed in a linearised (packed) BVH.
+    @brief Read multiple files and return each enclosed in a SIMD-accelerated PackedBVH over DCEL faces.
     @tparam T    Floating-point precision for signed-distance evaluation.
     @tparam Meta Per-face metadata type stored in the DCEL mesh.
     @tparam K    BVH branching factor (number of children per internal node).
     @param[in] a_files List of file names (STL, PLY, or VTK).
-    @return Vector of shared pointers to FastCompactMeshSDF objects, one per file.
+    @return Vector of shared pointers to MeshSDF objects, one per file.
   */
   template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
-  [[nodiscard]] inline static std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, K>>>
-  readIntoCompactBVH(const std::vector<std::string> a_files);
+  [[nodiscard]] inline static std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>>
+  readIntoPackedBVH(const std::vector<std::string> a_files);
 
   /**
     @brief Read a file and return the mesh enclosed in a SIMD-optimised triangle BVH.
@@ -248,13 +218,13 @@ namespace Parser {
     @param[in] a_filename    File name (STL, PLY, or VTK).
     @param[in] a_build       BVH build strategy. SAH is the default and recommended choice.
     @param[in] a_maxLeafSize Maximum number of triangles per BVH leaf. Should be a multiple of W.
-    @return Shared pointer to the FastTriMeshSDF enclosing the mesh.
+    @return Shared pointer to the TriMeshSDF enclosing the mesh.
   */
   template <typename T,
             typename Meta = DCEL::DefaultMetaData,
             size_t K      = BVH::defaultK<T>(),
             size_t W      = EBGEOMETRY_SOA_DEFAULT_WIDTH>
-  [[nodiscard]] inline static std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>
+  [[nodiscard]] inline static std::shared_ptr<TriMeshSDF<T, Meta, K, W>>
   readIntoTriangleBVH(const std::string a_filename,
                       const BVH::Build  a_build       = BVH::Build::SAH,
                       const size_t      a_maxLeafSize = 8U);
@@ -268,13 +238,13 @@ namespace Parser {
     @param[in] a_files       List of file names (STL, PLY, or VTK).
     @param[in] a_build       BVH build strategy. SAH is the default and recommended choice.
     @param[in] a_maxLeafSize Maximum number of triangles per BVH leaf.
-    @return Vector of shared pointers to FastTriMeshSDF objects, one per file.
+    @return Vector of shared pointers to TriMeshSDF objects, one per file.
   */
   template <typename T,
             typename Meta = DCEL::DefaultMetaData,
             size_t K      = BVH::defaultK<T>(),
             size_t W      = EBGEOMETRY_SOA_DEFAULT_WIDTH>
-  [[nodiscard]] inline static std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>>
+  [[nodiscard]] inline static std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>>
   readIntoTriangleBVH(const std::vector<std::string> a_files,
                       const BVH::Build               a_build       = BVH::Build::SAH,
                       const size_t                   a_maxLeafSize = 8U);

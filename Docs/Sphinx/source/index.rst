@@ -15,7 +15,7 @@ The basic features of EBGeometry are as follows:
 * Representation of water-tight surface grids as signed distance fields.
 * Many analytic distance functions and transformations. 
 * Bounding volume hierarchies (BVHs) for use as acceleration structures for polygon or full object lookup.
-  The BVHs can be represented in full or compact (i.e., linearized) forms.
+  The BVHs can be represented as a full ``TreeBVH`` or a flat ``PackedBVH``.
 * Support for both conventional and accelerated (using BVHs) constructive solid geometry (CSG).
 * Examples of how to couple EBGeometry to AMReX and Chombo.     
 

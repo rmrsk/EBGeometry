@@ -49,8 +49,8 @@ main(int argc, char* argv[])
   // There are converters that avoid this, but users will almost always only use one of
   // these representations.
   const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file);
-  const auto bvhSDF  = EBGeometry::Parser::readIntoFullBVH<T, Meta, BV, K>(file);
-  const auto linSDF  = EBGeometry::Parser::readIntoCompactBVH<T, Meta, K>(file);
+  const auto bvhSDF  = EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file);
+  const auto linSDF  = EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file);
   const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, K>(file);
 
   // Sample some random points around the object.
@@ -82,7 +82,7 @@ main(int argc, char* argv[])
 
   const auto t0 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    dcelSum += dcelSDF->signedDistance(x);
+    //    dcelSum += dcelSDF->signedDistance(x);
   }
   const auto t1 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
@@ -117,7 +117,7 @@ main(int argc, char* argv[])
   std::cout << "Bounding box = " << lo << "\t" << hi << "\n";
   std::cout << "Accumulated distance and time using direct DCEL = " << dcelSum << ", which took " << dcelTime.count() / Nsamp << " us\n";
   std::cout << "Accumulated distance and time using full BVH    = " << bvhSum  << ", which took " << bvhTime.count()  / Nsamp << " us\n";
-  std::cout << "Accumulated distance and time using compact BVH = " << linSum  << ", which took " << linTime.count()  / Nsamp << " us\n";
+  std::cout << "Accumulated distance and time using PackedBVH    = " << linSum  << ", which took " << linTime.count()  / Nsamp << " us\n";
   std::cout << "Accumulated distance and time using trimesh BVH = " << triSum  << ", which took " << triTime.count()  / Nsamp << " us\n";  
   std::cout << "Relative speedup using BVH vs direct DCEL        = " << dcelTime.count()/triTime.count() << "\n";
   // clang-format on  

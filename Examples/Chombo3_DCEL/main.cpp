@@ -19,7 +19,7 @@
 #include "EBGeometry.hpp"
 
 // Binding for exposing EBGeometry's signed distance functions to Chombo
-template <class T, class Meta, class BV, int K>
+template <class T, class Meta, int K>
 class ChomboSDF : public BaseIF
 {
 public:
@@ -27,7 +27,7 @@ public:
 
   ChomboSDF(const std::string a_filename)
   {
-    m_implicitFunction = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, BV, K>(a_filename);
+    m_implicitFunction = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, K>(a_filename);
     m_implicitFunction = EBGeometry::Complement<T>(m_implicitFunction);
   }
 
@@ -65,8 +65,7 @@ main(int argc, char* argv[])
 {
   constexpr int K = 4;
 
-  using T  = float;
-  using BV = EBGeometry::BoundingVolumes::AABBT<T>;
+  using T = float;
 
 #ifdef CH_MPI
   MPI_Init(&argc, &argv);
@@ -136,7 +135,7 @@ main(int argc, char* argv[])
   }
 
   using Meta   = EBGeometry::DCEL::DefaultMetaData;
-  auto impFunc = static_cast<BaseIF*>(new ChomboSDF<T, Meta, BV, K>(filename));
+  auto impFunc = static_cast<BaseIF*>(new ChomboSDF<T, Meta, K>(filename));
 
   // Set up the Chombo EB geometry.
   ProblemDomain domain(IntVect::Zero, (nCells - 1) * IntVect::Unit);

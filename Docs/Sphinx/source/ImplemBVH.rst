@@ -8,7 +8,7 @@ For the full API, see `the doxygen API <doxygen/html/namespaceBVH.html>`__.
 There are two types of BVHs supported.
 
 *  **Full BVHs** where the nodes are stored in build order and contain references to their children.
-*  **Compact BVHs** where the nodes are stored in depth-first order and contain index offsets to children and primitives.
+*  **PackedBVH** where the nodes are stored in depth-first order and contain index offsets to children and primitives.
 
 The full BVH is encapsulated by a class
 
@@ -26,7 +26,7 @@ The above template parameters are:
 
 ``NodeT`` describes regular and leaf nodes in the BVH, and has member functions for setting primitives, bounding volumes, and so on.
 Importantly, ``NodeT`` is the BVH builder node, i.e. it is the class through which we recursively build the BVH, see :ref:`Chap:BVHConstruction`.
-The compact BVH is discussed below in :ref:`Chap:LinearBVH`.
+The ``PackedBVH`` is discussed below in :ref:`Chap:LinearBVH`.
 
 
 Bounding volumes
@@ -95,22 +95,22 @@ Build times for SFC-based bottom-up construction are generally speaking faster t
 
 .. _Chap:LinearBVH:
 
-Compact form
-------------
+PackedBVH
+---------
 
-In addition to the standard BVH node ``NodeT<T, P, BV, K>``, ``EBGeometry`` provides a more compact formulation of the BVH hierarchy where the nodes are stored in depth-first order.
-The "linearized" BVH can be automatically constructed from the standard BVH but not vice versa.
+In addition to the standard BVH node ``NodeT<T, P, BV, K>``, ``EBGeometry`` provides a ``PackedBVH`` where nodes are stored in depth-first order in a flat array.
+The ``PackedBVH`` can be automatically constructed from the standard BVH but not vice versa.
 
 .. figure:: /_static/CompactBVH.png
    :width: 240px
    :align: center
 
-   Compact BVH representation.
+   PackedBVH representation.
    The original BVH is traversed from top-to-bottom along the branches and laid out in linear memory.
-   Each interior node gets a reference (index offset) to their children nodes.
+   Each interior node stores index offsets to its children and primitives.
 
-The rationale for reorganizing the BVH in compact form is it's tighter memory footprint and depth-first ordering which occasionally allows a more efficient traversal downwards in the BVH tree, particularly if the geometric primitives are sorted in the same order. 
-To encapsulate the compact BVH we provide two classes:
+The rationale for the ``PackedBVH`` is its tighter memory footprint and depth-first ordering, which allows more efficient traversal, particularly when primitives are sorted in the same order.
+To encapsulate the ``PackedBVH`` we provide two classes:
 
 *  ``LinearNodeT`` which encapsulates a node, but rather than storing the primitives and pointers to child nodes it stores offsets along the 1D arrays.
    Just like ``NodeT`` the class is templated:
@@ -133,7 +133,7 @@ To encapsulate the compact BVH we provide two classes:
    Thus, for a given node we can check if it is a leaf node (``m_numPrimitives > 0``) and if it is we can get the children through the ``m_childOffsets`` array.
    Primitives can likewise be obtained; they are stored in the primitives array from index ``m_primitivesOffset`` to ``m_primitivesOffset + m_numPrimities - 1``. 
 
-*  ``LinearBVH`` which stores the compact BVH *and* primitives as class members.
+*  ``LinearBVH`` which stores the ``PackedBVH`` *and* primitives as class members.
    That is, ``LinearBVH`` contains the nodes and primitives as class members.
 
    .. code-block:: c++
@@ -152,7 +152,7 @@ To encapsulate the compact BVH we provide two classes:
    The root node is, of course, found at the front of the ``m_linearNodes`` vector.
    Note that the list of primitives ``m_primitives`` is stored in the order in which the leaf nodes appear in ``m_linearNodes``. 
 
-Constructing the compact BVH is simply a matter of letting ``NodeT`` aggregate the nodes and primitives into arrays, and return a ``LinearBVH``.
+Constructing the ``PackedBVH`` is simply a matter of letting ``NodeT`` aggregate the nodes and primitives into arrays, and return a ``LinearBVH``.
 This is done by calling the ``NodeT`` member function ``flattenTree()``:
 
 .. code-block:: c++
@@ -175,7 +175,7 @@ For example:
    std::shared_ptr<EBGeometry::BVH::NodeT<T, P, BV, K> > builderBVH;
 
    // Flatten the tree.
-   std::shared_ptr<LinearBVH> compactBVH = builderBVH->flattenTree();
+   std::shared_ptr<LinearBVH> packedBVH = builderBVH->flattenTree();
 
    // Release the original BVH.
    builderBVH = nullptr;
@@ -312,3 +312,85 @@ Below, we show the traversal code for this union, where we traverse through the 
    :lines: 369-415
    :caption: Tree traversal when computing the smooth CSG union.
 	     See :file:`Source/EBGeometry_CSGImplem.hpp` for details.
+
+.. _Chap:MeshSDFClasses:
+
+Mesh Signed Distance Function Classes
+--------------------------------------
+
+EBGeometry provides three concrete classes for evaluating signed distances to surface meshes.
+They share the same sign convention (negative inside, positive outside) but differ in data layout,
+BVH type, and supported geometry:
+
+.. list-table:: Mesh SDF classes
+   :widths: 22 18 22 18 20
+   :header-rows: 1
+
+   * - Class
+     - Input
+     - BVH type
+     - Traversal
+     - Notes
+   * - ``FlatMeshSDF<T, Meta>``
+     - DCEL mesh
+     - None
+     - O(N) scan
+     - Debug / tiny meshes only; no build cost
+   * - ``MeshSDF<T, Meta, K>``
+     - DCEL mesh
+     - ``PackedBVH`` over ``DCEL::FaceT``
+     - SIMD intrinsics
+     - Any polygon mesh; not restricted to triangles
+   * - ``TriMeshSDF<T, Meta, K, W>``
+     - DCEL mesh or triangle soup
+     - ``PackedBVH`` over SoA triangle groups
+     - SIMD intrinsics + SoA leaf evaluation
+     - Triangle meshes only; highest throughput
+
+``FlatMeshSDF`` is useful for correctness checks and tiny meshes.
+``MeshSDF`` handles arbitrary polygon meshes with SIMD-accelerated BVH traversal.
+``TriMeshSDF`` is the recommended default for triangle meshes: it packs triangles into
+Structure-of-Arrays groups of width ``W`` so that each BVH leaf evaluates ``W`` triangles
+with a single SIMD register operation.
+
+SIMD-optimal K and W by ISA
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The helper ``BVH::defaultK<T>()`` returns the SIMD-optimal branching factor for the current
+compilation target.  The macro ``EBGEOMETRY_SOA_DEFAULT_WIDTH`` gives the matching SoA width.
+Both are used as template defaults for ``TriMeshSDF`` and ``Parser::readIntoTriangleBVH``.
+
+.. list-table:: Default K and W by ISA and precision
+   :widths: 25 25 25 25
+   :header-rows: 1
+
+   * - ISA
+     - Precision
+     - ``defaultK<T>()``
+     - ``EBGEOMETRY_SOA_DEFAULT_WIDTH``
+   * - AVX-512F
+     - ``float``
+     - 16
+     - 16
+   * - AVX-512F
+     - ``double``
+     - 8
+     - 16
+   * - AVX (256-bit)
+     - ``float``
+     - 8
+     - 8
+   * - AVX (256-bit)
+     - ``double``
+     - 4
+     - 8
+   * - SSE4.1 / scalar
+     - ``float`` or ``double``
+     - 4
+     - 4
+
+The K=16/float and K=8/double paths use ``_mm512_load_ps`` / ``_mm512_load_pd`` respectively
+and require the ``ChildAABBSoA`` struct to be 64-byte aligned, which is guaranteed by
+``alignas(sizeof(T)*K)`` on the struct.  The K=8/float and K=4/double paths use 256-bit AVX
+instructions (``_mm256_load_ps`` / ``_mm256_load_pd``).  All other (K, T) combinations fall back
+to a scalar loop.

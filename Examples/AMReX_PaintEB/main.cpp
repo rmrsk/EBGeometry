@@ -44,7 +44,7 @@ public:
       faces[i]->getMetaData() = 1.0 * i;
     }
 
-    m_sdf = std::make_shared<EBGeometry::FastCompactMeshSDF<T, Meta, K>>(mesh);
+    m_sdf = std::make_shared<EBGeometry::MeshSDF<T, Meta, K>>(mesh);
   }
 
   /*!
@@ -87,7 +87,7 @@ protected:
   /*!
     @brief DCEL mesh represented as a BVH of its facets, exposed as an implicit function. 
   */
-  std::shared_ptr<EBGeometry::FastCompactMeshSDF<T, Meta, K>> m_sdf;
+  std::shared_ptr<EBGeometry::MeshSDF<T, Meta, K>> m_sdf;
 };
 
 int

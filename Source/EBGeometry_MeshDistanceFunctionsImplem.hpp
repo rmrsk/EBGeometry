@@ -146,21 +146,21 @@ buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Me
 }
 
 template <class T, class Meta>
-MeshSDF<T, Meta>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
+FlatMeshSDF<T, Meta>::FlatMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
 {
   m_mesh = a_mesh;
 }
 
 template <class T, class Meta>
 T
-MeshSDF<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
+FlatMeshSDF<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
   return m_mesh->signedDistance(a_point);
 }
 
 template <class T, class Meta>
 const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-MeshSDF<T, Meta>::getMesh() const noexcept
+FlatMeshSDF<T, Meta>::getMesh() const noexcept
 {
   return m_mesh;
 }
@@ -168,142 +168,13 @@ MeshSDF<T, Meta>::getMesh() const noexcept
 template <class T, class Meta>
 template <class BV>
 BV
-MeshSDF<T, Meta>::computeBoundingVolume() const
+FlatMeshSDF<T, Meta>::computeBoundingVolume() const
 {
   return BV(m_mesh->getAllVertexCoordinates());
 };
 
-template <class T, class Meta, class BV, size_t K>
-FastMeshSDF<T, Meta, BV, K>::FastMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build)
-{
-  m_bvh = EBGeometry::DCEL::buildFullBVH<T, Meta, BV, K>(a_mesh, a_build);
-}
-
-template <class T, class Meta, class BV, size_t K>
-T
-FastMeshSDF<T, Meta, BV, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
-{
-  T minDist = std::numeric_limits<T>::max();
-
-  BVH::Updater<Face> updater = [&minDist,
-                                &a_point](const std::vector<std::shared_ptr<const Face>>& faces) noexcept -> void {
-    for (const auto& f : faces) {
-      const T curDist = f->signedDistance(a_point);
-
-      minDist = std::abs(curDist) < std::abs(minDist) ? curDist : minDist;
-    }
-  };
-
-  BVH::Visiter<Node, T> visiter = [&minDist](const Node& a_node, const T& a_bvDist) noexcept -> bool {
-    return a_bvDist <= std::abs(minDist);
-  };
-
-  BVH::Sorter<Node, T, K> sorter =
-    [](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
-    std::sort(a_leaves.begin(),
-              a_leaves.end(),
-              [](const std::pair<std::shared_ptr<const Node>, T>& n1,
-                 const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
-  };
-
-  BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
-    return a_node.getDistanceToBoundingVolume(a_point);
-  };
-
-  // Traverse the tree.
-  m_bvh->traverse(updater, visiter, sorter, metaUpdater);
-
-  return minDist;
-}
-
-template <class T, class Meta, class BV, size_t K>
-std::vector<std::pair<std::shared_ptr<const EBGeometry::DCEL::FaceT<T, Meta>>, T>>
-FastMeshSDF<T, Meta, BV, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const
-{
-  using FaceAndDist = std::pair<std::shared_ptr<const Face>, T>;
-
-  // List of candidate faces.
-  std::vector<FaceAndDist> candidateFaces;
-
-  // Declaration of the BVH metadata attached to each node - this will be the distance to the node itself.
-  using BVHMeta = T;
-
-  // Shortest distance so far.
-  BVHMeta shortestDistanceSoFar = std::numeric_limits<T>::max();
-
-  // Visitation pattern - go into the node if the point is inside or the distance to the BV is shorter than
-  // the shortest distance so far.
-  EBGeometry::BVH::Visiter<Node, T> visiter = [&shortestDistanceSoFar](const Node&    a_node,
-                                                                       const BVHMeta& a_bvDist) noexcept -> bool {
-    return a_bvDist <= 0.0 || a_bvDist <= shortestDistanceSoFar;
-  };
-
-  // Sorter for BVH nodes, visit closest nodes first
-  EBGeometry::BVH::Sorter<Node, T, K> sorter =
-    [](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
-    std::sort(a_leaves.begin(),
-              a_leaves.end(),
-              [](const std::pair<std::shared_ptr<const Node>, T>& n1,
-                 const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
-  };
-
-  // Meta-data updater - this meta-data enters into the visitor pattern.
-  EBGeometry::BVH::MetaUpdater<Node, BVHMeta> metaUpdater = [&a_point](const Node& a_node) noexcept -> BVHMeta {
-    return a_node.getDistanceToBoundingVolume(a_point);
-  };
-
-  // Update rule for the BVH. Go through the faces and check
-  EBGeometry::BVH::Updater<Face> updater = [&shortestDistanceSoFar, &a_point, &candidateFaces](
-                                             const std::vector<std::shared_ptr<const Face>>& a_faces) noexcept -> void {
-    // Calculate the distance to each face in the leaf node. If it is shorter than the shortest distance so far, add this face
-    // to the list of faces and update the shortest distance.
-    for (const auto& f : a_faces) {
-      const T distToFace = sqrt(f->unsignedDistance2(a_point));
-
-      if (distToFace <= shortestDistanceSoFar) {
-        candidateFaces.emplace_back(f, distToFace);
-
-        shortestDistanceSoFar = distToFace;
-      }
-    }
-  };
-
-  // Traverse the tree
-  m_bvh->traverse(updater, visiter, sorter, metaUpdater);
-
-  // Sort if the user asks for it
-  if (a_sorted) {
-    std::sort(candidateFaces.begin(), candidateFaces.end(), [](const FaceAndDist& a, const FaceAndDist& b) {
-      return a.second < b.second;
-    });
-  }
-
-  return candidateFaces;
-}
-
-template <class T, class Meta, class BV, size_t K>
-std::shared_ptr<EBGeometry::BVH::TreeBVH<T, EBGeometry::DCEL::FaceT<T, Meta>, BV, K>>&
-FastMeshSDF<T, Meta, BV, K>::getBVH() noexcept
-{
-  return (m_bvh);
-}
-
-template <class T, class Meta, class BV, size_t K>
-const std::shared_ptr<EBGeometry::BVH::TreeBVH<T, EBGeometry::DCEL::FaceT<T, Meta>, BV, K>>&
-FastMeshSDF<T, Meta, BV, K>::getBVH() const noexcept
-{
-  return (m_bvh);
-}
-
-template <class T, class Meta, class BV, size_t K>
-BV
-FastMeshSDF<T, Meta, BV, K>::computeBoundingVolume() const noexcept
-{
-  return m_bvh->getBoundingVolume();
-};
-
 template <class T, class Meta, size_t K>
-FastCompactMeshSDF<T, Meta, K>::FastCompactMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build)
+MeshSDF<T, Meta, K>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build)
 {
   using AABB     = EBGeometry::BoundingVolumes::AABBT<T>;
   const auto bvh = EBGeometry::DCEL::buildFullBVH<T, Meta, AABB, K>(a_mesh, a_build);
@@ -313,7 +184,7 @@ FastCompactMeshSDF<T, Meta, K>::FastCompactMeshSDF(const std::shared_ptr<Mesh>& 
 
 template <class T, class Meta, size_t K>
 T
-FastCompactMeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
+MeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
   T minDist = std::numeric_limits<T>::max();
 
@@ -349,7 +220,7 @@ FastCompactMeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const no
 
 template <class T, class Meta, size_t K>
 std::vector<std::pair<std::shared_ptr<const EBGeometry::DCEL::FaceT<T, Meta>>, T>>
-FastCompactMeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const
+MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const
 {
   using FaceAndDist = std::pair<std::shared_ptr<const Face>, T>;
 
@@ -405,29 +276,29 @@ FastCompactMeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const b
 
 template <class T, class Meta, size_t K>
 std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::DCEL::FaceT<T, Meta>, K>>&
-FastCompactMeshSDF<T, Meta, K>::getRoot() noexcept
+MeshSDF<T, Meta, K>::getRoot() noexcept
 {
   return (m_bvh);
 }
 
 template <class T, class Meta, size_t K>
 const std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::DCEL::FaceT<T, Meta>, K>>&
-FastCompactMeshSDF<T, Meta, K>::getRoot() const noexcept
+MeshSDF<T, Meta, K>::getRoot() const noexcept
 {
   return (m_bvh);
 }
 
 template <class T, class Meta, size_t K>
 EBGeometry::BoundingVolumes::AABBT<T>
-FastCompactMeshSDF<T, Meta, K>::computeBoundingVolume() const noexcept
+MeshSDF<T, Meta, K>::computeBoundingVolume() const noexcept
 {
   return m_bvh->getBoundingVolume();
 };
 
 template <class T, class Meta, size_t K, size_t W>
-FastTriMeshSDF<T, Meta, K, W>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
-                                              const BVH::Build             a_build,
-                                              const size_t                 a_maxLeafSize) noexcept
+TriMeshSDF<T, Meta, K, W>::TriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
+                                      const BVH::Build             a_build,
+                                      const size_t                 a_maxLeafSize) noexcept
 {
   using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
   using Tri    = Triangle<T, Meta>;
@@ -441,7 +312,7 @@ FastTriMeshSDF<T, Meta, K, W>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mes
     const auto edges    = f->gatherEdges();
 
     if ((vertices.size() != 3) || (edges.size() != 3)) {
-      std::cerr << "FastTriMeshSDF -- mesh not triangulated!\n";
+      std::cerr << "TriMeshSDF -- mesh not triangulated!\n";
     }
 
     auto tri = std::make_shared<Tri>();
@@ -478,9 +349,9 @@ FastTriMeshSDF<T, Meta, K, W>::FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mes
 }
 
 template <class T, class Meta, size_t K, size_t W>
-FastTriMeshSDF<T, Meta, K, W>::FastTriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
-                                              const BVH::Build                         a_build,
-                                              const size_t                             a_maxLeafSize) noexcept
+TriMeshSDF<T, Meta, K, W>::TriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
+                                      const BVH::Build                         a_build,
+                                      const size_t                             a_maxLeafSize) noexcept
 {
   using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
   using TriSoA = TriangleSoAT<T, W>;
@@ -511,28 +382,28 @@ FastTriMeshSDF<T, Meta, K, W>::FastTriMeshSDF(const std::vector<std::shared_ptr<
 
 template <class T, class Meta, size_t K, size_t W>
 T
-FastTriMeshSDF<T, Meta, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
+TriMeshSDF<T, Meta, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
   return m_bvh->signedDistance(a_point);
 }
 
 template <class T, class Meta, size_t K, size_t W>
 std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleSoAT<T, W>, K>>&
-FastTriMeshSDF<T, Meta, K, W>::getRoot() noexcept
+TriMeshSDF<T, Meta, K, W>::getRoot() noexcept
 {
   return (m_bvh);
 }
 
 template <class T, class Meta, size_t K, size_t W>
 const std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleSoAT<T, W>, K>>&
-FastTriMeshSDF<T, Meta, K, W>::getRoot() const noexcept
+TriMeshSDF<T, Meta, K, W>::getRoot() const noexcept
 {
   return (m_bvh);
 }
 
 template <class T, class Meta, size_t K, size_t W>
 EBGeometry::BoundingVolumes::AABBT<T>
-FastTriMeshSDF<T, Meta, K, W>::computeBoundingVolume() const noexcept
+TriMeshSDF<T, Meta, K, W>::computeBoundingVolume() const noexcept
 {
   return m_bvh->getBoundingVolume();
 };

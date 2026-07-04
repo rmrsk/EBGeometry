@@ -20,8 +20,8 @@ using T            = double;
 using MetaData     = std::map<int, std::vector<unsigned long long>>; // Attach some ridiculous meta-data
 using Vec3         = EBGeometry::Vec3T<T>;
 using BV           = EBGeometry::BoundingVolumes::AABBT<T>;
-using SlowSDF      = EBGeometry::MeshSDF<T, MetaData>;
-using FastSDF      = EBGeometry::FastTriMeshSDF<T, MetaData, K>;
+using SlowSDF      = EBGeometry::FlatMeshSDF<T, MetaData>;
+using FastSDF      = EBGeometry::TriMeshSDF<T, MetaData, K>;
 
 int
 main(int argc, char* argv[])

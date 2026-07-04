@@ -24,7 +24,7 @@
            8 when @c __AVX__ is defined (256-bit YMM register holds 8 floats),
            4 when only @c __SSE4_1__ is defined (128-bit XMM register holds 4 floats),
            and 4 as a scalar-safe fallback when none of the above is available.
-           Used as the default @c W template argument for @c TriangleSoAT, @c FastTriMeshSDF,
+           Used as the default @c W template argument for @c TriangleSoAT, @c TriMeshSDF,
            and @c Parser::readIntoTriangleBVH.
 */
 #if defined(__AVX512F__)
