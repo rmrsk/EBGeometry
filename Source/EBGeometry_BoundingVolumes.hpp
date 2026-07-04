@@ -4,8 +4,7 @@
 
 /**
   @file   EBGeometry_BoundingVolumes.hpp
-  @brief  Declaration of a various bounding volumes used for bounding volume
-  hierarchy.
+  @brief  Declarations of bounding volume types used in bounding volume hierarchies.
   @author Robert Marskar
 */
 
@@ -21,15 +20,12 @@
 #include "EBGeometry_NamespaceHeader.hpp"
 
 /**
-  @brief Namespace for encapsulating various bounding volumes for usage with
-  BVHs
+  @brief Bounding volume types for use with bounding volume hierarchies.
 */
 namespace BoundingVolumes {
 
   /**
-    @brief Class which encloses a set of points using a bounding sphere.
-    @details The template parameter T is the floating-point precision which is
-    used.
+    @brief Bounding sphere — the smallest sphere enclosing a set of 3D points.
     @tparam T Floating-point precision (e.g., float or double).
   */
   template <class T>
@@ -53,164 +49,172 @@ namespace BoundingVolumes {
     }
 
     /**
-      @brief Typename for possible algorithms that support the computation of a
-      bounding sphere for a set of 3D points.
+      @brief Algorithm used to compute a bounding sphere for a set of 3D points.
     */
     enum class BoundingVolumeAlgorithm
     {
-      Ritter,
+      Ritter, ///< Ritter's simple two-pass approximation. Fast but may overestimate the radius slightly.
     };
 
     /**
-      @brief Alias to cut down on typing
+      @brief Alias to cut down on typing.
     */
     using Vec3 = Vec3T<T>;
 
     /**
-      @brief Default constructor. Leaves object in undefined state.
+      @brief Default constructor. Sets radius to -1 (invalid sentinel).
+      @details Any geometric method called on a default-constructed sphere will fire
+      an @c EBGEOMETRY_EXPECT assertion. Call define() or use the explicit constructor
+      before use.
     */
-    inline BoundingSphereT() noexcept;
+    BoundingSphereT() noexcept = default;
 
     /**
-      @brief Full constructor. Sets the center and radius of the bounding sphere.
-      @param[in] a_center Bounding sphere center
-      @param[in] a_radius Bounding sphere radius
+      @brief Construct a sphere with an explicit centre and radius.
+      @param[in] a_center Sphere centre.
+      @param[in] a_radius Sphere radius.
     */
     inline BoundingSphereT(const Vec3T<T>& a_center, const T& a_radius) noexcept;
 
     /**
-      @brief Full constructor. Constructs a bounding sphere that encloses all the
-      other bounding spheres
-      @param[in] a_otherSpheres Other bounding spheres.
+      @brief Construct the smallest sphere enclosing all @p a_otherSpheres.
+      @param[in] a_otherSpheres Spheres to enclose.
     */
     inline BoundingSphereT(const std::vector<BoundingSphereT<T>>& a_otherSpheres) noexcept;
 
     /**
-      @brief Copy constructor. Sets the center and radius from the other sphere.
-      @param[in] a_other Other sphere
+      @brief Copy constructor.
+      @param[in] a_other Sphere to copy.
     */
     inline BoundingSphereT(const BoundingSphereT& a_other) noexcept;
 
     /**
-      @brief Template constructor which takes a set of 3D points (mixed precision
-      allowed).
-      @details This computes the bounding sphere using the supplied algorithm.
-      @tparam P Floating-point precision of the input points (may differ from T).
+      @brief Construct a bounding sphere enclosing a set of 3D points.
+      @details Mixed floating-point precision is allowed: @p P may differ from @p T.
+      @tparam P Floating-point precision of the input points.
       @param[in] a_points Set of 3D points.
-      @param[in] a_alg    Bounding sphere algorithm.
-      @note This calls the define(...) function.
+      @param[in] a_alg    Algorithm to use (default: Ritter).
     */
     template <class P>
     inline BoundingSphereT(const std::vector<Vec3T<P>>&   a_points,
                            const BoundingVolumeAlgorithm& a_alg = BoundingVolumeAlgorithm::Ritter) noexcept;
 
     /**
-      @brief Destructor (does nothing).
+      @brief Destructor.
     */
     ~BoundingSphereT() noexcept;
 
     /**
-      @brief Copy assignment operator
-      @param[in] a_other Other sphere
+      @brief Copy assignment operator.
+      @param[in] a_other Sphere to copy.
     */
     BoundingSphereT&
     operator=(const BoundingSphereT& a_other) = default;
 
     /**
-      @brief Template define function which takes a set of 3D points (mixed
-      precision allowed).
-      @details This computes the bounding sphere using the supplied algorithm.
-      @tparam P Floating-point precision of the input points (may differ from T).
+      @brief Move constructor.
+      @param[in] a_other Sphere to move from.
+    */
+    BoundingSphereT(BoundingSphereT&& a_other) noexcept = default;
+
+    /**
+      @brief Move assignment operator.
+      @param[in] a_other Sphere to move from.
+    */
+    BoundingSphereT&
+    operator=(BoundingSphereT&& a_other) noexcept = default;
+
+    /**
+      @brief Fit this sphere to a set of 3D points using the specified algorithm.
+      @details Mixed floating-point precision is allowed: @p P may differ from @p T.
+      @tparam P Floating-point precision of the input points.
       @param[in] a_points Set of 3D points.
-      @param[in] a_alg    Bounding sphere algorithm.
+      @param[in] a_alg    Algorithm to use.
     */
     template <class P>
     inline void
     define(const std::vector<Vec3T<P>>& a_points, const BoundingVolumeAlgorithm& a_alg) noexcept;
 
     /**
-      @brief Check if this bounding sphere intersect another bounding sphere
+      @brief Test whether this bounding sphere intersects @p a_other.
       @param[in] a_other Other bounding sphere.
-      @return True if the two sphere intersect.
+      @return True if the two spheres overlap, false otherwise.
     */
     [[nodiscard]] inline bool
     intersects(const BoundingSphereT& a_other) const noexcept;
 
     /**
-      @brief Get modifiable radius for this sphere.
+      @brief Get a modifiable reference to the sphere radius.
       @return Reference to the sphere radius.
     */
     inline T&
     getRadius() noexcept;
 
     /**
-      @brief Get immutable radius for this sphere.
+      @brief Get the sphere radius.
       @return Const reference to the sphere radius.
     */
     [[nodiscard]] inline const T&
     getRadius() const noexcept;
 
     /**
-      @brief Get modifiable centroid of this sphere.
+      @brief Get a modifiable reference to the sphere centroid.
       @return Reference to the sphere centroid.
     */
     inline Vec3&
     getCentroid() noexcept;
 
     /**
-      @brief Get immutable centroid of this sphere.
+      @brief Get the sphere centroid.
       @return Const reference to the sphere centroid.
     */
     [[nodiscard]] inline const Vec3&
     getCentroid() const noexcept;
 
     /**
-      @brief Compute the overlapping volume between this bounding sphere and
-      another
-      @param[in] a_other Other bounding sphere
-      @return The overlapping volume, computing using standard expressions.
+      @brief Compute the overlapping volume between this sphere and @p a_other.
+      @param[in] a_other Other bounding sphere.
+      @return Overlap volume; zero if the spheres do not intersect.
     */
     [[nodiscard]] inline T
     getOverlappingVolume(const BoundingSphereT<T>& a_other) const noexcept;
 
     /**
-      @brief Get the distance to this bounding sphere (points inside the sphere
-      have a zero distance)
-      @param[in] a_x0 3D point
-      @return Returns the distance to the sphere (a point inside has a zero
-      distance)
+      @brief Compute the unsigned distance from @p a_x0 to this sphere.
+      @param[in] a_x0 3D query point.
+      @return Distance from @p a_x0 to the sphere surface; zero if @p a_x0 is inside.
     */
     [[nodiscard]] inline T
     getDistance(const Vec3& a_x0) const noexcept;
 
     /**
-      @brief Get the sphere volume
-      @return Sphere volume
+      @brief Compute the sphere volume (4/3 * pi * r^3).
+      @return Sphere volume.
     */
     [[nodiscard]] inline T
     getVolume() const noexcept;
 
     /**
-      @brief Get the sphere area
-      @return Sphere area.
+      @brief Compute the sphere surface area (4 * pi * r^2).
+      @return Sphere surface area.
     */
     [[nodiscard]] inline T
     getArea() const noexcept;
 
   protected:
     /**
-      @brief Sphere radius
+      @brief Sphere radius. Initialised to -1 (invalid sentinel).
     */
-    T m_radius;
+    T m_radius = T(-1);
 
     /**
-      @brief Sphere center
+      @brief Sphere centre. Initialised to the origin.
     */
-    Vec3 m_center;
+    Vec3 m_center = Vec3::zero();
 
     /**
-      @brief Compute a bounding sphere enclosing @p a_points using Ritter's algorithm.
-      @tparam P Floating-point precision of the input points (may differ from T).
+      @brief Fit a bounding sphere to @p a_points using Ritter's algorithm.
+      @tparam P Floating-point precision of the input points.
       @param[in] a_points Set of 3D points to enclose.
     */
     template <class P>
@@ -219,9 +223,7 @@ namespace BoundingVolumes {
   };
 
   /**
-    @brief Axis-aligned bounding box as bounding volume.
-    @details This class represents a Cartesian box that encloses a set of 3D
-    points.
+    @brief Axis-aligned bounding box (AABB) enclosing a set of 3D points.
     @tparam T Floating-point precision (e.g., float or double).
   */
   template <class T>
@@ -245,60 +247,76 @@ namespace BoundingVolumes {
     }
 
     /**
-      @brief Alias which cuts down on typing
+      @brief Alias to cut down on typing.
     */
     using Vec3 = Vec3T<T>;
 
     /**
-      @brief Default constructor (does nothing)
+      @brief Default constructor. Sets lo = +∞, hi = −∞ (inverted sentinel).
+      @details The inverted state is the identity element for AABB union and also
+      ensures that any geometric query (distance, volume, intersection) fires an
+      @c EBGEOMETRY_EXPECT assertion. Call define() or use the explicit constructor
+      before use.
     */
-    inline AABBT() noexcept;
+    AABBT() noexcept = default;
 
     /**
-      @brief Full constructor taking the low/high corners of the bounding box
-      @param[in] a_lo Low corner
-      @param[in] a_hi High
+      @brief Construct an AABB from explicit low and high corners.
+      @param[in] a_lo Low corner.
+      @param[in] a_hi High corner.
     */
     inline AABBT(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi) noexcept;
 
     /**
-      @brief Copy constructor of another bounding box
-      @param[in] a_other Other bounding box
+      @brief Copy constructor.
+      @param[in] a_other Bounding box to copy.
     */
     inline AABBT(const AABBT& a_other) noexcept;
 
     /**
-      @brief Constructor which creates an AABB which encloses a set of other
-      AABBs.
-      @param[in] a_others Other bounding boxes
+      @brief Construct the smallest AABB enclosing all boxes in @p a_others.
+      @param[in] a_others Bounding boxes to enclose.
     */
     inline AABBT(const std::vector<AABBT<T>>& a_others) noexcept;
 
     /**
-      @brief Template constructor (since mixed precision allowed) which creates an
-      AABB that encloses a set of 3D points.
-      @tparam P Floating-point precision of the input points (may differ from T).
+      @brief Construct the smallest AABB enclosing a set of 3D points.
+      @details Mixed floating-point precision is allowed: @p P may differ from @p T.
+      @tparam P Floating-point precision of the input points.
       @param[in] a_points Set of 3D points.
-      @note Calls the define function.
     */
     template <class P>
     inline AABBT(const std::vector<Vec3T<P>>& a_points) noexcept;
 
     /**
-      @brief Destructor (does nothing)
+      @brief Destructor.
     */
     ~AABBT() noexcept;
 
     /**
-      @brief Copy assignment
-      @param[in] a_other Other bounding box
+      @brief Copy assignment.
+      @param[in] a_other Bounding box to copy.
     */
     AABBT&
     operator=(const AABBT<T>& a_other) = default;
 
     /**
-      @brief Set this AABB to the smallest box enclosing @p a_points.
-      @tparam P Floating-point precision of the input points (may differ from T).
+      @brief Move constructor.
+      @param[in] a_other Bounding box to move from.
+    */
+    AABBT(AABBT&& a_other) noexcept = default;
+
+    /**
+      @brief Move assignment operator.
+      @param[in] a_other Bounding box to move from.
+    */
+    AABBT&
+    operator=(AABBT&& a_other) noexcept = default;
+
+    /**
+      @brief Fit this AABB to the smallest box enclosing @p a_points.
+      @details Mixed floating-point precision is allowed: @p P may differ from @p T.
+      @tparam P Floating-point precision of the input points.
       @param[in] a_points Set of 3D points.
     */
     template <class P>
@@ -306,90 +324,88 @@ namespace BoundingVolumes {
     define(const std::vector<Vec3T<P>>& a_points) noexcept;
 
     /**
-      @brief Check if this AABB intersects another AABB
-      @param[in] a_other The other AABB
-      @return True if they intersect and false otherwise.
+      @brief Test whether this AABB intersects @p a_other.
+      @param[in] a_other The other AABB.
+      @return True if the two boxes overlap, false otherwise.
     */
     [[nodiscard]] inline bool
     intersects(const AABBT& a_other) const noexcept;
 
     /**
-      @brief Get the modifiable lower-left corner of the AABB.
-      @return Reference to the lower-left corner.
+      @brief Get a modifiable reference to the low corner of the AABB.
+      @return Reference to the low corner.
     */
     inline Vec3T<T>&
     getLowCorner() noexcept;
 
     /**
-      @brief Get the immutable lower-left corner of the AABB.
-      @return Const reference to the lower-left corner.
+      @brief Get the low corner of the AABB.
+      @return Const reference to the low corner.
     */
     [[nodiscard]] inline const Vec3T<T>&
     getLowCorner() const noexcept;
 
     /**
-      @brief Get the modifiable upper-right corner of the AABB.
-      @return Reference to the upper-right corner.
+      @brief Get a modifiable reference to the high corner of the AABB.
+      @return Reference to the high corner.
     */
     inline Vec3T<T>&
     getHighCorner() noexcept;
 
     /**
-      @brief Get the immutable upper-right corner of the AABB.
-      @return Const reference to the upper-right corner.
+      @brief Get the high corner of the AABB.
+      @return Const reference to the high corner.
     */
     [[nodiscard]] inline const Vec3T<T>&
     getHighCorner() const noexcept;
 
     /**
-      @brief Get the centroid of the bounding box.
-      @return Midpoint of the lower and upper corners.
+      @brief Compute the centroid of the AABB.
+      @return Midpoint of the low and high corners.
     */
     [[nodiscard]] inline Vec3
     getCentroid() const noexcept;
 
     /**
-      @brief Compute the overlapping volume between this AABB and another AABB.
-      @param[in] a_other The other AABB
-      @return Returns overlapping volume
+      @brief Compute the overlapping volume between this AABB and @p a_other.
+      @param[in] a_other The other AABB.
+      @return Overlap volume; zero if the boxes do not intersect.
     */
     [[nodiscard]] inline T
     getOverlappingVolume(const AABBT<T>& a_other) const noexcept;
 
     /**
-      @brief Get the distance to this AABB (points inside the bounding box have a
-      zero distance)
-      @param[in] a_x0 3D point
-      @return Returns the distance to the bounding box (a point inside has a zero
-      distance)
+      @brief Compute the unsigned distance from @p a_x0 to this AABB.
+      @param[in] a_x0 3D query point.
+      @return Distance from @p a_x0 to the nearest box face; zero if @p a_x0 is inside.
     */
     [[nodiscard]] inline T
     getDistance(const Vec3& a_x0) const noexcept;
 
     /**
-      @brief Compute the bounding box volume.
-      @return Product of the box side lengths.
+      @brief Compute the AABB volume.
+      @return Product of the three side lengths: dx * dy * dz.
     */
     [[nodiscard]] inline T
     getVolume() const noexcept;
 
     /**
-      @brief Compute the bounding box surface area.
-      @return Sum of the six face areas (2*(dx*dy + dy*dz + dz*dx)).
+      @brief Compute the AABB surface area.
+      @return Sum of the six face areas: 2*(dx*dy + dy*dz + dz*dx).
     */
     [[nodiscard]] inline T
     getArea() const noexcept;
 
   protected:
     /**
-      @brief Lower-left corner of bounding box
+      @brief Low corner of the bounding box. Initialised to +∞ (inverted sentinel).
     */
-    Vec3 m_loCorner;
+    Vec3 m_loCorner = Vec3::infinity();
 
     /**
-      @brief Upper-right corner of bounding box
+      @brief High corner of the bounding box. Initialised to −∞ (inverted sentinel).
     */
-    Vec3 m_hiCorner;
+    Vec3 m_hiCorner = -Vec3::infinity();
   };
 
   /**
@@ -397,7 +413,7 @@ namespace BoundingVolumes {
     @tparam T Floating-point precision.
     @param[in] a_u One bounding sphere.
     @param[in] a_v The other bounding sphere.
-    @return True if the two spheres intersect, false otherwise.
+    @return True if the spheres intersect, false otherwise.
   */
   template <class T>
   [[nodiscard]] bool
@@ -408,7 +424,7 @@ namespace BoundingVolumes {
     @tparam T Floating-point precision.
     @param[in] a_u One bounding box.
     @param[in] a_v The other bounding box.
-    @return True if the two boxes intersect, false otherwise.
+    @return True if the boxes intersect, false otherwise.
   */
   template <class T>
   [[nodiscard]] bool
@@ -419,7 +435,7 @@ namespace BoundingVolumes {
     @tparam T Floating-point precision.
     @param[in] a_u One bounding sphere.
     @param[in] a_v The other bounding sphere.
-    @return Overlapping volume; zero if the spheres do not intersect.
+    @return Overlap volume; zero if the spheres do not intersect.
   */
   template <class T>
   [[nodiscard]] T
@@ -430,7 +446,7 @@ namespace BoundingVolumes {
     @tparam T Floating-point precision.
     @param[in] a_u One bounding box.
     @param[in] a_v The other bounding box.
-    @return Overlapping volume; zero if the boxes do not intersect.
+    @return Overlap volume; zero if the boxes do not intersect.
   */
   template <class T>
   [[nodiscard]] T
