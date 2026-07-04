@@ -48,6 +48,14 @@ DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dc
 
     break;
   }
+  case BVH::Build::SAH: {
+    using Node              = EBGeometry::BVH::TreeBVH<T, Prim, BV, K>;
+    using StopFunc          = typename Node::StopFunction;
+    const StopFunc stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
+    bvh->topDownSortAndPartition(EBGeometry::BVH::BinnedSAHPartitioner<T, Prim, BV, K>, stopCrit);
+
+    break;
+  }
   default: {
     std::cerr << "EBGeometry::DCEL::buildFullBVH - unsupported build method requested" << std::endl;
 
@@ -68,15 +76,15 @@ DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dc
   @tparam BV   Bounding-volume type (e.g. AABBT<T>).
   @tparam K    BVH branching factor (number of children per internal node).
   @param[in] a_triangles   Triangle soup to build the BVH over.
-  @param[in] a_build       Build strategy (TopDown, Morton, or Nested).
+  @param[in] a_build       Build strategy (TopDown, Morton, Nested, or SAH). SAH is the default.
   @param[in] a_maxLeafSize Maximum number of triangles per BVH leaf node
-                           (TopDown only; ignored for Morton and Nested).
+                           (ignored for Morton and Nested builds).
   @return Shared pointer to the root of the resulting tree BVH.
 */
 template <class T, class Meta, class BV, size_t K>
 std::shared_ptr<EBGeometry::BVH::TreeBVH<T, Triangle<T, Meta>, BV, K>>
 buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Meta>>>& a_triangles,
-                    const BVH::Build                                                   a_build = BVH::Build::TopDown,
+                    const BVH::Build                                                   a_build       = BVH::Build::SAH,
                     const size_t                                                       a_maxLeafSize = 4U)
 {
   using Prim          = EBGeometry::Triangle<T, Meta>;
@@ -114,6 +122,16 @@ buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Me
   }
   case BVH::Build::Nested: {
     bvh->template bottomUpSortAndPartition<SFC::Nested>();
+
+    break;
+  }
+  case BVH::Build::SAH: {
+    using Node              = EBGeometry::BVH::TreeBVH<T, Prim, BV, K>;
+    using StopFunc          = typename Node::StopFunction;
+    const StopFunc stopCrit = [a_maxLeafSize](const Node& n) noexcept -> bool {
+      return n.getPrimitives().size() <= a_maxLeafSize;
+    };
+    bvh->topDownSortAndPartition(EBGeometry::BVH::BinnedSAHPartitioner<T, Prim, BV, K>, stopCrit);
 
     break;
   }

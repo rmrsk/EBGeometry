@@ -20,13 +20,16 @@
 /**
   @def EBGEOMETRY_SOA_DEFAULT_WIDTH
   @brief Default SIMD lane width (number of triangles per SoA group) for the current target ISA.
-  @details Set to 8 when @c __AVX__ is defined (256-bit YMM register holds 8 floats),
+  @details Set to 16 when @c __AVX512F__ is defined (512-bit ZMM register holds 16 floats),
+           8 when @c __AVX__ is defined (256-bit YMM register holds 8 floats),
            4 when only @c __SSE4_1__ is defined (128-bit XMM register holds 4 floats),
-           and 4 as a scalar-safe fallback when neither is available.
+           and 4 as a scalar-safe fallback when none of the above is available.
            Used as the default @c W template argument for @c TriangleSoAT, @c FastTriMeshSDF,
            and @c Parser::readIntoTriangleBVH.
 */
-#if defined(__AVX__)
+#if defined(__AVX512F__)
+#define EBGEOMETRY_SOA_DEFAULT_WIDTH 16
+#elif defined(__AVX__)
 #define EBGEOMETRY_SOA_DEFAULT_WIDTH 8
 #elif defined(__SSE4_1__)
 #define EBGEOMETRY_SOA_DEFAULT_WIDTH 4

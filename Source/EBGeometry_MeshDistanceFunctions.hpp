@@ -29,13 +29,13 @@ namespace DCEL {
     @tparam BV   Bounding-volume type (e.g. AABBT<T>).
     @tparam K    BVH branching factor (number of children per node).
     @param[in] a_dcelMesh Input DCEL mesh.
-    @param[in] a_build    Build strategy (TopDown, Morton, or Nested).
+    @param[in] a_build    Build strategy (TopDown, Morton, Nested, or SAH). SAH is the default.
     @return Shared pointer to the root of the resulting tree BVH.
   */
   template <class T, class Meta, class BV, size_t K>
   [[nodiscard]] std::shared_ptr<EBGeometry::BVH::TreeBVH<T, FaceT<T, Meta>, BV, K>>
   buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh,
-               const BVH::Build                                         a_build = BVH::Build::TopDown);
+               const BVH::Build                                         a_build = BVH::Build::SAH);
 } // namespace DCEL
 
 /**
@@ -308,10 +308,12 @@ protected:
   @tparam T    Floating-point precision type (float or double).
   @tparam Meta Triangle metadata type.
   @tparam K    BVH branching factor (number of children per internal node).
+               Defaults to BVH::defaultK<T>() — the SIMD-optimal value for T on the current ISA
+               (K=16/float or K=8/double on AVX-512F; K=8/float or K=4/double on AVX; K=4 otherwise).
   @tparam W    SoA width: number of triangles per SIMD group.
-               Defaults to EBGEOMETRY_SOA_DEFAULT_WIDTH (ISA-optimal).
+               Defaults to EBGEOMETRY_SOA_DEFAULT_WIDTH (ISA-optimal; 16 on AVX-512F, 8 on AVX, 4 otherwise).
 */
-template <class T, class Meta, size_t K, size_t W = EBGEOMETRY_SOA_DEFAULT_WIDTH>
+template <class T, class Meta, size_t K = BVH::defaultK<T>(), size_t W = EBGEOMETRY_SOA_DEFAULT_WIDTH>
 class FastTriMeshSDF : public SignedDistanceFunction<T>
 {
   static_assert(std::is_floating_point_v<T>, "FastTriMeshSDF requires a floating-point T");
@@ -351,23 +353,25 @@ public:
 
   /**
     @brief Full constructor. Takes a DCEL mesh and creates the input triangles. Then creates the BVH.
-    @param[in] a_mesh DCEL mesh
-    @param[in] a_build Specification of build method. Must be TopDown, Morton, or Nested.
-    @param[in] a_maxLeafSize Maximum number of primitives per BVH leaf. Larger values yield coarser
-    BVH culling but better SIMD throughput at leaf evaluation. Default is 8.
+    @param[in] a_mesh         DCEL mesh.
+    @param[in] a_build        BVH build strategy. SAH (binned Surface Area Heuristic) is the default
+                              and recommended choice — it produces near-optimal traversal cost.
+                              TopDown (centroid median) is faster to build but yields deeper trees.
+    @param[in] a_maxLeafSize  Maximum number of primitives per BVH leaf. Should be a multiple of
+                              EBGEOMETRY_SOA_DEFAULT_WIDTH (16 on AVX-512, 8 on AVX, 4 otherwise).
   */
   FastTriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
-                 const BVH::Build             a_build       = BVH::Build::TopDown,
+                 const BVH::Build             a_build       = BVH::Build::SAH,
                  const size_t                 a_maxLeafSize = 8U) noexcept;
 
   /**
     @brief Full constructor. Takes the input triangles and creates the BVH.
-    @param[in] a_triangles Input triangle soup
-    @param[in] a_build Specification of build method. Must be TopDown, Morton, or Nested.
+    @param[in] a_triangles   Input triangle soup.
+    @param[in] a_build       BVH build strategy (see the mesh-based constructor for details).
     @param[in] a_maxLeafSize Maximum number of primitives per BVH leaf.
   */
   FastTriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
-                 const BVH::Build                         a_build       = BVH::Build::TopDown,
+                 const BVH::Build                         a_build       = BVH::Build::SAH,
                  const size_t                             a_maxLeafSize = 8U) noexcept;
 
   /**

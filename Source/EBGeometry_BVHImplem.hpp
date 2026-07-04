@@ -538,6 +538,197 @@ namespace BVH {
   inline T
   PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   {
+// ──────────────────────────────────────────────────────────────────────────────
+// AVX-512F paths: K==8/double and K==16/float.
+//
+// When compiled with -mavx512f these are selected in preference to the AVX
+// paths below because they appear first and each path ends with a return.
+// The compiler will dead-code-eliminate the corresponding AVX branches.
+//
+// Alignment: ChildAABBSoA uses alignas(sizeof(T)*K), which equals 64 bytes
+// for both (K=8, T=double) and (K=16, T=float).  _mm512_load_pd / _mm512_load_ps
+// both require 64-byte alignment — the static_assert below catches any mismatch.
+//
+// Recommended configurations on AVX-512 hardware:
+//   float  → K=16, W=16  (one _mm512_load_ps covers all children and one leaf group)
+//   double → K=8,  W=8   (one _mm512_load_pd covers all children; AVX-512F replaces
+//                          the 2×_mm256_load_pd emulation in the AVX fallback below)
+// ──────────────────────────────────────────────────────────────────────────────
+#if defined(__AVX512F__)
+    if constexpr (K == 8 && std::is_same_v<T, double>) {
+      static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,
+                    "ChildAABBSoA alignment mismatch: _mm512_load_pd requires 64-byte alignment");
+      double minDist = std::numeric_limits<double>::max();
+
+      const __m512d px   = _mm512_set1_pd(a_point[0]);
+      const __m512d py   = _mm512_set1_pd(a_point[1]);
+      const __m512d pz   = _mm512_set1_pd(a_point[2]);
+      const __m512d zero = _mm512_setzero_pd();
+
+      struct StackEntry
+      {
+        uint32_t idx;
+        double   dist2;
+      };
+      alignas(64) StackEntry stack[256];
+
+      int top      = 0;
+      stack[top++] = {0U, 0.0};
+
+      while (top > 0) {
+        const StackEntry entry    = stack[--top];
+        const double     curBest2 = minDist * minDist;
+
+        if (entry.dist2 > curBest2) {
+          continue;
+        }
+
+        const Node& node = m_linearNodes[entry.idx];
+
+        if (node.isLeaf()) {
+          const size_t offset = node.getPrimitivesOffset();
+          const size_t count  = node.getNumPrimitives();
+          for (size_t i = 0; i < count; i++) {
+            const auto d = m_primitives[offset + i]->signedDistance(a_point);
+            if (std::abs(d) < std::abs(minDist))
+              minDist = d;
+          }
+        }
+        else {
+          const auto& soa = m_childAabbSoA[entry.idx];
+
+          const __m512d lo_x = _mm512_load_pd(soa.lo[0]);
+          const __m512d lo_y = _mm512_load_pd(soa.lo[1]);
+          const __m512d lo_z = _mm512_load_pd(soa.lo[2]);
+          const __m512d hi_x = _mm512_load_pd(soa.hi[0]);
+          const __m512d hi_y = _mm512_load_pd(soa.hi[1]);
+          const __m512d hi_z = _mm512_load_pd(soa.hi[2]);
+
+          const __m512d dx = _mm512_max_pd(zero, _mm512_max_pd(_mm512_sub_pd(lo_x, px), _mm512_sub_pd(px, hi_x)));
+          const __m512d dy = _mm512_max_pd(zero, _mm512_max_pd(_mm512_sub_pd(lo_y, py), _mm512_sub_pd(py, hi_y)));
+          const __m512d dz = _mm512_max_pd(zero, _mm512_max_pd(_mm512_sub_pd(lo_z, pz), _mm512_sub_pd(pz, hi_z)));
+          const __m512d d2 =
+            _mm512_add_pd(_mm512_mul_pd(dx, dx), _mm512_add_pd(_mm512_mul_pd(dy, dy), _mm512_mul_pd(dz, dz)));
+
+          alignas(64) double dist2[K];
+          _mm512_store_pd(dist2, d2);
+
+          const auto&                                offsets = node.getChildOffsets();
+          std::array<std::pair<double, uint32_t>, K> children;
+
+          for (size_t k = 0; k < K; k++) {
+            children[k] = {dist2[k], offsets[k]};
+          }
+
+          std::sort(children.begin(),
+                    children.end(),
+                    [](const std::pair<double, uint32_t>& a, const std::pair<double, uint32_t>& b) noexcept {
+                      return a.first > b.first;
+                    });
+
+          const double newBest2 = minDist * minDist;
+
+          for (const auto& [d, idx] : children) {
+            if (d <= newBest2) {
+              stack[top++] = {idx, d};
+            }
+          }
+        }
+      }
+
+      return static_cast<T>(minDist);
+    }
+
+    if constexpr (K == 16 && std::is_same_v<T, float>) {
+      static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,
+                    "ChildAABBSoA alignment mismatch: _mm512_load_ps requires 64-byte alignment");
+      float minDist = std::numeric_limits<float>::max();
+
+      const __m512 px   = _mm512_set1_ps((float)a_point[0]);
+      const __m512 py   = _mm512_set1_ps((float)a_point[1]);
+      const __m512 pz   = _mm512_set1_ps((float)a_point[2]);
+      const __m512 zero = _mm512_setzero_ps();
+
+      struct StackEntry
+      {
+        uint32_t idx;
+        float    dist2;
+      };
+
+      alignas(64) StackEntry stack[256];
+
+      int top      = 0;
+      stack[top++] = {0U, 0.f};
+
+      while (top > 0) {
+        const StackEntry entry    = stack[--top];
+        const float      curBest2 = minDist * minDist;
+
+        if (entry.dist2 > curBest2) {
+          continue;
+        }
+
+        const Node& node = m_linearNodes[entry.idx];
+
+        if (node.isLeaf()) {
+          const size_t offset = node.getPrimitivesOffset();
+          const size_t count  = node.getNumPrimitives();
+          for (size_t i = 0; i < count; i++) {
+            const auto d = m_primitives[offset + i]->signedDistance(a_point);
+            if (std::abs(d) < std::abs(minDist))
+              minDist = d;
+          }
+        }
+        else {
+          const auto& soa = m_childAabbSoA[entry.idx];
+
+          const __m512 lo_x = _mm512_load_ps(soa.lo[0]);
+          const __m512 lo_y = _mm512_load_ps(soa.lo[1]);
+          const __m512 lo_z = _mm512_load_ps(soa.lo[2]);
+          const __m512 hi_x = _mm512_load_ps(soa.hi[0]);
+          const __m512 hi_y = _mm512_load_ps(soa.hi[1]);
+          const __m512 hi_z = _mm512_load_ps(soa.hi[2]);
+
+          const __m512 dx = _mm512_max_ps(zero, _mm512_max_ps(_mm512_sub_ps(lo_x, px), _mm512_sub_ps(px, hi_x)));
+          const __m512 dy = _mm512_max_ps(zero, _mm512_max_ps(_mm512_sub_ps(lo_y, py), _mm512_sub_ps(py, hi_y)));
+          const __m512 dz = _mm512_max_ps(zero, _mm512_max_ps(_mm512_sub_ps(lo_z, pz), _mm512_sub_ps(pz, hi_z)));
+          const __m512 d2 =
+            _mm512_add_ps(_mm512_mul_ps(dx, dx), _mm512_add_ps(_mm512_mul_ps(dy, dy), _mm512_mul_ps(dz, dz)));
+
+          alignas(64) float dist2[K];
+          _mm512_store_ps(dist2, d2);
+
+          const auto&                               offsets = node.getChildOffsets();
+          std::array<std::pair<float, uint32_t>, K> children;
+
+          for (size_t k = 0; k < K; k++) {
+            children[k] = {dist2[k], offsets[k]};
+          }
+
+          std::sort(children.begin(),
+                    children.end(),
+                    [](const std::pair<float, uint32_t>& a, const std::pair<float, uint32_t>& b) noexcept {
+                      return a.first > b.first;
+                    });
+
+          const float newBest2 = minDist * minDist;
+
+          for (const auto& [d, idx] : children) {
+            if (d <= newBest2) {
+              stack[top++] = {idx, d};
+            }
+          }
+        }
+      }
+
+      return static_cast<T>(minDist);
+    }
+#endif // __AVX512F__
+
+// ──────────────────────────────────────────────────────────────────────────────
+// AVX paths: K==4/double (single pass), K==8/float (single pass),
+//            K==8/double (two 4-wide passes — superseded by AVX-512F above).
+// ──────────────────────────────────────────────────────────────────────────────
 #if defined(__AVX__)
     if constexpr (K == 4 && std::is_same_v<T, double>) {
       static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,

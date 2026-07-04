@@ -1796,19 +1796,21 @@ Parser::readIntoFullBVH(const std::vector<std::string> a_files)
 
 template <typename T, typename Meta, size_t K, size_t W>
 [[nodiscard]] inline std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>
-Parser::readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafSize)
+Parser::readIntoTriangleBVH(const std::string a_filename, const BVH::Build a_build, const size_t a_maxLeafSize)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
   static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
   const auto mesh = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename);
 
-  return std::make_shared<FastTriMeshSDF<T, Meta, K, W>>(mesh, BVH::Build::TopDown, a_maxLeafSize);
+  return std::make_shared<FastTriMeshSDF<T, Meta, K, W>>(mesh, a_build, a_maxLeafSize);
 }
 
 template <typename T, typename Meta, size_t K, size_t W>
 [[nodiscard]] inline std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>>
-Parser::readIntoTriangleBVH(const std::vector<std::string> a_files, const size_t a_maxLeafSize)
+Parser::readIntoTriangleBVH(const std::vector<std::string> a_files,
+                            const BVH::Build               a_build,
+                            const size_t                   a_maxLeafSize)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
@@ -1816,7 +1818,7 @@ Parser::readIntoTriangleBVH(const std::vector<std::string> a_files, const size_t
   std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>> implicitFunctions;
 
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoTriangleBVH<T, Meta, K, W>(file, a_maxLeafSize));
+    implicitFunctions.emplace_back(Parser::readIntoTriangleBVH<T, Meta, K, W>(file, a_build, a_maxLeafSize));
   }
 
   return implicitFunctions;

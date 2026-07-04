@@ -44,8 +44,47 @@ namespace BVH {
   {
     TopDown, ///< Recursive top-down partitioning.
     Morton,  ///< Bottom-up construction along a Morton space-filling curve.
-    Nested   ///< Bottom-up construction along a Nested space-filling curve.
+    Nested,  ///< Bottom-up construction along a Nested space-filling curve.
+    SAH      ///< Recursive top-down with binned Surface Area Heuristic splitting. This is the recommended
+             ///< default: generally produces better-balanced trees and lower traversal cost than TopDown.
+             ///< Use with BinnedSAHPartitioner. See BinnedSAHPartitioner for recommended K values per ISA.
   };
+
+  /**
+    @brief Returns the SIMD-optimal BVH branching factor for type T on the current target ISA.
+    @details Maps the floating-point type and the compile-time ISA to the K that fills one
+    SIMD register exactly:
+
+    | ISA       | T=float | T=double |
+    |-----------|---------|----------|
+    | AVX-512F  |   16    |    8     |
+    | AVX       |    8    |    4     |
+    | SSE4.1    |    4    |    4     |
+    | fallback  |    4    |    4     |
+
+    Usage: `size_t K = BVH::defaultK<T>()` as a template-parameter default.
+    @tparam T Floating-point precision type (float or double).
+    @return Optimal K for the current ISA and T.
+  */
+  template <typename T>
+  [[nodiscard]] constexpr size_t
+  defaultK() noexcept
+  {
+    static_assert(std::is_floating_point_v<T>, "BVH::defaultK requires a floating-point T");
+#if defined(__AVX512F__)
+    if constexpr (std::is_same_v<T, double>)
+      return 8;
+    else
+      return 16;
+#elif defined(__AVX__)
+    if constexpr (std::is_same_v<T, double>)
+      return 4;
+    else
+      return 8;
+#else
+    return 4;
+#endif
+  }
 
   /**
     @brief Forward declaration of the tree-structured BVH. Needed by StopFunction and the
@@ -268,6 +307,194 @@ namespace BVH {
               });
 
     return BVH::equalCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);
+  };
+
+  /**
+    @brief Internal helper: 2-way binned SAH split on the sub-range [a_begin, a_end).
+    @details Evaluates 32 bins per axis and picks the split plane that minimises
+    @c SA(left)*N_left + SA(right)*N_right.  Partitions @p a_list in-place and returns
+    the split index (first element of the right group).
+    @note Requires BV == AABBT<T>: BV must support getLowCorner(), getHighCorner(),
+    getArea(), and construction from two Vec3T<T> corner arguments.
+    @tparam T  Floating-point precision.
+    @tparam P  Primitive type.
+    @tparam BV Bounding-volume type (must be AABBT<T>).
+  */
+  template <class T, class P, class BV>
+  inline size_t
+  sah2WaySplit(PrimAndBVList<P, BV>& a_list, const size_t a_begin, const size_t a_end) noexcept
+  {
+    constexpr int BINS = 32;
+
+    const size_t N = a_end - a_begin;
+
+    // Centroid bounding box
+    Vec3T<T> clo = Vec3T<T>::max();
+    Vec3T<T> chi = -Vec3T<T>::max();
+    for (size_t i = a_begin; i < a_end; i++) {
+      const auto& c = a_list[i].second.getCentroid();
+      clo           = min(clo, c);
+      chi           = max(chi, c);
+    }
+
+    T   bestCost  = std::numeric_limits<T>::max();
+    int bestAxis  = -1;
+    T   bestPlane = T(0);
+
+    Vec3T<T> binLo[BINS];
+    Vec3T<T> binHi[BINS];
+    int      binCnt[BINS];
+
+    T   leftArea[BINS - 1];
+    int leftCnt[BINS - 1];
+
+    for (int axis = 0; axis < 3; axis++) {
+      const T lo  = clo[axis];
+      const T hi  = chi[axis];
+      const T ext = hi - lo;
+      if (ext <= T(0))
+        continue;
+
+      const T scale = T(BINS) / ext;
+
+      for (int b = 0; b < BINS; b++) {
+        binLo[b]  = Vec3T<T>::max();
+        binHi[b]  = -Vec3T<T>::max();
+        binCnt[b] = 0;
+      }
+
+      for (size_t i = a_begin; i < a_end; i++) {
+        const int b = std::min(BINS - 1, (int)((a_list[i].second.getCentroid()[axis] - lo) * scale));
+        binLo[b]    = min(binLo[b], a_list[i].second.getLowCorner());
+        binHi[b]    = max(binHi[b], a_list[i].second.getHighCorner());
+        binCnt[b] += 1;
+      }
+
+      // Left prefix: accumulated AABB and count for bins [0..b]
+      Vec3T<T> rlo  = Vec3T<T>::max();
+      Vec3T<T> rhi  = -Vec3T<T>::max();
+      int      rcnt = 0;
+      for (int b = 0; b < BINS - 1; b++) {
+        if (binCnt[b] > 0) {
+          rlo = min(rlo, binLo[b]);
+          rhi = max(rhi, binHi[b]);
+        }
+        rcnt += binCnt[b];
+        leftArea[b] = (rcnt > 0) ? BV(rlo, rhi).getArea() : T(0);
+        leftCnt[b]  = rcnt;
+      }
+
+      // Right suffix sweep; evaluate SAH cost at each candidate split boundary
+      Vec3T<T> rrlo  = Vec3T<T>::max();
+      Vec3T<T> rrhi  = -Vec3T<T>::max();
+      int      rrcnt = 0;
+      for (int b = BINS - 1; b >= 1; b--) {
+        if (binCnt[b] > 0) {
+          rrlo = min(rrlo, binLo[b]);
+          rrhi = max(rrhi, binHi[b]);
+        }
+        rrcnt += binCnt[b];
+        if (leftCnt[b - 1] > 0 && rrcnt > 0) {
+          const T cost = leftArea[b - 1] * T(leftCnt[b - 1]) + BV(rrlo, rrhi).getArea() * T(rrcnt);
+          if (cost < bestCost) {
+            bestCost  = cost;
+            bestAxis  = axis;
+            bestPlane = lo + T(b) / scale;
+          }
+        }
+      }
+    }
+
+    // All axes degenerate — equal split
+    if (bestAxis < 0) {
+      return a_begin + N / 2;
+    }
+
+    auto mid = std::partition(
+      a_list.begin() + a_begin, a_list.begin() + a_end, [bestAxis, bestPlane](const PrimAndBV<P, BV>& pbv) noexcept {
+        return pbv.second.getCentroid()[bestAxis] < bestPlane;
+      });
+
+    const size_t splitIdx = static_cast<size_t>(std::distance(a_list.begin(), mid));
+
+    // Guard: if everything ended up on one side, fall back to equal split
+    return (splitIdx == a_begin || splitIdx == a_end) ? a_begin + N / 2 : splitIdx;
+  }
+
+  /**
+    @brief Internal helper: recursively split [a_begin, a_end) into a_K groups via 2-way SAH.
+    @details Splits into floor(a_K/2) and ceil(a_K/2) sub-groups recursively.  For power-of-two
+    K this is equivalent to a balanced binary subdivision tree applied a_K times.
+    @tparam T  Floating-point precision.
+    @tparam P  Primitive type.
+    @tparam BV Bounding-volume type (must be AABBT<T>).
+  */
+  template <class T, class P, class BV>
+  inline void
+  sahKWaySplitImpl(PrimAndBVList<P, BV>&                   a_list,
+                   const size_t                            a_begin,
+                   const size_t                            a_end,
+                   const size_t                            a_K,
+                   std::vector<std::pair<size_t, size_t>>& a_groups) noexcept
+  {
+    if (a_K <= 1 || a_begin >= a_end) {
+      a_groups.emplace_back(a_begin, a_end);
+      return;
+    }
+
+    const size_t K1 = a_K / 2;
+    const size_t K2 = a_K - K1;
+
+    // Clamp the SAH split so the left half has >= K1 elements and the right has >= K2.
+    // This guarantees neither recursive call receives an under-populated range, which
+    // would cause empty sub-lists to reach the TreeBVH constructor and crash on
+    // AABBT(vector::front()) when the vector is empty.
+    // The clamp is valid whenever a_end - a_begin >= a_K = K1 + K2.
+    const size_t rawMid = sah2WaySplit<T, P, BV>(a_list, a_begin, a_end);
+    const size_t mid    = std::max(a_begin + K1, std::min(a_end - K2, rawMid));
+
+    sahKWaySplitImpl<T, P, BV>(a_list, a_begin, mid, K1, a_groups);
+    sahKWaySplitImpl<T, P, BV>(a_list, mid, a_end, K2, a_groups);
+  }
+
+  /**
+    @brief Partitioner using binned SAH with recursive 2-way subdivision into K groups.
+    @details For each split, evaluates 32 candidate planes per axis and picks the one
+    minimising @c SA(left)*N_left + SA(right)*N_right (the standard ray-tracing SAH
+    cost without the traversal constant).  K groups are produced by recursively splitting
+    into floor(K/2) and ceil(K/2) subsets — exact for power-of-two K; a reasonable
+    approximation for other values.
+
+    Recommended K values by ISA:
+    - AVX-512F, float  → K=16 (one @c _mm512_load_ps covers all K children)
+    - AVX-512F, double → K=8  (one @c _mm512_load_pd covers all K children)
+    - AVX,      float  → K=8  (one @c _mm256_load_ps)
+    - AVX,      double → K=4  (one @c _mm256_load_pd)
+    - SSE4.1,   float  → K=4  (one @c _mm_load_ps)
+
+    @note Requires BV == AABBT<T>.
+    @tparam T  Floating-point precision.
+    @tparam P  Primitive type.
+    @tparam BV Bounding-volume type (must be AABBT<T>).
+    @tparam K  Number of output sub-lists (branching factor of the resulting BVH).
+    @param[in] a_primsAndBVs Input (primitive, BV) pairs.
+    @return K sub-lists.
+  */
+  template <class T, class P, class BV, size_t K>
+  auto BinnedSAHPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+    PrimAndBVList<P, BV>                   working(a_primsAndBVs);
+    std::vector<std::pair<size_t, size_t>> groups;
+    groups.reserve(K);
+
+    sahKWaySplitImpl<T, P, BV>(working, 0, working.size(), K, groups);
+
+    std::array<PrimAndBVList<P, BV>, K> result;
+    for (size_t k = 0; k < K; k++) {
+      const auto [b, e] = groups[k];
+      result[k]         = PrimAndBVList<P, BV>(working.begin() + b, working.begin() + e);
+    }
+
+    return result;
   };
 
   /**

@@ -240,31 +240,44 @@ namespace Parser {
     At query time the BVH uses SIMD intrinsics to evaluate W triangles per leaf visit.
     @tparam T    Floating-point precision for signed-distance evaluation.
     @tparam Meta Per-face metadata type.
-    @tparam K    BVH branching factor (number of children per internal node). Default 4.
+    @tparam K    BVH branching factor. Defaults to BVH::defaultK<T>() — the SIMD-optimal value for
+                 T on the current ISA (K=16/float or K=8/double on AVX-512F; K=8/float or K=4/double
+                 on AVX; K=4 otherwise). Override only when benchmarking or using non-SIMD builds.
     @tparam W    SIMD lane width: triangles per SoA group. Defaults to EBGEOMETRY_SOA_DEFAULT_WIDTH
-                 (8 with AVX, 4 with SSE4.1).
+                 (16 with AVX-512F, 8 with AVX, 4 with SSE4.1).
     @param[in] a_filename    File name (STL, PLY, or VTK).
-    @param[in] a_maxLeafSize Maximum number of triangles per BVH leaf. Should be a multiple of W;
-                             defaults to 8 (one group for W=8, two groups for W=4).
+    @param[in] a_build       BVH build strategy. SAH is the default and recommended choice.
+    @param[in] a_maxLeafSize Maximum number of triangles per BVH leaf. Should be a multiple of W.
     @return Shared pointer to the FastTriMeshSDF enclosing the mesh.
   */
-  template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4, size_t W = EBGEOMETRY_SOA_DEFAULT_WIDTH>
+  template <typename T,
+            typename Meta = DCEL::DefaultMetaData,
+            size_t K      = BVH::defaultK<T>(),
+            size_t W      = EBGEOMETRY_SOA_DEFAULT_WIDTH>
   [[nodiscard]] inline static std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>
-  readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafSize = 8U);
+  readIntoTriangleBVH(const std::string a_filename,
+                      const BVH::Build  a_build       = BVH::Build::SAH,
+                      const size_t      a_maxLeafSize = 8U);
 
   /**
     @brief Read multiple files and return each mesh enclosed in a SIMD-optimised triangle BVH.
     @tparam T    Floating-point precision for signed-distance evaluation.
     @tparam Meta Per-face metadata type.
-    @tparam K    BVH branching factor (number of children per internal node). Default 4.
+    @tparam K    BVH branching factor. Defaults to BVH::defaultK<T>() (see single-file overload).
     @tparam W    SIMD lane width: triangles per SoA group. Defaults to EBGEOMETRY_SOA_DEFAULT_WIDTH.
     @param[in] a_files       List of file names (STL, PLY, or VTK).
+    @param[in] a_build       BVH build strategy. SAH is the default and recommended choice.
     @param[in] a_maxLeafSize Maximum number of triangles per BVH leaf.
     @return Vector of shared pointers to FastTriMeshSDF objects, one per file.
   */
-  template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4, size_t W = EBGEOMETRY_SOA_DEFAULT_WIDTH>
+  template <typename T,
+            typename Meta = DCEL::DefaultMetaData,
+            size_t K      = BVH::defaultK<T>(),
+            size_t W      = EBGEOMETRY_SOA_DEFAULT_WIDTH>
   [[nodiscard]] inline static std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, K, W>>>
-  readIntoTriangleBVH(const std::vector<std::string> a_files, const size_t a_maxLeafSize = 8U);
+  readIntoTriangleBVH(const std::vector<std::string> a_files,
+                      const BVH::Build               a_build       = BVH::Build::SAH,
+                      const size_t                   a_maxLeafSize = 8U);
 
   /**
     @brief Read a file and return all faces as a flat list of Triangle objects.
