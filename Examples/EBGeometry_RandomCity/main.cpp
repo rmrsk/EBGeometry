@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <chrono>
-#include <math.h>
+#include <cmath>
 #include <random>
 #include <string>
 #include <thread>
@@ -74,12 +74,12 @@ main()
       const Vec3 hi(xHi, yHi, H);
 
       buildings.emplace_back(std::make_shared<Box>(lo, hi));
-      boundingVolumes.emplace_back(AABB(lo, hi));
+      boundingVolumes.emplace_back(lo, hi);
     }
   }
 
   // Create a standard and an optimized CSG union.
-  std::cout << "Partitioning " << std::pow(M, 2) << " buildings" << std::endl;
+  std::cout << "Partitioning " << std::pow(M, 2) << " buildings" << '\n';
   auto slowUnion = EBGeometry::Union<T, Box>(buildings);
   auto fastUnion = EBGeometry::BVHUnion<T, Box, AABB, K>(buildings, boundingVolumes);
 
@@ -97,7 +97,7 @@ main()
     const T y = lo[1] + udist(rng) * (hi[1] - lo[1]);
     const T z = lo[2] + udist(rng) * (hi[2] - lo[2]);
 
-    randomPositions.emplace_back(Vec3(x, y, z));
+    randomPositions.emplace_back(x, y, z);
   }
 
   // Time the number of calls per second using the slow and fast CSG union representation of the city
@@ -119,7 +119,7 @@ main()
   const auto t3 = std::chrono::high_resolution_clock::now();
 
   if (sumSlow != sumFast) {
-    std::cerr << "Got wrong distance!" << std::endl;
+    std::cerr << "Got wrong distance!" << '\n';
 
     return 2;
   }

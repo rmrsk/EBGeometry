@@ -50,11 +50,11 @@ main(int argc, char* argv[])
 
   // Analytic sphere centred on the mesh, with radius equal to the shortest axis (half-extent) of the
   // mesh bounding box. It is bounded by its own axis-aligned box for the union hierarchy.
-  const Vec3 lo     = meshBV.getLowCorner();
-  const Vec3 hi     = meshBV.getHighCorner();
-  const Vec3 extent = hi - lo;
-  const Vec3 center = 0.5 * (lo + hi);
-  const T    radius = 0.5 * std::min({extent[0], extent[1], extent[2]});
+  const Vec3& lo     = meshBV.getLowCorner();
+  const Vec3& hi     = meshBV.getHighCorner();
+  const Vec3  extent = hi - lo;
+  const Vec3  center = 0.5 * (lo + hi);
+  const T     radius = 0.5 * std::min({extent[0], extent[1], extent[2]});
 
   const auto sphere = std::make_shared<EBGeometry::SphereSDF<T>>(center, radius);
   const BV   sphereBV(center - Vec3(radius, radius, radius), center + Vec3(radius, radius, radius));

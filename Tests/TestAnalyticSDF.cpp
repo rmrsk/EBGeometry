@@ -19,8 +19,8 @@ using Catch::Matchers::WithinRel;
 
 TEST_CASE("SphereSDF: exact signed distances", "[SphereSDF]")
 {
-  const Vec3T<double> center(0, 0, 0);
-  SphereSDF<double>   sphere(center, 1.0);
+  const Vec3T<double>     center(0, 0, 0);
+  const SphereSDF<double> sphere(center, 1.0);
 
   // On the surface
   REQUIRE_THAT(sphere.signedDistance(Vec3T<double>(1, 0, 0)), WithinAbs(0.0, 1e-12));
@@ -58,7 +58,7 @@ TEST_CASE("SphereSDF: off-centre sphere", "[SphereSDF]")
 TEST_CASE("PlaneSDF: signed distances from xy-plane", "[PlaneSDF]")
 {
   // Plane z = 0 with outward normal +z
-  PlaneSDF<double> plane(Vec3T<double>(0, 0, 0), Vec3T<double>(0, 0, 1));
+  const PlaneSDF<double> plane(Vec3T<double>(0, 0, 0), Vec3T<double>(0, 0, 1));
 
   REQUIRE_THAT(plane.signedDistance(Vec3T<double>(0, 0, 3)), WithinRel(3.0));
   REQUIRE_THAT(plane.signedDistance(Vec3T<double>(0, 0, -2)), WithinRel(-2.0));
@@ -68,7 +68,7 @@ TEST_CASE("PlaneSDF: signed distances from xy-plane", "[PlaneSDF]")
 TEST_CASE("PlaneSDF: non-unit normal is normalised", "[PlaneSDF]")
 {
   // Normal (1,1,0): should be normalised internally
-  PlaneSDF<double> plane(Vec3T<double>(0, 0, 0), Vec3T<double>(2, 0, 0));
+  const PlaneSDF<double> plane(Vec3T<double>(0, 0, 0), Vec3T<double>(2, 0, 0));
 
   // Point at (3, 0, 0): distance = 3 (along +x)
   REQUIRE_THAT(plane.signedDistance(Vec3T<double>(3, 0, 0)), WithinRel(3.0));
@@ -80,7 +80,7 @@ TEST_CASE("PlaneSDF: non-unit normal is normalised", "[PlaneSDF]")
 
 TEST_CASE("BoxSDF: axis-aligned unit box", "[BoxSDF]")
 {
-  BoxSDF<double> box(Vec3T<double>(-1, -1, -1), Vec3T<double>(1, 1, 1));
+  const BoxSDF<double> box(Vec3T<double>(-1, -1, -1), Vec3T<double>(1, 1, 1));
 
   // Inside: negative SDF
   REQUIRE(box.signedDistance(Vec3T<double>(0, 0, 0)) < 0.0);
@@ -104,7 +104,7 @@ TEST_CASE("BoxSDF: axis-aligned unit box", "[BoxSDF]")
 TEST_CASE("CylinderSDF: unit cylinder along z-axis", "[CylinderSDF]")
 {
   // Cylinder from (0,0,-1) to (0,0,1), radius 1
-  CylinderSDF<double> cyl(Vec3T<double>(0, 0, -1), Vec3T<double>(0, 0, 1), 1.0);
+  const CylinderSDF<double> cyl(Vec3T<double>(0, 0, -1), Vec3T<double>(0, 0, 1), 1.0);
 
   // Centre of cylinder is inside
   REQUIRE(cyl.signedDistance(Vec3T<double>(0, 0, 0)) < 0.0);
@@ -126,7 +126,7 @@ TEST_CASE("CylinderSDF: unit cylinder along z-axis", "[CylinderSDF]")
 TEST_CASE("TorusSDF: point on surface", "[TorusSDF]")
 {
   // Torus centred at origin in xy-plane: major radius 2, minor radius 0.5
-  TorusSDF<double> torus(Vec3T<double>(0, 0, 0), 2.0, 0.5);
+  const TorusSDF<double> torus(Vec3T<double>(0, 0, 0), 2.0, 0.5);
 
   // Point on surface: along +x from tube centre (major_radius + minor_radius, 0, 0)
   REQUIRE_THAT(torus.signedDistance(Vec3T<double>(2.5, 0, 0)), WithinAbs(0.0, 1e-10));

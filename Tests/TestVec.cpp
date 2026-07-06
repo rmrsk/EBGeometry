@@ -64,8 +64,8 @@ TEST_CASE("Vec3T: static factories", "[Vec3T]")
 
 TEST_CASE("Vec3T: arithmetic operators", "[Vec3T]")
 {
-  Vec3T<double> a(1, 2, 3);
-  Vec3T<double> b(4, 5, 6);
+  const Vec3T<double> a(1, 2, 3);
+  const Vec3T<double> b(4, 5, 6);
 
   SECTION("addition")
   {
@@ -111,8 +111,8 @@ TEST_CASE("Vec3T: arithmetic operators", "[Vec3T]")
   }
   SECTION("scalar / vec  (s/v[i] component-wise)")
   {
-    Vec3T<double> v(1.0, 2.0, 4.0);
-    auto          c = 4.0 / v;
+    const Vec3T<double> v(1.0, 2.0, 4.0);
+    auto                c = 4.0 / v;
     REQUIRE(c[0] == 4.0);
     REQUIRE(c[1] == 2.0);
     REQUIRE(c[2] == 1.0);
@@ -134,9 +134,9 @@ TEST_CASE("Vec3T: compound assignment operators", "[Vec3T]")
 
 TEST_CASE("Vec3T: dot product", "[Vec3T]")
 {
-  Vec3T<double> x(1, 0, 0);
-  Vec3T<double> y(0, 1, 0);
-  Vec3T<double> d(1, 1, 1);
+  const Vec3T<double> x(1, 0, 0);
+  const Vec3T<double> y(0, 1, 0);
+  const Vec3T<double> d(1, 1, 1);
 
   REQUIRE(dot(x, y) == 0.0);
   REQUIRE(dot(x, d) == 1.0);
@@ -145,9 +145,9 @@ TEST_CASE("Vec3T: dot product", "[Vec3T]")
 
 TEST_CASE("Vec3T: cross product", "[Vec3T]")
 {
-  Vec3T<double> x(1, 0, 0);
-  Vec3T<double> y(0, 1, 0);
-  auto          z = x.cross(y);
+  const Vec3T<double> x(1, 0, 0);
+  const Vec3T<double> y(0, 1, 0);
+  auto                z = x.cross(y);
   REQUIRE(z[0] == 0.0);
   REQUIRE(z[1] == 0.0);
   REQUIRE(z[2] == 1.0);
@@ -159,18 +159,18 @@ TEST_CASE("Vec3T: cross product", "[Vec3T]")
 
 TEST_CASE("Vec3T: length", "[Vec3T]")
 {
-  Vec3T<double> v(3, 4, 0);
+  const Vec3T<double> v(3, 4, 0);
   REQUIRE_THAT(v.length(), WithinRel(5.0));
   REQUIRE_THAT(v.length2(), WithinRel(25.0));
 
-  Vec3T<double> unit(1, 0, 0);
+  const Vec3T<double> unit(1, 0, 0);
   REQUIRE_THAT(unit.length(), WithinRel(1.0));
 }
 
 TEST_CASE("Vec3T: component-wise min/max (free functions)", "[Vec3T]")
 {
-  Vec3T<double> a(1, 5, 3);
-  Vec3T<double> b(4, 2, 6);
+  const Vec3T<double> a(1, 5, 3);
+  const Vec3T<double> b(4, 2, 6);
 
   auto lo = min(a, b);
   REQUIRE(lo[0] == 1.0);
@@ -185,16 +185,16 @@ TEST_CASE("Vec3T: component-wise min/max (free functions)", "[Vec3T]")
 
 TEST_CASE("Vec3T: minDir and maxDir", "[Vec3T]")
 {
-  Vec3T<double> v(3, 1, 2);
+  const Vec3T<double> v(3, 1, 2);
   REQUIRE(v.minDir(false) == 1); // index of smallest component (no abs-value)
   REQUIRE(v.maxDir(false) == 0); // index of largest component (no abs-value)
 }
 
 TEST_CASE("Vec3T: lexicographic ordering", "[Vec3T]")
 {
-  Vec3T<double> a(1, 2, 3);
-  Vec3T<double> b(1, 2, 4);
-  Vec3T<double> c(2, 0, 0);
+  const Vec3T<double> a(1, 2, 3);
+  const Vec3T<double> b(1, 2, 4);
+  const Vec3T<double> c(2, 0, 0);
 
   REQUIRE(a.lessLX(b));
   REQUIRE(a.lessLX(c));
@@ -207,26 +207,26 @@ TEST_CASE("Vec3T: lexicographic ordering", "[Vec3T]")
 
 TEST_CASE("Vec2T: construction and operators", "[Vec2T]")
 {
-  Vec2T<double> a(3, 4);
+  const Vec2T<double> a(3, 4);
   REQUIRE_THAT(a.length(), WithinRel(5.0));
   REQUIRE_THAT(a.length2(), WithinRel(25.0));
 
-  Vec2T<double> b(1, 2);
-  auto          c = a + b;
+  const Vec2T<double> b(1, 2);
+  auto                c = a + b;
   REQUIRE(c.x == 4.0);
   REQUIRE(c.y == 6.0);
 
   // scalar / vec — should give (s/x, s/y)
-  Vec2T<double> v(2.0, 4.0);
-  auto          r = 8.0 / v;
+  const Vec2T<double> v(2.0, 4.0);
+  auto                r = 8.0 / v;
   REQUIRE(r.x == 4.0);
   REQUIRE(r.y == 2.0);
 }
 
 TEST_CASE("Vec2T: dot product", "[Vec2T]")
 {
-  Vec2T<double> a(1, 0);
-  Vec2T<double> b(0, 1);
+  const Vec2T<double> a(1, 0);
+  const Vec2T<double> b(0, 1);
   REQUIRE(dot(a, b) == 0.0);
   REQUIRE(dot(a, a) == 1.0);
 }

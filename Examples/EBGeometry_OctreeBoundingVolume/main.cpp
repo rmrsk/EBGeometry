@@ -25,12 +25,12 @@ main()
   func = Rotate(func, 45.0, 0);
 
   // Try to compute a bounding volume for the sphere.
-  Vec3 initLo = -10 * Vec3::one();
-  Vec3 initHi = +10 * Vec3::one();
+  const Vec3 initLo = -10 * Vec3::one();
+  const Vec3 initHi = +10 * Vec3::one();
 
   const auto boundingVolume = func->approximateBoundingVolumeOctree<BV>(initLo, initHi, 8, 0.0);
 
-  std::cout << "Approximate bounding volume = " << boundingVolume << std::endl;
+  std::cout << "Approximate bounding volume = " << boundingVolume << '\n';
 
   return 0;
 }

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <chrono>
-#include <math.h>
+#include <cmath>
 #include <random>
 #include <string>
 #include <thread>
@@ -49,7 +49,7 @@ main()
         const Vec3 hi = center + radius * Vec3::one();
 
         spheres.emplace_back(std::make_shared<Sphere>(center, radius));
-        boundingVolumes.emplace_back(AABB(lo, hi));
+        boundingVolumes.emplace_back(lo, hi);
       }
     }
   }
@@ -62,8 +62,8 @@ main()
   // spheres) as well as a way for enclosing these objects. We need to define
   // ourselves a lambda that creates an appropriate bounding volumes for each
   // SDF.
-  std::cout << "Partitioning " << spheres.size() << " spheres\n" << std::endl;
-  EBGeometry::BVHUnionIF<T, Sphere, AABB, K> fastUnion(spheres, boundingVolumes);
+  std::cout << "Partitioning " << spheres.size() << " spheres\n" << '\n';
+  const EBGeometry::BVHUnionIF<T, Sphere, AABB, K> fastUnion(spheres, boundingVolumes);
 
   // Create a finite repetition of one of the spheres. This is a third type of object representation.
   auto sph = std::make_shared<Sphere>(Vec3::zero(), radius);
@@ -71,13 +71,13 @@ main()
     EBGeometry::FiniteRepetition<T, Sphere>(sph, (delta + 2 * radius) * Vec3::one(), Vec3::zero(), 80.0 * Vec3::one());
 
   // Create some samples in the bounding box of the BVH
-  std::cout << "Sampling distance fields... \n" << std::endl;
+  std::cout << "Sampling distance fields... \n" << '\n';
   std::mt19937_64 rng(static_cast<size_t>(std::chrono::system_clock::now().time_since_epoch().count()));
   std::uniform_real_distribution<T> dist(0.0, 1.0);
 
   const AABB& bv = fastUnion.getBoundingVolume();
-  const Vec3  lo = bv.getLowCorner();
-  const Vec3  hi = bv.getHighCorner();
+  const Vec3& lo = bv.getLowCorner();
+  const Vec3& hi = bv.getHighCorner();
 
   std::vector<Vec3> randomPositions;
   for (size_t i = 0; i < Nsamp; i++) {
@@ -85,7 +85,7 @@ main()
     const T y = lo[1] + dist(rng) * (hi[1] - lo[1]);
     const T z = lo[2] + dist(rng) * (hi[2] - lo[2]);
 
-    randomPositions.emplace_back(Vec3(x, y, z));
+    randomPositions.emplace_back(x, y, z);
   }
 
   // Time the results, using the standard union, the optimized union, and the finite repetition.
@@ -112,7 +112,7 @@ main()
   const auto t4 = std::chrono::high_resolution_clock::now();
 
   if (sumSlow != sumFast || sumSlow != sumArray) {
-    std::cerr << "Got wrong distance!" << std::endl;
+    std::cerr << "Got wrong distance!" << '\n';
 
     return 2;
   }
