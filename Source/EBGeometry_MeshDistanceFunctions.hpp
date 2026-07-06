@@ -13,6 +13,7 @@
 
 // Std includes
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -25,15 +26,16 @@
 #include "EBGeometry_SignedDistanceFunction.hpp"
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_TriangleSoA.hpp"
+#include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
 
 namespace DCEL {
 
 /**
- * @brief Build a full (tree) BVH from a DCEL mesh.
+ * @brief Build a tree BVH from a DCEL mesh.
  * @tparam T    Floating-point precision type.
- * @tparam Meta Triangle metadata type.
+ * @tparam Meta Face and vertex metadata type.
  * @tparam BV   Bounding-volume type (e.g. AABBT<T>).
  * @tparam K    BVH branching factor (number of children per node).
  * @param[in] a_dcelMesh Input DCEL mesh.
@@ -42,7 +44,7 @@ namespace DCEL {
  */
 template <class T, class Meta, class BV, size_t K>
 [[nodiscard]] std::shared_ptr<EBGeometry::BVH::TreeBVH<T, FaceT<T, Meta>, BV, K>>
-buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh,
+buildTreeBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh,
              const BVH::Build                                         a_build = BVH::Build::SAH);
 } // namespace DCEL
 
@@ -217,17 +219,17 @@ protected:
  * in a compact (linearized) BVH.
  * @details Triangles are packed into SoA groups of W triangles each
  * (TriangleSoAT<T,W>), enabling SIMD evaluation of up to W signed distances
- * simultaneously.  W defaults to EBGEOMETRY_SOA_DEFAULT_WIDTH, which is
- * set to 8 on AVX targets and 4 on SSE4.1-only targets.
+ * simultaneously. W defaults to DefaultSoAWidth<T>(), which is 8 on AVX targets
+ * (4 for double) and 4 otherwise.
  * @tparam T    Floating-point precision type (float or double).
  * @tparam Meta Triangle metadata type.
  * @tparam K    BVH branching factor (number of children per internal node).
  * Defaults to BVH::DefaultBranchingRatio<T>() — the SIMD-optimal value for T on the current ISA
  * (K=16/float or K=8/double on AVX-512F; K=8/float or K=4/double on AVX; K=4 otherwise).
  * @tparam W    SoA width: number of triangles per SIMD group.
- * Defaults to EBGEOMETRY_SOA_DEFAULT_WIDTH (ISA-optimal; 16 on AVX-512F, 8 on AVX, 4 otherwise).
+ * Defaults to DefaultSoAWidth<T>() (8/float or 4/double on AVX; 4 otherwise).
  */
-template <class T, class Meta, size_t K = BVH::DefaultBranchingRatio<T>(), size_t W = EBGEOMETRY_SOA_DEFAULT_WIDTH>
+template <class T, class Meta, size_t K = BVH::DefaultBranchingRatio<T>(), size_t W = DefaultSoAWidth<T>()>
 class TriMeshSDF : public SignedDistanceFunction<T>
 {
   static_assert(std::is_floating_point_v<T>, "TriMeshSDF<T,Meta,K,W> requires a floating-point T");
@@ -256,11 +258,6 @@ public:
   using Root = typename EBGeometry::BVH::PackedBVH<T, TriSoA, K>;
 
   /**
-   * @brief Alias for linearized BVH
-   */
-  using Node = typename Root::Node;
-
-  /**
    * @brief Default disallowed constructor
    */
   TriMeshSDF() = delete;
@@ -271,22 +268,29 @@ public:
    * @param[in] a_build        BVH build strategy. SAH (binned Surface Area Heuristic) is the default
    * and recommended choice — it produces near-optimal traversal cost.
    * TopDown (centroid median) is faster to build but yields deeper trees.
-   * @param[in] a_maxLeafSize  Maximum number of primitives per BVH leaf. Should be a multiple of
-   * EBGEOMETRY_SOA_DEFAULT_WIDTH (16 on AVX-512, 8 on AVX, 4 otherwise).
+   * @param[in] a_maxLeafSize  Maximum number of raw triangles per BVH leaf (this is a leaf-size
+   * bound on the pre-packing tree, not on the number of TriangleSoA groups). Each leaf's
+   * triangles become their own TriangleSoA group(s) during packing, with no batching across
+   * leaves, so a leaf smaller than W wastes some of its group's SIMD lanes on padding. This is
+   * an upper bound, not a target — the SAH/TopDown partitioner still splits down to tighter,
+   * more selective leaves wherever the geometry warrants it. Defaults to 2*W, allowing up to two
+   * SoA groups per leaf so tree quality isn't forced to sacrifice everything for exact
+   * one-group-per-leaf packing.
    */
   TriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
              const BVH::Build             a_build       = BVH::Build::SAH,
-             const size_t                 a_maxLeafSize = 8U) noexcept;
+             const size_t                 a_maxLeafSize = 2 * W) noexcept;
 
   /**
    * @brief Full constructor. Takes the input triangles and creates the BVH.
    * @param[in] a_triangles   Input triangle soup.
    * @param[in] a_build       BVH build strategy (see the mesh-based constructor for details).
-   * @param[in] a_maxLeafSize Maximum number of primitives per BVH leaf.
+   * @param[in] a_maxLeafSize Maximum number of raw triangles per BVH leaf (see the mesh-based
+   * constructor for the tree-quality/SIMD-occupancy trade-off). Defaults to 2*W.
    */
   TriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
              const BVH::Build                         a_build       = BVH::Build::SAH,
-             const size_t                             a_maxLeafSize = 8U) noexcept;
+             const size_t                             a_maxLeafSize = 2 * W) noexcept;
 
   /**
    * @brief Destructor
@@ -327,6 +331,21 @@ protected:
    * @brief Bounding volume hierarchy storing SoA triangle groups.
    */
   std::shared_ptr<Root> m_bvh;
+
+  /**
+   * @brief Leaf-conversion callback for TreeBVH::packWith: groups a BVH leaf's triangles
+   * into SoA blocks of width W.
+   * @details Shared by both constructors; stateless (captures nothing), so it is a static
+   * member rather than a per-constructor lambda.
+   * @param[in] a_triangles Leaf's triangle list.
+   * @param[in] a_offset    Index of the first triangle in this leaf to convert.
+   * @param[in] a_count     Number of triangles in this leaf to convert.
+   * @return SoA-packed triangle groups covering [a_offset, a_offset + a_count).
+   */
+  [[nodiscard]] static std::vector<TriSoA>
+  groupTrianglesIntoSoA(const std::vector<std::shared_ptr<const Tri>>& a_triangles,
+                        uint32_t                                       a_offset,
+                        uint32_t                                       a_count);
 };
 
 } // namespace EBGeometry

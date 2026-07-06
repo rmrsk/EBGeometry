@@ -24,6 +24,11 @@ add_executable(EBGeometry_RandomCity main.cpp)
 target_link_libraries(EBGeometry_RandomCity PRIVATE EBGeometry::EBGeometry)
 target_compile_options(EBGeometry_RandomCity PRIVATE -Wall -Wextra -Wno-unused-parameter)
 
+# Examples are meant to be fast to run, not to match the enclosing project's build
+# type (which may be an unoptimised Debug build, e.g. under the top-level project's
+# debug preset). Always build optimized for the local machine's ISA.
+target_compile_options(EBGeometry_RandomCity PRIVATE -O3 -march=native)
+
 # ---------------------------------------------------------------------------
 # Floating-point precision for this example.
 #

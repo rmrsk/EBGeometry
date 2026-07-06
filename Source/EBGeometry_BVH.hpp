@@ -231,6 +231,8 @@ using MetaUpdater = std::function<Meta(const NodeType& a_node)>;
  */
 template <class X, size_t K>
 auto EqualCounts = [](const std::vector<X>& a_primitives) noexcept -> std::array<std::vector<X>, K> {
+  static_assert(K >= 2, "EqualCounts<X, K>: branching factor K must be at least 2");
+
   EBGEOMETRY_EXPECT(!a_primitives.empty());
 
   const int length = a_primitives.size() / K;

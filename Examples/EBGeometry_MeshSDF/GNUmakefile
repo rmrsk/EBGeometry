@@ -11,9 +11,9 @@ EBGEOMETRY_HOME ?= ../..
 PRECISION       ?= double
 
 CXX      ?= g++
-CXXFLAGS ?= -std=c++17 -O2 -Wall -Wextra
+CXXFLAGS ?= -std=c++17 -O3 -march=native -Wall -Wextra
 
-TARGET := main
+TARGET := EBGeometry_MeshSDF
 
 $(TARGET): main.cpp
 	$(CXX) $(CXXFLAGS) -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_PRECISION=$(PRECISION) $< -o $@

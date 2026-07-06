@@ -29,24 +29,23 @@ in a different location, with cache variables:
 
     make
 
-This produces `./main`. Override the defaults on the command line:
+This produces `./EBGeometry_CSGUnion`. Override the defaults on the command line:
 
     make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry
 
 **Directly with a compiler**
 
-    g++ -std=c++17 -O2 -I../.. main.cpp -o main
+    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o EBGeometry_CSGUnion
 
-Add `-DEBGEOMETRY_PRECISION=float` for single precision, and `-march=native` to
-let the compiler use the SIMD paths.
+Add `-DEBGEOMETRY_PRECISION=float` for single precision.
 
 Running
 -------
 
 Run from this directory so the default mesh path resolves:
 
-    ./main
-    ./main ../../common-3d-test-models/data/cow.obj
+    ./EBGeometry_CSGUnion
+    ./EBGeometry_CSGUnion ../../common-3d-test-models/data/cow.obj
 
 With no argument the example loads `cow.obj` from the
 `common-3d-test-models` submodule, so make sure it is checked out

@@ -26,6 +26,7 @@
 #include "EBGeometry_PLY.hpp"
 #include "EBGeometry_STL.hpp"
 #include "EBGeometry_Triangle.hpp"
+#include "EBGeometry_TriangleSoA.hpp"
 #include "EBGeometry_VTK.hpp"
 
 namespace EBGeometry {
@@ -237,41 +238,44 @@ readIntoPackedBVH(const std::vector<std::string>& a_files);
  * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() — the SIMD-optimal value for
  * T on the current ISA (K=16/float or K=8/double on AVX-512F; K=8/float or K=4/double
  * on AVX; K=4 otherwise). Override only when benchmarking or using non-SIMD builds.
- * @tparam W    SIMD lane width: triangles per SoA group. Defaults to EBGEOMETRY_SOA_DEFAULT_WIDTH
- * (16 with AVX-512F, 8 with AVX, 4 with SSE4.1).
+ * @tparam W    SIMD lane width: triangles per SoA group. Defaults to DefaultSoAWidth<T>()
+ * (8/float or 4/double on AVX; 4 otherwise).
  * @param[in] a_filename    File name (STL, PLY, or VTK).
  * @param[in] a_build       BVH build strategy. SAH is the default and recommended choice.
- * @param[in] a_maxLeafSize Maximum number of triangles per BVH leaf. Should be a multiple of W.
+ * @param[in] a_maxLeafSize Maximum number of raw triangles per BVH leaf, pre-packing (see
+ * TriMeshSDF's mesh-based constructor for the tree-quality/SIMD-occupancy trade-off).
+ * Defaults to 2*W.
  * @return Shared pointer to the TriMeshSDF enclosing the mesh.
  */
 template <typename T,
           typename Meta = DCEL::DefaultMetaData,
           size_t K      = BVH::DefaultBranchingRatio<T>(),
-          size_t W      = EBGEOMETRY_SOA_DEFAULT_WIDTH>
+          size_t W      = DefaultSoAWidth<T>()>
 [[nodiscard]] inline static std::shared_ptr<TriMeshSDF<T, Meta, K, W>>
 readIntoTriangleBVH(const std::string a_filename,
                     const BVH::Build  a_build       = BVH::Build::SAH,
-                    const size_t      a_maxLeafSize = 8U);
+                    const size_t      a_maxLeafSize = 2 * W);
 
 /**
  * @brief Read multiple files and return each mesh enclosed in a SIMD-optimised triangle BVH.
  * @tparam T    Floating-point precision for signed-distance evaluation.
  * @tparam Meta Per-face metadata type.
  * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() (see single-file overload).
- * @tparam W    SIMD lane width: triangles per SoA group. Defaults to EBGEOMETRY_SOA_DEFAULT_WIDTH.
+ * @tparam W    SIMD lane width: triangles per SoA group. Defaults to DefaultSoAWidth<T>().
  * @param[in] a_files       List of file names (STL, PLY, or VTK).
  * @param[in] a_build       BVH build strategy. SAH is the default and recommended choice.
- * @param[in] a_maxLeafSize Maximum number of triangles per BVH leaf.
+ * @param[in] a_maxLeafSize Maximum number of raw triangles per BVH leaf, pre-packing (see the
+ * single-file overload for details). Defaults to 2*W.
  * @return Vector of shared pointers to TriMeshSDF objects, one per file.
  */
 template <typename T,
           typename Meta = DCEL::DefaultMetaData,
           size_t K      = BVH::DefaultBranchingRatio<T>(),
-          size_t W      = EBGEOMETRY_SOA_DEFAULT_WIDTH>
+          size_t W      = DefaultSoAWidth<T>()>
 [[nodiscard]] inline static std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>>
 readIntoTriangleBVH(const std::vector<std::string>& a_files,
                     const BVH::Build                a_build       = BVH::Build::SAH,
-                    const size_t                    a_maxLeafSize = 8U);
+                    const size_t                    a_maxLeafSize = 2 * W);
 
 /**
  * @brief Read a file and return all faces as a flat list of Triangle objects.

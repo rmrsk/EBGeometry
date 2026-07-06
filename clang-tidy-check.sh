@@ -22,5 +22,4 @@ gcc_install_dir="$(dirname "$(gcc -print-libgcc-file-name)")"
 
 run-clang-tidy -p build -quiet \
   -extra-arg="--gcc-install-dir=${gcc_install_dir}" \
-  -extra-arg=-Wno-unknown-pragmas \
   '(Tests/|Examples/EBGeometry_).*\.cpp'

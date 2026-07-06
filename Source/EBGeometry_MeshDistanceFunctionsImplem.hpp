@@ -20,21 +20,31 @@
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 // Our includes
 #include "EBGeometry_DCEL_Edge.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
+#include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_DCEL_Vertex.hpp"
+#include "EBGeometry_Macros.hpp"
 #include "EBGeometry_MeshDistanceFunctions.hpp"
+#include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
 
 template <class T, class Meta, class BV, size_t K>
 std::shared_ptr<EBGeometry::BVH::TreeBVH<T, EBGeometry::DCEL::FaceT<T, Meta>, BV, K>>
-DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh, const BVH::Build a_build)
+DCEL::buildTreeBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh, const BVH::Build a_build)
 {
+  static_assert(std::is_floating_point_v<T>, "DCEL::buildTreeBVH requires a floating-point type T");
+  static_assert(K >= 2, "DCEL::buildTreeBVH: branching factor K must be at least 2");
+
+  EBGEOMETRY_EXPECT(a_dcelMesh != nullptr);
+  EBGEOMETRY_EXPECT(!a_dcelMesh->getFaces().empty());
+
   using Prim          = EBGeometry::DCEL::FaceT<T, Meta>;
   using PrimAndBVList = std::vector<std::pair<std::shared_ptr<const Prim>, BV>>;
 
@@ -42,6 +52,8 @@ DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dc
   PrimAndBVList primsAndBVs;
 
   for (const auto& f : a_dcelMesh->getFaces()) {
+    EBGEOMETRY_EXPECT(f != nullptr);
+
     primsAndBVs.emplace_back(std::make_pair(f, BV(f->getAllVertexCoordinates())));
   }
 
@@ -65,15 +77,17 @@ DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dc
     break;
   }
   case BVH::Build::SAH: {
-    using Node              = EBGeometry::BVH::TreeBVH<T, Prim, BV, K>;
-    using StopFunc          = typename Node::StopFunction;
+    using Node     = EBGeometry::BVH::TreeBVH<T, Prim, BV, K>;
+    using StopFunc = typename Node::StopFunction;
+
     const StopFunc stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
+
     bvh->topDownSortAndPartition(EBGeometry::BVH::BinnedSAHPartitioner<T, Prim, BV, K>, stopCrit);
 
     break;
   }
   default: {
-    std::cerr << "EBGeometry::DCEL::buildFullBVH - unsupported build method requested" << '\n';
+    std::cerr << "EBGeometry::DCEL::buildTreeBVH - unsupported build method requested" << '\n';
 
     break;
   }
@@ -83,7 +97,7 @@ DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dc
 }
 
 /**
- * @brief Build a full (tree) BVH from a flat triangle soup.
+ * @brief Build a tree BVH from a flat triangle soup.
  * @details Creates one BV per triangle from its vertex positions, then
  * builds a K-ary tree BVH according to a_build.  For TopDown builds the
  * tree is partitioned until each leaf holds at most a_maxLeafSize triangles.
@@ -99,10 +113,15 @@ DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dc
  */
 template <class T, class Meta, class BV, size_t K>
 std::shared_ptr<EBGeometry::BVH::TreeBVH<T, Triangle<T, Meta>, BV, K>>
-buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Meta>>>& a_triangles,
+buildTriMeshTreeBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Meta>>>& a_triangles,
                     const BVH::Build                                                   a_build       = BVH::Build::SAH,
                     const size_t                                                       a_maxLeafSize = 4U)
 {
+  static_assert(std::is_floating_point_v<T>, "buildTriMeshTreeBVH requires a floating-point type T");
+  static_assert(K >= 2, "buildTriMeshTreeBVH: branching factor K must be at least 2");
+
+  EBGEOMETRY_EXPECT(!a_triangles.empty());
+
   using Prim          = EBGeometry::Triangle<T, Meta>;
   using PrimAndBVList = std::vector<std::pair<std::shared_ptr<const Prim>, BV>>;
 
@@ -110,6 +129,8 @@ buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Me
   PrimAndBVList primsAndBVs;
 
   for (const auto& tri : a_triangles) {
+    EBGEOMETRY_EXPECT(tri != nullptr);
+
     const auto& vertexPositions = tri->getVertexPositions();
 
     const std::vector<EBGeometry::Vec3T<T>> vertices{vertexPositions[0], vertexPositions[1], vertexPositions[2]};
@@ -142,17 +163,19 @@ buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Me
     break;
   }
   case BVH::Build::SAH: {
-    using Node              = EBGeometry::BVH::TreeBVH<T, Prim, BV, K>;
-    using StopFunc          = typename Node::StopFunction;
+    using Node     = EBGeometry::BVH::TreeBVH<T, Prim, BV, K>;
+    using StopFunc = typename Node::StopFunction;
+
     const StopFunc stopCrit = [a_maxLeafSize](const Node& n) noexcept -> bool {
       return n.getPrimitives().size() <= a_maxLeafSize;
     };
+
     bvh->topDownSortAndPartition(EBGeometry::BVH::BinnedSAHPartitioner<T, Prim, BV, K>, stopCrit);
 
     break;
   }
   default: {
-    std::cerr << "EBGeometry::DCEL::buildFullBVH - unsupported build method requested" << '\n';
+    std::cerr << "EBGeometry::buildTriMeshTreeBVH - unsupported build method requested" << '\n';
 
     break;
   }
@@ -164,6 +187,8 @@ buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Me
 template <class T, class Meta>
 FlatMeshSDF<T, Meta>::FlatMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
 {
+  EBGEOMETRY_EXPECT(a_mesh != nullptr);
+
   m_mesh = a_mesh;
 }
 
@@ -171,6 +196,11 @@ template <class T, class Meta>
 T
 FlatMeshSDF<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
+  EBGEOMETRY_EXPECT(m_mesh != nullptr);
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
   return m_mesh->signedDistance(a_point);
 }
 
@@ -178,6 +208,8 @@ template <class T, class Meta>
 const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
 FlatMeshSDF<T, Meta>::getMesh() const noexcept
 {
+  EBGEOMETRY_EXPECT(m_mesh != nullptr);
+
   return m_mesh;
 }
 
@@ -186,14 +218,18 @@ template <class BV>
 BV
 FlatMeshSDF<T, Meta>::computeBoundingVolume() const
 {
+  EBGEOMETRY_EXPECT(m_mesh != nullptr);
+
   return BV(m_mesh->getAllVertexCoordinates());
 };
 
 template <class T, class Meta, size_t K>
 MeshSDF<T, Meta, K>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build)
 {
+  EBGEOMETRY_EXPECT(a_mesh != nullptr);
+
   using AABB     = EBGeometry::BoundingVolumes::AABBT<T>;
-  const auto bvh = EBGeometry::DCEL::buildFullBVH<T, Meta, AABB, K>(a_mesh, a_build);
+  const auto bvh = EBGeometry::DCEL::buildTreeBVH<T, Meta, AABB, K>(a_mesh, a_build);
 
   m_bvh = bvh->pack();
 }
@@ -202,15 +238,22 @@ template <class T, class Meta, size_t K>
 T
 MeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
   T minDist = std::numeric_limits<T>::max();
 
   const BVH::PackedUpdater<Face> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const Face>>& faces,
                                                                 size_t                                          offset,
                                                                 size_t count) noexcept -> void {
-#pragma GCC ivdep
     for (size_t i = offset; i < offset + count; i++) {
       const T curDist = faces[i]->signedDistance(a_point);
-      minDist         = std::abs(curDist) < std::abs(minDist) ? curDist : minDist;
+
+      EBGEOMETRY_EXPECT(!std::isnan(curDist));
+
+      minDist = std::abs(curDist) < std::abs(minDist) ? curDist : minDist;
     }
   };
 
@@ -238,6 +281,11 @@ template <class T, class Meta, size_t K>
 std::vector<std::pair<std::shared_ptr<const EBGeometry::DCEL::FaceT<T, Meta>>, T>>
 MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const
 {
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
   using FaceAndDist = std::pair<std::shared_ptr<const Face>, T>;
 
   // List of candidate faces.
@@ -269,9 +317,10 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
   const EBGeometry::BVH::PackedUpdater<Face> updater =
     [&shortestDistanceSoFar, &a_point, &candidateFaces](
       const std::vector<std::shared_ptr<const Face>>& a_faces, size_t offset, size_t count) noexcept -> void {
-#pragma GCC ivdep
     for (size_t i = offset; i < offset + count; i++) {
       const T distToFace = sqrt(a_faces[i]->unsignedDistance2(a_point));
+
+      EBGEOMETRY_EXPECT(!std::isnan(distToFace));
 
       if (distToFace <= shortestDistanceSoFar) {
         candidateFaces.emplace_back(a_faces[i], distToFace);
@@ -295,6 +344,8 @@ template <class T, class Meta, size_t K>
 std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::DCEL::FaceT<T, Meta>, K>>&
 MeshSDF<T, Meta, K>::getRoot() noexcept
 {
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+
   return (m_bvh);
 }
 
@@ -302,6 +353,8 @@ template <class T, class Meta, size_t K>
 const std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::DCEL::FaceT<T, Meta>, K>>&
 MeshSDF<T, Meta, K>::getRoot() const noexcept
 {
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+
   return (m_bvh);
 }
 
@@ -309,60 +362,81 @@ template <class T, class Meta, size_t K>
 EBGeometry::BoundingVolumes::AABBT<T>
 MeshSDF<T, Meta, K>::computeBoundingVolume() const noexcept
 {
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+
   return m_bvh->getBoundingVolume();
 };
+
+template <class T, class Meta, size_t K, size_t W>
+std::vector<typename TriMeshSDF<T, Meta, K, W>::TriSoA>
+TriMeshSDF<T, Meta, K, W>::groupTrianglesIntoSoA(const std::vector<std::shared_ptr<const Tri>>& a_triangles,
+                                                 uint32_t                                       a_offset,
+                                                 uint32_t                                       a_count)
+{
+  constexpr uint32_t soaWidth = static_cast<uint32_t>(W);
+
+  std::vector<TriSoA> groups;
+
+  const uint32_t numGroups = (a_count + soaWidth - 1U) / soaWidth;
+  groups.reserve(numGroups);
+
+  for (uint32_t group = 0; group < numGroups; group++) {
+    const uint32_t groupOffset = a_offset + group * soaWidth;
+    const uint32_t groupCount  = std::min(soaWidth, a_count - group * soaWidth);
+
+    std::array<Tri, W> trisArr;
+    for (uint32_t i = 0; i < groupCount; i++) {
+      EBGEOMETRY_EXPECT(a_triangles[groupOffset + i] != nullptr);
+
+      trisArr[i] = *a_triangles[groupOffset + i];
+    }
+
+    TriSoA soa;
+    soa.pack(trisArr.data(), groupCount);
+    groups.push_back(std::move(soa));
+  }
+
+  return groups;
+}
 
 template <class T, class Meta, size_t K, size_t W>
 TriMeshSDF<T, Meta, K, W>::TriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
                                       const BVH::Build             a_build,
                                       const size_t                 a_maxLeafSize) noexcept
 {
-  using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
-  using Tri    = Triangle<T, Meta>;
-  using TriSoA = TriangleSoAT<T, W>;
+  EBGEOMETRY_EXPECT(a_mesh != nullptr);
+
+  using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 
   std::vector<std::shared_ptr<Tri>> triangles;
 
   for (const auto& f : a_mesh->getFaces()) {
+    EBGEOMETRY_EXPECT(f != nullptr);
+
     const auto normal   = f->getNormal();
     const auto vertices = f->gatherVertices();
     const auto edges    = f->gatherEdges();
+
+    EBGEOMETRY_EXPECT(vertices.size() == 3);
+    EBGEOMETRY_EXPECT(edges.size() == 3);
 
     if ((vertices.size() != 3) || (edges.size() != 3)) {
       std::cerr << "TriMeshSDF -- mesh not triangulated!\n";
     }
 
     auto tri = std::make_shared<Tri>();
+
     tri->setNormal(normal);
     tri->setVertexPositions({vertices[0]->getPosition(), vertices[1]->getPosition(), vertices[2]->getPosition()});
     tri->setVertexNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
     tri->setEdgeNormals({edges[0]->getNormal(), edges[1]->getNormal(), edges[2]->getNormal()});
     tri->setMetaData(f->getMetaData());
+
     triangles.emplace_back(tri);
   }
 
-  auto soa_grouper = [](const std::vector<std::shared_ptr<const Tri>>& srcPrims,
-                        uint32_t                                       offset,
-                        uint32_t                                       count) -> std::vector<TriSoA> {
-    constexpr uint32_t  soa_w = static_cast<uint32_t>(W);
-    std::vector<TriSoA> groups;
-    const uint32_t      numGroups = (count + soa_w - 1U) / soa_w;
-    groups.reserve(numGroups);
-    for (uint32_t g = 0; g < numGroups; g++) {
-      const uint32_t bOff   = offset + g * soa_w;
-      const uint32_t bCount = std::min(soa_w, count - g * soa_w);
-      Tri            trisArr[soa_w];
-      for (uint32_t i = 0; i < bCount; i++)
-        trisArr[i] = *srcPrims[bOff + i];
-      TriSoA soa;
-      soa.pack(trisArr, bCount);
-      groups.push_back(std::move(soa));
-    }
-    return groups;
-  };
-
-  m_bvh = EBGeometry::buildTriMeshFullBVH<T, Meta, AABB, K>(triangles, a_build, a_maxLeafSize)
-            ->template packWith<TriSoA>(soa_grouper);
+  m_bvh = EBGeometry::buildTriMeshTreeBVH<T, Meta, AABB, K>(triangles, a_build, a_maxLeafSize)
+            ->template packWith<TriSoA>(&TriMeshSDF::groupTrianglesIntoSoA);
 }
 
 template <class T, class Meta, size_t K, size_t W>
@@ -370,37 +444,23 @@ TriMeshSDF<T, Meta, K, W>::TriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a
                                       const BVH::Build                         a_build,
                                       const size_t                             a_maxLeafSize) noexcept
 {
-  using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
-  using TriSoA = TriangleSoAT<T, W>;
+  EBGEOMETRY_EXPECT(!a_triangles.empty());
 
-  auto soa_grouper = [](const std::vector<std::shared_ptr<const Tri>>& srcPrims,
-                        uint32_t                                       offset,
-                        uint32_t                                       count) -> std::vector<TriSoA> {
-    constexpr uint32_t  soa_w = static_cast<uint32_t>(W);
-    std::vector<TriSoA> groups;
-    const uint32_t      numGroups = (count + soa_w - 1U) / soa_w;
-    groups.reserve(numGroups);
-    for (uint32_t g = 0; g < numGroups; g++) {
-      const uint32_t bOff   = offset + g * soa_w;
-      const uint32_t bCount = std::min(soa_w, count - g * soa_w);
-      Tri            trisArr[soa_w];
-      for (uint32_t i = 0; i < bCount; i++)
-        trisArr[i] = *srcPrims[bOff + i];
-      TriSoA soa;
-      soa.pack(trisArr, bCount);
-      groups.push_back(std::move(soa));
-    }
-    return groups;
-  };
+  using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 
-  m_bvh = EBGeometry::buildTriMeshFullBVH<T, Meta, AABB, K>(a_triangles, a_build, a_maxLeafSize)
-            ->template packWith<TriSoA>(soa_grouper);
+  m_bvh = EBGeometry::buildTriMeshTreeBVH<T, Meta, AABB, K>(a_triangles, a_build, a_maxLeafSize)
+            ->template packWith<TriSoA>(&TriMeshSDF::groupTrianglesIntoSoA);
 }
 
 template <class T, class Meta, size_t K, size_t W>
 T
 TriMeshSDF<T, Meta, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
   return m_bvh->signedDistance(a_point);
 }
 
@@ -408,20 +468,26 @@ template <class T, class Meta, size_t K, size_t W>
 std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleSoAT<T, W>, K>>&
 TriMeshSDF<T, Meta, K, W>::getRoot() noexcept
 {
-  return (m_bvh);
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+
+  return m_bvh;
 }
 
 template <class T, class Meta, size_t K, size_t W>
 const std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleSoAT<T, W>, K>>&
 TriMeshSDF<T, Meta, K, W>::getRoot() const noexcept
 {
-  return (m_bvh);
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+
+  return m_bvh;
 }
 
 template <class T, class Meta, size_t K, size_t W>
 EBGeometry::BoundingVolumes::AABBT<T>
 TriMeshSDF<T, Meta, K, W>::computeBoundingVolume() const noexcept
 {
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+
   return m_bvh->getBoundingVolume();
 };
 

@@ -23,13 +23,11 @@
 
 /**
  * @def EBGEOMETRY_SOA_DEFAULT_WIDTH
- * @brief Default SIMD lane width (number of triangles per SoA group) for the current target ISA.
- * @details Set to 16 when @c __AVX512F__ is defined (512-bit ZMM register holds 16 floats),
- * 8 when @c __AVX__ is defined (256-bit YMM register holds 8 floats),
- * 4 when only @c __SSE4_1__ is defined (128-bit XMM register holds 4 floats),
- * and 4 as a scalar-safe fallback when none of the above is available.
- * Used as the default @c W template argument for @c TriangleSoAT, @c TriMeshSDF,
- * and @c Parser::readIntoTriangleBVH.
+ * @brief Superseded by EBGeometry::DefaultSoAWidth<T>(); kept for now, to be retired later.
+ * @details Unlike DefaultSoAWidth<T>(), a preprocessor macro cannot depend on a template
+ * parameter, so this value can't distinguish float from double, and its @c __AVX512F__ case
+ * (16) does not correspond to any width TriangleSoAT::signedDistance() actually implements.
+ * No longer used as a default anywhere in EBGeometry.
  */
 #if defined(__AVX512F__)
 #define EBGEOMETRY_SOA_DEFAULT_WIDTH 16
@@ -44,6 +42,40 @@
 #include "EBGeometry_Triangle.hpp"
 
 namespace EBGeometry {
+
+/**
+ * @brief Returns the SIMD-optimal SoA width (triangles per TriangleSoAT group) for type T on the
+ * current target ISA.
+ * @details Maps the floating-point type and the compile-time ISA to the W that fills one SIMD
+ * register exactly, capped to the widths TriangleSoAT::signedDistance() actually implements —
+ * there is no dedicated AVX-512F path yet, so AVX-512F builds fall through to the AVX values
+ * below (still vectorized via AVX intrinsics, just not filling a full 512-bit register):
+ *
+ * | ISA       | T=float | T=double |
+ * |-----------|---------|----------|
+ * | AVX       |    8    |    4     |
+ * | otherwise |    4    |    4     |
+ *
+ * Usage: `size_t W = EBGeometry::DefaultSoAWidth<T>()` as a template-parameter default.
+ * @tparam T Floating-point precision type (float or double).
+ * @return Optimal W for the current ISA and T.
+ */
+template <typename T>
+[[nodiscard]] constexpr size_t
+DefaultSoAWidth() noexcept
+{
+  static_assert(std::is_floating_point_v<T>, "EBGeometry::DefaultSoAWidth requires a floating-point T");
+#if defined(__AVX__)
+  if constexpr (std::is_same_v<T, double>) {
+    return 4;
+  }
+  else {
+    return 8;
+  }
+#else
+  return 4;
+#endif
+}
 
 /**
  * @brief SoA (Structure of Arrays) layout for W triangles, enabling SIMD evaluation.

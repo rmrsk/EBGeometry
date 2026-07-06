@@ -24,20 +24,19 @@ in a different location, with cache variables:
 
     make
 
-This produces `./main`. Override the defaults on the command line:
+This produces `./EBGeometry_OctreeBoundingVolume`. Override the defaults on the command line:
 
     make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry
 
 **Directly with a compiler**
 
-    g++ -std=c++17 -O2 -I../.. main.cpp -o main
+    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o EBGeometry_OctreeBoundingVolume
 
-Add `-DEBGEOMETRY_PRECISION=float` for single precision, and `-march=native` to
-let the compiler use the SIMD paths.
+Add `-DEBGEOMETRY_PRECISION=float` for single precision.
 
 Running
 -------
 
-    ./main
+    ./EBGeometry_OctreeBoundingVolume
 
 If you built with CMake the binary is `build/EBGeometry_OctreeBoundingVolume`.
