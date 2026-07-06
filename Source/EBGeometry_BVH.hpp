@@ -971,9 +971,9 @@ namespace BVH {
 
     /**
       @brief Construct by packing a TreeBVH with primitive-type conversion.
-      @details The source tree holds primitives of type PTree; the packed BVH holds
+      @details The source tree holds primitives of type Q; the packed BVH holds
       primitives of type P.  The most common reason for this mismatch is an SoA packing
-      step: a tree built over individual triangles (PTree = Triangle<T>) can be repacked
+      step: a tree built over individual triangles (Q = Triangle<T>) can be repacked
       into a BVH whose leaves hold SIMD-width groups (P = TriangleSoAT<T,W>), enabling
       vectorised distance evaluation at every leaf visit.
 
@@ -984,7 +984,7 @@ namespace BVH {
         a_converter(leafPrims, offset, count) → std::vector<P>
       @endcode
 
-      where @p leafPrims is the leaf's @c PrimitiveList<PTree>, @p offset is the index of
+      where @p leafPrims is the leaf's @c PrimitiveList<Q>, @p offset is the index of
       the first primitive in the global list, and @p count is the number of primitives in
       the leaf.  All returned vectors are stored contiguously; the resulting PackedBVH holds
       aliased @c shared_ptr into that buffer so no extra copies are made during traversal.
@@ -992,13 +992,13 @@ namespace BVH {
       The source tree must have been built with BV == AABBT<T>; bounding volumes are reused
       without conversion.
 
-      @tparam PTree     Source primitive type stored in the source tree.
-      @tparam Converter Callable: (PrimitiveList<PTree>, uint32_t offset, uint32_t count) → std::vector<P>.
+      @tparam Q         Source primitive type stored in the source tree.
+      @tparam Converter Callable: (PrimitiveList<Q>, uint32_t offset, uint32_t count) → std::vector<P>.
       @param[in] a_tree      Source tree.
       @param[in] a_converter Leaf-conversion function.
     */
-    template <class PTree, class Converter>
-    inline PackedBVH(const TreeBVH<T, PTree, BV, K>& a_tree, Converter&& a_converter);
+    template <class Q, class Converter>
+    inline PackedBVH(const TreeBVH<T, Q, BV, K>& a_tree, Converter&& a_converter);
 
     /**
       @brief Virtual destructor.

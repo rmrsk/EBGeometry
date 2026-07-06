@@ -71,42 +71,42 @@ namespace BVH {
   inline const BV&
   TreeBVH<T, P, BV, K>::getBoundingVolume() const noexcept
   {
-    return (m_boundingVolume);
+    return m_boundingVolume;
   }
 
   template <class T, class P, class BV, size_t K>
   inline PrimitiveList<P>&
   TreeBVH<T, P, BV, K>::getPrimitives() noexcept
   {
-    return (m_primitives);
+    return m_primitives;
   }
 
   template <class T, class P, class BV, size_t K>
   inline const PrimitiveList<P>&
   TreeBVH<T, P, BV, K>::getPrimitives() const noexcept
   {
-    return (m_primitives);
+    return m_primitives;
   }
 
   template <class T, class P, class BV, size_t K>
   inline std::vector<BV>&
   TreeBVH<T, P, BV, K>::getBoundingVolumes() noexcept
   {
-    return (m_boundingVolumes);
+    return m_boundingVolumes;
   }
 
   template <class T, class P, class BV, size_t K>
   inline const std::vector<BV>&
   TreeBVH<T, P, BV, K>::getBoundingVolumes() const noexcept
   {
-    return (m_boundingVolumes);
+    return m_boundingVolumes;
   }
 
   template <class T, class P, class BV, size_t K>
   inline const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>&
   TreeBVH<T, P, BV, K>::getChildren() const noexcept
   {
-    return (m_children);
+    return m_children;
   }
 
   template <class T, class P, class BV, size_t K>
@@ -414,9 +414,9 @@ namespace BVH {
   }
 
   template <class T, class P, size_t K>
-  template <class PTree, class Converter>
-  inline PackedBVH<T, P, K>::PackedBVH(const TreeBVH<T, PTree, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree,
-                                       Converter&&                                                        a_converter)
+  template <class Q, class Converter>
+  inline PackedBVH<T, P, K>::PackedBVH(const TreeBVH<T, Q, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree,
+                                       Converter&&                                                    a_converter)
   {
     using AABBType = EBGeometry::BoundingVolumes::AABBT<T>;
 
@@ -424,8 +424,8 @@ namespace BVH {
     // shared_ptrs are created after all push_backs so no dangling pointers.
     auto dstStorage = std::make_shared<std::vector<P>>();
 
-    std::function<uint32_t(const TreeBVH<T, PTree, AABBType, K>&)> dfs =
-      [&](const TreeBVH<T, PTree, AABBType, K>& node) -> uint32_t {
+    std::function<uint32_t(const TreeBVH<T, Q, AABBType, K>&)> dfs =
+      [&](const TreeBVH<T, Q, AABBType, K>& node) -> uint32_t {
       const uint32_t idx = static_cast<uint32_t>(m_linearNodes.size());
 
       m_linearNodes.push_back({});
