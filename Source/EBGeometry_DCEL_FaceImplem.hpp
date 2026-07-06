@@ -252,7 +252,7 @@ FaceT<T, Meta>::gatherVertices() const
   vertices.reserve(3);
 
   for (EdgeIterator iter(*this); iter.ok(); ++iter) {
-    EdgePtr const& edge = iter();
+    const EdgePtr& edge = iter();
     vertices.emplace_back(edge->getVertex());
   }
 
@@ -267,7 +267,7 @@ FaceT<T, Meta>::gatherEdges() const
   edges.reserve(3);
 
   for (EdgeIterator iter(*this); iter.ok(); ++iter) {
-    EdgePtr const& edge = iter();
+    const EdgePtr& edge = iter();
 
     edges.emplace_back(edge);
   }
@@ -283,7 +283,7 @@ FaceT<T, Meta>::getAllVertexCoordinates() const
   ret.reserve(3);
 
   for (EdgeIterator iter(*this); iter.ok(); ++iter) {
-    EdgePtr const& edge = iter();
+    const EdgePtr& edge = iter();
 
     ret.emplace_back(edge->getVertex()->getPosition());
   }

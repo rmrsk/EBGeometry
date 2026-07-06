@@ -1010,8 +1010,8 @@ Parser::readVTK(const std::string& a_filename)
             // For polygon i: vertices are connectivity[offsets[i]] to connectivity[offsets[i+1]-1]
             // For the last polygon: vertices are connectivity[offsets[n-1]] to connectivity[end]
             for (size_t i = 0; i < numPolygons; i++) {
-              size_t const        startIdx = offsets[i];
-              size_t const        endIdx   = (i + 1 < numPolygons) ? offsets[i + 1] : connectivity.size();
+              const size_t        startIdx = offsets[i];
+              const size_t        endIdx   = (i + 1 < numPolygons) ? offsets[i + 1] : connectivity.size();
               std::vector<size_t> faceIndices;
 
               // Skip empty polygons (startIdx >= connectivity.size() or startIdx == endIdx)
