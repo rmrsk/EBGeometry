@@ -1,5 +1,5 @@
-Examples/AMReX_DCEL
--------------------
+Examples/AMReX_MeshSDF
+----------------------
 
 This example uses the embedded boundary grid generation from AMReX.
 To compile this application, first install AMReX somewhere and point the AMREX_HOME environment variable to it.

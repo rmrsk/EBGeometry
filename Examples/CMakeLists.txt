@@ -30,7 +30,7 @@ function(ebgeometry_add_example name)
 endfunction()
 
 ebgeometry_add_example(EBGeometry_CSGUnion)
-ebgeometry_add_example(EBGeometry_DCEL)
+ebgeometry_add_example(EBGeometry_MeshSDF)
 ebgeometry_add_example(EBGeometry_OctreeBoundingVolume)
 ebgeometry_add_example(EBGeometry_PackedSpheres)
 ebgeometry_add_example(EBGeometry_RandomCity)

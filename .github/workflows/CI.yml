@@ -61,7 +61,7 @@ jobs:
     strategy:
       matrix:
         comp: [g++-11, g++-12]
-        directory: [Examples/EBGeometry_CSGUnion, Examples/EBGeometry_DCEL, Examples/EBGeometry_OctreeBoundingVolume, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
+        directory: [Examples/EBGeometry_CSGUnion, Examples/EBGeometry_MeshSDF, Examples/EBGeometry_OctreeBoundingVolume, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
 
     steps:
       - uses: actions/checkout@v4
@@ -95,7 +95,7 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
+        directory: [Examples/EBGeometry_MeshSDF, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
 
     steps:
       - uses: actions/checkout@v4

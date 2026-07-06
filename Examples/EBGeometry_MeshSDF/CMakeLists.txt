@@ -2,11 +2,11 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Standalone build file for the EBGeometry_DCEL example. It can be built on its own
+# Standalone build file for the EBGeometry_MeshSDF example. It can be built on its own
 # (e.g. copied out as a template for a new project) or as part of the top-level
 # EBGeometry build.
 cmake_minimum_required(VERSION 3.16)
-project(EBGeometry_DCEL CXX)
+project(EBGeometry_MeshSDF CXX)
 
 # Locate the header-only library. EBGEOMETRY_HOME is the directory that contains
 # EBGeometry.hpp (the repository root); it defaults to the in-tree location two
@@ -20,9 +20,9 @@ if(NOT TARGET EBGeometry::EBGeometry)
   target_compile_features(EBGeometry::EBGeometry INTERFACE cxx_std_17)
 endif()
 
-add_executable(EBGeometry_DCEL main.cpp)
-target_link_libraries(EBGeometry_DCEL PRIVATE EBGeometry::EBGeometry)
-target_compile_options(EBGeometry_DCEL PRIVATE -Wall -Wextra -Wno-unused-parameter)
+add_executable(EBGeometry_MeshSDF main.cpp)
+target_link_libraries(EBGeometry_MeshSDF PRIVATE EBGeometry::EBGeometry)
+target_compile_options(EBGeometry_MeshSDF PRIVATE -Wall -Wextra -Wno-unused-parameter)
 
 # ---------------------------------------------------------------------------
 # Floating-point precision for this example.
@@ -32,4 +32,4 @@ target_compile_options(EBGeometry_DCEL PRIVATE -Wall -Wextra -Wno-unused-paramet
 # picked up in main.cpp by `using T = EBGEOMETRY_PRECISION`.
 # ---------------------------------------------------------------------------
 set(EBGEOMETRY_PRECISION double)
-target_compile_definitions(EBGeometry_DCEL PRIVATE EBGEOMETRY_PRECISION=${EBGEOMETRY_PRECISION})
+target_compile_definitions(EBGeometry_MeshSDF PRIVATE EBGEOMETRY_PRECISION=${EBGEOMETRY_PRECISION})

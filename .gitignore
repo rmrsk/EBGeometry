@@ -11,9 +11,9 @@ pout.*
 build
 
 docs/**
-Examples/AMReX_DCEL/plt*
-Examples/AMReX_DCEL/tmp_build_dir
-Examples/AMReX_DCEL/Backtrace.*
+Examples/AMReX_MeshSDF/plt*
+Examples/AMReX_MeshSDF/tmp_build_dir
+Examples/AMReX_MeshSDF/Backtrace.*
 
 Examples/AMReX_F18/plt*
 Examples/AMReX_F18/tmp_build_dir

@@ -40,7 +40,7 @@ cd Examples/EBGeometry_Shapes
 g++ -O3 -std=c++17 main.cpp && ./a.out
 
 # SDF from a surface mesh (STL/PLY/VTK)
-cd Examples/EBGeometry_DCEL
+cd Examples/EBGeometry_MeshSDF
 g++ -O3 -std=c++17 main.cpp && ./a.out
 
 # BVH-accelerated CSG union of spheres
