@@ -53,7 +53,7 @@ main(int argc, char* argv[])
   // only use one of these representations.
   const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file);
   const auto meshSDF = EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file);
-  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, K>(file);
+  const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file);
 
   // Sample some random points around the object.
   constexpr size_t Nsamp = 1000;
