@@ -23,9 +23,10 @@ repos:
           - "--ignore-words=.codespellignore"
           - "--skip=*.bib,*.js,*.log,Docs/Sphinx/build,Docs/doxygen"
 
-  # NOTE: static analysis of the header-only library is done with clang-tidy (see
-  # .clang-tidy and the Static-analysis CI job). The old cppcheck hook only matched
-  # Source/**.cpp, of which there are none, so it never ran and has been removed.
+  # Static analysis is done with clang-tidy (see .clang-tidy): the manual-stage
+  # clang-tidy hook below plus the Static-analysis CI job. It is manual-stage
+  # because it needs a compile database and is slow. The old cppcheck hook only
+  # matched Source/**.cpp (there are none), so it never ran and has been removed.
   - repo: local
     hooks:
       - id: doxygen-check
@@ -34,6 +35,14 @@ repos:
         language: system
         pass_filenames: false
         files: \.(H|cpp)$
+
+      - id: clang-tidy
+        name: Static analysis (clang-tidy)
+        entry: bash clang-tidy-check.sh
+        language: system
+        pass_filenames: false
+        files: \.(hpp|cpp)$
+        stages: [manual]
 
       - id: sphinx-build
         name: Build Sphinx documentation (warnings as errors)
