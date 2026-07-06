@@ -1,5 +1,5 @@
 ci:
-  skip: [clang-tidy, doxygen-check, sphinx-build]
+  skip: [clang-doxygen-check, sphinx-build]
 
 repos:
   - repo: https://github.com/pre-commit/mirrors-clang-format
