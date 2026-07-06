@@ -538,6 +538,21 @@ namespace BVH {
   inline T
   PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   {
+    struct StackEntry
+    {
+      uint32_t idx;
+      T        dist2;
+    };
+
+    [[maybe_unused]] auto evalLeaf = [this, &a_point](auto& a_minDist, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        const auto d = m_primitives[a_offset + i]->signedDistance(a_point);
+        if (std::abs(d) < std::abs(a_minDist)) {
+          a_minDist = d;
+        }
+      }
+    };
+
     // ──────────────────────────────────────────────────────────────────────────────
     // AVX-512F paths: K==8/double and K==16/float.
     //
@@ -565,11 +580,6 @@ namespace BVH {
       const __m512d pz   = _mm512_set1_pd(a_point[2]);
       const __m512d zero = _mm512_setzero_pd();
 
-      struct StackEntry
-      {
-        uint32_t idx;
-        double   dist2;
-      };
       alignas(64) StackEntry stack[256];
 
       int top      = 0;
@@ -586,13 +596,7 @@ namespace BVH {
         const Node& node = m_linearNodes[entry.idx];
 
         if (node.isLeaf()) {
-          const size_t offset = node.getPrimitivesOffset();
-          const size_t count  = node.getNumPrimitives();
-          for (size_t i = 0; i < count; i++) {
-            const auto d = m_primitives[offset + i]->signedDistance(a_point);
-            if (std::abs(d) < std::abs(minDist))
-              minDist = d;
-          }
+          evalLeaf(minDist, node.getPrimitivesOffset(), node.getNumPrimitives());
         }
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
@@ -649,12 +653,6 @@ namespace BVH {
       const __m512 pz   = _mm512_set1_ps((float)a_point[2]);
       const __m512 zero = _mm512_setzero_ps();
 
-      struct StackEntry
-      {
-        uint32_t idx;
-        float    dist2;
-      };
-
       alignas(64) StackEntry stack[256];
 
       int top      = 0;
@@ -671,13 +669,7 @@ namespace BVH {
         const Node& node = m_linearNodes[entry.idx];
 
         if (node.isLeaf()) {
-          const size_t offset = node.getPrimitivesOffset();
-          const size_t count  = node.getNumPrimitives();
-          for (size_t i = 0; i < count; i++) {
-            const auto d = m_primitives[offset + i]->signedDistance(a_point);
-            if (std::abs(d) < std::abs(minDist))
-              minDist = d;
-          }
+          evalLeaf(minDist, node.getPrimitivesOffset(), node.getNumPrimitives());
         }
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
@@ -740,11 +732,6 @@ namespace BVH {
       const __m256d pz   = _mm256_set1_pd(a_point[2]);
       const __m256d zero = _mm256_setzero_pd();
 
-      struct StackEntry
-      {
-        uint32_t idx;
-        double   dist2;
-      };
       alignas(32) StackEntry stack[256];
 
       int top      = 0;
@@ -760,13 +747,7 @@ namespace BVH {
 
         const Node& node = m_linearNodes[entry.idx];
         if (node.isLeaf()) {
-          const size_t offset = node.getPrimitivesOffset();
-          const size_t count  = node.getNumPrimitives();
-          for (size_t i = 0; i < count; i++) {
-            const auto d = m_primitives[offset + i]->signedDistance(a_point);
-            if (std::abs(d) < std::abs(minDist))
-              minDist = d;
-          }
+          evalLeaf(minDist, node.getPrimitivesOffset(), node.getNumPrimitives());
         }
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
@@ -822,12 +803,6 @@ namespace BVH {
       const __m256 pz   = _mm256_set1_ps((float)a_point[2]);
       const __m256 zero = _mm256_setzero_ps();
 
-      struct StackEntry
-      {
-        uint32_t idx;
-        float    dist2;
-      };
-
       alignas(32) StackEntry stack[256];
 
       int top      = 0;
@@ -843,13 +818,7 @@ namespace BVH {
 
         const Node& node = m_linearNodes[entry.idx];
         if (node.isLeaf()) {
-          const size_t offset = node.getPrimitivesOffset();
-          const size_t count  = node.getNumPrimitives();
-          for (size_t i = 0; i < count; i++) {
-            const auto d = m_primitives[offset + i]->signedDistance(a_point);
-            if (std::abs(d) < std::abs(minDist))
-              minDist = d;
-          }
+          evalLeaf(minDist, node.getPrimitivesOffset(), node.getNumPrimitives());
         }
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
@@ -907,12 +876,6 @@ namespace BVH {
       const __m256d pz   = _mm256_set1_pd(a_point[2]);
       const __m256d zero = _mm256_setzero_pd();
 
-      struct StackEntry
-      {
-        uint32_t idx;
-        double   dist2;
-      };
-
       alignas(32) StackEntry stack[256];
 
       int top      = 0;
@@ -929,13 +892,7 @@ namespace BVH {
         const Node& node = m_linearNodes[entry.idx];
 
         if (node.isLeaf()) {
-          const size_t offset = node.getPrimitivesOffset();
-          const size_t count  = node.getNumPrimitives();
-          for (size_t i = 0; i < count; i++) {
-            const auto d = m_primitives[offset + i]->signedDistance(a_point);
-            if (std::abs(d) < std::abs(minDist))
-              minDist = d;
-          }
+          evalLeaf(minDist, node.getPrimitivesOffset(), node.getNumPrimitives());
         }
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
@@ -1008,12 +965,6 @@ namespace BVH {
       const __m128 pz   = _mm_set1_ps(a_point[2]);
       const __m128 zero = _mm_setzero_ps();
 
-      struct StackEntry
-      {
-        uint32_t idx;
-        float    dist2;
-      };
-
       alignas(16) StackEntry stack[256];
       int                    top = 0;
       stack[top++]               = {0U, 0.0f};
@@ -1029,13 +980,7 @@ namespace BVH {
         const Node& node = m_linearNodes[entry.idx];
 
         if (node.isLeaf()) {
-          const size_t offset = node.getPrimitivesOffset();
-          const size_t count  = node.getNumPrimitives();
-          for (size_t i = 0; i < count; i++) {
-            const auto d = m_primitives[offset + i]->signedDistance(a_point);
-            if (std::abs(d) < std::abs(minDist))
-              minDist = d;
-          }
+          evalLeaf(minDist, node.getPrimitivesOffset(), node.getNumPrimitives());
         }
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
