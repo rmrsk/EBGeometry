@@ -7,7 +7,12 @@
 #include <string>
 #include <vector>
 
-#include "../../EBGeometry.hpp"
+#include <EBGeometry.hpp>
+
+// Floating-point precision. Overridable from CMake (-DEBGEOMETRY_PRECISION=float).
+#ifndef EBGEOMETRY_PRECISION
+#define EBGEOMETRY_PRECISION double
+#endif
 
 using namespace EBGeometry;
 using namespace EBGeometry::DCEL;
@@ -16,7 +21,7 @@ using namespace EBGeometry::DCEL;
 // regular node has four children.
 constexpr int K = 4;
 
-using T    = double;
+using T    = EBGEOMETRY_PRECISION;
 using Meta = short;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Vec3 = EBGeometry::Vec3T<T>;

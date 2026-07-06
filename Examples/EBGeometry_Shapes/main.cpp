@@ -2,12 +2,17 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../EBGeometry.hpp"
+#include <EBGeometry.hpp>
+
+// Floating-point precision. Overridable from CMake (-DEBGEOMETRY_PRECISION=float).
+#ifndef EBGEOMETRY_PRECISION
+#define EBGEOMETRY_PRECISION double
+#endif
 
 int
 main()
 {
-  using T    = double;
+  using T    = EBGEOMETRY_PRECISION;
   using Vec3 = EBGeometry::Vec3T<T>;
 
   // Various analytic shapes. Use ::signedDistance(Vec3) for computing the signed distance.

@@ -8,10 +8,15 @@
 #include <string>
 #include <thread>
 
-#include "../../EBGeometry.hpp"
+#include <EBGeometry.hpp>
+
+// Floating-point precision. Overridable from CMake (-DEBGEOMETRY_PRECISION=float).
+#ifndef EBGEOMETRY_PRECISION
+#define EBGEOMETRY_PRECISION double
+#endif
 
 // Declare our precision.
-using T = double;
+using T = EBGEOMETRY_PRECISION;
 
 // Aliases for cutting down on typing.
 using AABB = EBGeometry::BoundingVolumes::AABBT<T>;

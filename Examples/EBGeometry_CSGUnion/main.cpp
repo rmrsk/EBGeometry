@@ -8,14 +8,19 @@
 #include <string>
 #include <vector>
 
-#include "../../EBGeometry.hpp"
+#include <EBGeometry.hpp>
+
+// Floating-point precision. Overridable from CMake (-DEBGEOMETRY_PRECISION=float).
+#ifndef EBGEOMETRY_PRECISION
+#define EBGEOMETRY_PRECISION double
+#endif
 
 using namespace EBGeometry;
 
 // BVH branching factor for the union tree.
 constexpr size_t K = 4;
 
-using T       = double;
+using T       = EBGEOMETRY_PRECISION;
 using Meta    = short;
 using Vec3    = EBGeometry::Vec3T<T>;
 using BV      = EBGeometry::BoundingVolumes::AABBT<T>;
