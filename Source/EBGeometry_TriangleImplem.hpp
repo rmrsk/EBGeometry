@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_TriangleImplem.hpp
-  @brief  Implementation of EBGeometry_Triangle.hpp
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_TriangleImplem.hpp
+ * @brief  Implementation of EBGeometry_Triangle.hpp
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_TRIANGLEIMPLEM_HPP
 #define EBGEOMETRY_TRIANGLEIMPLEM_HPP

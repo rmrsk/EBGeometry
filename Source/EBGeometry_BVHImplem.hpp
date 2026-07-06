@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_BVHImplem.hpp
-  @brief  Implementation of EBGeometry_BVH.hpp
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_BVHImplem.hpp
+ * @brief  Implementation of EBGeometry_BVH.hpp
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_BVHIMPLEM_HPP
 #define EBGEOMETRY_BVHIMPLEM_HPP

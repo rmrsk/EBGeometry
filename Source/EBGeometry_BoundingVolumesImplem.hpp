@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_BoundingVolumesImplem.hpp
-  @brief  Inline implementations of BoundingSphereT<T> and AABBT<T>.
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_BoundingVolumesImplem.hpp
+ * @brief  Inline implementations of BoundingSphereT<T> and AABBT<T>.
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_BOUNDINGVOLUMESIMPLEM_HPP
 #define EBGEOMETRY_BOUNDINGVOLUMESIMPLEM_HPP

@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_TriangleSoAImplem.hpp
-  @brief  Implementation of EBGeometry_TriangleSoA.hpp
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_TriangleSoAImplem.hpp
+ * @brief  Implementation of EBGeometry_TriangleSoA.hpp
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_TRIANGLESOAIMPLEM_HPP
 #define EBGEOMETRY_TRIANGLESOAIMPLEM_HPP

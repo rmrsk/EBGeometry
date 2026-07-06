@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_DCEL_EdgeImplem.hpp
-  @brief  Implementation of EBGeometry_DCEL_Edge.hpp
-  @author Robert Marskar
-  @todo   Include m_face in constructors
-*/
+ * @file   EBGeometry_DCEL_EdgeImplem.hpp
+ * @brief  Implementation of EBGeometry_DCEL_Edge.hpp
+ * @author Robert Marskar
+ * @todo   Include m_face in constructors
+ */
 
 #ifndef EBGEOMETRY_DCEL_EDGEIMPLEM_HPP
 #define EBGEOMETRY_DCEL_EDGEIMPLEM_HPP
@@ -19,9 +19,9 @@
 #include <memory>
 
 // Our includes
-#include "EBGeometry_DCEL_Vertex.hpp"
 #include "EBGeometry_DCEL_Edge.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
+#include "EBGeometry_DCEL_Vertex.hpp"
 
 namespace EBGeometry {
 

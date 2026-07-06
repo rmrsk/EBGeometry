@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_TransformImplem.hpp
-  @brief  Implementation of EBGeometry_Transform.hpp
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_TransformImplem.hpp
+ * @brief  Implementation of EBGeometry_Transform.hpp
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_TRANSFORMIMPLEM_HPP
 #define EBGEOMETRY_TRANSFORMIMPLEM_HPP

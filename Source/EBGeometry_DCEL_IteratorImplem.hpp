@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_DCEL_IteratorImplem.hpp
-  @brief  Implementation of EBGeometry_DCEL_Iterator.hpp
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_DCEL_IteratorImplem.hpp
+ * @brief  Implementation of EBGeometry_DCEL_Iterator.hpp
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_DCEL_ITERATORIMPLEM_HPP
 #define EBGEOMETRY_DCEL_ITERATORIMPLEM_HPP
@@ -15,10 +15,10 @@
 #include <memory>
 
 // Our includes
-#include "EBGeometry_DCEL_Vertex.hpp"
 #include "EBGeometry_DCEL_Edge.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
 #include "EBGeometry_DCEL_Iterator.hpp"
+#include "EBGeometry_DCEL_Vertex.hpp"
 
 namespace EBGeometry {
 

@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_OctreeImplem.hpp
-  @brief  Implementation of EBGeometry_Octree.hpp
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_OctreeImplem.hpp
+ * @brief  Implementation of EBGeometry_Octree.hpp
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_OCTREEIMPLEM_HPP
 #define EBGEOMETRY_OCTREEIMPLEM_HPP

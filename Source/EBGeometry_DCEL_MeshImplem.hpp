@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_DCEL_MeshImplem.hpp
-  @brief  Implementation of EBGeometry_DCEL_Mesh.hpp
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_DCEL_MeshImplem.hpp
+ * @brief  Implementation of EBGeometry_DCEL_Mesh.hpp
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_DCEL_MESHIMPLEM_HPP
 #define EBGEOMETRY_DCEL_MESHIMPLEM_HPP
@@ -22,11 +22,11 @@
 #include <vector>
 
 // Our includes
-#include "EBGeometry_DCEL_Mesh.hpp"
-#include "EBGeometry_DCEL_Iterator.hpp"
-#include "EBGeometry_DCEL_Vertex.hpp"
 #include "EBGeometry_DCEL_Edge.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
+#include "EBGeometry_DCEL_Iterator.hpp"
+#include "EBGeometry_DCEL_Mesh.hpp"
+#include "EBGeometry_DCEL_Vertex.hpp"
 
 namespace EBGeometry {
 

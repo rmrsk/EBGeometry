@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_SimpleTimerImplem.hpp
-  @brief  Implementation of EBGeometry_SimpleTimer.hpp
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_SimpleTimerImplem.hpp
+ * @brief  Implementation of EBGeometry_SimpleTimer.hpp
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_SIMPLETIMERIMPLEM_HPP
 #define EBGEOMETRY_SIMPLETIMERIMPLEM_HPP

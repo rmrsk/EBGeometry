@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_CSGImplem.hpp
-  @brief  Implementation of EBGeometry_CSG.hpp
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_CSGImplem.hpp
+ * @brief  Implementation of EBGeometry_CSG.hpp
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_CSGIMPLEM_HPP
 #define EBGEOMETRY_CSGIMPLEM_HPP
@@ -36,39 +36,39 @@ namespace EBGeometry {
 
 namespace CSGDetail {
 
-  /**
-  @brief Build a PackedBVH from primitive/BV pairs using the requested strategy.
-  @details Internal helper; not part of the public API.
-*/
-  template <class T, class P, class BV, size_t K>
-  [[nodiscard]] inline std::shared_ptr<EBGeometry::BVH::PackedBVH<T, P, K>>
-  buildBVH(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs, const BVH::Build a_build) noexcept
-  {
-    EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+/**
+ * @brief Build a PackedBVH from primitive/BV pairs using the requested strategy.
+ * @details Internal helper; not part of the public API.
+ */
+template <class T, class P, class BV, size_t K>
+[[nodiscard]] inline std::shared_ptr<EBGeometry::BVH::PackedBVH<T, P, K>>
+buildBVH(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs, const BVH::Build a_build) noexcept
+{
+  EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
-    auto root = std::make_shared<EBGeometry::BVH::TreeBVH<T, P, BV, K>>(a_primsAndBVs);
+  auto root = std::make_shared<EBGeometry::BVH::TreeBVH<T, P, BV, K>>(a_primsAndBVs);
 
-    switch (a_build) {
-    case BVH::Build::TopDown: {
-      root->topDownSortAndPartition();
-      break;
-    }
-    case BVH::Build::Morton: {
-      root->template bottomUpSortAndPartition<SFC::Morton>();
-      break;
-    }
-    case BVH::Build::Nested: {
-      root->template bottomUpSortAndPartition<SFC::Nested>();
-      break;
-    }
-    default: {
-      EBGEOMETRY_EXPECT(false);
-      break;
-    }
-    }
-
-    return root->pack();
+  switch (a_build) {
+  case BVH::Build::TopDown: {
+    root->topDownSortAndPartition();
+    break;
   }
+  case BVH::Build::Morton: {
+    root->template bottomUpSortAndPartition<SFC::Morton>();
+    break;
+  }
+  case BVH::Build::Nested: {
+    root->template bottomUpSortAndPartition<SFC::Nested>();
+    break;
+  }
+  default: {
+    EBGEOMETRY_EXPECT(false);
+    break;
+  }
+  }
+
+  return root->pack();
+}
 
 } // namespace CSGDetail
 

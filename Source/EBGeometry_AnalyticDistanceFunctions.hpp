@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file    EBGeometry_AnalyticDistanceFunctions.hpp
-  @brief   Declaration of various analytic distance functions.
-  @details This file contains various analytic signed distance fields. 
-  @author  Robert Marskar
-*/
+ * @file    EBGeometry_AnalyticDistanceFunctions.hpp
+ * @brief   Declaration of various analytic distance functions.
+ * @details This file contains various analytic signed distance fields.
+ * @author  Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_ANALYTICDISTANCEFUNCTIONS_HPP
 #define EBGEOMETRY_ANALYTICDISTANCEFUNCTIONS_HPP
@@ -30,13 +30,13 @@
 namespace EBGeometry {
 
 /**
-  @brief Component-wise clamp for Vec3T.
-  @tparam T  Scalar type.
-  @param[in] v  Vector to be clamped.
-  @param[in] lo Component-wise lower bound.
-  @param[in] hi Component-wise upper bound.
-  @return Component-wise clamped vector.
-*/
+ * @brief Component-wise clamp for Vec3T.
+ * @tparam T  Scalar type.
+ * @param[in] v  Vector to be clamped.
+ * @param[in] lo Component-wise lower bound.
+ * @param[in] hi Component-wise upper bound.
+ * @return Component-wise clamped vector.
+ */
 template <class T>
 constexpr const Vec3T<T>
 clamp(const Vec3T<T>& v, const Vec3T<T>& lo, const Vec3T<T>& hi)
@@ -45,13 +45,13 @@ clamp(const Vec3T<T>& v, const Vec3T<T>& lo, const Vec3T<T>& hi)
 }
 
 /**
-  @brief Signed distance function for a plane.
-  @details The SDF evaluates to `dot(a_point - m_point, m_normal)`: positive on the half-space
-  the normal points into, negative on the opposite side. The plane itself is the zero level-set.
-  `m_normal` must be unit length for the SDF to return a true distance; the full constructor
-  normalizes the input automatically. By default the plane is the y = 0 plane with normal (0,1,0).
-  @tparam T Floating-point precision.
-*/
+ * @brief Signed distance function for a plane.
+ * @details The SDF evaluates to `dot(a_point - m_point, m_normal)`: positive on the half-space
+ * the normal points into, negative on the opposite side. The plane itself is the zero level-set.
+ * `m_normal` must be unit length for the SDF to return a true distance; the full constructor
+ * normalizes the input automatically. By default the plane is the y = 0 plane with normal (0,1,0).
+ * @tparam T Floating-point precision.
+ */
 template <class T>
 class PlaneSDF : public SignedDistanceFunction<T>
 {
@@ -59,17 +59,17 @@ class PlaneSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs the y = 0 plane with outward normal (0, 1, 0).
-    @details The default plane passes through the origin and separates y < 0 (negative SDF) from
-    y > 0 (positive SDF).
-  */
+   * @brief Default constructor. Constructs the y = 0 plane with outward normal (0, 1, 0).
+   * @details The default plane passes through the origin and separates y < 0 (negative SDF) from
+   * y > 0 (positive SDF).
+   */
   PlaneSDF() = default;
 
   /**
-    @brief Full constructor.
-    @param[in] a_point  Any point on the plane.
-    @param[in] a_normal Plane normal vector (need not be unit length; it is normalized internally).
-  */
+   * @brief Full constructor.
+   * @param[in] a_point  Any point on the plane.
+   * @param[in] a_normal Plane normal vector (need not be unit length; it is normalized internally).
+   */
   PlaneSDF(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -85,37 +85,37 @@ public:
   }
 
   /**
-    @brief Copy constructor.
-  */
+   * @brief Copy constructor.
+   */
   PlaneSDF(const PlaneSDF&) = default;
 
   /**
-    @brief Move constructor.
-  */
+   * @brief Move constructor.
+   */
   PlaneSDF(PlaneSDF&&) = default;
 
   /**
-    @brief Copy assignment.
-  */
+   * @brief Copy assignment.
+   */
   PlaneSDF&
   operator=(const PlaneSDF&) = default;
 
   /**
-    @brief Move assignment.
-  */
+   * @brief Move assignment.
+   */
   PlaneSDF&
   operator=(PlaneSDF&&) = default;
 
   /**
-    @brief Destructor.
-  */
+   * @brief Destructor.
+   */
   virtual ~PlaneSDF() = default;
 
   /**
-    @brief Signed distance function for the plane.
-    @param[in] a_point Position.
-    @return Signed distance from a_point to the plane; negative on the side opposite to the normal.
-  */
+   * @brief Signed distance function for the plane.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the plane; negative on the side opposite to the normal.
+   */
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
@@ -129,23 +129,23 @@ public:
 
 protected:
   /**
-    @brief Point on plane.
-  */
+   * @brief Point on plane.
+   */
   Vec3T<T> m_point = Vec3T<T>::zero();
 
   /**
-    @brief Plane normal vector (unit length).
-  */
+   * @brief Plane normal vector (unit length).
+   */
   Vec3T<T> m_normal = Vec3T<T>(T(0), T(1), T(0));
 };
 
 /**
-  @brief Signed distance field for a sphere.
-  @details The sphere is placed at `m_center` with radius `m_radius`. The SDF is negative
-  inside the sphere and positive outside. By default the sphere is centered at the origin
-  with radius 1.
-  @tparam T Floating-point precision.
-*/
+ * @brief Signed distance field for a sphere.
+ * @details The sphere is placed at `m_center` with radius `m_radius`. The SDF is negative
+ * inside the sphere and positive outside. By default the sphere is centered at the origin
+ * with radius 1.
+ * @tparam T Floating-point precision.
+ */
 template <class T>
 class SphereSDF : public SignedDistanceFunction<T>
 {
@@ -153,15 +153,15 @@ class SphereSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs a unit sphere centered at the origin.
-  */
+   * @brief Default constructor. Constructs a unit sphere centered at the origin.
+   */
   SphereSDF() = default;
 
   /**
-    @brief Full constructor.
-    @param[in] a_center Sphere center.
-    @param[in] a_radius Sphere radius.
-  */
+   * @brief Full constructor.
+   * @param[in] a_center Sphere center.
+   * @param[in] a_radius Sphere radius.
+   */
   SphereSDF(const Vec3T<T>& a_center, const T& a_radius) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_center[0]));
@@ -175,36 +175,36 @@ public:
   }
 
   /**
-    @brief Copy constructor.
-  */
+   * @brief Copy constructor.
+   */
   SphereSDF(const SphereSDF&) = default;
 
   /**
-    @brief Move constructor.
-  */
+   * @brief Move constructor.
+   */
   SphereSDF(SphereSDF&&) = default;
 
   /**
-    @brief Copy assignment.
-  */
+   * @brief Copy assignment.
+   */
   SphereSDF&
   operator=(const SphereSDF&) = default;
 
   /**
-    @brief Move assignment.
-  */
+   * @brief Move assignment.
+   */
   SphereSDF&
   operator=(SphereSDF&&) = default;
 
   /**
-    @brief Destructor.
-  */
+   * @brief Destructor.
+   */
   virtual ~SphereSDF() = default;
 
   /**
-    @brief Get sphere center (const).
-    @return Const reference to the center position.
-  */
+   * @brief Get sphere center (const).
+   * @return Const reference to the center position.
+   */
   [[nodiscard]] const Vec3T<T>&
   getCenter() const noexcept
   {
@@ -212,9 +212,9 @@ public:
   }
 
   /**
-    @brief Get sphere center (mutable).
-    @return Mutable reference to the center position.
-  */
+   * @brief Get sphere center (mutable).
+   * @return Mutable reference to the center position.
+   */
   Vec3T<T>&
   getCenter() noexcept
   {
@@ -222,9 +222,9 @@ public:
   }
 
   /**
-    @brief Get sphere radius (const).
-    @return Const reference to the radius.
-  */
+   * @brief Get sphere radius (const).
+   * @return Const reference to the radius.
+   */
   [[nodiscard]] const T&
   getRadius() const noexcept
   {
@@ -232,9 +232,9 @@ public:
   }
 
   /**
-    @brief Get sphere radius (mutable).
-    @return Mutable reference to the radius.
-  */
+   * @brief Get sphere radius (mutable).
+   * @return Mutable reference to the radius.
+   */
   T&
   getRadius() noexcept
   {
@@ -242,10 +242,10 @@ public:
   }
 
   /**
-    @brief Signed distance function for the sphere.
-    @param[in] a_point Position.
-    @return Signed distance from a_point to the sphere surface; negative inside the sphere.
-  */
+   * @brief Signed distance function for the sphere.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the sphere surface; negative inside the sphere.
+   */
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
@@ -258,24 +258,24 @@ public:
 
 protected:
   /**
-    @brief Sphere center.
-  */
+   * @brief Sphere center.
+   */
   Vec3T<T> m_center = Vec3T<T>::zero();
 
   /**
-    @brief Sphere radius.
-  */
+   * @brief Sphere radius.
+   */
   T m_radius = T(1);
 };
 
 /**
-  @brief Signed distance field for an axis-aligned box (AABB).
-  @details The box is defined by its lower and upper corners `m_loCorner` and `m_hiCorner`.
-  It is axis-aligned (faces are perpendicular to the coordinate axes). The SDF is negative
-  inside and positive outside. Side lengths are `m_hiCorner[i] - m_loCorner[i]` per axis.
-  By default the box is the unit cube `[-0.5, 0.5]^3` centered at the origin.
-  @tparam T Floating-point precision.
-*/
+ * @brief Signed distance field for an axis-aligned box (AABB).
+ * @details The box is defined by its lower and upper corners `m_loCorner` and `m_hiCorner`.
+ * It is axis-aligned (faces are perpendicular to the coordinate axes). The SDF is negative
+ * inside and positive outside. Side lengths are `m_hiCorner[i] - m_loCorner[i]` per axis.
+ * By default the box is the unit cube `[-0.5, 0.5]^3` centered at the origin.
+ * @tparam T Floating-point precision.
+ */
 template <class T>
 class BoxSDF : public SignedDistanceFunction<T>
 {
@@ -283,16 +283,16 @@ class BoxSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs a unit cube centered at the origin: [-0.5, 0.5]^3.
-  */
+   * @brief Default constructor. Constructs a unit cube centered at the origin: [-0.5, 0.5]^3.
+   */
   BoxSDF() = default;
 
   /**
-    @brief Full constructor.
-    @param[in] a_loCorner Lower corner (minimum x, y, z).
-    @param[in] a_hiCorner Upper corner (maximum x, y, z). Each component must be strictly greater
-    than the corresponding component of a_loCorner.
-  */
+   * @brief Full constructor.
+   * @param[in] a_loCorner Lower corner (minimum x, y, z).
+   * @param[in] a_hiCorner Upper corner (maximum x, y, z). Each component must be strictly greater
+   * than the corresponding component of a_loCorner.
+   */
   BoxSDF(const Vec3T<T>& a_loCorner, const Vec3T<T>& a_hiCorner) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_loCorner[0]));
@@ -310,36 +310,36 @@ public:
   }
 
   /**
-    @brief Copy constructor.
-  */
+   * @brief Copy constructor.
+   */
   BoxSDF(const BoxSDF&) = default;
 
   /**
-    @brief Move constructor.
-  */
+   * @brief Move constructor.
+   */
   BoxSDF(BoxSDF&&) = default;
 
   /**
-    @brief Copy assignment.
-  */
+   * @brief Copy assignment.
+   */
   BoxSDF&
   operator=(const BoxSDF&) = default;
 
   /**
-    @brief Move assignment.
-  */
+   * @brief Move assignment.
+   */
   BoxSDF&
   operator=(BoxSDF&&) = default;
 
   /**
-    @brief Destructor.
-  */
+   * @brief Destructor.
+   */
   virtual ~BoxSDF() = default;
 
   /**
-    @brief Get lower-left corner
-    @return m_loCorner
-  */
+   * @brief Get lower-left corner
+   * @return m_loCorner
+   */
   [[nodiscard]] const Vec3T<T>&
   getLowCorner() const noexcept
   {
@@ -347,9 +347,9 @@ public:
   }
 
   /**
-    @brief Get lower-left corner
-    @return m_loCorner
-  */
+   * @brief Get lower-left corner
+   * @return m_loCorner
+   */
   Vec3T<T>&
   getLowCorner() noexcept
   {
@@ -357,9 +357,9 @@ public:
   }
 
   /**
-    @brief Get upper-right corner
-    @return m_hiCorner
-  */
+   * @brief Get upper-right corner
+   * @return m_hiCorner
+   */
   [[nodiscard]] const Vec3T<T>&
   getHighCorner() const noexcept
   {
@@ -367,9 +367,9 @@ public:
   }
 
   /**
-    @brief Get upper-right corner
-    @return m_hiCorner
-  */
+   * @brief Get upper-right corner
+   * @return m_hiCorner
+   */
   Vec3T<T>&
   getHighCorner() noexcept
   {
@@ -377,10 +377,10 @@ public:
   }
 
   /**
-    @brief Signed distance function for the axis-aligned box.
-    @param[in] a_point Position.
-    @return Signed distance from a_point to the box surface; negative inside the box.
-  */
+   * @brief Signed distance function for the axis-aligned box.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the box surface; negative inside the box.
+   */
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
@@ -408,27 +408,27 @@ public:
 
 protected:
   /**
-    @brief Low box corner.
-  */
+   * @brief Low box corner.
+   */
   Vec3T<T> m_loCorner = Vec3T<T>(T(-0.5), T(-0.5), T(-0.5));
 
   /**
-    @brief High box corner.
-  */
+   * @brief High box corner.
+   */
   Vec3T<T> m_hiCorner = Vec3T<T>(T(0.5), T(0.5), T(0.5));
 };
 
 /**
-  @brief Signed distance field for a torus.
-  @details The torus ring lies in the xy-plane and is centred at `m_center`. The major radius
-  `m_majorRadius` is the distance from the torus centre to the centre-line of the tube; the minor
-  radius `m_minorRadius` is the tube radius. The bounding box spans
-  `[center ± (majorRadius + minorRadius)]` in x and y, and `[center ± minorRadius]` in z.
-  The SDF is negative inside the tube and positive outside. The minor radius must be strictly
-  less than the major radius; otherwise the tube would self-intersect at the torus centre.
-  By default the torus is centred at the origin with major radius 1 and minor radius 0.5.
-  @tparam T Floating-point precision.
-*/
+ * @brief Signed distance field for a torus.
+ * @details The torus ring lies in the xy-plane and is centred at `m_center`. The major radius
+ * `m_majorRadius` is the distance from the torus centre to the centre-line of the tube; the minor
+ * radius `m_minorRadius` is the tube radius. The bounding box spans
+ * `[center ± (majorRadius + minorRadius)]` in x and y, and `[center ± minorRadius]` in z.
+ * The SDF is negative inside the tube and positive outside. The minor radius must be strictly
+ * less than the major radius; otherwise the tube would self-intersect at the torus centre.
+ * By default the torus is centred at the origin with major radius 1 and minor radius 0.5.
+ * @tparam T Floating-point precision.
+ */
 template <class T>
 class TorusSDF : public SignedDistanceFunction<T>
 {
@@ -436,16 +436,16 @@ class TorusSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs a torus centered at the origin with major radius 1 and minor radius 0.5.
-  */
+   * @brief Default constructor. Constructs a torus centered at the origin with major radius 1 and minor radius 0.5.
+   */
   TorusSDF() = default;
 
   /**
-    @brief Full constructor.
-    @param[in] a_center      Torus center.
-    @param[in] a_majorRadius Major (ring) radius.
-    @param[in] a_minorRadius Minor (tube) radius.
-  */
+   * @brief Full constructor.
+   * @param[in] a_center      Torus center.
+   * @param[in] a_majorRadius Major (ring) radius.
+   * @param[in] a_minorRadius Minor (tube) radius.
+   */
   TorusSDF(const Vec3T<T>& a_center, const T& a_majorRadius, const T& a_minorRadius) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_center[0]));
@@ -463,36 +463,36 @@ public:
   }
 
   /**
-    @brief Copy constructor.
-  */
+   * @brief Copy constructor.
+   */
   TorusSDF(const TorusSDF&) = default;
 
   /**
-    @brief Move constructor.
-  */
+   * @brief Move constructor.
+   */
   TorusSDF(TorusSDF&&) = default;
 
   /**
-    @brief Copy assignment.
-  */
+   * @brief Copy assignment.
+   */
   TorusSDF&
   operator=(const TorusSDF&) = default;
 
   /**
-    @brief Move assignment.
-  */
+   * @brief Move assignment.
+   */
   TorusSDF&
   operator=(TorusSDF&&) = default;
 
   /**
-    @brief Destructor.
-  */
+   * @brief Destructor.
+   */
   virtual ~TorusSDF() = default;
 
   /**
-    @brief Get torus center.
-    @return m_center
-  */
+   * @brief Get torus center.
+   * @return m_center
+   */
   [[nodiscard]] const Vec3T<T>&
   getCenter() const noexcept
   {
@@ -500,9 +500,9 @@ public:
   }
 
   /**
-    @brief Get torus center.
-    @return m_center
-  */
+   * @brief Get torus center.
+   * @return m_center
+   */
   Vec3T<T>&
   getCenter() noexcept
   {
@@ -510,9 +510,9 @@ public:
   }
 
   /**
-    @brief Get major radius.
-    @return m_majorRadius
-  */
+   * @brief Get major radius.
+   * @return m_majorRadius
+   */
   [[nodiscard]] const T&
   getMajorRadius() const noexcept
   {
@@ -520,9 +520,9 @@ public:
   }
 
   /**
-    @brief Get major radius.
-    @return m_majorRadius
-  */
+   * @brief Get major radius.
+   * @return m_majorRadius
+   */
   T&
   getMajorRadius() noexcept
   {
@@ -530,9 +530,9 @@ public:
   }
 
   /**
-    @brief Get minor radius.
-    @return m_minorRadius
-  */
+   * @brief Get minor radius.
+   * @return m_minorRadius
+   */
   [[nodiscard]] const T&
   getMinorRadius() const noexcept
   {
@@ -540,19 +540,19 @@ public:
   }
 
   /**
-    @brief Get minor radius.
-    @return m_minorRadius
-  */
+   * @brief Get minor radius.
+   * @return m_minorRadius
+   */
   T&
   getMinorRadius() noexcept
   {
     return m_minorRadius;
   }
   /**
-    @brief Signed distance function for the torus.
-    @param[in] a_point Position.
-    @return Signed distance from a_point to the torus surface; negative inside the torus tube.
-  */
+   * @brief Signed distance function for the torus.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the torus surface; negative inside the torus tube.
+   */
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
@@ -569,30 +569,30 @@ public:
 
 protected:
   /**
-    @brief Torus center.
-  */
+   * @brief Torus center.
+   */
   Vec3T<T> m_center = Vec3T<T>::zero();
 
   /**
-    @brief Major (ring) radius.
-  */
+   * @brief Major (ring) radius.
+   */
   T m_majorRadius = T(1);
 
   /**
-    @brief Minor (tube) radius.
-  */
+   * @brief Minor (tube) radius.
+   */
   T m_minorRadius = T(0.5);
 };
 
 /**
-  @brief Signed distance field for a finite, flat-capped cylinder.
-  @details The cylinder is defined by two cap-centre positions `m_center1` and `m_center2` and a
-  radius `m_radius`. The cylinder axis is the unit vector from `m_center1` to `m_center2`, and its
-  height (distance between the two flat caps) equals `distance(m_center1, m_center2)`. The SDF is
-  negative inside the cylinder and positive outside. By default the cylinder has radius 1 and
-  height 1, centred at the origin with its axis along y (cap centres at (0,-0.5,0) and (0,0.5,0)).
-  @tparam T Floating-point precision.
-*/
+ * @brief Signed distance field for a finite, flat-capped cylinder.
+ * @details The cylinder is defined by two cap-centre positions `m_center1` and `m_center2` and a
+ * radius `m_radius`. The cylinder axis is the unit vector from `m_center1` to `m_center2`, and its
+ * height (distance between the two flat caps) equals `distance(m_center1, m_center2)`. The SDF is
+ * negative inside the cylinder and positive outside. By default the cylinder has radius 1 and
+ * height 1, centred at the origin with its axis along y (cap centres at (0,-0.5,0) and (0,0.5,0)).
+ * @tparam T Floating-point precision.
+ */
 template <class T>
 class CylinderSDF : public SignedDistanceFunction<T>
 {
@@ -600,17 +600,17 @@ class CylinderSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs a unit cylinder of radius 1 and height 1, centred at the
-    origin with its axis along y (cap centres at (0,-0.5,0) and (0,0.5,0)).
-  */
+   * @brief Default constructor. Constructs a unit cylinder of radius 1 and height 1, centred at the
+   * origin with its axis along y (cap centres at (0,-0.5,0) and (0,0.5,0)).
+   */
   CylinderSDF() = default;
 
   /**
-    @brief Full constructor.
-    @param[in] a_center1 One endpoint (cap center).
-    @param[in] a_center2 Other endpoint (cap center).
-    @param[in] a_radius  Cylinder radius.
-  */
+   * @brief Full constructor.
+   * @param[in] a_center1 One endpoint (cap center).
+   * @param[in] a_center2 Other endpoint (cap center).
+   * @param[in] a_radius  Cylinder radius.
+   */
   CylinderSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T& a_radius) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_center1[0]));
@@ -633,36 +633,36 @@ public:
   }
 
   /**
-    @brief Copy constructor.
-  */
+   * @brief Copy constructor.
+   */
   CylinderSDF(const CylinderSDF&) = default;
 
   /**
-    @brief Move constructor.
-  */
+   * @brief Move constructor.
+   */
   CylinderSDF(CylinderSDF&&) = default;
 
   /**
-    @brief Copy assignment.
-  */
+   * @brief Copy assignment.
+   */
   CylinderSDF&
   operator=(const CylinderSDF&) = default;
 
   /**
-    @brief Move assignment.
-  */
+   * @brief Move assignment.
+   */
   CylinderSDF&
   operator=(CylinderSDF&&) = default;
 
   /**
-    @brief Destructor.
-  */
+   * @brief Destructor.
+   */
   virtual ~CylinderSDF() = default;
 
   /**
-    @brief Get one endpoint
-    @return m_center1
-  */
+   * @brief Get one endpoint
+   * @return m_center1
+   */
   [[nodiscard]] const Vec3T<T>&
   getCenter1() const noexcept
   {
@@ -670,9 +670,9 @@ public:
   }
 
   /**
-    @brief Get the other endpoint
-    @return m_center2
-  */
+   * @brief Get the other endpoint
+   * @return m_center2
+   */
   [[nodiscard]] const Vec3T<T>&
   getCenter2() const noexcept
   {
@@ -680,9 +680,9 @@ public:
   }
 
   /**
-    @brief Get radius.
-    @return m_radius.
-  */
+   * @brief Get radius.
+   * @return m_radius.
+   */
   [[nodiscard]] const T&
   getRadius() const noexcept
   {
@@ -690,10 +690,10 @@ public:
   }
 
   /**
-    @brief Signed distance function for the cylinder.
-    @param[in] a_point Position.
-    @return Signed distance from a_point to the cylinder surface; negative inside.
-  */
+   * @brief Signed distance function for the cylinder.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the cylinder surface; negative inside.
+   */
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
@@ -739,45 +739,45 @@ public:
 
 protected:
   /**
-    @brief One endpoint (cap center).
-  */
+   * @brief One endpoint (cap center).
+   */
   Vec3T<T> m_center1 = Vec3T<T>(T(0), T(-0.5), T(0));
 
   /**
-    @brief Other endpoint (cap center).
-  */
+   * @brief Other endpoint (cap center).
+   */
   Vec3T<T> m_center2 = Vec3T<T>(T(0), T(0.5), T(0));
 
   /**
-    @brief Midpoint of m_center1 and m_center2.
-  */
+   * @brief Midpoint of m_center1 and m_center2.
+   */
   Vec3T<T> m_center = Vec3T<T>::zero();
 
   /**
-    @brief Unit axis pointing from m_center1 to m_center2.
-  */
+   * @brief Unit axis pointing from m_center1 to m_center2.
+   */
   Vec3T<T> m_axis = Vec3T<T>(T(0), T(1), T(0));
 
   /**
-    @brief Distance between the two endpoints.
-  */
+   * @brief Distance between the two endpoints.
+   */
   T m_length = T(1);
 
   /**
-    @brief Cylinder radius.
-  */
+   * @brief Cylinder radius.
+   */
   T m_radius = T(1);
 };
 
 /**
-  @brief Signed distance field for an infinitely long cylinder.
-  @details The cylinder is infinite in one coordinate direction (selected by `m_axis`: 0 = x,
-  1 = y, 2 = z) and has a circular cross-section of radius `m_radius` centred at `m_center`
-  in the plane perpendicular to that axis. The SDF is the radial distance from the axis minus
-  the radius: negative inside the cylinder and positive outside. By default the cylinder has
-  radius 1, passes through the origin, and extends along y.
-  @tparam T Floating-point precision.
-*/
+ * @brief Signed distance field for an infinitely long cylinder.
+ * @details The cylinder is infinite in one coordinate direction (selected by `m_axis`: 0 = x,
+ * 1 = y, 2 = z) and has a circular cross-section of radius `m_radius` centred at `m_center`
+ * in the plane perpendicular to that axis. The SDF is the radial distance from the axis minus
+ * the radius: negative inside the cylinder and positive outside. By default the cylinder has
+ * radius 1, passes through the origin, and extends along y.
+ * @tparam T Floating-point precision.
+ */
 template <class T>
 class InfiniteCylinderSDF : public SignedDistanceFunction<T>
 {
@@ -785,17 +785,17 @@ class InfiniteCylinderSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs an infinite cylinder of radius 1 centred at the origin
-    with its axis along y (axis index 1).
-  */
+   * @brief Default constructor. Constructs an infinite cylinder of radius 1 centred at the origin
+   * with its axis along y (axis index 1).
+   */
   InfiniteCylinderSDF() = default;
 
   /**
-    @brief Full constructor.
-    @param[in] a_center Center point on the cylinder axis.
-    @param[in] a_radius Cylinder radius.
-    @param[in] a_axis   Coordinate axis index (0 = x, 1 = y, 2 = z).
-  */
+   * @brief Full constructor.
+   * @param[in] a_center Center point on the cylinder axis.
+   * @param[in] a_radius Cylinder radius.
+   * @param[in] a_axis   Coordinate axis index (0 = x, 1 = y, 2 = z).
+   */
   InfiniteCylinderSDF(const Vec3T<T>& a_center, const T& a_radius, const size_t a_axis) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_center[0]));
@@ -811,37 +811,37 @@ public:
   }
 
   /**
-    @brief Copy constructor.
-  */
+   * @brief Copy constructor.
+   */
   InfiniteCylinderSDF(const InfiniteCylinderSDF&) = default;
 
   /**
-    @brief Move constructor.
-  */
+   * @brief Move constructor.
+   */
   InfiniteCylinderSDF(InfiniteCylinderSDF&&) = default;
 
   /**
-    @brief Copy assignment.
-  */
+   * @brief Copy assignment.
+   */
   InfiniteCylinderSDF&
   operator=(const InfiniteCylinderSDF&) = default;
 
   /**
-    @brief Move assignment.
-  */
+   * @brief Move assignment.
+   */
   InfiniteCylinderSDF&
   operator=(InfiniteCylinderSDF&&) = default;
 
   /**
-    @brief Destructor.
-  */
+   * @brief Destructor.
+   */
   virtual ~InfiniteCylinderSDF() = default;
 
   /**
-    @brief Signed distance function for the infinite cylinder.
-    @param[in] a_point Position.
-    @return Signed distance from a_point to the cylinder surface; negative inside.
-  */
+   * @brief Signed distance function for the infinite cylinder.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the cylinder surface; negative inside.
+   */
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
@@ -859,38 +859,38 @@ public:
 
 protected:
   /**
-    @brief Center point on the cylinder axis.
-  */
+   * @brief Center point on the cylinder axis.
+   */
   Vec3T<T> m_center = Vec3T<T>::zero();
 
   /**
-    @brief Cylinder radius.
-  */
+   * @brief Cylinder radius.
+   */
   T m_radius = T(1);
 
   /**
-    @brief Coordinate axis index (0 = x, 1 = y, 2 = z).
-  */
+   * @brief Coordinate axis index (0 = x, 1 = y, 2 = z).
+   */
   size_t m_axis = 1U;
 };
 
 /**
-  @brief Signed distance field for a capsule (pill shape): a cylinder capped with hemispheres.
-  @details A capsule is defined by two outer tip positions and a radius. The tips are the
-  outermost points of each hemispherical endcap. The total length (tip to tip) equals
-  `distance(tip1, tip2)`. The internal cylindrical body has length
-  `distance(tip1, tip2) - 2 * radius`, and the two hemispheres each contribute a further
-  `radius` to each end.
-
-  Internally the hemisphere centres are stored as `m_center1` and `m_center2` (inset from the
-  tips by `radius` along the capsule axis). These are **not** the same as the tip positions
-  passed to the constructor.
-
-  The SDF is negative inside the capsule and positive outside. By default the capsule is
-  centred at the origin, aligned along y, with tips at (0,-1,0) and (0,1,0) and radius 0.5,
-  giving a total height of 2 and a cylindrical body of length 1.
-  @tparam T Floating-point precision.
-*/
+ * @brief Signed distance field for a capsule (pill shape): a cylinder capped with hemispheres.
+ * @details A capsule is defined by two outer tip positions and a radius. The tips are the
+ * outermost points of each hemispherical endcap. The total length (tip to tip) equals
+ * `distance(tip1, tip2)`. The internal cylindrical body has length
+ * `distance(tip1, tip2) - 2 * radius`, and the two hemispheres each contribute a further
+ * `radius` to each end.
+ *
+ * Internally the hemisphere centres are stored as `m_center1` and `m_center2` (inset from the
+ * tips by `radius` along the capsule axis). These are **not** the same as the tip positions
+ * passed to the constructor.
+ *
+ * The SDF is negative inside the capsule and positive outside. By default the capsule is
+ * centred at the origin, aligned along y, with tips at (0,-1,0) and (0,1,0) and radius 0.5,
+ * giving a total height of 2 and a cylindrical body of length 1.
+ * @tparam T Floating-point precision.
+ */
 template <class T>
 class CapsuleSDF : public SignedDistanceFunction<T>
 {
@@ -898,23 +898,23 @@ class CapsuleSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs a capsule with tips at (0,-1,0) and (0,1,0), radius 0.5.
-    @details Total height = 2, cylindrical body length = 1, aligned along y, centred at origin.
-    The stored hemisphere centres are at (0,-0.5,0) and (0,0.5,0).
-  */
+   * @brief Default constructor. Constructs a capsule with tips at (0,-1,0) and (0,1,0), radius 0.5.
+   * @details Total height = 2, cylindrical body length = 1, aligned along y, centred at origin.
+   * The stored hemisphere centres are at (0,-0.5,0) and (0,0.5,0).
+   */
   CapsuleSDF() = default;
 
   /**
-    @brief Full constructor.
-    @details The hemisphere centres stored internally are derived from the tips:
-    `m_center1 = a_tip1 + a_radius * axis` and `m_center2 = a_tip2 - a_radius * axis`,
-    where `axis = (a_tip2 - a_tip1) / distance(a_tip1, a_tip2)`.
-    The cylindrical body length is `distance(a_tip1, a_tip2) - 2 * a_radius`; for a valid
-    non-degenerate shape this must be positive, i.e. `distance(a_tip1, a_tip2) > 2 * a_radius`.
-    @param[in] a_tip1   Outer tip of one hemispherical cap (outermost point in that direction).
-    @param[in] a_tip2   Outer tip of the other hemispherical cap.
-    @param[in] a_radius Capsule radius (applied to both the tube and the hemispherical caps).
-  */
+   * @brief Full constructor.
+   * @details The hemisphere centres stored internally are derived from the tips:
+   * `m_center1 = a_tip1 + a_radius * axis` and `m_center2 = a_tip2 - a_radius * axis`,
+   * where `axis = (a_tip2 - a_tip1) / distance(a_tip1, a_tip2)`.
+   * The cylindrical body length is `distance(a_tip1, a_tip2) - 2 * a_radius`; for a valid
+   * non-degenerate shape this must be positive, i.e. `distance(a_tip1, a_tip2) > 2 * a_radius`.
+   * @param[in] a_tip1   Outer tip of one hemispherical cap (outermost point in that direction).
+   * @param[in] a_tip2   Outer tip of the other hemispherical cap.
+   * @param[in] a_radius Capsule radius (applied to both the tube and the hemispherical caps).
+   */
   CapsuleSDF(const Vec3T<T>& a_tip1, const Vec3T<T>& a_tip2, const T& a_radius) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_tip1[0]));
@@ -935,37 +935,37 @@ public:
   }
 
   /**
-    @brief Copy constructor.
-  */
+   * @brief Copy constructor.
+   */
   CapsuleSDF(const CapsuleSDF&) = default;
 
   /**
-    @brief Move constructor.
-  */
+   * @brief Move constructor.
+   */
   CapsuleSDF(CapsuleSDF&&) = default;
 
   /**
-    @brief Copy assignment.
-  */
+   * @brief Copy assignment.
+   */
   CapsuleSDF&
   operator=(const CapsuleSDF&) = default;
 
   /**
-    @brief Move assignment.
-  */
+   * @brief Move assignment.
+   */
   CapsuleSDF&
   operator=(CapsuleSDF&&) = default;
 
   /**
-    @brief Destructor.
-  */
+   * @brief Destructor.
+   */
   virtual ~CapsuleSDF() = default;
 
   /**
-    @brief Signed distance function for the capsule.
-    @param[in] a_point Position.
-    @return Signed distance from a_point to the capsule surface; negative inside.
-  */
+   * @brief Signed distance function for the capsule.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the capsule surface; negative inside.
+   */
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
@@ -985,36 +985,36 @@ public:
 
 protected:
   /**
-    @brief Center of one hemispherical cap.
-  */
+   * @brief Center of one hemispherical cap.
+   */
   Vec3T<T> m_center1 = Vec3T<T>(T(0), T(-0.5), T(0));
 
   /**
-    @brief Center of the other hemispherical cap.
-  */
+   * @brief Center of the other hemispherical cap.
+   */
   Vec3T<T> m_center2 = Vec3T<T>(T(0), T(0.5), T(0));
 
   /**
-    @brief Capsule radius.
-  */
+   * @brief Capsule radius.
+   */
   T m_radius = T(0.5);
 };
 
 /**
-  @brief Signed distance field for an infinite cone.
-  @details The cone tip is at `m_tip`. The cone body opens in the **-z** direction from the tip
-  (the interior, where SDF < 0, is the solid region extending downward along -z within the
-  cone surface). The full opening angle `a_angle` (tip-to-tip across the cone) is halved
-  internally; the half-angle is stored as `m_c = (sin(half_angle), cos(half_angle))`.
-
-  For a 45° full opening angle the half-angle is 22.5°; a point directly below the tip at
-  depth `d` sits on the cone surface when its radial distance from the axis equals
-  `d * tan(half_angle)`.
-
-  The cone is infinite: it has no base plane. By default the tip is at the origin and the full
-  opening angle is 45°, with the body extending along -z.
-  @tparam T Floating-point precision.
-*/
+ * @brief Signed distance field for an infinite cone.
+ * @details The cone tip is at `m_tip`. The cone body opens in the **-z** direction from the tip
+ * (the interior, where SDF < 0, is the solid region extending downward along -z within the
+ * cone surface). The full opening angle `a_angle` (tip-to-tip across the cone) is halved
+ * internally; the half-angle is stored as `m_c = (sin(half_angle), cos(half_angle))`.
+ *
+ * For a 45° full opening angle the half-angle is 22.5°; a point directly below the tip at
+ * depth `d` sits on the cone surface when its radial distance from the axis equals
+ * `d * tan(half_angle)`.
+ *
+ * The cone is infinite: it has no base plane. By default the tip is at the origin and the full
+ * opening angle is 45°, with the body extending along -z.
+ * @tparam T Floating-point precision.
+ */
 template <class T>
 class InfiniteConeSDF : public SignedDistanceFunction<T>
 {
@@ -1022,17 +1022,17 @@ class InfiniteConeSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs an infinite cone with tip at the origin, 45° full
-    opening angle, and body extending in the -z direction.
-  */
+   * @brief Default constructor. Constructs an infinite cone with tip at the origin, 45° full
+   * opening angle, and body extending in the -z direction.
+   */
   InfiniteConeSDF() = default;
 
   /**
-    @brief Full constructor.
-    @param[in] a_tip   Cone tip position.
-    @param[in] a_angle Full opening angle in degrees (must be in (0°, 180°)). The half-angle
-    `a_angle / 2` is used internally and encoded as `m_c = (sin, cos)` of that half-angle.
-  */
+   * @brief Full constructor.
+   * @param[in] a_tip   Cone tip position.
+   * @param[in] a_angle Full opening angle in degrees (must be in (0°, 180°)). The half-angle
+   * `a_angle / 2` is used internally and encoded as `m_c = (sin, cos)` of that half-angle.
+   */
   InfiniteConeSDF(const Vec3T<T>& a_tip, const T& a_angle) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_tip[0]));
@@ -1048,37 +1048,37 @@ public:
   }
 
   /**
-    @brief Copy constructor.
-  */
+   * @brief Copy constructor.
+   */
   InfiniteConeSDF(const InfiniteConeSDF&) = default;
 
   /**
-    @brief Move constructor.
-  */
+   * @brief Move constructor.
+   */
   InfiniteConeSDF(InfiniteConeSDF&&) = default;
 
   /**
-    @brief Copy assignment.
-  */
+   * @brief Copy assignment.
+   */
   InfiniteConeSDF&
   operator=(const InfiniteConeSDF&) = default;
 
   /**
-    @brief Move assignment.
-  */
+   * @brief Move assignment.
+   */
   InfiniteConeSDF&
   operator=(InfiniteConeSDF&&) = default;
 
   /**
-    @brief Destructor.
-  */
+   * @brief Destructor.
+   */
   virtual ~InfiniteConeSDF() = default;
 
   /**
-    @brief Signed distance function for the infinite cone.
-    @param[in] a_point Position.
-    @return Signed distance from a_point to the cone surface; negative inside the cone.
-  */
+   * @brief Signed distance function for the infinite cone.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the cone surface; negative inside the cone.
+   */
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
@@ -1098,28 +1098,28 @@ public:
 
 protected:
   /**
-    @brief Tip position.
-  */
+   * @brief Tip position.
+   */
   Vec3T<T> m_tip = Vec3T<T>::zero();
 
   /**
-    @brief (sin, cos) of the half opening-angle. Default: 45° full angle → half-angle 22.5°.
-  */
+   * @brief (sin, cos) of the half opening-angle. Default: 45° full angle → half-angle 22.5°.
+   */
   Vec2T<T> m_c = Vec2T<T>(std::sin(pi<T> / T(8)), std::cos(pi<T> / T(8)));
 };
 
 /**
-  @brief Signed distance field for a finite cone.
-  @details The cone tip is at `m_tip` and the body opens in the **-z** direction, so the base
-  disc lies at `m_tip + (0, 0, -m_height)`. The full opening angle `a_angle` is the tip-to-tip
-  apex angle; internally the half-angle is encoded as `m_c = (sin(half_angle), cos(half_angle))`.
-  The base radius equals `m_height * tan(half_angle) = m_height * m_c.x / m_c.y`.
-
-  The SDF is negative inside the solid cone (including the base disc) and positive outside.
-  By default the tip is at the origin, the height is 1, and the full opening angle is 45°,
-  giving a base radius of `tan(22.5°) ≈ 0.414`.
-  @tparam T Floating-point precision.
-*/
+ * @brief Signed distance field for a finite cone.
+ * @details The cone tip is at `m_tip` and the body opens in the **-z** direction, so the base
+ * disc lies at `m_tip + (0, 0, -m_height)`. The full opening angle `a_angle` is the tip-to-tip
+ * apex angle; internally the half-angle is encoded as `m_c = (sin(half_angle), cos(half_angle))`.
+ * The base radius equals `m_height * tan(half_angle) = m_height * m_c.x / m_c.y`.
+ *
+ * The SDF is negative inside the solid cone (including the base disc) and positive outside.
+ * By default the tip is at the origin, the height is 1, and the full opening angle is 45°,
+ * giving a base radius of `tan(22.5°) ≈ 0.414`.
+ * @tparam T Floating-point precision.
+ */
 template <class T>
 class ConeSDF : public SignedDistanceFunction<T>
 {
@@ -1127,17 +1127,17 @@ class ConeSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs a finite cone with its tip at the origin, height 1,
-    and a 45-degree opening angle, body extending in the -z direction.
-  */
+   * @brief Default constructor. Constructs a finite cone with its tip at the origin, height 1,
+   * and a 45-degree opening angle, body extending in the -z direction.
+   */
   ConeSDF() = default;
 
   /**
-    @brief Full constructor.
-    @param[in] a_tip    Cone tip position.
-    @param[in] a_height Cone height (tip to base).
-    @param[in] a_angle  Full opening angle in degrees.
-  */
+   * @brief Full constructor.
+   * @param[in] a_tip    Cone tip position.
+   * @param[in] a_height Cone height (tip to base).
+   * @param[in] a_angle  Full opening angle in degrees.
+   */
   ConeSDF(const Vec3T<T>& a_tip, const T& a_height, const T& a_angle) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_tip[0]));
@@ -1156,37 +1156,37 @@ public:
   }
 
   /**
-    @brief Copy constructor.
-  */
+   * @brief Copy constructor.
+   */
   ConeSDF(const ConeSDF&) = default;
 
   /**
-    @brief Move constructor.
-  */
+   * @brief Move constructor.
+   */
   ConeSDF(ConeSDF&&) = default;
 
   /**
-    @brief Copy assignment.
-  */
+   * @brief Copy assignment.
+   */
   ConeSDF&
   operator=(const ConeSDF&) = default;
 
   /**
-    @brief Move assignment.
-  */
+   * @brief Move assignment.
+   */
   ConeSDF&
   operator=(ConeSDF&&) = default;
 
   /**
-    @brief Destructor.
-  */
+   * @brief Destructor.
+   */
   virtual ~ConeSDF() = default;
 
   /**
-    @brief Signed distance function for the finite cone.
-    @param[in] a_point Position.
-    @return Signed distance from a_point to the cone surface; negative inside the cone.
-  */
+   * @brief Signed distance function for the finite cone.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the cone surface; negative inside the cone.
+   */
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
@@ -1219,31 +1219,31 @@ public:
 
 protected:
   /**
-    @brief Tip position.
-  */
+   * @brief Tip position.
+   */
   Vec3T<T> m_tip = Vec3T<T>::zero();
 
   /**
-    @brief (sin, cos) of the half opening-angle. Default: 45° full angle → half-angle 22.5°.
-  */
+   * @brief (sin, cos) of the half opening-angle. Default: 45° full angle → half-angle 22.5°.
+   */
   Vec2T<T> m_c = Vec2T<T>(std::sin(pi<T> / T(8)), std::cos(pi<T> / T(8)));
 
   /**
-    @brief Cone height (tip to base).
-  */
+   * @brief Cone height (tip to base).
+   */
   T m_height = T(1);
 };
 
 /**
-  @brief Signed distance field for an axis-aligned box with rounded corners.
-  @details The box is centred at the origin. The constructor takes the full side lengths along
-  each axis and a corner curvature radius. Internally, half-extents `m_dimensions = 0.5 *
-  a_dimensions` are stored. The actual bounding half-extent in each direction is
-  `m_dimensions[i] + curvature`, so the total bounding box has full side lengths
-  `a_dimensions[i] + 2 * curvature`. The corners are rounded by spheres of radius `curvature`.
-  The SDF is negative inside and positive outside.
-  @tparam T Floating-point precision.
-*/
+ * @brief Signed distance field for an axis-aligned box with rounded corners.
+ * @details The box is centred at the origin. The constructor takes the full side lengths along
+ * each axis and a corner curvature radius. Internally, half-extents `m_dimensions = 0.5 *
+ * a_dimensions` are stored. The actual bounding half-extent in each direction is
+ * `m_dimensions[i] + curvature`, so the total bounding box has full side lengths
+ * `a_dimensions[i] + 2 * curvature`. The corners are rounded by spheres of radius `curvature`.
+ * The SDF is negative inside and positive outside.
+ * @tparam T Floating-point precision.
+ */
 template <class T>
 class RoundedBoxSDF : public SignedDistanceFunction<T>
 {
@@ -1251,18 +1251,18 @@ class RoundedBoxSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs a rounded unit cube centered at the origin
-    ([-0.5, 0.5]^3 before rounding) with corner curvature 0.1.
-    @details Total half-extent in each direction is 0.5 + 0.1 = 0.6.
-  */
+   * @brief Default constructor. Constructs a rounded unit cube centered at the origin
+   * ([-0.5, 0.5]^3 before rounding) with corner curvature 0.1.
+   * @details Total half-extent in each direction is 0.5 + 0.1 = 0.6.
+   */
   RoundedBoxSDF() = default;
 
   /**
-    @brief Full constructor.
-    @details The total half-extent in direction @p i is @c 0.5*a_dimensions[i] + a_curvature.
-    @param[in] a_dimensions Box dimensions (full side lengths before rounding).
-    @param[in] a_curvature  Corner sphere radius. Must be > 0.
-  */
+   * @brief Full constructor.
+   * @details The total half-extent in direction @p i is @c 0.5*a_dimensions[i] + a_curvature.
+   * @param[in] a_dimensions Box dimensions (full side lengths before rounding).
+   * @param[in] a_curvature  Corner sphere radius. Must be > 0.
+   */
   RoundedBoxSDF(const Vec3T<T>& a_dimensions, const T a_curvature) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_dimensions[0]));
@@ -1279,37 +1279,37 @@ public:
   }
 
   /**
-    @brief Copy constructor. Shares the internal sphere object.
-  */
+   * @brief Copy constructor. Shares the internal sphere object.
+   */
   RoundedBoxSDF(const RoundedBoxSDF&) = default;
 
   /**
-    @brief Move constructor.
-  */
+   * @brief Move constructor.
+   */
   RoundedBoxSDF(RoundedBoxSDF&&) = default;
 
   /**
-    @brief Copy assignment. Shares the internal sphere object.
-  */
+   * @brief Copy assignment. Shares the internal sphere object.
+   */
   RoundedBoxSDF&
   operator=(const RoundedBoxSDF&) = default;
 
   /**
-    @brief Move assignment.
-  */
+   * @brief Move assignment.
+   */
   RoundedBoxSDF&
   operator=(RoundedBoxSDF&&) = default;
 
   /**
-    @brief Destructor.
-  */
+   * @brief Destructor.
+   */
   virtual ~RoundedBoxSDF() = default;
 
   /**
-    @brief Signed distance function for the rounded box.
-    @param[in] a_point Position.
-    @return Signed distance from a_point to the rounded-box surface; negative inside.
-  */
+   * @brief Signed distance function for the rounded box.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the rounded-box surface; negative inside.
+   */
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
@@ -1322,33 +1322,33 @@ public:
 
 protected:
   /**
-    @brief Sphere of radius = curvature used to round the corners.
-  */
+   * @brief Sphere of radius = curvature used to round the corners.
+   */
   std::shared_ptr<SphereSDF<T>> m_sphere = std::make_shared<SphereSDF<T>>(Vec3T<T>::zero(), T(0.1));
 
   /**
-    @brief Half-extents of the inner box (= 0.5 * the user-supplied dimensions).
-  */
+   * @brief Half-extents of the inner box (= 0.5 * the user-supplied dimensions).
+   */
   Vec3T<T> m_dimensions = Vec3T<T>(T(0.5), T(0.5), T(0.5));
 };
 
 /**
-  @brief Ken Perlin's gradient-noise implicit function.
-  @details This class evaluates multi-octave Perlin noise at a 3-D point and returns the result
-  as a scalar. It is **not** a true signed distance function (the gradient magnitude is not
-  guaranteed to equal 1), but it can serve as a procedural displacement field when added to or
-  subtracted from a conventional SDF.
-
-  The output of `signedDistance` is on the range `[0, m_noiseAmplitude]` for a single octave.
-  Multiple octaves sum scaled contributions: each successive octave doubles the spatial frequency
-  (controlled by `m_noisePersistence` dividing the frequency) and attenuates the amplitude by
-  `m_noisePersistence`.
-
-  @note The default constructor leaves the permutation table all-zeros, producing constant-zero
-  noise. Use the full constructor (which initialises the table from Ken Perlin's reference
-  permutation and then shuffles it) or call `shuffle()` explicitly before use.
-  @tparam T Floating-point precision.
-*/
+ * @brief Ken Perlin's gradient-noise implicit function.
+ * @details This class evaluates multi-octave Perlin noise at a 3-D point and returns the result
+ * as a scalar. It is **not** a true signed distance function (the gradient magnitude is not
+ * guaranteed to equal 1), but it can serve as a procedural displacement field when added to or
+ * subtracted from a conventional SDF.
+ *
+ * The output of `signedDistance` is on the range `[0, m_noiseAmplitude]` for a single octave.
+ * Multiple octaves sum scaled contributions: each successive octave doubles the spatial frequency
+ * (controlled by `m_noisePersistence` dividing the frequency) and attenuates the amplitude by
+ * `m_noisePersistence`.
+ *
+ * @note The default constructor leaves the permutation table all-zeros, producing constant-zero
+ * noise. Use the full constructor (which initialises the table from Ken Perlin's reference
+ * permutation and then shuffles it) or call `shuffle()` explicitly before use.
+ * @tparam T Floating-point precision.
+ */
 template <class T>
 class PerlinSDF : public SignedDistanceFunction<T>
 {
@@ -1356,18 +1356,18 @@ class PerlinSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs a single-octave Perlin noise field with unit amplitude,
-    unit frequency along all axes, and persistence 0.5.
-  */
+   * @brief Default constructor. Constructs a single-octave Perlin noise field with unit amplitude,
+   * unit frequency along all axes, and persistence 0.5.
+   */
   PerlinSDF() = default;
 
   /**
-    @brief Full constructor.
-    @param[in] a_noiseAmplitude   Noise amplitude (output scale).
-    @param[in] a_noiseFrequency   Spatial frequency along each Cartesian axis.
-    @param[in] a_noisePersistence Per-octave amplitude decay factor. Clamped to [0, 1].
-    @param[in] a_noiseOctaves     Number of noise octaves. Clamped to >= 1.
-  */
+   * @brief Full constructor.
+   * @param[in] a_noiseAmplitude   Noise amplitude (output scale).
+   * @param[in] a_noiseFrequency   Spatial frequency along each Cartesian axis.
+   * @param[in] a_noisePersistence Per-octave amplitude decay factor. Clamped to [0, 1].
+   * @param[in] a_noiseOctaves     Number of noise octaves. Clamped to >= 1.
+   */
   PerlinSDF(const T            a_noiseAmplitude,
             const Vec3T<T>     a_noiseFrequency,
             const T            a_noisePersistence,
@@ -1394,37 +1394,37 @@ public:
   }
 
   /**
-    @brief Copy constructor.
-  */
+   * @brief Copy constructor.
+   */
   PerlinSDF(const PerlinSDF&) = default;
 
   /**
-    @brief Move constructor.
-  */
+   * @brief Move constructor.
+   */
   PerlinSDF(PerlinSDF&&) = default;
 
   /**
-    @brief Copy assignment.
-  */
+   * @brief Copy assignment.
+   */
   PerlinSDF&
   operator=(const PerlinSDF&) = default;
 
   /**
-    @brief Move assignment.
-  */
+   * @brief Move assignment.
+   */
   PerlinSDF&
   operator=(PerlinSDF&&) = default;
 
   /**
-    @brief Destructor.
-  */
+   * @brief Destructor.
+   */
   virtual ~PerlinSDF() = default;
 
   /**
-    @brief Signed distance function. Generates a noise value on [0, m_noiseAmplitude].
-    @param[in] a_point Input point.
-    @return Octave-summed Perlin noise value scaled by m_noiseAmplitude.
-  */
+   * @brief Signed distance function. Generates a noise value on [0, m_noiseAmplitude].
+   * @param[in] a_point Input point.
+   * @return Octave-summed Perlin noise value scaled by m_noiseAmplitude.
+   */
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
@@ -1448,17 +1448,17 @@ public:
   };
 
   /**
-    @brief Shuffle the permutation table with the provided uniform random number generator.
-    @details Reseeds the 256-entry permutation table using std::shuffle and then mirrors it
-    into the upper 256 entries. The URNG type must satisfy the C++ UniformRandomBitGenerator
-    concept (e.g., std::mt19937).
-    @tparam URNG Uniform random number generator type (e.g., std::mt19937).
-    @param[in] g Uniform random number generator instance to drive the shuffle.
-    @note When using parallel calculations it is exceptionally important that the input RNG
-    produces the same sequence across all threads/ranks. Otherwise, each thread/rank will
-    generate a different permutation table and therefore a different noise field, resulting
-    in no single coherent geometry.
-  */
+   * @brief Shuffle the permutation table with the provided uniform random number generator.
+   * @details Reseeds the 256-entry permutation table using std::shuffle and then mirrors it
+   * into the upper 256 entries. The URNG type must satisfy the C++ UniformRandomBitGenerator
+   * concept (e.g., std::mt19937).
+   * @tparam URNG Uniform random number generator type (e.g., std::mt19937).
+   * @param[in] g Uniform random number generator instance to drive the shuffle.
+   * @note When using parallel calculations it is exceptionally important that the input RNG
+   * produces the same sequence across all threads/ranks. Otherwise, each thread/rank will
+   * generate a different permutation table and therefore a different noise field, resulting
+   * in no single coherent geometry.
+   */
   template <class URNG>
   void
   shuffle(URNG& g) noexcept
@@ -1476,9 +1476,9 @@ public:
   }
 
   /**
-    @brief Get the internal permutation table
-    @return m_permutationTable.
-  */
+   * @brief Get the internal permutation table
+   * @return m_permutationTable.
+   */
   std::array<int, 512>&
   getPermutationTable() noexcept
   {
@@ -1487,11 +1487,11 @@ public:
 
 protected:
   /**
-    @brief Ken Perlin's original 256-entry permutation table.
-    @details Used by the full constructor and shuffle() to seed m_permutationTable. Stored as a
-    static constexpr member so it is available to subclasses without polluting the enclosing
-    namespace.
-  */
+   * @brief Ken Perlin's original 256-entry permutation table.
+   * @details Used by the full constructor and shuffle() to seed m_permutationTable. Stored as a
+   * static constexpr member so it is available to subclasses without polluting the enclosing
+   * namespace.
+   */
   static constexpr std::array<int, 256> s_perlinPermutationTable = {
     151, 160, 137, 91,  90,  15,  131, 13,  201, 95,  96,  53,  194, 233, 7,   225, 140, 36,  103, 30,  69,  142,
     8,   99,  37,  240, 21,  10,  23,  190, 6,   148, 247, 120, 234, 75,  0,   26,  197, 62,  94,  252, 219, 203,
@@ -1507,39 +1507,39 @@ protected:
     67,  29,  24,  72,  243, 141, 128, 195, 78,  66,  215, 61,  156, 180};
 
   /**
-    @brief Spatial noise frequency along each Cartesian axis.
-  */
+   * @brief Spatial noise frequency along each Cartesian axis.
+   */
   Vec3T<T> m_noiseFrequency = Vec3T<T>(T(1), T(1), T(1));
 
   /**
-    @brief Noise amplitude (output scale).
-  */
+   * @brief Noise amplitude (output scale).
+   */
   T m_noiseAmplitude = T(1);
 
   /**
-    @brief Per-octave amplitude decay factor.
-  */
+   * @brief Per-octave amplitude decay factor.
+   */
   T m_noisePersistence = T(0.5);
 
   /**
-    @brief Integer hash permutation table (512 entries: [0..255] mirrored).
-    @details Default-constructed with all zeros (degenerate, constant-zero noise).
-    Use the full constructor or shuffle() to populate with a real permutation.
-  */
+   * @brief Integer hash permutation table (512 entries: [0..255] mirrored).
+   * @details Default-constructed with all zeros (degenerate, constant-zero noise).
+   * Use the full constructor or shuffle() to populate with a real permutation.
+   */
   std::array<int, 512> m_permutationTable = {};
 
   /**
-    @brief Number of noise octaves.
-  */
+   * @brief Number of noise octaves.
+   */
   unsigned int m_noiseOctaves = 1U;
 
   /**
-    @brief Ken Perlin's linear interpolation helper.
-    @param[in] t Interpolation weight in [0,1].
-    @param[in] a Start value.
-    @param[in] b End value.
-    @return a + t*(b - a).
-  */
+   * @brief Ken Perlin's linear interpolation helper.
+   * @param[in] t Interpolation weight in [0,1].
+   * @param[in] a Start value.
+   * @param[in] b End value.
+   * @return a + t*(b - a).
+   */
   virtual T
   lerp(const T t, const T a, const T b) const noexcept
   {
@@ -1547,10 +1547,10 @@ protected:
   };
 
   /**
-    @brief Ken Perlin's fade (smoothstep) function: 6t^5 - 15t^4 + 10t^3.
-    @param[in] t Input in [0,1].
-    @return Smoothed value in [0,1].
-  */
+   * @brief Ken Perlin's fade (smoothstep) function: 6t^5 - 15t^4 + 10t^3.
+   * @param[in] t Input in [0,1].
+   * @return Smoothed value in [0,1].
+   */
   virtual T
   fade(const T t) const noexcept
   {
@@ -1558,13 +1558,13 @@ protected:
   };
 
   /**
-    @brief Ken Perlin's gradient hash function.
-    @param[in] hash Hash value selecting one of 16 gradient directions.
-    @param[in] x    x-component of the relative position.
-    @param[in] y    y-component of the relative position.
-    @param[in] z    z-component of the relative position.
-    @return Dot product of the selected pseudo-random gradient with (x, y, z).
-  */
+   * @brief Ken Perlin's gradient hash function.
+   * @param[in] hash Hash value selecting one of 16 gradient directions.
+   * @param[in] x    x-component of the relative position.
+   * @param[in] y    y-component of the relative position.
+   * @param[in] z    z-component of the relative position.
+   * @return Dot product of the selected pseudo-random gradient with (x, y, z).
+   */
   T
   grad(const int hash, const T x, const T y, const T z) const noexcept
   {
@@ -1575,10 +1575,10 @@ protected:
   }
 
   /**
-    @brief Single-octave Perlin noise evaluation.
-    @param[in] a_point Input point in noise space.
-    @return Noise value in [-1, 1].
-  */
+   * @brief Single-octave Perlin noise evaluation.
+   * @param[in] a_point Input point in noise space.
+   * @return Noise value in [-1, 1].
+   */
   T
   noise(const Vec3T<T>& a_point) const noexcept
   {
@@ -1620,27 +1620,27 @@ protected:
 };
 
 /**
-  @brief Signed distance field for a cylinder with rounded (toroidal) edges.
-  @details The cylinder is centred at the origin with its axis along **y**. The constructor
-  takes the outer radius, the total height, and an edge curvature radius. The curvature rounds
-  the sharp edges where the flat caps meet the cylindrical wall; the resulting shape is sometimes
-  called a "stadium of revolution" or a "pill cylinder".
-
-  Internally three derived parameters are stored:
-  - `m_majorRadius = a_radius - a_curvature`: radius of the inner cylindrical core (before edge
-    rounding).
-  - `m_minorRadius = a_curvature`: radius of the torus-like edge rounding.
-  - `m_height = 0.5 * a_height - a_curvature`: half-height of the inner cylindrical core (before
-    edge rounding).
-
-  The outer bounding cylinder has radius `m_majorRadius + m_minorRadius = a_radius` and
-  half-height `m_height + m_minorRadius = 0.5 * a_height`. For the geometry to be valid,
-  `a_curvature` must be strictly less than `a_radius` and less than `0.5 * a_height`.
-
-  The SDF is negative inside and positive outside. By default the cylinder has outer radius 1,
-  height 1, and edge curvature 0.1 (stored as m_majorRadius=0.9, m_minorRadius=0.1, m_height=0.4).
-  @tparam T Floating-point precision.
-*/
+ * @brief Signed distance field for a cylinder with rounded (toroidal) edges.
+ * @details The cylinder is centred at the origin with its axis along **y**. The constructor
+ * takes the outer radius, the total height, and an edge curvature radius. The curvature rounds
+ * the sharp edges where the flat caps meet the cylindrical wall; the resulting shape is sometimes
+ * called a "stadium of revolution" or a "pill cylinder".
+ *
+ * Internally three derived parameters are stored:
+ * - `m_majorRadius = a_radius - a_curvature`: radius of the inner cylindrical core (before edge
+ * rounding).
+ * - `m_minorRadius = a_curvature`: radius of the torus-like edge rounding.
+ * - `m_height = 0.5 * a_height - a_curvature`: half-height of the inner cylindrical core (before
+ * edge rounding).
+ *
+ * The outer bounding cylinder has radius `m_majorRadius + m_minorRadius = a_radius` and
+ * half-height `m_height + m_minorRadius = 0.5 * a_height`. For the geometry to be valid,
+ * `a_curvature` must be strictly less than `a_radius` and less than `0.5 * a_height`.
+ *
+ * The SDF is negative inside and positive outside. By default the cylinder has outer radius 1,
+ * height 1, and edge curvature 0.1 (stored as m_majorRadius=0.9, m_minorRadius=0.1, m_height=0.4).
+ * @tparam T Floating-point precision.
+ */
 template <class T>
 class RoundedCylinderSDF : public SignedDistanceFunction<T>
 {
@@ -1648,18 +1648,18 @@ class RoundedCylinderSDF : public SignedDistanceFunction<T>
 
 public:
   /**
-    @brief Default constructor. Constructs a rounded cylinder centred at the origin, axis along y,
-    with outer radius 1, total height 1, and edge curvature 0.1.
-  */
+   * @brief Default constructor. Constructs a rounded cylinder centred at the origin, axis along y,
+   * with outer radius 1, total height 1, and edge curvature 0.1.
+   */
   RoundedCylinderSDF() = default;
 
   /**
-    @brief Full constructor.
-    @param[in] a_radius    Outer cylinder radius. Must be > 0 and > a_curvature.
-    @param[in] a_curvature Edge rounding radius. Must be > 0 and satisfy
-    a_curvature < a_radius and 2 * a_curvature < a_height.
-    @param[in] a_height    Total cylinder height. Must be > 0 and > 2 * a_curvature.
-  */
+   * @brief Full constructor.
+   * @param[in] a_radius    Outer cylinder radius. Must be > 0 and > a_curvature.
+   * @param[in] a_curvature Edge rounding radius. Must be > 0 and satisfy
+   * a_curvature < a_radius and 2 * a_curvature < a_height.
+   * @param[in] a_height    Total cylinder height. Must be > 0 and > 2 * a_curvature.
+   */
   RoundedCylinderSDF(const T a_radius, const T a_curvature, const T a_height) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_radius));
@@ -1677,37 +1677,37 @@ public:
   }
 
   /**
-    @brief Copy constructor.
-  */
+   * @brief Copy constructor.
+   */
   RoundedCylinderSDF(const RoundedCylinderSDF&) = default;
 
   /**
-    @brief Move constructor.
-  */
+   * @brief Move constructor.
+   */
   RoundedCylinderSDF(RoundedCylinderSDF&&) = default;
 
   /**
-    @brief Copy assignment.
-  */
+   * @brief Copy assignment.
+   */
   RoundedCylinderSDF&
   operator=(const RoundedCylinderSDF&) = default;
 
   /**
-    @brief Move assignment.
-  */
+   * @brief Move assignment.
+   */
   RoundedCylinderSDF&
   operator=(RoundedCylinderSDF&&) = default;
 
   /**
-    @brief Destructor.
-  */
+   * @brief Destructor.
+   */
   virtual ~RoundedCylinderSDF() = default;
 
   /**
-    @brief Signed distance function for the rounded cylinder.
-    @param[in] a_point Position.
-    @return Signed distance from a_point to the rounded-cylinder surface; negative inside.
-  */
+   * @brief Signed distance function for the rounded cylinder.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the rounded-cylinder surface; negative inside.
+   */
   [[nodiscard]] virtual T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
@@ -1724,18 +1724,18 @@ public:
 
 protected:
   /**
-    @brief Inner cylinder radius (= outer radius - curvature).
-  */
+   * @brief Inner cylinder radius (= outer radius - curvature).
+   */
   T m_majorRadius = T(0.9);
 
   /**
-    @brief Edge rounding radius (= curvature).
-  */
+   * @brief Edge rounding radius (= curvature).
+   */
   T m_minorRadius = T(0.1);
 
   /**
-    @brief Inner half-height (= 0.5*height - curvature).
-  */
+   * @brief Inner half-height (= 0.5*height - curvature).
+   */
   T m_height = T(0.4);
 };
 

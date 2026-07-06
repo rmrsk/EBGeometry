@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_Polygon2DImplem.hpp
-  @brief  Implementation of EBGeometry_Polygon2D.hpp
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_Polygon2DImplem.hpp
+ * @brief  Implementation of EBGeometry_Polygon2D.hpp
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_POLYGON2DIMPLEM_HPP
 #define EBGEOMETRY_POLYGON2DIMPLEM_HPP

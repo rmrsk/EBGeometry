@@ -13,8 +13,8 @@
 #include <vector>
 
 // Our includes
-#include "EBGeometry_VTK.hpp"
 #include "EBGeometry_Soup.hpp"
+#include "EBGeometry_VTK.hpp"
 
 namespace EBGeometry {
 

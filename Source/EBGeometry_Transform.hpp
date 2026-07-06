@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_Transform.hpp
-  @brief  Various transformations for implicit functions and distance fields
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_Transform.hpp
+ * @brief  Various transformations for implicit functions and distance fields
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_TRANSFORM_HPP
 #define EBGEOMETRY_TRANSFORM_HPP
@@ -25,90 +25,90 @@
 namespace EBGeometry {
 
 /**
-  @brief Convenience function for taking the complement of an implicit function
-  @tparam T Floating-point precision
-  @param[in] a_implicitFunction Input implicit function
-  @return New implicit function representing the complement (negated value)
-*/
+ * @brief Convenience function for taking the complement of an implicit function
+ * @tparam T Floating-point precision
+ * @param[in] a_implicitFunction Input implicit function
+ * @return New implicit function representing the complement (negated value)
+ */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 Complement(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction);
 
 /**
-  @brief Convenience function for translating an implicit function
-  @tparam T Floating-point precision
-  @param[in] a_implicitFunction Input implicit function to be translated
-  @param[in] a_shift Distance to shift
-  @return New implicit function representing the translated input
-*/
+ * @brief Convenience function for translating an implicit function
+ * @tparam T Floating-point precision
+ * @param[in] a_implicitFunction Input implicit function to be translated
+ * @param[in] a_shift Distance to shift
+ * @return New implicit function representing the translated input
+ */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 Translate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_shift);
 
 /**
-  @brief Convenience function for rotating an implicit function.
-  @tparam T Floating-point precision
-  @param[in] a_implicitFunction Input implicit function to be rotated.
-  @param[in] a_angle Angle to be rotated by (in degrees)
-  @param[in] a_axis Axis to rotate about (0=x, 1=y, 2=z)
-  @return New implicit function representing the rotated input
-*/
+ * @brief Convenience function for rotating an implicit function.
+ * @tparam T Floating-point precision
+ * @param[in] a_implicitFunction Input implicit function to be rotated.
+ * @param[in] a_angle Angle to be rotated by (in degrees)
+ * @param[in] a_axis Axis to rotate about (0=x, 1=y, 2=z)
+ * @return New implicit function representing the rotated input
+ */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 Rotate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_angle, const size_t a_axis);
 
 /**
-  @brief Convenience function for scaling an implicit function.
-  @tparam T Floating-point precision
-  @param[in] a_implicitFunction Input implicit function to be scaled.
-  @param[in] a_scale Scaling factor (must be non-zero)
-  @return New implicit function representing the uniformly scaled input
-*/
+ * @brief Convenience function for scaling an implicit function.
+ * @tparam T Floating-point precision
+ * @param[in] a_implicitFunction Input implicit function to be scaled.
+ * @param[in] a_scale Scaling factor (must be non-zero)
+ * @return New implicit function representing the uniformly scaled input
+ */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 Scale(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_scale);
 
 /**
-  @brief Convenience function for offsetting an implicit function
-  @tparam T Floating-point precision
-  @param[in] a_implicitFunction Input implicit function to be offset
-  @param[in] a_offset Offset distance subtracted from the function value
-  @return New implicit function representing the offset (grown/shrunk) input
-*/
+ * @brief Convenience function for offsetting an implicit function
+ * @tparam T Floating-point precision
+ * @param[in] a_implicitFunction Input implicit function to be offset
+ * @param[in] a_offset Offset distance subtracted from the function value
+ * @return New implicit function representing the offset (grown/shrunk) input
+ */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 Offset(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_offset);
 
 /**
-  @brief Convenience function for creating a shell out of an implicit function
-  @tparam T Floating-point precision
-  @param[in] a_implicitFunction Input implicit function to be shelled.
-  @param[in] a_delta Shell thickness
-  @return New implicit function representing the annular (hollow) version of the input
-*/
+ * @brief Convenience function for creating a shell out of an implicit function
+ * @tparam T Floating-point precision
+ * @param[in] a_implicitFunction Input implicit function to be shelled.
+ * @param[in] a_delta Shell thickness
+ * @return New implicit function representing the annular (hollow) version of the input
+ */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 Annular(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_delta);
 
 /**
-  @brief Convenience function for blurring an implicit function
-  @tparam T Floating-point precision
-  @param[in] a_implicitFunction Input implicit function to be blurred
-  @param[in] a_blurDistance Smoothing distance
-  @return New implicit function representing the blurred input
-*/
+ * @brief Convenience function for blurring an implicit function
+ * @tparam T Floating-point precision
+ * @param[in] a_implicitFunction Input implicit function to be blurred
+ * @param[in] a_blurDistance Smoothing distance
+ * @return New implicit function representing the blurred input
+ */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 Blur(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_blurDistance);
 
 /**
-  @brief Convenience function for mollification with an input sphere.
-  @tparam T Floating-point precision
-  @param[in] a_implicitFunction Input implicit function to be mollified
-  @param[in] a_dist Mollification distance.
-  @param[in] a_mollifierSamples Number of samples per dimension for the convolution kernel (must be >= 1).
-  @return New implicit function representing the mollified (smoothed) input
-*/
+ * @brief Convenience function for mollification with an input sphere.
+ * @tparam T Floating-point precision
+ * @param[in] a_implicitFunction Input implicit function to be mollified
+ * @param[in] a_dist Mollification distance.
+ * @param[in] a_mollifierSamples Number of samples per dimension for the convolution kernel (must be >= 1).
+ * @return New implicit function representing the mollified (smoothed) input
+ */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
@@ -116,31 +116,31 @@ Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
         const size_t                                a_mollifierSamples = 2);
 
 /**
-  @brief Convenience function for elongating (stretching) an implicit function
-  @tparam T Floating-point precision
-  @param[in] a_implicitFunction Implicit function to be elongated
-  @param[in] a_elongation Per-axis elongation amounts
-  @return New implicit function representing the stretched input
-*/
+ * @brief Convenience function for elongating (stretching) an implicit function
+ * @tparam T Floating-point precision
+ * @param[in] a_implicitFunction Implicit function to be elongated
+ * @param[in] a_elongation Per-axis elongation amounts
+ * @return New implicit function representing the stretched input
+ */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 Elongate(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_elongation);
 
 /**
-  @brief Convenience function for reflecting an implicit function
-  @tparam T Floating-point precision
-  @param[in] a_implicitFunction Implicit function to be reflected
-  @param[in] a_reflectPlane Plane to reflect across (0=yz-plane, 1=xz-plane, 2=xy-plane).
-  @return New implicit function representing the reflected input
-*/
+ * @brief Convenience function for reflecting an implicit function
+ * @tparam T Floating-point precision
+ * @param[in] a_implicitFunction Implicit function to be reflected
+ * @param[in] a_reflectPlane Plane to reflect across (0=yz-plane, 1=xz-plane, 2=xy-plane).
+ * @return New implicit function representing the reflected input
+ */
 template <class T>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 Reflect(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const size_t& a_reflectPlane);
 
 /**
-  @brief Complemented implicit function
-  @tparam T Floating-point precision
-*/
+ * @brief Complemented implicit function
+ * @tparam T Floating-point precision
+ */
 template <class T>
 class ComplementIF : public ImplicitFunction<T>
 {
@@ -148,40 +148,40 @@ class ComplementIF : public ImplicitFunction<T>
 
 public:
   /**
-    @brief No weak construction for this one
-  */
+   * @brief No weak construction for this one
+   */
   ComplementIF() = delete;
 
   /**
-    @brief Full constructor
-    @param[in] a_implicitFunction Input implicit function
-  */
+   * @brief Full constructor
+   * @param[in] a_implicitFunction Input implicit function
+   */
   ComplementIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction) noexcept;
 
   /**
-    @brief Destructor (does nothing)
-  */
+   * @brief Destructor (does nothing)
+   */
   virtual ~ComplementIF() noexcept;
 
   /**
-    @brief Value function
-    @param[in] a_point Query point
-    @return Negated value of the wrapped implicit function at a_point
-  */
+   * @brief Value function
+   * @param[in] a_point Query point
+   * @return Negated value of the wrapped implicit function at a_point
+   */
   [[nodiscard]] virtual T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
   /**
-    @brief Implicit function
-  */
+   * @brief Implicit function
+   */
   std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
 };
 
 /**
-  @brief Translated implicit function
-  @tparam T Floating-point precision
-*/
+ * @brief Translated implicit function
+ * @tparam T Floating-point precision
+ */
 template <class T>
 class TranslateIF : public ImplicitFunction<T>
 {
@@ -189,46 +189,46 @@ class TranslateIF : public ImplicitFunction<T>
 
 public:
   /**
-    @brief No weak construction for this one
-  */
+   * @brief No weak construction for this one
+   */
   TranslateIF() = delete;
 
   /**
-    @brief Full constructor
-    @param[in] a_implicitFunction Input implicit function to be translated
-    @param[in] a_shift Distance to shift
-  */
+   * @brief Full constructor
+   * @param[in] a_implicitFunction Input implicit function to be translated
+   * @param[in] a_shift Distance to shift
+   */
   TranslateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_shift) noexcept;
 
   /**
-    @brief Destructor (does nothing)
-  */
+   * @brief Destructor (does nothing)
+   */
   virtual ~TranslateIF() noexcept;
 
   /**
-    @brief Value function
-    @param[in] a_point Query point
-    @return Value of the wrapped implicit function evaluated at a_point shifted by -m_shift
-  */
+   * @brief Value function
+   * @param[in] a_point Query point
+   * @return Value of the wrapped implicit function evaluated at a_point shifted by -m_shift
+   */
   [[nodiscard]] virtual T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
   /**
-    @brief Underlying implicit function
-  */
+   * @brief Underlying implicit function
+   */
   std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
 
   /**
-    @brief Input point translate.
-  */
+   * @brief Input point translate.
+   */
   Vec3T<T> m_shift;
 };
 
 /**
-  @brief Rotated implicit function. Rotates an implicit function about an axis.
-  @tparam T Floating-point precision
-*/
+ * @brief Rotated implicit function. Rotates an implicit function about an axis.
+ * @tparam T Floating-point precision
+ */
 template <class T>
 class RotateIF : public ImplicitFunction<T>
 {
@@ -236,64 +236,64 @@ class RotateIF : public ImplicitFunction<T>
 
 public:
   /**
-    @brief No weak construction
-  */
+   * @brief No weak construction
+   */
   RotateIF() = delete;
 
   /**
-    @brief Full constructor. Rotates the wrapped implicit function by a_angle degrees about a_axis.
-    @param[in] a_implicitFunction  Input implicit function.
-    @param[in] a_angle Angle to rotate (in degrees)
-    @param[in] a_axis Axis to rotate about (0=x, 1=y, 2=z)
-  */
+   * @brief Full constructor. Rotates the wrapped implicit function by a_angle degrees about a_axis.
+   * @param[in] a_implicitFunction  Input implicit function.
+   * @param[in] a_angle Angle to rotate (in degrees)
+   * @param[in] a_axis Axis to rotate about (0=x, 1=y, 2=z)
+   */
   RotateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
            const T                                     a_angle,
            const size_t                                a_axis) noexcept;
 
   /**
-    @brief Destructor
-  */
+   * @brief Destructor
+   */
   virtual ~RotateIF() noexcept;
 
   /**
-    @brief Value function with rotation applied to the query point.
-    @param[in] a_point Query point
-    @return Value of the wrapped implicit function evaluated at the inversely rotated point
-  */
+   * @brief Value function with rotation applied to the query point.
+   * @param[in] a_point Query point
+   * @return Value of the wrapped implicit function evaluated at the inversely rotated point
+   */
   [[nodiscard]] virtual T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
   /**
-    @brief Underlying implicit function.
-  */
+   * @brief Underlying implicit function.
+   */
   std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
 
   /**
-    @brief Axis to rotate about
-  */
+   * @brief Axis to rotate about
+   */
   size_t m_axis;
 
   /**
-    @brief Angle to rotate. 
-  */
+   * @brief Angle to rotate.
+   */
   T m_angle;
 
   /**
-    @brief Parameter in rotation matrix. Stored for efficiency.
-  */
+   * @brief Parameter in rotation matrix. Stored for efficiency.
+   */
   T m_cosAngle;
 
   /**
-    @brief Parameter in rotation matrix. Stored for efficiency.
-  */
+   * @brief Parameter in rotation matrix. Stored for efficiency.
+   */
   T m_sinAngle;
 };
 
 /**
-  @brief Offset implicit function. Offsets (grows or shrinks) the implicit function by a constant.
-  @tparam T Floating-point precision
-*/
+ * @brief Offset implicit function. Offsets (grows or shrinks) the implicit function by a constant.
+ * @tparam T Floating-point precision
+ */
 template <class T>
 class OffsetIF : public ImplicitFunction<T>
 {
@@ -301,46 +301,46 @@ class OffsetIF : public ImplicitFunction<T>
 
 public:
   /**
-    @brief Disallowed weak construction
-  */
+   * @brief Disallowed weak construction
+   */
   OffsetIF() = delete;
 
   /**
-    @brief Full constructor. Subtracts a_offset from the wrapped function value.
-    @param[in] a_implicitFunction Input implicit function.
-    @param[in] a_offset Offset value.
-  */
+   * @brief Full constructor. Subtracts a_offset from the wrapped function value.
+   * @param[in] a_implicitFunction Input implicit function.
+   * @param[in] a_offset Offset value.
+   */
   OffsetIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_offset) noexcept;
 
   /**
-    @brief Destructor
-  */
+   * @brief Destructor
+   */
   virtual ~OffsetIF() noexcept;
 
   /**
-    @brief Value function with offset applied.
-    @param[in] a_point Query point
-    @return Value of the wrapped implicit function minus the stored offset
-  */
+   * @brief Value function with offset applied.
+   * @param[in] a_point Query point
+   * @return Value of the wrapped implicit function minus the stored offset
+   */
   [[nodiscard]] virtual T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
   /**
-    @brief Underlying implicit function.
-  */
+   * @brief Underlying implicit function.
+   */
   std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
 
   /**
-    @brief Offset value.
-  */
+   * @brief Offset value.
+   */
   T m_offset;
 };
 
 /**
-  @brief Uniformly scaled implicit function.
-  @tparam T Floating-point precision
-*/
+ * @brief Uniformly scaled implicit function.
+ * @tparam T Floating-point precision
+ */
 template <class T>
 class ScaleIF : public ImplicitFunction<T>
 {
@@ -348,46 +348,46 @@ class ScaleIF : public ImplicitFunction<T>
 
 public:
   /**
-    @brief Disallowed weak construction
-  */
+   * @brief Disallowed weak construction
+   */
   ScaleIF() = delete;
 
   /**
-    @brief Full constructor.
-    @param[in] a_implicitFunction Implicit function to be scaled.
-    @param[in] a_scale            Scaling factor (must be non-zero).
-  */
+   * @brief Full constructor.
+   * @param[in] a_implicitFunction Implicit function to be scaled.
+   * @param[in] a_scale            Scaling factor (must be non-zero).
+   */
   ScaleIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_scale) noexcept;
 
   /**
-    @brief Destructor
-  */
+   * @brief Destructor
+   */
   virtual ~ScaleIF() noexcept;
 
   /**
-    @brief Value function.
-    @param[in] a_point Query point
-    @return Signed distance of the wrapped function evaluated at a_point/m_scale, multiplied by m_scale
-  */
+   * @brief Value function.
+   * @param[in] a_point Query point
+   * @return Signed distance of the wrapped function evaluated at a_point/m_scale, multiplied by m_scale
+   */
   [[nodiscard]] virtual T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
   /**
-    @brief Original implicit function.
-  */
+   * @brief Original implicit function.
+   */
   std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
 
   /**
-    @brief Scaling factor.
-  */
+   * @brief Scaling factor.
+   */
   T m_scale;
 };
 
 /**
-  @brief Annular implicit function. Creates a shell out of the implicit function.
-  @tparam T Floating-point precision
-*/
+ * @brief Annular implicit function. Creates a shell out of the implicit function.
+ * @tparam T Floating-point precision
+ */
 template <class T>
 class AnnularIF : public ImplicitFunction<T>
 {
@@ -395,50 +395,50 @@ class AnnularIF : public ImplicitFunction<T>
 
 public:
   /**
-    @brief Disallowed weak construction
-  */
+   * @brief Disallowed weak construction
+   */
   AnnularIF() = delete;
 
   /**
-    @brief Full constructor.
-    @param[in] a_implicitFunction  Input implicit function.
-    @param[in] a_delta Shell thickness (at least if the implicit function is also signed distance)
-  */
+   * @brief Full constructor.
+   * @param[in] a_implicitFunction  Input implicit function.
+   * @param[in] a_delta Shell thickness (at least if the implicit function is also signed distance)
+   */
   AnnularIF(const std::shared_ptr<ImplicitFunction<T>> a_implicitFunction, const T a_delta);
 
   /**
-    @brief Destructor
-  */
+   * @brief Destructor
+   */
   virtual ~AnnularIF() noexcept;
 
   /**
-    @brief Value function.
-    @param[in] a_point Query point
-    @return abs(f(a_point)) - m_delta, hollowing out the shape at distance m_delta from the surface
-  */
+   * @brief Value function.
+   * @param[in] a_point Query point
+   * @return abs(f(a_point)) - m_delta, hollowing out the shape at distance m_delta from the surface
+   */
   [[nodiscard]] virtual T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
   /**
-    @brief Original implicit function.
-  */
+   * @brief Original implicit function.
+   */
   std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction;
 
   /**
-    @brief Shell thickness.
-  */
+   * @brief Shell thickness.
+   */
   T m_delta;
 };
 
 /**
-  @brief Blurred/interpolated implicit function — can be used for smoothing.
-  @details Passes the input implicit function through a 3D box filter sampled at
-  face centres, edge centres, and corners of a cube with half-side m_blurDistance.
-  The per-sample weights are products of alpha^(3-n) * ((1-alpha)/2)^n where n is
-  the number of displaced axes.
-  @tparam T Floating-point precision
-*/
+ * @brief Blurred/interpolated implicit function — can be used for smoothing.
+ * @details Passes the input implicit function through a 3D box filter sampled at
+ * face centres, edge centres, and corners of a cube with half-side m_blurDistance.
+ * The per-sample weights are products of alpha^(3-n) * ((1-alpha)/2)^n where n is
+ * the number of displaced axes.
+ * @tparam T Floating-point precision
+ */
 template <class T>
 class BlurIF : public ImplicitFunction<T>
 {
@@ -446,57 +446,57 @@ class BlurIF : public ImplicitFunction<T>
 
 public:
   /**
-    @brief Disallowed weak construction
-  */
+   * @brief Disallowed weak construction
+   */
   BlurIF() = delete;
 
   /**
-    @brief Full constructor.
-    @param[in] a_implicitFunction Input implicit function
-    @param[in] a_blurDistance     Blur distance
-    @param[in] a_alpha            Blend factor in [0, 1]; 1 = no blur, 0 = full blur.
-  */
+   * @brief Full constructor.
+   * @param[in] a_implicitFunction Input implicit function
+   * @param[in] a_blurDistance     Blur distance
+   * @param[in] a_alpha            Blend factor in [0, 1]; 1 = no blur, 0 = full blur.
+   */
   BlurIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
          const T                                     a_blurDistance,
          const T                                     a_alpha = 0.5) noexcept;
 
   /**
-    @brief Destructor
-  */
+   * @brief Destructor
+   */
   virtual ~BlurIF() noexcept;
 
   /**
-    @brief Value function
-    @param[in] a_point Query point
-    @return Blurred implicit function value at a_point
-  */
+   * @brief Value function
+   * @param[in] a_point Query point
+   * @return Blurred implicit function value at a_point
+   */
   [[nodiscard]] virtual T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
   /**
-    @brief Original implicit function
-  */
+   * @brief Original implicit function
+   */
   std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
 
   /**
-    @brief Blur distance.
-  */
+   * @brief Blur distance.
+   */
   T m_blurDistance;
 
   /**
-    @brief Alpha factor
-  */
+   * @brief Alpha factor
+   */
   T m_alpha;
 };
 
 /**
-  @brief Mollified implicit function.
-  @details Convolves the wrapped implicit function with a pre-sampled mollifier kernel
-  (typically a sphere SDF) over a uniform 3-D grid of a_numPoints^3 sample offsets
-  spanning [-a_maxValue, a_maxValue]^3.  Weights are normalized to sum to 1.
-  @tparam T Floating-point precision
-*/
+ * @brief Mollified implicit function.
+ * @details Convolves the wrapped implicit function with a pre-sampled mollifier kernel
+ * (typically a sphere SDF) over a uniform 3-D grid of a_numPoints^3 sample offsets
+ * spanning [-a_maxValue, a_maxValue]^3.  Weights are normalized to sum to 1.
+ * @tparam T Floating-point precision
+ */
 template <class T>
 class MollifyIF : public ImplicitFunction<T>
 {
@@ -504,59 +504,59 @@ class MollifyIF : public ImplicitFunction<T>
 
 public:
   /**
-    @brief Disallowed weak construction
-  */
+   * @brief Disallowed weak construction
+   */
   MollifyIF() = delete;
 
   /**
-    @brief Full constructor
-    @param[in] a_implicitFunction  Input implicit function.
-    @param[in] a_mollifier         Mollifier implicit function (e.g. a sphere SDF)
-    @param[in] a_maxValue          Half-width of the sampling region; must be > 0 for any smoothing to occur.
-    @param[in] a_numPoints         Number of sample points per axis; must be >= 2 for any smoothing to occur.
-  */
+   * @brief Full constructor
+   * @param[in] a_implicitFunction  Input implicit function.
+   * @param[in] a_mollifier         Mollifier implicit function (e.g. a sphere SDF)
+   * @param[in] a_maxValue          Half-width of the sampling region; must be > 0 for any smoothing to occur.
+   * @param[in] a_numPoints         Number of sample points per axis; must be >= 2 for any smoothing to occur.
+   */
   MollifyIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,
             const std::shared_ptr<ImplicitFunction<T>>& a_mollifier,
             const T                                     a_maxValue,
             const size_t                                a_numPoints) noexcept;
 
   /**
-    @brief Destructor
-  */
+   * @brief Destructor
+   */
   virtual ~MollifyIF() noexcept;
 
   /**
-    @brief Value function
-    @param[in] a_point Query point
-    @return Weighted convolution of the wrapped function with the pre-sampled mollifier kernel
-  */
+   * @brief Value function
+   * @param[in] a_point Query point
+   * @return Weighted convolution of the wrapped function with the pre-sampled mollifier kernel
+   */
   [[nodiscard]] virtual T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
   /**
-    @brief Original implicit function.
-  */
+   * @brief Original implicit function.
+   */
   std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
 
   /**
-    @brief Mollifier
-  */
+   * @brief Mollifier
+   */
   std::shared_ptr<ImplicitFunction<T>> m_mollifier;
 
   /**
-    @brief Mollifier Weights
-  */
+   * @brief Mollifier Weights
+   */
   std::vector<std::pair<Vec3T<T>, T>> m_sampledMollifier;
 };
 
 /**
-  @brief Implicit function which is an elongation of another implicit function along each axis.
-  @details Elongation clamps the query point component-wise to [-elongation, +elongation] and
-  subtracts the clamped value before evaluating the wrapped function — effectively stretching
-  the shape without changing its cross-section profile.
-  @tparam T Floating-point precision
-*/
+ * @brief Implicit function which is an elongation of another implicit function along each axis.
+ * @details Elongation clamps the query point component-wise to [-elongation, +elongation] and
+ * subtracts the clamped value before evaluating the wrapped function — effectively stretching
+ * the shape without changing its cross-section profile.
+ * @tparam T Floating-point precision
+ */
 template <class T>
 class ElongateIF : public ImplicitFunction<T>
 {
@@ -564,46 +564,46 @@ class ElongateIF : public ImplicitFunction<T>
 
 public:
   /**
-    @brief Disallowed weak construction
-  */
+   * @brief Disallowed weak construction
+   */
   ElongateIF() = delete;
 
   /**
-    @brief Full constructor.
-    @param[in] a_implicitFunction Implicit function to be stretched
-    @param[in] a_elongation Per-axis elongation amounts (non-negative values expected)
-  */
+   * @brief Full constructor.
+   * @param[in] a_implicitFunction Implicit function to be stretched
+   * @param[in] a_elongation Per-axis elongation amounts (non-negative values expected)
+   */
   ElongateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const Vec3T<T>& a_elongation) noexcept;
 
   /**
-    @brief Destructor
-  */
+   * @brief Destructor
+   */
   virtual ~ElongateIF() noexcept;
 
   /**
-    @brief Value function
-    @param[in] a_point Query point
-    @return Value of the wrapped function evaluated at a_point clamped by m_elongation
-  */
+   * @brief Value function
+   * @param[in] a_point Query point
+   * @return Value of the wrapped function evaluated at a_point clamped by m_elongation
+   */
   [[nodiscard]] virtual T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
   /**
-    @brief Underlying implicit function to be elongated
-  */
+   * @brief Underlying implicit function to be elongated
+   */
   std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction;
 
   /**
-    @brief Elongation
-  */
+   * @brief Elongation
+   */
   Vec3T<T> m_elongation;
 };
 
 /**
-  @brief Implicit function which is a reflection of another implicit function.
-  @tparam T Floating-point precision
-*/
+ * @brief Implicit function which is a reflection of another implicit function.
+ * @tparam T Floating-point precision
+ */
 template <class T>
 class ReflectIF : public ImplicitFunction<T>
 {
@@ -611,39 +611,39 @@ class ReflectIF : public ImplicitFunction<T>
 
 public:
   /**
-    @brief Disallowed weak construction
-  */
+   * @brief Disallowed weak construction
+   */
   ReflectIF() = delete;
 
   /**
-    @brief Full constructor. Reflects across the specified plane.
-    @param[in] a_implicitFunction Implicit function to be reflected
-    @param[in] a_reflectPlane Plane to reflect across (0=yz-plane flips x, 1=xz-plane flips y, 2=xy-plane flips z)
-  */
+   * @brief Full constructor. Reflects across the specified plane.
+   * @param[in] a_implicitFunction Implicit function to be reflected
+   * @param[in] a_reflectPlane Plane to reflect across (0=yz-plane flips x, 1=xz-plane flips y, 2=xy-plane flips z)
+   */
   ReflectIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const size_t& a_reflectPlane) noexcept;
 
   /**
-    @brief Destructor
-  */
+   * @brief Destructor
+   */
   virtual ~ReflectIF() noexcept;
 
   /**
-    @brief Value function
-    @param[in] a_point Query point
-    @return Value of the wrapped function evaluated at a_point with the reflected coordinate flipped
-  */
+   * @brief Value function
+   * @param[in] a_point Query point
+   * @return Value of the wrapped function evaluated at a_point with the reflected coordinate flipped
+   */
   [[nodiscard]] virtual T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
   /**
-    @brief Underlying implicit function to be reflected
-  */
+   * @brief Underlying implicit function to be reflected
+   */
   std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction;
 
   /**
-    @brief Reflection parameters
-  */
+   * @brief Reflection parameters
+   */
   Vec3T<T> m_reflectParams;
 };
 

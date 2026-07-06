@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_DCEL_FaceImplem.hpp
-  @brief  Implementation of EBGeometry_DCEL_Face.hpp
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_DCEL_FaceImplem.hpp
+ * @brief  Implementation of EBGeometry_DCEL_Face.hpp
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_DCEL_FACEIMPLEM_HPP
 #define EBGEOMETRY_DCEL_FACEIMPLEM_HPP

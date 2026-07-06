@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_SimpleTimer.hpp
-  @brief  Header for the SimpleTimer class
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_SimpleTimer.hpp
+ * @brief  Header for the SimpleTimer class
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_SIMPLETIMER_HPP
 #define EBGEOMETRY_SIMPLETIMER_HPP
@@ -17,61 +17,61 @@
 namespace EBGeometry {
 
 /**
-  @brief Simple timer class used for local performance profiling. Does not include MPI capabilities and is therefore local to each rank. 
-*/
+ * @brief Simple timer class used for local performance profiling. Does not include MPI capabilities and is therefore local to each rank.
+ */
 class SimpleTimer
 {
 public:
   /**
-    @brief Clock alias
-  */
+   * @brief Clock alias
+   */
   using Clock = std::chrono::steady_clock;
 
   /**
-    @brief Time point alias
-  */
+   * @brief Time point alias
+   */
   using TimePoint = Clock::time_point;
 
   /**
-    @brief Constructor. Immediately calls start() followed by stop() to initialise both
-           time points to the current instant, leaving the timer in a valid state with
-           approximately zero elapsed time.
-  */
+   * @brief Constructor. Immediately calls start() followed by stop() to initialise both
+   * time points to the current instant, leaving the timer in a valid state with
+   * approximately zero elapsed time.
+   */
   inline SimpleTimer() noexcept;
 
   /**
-    @brief Destructor
-  */
+   * @brief Destructor
+   */
   inline ~SimpleTimer() noexcept = default;
 
   /**
-    @brief Start timing
-  */
+   * @brief Start timing
+   */
   inline void
   start() noexcept;
 
   /**
-    @brief Stop timing
-  */
+   * @brief Stop timing
+   */
   inline void
   stop() noexcept;
 
   /**
-    @brief Compute the elapsed time between the last start() and stop() calls.
-    @return Elapsed time in seconds as a double.
-  */
+   * @brief Compute the elapsed time between the last start() and stop() calls.
+   * @return Elapsed time in seconds as a double.
+   */
   inline double
   seconds() const noexcept;
 
 protected:
   /**
-    @brief Start point
-  */
+   * @brief Start point
+   */
   TimePoint m_start;
 
   /**
-    @brief Stop point
-  */
+   * @brief Stop point
+   */
   TimePoint m_stop;
 };
 

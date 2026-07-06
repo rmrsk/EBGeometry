@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_SoupImplem.hpp
-  @brief  Implementation of EBGeometry_Soup.hpp
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_SoupImplem.hpp
+ * @brief  Implementation of EBGeometry_Soup.hpp
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_SOUPIMPLEM_HPP
 #define EBGEOMETRY_SOUPIMPLEM_HPP

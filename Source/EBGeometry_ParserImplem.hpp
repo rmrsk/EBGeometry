@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_ParserImplem.hpp
-  @brief  Implementation of EBGeometry_Parser.hpp
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_ParserImplem.hpp
+ * @brief  Implementation of EBGeometry_Parser.hpp
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_PARSERIMPLEM_HPP
 #define EBGEOMETRY_PARSERIMPLEM_HPP

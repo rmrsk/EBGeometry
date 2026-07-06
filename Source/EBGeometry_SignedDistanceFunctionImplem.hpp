@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_SignedDistanceFunctionImplem.hpp
-  @brief  Implementation of EBGeometry_SignedDistanceFunctionImplem.hpp
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_SignedDistanceFunctionImplem.hpp
+ * @brief  Implementation of EBGeometry_SignedDistanceFunctionImplem.hpp
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_SIGNEDDISTANCEFUNCTIONIMPLEM_HPP
 #define EBGEOMETRY_SIGNEDDISTANCEFUNCTIONIMPLEM_HPP

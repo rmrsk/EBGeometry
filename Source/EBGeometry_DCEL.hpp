@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_DCEL.hpp
-  @brief  Namespace documentation
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_DCEL.hpp
+ * @brief  Namespace documentation
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_DCEL_HPP
 #define EBGEOMETRY_DCEL_HPP
@@ -14,60 +14,60 @@
 namespace EBGeometry {
 
 /**
-  @namespace DCEL
-  @brief Namespace containing various double-connected edge list (DCEL)
-  functionality.
-*/
+ * @namespace DCEL
+ * @brief Namespace containing various double-connected edge list (DCEL)
+ * functionality.
+ */
 namespace DCEL {
 
 /**
-  @brief Default meta-data type for the DCEL primitives
-*/
+ * @brief Default meta-data type for the DCEL primitives
+ */
 using DefaultMetaData = short;
 
 /**
-  @brief Vertex class
-  @tparam T    Floating-point precision type.
-  @tparam Meta User-defined metadata type.
-*/
+ * @brief Vertex class
+ * @tparam T    Floating-point precision type.
+ * @tparam Meta User-defined metadata type.
+ */
 template <class T, class Meta = DefaultMetaData>
 class VertexT;
 
 /**
-  @brief Edge class
-  @tparam T    Floating-point precision type.
-  @tparam Meta User-defined metadata type.
-*/
+ * @brief Edge class
+ * @tparam T    Floating-point precision type.
+ * @tparam Meta User-defined metadata type.
+ */
 template <class T, class Meta = DefaultMetaData>
 class EdgeT;
 
 /**
-  @brief Face class
-  @tparam T    Floating-point precision type.
-  @tparam Meta User-defined metadata type.
-*/
+ * @brief Face class
+ * @tparam T    Floating-point precision type.
+ * @tparam Meta User-defined metadata type.
+ */
 template <class T, class Meta = DefaultMetaData>
 class FaceT;
 
 /**
-  @brief Mesh class
-  @tparam T    Floating-point precision type.
-  @tparam Meta User-defined metadata type.
-*/
+ * @brief Mesh class
+ * @tparam T    Floating-point precision type.
+ * @tparam Meta User-defined metadata type.
+ */
 template <class T, class Meta = DefaultMetaData>
 class MeshT;
 
 /**
-  @brief Edge iterator class
-  @tparam T    Floating-point precision type.
-  @tparam Meta User-defined metadata type.
-*/
+ * @brief Edge iterator class
+ * @tparam T    Floating-point precision type.
+ * @tparam Meta User-defined metadata type.
+ */
 template <class T, class Meta = DefaultMetaData>
 class EdgeIteratorT;
 
 /**
-  @brief Enum for putting some logic into how vertex normal weights are calculated
-*/
+ * @brief Enum for putting some logic into how vertex normal weights are calculated
+ */
 enum class VertexNormalWeight
 {
   None,

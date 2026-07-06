@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_ImplicitFunctionImplem.hpp
-  @brief  Implementation of EBGeometry_ImplicitFunction.hpp
-  @author Robert Marskar
-*/
+ * @file   EBGeometry_ImplicitFunctionImplem.hpp
+ * @brief  Implementation of EBGeometry_ImplicitFunction.hpp
+ * @author Robert Marskar
+ */
 
 #ifndef EBGEOMETRY_IMPLICITFUNCTIONIMPLEM_HPP
 #define EBGEOMETRY_IMPLICITFUNCTIONIMPLEM_HPP
@@ -21,8 +21,8 @@
 #include <vector>
 
 // Our includes
-#include "EBGeometry_Octree.hpp"
 #include "EBGeometry_ImplicitFunction.hpp"
+#include "EBGeometry_Octree.hpp"
 
 namespace EBGeometry {
 
