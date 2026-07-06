@@ -84,11 +84,11 @@ SmoothUnion(const std::shared_ptr<P1>& a_implicitFunctionA,
   @tparam K  BVH branching factor.
   @param[in] a_implicitFunctions Input implicit functions.
   @param[in] a_boundingVolumes   Bounding volumes for each implicit function.
-  @return Shared pointer to a FastUnionIF<T,P,BV,K> with an internal BVH.
+  @return Shared pointer to a BVHUnionIF<T,P,BV,K> with an internal BVH.
 */
 template <class T, class P, class BV, size_t K>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-FastUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std::vector<BV>& a_boundingVolumes);
+BVHUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std::vector<BV>& a_boundingVolumes);
 
 /**
   @brief Constructs a BVH-accelerated smooth union of implicit functions.
@@ -101,13 +101,13 @@ FastUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std:
   @param[in] a_implicitFunctions Input implicit functions.
   @param[in] a_boundingVolumes   Bounding volumes for each implicit function.
   @param[in] a_smoothLen         Smoothing length (must be > 0).
-  @return Shared pointer to a FastSmoothUnionIF<T,P,BV,K> with an internal BVH.
+  @return Shared pointer to a BVHSmoothUnionIF<T,P,BV,K> with an internal BVH.
 */
 template <class T, class P, class BV, size_t K>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
-FastSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
-                const std::vector<BV>&                 a_boundingVolumes,
-                const T                                a_smoothLen) noexcept;
+BVHSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
+               const std::vector<BV>&                 a_boundingVolumes,
+               const T                                a_smoothLen) noexcept;
 
 /**
   @brief Constructs an implicit function whose interior is the intersection of the interiors of all input functions.
@@ -383,13 +383,12 @@ protected:
   @tparam K  BVH branching factor.
 */
 template <class T, class P, class BV, size_t K>
-class FastUnionIF : public ImplicitFunction<T>
+class BVHUnionIF : public ImplicitFunction<T>
 {
 public:
-  static_assert(std::is_floating_point_v<T>, "FastUnionIF requires a floating-point type T");
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value,
-                "FastUnionIF requires an implicit function");
-  static_assert(K > 0, "FastUnionIF BVH branching factor K must be positive");
+  static_assert(std::is_floating_point_v<T>, "BVHUnionIF requires a floating-point type T");
+  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "BVHUnionIF requires an implicit function");
+  static_assert(K > 0, "BVHUnionIF BVH branching factor K must be positive");
 
   /**
     @brief Alias for the flat BVH type.
@@ -404,25 +403,25 @@ public:
   /**
     @brief Disallowed, use the full constructor.
   */
-  FastUnionIF() = delete;
+  BVHUnionIF() = delete;
 
   /**
     @brief Constructs the BVH-accelerated union from pre-paired primitives and bounding volumes.
     @param[in] a_primsAndBVs Primitives and their bounding volumes (must be non-empty; no null primitives).
   */
-  FastUnionIF(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs);
+  BVHUnionIF(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs);
 
   /**
     @brief Constructs the BVH-accelerated union from separate primitive and bounding-volume lists.
     @param[in] a_primitives      Input primitives (must be non-empty; same length as a_boundingVolumes; no nulls).
     @param[in] a_boundingVolumes Bounding volumes for each primitive.
   */
-  FastUnionIF(const std::vector<std::shared_ptr<P>>& a_primitives, const std::vector<BV>& a_boundingVolumes);
+  BVHUnionIF(const std::vector<std::shared_ptr<P>>& a_primitives, const std::vector<BV>& a_boundingVolumes);
 
   /**
     @brief Destructor.
   */
-  virtual ~FastUnionIF() = default;
+  virtual ~BVHUnionIF() = default;
 
   /**
     @brief Evaluates the signed distance at a_point using BVH traversal.
@@ -468,13 +467,13 @@ protected:
   @tparam K  BVH branching factor.
 */
 template <class T, class P, class BV, size_t K>
-class FastSmoothUnionIF : public FastUnionIF<T, P, BV, K>
+class BVHSmoothUnionIF : public ImplicitFunction<T>
 {
 public:
-  static_assert(std::is_floating_point_v<T>, "FastSmoothUnionIF requires a floating-point type T");
+  static_assert(std::is_floating_point_v<T>, "BVHSmoothUnionIF requires a floating-point type T");
   static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value,
-                "FastSmoothUnionIF requires an implicit function");
-  static_assert(K > 0, "FastSmoothUnionIF BVH branching factor K must be positive");
+                "BVHSmoothUnionIF requires an implicit function");
+  static_assert(K > 0, "BVHSmoothUnionIF BVH branching factor K must be positive");
 
   /**
     @brief Alias for the flat BVH type.
@@ -489,7 +488,7 @@ public:
   /**
     @brief Disallowed, use the full constructor.
   */
-  FastSmoothUnionIF() = delete;
+  BVHSmoothUnionIF() = delete;
 
   /**
     @brief Constructs the BVH-accelerated smooth union.
@@ -498,15 +497,15 @@ public:
     @param[in] a_smoothLen         Smoothing length (must be > 0).
     @param[in] a_smoothMin         Smooth-minimum operator; defaults to SmoothMin<T>.
   */
-  FastSmoothUnionIF(const std::vector<std::shared_ptr<P>>&               a_distanceFunctions,
-                    const std::vector<BV>&                               a_boundingVolumes,
-                    const T                                              a_smoothLen,
-                    const std::function<T(const T&, const T&, const T&)> a_smoothMin = SmoothMin<T>) noexcept;
+  BVHSmoothUnionIF(const std::vector<std::shared_ptr<P>>&               a_distanceFunctions,
+                   const std::vector<BV>&                               a_boundingVolumes,
+                   const T                                              a_smoothLen,
+                   const std::function<T(const T&, const T&, const T&)> a_smoothMin = SmoothMin<T>) noexcept;
 
   /**
     @brief Destructor.
   */
-  virtual ~FastSmoothUnionIF() = default;
+  virtual ~BVHSmoothUnionIF() = default;
 
   /**
     @brief Evaluates the smoothly blended signed distance at a_point using BVH traversal.
@@ -515,10 +514,22 @@ public:
     @param[in] a_point 3D query point.
     @return Smooth minimum signed distance blended from the two closest primitives.
   */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
+  /**
+    @brief Returns the axis-aligned bounding box enclosing all primitives.
+    @return Const reference to the root bounding volume of the BVH.
+  */
+  [[nodiscard]] const EBGeometry::BoundingVolumes::AABBT<T>&
+  getBoundingVolume() const noexcept;
+
 protected:
+  /**
+    @brief Flat BVH over all input primitives.
+  */
+  std::shared_ptr<EBGeometry::BVH::PackedBVH<T, P, K>> m_bvh;
+
   /**
     @brief Smoothing length.
   */
@@ -528,6 +539,15 @@ protected:
     @brief Smooth-minimum operator.
   */
   std::function<T(const T&, const T&, const T&)> m_smoothMin;
+
+  /**
+    @brief Builds the internal BVH from primitive/BV pairs.
+    @param[in] a_primsAndBVs Primitives and their bounding volumes.
+    @param[in] a_build        BVH construction strategy.
+  */
+  inline void
+  buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
+            const BVH::Build                                            a_build = BVH::Build::TopDown) noexcept;
 };
 
 /**

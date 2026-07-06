@@ -16,6 +16,52 @@
 #include "EBGeometry_Transform.hpp"
 #include "EBGeometry_NamespaceHeader.hpp"
 
+// ============================================================
+// Internal helpers shared by BVHUnionIF and BVHSmoothUnionIF
+// ============================================================
+
+namespace CSGDetail {
+
+  /**
+  @brief Build a PackedBVH from primitive/BV pairs using the requested strategy.
+  @details Internal helper; not part of the public API.
+*/
+  template <class T, class P, class BV, size_t K>
+  [[nodiscard]] inline std::shared_ptr<EBGeometry::BVH::PackedBVH<T, P, K>>
+  buildBVH(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs, const BVH::Build a_build) noexcept
+  {
+    EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+
+    auto root = std::make_shared<EBGeometry::BVH::TreeBVH<T, P, BV, K>>(a_primsAndBVs);
+
+    switch (a_build) {
+    case BVH::Build::TopDown: {
+      root->topDownSortAndPartition();
+      break;
+    }
+    case BVH::Build::Morton: {
+      root->template bottomUpSortAndPartition<SFC::Morton>();
+      break;
+    }
+    case BVH::Build::Nested: {
+      root->template bottomUpSortAndPartition<SFC::Nested>();
+      break;
+    }
+    default: {
+      EBGEOMETRY_EXPECT(false);
+      break;
+    }
+    }
+
+    return root->pack();
+  }
+
+} // namespace CSGDetail
+
+// ============================================================
+// Free function implementations
+// ============================================================
+
 template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
 Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions)
@@ -78,18 +124,18 @@ SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
 
 template <class T, class P, class BV, size_t K>
 std::shared_ptr<ImplicitFunction<T>>
-FastUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std::vector<BV>& a_boundingVolumes)
+BVHUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std::vector<BV>& a_boundingVolumes)
 {
-  return std::make_shared<EBGeometry::FastUnionIF<T, P, BV, K>>(a_implicitFunctions, a_boundingVolumes);
+  return std::make_shared<EBGeometry::BVHUnionIF<T, P, BV, K>>(a_implicitFunctions, a_boundingVolumes);
 }
 
 template <class T, class P, class BV, size_t K>
 std::shared_ptr<ImplicitFunction<T>>
-FastSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
-                const std::vector<BV>&                 a_boundingVolumes,
-                const T                                a_smoothLen) noexcept
+BVHSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
+               const std::vector<BV>&                 a_boundingVolumes,
+               const T                                a_smoothLen) noexcept
 {
-  return std::make_shared<EBGeometry::FastSmoothUnionIF<T, P, BV, K>>(
+  return std::make_shared<EBGeometry::BVHSmoothUnionIF<T, P, BV, K>>(
     a_implicitFunctions, a_boundingVolumes, a_smoothLen);
 }
 
@@ -187,6 +233,10 @@ FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
   return std::make_shared<FiniteRepetitionIF<T>>(a_implicitFunction, a_period, a_repeatLo, a_repeatHi);
 }
 
+// ============================================================
+// UnionIF
+// ============================================================
+
 template <class T>
 UnionIF<T>::UnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions)
 {
@@ -211,6 +261,10 @@ UnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 
   return ret;
 }
+
+// ============================================================
+// SmoothUnionIF
+// ============================================================
 
 template <class T>
 SmoothUnionIF<T>::SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>&    a_implicitFunctions,
@@ -262,8 +316,12 @@ SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
   return ret;
 }
 
+// ============================================================
+// BVHUnionIF
+// ============================================================
+
 template <class T, class P, class BV, size_t K>
-FastUnionIF<T, P, BV, K>::FastUnionIF(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs)
+BVHUnionIF<T, P, BV, K>::BVHUnionIF(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs)
 {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
   for (const auto& [prim, bv] : a_primsAndBVs) {
@@ -274,8 +332,8 @@ FastUnionIF<T, P, BV, K>::FastUnionIF(const std::vector<std::pair<std::shared_pt
 }
 
 template <class T, class P, class BV, size_t K>
-FastUnionIF<T, P, BV, K>::FastUnionIF(const std::vector<std::shared_ptr<P>>& a_primitives,
-                                      const std::vector<BV>&                 a_boundingVolumes)
+BVHUnionIF<T, P, BV, K>::BVHUnionIF(const std::vector<std::shared_ptr<P>>& a_primitives,
+                                    const std::vector<BV>&                 a_boundingVolumes)
 {
   EBGEOMETRY_EXPECT(!a_primitives.empty());
   EBGEOMETRY_EXPECT(a_primitives.size() == a_boundingVolumes.size());
@@ -295,38 +353,15 @@ FastUnionIF<T, P, BV, K>::FastUnionIF(const std::vector<std::shared_ptr<P>>& a_p
 
 template <class T, class P, class BV, size_t K>
 void
-FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
-                                    const BVH::Build                                            a_build) noexcept
+BVHUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
+                                   const BVH::Build                                            a_build) noexcept
 {
-  EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
-
-  auto root = std::make_shared<EBGeometry::BVH::TreeBVH<T, P, BV, K>>(a_primsAndBVs);
-
-  switch (a_build) {
-  case BVH::Build::TopDown: {
-    root->topDownSortAndPartition();
-    break;
-  }
-  case BVH::Build::Morton: {
-    root->template bottomUpSortAndPartition<SFC::Morton>();
-    break;
-  }
-  case BVH::Build::Nested: {
-    root->template bottomUpSortAndPartition<SFC::Nested>();
-    break;
-  }
-  default: {
-    EBGEOMETRY_EXPECT(false);
-    break;
-  }
-  }
-
-  m_bvh = root->pack();
+  m_bvh = CSGDetail::buildBVH<T, P, BV, K>(a_primsAndBVs, a_build);
 }
 
 template <class T, class P, class BV, size_t K>
 T
-FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
+BVHUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
 
@@ -364,31 +399,57 @@ FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 
 template <class T, class P, class BV, size_t K>
 const EBGeometry::BoundingVolumes::AABBT<T>&
-FastUnionIF<T, P, BV, K>::getBoundingVolume() const noexcept
+BVHUnionIF<T, P, BV, K>::getBoundingVolume() const noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
   return m_bvh->getBoundingVolume();
 }
 
+// ============================================================
+// BVHSmoothUnionIF
+// ============================================================
+
 template <class T, class P, class BV, size_t K>
-FastSmoothUnionIF<T, P, BV, K>::FastSmoothUnionIF(
+BVHSmoothUnionIF<T, P, BV, K>::BVHSmoothUnionIF(
   const std::vector<std::shared_ptr<P>>&               a_distanceFunctions,
   const std::vector<BV>&                               a_boundingVolumes,
   const T                                              a_smoothLen,
   const std::function<T(const T&, const T&, const T&)> a_smoothMin) noexcept
-  : FastUnionIF<T, P, BV, K>(a_distanceFunctions, a_boundingVolumes)
 {
+  EBGEOMETRY_EXPECT(!a_distanceFunctions.empty());
+  EBGEOMETRY_EXPECT(a_distanceFunctions.size() == a_boundingVolumes.size());
   EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+
+  for (const auto& p : a_distanceFunctions) {
+    EBGEOMETRY_EXPECT(p != nullptr);
+  }
+
+  std::vector<std::pair<std::shared_ptr<const P>, BV>> primsAndBVs;
+  primsAndBVs.reserve(a_distanceFunctions.size());
+
+  for (size_t i = 0; i < a_distanceFunctions.size(); i++) {
+    primsAndBVs.emplace_back(std::make_pair(a_distanceFunctions[i], a_boundingVolumes[i]));
+  }
+
+  this->buildTree(primsAndBVs);
 
   m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
   m_smoothMin = a_smoothMin;
 }
 
 template <class T, class P, class BV, size_t K>
-T
-FastSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
+void
+BVHSmoothUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
+                                         const BVH::Build                                            a_build) noexcept
 {
-  EBGEOMETRY_EXPECT(this->m_bvh != nullptr);
+  m_bvh = CSGDetail::buildBVH<T, P, BV, K>(a_primsAndBVs, a_build);
+}
+
+template <class T, class P, class BV, size_t K>
+T
+BVHSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
 
   T a = std::numeric_limits<T>::infinity();
   T b = std::numeric_limits<T>::infinity();
@@ -425,10 +486,22 @@ FastSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
     return a_node.getDistanceToBoundingVolume(a_point);
   };
 
-  this->m_bvh->traverse(updater, visiter, sorter, metaUpdater);
+  m_bvh->traverse(updater, visiter, sorter, metaUpdater);
 
   return m_smoothMin(a, b, m_smoothLen);
 }
+
+template <class T, class P, class BV, size_t K>
+const EBGeometry::BoundingVolumes::AABBT<T>&
+BVHSmoothUnionIF<T, P, BV, K>::getBoundingVolume() const noexcept
+{
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+  return m_bvh->getBoundingVolume();
+}
+
+// ============================================================
+// IntersectionIF
+// ============================================================
 
 template <class T>
 IntersectionIF<T>::IntersectionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions) noexcept
@@ -454,6 +527,10 @@ IntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 
   return ret;
 }
+
+// ============================================================
+// SmoothIntersectionIF
+// ============================================================
 
 template <class T>
 SmoothIntersectionIF<T>::SmoothIntersectionIF(
@@ -524,6 +601,10 @@ SmoothIntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
   return ret;
 }
 
+// ============================================================
+// DifferenceIF
+// ============================================================
+
 template <class T>
 DifferenceIF<T>::DifferenceIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionA,
                               const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionB) noexcept
@@ -557,6 +638,10 @@ DifferenceIF<T>::value(const Vec3T<T>& a_point) const noexcept
 
   return std::max(a, -b);
 }
+
+// ============================================================
+// SmoothDifferenceIF
+// ============================================================
 
 template <class T>
 SmoothDifferenceIF<T>::SmoothDifferenceIF(
@@ -602,6 +687,10 @@ SmoothDifferenceIF<T>::value(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(m_smoothIntersectionIF != nullptr);
   return m_smoothIntersectionIF->value(a_point);
 }
+
+// ============================================================
+// FiniteRepetitionIF
+// ============================================================
 
 template <class T>
 FiniteRepetitionIF<T>::FiniteRepetitionIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction,

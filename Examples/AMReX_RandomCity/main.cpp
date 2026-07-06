@@ -76,7 +76,7 @@ public:
     }
 
     m_slowUnion = EBGeometry::Union<T, Prim>(buildings);
-    m_fastUnion = EBGeometry::FastUnion<T, Prim, BV, K>(buildings, boundingVolumes);
+    m_fastUnion = EBGeometry::BVHUnion<T, Prim, BV, K>(buildings, boundingVolumes);
 
     // AMReX uses the opposite sign for the value functions.
     m_slowUnion = EBGeometry::Complement<T>(m_slowUnion);

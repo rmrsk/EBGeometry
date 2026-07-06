@@ -58,7 +58,7 @@ public:
     }
 
     // Optimized, faster union which uses a BVH for bounding the BVHs.
-    m_implicitFunction = EBGeometry::FastUnion<T, FastSDF, BV, K>(fastSDFs, boundingVolumes);
+    m_implicitFunction = EBGeometry::BVHUnion<T, FastSDF, BV, K>(fastSDFs, boundingVolumes);
     m_implicitFunction = EBGeometry::Complement(m_implicitFunction);
   }
 

@@ -55,7 +55,7 @@ public:
       boundingVolumes.emplace_back(mesh->getAllVertexCoordinates());
     }
 
-    m_implicitFunction = std::make_shared<EBGeometry::FastUnionIF<T, FastSDF, BV, K>>(fastSDFs, boundingVolumes);
+    m_implicitFunction = std::make_shared<EBGeometry::BVHUnionIF<T, FastSDF, BV, K>>(fastSDFs, boundingVolumes);
     m_implicitFunction = EBGeometry::Complement<T>(m_implicitFunction);
   }
 

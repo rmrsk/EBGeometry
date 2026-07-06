@@ -64,7 +64,7 @@ main()
   // ourselves a lambda that creates an appropriate bounding volumes for each
   // SDF.
   std::cout << "Partitioning " << spheres.size() << " spheres\n" << std::endl;
-  EBGeometry::FastUnionIF<T, Sphere, AABB, K> fastUnion(spheres, boundingVolumes);
+  EBGeometry::BVHUnionIF<T, Sphere, AABB, K> fastUnion(spheres, boundingVolumes);
 
   // Create a finite repetition of one of the spheres. This is a third type of object representation.
   auto sph = std::make_shared<Sphere>(Vec3::zero(), radius);

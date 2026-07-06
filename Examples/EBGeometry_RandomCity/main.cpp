@@ -82,7 +82,7 @@ main()
   // Create a standard and an optimized CSG union.
   std::cout << "Partitioning " << std::pow(M, 2) << " buildings" << std::endl;
   auto slowUnion = EBGeometry::Union<T, Box>(buildings);
-  auto fastUnion = EBGeometry::FastUnion<T, Box, AABB, K>(buildings, boundingVolumes);
+  auto fastUnion = EBGeometry::BVHUnion<T, Box, AABB, K>(buildings, boundingVolumes);
 
   // Sample some random points in the bounding box of the BVH.
   Vec3 lo = Vec3::infinity();
