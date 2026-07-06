@@ -22,7 +22,9 @@
 
 // Our includes
 #include "EBGeometry_ImplicitFunction.hpp"
+#include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Octree.hpp"
+#include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
 
@@ -30,6 +32,10 @@ template <class T>
 T
 ImplicitFunction<T>::operator()(const Vec3T<T>& a_point) const noexcept
 {
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
   return this->value(a_point);
 }
 
@@ -41,6 +47,14 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
                                                      const unsigned int a_maxTreeDepth,
                                                      const T&           a_safetyFactor) const
 {
+  EBGEOMETRY_EXPECT(std::isfinite(a_initialLowCorner[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_initialLowCorner[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_initialLowCorner[2]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_initialHighCorner[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_initialHighCorner[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_initialHighCorner[2]));
+  EBGEOMETRY_EXPECT(a_safetyFactor >= T(0));
+
   using namespace Octree;
 
   // TLDR: This routine computes a bounding volume using octree subdivision of the implicit function surface. This code
@@ -125,13 +139,13 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
     std::cerr << baseError + "'a_initialLowCorner >= a_initialHighCorner'\n";
 
     vertices.emplace_back(-Vec3::max());
-    vertices.emplace_back(Vec3::max());
+    vertices.emplace_back(+Vec3::max());
   }
   else if (!(std::get<3>(metaRoot))) {
     std::cerr << baseError + "'input volume does not contain surface.'\n";
 
     vertices.emplace_back(-Vec3::max());
-    vertices.emplace_back(Vec3::max());
+    vertices.emplace_back(+Vec3::max());
   }
   else {
     root->buildBreadthFirst(splitNode, metaBuild, dataBuild);

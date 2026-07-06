@@ -34,12 +34,12 @@ class ImplicitFunction
 
 public:
   /**
-   * @brief Disallowed, use the full constructor
+   * @brief Default constructor.
    */
   ImplicitFunction() = default;
 
   /**
-   * @brief Destructor (does nothing)
+   * @brief Default destructor.
    */
   virtual ~ImplicitFunction() = default;
 
@@ -65,7 +65,7 @@ public:
    * `|value(center)| <= (1+a_safety)*half_width`. The bounding volume is built from the corners of all
    * intersected leaf cells. Relies on the implicit function being reasonably close to a signed distance
    * function; if octree subdivision fails entirely, returns the maximally representable bounding volume.
-   * @tparam BV         Bounding volume type; must be constructible from `std::vector<Vec3T<T>>`.
+   * @tparam BV Bounding volume type; must be constructible from `std::vector<Vec3T<T>>`.
    * @param[in] a_initialLowCorner  Low corner of the initial search box.
    * @param[in] a_initialHighCorner High corner of the initial search box.
    * @param[in] a_maxTreeDepth      Maximum permitted octree depth.

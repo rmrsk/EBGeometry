@@ -63,15 +63,6 @@ public:
   };
 
   /**
-   * @brief How to weight vertex normal
-   */
-  enum class VertexNormalWeight
-  {
-    None,
-    Angle,
-  };
-
-  /**
    * @brief Alias for vector type
    */
   using Vec3 = Vec3T<T>;

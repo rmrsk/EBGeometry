@@ -17,16 +17,18 @@ namespace EBGeometry {
  * @namespace DCEL
  * @brief Namespace containing various double-connected edge list (DCEL)
  * functionality.
+ * @details DCEL is short for doubly-connected edge list, and is data
+ * structure for navigating surface meshes.
  */
 namespace DCEL {
 
 /**
- * @brief Default meta-data type for the DCEL primitives
+ * @brief Default meta-data type for the DCEL primitives.
  */
 using DefaultMetaData = short;
 
 /**
- * @brief Vertex class
+ * @brief Vertex class.
  * @tparam T    Floating-point precision type.
  * @tparam Meta User-defined metadata type.
  */
@@ -34,7 +36,7 @@ template <class T, class Meta = DefaultMetaData>
 class VertexT;
 
 /**
- * @brief Edge class
+ * @brief Edge class.
  * @tparam T    Floating-point precision type.
  * @tparam Meta User-defined metadata type.
  */
@@ -70,8 +72,8 @@ class EdgeIteratorT;
  */
 enum class VertexNormalWeight
 {
-  None,
-  Angle
+  None,  ///< Unweighted average of the normals of the faces incident to the vertex.
+  Angle, ///< Angle-weighted pseudonormal (Baerentzen and Aanes, DOI: 10.1109/TVCG.2005.49).
 };
 
 } // namespace DCEL
