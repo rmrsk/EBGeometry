@@ -21,19 +21,12 @@ using T    = double;
 using Meta = short;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Vec3 = EBGeometry::Vec3T<T>;
-using Tri  = EBGeometry::Triangle<T, Meta>;
 
 int
 main(int argc, char* argv[])
 {
-
-  // Name of the current exec program
-  std::string              current_exec_name = argv[0];
-  std::vector<std::string> all_args;
-
   std::string file;
 
-  // Read the input file.
   if (argc == 2) {
     file = "../Resources/" + std::string(argv[1]);
   }
@@ -43,14 +36,16 @@ main(int argc, char* argv[])
     file = "../Resources/armadillo_binary.stl";
   }
 
-  // Representations of the same object. Note that this reads the mesh and builds the BVH
-  // tree multiple times.
+  // Three representations of the same object:
+  //   dcelSDF  – FlatMeshSDF: O(N) brute-force over all faces.
+  //   meshSDF  – MeshSDF: PackedBVH over DCEL faces (any polygon, SIMD traversal).
+  //   triSDF   – TriMeshSDF: PackedBVH over SoA triangle groups (triangles only, SIMD leaf eval).
   //
-  // There are converters that avoid this, but users will almost always only use one of
-  // these representations.
+  // Note that this reads the mesh and builds the BVH tree independently for each
+  // representation. There are converters that avoid this, but users will almost always
+  // only use one of these representations.
   const auto dcelSDF = EBGeometry::Parser::readIntoMesh<T, Meta>(file);
-  const auto bvhSDF  = EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file);
-  const auto linSDF  = EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file);
+  const auto meshSDF = EBGeometry::Parser::readIntoPackedBVH<T, Meta, K>(file);
   const auto triSDF  = EBGeometry::Parser::readIntoTriangleBVH<T, Meta, K>(file);
 
   // Sample some random points around the object.
@@ -74,53 +69,44 @@ main(int argc, char* argv[])
     ranPoints.emplace_back(3 * (lo + delta * Vec3(dist(rng), dist(rng), dist(rng))));
   }
 
-  // Compute sum of distances to the random points and time the results.
+  // Compute sum of distances to the random points and time each representation.
   T dcelSum = 0.0;
-  T bvhSum  = 0.0;
-  T linSum  = 0.0;
+  T meshSum = 0.0;
   T triSum  = 0.0;
 
   const auto t0 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    //    dcelSum += dcelSDF->signedDistance(x);
+    dcelSum += dcelSDF->signedDistance(x);
   }
   const auto t1 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    bvhSum += bvhSDF->signedDistance(x);
+    meshSum += meshSDF->signedDistance(x);
   }
   const auto t2 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    linSum += linSDF->signedDistance(x);
-  }
-  const auto t3 = std::chrono::high_resolution_clock::now();
-  for (const auto& x : ranPoints) {
     triSum += triSDF->signedDistance(x);
   }
-  const auto t4 = std::chrono::high_resolution_clock::now();
+  const auto t3 = std::chrono::high_resolution_clock::now();
 
   const std::chrono::duration<T, std::micro> dcelTime = t1 - t0;
-  const std::chrono::duration<T, std::micro> bvhTime  = t2 - t1;
-  const std::chrono::duration<T, std::micro> linTime  = t3 - t2;
-  const std::chrono::duration<T, std::micro> triTime  = t4 - t3;
+  const std::chrono::duration<T, std::micro> meshTime = t2 - t1;
+  const std::chrono::duration<T, std::micro> triTime  = t3 - t2;
 
-  if (std::abs(bvhSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
-    std::cerr << "Full BVH did not give same distance! Diff = " << bvhSum - dcelSum << "\n";
-  }
-  if (std::abs(linSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
-    std::cerr << "Linearized BVH did not give same distance! Diff = " << linSum - dcelSum << "\n";
+  if (std::abs(meshSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
+    std::cerr << "MeshSDF did not give same distance as FlatMeshSDF! Diff = " << meshSum - dcelSum << "\n";
   }
   if (std::abs(triSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
-    std::cerr << "TriMesh BVH did not give same distance! Diff = " << triSum - dcelSum << "\n";
+    std::cerr << "TriMeshSDF did not give same distance as FlatMeshSDF! Diff = " << triSum - dcelSum << "\n";
   }
 
   // clang-format off
   std::cout << "Bounding box = " << lo << "\t" << hi << "\n";
-  std::cout << "Accumulated distance and time using direct DCEL = " << dcelSum << ", which took " << dcelTime.count() / Nsamp << " us\n";
-  std::cout << "Accumulated distance and time using full BVH    = " << bvhSum  << ", which took " << bvhTime.count()  / Nsamp << " us\n";
-  std::cout << "Accumulated distance and time using PackedBVH    = " << linSum  << ", which took " << linTime.count()  / Nsamp << " us\n";
-  std::cout << "Accumulated distance and time using trimesh BVH = " << triSum  << ", which took " << triTime.count()  / Nsamp << " us\n";  
-  std::cout << "Relative speedup using BVH vs direct DCEL        = " << dcelTime.count()/triTime.count() << "\n";
-  // clang-format on  
+  std::cout << "Accumulated distance and time using FlatMeshSDF           = " << dcelSum << ", which took " << dcelTime.count() / Nsamp << " us\n";
+  std::cout << "Accumulated distance and time using MeshSDF (PackedBVH)   = " << meshSum << ", which took " << meshTime.count() / Nsamp << " us\n";
+  std::cout << "Accumulated distance and time using TriMeshSDF (PackedBVH)= " << triSum  << ", which took " << triTime.count()  / Nsamp << " us\n";
+  std::cout << "Relative speedup MeshSDF vs FlatMeshSDF                   = " << dcelTime.count() / meshTime.count() << "\n";
+  std::cout << "Relative speedup TriMeshSDF vs FlatMeshSDF                = " << dcelTime.count() / triTime.count()  << "\n";
+  // clang-format on
 
   return 0;
 }
