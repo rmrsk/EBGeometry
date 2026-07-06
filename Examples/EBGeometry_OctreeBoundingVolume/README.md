@@ -1,18 +1,43 @@
 Examples/EBGeometry_OctreeBoundingVolume
 ----------------------------------------
 
-This folder contains a basic example of using EBGeometry for computing an approximate bounding volume for an implicit function. 
+This folder contains a basic example of using EBGeometry for computing an approximate bounding volume for an implicit function.
 
-Compiling
----------
+Building
+--------
 
-To compile the example, do
+This example is standalone and can be built in three ways. Each needs the path
+to the EBGeometry root -- the directory that contains `EBGeometry.hpp` -- which
+is two levels up from this folder (`../..`) when building in place.
 
-    g++ -std=c++17 -O3 main.cpp
+**CMake**
+
+    cmake -S . -B build
+    cmake --build build
+
+The binary is `build/EBGeometry_OctreeBoundingVolume`. Build in single precision, or against a library
+in a different location, with cache variables:
+
+    cmake -S . -B build -DEBGEOMETRY_PRECISION=float -DEBGEOMETRY_HOME=/path/to/EBGeometry
+
+**GNU make**
+
+    make
+
+This produces `./main`. Override the defaults on the command line:
+
+    make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry
+
+**Directly with a compiler**
+
+    g++ -std=c++17 -O2 -I../.. main.cpp -o main
+
+Add `-DEBGEOMETRY_PRECISION=float` for single precision, and `-march=native` to
+let the compiler use the SIMD paths.
 
 Running
 -------
 
-Run it with
+    ./main
 
-    ./a.out
+If you built with CMake the binary is `build/EBGeometry_OctreeBoundingVolume`.

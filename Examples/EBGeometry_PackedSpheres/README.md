@@ -1,27 +1,52 @@
 Examples/EBGeometry_PackedSpheres
 ---------------------------------
 
-This folder contains a basic example of create multi-object scenes using EBGeometry.
+This folder contains a basic example of creating multi-object scenes using EBGeometry.
 This example creates a scene consisting of packed spheres (defined by analytic functions), and the scene is created from the union of these spheres.
-Two unions are defined: :
+Two unions are defined:
 
 * A standard union of objects that looks through every object.
 * A union that uses BVHs for finding the closest object(s).
 
 The scene is defined as an array of N^3 spheres.
 This example program illustrates the benefits of using BVHs for closest-object queries.
-Rather than computing the distance to all spheres, the BVH allows traversal and a dramatic reduction algorithmic complexity.
+Rather than computing the distance to all spheres, the BVH allows traversal and a dramatic reduction in algorithmic complexity.
 
-Compiling
----------
+Building
+--------
 
-To compile the example, do
+This example is standalone and can be built in three ways. Each needs the path
+to the EBGeometry root -- the directory that contains `EBGeometry.hpp` -- which
+is two levels up from this folder (`../..`) when building in place.
 
-    g++ -std=c++17 -O3 main.cpp
+**CMake**
+
+    cmake -S . -B build
+    cmake --build build
+
+The binary is `build/EBGeometry_PackedSpheres`. Build in single precision, or against a library
+in a different location, with cache variables:
+
+    cmake -S . -B build -DEBGEOMETRY_PRECISION=float -DEBGEOMETRY_HOME=/path/to/EBGeometry
+
+**GNU make**
+
+    make
+
+This produces `./main`. Override the defaults on the command line:
+
+    make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry
+
+**Directly with a compiler**
+
+    g++ -std=c++17 -O2 -I../.. main.cpp -o main
+
+Add `-DEBGEOMETRY_PRECISION=float` for single precision, and `-march=native` to
+let the compiler use the SIMD paths.
 
 Running
 -------
 
-Run it with
+    ./main
 
-    ./a.out
+If you built with CMake the binary is `build/EBGeometry_PackedSpheres`.

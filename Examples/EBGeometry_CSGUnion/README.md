@@ -1,15 +1,12 @@
-Examples/EBGeometry_DCEL
-------------------------
+Examples/EBGeometry_CSGUnion
+----------------------------
 
-This folder contains a basic example of using EBGeometry, with three different
-representations of the signed distance field.
-
-* A naive approach which iterates through all facets and computes the signed distance.
-* Using a conventional bounding volume hierarchy with (references to) primitives stored directly in the nodes.
-* A flattened, more compact bounding volume hierarchy.
-
-Note that SDF queries have different complexity for different geometries and input points.
-For example, a tessellated sphere has a "blind spot" in its center where even BVHs will visit most, if not all, primitives.
+This folder contains an example of building a CSG *union* of two different kinds
+of implicit function: a signed distance field read from a surface mesh, and an
+analytic sphere. Both derive from `ImplicitFunction<T>`, so they can be combined
+directly. They are merged with a `BVHUnion`, which places the objects in a
+bounding volume hierarchy so that closest-object queries traverse the tree
+instead of testing every object.
 
 Building
 --------
@@ -23,7 +20,7 @@ is two levels up from this folder (`../..`) when building in place.
     cmake -S . -B build
     cmake --build build
 
-The binary is `build/EBGeometry_DCEL`. Build in single precision, or against a library
+The binary is `build/EBGeometry_CSGUnion`. Build in single precision, or against a library
 in a different location, with cache variables:
 
     cmake -S . -B build -DEBGEOMETRY_PRECISION=float -DEBGEOMETRY_HOME=/path/to/EBGeometry
@@ -51,7 +48,7 @@ Run from this directory so the default mesh path resolves:
     ./main
     ./main ../../common-3d-test-models/data/cow.obj
 
-With no argument the example loads `armadillo.obj` from the
+With no argument the example loads `cow.obj` from the
 `common-3d-test-models` submodule, so make sure it is checked out
 (`git submodule update --init`). If you built with CMake the binary is
-`build/EBGeometry_DCEL` -- still run it from this directory.
+`build/EBGeometry_CSGUnion` -- still run it from this directory.
