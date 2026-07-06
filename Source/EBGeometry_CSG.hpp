@@ -351,7 +351,7 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~SmoothUnionIF() = default;
+  ~SmoothUnionIF() override = default;
 
   /**
    * @brief Evaluates the smoothly blended signed distance at a_point.
@@ -646,7 +646,7 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~SmoothIntersectionIF() = default;
+  ~SmoothIntersectionIF() override = default;
 
   /**
    * @brief Evaluates the smoothly blended signed distance at a_point.
@@ -711,7 +711,7 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~DifferenceIF() = default;
+  ~DifferenceIF() override = default;
 
   /**
    * @brief Evaluates the signed distance at a_point.
@@ -779,7 +779,7 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~SmoothDifferenceIF() = default;
+  ~SmoothDifferenceIF() override = default;
 
   /**
    * @brief Evaluates the smoothly blended signed distance at a_point.

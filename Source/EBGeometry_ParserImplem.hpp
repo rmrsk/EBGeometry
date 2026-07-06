@@ -363,6 +363,7 @@ Parser::readSTL(const std::vector<std::string>& a_filenames)
   static_assert(std::is_floating_point_v<T>, "Parser::readSTL requires T to be a floating-point type");
   std::vector<STL<T>> stl;
 
+  stl.reserve(a_filenames.size());
   for (const auto& f : a_filenames) {
     stl.emplace_back(Parser::readSTL<T>(f));
   }
@@ -894,6 +895,7 @@ Parser::readPLY(const std::vector<std::string>& a_filenames)
   static_assert(std::is_floating_point_v<T>, "Parser::readPLY requires T to be a floating-point type");
   std::vector<PLY<T>> ply;
 
+  ply.reserve(a_filenames.size());
   for (const auto& f : a_filenames) {
     ply.emplace_back(Parser::readPLY<T>(f));
   }
@@ -1648,6 +1650,7 @@ Parser::readVTK(const std::vector<std::string>& a_filenames)
   static_assert(std::is_floating_point_v<T>, "Parser::readVTK requires T to be a floating-point type");
   std::vector<VTK<T>> vtk;
 
+  vtk.reserve(a_filenames.size());
   for (const auto& f : a_filenames) {
     vtk.emplace_back(Parser::readVTK<T>(f));
   }
@@ -1736,6 +1739,7 @@ Parser::readOBJ(const std::vector<std::string>& a_filenames)
   static_assert(std::is_floating_point_v<T>, "Parser::readOBJ requires T to be a floating-point type");
   std::vector<OBJ<T>> obj;
 
+  obj.reserve(a_filenames.size());
   for (const auto& f : a_filenames) {
     obj.emplace_back(Parser::readOBJ<T>(f));
   }
@@ -1802,6 +1806,7 @@ Parser::readIntoDCEL(const std::vector<std::string>& a_files)
 {
   std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>> objects;
 
+  objects.reserve(a_files.size());
   for (const auto& file : a_files) {
     objects.emplace_back(Parser::readIntoDCEL<T, Meta>(file));
   }
@@ -1824,6 +1829,7 @@ Parser::readIntoMesh(const std::vector<std::string>& a_files)
 {
   std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>> implicitFunctions;
 
+  implicitFunctions.reserve(a_files.size());
   for (const auto& file : a_files) {
     implicitFunctions.emplace_back(Parser::readIntoMesh<T, Meta>(file));
   }
@@ -1874,6 +1880,7 @@ Parser::readIntoTriangles(const std::vector<std::string>& a_files)
 {
   std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>> triangles;
 
+  triangles.reserve(a_files.size());
   for (const auto& file : a_files) {
     triangles.emplace_back(Parser::readIntoTriangles<T, Meta>(file));
   }
@@ -1904,6 +1911,7 @@ Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
   static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
   std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>> implicitFunctions;
 
+  implicitFunctions.reserve(a_files.size());
   for (const auto& file : a_files) {
     implicitFunctions.emplace_back(Parser::readIntoTriangleBVH<T, Meta, K, W>(file, a_build, a_maxLeafSize));
   }
@@ -1930,6 +1938,7 @@ Parser::readIntoPackedBVH(const std::vector<std::string>& a_files)
   static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
   std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>> implicitFunctions;
 
+  implicitFunctions.reserve(a_files.size());
   for (const auto& file : a_files) {
     implicitFunctions.emplace_back(Parser::readIntoPackedBVH<T, Meta, K>(file));
   }

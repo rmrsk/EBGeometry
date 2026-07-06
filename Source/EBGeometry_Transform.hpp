@@ -315,7 +315,7 @@ public:
   /**
    * @brief Destructor
    */
-  virtual ~OffsetIF() noexcept;
+  ~OffsetIF() noexcept override;
 
   /**
    * @brief Value function with offset applied.
@@ -409,7 +409,7 @@ public:
   /**
    * @brief Destructor
    */
-  virtual ~AnnularIF() noexcept;
+  ~AnnularIF() noexcept override;
 
   /**
    * @brief Value function.
@@ -463,7 +463,7 @@ public:
   /**
    * @brief Destructor
    */
-  virtual ~BlurIF() noexcept;
+  ~BlurIF() noexcept override;
 
   /**
    * @brief Value function
@@ -578,7 +578,7 @@ public:
   /**
    * @brief Destructor
    */
-  virtual ~ElongateIF() noexcept;
+  ~ElongateIF() noexcept override;
 
   /**
    * @brief Value function
@@ -625,7 +625,7 @@ public:
   /**
    * @brief Destructor
    */
-  virtual ~ReflectIF() noexcept;
+  ~ReflectIF() noexcept override;
 
   /**
    * @brief Value function

@@ -40,3 +40,14 @@ ebgeometry_add_test(TestBoundingVolumes)
 ebgeometry_add_test(TestAnalyticSDF)
 ebgeometry_add_test(TestDCEL)
 ebgeometry_add_test(TestSFC)
+
+# Compile-only target that explicitly instantiates every public class template so
+# clang-tidy (and the strong warning set) analyse them all regardless of what the
+# tests exercise. Built for its compile command, never run. Add new public classes
+# to InstantiateAll.cpp so the analysis keeps full coverage.
+add_library(InstantiateAll OBJECT InstantiateAll.cpp)
+target_link_libraries(InstantiateAll PRIVATE EBGeometry::EBGeometry)
+target_compile_options(InstantiateAll PRIVATE
+  -Wall -Wextra -Wpedantic -Wcast-qual -Wcast-align -Wnon-virtual-dtor
+  -Wdouble-promotion -Woverloaded-virtual -Wnull-dereference
+  -Wno-unused-parameter -Werror)

@@ -1725,7 +1725,7 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~RoundedCylinderSDF() = default;
+  ~RoundedCylinderSDF() override = default;
 
   /**
    * @brief Signed distance function for the rounded cylinder.

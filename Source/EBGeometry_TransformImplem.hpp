@@ -264,10 +264,10 @@ BlurIF<T>::value(const Vec3T<T>& a_point) const noexcept
   const T C = std::pow(m_alpha, 1.0) * std::pow((1.0 - m_alpha) / 2.0, 2.0);
   const T D = std::pow(m_alpha, 0.0) * std::pow((1.0 - m_alpha) / 2.0, 3.0);
 
-  const Vec3T<T> p = a_point;
-  const Vec3T<T> x = m_blurDistance * Vec3T<T>(1.0, 0.0, 0.0);
-  const Vec3T<T> y = m_blurDistance * Vec3T<T>(0.0, 1.0, 0.0);
-  const Vec3T<T> z = m_blurDistance * Vec3T<T>(0.0, 0.0, 1.0);
+  const Vec3T<T>& p = a_point;
+  const Vec3T<T>  x = m_blurDistance * Vec3T<T>(1.0, 0.0, 0.0);
+  const Vec3T<T>  y = m_blurDistance * Vec3T<T>(0.0, 1.0, 0.0);
+  const Vec3T<T>  z = m_blurDistance * Vec3T<T>(0.0, 0.0, 1.0);
 
   const auto& f = *m_implicitFunction;
 
