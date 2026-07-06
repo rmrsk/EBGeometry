@@ -3,11 +3,11 @@
  * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
  */
 
-#include <string>
 #include <chrono>
-#include <thread>
-#include <random>
 #include <math.h>
+#include <random>
+#include <string>
+#include <thread>
 
 #include "../../EBGeometry.hpp"
 
