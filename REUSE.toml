@@ -5,9 +5,9 @@
 # images, JSON) or where a per-file header would be noise (build/config/docs).
 # Source code carries inline SPDX headers instead; see Source/ and Examples/*/main.cpp.
 #
-# NOTE: Examples/Resources/ (third-party mesh data: Stanford, NASA, AMReX,
-# GrabCAD, Porsche, F18, ...) is intentionally NOT covered here and remains
-# non-compliant pending migration to git submodules so it is not redistributed.
+# NOTE: third-party example meshes are no longer redistributed here; they are pulled in
+# via the common-3d-test-models git submodule under Submodules/ (a separate repository
+# with its own licensing, which REUSE does not descend into).
 
 version = 1
 
@@ -17,6 +17,7 @@ path = [
   ".clang-format",
   ".codespellignore",
   ".gitignore",
+  ".gitmodules",
   ".pre-commit-config.yaml",
   "CMakeLists.txt",
   "CMakePresets.json",

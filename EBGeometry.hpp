@@ -21,6 +21,7 @@
 #include "Source/EBGeometry_ImplicitFunction.hpp"
 #include "Source/EBGeometry_Macros.hpp"
 #include "Source/EBGeometry_MeshDistanceFunctions.hpp"
+#include "Source/EBGeometry_OBJ.hpp"
 #include "Source/EBGeometry_Octree.hpp"
 #include "Source/EBGeometry_PLY.hpp"
 #include "Source/EBGeometry_Parser.hpp"

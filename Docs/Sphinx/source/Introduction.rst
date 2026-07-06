@@ -32,4 +32,4 @@ README files present in each folder provide more information regarding the funct
 Third-party examples
 ====================
 
-Example folders that begin with e.g. ``AMReX_`` or ``Chombo3_`` are application code examples and require the user to install additional third-party software. 
+Example folders that begin with e.g. ``AMReX_`` are application code examples and require the user to install additional third-party software.

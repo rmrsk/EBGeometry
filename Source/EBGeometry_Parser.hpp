@@ -22,6 +22,7 @@
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_MeshDistanceFunctions.hpp"
+#include "EBGeometry_OBJ.hpp"
 #include "EBGeometry_PLY.hpp"
 #include "EBGeometry_STL.hpp"
 #include "EBGeometry_Triangle.hpp"
@@ -53,6 +54,7 @@ enum class FileType
   STL,        ///< Stereolithography format (.stl)
   PLY,        ///< Polygon File Format (.ply)
   VTK,        ///< VTK legacy or XML polydata format (.vtk)
+  OBJ,        ///< Wavefront OBJ format (.obj)
   Unsupported ///< File type is not recognised
 };
 
@@ -115,6 +117,26 @@ readSTL(const std::string& a_filename);
 template <typename T>
 [[nodiscard]] std::vector<STL<T>>
 readSTL(const std::vector<std::string>& a_filenames);
+
+/**
+ * @brief Read a single Wavefront OBJ file into a raw OBJ data structure.
+ * @tparam T Floating-point precision used for vertex coordinates.
+ * @param[in] a_filename OBJ file name.
+ * @return Populated OBJ<T> object containing vertex coordinates and face indices.
+ */
+template <typename T>
+[[nodiscard]] OBJ<T>
+readOBJ(const std::string& a_filename);
+
+/**
+ * @brief Read multiple Wavefront OBJ files into raw OBJ data structures.
+ * @tparam T Floating-point precision used for vertex coordinates.
+ * @param[in] a_filenames List of OBJ file names.
+ * @return Vector of populated OBJ<T> objects, one per file.
+ */
+template <typename T>
+[[nodiscard]] std::vector<OBJ<T>>
+readOBJ(const std::vector<std::string>& a_filenames);
 
 /**
  * @brief Read a single VTK legacy polydata file into a raw VTK data structure.

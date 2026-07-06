@@ -48,6 +48,9 @@ Parser::getFileType(const std::string a_filename) noexcept
   else if (ext == "vtk" || ext == "VTK") {
     ft = Parser::FileType::VTK;
   }
+  else if (ext == "obj" || ext == "OBJ") {
+    ft = Parser::FileType::OBJ;
+  }
 
   return ft;
 }
@@ -144,6 +147,12 @@ Parser::getFileEncoding(const std::string a_filename) noexcept
     else {
       std::cerr << "Parser::getFileEncoding -- could not open file '" + a_filename + "'\n";
     }
+
+    break;
+  }
+  case Parser::FileType::OBJ: {
+    // Wavefront OBJ is a plain-text (ASCII) format.
+    encoding = Parser::Encoding::ASCII;
 
     break;
   }
@@ -1646,6 +1655,94 @@ Parser::readVTK(const std::vector<std::string>& a_filenames)
   return vtk;
 }
 
+template <typename T>
+[[nodiscard]] OBJ<T>
+Parser::readOBJ(const std::string& a_filename)
+{
+  static_assert(std::is_floating_point_v<T>, "Parser::readOBJ requires T to be a floating-point type");
+  OBJ<T> obj(a_filename);
+
+  // OBJ stores a single global vertex table; faces reference it by (1-based) index. Texture/normal indices are
+  // discarded since EBGeometry recomputes vertex normals when building the DCEL mesh.
+  std::vector<Vec3T<T>>&            vertices = obj.getVertexCoordinates();
+  std::vector<std::vector<size_t>>& facets   = obj.getFacets();
+
+  vertices.resize(0);
+  facets.resize(0);
+
+  std::ifstream filestream(a_filename);
+
+  if (filestream.is_open()) {
+    std::string line;
+
+    while (std::getline(filestream, line)) {
+      std::stringstream sstream(line);
+      std::string       keyword;
+      sstream >> keyword;
+
+      if (keyword == "v") {
+        // Vertex record: v x y z [w]. The optional w coordinate is ignored.
+        T x;
+        T y;
+        T z;
+
+        sstream >> x >> y >> z;
+
+        vertices.emplace_back(Vec3T<T>(x, y, z));
+      }
+      else if (keyword == "f") {
+        // Face record: f t0 t1 t2 ..., where each token ti is 'v', 'v/vt', 'v/vt/vn', or 'v//vn'. Only the
+        // vertex index is used. OBJ indices are 1-based; negative indices count back from the current vertex list.
+        std::vector<size_t> facet;
+        std::string         token;
+
+        while (sstream >> token) {
+          std::stringstream tokstream(token.substr(0, token.find('/')));
+
+          long idx = 0;
+          tokstream >> idx;
+
+          if (tokstream.fail()) {
+            continue;
+          }
+
+          if (idx > 0) {
+            facet.emplace_back(static_cast<size_t>(idx - 1));
+          }
+          else if (idx < 0) {
+            facet.emplace_back(static_cast<size_t>(static_cast<long>(vertices.size()) + idx));
+          }
+        }
+
+        // Skip degenerate faces (points/lines); polygons with three or more vertices are supported.
+        if (facet.size() >= 3) {
+          facets.emplace_back(facet);
+        }
+      }
+      // All other records (vt, vn, vp, g, o, s, usemtl, mtllib, '#' comments, blank lines) are ignored.
+    }
+  }
+  else {
+    std::cerr << "Parser::readOBJ -- Error! Could not open file " + a_filename + "\n";
+  }
+
+  return obj;
+}
+
+template <typename T>
+[[nodiscard]] std::vector<OBJ<T>>
+Parser::readOBJ(const std::vector<std::string>& a_filenames)
+{
+  static_assert(std::is_floating_point_v<T>, "Parser::readOBJ requires T to be a floating-point type");
+  std::vector<OBJ<T>> obj;
+
+  for (const auto& f : a_filenames) {
+    obj.emplace_back(Parser::readOBJ<T>(f));
+  }
+
+  return obj;
+}
+
 template <typename T, typename Meta>
 [[nodiscard]] inline std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
 Parser::readIntoDCEL(const std::string a_filename)
@@ -1674,6 +1771,13 @@ Parser::readIntoDCEL(const std::string a_filename)
     VTK<T> vtk = readVTK<T>(a_filename);
 
     mesh = vtk.template convertToDCEL<Meta>();
+
+    break;
+  }
+  case Parser::FileType::OBJ: {
+    OBJ<T> obj = readOBJ<T>(a_filename);
+
+    mesh = obj.template convertToDCEL<Meta>();
 
     break;
   }

@@ -37,10 +37,12 @@ jobs:
     strategy:
       matrix:
         comp: [g++-11, g++-12]
-        directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_F18, Examples/EBGeometry_OctreeBoundingVolume, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
+        directory: [Examples/EBGeometry_CSGUnion, Examples/EBGeometry_DCEL, Examples/EBGeometry_OctreeBoundingVolume, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -73,6 +75,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: Install Intel oneAPI
         working-directory: /tmp
         run: |

@@ -1,7 +1,8 @@
 # Helper: add one EBGeometry standalone example.
 #
 # The binary is run with its source directory as the working directory so that
-# the hardcoded "../Resources/" relative paths in each example resolve correctly.
+# relative mesh paths (e.g. "../../Submodules/common-3d-test-models/data/*.obj")
+# in each example resolve correctly.
 function(ebgeometry_add_example name)
   add_executable(${name} ${name}/main.cpp)
   target_link_libraries(${name} PRIVATE EBGeometry::EBGeometry)
@@ -26,8 +27,8 @@ function(ebgeometry_add_example name)
   )
 endfunction()
 
+ebgeometry_add_example(EBGeometry_CSGUnion)
 ebgeometry_add_example(EBGeometry_DCEL)
-ebgeometry_add_example(EBGeometry_F18)
 ebgeometry_add_example(EBGeometry_OctreeBoundingVolume)
 ebgeometry_add_example(EBGeometry_PackedSpheres)
 ebgeometry_add_example(EBGeometry_RandomCity)

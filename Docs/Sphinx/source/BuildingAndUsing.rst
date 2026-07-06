@@ -15,7 +15,7 @@ Requirements
 
 * A C++ compiler with C++17 support (GCC ≥ 7, Clang ≥ 5, MSVC 19.14 / VS 2017 15.7, Intel ICX ≥ 2021.1).
 * No third-party libraries are required by the core library.
-  Optional example codes that target AMReX or Chombo require those packages to be installed separately.
+  Optional example codes that target AMReX require it to be installed separately.
 
 The single entry-point header is ``EBGeometry.hpp``, located at the repository root.
 Including it pulls in the entire library:
@@ -23,6 +23,45 @@ Including it pulls in the entire library:
 .. code-block:: cpp
 
    #include "EBGeometry.hpp"
+
+.. _Sec:Cloning:
+
+Cloning the repository and example meshes
+------------------------------------------
+
+The core library is header-only and self-contained, but the ready-to-run examples in
+``Examples/`` read surface meshes from the `common-3d-test-models
+<https://github.com/alecjacobson/common-3d-test-models>`_ collection, which is bundled
+as a git submodule under ``Submodules/``.
+
+Clone EBGeometry together with the example meshes in one step:
+
+.. code-block:: bash
+
+   git clone --recurse-submodules https://github.com/rmrsk/EBGeometry.git
+
+If you already cloned without ``--recurse-submodules``, fetch the submodule afterwards:
+
+.. code-block:: bash
+
+   git submodule update --init --recursive
+
+The meshes are then available as ``.obj`` files under
+``Submodules/common-3d-test-models/data/``.  The DCEL examples take a mesh path on the
+command line, resolved relative to the run directory (each example is run from its own
+source folder), for example:
+
+.. code-block:: bash
+
+   ./a.out ../../Submodules/common-3d-test-models/data/armadillo.obj
+
+Running an example with no argument falls back to a default mesh from the submodule, so
+the submodule must be checked out for the examples to run.
+
+.. note::
+
+   The submodule is only needed for the bundled examples.  The core library and your
+   own applications do not depend on it.
 
 .. _Sec:CommandLine:
 
@@ -449,7 +488,7 @@ Writing your own assertions
 If you extend ``EBGeometry`` with custom SDF classes, use ``EBGEOMETRY_EXPECT``
 to guard your own preconditions.  The macro is available in any translation unit
 that (directly or transitively) includes ``EBGeometry_Macros.hpp``, which is
-pulled in automatically through ``EBGeometry_NamespaceHeader.hpp``.
+pulled in automatically through ``EBGeometry.hpp``.
 
 .. code-block:: cpp
 

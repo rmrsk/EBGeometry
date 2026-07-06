@@ -22,9 +22,3 @@ AMReX
 
 The AMReX examples are given in :file:`Examples/AMReX_<something>`.
 These examples are intended to expose the same features as the ``EBGeometry``-specific examples.
-
-Chombo3
-=======
-
-The Chombo-3 examples are given in :file:`Examples/Chombo3_<something>`.
-These examples are intended to expose the same features as the ``EBGeometry``-specific examples.

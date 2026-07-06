@@ -24,15 +24,18 @@ using Vec3 = EBGeometry::Vec3T<T>;
 int
 main(int argc, char* argv[])
 {
-  std::string file;
+  // Path to a surface mesh (STL/PLY/VTK/OBJ). Pass one on the command line, e.g.
+  //   ./a.out ../../Submodules/common-3d-test-models/data/cow.obj
+  // Paths are resolved relative to the run directory (this example's source folder when run via ctest).
+  std::string file = "../../Submodules/common-3d-test-models/data/armadillo.obj";
 
   if (argc == 2) {
-    file = "../Resources/" + std::string(argv[1]);
+    file = std::string(argv[1]);
   }
   else {
-    std::cout << "Missing file name. Use ./a.out 'filename' where 'filename' "
-                 "is one of the files in ../Resources. Setting this equal to the armadillo file\n";
-    file = "../Resources/armadillo_binary.stl";
+    std::cout << "No mesh file given; defaulting to '" << file << "'.\n"
+              << "Usage: ./a.out <path-to-mesh>, e.g. a .obj from the common-3d-test-models submodule "
+                 "(see the Building and using page in the docs for how to fetch it).\n";
   }
 
   // Three representations of the same object:

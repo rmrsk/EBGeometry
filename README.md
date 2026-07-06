@@ -7,7 +7,7 @@ EBGeometry is a code for
 3. Providing fast constructive solid geometry (CSG) unions using BVHs.
 
 This code is header-only and can be dropped into any C++ project that supports C++17.
-It was originally written to be used with embedded-boundary (EB) codes like Chombo or AMReX.
+It was originally written to be used with embedded-boundary (EB) codes like AMReX.
 However, EBGeometry provides quite general SDFs, implicit functions, and CSG unions, and is useful beyond those codes.
 
 To clone EBGeometry:
