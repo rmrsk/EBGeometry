@@ -11,9 +11,13 @@
 #ifndef EBGEOMETRY_SIGNEDDISTANCEFUNCTIONIMPLEM_HPP
 #define EBGEOMETRY_SIGNEDDISTANCEFUNCTIONIMPLEM_HPP
 
+// Std includes
+#include <cstddef>
+
 // Our includes
 #include "EBGeometry_SignedDistanceFunction.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 template <class T>
 inline T
@@ -43,6 +47,6 @@ SignedDistanceFunction<T>::normal(const Vec3T<T>& a_point, const T& a_delta) con
   return n;
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

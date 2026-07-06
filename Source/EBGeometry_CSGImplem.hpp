@@ -11,10 +11,24 @@
 #ifndef EBGEOMETRY_CSGIMPLEM_HPP
 #define EBGEOMETRY_CSGIMPLEM_HPP
 
+// Std includes
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
 // Our includes
 #include "EBGeometry_CSG.hpp"
 #include "EBGeometry_Transform.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 // ============================================================
 // Internal helpers shared by BVHUnionIF and BVHSmoothUnionIF
@@ -725,6 +739,6 @@ FiniteRepetitionIF<T>::value(const Vec3T<T>& a_point) const noexcept
   return ret;
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

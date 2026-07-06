@@ -5,10 +5,18 @@
 #ifndef EBGEOMETRY_STLIMPLEM_HPP
 #define EBGEOMETRY_STLIMPLEM_HPP
 
+// Std includes
+#include <cstddef>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
 // Our includes
 #include "EBGeometry_STL.hpp"
 #include "EBGeometry_Soup.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 template <typename T>
 STL<T>::STL() noexcept
@@ -94,6 +102,6 @@ STL<T>::convertToDCEL() const noexcept
   return mesh;
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

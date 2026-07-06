@@ -11,9 +11,20 @@
 #ifndef EBGEOMETRY_SOUPIMPLEM_HPP
 #define EBGEOMETRY_SOUPIMPLEM_HPP
 
+// Std includes
+#include <algorithm>
+#include <cstddef>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 // Our includes
 #include "EBGeometry_Soup.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 template <typename T>
 inline bool
@@ -209,6 +220,6 @@ Soup::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT
   }
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

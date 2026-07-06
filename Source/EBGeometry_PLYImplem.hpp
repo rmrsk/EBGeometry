@@ -5,10 +5,18 @@
 #ifndef EBGEOMETRY_PLYIMPLEM_HPP
 #define EBGEOMETRY_PLYIMPLEM_HPP
 
+// Std includes
+#include <cstddef>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
 // Our includes
 #include "EBGeometry_PLY.hpp"
 #include "EBGeometry_Soup.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 template <typename T>
 PLY<T>::PLY() noexcept
@@ -140,6 +148,6 @@ PLY<T>::convertToDCEL() const noexcept
   return mesh;
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

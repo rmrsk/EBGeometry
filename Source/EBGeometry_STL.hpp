@@ -6,13 +6,17 @@
 #define EBGEOMETRY_STL_HPP
 
 // Std includes
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <type_traits>
 #include <vector>
-#include <map>
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
 #include "EBGeometry_DCEL_Mesh.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 /**
   @brief Class for storing contents of STL files.
@@ -110,7 +114,7 @@ protected:
   std::vector<std::vector<size_t>> m_facets;
 };
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #include "EBGeometry_STLImplem.hpp"
 

@@ -11,12 +11,13 @@
 #ifndef EBGEOMETRY_SIGNEDDISTANCEFUNCTION_HPP
 #define EBGEOMETRY_SIGNEDDISTANCEFUNCTION_HPP
 
-#include <memory>
-#include <deque>
+// Std includes
+#include <type_traits>
 
 // Our includes
 #include "EBGeometry_ImplicitFunction.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 /**
   @brief Abstract representation of a signed distance function.
@@ -71,7 +72,7 @@ public:
   normal(const Vec3T<T>& a_point, const T& a_delta) const noexcept;
 };
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #include "EBGeometry_SignedDistanceFunctionImplem.hpp"
 

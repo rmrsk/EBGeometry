@@ -11,10 +11,18 @@
 #ifndef EBGEOMETRY_TRANSFORM_HPP
 #define EBGEOMETRY_TRANSFORM_HPP
 
+// Std includes
+#include <cstddef>
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
 // Our includes
 #include "EBGeometry_ImplicitFunction.hpp"
 #include "EBGeometry_Vec.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 /**
   @brief Convenience function for taking the complement of an implicit function
@@ -639,7 +647,7 @@ protected:
   Vec3T<T> m_reflectParams;
 };
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #include "EBGeometry_TransformImplem.hpp"
 

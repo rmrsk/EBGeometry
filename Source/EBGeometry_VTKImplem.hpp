@@ -5,10 +5,18 @@
 #ifndef EBGEOMETRY_VTKIMPLEM_HPP
 #define EBGEOMETRY_VTKIMPLEM_HPP
 
+// Std includes
+#include <cstddef>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
 // Our includes
 #include "EBGeometry_VTK.hpp"
 #include "EBGeometry_Soup.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 template <typename T>
 VTK<T>::VTK() noexcept
@@ -140,6 +148,6 @@ VTK<T>::convertToDCEL() const noexcept
   return mesh;
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

@@ -12,16 +12,25 @@
 #define EBGEOMETRY_PARSERIMPLEM_HPP
 
 // Std includes
-#include <iostream>
-#include <fstream>
-#include <iterator>
-#include <sstream>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <map>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 // Our includes
 #include "EBGeometry_Parser.hpp"
 #include "EBGeometry_Soup.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 inline Parser::FileType
 Parser::getFileType(const std::string a_filename) noexcept
@@ -1824,6 +1833,6 @@ Parser::readIntoPackedBVH(const std::vector<std::string> a_files)
   return implicitFunctions;
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

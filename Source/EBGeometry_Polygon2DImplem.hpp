@@ -12,12 +12,17 @@
 #define EBGEOMETRY_POLYGON2DIMPLEM_HPP
 
 // Std includes
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
 #include <iostream>
+#include <vector>
 
 // Our includes
 #include "EBGeometry_Constants.hpp"
 #include "EBGeometry_Polygon2D.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 template <class T>
 inline Polygon2D<T>::Polygon2D(const Vec3& a_normal, const std::vector<Vec3>& a_points)
@@ -228,6 +233,6 @@ Polygon2D<T>::isPointInsidePolygonSubtend(const Vec3& a_point) const noexcept
   return ret;
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

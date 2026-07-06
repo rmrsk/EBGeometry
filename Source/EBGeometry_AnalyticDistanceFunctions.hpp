@@ -14,13 +14,20 @@
 
 // Std includes
 #include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <limits>
+#include <memory>
 #include <random>
+#include <type_traits>
 
 // Our includes
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_Constants.hpp"
 #include "EBGeometry_SignedDistanceFunction.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 /**
   @brief Component-wise clamp for Vec3T.
@@ -1732,6 +1739,6 @@ protected:
   T m_height = T(0.4);
 };
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

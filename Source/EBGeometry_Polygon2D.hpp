@@ -13,12 +13,14 @@
 #define EBGEOMETRY_POLYGON2D_HPP
 
 // Std includes
-#include <memory>
+#include <cstddef>
+#include <type_traits>
 #include <vector>
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 /**
   @brief Class for embedding a polygon face into 2D.
@@ -181,7 +183,7 @@ private:
   computeSubtendedAngle(const Vec2& P) const noexcept;
 };
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #include "EBGeometry_Polygon2DImplem.hpp"
 

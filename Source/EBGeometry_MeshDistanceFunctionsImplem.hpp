@@ -11,9 +11,22 @@
 #ifndef EBGEOMETRY_MESHDISTANCEFUNCTIONSIMPLEM_HPP
 #define EBGEOMETRY_MESHDISTANCEFUNCTIONSIMPLEM_HPP
 
+// Std includes
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <utility>
+#include <vector>
+
 // Our includes
 #include "EBGeometry_MeshDistanceFunctions.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 template <class T, class Meta, class BV, size_t K>
 std::shared_ptr<EBGeometry::BVH::TreeBVH<T, EBGeometry::DCEL::FaceT<T, Meta>, BV, K>>
@@ -408,6 +421,6 @@ TriMeshSDF<T, Meta, K, W>::computeBoundingVolume() const noexcept
   return m_bvh->getBoundingVolume();
 };
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

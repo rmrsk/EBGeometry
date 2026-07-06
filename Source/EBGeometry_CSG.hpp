@@ -12,12 +12,20 @@
 #define EBGEOMETRY_CSG_HPP
 
 // Std includes
-#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <functional>
+#include <memory>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 // Our includes
 #include "EBGeometry_ImplicitFunction.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+#include "EBGeometry_BVH.hpp"
+
+namespace EBGeometry {
 
 /**
   @brief Constructs an implicit function whose interior is the union of the interiors of all input functions.
@@ -853,7 +861,7 @@ protected:
   std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
 };
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #include "EBGeometry_CSGImplem.hpp"
 

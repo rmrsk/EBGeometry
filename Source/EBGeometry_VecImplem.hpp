@@ -12,15 +12,15 @@
 #define EBGEOMETRY_VECIMPLEM_HPP
 
 // Std includes
-#include <math.h>
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
 #include <limits>
-#include <tuple>
-#include <utility>
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 template <typename T>
 inline Vec2T<T>::Vec2T() noexcept
@@ -621,6 +621,6 @@ length(const Vec3T<T>& v) noexcept
   return v.length();
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

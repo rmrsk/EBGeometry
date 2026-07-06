@@ -12,12 +12,19 @@
 #define EBGEOMETRY_IMPLICITFUNCTIONIMPLEM_HPP
 
 // Std includes
+#include <cmath>
+#include <cstddef>
+#include <iostream>
+#include <memory>
+#include <string>
 #include <tuple>
+#include <vector>
 
 // Our includes
 #include "EBGeometry_Octree.hpp"
 #include "EBGeometry_ImplicitFunction.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 template <class T>
 T
@@ -159,6 +166,6 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
   return BV(vertices);
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

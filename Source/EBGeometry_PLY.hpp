@@ -6,13 +6,18 @@
 #define EBGEOMETRY_PLY_HPP
 
 // Std includes
-#include <array>
+#include <cstddef>
 #include <map>
+#include <memory>
+#include <string>
+#include <type_traits>
 #include <vector>
 
 // Our includes
 #include "EBGeometry_Vec.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+#include "EBGeometry_DCEL.hpp"
+
+namespace EBGeometry {
 
 /**
   @brief Class for storing Stanford PLY meshes.
@@ -172,7 +177,7 @@ public:
   std::map<std::string, std::vector<T>> m_faceProperties;
 };
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #include "EBGeometry_PLYImplem.hpp"
 

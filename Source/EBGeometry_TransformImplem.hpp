@@ -11,10 +11,16 @@
 #ifndef EBGEOMETRY_TRANSFORMIMPLEM_HPP
 #define EBGEOMETRY_TRANSFORMIMPLEM_HPP
 
+// Std includes
+#include <cmath>
+#include <cstddef>
+#include <memory>
+
 // Our includes
 #include "EBGeometry_AnalyticDistanceFunctions.hpp"
 #include "EBGeometry_Transform.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 template <class T>
 std::shared_ptr<ImplicitFunction<T>>
@@ -385,6 +391,6 @@ ReflectIF<T>::value(const Vec3T<T>& a_point) const noexcept
   return m_implicitFunction->value(a_point * m_reflectParams);
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

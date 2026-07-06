@@ -11,34 +11,37 @@
 #ifndef EBGEOMETRY_SIMPLETIMERIMPLEM_HPP
 #define EBGEOMETRY_SIMPLETIMERIMPLEM_HPP
 
+// Std includes
+#include <chrono>
+
 // Our includes
 #include "EBGeometry_SimpleTimer.hpp"
 
 namespace EBGeometry {
 
-  inline SimpleTimer::SimpleTimer() noexcept
-  {
-    this->start();
-    this->stop();
-  }
+inline SimpleTimer::SimpleTimer() noexcept
+{
+  this->start();
+  this->stop();
+}
 
-  inline void
-  SimpleTimer::start() noexcept
-  {
-    m_start = Clock::now();
-  }
+inline void
+SimpleTimer::start() noexcept
+{
+  m_start = Clock::now();
+}
 
-  inline void
-  SimpleTimer::stop() noexcept
-  {
-    m_stop = Clock::now();
-  }
+inline void
+SimpleTimer::stop() noexcept
+{
+  m_stop = Clock::now();
+}
 
-  inline double
-  SimpleTimer::seconds() const noexcept
-  {
-    return std::chrono::duration_cast<std::chrono::duration<double>>(m_stop - m_start).count();
-  }
+inline double
+SimpleTimer::seconds() const noexcept
+{
+  return std::chrono::duration_cast<std::chrono::duration<double>>(m_stop - m_start).count();
+}
 
 } // namespace EBGeometry
 

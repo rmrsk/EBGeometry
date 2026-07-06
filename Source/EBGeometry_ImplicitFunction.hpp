@@ -11,10 +11,15 @@
 #ifndef EBGEOMETRY_IMPLICITFUNCTION_HPP
 #define EBGEOMETRY_IMPLICITFUNCTION_HPP
 
+// Std includes
+#include <type_traits>
+#include <vector>
+
 // Our includes
 #include "EBGeometry_Vec.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 /**
   @brief Abstract representation of an implicit function (not necessarily a signed distance function).
@@ -75,7 +80,7 @@ public:
                                   const T&           a_safety = 0.0) const;
 };
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #include "EBGeometry_ImplicitFunctionImplem.hpp"
 

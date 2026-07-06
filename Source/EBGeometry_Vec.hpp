@@ -13,12 +13,17 @@
 #define EBGEOMETRY_VEC_HPP
 
 // Std includes
+#include <algorithm>
 #include <array>
-#include <iostream>
+#include <cstddef>
+#include <limits>
+#include <ostream>
 #include <type_traits>
 
 // Our includes
-#include "EBGeometry_NamespaceHeader.hpp"
+#include "EBGeometry_Macros.hpp"
+
+namespace EBGeometry {
 
 /**
   @brief Two-dimensional vector class with arithmetic operators.
@@ -718,7 +723,7 @@ template <typename T>
 [[nodiscard]] inline constexpr T
 length(const Vec3T<T>& v) noexcept;
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #include "EBGeometry_VecImplem.hpp"
 

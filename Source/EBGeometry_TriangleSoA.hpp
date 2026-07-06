@@ -11,7 +11,11 @@
 #ifndef EBGEOMETRY_TRIANGLESOA_HPP
 #define EBGEOMETRY_TRIANGLESOA_HPP
 
+// Std includes
+#include <cstddef>
 #include <cstdint>
+#include <type_traits>
+#include <vector>
 
 #if defined(__SSE4_1__) || defined(__AVX__)
 #include <immintrin.h>
@@ -38,7 +42,8 @@
 #endif
 
 #include "EBGeometry_Triangle.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 /**
   @brief SoA (Structure of Arrays) layout for W triangles, enabling SIMD evaluation.
@@ -154,7 +159,7 @@ struct TriangleSoAT
   computeBoundingVolume() const noexcept;
 };
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #include "EBGeometry_TriangleSoAImplem.hpp"
 
