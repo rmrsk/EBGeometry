@@ -1,0 +1,64 @@
+# SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Bulk licensing for files that cannot carry an inline SPDX header (data,
+# images, JSON) or where a per-file header would be noise (build/config/docs).
+# Source code carries inline SPDX headers instead; see Source/ and Examples/*/main.cpp.
+#
+# NOTE: Examples/Resources/ (third-party mesh data: Stanford, NASA, AMReX,
+# GrabCAD, Porsche, F18, ...) is intentionally NOT covered here and remains
+# non-compliant pending migration to git submodules so it is not redistributed.
+
+version = 1
+
+# Top-level build and repository configuration
+[[annotations]]
+path = [
+  ".clang-format",
+  ".codespellignore",
+  ".gitignore",
+  ".pre-commit-config.yaml",
+  "CMakeLists.txt",
+  "CMakePresets.json",
+  "CheckDocs.py",
+  "Copyright.txt",
+  "README.md",
+  "TODO.md",
+]
+SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# GitHub metadata and workflows
+[[annotations]]
+path = ".github/**"
+SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# Documentation: Sphinx sources, figures (.png/.tex), and config
+[[annotations]]
+path = "Docs/**"
+SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# Example build files and per-example documentation
+# (deliberately excludes Examples/Resources/ data and main.cpp, which are handled elsewhere)
+[[annotations]]
+path = [
+  "Examples/CMakeLists.txt",
+  "Examples/README.md",
+  "Examples/**/GNUmakefile",
+  "Examples/**/Make.package",
+  "Examples/**/*.inputs",
+  "Examples/**/README.md",
+]
+SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# Tests: build files and the small self-authored test fixture mesh
+[[annotations]]
+path = [
+  "Tests/CMakeLists.txt",
+  "Tests/data/**",
+]
+SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
