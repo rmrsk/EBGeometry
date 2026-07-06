@@ -190,7 +190,9 @@ FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
 template <class T>
 UnionIF<T>::UnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions)
 {
+  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
   for (const auto& prim : a_implicitFunctions) {
+    EBGEOMETRY_EXPECT(prim != nullptr);
     m_implicitFunctions.emplace_back(prim);
   }
 }
@@ -202,7 +204,9 @@ UnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
   T ret = std::numeric_limits<T>::infinity();
 
   for (const auto& prim : m_implicitFunctions) {
-    ret = std::min(ret, prim->value(a_point));
+    const T v = prim->value(a_point);
+    EBGEOMETRY_EXPECT(!std::isnan(v));
+    ret = std::min(ret, v);
   }
 
   return ret;
@@ -213,7 +217,11 @@ SmoothUnionIF<T>::SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFuncti
                                 const T                                                     a_smoothLen,
                                 const std::function<T(const T& a_, const T& b, const T& s)> a_smoothMin)
 {
+  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+
   for (const auto& prim : a_implicitFunctions) {
+    EBGEOMETRY_EXPECT(prim != nullptr);
     m_implicitFunctions.emplace_back(prim);
   }
 
@@ -229,6 +237,7 @@ SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 
   if (m_implicitFunctions.size() == 1) {
     ret = m_implicitFunctions.front()->value(a_point);
+    EBGEOMETRY_EXPECT(!std::isnan(ret));
   }
   else if (m_implicitFunctions.size() > 1) {
     T a = std::numeric_limits<T>::infinity();
@@ -236,6 +245,7 @@ SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 
     for (const auto& implicitFunction : m_implicitFunctions) {
       const T curValue = implicitFunction->value(a_point);
+      EBGEOMETRY_EXPECT(!std::isnan(curValue));
 
       if (curValue < a) {
         b = a;
@@ -246,7 +256,6 @@ SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
       }
     }
 
-    // Smooth minimum function.
     ret = m_smoothMin(a, b, m_smoothLen);
   }
 
@@ -256,6 +265,11 @@ SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 template <class T, class P, class BV, size_t K>
 FastUnionIF<T, P, BV, K>::FastUnionIF(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs)
 {
+  EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+  for (const auto& [prim, bv] : a_primsAndBVs) {
+    EBGEOMETRY_EXPECT(prim != nullptr);
+  }
+
   this->buildTree(a_primsAndBVs);
 }
 
@@ -263,18 +277,20 @@ template <class T, class P, class BV, size_t K>
 FastUnionIF<T, P, BV, K>::FastUnionIF(const std::vector<std::shared_ptr<P>>& a_primitives,
                                       const std::vector<BV>&                 a_boundingVolumes)
 {
-  if (a_primitives.size() != a_boundingVolumes.size()) {
-    std::cerr << "FastUnionIF(std::vector, std::vector) - input arguments not same length!\n";
+  EBGEOMETRY_EXPECT(!a_primitives.empty());
+  EBGEOMETRY_EXPECT(a_primitives.size() == a_boundingVolumes.size());
+  for (const auto& p : a_primitives) {
+    EBGEOMETRY_EXPECT(p != nullptr);
   }
-  else {
-    std::vector<std::pair<std::shared_ptr<const P>, BV>> primsAndBVs;
 
-    for (size_t i = 0; i < a_primitives.size(); i++) {
-      primsAndBVs.emplace_back(std::make_pair(a_primitives[i], a_boundingVolumes[i]));
-    }
+  std::vector<std::pair<std::shared_ptr<const P>, BV>> primsAndBVs;
+  primsAndBVs.reserve(a_primitives.size());
 
-    this->buildTree(primsAndBVs);
+  for (size_t i = 0; i < a_primitives.size(); i++) {
+    primsAndBVs.emplace_back(std::make_pair(a_primitives[i], a_boundingVolumes[i]));
   }
+
+  this->buildTree(primsAndBVs);
 }
 
 template <class T, class P, class BV, size_t K>
@@ -282,27 +298,25 @@ void
 FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
                                     const BVH::Build                                            a_build) noexcept
 {
-  // Init the root node, partition it, and flatten it.
+  EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+
   auto root = std::make_shared<EBGeometry::BVH::TreeBVH<T, P, BV, K>>(a_primsAndBVs);
 
   switch (a_build) {
   case BVH::Build::TopDown: {
     root->topDownSortAndPartition();
-
     break;
   }
   case BVH::Build::Morton: {
     root->template bottomUpSortAndPartition<SFC::Morton>();
-
     break;
   }
   case BVH::Build::Nested: {
     root->template bottomUpSortAndPartition<SFC::Nested>();
-
     break;
   }
   default: {
-    std::cerr << "EBGeometry_CSGImplem.hpp in FastUnionIF::buildTree - unsupported build method requested" << std::endl;
+    EBGEOMETRY_EXPECT(false);
     break;
   }
   }
@@ -314,14 +328,17 @@ template <class T, class P, class BV, size_t K>
 T
 FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 {
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+
   T minDist = std::numeric_limits<T>::infinity();
 
   BVH::PackedUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions,
                                                        size_t                                       offset,
                                                        size_t count) noexcept -> void {
-#pragma GCC ivdep
     for (size_t i = offset; i < offset + count; i++) {
-      minDist = std::min(minDist, a_implicitFunctions[i]->value(a_point));
+      const T v = a_implicitFunctions[i]->value(a_point);
+      EBGEOMETRY_EXPECT(!std::isnan(v));
+      minDist = std::min(minDist, v);
     }
   };
 
@@ -349,6 +366,7 @@ template <class T, class P, class BV, size_t K>
 const EBGeometry::BoundingVolumes::AABBT<T>&
 FastUnionIF<T, P, BV, K>::getBoundingVolume() const noexcept
 {
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
   return m_bvh->getBoundingVolume();
 }
 
@@ -360,6 +378,8 @@ FastSmoothUnionIF<T, P, BV, K>::FastSmoothUnionIF(
   const std::function<T(const T&, const T&, const T&)> a_smoothMin) noexcept
   : FastUnionIF<T, P, BV, K>(a_distanceFunctions, a_boundingVolumes)
 {
+  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+
   m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
   m_smoothMin = a_smoothMin;
 }
@@ -368,19 +388,17 @@ template <class T, class P, class BV, size_t K>
 T
 FastSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 {
-  // For the smoothed CSG union we use a smooth min operator on the two closest
-  // primitives.
+  EBGEOMETRY_EXPECT(this->m_bvh != nullptr);
 
-  // Closest and next closest primitives.
   T a = std::numeric_limits<T>::infinity();
   T b = std::numeric_limits<T>::infinity();
 
   BVH::PackedUpdater<P> updater = [&a, &b, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions,
                                                      size_t                                       offset,
                                                      size_t count) noexcept -> void {
-#pragma GCC ivdep
     for (size_t i = offset; i < offset + count; i++) {
-      const auto& d = a_implicitFunctions[i]->value(a_point);
+      const T d = a_implicitFunctions[i]->value(a_point);
+      EBGEOMETRY_EXPECT(!std::isnan(d));
 
       if (d < a) {
         b = a;
@@ -415,7 +433,9 @@ FastSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 template <class T>
 IntersectionIF<T>::IntersectionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions) noexcept
 {
+  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
   for (const auto& prim : a_implicitFunctions) {
+    EBGEOMETRY_EXPECT(prim != nullptr);
     m_implicitFunctions.emplace_back(prim);
   }
 }
@@ -427,7 +447,9 @@ IntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
   T ret = -std::numeric_limits<T>::infinity();
 
   for (const auto& prim : m_implicitFunctions) {
-    ret = std::max(ret, prim->value(a_point));
+    const T v = prim->value(a_point);
+    EBGEOMETRY_EXPECT(!std::isnan(v));
+    ret = std::max(ret, v);
   }
 
   return ret;
@@ -440,6 +462,9 @@ SmoothIntersectionIF<T>::SmoothIntersectionIF(
   const T                                               a_smoothLen,
   const std::function<T(const T&, const T&, const T&)>& a_smoothMax) noexcept
 {
+  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
+  EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
+  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
 
   m_implicitFunctions.emplace_back(a_implicitFunctionA);
   m_implicitFunctions.emplace_back(a_implicitFunctionB);
@@ -454,7 +479,11 @@ SmoothIntersectionIF<T>::SmoothIntersectionIF(
   const T                                                  a_smoothLen,
   const std::function<T(const T&, const T&, const T&)>&    a_smoothMax) noexcept
 {
+  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+
   for (const auto& prim : a_implicitFunctions) {
+    EBGEOMETRY_EXPECT(prim != nullptr);
     m_implicitFunctions.emplace_back(prim);
   }
 
@@ -470,6 +499,7 @@ SmoothIntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 
   if (m_implicitFunctions.size() == 1) {
     ret = m_implicitFunctions.front()->value(a_point);
+    EBGEOMETRY_EXPECT(!std::isnan(ret));
   }
   else if (m_implicitFunctions.size() > 1) {
     T a = -std::numeric_limits<T>::infinity();
@@ -477,6 +507,7 @@ SmoothIntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 
     for (const auto& implicitFunction : m_implicitFunctions) {
       const T curValue = implicitFunction->value(a_point);
+      EBGEOMETRY_EXPECT(!std::isnan(curValue));
 
       if (curValue > a) {
         b = a;
@@ -497,6 +528,9 @@ template <class T>
 DifferenceIF<T>::DifferenceIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionA,
                               const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionB) noexcept
 {
+  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
+  EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
+
   m_implicitFunctionA = a_implicitFunctionA;
   m_implicitFunctionB = a_implicitFunctionB;
 }
@@ -505,6 +539,9 @@ template <class T>
 DifferenceIF<T>::DifferenceIF(const std::shared_ptr<ImplicitFunction<T>>&              a_implicitFunctionA,
                               const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctionsB) noexcept
 {
+  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
+  EBGEOMETRY_EXPECT(!a_implicitFunctionsB.empty());
+
   m_implicitFunctionA = a_implicitFunctionA;
   m_implicitFunctionB = EBGeometry::Union<T>(a_implicitFunctionsB);
 }
@@ -513,7 +550,12 @@ template <class T>
 T
 DifferenceIF<T>::value(const Vec3T<T>& a_point) const noexcept
 {
-  return std::max(m_implicitFunctionA->value(a_point), -m_implicitFunctionB->value(a_point));
+  const T a = m_implicitFunctionA->value(a_point);
+  const T b = m_implicitFunctionB->value(a_point);
+  EBGEOMETRY_EXPECT(!std::isnan(a));
+  EBGEOMETRY_EXPECT(!std::isnan(b));
+
+  return std::max(a, -b);
 }
 
 template <class T>
@@ -523,6 +565,9 @@ SmoothDifferenceIF<T>::SmoothDifferenceIF(
   const T                                                     a_smoothLen,
   const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax) noexcept
 {
+  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
+  EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
+  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
 
   m_smoothIntersectionIF = std::make_shared<SmoothIntersectionIF<T>>(
     a_implicitFunctionA, EBGeometry::Complement<T>(a_implicitFunctionB), a_smoothLen, a_smoothMax);
@@ -535,12 +580,15 @@ SmoothDifferenceIF<T>::SmoothDifferenceIF(
   const T                                                     a_smoothLen,
   const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax) noexcept
 {
+  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
+  EBGEOMETRY_EXPECT(!a_implicitFunctionsB.empty());
+  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
-
   implicitFunctions.emplace_back(a_implicitFunctionA);
 
   for (const auto& subtractedFunction : a_implicitFunctionsB) {
+    EBGEOMETRY_EXPECT(subtractedFunction != nullptr);
     implicitFunctions.emplace_back(EBGeometry::Complement<T>(subtractedFunction));
   }
 
@@ -551,6 +599,7 @@ template <class T>
 T
 SmoothDifferenceIF<T>::value(const Vec3T<T>& a_point) const noexcept
 {
+  EBGEOMETRY_EXPECT(m_smoothIntersectionIF != nullptr);
   return m_smoothIntersectionIF->value(a_point);
 }
 
@@ -560,6 +609,11 @@ FiniteRepetitionIF<T>::FiniteRepetitionIF(const std::shared_ptr<ImplicitFunction
                                           const Vec3T<T>&                             a_repeatLo,
                                           const Vec3T<T>&                             a_repeatHi) noexcept
 {
+  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+  for (size_t i = 0; i < 3; i++) {
+    EBGEOMETRY_EXPECT(a_period[i] > T(0));
+  }
+
   m_implicitFunction = a_implicitFunction;
   m_period           = a_period;
   m_repeatLo         = a_repeatLo;
@@ -576,7 +630,10 @@ FiniteRepetitionIF<T>::value(const Vec3T<T>& a_point) const noexcept
     q[i] = a_point[i] - m_period[i] * std::round(std::clamp((a_point[i] / m_period[i]), -m_repeatLo[i], m_repeatHi[i]));
   }
 
-  return m_implicitFunction->value(q);
+  const T ret = m_implicitFunction->value(q);
+  EBGEOMETRY_EXPECT(!std::isnan(ret));
+
+  return ret;
 }
 
 #include "EBGeometry_NamespaceFooter.hpp"
