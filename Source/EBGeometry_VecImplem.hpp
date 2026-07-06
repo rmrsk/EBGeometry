@@ -301,6 +301,13 @@ Vec3T<T>::operator-(const Vec3T<T>& u) const noexcept
 
 template <typename T>
 inline constexpr Vec3T<T>
+Vec3T<T>::operator+() const noexcept
+{
+  return *this;
+}
+
+template <typename T>
+inline constexpr Vec3T<T>
 Vec3T<T>::operator-() const noexcept
 {
   return Vec3T<T>(-m_X[0], -m_X[1], -m_X[2]);

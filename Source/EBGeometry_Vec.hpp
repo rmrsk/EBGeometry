@@ -415,6 +415,13 @@ public:
   operator-(const Vec3T<T>& u) const noexcept;
 
   /**
+    @brief Identity operator.
+    @return Copy of this vector (unary plus, component-wise identity).
+  */
+  [[nodiscard]] inline constexpr Vec3T<T>
+  operator+() const noexcept;
+
+  /**
     @brief Negation operator.
     @return New vector with each component negated.
   */
