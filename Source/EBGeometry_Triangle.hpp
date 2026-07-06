@@ -23,8 +23,8 @@ namespace EBGeometry {
 /**
  * @brief Triangle class with signed distance functionality.
  * @details This class represents a planar triangle and has a signed distance functionality. It is
- * self-contained such that it can be directly copied to GPUs. The class contains a triangle face normal
- * vector; three vertex positions, and normal vectors for the three vertices and three edges.
+ * self-contained: it stores all of its own data and holds no external references. The class contains a
+ * triangle face normal vector; three vertex positions, and normal vectors for the three vertices and three edges.
  *
  * This class assumes that the vertices are organized with the right-hand rule. I.e., edges are enumerated
  * as follows:

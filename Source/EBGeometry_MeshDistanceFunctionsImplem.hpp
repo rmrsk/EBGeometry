@@ -70,7 +70,7 @@ DCEL::buildFullBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dc
     break;
   }
   default: {
-    std::cerr << "EBGeometry::DCEL::buildFullBVH - unsupported build method requested" << std::endl;
+    std::cerr << "EBGeometry::DCEL::buildFullBVH - unsupported build method requested" << '\n';
 
     break;
   }
@@ -149,7 +149,7 @@ buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Me
     break;
   }
   default: {
-    std::cerr << "EBGeometry::DCEL::buildFullBVH - unsupported build method requested" << std::endl;
+    std::cerr << "EBGeometry::DCEL::buildFullBVH - unsupported build method requested" << '\n';
 
     break;
   }

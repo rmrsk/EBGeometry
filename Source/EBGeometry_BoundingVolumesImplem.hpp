@@ -81,8 +81,7 @@ BoundingSphereT<T>::BoundingSphereT(const std::vector<Vec3T<P>>&   a_points,
 }
 
 template <class T>
-BoundingSphereT<T>::~BoundingSphereT() noexcept
-{}
+BoundingSphereT<T>::~BoundingSphereT() noexcept = default;
 
 template <class T>
 template <class P>
@@ -329,8 +328,7 @@ AABBT<T>::AABBT(const std::vector<Vec3T<P>>& a_points) noexcept
 }
 
 template <class T>
-AABBT<T>::~AABBT() noexcept
-{}
+AABBT<T>::~AABBT() noexcept = default;
 
 template <class T>
 template <class P>

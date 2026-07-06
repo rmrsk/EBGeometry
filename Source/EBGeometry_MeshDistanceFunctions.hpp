@@ -78,14 +78,14 @@ public:
   /**
    * @brief Destructor
    */
-  virtual ~FlatMeshSDF() = default;
+  ~FlatMeshSDF() override = default;
 
   /**
    * @brief Compute the signed distance from a_point to the mesh.
    * @param[in] a_point Query point.
    * @return Signed distance to the nearest face; negative inside the mesh.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
   /**
@@ -162,14 +162,14 @@ public:
   /**
    * @brief Destructor
    */
-  virtual ~MeshSDF() = default;
+  ~MeshSDF() override = default;
 
   /**
    * @brief Compute the signed distance from a_point to the mesh.
    * @param[in] a_point Query point.
    * @return Signed distance to the nearest face; negative inside the mesh.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
   /**
@@ -291,14 +291,14 @@ public:
   /**
    * @brief Destructor
    */
-  virtual ~TriMeshSDF() = default;
+  ~TriMeshSDF() override = default;
 
   /**
    * @brief Compute the signed distance from a_point to the triangle mesh.
    * @param[in] a_point Query point.
    * @return Signed distance to the nearest triangle; negative inside the mesh.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
   /**

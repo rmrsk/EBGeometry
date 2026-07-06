@@ -161,14 +161,14 @@ public:
   /**
    * @brief Destructor (does nothing)
    */
-  virtual ~ComplementIF() noexcept;
+  ~ComplementIF() noexcept override;
 
   /**
    * @brief Value function
    * @param[in] a_point Query point
    * @return Negated value of the wrapped implicit function at a_point
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -203,14 +203,14 @@ public:
   /**
    * @brief Destructor (does nothing)
    */
-  virtual ~TranslateIF() noexcept;
+  ~TranslateIF() noexcept override;
 
   /**
    * @brief Value function
    * @param[in] a_point Query point
    * @return Value of the wrapped implicit function evaluated at a_point shifted by -m_shift
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -253,14 +253,14 @@ public:
   /**
    * @brief Destructor
    */
-  virtual ~RotateIF() noexcept;
+  ~RotateIF() noexcept override;
 
   /**
    * @brief Value function with rotation applied to the query point.
    * @param[in] a_point Query point
    * @return Value of the wrapped implicit function evaluated at the inversely rotated point
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -322,7 +322,7 @@ public:
    * @param[in] a_point Query point
    * @return Value of the wrapped implicit function minus the stored offset
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -362,14 +362,14 @@ public:
   /**
    * @brief Destructor
    */
-  virtual ~ScaleIF() noexcept;
+  ~ScaleIF() noexcept override;
 
   /**
    * @brief Value function.
    * @param[in] a_point Query point
    * @return Signed distance of the wrapped function evaluated at a_point/m_scale, multiplied by m_scale
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -416,7 +416,7 @@ public:
    * @param[in] a_point Query point
    * @return abs(f(a_point)) - m_delta, hollowing out the shape at distance m_delta from the surface
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -470,7 +470,7 @@ public:
    * @param[in] a_point Query point
    * @return Blurred implicit function value at a_point
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -523,14 +523,14 @@ public:
   /**
    * @brief Destructor
    */
-  virtual ~MollifyIF() noexcept;
+  ~MollifyIF() noexcept override;
 
   /**
    * @brief Value function
    * @param[in] a_point Query point
    * @return Weighted convolution of the wrapped function with the pre-sampled mollifier kernel
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -585,7 +585,7 @@ public:
    * @param[in] a_point Query point
    * @return Value of the wrapped function evaluated at a_point clamped by m_elongation
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:
@@ -632,7 +632,7 @@ public:
    * @param[in] a_point Query point
    * @return Value of the wrapped function evaluated at a_point with the reflected coordinate flipped
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
 protected:

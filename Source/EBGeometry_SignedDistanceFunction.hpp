@@ -42,15 +42,15 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~SignedDistanceFunction() = default;
+  ~SignedDistanceFunction() override = default;
 
   /**
    * @brief Implementation of ImplicitFunction::value; delegates to signedDistance().
    * @param[in] a_point 3D query point.
    * @return Signed distance at a_point.
    */
-  [[nodiscard]] virtual T
-  value(const Vec3T<T>& a_point) const noexcept override final;
+  [[nodiscard]] T
+  value(const Vec3T<T>& a_point) const noexcept final;
 
   /**
    * @brief Pure virtual signed distance function to be implemented by subclasses.

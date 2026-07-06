@@ -54,8 +54,7 @@ inline EdgeT<T, Meta>::EdgeT(const Edge& a_otherEdge) noexcept : EdgeT<T, Meta>(
 }
 
 template <class T, class Meta>
-inline EdgeT<T, Meta>::~EdgeT()
-{}
+inline EdgeT<T, Meta>::~EdgeT() = default;
 
 template <class T, class Meta>
 inline size_t

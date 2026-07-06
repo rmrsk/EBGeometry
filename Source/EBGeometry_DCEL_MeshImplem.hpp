@@ -48,8 +48,7 @@ inline MeshT<T, Meta>::MeshT(std::vector<FacePtr>&   a_faces,
 }
 
 template <class T, class Meta>
-inline MeshT<T, Meta>::~MeshT() noexcept
-{}
+inline MeshT<T, Meta>::~MeshT() noexcept = default;
 
 template <class T, class Meta>
 inline void

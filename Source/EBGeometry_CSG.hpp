@@ -302,7 +302,7 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~UnionIF() = default;
+  ~UnionIF() override = default;
 
   /**
    * @brief Evaluates the signed distance at a_point.
@@ -395,7 +395,7 @@ class BVHUnionIF : public ImplicitFunction<T>
 {
 public:
   static_assert(std::is_floating_point_v<T>, "BVHUnionIF requires a floating-point type T");
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "BVHUnionIF requires an implicit function");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "BVHUnionIF requires an implicit function");
   static_assert(K > 0, "BVHUnionIF BVH branching factor K must be positive");
 
   /**
@@ -429,7 +429,7 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~BVHUnionIF() = default;
+  ~BVHUnionIF() override = default;
 
   /**
    * @brief Evaluates the signed distance at a_point using BVH traversal.
@@ -438,7 +438,7 @@ public:
    * @param[in] a_point 3D query point.
    * @return Minimum signed distance among all non-culled primitives.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
   /**
@@ -479,7 +479,7 @@ class BVHSmoothUnionIF : public ImplicitFunction<T>
 {
 public:
   static_assert(std::is_floating_point_v<T>, "BVHSmoothUnionIF requires a floating-point type T");
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value,
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>,
                 "BVHSmoothUnionIF requires an implicit function");
   static_assert(K > 0, "BVHSmoothUnionIF BVH branching factor K must be positive");
 
@@ -585,7 +585,7 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~IntersectionIF() = default;
+  ~IntersectionIF() override = default;
 
   /**
    * @brief Evaluates the signed distance at a_point.
@@ -829,7 +829,7 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~FiniteRepetitionIF() = default;
+  ~FiniteRepetitionIF() override = default;
 
   /**
    * @brief Evaluates the signed distance at a_point by folding into the nearest tile.

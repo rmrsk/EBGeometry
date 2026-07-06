@@ -102,8 +102,7 @@ ComplementIF<T>::ComplementIF(const std::shared_ptr<ImplicitFunction<T>>& a_impl
 }
 
 template <class T>
-ComplementIF<T>::~ComplementIF() noexcept
-{}
+ComplementIF<T>::~ComplementIF() noexcept = default;
 
 template <class T>
 T
@@ -121,8 +120,7 @@ TranslateIF<T>::TranslateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implic
 }
 
 template <class T>
-TranslateIF<T>::~TranslateIF() noexcept
-{}
+TranslateIF<T>::~TranslateIF() noexcept = default;
 
 template <class T>
 T
@@ -150,8 +148,7 @@ RotateIF<T>::RotateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunc
 }
 
 template <class T>
-RotateIF<T>::~RotateIF() noexcept
-{}
+RotateIF<T>::~RotateIF() noexcept = default;
 
 template <class T>
 T
@@ -199,8 +196,7 @@ OffsetIF<T>::OffsetIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunc
 }
 
 template <class T>
-OffsetIF<T>::~OffsetIF() noexcept
-{}
+OffsetIF<T>::~OffsetIF() noexcept = default;
 
 template <class T>
 T
@@ -219,8 +215,7 @@ ScaleIF<T>::ScaleIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFuncti
 }
 
 template <class T>
-ScaleIF<T>::~ScaleIF() noexcept
-{}
+ScaleIF<T>::~ScaleIF() noexcept = default;
 
 template <class T>
 T
@@ -237,8 +232,7 @@ AnnularIF<T>::AnnularIF(const std::shared_ptr<ImplicitFunction<T>> a_implicitFun
 }
 
 template <class T>
-AnnularIF<T>::~AnnularIF() noexcept
-{}
+AnnularIF<T>::~AnnularIF() noexcept = default;
 
 template <class T>
 T
@@ -258,8 +252,7 @@ BlurIF<T>::BlurIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction
 }
 
 template <class T>
-BlurIF<T>::~BlurIF() noexcept
-{}
+BlurIF<T>::~BlurIF() noexcept = default;
 
 template <class T>
 T
@@ -331,8 +324,7 @@ MollifyIF<T>::MollifyIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFu
 }
 
 template <class T>
-MollifyIF<T>::~MollifyIF() noexcept
-{}
+MollifyIF<T>::~MollifyIF() noexcept = default;
 
 template <class T>
 T
@@ -356,8 +348,7 @@ ElongateIF<T>::ElongateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicit
 }
 
 template <class T>
-ElongateIF<T>::~ElongateIF() noexcept
-{}
+ElongateIF<T>::~ElongateIF() noexcept = default;
 
 template <class T>
 T
@@ -381,8 +372,7 @@ ReflectIF<T>::ReflectIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFu
 }
 
 template <class T>
-ReflectIF<T>::~ReflectIF() noexcept
-{}
+ReflectIF<T>::~ReflectIF() noexcept = default;
 
 template <class T>
 T

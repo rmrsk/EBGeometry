@@ -37,7 +37,7 @@ Parser::getFileType(const std::string a_filename) noexcept
 {
   auto ft = Parser::FileType::Unsupported;
 
-  const std::string ext = a_filename.substr(a_filename.find_last_of(".") + 1);
+  const std::string ext = a_filename.substr(a_filename.find_last_of('.') + 1);
 
   if (ext == "stl" || ext == "STL") {
     ft = Parser::FileType::STL;
@@ -73,7 +73,7 @@ Parser::getFileEncoding(const std::string a_filename) noexcept
       std::string buffer(chars, static_cast<size_t>(is.gcount()));
       std::transform(buffer.begin(), buffer.end(), buffer.begin(), ::tolower);
 
-      if (buffer.find("solid") != std::string::npos && buffer.find("\n") != std::string::npos &&
+      if (buffer.find("solid") != std::string::npos && buffer.find('\n') != std::string::npos &&
           buffer.find("facet") != std::string::npos && buffer.find("normal") != std::string::npos) {
 
         encoding = Parser::Encoding::ASCII;
@@ -225,7 +225,7 @@ Parser::readSTL(const std::string& a_filename)
         ss >> str;
 
         if (str == "facet") {
-          facets.emplace_back(std::vector<size_t>());
+          facets.emplace_back();
         }
         else if (str == "vertex") {
           T x;
@@ -330,8 +330,8 @@ Parser::readSTL(const std::string& a_filename)
 
         // Insert a new facet.
         std::vector<size_t> curFacet;
-        for (size_t j = 0; j < 3; j++) {
-          objectVertices.emplace_back(v[j]);
+        for (auto& j : v) {
+          objectVertices.emplace_back(j);
           curFacet.emplace_back(objectVertices.size() - 1);
         }
 

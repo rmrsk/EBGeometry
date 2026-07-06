@@ -80,9 +80,10 @@ template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
 Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions)
 {
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
+  implicitFunctions.reserve(a_implicitFunctions.size());
   for (const auto& f : a_implicitFunctions) {
     implicitFunctions.emplace_back(f);
   }
@@ -94,8 +95,8 @@ template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
 Union(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>& a_implicitFunction2)
 {
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
 
@@ -109,7 +110,7 @@ template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
 SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth)
 {
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
   for (const auto& f : a_implicitFunctions) {
@@ -125,8 +126,8 @@ SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
             const std::shared_ptr<P2>& a_implicitFunction2,
             const T                    a_smooth)
 {
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
 
@@ -157,9 +158,10 @@ template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
 Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions)
 {
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
+  implicitFunctions.reserve(a_implicitFunctions.size());
   for (const auto& f : a_implicitFunctions) {
     implicitFunctions.emplace_back(f);
   }
@@ -171,8 +173,8 @@ template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
 Intersection(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>& a_implicitFunction2)
 {
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
 
@@ -186,7 +188,7 @@ template <class T, class P>
 std::shared_ptr<ImplicitFunction<T>>
 SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth)
 {
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
   for (const auto& f : a_implicitFunctions) {
@@ -202,8 +204,8 @@ SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
                    const std::shared_ptr<P2>& a_implicitFunction2,
                    const T                    a_smooth)
 {
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
 
@@ -217,8 +219,8 @@ template <class T, class P1, class P2>
 std::shared_ptr<ImplicitFunction<T>>
 Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB)
 {
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
 
   return std::make_shared<DifferenceIF<T>>(a_implicitFunctionA, a_implicitFunctionB);
 }
@@ -229,8 +231,8 @@ SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
                  const std::shared_ptr<P2>& a_implicitFunctionB,
                  const T                    a_smoothLen)
 {
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
 
   return std::make_shared<SmoothDifferenceIF<T>>(a_implicitFunctionA, a_implicitFunctionB, a_smoothLen);
 }
@@ -242,7 +244,7 @@ FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
                  const Vec3T<T>&           a_repeatLo,
                  const Vec3T<T>&           a_repeatHi)
 {
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
 
   return std::make_shared<FiniteRepetitionIF<T>>(a_implicitFunction, a_period, a_repeatLo, a_repeatHi);
 }

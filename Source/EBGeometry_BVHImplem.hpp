@@ -60,8 +60,7 @@ inline TreeBVH<T, P, BV, K>::TreeBVH(const std::vector<PrimAndBV<P, BV>>& a_prim
 }
 
 template <class T, class P, class BV, size_t K>
-inline TreeBVH<T, P, BV, K>::~TreeBVH() noexcept
-{}
+inline TreeBVH<T, P, BV, K>::~TreeBVH() noexcept = default;
 
 template <class T, class P, class BV, size_t K>
 inline bool
@@ -273,6 +272,7 @@ inline void
 TreeBVH<T, P, BV, K>::setChildren(const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>& a_children) noexcept
 {
   std::vector<BV> boundingVolumes;
+  boundingVolumes.reserve(a_children.size());
   for (const auto& child : a_children) {
     boundingVolumes.emplace_back(child->getBoundingVolume());
   }

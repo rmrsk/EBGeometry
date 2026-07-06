@@ -39,6 +39,7 @@ Soup::containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vert
 
       // Build the vertex vector.
       std::vector<Vec3> vertices;
+      vertices.reserve(facet.size());
       for (const auto& ind : facet) {
         vertices.emplace_back(a_vertices[ind]);
       }
@@ -113,11 +114,9 @@ Soup::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::v
   }
 
   // Fix facet indicing.
-  for (size_t n = 0; n < a_facets.size(); n++) {
-    std::vector<size_t>& facet = a_facets[n];
-
-    for (size_t ivert = 0; ivert < facet.size(); ivert++) {
-      facet[ivert] = indexMap.at(facet[ivert]);
+  for (auto& facet : a_facets) {
+    for (unsigned long& ivert : facet) {
+      ivert = indexMap.at(ivert);
     }
   }
 }
@@ -152,8 +151,9 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
 
     // Figure out which vertices are involved here.
     std::vector<std::shared_ptr<Vertex>> faceVertices;
-    for (size_t i = 0; i < curFacet.size(); i++) {
-      faceVertices.emplace_back(vertices[curFacet[i]]);
+    faceVertices.reserve(curFacet.size());
+    for (unsigned long i : curFacet) {
+      faceVertices.emplace_back(vertices[i]);
     }
 
     // Build the half-edges for this polygon.

@@ -29,6 +29,30 @@ jobs:
           clang-format-version: '21'
           check-path: ${{ matrix.directory }}
 
+  Static-analysis:
+    needs: Formatting
+    name: Static analysis (clang-tidy)
+    runs-on: ubuntu-latest
+    # Advisory for now: the curated clang-tidy set still has a review backlog
+    # (const-correctness, narrowing conversions, ...). Set continue-on-error to
+    # false to make this a hard gate once that backlog has been reviewed.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install clang-tidy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy-18 clang-14
+      - name: Configure (export compile commands)
+        run: |
+          cmake --preset debug \
+            -DCMAKE_CXX_COMPILER=clang++-14 \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - name: Run clang-tidy over the library headers
+        run: run-clang-tidy-18 -p build -quiet '(Tests|Examples)/.*\.cpp'
+
   Linux-GNU:
     needs: Formatting
     name: Linux-GNU

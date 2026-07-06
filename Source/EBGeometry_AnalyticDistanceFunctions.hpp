@@ -111,14 +111,14 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~PlaneSDF() = default;
+  ~PlaneSDF() override = default;
 
   /**
    * @brief Signed distance function for the plane.
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the plane; negative on the side opposite to the normal.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -203,7 +203,7 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~SphereSDF() = default;
+  ~SphereSDF() override = default;
 
   /**
    * @brief Get sphere center (const).
@@ -250,7 +250,7 @@ public:
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the sphere surface; negative inside the sphere.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -340,7 +340,7 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~BoxSDF() = default;
+  ~BoxSDF() override = default;
 
   /**
    * @brief Get lower-left corner
@@ -387,7 +387,7 @@ public:
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the box surface; negative inside the box.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -495,7 +495,7 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~TorusSDF() = default;
+  ~TorusSDF() override = default;
 
   /**
    * @brief Get torus center.
@@ -561,7 +561,7 @@ public:
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the torus surface; negative inside the torus tube.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -667,7 +667,7 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~CylinderSDF() = default;
+  ~CylinderSDF() override = default;
 
   /**
    * @brief Get one endpoint
@@ -704,7 +704,7 @@ public:
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the cylinder surface; negative inside.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -847,14 +847,14 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~InfiniteCylinderSDF() = default;
+  ~InfiniteCylinderSDF() override = default;
 
   /**
    * @brief Signed distance function for the infinite cylinder.
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the cylinder surface; negative inside.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -973,14 +973,14 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~CapsuleSDF() = default;
+  ~CapsuleSDF() override = default;
 
   /**
    * @brief Signed distance function for the capsule.
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the capsule surface; negative inside.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -1088,14 +1088,14 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~InfiniteConeSDF() = default;
+  ~InfiniteConeSDF() override = default;
 
   /**
    * @brief Signed distance function for the infinite cone.
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the cone surface; negative inside the cone.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -1198,14 +1198,14 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~ConeSDF() = default;
+  ~ConeSDF() override = default;
 
   /**
    * @brief Signed distance function for the finite cone.
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the cone surface; negative inside the cone.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -1323,14 +1323,14 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~RoundedBoxSDF() = default;
+  ~RoundedBoxSDF() override = default;
 
   /**
    * @brief Signed distance function for the rounded box.
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the rounded-box surface; negative inside.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -1440,14 +1440,14 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~PerlinSDF() = default;
+  ~PerlinSDF() override = default;
 
   /**
    * @brief Signed distance function. Generates a noise value on [0, m_noiseAmplitude].
    * @param[in] a_point Input point.
    * @return Octave-summed Perlin noise value scaled by m_noiseAmplitude.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -1562,7 +1562,7 @@ protected:
    * @param[in] b End value.
    * @return a + t*(b - a).
    */
-  virtual T
+  [[nodiscard]] virtual T
   lerp(const T t, const T a, const T b) const noexcept
   {
     return a + t * (b - a);
@@ -1573,7 +1573,7 @@ protected:
    * @param[in] t Input in [0,1].
    * @return Smoothed value in [0,1].
    */
-  virtual T
+  [[nodiscard]] virtual T
   fade(const T t) const noexcept
   {
     return t * t * t * (t * (t * 6 - 15) + 10);
@@ -1587,7 +1587,7 @@ protected:
    * @param[in] z    z-component of the relative position.
    * @return Dot product of the selected pseudo-random gradient with (x, y, z).
    */
-  T
+  [[nodiscard]] T
   grad(const int hash, const T x, const T y, const T z) const noexcept
   {
     const int h = hash & 15;
@@ -1601,7 +1601,7 @@ protected:
    * @param[in] a_point Input point in noise space.
    * @return Noise value in [-1, 1].
    */
-  T
+  [[nodiscard]] T
   noise(const Vec3T<T>& a_point) const noexcept
   {
     // Lower cube corner
@@ -1732,7 +1732,7 @@ public:
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the rounded-cylinder surface; negative inside.
    */
-  [[nodiscard]] virtual T
+  [[nodiscard]] T
   signedDistance(const Vec3T<T>& a_point) const noexcept override
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));

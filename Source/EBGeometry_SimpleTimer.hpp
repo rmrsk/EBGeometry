@@ -60,7 +60,7 @@ public:
    * @brief Compute the elapsed time between the last start() and stop() calls.
    * @return Elapsed time in seconds as a double.
    */
-  inline double
+  [[nodiscard]] inline double
   seconds() const noexcept;
 
 protected:

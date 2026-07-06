@@ -60,8 +60,7 @@ inline VertexT<T, Meta>::VertexT(const VertexT<T, Meta>& a_otherVertex)
 }
 
 template <class T, class Meta>
-inline VertexT<T, Meta>::~VertexT()
-{}
+inline VertexT<T, Meta>::~VertexT() = default;
 
 template <class T, class Meta>
 inline void

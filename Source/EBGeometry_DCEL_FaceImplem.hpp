@@ -49,8 +49,7 @@ inline FaceT<T, Meta>::FaceT(const Face& a_otherFace) : Face()
 }
 
 template <class T, class Meta>
-inline FaceT<T, Meta>::~FaceT()
-{}
+inline FaceT<T, Meta>::~FaceT() = default;
 
 template <class T, class Meta>
 inline void

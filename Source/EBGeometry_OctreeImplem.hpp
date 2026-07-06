@@ -35,8 +35,7 @@ Node<Meta, Data>::Node()
 }
 
 template <typename Meta, typename Data>
-Node<Meta, Data>::~Node()
-{}
+Node<Meta, Data>::~Node() = default;
 
 template <typename Meta, typename Data>
 inline const std::array<std::shared_ptr<Node<Meta, Data>>, 8>&
