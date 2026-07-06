@@ -9,10 +9,10 @@
 */
 
 #include "Source/EBGeometry_AnalyticDistanceFunctions.hpp"
-#include "Source/EBGeometry_BoundingVolumes.hpp"
 #include "Source/EBGeometry_BVH.hpp"
-#include "Source/EBGeometry_Constants.hpp"
+#include "Source/EBGeometry_BoundingVolumes.hpp"
 #include "Source/EBGeometry_CSG.hpp"
+#include "Source/EBGeometry_Constants.hpp"
 #include "Source/EBGeometry_DCEL_Edge.hpp"
 #include "Source/EBGeometry_DCEL_Face.hpp"
 #include "Source/EBGeometry_DCEL_Iterator.hpp"
@@ -22,19 +22,19 @@
 #include "Source/EBGeometry_Macros.hpp"
 #include "Source/EBGeometry_MeshDistanceFunctions.hpp"
 #include "Source/EBGeometry_Octree.hpp"
-#include "Source/EBGeometry_Parser.hpp"
 #include "Source/EBGeometry_PLY.hpp"
+#include "Source/EBGeometry_Parser.hpp"
 #include "Source/EBGeometry_Polygon2D.hpp"
 #include "Source/EBGeometry_SFC.hpp"
+#include "Source/EBGeometry_STL.hpp"
 #include "Source/EBGeometry_SignedDistanceFunction.hpp"
 #include "Source/EBGeometry_SimpleTimer.hpp"
 #include "Source/EBGeometry_Soup.hpp"
-#include "Source/EBGeometry_STL.hpp"
 #include "Source/EBGeometry_Transform.hpp"
 #include "Source/EBGeometry_Triangle.hpp"
 #include "Source/EBGeometry_TriangleSoA.hpp"
-#include "Source/EBGeometry_Vec.hpp"
 #include "Source/EBGeometry_VTK.hpp"
+#include "Source/EBGeometry_Vec.hpp"
 
 /*!
   @brief Name space for all of EBGeometry

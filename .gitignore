@@ -6,6 +6,7 @@
 *.hdf5
 pout.*
 *.mod
+.serena
 
 build
 

@@ -17,7 +17,7 @@ using namespace amrex;
 
 /*!
   @brief This is an AMReX-capable version of the EBGeometry BVH accelerator. It
-  is templated as T, BV, K which indicate the EBGeometry precision, bounding volume, 
+  is templated as T, BV, K which indicate the EBGeometry precision, bounding volume,
   tree degree, and meta-data type for the triangles (defaults to an integer)
 */
 template <class T, class BV, size_t K, class Meta = double>
@@ -75,7 +75,7 @@ public:
   }
 
   /*!
-    @brief Get the face(s) that are closest to the input point. 
+    @brief Get the face(s) that are closest to the input point.
   */
   inline std::vector<std::pair<std::shared_ptr<const Face>, T>>
   getClosestFaces(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
@@ -85,7 +85,7 @@ public:
 
 protected:
   /*!
-    @brief DCEL mesh represented as a BVH of its facets, exposed as an implicit function. 
+    @brief DCEL mesh represented as a BVH of its facets, exposed as an implicit function.
   */
   std::shared_ptr<EBGeometry::MeshSDF<T, Meta, K>> m_sdf;
 };
