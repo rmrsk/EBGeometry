@@ -109,6 +109,7 @@ public:
   /**
    * @brief Copy assignment operator.
    * @param[in] a_other Sphere to copy.
+   * @return Reference to (*this).
    */
   BoundingSphereT&
   operator=(const BoundingSphereT& a_other) = default;
@@ -122,6 +123,7 @@ public:
   /**
    * @brief Move assignment operator.
    * @param[in] a_other Sphere to move from.
+   * @return Reference to (*this).
    */
   BoundingSphereT&
   operator=(BoundingSphereT&& a_other) noexcept = default;
@@ -298,6 +300,7 @@ public:
   /**
    * @brief Copy assignment.
    * @param[in] a_other Bounding box to copy.
+   * @return Reference to (*this).
    */
   AABBT&
   operator=(const AABBT<T>& a_other) = default;
@@ -311,6 +314,7 @@ public:
   /**
    * @brief Move assignment operator.
    * @param[in] a_other Bounding box to move from.
+   * @return Reference to (*this).
    */
   AABBT&
   operator=(AABBT&& a_other) noexcept = default;

@@ -331,6 +331,10 @@ auto BVCentroidPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> st
  * @tparam T  Floating-point precision.
  * @tparam P  Primitive type.
  * @tparam BV Bounding-volume type (must be AABBT<T>).
+ * @param[in,out] a_list Primitives and their bounding volumes; partitioned in place around the split.
+ * @param[in] a_begin First index of the sub-range to split.
+ * @param[in] a_end One-past-the-last index of the sub-range to split.
+ * @return Split index (index of the first element of the right group).
  */
 template <class T, class P, class BV>
 inline size_t
@@ -455,6 +459,11 @@ SAH2WaySplit(PrimAndBVList<P, BV>& a_list, const size_t a_begin, const size_t a_
  * @tparam T  Floating-point precision.
  * @tparam P  Primitive type.
  * @tparam BV Bounding-volume type (must be AABBT<T>).
+ * @param[in,out] a_list Primitives and their bounding volumes; partitioned in place.
+ * @param[in] a_begin First index of the sub-range to split.
+ * @param[in] a_end One-past-the-last index of the sub-range to split.
+ * @param[in] a_K Number of groups to split the sub-range into.
+ * @param[out] a_groups Resulting groups as [begin, end) index pairs.
  */
 template <class T, class P, class BV>
 inline void

@@ -85,6 +85,7 @@ public:
   /**
    * @brief Copy assignment.
    * @param[in] a_otherTriangle Other triangle.
+   * @return Reference to (*this).
    */
   Triangle&
   operator=(const Triangle& a_otherTriangle) noexcept = default;
@@ -92,6 +93,7 @@ public:
   /**
    * @brief Move assignment.
    * @param[in, out] a_otherTriangle Other triangle.
+   * @return Reference to (*this).
    */
   Triangle&
   operator=(Triangle&& a_otherTriangle) noexcept = default;

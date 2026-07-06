@@ -96,12 +96,14 @@ public:
 
   /**
    * @brief Copy assignment.
+   * @return Reference to (*this).
    */
   PlaneSDF&
   operator=(const PlaneSDF&) = default;
 
   /**
    * @brief Move assignment.
+   * @return Reference to (*this).
    */
   PlaneSDF&
   operator=(PlaneSDF&&) = default;
@@ -186,12 +188,14 @@ public:
 
   /**
    * @brief Copy assignment.
+   * @return Reference to (*this).
    */
   SphereSDF&
   operator=(const SphereSDF&) = default;
 
   /**
    * @brief Move assignment.
+   * @return Reference to (*this).
    */
   SphereSDF&
   operator=(SphereSDF&&) = default;
@@ -321,12 +325,14 @@ public:
 
   /**
    * @brief Copy assignment.
+   * @return Reference to (*this).
    */
   BoxSDF&
   operator=(const BoxSDF&) = default;
 
   /**
    * @brief Move assignment.
+   * @return Reference to (*this).
    */
   BoxSDF&
   operator=(BoxSDF&&) = default;
@@ -474,12 +480,14 @@ public:
 
   /**
    * @brief Copy assignment.
+   * @return Reference to (*this).
    */
   TorusSDF&
   operator=(const TorusSDF&) = default;
 
   /**
    * @brief Move assignment.
+   * @return Reference to (*this).
    */
   TorusSDF&
   operator=(TorusSDF&&) = default;
@@ -644,12 +652,14 @@ public:
 
   /**
    * @brief Copy assignment.
+   * @return Reference to (*this).
    */
   CylinderSDF&
   operator=(const CylinderSDF&) = default;
 
   /**
    * @brief Move assignment.
+   * @return Reference to (*this).
    */
   CylinderSDF&
   operator=(CylinderSDF&&) = default;
@@ -822,12 +832,14 @@ public:
 
   /**
    * @brief Copy assignment.
+   * @return Reference to (*this).
    */
   InfiniteCylinderSDF&
   operator=(const InfiniteCylinderSDF&) = default;
 
   /**
    * @brief Move assignment.
+   * @return Reference to (*this).
    */
   InfiniteCylinderSDF&
   operator=(InfiniteCylinderSDF&&) = default;
@@ -946,12 +958,14 @@ public:
 
   /**
    * @brief Copy assignment.
+   * @return Reference to (*this).
    */
   CapsuleSDF&
   operator=(const CapsuleSDF&) = default;
 
   /**
    * @brief Move assignment.
+   * @return Reference to (*this).
    */
   CapsuleSDF&
   operator=(CapsuleSDF&&) = default;
@@ -1059,12 +1073,14 @@ public:
 
   /**
    * @brief Copy assignment.
+   * @return Reference to (*this).
    */
   InfiniteConeSDF&
   operator=(const InfiniteConeSDF&) = default;
 
   /**
    * @brief Move assignment.
+   * @return Reference to (*this).
    */
   InfiniteConeSDF&
   operator=(InfiniteConeSDF&&) = default;
@@ -1167,12 +1183,14 @@ public:
 
   /**
    * @brief Copy assignment.
+   * @return Reference to (*this).
    */
   ConeSDF&
   operator=(const ConeSDF&) = default;
 
   /**
    * @brief Move assignment.
+   * @return Reference to (*this).
    */
   ConeSDF&
   operator=(ConeSDF&&) = default;
@@ -1290,12 +1308,14 @@ public:
 
   /**
    * @brief Copy assignment. Shares the internal sphere object.
+   * @return Reference to (*this).
    */
   RoundedBoxSDF&
   operator=(const RoundedBoxSDF&) = default;
 
   /**
    * @brief Move assignment.
+   * @return Reference to (*this).
    */
   RoundedBoxSDF&
   operator=(RoundedBoxSDF&&) = default;
@@ -1405,12 +1425,14 @@ public:
 
   /**
    * @brief Copy assignment.
+   * @return Reference to (*this).
    */
   PerlinSDF&
   operator=(const PerlinSDF&) = default;
 
   /**
    * @brief Move assignment.
+   * @return Reference to (*this).
    */
   PerlinSDF&
   operator=(PerlinSDF&&) = default;
@@ -1688,12 +1710,14 @@ public:
 
   /**
    * @brief Copy assignment.
+   * @return Reference to (*this).
    */
   RoundedCylinderSDF&
   operator=(const RoundedCylinderSDF&) = default;
 
   /**
    * @brief Move assignment.
+   * @return Reference to (*this).
    */
   RoundedCylinderSDF&
   operator=(RoundedCylinderSDF&&) = default;

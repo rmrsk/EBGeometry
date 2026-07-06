@@ -63,7 +63,7 @@ Examples/Chombo3_Shapes/d/**
 Docs/*
 !Docs/.nojekyll
 !Docs/Sphinx
-!Docs/doxyfile
+!Docs/doxygen.conf
 !Docs/README.md
 Docs/Sphinx/build/*
 
