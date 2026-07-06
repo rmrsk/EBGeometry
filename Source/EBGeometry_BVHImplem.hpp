@@ -360,51 +360,50 @@ namespace BVH {
           const auto& lo = bv.getLowCorner();
           const auto& hi = bv.getHighCorner();
 
-          soa.lo[0][k] = lo[0];
-          soa.lo[1][k] = lo[1];
-          soa.lo[2][k] = lo[2];
+          soa.m_lo[0][k] = lo[0];
+          soa.m_lo[1][k] = lo[1];
+          soa.m_lo[2][k] = lo[2];
 
-          soa.hi[0][k] = hi[0];
-          soa.hi[1][k] = hi[1];
-          soa.hi[2][k] = hi[2];
+          soa.m_hi[0][k] = hi[0];
+          soa.m_hi[1][k] = hi[1];
+          soa.m_hi[2][k] = hi[2];
         }
       }
     }
   }
 
   template <class T, class P, size_t K>
-  template <class BV2>
-  inline PackedBVH<T, P, K>::PackedBVH(const TreeBVH<T, P, BV2, K>& a_tree)
+  inline PackedBVH<T, P, K>::PackedBVH(const TreeBVH<T, P, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree)
   {
-    static_assert(std::is_same_v<BV2, EBGeometry::BoundingVolumes::AABBT<T>>,
-                  "PackedBVH<T,P,K>(TreeBVH) requires BV2 == AABBT<T>");
+    using AABBType = EBGeometry::BoundingVolumes::AABBT<T>;
 
     // Depth-first. Each call reserves a slot by index, then fills child offsets
     // after recursion. Indexing by position (not pointer) is safe across
     // vector reallocation; C++17 RHS-before-LHS ensures fresh re-fetch of
     // m_linearNodes[idx] after any push_back inside the recursive call.
-    std::function<uint32_t(const TreeBVH<T, P, BV2, K>&)> dfs = [&](const TreeBVH<T, P, BV2, K>& node) -> uint32_t {
+    std::function<uint32_t(const TreeBVH<T, P, AABBType, K>&)> dfs =
+      [&](const TreeBVH<T, P, AABBType, K>& node) -> uint32_t {
       const uint32_t idx = static_cast<uint32_t>(m_linearNodes.size());
 
       m_linearNodes.push_back({});
-      m_linearNodes[idx].bv = node.getBoundingVolume();
+      m_linearNodes[idx].m_bv = node.getBoundingVolume();
 
       if (node.isLeaf()) {
         const auto& prims = node.getPrimitives();
 
-        m_linearNodes[idx].primOff  = static_cast<uint32_t>(m_primitives.size());
-        m_linearNodes[idx].numPrims = static_cast<uint32_t>(prims.size());
+        m_linearNodes[idx].m_primOff  = static_cast<uint32_t>(m_primitives.size());
+        m_linearNodes[idx].m_numPrims = static_cast<uint32_t>(prims.size());
 
         m_primitives.insert(m_primitives.end(), prims.begin(), prims.end());
       }
       else {
-        m_linearNodes[idx].numPrims = 0U;
-        m_linearNodes[idx].primOff  = 0U;
+        m_linearNodes[idx].m_numPrims = 0U;
+        m_linearNodes[idx].m_primOff  = 0U;
 
         const auto& children = node.getChildren();
 
         for (size_t k = 0; k < K; k++) {
-          m_linearNodes[idx].childOff[k] = dfs(*children[k]);
+          m_linearNodes[idx].m_childOff[k] = dfs(*children[k]);
         }
       }
       return idx;
@@ -415,21 +414,22 @@ namespace BVH {
   }
 
   template <class T, class P, size_t K>
-  template <class P2, class BV2, class Converter>
-  inline PackedBVH<T, P, K>::PackedBVH(const TreeBVH<T, P2, BV2, K>& a_tree, Converter&& a_converter)
+  template <class PTree, class Converter>
+  inline PackedBVH<T, P, K>::PackedBVH(const TreeBVH<T, PTree, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree,
+                                       Converter&&                                                        a_converter)
   {
-    static_assert(std::is_same_v<BV2, EBGeometry::BoundingVolumes::AABBT<T>>,
-                  "PackedBVH<T,P,K>(TreeBVH, Converter) requires BV2 == AABBT<T>");
+    using AABBType = EBGeometry::BoundingVolumes::AABBT<T>;
 
     // Accumulate converted P-values into a single contiguous buffer; aliased
     // shared_ptrs are created after all push_backs so no dangling pointers.
     auto dstStorage = std::make_shared<std::vector<P>>();
 
-    std::function<uint32_t(const TreeBVH<T, P2, BV2, K>&)> dfs = [&](const TreeBVH<T, P2, BV2, K>& node) -> uint32_t {
+    std::function<uint32_t(const TreeBVH<T, PTree, AABBType, K>&)> dfs =
+      [&](const TreeBVH<T, PTree, AABBType, K>& node) -> uint32_t {
       const uint32_t idx = static_cast<uint32_t>(m_linearNodes.size());
 
       m_linearNodes.push_back({});
-      m_linearNodes[idx].bv = node.getBoundingVolume();
+      m_linearNodes[idx].m_bv = node.getBoundingVolume();
 
       if (node.isLeaf()) {
         const auto&    prims  = node.getPrimitives();
@@ -437,21 +437,21 @@ namespace BVH {
 
         auto newVals = a_converter(prims, 0U, static_cast<uint32_t>(prims.size()));
 
-        m_linearNodes[idx].primOff  = dstOff;
-        m_linearNodes[idx].numPrims = static_cast<uint32_t>(newVals.size());
+        m_linearNodes[idx].m_primOff  = dstOff;
+        m_linearNodes[idx].m_numPrims = static_cast<uint32_t>(newVals.size());
 
         for (auto&& v : newVals) {
           dstStorage->push_back(std::move(v));
         }
       }
       else {
-        m_linearNodes[idx].numPrims = 0U;
-        m_linearNodes[idx].primOff  = 0U;
+        m_linearNodes[idx].m_numPrims = 0U;
+        m_linearNodes[idx].m_primOff  = 0U;
 
         const auto& children = node.getChildren();
 
         for (size_t k = 0; k < K; k++) {
-          m_linearNodes[idx].childOff[k] = dfs(*children[k]);
+          m_linearNodes[idx].m_childOff[k] = dfs(*children[k]);
         }
       }
 
@@ -493,9 +493,9 @@ namespace BVH {
   template <class T, class P, size_t K>
   template <class Meta>
   inline void
-  PackedBVH<T, P, K>::traverse(const BVH::LinearUpdater<P>&        a_updater,
+  PackedBVH<T, P, K>::traverse(const BVH::PackedUpdater<P>&        a_updater,
                                const BVH::Visiter<Node, Meta>&     a_visiter,
-                               const BVH::LinearSorter<Meta, K>&   a_sorter,
+                               const BVH::PackedSorter<Meta, K>&   a_sorter,
                                const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept
   {
     std::array<std::pair<uint32_t, Meta>, K> children;
@@ -597,12 +597,12 @@ namespace BVH {
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
 
-          const __m512d lo_x = _mm512_load_pd(soa.lo[0]);
-          const __m512d lo_y = _mm512_load_pd(soa.lo[1]);
-          const __m512d lo_z = _mm512_load_pd(soa.lo[2]);
-          const __m512d hi_x = _mm512_load_pd(soa.hi[0]);
-          const __m512d hi_y = _mm512_load_pd(soa.hi[1]);
-          const __m512d hi_z = _mm512_load_pd(soa.hi[2]);
+          const __m512d lo_x = _mm512_load_pd(soa.m_lo[0]);
+          const __m512d lo_y = _mm512_load_pd(soa.m_lo[1]);
+          const __m512d lo_z = _mm512_load_pd(soa.m_lo[2]);
+          const __m512d hi_x = _mm512_load_pd(soa.m_hi[0]);
+          const __m512d hi_y = _mm512_load_pd(soa.m_hi[1]);
+          const __m512d hi_z = _mm512_load_pd(soa.m_hi[2]);
 
           const __m512d dx = _mm512_max_pd(zero, _mm512_max_pd(_mm512_sub_pd(lo_x, px), _mm512_sub_pd(px, hi_x)));
           const __m512d dy = _mm512_max_pd(zero, _mm512_max_pd(_mm512_sub_pd(lo_y, py), _mm512_sub_pd(py, hi_y)));
@@ -682,12 +682,12 @@ namespace BVH {
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
 
-          const __m512 lo_x = _mm512_load_ps(soa.lo[0]);
-          const __m512 lo_y = _mm512_load_ps(soa.lo[1]);
-          const __m512 lo_z = _mm512_load_ps(soa.lo[2]);
-          const __m512 hi_x = _mm512_load_ps(soa.hi[0]);
-          const __m512 hi_y = _mm512_load_ps(soa.hi[1]);
-          const __m512 hi_z = _mm512_load_ps(soa.hi[2]);
+          const __m512 lo_x = _mm512_load_ps(soa.m_lo[0]);
+          const __m512 lo_y = _mm512_load_ps(soa.m_lo[1]);
+          const __m512 lo_z = _mm512_load_ps(soa.m_lo[2]);
+          const __m512 hi_x = _mm512_load_ps(soa.m_hi[0]);
+          const __m512 hi_y = _mm512_load_ps(soa.m_hi[1]);
+          const __m512 hi_z = _mm512_load_ps(soa.m_hi[2]);
 
           const __m512 dx = _mm512_max_ps(zero, _mm512_max_ps(_mm512_sub_ps(lo_x, px), _mm512_sub_ps(px, hi_x)));
           const __m512 dy = _mm512_max_ps(zero, _mm512_max_ps(_mm512_sub_ps(lo_y, py), _mm512_sub_ps(py, hi_y)));
@@ -771,12 +771,12 @@ namespace BVH {
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
 
-          const __m256d lo_x = _mm256_load_pd(soa.lo[0]);
-          const __m256d lo_y = _mm256_load_pd(soa.lo[1]);
-          const __m256d lo_z = _mm256_load_pd(soa.lo[2]);
-          const __m256d hi_x = _mm256_load_pd(soa.hi[0]);
-          const __m256d hi_y = _mm256_load_pd(soa.hi[1]);
-          const __m256d hi_z = _mm256_load_pd(soa.hi[2]);
+          const __m256d lo_x = _mm256_load_pd(soa.m_lo[0]);
+          const __m256d lo_y = _mm256_load_pd(soa.m_lo[1]);
+          const __m256d lo_z = _mm256_load_pd(soa.m_lo[2]);
+          const __m256d hi_x = _mm256_load_pd(soa.m_hi[0]);
+          const __m256d hi_y = _mm256_load_pd(soa.m_hi[1]);
+          const __m256d hi_z = _mm256_load_pd(soa.m_hi[2]);
 
           const __m256d dx = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x, px), _mm256_sub_pd(px, hi_x)));
           const __m256d dy = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y, py), _mm256_sub_pd(py, hi_y)));
@@ -854,12 +854,12 @@ namespace BVH {
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
 
-          const __m256 lo_x = _mm256_load_ps(soa.lo[0]);
-          const __m256 lo_y = _mm256_load_ps(soa.lo[1]);
-          const __m256 lo_z = _mm256_load_ps(soa.lo[2]);
-          const __m256 hi_x = _mm256_load_ps(soa.hi[0]);
-          const __m256 hi_y = _mm256_load_ps(soa.hi[1]);
-          const __m256 hi_z = _mm256_load_ps(soa.hi[2]);
+          const __m256 lo_x = _mm256_load_ps(soa.m_lo[0]);
+          const __m256 lo_y = _mm256_load_ps(soa.m_lo[1]);
+          const __m256 lo_z = _mm256_load_ps(soa.m_lo[2]);
+          const __m256 hi_x = _mm256_load_ps(soa.m_hi[0]);
+          const __m256 hi_y = _mm256_load_ps(soa.m_hi[1]);
+          const __m256 hi_z = _mm256_load_ps(soa.m_hi[2]);
 
           const __m256 dx = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_x, px), _mm256_sub_ps(px, hi_x)));
           const __m256 dy = _mm256_max_ps(zero, _mm256_max_ps(_mm256_sub_ps(lo_y, py), _mm256_sub_ps(py, hi_y)));
@@ -940,12 +940,12 @@ namespace BVH {
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
 
-          const __m256d lo_x0 = _mm256_load_pd(soa.lo[0]);
-          const __m256d lo_y0 = _mm256_load_pd(soa.lo[1]);
-          const __m256d lo_z0 = _mm256_load_pd(soa.lo[2]);
-          const __m256d hi_x0 = _mm256_load_pd(soa.hi[0]);
-          const __m256d hi_y0 = _mm256_load_pd(soa.hi[1]);
-          const __m256d hi_z0 = _mm256_load_pd(soa.hi[2]);
+          const __m256d lo_x0 = _mm256_load_pd(soa.m_lo[0]);
+          const __m256d lo_y0 = _mm256_load_pd(soa.m_lo[1]);
+          const __m256d lo_z0 = _mm256_load_pd(soa.m_lo[2]);
+          const __m256d hi_x0 = _mm256_load_pd(soa.m_hi[0]);
+          const __m256d hi_y0 = _mm256_load_pd(soa.m_hi[1]);
+          const __m256d hi_z0 = _mm256_load_pd(soa.m_hi[2]);
 
           const __m256d dx0 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x0, px), _mm256_sub_pd(px, hi_x0)));
           const __m256d dy0 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y0, py), _mm256_sub_pd(py, hi_y0)));
@@ -953,12 +953,12 @@ namespace BVH {
           const __m256d d2_0 =
             _mm256_add_pd(_mm256_mul_pd(dx0, dx0), _mm256_add_pd(_mm256_mul_pd(dy0, dy0), _mm256_mul_pd(dz0, dz0)));
 
-          const __m256d lo_x1 = _mm256_load_pd(soa.lo[0] + 4);
-          const __m256d lo_y1 = _mm256_load_pd(soa.lo[1] + 4);
-          const __m256d lo_z1 = _mm256_load_pd(soa.lo[2] + 4);
-          const __m256d hi_x1 = _mm256_load_pd(soa.hi[0] + 4);
-          const __m256d hi_y1 = _mm256_load_pd(soa.hi[1] + 4);
-          const __m256d hi_z1 = _mm256_load_pd(soa.hi[2] + 4);
+          const __m256d lo_x1 = _mm256_load_pd(soa.m_lo[0] + 4);
+          const __m256d lo_y1 = _mm256_load_pd(soa.m_lo[1] + 4);
+          const __m256d lo_z1 = _mm256_load_pd(soa.m_lo[2] + 4);
+          const __m256d hi_x1 = _mm256_load_pd(soa.m_hi[0] + 4);
+          const __m256d hi_y1 = _mm256_load_pd(soa.m_hi[1] + 4);
+          const __m256d hi_z1 = _mm256_load_pd(soa.m_hi[2] + 4);
 
           const __m256d dx1 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_x1, px), _mm256_sub_pd(px, hi_x1)));
           const __m256d dy1 = _mm256_max_pd(zero, _mm256_max_pd(_mm256_sub_pd(lo_y1, py), _mm256_sub_pd(py, hi_y1)));
@@ -1040,12 +1040,12 @@ namespace BVH {
         else {
           const auto& soa = m_childAabbSoA[entry.idx];
 
-          const __m128 lo_x = _mm_load_ps(soa.lo[0]);
-          const __m128 lo_y = _mm_load_ps(soa.lo[1]);
-          const __m128 lo_z = _mm_load_ps(soa.lo[2]);
-          const __m128 hi_x = _mm_load_ps(soa.hi[0]);
-          const __m128 hi_y = _mm_load_ps(soa.hi[1]);
-          const __m128 hi_z = _mm_load_ps(soa.hi[2]);
+          const __m128 lo_x = _mm_load_ps(soa.m_lo[0]);
+          const __m128 lo_y = _mm_load_ps(soa.m_lo[1]);
+          const __m128 lo_z = _mm_load_ps(soa.m_lo[2]);
+          const __m128 hi_x = _mm_load_ps(soa.m_hi[0]);
+          const __m128 hi_y = _mm_load_ps(soa.m_hi[1]);
+          const __m128 hi_z = _mm_load_ps(soa.m_hi[2]);
 
           const __m128 dx = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_x, px), _mm_sub_ps(px, hi_x)));
           const __m128 dy = _mm_max_ps(zero, _mm_max_ps(_mm_sub_ps(lo_y, py), _mm_sub_ps(py, hi_y)));
@@ -1086,7 +1086,7 @@ namespace BVH {
     // Scalar fallback for all other (T, K) combinations.
     T minDist = std::numeric_limits<T>::max();
 
-    BVH::LinearUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
+    BVH::PackedUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
                                                          size_t                                       offset,
                                                          size_t count) noexcept -> void {
       for (size_t i = 0; i < count; i++) {
@@ -1102,7 +1102,7 @@ namespace BVH {
       return d <= std::abs(minDist);
     };
 
-    BVH::LinearSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& ch) noexcept -> void {
+    BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& ch) noexcept -> void {
       std::sort(ch.begin(), ch.end(), [](const std::pair<uint32_t, T>& a, const std::pair<uint32_t, T>& b) noexcept {
         return a.second > b.second;
       });

@@ -210,7 +210,7 @@ namespace Parser {
     At query time the BVH uses SIMD intrinsics to evaluate W triangles per leaf visit.
     @tparam T    Floating-point precision for signed-distance evaluation.
     @tparam Meta Per-face metadata type.
-    @tparam K    BVH branching factor. Defaults to BVH::defaultK<T>() — the SIMD-optimal value for
+    @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() — the SIMD-optimal value for
                  T on the current ISA (K=16/float or K=8/double on AVX-512F; K=8/float or K=4/double
                  on AVX; K=4 otherwise). Override only when benchmarking or using non-SIMD builds.
     @tparam W    SIMD lane width: triangles per SoA group. Defaults to EBGEOMETRY_SOA_DEFAULT_WIDTH
@@ -222,7 +222,7 @@ namespace Parser {
   */
   template <typename T,
             typename Meta = DCEL::DefaultMetaData,
-            size_t K      = BVH::defaultK<T>(),
+            size_t K      = BVH::DefaultBranchingRatio<T>(),
             size_t W      = EBGEOMETRY_SOA_DEFAULT_WIDTH>
   [[nodiscard]] inline static std::shared_ptr<TriMeshSDF<T, Meta, K, W>>
   readIntoTriangleBVH(const std::string a_filename,
@@ -233,7 +233,7 @@ namespace Parser {
     @brief Read multiple files and return each mesh enclosed in a SIMD-optimised triangle BVH.
     @tparam T    Floating-point precision for signed-distance evaluation.
     @tparam Meta Per-face metadata type.
-    @tparam K    BVH branching factor. Defaults to BVH::defaultK<T>() (see single-file overload).
+    @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() (see single-file overload).
     @tparam W    SIMD lane width: triangles per SoA group. Defaults to EBGEOMETRY_SOA_DEFAULT_WIDTH.
     @param[in] a_files       List of file names (STL, PLY, or VTK).
     @param[in] a_build       BVH build strategy. SAH is the default and recommended choice.
@@ -242,7 +242,7 @@ namespace Parser {
   */
   template <typename T,
             typename Meta = DCEL::DefaultMetaData,
-            size_t K      = BVH::defaultK<T>(),
+            size_t K      = BVH::DefaultBranchingRatio<T>(),
             size_t W      = EBGEOMETRY_SOA_DEFAULT_WIDTH>
   [[nodiscard]] inline static std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>>
   readIntoTriangleBVH(const std::vector<std::string> a_files,

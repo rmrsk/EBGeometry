@@ -62,25 +62,29 @@ namespace BVH {
     | SSE4.1    |    4    |    4     |
     | fallback  |    4    |    4     |
 
-    Usage: `size_t K = BVH::defaultK<T>()` as a template-parameter default.
+    Usage: `size_t K = BVH::DefaultBranchingRatio<T>()` as a template-parameter default.
     @tparam T Floating-point precision type (float or double).
     @return Optimal K for the current ISA and T.
   */
   template <typename T>
   [[nodiscard]] constexpr size_t
-  defaultK() noexcept
+  DefaultBranchingRatio() noexcept
   {
-    static_assert(std::is_floating_point_v<T>, "BVH::defaultK requires a floating-point T");
+    static_assert(std::is_floating_point_v<T>, "BVH::DefaultBranchingRatio requires a floating-point T");
 #if defined(__AVX512F__)
-    if constexpr (std::is_same_v<T, double>)
+    if constexpr (std::is_same_v<T, double>) {
       return 8;
-    else
+    }
+    else {
       return 16;
+    }
 #elif defined(__AVX__)
-    if constexpr (std::is_same_v<T, double>)
+    if constexpr (std::is_same_v<T, double>) {
       return 4;
-    else
+    }
+    else {
       return 8;
+    }
 #else
     return 4;
 #endif
@@ -165,7 +169,7 @@ namespace BVH {
     @param[in] a_count      Number of primitives in this leaf.
   */
   template <class P>
-  using LinearUpdater = std::function<void(const PrimitiveList<P>& a_primitives, size_t a_offset, size_t a_count)>;
+  using PackedUpdater = std::function<void(const PrimitiveList<P>& a_primitives, size_t a_offset, size_t a_count)>;
 
   /**
     @brief Node-visit predicate for BVH traversal.
@@ -201,7 +205,7 @@ namespace BVH {
     @param[in,out] a_children K (node-index, meta) pairs to sort.
   */
   template <class Meta, size_t K>
-  using LinearSorter = std::function<void(std::array<std::pair<uint32_t, Meta>, K>& a_children)>;
+  using PackedSorter = std::function<void(std::array<std::pair<uint32_t, Meta>, K>& a_children)>;
 
   /**
     @brief Meta-data factory called once per node during BVH traversal.
@@ -223,7 +227,9 @@ namespace BVH {
     @return Array of K sub-vectors whose sizes differ by at most 1.
   */
   template <class X, size_t K>
-  auto equalCounts = [](const std::vector<X>& a_primitives) noexcept -> std::array<std::vector<X>, K> {
+  auto EqualCounts = [](const std::vector<X>& a_primitives) noexcept -> std::array<std::vector<X>, K> {
+    EBGEOMETRY_EXPECT(!a_primitives.empty());
+
     int length = a_primitives.size() / K;
     int remain = a_primitives.size() % K;
 
@@ -256,6 +262,8 @@ namespace BVH {
   template <class T, class P, class BV, size_t K>
   auto PrimitiveCentroidPartitioner =
     [](const PrimAndBVList<P, BV>& a_primsAndBVs) noexcept -> std::array<PrimAndBVList<P, BV>, K> {
+    EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+
     Vec3T<T> lo = Vec3T<T>::max();
     Vec3T<T> hi = -Vec3T<T>::max();
 
@@ -274,7 +282,7 @@ namespace BVH {
                 return pbv1.first->getCentroid(splitDir) < pbv2.first->getCentroid(splitDir);
               });
 
-    return BVH::equalCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);
+    return BVH::EqualCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);
   };
 
   /**
@@ -288,6 +296,8 @@ namespace BVH {
   */
   template <class T, class P, class BV, size_t K>
   auto BVCentroidPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+    EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+
     Vec3T<T> lo = Vec3T<T>::max();
     Vec3T<T> hi = -Vec3T<T>::max();
 
@@ -306,7 +316,7 @@ namespace BVH {
                 return pbv1.second.getCentroid()[splitDir] < pbv2.second.getCentroid()[splitDir];
               });
 
-    return BVH::equalCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);
+    return BVH::EqualCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);
   };
 
   /**
@@ -322,8 +332,12 @@ namespace BVH {
   */
   template <class T, class P, class BV>
   inline size_t
-  sah2WaySplit(PrimAndBVList<P, BV>& a_list, const size_t a_begin, const size_t a_end) noexcept
+  SAH2WaySplit(PrimAndBVList<P, BV>& a_list, const size_t a_begin, const size_t a_end) noexcept
   {
+    static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "SAH2WaySplit requires BV == AABBT<T>");
+
+    EBGEOMETRY_EXPECT(a_begin < a_end);
+
     constexpr int BINS = 32;
 
     const size_t N = a_end - a_begin;
@@ -352,8 +366,9 @@ namespace BVH {
       const T lo  = clo[axis];
       const T hi  = chi[axis];
       const T ext = hi - lo;
-      if (ext <= T(0))
+      if (ext <= T(0)) {
         continue;
+      }
 
       const T scale = T(BINS) / ext;
 
@@ -431,12 +446,14 @@ namespace BVH {
   */
   template <class T, class P, class BV>
   inline void
-  sahKWaySplitImpl(PrimAndBVList<P, BV>&                   a_list,
-                   const size_t                            a_begin,
-                   const size_t                            a_end,
-                   const size_t                            a_K,
-                   std::vector<std::pair<size_t, size_t>>& a_groups) noexcept
+  SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
+               const size_t                            a_begin,
+               const size_t                            a_end,
+               const size_t                            a_K,
+               std::vector<std::pair<size_t, size_t>>& a_groups) noexcept
   {
+    static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "SAHKWaySplit requires BV == AABBT<T>");
+
     if (a_K <= 1 || a_begin >= a_end) {
       a_groups.emplace_back(a_begin, a_end);
       return;
@@ -450,11 +467,11 @@ namespace BVH {
     // would cause empty sub-lists to reach the TreeBVH constructor and crash on
     // AABBT(vector::front()) when the vector is empty.
     // The clamp is valid whenever a_end - a_begin >= a_K = K1 + K2.
-    const size_t rawMid = sah2WaySplit<T, P, BV>(a_list, a_begin, a_end);
+    const size_t rawMid = SAH2WaySplit<T, P, BV>(a_list, a_begin, a_end);
     const size_t mid    = std::max(a_begin + K1, std::min(a_end - K2, rawMid));
 
-    sahKWaySplitImpl<T, P, BV>(a_list, a_begin, mid, K1, a_groups);
-    sahKWaySplitImpl<T, P, BV>(a_list, mid, a_end, K2, a_groups);
+    SAHKWaySplit<T, P, BV>(a_list, a_begin, mid, K1, a_groups);
+    SAHKWaySplit<T, P, BV>(a_list, mid, a_end, K2, a_groups);
   }
 
   /**
@@ -482,11 +499,13 @@ namespace BVH {
   */
   template <class T, class P, class BV, size_t K>
   auto BinnedSAHPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+    EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+
     PrimAndBVList<P, BV>                   working(a_primsAndBVs);
     std::vector<std::pair<size_t, size_t>> groups;
     groups.reserve(K);
 
-    sahKWaySplitImpl<T, P, BV>(working, 0, working.size(), K, groups);
+    SAHKWaySplit<T, P, BV>(working, 0, working.size(), K, groups);
 
     std::array<PrimAndBVList<P, BV>, K> result;
     for (size_t k = 0; k < K; k++) {
@@ -575,7 +594,7 @@ namespace BVH {
     /**
       @brief Destructor.
     */
-    virtual ~TreeBVH() noexcept;
+    ~TreeBVH() noexcept;
 
     /**
       @brief Recursively partition this node top-down.
@@ -804,22 +823,22 @@ namespace BVH {
       /**
         @brief Axis-aligned bounding box for this node's subtree.
       */
-      BV bv{};
+      BV m_bv{};
 
       /**
         @brief Index of the first primitive in the global primitive list (leaf nodes only).
       */
-      uint32_t primOff{};
+      uint32_t m_primOff{};
 
       /**
         @brief Number of primitives in this leaf (zero for interior nodes).
       */
-      uint32_t numPrims{};
+      uint32_t m_numPrims{};
 
       /**
         @brief Depth-first indices of the K child nodes (interior nodes only).
       */
-      std::array<uint32_t, K> childOff{};
+      std::array<uint32_t, K> m_childOff{};
 
       /**
         @brief Set the bounding volume for this node.
@@ -828,7 +847,7 @@ namespace BVH {
       inline void
       setBoundingVolume(const BV& a_bv) noexcept
       {
-        bv = a_bv;
+        m_bv = a_bv;
       }
 
       /**
@@ -838,7 +857,7 @@ namespace BVH {
       inline void
       setPrimitivesOffset(uint32_t a_off) noexcept
       {
-        primOff = a_off;
+        m_primOff = a_off;
       }
 
       /**
@@ -848,7 +867,7 @@ namespace BVH {
       inline void
       setNumPrimitives(uint32_t a_n) noexcept
       {
-        numPrims = a_n;
+        m_numPrims = a_n;
       }
 
       /**
@@ -859,17 +878,18 @@ namespace BVH {
       inline void
       setChildOffset(uint32_t a_off, size_t a_k) noexcept
       {
-        childOff[a_k] = a_off;
+        EBGEOMETRY_EXPECT(a_k < K);
+        m_childOff[a_k] = a_off;
       }
 
       /**
         @brief Get the bounding volume.
-        @return Reference to bv.
+        @return Reference to m_bv.
       */
       [[nodiscard]] inline const BV&
       getBoundingVolume() const noexcept
       {
-        return bv;
+        return m_bv;
       }
 
       /**
@@ -879,7 +899,7 @@ namespace BVH {
       [[nodiscard]] inline uint32_t
       getPrimitivesOffset() const noexcept
       {
-        return primOff;
+        return m_primOff;
       }
 
       /**
@@ -889,7 +909,7 @@ namespace BVH {
       [[nodiscard]] inline uint32_t
       getNumPrimitives() const noexcept
       {
-        return numPrims;
+        return m_numPrims;
       }
 
       /**
@@ -899,17 +919,17 @@ namespace BVH {
       [[nodiscard]] inline const std::array<uint32_t, K>&
       getChildOffsets() const noexcept
       {
-        return childOff;
+        return m_childOff;
       }
 
       /**
         @brief Return true if this is a leaf node.
-        @return True if numPrims > 0 (leaf), false otherwise (interior).
+        @return True if m_numPrims > 0 (leaf), false otherwise (interior).
       */
       [[nodiscard]] inline bool
       isLeaf() const noexcept
       {
-        return numPrims > 0;
+        return m_numPrims > 0;
       }
 
       /**
@@ -920,7 +940,7 @@ namespace BVH {
       [[nodiscard]] inline T
       getDistanceToBoundingVolume(const Vec3T<T>& a_point) const noexcept
       {
-        return bv.getDistance(a_point);
+        return m_bv.getDistance(a_point);
       }
     };
 
@@ -932,27 +952,42 @@ namespace BVH {
     /**
       @brief Construct by packing a TreeBVH (identity primitive type).
       @details Walks the tree depth-first, fills m_linearNodes and m_primitives directly,
-      then builds the SoA AABB cache. Requires BV2 == AABBT<T>.
-      @tparam BV2 Bounding volume type of the source tree (must equal AABBT<T>).
+      then builds the SoA AABB cache. The source tree must have been built with
+      BV == AABBT<T>; bounding volumes are reused without conversion.
       @param[in] a_tree Source tree.
     */
-    template <class BV2>
-    inline PackedBVH(const TreeBVH<T, P, BV2, K>& a_tree);
+    inline PackedBVH(const TreeBVH<T, P, BV, K>& a_tree);
 
     /**
       @brief Construct by packing a TreeBVH with primitive-type conversion.
-      @details Walks the tree depth-first. For each leaf, calls
-        a_converter(leafPrims, 0, count) → std::vector<P>
-      All returned values are stored contiguously; shared_ptrs alias into that buffer.
-      Requires BV2 == AABBT<T>.
-      @tparam P2        Source primitive type.
-      @tparam BV2       Bounding volume type of the source tree (must equal AABBT<T>).
-      @tparam Converter Callable: (PrimitiveList<P2>, uint32_t, uint32_t) → std::vector<P>.
+      @details The source tree holds primitives of type PTree; the packed BVH holds
+      primitives of type P.  The most common reason for this mismatch is an SoA packing
+      step: a tree built over individual triangles (PTree = Triangle<T>) can be repacked
+      into a BVH whose leaves hold SIMD-width groups (P = TriangleSoAT<T,W>), enabling
+      vectorised distance evaluation at every leaf visit.
+
+      The converter is called once per leaf of the source tree and must return a
+      @c std::vector<P> containing all target primitives for that leaf:
+
+      @code
+        a_converter(leafPrims, offset, count) → std::vector<P>
+      @endcode
+
+      where @p leafPrims is the leaf's @c PrimitiveList<PTree>, @p offset is the index of
+      the first primitive in the global list, and @p count is the number of primitives in
+      the leaf.  All returned vectors are stored contiguously; the resulting PackedBVH holds
+      aliased @c shared_ptr into that buffer so no extra copies are made during traversal.
+
+      The source tree must have been built with BV == AABBT<T>; bounding volumes are reused
+      without conversion.
+
+      @tparam PTree     Source primitive type stored in the source tree.
+      @tparam Converter Callable: (PrimitiveList<PTree>, uint32_t offset, uint32_t count) → std::vector<P>.
       @param[in] a_tree      Source tree.
       @param[in] a_converter Leaf-conversion function.
     */
-    template <class P2, class BV2, class Converter>
-    inline PackedBVH(const TreeBVH<T, P2, BV2, K>& a_tree, Converter&& a_converter);
+    template <class PTree, class Converter>
+    inline PackedBVH(const TreeBVH<T, PTree, BV, K>& a_tree, Converter&& a_converter);
 
     /**
       @brief Virtual destructor.
@@ -1023,9 +1058,9 @@ namespace BVH {
     */
     template <class Meta>
     inline void
-    traverse(const BVH::LinearUpdater<P>&        a_updater,
+    traverse(const BVH::PackedUpdater<P>&        a_updater,
              const BVH::Visiter<Node, Meta>&     a_visiter,
-             const BVH::LinearSorter<Meta, K>&   a_sorter,
+             const BVH::PackedSorter<Meta, K>&   a_sorter,
              const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept;
 
     /**
@@ -1050,21 +1085,21 @@ namespace BVH {
 
     /**
       @brief SoA layout of K children's AABBs for a single interior node.
-      @details lo[axis][child] / hi[axis][child] layout places each axis row in a
+      @details m_lo[axis][child] / m_hi[axis][child] layout places each axis row in a
       contiguous T[K] buffer that can be loaded as a single SIMD register.
       Private implementation detail of PackedBVH; never exposed in any public interface.
     */
     struct ChildAABBSoA
     {
       /**
-        @brief Lower corners: lo[axis][child], axis in {0,1,2}, child in {0,…,K-1}.
+        @brief Lower corners: m_lo[axis][child], axis in {0,1,2}, child in {0,…,K-1}.
       */
-      alignas(sizeof(T) * K) T lo[3][K];
+      alignas(sizeof(T) * K) T m_lo[3][K];
 
       /**
-        @brief Upper corners: hi[axis][child], axis in {0,1,2}, child in {0,…,K-1}.
+        @brief Upper corners: m_hi[axis][child], axis in {0,1,2}, child in {0,…,K-1}.
       */
-      alignas(sizeof(T) * K) T hi[3][K];
+      alignas(sizeof(T) * K) T m_hi[3][K];
     };
 
     /**

@@ -214,12 +214,12 @@ protected:
   @tparam T    Floating-point precision type (float or double).
   @tparam Meta Triangle metadata type.
   @tparam K    BVH branching factor (number of children per internal node).
-               Defaults to BVH::defaultK<T>() — the SIMD-optimal value for T on the current ISA
+               Defaults to BVH::DefaultBranchingRatio<T>() — the SIMD-optimal value for T on the current ISA
                (K=16/float or K=8/double on AVX-512F; K=8/float or K=4/double on AVX; K=4 otherwise).
   @tparam W    SoA width: number of triangles per SIMD group.
                Defaults to EBGEOMETRY_SOA_DEFAULT_WIDTH (ISA-optimal; 16 on AVX-512F, 8 on AVX, 4 otherwise).
 */
-template <class T, class Meta, size_t K = BVH::defaultK<T>(), size_t W = EBGEOMETRY_SOA_DEFAULT_WIDTH>
+template <class T, class Meta, size_t K = BVH::DefaultBranchingRatio<T>(), size_t W = EBGEOMETRY_SOA_DEFAULT_WIDTH>
 class TriMeshSDF : public SignedDistanceFunction<T>
 {
   static_assert(std::is_floating_point_v<T>, "TriMeshSDF<T,Meta,K,W> requires a floating-point T");
