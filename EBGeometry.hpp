@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry.hpp
-  @brief  EBGeometry single-file access point.
-  @author Robert Marskar
-*/
+ * @file   EBGeometry.hpp
+ * @brief  EBGeometry single-file access point.
+ * @author Robert Marskar
+ */
 
 #include "Source/EBGeometry_AnalyticDistanceFunctions.hpp"
 #include "Source/EBGeometry_BVH.hpp"
@@ -37,7 +37,10 @@
 #include "Source/EBGeometry_VTK.hpp"
 #include "Source/EBGeometry_Vec.hpp"
 
-/*!
-  @brief Name space for all of EBGeometry
-*/
+/**
+ * @brief Namespace containing all of EBGeometry's functionality.
+ * @details EBGeometry is a header-only C++17 library for implicit functions, signed distance
+ *          functions, constructive solid geometry (CSG), and DCEL surface meshes. Including
+ *          EBGeometry.hpp exposes every public class and free function through this namespace.
+ */
 namespace EBGeometry {}
