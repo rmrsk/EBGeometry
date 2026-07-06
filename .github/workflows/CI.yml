@@ -205,8 +205,31 @@ jobs:
       - name: Run tests
         run: ctest --preset debug
 
+  Sanitizers:
+    needs: Formatting
+    name: Sanitizers
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        simd: [none, avx]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure (debug-san preset, ASan + UBSan)
+        run: |
+          cmake --preset debug-san \
+            -DEBGEOMETRY_SIMD=${{ matrix.simd }} \
+            -DEBGEOMETRY_BUILD_EXAMPLES=OFF
+      - name: Build
+        run: cmake --build --preset debug-san --parallel 2
+      - name: Run tests under sanitizers
+        run: ctest --preset debug-san
+        env:
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+          ASAN_OPTIONS: detect_leaks=1
+
   CI-passed:
-    needs: [Linux-GNU, Linux-Intel, Build-documentation, Unit-Tests]
+    needs: [Linux-GNU, Linux-Intel, Build-documentation, Unit-Tests, Sanitizers]
     runs-on: ubuntu-latest
     steps:
       - name: Do nothing

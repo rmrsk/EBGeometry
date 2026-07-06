@@ -15,7 +15,13 @@ include(Catch)
 function(ebgeometry_add_test name)
   add_executable(${name} ${name}.cpp)
   target_link_libraries(${name} PRIVATE EBGeometry::EBGeometry Catch2::Catch2WithMain)
-  target_compile_options(${name} PRIVATE -Wall -Wextra -Wno-unused-parameter)
+  # Strong warning set for the library's real template instantiations. -Wconversion,
+  # -Wsign-conversion, -Wshadow and -Wold-style-cast are deliberately not enabled yet;
+  # they have a review backlog (see the narrowing-conversion clang-tidy findings).
+  target_compile_options(${name} PRIVATE
+    -Wall -Wextra -Wpedantic -Wcast-qual -Wcast-align -Wnon-virtual-dtor
+    -Wdouble-promotion -Woverloaded-virtual -Wnull-dereference
+    -Wno-unused-parameter -Werror)
   # Expose the test-data directory as a compile-time string so tests can load files.
   target_compile_definitions(${name} PRIVATE
     EBGEOMETRY_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
