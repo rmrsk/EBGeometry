@@ -17,12 +17,13 @@
 #include <vector>
 
 // Our includes
+#include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
 
 /**
- * @brief Bounding volume types for use with bounding volume hierarchies.
+ * @brief Namespace encapsulating bounding volume types for use with bounding volume hierarchies.
  */
 namespace BoundingVolumes {
 
@@ -31,9 +32,9 @@ namespace BoundingVolumes {
  * @tparam T Floating-point precision (e.g., float or double).
  */
 template <class T>
-class BoundingSphereT
+class SphereT
 {
-  static_assert(std::is_floating_point_v<T>, "BoundingSphereT<T>: T must be a floating-point type.");
+  static_assert(std::is_floating_point_v<T>, "SphereT<T>: T must be a floating-point type.");
 
 public:
   /**
@@ -43,7 +44,7 @@ public:
    * @return Reference to @p os to allow chaining.
    */
   friend std::ostream&
-  operator<<(std::ostream& os, const BoundingSphereT<T>& sphere)
+  operator<<(std::ostream& os, const SphereT<T>& sphere)
   {
     os << '(' << sphere.getCentroid() << ", " << sphere.getRadius() << ')';
 
@@ -53,7 +54,7 @@ public:
   /**
    * @brief Algorithm used to compute a bounding sphere for a set of 3D points.
    */
-  enum class BoundingVolumeAlgorithm
+  enum class BuildAlgorithm
   {
     Ritter, ///< Ritter's simple two-pass approximation. Fast but may overestimate the radius slightly.
   };
@@ -69,26 +70,26 @@ public:
    * an @c EBGEOMETRY_EXPECT assertion. Call define() or use the explicit constructor
    * before use.
    */
-  BoundingSphereT() noexcept = default;
+  SphereT() noexcept = default;
 
   /**
    * @brief Construct a sphere with an explicit centre and radius.
    * @param[in] a_center Sphere centre.
    * @param[in] a_radius Sphere radius.
    */
-  inline BoundingSphereT(const Vec3T<T>& a_center, const T& a_radius) noexcept;
+  inline SphereT(const Vec3T<T>& a_center, const T& a_radius) noexcept;
 
   /**
    * @brief Construct the smallest sphere enclosing all @p a_otherSpheres.
    * @param[in] a_otherSpheres Spheres to enclose.
    */
-  inline BoundingSphereT(const std::vector<BoundingSphereT<T>>& a_otherSpheres) noexcept;
+  inline SphereT(const std::vector<SphereT<T>>& a_otherSpheres) noexcept;
 
   /**
    * @brief Copy constructor.
    * @param[in] a_other Sphere to copy.
    */
-  inline BoundingSphereT(const BoundingSphereT& a_other) noexcept;
+  inline SphereT(const SphereT& a_other) noexcept;
 
   /**
    * @brief Construct a bounding sphere enclosing a set of 3D points.
@@ -98,35 +99,34 @@ public:
    * @param[in] a_alg    Algorithm to use (default: Ritter).
    */
   template <class P>
-  inline BoundingSphereT(const std::vector<Vec3T<P>>&   a_points,
-                         const BoundingVolumeAlgorithm& a_alg = BoundingVolumeAlgorithm::Ritter) noexcept;
+  inline SphereT(const std::vector<Vec3T<P>>& a_points, const BuildAlgorithm& a_alg = BuildAlgorithm::Ritter) noexcept;
 
   /**
    * @brief Destructor.
    */
-  ~BoundingSphereT() noexcept;
+  ~SphereT() noexcept;
 
   /**
    * @brief Copy assignment operator.
    * @param[in] a_other Sphere to copy.
    * @return Reference to (*this).
    */
-  BoundingSphereT&
-  operator=(const BoundingSphereT& a_other) = default;
+  SphereT&
+  operator=(const SphereT& a_other) = default;
 
   /**
    * @brief Move constructor.
    * @param[in] a_other Sphere to move from.
    */
-  BoundingSphereT(BoundingSphereT&& a_other) noexcept = default;
+  SphereT(SphereT&& a_other) noexcept = default;
 
   /**
    * @brief Move assignment operator.
    * @param[in] a_other Sphere to move from.
    * @return Reference to (*this).
    */
-  BoundingSphereT&
-  operator=(BoundingSphereT&& a_other) noexcept = default;
+  SphereT&
+  operator=(SphereT&& a_other) noexcept = default;
 
   /**
    * @brief Fit this sphere to a set of 3D points using the specified algorithm.
@@ -137,7 +137,7 @@ public:
    */
   template <class P>
   inline void
-  define(const std::vector<Vec3T<P>>& a_points, const BoundingVolumeAlgorithm& a_alg) noexcept;
+  define(const std::vector<Vec3T<P>>& a_points, const BuildAlgorithm& a_alg) noexcept;
 
   /**
    * @brief Test whether this bounding sphere intersects @p a_other.
@@ -145,7 +145,7 @@ public:
    * @return True if the two spheres overlap, false otherwise.
    */
   [[nodiscard]] inline bool
-  intersects(const BoundingSphereT& a_other) const noexcept;
+  intersects(const SphereT& a_other) const noexcept;
 
   /**
    * @brief Get a modifiable reference to the sphere radius.
@@ -181,7 +181,7 @@ public:
    * @return Overlap volume; zero if the spheres do not intersect.
    */
   [[nodiscard]] inline T
-  getOverlappingVolume(const BoundingSphereT<T>& a_other) const noexcept;
+  getOverlappingVolume(const SphereT<T>& a_other) const noexcept;
 
   /**
    * @brief Compute the unsigned distance from @p a_x0 to this sphere.
@@ -423,7 +423,7 @@ protected:
  */
 template <class T>
 [[nodiscard]] bool
-intersects(const BoundingSphereT<T>& a_u, const BoundingSphereT<T>& a_v) noexcept;
+intersects(const SphereT<T>& a_u, const SphereT<T>& a_v) noexcept;
 
 /**
  * @brief Test whether two axis-aligned bounding boxes overlap.
@@ -445,7 +445,7 @@ intersects(const AABBT<T>& a_u, const AABBT<T>& a_v) noexcept;
  */
 template <class T>
 [[nodiscard]] T
-getOverlappingVolume(const BoundingSphereT<T>& a_u, const BoundingSphereT<T>& a_v) noexcept;
+getOverlappingVolume(const SphereT<T>& a_u, const SphereT<T>& a_v) noexcept;
 
 /**
  * @brief Compute the overlapping volume between two axis-aligned bounding boxes.

@@ -22,6 +22,11 @@
 #include <vector>
 
 // Our includes
+#include "EBGeometry_DCEL_Edge.hpp"
+#include "EBGeometry_DCEL_Face.hpp"
+#include "EBGeometry_DCEL_Mesh.hpp"
+#include "EBGeometry_DCEL_Vertex.hpp"
+#include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Soup.hpp"
 
 namespace EBGeometry {

@@ -703,6 +703,18 @@ template <typename T>
 max(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
 /**
+ * @brief Component-wise clamp of a 3D vector.
+ * @tparam T Floating-point precision.
+ * @param[in] v  Vector to be clamped.
+ * @param[in] lo Component-wise lower bound.
+ * @param[in] hi Component-wise upper bound.
+ * @return New vector with X[i] = std::clamp(v[i], lo[i], hi[i]).
+ */
+template <typename T>
+[[nodiscard]] inline constexpr Vec3T<T>
+clamp(const Vec3T<T>& v, const Vec3T<T>& lo, const Vec3T<T>& hi) noexcept;
+
+/**
  * @brief Dot product of two 3D vectors.
  * @tparam T Floating-point precision.
  * @param[in] u First vector.

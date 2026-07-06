@@ -44,6 +44,14 @@ repos:
         files: \.(hpp|cpp)$
         stages: [manual]
 
+      - id: build-tests
+        name: Compile unit tests (debug preset)
+        entry: bash build-tests-check.sh
+        language: system
+        pass_filenames: false
+        files: \.(hpp|cpp)$
+        stages: [manual]
+
       - id: sphinx-build
         name: Build Sphinx documentation (warnings as errors)
         entry: sphinx-build

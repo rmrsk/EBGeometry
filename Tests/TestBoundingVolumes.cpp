@@ -8,7 +8,7 @@
 
 using namespace EBGeometry;
 using BoundingVolumes::AABBT;
-using BoundingVolumes::BoundingSphereT;
+using BoundingVolumes::SphereT;
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
@@ -96,13 +96,13 @@ TEST_CASE("AABBT: overlapping volume", "[AABBT]")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BoundingSphereT
+// SphereT
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEST_CASE("BoundingSphereT: construction", "[BoundingSphereT]")
+TEST_CASE("SphereT: construction", "[SphereT]")
 {
-  const Vec3T<double>     c(1, 2, 3);
-  BoundingSphereT<double> s(c, 5.0);
+  const Vec3T<double> c(1, 2, 3);
+  SphereT<double>     s(c, 5.0);
 
   REQUIRE(s.getRadius() == 5.0);
   REQUIRE(s.getCentroid()[0] == 1.0);
@@ -110,10 +110,10 @@ TEST_CASE("BoundingSphereT: construction", "[BoundingSphereT]")
   REQUIRE(s.getCentroid()[2] == 3.0);
 }
 
-TEST_CASE("BoundingSphereT: construction from point cloud (Ritter)", "[BoundingSphereT]")
+TEST_CASE("SphereT: construction from point cloud (Ritter)", "[SphereT]")
 {
   const std::vector<Vec3T<double>> pts = {{-2, 0, 0}, {2, 0, 0}, {0, 2, 0}, {0, -2, 0}};
-  BoundingSphereT<double>          s(pts); // uses Ritter algorithm by default
+  SphereT<double>                  s(pts); // uses Ritter algorithm by default
   // Ritter's algorithm is not guaranteed tight, but must enclose all points
   for (const auto& p : pts) {
     const double dist = (p - s.getCentroid()).length();
@@ -121,33 +121,33 @@ TEST_CASE("BoundingSphereT: construction from point cloud (Ritter)", "[BoundingS
   }
 }
 
-TEST_CASE("BoundingSphereT: intersects", "[BoundingSphereT]")
+TEST_CASE("SphereT: intersects", "[SphereT]")
 {
-  const BoundingSphereT<double> a(Vec3T<double>(0, 0, 0), 1.0);
-  const BoundingSphereT<double> b(Vec3T<double>(1.5, 0, 0), 1.0); // overlap
-  const BoundingSphereT<double> c(Vec3T<double>(5, 0, 0), 1.0);   // no overlap
+  const SphereT<double> a(Vec3T<double>(0, 0, 0), 1.0);
+  const SphereT<double> b(Vec3T<double>(1.5, 0, 0), 1.0); // overlap
+  const SphereT<double> c(Vec3T<double>(5, 0, 0), 1.0);   // no overlap
 
   REQUIRE(a.intersects(b));
   REQUIRE(!a.intersects(c));
 }
 
-TEST_CASE("BoundingSphereT: overlapping volume (concentric)", "[BoundingSphereT]")
+TEST_CASE("SphereT: overlapping volume (concentric)", "[SphereT]")
 {
   // Identical spheres: overlap = full volume = 4/3 π r³
-  const BoundingSphereT<double> a(Vec3T<double>(0, 0, 0), 1.0);
-  constexpr double              pi    = 3.14159265358979323846;
-  const double                  exact = (4.0 / 3.0) * pi;
+  const SphereT<double> a(Vec3T<double>(0, 0, 0), 1.0);
+  constexpr double      pi    = 3.14159265358979323846;
+  const double          exact = (4.0 / 3.0) * pi;
   REQUIRE_THAT(a.getOverlappingVolume(a), WithinRel(exact, 1e-6));
 
   // Non-overlapping: volume = 0
-  const BoundingSphereT<double> b(Vec3T<double>(10, 0, 0), 1.0);
+  const SphereT<double> b(Vec3T<double>(10, 0, 0), 1.0);
   REQUIRE_THAT(a.getOverlappingVolume(b), WithinAbs(0.0, 1e-12));
 }
 
-TEST_CASE("BoundingSphereT: volume and area", "[BoundingSphereT]")
+TEST_CASE("SphereT: volume and area", "[SphereT]")
 {
-  constexpr double              pi = 3.14159265358979323846;
-  const BoundingSphereT<double> s(Vec3T<double>(0, 0, 0), 2.0);
+  constexpr double      pi = 3.14159265358979323846;
+  const SphereT<double> s(Vec3T<double>(0, 0, 0), 2.0);
 
   REQUIRE_THAT(s.getVolume(), WithinRel((4.0 / 3.0) * pi * 8.0, 1e-6));
   REQUIRE_THAT(s.getArea(), WithinRel(4.0 * pi * 4.0, 1e-6));

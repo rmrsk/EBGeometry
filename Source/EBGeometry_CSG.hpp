@@ -24,6 +24,8 @@
 // Our includes
 #include "EBGeometry_BVH.hpp"
 #include "EBGeometry_ImplicitFunction.hpp"
+#include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
 
@@ -233,6 +235,8 @@ FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
  */
 template <class T>
 std::function<T(const T& a, const T& b, const T& s)> ExpMin = [](const T& a, const T& b, const T& s) -> T {
+  static_assert(std::is_floating_point_v<T>, "ExpMin requires a floating-point type T");
+
   EBGEOMETRY_EXPECT(s > T(0));
   T ret = std::exp(-a / s) + std::exp(-b / s);
 
@@ -251,6 +255,8 @@ std::function<T(const T& a, const T& b, const T& s)> ExpMin = [](const T& a, con
  */
 template <class T>
 std::function<T(const T& a, const T& b, const T& s)> SmoothMin = [](const T& a, const T& b, const T& s) -> T {
+  static_assert(std::is_floating_point_v<T>, "SmoothMin requires a floating-point type T");
+
   EBGEOMETRY_EXPECT(s > T(0));
   const T h = std::max(s - std::abs(a - b), T(0)) / s;
 
@@ -269,6 +275,8 @@ std::function<T(const T& a, const T& b, const T& s)> SmoothMin = [](const T& a, 
  */
 template <class T>
 std::function<T(const T& a, const T& b, const T& s)> SmoothMax = [](const T& a, const T& b, const T& s) -> T {
+  static_assert(std::is_floating_point_v<T>, "SmoothMax requires a floating-point type T");
+
   EBGEOMETRY_EXPECT(s > T(0));
   const T h = std::max(s - std::abs(a - b), T(0)) / s;
 
@@ -461,7 +469,7 @@ protected:
    */
   inline void
   buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
-            const BVH::Build                                            a_build = BVH::Build::TopDown) noexcept;
+            const BVH::Build                                            a_build = BVH::Build::SAH) noexcept;
 };
 
 /**
@@ -555,7 +563,7 @@ protected:
    */
   inline void
   buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
-            const BVH::Build                                            a_build = BVH::Build::TopDown) noexcept;
+            const BVH::Build                                            a_build = BVH::Build::SAH) noexcept;
 };
 
 /**

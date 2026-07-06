@@ -22,6 +22,7 @@
 #include "EBGeometry_DCEL_Edge.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
 #include "EBGeometry_DCEL_Vertex.hpp"
+#include "EBGeometry_Macros.hpp"
 
 namespace EBGeometry {
 

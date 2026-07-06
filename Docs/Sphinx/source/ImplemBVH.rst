@@ -34,7 +34,7 @@ Bounding volumes
 
 ``EBGeometry`` supports the following bounding volumes, which are defined in :file:`EBGeometry_BoundingVolumes.hpp`:
 
-*  **BoundingSphere**, templated as ``EBGeometry::BoundingVolumes::BoundingSphereT<T>`` and describes a bounding sphere.
+*  **BoundingSphere**, templated as ``EBGeometry::BoundingVolumes::SphereT<T>`` and describes a bounding sphere.
    Various constructors are available.
 
 *  **Axis-aligned bounding box**, which is templated as ``EBGeometry::BoundingVolumes::AABBT<T>``.

@@ -3,10 +3,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
- * @file    EBGeometry_AnalyticDistanceFunctions.hpp
- * @brief   Declaration of various analytic distance functions.
- * @details This file contains various analytic signed distance fields.
- * @author  Robert Marskar
+ * @file   EBGeometry_AnalyticDistanceFunctions.hpp
+ * @brief  File containing various analytic signed distance fields.
+ * @author Robert Marskar
  */
 
 #ifndef EBGEOMETRY_ANALYTICDISTANCEFUNCTIONS_HPP
@@ -25,24 +24,11 @@
 // Our includes
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_Constants.hpp"
+#include "EBGeometry_Macros.hpp"
 #include "EBGeometry_SignedDistanceFunction.hpp"
+#include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
-
-/**
- * @brief Component-wise clamp for Vec3T.
- * @tparam T  Scalar type.
- * @param[in] v  Vector to be clamped.
- * @param[in] lo Component-wise lower bound.
- * @param[in] hi Component-wise upper bound.
- * @return Component-wise clamped vector.
- */
-template <class T>
-constexpr const Vec3T<T>
-clamp(const Vec3T<T>& v, const Vec3T<T>& lo, const Vec3T<T>& hi)
-{
-  return Vec3T<T>(std::clamp(v[0], lo[0], hi[0]), std::clamp(v[1], lo[1], hi[1]), std::clamp(v[2], lo[2], hi[2]));
-}
 
 /**
  * @brief Signed distance function for a plane.

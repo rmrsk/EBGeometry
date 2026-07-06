@@ -13,6 +13,10 @@ using namespace EBGeometry::DCEL;
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
+// MeshSDF<T, Meta, K> under test, with the mesh's own metadata type and the
+// SIMD-optimal branching factor for double precision.
+using TestMeshSDF = MeshSDF<double, DefaultMetaData, BVH::DefaultBranchingRatio<double>()>;
+
 // Path to test data injected by CMake.
 static const std::string g_dataDir = EBGEOMETRY_TEST_DATA_DIR;
 
@@ -136,7 +140,7 @@ TEST_CASE("MeshSDF: tetrahedron signed distances", "[DCEL][MeshSDF]")
   auto mesh = loadTetrahedron();
   REQUIRE(mesh != nullptr);
 
-  MeshSDF<double> sdf(mesh);
+  TestMeshSDF sdf(mesh);
 
   SECTION("centroid is inside (SDF < 0)")
   {
@@ -166,8 +170,8 @@ TEST_CASE("MeshSDF: tetrahedron signed distances", "[DCEL][MeshSDF]")
 
 TEST_CASE("DCEL sign convention: exterior point has positive SDF", "[DCEL][sign]")
 {
-  auto            mesh = buildTetrahedron();
-  MeshSDF<double> sdf(mesh);
+  auto        mesh = buildTetrahedron();
+  TestMeshSDF sdf(mesh);
 
   // Far outside: must be positive.
   REQUIRE(sdf.signedDistance(Vec3T<double>(2.0, 2.0, 2.0)) > 0.0);
@@ -179,8 +183,8 @@ TEST_CASE("DCEL sign convention: exterior point has positive SDF", "[DCEL][sign]
 
 TEST_CASE("DCEL sign convention: interior point has negative SDF", "[DCEL][sign]")
 {
-  auto            mesh = buildTetrahedron();
-  MeshSDF<double> sdf(mesh);
+  auto        mesh = buildTetrahedron();
+  TestMeshSDF sdf(mesh);
 
   // Centroid of the tetrahedron is clearly inside.
   REQUIRE(sdf.signedDistance(Vec3T<double>(0.25, 0.25, 0.25)) < 0.0);

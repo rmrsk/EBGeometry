@@ -111,7 +111,7 @@ instantiateFunctionTemplates()
 namespace EBGeometry::BoundingVolumes {
 
 template class AABBT<double>;
-template class BoundingSphereT<double>;
+template class SphereT<double>;
 
 } // namespace EBGeometry::BoundingVolumes
 

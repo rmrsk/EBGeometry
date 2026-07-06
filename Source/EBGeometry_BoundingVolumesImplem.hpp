@@ -4,7 +4,7 @@
 
 /**
  * @file   EBGeometry_BoundingVolumesImplem.hpp
- * @brief  Inline implementations of BoundingSphereT<T> and AABBT<T>.
+ * @brief  Inline implementations of SphereT<T> and AABBT<T>.
  * @author Robert Marskar
  */
 
@@ -21,13 +21,14 @@
 // Our includes
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_Constants.hpp"
+#include "EBGeometry_Macros.hpp"
 
 namespace EBGeometry {
 
 namespace BoundingVolumes {
 
 template <class T>
-inline BoundingSphereT<T>::BoundingSphereT(const Vec3T<T>& a_center, const T& a_radius) noexcept
+inline SphereT<T>::SphereT(const Vec3T<T>& a_center, const T& a_radius) noexcept
 {
   EBGEOMETRY_EXPECT(a_radius >= T(0));
   EBGEOMETRY_EXPECT(std::isfinite(a_center[0]));
@@ -39,7 +40,7 @@ inline BoundingSphereT<T>::BoundingSphereT(const Vec3T<T>& a_center, const T& a_
 }
 
 template <class T>
-BoundingSphereT<T>::BoundingSphereT(const BoundingSphereT& a_other) noexcept
+SphereT<T>::SphereT(const SphereT& a_other) noexcept
 {
   EBGEOMETRY_EXPECT(a_other.m_radius >= T(0));
 
@@ -48,7 +49,7 @@ BoundingSphereT<T>::BoundingSphereT(const BoundingSphereT& a_other) noexcept
 }
 
 template <class T>
-BoundingSphereT<T>::BoundingSphereT(const std::vector<BoundingSphereT<T>>& a_otherSpheres) noexcept
+SphereT<T>::SphereT(const std::vector<SphereT<T>>& a_otherSpheres) noexcept
 {
   EBGEOMETRY_EXPECT(!a_otherSpheres.empty());
 
@@ -67,13 +68,12 @@ BoundingSphereT<T>::BoundingSphereT(const std::vector<BoundingSphereT<T>>& a_oth
     points.emplace_back(center - radius * Vec3T<T>::one());
   }
 
-  this->define(points, BoundingVolumeAlgorithm::Ritter);
+  this->define(points, BuildAlgorithm::Ritter);
 }
 
 template <class T>
 template <class P>
-BoundingSphereT<T>::BoundingSphereT(const std::vector<Vec3T<P>>&   a_points,
-                                    const BoundingVolumeAlgorithm& a_algorithm) noexcept
+SphereT<T>::SphereT(const std::vector<Vec3T<P>>& a_points, const BuildAlgorithm& a_algorithm) noexcept
 {
   EBGEOMETRY_EXPECT(!a_points.empty());
 
@@ -81,30 +81,30 @@ BoundingSphereT<T>::BoundingSphereT(const std::vector<Vec3T<P>>&   a_points,
 }
 
 template <class T>
-BoundingSphereT<T>::~BoundingSphereT() noexcept = default;
+SphereT<T>::~SphereT() noexcept = default;
 
 template <class T>
 template <class P>
 inline void
-BoundingSphereT<T>::define(const std::vector<Vec3T<P>>& a_points, const BoundingVolumeAlgorithm& a_algorithm) noexcept
+SphereT<T>::define(const std::vector<Vec3T<P>>& a_points, const BuildAlgorithm& a_algorithm) noexcept
 {
   EBGEOMETRY_EXPECT(!a_points.empty());
 
   switch (a_algorithm) {
-  case BoundingVolumeAlgorithm::Ritter: {
+  case BuildAlgorithm::Ritter: {
     this->buildRitter(a_points);
 
     break;
   }
   default: {
-    std::cerr << "BoundingSphereT::define - unsupported algorithm requested\n";
+    std::cerr << "SphereT::define - unsupported algorithm requested\n";
   }
   }
 }
 
 template <class T>
 inline bool
-BoundingSphereT<T>::intersects(const BoundingSphereT& a_other) const noexcept
+SphereT<T>::intersects(const SphereT& a_other) const noexcept
 {
   EBGEOMETRY_EXPECT(m_radius >= T(0));
   EBGEOMETRY_EXPECT(a_other.m_radius >= T(0));
@@ -120,35 +120,35 @@ BoundingSphereT<T>::intersects(const BoundingSphereT& a_other) const noexcept
 
 template <class T>
 inline T&
-BoundingSphereT<T>::getRadius() noexcept
+SphereT<T>::getRadius() noexcept
 {
   return m_radius;
 }
 
 template <class T>
 inline const T&
-BoundingSphereT<T>::getRadius() const noexcept
+SphereT<T>::getRadius() const noexcept
 {
   return m_radius;
 }
 
 template <class T>
 inline Vec3T<T>&
-BoundingSphereT<T>::getCentroid() noexcept
+SphereT<T>::getCentroid() noexcept
 {
   return m_center;
 }
 
 template <class T>
 inline const Vec3T<T>&
-BoundingSphereT<T>::getCentroid() const noexcept
+SphereT<T>::getCentroid() const noexcept
 {
   return m_center;
 }
 
 template <class T>
 inline T
-BoundingSphereT<T>::getOverlappingVolume(const BoundingSphereT<T>& a_other) const noexcept
+SphereT<T>::getOverlappingVolume(const SphereT<T>& a_other) const noexcept
 {
   EBGEOMETRY_EXPECT(m_radius >= T(0));
   EBGEOMETRY_EXPECT(a_other.m_radius >= T(0));
@@ -184,7 +184,7 @@ BoundingSphereT<T>::getOverlappingVolume(const BoundingSphereT<T>& a_other) cons
 
 template <class T>
 inline T
-BoundingSphereT<T>::getDistance(const Vec3& a_x0) const noexcept
+SphereT<T>::getDistance(const Vec3& a_x0) const noexcept
 {
   EBGEOMETRY_EXPECT(m_radius >= T(0));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
@@ -199,7 +199,7 @@ BoundingSphereT<T>::getDistance(const Vec3& a_x0) const noexcept
 
 template <class T>
 inline T
-BoundingSphereT<T>::getVolume() const noexcept
+SphereT<T>::getVolume() const noexcept
 {
   EBGEOMETRY_EXPECT(m_radius >= T(0));
 
@@ -208,7 +208,7 @@ BoundingSphereT<T>::getVolume() const noexcept
 
 template <class T>
 inline T
-BoundingSphereT<T>::getArea() const noexcept
+SphereT<T>::getArea() const noexcept
 {
   EBGEOMETRY_EXPECT(m_radius >= T(0));
 
@@ -218,7 +218,7 @@ BoundingSphereT<T>::getArea() const noexcept
 template <class T>
 template <class P>
 inline void
-BoundingSphereT<T>::buildRitter(const std::vector<Vec3T<P>>& a_points) noexcept
+SphereT<T>::buildRitter(const std::vector<Vec3T<P>>& a_points) noexcept
 {
   EBGEOMETRY_EXPECT(!a_points.empty());
 
@@ -487,7 +487,7 @@ AABBT<T>::getArea() const noexcept
 
 template <class T>
 [[nodiscard]] bool
-intersects(const BoundingSphereT<T>& u, const BoundingSphereT<T>& v) noexcept
+intersects(const SphereT<T>& u, const SphereT<T>& v) noexcept
 {
   return u.intersects(v);
 }
@@ -501,7 +501,7 @@ intersects(const AABBT<T>& u, const AABBT<T>& v) noexcept
 
 template <class T>
 [[nodiscard]] T
-getOverlappingVolume(const BoundingSphereT<T>& u, const BoundingSphereT<T>& v) noexcept
+getOverlappingVolume(const SphereT<T>& u, const SphereT<T>& v) noexcept
 {
   return u.getOverlappingVolume(v);
 }

@@ -18,7 +18,7 @@
 #include <vector>
 
 // Our includes
-#include "EBGeometry_DCEL_Mesh.hpp"
+#include "EBGeometry_DCEL.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {

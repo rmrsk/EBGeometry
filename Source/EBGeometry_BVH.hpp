@@ -29,6 +29,7 @@
 
 // Our includes
 #include "EBGeometry_BoundingVolumes.hpp"
+#include "EBGeometry_Macros.hpp"
 #include "EBGeometry_SFC.hpp"
 #include "EBGeometry_Vec.hpp"
 

@@ -166,7 +166,7 @@ Test coverage
        dot/cross products, length, component-wise min/max, ``minDir``/``maxDir``,
        lexicographic ordering, scalar-over-vector ``operator/``.
    * - ``TestBoundingVolumes``
-     - :cpp:class:`AABBT` and :cpp:class:`BoundingSphereT`: construction from
+     - :cpp:class:`AABBT` and :cpp:class:`SphereT`: construction from
        corners and point clouds, volume, surface area, point distance,
        intersection predicate, overlapping volume.
    * - ``TestAnalyticSDF``

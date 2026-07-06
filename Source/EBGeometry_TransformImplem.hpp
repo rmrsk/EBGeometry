@@ -18,6 +18,8 @@
 
 // Our includes
 #include "EBGeometry_AnalyticDistanceFunctions.hpp"
+#include "EBGeometry_Constants.hpp"
+#include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Transform.hpp"
 
 namespace EBGeometry {

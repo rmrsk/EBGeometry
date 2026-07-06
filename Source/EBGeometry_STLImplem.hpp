@@ -13,6 +13,7 @@
 #include <vector>
 
 // Our includes
+#include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_STL.hpp"
 #include "EBGeometry_Soup.hpp"
 
