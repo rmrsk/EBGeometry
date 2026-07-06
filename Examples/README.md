@@ -14,5 +14,5 @@ Examples prefixed `AMReX_` additionally require the [AMReX](https://amrex-codes.
 * `AMReX_DCEL`, `AMReX_PackedSpheres`, `AMReX_PaintEB`, `AMReX_RandomCity`, `AMReX_Shapes`.
 
 The mesh files used by the examples come from the [common-3d-test-models](https://github.com/alecjacobson/common-3d-test-models)
-git submodule under `Submodules/`. Clone the repository with `--recurse-submodules` (or run
+git submodule (`common-3d-test-models/`) at the repository root. Clone the repository with `--recurse-submodules` (or run
 `git submodule update --init --recursive`); see the "Building and using" documentation for details.

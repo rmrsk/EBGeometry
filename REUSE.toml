@@ -6,7 +6,7 @@
 # Source code carries inline SPDX headers instead; see Source/ and Examples/*/main.cpp.
 #
 # NOTE: third-party example meshes are no longer redistributed here; they are pulled in
-# via the common-3d-test-models git submodule under Submodules/ (a separate repository
+# via the common-3d-test-models git submodule at the repository root (a separate repository
 # with its own licensing, which REUSE does not descend into).
 
 version = 1

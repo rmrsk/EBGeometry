@@ -35,7 +35,7 @@ main(int argc, char* argv[])
   // Mesh to merge with the sphere. Pass a path on the command line, or fall back to an OBJ file from
   // the common-3d-test-models submodule (path is relative to this example's source folder, where the
   // executable is run). See the "Building and using" docs for how to fetch the submodule.
-  std::string file = "../../Submodules/common-3d-test-models/data/cow.obj";
+  std::string file = "../../common-3d-test-models/data/cow.obj";
   if (argc >= 2) {
     file = std::string(argv[1]);
   }
