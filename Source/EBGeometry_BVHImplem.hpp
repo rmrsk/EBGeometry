@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
-  @file   EBGeometry_BVHImplem.hpp
-  @brief  Implementation of EBGeometry_BVH.hpp
-  @author Robert Marskar
+   @file   EBGeometry_BVHImplem.hpp
+   @brief  Implementation of EBGeometry_BVH.hpp
+   @author Robert Marskar
 */
 
 #ifndef EBGEOMETRY_BVHIMPLEM_HPP
@@ -158,7 +158,7 @@ namespace BVH {
     // rather than the "real" coordinates.
     std::vector<SFC::Index> bins;
 
-    Vec3 minCoord = Vec3::infinity();
+    Vec3 minCoord = +Vec3::infinity();
     Vec3 maxCoord = -Vec3::infinity();
 
     for (const auto& bv : m_boundingVolumes) {
@@ -538,22 +538,22 @@ namespace BVH {
   inline T
   PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   {
-// ──────────────────────────────────────────────────────────────────────────────
-// AVX-512F paths: K==8/double and K==16/float.
-//
-// When compiled with -mavx512f these are selected in preference to the AVX
-// paths below because they appear first and each path ends with a return.
-// The compiler will dead-code-eliminate the corresponding AVX branches.
-//
-// Alignment: ChildAABBSoA uses alignas(sizeof(T)*K), which equals 64 bytes
-// for both (K=8, T=double) and (K=16, T=float).  _mm512_load_pd / _mm512_load_ps
-// both require 64-byte alignment — the static_assert below catches any mismatch.
-//
-// Recommended configurations on AVX-512 hardware:
-//   float  → K=16, W=16  (one _mm512_load_ps covers all children and one leaf group)
-//   double → K=8,  W=8   (one _mm512_load_pd covers all children; AVX-512F replaces
-//                          the 2×_mm256_load_pd emulation in the AVX fallback below)
-// ──────────────────────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────────────────────
+    // AVX-512F paths: K==8/double and K==16/float.
+    //
+    // When compiled with -mavx512f these are selected in preference to the AVX
+    // paths below because they appear first and each path ends with a return.
+    // The compiler will dead-code-eliminate the corresponding AVX branches.
+    //
+    // Alignment: ChildAABBSoA uses alignas(sizeof(T)*K), which equals 64 bytes
+    // for both (K=8, T=double) and (K=16, T=float).  _mm512_load_pd / _mm512_load_ps
+    // both require 64-byte alignment — the static_assert below catches any mismatch.
+    //
+    // Recommended configurations on AVX-512 hardware:
+    //   float  → K=16, W=16  (one _mm512_load_ps covers all children and one leaf group)
+    //   double → K=8,  W=8   (one _mm512_load_pd covers all children; AVX-512F replaces
+    //                          the 2×_mm256_load_pd emulation in the AVX fallback below)
+    // ──────────────────────────────────────────────────────────────────────────────
 #if defined(__AVX512F__)
     if constexpr (K == 8 && std::is_same_v<T, double>) {
       static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,
@@ -725,10 +725,10 @@ namespace BVH {
     }
 #endif // __AVX512F__
 
-// ──────────────────────────────────────────────────────────────────────────────
-// AVX paths: K==4/double (single pass), K==8/float (single pass),
-//            K==8/double (two 4-wide passes — superseded by AVX-512F above).
-// ──────────────────────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────────────────────
+    // AVX paths: K==4/double (single pass), K==8/float (single pass),
+    //            K==8/double (two 4-wide passes — superseded by AVX-512F above).
+    // ──────────────────────────────────────────────────────────────────────────────
 #if defined(__AVX__)
     if constexpr (K == 4 && std::is_same_v<T, double>) {
       static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,

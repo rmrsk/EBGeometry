@@ -264,7 +264,7 @@ namespace BVH {
     [](const PrimAndBVList<P, BV>& a_primsAndBVs) noexcept -> std::array<PrimAndBVList<P, BV>, K> {
     EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
-    Vec3T<T> lo = Vec3T<T>::max();
+    Vec3T<T> lo = +Vec3T<T>::max();
     Vec3T<T> hi = -Vec3T<T>::max();
 
     for (const auto& pbv : a_primsAndBVs) {
@@ -298,7 +298,7 @@ namespace BVH {
   auto BVCentroidPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
     EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
-    Vec3T<T> lo = Vec3T<T>::max();
+    Vec3T<T> lo = +Vec3T<T>::max();
     Vec3T<T> hi = -Vec3T<T>::max();
 
     for (const auto& pbv : a_primsAndBVs) {
@@ -343,21 +343,24 @@ namespace BVH {
     const size_t N = a_end - a_begin;
 
     // Centroid bounding box
-    Vec3T<T> clo = Vec3T<T>::max();
+    Vec3T<T> clo = +Vec3T<T>::max();
     Vec3T<T> chi = -Vec3T<T>::max();
+
     for (size_t i = a_begin; i < a_end; i++) {
       const auto& c = a_list[i].second.getCentroid();
-      clo           = min(clo, c);
-      chi           = max(chi, c);
+
+      clo = min(clo, c);
+      chi = max(chi, c);
     }
 
     T   bestCost  = std::numeric_limits<T>::max();
-    int bestAxis  = -1;
     T   bestPlane = T(0);
+    int bestAxis  = -1;
 
     Vec3T<T> binLo[BINS];
     Vec3T<T> binHi[BINS];
-    int      binCnt[BINS];
+
+    int binCnt[BINS];
 
     T   leftArea[BINS - 1];
     int leftCnt[BINS - 1];
@@ -366,6 +369,7 @@ namespace BVH {
       const T lo  = clo[axis];
       const T hi  = chi[axis];
       const T ext = hi - lo;
+
       if (ext <= T(0)) {
         continue;
       }
@@ -382,19 +386,21 @@ namespace BVH {
         const int b = std::min(BINS - 1, (int)((a_list[i].second.getCentroid()[axis] - lo) * scale));
         binLo[b]    = min(binLo[b], a_list[i].second.getLowCorner());
         binHi[b]    = max(binHi[b], a_list[i].second.getHighCorner());
-        binCnt[b] += 1;
+        binCnt[b]   = binCnt[b] + 1;
       }
 
       // Left prefix: accumulated AABB and count for bins [0..b]
       Vec3T<T> rlo  = Vec3T<T>::max();
       Vec3T<T> rhi  = -Vec3T<T>::max();
       int      rcnt = 0;
+
       for (int b = 0; b < BINS - 1; b++) {
         if (binCnt[b] > 0) {
           rlo = min(rlo, binLo[b]);
           rhi = max(rhi, binHi[b]);
         }
-        rcnt += binCnt[b];
+
+        rcnt        = rcnt + binCnt[b];
         leftArea[b] = (rcnt > 0) ? BV(rlo, rhi).getArea() : T(0);
         leftCnt[b]  = rcnt;
       }
@@ -403,14 +409,18 @@ namespace BVH {
       Vec3T<T> rrlo  = Vec3T<T>::max();
       Vec3T<T> rrhi  = -Vec3T<T>::max();
       int      rrcnt = 0;
+
       for (int b = BINS - 1; b >= 1; b--) {
         if (binCnt[b] > 0) {
           rrlo = min(rrlo, binLo[b]);
           rrhi = max(rrhi, binHi[b]);
         }
+
         rrcnt += binCnt[b];
+
         if (leftCnt[b - 1] > 0 && rrcnt > 0) {
           const T cost = leftArea[b - 1] * T(leftCnt[b - 1]) + BV(rrlo, rrhi).getArea() * T(rrcnt);
+
           if (cost < bestCost) {
             bestCost  = cost;
             bestAxis  = axis;
@@ -456,6 +466,7 @@ namespace BVH {
 
     if (a_K <= 1 || a_begin >= a_end) {
       a_groups.emplace_back(a_begin, a_end);
+
       return;
     }
 
