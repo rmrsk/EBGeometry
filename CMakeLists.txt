@@ -30,10 +30,6 @@ set(EBGEOMETRY_SIMD "avx" CACHE STRING
   "SIMD level to compile against: avx | sse41 | none")
 set_property(CACHE EBGEOMETRY_SIMD PROPERTY STRINGS avx sse41 none)
 
-set(EBGEOMETRY_PRECISION "double" CACHE STRING
-  "Floating-point precision for the EBGeometry examples: float | double")
-set_property(CACHE EBGEOMETRY_PRECISION PROPERTY STRINGS float double)
-
 # ── Propagate options to all consumers via the interface target ───────────────
 if(EBGEOMETRY_ENABLE_ASSERTIONS)
   target_compile_definitions(EBGeometry INTERFACE EBGEOMETRY_ENABLE_ASSERTIONS)

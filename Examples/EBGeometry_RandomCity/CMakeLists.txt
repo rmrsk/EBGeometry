@@ -8,10 +8,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(EBGeometry_RandomCity CXX)
 
-# Floating-point precision used by the example (float or double).
-set(EBGEOMETRY_PRECISION "double" CACHE STRING "Floating-point precision for the EBGeometry examples")
-set_property(CACHE EBGEOMETRY_PRECISION PROPERTY STRINGS float double)
-
 # Locate the header-only library. EBGEOMETRY_HOME is the directory that contains
 # EBGeometry.hpp (the repository root); it defaults to the in-tree location two
 # levels up. When built from the top-level EBGeometry project the
@@ -26,5 +22,14 @@ endif()
 
 add_executable(EBGeometry_RandomCity main.cpp)
 target_link_libraries(EBGeometry_RandomCity PRIVATE EBGeometry::EBGeometry)
-target_compile_definitions(EBGeometry_RandomCity PRIVATE EBGEOMETRY_PRECISION=${EBGEOMETRY_PRECISION})
 target_compile_options(EBGeometry_RandomCity PRIVATE -Wall -Wextra -Wno-unused-parameter)
+
+# ---------------------------------------------------------------------------
+# Floating-point precision for this example.
+#
+# This is the knob you edit to build in single or double precision: set it to
+# `float` or `double`. It is handed to the compiler as EBGEOMETRY_PRECISION and
+# picked up in main.cpp by `using T = EBGEOMETRY_PRECISION`.
+# ---------------------------------------------------------------------------
+set(EBGEOMETRY_PRECISION double)
+target_compile_definitions(EBGeometry_RandomCity PRIVATE EBGEOMETRY_PRECISION=${EBGEOMETRY_PRECISION})
