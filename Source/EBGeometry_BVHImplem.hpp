@@ -244,12 +244,17 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
     for (int lvl = static_cast<int>(treeDepth) - 1; lvl >= 0; lvl--) {
       nodes[static_cast<size_t>(lvl)].resize(0);
 
-      for (size_t inode = 0; inode < std::pow(K, lvl); inode++) {
+      size_t numNodesAtLevel = 1;
+      for (int l = 0; l < lvl; l++) {
+        numNodesAtLevel *= K;
+      }
+
+      for (size_t inode = 0; inode < numNodesAtLevel; inode++) {
 
         std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K> children;
 
         for (size_t child = 0; child < K; child++) {
-          children[child] = nodes[static_cast<size_t>(lvl + 1)][inode * K + child];
+          children[child] = nodes[static_cast<size_t>(lvl) + 1][inode * K + child];
         }
 
         if (lvl > 0) {
@@ -1040,9 +1045,9 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   // Scalar fallback for all other (T, K) combinations.
   T minDist = std::numeric_limits<T>::max();
 
-  BVH::PackedUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
-                                                       size_t                                       offset,
-                                                       size_t count) noexcept -> void {
+  const BVH::PackedUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
+                                                             size_t                                       offset,
+                                                             size_t count) noexcept -> void {
     for (size_t i = 0; i < count; i++) {
       const T d = prims[offset + i]->signedDistance(a_point);
 
@@ -1052,17 +1057,17 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
     }
   };
 
-  BVH::Visiter<Node, T> visiter = [&minDist](const Node& /*n*/, const T& d) noexcept -> bool {
+  const BVH::Visiter<Node, T> visiter = [&minDist](const Node& /*n*/, const T& d) noexcept -> bool {
     return d <= std::abs(minDist);
   };
 
-  BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& ch) noexcept -> void {
+  const BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& ch) noexcept -> void {
     std::sort(ch.begin(), ch.end(), [](const std::pair<uint32_t, T>& a, const std::pair<uint32_t, T>& b) noexcept {
       return a.second > b.second;
     });
   };
 
-  BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& n) noexcept -> T {
+  const BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& n) noexcept -> T {
     return n.getDistanceToBoundingVolume(a_point);
   };
 

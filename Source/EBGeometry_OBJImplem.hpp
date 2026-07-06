@@ -27,7 +27,7 @@ OBJ<T>::OBJ() noexcept
 }
 
 template <typename T>
-OBJ<T>::OBJ(const std::string a_id) noexcept : OBJ()
+OBJ<T>::OBJ(const std::string& a_id) noexcept : OBJ()
 {
   m_id = a_id;
 }

@@ -64,7 +64,7 @@ enum class FileType
  * @return Detected FileType (STL, PLY, VTK, or Unsupported).
  */
 [[nodiscard]] inline static Parser::FileType
-getFileType(const std::string a_filename) noexcept;
+getFileType(const std::string& a_filename) noexcept;
 
 /**
  * @brief Determine file encoding (ASCII or binary) by inspecting the file header.
@@ -72,7 +72,7 @@ getFileType(const std::string a_filename) noexcept;
  * @return Detected Encoding (ASCII, Binary, or Unknown).
  */
 [[nodiscard]] inline static Parser::Encoding
-getFileEncoding(const std::string a_filename) noexcept;
+getFileEncoding(const std::string& a_filename) noexcept;
 
 /**
  * @brief Read a single PLY file into a raw PLY data structure.
@@ -178,7 +178,7 @@ readIntoDCEL(const std::string a_filename);
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
 [[nodiscard]] inline static std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>>
-readIntoDCEL(const std::vector<std::string> a_files);
+readIntoDCEL(const std::vector<std::string>& a_files);
 
 /**
  * @brief Read a file and return it as a bare DCEL signed-distance function (O(N) scan, no BVH).
@@ -200,7 +200,7 @@ readIntoMesh(const std::string a_filename);
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData>
 [[nodiscard]] inline static std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>>
-readIntoMesh(const std::vector<std::string> a_files);
+readIntoMesh(const std::vector<std::string>& a_files);
 
 /**
  * @brief Read a file and return it enclosed in a SIMD-accelerated PackedBVH over DCEL faces.
@@ -226,7 +226,7 @@ readIntoPackedBVH(const std::string a_filename);
  */
 template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
 [[nodiscard]] inline static std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>>
-readIntoPackedBVH(const std::vector<std::string> a_files);
+readIntoPackedBVH(const std::vector<std::string>& a_files);
 
 /**
  * @brief Read a file and return the mesh enclosed in a SIMD-optimised triangle BVH.
@@ -269,9 +269,9 @@ template <typename T,
           size_t K      = BVH::DefaultBranchingRatio<T>(),
           size_t W      = EBGEOMETRY_SOA_DEFAULT_WIDTH>
 [[nodiscard]] inline static std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>>
-readIntoTriangleBVH(const std::vector<std::string> a_files,
-                    const BVH::Build               a_build       = BVH::Build::SAH,
-                    const size_t                   a_maxLeafSize = 8U);
+readIntoTriangleBVH(const std::vector<std::string>& a_files,
+                    const BVH::Build                a_build       = BVH::Build::SAH,
+                    const size_t                    a_maxLeafSize = 8U);
 
 /**
  * @brief Read a file and return all faces as a flat list of Triangle objects.
@@ -295,7 +295,7 @@ readIntoTriangles(const std::string a_filename);
  */
 template <typename T, typename Meta>
 [[nodiscard]] inline static std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
-readIntoTriangles(const std::vector<std::string> a_files);
+readIntoTriangles(const std::vector<std::string>& a_files);
 } // namespace Parser
 
 } // namespace EBGeometry

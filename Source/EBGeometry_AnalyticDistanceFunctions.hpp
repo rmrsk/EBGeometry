@@ -1487,7 +1487,7 @@ public:
   {
 
     for (unsigned int i = 0; i < 256; i++) {
-      m_permutationTable[i] = i;
+      m_permutationTable[i] = static_cast<int>(i);
     }
 
     std::shuffle(m_permutationTable.begin(), m_permutationTable.begin() + 256, g);

@@ -27,7 +27,7 @@ STL<T>::STL() noexcept
 }
 
 template <typename T>
-STL<T>::STL(const std::string a_id) noexcept : STL()
+STL<T>::STL(const std::string& a_id) noexcept : STL()
 {
   m_id = a_id;
 }

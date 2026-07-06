@@ -383,9 +383,9 @@ BVHUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 
   T minDist = std::numeric_limits<T>::infinity();
 
-  BVH::PackedUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions,
-                                                       size_t                                       offset,
-                                                       size_t count) noexcept -> void {
+  const BVH::PackedUpdater<P> updater =
+    [&minDist, &a_point](
+      const std::vector<std::shared_ptr<const P>>& a_implicitFunctions, size_t offset, size_t count) noexcept -> void {
     for (size_t i = offset; i < offset + count; i++) {
       const T v = a_implicitFunctions[i]->value(a_point);
       EBGEOMETRY_EXPECT(!std::isnan(v));
@@ -393,18 +393,18 @@ BVHUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
     }
   };
 
-  BVH::Visiter<Node, T> visiter = [&minDist](const Node& a_node, const T& a_bvDist) noexcept -> bool {
+  const BVH::Visiter<Node, T> visiter = [&minDist](const Node& a_node, const T& a_bvDist) noexcept -> bool {
     return a_bvDist <= 0.0 || a_bvDist <= minDist;
   };
 
-  BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
+  const BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
     std::sort(
       a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
         return n1.second > n2.second;
       });
   };
 
-  BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
+  const BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
     return a_node.getDistanceToBoundingVolume(a_point);
   };
 

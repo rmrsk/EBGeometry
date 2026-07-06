@@ -29,7 +29,7 @@ VTK<T>::VTK() noexcept
 }
 
 template <typename T>
-VTK<T>::VTK(const std::string a_id) noexcept : VTK()
+VTK<T>::VTK(const std::string& a_id) noexcept : VTK()
 {
   m_id = a_id;
 }

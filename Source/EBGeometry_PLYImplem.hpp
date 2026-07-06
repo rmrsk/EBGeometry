@@ -29,7 +29,7 @@ PLY<T>::PLY() noexcept
 }
 
 template <typename T>
-PLY<T>::PLY(const std::string a_id) noexcept : PLY()
+PLY<T>::PLY(const std::string& a_id) noexcept : PLY()
 {
   m_id = a_id;
 }

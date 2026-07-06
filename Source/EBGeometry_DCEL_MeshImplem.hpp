@@ -70,7 +70,7 @@ MeshT<T, Meta>::incrementWarning(std::map<std::string, size_t>& a_warnings, cons
 
 template <class T, class Meta>
 inline void
-MeshT<T, Meta>::printWarnings(const std::map<std::string, size_t>& a_warnings, const std::string a_id) const
+MeshT<T, Meta>::printWarnings(const std::map<std::string, size_t>& a_warnings, const std::string& a_id) const
 {
   std::string baseError = "MeshT<T, Meta>::sanityCheck(...)";
 

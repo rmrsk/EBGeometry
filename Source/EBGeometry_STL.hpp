@@ -38,7 +38,7 @@ public:
    * @brief Constructor. Initializes empty vertices and facets but sets the STL ID (usually the file name
    * @param[in] a_id Identifier for STL object
    */
-  STL(const std::string a_id) noexcept;
+  STL(const std::string& a_id) noexcept;
 
   /**
    * @brief Destructor. Clears all data.

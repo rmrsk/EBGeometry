@@ -152,7 +152,7 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
     // Figure out which vertices are involved here.
     std::vector<std::shared_ptr<Vertex>> faceVertices;
     faceVertices.reserve(curFacet.size());
-    for (unsigned long i : curFacet) {
+    for (const unsigned long i : curFacet) {
       faceVertices.emplace_back(vertices[i]);
     }
 

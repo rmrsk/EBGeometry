@@ -33,7 +33,7 @@
 namespace EBGeometry {
 
 inline Parser::FileType
-Parser::getFileType(const std::string a_filename) noexcept
+Parser::getFileType(const std::string& a_filename) noexcept
 {
   auto ft = Parser::FileType::Unsupported;
 
@@ -56,7 +56,7 @@ Parser::getFileType(const std::string a_filename) noexcept
 }
 
 inline static Parser::Encoding
-Parser::getFileEncoding(const std::string a_filename) noexcept
+Parser::getFileEncoding(const std::string& a_filename) noexcept
 {
   Parser::Encoding encoding = Parser::Encoding::Unknown;
 
@@ -126,7 +126,6 @@ Parser::getFileEncoding(const std::string a_filename) noexcept
 
       std::string line;
       std::string str1;
-      std::string str2;
 
       // Read first line (version identifier)
       std::getline(is, line);
@@ -301,7 +300,7 @@ Parser::readSTL(const std::string& a_filename)
         memcpy(&y, ptr, 4);
         ptr += 4;
         memcpy(&z, ptr, 4);
-        v[0] = Vec3T<T>(x, y, z);
+        v[0] = Vec3T<T>(static_cast<T>(x), static_cast<T>(y), static_cast<T>(z));
 
         ptr = v2;
         memcpy(&x, ptr, 4);
@@ -309,7 +308,7 @@ Parser::readSTL(const std::string& a_filename)
         memcpy(&y, ptr, 4);
         ptr += 4;
         memcpy(&z, ptr, 4);
-        v[1] = Vec3T<T>(x, y, z);
+        v[1] = Vec3T<T>(static_cast<T>(x), static_cast<T>(y), static_cast<T>(z));
 
         ptr = v3;
         memcpy(&x, ptr, 4);
@@ -317,7 +316,7 @@ Parser::readSTL(const std::string& a_filename)
         memcpy(&y, ptr, 4);
         ptr += 4;
         memcpy(&z, ptr, 4);
-        v[2] = Vec3T<T>(x, y, z);
+        v[2] = Vec3T<T>(static_cast<T>(x), static_cast<T>(y), static_cast<T>(z));
 
         memcpy(&id, &att, 2);
 
@@ -831,7 +830,7 @@ Parser::readPLY(const std::string& a_filename)
         for (size_t i = 0; i < facePropertyNames.size(); i++) {
           if (facePropertyTypes[i] == "list") {
             // Read list property
-            size_t numIndices = readBinarySizeT(faceListSizeTypes[i]);
+            const size_t numIndices = readBinarySizeT(faceListSizeTypes[i]);
 
             faceIndices.resize(numIndices);
             for (size_t j = 0; j < numIndices; j++) {
@@ -956,7 +955,7 @@ Parser::readVTK(const std::string& a_filename)
           facets.reserve(numPolygons);
 
           // Check if this is the modern format with OFFSETS/CONNECTIVITY
-          std::streampos pos = filestream.tellg();
+          const std::streampos pos = filestream.tellg();
           std::getline(filestream, line); // Read next line after POLYGONS
 
           std::stringstream checkStream(line);
@@ -1011,8 +1010,8 @@ Parser::readVTK(const std::string& a_filename)
             // For polygon i: vertices are connectivity[offsets[i]] to connectivity[offsets[i+1]-1]
             // For the last polygon: vertices are connectivity[offsets[n-1]] to connectivity[end]
             for (size_t i = 0; i < numPolygons; i++) {
-              size_t              startIdx = offsets[i];
-              size_t              endIdx   = (i + 1 < numPolygons) ? offsets[i + 1] : connectivity.size();
+              size_t const        startIdx = offsets[i];
+              size_t const        endIdx   = (i + 1 < numPolygons) ? offsets[i + 1] : connectivity.size();
               std::vector<size_t> faceIndices;
 
               // Skip empty polygons (startIdx >= connectivity.size() or startIdx == endIdx)
@@ -1273,7 +1272,7 @@ Parser::readVTK(const std::string& a_filename)
           facets.reserve(numPolygons);
 
           // Check if this is the modern format with OFFSETS/CONNECTIVITY
-          std::streampos pos = filestream.tellg();
+          const std::streampos pos = filestream.tellg();
           std::getline(filestream, line); // Read next line
 
           std::stringstream checkStream(line);
@@ -1314,7 +1313,7 @@ Parser::readVTK(const std::string& a_filename)
 
             // In the modern VTK format, listSize on the POLYGONS line is the total
             // number of connectivity entries (not numPolygons + connectivity as in legacy).
-            size_t estimatedConnSize = listSize;
+            const size_t estimatedConnSize = listSize;
 
             std::vector<int64_t> connectivity;
             connectivity.reserve(estimatedConnSize);
@@ -1335,8 +1334,8 @@ Parser::readVTK(const std::string& a_filename)
 
             // Reconstruct facets from offsets and connectivity
             for (size_t i = 0; i < numPolygons; i++) {
-              size_t startIdx = static_cast<size_t>(offsets[i]);
-              size_t endIdx   = (i + 1 < numPolygons) ? static_cast<size_t>(offsets[i + 1]) : connectivity.size();
+              const size_t startIdx = static_cast<size_t>(offsets[i]);
+              const size_t endIdx   = (i + 1 < numPolygons) ? static_cast<size_t>(offsets[i + 1]) : connectivity.size();
               std::vector<size_t> faceIndices;
 
               // Skip empty polygons
@@ -1359,13 +1358,13 @@ Parser::readVTK(const std::string& a_filename)
             filestream.seekg(pos);
 
             for (size_t i = 0; i < numPolygons; i++) {
-              int32_t numIndices = readBinaryInt();
+              const int32_t numIndices = readBinaryInt();
 
               std::vector<size_t> faceIndices;
               faceIndices.reserve(numIndices);
 
               for (int32_t j = 0; j < numIndices; j++) {
-                int32_t idx = readBinaryInt();
+                const int32_t idx = readBinaryInt();
                 faceIndices.emplace_back(static_cast<size_t>(idx));
               }
               facets.emplace_back(faceIndices);
@@ -1439,7 +1438,7 @@ Parser::readVTK(const std::string& a_filename)
               ss >> arrayName >> dataType;
 
               const size_t bytesPerElem = (dataType == "double") ? 8 : 4;
-              filestream.seekg(numData * 3 * bytesPerElem, std::ios_base::cur);
+              filestream.seekg(static_cast<std::streamoff>(numData * 3 * bytesPerElem), std::ios_base::cur);
               filestream.get(); // consume trailing '\n'
             }
             else if (dataKeyword == "FIELD") {
@@ -1464,7 +1463,7 @@ Parser::readVTK(const std::string& a_filename)
                     vtk.setPointDataScalars(arrayName, scalarData);
                   }
                   else {
-                    filestream.seekg(numComponents * numTuples * 4, std::ios_base::cur);
+                    filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * 4), std::ios_base::cur);
                   }
                 }
                 else if (dataType == "double") {
@@ -1477,7 +1476,7 @@ Parser::readVTK(const std::string& a_filename)
                     vtk.setPointDataScalars(arrayName, scalarData);
                   }
                   else {
-                    filestream.seekg(numComponents * numTuples * 8, std::ios_base::cur);
+                    filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * 8), std::ios_base::cur);
                   }
                 }
                 else if (dataType == "int") {
@@ -1490,17 +1489,17 @@ Parser::readVTK(const std::string& a_filename)
                     vtk.setPointDataScalars(arrayName, scalarData);
                   }
                   else {
-                    filestream.seekg(numComponents * numTuples * 4, std::ios_base::cur);
+                    filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * 4), std::ios_base::cur);
                   }
                 }
                 else if (dataType == "char" || dataType == "unsigned_char") {
-                  filestream.seekg(numComponents * numTuples * 1, std::ios_base::cur);
+                  filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * 1), std::ios_base::cur);
                 }
                 else if (dataType == "short" || dataType == "unsigned_short") {
-                  filestream.seekg(numComponents * numTuples * 2, std::ios_base::cur);
+                  filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * 2), std::ios_base::cur);
                 }
                 else if (dataType == "long" || dataType == "unsigned_long") {
-                  filestream.seekg(numComponents * numTuples * 8, std::ios_base::cur);
+                  filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * 8), std::ios_base::cur);
                 }
                 else {
                   std::cerr << "Parser::readVTK - Unsupported FIELD data type: " << dataType << "\n";
@@ -1604,7 +1603,8 @@ Parser::readVTK(const std::string& a_filename)
                   bytesPerElem = 8;
 
                 if (bytesPerElem > 0) {
-                  filestream.seekg(numComponents * numTuples * bytesPerElem, std::ios_base::cur);
+                  filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * bytesPerElem),
+                                   std::ios_base::cur);
                 }
                 else {
                   std::cerr << "Parser::readVTK - Unsupported CELL_DATA FIELD type: " << dataType << "\n";
@@ -1754,28 +1754,28 @@ Parser::readIntoDCEL(const std::string a_filename)
 
   switch (ft) {
   case Parser::FileType::STL: {
-    STL<T> stl = readSTL<T>(a_filename);
+    const STL<T> stl = readSTL<T>(a_filename);
 
     mesh = stl.template convertToDCEL<Meta>();
 
     break;
   }
   case Parser::FileType::PLY: {
-    PLY<T> ply = readPLY<T>(a_filename);
+    const PLY<T> ply = readPLY<T>(a_filename);
 
     mesh = ply.template convertToDCEL<Meta>();
 
     break;
   }
   case Parser::FileType::VTK: {
-    VTK<T> vtk = readVTK<T>(a_filename);
+    const VTK<T> vtk = readVTK<T>(a_filename);
 
     mesh = vtk.template convertToDCEL<Meta>();
 
     break;
   }
   case Parser::FileType::OBJ: {
-    OBJ<T> obj = readOBJ<T>(a_filename);
+    const OBJ<T> obj = readOBJ<T>(a_filename);
 
     mesh = obj.template convertToDCEL<Meta>();
 
@@ -1798,7 +1798,7 @@ Parser::readIntoDCEL(const std::string a_filename)
 
 template <typename T, typename Meta>
 [[nodiscard]] inline std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>>
-Parser::readIntoDCEL(const std::vector<std::string> a_files)
+Parser::readIntoDCEL(const std::vector<std::string>& a_files)
 {
   std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>> objects;
 
@@ -1820,7 +1820,7 @@ Parser::readIntoMesh(const std::string a_filename)
 
 template <typename T, typename Meta>
 [[nodiscard]] inline std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>>
-Parser::readIntoMesh(const std::vector<std::string> a_files)
+Parser::readIntoMesh(const std::vector<std::string>& a_files)
 {
   std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>> implicitFunctions;
 
@@ -1870,7 +1870,7 @@ Parser::readIntoTriangles(const std::string a_filename)
 
 template <typename T, typename Meta>
 [[nodiscard]] std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
-Parser::readIntoTriangles(const std::vector<std::string> a_files)
+Parser::readIntoTriangles(const std::vector<std::string>& a_files)
 {
   std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>> triangles;
 
@@ -1895,9 +1895,9 @@ Parser::readIntoTriangleBVH(const std::string a_filename, const BVH::Build a_bui
 
 template <typename T, typename Meta, size_t K, size_t W>
 [[nodiscard]] inline std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>>
-Parser::readIntoTriangleBVH(const std::vector<std::string> a_files,
-                            const BVH::Build               a_build,
-                            const size_t                   a_maxLeafSize)
+Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
+                            const BVH::Build                a_build,
+                            const size_t                    a_maxLeafSize)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
@@ -1924,7 +1924,7 @@ Parser::readIntoPackedBVH(const std::string a_filename)
 
 template <typename T, typename Meta, size_t K>
 [[nodiscard]] inline std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>>
-Parser::readIntoPackedBVH(const std::vector<std::string> a_files)
+Parser::readIntoPackedBVH(const std::vector<std::string>& a_files)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");

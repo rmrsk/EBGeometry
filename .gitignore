@@ -71,3 +71,6 @@ Docs/Sphinx/build/*
 Docs/Sphinx/source/_static/**/*.aux
 Docs/Sphinx/source/_static/**/*.log
 Docs/Sphinx/source/_static/**/*.pdf
+
+# Local clang-tidy capture (not part of the project)
+/clang-tidy.log

@@ -38,7 +38,7 @@ public:
    * @brief Constructor. Initializes empty vertices and facets but sets the VTK ID (usually the file name
    * @param[in] a_id Identifier for VTK object
    */
-  VTK(const std::string a_id) noexcept;
+  VTK(const std::string& a_id) noexcept;
 
   /**
    * @brief Destructor. Clears all data.

@@ -38,7 +38,7 @@ public:
    * @brief Constructor. Initializes empty vertices and facets but sets the OBJ ID (usually the file name
    * @param[in] a_id Identifier for OBJ object
    */
-  OBJ(const std::string a_id) noexcept;
+  OBJ(const std::string& a_id) noexcept;
 
   /**
    * @brief Destructor. Clears all data.

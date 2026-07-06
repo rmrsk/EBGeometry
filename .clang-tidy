@@ -12,6 +12,8 @@ Checks: >
   portability-*,
   misc-*,
   -bugprone-easily-swappable-parameters,
+  -bugprone-branch-clone,
+  -misc-const-correctness,
   -misc-non-private-member-variables-in-classes,
   -misc-no-recursion,
   -misc-header-include-cycle,

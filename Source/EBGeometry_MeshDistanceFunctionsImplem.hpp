@@ -109,7 +109,7 @@ buildTriMeshFullBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Me
   for (const auto& tri : a_triangles) {
     const auto& vertexPositions = tri->getVertexPositions();
 
-    std::vector<EBGeometry::Vec3T<T>> vertices{vertexPositions[0], vertexPositions[1], vertexPositions[2]};
+    const std::vector<EBGeometry::Vec3T<T>> vertices{vertexPositions[0], vertexPositions[1], vertexPositions[2]};
 
     primsAndBVs.emplace_back(std::make_pair(tri, BV(vertices)));
   }
@@ -201,9 +201,9 @@ MeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
   T minDist = std::numeric_limits<T>::max();
 
-  BVH::PackedUpdater<Face> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const Face>>& faces,
-                                                          size_t                                          offset,
-                                                          size_t count) noexcept -> void {
+  const BVH::PackedUpdater<Face> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const Face>>& faces,
+                                                                size_t                                          offset,
+                                                                size_t count) noexcept -> void {
 #pragma GCC ivdep
     for (size_t i = offset; i < offset + count; i++) {
       const T curDist = faces[i]->signedDistance(a_point);
@@ -211,18 +211,18 @@ MeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
     }
   };
 
-  BVH::Visiter<Node, T> visiter = [&minDist](const Node& a_node, const T& a_bvDist) noexcept -> bool {
+  const BVH::Visiter<Node, T> visiter = [&minDist](const Node& a_node, const T& a_bvDist) noexcept -> bool {
     return a_bvDist <= std::abs(minDist);
   };
 
-  BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
+  const BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
     std::sort(
       a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
         return n1.second > n2.second;
       });
   };
 
-  BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
+  const BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
     return a_node.getDistanceToBoundingVolume(a_point);
   };
 
@@ -246,23 +246,24 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
   // Shortest distance so far.
   BVHMeta shortestDistanceSoFar = std::numeric_limits<T>::max();
 
-  EBGeometry::BVH::Visiter<Node, T> visiter = [&shortestDistanceSoFar](const Node&    a_node,
-                                                                       const BVHMeta& a_bvDist) noexcept -> bool {
+  const EBGeometry::BVH::Visiter<Node, T> visiter = [&shortestDistanceSoFar](const Node&    a_node,
+                                                                             const BVHMeta& a_bvDist) noexcept -> bool {
     return a_bvDist <= 0.0 || a_bvDist <= shortestDistanceSoFar;
   };
 
-  EBGeometry::BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
+  const EBGeometry::BVH::PackedSorter<T, K> sorter =
+    [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
     std::sort(
       a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
         return n1.second > n2.second;
       });
   };
 
-  EBGeometry::BVH::MetaUpdater<Node, BVHMeta> metaUpdater = [&a_point](const Node& a_node) noexcept -> BVHMeta {
+  const EBGeometry::BVH::MetaUpdater<Node, BVHMeta> metaUpdater = [&a_point](const Node& a_node) noexcept -> BVHMeta {
     return a_node.getDistanceToBoundingVolume(a_point);
   };
 
-  EBGeometry::BVH::PackedUpdater<Face> updater =
+  const EBGeometry::BVH::PackedUpdater<Face> updater =
     [&shortestDistanceSoFar, &a_point, &candidateFaces](
       const std::vector<std::shared_ptr<const Face>>& a_faces, size_t offset, size_t count) noexcept -> void {
 #pragma GCC ivdep

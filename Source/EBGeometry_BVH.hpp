@@ -232,8 +232,8 @@ template <class X, size_t K>
 auto EqualCounts = [](const std::vector<X>& a_primitives) noexcept -> std::array<std::vector<X>, K> {
   EBGEOMETRY_EXPECT(!a_primitives.empty());
 
-  int length = a_primitives.size() / K;
-  int remain = a_primitives.size() % K;
+  const int length = a_primitives.size() / K;
+  int       remain = a_primitives.size() % K;
 
   int begin = 0;
   int end   = 0;

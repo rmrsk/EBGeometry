@@ -388,7 +388,7 @@ protected:
    * @param[in] a_id Identifier used when printing warnings (can be empty string)
    */
   inline void
-  printWarnings(const std::map<std::string, size_t>& a_warnings, const std::string a_id) const;
+  printWarnings(const std::map<std::string, size_t>& a_warnings, const std::string& a_id) const;
 };
 } // namespace DCEL
 

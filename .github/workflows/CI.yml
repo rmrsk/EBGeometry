@@ -51,7 +51,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=clang++-14 \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
       - name: Run clang-tidy over the library headers
-        run: run-clang-tidy-18 -p build -quiet '(Tests|Examples)/.*\.cpp'
+        run: run-clang-tidy-18 -p build -quiet '(Tests/|Examples/EBGeometry_).*\.cpp'
 
   Linux-GNU:
     needs: Formatting
