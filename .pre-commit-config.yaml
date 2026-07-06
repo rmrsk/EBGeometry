@@ -9,10 +9,10 @@ repos:
         name: Format source files (clang-format)
         types_or: [c++, c]
 
-  # - repo: https://github.com/fsfe/reuse-tool
-  #   rev: v6.1.0
-  #   hooks:
-  #     - id: reuse
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: v6.1.0
+    hooks:
+      - id: reuse
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
