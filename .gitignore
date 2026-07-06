@@ -66,3 +66,8 @@ Docs/*
 !Docs/doxyfile
 !Docs/README.md
 Docs/Sphinx/build/*
+
+# LaTeX build artifacts for documentation figures (regenerated from the .tex sources)
+Docs/Sphinx/source/_static/**/*.aux
+Docs/Sphinx/source/_static/**/*.log
+Docs/Sphinx/source/_static/**/*.pdf
