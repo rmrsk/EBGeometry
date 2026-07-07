@@ -153,6 +153,16 @@ public:
   ComplementIF() = delete;
 
   /**
+   * @brief Copy constructor.
+   */
+  ComplementIF(const ComplementIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  ComplementIF(ComplementIF&& a_other) noexcept = default;
+
+  /**
    * @brief Full constructor
    * @param[in] a_implicitFunction Input implicit function
    */
@@ -161,7 +171,19 @@ public:
   /**
    * @brief Destructor (does nothing)
    */
-  ~ComplementIF() noexcept override;
+  ~ComplementIF() override = default;
+
+  /**
+   * @brief Copy assignment operator.
+   */
+  ComplementIF&
+  operator=(const ComplementIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move assignment operator.
+   */
+  ComplementIF&
+  operator=(ComplementIF&& a_other) noexcept = default;
 
   /**
    * @brief Value function
@@ -175,7 +197,7 @@ protected:
   /**
    * @brief Implicit function
    */
-  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
+  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction = nullptr;
 };
 
 /**
@@ -194,6 +216,16 @@ public:
   TranslateIF() = delete;
 
   /**
+   * @brief Copy constructor.
+   */
+  TranslateIF(const TranslateIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  TranslateIF(TranslateIF&& a_other) noexcept = default;
+
+  /**
    * @brief Full constructor
    * @param[in] a_implicitFunction Input implicit function to be translated
    * @param[in] a_shift Distance to shift
@@ -203,7 +235,19 @@ public:
   /**
    * @brief Destructor (does nothing)
    */
-  ~TranslateIF() noexcept override;
+  ~TranslateIF() override = default;
+
+  /**
+   * @brief Copy assignment operator.
+   */
+  TranslateIF&
+  operator=(const TranslateIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move assignment operator.
+   */
+  TranslateIF&
+  operator=(TranslateIF&& a_other) noexcept = default;
 
   /**
    * @brief Value function
@@ -217,7 +261,7 @@ protected:
   /**
    * @brief Underlying implicit function
    */
-  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
+  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
    * @brief Input point translate.
@@ -241,6 +285,16 @@ public:
   RotateIF() = delete;
 
   /**
+   * @brief Copy constructor.
+   */
+  RotateIF(const RotateIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  RotateIF(RotateIF&& a_other) noexcept = default;
+
+  /**
    * @brief Full constructor. Rotates the wrapped implicit function by a_angle degrees about a_axis.
    * @param[in] a_implicitFunction  Input implicit function.
    * @param[in] a_angle Angle to rotate (in degrees)
@@ -253,7 +307,19 @@ public:
   /**
    * @brief Destructor
    */
-  ~RotateIF() noexcept override;
+  ~RotateIF() override = default;
+
+  /**
+   * @brief Copy assignment operator.
+   */
+  RotateIF&
+  operator=(const RotateIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move assignment operator.
+   */
+  RotateIF&
+  operator=(RotateIF&& a_other) noexcept = default;
 
   /**
    * @brief Value function with rotation applied to the query point.
@@ -267,7 +333,7 @@ protected:
   /**
    * @brief Underlying implicit function.
    */
-  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
+  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
    * @brief Axis to rotate about
@@ -306,6 +372,16 @@ public:
   OffsetIF() = delete;
 
   /**
+   * @brief Copy constructor.
+   */
+  OffsetIF(const OffsetIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  OffsetIF(OffsetIF&& a_other) noexcept = default;
+
+  /**
    * @brief Full constructor. Subtracts a_offset from the wrapped function value.
    * @param[in] a_implicitFunction Input implicit function.
    * @param[in] a_offset Offset value.
@@ -315,7 +391,19 @@ public:
   /**
    * @brief Destructor
    */
-  ~OffsetIF() noexcept override;
+  ~OffsetIF() override = default;
+
+  /**
+   * @brief Copy assignment operator.
+   */
+  OffsetIF&
+  operator=(const OffsetIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move assignment operator.
+   */
+  OffsetIF&
+  operator=(OffsetIF&& a_other) noexcept = default;
 
   /**
    * @brief Value function with offset applied.
@@ -329,7 +417,7 @@ protected:
   /**
    * @brief Underlying implicit function.
    */
-  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
+  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
    * @brief Offset value.
@@ -353,6 +441,16 @@ public:
   ScaleIF() = delete;
 
   /**
+   * @brief Copy constructor.
+   */
+  ScaleIF(const ScaleIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  ScaleIF(ScaleIF&& a_other) noexcept = default;
+
+  /**
    * @brief Full constructor.
    * @param[in] a_implicitFunction Implicit function to be scaled.
    * @param[in] a_scale            Scaling factor (must be non-zero).
@@ -362,7 +460,19 @@ public:
   /**
    * @brief Destructor
    */
-  ~ScaleIF() noexcept override;
+  ~ScaleIF() override = default;
+
+  /**
+   * @brief Copy assignment operator.
+   */
+  ScaleIF&
+  operator=(const ScaleIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move assignment operator.
+   */
+  ScaleIF&
+  operator=(ScaleIF&& a_other) noexcept = default;
 
   /**
    * @brief Value function.
@@ -376,7 +486,7 @@ protected:
   /**
    * @brief Original implicit function.
    */
-  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
+  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
    * @brief Scaling factor.
@@ -400,16 +510,38 @@ public:
   AnnularIF() = delete;
 
   /**
+   * @brief Copy constructor.
+   */
+  AnnularIF(const AnnularIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  AnnularIF(AnnularIF&& a_other) noexcept = default;
+
+  /**
    * @brief Full constructor.
    * @param[in] a_implicitFunction  Input implicit function.
    * @param[in] a_delta Shell thickness (at least if the implicit function is also signed distance)
    */
-  AnnularIF(const std::shared_ptr<ImplicitFunction<T>> a_implicitFunction, const T a_delta);
+  AnnularIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_delta) noexcept;
 
   /**
    * @brief Destructor
    */
-  ~AnnularIF() noexcept override;
+  ~AnnularIF() override = default;
+
+  /**
+   * @brief Copy assignment operator.
+   */
+  AnnularIF&
+  operator=(const AnnularIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move assignment operator.
+   */
+  AnnularIF&
+  operator=(AnnularIF&& a_other) noexcept = default;
 
   /**
    * @brief Value function.
@@ -423,7 +555,7 @@ protected:
   /**
    * @brief Original implicit function.
    */
-  std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction;
+  std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
    * @brief Shell thickness.
@@ -451,6 +583,16 @@ public:
   BlurIF() = delete;
 
   /**
+   * @brief Copy constructor.
+   */
+  BlurIF(const BlurIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  BlurIF(BlurIF&& a_other) noexcept = default;
+
+  /**
    * @brief Full constructor.
    * @param[in] a_implicitFunction Input implicit function
    * @param[in] a_blurDistance     Blur distance
@@ -463,7 +605,19 @@ public:
   /**
    * @brief Destructor
    */
-  ~BlurIF() noexcept override;
+  ~BlurIF() override = default;
+
+  /**
+   * @brief Copy assignment operator.
+   */
+  BlurIF&
+  operator=(const BlurIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move assignment operator.
+   */
+  BlurIF&
+  operator=(BlurIF&& a_other) noexcept = default;
 
   /**
    * @brief Value function
@@ -477,7 +631,7 @@ protected:
   /**
    * @brief Original implicit function
    */
-  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
+  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
    * @brief Blur distance.
@@ -509,6 +663,16 @@ public:
   MollifyIF() = delete;
 
   /**
+   * @brief Copy constructor.
+   */
+  MollifyIF(const MollifyIF& a_other) = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  MollifyIF(MollifyIF&& a_other) noexcept = default;
+
+  /**
    * @brief Full constructor
    * @param[in] a_implicitFunction  Input implicit function.
    * @param[in] a_mollifier         Mollifier implicit function (e.g. a sphere SDF)
@@ -523,7 +687,19 @@ public:
   /**
    * @brief Destructor
    */
-  ~MollifyIF() noexcept override;
+  ~MollifyIF() override = default;
+
+  /**
+   * @brief Copy assignment operator.
+   */
+  MollifyIF&
+  operator=(const MollifyIF& a_other) = default;
+
+  /**
+   * @brief Move assignment operator.
+   */
+  MollifyIF&
+  operator=(MollifyIF&& a_other) noexcept = default;
 
   /**
    * @brief Value function
@@ -537,12 +713,12 @@ protected:
   /**
    * @brief Original implicit function.
    */
-  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction;
+  std::shared_ptr<ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
    * @brief Mollifier
    */
-  std::shared_ptr<ImplicitFunction<T>> m_mollifier;
+  std::shared_ptr<ImplicitFunction<T>> m_mollifier = nullptr;
 
   /**
    * @brief Mollifier Weights
@@ -569,6 +745,16 @@ public:
   ElongateIF() = delete;
 
   /**
+   * @brief Copy constructor.
+   */
+  ElongateIF(const ElongateIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  ElongateIF(ElongateIF&& a_other) noexcept = default;
+
+  /**
    * @brief Full constructor.
    * @param[in] a_implicitFunction Implicit function to be stretched
    * @param[in] a_elongation Per-axis elongation amounts (non-negative values expected)
@@ -578,7 +764,19 @@ public:
   /**
    * @brief Destructor
    */
-  ~ElongateIF() noexcept override;
+  ~ElongateIF() override = default;
+
+  /**
+   * @brief Copy assignment operator.
+   */
+  ElongateIF&
+  operator=(const ElongateIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move assignment operator.
+   */
+  ElongateIF&
+  operator=(ElongateIF&& a_other) noexcept = default;
 
   /**
    * @brief Value function
@@ -592,7 +790,7 @@ protected:
   /**
    * @brief Underlying implicit function to be elongated
    */
-  std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction;
+  std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
    * @brief Elongation
@@ -616,6 +814,16 @@ public:
   ReflectIF() = delete;
 
   /**
+   * @brief Copy constructor.
+   */
+  ReflectIF(const ReflectIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  ReflectIF(ReflectIF&& a_other) noexcept = default;
+
+  /**
    * @brief Full constructor. Reflects across the specified plane.
    * @param[in] a_implicitFunction Implicit function to be reflected
    * @param[in] a_reflectPlane Plane to reflect across (0=yz-plane flips x, 1=xz-plane flips y, 2=xy-plane flips z)
@@ -625,7 +833,19 @@ public:
   /**
    * @brief Destructor
    */
-  ~ReflectIF() noexcept override;
+  ~ReflectIF() override = default;
+
+  /**
+   * @brief Copy assignment operator.
+   */
+  ReflectIF&
+  operator=(const ReflectIF& a_other) noexcept = default;
+
+  /**
+   * @brief Move assignment operator.
+   */
+  ReflectIF&
+  operator=(ReflectIF&& a_other) noexcept = default;
 
   /**
    * @brief Value function
@@ -639,7 +859,7 @@ protected:
   /**
    * @brief Underlying implicit function to be reflected
    */
-  std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction;
+  std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
    * @brief Reflection parameters
