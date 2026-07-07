@@ -42,10 +42,10 @@ documentation for more detail on each approach.
     cmake -S . -B build
     cmake --build build
 
-The binary is `MeshSDF.ex`, in this same directory (same as the other two methods below). Build in single precision, or against a library
-in a different location, with cache variables:
+The binary is `MeshSDF.ex`, in this same directory (same as the other two methods below). Build in single precision, against a library
+in a different location, or with `EBGEOMETRY_EXPECT()` runtime assertions enabled, with cache variables:
 
-    cmake -S . -B build -DEBGEOMETRY_PRECISION=float -DEBGEOMETRY_HOME=/path/to/EBGeometry
+    cmake -S . -B build -DEBGEOMETRY_PRECISION=float -DEBGEOMETRY_HOME=/path/to/EBGeometry -DEBGEOMETRY_ENABLE_ASSERTIONS=ON
 
 **GNU make**
 
@@ -53,13 +53,14 @@ in a different location, with cache variables:
 
 This produces `./MeshSDF.ex`. Override the defaults on the command line:
 
-    make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry
+    make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry ASSERTIONS=ON
 
 **Directly with a compiler**
 
     g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o MeshSDF.ex
 
-Add `-DEBGEOMETRY_PRECISION=float` for single precision.
+Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE_ASSERTIONS` to enable
+`EBGEOMETRY_EXPECT()` runtime assertion checks.
 
 Running
 -------

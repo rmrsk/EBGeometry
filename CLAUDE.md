@@ -58,8 +58,10 @@ cmake -S . -B build && cmake --build build
 ```
 
 All three accept an `EBGEOMETRY_PRECISION`/`PRECISION` override (`float` or `double`, default
-`double`) and an `EBGEOMETRY_HOME` override (default `../..`, the path to the directory containing
-`EBGeometry.hpp`) so an example folder can be copied out as a standalone project template.
+`double`), an `EBGEOMETRY_HOME` override (default `../..`, the path to the directory containing
+`EBGeometry.hpp`), and an `EBGEOMETRY_ENABLE_ASSERTIONS`/`ASSERTIONS` toggle (`ON`/`OFF`, default
+`OFF`) for `EBGEOMETRY_EXPECT()` runtime assertions, so an example folder can be copied out as a
+standalone project template.
 
 ### Building the whole project (library target + all tests + all examples)
 

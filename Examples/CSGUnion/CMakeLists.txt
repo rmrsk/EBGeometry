@@ -48,3 +48,15 @@ target_compile_options(CSGUnion PRIVATE -O3 -march=native)
 set(EBGEOMETRY_PRECISION double CACHE STRING "Floating-point precision (float or double)")
 set_property(CACHE EBGEOMETRY_PRECISION PROPERTY STRINGS float double)
 target_compile_definitions(CSGUnion PRIVATE EBGEOMETRY_PRECISION=${EBGEOMETRY_PRECISION})
+
+# ---------------------------------------------------------------------------
+# EBGEOMETRY_EXPECT() runtime assertions for this example.
+#
+# OFF by default. Enable at configure time with -DEBGEOMETRY_ENABLE_ASSERTIONS=ON.
+# When built from the top-level EBGeometry project, this option already exists
+# (defined by the root CMakeLists.txt) and its value is inherited as-is.
+# ---------------------------------------------------------------------------
+option(EBGEOMETRY_ENABLE_ASSERTIONS "Enable EBGEOMETRY_EXPECT() runtime assertion checks" OFF)
+if(EBGEOMETRY_ENABLE_ASSERTIONS)
+  target_compile_definitions(CSGUnion PRIVATE EBGEOMETRY_ENABLE_ASSERTIONS)
+endif()
