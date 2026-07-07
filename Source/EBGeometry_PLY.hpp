@@ -2,6 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file   EBGeometry_PLY.hpp
+ * @brief  Declaration of a class for storing raw Stanford PLY file contents.
+ * @author Robert Marskar
+ */
+
 #ifndef EBGEOMETRY_PLY_HPP
 #define EBGEOMETRY_PLY_HPP
 
@@ -32,7 +38,7 @@ public:
   /**
    * @brief Default constructor. Initializes empty member data holder
    */
-  PLY() noexcept;
+  PLY() noexcept = default;
 
   /**
    * @brief Constructor. Initializes empty vertices and facets but sets the PLY ID (usually the file name
@@ -41,9 +47,37 @@ public:
   PLY(const std::string& a_id) noexcept;
 
   /**
-   * @brief Destructor. Clears all data.
+   * @brief Copy constructor.
+   * @param[in] a_other Other PLY object.
    */
-  virtual ~PLY() noexcept;
+  PLY(const PLY& a_other) = default;
+
+  /**
+   * @brief Move constructor.
+   * @param[in, out] a_other Other PLY object.
+   */
+  PLY(PLY&& a_other) noexcept = default;
+
+  /**
+   * @brief Copy assignment operator.
+   * @param[in] a_other Other PLY object.
+   * @return Reference to (*this).
+   */
+  PLY&
+  operator=(const PLY& a_other) = default;
+
+  /**
+   * @brief Move assignment operator.
+   * @param[in, out] a_other Other PLY object.
+   * @return Reference to (*this).
+   */
+  PLY&
+  operator=(PLY&& a_other) noexcept = default;
+
+  /**
+   * @brief Destructor (does nothing).
+   */
+  ~PLY() noexcept = default;
 
   /**
    * @brief Get the identifier for this object.
@@ -90,7 +124,7 @@ public:
   /**
    * @brief Get the vertex properties
    * @param[in] a_property Which property to fetch
-   * @note Function will fail if the property does not exist
+   * @note Function will throw std::out_of_range if the property does not exist
    * @return m_vertexProperties at provided property
    */
   [[nodiscard]] std::vector<T>&
@@ -99,7 +133,7 @@ public:
   /**
    * @brief Get the vertex properties
    * @param[in] a_property Which property to fetch
-   * @note Function will fail if the property does not exist
+   * @note Function will throw std::out_of_range if the property does not exist
    * @return m_vertexProperties at provided property
    */
   [[nodiscard]] const std::vector<T>&
@@ -108,7 +142,7 @@ public:
   /**
    * @brief Get the face properties
    * @param[in] a_property Which property to fetch
-   * @note Function will fail if the property does not exist
+   * @note Function will throw std::out_of_range if the property does not exist
    * @return m_faceProperties at provided property
    */
   [[nodiscard]] std::vector<T>&
@@ -117,7 +151,7 @@ public:
   /**
    * @brief Get the face properties (const overload).
    * @param[in] a_property Which property to fetch.
-   * @note Function will throw if the property does not exist.
+   * @note Function will throw std::out_of_range if the property does not exist.
    * @return Const reference to the face property array at the provided name.
    */
   [[nodiscard]] const std::vector<T>&
@@ -129,7 +163,7 @@ public:
    * @param[in] a_data Property data
    */
   void
-  setVertexProperties(const std::string a_property, const std::vector<T>& a_data);
+  setVertexProperties(const std::string a_property, std::vector<T> a_data);
 
   /**
    * @brief Set face properties
@@ -137,7 +171,7 @@ public:
    * @param[in] a_data Property data
    */
   void
-  setFaceProperties(const std::string a_property, const std::vector<T>& a_data);
+  setFaceProperties(const std::string a_property, std::vector<T> a_data);
 
   /**
    * @brief Turn the PLY mesh into a DCEL mesh.
@@ -150,7 +184,7 @@ public:
   [[nodiscard]] std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
   convertToDCEL() const noexcept;
 
-  // protected:
+protected:
   /**
    * @brief PLY object ID.
    */

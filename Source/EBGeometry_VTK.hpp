@@ -2,6 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file   EBGeometry_VTK.hpp
+ * @brief  Declaration of a class for storing raw VTK legacy polydata file contents.
+ * @author Robert Marskar
+ */
+
 #ifndef EBGEOMETRY_VTK_HPP
 #define EBGEOMETRY_VTK_HPP
 
@@ -32,7 +38,7 @@ public:
   /**
    * @brief Default constructor. Initializes empty member data holder
    */
-  VTK() noexcept;
+  VTK() noexcept = default;
 
   /**
    * @brief Constructor. Initializes empty vertices and facets but sets the VTK ID (usually the file name
@@ -41,9 +47,37 @@ public:
   VTK(const std::string& a_id) noexcept;
 
   /**
+   * @brief Copy constructor.
+   * @param[in] a_other Other VTK object.
+   */
+  VTK(const VTK& a_other) = default;
+
+  /**
+   * @brief Move constructor.
+   * @param[in, out] a_other Other VTK object.
+   */
+  VTK(VTK&& a_other) noexcept = default;
+
+  /**
+   * @brief Copy assignment operator.
+   * @param[in] a_other Other VTK object.
+   * @return Reference to (*this).
+   */
+  VTK&
+  operator=(const VTK& a_other) = default;
+
+  /**
+   * @brief Move assignment operator.
+   * @param[in, out] a_other Other VTK object.
+   * @return Reference to (*this).
+   */
+  VTK&
+  operator=(VTK&& a_other) noexcept = default;
+
+  /**
    * @brief Destructor. Clears all data.
    */
-  virtual ~VTK() noexcept;
+  ~VTK() noexcept = default;
 
   /**
    * @brief Get the identifier for this object.
@@ -90,7 +124,7 @@ public:
   /**
    * @brief Get the point data scalars
    * @param[in] a_name Scalar array name
-   * @note Function will fail if the array does not exist
+   * @note Function will throw std::out_of_range if the array does not exist
    * @return m_pointDataScalars at provided name
    */
   [[nodiscard]] std::vector<T>&
@@ -99,7 +133,7 @@ public:
   /**
    * @brief Get the point data scalars
    * @param[in] a_name Scalar array name
-   * @note Function will fail if the array does not exist
+   * @note Function will throw std::out_of_range if the array does not exist
    * @return m_pointDataScalars at provided name
    */
   [[nodiscard]] const std::vector<T>&
@@ -108,7 +142,7 @@ public:
   /**
    * @brief Get the cell data scalars
    * @param[in] a_name Scalar array name
-   * @note Function will fail if the array does not exist
+   * @note Function will throw std::out_of_range if the array does not exist
    * @return m_cellDataScalars at provided name
    */
   [[nodiscard]] std::vector<T>&
@@ -117,7 +151,7 @@ public:
   /**
    * @brief Get the cell data scalars
    * @param[in] a_name Scalar array name
-   * @note Function will fail if the array does not exist
+   * @note Function will throw std::out_of_range if the array does not exist
    * @return m_cellDataScalars at provided name
    */
   [[nodiscard]] const std::vector<T>&
@@ -129,7 +163,7 @@ public:
    * @param[in] a_data Array data
    */
   void
-  setPointDataScalars(const std::string a_name, const std::vector<T>& a_data);
+  setPointDataScalars(const std::string a_name, std::vector<T> a_data);
 
   /**
    * @brief Set cell data scalars
@@ -137,7 +171,7 @@ public:
    * @param[in] a_data Array data
    */
   void
-  setCellDataScalars(const std::string a_name, const std::vector<T>& a_data);
+  setCellDataScalars(const std::string a_name, std::vector<T> a_data);
 
   /**
    * @brief Turn the VTK mesh into a DCEL mesh.
@@ -150,7 +184,7 @@ public:
   [[nodiscard]] std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
   convertToDCEL() const noexcept;
 
-  // protected:
+protected:
   /**
    * @brief VTK object ID.
    */

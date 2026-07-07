@@ -2,6 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file   EBGeometry_STL.hpp
+ * @brief  Declaration of a class for storing raw STL (stereolithography) file contents.
+ * @author Robert Marskar
+ */
+
 #ifndef EBGEOMETRY_STL_HPP
 #define EBGEOMETRY_STL_HPP
 
@@ -32,7 +38,7 @@ public:
   /**
    * @brief Default constructor. Initializes empty member data holder
    */
-  STL() noexcept;
+  STL() noexcept = default;
 
   /**
    * @brief Constructor. Initializes empty vertices and facets but sets the STL ID (usually the file name
@@ -41,9 +47,37 @@ public:
   STL(const std::string& a_id) noexcept;
 
   /**
-   * @brief Destructor. Clears all data.
+   * @brief Copy constructor.
+   * @param[in] a_other Other STL object.
    */
-  virtual ~STL() noexcept;
+  STL(const STL& a_other) = default;
+
+  /**
+   * @brief Move constructor.
+   * @param[in, out] a_other Other STL object.
+   */
+  STL(STL&& a_other) noexcept = default;
+
+  /**
+   * @brief Copy assignment operator.
+   * @param[in] a_other Other STL object.
+   * @return Reference to (*this).
+   */
+  STL&
+  operator=(const STL& a_other) = default;
+
+  /**
+   * @brief Move assignment operator.
+   * @param[in, out] a_other Other STL object.
+   * @return Reference to (*this).
+   */
+  STL&
+  operator=(STL&& a_other) noexcept = default;
+
+  /**
+   * @brief Destructor (does nothing).
+   */
+  ~STL() noexcept = default;
 
   /**
    * @brief Get the identifier for this object.

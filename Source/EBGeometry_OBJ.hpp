@@ -2,6 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file   EBGeometry_OBJ.hpp
+ * @brief  Declaration of a class for storing raw Wavefront OBJ file contents.
+ * @author Robert Marskar
+ */
+
 #ifndef EBGEOMETRY_OBJ_HPP
 #define EBGEOMETRY_OBJ_HPP
 
@@ -32,7 +38,7 @@ public:
   /**
    * @brief Default constructor. Initializes empty member data holder
    */
-  OBJ() noexcept;
+  OBJ() noexcept = default;
 
   /**
    * @brief Constructor. Initializes empty vertices and facets but sets the OBJ ID (usually the file name
@@ -41,9 +47,37 @@ public:
   OBJ(const std::string& a_id) noexcept;
 
   /**
-   * @brief Destructor. Clears all data.
+   * @brief Copy constructor.
+   * @param[in] a_other Other OBJ object.
    */
-  virtual ~OBJ() noexcept;
+  OBJ(const OBJ& a_other) = default;
+
+  /**
+   * @brief Move constructor.
+   * @param[in, out] a_other Other OBJ object.
+   */
+  OBJ(OBJ&& a_other) noexcept = default;
+
+  /**
+   * @brief Copy assignment operator.
+   * @param[in] a_other Other OBJ object.
+   * @return Reference to (*this).
+   */
+  OBJ&
+  operator=(const OBJ& a_other) = default;
+
+  /**
+   * @brief Move assignment operator.
+   * @param[in, out] a_other Other OBJ object.
+   * @return Reference to (*this).
+   */
+  OBJ&
+  operator=(OBJ&& a_other) noexcept = default;
+
+  /**
+   * @brief Destructor (does nothing).
+   */
+  ~OBJ() noexcept = default;
 
   /**
    * @brief Get the identifier for this object.

@@ -2,6 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file   EBGeometry_OBJImplem.hpp
+ * @brief  Implementation of EBGeometry_OBJ.hpp
+ * @author Robert Marskar
+ */
+
 #ifndef EBGEOMETRY_OBJIMPLEM_HPP
 #define EBGEOMETRY_OBJIMPLEM_HPP
 
@@ -20,24 +26,9 @@
 namespace EBGeometry {
 
 template <typename T>
-OBJ<T>::OBJ() noexcept
-{
-  m_vertexCoordinates.resize(0);
-  m_facets.resize(0);
-  m_id = std::string();
-}
-
-template <typename T>
 OBJ<T>::OBJ(const std::string& a_id) noexcept : OBJ()
 {
   m_id = a_id;
-}
-
-template <typename T>
-OBJ<T>::~OBJ() noexcept
-{
-  m_vertexCoordinates.resize(0);
-  m_facets.resize(0);
 }
 
 template <typename T>

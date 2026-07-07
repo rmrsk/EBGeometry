@@ -2,6 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file   EBGeometry_STLImplem.hpp
+ * @brief  Implementation of EBGeometry_STL.hpp
+ * @author Robert Marskar
+ */
+
 #ifndef EBGEOMETRY_STLIMPLEM_HPP
 #define EBGEOMETRY_STLIMPLEM_HPP
 
@@ -20,24 +26,9 @@
 namespace EBGeometry {
 
 template <typename T>
-STL<T>::STL() noexcept
-{
-  m_vertexCoordinates.resize(0);
-  m_facets.resize(0);
-  m_id = std::string();
-}
-
-template <typename T>
 STL<T>::STL(const std::string& a_id) noexcept : STL()
 {
   m_id = a_id;
-}
-
-template <typename T>
-STL<T>::~STL() noexcept
-{
-  m_vertexCoordinates.resize(0);
-  m_facets.resize(0);
 }
 
 template <typename T>

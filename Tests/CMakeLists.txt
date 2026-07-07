@@ -41,6 +41,10 @@ ebgeometry_add_test(TestAnalyticSDF)
 ebgeometry_add_test(TestDCEL)
 ebgeometry_add_test(TestSFC)
 ebgeometry_add_test(TestTriangle)
+ebgeometry_add_test(TestSTL)
+ebgeometry_add_test(TestPLY)
+ebgeometry_add_test(TestOBJ)
+ebgeometry_add_test(TestVTK)
 
 # Compile-only target that explicitly instantiates every public class template so
 # clang-tidy (and the strong warning set) analyse them all regardless of what the
