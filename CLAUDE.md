@@ -129,6 +129,51 @@ empty," check for a stray `sphinx-autobuild` (or other long-running `sphinx-buil
 (`pgrep -fa sphinx`) — a forgotten one rebuilding into the same output directory in the background
 has caused exactly this before.**
 
+## When you change code, check whether the docs still agree with it
+
+Sphinx docs and Doxygen comments describe the code but aren't checked by the compiler, so they
+silently drift out of sync with it. This has already happened once in this repository: adding a
+field to `MeshSDF`'s constructor shifted line numbers in
+`Source/EBGeometry_MeshDistanceFunctionsImplem.hpp`, which silently made
+`Docs/Sphinx/source/ImplemBVH.rst`'s `literalinclude` `:lines:` range cite the wrong span --
+nothing failed to compile, no test failed, and the only reason it was caught was a manual full
+Sphinx rebuild and a careful read of the rendered excerpt.
+
+Before treating a code change as finished, look at what you actually staged/changed
+(`git diff --staged --name-only`, or `git diff HEAD --name-only` if not yet staged) and, for each
+changed `Source/*.hpp` file:
+
+1. **Find `literalinclude`s pointing at it**: `grep -rn "literalinclude.*<filename>" Docs/Sphinx/source/`.
+   For each match, check whether its `:lines:`/`:start-after:`/`:end-before:` range still bounds
+   the *intended* snippet after your edit -- adding, removing, or reordering even one line upstream
+   of a fixed `:lines: N-M` range silently shifts what gets excerpted. Prefer `:start-after:`/
+   `:end-before:` (anchored to text, not line numbers) over `:lines:` when editing or adding a new
+   literalinclude, since it survives future line-number drift; leave existing `:lines:` ranges as
+   `:lines:` unless you're touching them anyway.
+2. **Rebuild the Sphinx HTML docs** (see below) and check both for build warnings (a
+   "non-whitespace stripped by dedent"-style warning means the range no longer aligns with a code
+   block) and, if the affected page renders a code snippet a reader is meant to learn from, that the
+   *rendered* excerpt is still the right one -- a shifted range can still produce syntactically
+   plausible C++ that is simply the wrong function.
+3. **Grep for renamed/removed identifiers** in prose, not just code blocks: if you renamed a class,
+   method, or parameter, `grep -rn "<oldName>" Docs/Sphinx/source/ Docs/mainpage.md README.md
+   CLAUDE.md` to catch references outside literalincludes (which update automatically) that don't.
+4. **If you added a new public class/function**, add it to `Tests/InstantiateAll.cpp` (for
+   clang-tidy/compile coverage under both precisions, per the existing convention) and check whether
+   it deserves a mention on the relevant `Docs/Sphinx/source/Implem*.rst` conceptual page and/or a
+   row in a `Tests/TestingLocally.rst`-style coverage table, matching how existing sibling
+   classes are documented.
+5. **If you changed a function's signature** (added/removed/renamed a parameter, changed a return
+   type), update its Doxygen `@param`/`@tparam`/`@return` comment in the same header -- `doxygen
+   doxygen.conf` (`WARN_AS_ERROR = FAIL_ON_WARNINGS`) will catch a genuinely missing `@param` for a
+   new parameter, but won't catch a stale description that no longer matches what the parameter
+   does.
+
+The `check-docs` pre-commit hook (`Scripts/CheckDocs.py`, manual stage) automates a coarse version
+of step 1: it diffs against `main` and prints every `literalinclude` whose referenced file changed.
+Treat it as a starting point, not a replacement for the above -- it only flags "this file changed,"
+never "this range is now wrong," which is precisely the failure mode that bit this repo before.
+
 ## Reproducing CI locally / before pushing
 
 ```bash
