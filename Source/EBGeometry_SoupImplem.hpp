@@ -18,6 +18,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -36,6 +37,8 @@ inline bool
 Soup::containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertices,
                                  const std::vector<std::vector<size_t>>&  a_facets) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Soup::containsDegeneratePolygons requires a floating-point T");
+
   using Vec3 = EBGeometry::Vec3T<T>;
 
   for (const auto& facet : a_facets) {
@@ -46,6 +49,8 @@ Soup::containsDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vert
       std::vector<Vec3> vertices;
       vertices.reserve(facet.size());
       for (const auto& ind : facet) {
+        EBGEOMETRY_EXPECT(ind < a_vertices.size());
+
         vertices.emplace_back(a_vertices[ind]);
       }
 
@@ -72,10 +77,16 @@ template <typename T>
 inline void
 Soup::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<size_t>>& a_facets) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Soup::compress requires a floating-point T");
+
   using Vec3 = EBGeometry::Vec3T<T>;
 
-  // TLDR: Because it's an STL file, a_vertices contains many duplicate vertices. We need to remove
-  //       them and also update a_facets such that each facet references the compressed vertex vector.
+  // TLDR: Polygon soups read from file (STL, OBJ, PLY, VTK, ...) typically contain many duplicate
+  //       vertices (each facet lists its own copies of shared vertex positions). We need to remove
+  //       those duplicates and also update a_facets such that each facet references the compressed
+  //       vertex vector.
+
+  const size_t originalVertexCount = a_vertices.size();
 
   // Create a "map" of the vertices, storing their original indices. Then sort
   // the map lexicographically.
@@ -84,7 +95,7 @@ Soup::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::v
     vertexMap.emplace_back(a_vertices[i], i);
   }
 
-  std::sort(vertexMap.begin(), vertexMap.end(), [](const std::pair<Vec3, size_t> A, const std::pair<Vec3, size_t> B) {
+  std::sort(vertexMap.begin(), vertexMap.end(), [](const std::pair<Vec3, size_t>& A, const std::pair<Vec3, size_t>& B) {
     const Vec3& a = A.first;
     const Vec3& b = B.first;
 
@@ -92,13 +103,12 @@ Soup::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::v
   });
 
   // Compress the vertex vector. While doing so we should build up the old-to-new index map
-  a_vertices.resize(0);
+  a_vertices.clear();
 
   if (vertexMap.empty()) {
     a_facets.clear();
     return;
   }
-  EBGEOMETRY_EXPECT(!vertexMap.empty());
 
   std::map<size_t, size_t> indexMap;
 
@@ -118,10 +128,18 @@ Soup::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::v
     indexMap.emplace(oldIndex, a_vertices.size() - 1);
   }
 
-  // Fix facet indicing.
+  // Fix facet indicing. Use find() rather than at() so that a malformed facet (referencing a
+  // vertex index that was never in the original a_vertices) triggers a diagnosable
+  // EBGEOMETRY_EXPECT rather than an uncontrolled std::terminate() from throwing inside this
+  // noexcept function.
   for (auto& facet : a_facets) {
-    for (unsigned long& ivert : facet) {
-      ivert = indexMap.at(ivert);
+    for (size_t& ivert : facet) {
+      EBGEOMETRY_EXPECT(ivert < originalVertexCount);
+
+      const auto it = indexMap.find(ivert);
+      EBGEOMETRY_EXPECT(it != indexMap.end());
+
+      ivert = it->second;
     }
   }
 }
@@ -133,6 +151,7 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
                  const std::vector<std::vector<size_t>>&  a_facets,
                  const std::string&                       a_id) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Soup::soupToDCEL requires a floating-point T");
 
   using Vec3   = EBGeometry::Vec3T<T>;
   using Vertex = EBGeometry::DCEL::VertexT<T, Meta>;
@@ -151,13 +170,21 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
   // Now build the faces.
   for (const auto& curFacet : a_facets) {
     if (curFacet.size() < 3) {
-      std::cerr << "Parser::soupToDCEL -- not enough vertices in face\n";
+      std::cerr << "Parser::soupToDCEL -- not enough vertices in face, skipping it\n";
+
+      // The cerr above only warns; falling through here would reach halfEdges.front() on a
+      // possibly-empty vector below, which is undefined behavior for a 0-vertex facet.
+      EBGEOMETRY_EXPECT(curFacet.size() >= 3);
+
+      continue;
     }
 
     // Figure out which vertices are involved here.
     std::vector<std::shared_ptr<Vertex>> faceVertices;
     faceVertices.reserve(curFacet.size());
-    for (const unsigned long i : curFacet) {
+    for (const size_t i : curFacet) {
+      EBGEOMETRY_EXPECT(i < vertices.size());
+
       faceVertices.emplace_back(vertices[i]);
     }
 
@@ -202,16 +229,27 @@ template <typename T, typename Meta>
 inline void
 Soup::reconcilePairEdgesDCEL(std::vector<std::shared_ptr<EBGeometry::DCEL::EdgeT<T, Meta>>>& a_edges) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "Soup::reconcilePairEdgesDCEL requires a floating-point T");
+
   for (auto& curEdge : a_edges) {
+    EBGEOMETRY_EXPECT(curEdge != nullptr);
+
     const auto& nextEdge = curEdge->getNextEdge();
+    EBGEOMETRY_EXPECT(nextEdge != nullptr);
 
     const auto& vertexStart = curEdge->getVertex();
     const auto& vertexEnd   = nextEdge->getVertex();
+    EBGEOMETRY_EXPECT(vertexStart != nullptr);
 
     for (const auto& p : vertexStart->getFaces()) {
+      EBGEOMETRY_EXPECT(p != nullptr);
+
       for (EBGeometry::DCEL::EdgeIteratorT<T, Meta> edgeIt(*p); edgeIt.ok(); ++edgeIt) {
-        const auto& polyCurEdge  = edgeIt();
+        const auto& polyCurEdge = edgeIt();
+        EBGEOMETRY_EXPECT(polyCurEdge != nullptr);
+
         const auto& polyNextEdge = polyCurEdge->getNextEdge();
+        EBGEOMETRY_EXPECT(polyNextEdge != nullptr);
 
         const auto& polyVertexStart = polyCurEdge->getVertex();
         const auto& polyVertexEnd   = polyNextEdge->getVertex();

@@ -741,6 +741,88 @@ TEST_CASE("MeshT: deepCopy preserves a prior flip() instead of silently re-deriv
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Soup tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST_CASE("Soup::containsDegeneratePolygons returns false for a valid triangle soup", "[Soup]")
+{
+  const std::vector<Vec3T<double>>       verts  = {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}};
+  const std::vector<std::vector<size_t>> facets = {{0, 1, 2}};
+
+  REQUIRE_FALSE(Soup::containsDegeneratePolygons(verts, facets));
+}
+
+TEST_CASE("Soup::containsDegeneratePolygons detects a facet with too few vertices", "[Soup]")
+{
+  const std::vector<Vec3T<double>>       verts  = {{0, 0, 0}, {1, 0, 0}};
+  const std::vector<std::vector<size_t>> facets = {{0, 1}};
+
+  REQUIRE(Soup::containsDegeneratePolygons(verts, facets));
+}
+
+TEST_CASE("Soup::containsDegeneratePolygons detects a facet with a repeated vertex", "[Soup]")
+{
+  // Facet lists the same vertex index twice -- degenerate even though it has 3 entries.
+  const std::vector<Vec3T<double>>       verts  = {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}};
+  const std::vector<std::vector<size_t>> facets = {{0, 1, 1}};
+
+  REQUIRE(Soup::containsDegeneratePolygons(verts, facets));
+}
+
+TEST_CASE("Soup::compress removes duplicate vertices and reindexes facets consistently", "[Soup]")
+{
+  // Two triangles sharing an edge, each listing its own copies of the shared vertices A=(0,0,0)
+  // and B=(1,0,0). After compression, both facets must reference the SAME compressed indices for
+  // the shared vertices.
+  std::vector<Vec3T<double>> verts = {
+    {0, 0, 0}, // 0 = A (triangle 1)
+    {1, 0, 0}, // 1 = B (triangle 1)
+    {0, 1, 0}, // 2 = C (triangle 1)
+    {1, 0, 0}, // 3 = B (triangle 2, duplicate of 1)
+    {0, 0, 0}, // 4 = A (triangle 2, duplicate of 0)
+    {0, -1, 0} // 5 = D (triangle 2)
+  };
+  std::vector<std::vector<size_t>> facets = {{0, 1, 2}, {3, 4, 5}};
+
+  Soup::compress(verts, facets);
+
+  REQUIRE(verts.size() == 4); // A, B, C, D -- each unique position appears once.
+  REQUIRE(facets.size() == 2);
+  REQUIRE(facets[0][0] == facets[1][1]); // Both facets' A-reference now points at the same index.
+  REQUIRE(facets[0][1] == facets[1][0]); // Both facets' B-reference now points at the same index.
+}
+
+TEST_CASE("Soup::compress on empty input clears the facet list", "[Soup]")
+{
+  std::vector<Vec3T<double>>       verts  = {};
+  std::vector<std::vector<size_t>> facets = {{0, 1, 2}};
+
+  Soup::compress(verts, facets);
+
+  REQUIRE(verts.empty());
+  REQUIRE(facets.empty());
+}
+
+TEST_CASE("Soup::soupToDCEL builds correct vertex, edge, and face counts", "[Soup]")
+{
+  auto mesh = buildTetrahedron();
+
+  REQUIRE(mesh->getVertices().size() == 4);
+  REQUIRE(mesh->getFaces().size() == 4);
+  REQUIRE(mesh->getEdges().size() == 12); // 4 triangular faces * 3 half-edges each.
+}
+
+TEST_CASE("Soup::soupToDCEL reconciles every half-edge's pair edge on a closed mesh", "[Soup]")
+{
+  auto mesh = buildTetrahedron();
+
+  for (const auto& e : mesh->getEdges()) {
+    REQUIRE(e->getPairEdge() != nullptr);
+    REQUIRE(e->getPairEdge()->getPairEdge() == e); // Pairing must be symmetric.
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Structural tests
 // ─────────────────────────────────────────────────────────────────────────────
 
