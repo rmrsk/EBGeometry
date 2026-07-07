@@ -113,7 +113,7 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: |
           source /opt/intel/oneapi/setvars.sh
-          icpx -std=c++17 -O0 -I../.. \
+          icpx -std=c++17 -O0 -fp-model=precise -I../.. \
           -Wall -Warray-bounds -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
           -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
           -Wunused-variable -Wwrite-strings -Werror \
