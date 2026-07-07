@@ -97,7 +97,7 @@ main()
   Vec3 hi = -Vec3::infinity();
   for (const auto& b : buildings) {
     lo = min(lo, b->getLowCorner());
-    hi = max(hi, b->getLowCorner());
+    hi = max(hi, b->getHighCorner());
   }
 
   std::vector<Vec3> randomPositions;
