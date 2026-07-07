@@ -123,7 +123,7 @@ template <class T, class Meta>
 const std::array<Vec3T<T>, 3>&
 Triangle<T, Meta>::getVertexNormals() const noexcept
 {
-  return (this->m_vertexNormals);
+  return this->m_vertexNormals;
 }
 
 template <class T, class Meta>

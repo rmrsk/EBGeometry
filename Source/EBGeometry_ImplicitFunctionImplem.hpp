@@ -114,9 +114,7 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
   };
 
   // Data builder for leaf nodes. Our nodes don't contain data so return a null pointer instead.
-  auto dataBuild = [](const OctantIndex& a_index, const std::shared_ptr<Data>& a_parentData) -> std::shared_ptr<Data> {
-    return nullptr;
-  };
+  auto dataBuild = [](const OctantIndex&, const std::shared_ptr<Data>&) -> std::shared_ptr<Data> { return nullptr; };
 
   // Initialize the root node and build the octree.
   auto root = std::make_shared<Node>();

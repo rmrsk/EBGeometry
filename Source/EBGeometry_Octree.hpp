@@ -18,6 +18,7 @@
 #include <memory>
 
 // Our includes
+#include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -26,6 +27,7 @@ namespace EBGeometry {
  * @brief Namespace for octree functionality
  */
 namespace Octree {
+
 /**
  * @brief Lexicographical x-y-z octant indexing.
  */
@@ -121,14 +123,46 @@ public:
   using Sorter = std::function<void(std::array<std::shared_ptr<const Node<Meta, Data>>, 8>& a_children)>;
 
   /**
-   * @brief Default constructor
+   * @brief Default constructor. All children default-null (leaf node); m_meta and m_data are
+   * default-constructed.
    */
-  Node();
+  Node() = default;
+
+  /**
+   * @brief Copy constructor.
+   * @details Shallow copy: the copy shares ownership of a_other's children and data (standard
+   * std::shared_ptr semantics) rather than deep-cloning the subtree.
+   * @param[in] a_other Other node.
+   */
+  Node(const Node& a_other) = default;
+
+  /**
+   * @brief Move constructor.
+   * @param[in, out] a_other Other node.
+   */
+  Node(Node&& a_other) = default;
 
   /**
    * @brief Destructor
    */
-  virtual ~Node();
+  ~Node() = default;
+
+  /**
+   * @brief Copy assignment.
+   * @details See the copy constructor for the shallow-copy semantics.
+   * @param[in] a_other Other node.
+   * @return Reference to (*this).
+   */
+  Node&
+  operator=(const Node& a_other) = default;
+
+  /**
+   * @brief Move assignment.
+   * @param[in, out] a_other Other node.
+   * @return Reference to (*this).
+   */
+  Node&
+  operator=(Node&& a_other) = default;
 
   /**
    * @brief Get children.
@@ -181,6 +215,8 @@ public:
 
   /**
    * @brief Build the octree in depth-first order.
+   * @details Must be called on a leaf node; calling it on an interior node is a no-op (with a
+   * diagnostic printed to stderr). All three callables must be non-empty (callable).
    * @param[in] a_splitFunction Predicate returning @c true if a leaf node should be split further.
    * @param[in] a_metaConstructor Constructor for node meta-data.
    * @param[in] a_dataConstructor Constructor for node data.
@@ -192,6 +228,10 @@ public:
 
   /**
    * @brief Build the octree in breadth-first order.
+   * @details Must be called on a leaf node; calling it on an interior node is a no-op (with a
+   * diagnostic printed to stderr). All three callables must be non-empty (callable). Since this
+   * uses shared_from_this() internally, the node must already be owned by a std::shared_ptr
+   * (see the class-level @note).
    * @param[in] a_splitFunction Predicate returning @c true if a leaf node should be split further.
    * @param[in] a_metaConstructor Constructor for node meta-data.
    * @param[in] a_dataConstructor Constructor for node data.
@@ -203,6 +243,9 @@ public:
 
   /**
    * @brief Traverse the tree
+   * @details Since this uses shared_from_this() internally, the node must already be owned by a
+   * std::shared_ptr (see the class-level @note). a_updater and a_visiter must be non-empty
+   * (callable); a_sorter, if explicitly supplied, must be non-empty too.
    * @param[in] a_updater Updater when visiting leaf nodes.
    * @param[in] a_visiter Visiter for deciding to visit a node.
    * @param[in] a_sorter Sorter method for deciding which subtree to investigate first.
@@ -211,7 +254,7 @@ public:
   traverse(
     const Updater& a_updater,
     const Visiter& a_visiter,
-    const Sorter&  a_sorter = [](std::array<std::shared_ptr<const Node<Meta, Data>>, 8>& a_children) -> void {
+    const Sorter&  a_sorter = [](std::array<std::shared_ptr<const Node<Meta, Data>>, 8>&) -> void {
       return;
     }) const noexcept;
 

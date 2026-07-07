@@ -20,22 +20,12 @@
 #include <stack>
 
 // Our includes
+#include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Octree.hpp"
 
 namespace EBGeometry {
 
 namespace Octree {
-
-template <typename Meta, typename Data>
-Node<Meta, Data>::Node()
-{
-  for (auto& c : m_children) {
-    c = nullptr;
-  }
-}
-
-template <typename Meta, typename Data>
-Node<Meta, Data>::~Node() = default;
 
 template <typename Meta, typename Data>
 inline const std::array<std::shared_ptr<Node<Meta, Data>>, 8>&
@@ -83,7 +73,18 @@ template <typename Meta, typename Data>
 inline bool
 Node<Meta, Data>::isLeaf() const noexcept
 {
-  return m_children[0] == nullptr;
+  const bool leaf = (m_children[0] == nullptr);
+
+#if defined(EBGEOMETRY_ENABLE_ASSERTIONS)
+  // Defensive check for the all-or-nothing children invariant: this only inspects m_children[0],
+  // so a partially-populated array (e.g. from mutating getChildren() directly) would otherwise go
+  // undetected.
+  for (const auto& c : m_children) {
+    EBGEOMETRY_EXPECT((c == nullptr) == leaf);
+  }
+#endif
+
+  return leaf;
 }
 
 template <typename Meta, typename Data>
@@ -92,6 +93,11 @@ Node<Meta, Data>::buildDepthFirst(const SplitFunction&   a_splitFunction,
                                   const MetaConstructor& a_metaConstructor,
                                   const DataConstructor& a_dataConstructor) noexcept
 {
+  EBGEOMETRY_EXPECT(this->isLeaf());
+  EBGEOMETRY_EXPECT(a_splitFunction);
+  EBGEOMETRY_EXPECT(a_metaConstructor);
+  EBGEOMETRY_EXPECT(a_dataConstructor);
+
   if (this->isLeaf()) {
     if (a_splitFunction(*this)) {
 
@@ -104,6 +110,8 @@ Node<Meta, Data>::buildDepthFirst(const SplitFunction&   a_splitFunction,
 
       // Recurse.
       for (auto& c : m_children) {
+        EBGEOMETRY_EXPECT(c != nullptr);
+
         c->buildDepthFirst(a_splitFunction, a_metaConstructor, a_dataConstructor);
       }
     }
@@ -119,12 +127,20 @@ Node<Meta, Data>::buildBreadthFirst(const SplitFunction&   a_splitFunction,
                                     const MetaConstructor& a_metaConstructor,
                                     const DataConstructor& a_dataConstructor) noexcept
 {
+  EBGEOMETRY_EXPECT(this->isLeaf());
+  EBGEOMETRY_EXPECT(a_splitFunction);
+  EBGEOMETRY_EXPECT(a_metaConstructor);
+  EBGEOMETRY_EXPECT(a_dataConstructor);
+  EBGEOMETRY_EXPECT(!this->weak_from_this().expired());
+
   if (this->isLeaf()) {
     std::queue<std::shared_ptr<Node<Meta, Data>>> q;
 
     q.emplace(this->shared_from_this());
 
     while (!(q.empty())) {
+      EBGEOMETRY_EXPECT(q.front() != nullptr);
+
       auto& curNode = *q.front();
 
       q.pop();
@@ -153,6 +169,10 @@ template <typename Meta, typename Data>
 inline void
 Node<Meta, Data>::traverse(const Updater& a_updater, const Visiter& a_visiter, const Sorter& a_sorter) const noexcept
 {
+  EBGEOMETRY_EXPECT(a_updater);
+  EBGEOMETRY_EXPECT(a_visiter);
+  EBGEOMETRY_EXPECT(a_sorter);
+  EBGEOMETRY_EXPECT(!this->weak_from_this().expired());
 
   std::array<std::shared_ptr<const Node<Meta, Data>>, 8> children;
   std::stack<std::shared_ptr<const Node<Meta, Data>>>    q;
@@ -160,6 +180,7 @@ Node<Meta, Data>::traverse(const Updater& a_updater, const Visiter& a_visiter, c
   q.emplace(this->shared_from_this());
 
   while (!(q.empty())) {
+    EBGEOMETRY_EXPECT(q.top() != nullptr);
 
     const auto& curNode = *q.top();
 
@@ -172,6 +193,8 @@ Node<Meta, Data>::traverse(const Updater& a_updater, const Visiter& a_visiter, c
       else {
         for (size_t k = 0; k < 8; k++) {
           children[k] = curNode.getChildren()[k];
+
+          EBGEOMETRY_EXPECT(children[k] != nullptr);
         }
 
         a_sorter(children);
