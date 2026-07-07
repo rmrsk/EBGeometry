@@ -29,8 +29,45 @@ jobs:
           clang-format-version: '21'
           check-path: ${{ matrix.directory }}
 
+  Codespell:
+    name: Codespell
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run codespell (pre-commit hook)
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: codespell --all-files
+
+  Reuse:
+    name: REUSE license compliance
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run reuse lint (pre-commit hook)
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: reuse --all-files
+
+  Doxygen-check:
+    name: Doxygen (warnings as errors)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install doxygen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+      - name: Run doxygen-check (pre-commit hook)
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: doxygen-check --all-files
+
   Static-analysis:
-    needs: Formatting
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Static analysis (clang-tidy)
     runs-on: ubuntu-latest
     # Advisory for now: the curated clang-tidy set still has a review backlog
@@ -54,7 +91,7 @@ jobs:
         run: run-clang-tidy-18 -p build -quiet '(Tests/|Examples/EBGeometry_).*\.cpp'
 
   Linux-GNU:
-    needs: Formatting
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Linux-GNU
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -89,7 +126,7 @@ jobs:
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi
 
   Linux-Intel:
-    needs: Formatting
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Linux-Intel
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -126,7 +163,7 @@ jobs:
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi
 
   Build-documentation:
-    needs: Formatting
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -175,7 +212,7 @@ jobs:
           rm -rf Sphinx/build
 
   Unit-Tests:
-    needs: Formatting
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Unit tests (${{ matrix.compiler }}, SIMD=${{ matrix.simd }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -212,7 +249,7 @@ jobs:
         run: ctest --preset debug
 
   Sanitizers:
-    needs: Formatting
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Sanitizers
     runs-on: ubuntu-latest
     strategy:
@@ -235,7 +272,7 @@ jobs:
           ASAN_OPTIONS: detect_leaks=1
 
   CI-passed:
-    needs: [Linux-GNU, Linux-Intel, Build-documentation, Unit-Tests, Sanitizers]
+    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Build-documentation, Unit-Tests, Sanitizers]
     runs-on: ubuntu-latest
     steps:
       - name: Do nothing
