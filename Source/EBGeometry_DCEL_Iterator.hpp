@@ -24,6 +24,16 @@ namespace DCEL {
 
 /**
  * @brief Class which makes it easier to iterate through DCEL edges
+ * @details Iterates the half-edge loop bounding a polygon face (or starting from an arbitrary
+ * half-edge), following EdgeT::getNextEdge() until either the loop returns to its starting edge
+ * (a well-formed, closed face) or a null next-edge is reached (an incomplete/open half-edge chain).
+ * Typical usage:
+ * @code{.cpp}
+ * for (EdgeIterator it(someFace); it.ok(); ++it) {
+ *   const EdgePtr& edge = it();
+ *   // ... use edge ...
+ * }
+ * @endcode
  * @tparam T    Floating-point precision type.
  * @tparam Meta User-defined metadata type.
  */
@@ -87,9 +97,46 @@ public:
   EdgeIteratorT(const Face& a_face) noexcept;
 
   /**
+   * @brief Constructor, taking an arbitrary starting half-edge directly (rather than a face's own
+   * half-edge). Useful for iterating a half-edge loop when only an edge -- not its face -- is
+   * available.
+   * @param[in] a_startEdge Starting half-edge. May be nullptr (ok() will then immediately return
+   * false).
+   */
+  EdgeIteratorT(const EdgePtr& a_startEdge) noexcept;
+
+  /**
+   * @brief Copy constructor.
+   * @param[in] a_other Other iterator.
+   */
+  EdgeIteratorT(const EdgeIteratorT& a_other) noexcept = default;
+
+  /**
+   * @brief Move constructor.
+   * @param[in, out] a_other Other iterator.
+   */
+  EdgeIteratorT(EdgeIteratorT&& a_other) noexcept = default;
+
+  /**
    * @brief Destructor.
    */
-  virtual ~EdgeIteratorT() = default;
+  ~EdgeIteratorT() noexcept = default;
+
+  /**
+   * @brief Copy assignment operator.
+   * @param[in] a_other Other iterator.
+   * @return Reference to (*this).
+   */
+  EdgeIteratorT&
+  operator=(const EdgeIteratorT& a_other) noexcept = default;
+
+  /**
+   * @brief Move assignment operator.
+   * @param[in, out] a_other Other iterator.
+   * @return Reference to (*this).
+   */
+  EdgeIteratorT&
+  operator=(EdgeIteratorT&& a_other) noexcept = default;
 
   /**
    * @brief Operator returning a pointer to the current half-edge
@@ -129,17 +176,17 @@ protected:
   /**
    * @brief If true, a full loop has been made around the polygon face
    */
-  bool m_fullLoop;
+  bool m_fullLoop = false;
 
   /**
    * @brief Starting half-edge
    */
-  std::shared_ptr<Edge> m_startEdge;
+  std::shared_ptr<Edge> m_startEdge = nullptr;
 
   /**
    * @brief Current half-edge
    */
-  std::shared_ptr<Edge> m_curEdge;
+  std::shared_ptr<Edge> m_curEdge = nullptr;
 };
 } // namespace DCEL
 

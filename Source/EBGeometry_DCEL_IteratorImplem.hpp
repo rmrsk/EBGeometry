@@ -19,6 +19,7 @@
 #include "EBGeometry_DCEL_Face.hpp"
 #include "EBGeometry_DCEL_Iterator.hpp"
 #include "EBGeometry_DCEL_Vertex.hpp"
+#include "EBGeometry_Macros.hpp"
 
 namespace EBGeometry {
 
@@ -29,7 +30,6 @@ inline EdgeIteratorT<T, Meta>::EdgeIteratorT(Face& a_face) noexcept
 {
   m_startEdge = a_face.getHalfEdge();
   m_curEdge   = m_startEdge;
-  m_fullLoop  = false;
 }
 
 template <class T, class Meta>
@@ -37,21 +37,27 @@ inline EdgeIteratorT<T, Meta>::EdgeIteratorT(const Face& a_face) noexcept
 {
   m_startEdge = a_face.getHalfEdge();
   m_curEdge   = m_startEdge;
-  m_fullLoop  = false;
+}
+
+template <class T, class Meta>
+inline EdgeIteratorT<T, Meta>::EdgeIteratorT(const EdgePtr& a_startEdge) noexcept
+{
+  m_startEdge = a_startEdge;
+  m_curEdge   = m_startEdge;
 }
 
 template <class T, class Meta>
 inline std::shared_ptr<EdgeT<T, Meta>>&
 EdgeIteratorT<T, Meta>::operator()() noexcept
 {
-  return (m_curEdge);
+  return m_curEdge;
 }
 
 template <class T, class Meta>
 inline const std::shared_ptr<EdgeT<T, Meta>>&
 EdgeIteratorT<T, Meta>::operator()() const noexcept
 {
-  return (m_curEdge);
+  return m_curEdge;
 }
 
 template <class T, class Meta>
@@ -66,6 +72,8 @@ template <class T, class Meta>
 inline void
 EdgeIteratorT<T, Meta>::operator++() noexcept
 {
+  EBGEOMETRY_EXPECT(m_curEdge != nullptr);
+
   m_curEdge  = m_curEdge->getNextEdge();
   m_fullLoop = (m_curEdge == m_startEdge);
 }

@@ -467,6 +467,97 @@ TEST_CASE("EdgeT: move construction and move assignment transfer the entire stat
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// EdgeIteratorT tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+using TestEdgeIterator = EdgeIteratorT<double, DefaultMetaData>;
+
+TEST_CASE("EdgeIteratorT: iterating a face visits exactly its own half-edges and loops back", "[DCEL][Iterator]")
+{
+  auto mesh = buildTetrahedron();
+  auto face = mesh->getFaces()[0];
+
+  std::vector<std::shared_ptr<TestEdge>> visited;
+  for (TestEdgeIterator it(*face); it.ok(); ++it) {
+    REQUIRE(it()->getFace() == face);
+    visited.push_back(it());
+  }
+
+  REQUIRE(visited.size() == 3); // Every face in a tetrahedron is a triangle.
+  REQUIRE(visited[0] == face->getHalfEdge());
+  REQUIRE(visited[0]->getNextEdge() == visited[1]);
+  REQUIRE(visited[1]->getNextEdge() == visited[2]);
+  REQUIRE(visited[2]->getNextEdge() == visited[0]); // Loops back to the start.
+}
+
+TEST_CASE("EdgeIteratorT: constructing from an edge directly matches constructing from its face", "[DCEL][Iterator]")
+{
+  auto mesh = buildTetrahedron();
+  auto face = mesh->getFaces()[0];
+
+  std::vector<std::shared_ptr<TestEdge>> fromFace;
+  for (TestEdgeIterator it(*face); it.ok(); ++it) {
+    fromFace.push_back(it());
+  }
+
+  std::vector<std::shared_ptr<TestEdge>> fromEdge;
+  for (TestEdgeIterator it(face->getHalfEdge()); it.ok(); ++it) {
+    fromEdge.push_back(it());
+  }
+
+  REQUIRE(fromFace == fromEdge);
+}
+
+TEST_CASE("EdgeIteratorT: ok() is immediately false for a null starting edge", "[DCEL][Iterator]")
+{
+  TestEdgeIterator it(std::shared_ptr<TestEdge>(nullptr));
+  REQUIRE_FALSE(it.ok());
+}
+
+TEST_CASE("EdgeIteratorT: reset returns the iterator to its starting edge", "[DCEL][Iterator]")
+{
+  auto mesh = buildTetrahedron();
+  auto face = mesh->getFaces()[0];
+
+  TestEdgeIterator it(*face);
+  const auto       start = it();
+
+  ++it;
+  ++it;
+  REQUIRE(it() != start);
+
+  it.reset();
+  REQUIRE(it() == start);
+  REQUIRE(it.ok());
+}
+
+TEST_CASE("EdgeIteratorT: copy and move both preserve iteration state", "[DCEL][Iterator]")
+{
+  auto mesh = buildTetrahedron();
+  auto face = mesh->getFaces()[0];
+
+  TestEdgeIterator src(*face);
+  ++src;
+  const auto afterOneStep = src();
+
+  TestEdgeIterator copied(src);
+  REQUIRE(copied() == afterOneStep);
+  ++copied;
+  REQUIRE(copied() != src()); // Independent copies: advancing one must not advance the other.
+
+  TestEdgeIterator copyAssigned(*face);
+  copyAssigned = src;
+  REQUIRE(copyAssigned() == afterOneStep);
+
+  TestEdgeIterator moved(std::move(src));
+  REQUIRE(moved() == afterOneStep);
+
+  TestEdgeIterator moveAssigned(*face);
+  moveAssigned = std::move(copied);
+  REQUIRE(moveAssigned.ok());
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MeshT tests
 // ─────────────────────────────────────────────────────────────────────────────
 
