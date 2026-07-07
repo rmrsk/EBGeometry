@@ -81,6 +81,17 @@ The hooks configured in ``.pre-commit-config.yaml`` include:
 * **codespell** — typo detection across all tracked files.
 * **doxygen-check** — builds Doxygen from ``Docs/doxygen.conf`` (warnings as
   errors).
+* **clang-tidy** — static analysis over the library headers, via
+  ``Scripts/clang-tidy-check.sh`` (``stages: [manual]``; needs a compile
+  database, so it (re)configures the ``debug`` preset first).
+* **build-tests** — compiles the unit test suite with the ``debug`` preset
+  (``stages: [manual]``), catching template-instantiation errors locally
+  before they show up first in CI.
+* **check-docs** — advisory-only: lists any ``.. literalinclude::`` directives
+  whose source file has changed relative to ``main``, as a reminder to check
+  whether the referenced line range still matches (``stages: [manual]``; see
+  ``Scripts/CheckDocs.py`` — it does not verify the line range itself, so a
+  clean run is not a guarantee the docs are still accurate).
 * **build-doc-figures** — renders the documentation figures from their
   LaTeX/TikZ sources under ``Docs/Sphinx/source/_static/`` (``stages: [manual]``;
   requires ``pdflatex`` and ``pdftoppm`` on ``PATH``, see :ref:`Chap:Contributing`).
@@ -94,12 +105,11 @@ The hooks configured in ``.pre-commit-config.yaml`` include:
 
 .. tip::
 
-   The three documentation hooks above are declared ``stages: [manual]`` because
-   they need system LaTeX/Doxygen tooling and take longer to run than the default
-   hooks. They are not run by a plain ``pre-commit run`` invocation; use the
-   explicit ``--hook-stage manual`` flag (with the specific hook id, or omit it
-   to run all manual-stage hooks) when you want to verify documentation changes
-   locally. Run ``build-doc-figures`` before either ``sphinx-build-*`` hook if
-   you changed a figure's ``.tex`` source — pre-commit runs local hooks in the
-   order they appear in the config file, so ``pre-commit run --all-files
+   The manual-stage hooks above are not run by a plain ``pre-commit run``
+   invocation (they need system LaTeX/Doxygen/CMake tooling and take longer than
+   the default hooks); use the explicit ``--hook-stage manual`` flag (with the
+   specific hook id, or omit it to run all manual-stage hooks) when you want to
+   verify them locally. Run ``build-doc-figures`` before either ``sphinx-build-*``
+   hook if you changed a figure's ``.tex`` source — pre-commit runs local hooks in
+   the order they appear in the config file, so ``pre-commit run --all-files
    --hook-stage manual`` already gets the ordering right.
