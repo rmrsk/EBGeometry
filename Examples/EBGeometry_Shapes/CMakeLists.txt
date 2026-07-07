@@ -21,6 +21,10 @@ if(NOT TARGET EBGeometry::EBGeometry)
 endif()
 
 add_executable(EBGeometry_Shapes main.cpp)
+
+# Give the binary a .ex extension so it's covered by the repo-wide *.ex .gitignore rule,
+# without needing a per-example ignore entry.
+set_target_properties(EBGeometry_Shapes PROPERTIES SUFFIX ".ex")
 target_link_libraries(EBGeometry_Shapes PRIVATE EBGeometry::EBGeometry)
 target_compile_options(EBGeometry_Shapes PRIVATE -Wall -Wextra -Wno-unused-parameter)
 

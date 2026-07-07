@@ -402,9 +402,10 @@ TriMeshSDF<T, Meta, K, W>::groupTrianglesIntoSoA(const std::vector<std::shared_p
 template <class T, class Meta, size_t K, size_t W>
 TriMeshSDF<T, Meta, K, W>::TriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
                                       const BVH::Build             a_build,
-                                      const size_t                 a_maxLeafSize) noexcept
+                                      const size_t                 a_maxLeafGroups) noexcept
 {
   EBGEOMETRY_EXPECT(a_mesh != nullptr);
+  EBGEOMETRY_EXPECT(a_maxLeafGroups > 0);
 
   using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 
@@ -435,20 +436,25 @@ TriMeshSDF<T, Meta, K, W>::TriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
     triangles.emplace_back(tri);
   }
 
-  m_bvh = EBGeometry::buildTriMeshTreeBVH<T, Meta, AABB, K>(triangles, a_build, a_maxLeafSize)
+  const size_t maxLeafSize = a_maxLeafGroups * W;
+
+  m_bvh = EBGeometry::buildTriMeshTreeBVH<T, Meta, AABB, K>(triangles, a_build, maxLeafSize)
             ->template packWith<TriSoA>(&TriMeshSDF::groupTrianglesIntoSoA);
 }
 
 template <class T, class Meta, size_t K, size_t W>
 TriMeshSDF<T, Meta, K, W>::TriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
                                       const BVH::Build                         a_build,
-                                      const size_t                             a_maxLeafSize) noexcept
+                                      const size_t                             a_maxLeafGroups) noexcept
 {
   EBGEOMETRY_EXPECT(!a_triangles.empty());
+  EBGEOMETRY_EXPECT(a_maxLeafGroups > 0);
 
   using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 
-  m_bvh = EBGeometry::buildTriMeshTreeBVH<T, Meta, AABB, K>(a_triangles, a_build, a_maxLeafSize)
+  const size_t maxLeafSize = a_maxLeafGroups * W;
+
+  m_bvh = EBGeometry::buildTriMeshTreeBVH<T, Meta, AABB, K>(a_triangles, a_build, maxLeafSize)
             ->template packWith<TriSoA>(&TriMeshSDF::groupTrianglesIntoSoA);
 }
 

@@ -62,6 +62,333 @@ template <class T, size_t W>
 T
 TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
 {
+#if defined(__AVX512F__)
+  if constexpr (W == 16 && std::is_same_v<T, float>) {
+    static_assert(alignof(TriangleSoAT<T, W>) == W * sizeof(T),
+                  "TriangleSoAT alignment mismatch: _mm512_load_ps requires 64-byte alignment");
+    const __m512 px  = _mm512_set1_ps(a_p[0]);
+    const __m512 py  = _mm512_set1_ps(a_p[1]);
+    const __m512 pz  = _mm512_set1_ps(a_p[2]);
+    const __m512 one = _mm512_set1_ps(1.f);
+    const __m512 zer = _mm512_setzero_ps();
+
+    const __m512 v0x = _mm512_load_ps(vx[0]), v0y = _mm512_load_ps(vy[0]), v0z = _mm512_load_ps(vz[0]);
+    const __m512 v1x = _mm512_load_ps(vx[1]), v1y = _mm512_load_ps(vy[1]), v1z = _mm512_load_ps(vz[1]);
+    const __m512 v2x = _mm512_load_ps(vx[2]), v2y = _mm512_load_ps(vy[2]), v2z = _mm512_load_ps(vz[2]);
+
+    const __m512 fnx = _mm512_load_ps(nx), fny = _mm512_load_ps(ny), fnz = _mm512_load_ps(nz);
+
+    const __m512 v21x = _mm512_sub_ps(v1x, v0x), v21y = _mm512_sub_ps(v1y, v0y), v21z = _mm512_sub_ps(v1z, v0z);
+    const __m512 v32x = _mm512_sub_ps(v2x, v1x), v32y = _mm512_sub_ps(v2y, v1y), v32z = _mm512_sub_ps(v2z, v1z);
+    const __m512 v13x = _mm512_sub_ps(v0x, v2x), v13y = _mm512_sub_ps(v0y, v2y), v13z = _mm512_sub_ps(v0z, v2z);
+
+    const __m512 p1x = _mm512_sub_ps(px, v0x), p1y = _mm512_sub_ps(py, v0y), p1z = _mm512_sub_ps(pz, v0z);
+    const __m512 p2x = _mm512_sub_ps(px, v1x), p2y = _mm512_sub_ps(py, v1y), p2z = _mm512_sub_ps(pz, v1z);
+    const __m512 p3x = _mm512_sub_ps(px, v2x), p3y = _mm512_sub_ps(py, v2y), p3z = _mm512_sub_ps(pz, v2z);
+
+    auto dot3 = [](const __m512 ax, const __m512 ay, const __m512 az, const __m512 bx, const __m512 by, const __m512 bz)
+      -> __m512 {
+      return _mm512_add_ps(_mm512_add_ps(_mm512_mul_ps(ax, bx), _mm512_mul_ps(ay, by)), _mm512_mul_ps(az, bz));
+    };
+    auto crossdot = [&](const __m512 ax,
+                        const __m512 ay,
+                        const __m512 az,
+                        const __m512 bx,
+                        const __m512 by,
+                        const __m512 bz,
+                        const __m512 cx,
+                        const __m512 cy,
+                        const __m512 cz) -> __m512 {
+      const __m512 ex = _mm512_sub_ps(_mm512_mul_ps(ay, bz), _mm512_mul_ps(az, by));
+      const __m512 ey = _mm512_sub_ps(_mm512_mul_ps(az, bx), _mm512_mul_ps(ax, bz));
+      const __m512 ez = _mm512_sub_ps(_mm512_mul_ps(ax, by), _mm512_mul_ps(ay, bx));
+      return dot3(ex, ey, ez, cx, cy, cz);
+    };
+
+    const __m512 s0d = crossdot(v21x, v21y, v21z, fnx, fny, fnz, p1x, p1y, p1z);
+    const __m512 s1d = crossdot(v32x, v32y, v32z, fnx, fny, fnz, p2x, p2y, p2z);
+    const __m512 s2d = crossdot(v13x, v13y, v13z, fnx, fny, fnz, p3x, p3y, p3z);
+
+    // Bitwise and/or/andnot on __m512 float vectors need AVX512DQ, not just AVX512F. Route
+    // through the integer domain (guaranteed by base AVX512F) instead.
+    auto and_ps = [](const __m512 a, const __m512 b) -> __m512 {
+      return _mm512_castsi512_ps(_mm512_and_si512(_mm512_castps_si512(a), _mm512_castps_si512(b)));
+    };
+    auto or_ps = [](const __m512 a, const __m512 b) -> __m512 {
+      return _mm512_castsi512_ps(_mm512_or_si512(_mm512_castps_si512(a), _mm512_castps_si512(b)));
+    };
+    auto andnot_ps = [](const __m512 a, const __m512 b) -> __m512 {
+      return _mm512_castsi512_ps(_mm512_andnot_si512(_mm512_castps_si512(a), _mm512_castps_si512(b)));
+    };
+
+    const __m512    pos_mask = _mm512_set1_ps(-0.f);
+    const __m512    s0       = or_ps(andnot_ps(pos_mask, one), and_ps(pos_mask, s0d));
+    const __m512    s1       = or_ps(andnot_ps(pos_mask, one), and_ps(pos_mask, s1d));
+    const __m512    s2       = or_ps(andnot_ps(pos_mask, one), and_ps(pos_mask, s2d));
+    const __m512    ssum     = _mm512_add_ps(_mm512_add_ps(s0, s1), s2);
+    const __mmask16 in_tri   = _mm512_cmp_ps_mask(andnot_ps(pos_mask, ssum), _mm512_set1_ps(2.f), _CMP_GE_OQ);
+    const __m512    face_d   = dot3(fnx, fny, fnz, p1x, p1y, p1z);
+
+    const __m512 dp1v21  = dot3(p1x, p1y, p1z, v21x, v21y, v21z);
+    const __m512 dv21v21 = dot3(v21x, v21y, v21z, v21x, v21y, v21z);
+    const __m512 t1      = _mm512_div_ps(dp1v21, dv21v21);
+    const __m512 y1x     = _mm512_sub_ps(p1x, _mm512_mul_ps(t1, v21x));
+    const __m512 y1y     = _mm512_sub_ps(p1y, _mm512_mul_ps(t1, v21y));
+    const __m512 y1z     = _mm512_sub_ps(p1z, _mm512_mul_ps(t1, v21z));
+
+    const __m512 dp2v32  = dot3(p2x, p2y, p2z, v32x, v32y, v32z);
+    const __m512 dv32v32 = dot3(v32x, v32y, v32z, v32x, v32y, v32z);
+    const __m512 t2      = _mm512_div_ps(dp2v32, dv32v32);
+    const __m512 y2x     = _mm512_sub_ps(p2x, _mm512_mul_ps(t2, v32x));
+    const __m512 y2y     = _mm512_sub_ps(p2y, _mm512_mul_ps(t2, v32y));
+    const __m512 y2z     = _mm512_sub_ps(p2z, _mm512_mul_ps(t2, v32z));
+
+    const __m512 dp3v13  = dot3(p3x, p3y, p3z, v13x, v13y, v13z);
+    const __m512 dv13v13 = dot3(v13x, v13y, v13z, v13x, v13y, v13z);
+    const __m512 t3      = _mm512_div_ps(dp3v13, dv13v13);
+    const __m512 y3x     = _mm512_sub_ps(p3x, _mm512_mul_ps(t3, v13x));
+    const __m512 y3y     = _mm512_sub_ps(p3y, _mm512_mul_ps(t3, v13y));
+    const __m512 y3z     = _mm512_sub_ps(p3z, _mm512_mul_ps(t3, v13z));
+
+    const __m512 vn0x = _mm512_load_ps(vnx[0]), vn0y = _mm512_load_ps(vny[0]), vn0z = _mm512_load_ps(vnz[0]);
+    const __m512 vn1x = _mm512_load_ps(vnx[1]), vn1y = _mm512_load_ps(vny[1]), vn1z = _mm512_load_ps(vnz[1]);
+    const __m512 vn2x = _mm512_load_ps(vnx[2]), vn2y = _mm512_load_ps(vny[2]), vn2z = _mm512_load_ps(vnz[2]);
+    const __m512 en0x = _mm512_load_ps(enx[0]), en0y = _mm512_load_ps(eny[0]), en0z = _mm512_load_ps(enz[0]);
+    const __m512 en1x = _mm512_load_ps(enx[1]), en1y = _mm512_load_ps(eny[1]), en1z = _mm512_load_ps(enz[1]);
+    const __m512 en2x = _mm512_load_ps(enx[2]), en2y = _mm512_load_ps(eny[2]), en2z = _mm512_load_ps(enz[2]);
+
+    const __m512 p1d2 = dot3(p1x, p1y, p1z, p1x, p1y, p1z);
+    const __m512 p2d2 = dot3(p2x, p2y, p2z, p2x, p2y, p2z);
+    const __m512 p3d2 = dot3(p3x, p3y, p3z, p3x, p3y, p3z);
+    const __m512 y1d2 = dot3(y1x, y1y, y1z, y1x, y1y, y1z);
+    const __m512 y2d2 = dot3(y2x, y2y, y2z, y2x, y2y, y2z);
+    const __m512 y3d2 = dot3(y3x, y3y, y3z, y3x, y3y, y3z);
+
+    // Extract sign bits only — sqrt is deferred to a single call after the blend chain.
+    auto sgn_of =
+      [&](const __m512 ax, const __m512 ay, const __m512 az, const __m512 bx, const __m512 by, const __m512 bz)
+      -> __m512 {
+      const __m512 d = dot3(ax, ay, az, bx, by, bz);
+      return or_ps(andnot_ps(pos_mask, one), and_ps(pos_mask, d));
+    };
+
+    const __m512 vs0 = sgn_of(vn0x, vn0y, vn0z, p1x, p1y, p1z);
+    const __m512 vs1 = sgn_of(vn1x, vn1y, vn1z, p2x, p2y, p2z);
+    const __m512 vs2 = sgn_of(vn2x, vn2y, vn2z, p3x, p3y, p3z);
+    const __m512 es0 = sgn_of(en0x, en0y, en0z, y1x, y1y, y1z);
+    const __m512 es1 = sgn_of(en1x, en1y, en1z, y2x, y2y, y2z);
+    const __m512 es2 = sgn_of(en2x, en2y, en2z, y3x, y3y, y3z);
+
+    const __mmask16 t1_valid = _mm512_cmp_ps_mask(t1, zer, _CMP_GT_OQ) & _mm512_cmp_ps_mask(t1, one, _CMP_LT_OQ);
+    const __mmask16 t2_valid = _mm512_cmp_ps_mask(t2, zer, _CMP_GT_OQ) & _mm512_cmp_ps_mask(t2, one, _CMP_LT_OQ);
+    const __mmask16 t3_valid = _mm512_cmp_ps_mask(t3, zer, _CMP_GT_OQ) & _mm512_cmp_ps_mask(t3, one, _CMP_LT_OQ);
+
+    // Blend chain: track (best_d2, best_sgn). No sqrt until the end.
+    __m512 best_d2  = p1d2;
+    __m512 best_sgn = vs0;
+
+    const __mmask16 mask1 = _mm512_cmp_ps_mask(p2d2, best_d2, _CMP_LT_OQ);
+    best_sgn              = _mm512_mask_blend_ps(mask1, best_sgn, vs1);
+    best_d2               = _mm512_mask_blend_ps(mask1, best_d2, p2d2);
+
+    const __mmask16 mask2 = _mm512_cmp_ps_mask(p3d2, best_d2, _CMP_LT_OQ);
+    best_sgn              = _mm512_mask_blend_ps(mask2, best_sgn, vs2);
+    best_d2               = _mm512_mask_blend_ps(mask2, best_d2, p3d2);
+
+    const __mmask16 mask_e0 = t1_valid & _mm512_cmp_ps_mask(y1d2, best_d2, _CMP_LT_OQ);
+    best_sgn                = _mm512_mask_blend_ps(mask_e0, best_sgn, es0);
+    best_d2                 = _mm512_mask_blend_ps(mask_e0, best_d2, y1d2);
+
+    const __mmask16 mask_e1 = t2_valid & _mm512_cmp_ps_mask(y2d2, best_d2, _CMP_LT_OQ);
+    best_sgn                = _mm512_mask_blend_ps(mask_e1, best_sgn, es1);
+    best_d2                 = _mm512_mask_blend_ps(mask_e1, best_d2, y2d2);
+
+    const __mmask16 mask_e2 = t3_valid & _mm512_cmp_ps_mask(y3d2, best_d2, _CMP_LT_OQ);
+    best_sgn                = _mm512_mask_blend_ps(mask_e2, best_sgn, es2);
+    best_d2                 = _mm512_mask_blend_ps(mask_e2, best_d2, y3d2);
+
+    // Single sqrt for all vertex/edge lanes, then face override.
+    const __m512 ev_d   = _mm512_mul_ps(best_sgn, _mm512_sqrt_ps(best_d2));
+    const __m512 best_d = _mm512_mask_blend_ps(in_tri, ev_d, face_d);
+
+    alignas(64) float d16[16];
+    _mm512_store_ps(d16, best_d);
+
+    float best = std::numeric_limits<float>::max();
+    float babs = std::numeric_limits<float>::max();
+    for (uint32_t i = 0; i < validCount; i++) {
+      const float ad = std::abs(d16[i]);
+      if (ad < babs) {
+        best = d16[i];
+        babs = ad;
+      }
+    }
+    return best;
+  }
+  if constexpr (W == 8 && std::is_same_v<T, double>) {
+    static_assert(alignof(TriangleSoAT<T, W>) == W * sizeof(T),
+                  "TriangleSoAT alignment mismatch: _mm512_load_pd requires 64-byte alignment");
+    const __m512d px  = _mm512_set1_pd(a_p[0]);
+    const __m512d py  = _mm512_set1_pd(a_p[1]);
+    const __m512d pz  = _mm512_set1_pd(a_p[2]);
+    const __m512d one = _mm512_set1_pd(1.0);
+    const __m512d zer = _mm512_setzero_pd();
+
+    const __m512d v0x = _mm512_load_pd(vx[0]), v0y = _mm512_load_pd(vy[0]), v0z = _mm512_load_pd(vz[0]);
+    const __m512d v1x = _mm512_load_pd(vx[1]), v1y = _mm512_load_pd(vy[1]), v1z = _mm512_load_pd(vz[1]);
+    const __m512d v2x = _mm512_load_pd(vx[2]), v2y = _mm512_load_pd(vy[2]), v2z = _mm512_load_pd(vz[2]);
+
+    const __m512d fnx = _mm512_load_pd(nx), fny = _mm512_load_pd(ny), fnz = _mm512_load_pd(nz);
+
+    const __m512d v21x = _mm512_sub_pd(v1x, v0x), v21y = _mm512_sub_pd(v1y, v0y), v21z = _mm512_sub_pd(v1z, v0z);
+    const __m512d v32x = _mm512_sub_pd(v2x, v1x), v32y = _mm512_sub_pd(v2y, v1y), v32z = _mm512_sub_pd(v2z, v1z);
+    const __m512d v13x = _mm512_sub_pd(v0x, v2x), v13y = _mm512_sub_pd(v0y, v2y), v13z = _mm512_sub_pd(v0z, v2z);
+
+    const __m512d p1x = _mm512_sub_pd(px, v0x), p1y = _mm512_sub_pd(py, v0y), p1z = _mm512_sub_pd(pz, v0z);
+    const __m512d p2x = _mm512_sub_pd(px, v1x), p2y = _mm512_sub_pd(py, v1y), p2z = _mm512_sub_pd(pz, v1z);
+    const __m512d p3x = _mm512_sub_pd(px, v2x), p3y = _mm512_sub_pd(py, v2y), p3z = _mm512_sub_pd(pz, v2z);
+
+    auto dot3 =
+      [](const __m512d ax, const __m512d ay, const __m512d az, const __m512d bx, const __m512d by, const __m512d bz)
+      -> __m512d {
+      return _mm512_add_pd(_mm512_add_pd(_mm512_mul_pd(ax, bx), _mm512_mul_pd(ay, by)), _mm512_mul_pd(az, bz));
+    };
+    auto crossdot = [&](const __m512d ax,
+                        const __m512d ay,
+                        const __m512d az,
+                        const __m512d bx,
+                        const __m512d by,
+                        const __m512d bz,
+                        const __m512d cx,
+                        const __m512d cy,
+                        const __m512d cz) -> __m512d {
+      const __m512d ex = _mm512_sub_pd(_mm512_mul_pd(ay, bz), _mm512_mul_pd(az, by));
+      const __m512d ey = _mm512_sub_pd(_mm512_mul_pd(az, bx), _mm512_mul_pd(ax, bz));
+      const __m512d ez = _mm512_sub_pd(_mm512_mul_pd(ax, by), _mm512_mul_pd(ay, bx));
+      return dot3(ex, ey, ez, cx, cy, cz);
+    };
+
+    const __m512d s0d = crossdot(v21x, v21y, v21z, fnx, fny, fnz, p1x, p1y, p1z);
+    const __m512d s1d = crossdot(v32x, v32y, v32z, fnx, fny, fnz, p2x, p2y, p2z);
+    const __m512d s2d = crossdot(v13x, v13y, v13z, fnx, fny, fnz, p3x, p3y, p3z);
+
+    // Bitwise and/or/andnot on __m512d vectors need AVX512DQ, not just AVX512F. Route through
+    // the integer domain (guaranteed by base AVX512F) instead.
+    auto and_pd = [](const __m512d a, const __m512d b) -> __m512d {
+      return _mm512_castsi512_pd(_mm512_and_si512(_mm512_castpd_si512(a), _mm512_castpd_si512(b)));
+    };
+    auto or_pd = [](const __m512d a, const __m512d b) -> __m512d {
+      return _mm512_castsi512_pd(_mm512_or_si512(_mm512_castpd_si512(a), _mm512_castpd_si512(b)));
+    };
+    auto andnot_pd = [](const __m512d a, const __m512d b) -> __m512d {
+      return _mm512_castsi512_pd(_mm512_andnot_si512(_mm512_castpd_si512(a), _mm512_castpd_si512(b)));
+    };
+
+    const __m512d  pos_mask = _mm512_set1_pd(-0.0);
+    const __m512d  s0       = or_pd(andnot_pd(pos_mask, one), and_pd(pos_mask, s0d));
+    const __m512d  s1       = or_pd(andnot_pd(pos_mask, one), and_pd(pos_mask, s1d));
+    const __m512d  s2       = or_pd(andnot_pd(pos_mask, one), and_pd(pos_mask, s2d));
+    const __m512d  ssum     = _mm512_add_pd(_mm512_add_pd(s0, s1), s2);
+    const __mmask8 in_tri   = _mm512_cmp_pd_mask(andnot_pd(pos_mask, ssum), _mm512_set1_pd(2.0), _CMP_GE_OQ);
+    const __m512d  face_d   = dot3(fnx, fny, fnz, p1x, p1y, p1z);
+
+    const __m512d dp1v21  = dot3(p1x, p1y, p1z, v21x, v21y, v21z);
+    const __m512d dv21v21 = dot3(v21x, v21y, v21z, v21x, v21y, v21z);
+    const __m512d t1      = _mm512_div_pd(dp1v21, dv21v21);
+    const __m512d y1x     = _mm512_sub_pd(p1x, _mm512_mul_pd(t1, v21x));
+    const __m512d y1y     = _mm512_sub_pd(p1y, _mm512_mul_pd(t1, v21y));
+    const __m512d y1z     = _mm512_sub_pd(p1z, _mm512_mul_pd(t1, v21z));
+
+    const __m512d dp2v32  = dot3(p2x, p2y, p2z, v32x, v32y, v32z);
+    const __m512d dv32v32 = dot3(v32x, v32y, v32z, v32x, v32y, v32z);
+    const __m512d t2      = _mm512_div_pd(dp2v32, dv32v32);
+    const __m512d y2x     = _mm512_sub_pd(p2x, _mm512_mul_pd(t2, v32x));
+    const __m512d y2y     = _mm512_sub_pd(p2y, _mm512_mul_pd(t2, v32y));
+    const __m512d y2z     = _mm512_sub_pd(p2z, _mm512_mul_pd(t2, v32z));
+
+    const __m512d dp3v13  = dot3(p3x, p3y, p3z, v13x, v13y, v13z);
+    const __m512d dv13v13 = dot3(v13x, v13y, v13z, v13x, v13y, v13z);
+    const __m512d t3      = _mm512_div_pd(dp3v13, dv13v13);
+    const __m512d y3x     = _mm512_sub_pd(p3x, _mm512_mul_pd(t3, v13x));
+    const __m512d y3y     = _mm512_sub_pd(p3y, _mm512_mul_pd(t3, v13y));
+    const __m512d y3z     = _mm512_sub_pd(p3z, _mm512_mul_pd(t3, v13z));
+
+    const __m512d vn0x = _mm512_load_pd(vnx[0]), vn0y = _mm512_load_pd(vny[0]), vn0z = _mm512_load_pd(vnz[0]);
+    const __m512d vn1x = _mm512_load_pd(vnx[1]), vn1y = _mm512_load_pd(vny[1]), vn1z = _mm512_load_pd(vnz[1]);
+    const __m512d vn2x = _mm512_load_pd(vnx[2]), vn2y = _mm512_load_pd(vny[2]), vn2z = _mm512_load_pd(vnz[2]);
+    const __m512d en0x = _mm512_load_pd(enx[0]), en0y = _mm512_load_pd(eny[0]), en0z = _mm512_load_pd(enz[0]);
+    const __m512d en1x = _mm512_load_pd(enx[1]), en1y = _mm512_load_pd(eny[1]), en1z = _mm512_load_pd(enz[1]);
+    const __m512d en2x = _mm512_load_pd(enx[2]), en2y = _mm512_load_pd(eny[2]), en2z = _mm512_load_pd(enz[2]);
+
+    const __m512d p1d2 = dot3(p1x, p1y, p1z, p1x, p1y, p1z);
+    const __m512d p2d2 = dot3(p2x, p2y, p2z, p2x, p2y, p2z);
+    const __m512d p3d2 = dot3(p3x, p3y, p3z, p3x, p3y, p3z);
+    const __m512d y1d2 = dot3(y1x, y1y, y1z, y1x, y1y, y1z);
+    const __m512d y2d2 = dot3(y2x, y2y, y2z, y2x, y2y, y2z);
+    const __m512d y3d2 = dot3(y3x, y3y, y3z, y3x, y3y, y3z);
+
+    // Extract sign bits only — sqrt deferred until after blend chain.
+    auto sgn_of =
+      [&](const __m512d ax, const __m512d ay, const __m512d az, const __m512d bx, const __m512d by, const __m512d bz)
+      -> __m512d {
+      const __m512d d = dot3(ax, ay, az, bx, by, bz);
+      return or_pd(andnot_pd(pos_mask, one), and_pd(pos_mask, d));
+    };
+
+    const __m512d vs0 = sgn_of(vn0x, vn0y, vn0z, p1x, p1y, p1z);
+    const __m512d vs1 = sgn_of(vn1x, vn1y, vn1z, p2x, p2y, p2z);
+    const __m512d vs2 = sgn_of(vn2x, vn2y, vn2z, p3x, p3y, p3z);
+    const __m512d es0 = sgn_of(en0x, en0y, en0z, y1x, y1y, y1z);
+    const __m512d es1 = sgn_of(en1x, en1y, en1z, y2x, y2y, y2z);
+    const __m512d es2 = sgn_of(en2x, en2y, en2z, y3x, y3y, y3z);
+
+    const __mmask8 t1_valid = _mm512_cmp_pd_mask(t1, zer, _CMP_GT_OQ) & _mm512_cmp_pd_mask(t1, one, _CMP_LT_OQ);
+    const __mmask8 t2_valid = _mm512_cmp_pd_mask(t2, zer, _CMP_GT_OQ) & _mm512_cmp_pd_mask(t2, one, _CMP_LT_OQ);
+    const __mmask8 t3_valid = _mm512_cmp_pd_mask(t3, zer, _CMP_GT_OQ) & _mm512_cmp_pd_mask(t3, one, _CMP_LT_OQ);
+
+    // Blend chain: track (best_d2, best_sgn). No sqrt until the end.
+    __m512d best_d2  = p1d2;
+    __m512d best_sgn = vs0;
+
+    const __mmask8 mask1 = _mm512_cmp_pd_mask(p2d2, best_d2, _CMP_LT_OQ);
+    best_sgn             = _mm512_mask_blend_pd(mask1, best_sgn, vs1);
+    best_d2              = _mm512_mask_blend_pd(mask1, best_d2, p2d2);
+
+    const __mmask8 mask2 = _mm512_cmp_pd_mask(p3d2, best_d2, _CMP_LT_OQ);
+    best_sgn             = _mm512_mask_blend_pd(mask2, best_sgn, vs2);
+    best_d2              = _mm512_mask_blend_pd(mask2, best_d2, p3d2);
+
+    const __mmask8 mask_e0 = t1_valid & _mm512_cmp_pd_mask(y1d2, best_d2, _CMP_LT_OQ);
+    best_sgn               = _mm512_mask_blend_pd(mask_e0, best_sgn, es0);
+    best_d2                = _mm512_mask_blend_pd(mask_e0, best_d2, y1d2);
+
+    const __mmask8 mask_e1 = t2_valid & _mm512_cmp_pd_mask(y2d2, best_d2, _CMP_LT_OQ);
+    best_sgn               = _mm512_mask_blend_pd(mask_e1, best_sgn, es1);
+    best_d2                = _mm512_mask_blend_pd(mask_e1, best_d2, y2d2);
+
+    const __mmask8 mask_e2 = t3_valid & _mm512_cmp_pd_mask(y3d2, best_d2, _CMP_LT_OQ);
+    best_sgn               = _mm512_mask_blend_pd(mask_e2, best_sgn, es2);
+    best_d2                = _mm512_mask_blend_pd(mask_e2, best_d2, y3d2);
+
+    // Single sqrt for all vertex/edge lanes, then face override.
+    const __m512d ev_d   = _mm512_mul_pd(best_sgn, _mm512_sqrt_pd(best_d2));
+    const __m512d best_d = _mm512_mask_blend_pd(in_tri, ev_d, face_d);
+
+    alignas(64) double d8[8];
+    _mm512_store_pd(d8, best_d);
+
+    double best = std::numeric_limits<double>::max();
+    double babs = std::numeric_limits<double>::max();
+    for (uint32_t i = 0; i < validCount; i++) {
+      const double ad = std::abs(d8[i]);
+      if (ad < babs) {
+        best = d8[i];
+        babs = ad;
+      }
+    }
+    return static_cast<T>(best);
+  }
+#endif
 #if defined(__SSE4_1__)
   if constexpr (W == 4 && std::is_same_v<T, float>) {
     static_assert(alignof(TriangleSoAT<T, W>) == W * sizeof(T),
@@ -414,6 +741,9 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     }
     return best;
   }
+  // Superseded by the AVX-512F single-register (T,W)=(double,8) path above when available; this
+  // two-half 256-bit trick is only needed on AVX-without-AVX-512F targets.
+#if !defined(__AVX512F__)
   if constexpr (W == 8 && std::is_same_v<T, double>) {
     static_assert(alignof(TriangleSoAT<T, W>) == W * sizeof(T),
                   "TriangleSoAT alignment mismatch: _mm256_load_pd requires 32-byte alignment");
@@ -660,6 +990,7 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     }
     return static_cast<T>(best);
   }
+#endif
   if constexpr (W == 4 && std::is_same_v<T, double>) {
     static_assert(alignof(TriangleSoAT<T, W>) == W * sizeof(T),
                   "TriangleSoAT alignment mismatch: _mm256_load_pd requires 32-byte alignment");

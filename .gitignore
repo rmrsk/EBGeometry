@@ -1,16 +1,11 @@
 *.out
 *.ex
-*.o
-*.d
-*.F90
-*.hdf5
-pout.*
 *.mod
 .serena
 
 build
+build-tests-check.sh
 
-docs/**
 Examples/AMReX_MeshSDF/plt*
 Examples/AMReX_MeshSDF/tmp_build_dir
 Examples/AMReX_MeshSDF/Backtrace.*
@@ -34,31 +29,6 @@ Examples/AMReX_Shapes/Backtrace.*
 Examples/AMReX_PaintEB/plt*
 Examples/AMReX_PaintEB/tmp_build_dir
 Examples/AMReX_PaintEB/Backtrace.*
-
-Examples/Chombo3_DCEL/d/**
-Examples/Chombo3_DCEL/o/**
-Examples/Chombo3_DCEL/f/**
-Examples/Chombo3_DCEL/d/**
-
-Examples/Chombo3_F18/d/**
-Examples/Chombo3_F18/o/**
-Examples/Chombo3_F18/f/**
-Examples/Chombo3_F18/d/**
-
-Examples/Chombo3_PackedSpheres/d/**
-Examples/Chombo3_PackedSpheres/o/**
-Examples/Chombo3_PackedSpheres/f/**
-Examples/Chombo3_PackedSpheres/d/**
-
-Examples/Chombo3_RandomCity/d/**
-Examples/Chombo3_RandomCity/o/**
-Examples/Chombo3_RandomCity/f/**
-Examples/Chombo3_RandomCity/d/**
-
-Examples/Chombo3_Shapes/d/**
-Examples/Chombo3_Shapes/o/**
-Examples/Chombo3_Shapes/f/**
-Examples/Chombo3_Shapes/d/**
 
 Docs/*
 !Docs/.nojekyll

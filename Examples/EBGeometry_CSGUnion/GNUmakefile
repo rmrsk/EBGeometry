@@ -13,7 +13,7 @@ PRECISION       ?= double
 CXX      ?= g++
 CXXFLAGS ?= -std=c++17 -O3 -march=native -Wall -Wextra
 
-TARGET := EBGeometry_CSGUnion
+TARGET := EBGeometry_CSGUnion.ex
 
 $(TARGET): main.cpp
 	$(CXX) $(CXXFLAGS) -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_PRECISION=$(PRECISION) $< -o $@

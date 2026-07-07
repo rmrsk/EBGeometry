@@ -140,7 +140,7 @@ TEST_CASE("MeshSDF: tetrahedron signed distances", "[DCEL][MeshSDF]")
   auto mesh = loadTetrahedron();
   REQUIRE(mesh != nullptr);
 
-  TestMeshSDF sdf(mesh);
+  TestMeshSDF sdf(mesh, BVH::Build::SAH);
 
   SECTION("centroid is inside (SDF < 0)")
   {
@@ -171,7 +171,7 @@ TEST_CASE("MeshSDF: tetrahedron signed distances", "[DCEL][MeshSDF]")
 TEST_CASE("DCEL sign convention: exterior point has positive SDF", "[DCEL][sign]")
 {
   auto        mesh = buildTetrahedron();
-  TestMeshSDF sdf(mesh);
+  TestMeshSDF sdf(mesh, BVH::Build::SAH);
 
   // Far outside: must be positive.
   REQUIRE(sdf.signedDistance(Vec3T<double>(2.0, 2.0, 2.0)) > 0.0);
@@ -184,7 +184,7 @@ TEST_CASE("DCEL sign convention: exterior point has positive SDF", "[DCEL][sign]
 TEST_CASE("DCEL sign convention: interior point has negative SDF", "[DCEL][sign]")
 {
   auto        mesh = buildTetrahedron();
-  TestMeshSDF sdf(mesh);
+  TestMeshSDF sdf(mesh, BVH::Build::SAH);
 
   // Centroid of the tetrahedron is clearly inside.
   REQUIRE(sdf.signedDistance(Vec3T<double>(0.25, 0.25, 0.25)) < 0.0);

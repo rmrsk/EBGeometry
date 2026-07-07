@@ -23,7 +23,7 @@ is two levels up from this folder (`../..`) when building in place.
     cmake -S . -B build
     cmake --build build
 
-The binary is `build/EBGeometry_MeshSDF`. Build in single precision, or against a library
+The binary is `build/EBGeometry_MeshSDF.ex`. Build in single precision, or against a library
 in a different location, with cache variables:
 
     cmake -S . -B build -DEBGEOMETRY_PRECISION=float -DEBGEOMETRY_HOME=/path/to/EBGeometry
@@ -32,13 +32,13 @@ in a different location, with cache variables:
 
     make
 
-This produces `./EBGeometry_MeshSDF`. Override the defaults on the command line:
+This produces `./EBGeometry_MeshSDF.ex`. Override the defaults on the command line:
 
     make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry
 
 **Directly with a compiler**
 
-    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o EBGeometry_MeshSDF
+    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o EBGeometry_MeshSDF.ex
 
 Add `-DEBGEOMETRY_PRECISION=float` for single precision.
 
@@ -47,10 +47,10 @@ Running
 
 Run from this directory so the default mesh path resolves:
 
-    ./EBGeometry_MeshSDF
-    ./EBGeometry_MeshSDF ../../common-3d-test-models/data/cow.obj
+    ./EBGeometry_MeshSDF.ex
+    ./EBGeometry_MeshSDF.ex ../../common-3d-test-models/data/cow.obj
 
 With no argument the example loads `armadillo.obj` from the
 `common-3d-test-models` submodule, so make sure it is checked out
 (`git submodule update --init`). If you built with CMake the binary is
-`build/EBGeometry_MeshSDF` -- still run it from this directory.
+`build/EBGeometry_MeshSDF.ex` -- still run it from this directory.

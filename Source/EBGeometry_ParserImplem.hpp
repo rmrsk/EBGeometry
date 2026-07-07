@@ -1890,21 +1890,21 @@ Parser::readIntoTriangles(const std::vector<std::string>& a_files)
 
 template <typename T, typename Meta, size_t K, size_t W>
 [[nodiscard]] inline std::shared_ptr<TriMeshSDF<T, Meta, K, W>>
-Parser::readIntoTriangleBVH(const std::string a_filename, const BVH::Build a_build, const size_t a_maxLeafSize)
+Parser::readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafGroups, const BVH::Build a_build)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
   static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
   const auto mesh = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename);
 
-  return std::make_shared<TriMeshSDF<T, Meta, K, W>>(mesh, a_build, a_maxLeafSize);
+  return std::make_shared<TriMeshSDF<T, Meta, K, W>>(mesh, a_build, a_maxLeafGroups);
 }
 
 template <typename T, typename Meta, size_t K, size_t W>
 [[nodiscard]] inline std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>>
 Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
-                            const BVH::Build                a_build,
-                            const size_t                    a_maxLeafSize)
+                            const size_t                    a_maxLeafGroups,
+                            const BVH::Build                a_build)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
@@ -1913,7 +1913,7 @@ Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
 
   implicitFunctions.reserve(a_files.size());
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoTriangleBVH<T, Meta, K, W>(file, a_build, a_maxLeafSize));
+    implicitFunctions.emplace_back(Parser::readIntoTriangleBVH<T, Meta, K, W>(file, a_maxLeafGroups, a_build));
   }
 
   return implicitFunctions;
@@ -1921,18 +1921,18 @@ Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
 
 template <typename T, typename Meta, size_t K>
 [[nodiscard]] inline std::shared_ptr<MeshSDF<T, Meta, K>>
-Parser::readIntoPackedBVH(const std::string a_filename)
+Parser::readIntoPackedBVH(const std::string a_filename, const BVH::Build a_build)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
   const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
 
-  return std::make_shared<MeshSDF<T, Meta, K>>(mesh);
+  return std::make_shared<MeshSDF<T, Meta, K>>(mesh, a_build);
 }
 
 template <typename T, typename Meta, size_t K>
 [[nodiscard]] inline std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>>
-Parser::readIntoPackedBVH(const std::vector<std::string>& a_files)
+Parser::readIntoPackedBVH(const std::vector<std::string>& a_files, const BVH::Build a_build)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
@@ -1940,7 +1940,7 @@ Parser::readIntoPackedBVH(const std::vector<std::string>& a_files)
 
   implicitFunctions.reserve(a_files.size());
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoPackedBVH<T, Meta, K>(file));
+    implicitFunctions.emplace_back(Parser::readIntoPackedBVH<T, Meta, K>(file, a_build));
   }
 
   return implicitFunctions;

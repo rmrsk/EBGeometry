@@ -21,6 +21,10 @@ if(NOT TARGET EBGeometry::EBGeometry)
 endif()
 
 add_executable(EBGeometry_RandomCity main.cpp)
+
+# Give the binary a .ex extension so it's covered by the repo-wide *.ex .gitignore rule,
+# without needing a per-example ignore entry.
+set_target_properties(EBGeometry_RandomCity PROPERTIES SUFFIX ".ex")
 target_link_libraries(EBGeometry_RandomCity PRIVATE EBGeometry::EBGeometry)
 target_compile_options(EBGeometry_RandomCity PRIVATE -Wall -Wextra -Wno-unused-parameter)
 

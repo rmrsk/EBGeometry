@@ -24,7 +24,7 @@ is two levels up from this folder (`../..`) when building in place.
     cmake -S . -B build
     cmake --build build
 
-The binary is `build/EBGeometry_PackedSpheres`. Build in single precision, or against a library
+The binary is `build/EBGeometry_PackedSpheres.ex`. Build in single precision, or against a library
 in a different location, with cache variables:
 
     cmake -S . -B build -DEBGEOMETRY_PRECISION=float -DEBGEOMETRY_HOME=/path/to/EBGeometry
@@ -33,19 +33,19 @@ in a different location, with cache variables:
 
     make
 
-This produces `./EBGeometry_PackedSpheres`. Override the defaults on the command line:
+This produces `./EBGeometry_PackedSpheres.ex`. Override the defaults on the command line:
 
     make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry
 
 **Directly with a compiler**
 
-    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o EBGeometry_PackedSpheres
+    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o EBGeometry_PackedSpheres.ex
 
 Add `-DEBGEOMETRY_PRECISION=float` for single precision.
 
 Running
 -------
 
-    ./EBGeometry_PackedSpheres
+    ./EBGeometry_PackedSpheres.ex
 
-If you built with CMake the binary is `build/EBGeometry_PackedSpheres`.
+If you built with CMake the binary is `build/EBGeometry_PackedSpheres.ex`.

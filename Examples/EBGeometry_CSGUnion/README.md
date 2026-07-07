@@ -20,7 +20,7 @@ is two levels up from this folder (`../..`) when building in place.
     cmake -S . -B build
     cmake --build build
 
-The binary is `build/EBGeometry_CSGUnion`. Build in single precision, or against a library
+The binary is `build/EBGeometry_CSGUnion.ex`. Build in single precision, or against a library
 in a different location, with cache variables:
 
     cmake -S . -B build -DEBGEOMETRY_PRECISION=float -DEBGEOMETRY_HOME=/path/to/EBGeometry
@@ -29,13 +29,13 @@ in a different location, with cache variables:
 
     make
 
-This produces `./EBGeometry_CSGUnion`. Override the defaults on the command line:
+This produces `./EBGeometry_CSGUnion.ex`. Override the defaults on the command line:
 
     make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry
 
 **Directly with a compiler**
 
-    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o EBGeometry_CSGUnion
+    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o EBGeometry_CSGUnion.ex
 
 Add `-DEBGEOMETRY_PRECISION=float` for single precision.
 
@@ -44,10 +44,10 @@ Running
 
 Run from this directory so the default mesh path resolves:
 
-    ./EBGeometry_CSGUnion
-    ./EBGeometry_CSGUnion ../../common-3d-test-models/data/cow.obj
+    ./EBGeometry_CSGUnion.ex
+    ./EBGeometry_CSGUnion.ex ../../common-3d-test-models/data/cow.obj
 
 With no argument the example loads `cow.obj` from the
 `common-3d-test-models` submodule, so make sure it is checked out
 (`git submodule update --init`). If you built with CMake the binary is
-`build/EBGeometry_CSGUnion` -- still run it from this directory.
+`build/EBGeometry_CSGUnion.ex` -- still run it from this directory.

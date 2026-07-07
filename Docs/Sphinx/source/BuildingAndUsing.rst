@@ -90,7 +90,7 @@ Enabling SIMD acceleration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``EBGeometry`` detects the available SIMD instruction set at compile time using the
-standard pre-defined macros ``__AVX__``, ``__SSE4_1__``, and ``__FMA__``.
+standard pre-defined macros ``__AVX512F__``, ``__AVX__``, ``__SSE4_1__``, and ``__FMA__``.
 Pass the corresponding flags to expose the widest register set supported by your CPU:
 
 .. list-table::
@@ -100,15 +100,18 @@ Pass the corresponding flags to expose the widest register set supported by your
    * - Target ISA
      - GCC / Clang flag(s)
      - Effect
+   * - AVX-512F (recent server/HEDT CPUs)
+     - ``-mavx512f -mfma``
+     - 512-bit ZMM registers; ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` = 16 (float) or 8 (double)
    * - AVX + FMA (recommended on x86-64 since ~2013)
      - ``-mavx -mfma``
-     - 256-bit YMM registers; ``EBGEOMETRY_SOA_DEFAULT_WIDTH`` = 8 (float) or 4 (double)
+     - 256-bit YMM registers; ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` = 8 (float) or 4 (double)
    * - SSE 4.1 (older or constrained targets)
      - ``-msse4.1``
-     - 128-bit XMM registers; ``EBGEOMETRY_SOA_DEFAULT_WIDTH`` = 4 (float or double)
+     - 128-bit XMM registers; ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` = 4 (float or double)
    * - No SIMD (portable fallback)
      - *(none)*
-     - Scalar loops; ``EBGEOMETRY_SOA_DEFAULT_WIDTH`` = 4
+     - Scalar loops; ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` = 4
 
 A typical production build targeting a modern x86-64 workstation:
 
@@ -357,7 +360,8 @@ meshes by grouping :math:`W` triangles into a *structure-of-arrays* (SoA) block
 evaluated simultaneously using SIMD intrinsics, and only the minimum distance over
 the block is retained.
 
-The default SoA width ``EBGEOMETRY_SOA_DEFAULT_WIDTH`` is chosen at compile time:
+The default SoA width, given by :cpp:func:`EBGeometry::TriangleSoA::DefaultWidth\<T\>`,
+is chosen at compile time:
 
 .. list-table::
    :header-rows: 1
@@ -366,10 +370,14 @@ The default SoA width ``EBGEOMETRY_SOA_DEFAULT_WIDTH`` is chosen at compile time
    * - Preprocessor macro defined
      - Default ``W``
      - Reasoning
-   * - ``__AVX__``
-     - 8
+   * - ``__AVX512F__``
+     - 16 (float) / 8 (double)
+     - 512-bit ZMM register holds 16 × ``float`` or 8 × ``double``.
+       ``W`` saturates one register for each precision.
+   * - ``__AVX__`` (no AVX-512F)
+     - 8 (float) / 4 (double)
      - 256-bit YMM register holds 8 × ``float`` or 4 × ``double``.
-       ``W = 8`` saturates one register for single precision.
+       ``W`` saturates one register for each precision.
    * - ``__SSE4_1__`` (no AVX)
      - 4
      - 128-bit XMM register holds 4 × ``float`` or 2 × ``double``.
@@ -378,9 +386,11 @@ The default SoA width ``EBGEOMETRY_SOA_DEFAULT_WIDTH`` is chosen at compile time
      - 4
      - Scalar loops; ``W = 4`` keeps data layout consistent.
 
-The BVH child-AABB tests use the same ISA detection path: with AVX the 8-child
-(``K = 8``) AABB batch is evaluated with ``_mm256_*`` intrinsics; with SSE4.1
-the 4-child (``K = 4``) batch uses ``_mm_*`` intrinsics.
+The BVH child-AABB tests use the same ISA detection path via
+:cpp:func:`BVH::DefaultBranchingRatio\<T\>`: with AVX-512F the 16-child
+(``K = 16``, float) batch is evaluated with ``_mm512_*`` intrinsics; with AVX the
+8-child (``K = 8``, float) batch uses ``_mm256_*``; with SSE4.1 the 4-child
+(``K = 4``) batch uses ``_mm_*`` intrinsics.
 
 Choosing W and K explicitly
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -390,7 +400,7 @@ Choosing W and K explicitly
 
 .. code-block:: cpp
 
-   // Defaults: K = 4, W = EBGEOMETRY_SOA_DEFAULT_WIDTH
+   // Defaults: K = BVH::DefaultBranchingRatio<T>(), W = TriangleSoA::DefaultWidth<T>()
    auto sdf = Parser::readIntoTriangleBVH<double>("bunny.ply");
 
    // Explicitly request 8-wide SoA with a 4-ary BVH
@@ -401,21 +411,24 @@ Choosing W and K explicitly
 
 Rules of thumb:
 
-* Keep ``W`` equal to ``EBGEOMETRY_SOA_DEFAULT_WIDTH`` unless you have a specific
-  reason to deviate.  The library is tuned for this default.
-* Set ``a_maxLeafSize`` (the maximum number of triangles per BVH leaf) to a
-  multiple of ``W`` so that every SoA block is full.  The default of 8 is optimal
-  for ``W = 8`` (AVX single precision) and acceptable for ``W = 4``.
-* ``K = 4`` is a good default.  With AVX available you can try ``K = 8`` — the
-  child-AABB test is evaluated in a single ``_mm256_*`` batch, and the wider fan-out
-  reduces tree depth.
+* Keep ``W`` equal to ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` unless you
+  have a specific reason to deviate.  The library is tuned for this default.
+* ``a_maxLeafSize`` (the maximum number of raw triangles per BVH leaf, before
+  SoA packing) defaults to ``2 * W``: leaves land on up to two full SoA blocks,
+  while the SAH/TopDown partitioner is still free to split down to smaller,
+  tighter leaves wherever the geometry calls for it. A leaf smaller than ``W``
+  simply pads its SoA block's unused lanes.
+* ``K = BVH::DefaultBranchingRatio<T>()`` is a good default. With AVX-512F
+  available you can try ``K = 16`` (float) — the child-AABB test is evaluated in
+  a single ``_mm512_*`` batch, and the wider fan-out reduces tree depth.
 
 Data alignment
 ~~~~~~~~~~~~~~
 
 Each ``TriangleSoAT<T, W>`` block is declared ``alignas(W * sizeof(T))``, giving
-32-byte alignment for ``<float, 8>`` (matching ``_mm256_load_ps``) and 16-byte
-alignment for ``<float, 4>`` / ``<double, 4>`` (matching ``_mm_load_ps`` /
+64-byte alignment for ``<float, 16>`` / ``<double, 8>`` (matching ``_mm512_load_ps`` /
+``_mm512_load_pd``), 32-byte alignment for ``<float, 8>`` (matching ``_mm256_load_ps``),
+and 16-byte alignment for ``<float, 4>`` / ``<double, 4>`` (matching ``_mm_load_ps`` /
 ``_mm256_load_pd``).  The library inserts ``static_assert`` checks that fire at
 compile time if the alignment invariant is violated.
 

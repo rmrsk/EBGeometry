@@ -15,7 +15,7 @@ is two levels up from this folder (`../..`) when building in place.
     cmake -S . -B build
     cmake --build build
 
-The binary is `build/EBGeometry_OctreeBoundingVolume`. Build in single precision, or against a library
+The binary is `build/EBGeometry_OctreeBoundingVolume.ex`. Build in single precision, or against a library
 in a different location, with cache variables:
 
     cmake -S . -B build -DEBGEOMETRY_PRECISION=float -DEBGEOMETRY_HOME=/path/to/EBGeometry
@@ -24,19 +24,19 @@ in a different location, with cache variables:
 
     make
 
-This produces `./EBGeometry_OctreeBoundingVolume`. Override the defaults on the command line:
+This produces `./EBGeometry_OctreeBoundingVolume.ex`. Override the defaults on the command line:
 
     make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry
 
 **Directly with a compiler**
 
-    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o EBGeometry_OctreeBoundingVolume
+    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o EBGeometry_OctreeBoundingVolume.ex
 
 Add `-DEBGEOMETRY_PRECISION=float` for single precision.
 
 Running
 -------
 
-    ./EBGeometry_OctreeBoundingVolume
+    ./EBGeometry_OctreeBoundingVolume.ex
 
-If you built with CMake the binary is `build/EBGeometry_OctreeBoundingVolume`.
+If you built with CMake the binary is `build/EBGeometry_OctreeBoundingVolume.ex`.

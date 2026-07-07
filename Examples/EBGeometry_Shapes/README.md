@@ -15,7 +15,7 @@ is two levels up from this folder (`../..`) when building in place.
     cmake -S . -B build
     cmake --build build
 
-The binary is `build/EBGeometry_Shapes`. Build in single precision, or against a library
+The binary is `build/EBGeometry_Shapes.ex`. Build in single precision, or against a library
 in a different location, with cache variables:
 
     cmake -S . -B build -DEBGEOMETRY_PRECISION=float -DEBGEOMETRY_HOME=/path/to/EBGeometry
@@ -24,19 +24,19 @@ in a different location, with cache variables:
 
     make
 
-This produces `./EBGeometry_Shapes`. Override the defaults on the command line:
+This produces `./EBGeometry_Shapes.ex`. Override the defaults on the command line:
 
     make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry
 
 **Directly with a compiler**
 
-    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o EBGeometry_Shapes
+    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o EBGeometry_Shapes.ex
 
 Add `-DEBGEOMETRY_PRECISION=float` for single precision.
 
 Running
 -------
 
-    ./EBGeometry_Shapes
+    ./EBGeometry_Shapes.ex
 
-If you built with CMake the binary is `build/EBGeometry_Shapes`.
+If you built with CMake the binary is `build/EBGeometry_Shapes.ex`.

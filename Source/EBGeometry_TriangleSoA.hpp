@@ -17,26 +17,8 @@
 #include <type_traits>
 #include <vector>
 
-#if defined(__SSE4_1__) || defined(__AVX__)
+#if defined(__SSE4_1__) || defined(__AVX__) || defined(__AVX512F__)
 #include <immintrin.h>
-#endif
-
-/**
- * @def EBGEOMETRY_SOA_DEFAULT_WIDTH
- * @brief Superseded by EBGeometry::DefaultSoAWidth<T>(); kept for now, to be retired later.
- * @details Unlike DefaultSoAWidth<T>(), a preprocessor macro cannot depend on a template
- * parameter, so this value can't distinguish float from double, and its @c __AVX512F__ case
- * (16) does not correspond to any width TriangleSoAT::signedDistance() actually implements.
- * No longer used as a default anywhere in EBGeometry.
- */
-#if defined(__AVX512F__)
-#define EBGEOMETRY_SOA_DEFAULT_WIDTH 16
-#elif defined(__AVX__)
-#define EBGEOMETRY_SOA_DEFAULT_WIDTH 8
-#elif defined(__SSE4_1__)
-#define EBGEOMETRY_SOA_DEFAULT_WIDTH 4
-#else
-#define EBGEOMETRY_SOA_DEFAULT_WIDTH 4
 #endif
 
 #include "EBGeometry_Triangle.hpp"
@@ -44,28 +26,42 @@
 namespace EBGeometry {
 
 /**
+ * @brief Namespace for TriangleSoAT-related compile-time utilities.
+ */
+namespace TriangleSoA {
+
+/**
  * @brief Returns the SIMD-optimal SoA width (triangles per TriangleSoAT group) for type T on the
  * current target ISA.
  * @details Maps the floating-point type and the compile-time ISA to the W that fills one SIMD
- * register exactly, capped to the widths TriangleSoAT::signedDistance() actually implements —
- * there is no dedicated AVX-512F path yet, so AVX-512F builds fall through to the AVX values
- * below (still vectorized via AVX intrinsics, just not filling a full 512-bit register):
+ * register exactly, matching the paths TriangleSoAT::signedDistance() actually implements. Not a
+ * member of TriangleSoAT itself: that class is templated on W, so a member couldn't be used to
+ * compute W's own default (the same reason BVH::DefaultBranchingRatio<T>() is a free function in
+ * namespace BVH rather than a member of TreeBVH).
  *
  * | ISA       | T=float | T=double |
  * |-----------|---------|----------|
+ * | AVX-512F  |   16    |    8     |
  * | AVX       |    8    |    4     |
  * | otherwise |    4    |    4     |
  *
- * Usage: `size_t W = EBGeometry::DefaultSoAWidth<T>()` as a template-parameter default.
+ * Usage: `size_t W = EBGeometry::TriangleSoA::DefaultWidth<T>()` as a template-parameter default.
  * @tparam T Floating-point precision type (float or double).
  * @return Optimal W for the current ISA and T.
  */
 template <typename T>
 [[nodiscard]] constexpr size_t
-DefaultSoAWidth() noexcept
+DefaultWidth() noexcept
 {
-  static_assert(std::is_floating_point_v<T>, "EBGeometry::DefaultSoAWidth requires a floating-point T");
-#if defined(__AVX__)
+  static_assert(std::is_floating_point_v<T>, "EBGeometry::TriangleSoA::DefaultWidth requires a floating-point T");
+#if defined(__AVX512F__)
+  if constexpr (std::is_same_v<T, double>) {
+    return 8;
+  }
+  else {
+    return 16;
+  }
+#elif defined(__AVX__)
   if constexpr (std::is_same_v<T, double>) {
     return 4;
   }
@@ -77,13 +73,17 @@ DefaultSoAWidth() noexcept
 #endif
 }
 
+} // namespace TriangleSoA
+
 /**
  * @brief SoA (Structure of Arrays) layout for W triangles, enabling SIMD evaluation.
- * @details For T=float and W=4 on SSE4.1 machines, signedDistance() uses packed SSE
- * instructions to evaluate all W triangles simultaneously. Otherwise falls back to a
- * scalar loop over validCount triangles.
+ * @details signedDistance() dispatches to a packed intrinsics path for (T,W) combinations that
+ * fill a SIMD register exactly — SSE4.1 (float, W=4), AVX (float, W=8; double, W=4 or W=8), or
+ * AVX-512F (float, W=16; double, W=8) — evaluating all W triangles simultaneously. Any other
+ * (T,W) falls back to a scalar loop over validCount triangles.
  * @tparam T  Floating-point precision.
- * @tparam W  SIMD width: 4 for SSE (128-bit float), 8 for AVX (256-bit float).
+ * @tparam W  SIMD width: 4 for SSE (128-bit), 8 for AVX (256-bit float) or AVX-512F (512-bit
+ * double), 16 for AVX-512F (512-bit float).
  */
 template <class T, size_t W>
 struct TriangleSoAT

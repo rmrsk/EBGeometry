@@ -156,10 +156,13 @@ public:
 
   /**
    * @brief Full constructor. Takes the input mesh and creates the BVH.
+   * @details No default arguments: this is a low-level constructor, and callers working at this
+   * level must consciously choose a build strategy. Use Parser::readIntoPackedBVH for sensible
+   * defaults.
    * @param[in] a_mesh   Input mesh.
-   * @param[in] a_build  BVH build strategy. SAH is the default and recommended choice.
+   * @param[in] a_build  BVH build strategy. SAH (binned Surface Area Heuristic) is recommended.
    */
-  MeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build = BVH::Build::SAH);
+  MeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build);
 
   /**
    * @brief Destructor
@@ -217,19 +220,18 @@ protected:
 /**
  * @brief Signed distance function for a pure triangle mesh using SoA-grouped primitives
  * in a compact (linearized) BVH.
- * @details Triangles are packed into SoA groups of W triangles each
- * (TriangleSoAT<T,W>), enabling SIMD evaluation of up to W signed distances
- * simultaneously. W defaults to DefaultSoAWidth<T>(), which is 8 on AVX targets
- * (4 for double) and 4 otherwise.
+ * @details Triangles are packed into SoA groups of W triangles each (TriangleSoAT<T,W>),
+ * enabling SIMD evaluation of up to W signed distances simultaneously.
+ *
+ * No default arguments: this is a low-level constructor, and callers who excavate down to it
+ * must consciously choose K and W. Use Parser::readIntoTriangleBVH for sensible ISA-tuned
+ * defaults (BVH::DefaultBranchingRatio<T>() for K, TriangleSoA::DefaultWidth<T>() for W).
  * @tparam T    Floating-point precision type (float or double).
  * @tparam Meta Triangle metadata type.
- * @tparam K    BVH branching factor (number of children per internal node).
- * Defaults to BVH::DefaultBranchingRatio<T>() — the SIMD-optimal value for T on the current ISA
- * (K=16/float or K=8/double on AVX-512F; K=8/float or K=4/double on AVX; K=4 otherwise).
- * @tparam W    SoA width: number of triangles per SIMD group.
- * Defaults to DefaultSoAWidth<T>() (8/float or 4/double on AVX; 4 otherwise).
+ * @tparam K    BVH branching factor (number of children per internal node). Must be >= 2.
+ * @tparam W    SoA width: number of triangles per SIMD group. Must be > 0.
  */
-template <class T, class Meta, size_t K = BVH::DefaultBranchingRatio<T>(), size_t W = DefaultSoAWidth<T>()>
+template <class T, class Meta, size_t K, size_t W>
 class TriMeshSDF : public SignedDistanceFunction<T>
 {
   static_assert(std::is_floating_point_v<T>, "TriMeshSDF<T,Meta,K,W> requires a floating-point T");
@@ -264,33 +266,34 @@ public:
 
   /**
    * @brief Full constructor. Takes a DCEL mesh and creates the input triangles. Then creates the BVH.
-   * @param[in] a_mesh         DCEL mesh.
-   * @param[in] a_build        BVH build strategy. SAH (binned Surface Area Heuristic) is the default
-   * and recommended choice — it produces near-optimal traversal cost.
-   * TopDown (centroid median) is faster to build but yields deeper trees.
-   * @param[in] a_maxLeafSize  Maximum number of raw triangles per BVH leaf (this is a leaf-size
-   * bound on the pre-packing tree, not on the number of TriangleSoA groups). Each leaf's
-   * triangles become their own TriangleSoA group(s) during packing, with no batching across
-   * leaves, so a leaf smaller than W wastes some of its group's SIMD lanes on padding. This is
-   * an upper bound, not a target — the SAH/TopDown partitioner still splits down to tighter,
-   * more selective leaves wherever the geometry warrants it. Defaults to 2*W, allowing up to two
-   * SoA groups per leaf so tree quality isn't forced to sacrifice everything for exact
-   * one-group-per-leaf packing.
+   * @details No default arguments: this is a low-level constructor, and callers who excavate down
+   * to it must consciously choose every parameter. Use Parser::readIntoTriangleBVH for sensible
+   * defaults.
+   * @param[in] a_mesh          DCEL mesh.
+   * @param[in] a_build         BVH build strategy. SAH (binned Surface Area Heuristic) produces
+   * near-optimal traversal cost; TopDown (centroid median) is faster to build but yields deeper trees.
+   * @param[in] a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
+   * actual raw-triangle leaf-size bound used is a_maxLeafGroups * W. This bounds the pre-packing
+   * tree's leaf size, not the packed representation directly: each leaf's triangles become their
+   * own TriangleSoA group(s) during packing, with no batching across leaves, so a leaf smaller
+   * than W wastes some of its group's SIMD lanes on padding. It is an upper bound, not a target —
+   * the SAH/TopDown partitioner still splits down to tighter, more selective leaves wherever the
+   * geometry warrants it. Expressing this as a count of W-sized groups (rather than a raw triangle
+   * count) makes it impossible to accidentally pick a leaf size that isn't a multiple of W. Must
+   * be > 0.
    */
-  TriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
-             const BVH::Build             a_build       = BVH::Build::SAH,
-             const size_t                 a_maxLeafSize = 2 * W) noexcept;
+  TriMeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Build a_build, const size_t a_maxLeafGroups) noexcept;
 
   /**
    * @brief Full constructor. Takes the input triangles and creates the BVH.
-   * @param[in] a_triangles   Input triangle soup.
-   * @param[in] a_build       BVH build strategy (see the mesh-based constructor for details).
-   * @param[in] a_maxLeafSize Maximum number of raw triangles per BVH leaf (see the mesh-based
-   * constructor for the tree-quality/SIMD-occupancy trade-off). Defaults to 2*W.
+   * @param[in] a_triangles     Input triangle soup.
+   * @param[in] a_build         BVH build strategy (see the mesh-based constructor for details).
+   * @param[in] a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
+   * the mesh-based constructor for the tree-quality/SIMD-occupancy trade-off). Must be > 0.
    */
   TriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a_triangles,
-             const BVH::Build                         a_build       = BVH::Build::SAH,
-             const size_t                             a_maxLeafSize = 2 * W) noexcept;
+             const BVH::Build                         a_build,
+             const size_t                             a_maxLeafGroups) noexcept;
 
   /**
    * @brief Destructor

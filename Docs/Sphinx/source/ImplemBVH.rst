@@ -356,9 +356,10 @@ with a single SIMD register operation.
 SIMD-optimal K and W by ISA
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The helper ``BVH::defaultK<T>()`` returns the SIMD-optimal branching factor for the current
-compilation target.  The macro ``EBGEOMETRY_SOA_DEFAULT_WIDTH`` gives the matching SoA width.
-Both are used as template defaults for ``TriMeshSDF`` and ``Parser::readIntoTriangleBVH``.
+The helper ``BVH::DefaultBranchingRatio<T>()`` returns the SIMD-optimal branching factor for
+the current compilation target.  ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` gives the
+matching SoA width. Both are used as template defaults for ``TriMeshSDF`` and
+``Parser::readIntoTriangleBVH``.
 
 .. list-table:: Default K and W by ISA and precision
    :widths: 25 25 25 25
@@ -366,8 +367,8 @@ Both are used as template defaults for ``TriMeshSDF`` and ``Parser::readIntoTria
 
    * - ISA
      - Precision
-     - ``defaultK<T>()``
-     - ``EBGEOMETRY_SOA_DEFAULT_WIDTH``
+     - ``DefaultBranchingRatio<T>()``
+     - ``TriangleSoA::DefaultWidth<T>()``
    * - AVX-512F
      - ``float``
      - 16
@@ -375,7 +376,7 @@ Both are used as template defaults for ``TriMeshSDF`` and ``Parser::readIntoTria
    * - AVX-512F
      - ``double``
      - 8
-     - 16
+     - 8
    * - AVX (256-bit)
      - ``float``
      - 8
@@ -383,7 +384,7 @@ Both are used as template defaults for ``TriMeshSDF`` and ``Parser::readIntoTria
    * - AVX (256-bit)
      - ``double``
      - 4
-     - 8
+     - 4
    * - SSE4.1 / scalar
      - ``float`` or ``double``
      - 4

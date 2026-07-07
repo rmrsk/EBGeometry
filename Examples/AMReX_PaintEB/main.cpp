@@ -43,7 +43,7 @@ public:
       faces[i]->getMetaData() = 1.0 * i;
     }
 
-    m_sdf = std::make_shared<EBGeometry::MeshSDF<T, Meta, K>>(mesh);
+    m_sdf = std::make_shared<EBGeometry::MeshSDF<T, Meta, K>>(mesh, EBGeometry::BVH::Build::SAH);
   }
 
   /*!
