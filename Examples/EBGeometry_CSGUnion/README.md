@@ -1,19 +1,36 @@
 Examples/EBGeometry_CSGUnion
 ----------------------------
 
-This folder contains an example of building a CSG *union* of two different kinds
-of implicit function: a signed distance field read from a surface mesh, and an
-analytic sphere. Both derive from `ImplicitFunction<T>`, so they can be combined
-directly. They are merged with a `BVHUnion`, which places the objects in a
-bounding volume hierarchy so that closest-object queries traverse the tree
-instead of testing every object.
+This folder shows how to merge two objects of *different* kinds -- a triangulated surface mesh
+loaded from a file, and an analytic sphere -- into a single combined shape, using constructive
+solid geometry (CSG).
+
+A CSG union of two signed distance functions $f_1$ and $f_2$ is just their pointwise minimum,
+
+$$U(\mathbf{x}) = \min\bigl(f_1(\mathbf{x}), f_2(\mathbf{x})\bigr),$$
+
+which works regardless of how each function is itself represented: at every point, whichever
+object is closer (or, if the point is inside one of them, "more inside") determines the
+combined shape's distance there, so the result behaves exactly as if the mesh and the sphere had
+been merged into one object. This is the same idea behind mesh-editing tools' boolean
+"union" operation, just expressed as a scalar field instead of new mesh geometry.
+
+Evaluating the union this way requires checking both objects at every query point, so merging
+many objects would mean checking all of them. This example bounds each object with a box and
+places those boxes in a bounding volume hierarchy, so that (with more than a couple of objects) a
+query only has to check the ones whose bounding box could plausibly be closer than the best
+answer found so far.
 
 Building
 --------
 
 This example is standalone and can be built in three ways. Each needs the path
 to the EBGeometry root -- the directory that contains `EBGeometry.hpp` -- which
-is two levels up from this folder (`../..`) when building in place.
+is two levels up from this folder (`../..`) when building in place. See
+[Direct compilation](https://rmrsk.github.io/EBGeometry/BuildingDirectCompile.html),
+[Building with GNU Make](https://rmrsk.github.io/EBGeometry/BuildingGNUMake.html), and
+[Building with CMake](https://rmrsk.github.io/EBGeometry/BuildingCMake.html) in the user
+documentation for more detail on each approach.
 
 **CMake**
 
@@ -49,4 +66,11 @@ Run from this directory so the default mesh path resolves:
 
 With no argument the example loads `cow.obj` from the
 `common-3d-test-models` submodule, so make sure it is checked out
-(`git submodule update --init`).
+(`git submodule update --init`; see
+[Introduction](https://rmrsk.github.io/EBGeometry/Introduction.html) for details). The sphere is
+sized and centered automatically from the mesh's bounding box, so any watertight, triangulated
+STL/PLY/OBJ/VTK file works.
+
+The program prints the chosen sphere radius and the mesh's bounding box, then evaluates the
+combined (unioned) shape at two points: the mesh's center, which should read negative (inside
+the combined shape), and a point far outside both objects, which should read positive.

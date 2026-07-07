@@ -1,23 +1,36 @@
 Examples/EBGeometry_PackedSpheres
 ---------------------------------
 
-This folder contains a basic example of creating multi-object scenes using EBGeometry.
-This example creates a scene consisting of packed spheres (defined by analytic functions), and the scene is created from the union of these spheres.
-Two unions are defined:
+This folder shows how evaluation cost scales when a scene contains many repeated objects, using
+a densely packed lattice of identical spheres (80x80x80 = 512,000 of them) as an example.
 
-* A standard union of objects that looks through every object.
-* A union that uses BVHs for finding the closest object(s).
+The example compares three ways of evaluating "what is the signed distance to the nearest sphere"
+at a query point:
 
-The scene is defined as an array of N^3 spheres.
-This example program illustrates the benefits of using BVHs for closest-object queries.
-Rather than computing the distance to all spheres, the BVH allows traversal and a dramatic reduction in algorithmic complexity.
+* A plain union that checks the distance to *every* sphere in the scene and keeps the smallest
+  (the same pointwise-minimum idea used to merge any two signed distance functions), which scales
+  linearly with the number of spheres -- doubling the sphere count roughly doubles the query cost.
+* A union accelerated with a bounding volume hierarchy, which organizes the spheres' bounding
+  boxes into a tree so a query only has to check the spheres near it, not all of them.
+* A representation that exploits the fact that every sphere is an identical copy repeated on a
+  regular grid: a query point can be mapped directly to its containing cell in constant time,
+  without searching a tree at all, since the grid spacing already tells you exactly which copy
+  is nearest.
+
+Because all three describe the same scene, they must agree exactly on the distance at every
+query point; the example uses this to check correctness before reporting how much faster the two
+accelerated representations are than the naive one.
 
 Building
 --------
 
 This example is standalone and can be built in three ways. Each needs the path
 to the EBGeometry root -- the directory that contains `EBGeometry.hpp` -- which
-is two levels up from this folder (`../..`) when building in place.
+is two levels up from this folder (`../..`) when building in place. See
+[Direct compilation](https://rmrsk.github.io/EBGeometry/BuildingDirectCompile.html),
+[Building with GNU Make](https://rmrsk.github.io/EBGeometry/BuildingGNUMake.html), and
+[Building with CMake](https://rmrsk.github.io/EBGeometry/BuildingCMake.html) in the user
+documentation for more detail on each approach.
 
 **CMake**
 
@@ -48,3 +61,11 @@ Running
 
     ./EBGeometry_PackedSpheres.ex
 
+This example takes no arguments; it builds its own scene. It prints the number of spheres being
+partitioned, then the average time per query (over 1000 random points in the scene's bounding
+box) for each of the three representations, followed by two ratios: the speedup of the
+bounding-volume-hierarchy union over the naive one, and how much slower that general-purpose
+union is compared to the grid-based representation that was built specifically for this scene's
+regular structure. Expect the naive union to be markedly slower than the other two, and the
+grid-based representation to be the fastest, since it has the most problem-specific structure to
+exploit.
