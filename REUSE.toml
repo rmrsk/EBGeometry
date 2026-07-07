@@ -21,6 +21,7 @@ path = [
   ".pre-commit-config.yaml",
   "CMakeLists.txt",
   "CMakePresets.json",
+  "CLAUDE.md",
   "Scripts/CheckDocs.py",
   "Copyright.txt",
   "README.md",
