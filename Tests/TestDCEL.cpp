@@ -63,6 +63,183 @@ buildTetrahedron()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// VertexT tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+using TestVertex = VertexT<double, DefaultMetaData>;
+using TestFace   = FaceT<double, DefaultMetaData>;
+using TestEdge   = EdgeT<double, DefaultMetaData>;
+
+TEST_CASE("VertexT: default construction leaves defined, zeroed state", "[DCEL][Vertex]")
+{
+  TestVertex v;
+
+  REQUIRE(v.getPosition() == Vec3T<double>::zeros());
+  REQUIRE(v.getNormal() == Vec3T<double>::zeros());
+  REQUIRE(v.getOutgoingEdge() == nullptr);
+  REQUIRE(v.getFaces().empty());
+  REQUIRE(v.getMetaData() == 0);
+}
+
+TEST_CASE("VertexT: position-only and position+normal constructors", "[DCEL][Vertex]")
+{
+  const Vec3T<double> pos(1, 2, 3);
+  const Vec3T<double> normal(0, 0, 1);
+
+  TestVertex vPosOnly(pos);
+  REQUIRE(vPosOnly.getPosition() == pos);
+  REQUIRE(vPosOnly.getNormal() == Vec3T<double>::zeros());
+  REQUIRE(vPosOnly.getFaces().empty());
+
+  TestVertex vBoth(pos, normal);
+  REQUIRE(vBoth.getPosition() == pos);
+  REQUIRE(vBoth.getNormal() == normal);
+}
+
+TEST_CASE("VertexT: setPosition, setNormal, setEdge, define", "[DCEL][Vertex]")
+{
+  TestVertex v;
+  auto       edge = std::make_shared<TestEdge>();
+
+  v.setPosition(Vec3T<double>(4, 5, 6));
+  REQUIRE(v.getPosition() == Vec3T<double>(4, 5, 6));
+
+  v.setNormal(Vec3T<double>(1, 0, 0));
+  REQUIRE(v.getNormal() == Vec3T<double>(1, 0, 0));
+
+  v.setEdge(edge);
+  REQUIRE(v.getOutgoingEdge() == edge);
+
+  // Setting the edge pointer to nullptr is explicitly valid.
+  v.setEdge(nullptr);
+  REQUIRE(v.getOutgoingEdge() == nullptr);
+
+  v.define(Vec3T<double>(7, 8, 9), edge, Vec3T<double>(0, 1, 0));
+  REQUIRE(v.getPosition() == Vec3T<double>(7, 8, 9));
+  REQUIRE(v.getOutgoingEdge() == edge);
+  REQUIRE(v.getNormal() == Vec3T<double>(0, 1, 0));
+}
+
+TEST_CASE("VertexT: addFace appends to the face list", "[DCEL][Vertex]")
+{
+  TestVertex v;
+  auto       face = std::make_shared<TestFace>();
+
+  REQUIRE(v.getFaces().empty());
+  v.addFace(face);
+  REQUIRE(v.getFaces().size() == 1);
+  REQUIRE(v.getFaces()[0] == face);
+}
+
+TEST_CASE("VertexT: normalizeNormalVector produces a unit vector", "[DCEL][Vertex]")
+{
+  TestVertex v;
+  v.setNormal(Vec3T<double>(3, 0, 0));
+  v.normalizeNormalVector();
+
+  REQUIRE_THAT(v.getNormal().length(), WithinAbs(1.0, 1.e-12));
+  REQUIRE_THAT(v.getNormal()[0], WithinAbs(1.0, 1.e-12));
+}
+
+TEST_CASE("VertexT: flipNormal negates the normal vector", "[DCEL][Vertex]")
+{
+  TestVertex v(Vec3T<double>::zeros(), Vec3T<double>(1, 0, 0));
+  v.flipNormal();
+
+  REQUIRE(v.getNormal() == Vec3T<double>(-1, 0, 0));
+}
+
+TEST_CASE("VertexT: signedDistance and unsignedDistance2", "[DCEL][Vertex]")
+{
+  TestVertex v(Vec3T<double>(0, 0, 0), Vec3T<double>(0, 0, 1));
+
+  // Point along the outward normal: positive distance.
+  REQUIRE_THAT(v.signedDistance(Vec3T<double>(0, 0, 2)), WithinRel(2.0));
+
+  // Point against the outward normal: negative distance.
+  REQUIRE_THAT(v.signedDistance(Vec3T<double>(0, 0, -2)), WithinRel(-2.0));
+
+  REQUIRE_THAT(v.unsignedDistance2(Vec3T<double>(3, 0, 0)), WithinRel(9.0));
+}
+
+TEST_CASE("VertexT: getMetaData reads and writes", "[DCEL][Vertex]")
+{
+  TestVertex v;
+  REQUIRE(v.getMetaData() == 0);
+
+  v.getMetaData() = 5;
+  REQUIRE(v.getMetaData() == 5);
+}
+
+TEST_CASE("VertexT: copy construction only copies position, normal, and outgoing edge", "[DCEL][Vertex]")
+{
+  auto face = std::make_shared<TestFace>();
+  auto edge = std::make_shared<TestEdge>();
+
+  TestVertex src(Vec3T<double>(1, 2, 3), Vec3T<double>(0, 0, 1));
+  src.setEdge(edge);
+  src.addFace(face);
+  src.getMetaData() = 42;
+
+  TestVertex copy(src);
+
+  REQUIRE(copy.getPosition() == src.getPosition());
+  REQUIRE(copy.getNormal() == src.getNormal());
+  REQUIRE(copy.getOutgoingEdge() == edge);
+  REQUIRE(copy.getFaces().empty());
+  REQUIRE(copy.getMetaData() == 0);
+}
+
+TEST_CASE("VertexT: copy assignment has the same narrow semantics as copy construction", "[DCEL][Vertex]")
+{
+  auto face = std::make_shared<TestFace>();
+  auto edge = std::make_shared<TestEdge>();
+
+  TestVertex src(Vec3T<double>(1, 2, 3), Vec3T<double>(0, 0, 1));
+  src.setEdge(edge);
+  src.addFace(face);
+  src.getMetaData() = 42;
+
+  TestVertex dst;
+  dst = src;
+
+  REQUIRE(dst.getPosition() == src.getPosition());
+  REQUIRE(dst.getNormal() == src.getNormal());
+  REQUIRE(dst.getOutgoingEdge() == edge);
+  REQUIRE(dst.getFaces().empty());
+  REQUIRE(dst.getMetaData() == 0);
+}
+
+TEST_CASE("VertexT: move construction and move assignment transfer the entire state", "[DCEL][Vertex]")
+{
+  auto face = std::make_shared<TestFace>();
+  auto edge = std::make_shared<TestEdge>();
+
+  TestVertex moveCtorSrc(Vec3T<double>(1, 2, 3), Vec3T<double>(0, 0, 1));
+  moveCtorSrc.setEdge(edge);
+  moveCtorSrc.addFace(face);
+  moveCtorSrc.getMetaData() = 42;
+
+  TestVertex moved(std::move(moveCtorSrc));
+  REQUIRE(moved.getPosition() == Vec3T<double>(1, 2, 3));
+  REQUIRE(moved.getOutgoingEdge() == edge);
+  REQUIRE(moved.getFaces().size() == 1);
+  REQUIRE(moved.getMetaData() == 42);
+
+  TestVertex moveAssignSrc(Vec3T<double>(4, 5, 6), Vec3T<double>(1, 0, 0));
+  moveAssignSrc.setEdge(edge);
+  moveAssignSrc.addFace(face);
+  moveAssignSrc.getMetaData() = 7;
+
+  TestVertex moveAssignDst;
+  moveAssignDst = std::move(moveAssignSrc);
+  REQUIRE(moveAssignDst.getPosition() == Vec3T<double>(4, 5, 6));
+  REQUIRE(moveAssignDst.getOutgoingEdge() == edge);
+  REQUIRE(moveAssignDst.getFaces().size() == 1);
+  REQUIRE(moveAssignDst.getMetaData() == 7);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Structural tests
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -86,10 +86,12 @@ public:
 
   /**
    * @brief Default constructor.
-   * @details This initializes the position and the normal vector to zero
-   * vectors, and the polygon face list is empty
+   * @details Defaulted: the position and normal vectors zero-initialize via Vec3T's own default
+   * constructor, the outgoing edge pointer defaults to null, the face list defaults to empty, and
+   * the meta-data value-initializes (see m_metaData). Not marked noexcept since Meta is an
+   * unconstrained template parameter whose default constructor is not guaranteed to be noexcept.
    */
-  VertexT();
+  VertexT() = default;
 
   /**
    * @brief Partial constructor.
@@ -109,17 +111,54 @@ public:
   VertexT(const Vec3& a_position, const Vec3& a_normal);
 
   /**
-   * @brief Full copy constructor
-   * @param[in] a_otherVertex Other vertex
-   * @details This copies the position, normal vector, and outgoing edge pointer
-   * from the other vertex. The polygon face list.
+   * @brief Copy constructor.
+   * @param[in] a_otherVertex Other vertex.
+   * @details Copies only the position, normal vector, and outgoing edge pointer from the other
+   * vertex. The polygon face list (m_faces) and meta-data (m_metaData) are deliberately NOT
+   * copied -- they default-construct empty/default instead. Rationale: m_faces and m_outgoingEdge
+   * are back-references into a specific mesh's topology (the faces/edges they point to still
+   * reference the original vertex, not this copy), so copying them wholesale would not be
+   * topologically meaningful; only the geometric value (position, normal) survives a copy.
+   * operator=(const Vertex&) has identical semantics.
    */
   VertexT(const Vertex& a_otherVertex);
 
   /**
+   * @brief Move constructor.
+   * @details Unlike the copy constructor, this transfers the entire state (including m_faces and
+   * m_metaData) from a_otherVertex, since moving relocates a single object's identity rather than
+   * grafting a copy into a different mesh's topology. Defaulted (memberwise move) rather than
+   * hand-written: explicitly defaulting is required here since the presence of a user-declared
+   * copy constructor would otherwise suppress the implicitly-generated move constructor. Not
+   * marked noexcept since Meta is an unconstrained template parameter whose move constructor is
+   * not guaranteed to be noexcept.
+   * @param[in, out] a_otherVertex Other vertex.
+   */
+  VertexT(Vertex&& a_otherVertex) = default;
+
+  /**
    * @brief Destructor (does nothing)
    */
-  virtual ~VertexT();
+  ~VertexT() = default;
+
+  /**
+   * @brief Copy assignment operator.
+   * @details Has the same narrow-copy semantics as the copy constructor; see its documentation.
+   * @param[in] a_otherVertex Other vertex.
+   * @return Reference to (*this).
+   */
+  Vertex&
+  operator=(const Vertex& a_otherVertex);
+
+  /**
+   * @brief Move assignment operator.
+   * @details Has the same full-state-transfer semantics as the move constructor (defaulted
+   * memberwise move; see its documentation for why this must be defaulted explicitly).
+   * @param[in, out] a_otherVertex Other vertex.
+   * @return Reference to (*this).
+   */
+  Vertex&
+  operator=(Vertex&& a_otherVertex) = default;
 
   /**
    * @brief Define function
@@ -161,6 +200,8 @@ public:
 
   /**
    * @brief Normalize the normal vector, ensuring its length is 1
+   * @details The current normal must not be (near-)zero-length; a zero-length normal cannot be
+   * normalized and is left unchanged (a no-op) rather than dividing by zero.
    */
   inline void
   normalizeNormalVector() noexcept;
@@ -207,7 +248,7 @@ public:
    * @brief Flip the normal vector
    */
   inline void
-  flip() noexcept;
+  flipNormal() noexcept;
 
   /**
    * @brief Return modifiable vertex position.
@@ -315,14 +356,19 @@ protected:
   Vec3 m_normal;
 
   /**
-   * @brief List of faces connected to this vertex (these must be "manually" added)
+   * @brief List of faces connected to this vertex.
+   * @details These must be added by addFace(), and is used when computing the vertex
+   * normal vector.
    */
   std::vector<FacePtr> m_faces;
 
   /**
    * @brief Meta-data for this vertex
+   * @details Value-initialized so that every constructor leaves it in a defined state: for a
+   * fundamental Meta type (e.g. short, int), a member with no initializer and no explicit
+   * mention in a constructor's member-initializer list is left indeterminate, not zero.
    */
-  Meta m_metaData;
+  Meta m_metaData{};
 };
 } // namespace DCEL
 

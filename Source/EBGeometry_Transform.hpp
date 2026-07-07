@@ -154,11 +154,13 @@ public:
 
   /**
    * @brief Copy constructor.
+   * @param[in] a_other Other ComplementIF.
    */
   ComplementIF(const ComplementIF& a_other) noexcept = default;
 
   /**
    * @brief Move constructor.
+   * @param[in, out] a_other Other ComplementIF.
    */
   ComplementIF(ComplementIF&& a_other) noexcept = default;
 
@@ -175,12 +177,16 @@ public:
 
   /**
    * @brief Copy assignment operator.
+   * @param[in] a_other Other ComplementIF.
+   * @return Reference to (*this).
    */
   ComplementIF&
   operator=(const ComplementIF& a_other) noexcept = default;
 
   /**
    * @brief Move assignment operator.
+   * @param[in, out] a_other Other ComplementIF.
+   * @return Reference to (*this).
    */
   ComplementIF&
   operator=(ComplementIF&& a_other) noexcept = default;
@@ -217,11 +223,13 @@ public:
 
   /**
    * @brief Copy constructor.
+   * @param[in] a_other Other TranslateIF.
    */
   TranslateIF(const TranslateIF& a_other) noexcept = default;
 
   /**
    * @brief Move constructor.
+   * @param[in, out] a_other Other TranslateIF.
    */
   TranslateIF(TranslateIF&& a_other) noexcept = default;
 
@@ -239,12 +247,16 @@ public:
 
   /**
    * @brief Copy assignment operator.
+   * @param[in] a_other Other TranslateIF.
+   * @return Reference to (*this).
    */
   TranslateIF&
   operator=(const TranslateIF& a_other) noexcept = default;
 
   /**
    * @brief Move assignment operator.
+   * @param[in, out] a_other Other TranslateIF.
+   * @return Reference to (*this).
    */
   TranslateIF&
   operator=(TranslateIF&& a_other) noexcept = default;
@@ -286,11 +298,13 @@ public:
 
   /**
    * @brief Copy constructor.
+   * @param[in] a_other Other RotateIF.
    */
   RotateIF(const RotateIF& a_other) noexcept = default;
 
   /**
    * @brief Move constructor.
+   * @param[in, out] a_other Other RotateIF.
    */
   RotateIF(RotateIF&& a_other) noexcept = default;
 
@@ -311,12 +325,16 @@ public:
 
   /**
    * @brief Copy assignment operator.
+   * @param[in] a_other Other RotateIF.
+   * @return Reference to (*this).
    */
   RotateIF&
   operator=(const RotateIF& a_other) noexcept = default;
 
   /**
    * @brief Move assignment operator.
+   * @param[in, out] a_other Other RotateIF.
+   * @return Reference to (*this).
    */
   RotateIF&
   operator=(RotateIF&& a_other) noexcept = default;
@@ -373,11 +391,13 @@ public:
 
   /**
    * @brief Copy constructor.
+   * @param[in] a_other Other OffsetIF.
    */
   OffsetIF(const OffsetIF& a_other) noexcept = default;
 
   /**
    * @brief Move constructor.
+   * @param[in, out] a_other Other OffsetIF.
    */
   OffsetIF(OffsetIF&& a_other) noexcept = default;
 
@@ -395,12 +415,16 @@ public:
 
   /**
    * @brief Copy assignment operator.
+   * @param[in] a_other Other OffsetIF.
+   * @return Reference to (*this).
    */
   OffsetIF&
   operator=(const OffsetIF& a_other) noexcept = default;
 
   /**
    * @brief Move assignment operator.
+   * @param[in, out] a_other Other OffsetIF.
+   * @return Reference to (*this).
    */
   OffsetIF&
   operator=(OffsetIF&& a_other) noexcept = default;
@@ -442,11 +466,13 @@ public:
 
   /**
    * @brief Copy constructor.
+   * @param[in] a_other Other ScaleIF.
    */
   ScaleIF(const ScaleIF& a_other) noexcept = default;
 
   /**
    * @brief Move constructor.
+   * @param[in, out] a_other Other ScaleIF.
    */
   ScaleIF(ScaleIF&& a_other) noexcept = default;
 
@@ -464,12 +490,16 @@ public:
 
   /**
    * @brief Copy assignment operator.
+   * @param[in] a_other Other ScaleIF.
+   * @return Reference to (*this).
    */
   ScaleIF&
   operator=(const ScaleIF& a_other) noexcept = default;
 
   /**
    * @brief Move assignment operator.
+   * @param[in, out] a_other Other ScaleIF.
+   * @return Reference to (*this).
    */
   ScaleIF&
   operator=(ScaleIF&& a_other) noexcept = default;
@@ -511,11 +541,13 @@ public:
 
   /**
    * @brief Copy constructor.
+   * @param[in] a_other Other AnnularIF.
    */
   AnnularIF(const AnnularIF& a_other) noexcept = default;
 
   /**
    * @brief Move constructor.
+   * @param[in, out] a_other Other AnnularIF.
    */
   AnnularIF(AnnularIF&& a_other) noexcept = default;
 
@@ -533,12 +565,16 @@ public:
 
   /**
    * @brief Copy assignment operator.
+   * @param[in] a_other Other AnnularIF.
+   * @return Reference to (*this).
    */
   AnnularIF&
   operator=(const AnnularIF& a_other) noexcept = default;
 
   /**
    * @brief Move assignment operator.
+   * @param[in, out] a_other Other AnnularIF.
+   * @return Reference to (*this).
    */
   AnnularIF&
   operator=(AnnularIF&& a_other) noexcept = default;
@@ -584,11 +620,13 @@ public:
 
   /**
    * @brief Copy constructor.
+   * @param[in] a_other Other BlurIF.
    */
   BlurIF(const BlurIF& a_other) noexcept = default;
 
   /**
    * @brief Move constructor.
+   * @param[in, out] a_other Other BlurIF.
    */
   BlurIF(BlurIF&& a_other) noexcept = default;
 
@@ -609,12 +647,16 @@ public:
 
   /**
    * @brief Copy assignment operator.
+   * @param[in] a_other Other BlurIF.
+   * @return Reference to (*this).
    */
   BlurIF&
   operator=(const BlurIF& a_other) noexcept = default;
 
   /**
    * @brief Move assignment operator.
+   * @param[in, out] a_other Other BlurIF.
+   * @return Reference to (*this).
    */
   BlurIF&
   operator=(BlurIF&& a_other) noexcept = default;
@@ -664,11 +706,13 @@ public:
 
   /**
    * @brief Copy constructor.
+   * @param[in] a_other Other MollifyIF.
    */
   MollifyIF(const MollifyIF& a_other) = default;
 
   /**
    * @brief Move constructor.
+   * @param[in, out] a_other Other MollifyIF.
    */
   MollifyIF(MollifyIF&& a_other) noexcept = default;
 
@@ -691,12 +735,16 @@ public:
 
   /**
    * @brief Copy assignment operator.
+   * @param[in] a_other Other MollifyIF.
+   * @return Reference to (*this).
    */
   MollifyIF&
   operator=(const MollifyIF& a_other) = default;
 
   /**
    * @brief Move assignment operator.
+   * @param[in, out] a_other Other MollifyIF.
+   * @return Reference to (*this).
    */
   MollifyIF&
   operator=(MollifyIF&& a_other) noexcept = default;
@@ -746,11 +794,13 @@ public:
 
   /**
    * @brief Copy constructor.
+   * @param[in] a_other Other ElongateIF.
    */
   ElongateIF(const ElongateIF& a_other) noexcept = default;
 
   /**
    * @brief Move constructor.
+   * @param[in, out] a_other Other ElongateIF.
    */
   ElongateIF(ElongateIF&& a_other) noexcept = default;
 
@@ -768,12 +818,16 @@ public:
 
   /**
    * @brief Copy assignment operator.
+   * @param[in] a_other Other ElongateIF.
+   * @return Reference to (*this).
    */
   ElongateIF&
   operator=(const ElongateIF& a_other) noexcept = default;
 
   /**
    * @brief Move assignment operator.
+   * @param[in, out] a_other Other ElongateIF.
+   * @return Reference to (*this).
    */
   ElongateIF&
   operator=(ElongateIF&& a_other) noexcept = default;
@@ -815,11 +869,13 @@ public:
 
   /**
    * @brief Copy constructor.
+   * @param[in] a_other Other ReflectIF.
    */
   ReflectIF(const ReflectIF& a_other) noexcept = default;
 
   /**
    * @brief Move constructor.
+   * @param[in, out] a_other Other ReflectIF.
    */
   ReflectIF(ReflectIF&& a_other) noexcept = default;
 
@@ -837,12 +893,16 @@ public:
 
   /**
    * @brief Copy assignment operator.
+   * @param[in] a_other Other ReflectIF.
+   * @return Reference to (*this).
    */
   ReflectIF&
   operator=(const ReflectIF& a_other) noexcept = default;
 
   /**
    * @brief Move assignment operator.
+   * @param[in, out] a_other Other ReflectIF.
+   * @return Reference to (*this).
    */
   ReflectIF&
   operator=(ReflectIF&& a_other) noexcept = default;

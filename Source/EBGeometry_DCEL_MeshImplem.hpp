@@ -275,7 +275,7 @@ inline void
 MeshT<T, Meta>::flipVertices() noexcept
 {
   for (auto& v : m_vertices) {
-    v->flip();
+    v->flipNormal();
   }
 }
 
