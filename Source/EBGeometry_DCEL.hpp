@@ -14,7 +14,7 @@
 namespace EBGeometry {
 
 /**
- * @namespace DCEL
+ * @namespace EBGeometry::DCEL
  * @brief Namespace containing various double-connected edge list (DCEL)
  * functionality.
  * @details DCEL is short for doubly-connected edge list, and is data
@@ -28,7 +28,7 @@ namespace DCEL {
 using DefaultMetaData = short;
 
 /**
- * @brief Vertex class.
+ * @brief Vertex class for navigating a DCEL mesh.
  * @tparam T    Floating-point precision type.
  * @tparam Meta User-defined metadata type.
  */
@@ -36,7 +36,7 @@ template <class T, class Meta = DefaultMetaData>
 class VertexT;
 
 /**
- * @brief Edge class.
+ * @brief Half-edge class for navigating a DCEL mesh.
  * @tparam T    Floating-point precision type.
  * @tparam Meta User-defined metadata type.
  */
@@ -44,7 +44,7 @@ template <class T, class Meta = DefaultMetaData>
 class EdgeT;
 
 /**
- * @brief Face class
+ * @brief Face class for navigating a DCEL mesh.
  * @tparam T    Floating-point precision type.
  * @tparam Meta User-defined metadata type.
  */
@@ -52,7 +52,7 @@ template <class T, class Meta = DefaultMetaData>
 class FaceT;
 
 /**
- * @brief Mesh class
+ * @brief DCEL mesh class - stores a doubly-connected edge mesh.
  * @tparam T    Floating-point precision type.
  * @tparam Meta User-defined metadata type.
  */
@@ -60,7 +60,7 @@ template <class T, class Meta = DefaultMetaData>
 class MeshT;
 
 /**
- * @brief Edge iterator class
+ * @brief Half-edge iterator class for navigating the half edge mesh.
  * @tparam T    Floating-point precision type.
  * @tparam Meta User-defined metadata type.
  */
@@ -68,7 +68,7 @@ template <class T, class Meta = DefaultMetaData>
 class EdgeIteratorT;
 
 /**
- * @brief Enum for putting some logic into how vertex normal weights are calculated
+ * @brief Various supported vertex normal vector calculation methods.
  */
 enum class VertexNormalWeight
 {
