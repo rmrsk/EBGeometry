@@ -16,6 +16,7 @@
 
 // Our includes
 #include "EBGeometry_ImplicitFunction.hpp"
+#include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
 
@@ -65,8 +66,9 @@ public:
    * @details Approximates the gradient of the signed distance function at a_point using
    * step size a_delta, then normalizes the result.
    * @param[in] a_point 3D query point.
-   * @param[in] a_delta Finite-difference step size.
-   * @return Outward unit normal vector at a_point.
+   * @param[in] a_delta Finite-difference step size. Must be strictly positive.
+   * @return Outward unit normal vector at a_point. Undefined if the finite-difference
+   * gradient is exactly zero (e.g. a_point sits on a local extremum of signedDistance).
    */
   [[nodiscard]] inline virtual Vec3T<T>
   normal(const Vec3T<T>& a_point, const T& a_delta) const noexcept;

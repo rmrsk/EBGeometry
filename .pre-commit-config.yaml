@@ -38,7 +38,7 @@ repos:
 
       - id: clang-tidy
         name: Static analysis (clang-tidy)
-        entry: bash clang-tidy-check.sh
+        entry: bash Scripts/clang-tidy-check.sh
         language: system
         pass_filenames: false
         files: \.(hpp|cpp)$
@@ -46,7 +46,7 @@ repos:
 
       - id: build-tests
         name: Compile unit tests (debug preset)
-        entry: bash build-tests-check.sh
+        entry: bash Scripts/build-tests-check.sh
         language: system
         pass_filenames: false
         files: \.(hpp|cpp)$

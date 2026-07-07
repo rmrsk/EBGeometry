@@ -35,12 +35,30 @@
 
 namespace EBGeometry {
 
+/**
+ * @brief Internal helpers shared by MeshSDF and TriMeshSDF
+ */
+namespace MeshDistanceFunctionsDetail {
+
+/**
+ * @brief Build a tree BVH from a DCEL mesh.
+ * @details Internal helper; not part of the public API.
+ * @tparam T    Floating-point precision type.
+ * @tparam Meta Face and vertex metadata type.
+ * @tparam BV   Bounding-volume type (e.g. AABBT<T>).
+ * @tparam K    BVH branching factor (number of children per node).
+ * @param[in] a_dcelMesh Input DCEL mesh.
+ * @param[in] a_build    Build strategy (TopDown, Morton, Nested, or SAH). SAH is the default.
+ * @return Shared pointer to the root of the resulting tree BVH.
+ */
 template <class T, class Meta, class BV, size_t K>
-std::shared_ptr<EBGeometry::BVH::TreeBVH<T, EBGeometry::DCEL::FaceT<T, Meta>, BV, K>>
-DCEL::buildTreeBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh, const BVH::Build a_build)
+[[nodiscard]] std::shared_ptr<EBGeometry::BVH::TreeBVH<T, DCEL::FaceT<T, Meta>, BV, K>>
+buildDCELTreeBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh,
+                 const BVH::Build                                         a_build = BVH::Build::SAH)
 {
-  static_assert(std::is_floating_point_v<T>, "DCEL::buildTreeBVH requires a floating-point type T");
-  static_assert(K >= 2, "DCEL::buildTreeBVH: branching factor K must be at least 2");
+  static_assert(std::is_floating_point_v<T>,
+                "MeshDistanceFunctionsDetail::buildDCELTreeBVH requires a floating-point type T");
+  static_assert(K >= 2, "MeshDistanceFunctionsDetail::buildDCELTreeBVH: branching factor K must be at least 2");
 
   EBGEOMETRY_EXPECT(a_dcelMesh != nullptr);
   EBGEOMETRY_EXPECT(!a_dcelMesh->getFaces().empty());
@@ -87,7 +105,8 @@ DCEL::buildTreeBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dc
     break;
   }
   default: {
-    std::cerr << "EBGeometry::DCEL::buildTreeBVH - unsupported build method requested" << '\n';
+    std::cerr << "EBGeometry::MeshDistanceFunctionsDetail::buildDCELTreeBVH - unsupported build method requested"
+              << '\n';
 
     break;
   }
@@ -98,27 +117,28 @@ DCEL::buildTreeBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dc
 
 /**
  * @brief Build a tree BVH from a flat triangle soup.
- * @details Creates one BV per triangle from its vertex positions, then
- * builds a K-ary tree BVH according to a_build.  For TopDown builds the
+ * @details Internal helper; not part of the public API. Creates one BV per triangle from its
+ * vertex positions, then builds a K-ary tree BVH according to a_build.  For TopDown builds the
  * tree is partitioned until each leaf holds at most a_maxLeafSize triangles.
  * @tparam T    Floating-point precision type.
  * @tparam Meta Triangle metadata type.
  * @tparam BV   Bounding-volume type (e.g. AABBT<T>).
  * @tparam K    BVH branching factor (number of children per internal node).
  * @param[in] a_triangles   Triangle soup to build the BVH over.
- * @param[in] a_build       Build strategy (TopDown, Morton, Nested, or SAH). SAH is the default.
+ * @param[in] a_build       Build strategy (TopDown, Morton, Nested, or SAH).
  * @param[in] a_maxLeafSize Maximum number of triangles per BVH leaf node
  * (ignored for Morton and Nested builds).
  * @return Shared pointer to the root of the resulting tree BVH.
  */
 template <class T, class Meta, class BV, size_t K>
 std::shared_ptr<EBGeometry::BVH::TreeBVH<T, Triangle<T, Meta>, BV, K>>
-buildTriMeshTreeBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Meta>>>& a_triangles,
-                    const BVH::Build                                                   a_build       = BVH::Build::SAH,
-                    const size_t                                                       a_maxLeafSize = 4U)
+buildTriTreeBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Meta>>>& a_triangles,
+                const BVH::Build                                                   a_build,
+                const size_t                                                       a_maxLeafSize)
 {
-  static_assert(std::is_floating_point_v<T>, "buildTriMeshTreeBVH requires a floating-point type T");
-  static_assert(K >= 2, "buildTriMeshTreeBVH: branching factor K must be at least 2");
+  static_assert(std::is_floating_point_v<T>,
+                "MeshDistanceFunctionsDetail::buildTriTreeBVH requires a floating-point type T");
+  static_assert(K >= 2, "MeshDistanceFunctionsDetail::buildTriTreeBVH: branching factor K must be at least 2");
 
   EBGEOMETRY_EXPECT(!a_triangles.empty());
 
@@ -175,7 +195,8 @@ buildTriMeshTreeBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Me
     break;
   }
   default: {
-    std::cerr << "EBGeometry::buildTriMeshTreeBVH - unsupported build method requested" << '\n';
+    std::cerr << "EBGeometry::MeshDistanceFunctionsDetail::buildTriTreeBVH - unsupported build method requested"
+              << '\n';
 
     break;
   }
@@ -183,6 +204,8 @@ buildTriMeshTreeBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Me
 
   return bvh;
 }
+
+} // namespace MeshDistanceFunctionsDetail
 
 template <class T, class Meta>
 FlatMeshSDF<T, Meta>::FlatMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
@@ -229,7 +252,7 @@ MeshSDF<T, Meta, K>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Bui
   EBGEOMETRY_EXPECT(a_mesh != nullptr);
 
   using AABB     = EBGeometry::BoundingVolumes::AABBT<T>;
-  const auto bvh = EBGeometry::DCEL::buildTreeBVH<T, Meta, AABB, K>(a_mesh, a_build);
+  const auto bvh = EBGeometry::MeshDistanceFunctionsDetail::buildDCELTreeBVH<T, Meta, AABB, K>(a_mesh, a_build);
 
   m_bvh = bvh->pack();
 }
@@ -257,7 +280,7 @@ MeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
     }
   };
 
-  const BVH::Visiter<Node, T> visiter = [&minDist](const Node& a_node, const T& a_bvDist) noexcept -> bool {
+  const BVH::Visiter<Node, T> visiter = [&minDist](const Node&, const T& a_bvDist) noexcept -> bool {
     return a_bvDist <= std::abs(minDist);
   };
 
@@ -297,7 +320,7 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
   // Shortest distance so far.
   BVHMeta shortestDistanceSoFar = std::numeric_limits<T>::max();
 
-  const EBGeometry::BVH::Visiter<Node, T> visiter = [&shortestDistanceSoFar](const Node&    a_node,
+  const EBGeometry::BVH::Visiter<Node, T> visiter = [&shortestDistanceSoFar](const Node&,
                                                                              const BVHMeta& a_bvDist) noexcept -> bool {
     return a_bvDist <= 0.0 || a_bvDist <= shortestDistanceSoFar;
   };
@@ -438,7 +461,7 @@ TriMeshSDF<T, Meta, K, W>::TriMeshSDF(const std::shared_ptr<Mesh>& a_mesh,
 
   const size_t maxLeafSize = a_maxLeafGroups * W;
 
-  m_bvh = EBGeometry::buildTriMeshTreeBVH<T, Meta, AABB, K>(triangles, a_build, maxLeafSize)
+  m_bvh = EBGeometry::MeshDistanceFunctionsDetail::buildTriTreeBVH<T, Meta, AABB, K>(triangles, a_build, maxLeafSize)
             ->template packWith<TriSoA>(&TriMeshSDF::groupTrianglesIntoSoA);
 }
 
@@ -454,7 +477,7 @@ TriMeshSDF<T, Meta, K, W>::TriMeshSDF(const std::vector<std::shared_ptr<Tri>>& a
 
   const size_t maxLeafSize = a_maxLeafGroups * W;
 
-  m_bvh = EBGeometry::buildTriMeshTreeBVH<T, Meta, AABB, K>(a_triangles, a_build, maxLeafSize)
+  m_bvh = EBGeometry::MeshDistanceFunctionsDetail::buildTriTreeBVH<T, Meta, AABB, K>(a_triangles, a_build, maxLeafSize)
             ->template packWith<TriSoA>(&TriMeshSDF::groupTrianglesIntoSoA);
 }
 

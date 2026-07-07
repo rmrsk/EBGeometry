@@ -132,8 +132,9 @@ CMake options
      - Add ``-fsanitize=address,undefined`` to tests and examples.
    * - ``EBGEOMETRY_SIMD``
      - ``avx``
-     - ``avx`` enables ``-mavx -mfma -msse4.1``; ``sse41`` enables
-       ``-msse4.1``; ``none`` uses the scalar fallback.
+     - ``avx512`` enables ``-mavx512f -mavx2 -mavx -mfma -msse4.1``; ``avx``
+       enables ``-mavx -mfma -msse4.1``; ``sse41`` enables ``-msse4.1``;
+       ``none`` uses the scalar fallback.
 
 Selecting individual tests
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

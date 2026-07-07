@@ -27,15 +27,17 @@ option(EBGEOMETRY_ENABLE_SANITIZERS
   "Enable AddressSanitizer and UndefinedBehaviourSanitizer for tests and examples" OFF)
 
 set(EBGEOMETRY_SIMD "avx" CACHE STRING
-  "SIMD level to compile against: avx | sse41 | none")
-set_property(CACHE EBGEOMETRY_SIMD PROPERTY STRINGS avx sse41 none)
+  "SIMD level to compile against: avx512 | avx | sse41 | none")
+set_property(CACHE EBGEOMETRY_SIMD PROPERTY STRINGS avx512 avx sse41 none)
 
 # ── Propagate options to all consumers via the interface target ───────────────
 if(EBGEOMETRY_ENABLE_ASSERTIONS)
   target_compile_definitions(EBGeometry INTERFACE EBGEOMETRY_ENABLE_ASSERTIONS)
 endif()
 
-if(EBGEOMETRY_SIMD STREQUAL "avx")
+if(EBGEOMETRY_SIMD STREQUAL "avx512")
+  target_compile_options(EBGeometry INTERFACE -mavx512f -mavx2 -mavx -mfma -msse4.1)
+elseif(EBGEOMETRY_SIMD STREQUAL "avx")
   target_compile_options(EBGeometry INTERFACE -mavx -mfma -msse4.1)
 elseif(EBGEOMETRY_SIMD STREQUAL "sse41")
   target_compile_options(EBGeometry INTERFACE -msse4.1)

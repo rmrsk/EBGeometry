@@ -12,9 +12,11 @@
 #define EBGEOMETRY_SIGNEDDISTANCEFUNCTIONIMPLEM_HPP
 
 // Std includes
+#include <cmath>
 #include <cstddef>
 
 // Our includes
+#include "EBGeometry_Macros.hpp"
 #include "EBGeometry_SignedDistanceFunction.hpp"
 
 namespace EBGeometry {
@@ -23,6 +25,10 @@ template <class T>
 inline T
 SignedDistanceFunction<T>::value(const Vec3T<T>& a_point) const noexcept
 {
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
   return this->signedDistance(a_point);
 }
 
@@ -30,6 +36,10 @@ template <class T>
 inline Vec3T<T>
 SignedDistanceFunction<T>::normal(const Vec3T<T>& a_point, const T& a_delta) const noexcept
 {
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+  EBGEOMETRY_EXPECT(a_delta > T(0));
 
   Vec3T<T> n = Vec3T<T>::zero();
 
@@ -41,6 +51,8 @@ SignedDistanceFunction<T>::normal(const Vec3T<T>& a_point, const T& a_delta) con
 
     n[dir] = (hi - lo) * id;
   }
+
+  EBGEOMETRY_EXPECT(n.length() > T(0));
 
   n /= n.length();
 

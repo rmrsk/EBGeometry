@@ -305,27 +305,41 @@ Pass architecture flags via ``target_compile_options``:
    # AVX + FMA (recommended for modern x86-64)
    target_compile_options(my_program PRIVATE -mavx -mfma -msse4.1)
 
+   # AVX-512F, if your target machines are guaranteed to support it
+   target_compile_options(my_program PRIVATE -mavx512f -mavx2 -mavx -mfma -msse4.1)
+
    # Or for maximum portability, auto-detect via march=native:
    # target_compile_options(my_program PRIVATE -march=native)
+
+``-march=native`` is a shortcut that works too: the library's SIMD dispatch only
+checks the standard compiler-predefined macros (``__AVX__``, ``__AVX512F__``, etc.),
+so it doesn't care how they were set. The trade-off is portability — the resulting
+binary is tied to the exact machine it was built on, whereas an explicit ISA level
+like ``avx`` or ``avx512`` gives you a fixed, known floor.
 
 To expose the SIMD level as a CMake option:
 
 .. code-block:: cmake
 
-   set(EBGEOMETRY_SIMD "avx" CACHE STRING "SIMD level: avx | sse41 | none")
-   set_property(CACHE EBGEOMETRY_SIMD PROPERTY STRINGS avx sse41 none)
+   set(EBGEOMETRY_SIMD "avx" CACHE STRING "SIMD level: avx512 | avx | sse41 | none")
+   set_property(CACHE EBGEOMETRY_SIMD PROPERTY STRINGS avx512 avx sse41 none)
 
-   if(EBGEOMETRY_SIMD STREQUAL "avx")
+   if(EBGEOMETRY_SIMD STREQUAL "avx512")
+     target_compile_options(my_program PRIVATE -mavx512f -mavx2 -mavx -mfma -msse4.1)
+   elseif(EBGEOMETRY_SIMD STREQUAL "avx")
      target_compile_options(my_program PRIVATE -mavx -mfma -msse4.1)
    elseif(EBGEOMETRY_SIMD STREQUAL "sse41")
      target_compile_options(my_program PRIVATE -msse4.1)
    endif()
 
-Configure and build:
+This is exactly what EBGeometry's own top-level ``CMakeLists.txt`` does for the
+``EBGeometry::EBGeometry`` interface target; passing ``-DEBGEOMETRY_SIMD=...`` when
+configuring the top-level project (or a project that pulls it in via
+``add_subdirectory``) controls it directly. Configure and build:
 
 .. code-block:: bash
 
-   cmake -B build -DEBGEOMETRY_SIMD=avx
+   cmake -B build -DEBGEOMETRY_SIMD=avx512
    cmake --build build -j$(nproc)
 
 Enabling assertions in CMake

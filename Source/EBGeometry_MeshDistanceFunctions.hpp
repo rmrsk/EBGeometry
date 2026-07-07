@@ -30,24 +30,6 @@
 
 namespace EBGeometry {
 
-namespace DCEL {
-
-/**
- * @brief Build a tree BVH from a DCEL mesh.
- * @tparam T    Floating-point precision type.
- * @tparam Meta Face and vertex metadata type.
- * @tparam BV   Bounding-volume type (e.g. AABBT<T>).
- * @tparam K    BVH branching factor (number of children per node).
- * @param[in] a_dcelMesh Input DCEL mesh.
- * @param[in] a_build    Build strategy (TopDown, Morton, Nested, or SAH). SAH is the default.
- * @return Shared pointer to the root of the resulting tree BVH.
- */
-template <class T, class Meta, class BV, size_t K>
-[[nodiscard]] std::shared_ptr<EBGeometry::BVH::TreeBVH<T, FaceT<T, Meta>, BV, K>>
-buildTreeBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh,
-             const BVH::Build                                         a_build = BVH::Build::SAH);
-} // namespace DCEL
-
 /**
  * @brief Signed distance function for a DCEL mesh. Does not use BVHs.
  * @details Iterates over every face of the mesh on every query — O(N) per call.
