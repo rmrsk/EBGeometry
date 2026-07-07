@@ -23,7 +23,7 @@ is two levels up from this folder (`../..`) when building in place.
     cmake -S . -B build
     cmake --build build
 
-The binary is `build/EBGeometry_RandomCity.ex`. Build in single precision, or against a library
+The binary is `EBGeometry_RandomCity.ex`, in this same directory (same as the other two methods below). Build in single precision, or against a library
 in a different location, with cache variables:
 
     cmake -S . -B build -DEBGEOMETRY_PRECISION=float -DEBGEOMETRY_HOME=/path/to/EBGeometry
@@ -47,4 +47,3 @@ Running
 
     ./EBGeometry_RandomCity.ex
 
-If you built with CMake the binary is `build/EBGeometry_RandomCity.ex`.

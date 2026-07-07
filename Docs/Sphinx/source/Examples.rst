@@ -29,14 +29,16 @@ Every :file:`EBGeometry_<something>` example needs the path to the ``EBGeometry`
 directory containing ``EBGeometry.hpp`` — which is two levels up (``../..``) when building in
 place. All three build methods accept the same two overrides: ``PRECISION``/``EBGEOMETRY_PRECISION``
 (``float`` or ``double``, default ``double``) and the location of the ``EBGeometry`` tree
-itself (``EBGEOMETRY_HOME``, default ``../..``):
+itself (``EBGEOMETRY_HOME``, default ``../..``); all three also produce the binary
+(``<Example>.ex``) directly in the example's own folder, regardless of where the CMake build
+tree itself lives:
 
 .. code-block:: bash
 
    # CMake
    cmake -S . -B build -DEBGEOMETRY_PRECISION=float -DEBGEOMETRY_HOME=/path/to/EBGeometry
    cmake --build build
-   ./build/<Example>.ex
+   ./<Example>.ex
 
    # GNU Make
    make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry

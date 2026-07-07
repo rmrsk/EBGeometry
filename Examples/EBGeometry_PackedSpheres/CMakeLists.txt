@@ -23,8 +23,13 @@ endif()
 add_executable(EBGeometry_PackedSpheres main.cpp)
 
 # Give the binary a .ex extension so it's covered by the repo-wide *.ex .gitignore rule,
-# without needing a per-example ignore entry.
-set_target_properties(EBGeometry_PackedSpheres PROPERTIES SUFFIX ".ex")
+# without needing a per-example ignore entry. Always place it directly in this
+# source directory (not wherever -B/--preset pointed the build tree), so all three
+# documented build methods (direct compile, GNU make, CMake) produce the binary in
+# the same place: ./EBGeometry_PackedSpheres.ex.
+set_target_properties(EBGeometry_PackedSpheres PROPERTIES
+  SUFFIX ".ex"
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(EBGeometry_PackedSpheres PRIVATE EBGeometry::EBGeometry)
 target_compile_options(EBGeometry_PackedSpheres PRIVATE -Wall -Wextra -Wno-unused-parameter)
 

@@ -22,12 +22,12 @@ section() {
 section "pre-commit: default-stage hooks (clang-format, reuse, codespell, doxygen-check)"
 pre-commit run --all-files
 
-# Sphinx's incremental build can fail (an internal "'Text' object has no attribute
-# 'rawsource'" error from the toctree collector) when Docs/Sphinx/build/ already
-# holds output from a *previous* run of this script -- CI never hits this since it
-# always starts from a fresh checkout, but a repeatedly re-run local script does.
-# Force a clean slate every time rather than relying on Sphinx's own -E flag, which
-# only ignores the environment cache, not the stale output directory.
+# Force a clean slate for the Sphinx output directory before rebuilding: a stray
+# `sphinx-autobuild` process (or any other watcher) rebuilding into the same
+# directory concurrently can leave behind a doctree cache from a different Sphinx
+# install/version, which throws an internal toctree-collector error on the next
+# build. If this script's Sphinx steps fail with a crash inside
+# sphinx.environment.collectors.toctree, check for and kill any such process first.
 rm -rf Docs/Sphinx/build
 
 section "pre-commit: manual-stage hooks (clang-tidy, build-tests, check-docs, doc figures/build)"
