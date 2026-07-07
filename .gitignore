@@ -4,7 +4,6 @@
 .serena
 
 build
-build-tests-check.sh
 
 Examples/AMReX_MeshSDF/plt*
 Examples/AMReX_MeshSDF/tmp_build_dir
