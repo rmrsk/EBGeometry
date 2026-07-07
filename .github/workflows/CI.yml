@@ -70,6 +70,7 @@ jobs:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Static analysis (clang-tidy)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     # Advisory for now: the curated clang-tidy set still has a review backlog
     # (const-correctness, narrowing conversions, ...). Set continue-on-error to
     # false to make this a hard gate once that backlog has been reviewed.
@@ -82,13 +83,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y clang-tidy-18 clang-14
+      - name: Cache Catch2 build
+        uses: actions/cache@v4
+        with:
+          path: build/debug/_deps
+          key: ${{ runner.os }}-catch2-clang14-${{ hashFiles('Tests/CMakeLists.txt') }}
       - name: Configure (export compile commands)
         run: |
           cmake --preset debug \
             -DCMAKE_CXX_COMPILER=clang++-14 \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
       - name: Run clang-tidy over the library headers
-        run: run-clang-tidy-18 -p build -quiet '(Tests/|Examples/EBGeometry_).*\.cpp'
+        run: run-clang-tidy-18 -p build/debug -quiet '(Tests/|Examples/EBGeometry_).*\.cpp'
 
   Linux-GNU:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
@@ -162,11 +168,84 @@ jobs:
           ./a.out
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi
 
-  Build-documentation:
+  Examples-GNUMake:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Examples (GNUmakefile, ${{ matrix.directory }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: [Examples/EBGeometry_CSGUnion, Examples/EBGeometry_MeshSDF, Examples/EBGeometry_OctreeBoundingVolume, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build and run with GNU make
+        working-directory: ${{ matrix.directory }}
+        run: make run
+
+  Examples-CMake:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Examples (CMake, debug preset, assertions on)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Cache Catch2 build
+        uses: actions/cache@v4
+        with:
+          path: build/debug/_deps
+          key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
+      - name: Configure (debug preset)
+        run: cmake --preset debug
+      - name: Build
+        run: cmake --build --preset debug --parallel 2
+      # Exercises the CMake-driven example build+run path with assertions enabled --
+      # this is the path that caught the MeshSDF dangling-weak_ptr regression, and
+      # neither Linux-GNU/Linux-Intel (raw compiler invocation, no CMake, no
+      # assertions) nor Unit-Tests/Sanitizers (which build with examples disabled)
+      # exercise it.
+      - name: Run examples (ctest --preset examples)
+        run: ctest --preset examples
+
+  Examples-FloatPrecision:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Examples (CMake, float precision)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Cache Catch2 build
+        uses: actions/cache@v4
+        with:
+          path: build/debug/_deps
+          key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
+      # EBGEOMETRY_PRECISION is a CACHE variable shared by every example's own
+      # CMakeLists.txt, so setting it once here applies to all of them.
+      - name: Configure (debug preset, float precision)
+        run: cmake --preset debug -DEBGEOMETRY_PRECISION=float
+      - name: Build
+        run: cmake --build --preset debug --parallel 2
+      - name: Run examples
+        run: ctest --preset examples
+
+  Build-documentation:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Build-documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-sphinx-${{ hashFiles('.github/workflows/CI.yml') }}
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -221,7 +300,7 @@ jobs:
       fail-fast: false
       matrix:
         compiler: [g++-12, clang++-14]
-        simd: [none, avx]
+        simd: [none, avx, avx512]
 
     steps:
       - uses: actions/checkout@v4
@@ -235,6 +314,12 @@ jobs:
             sudo apt-get install -y clang-14
           fi
 
+      - name: Cache Catch2 build
+        uses: actions/cache@v4
+        with:
+          path: build/debug/_deps
+          key: ${{ runner.os }}-catch2-${{ matrix.compiler }}-${{ hashFiles('Tests/CMakeLists.txt') }}
+
       - name: Configure (debug preset)
         run: |
           cmake --preset debug \
@@ -246,21 +331,68 @@ jobs:
         run: cmake --build --preset debug --parallel 2
 
       - name: Run tests
-        run: ctest --preset debug
+        # AVX-512 is compiled unconditionally (catches ISA-specific compile errors
+        # in the PackedBVH/TriangleSoA code paths regardless of runner hardware),
+        # but only actually executed if the runner's CPU supports it -- most
+        # GitHub-hosted runners do not, and running AVX-512 instructions on
+        # unsupporting hardware is a SIGILL crash, not a meaningful test result.
+        run: |
+          if [[ "${{ matrix.simd }}" == "avx512" ]] && ! grep -q avx512f /proc/cpuinfo; then
+            echo "Runner CPU lacks AVX-512F; skipping runtime execution (compile-only verification passed)."
+          else
+            ctest --preset debug
+          fi
+
+  Release-Test:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Release build (full test + example suite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Cache Catch2 build
+        uses: actions/cache@v4
+        with:
+          path: build/release-test/_deps
+          key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
+      - name: Configure (release-test preset)
+        run: cmake --preset release-test
+      - name: Build
+        run: cmake --build --preset release-test --parallel 2
+      - name: Run full suite (unit tests + examples)
+        run: ctest --preset release-test
 
   Sanitizers:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
-    name: Sanitizers
+    name: Sanitizers (${{ matrix.compiler }}, SIMD=${{ matrix.simd }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
+        compiler: [g++-12, clang++-14]
         simd: [none, avx]
     steps:
       - uses: actions/checkout@v4
+      - name: Install compiler
+        run: |
+          sudo apt-get update
+          if [[ "${{ matrix.compiler }}" == g++* ]]; then
+            sudo apt-get install -y ${{ matrix.compiler }}
+          else
+            sudo apt-get install -y clang-14
+          fi
+      - name: Cache Catch2 build
+        uses: actions/cache@v4
+        with:
+          path: build/debug-san/_deps
+          key: ${{ runner.os }}-catch2-san-${{ matrix.compiler }}-${{ hashFiles('Tests/CMakeLists.txt') }}
       - name: Configure (debug-san preset, ASan + UBSan)
         run: |
           cmake --preset debug-san \
+            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
             -DEBGEOMETRY_SIMD=${{ matrix.simd }} \
             -DEBGEOMETRY_BUILD_EXAMPLES=OFF
       - name: Build
@@ -272,7 +404,7 @@ jobs:
           ASAN_OPTIONS: detect_leaks=1
 
   CI-passed:
-    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Build-documentation, Unit-Tests, Sanitizers]
+    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers]
     runs-on: ubuntu-latest
     steps:
       - name: Do nothing
