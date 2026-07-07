@@ -71,6 +71,12 @@ public:
   Triangle(const Triangle& a_otherTriangle) noexcept = default;
 
   /**
+   * @brief Move constructor.
+   * @param[in, out] a_otherTriangle Other triangle.
+   */
+  Triangle(Triangle&& a_otherTriangle) noexcept = default;
+
+  /**
    * @brief Full constructor.
    * @param[in] a_vertexPositions Triangle vertex positions.
    */
@@ -99,7 +105,7 @@ public:
 
   /**
    * @brief Set the triangle normal vector.
-   * @param[in] a_normal Normal vector
+   * @param[in] a_normal Normal vector. Must be finite and unit length.
    * @note The input normal should be consistent with the vertex ordering.
    */
   void
@@ -107,21 +113,24 @@ public:
 
   /**
    * @brief Set the triangle vertex positions
-   * @param[in] a_vertexPositions Vertex positions
+   * @details Also recomputes the triangle face normal from the new vertex positions (see
+   * computeNormal). The three vertices must not be collinear (or coincident), or the
+   * face normal is undefined.
+   * @param[in] a_vertexPositions Vertex positions. Each component must be finite.
    */
   void
   setVertexPositions(const std::array<Vec3, 3>& a_vertexPositions) noexcept;
 
   /**
    * @brief Set the triangle vertex normals
-   * @param[in] a_vertexNormals Vertex normals
+   * @param[in] a_vertexNormals Vertex normals. Each must be finite and unit length.
    */
   void
   setVertexNormals(const std::array<Vec3, 3>& a_vertexNormals) noexcept;
 
   /**
    * @brief Set the triangle edge normals
-   * @param[in] a_edgeNormals Edge normals
+   * @param[in] a_edgeNormals Edge normals. Each must be finite and unit length.
    */
   void
   setEdgeNormals(const std::array<Vec3, 3>& a_edgeNormals) noexcept;
@@ -136,20 +145,16 @@ public:
   /**
    * @brief Compute the triangle normal vector.
    * @details This computes the normal vector from two of the triangle edges, using the
-   * right-hand rule and vertex ordering to infer the normal vector.
+   * right-hand rule and vertex ordering to infer the normal vector. The three vertices
+   * must not be collinear (or coincident): a zero-area triangle has an undefined face normal.
    */
   void
   computeNormal() noexcept;
 
   /**
    * @brief Get the triangle normal vector.
-   * @return m_triangleNormal
-   */
-  [[nodiscard]] Vec3&
-  getNormal() noexcept;
-
-  /**
-   * @brief Get the triangle normal vector.
+   * @details Const-only: mutating this in place would desynchronize it from the vertex
+   * positions it was derived from. Use setNormal or setVertexPositions instead.
    * @return m_triangleNormal
    */
   [[nodiscard]] const Vec3&
@@ -157,13 +162,8 @@ public:
 
   /**
    * @brief Get the vertex positions
-   * @return m_vertexPositions
-   */
-  [[nodiscard]] std::array<Vec3, 3>&
-  getVertexPositions() noexcept;
-
-  /**
-   * @brief Get the vertex positions
+   * @details Const-only: mutating positions in place would leave m_triangleNormal stale.
+   * Use setVertexPositions instead.
    * @return m_vertexPositions
    */
   [[nodiscard]] const std::array<Vec3, 3>&
@@ -171,13 +171,7 @@ public:
 
   /**
    * @brief Get the vertex normals
-   * @return m_vertexNormals
-   */
-  [[nodiscard]] std::array<Vec3, 3>&
-  getVertexNormals() noexcept;
-
-  /**
-   * @brief Get the vertex normals
+   * @details Const-only; use setVertexNormals to update.
    * @return m_vertexNormals
    */
   [[nodiscard]] const std::array<Vec3, 3>&
@@ -185,13 +179,7 @@ public:
 
   /**
    * @brief Get the edge normals
-   * @return m_edgeNormals
-   */
-  [[nodiscard]] std::array<Vec3, 3>&
-  getEdgeNormals() noexcept;
-
-  /**
-   * @brief Get the edge normals
+   * @details Const-only; use setEdgeNormals to update.
    * @return m_edgeNormals
    */
   [[nodiscard]] const std::array<Vec3, 3>&
@@ -199,13 +187,7 @@ public:
 
   /**
    * @brief Get the triangle meta-data
-   * @return m_metaData
-   */
-  [[nodiscard]] Meta&
-  getMetaData() noexcept;
-
-  /**
-   * @brief Get the triangle meta-data
+   * @details Const-only; use setMetaData to update.
    * @return m_metaData
    */
   [[nodiscard]] const Meta&
@@ -213,7 +195,9 @@ public:
 
   /**
    * @brief Compute the signed distance from the input point x to the triangle.
-   * @param[in] a_point Query point.
+   * @details Requires the triangle to be fully initialized with a non-degenerate (non-collinear)
+   * set of vertex positions; see setVertexPositions.
+   * @param[in] a_point Query point. Must be finite.
    * @return Signed distance; negative inside, positive outside.
    */
   [[nodiscard]] T
