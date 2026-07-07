@@ -255,17 +255,17 @@ FaceT<T, Meta>::getNormal() const noexcept
 }
 
 template <class T, class Meta>
-inline std::shared_ptr<EdgeT<T, Meta>>&
+inline std::shared_ptr<EdgeT<T, Meta>>
 FaceT<T, Meta>::getHalfEdge() noexcept
 {
-  return m_halfEdge;
+  return m_halfEdge.lock();
 }
 
 template <class T, class Meta>
-inline const std::shared_ptr<EdgeT<T, Meta>>&
+inline std::shared_ptr<EdgeT<T, Meta>>
 FaceT<T, Meta>::getHalfEdge() const noexcept
 {
-  return m_halfEdge;
+  return m_halfEdge.lock();
 }
 
 template <class T, class Meta>
@@ -392,7 +392,7 @@ FaceT<T, Meta>::signedDistance(const Vec3& a_x0) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
-  EBGEOMETRY_EXPECT(m_halfEdge != nullptr);
+  EBGEOMETRY_EXPECT(!m_halfEdge.expired());
 
   T retval = std::numeric_limits<T>::infinity();
 
@@ -402,7 +402,8 @@ FaceT<T, Meta>::signedDistance(const Vec3& a_x0) const noexcept
     retval = m_normal.dot(a_x0 - m_centroid);
   }
   else {
-    EdgePtr cur = m_halfEdge;
+    const EdgePtr startEdge = m_halfEdge.lock();
+    EdgePtr       cur       = startEdge;
 
     while (true) {
       const T curDist = cur->signedDistance(a_x0);
@@ -411,7 +412,7 @@ FaceT<T, Meta>::signedDistance(const Vec3& a_x0) const noexcept
 
       cur = cur->getNextEdge();
 
-      if (cur == nullptr || cur == m_halfEdge) {
+      if (cur == nullptr || cur == startEdge) {
         break;
       }
     }
@@ -427,7 +428,7 @@ FaceT<T, Meta>::unsignedDistance2(const Vec3& a_x0) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
-  EBGEOMETRY_EXPECT(m_halfEdge != nullptr);
+  EBGEOMETRY_EXPECT(!m_halfEdge.expired());
 
   T retval = std::numeric_limits<T>::infinity();
 
@@ -439,7 +440,8 @@ FaceT<T, Meta>::unsignedDistance2(const Vec3& a_x0) const noexcept
     retval = normDist * normDist;
   }
   else {
-    EdgePtr cur = m_halfEdge;
+    const EdgePtr startEdge = m_halfEdge.lock();
+    EdgePtr       cur       = startEdge;
 
     while (true) {
       const T curDist2 = cur->unsignedDistance2(a_x0);
@@ -448,7 +450,7 @@ FaceT<T, Meta>::unsignedDistance2(const Vec3& a_x0) const noexcept
 
       cur = cur->getNextEdge();
 
-      if (cur == nullptr || cur == m_halfEdge) {
+      if (cur == nullptr || cur == startEdge) {
         break;
       }
     }

@@ -13,6 +13,7 @@
 #include "Source/EBGeometry_BoundingVolumes.hpp"
 #include "Source/EBGeometry_CSG.hpp"
 #include "Source/EBGeometry_Constants.hpp"
+#include "Source/EBGeometry_DCEL.hpp"
 #include "Source/EBGeometry_DCEL_Edge.hpp"
 #include "Source/EBGeometry_DCEL_Face.hpp"
 #include "Source/EBGeometry_DCEL_Iterator.hpp"

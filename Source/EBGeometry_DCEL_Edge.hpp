@@ -217,59 +217,62 @@ public:
   setMetaData(const Meta& a_metaData) noexcept;
 
   /**
-   * @brief Get modifiable starting vertex
-   * @return Returns m_vertex
+   * @brief Get the starting vertex.
+   * @details Returns a shared_ptr obtained by locking the internal weak_ptr (see the class-level
+   * @details note on ownership). Returns nullptr if the vertex has been destroyed, which should
+   * not happen while the owning mesh is alive.
+   * @return Starting vertex, or nullptr.
    */
-  [[nodiscard]] inline VertexPtr&
+  [[nodiscard]] inline VertexPtr
   getVertex() noexcept;
 
   /**
-   * @brief Get immutable starting vertex
-   * @return Returns m_vertex
+   * @brief Get the starting vertex (const overload).
+   * @return Starting vertex, or nullptr.
    */
-  [[nodiscard]] inline const VertexPtr&
+  [[nodiscard]] inline VertexPtr
   getVertex() const noexcept;
 
   /**
-   * @brief Get modifiable end vertex
-   * @return Returns the next half-edge's starting vertex
+   * @brief Get the end vertex.
+   * @return The next half-edge's starting vertex, or nullptr.
    */
-  [[nodiscard]] inline VertexPtr&
+  [[nodiscard]] inline VertexPtr
   getOtherVertex() noexcept;
 
   /**
-   * @brief Get immutable end vertex
-   * @return Returns the next half-edge's starting vertex
+   * @brief Get the end vertex (const overload).
+   * @return The next half-edge's starting vertex, or nullptr.
    */
-  [[nodiscard]] inline const VertexPtr&
+  [[nodiscard]] inline VertexPtr
   getOtherVertex() const noexcept;
 
   /**
-   * @brief Get modifiable pair edge
-   * @return Returns the pair edge
+   * @brief Get the pair edge.
+   * @return Pair edge, or nullptr.
    */
-  [[nodiscard]] inline EdgePtr&
+  [[nodiscard]] inline EdgePtr
   getPairEdge() noexcept;
 
   /**
-   * @brief Get immutable pair edge
-   * @return Returns the pair edge
+   * @brief Get the pair edge (const overload).
+   * @return Pair edge, or nullptr.
    */
-  [[nodiscard]] inline const EdgePtr&
+  [[nodiscard]] inline EdgePtr
   getPairEdge() const noexcept;
 
   /**
-   * @brief Get modifiable next edge
-   * @return Returns the next edge
+   * @brief Get the next edge.
+   * @return Next edge, or nullptr.
    */
-  [[nodiscard]] inline EdgePtr&
+  [[nodiscard]] inline EdgePtr
   getNextEdge() noexcept;
 
   /**
-   * @brief Get immutable next edge
-   * @return Returns the next edge
+   * @brief Get the next edge (const overload).
+   * @return Next edge, or nullptr.
    */
-  [[nodiscard]] inline const EdgePtr&
+  [[nodiscard]] inline EdgePtr
   getNextEdge() const noexcept;
 
   /**
@@ -295,17 +298,17 @@ public:
   getNormal() const noexcept;
 
   /**
-   * @brief Get modifiable half-edge face.
-   * @return Reference to m_face.
+   * @brief Get this half-edge's face.
+   * @return Owning face, or nullptr.
    */
-  [[nodiscard]] inline FacePtr&
+  [[nodiscard]] inline FacePtr
   getFace() noexcept;
 
   /**
-   * @brief Get immutable half-edge face.
-   * @return Const reference to m_face.
+   * @brief Get this half-edge's face (const overload).
+   * @return Owning face, or nullptr.
    */
-  [[nodiscard]] inline const FacePtr&
+  [[nodiscard]] inline FacePtr
   getFace() const noexcept;
 
   /**
@@ -351,24 +354,28 @@ protected:
   Vec3 m_normal = Vec3::zeros();
 
   /**
-   * @brief Starting vertex
+   * @brief Starting vertex.
+   * @details Stored as a weak_ptr: the vertex is owned by the mesh's own vertex list, and a
+   * plain shared_ptr here (mirrored by the sibling m_pairEdge/m_nextEdge/m_face links, and by
+   * FaceT::m_halfEdge and VertexT::m_outgoingEdge) would form a reference cycle across the
+   * half-edge/face/vertex graph that shared_ptr's reference counting can never collect.
    */
-  VertexPtr m_vertex = nullptr;
+  std::weak_ptr<Vertex> m_vertex;
 
   /**
-   * @brief Pair edge
+   * @brief Pair edge. See m_vertex for why this is a weak_ptr.
    */
-  EdgePtr m_pairEdge = nullptr;
+  std::weak_ptr<Edge> m_pairEdge;
 
   /**
-   * @brief Next edge
+   * @brief Next edge. See m_vertex for why this is a weak_ptr.
    */
-  EdgePtr m_nextEdge = nullptr;
+  std::weak_ptr<Edge> m_nextEdge;
 
   /**
-   * @brief Enclosing polygon face
+   * @brief Enclosing polygon face. See m_vertex for why this is a weak_ptr.
    */
-  FacePtr m_face = nullptr;
+  std::weak_ptr<Face> m_face;
 
   /**
    * @brief Meta-data attached to this edge

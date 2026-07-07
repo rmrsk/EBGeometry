@@ -289,17 +289,20 @@ public:
   getNormal() const noexcept;
 
   /**
-   * @brief Return modifiable pointer to outgoing edge.
-   * @return Reference to m_outgoingEdge.
+   * @brief Get the outgoing edge.
+   * @details Returns a shared_ptr obtained by locking the internal weak_ptr (see the class-level
+   * note on ownership near m_outgoingEdge). Returns nullptr if the edge has been destroyed, which
+   * should not happen while the owning mesh is alive.
+   * @return Outgoing edge, or nullptr.
    */
-  [[nodiscard]] inline EdgePtr&
+  [[nodiscard]] inline EdgePtr
   getOutgoingEdge() noexcept;
 
   /**
-   * @brief Return immutable pointer to outgoing edge.
-   * @return Const reference to m_outgoingEdge.
+   * @brief Get the outgoing edge (const overload).
+   * @return Outgoing edge, or nullptr.
    */
-  [[nodiscard]] inline const EdgePtr&
+  [[nodiscard]] inline EdgePtr
   getOutgoingEdge() const noexcept;
 
   /**
@@ -352,8 +355,12 @@ public:
 protected:
   /**
    * @brief Pointer to an outgoing edge from this vertex.
+   * @details Stored as a weak_ptr: the edge is owned by the mesh's own edge list, and a plain
+   * shared_ptr here would form a reference cycle with EdgeT::m_vertex (and, transitively, with
+   * EdgeT::m_nextEdge/m_pairEdge/m_face and FaceT::m_halfEdge) that shared_ptr's reference
+   * counting can never collect.
    */
-  EdgePtr m_outgoingEdge;
+  std::weak_ptr<Edge> m_outgoingEdge;
 
   /**
    * @brief Vertex position

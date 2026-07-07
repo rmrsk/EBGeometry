@@ -255,6 +255,14 @@ MeshSDF<T, Meta, K>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Bui
   const auto bvh = EBGeometry::MeshDistanceFunctionsDetail::buildDCELTreeBVH<T, Meta, AABB, K>(a_mesh, a_build);
 
   m_bvh = bvh->pack();
+
+  // DCEL::FaceT/EdgeT/VertexT only hold weak_ptr back-references to their neighboring
+  // half-edges/vertices/faces (to avoid reference cycles); the mesh's own vertex/edge/face
+  // vectors are the sole owners keeping them alive. m_bvh only keeps the faces themselves
+  // alive (as its primitives), so the source mesh must be retained here too, or every face's
+  // half-edge (and the rest of its edge loop) would dangle as soon as the caller's mesh
+  // shared_ptr goes out of scope.
+  m_mesh = a_mesh;
 }
 
 template <class T, class Meta, size_t K>

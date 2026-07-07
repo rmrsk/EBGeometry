@@ -218,17 +218,20 @@ public:
   setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm& a_algorithm) noexcept;
 
   /**
-   * @brief Get modifiable half-edge
-   * @return Reference to the shared pointer to the starting half-edge.
+   * @brief Get the starting half-edge.
+   * @details Returns a shared_ptr obtained by locking the internal weak_ptr (see the class-level
+   * note on ownership near m_halfEdge). Returns nullptr if the edge has been destroyed, which
+   * should not happen while the owning mesh is alive.
+   * @return Starting half-edge, or nullptr.
    */
-  [[nodiscard]] inline EdgePtr&
+  [[nodiscard]] inline EdgePtr
   getHalfEdge() noexcept;
 
   /**
-   * @brief Get immutable half-edge
-   * @return Const reference to the shared pointer to the starting half-edge.
+   * @brief Get the starting half-edge (const overload).
+   * @return Starting half-edge, or nullptr.
    */
-  [[nodiscard]] inline const EdgePtr&
+  [[nodiscard]] inline EdgePtr
   getHalfEdge() const noexcept;
 
   /**
@@ -367,9 +370,13 @@ public:
 
 protected:
   /**
-   * @brief This polygon's half-edge. A valid face will always have != nullptr
+   * @brief This polygon's half-edge. A valid face will always have this set.
+   * @details Stored as a weak_ptr: the edge is owned by the mesh's own edge list, and a plain
+   * shared_ptr here would form a reference cycle with EdgeT::m_face (and, transitively, with
+   * EdgeT::m_nextEdge/m_pairEdge and VertexT::m_outgoingEdge) that shared_ptr's reference
+   * counting can never collect.
    */
-  EdgePtr m_halfEdge = nullptr;
+  std::weak_ptr<Edge> m_halfEdge;
 
   /**
    * @brief Polygon face normal vector

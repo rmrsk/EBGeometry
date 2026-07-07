@@ -132,12 +132,12 @@ EdgeT<T, Meta>::computeNormal() const noexcept
   // Every half-edge belongs to exactly one face by DCEL invariant, so m_face must be set. The pair
   // edge (and its face) may legitimately be null for a boundary edge on an open mesh -- that case
   // is handled gracefully below rather than asserted against.
-  EBGEOMETRY_EXPECT(m_face != nullptr);
+  EBGEOMETRY_EXPECT(!m_face.expired());
 
   Vec3T<T> normal = Vec3T<T>::zeros();
 
-  if (m_face) {
-    const Vec3T<T>& faceNormal = m_face->getNormal();
+  if (const auto face = m_face.lock()) {
+    const Vec3T<T>& faceNormal = face->getNormal();
 
     EBGEOMETRY_EXPECT(std::isfinite(faceNormal[0]));
     EBGEOMETRY_EXPECT(std::isfinite(faceNormal[1]));
@@ -145,14 +145,16 @@ EdgeT<T, Meta>::computeNormal() const noexcept
 
     normal += faceNormal;
   }
-  if (m_pairEdge && m_pairEdge->getFace()) {
-    const Vec3T<T>& pairFaceNormal = m_pairEdge->getFace()->getNormal();
+  if (const auto pairEdge = m_pairEdge.lock()) {
+    if (const auto pairFace = pairEdge->getFace()) {
+      const Vec3T<T>& pairFaceNormal = pairFace->getNormal();
 
-    EBGEOMETRY_EXPECT(std::isfinite(pairFaceNormal[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(pairFaceNormal[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(pairFaceNormal[2]));
+      EBGEOMETRY_EXPECT(std::isfinite(pairFaceNormal[0]));
+      EBGEOMETRY_EXPECT(std::isfinite(pairFaceNormal[1]));
+      EBGEOMETRY_EXPECT(std::isfinite(pairFaceNormal[2]));
 
-    normal += pairFaceNormal;
+      normal += pairFaceNormal;
+    }
   }
 
   const T len = normal.length();
@@ -177,70 +179,70 @@ EdgeT<T, Meta>::getNormal() const noexcept
 }
 
 template <class T, class Meta>
-inline std::shared_ptr<VertexT<T, Meta>>&
+inline std::shared_ptr<VertexT<T, Meta>>
 EdgeT<T, Meta>::getVertex() noexcept
 {
-  return m_vertex;
+  return m_vertex.lock();
 }
 
 template <class T, class Meta>
-inline const std::shared_ptr<VertexT<T, Meta>>&
+inline std::shared_ptr<VertexT<T, Meta>>
 EdgeT<T, Meta>::getVertex() const noexcept
 {
-  return m_vertex;
+  return m_vertex.lock();
 }
 
 template <class T, class Meta>
-inline std::shared_ptr<VertexT<T, Meta>>&
+inline std::shared_ptr<VertexT<T, Meta>>
 EdgeT<T, Meta>::getOtherVertex() noexcept
 {
-  EBGEOMETRY_EXPECT(m_nextEdge != nullptr);
+  EBGEOMETRY_EXPECT(!m_nextEdge.expired());
 
-  return m_nextEdge->getVertex();
+  return m_nextEdge.lock()->getVertex();
 }
 
 template <class T, class Meta>
-inline const std::shared_ptr<VertexT<T, Meta>>&
+inline std::shared_ptr<VertexT<T, Meta>>
 EdgeT<T, Meta>::getOtherVertex() const noexcept
 {
-  EBGEOMETRY_EXPECT(m_nextEdge != nullptr);
+  EBGEOMETRY_EXPECT(!m_nextEdge.expired());
 
-  return m_nextEdge->getVertex();
+  return m_nextEdge.lock()->getVertex();
 }
 
 template <class T, class Meta>
-inline std::shared_ptr<EdgeT<T, Meta>>&
+inline std::shared_ptr<EdgeT<T, Meta>>
 EdgeT<T, Meta>::getPairEdge() noexcept
 {
-  return m_pairEdge;
+  return m_pairEdge.lock();
 }
 
 template <class T, class Meta>
-inline const std::shared_ptr<EdgeT<T, Meta>>&
+inline std::shared_ptr<EdgeT<T, Meta>>
 EdgeT<T, Meta>::getPairEdge() const noexcept
 {
-  return m_pairEdge;
+  return m_pairEdge.lock();
 }
 
 template <class T, class Meta>
-inline std::shared_ptr<EdgeT<T, Meta>>&
+inline std::shared_ptr<EdgeT<T, Meta>>
 EdgeT<T, Meta>::getNextEdge() noexcept
 {
-  return m_nextEdge;
+  return m_nextEdge.lock();
 }
 
 template <class T, class Meta>
-inline const std::shared_ptr<EdgeT<T, Meta>>&
+inline std::shared_ptr<EdgeT<T, Meta>>
 EdgeT<T, Meta>::getNextEdge() const noexcept
 {
-  return m_nextEdge;
+  return m_nextEdge.lock();
 }
 
 template <class T, class Meta>
 inline Vec3T<T>
 EdgeT<T, Meta>::getX2X1() const noexcept
 {
-  EBGEOMETRY_EXPECT(m_vertex != nullptr);
+  EBGEOMETRY_EXPECT(!m_vertex.expired());
 
   const auto& x1 = this->getVertex()->getPosition();
   const auto& x2 = this->getOtherVertex()->getPosition();
@@ -249,17 +251,17 @@ EdgeT<T, Meta>::getX2X1() const noexcept
 }
 
 template <class T, class Meta>
-inline std::shared_ptr<FaceT<T, Meta>>&
+inline std::shared_ptr<FaceT<T, Meta>>
 EdgeT<T, Meta>::getFace() noexcept
 {
-  return m_face;
+  return m_face.lock();
 }
 
 template <class T, class Meta>
-inline const std::shared_ptr<FaceT<T, Meta>>&
+inline std::shared_ptr<FaceT<T, Meta>>
 EdgeT<T, Meta>::getFace() const noexcept
 {
-  return m_face;
+  return m_face.lock();
 }
 
 template <class T, class Meta>
@@ -283,9 +285,9 @@ EdgeT<T, Meta>::projectPointToEdge(const Vec3& a_x0) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
-  EBGEOMETRY_EXPECT(m_vertex != nullptr);
+  EBGEOMETRY_EXPECT(!m_vertex.expired());
 
-  const auto p    = a_x0 - m_vertex->getPosition();
+  const auto p    = a_x0 - m_vertex.lock()->getPosition();
   const auto x2x1 = this->getX2X1();
 
   EBGEOMETRY_EXPECT(x2x1.dot(x2x1) > T(0));
@@ -300,7 +302,7 @@ EdgeT<T, Meta>::signedDistance(const Vec3& a_x0) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
-  EBGEOMETRY_EXPECT(m_vertex != nullptr);
+  EBGEOMETRY_EXPECT(!m_vertex.expired());
 
   T retval = std::numeric_limits<T>::max();
 
@@ -318,7 +320,7 @@ EdgeT<T, Meta>::signedDistance(const Vec3& a_x0) const noexcept
   else {
     // Closest point is the edge itself.
     const Vec3 x2x1      = this->getX2X1();
-    const Vec3 linePoint = m_vertex->getPosition() + t * x2x1;
+    const Vec3 linePoint = m_vertex.lock()->getPosition() + t * x2x1;
     const Vec3 delta     = a_x0 - linePoint;
     const T    dot       = m_normal.dot(delta);
 
@@ -337,7 +339,7 @@ EdgeT<T, Meta>::unsignedDistance2(const Vec3& a_x0) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
-  EBGEOMETRY_EXPECT(m_vertex != nullptr);
+  EBGEOMETRY_EXPECT(!m_vertex.expired());
 
   constexpr T zero = 0.0;
   constexpr T one  = 1.0;
@@ -347,7 +349,7 @@ EdgeT<T, Meta>::unsignedDistance2(const Vec3& a_x0) const noexcept
 
   // Compute distance to this edge.
   const Vec3T<T> x2x1      = this->getX2X1();
-  const Vec3T<T> linePoint = m_vertex->getPosition() + t * x2x1;
+  const Vec3T<T> linePoint = m_vertex.lock()->getPosition() + t * x2x1;
   const Vec3T<T> delta     = a_x0 - linePoint;
 
   return delta.dot(delta);

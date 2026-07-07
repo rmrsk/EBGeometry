@@ -197,6 +197,14 @@ protected:
    * @brief Linearized BVH
    */
   std::shared_ptr<Root> m_bvh;
+
+  /**
+   * @brief Source DCEL mesh.
+   * @details Retained so that the faces held by m_bvh -- whose half-edges (and the edges/vertices
+   * reachable from them) are only weakly referenced, not owned, see DCEL::FaceT::m_halfEdge -- stay
+   * valid. The mesh's own vertex/edge/face vectors are the sole owners of that topology.
+   */
+  std::shared_ptr<Mesh> m_mesh;
 };
 
 /**

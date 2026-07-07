@@ -216,8 +216,8 @@ VertexT<T, Meta>::computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a
   // common vertex, and then compute the subtended angle between those. Sigh...
 
   EBGEOMETRY_EXPECT(!a_faces.empty());
-  EBGEOMETRY_EXPECT(m_outgoingEdge != nullptr);
-  const VertexPtr& originVertex = m_outgoingEdge->getVertex(); // AKA 'this'
+  EBGEOMETRY_EXPECT(!m_outgoingEdge.expired());
+  const VertexPtr originVertex = m_outgoingEdge.lock()->getVertex(); // AKA 'this'
 
   for (const auto& f : a_faces) {
     EBGEOMETRY_EXPECT(f != nullptr);
@@ -336,17 +336,17 @@ VertexT<T, Meta>::getNormal() const noexcept
 }
 
 template <class T, class Meta>
-inline std::shared_ptr<EdgeT<T, Meta>>&
+inline std::shared_ptr<EdgeT<T, Meta>>
 VertexT<T, Meta>::getOutgoingEdge() noexcept
 {
-  return m_outgoingEdge;
+  return m_outgoingEdge.lock();
 }
 
 template <class T, class Meta>
-inline const std::shared_ptr<EdgeT<T, Meta>>&
+inline std::shared_ptr<EdgeT<T, Meta>>
 VertexT<T, Meta>::getOutgoingEdge() const noexcept
 {
-  return m_outgoingEdge;
+  return m_outgoingEdge.lock();
 }
 
 template <class T, class Meta>
