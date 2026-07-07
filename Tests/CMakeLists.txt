@@ -55,6 +55,7 @@ ebgeometry_add_test(TestCSG)
 ebgeometry_add_test(TestTransform)
 ebgeometry_add_test(TestOctree)
 ebgeometry_add_test(TestPolygon2D)
+ebgeometry_add_test(TestTriangleSoA)
 
 # Compile-only target that explicitly instantiates every public class template so
 # clang-tidy (and the strong warning set) analyse them all regardless of what the
