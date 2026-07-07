@@ -9,9 +9,10 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
-if [ ! -d build ]; then
-  echo "build-tests-check: configuring build/ (debug preset) ..."
-  cmake --preset debug >/dev/null
-fi
+# Always (re)configure: the debug preset has its own build/debug directory (see
+# CMakePresets.json), so this never picks up a stale configuration left behind
+# by a different preset, and CMake's own up-to-date check keeps a no-op
+# reconfigure fast.
+cmake --preset debug >/dev/null
 
 cmake --build --preset debug --parallel "$(nproc)"

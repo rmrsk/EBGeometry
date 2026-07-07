@@ -140,7 +140,9 @@ Catch2 test cases are registered with CTest so you can filter by name or tag:
    # Run only the SFC tests
    ctest --output-on-failure -R "SFC"
 
-   # Run a single test binary directly (all Catch2 options available)
+   # Run a single test binary directly (all Catch2 options available).
+   # Each preset gets its own build directory (build/<preset-name>/...); adjust
+   # the path if you configured with a preset instead of the manual example above.
    ./Tests/TestVec --list-tests
    ./Tests/TestAnalyticSDF "[SphereSDF]"
 

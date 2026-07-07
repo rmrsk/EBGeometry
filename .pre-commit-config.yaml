@@ -52,6 +52,14 @@ repos:
         files: \.(hpp|cpp)$
         stages: [manual]
 
+      - id: check-docs
+        name: Flag literalincludes that reference changed source files (advisory)
+        entry: python3 Scripts/CheckDocs.py
+        language: system
+        pass_filenames: false
+        files: \.(hpp|cpp|options|inputs|md)$
+        stages: [manual]
+
       - id: build-doc-figures
         name: Render documentation figures from LaTeX/TikZ sources
         entry: bash Scripts/build-doc-figures.sh

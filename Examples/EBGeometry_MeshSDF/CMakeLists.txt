@@ -36,9 +36,10 @@ target_compile_options(EBGeometry_MeshSDF PRIVATE -O3 -march=native)
 # ---------------------------------------------------------------------------
 # Floating-point precision for this example.
 #
-# This is the knob you edit to build in single or double precision: set it to
-# `float` or `double`. It is handed to the compiler as EBGEOMETRY_PRECISION and
-# picked up in main.cpp by `using T = EBGEOMETRY_PRECISION`.
+# Cache variable, overridable at configure time with
+# -DEBGEOMETRY_PRECISION=float. It is handed to the compiler as
+# EBGEOMETRY_PRECISION and picked up in main.cpp by `using T = EBGEOMETRY_PRECISION`.
 # ---------------------------------------------------------------------------
-set(EBGEOMETRY_PRECISION double)
+set(EBGEOMETRY_PRECISION double CACHE STRING "Floating-point precision (float or double)")
+set_property(CACHE EBGEOMETRY_PRECISION PROPERTY STRINGS float double)
 target_compile_definitions(EBGeometry_MeshSDF PRIVATE EBGEOMETRY_PRECISION=${EBGEOMETRY_PRECISION})
