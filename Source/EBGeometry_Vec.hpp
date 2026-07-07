@@ -40,14 +40,14 @@ public:
   /**
    * @brief Default constructor. Sets the vector to the zero vector.
    */
-  Vec2T() noexcept;
+  constexpr Vec2T() noexcept;
 
   /**
    * @brief Copy constructor
    * @param[in] u Other vector
    * @details Sets *this = u
    */
-  Vec2T(const Vec2T& u) noexcept;
+  constexpr Vec2T(const Vec2T& u) noexcept = default;
 
   /**
    * @brief Full constructor
@@ -77,14 +77,14 @@ public:
    * @return Zero vector (0, 0).
    */
   [[nodiscard]] inline static constexpr Vec2T<T>
-  zero() noexcept;
+  zeros() noexcept;
 
   /**
    * @brief Return a vector with x = y = 1.
    * @return Unit vector (1, 1).
    */
   [[nodiscard]] inline static constexpr Vec2T<T>
-  one() noexcept;
+  ones() noexcept;
 
   /**
    * @brief Return the most-negative representable vector.
@@ -112,8 +112,8 @@ public:
    * @param[in] a_other Other vector.
    * @return Reference to *this after assignment.
    */
-  inline constexpr Vec2T<T>&
-  operator=(const Vec2T& a_other) noexcept;
+  constexpr Vec2T<T>&
+  operator=(const Vec2T& a_other) noexcept = default;
 
   /**
    * @brief Addition operator.
@@ -243,14 +243,14 @@ public:
   /**
    * @brief Default constructor. Sets the vector to the zero vector.
    */
-  Vec3T() noexcept;
+  constexpr Vec3T() noexcept;
 
   /**
    * @brief Copy constructor
    * @param[in] a_u Other vector
    * @details Sets *this = u
    */
-  Vec3T(const Vec3T<T>& a_u) noexcept;
+  constexpr Vec3T(const Vec3T<T>& a_u) noexcept = default;
 
   /**
    * @brief Full constructor
@@ -271,14 +271,14 @@ public:
    * @return Zero vector (0, 0, 0).
    */
   [[nodiscard]] inline static constexpr Vec3T<T>
-  zero() noexcept;
+  zeros() noexcept;
 
   /**
    * @brief Return a vector with x = y = z = 1.
    * @return Ones vector (1, 1, 1).
    */
   [[nodiscard]] inline static constexpr Vec3T<T>
-  one() noexcept;
+  ones() noexcept;
 
   /**
    * @brief Return the unit basis vector for the given coordinate axis.
@@ -400,8 +400,8 @@ public:
    * @param[in] u Other vector.
    * @return Reference to *this after assignment.
    */
-  inline constexpr Vec3T<T>&
-  operator=(const Vec3T<T>& u) noexcept;
+  constexpr Vec3T<T>&
+  operator=(const Vec3T<T>& u) noexcept = default;
 
   /**
    * @brief Addition operator.
@@ -502,26 +502,6 @@ public:
    */
   inline constexpr Vec3T<T>&
   operator/=(const T& s) noexcept;
-
-  /**
-   * @brief In-place component-wise minimum.
-   * @details Updates *this so that each component becomes the minimum of itself
-   * and the corresponding component of u, then returns a copy of *this.
-   * @param[in] u Other vector.
-   * @return Copy of *this after the in-place update.
-   */
-  inline constexpr Vec3T<T>
-  min(const Vec3T<T>& u) noexcept;
-
-  /**
-   * @brief In-place component-wise maximum.
-   * @details Updates *this so that each component becomes the maximum of itself
-   * and the corresponding component of u, then returns a copy of *this.
-   * @param[in] u Other vector.
-   * @return Copy of *this after the in-place update.
-   */
-  inline constexpr Vec3T<T>
-  max(const Vec3T<T>& u) noexcept;
 
   /**
    * @brief Vector cross product.
@@ -724,6 +704,17 @@ clamp(const Vec3T<T>& v, const Vec3T<T>& lo, const Vec3T<T>& hi) noexcept;
 template <typename T>
 [[nodiscard]] inline constexpr T
 dot(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
+
+/**
+ * @brief Cross product of two 3D vectors.
+ * @tparam T Floating-point precision.
+ * @param[in] u First vector.
+ * @param[in] v Second vector.
+ * @return Cross product u × v.
+ */
+template <typename T>
+[[nodiscard]] inline constexpr Vec3T<T>
+cross(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
 
 /**
  * @brief Euclidean length of a 3D vector.

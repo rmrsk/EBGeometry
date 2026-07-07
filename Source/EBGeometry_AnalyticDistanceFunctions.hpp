@@ -119,7 +119,7 @@ protected:
   /**
    * @brief Point on plane.
    */
-  Vec3T<T> m_point = Vec3T<T>::zero();
+  Vec3T<T> m_point = Vec3T<T>::zeros();
 
   /**
    * @brief Plane normal vector (unit length).
@@ -250,7 +250,7 @@ protected:
   /**
    * @brief Sphere center.
    */
-  Vec3T<T> m_center = Vec3T<T>::zero();
+  Vec3T<T> m_center = Vec3T<T>::zeros();
 
   /**
    * @brief Sphere radius.
@@ -391,9 +391,9 @@ public:
     // Note: max is max(Vec3T<T>, Vec3T<T>) and not std::max. It returns a
     // vector with coordinate-wise largest components. Note that the first part
     // std::min(...) is the signed distance on the inside of the box (delta will
-    // have negative components). The other part max(Vec3T<T>::zero(), ...) is
+    // have negative components). The other part max(Vec3T<T>::zeros(), ...) is
     // for outside the box.
-    const T d = std::min(T(0.0), delta[delta.maxDir(false)]) + max(Vec3T<T>::zero(), delta).length();
+    const T d = std::min(T(0.0), delta[delta.maxDir(false)]) + max(Vec3T<T>::zeros(), delta).length();
 
     return d;
   }
@@ -565,7 +565,7 @@ protected:
   /**
    * @brief Torus center.
    */
-  Vec3T<T> m_center = Vec3T<T>::zero();
+  Vec3T<T> m_center = Vec3T<T>::zeros();
 
   /**
    * @brief Major (ring) radius.
@@ -747,7 +747,7 @@ protected:
   /**
    * @brief Midpoint of m_center1 and m_center2.
    */
-  Vec3T<T> m_center = Vec3T<T>::zero();
+  Vec3T<T> m_center = Vec3T<T>::zeros();
 
   /**
    * @brief Unit axis pointing from m_center1 to m_center2.
@@ -859,7 +859,7 @@ protected:
   /**
    * @brief Center point on the cylinder axis.
    */
-  Vec3T<T> m_center = Vec3T<T>::zero();
+  Vec3T<T> m_center = Vec3T<T>::zeros();
 
   /**
    * @brief Cylinder radius.
@@ -1102,7 +1102,7 @@ protected:
   /**
    * @brief Tip position.
    */
-  Vec3T<T> m_tip = Vec3T<T>::zero();
+  Vec3T<T> m_tip = Vec3T<T>::zeros();
 
   /**
    * @brief (sin, cos) of the half opening-angle. Default: 45° full angle → half-angle 22.5°.
@@ -1225,7 +1225,7 @@ protected:
   /**
    * @brief Tip position.
    */
-  Vec3T<T> m_tip = Vec3T<T>::zero();
+  Vec3T<T> m_tip = Vec3T<T>::zeros();
 
   /**
    * @brief (sin, cos) of the half opening-angle. Default: 45° full angle → half-angle 22.5°.
@@ -1279,7 +1279,7 @@ public:
     EBGEOMETRY_EXPECT(a_curvature > T(0));
 
     m_dimensions = T(0.5) * a_dimensions;
-    m_sphere     = std::make_shared<SphereSDF<T>>(Vec3T<T>::zero(), a_curvature);
+    m_sphere     = std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), a_curvature);
   }
 
   /**
@@ -1330,7 +1330,7 @@ protected:
   /**
    * @brief Sphere of radius = curvature used to round the corners.
    */
-  std::shared_ptr<SphereSDF<T>> m_sphere = std::make_shared<SphereSDF<T>>(Vec3T<T>::zero(), T(0.1));
+  std::shared_ptr<SphereSDF<T>> m_sphere = std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), T(0.1));
 
   /**
    * @brief Half-extents of the inner box (= 0.5 * the user-supplied dimensions).

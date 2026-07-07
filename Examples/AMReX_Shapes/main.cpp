@@ -94,45 +94,45 @@ main(int argc, char* argv[])
   std::shared_ptr<ImpFunc> func;
   if (whichGeom == 0) { // Sphere.
     rb   = RealBox({-1, -1, -1}, {1, 1, 1});
-    func = std::make_shared<EBGeometry::SphereSDF<T>>(0.0 * Vec3::one(), T(0.1));
+    func = std::make_shared<EBGeometry::SphereSDF<T>>(0.0 * Vec3::ones(), T(0.1));
   }
   else if (whichGeom == 1) { // Plane.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
-    func = std::make_shared<EBGeometry::PlaneSDF<T>>(Vec3::zero(), Vec3::one());
+    func = std::make_shared<EBGeometry::PlaneSDF<T>>(Vec3::zeros(), Vec3::ones());
   }
   else if (whichGeom == 2) { // Infinite cylinder.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
-    func = std::make_shared<EBGeometry::InfiniteCylinderSDF<T>>(Vec3::zero(), T(0.1), 2);
+    func = std::make_shared<EBGeometry::InfiniteCylinderSDF<T>>(Vec3::zeros(), T(0.1), 2);
   }
   else if (whichGeom == 3) { // Finite cylinder.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::CylinderSDF<T>>(-Vec3::one(), Vec3::one(), 0.25);
+    func = std::make_shared<EBGeometry::CylinderSDF<T>>(-Vec3::ones(), Vec3::ones(), 0.25);
   }
   else if (whichGeom == 4) { // Capsule.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::CapsuleSDF<T>>(-Vec3::one(), Vec3::one(), 0.25);
+    func = std::make_shared<EBGeometry::CapsuleSDF<T>>(-Vec3::ones(), Vec3::ones(), 0.25);
   }
   else if (whichGeom == 5) { // Box.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one());
+    func = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::ones(), Vec3::ones());
   }
   else if (whichGeom == 6) { // Offset box.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::one(), Vec3::one());
+    func = std::make_shared<EBGeometry::BoxSDF<T>>(-Vec3::ones(), Vec3::ones());
     func = EBGeometry::Offset<T>(func, 0.25);
   }
   else if (whichGeom == 7) { // Torus.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
 
-    func = std::make_shared<EBGeometry::TorusSDF<T>>(Vec3::zero(), 1.0, 0.25);
+    func = std::make_shared<EBGeometry::TorusSDF<T>>(Vec3::zeros(), 1.0, 0.25);
 
-    func = EBGeometry::Elongate(func, 0.5 * Vec3::one());
+    func = EBGeometry::Elongate(func, 0.5 * Vec3::ones());
   }
   else if (whichGeom == 8) { // Infinite cone.
     rb = RealBox({-2, -2, -2}, {2, 2, 2});
@@ -147,26 +147,26 @@ main(int argc, char* argv[])
   else if (whichGeom == 10) { // Spherical shell.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
-    func = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zero(), T(0.5));
+    func = std::make_shared<EBGeometry::SphereSDF<T>>(Vec3::zeros(), T(0.5));
     func = EBGeometry::Annular<T>(func, 0.1);
   }
   else if (whichGeom == 11) { // Smooth CSG difference between spheres, creating a death star.
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
-    auto func1 = std::make_shared<EBGeometry::SphereSDF<T>>(-0.25 * Vec3::one(), T(0.5));
-    auto func2 = std::make_shared<EBGeometry::SphereSDF<T>>(0.25 * Vec3::one(), T(0.5));
+    auto func1 = std::make_shared<EBGeometry::SphereSDF<T>>(-0.25 * Vec3::ones(), T(0.5));
+    auto func2 = std::make_shared<EBGeometry::SphereSDF<T>>(0.25 * Vec3::ones(), T(0.5));
 
     func = EBGeometry::SmoothDifference<T>(func1, func2, 0.025);
   }
   else if (whichGeom == 12) { // Rounded box
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
-    func = std::make_shared<EBGeometry::RoundedBoxSDF<T>>(1.0 * Vec3::one(), 0.1);
+    func = std::make_shared<EBGeometry::RoundedBoxSDF<T>>(1.0 * Vec3::ones(), 0.1);
   }
   else if (whichGeom == 13) { // Perlin Random noise function
     rb = RealBox({-1, -1, -1}, {1, 1, 1});
 
-    func = std::make_shared<EBGeometry::PerlinSDF<T>>(0.5, 2.0 * Vec3::one(), 0.5, 4);
+    func = std::make_shared<EBGeometry::PerlinSDF<T>>(0.5, 2.0 * Vec3::ones(), 0.5, 4);
   }
   else if (whichGeom == 14) { // Rounded cylinder
     rb = RealBox({-1, -1, -1}, {1, 1, 1});

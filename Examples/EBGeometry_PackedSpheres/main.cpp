@@ -50,8 +50,8 @@ main()
         const T z = k * (delta + 2 * radius);
 
         const Vec3 center(x, y, z);
-        const Vec3 lo = center - radius * Vec3::one();
-        const Vec3 hi = center + radius * Vec3::one();
+        const Vec3 lo = center - radius * Vec3::ones();
+        const Vec3 hi = center + radius * Vec3::ones();
 
         spheres.emplace_back(std::make_shared<Sphere>(center, radius));
         boundingVolumes.emplace_back(lo, hi);
@@ -71,9 +71,9 @@ main()
   const EBGeometry::BVHUnionIF<T, Sphere, AABB, K> fastUnion(spheres, boundingVolumes);
 
   // Create a finite repetition of one of the spheres. This is a third type of object representation.
-  auto sph = std::make_shared<Sphere>(Vec3::zero(), radius);
-  auto sphereArray =
-    EBGeometry::FiniteRepetition<T, Sphere>(sph, (delta + 2 * radius) * Vec3::one(), Vec3::zero(), 80.0 * Vec3::one());
+  auto sph         = std::make_shared<Sphere>(Vec3::zeros(), radius);
+  auto sphereArray = EBGeometry::FiniteRepetition<T, Sphere>(
+    sph, (delta + 2 * radius) * Vec3::ones(), Vec3::zeros(), 80.0 * Vec3::ones());
 
   // Create some samples in the bounding box of the BVH
   std::cout << "Sampling distance fields... \n" << '\n';

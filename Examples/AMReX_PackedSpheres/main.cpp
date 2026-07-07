@@ -55,7 +55,7 @@ public:
           const Vec3 center(0.5 * dx + i * (dx + Rmax), 0.5 * dx + j * (dx + Rmax), 0.5 * dx + k * (dx + Rmax));
 
           spheres.emplace_back(std::make_shared<Prim>(center, R));
-          boundingVolumes.emplace_back(BV(center - R * Vec3::one(), center + R * Vec3::one()));
+          boundingVolumes.emplace_back(BV(center - R * Vec3::ones(), center + R * Vec3::ones()));
         }
       }
     }

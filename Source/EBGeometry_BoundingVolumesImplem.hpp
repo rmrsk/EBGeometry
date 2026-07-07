@@ -64,8 +64,8 @@ SphereT<T>::SphereT(const std::vector<SphereT<T>>& a_otherSpheres) noexcept
     const T&        radius = sphere.getRadius();
     const Vec3T<T>& center = sphere.getCentroid();
 
-    points.emplace_back(center + radius * Vec3T<T>::one());
-    points.emplace_back(center - radius * Vec3T<T>::one());
+    points.emplace_back(center + radius * Vec3T<T>::ones());
+    points.emplace_back(center - radius * Vec3T<T>::ones());
   }
 
   this->define(points, BuildAlgorithm::Ritter);
@@ -223,7 +223,7 @@ SphereT<T>::buildRitter(const std::vector<Vec3T<P>>& a_points) noexcept
   EBGEOMETRY_EXPECT(!a_points.empty());
 
   m_radius = T(0);
-  m_center = Vec3::zero();
+  m_center = Vec3::zeros();
 
   constexpr T      half = T(0.5);
   constexpr size_t DIM  = 3;
@@ -456,7 +456,7 @@ AABBT<T>::getDistance(const Vec3& a_point) const noexcept
                  std::max(m_loCorner[1] - a_point[1], a_point[1] - m_hiCorner[1]),
                  std::max(m_loCorner[2] - a_point[2], a_point[2] - m_hiCorner[2]));
 
-  return max(Vec3::zero(), gap).length();
+  return max(Vec3::zeros(), gap).length();
 }
 
 template <class T>

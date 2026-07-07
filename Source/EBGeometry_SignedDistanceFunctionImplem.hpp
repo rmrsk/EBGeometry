@@ -41,7 +41,7 @@ SignedDistanceFunction<T>::normal(const Vec3T<T>& a_point, const T& a_delta) con
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
   EBGEOMETRY_EXPECT(a_delta > T(0));
 
-  Vec3T<T> n = Vec3T<T>::zero();
+  Vec3T<T> n = Vec3T<T>::zeros();
 
   const T id = 1. / (2 * a_delta);
 

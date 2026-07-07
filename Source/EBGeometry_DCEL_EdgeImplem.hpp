@@ -31,7 +31,7 @@ namespace DCEL {
 template <class T, class Meta>
 inline EdgeT<T, Meta>::EdgeT() noexcept
 {
-  m_normal   = Vec3::zero();
+  m_normal   = Vec3::zeros();
   m_face     = nullptr;
   m_vertex   = nullptr;
   m_pairEdge = nullptr;
@@ -119,7 +119,7 @@ template <class T, class Meta>
 inline Vec3T<T>
 EdgeT<T, Meta>::computeNormal() const noexcept
 {
-  Vec3T<T> normal = Vec3T<T>::zero();
+  Vec3T<T> normal = Vec3T<T>::zeros();
 
   if (m_face) {
     normal += m_face->getNormal();
@@ -129,7 +129,7 @@ EdgeT<T, Meta>::computeNormal() const noexcept
   }
 
   const T len = normal.length();
-  return (len > std::numeric_limits<T>::epsilon()) ? normal / len : Vec3T<T>::zero();
+  return (len > std::numeric_limits<T>::epsilon()) ? normal / len : Vec3T<T>::zeros();
 }
 
 template <class T, class Meta>

@@ -58,14 +58,14 @@ constexpr std::array<Vec3T<T>, 8> LowCorner = {Vec3T<T>(0.0, 0.0, 0.0),
  * @brief Upper-right corners of the octants on the unit cube, indexed lexicographically in x-y-z.
  */
 template <typename T>
-constexpr std::array<Vec3T<T>, 8> HighCorner = {LowCorner<T>[0] + 0.5 * Vec3T<T>::one(),
-                                                LowCorner<T>[1] + 0.5 * Vec3T<T>::one(),
-                                                LowCorner<T>[2] + 0.5 * Vec3T<T>::one(),
-                                                LowCorner<T>[3] + 0.5 * Vec3T<T>::one(),
-                                                LowCorner<T>[4] + 0.5 * Vec3T<T>::one(),
-                                                LowCorner<T>[5] + 0.5 * Vec3T<T>::one(),
-                                                LowCorner<T>[6] + 0.5 * Vec3T<T>::one(),
-                                                LowCorner<T>[7] + 0.5 * Vec3T<T>::one()};
+constexpr std::array<Vec3T<T>, 8> HighCorner = {LowCorner<T>[0] + 0.5 * Vec3T<T>::ones(),
+                                                LowCorner<T>[1] + 0.5 * Vec3T<T>::ones(),
+                                                LowCorner<T>[2] + 0.5 * Vec3T<T>::ones(),
+                                                LowCorner<T>[3] + 0.5 * Vec3T<T>::ones(),
+                                                LowCorner<T>[4] + 0.5 * Vec3T<T>::ones(),
+                                                LowCorner<T>[5] + 0.5 * Vec3T<T>::ones(),
+                                                LowCorner<T>[6] + 0.5 * Vec3T<T>::ones(),
+                                                LowCorner<T>[7] + 0.5 * Vec3T<T>::ones()};
 
 /**
  * @brief Octree class without anything special (this uses full tree representation rather than linear/pointerless).

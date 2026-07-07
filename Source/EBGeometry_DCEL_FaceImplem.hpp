@@ -30,7 +30,7 @@ template <class T, class Meta>
 inline FaceT<T, Meta>::FaceT()
 {
   m_halfEdge       = nullptr;
-  m_normal         = Vec3::zero();
+  m_normal         = Vec3::zeros();
   m_poly2Algorithm = Polygon2D<T>::InsideOutsideAlgorithm::CrossingNumber;
 }
 
@@ -102,7 +102,7 @@ template <class T, class Meta>
 inline void
 FaceT<T, Meta>::computeCentroid()
 {
-  m_centroid = Vec3::zero();
+  m_centroid = Vec3::zeros();
 
   const auto vertices = this->gatherVertices();
 

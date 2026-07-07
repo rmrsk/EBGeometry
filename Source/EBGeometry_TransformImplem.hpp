@@ -77,7 +77,7 @@ template <class T>
 std::shared_ptr<ImplicitFunction<T>>
 Mollify(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const T a_dist, const size_t a_mollifierSamples)
 {
-  auto mollifier = std::make_shared<SphereSDF<T>>(Vec3T<T>::zero(), std::abs(a_dist));
+  auto mollifier = std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), std::abs(a_dist));
 
   return std::make_shared<MollifyIF<T>>(a_implicitFunction, mollifier, std::abs(a_dist), a_mollifierSamples);
 }
@@ -321,7 +321,7 @@ MollifyIF<T>::MollifyIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFu
     }
   }
   else {
-    m_sampledMollifier.emplace_back(Vec3T<T>::zero(), 1.0);
+    m_sampledMollifier.emplace_back(Vec3T<T>::zeros(), 1.0);
   }
 }
 
@@ -366,7 +366,7 @@ ReflectIF<T>::ReflectIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFu
   EBGEOMETRY_EXPECT(a_reflectPlane <= 2U);
 
   m_implicitFunction = a_implicitFunction;
-  m_reflectParams    = Vec3T<T>::one();
+  m_reflectParams    = Vec3T<T>::ones();
 
   if (a_reflectPlane <= 2) {
     m_reflectParams[a_reflectPlane] = -1;

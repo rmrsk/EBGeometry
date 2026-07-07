@@ -145,7 +145,7 @@ Soup::soupToDCEL(EBGeometry::DCEL::MeshT<T, Meta>&        a_mesh,
 
   // Build the vertex vectors from the input vertices.
   for (const auto& v : a_vertices) {
-    vertices.emplace_back(std::make_shared<Vertex>(v, Vec3::zero()));
+    vertices.emplace_back(std::make_shared<Vertex>(v, Vec3::zeros()));
   }
 
   // Now build the faces.

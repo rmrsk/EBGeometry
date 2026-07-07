@@ -39,12 +39,12 @@ TEST_CASE("Vec3T: component construction", "[Vec3T]")
 
 TEST_CASE("Vec3T: static factories", "[Vec3T]")
 {
-  auto z = Vec3T<double>::zero();
+  auto z = Vec3T<double>::zeros();
   REQUIRE(z[0] == 0.0);
   REQUIRE(z[1] == 0.0);
   REQUIRE(z[2] == 0.0);
 
-  auto o = Vec3T<double>::one();
+  auto o = Vec3T<double>::ones();
   REQUIRE(o[0] == 1.0);
   REQUIRE(o[1] == 1.0);
   REQUIRE(o[2] == 1.0);

@@ -33,8 +33,8 @@ namespace DCEL {
 template <class T, class Meta>
 inline VertexT<T, Meta>::VertexT()
 {
-  m_position = Vec3::zero();
-  m_normal   = Vec3::zero();
+  m_position = Vec3::zeros();
+  m_normal   = Vec3::zeros();
 
   m_faces.resize(0);
 }
@@ -121,7 +121,7 @@ template <class T, class Meta>
 inline void
 VertexT<T, Meta>::computeVertexNormalAverage(const std::vector<FacePtr>& a_faces) noexcept
 {
-  m_normal = Vec3::zero();
+  m_normal = Vec3::zeros();
 
   // TLDR: We simply compute the sum of the normal vectors for each face in
   // a_faces and then normalize. This
@@ -145,7 +145,7 @@ template <class T, class Meta>
 inline void
 VertexT<T, Meta>::computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a_faces)
 {
-  m_normal = Vec3::zero();
+  m_normal = Vec3::zeros();
 
   // This routine computes the pseudonormal from pseudnormal algorithm from
   // Baerentzen and Aanes in "Signed distance computation using the angle

@@ -214,7 +214,7 @@ protected:
   /**
    * @brief Sphere centre. Initialised to the origin.
    */
-  Vec3 m_center = Vec3::zero();
+  Vec3 m_center = Vec3::zeros();
 
   /**
    * @brief Fit a bounding sphere to @p a_points using Ritter's algorithm.

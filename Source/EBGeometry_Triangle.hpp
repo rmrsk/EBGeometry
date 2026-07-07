@@ -37,10 +37,9 @@ namespace EBGeometry {
  * is then implicitly given by the vertex order.
  *
  * To compute the distance from a point to the triangle, one must determine if the point projects to the
- * "inside" or "outside" of the triangle. This class contains a 2D embedding of the triangle that can perform
- * this project. If the query point projects to the inside of the triangle, the distance is simply the
- * projected distance onto the triangle plane. If it projects to the outside of the triangle, we check the
- * distance against the triangle edges and vertices.
+ * "inside" or "outside" of the triangle. If the query point projects to the inside of the triangle, the
+ * distance is simply the projected distance onto the triangle plane. If it projects to the outside of
+ * the triangle, we check the distance against the triangle edges and vertices.
  * @tparam T    Floating-point precision.
  * @tparam Meta User-defined metadata type stored with the triangle.
  */
@@ -51,12 +50,12 @@ class Triangle
 
 public:
   /**
-   * @brief Alias for 2D vector type
+   * @brief Alias for 2D vector type.
    */
   using Vec2 = Vec2T<T>;
 
   /**
-   * @brief Alias for 3D vector type
+   * @brief Alias for 3D vector type.
    */
   using Vec3 = Vec3T<T>;
 
@@ -73,7 +72,7 @@ public:
 
   /**
    * @brief Full constructor.
-   * @param[in] a_vertexPositions Triangle vertex positions
+   * @param[in] a_vertexPositions Triangle vertex positions.
    */
   Triangle(const std::array<Vec3, 3>& a_vertexPositions) noexcept;
 
@@ -100,7 +99,8 @@ public:
 
   /**
    * @brief Set the triangle normal vector.
-   * @param[in] a_normal Normal vector (should be consistent with the vertex ordering!).
+   * @param[in] a_normal Normal vector
+   * @note The input normal should be consistent with the vertex ordering.
    */
   void
   setNormal(const Vec3& a_normal) noexcept;
@@ -135,7 +135,8 @@ public:
 
   /**
    * @brief Compute the triangle normal vector.
-   * @details This computes the normal vector from two of the triangle edges.
+   * @details This computes the normal vector from two of the triangle edges, using the
+   * right-hand rule and vertex ordering to infer the normal vector.
    */
   void
   computeNormal() noexcept;
