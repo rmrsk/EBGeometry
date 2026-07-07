@@ -195,3 +195,86 @@ TEST_CASE("MeshSDF::getClosestFaces returns the correct number of candidate face
   const T closestUnsignedDist = sorted.front().second;
   REQUIRE_THAT(closestUnsignedDist, Catch::Matchers::WithinAbs(std::abs(packed.signedDistance(p)), 1.0e-6));
 }
+
+TEST_CASE("Parser::readIntoPackedBVH matches MeshSDF built directly from the same mesh", "[BVH][Parser]")
+{
+  constexpr size_t K = 4;
+
+  const auto direct = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
+  REQUIRE(direct != nullptr);
+
+  const MeshSDF<T, Meta, K> expected(direct, BVH::Build::SAH);
+  const auto                fromFile = Parser::readIntoPackedBVH<T, Meta, K>(dataPath("dodecahedron.stl"));
+
+  REQUIRE(fromFile != nullptr);
+
+  for (const auto& p : queryPoints()) {
+    REQUIRE_THAT(fromFile->signedDistance(p), Catch::Matchers::WithinAbs(expected.signedDistance(p), 1.0e-9));
+  }
+}
+
+TEST_CASE("Parser: multi-file overloads return one result per file, each matching the "
+          "corresponding single-file call",
+          "[BVH][Parser]")
+{
+  constexpr size_t K = 4;
+
+  // Two different formats of the *same* underlying geometry -- the point isn't that the two
+  // files describe different scenes, only that the multi-file overload is a faithful per-file
+  // loop, not some kind of multi-mesh merge.
+  const std::vector<std::string> files = {dataPath("dodecahedron.stl"), dataPath("dodecahedron.ply")};
+
+  SECTION("readIntoDCEL")
+  {
+    const auto meshes = Parser::readIntoDCEL<T, Meta>(files);
+    REQUIRE(meshes.size() == 2);
+
+    for (size_t i = 0; i < files.size(); i++) {
+      const auto single = Parser::readIntoDCEL<T, Meta>(files[i]);
+      REQUIRE(meshes[i]->getVertices().size() == single->getVertices().size());
+      REQUIRE(meshes[i]->getFaces().size() == single->getFaces().size());
+      for (const auto& p : queryPoints()) {
+        REQUIRE_THAT(meshes[i]->signedDistance(p), Catch::Matchers::WithinAbs(single->signedDistance(p), 1.0e-9));
+      }
+    }
+  }
+
+  SECTION("readIntoMesh")
+  {
+    const auto flatSDFs = Parser::readIntoMesh<T, Meta>(files);
+    REQUIRE(flatSDFs.size() == 2);
+
+    for (size_t i = 0; i < files.size(); i++) {
+      const auto single = Parser::readIntoMesh<T, Meta>(files[i]);
+      for (const auto& p : queryPoints()) {
+        REQUIRE_THAT(flatSDFs[i]->signedDistance(p), Catch::Matchers::WithinAbs(single->signedDistance(p), 1.0e-9));
+      }
+    }
+  }
+
+  SECTION("readIntoPackedBVH")
+  {
+    const auto packedSDFs = Parser::readIntoPackedBVH<T, Meta, K>(files);
+    REQUIRE(packedSDFs.size() == 2);
+
+    for (size_t i = 0; i < files.size(); i++) {
+      const auto single = Parser::readIntoPackedBVH<T, Meta, K>(files[i]);
+      for (const auto& p : queryPoints()) {
+        REQUIRE_THAT(packedSDFs[i]->signedDistance(p), Catch::Matchers::WithinAbs(single->signedDistance(p), 1.0e-9));
+      }
+    }
+  }
+
+  SECTION("readIntoTriangleBVH")
+  {
+    const auto triSDFs = Parser::readIntoTriangleBVH<T, Meta>(files);
+    REQUIRE(triSDFs.size() == 2);
+
+    for (size_t i = 0; i < files.size(); i++) {
+      const auto single = Parser::readIntoTriangleBVH<T, Meta>(files[i]);
+      for (const auto& p : queryPoints()) {
+        REQUIRE_THAT(triSDFs[i]->signedDistance(p), Catch::Matchers::WithinAbs(single->signedDistance(p), 1.0e-9));
+      }
+    }
+  }
+}
