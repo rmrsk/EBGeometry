@@ -144,14 +144,14 @@ Polygon2D<T>::computeWindingNumber(const Vec2& P) const noexcept
 
     if (P1.y <= P.y) {
       if (P2.y > P.y) {
-        if (res > 0.) {
+        if (res > T(0.)) {
           ++wn;
         }
       }
     }
     else {
       if (P2.y <= P.y) {
-        if (res < 0.) {
+        if (res < T(0.)) {
           --wn;
         }
       }
@@ -283,9 +283,9 @@ Polygon2D<T>::isPointInsidePolygonSubtend(const Vec3& a_point) const noexcept
   sumTheta = std::abs(sumTheta) / (T(2) * pi);
 
   // Tolerance-based comparison: inside if sumTheta rounds to 1 (i.e. the total
-  // subtended angle is 2*pi). Using std::abs instead of round() is more robust
+  // subtended angle is 2*pi). Using std::abs instead of std::round() is more robust
   // near the polygon boundary where floating-point accumulation can push sumTheta
-  // just past 0.5, causing round() to misclassify.
+  // just past 0.5, causing std::round() to misclassify.
   const bool ret = (std::abs(sumTheta - T(1)) < T(0.5));
 
   return ret;

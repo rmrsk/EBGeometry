@@ -153,7 +153,7 @@ FaceT<T, Meta>::computeNormal()
 
     m_normal = (x2 - x0).cross(x2 - x1);
 
-    if (m_normal.length() > 0.0) {
+    if (m_normal.length() > T(0.0)) {
       break; // Found one.
     }
   }
@@ -195,7 +195,7 @@ FaceT<T, Meta>::computeArea()
     area += m_normal.dot(v2.cross(v1));
   }
 
-  m_area = 0.5 * std::abs(area);
+  m_area = T(0.5) * std::abs(area);
 }
 
 template <class T, class Meta>

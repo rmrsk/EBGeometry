@@ -317,7 +317,7 @@ These rules are given below.
 
 .. literalinclude:: ../../../Source/EBGeometry_MeshDistanceFunctionsImplem.hpp
    :language: c++
-   :lines: 269-298
+   :lines: 277-306
    :dedent: 2
    :caption: Tree traversal criterion for computing the signed distance to a DCEL mesh using the BVH accelerator (:cpp:func:`MeshSDF::signedDistance`).
 	     See :file:`Source/EBGeometry_MeshDistanceFunctionsImplem.hpp` for details.

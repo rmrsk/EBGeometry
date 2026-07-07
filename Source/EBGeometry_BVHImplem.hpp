@@ -206,7 +206,7 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
   // tree where all the leaves exist on the same level, so the numb
   // a root node in the end.
   const size_t numPrimitives = sortedPrimitives.size();
-  const size_t treeDepth     = std::floor(log(numPrimitives) / log(K));
+  const size_t treeDepth     = std::floor(std::log(numPrimitives) / std::log(K));
   const size_t numLeaves     = std::pow(K, treeDepth);
   const size_t primsPerLeaf  = numPrimitives / numLeaves;
 

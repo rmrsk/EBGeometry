@@ -539,7 +539,7 @@ public:
 
   /**
    * @brief Compute vector length.
-   * @return Euclidean length: sqrt(X[0]*X[0] + X[1]*X[1] + X[2]*X[2]).
+   * @return Euclidean length: std::sqrt(X[0]*X[0] + X[1]*X[1] + X[2]*X[2]).
    */
   [[nodiscard]] inline constexpr T
   length() const noexcept;
@@ -618,7 +618,7 @@ dot(const Vec2T<T>& u, const Vec2T<T>& v) noexcept;
  * @brief Euclidean length of a 2D vector.
  * @tparam T Floating-point precision.
  * @param[in] v Vector.
- * @return sqrt(v.x*v.x + v.y*v.y).
+ * @return std::sqrt(v.x*v.x + v.y*v.y).
  */
 template <typename T>
 [[nodiscard]] inline T
@@ -720,7 +720,7 @@ cross(const Vec3T<T>& u, const Vec3T<T>& v) noexcept;
  * @brief Euclidean length of a 3D vector.
  * @tparam T Floating-point precision.
  * @param[in] v Vector.
- * @return sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]).
+ * @return std::sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]).
  */
 template <typename T>
 [[nodiscard]] inline constexpr T

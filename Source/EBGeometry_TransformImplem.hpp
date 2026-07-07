@@ -316,10 +316,10 @@ BlurIF<T>::value(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  const T A = std::pow(m_alpha, 3.0) * std::pow((1.0 - m_alpha) / 2.0, 0.0);
-  const T B = std::pow(m_alpha, 2.0) * std::pow((1.0 - m_alpha) / 2.0, 1.0);
-  const T C = std::pow(m_alpha, 1.0) * std::pow((1.0 - m_alpha) / 2.0, 2.0);
-  const T D = std::pow(m_alpha, 0.0) * std::pow((1.0 - m_alpha) / 2.0, 3.0);
+  const T A = std::pow(m_alpha, T(3.0)) * std::pow((T(1.0) - m_alpha) / T(2.0), T(0.0));
+  const T B = std::pow(m_alpha, T(2.0)) * std::pow((T(1.0) - m_alpha) / T(2.0), T(1.0));
+  const T C = std::pow(m_alpha, T(1.0)) * std::pow((T(1.0) - m_alpha) / T(2.0), T(2.0));
+  const T D = std::pow(m_alpha, T(0.0)) * std::pow((T(1.0) - m_alpha) / T(2.0), T(3.0));
 
   const Vec3T<T>& p = a_point;
   const Vec3T<T>  x = m_blurDistance * Vec3T<T>::unit(0);
@@ -356,7 +356,7 @@ MollifyIF<T>::MollifyIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFu
 
   const T maxVal = std::abs(a_maxValue);
 
-  if (maxVal > 0.0 && a_numPoints > 1) {
+  if (maxVal > T(0.0) && a_numPoints > 1) {
     const T dX = 2 * maxVal / (a_numPoints - 1);
 
     for (size_t i = 0; i < a_numPoints; i++) {

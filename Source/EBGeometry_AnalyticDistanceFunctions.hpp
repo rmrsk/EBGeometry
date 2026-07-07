@@ -555,8 +555,8 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
     const Vec3T<T> p   = a_point - m_center;
-    const T        rho = sqrt(p[0] * p[0] + p[1] * p[1]) - m_majorRadius;
-    const T        d   = sqrt(rho * rho + p[2] * p[2]) - m_minorRadius;
+    const T        rho = std::sqrt(p[0] * p[0] + p[1] * p[1]) - m_majorRadius;
+    const T        d   = std::sqrt(rho * rho + p[2] * p[2]) - m_minorRadius;
 
     return d;
   }
@@ -699,7 +699,7 @@ public:
 
     T d = std::numeric_limits<T>::infinity();
 
-    if (m_length > 0.0 && m_radius > 0.0) {
+    if (m_length > T(0.0) && m_radius > T(0.0)) {
       EBGEOMETRY_EXPECT(std::abs(m_axis.length() - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
 
       const Vec3T<T> point = a_point - m_center;
@@ -709,7 +709,7 @@ public:
       // w: Distance from cylinder wall. < 0 on inside and > 0 on outside.
       // h: Distance from cylinder top.  < 0 on inside and > 0 on outside.
       const T w = ortho.length() - m_radius;
-      const T h = std::abs(para) - 0.5 * m_length;
+      const T h = std::abs(para) - T(0.5) * m_length;
 
       constexpr T zero = T(0.0);
 
@@ -726,7 +726,7 @@ public:
         d = w;
       }
       else {
-        d = sqrt(w * w + h * h);
+        d = std::sqrt(w * w + h * h);
       }
     }
 
@@ -1005,11 +1005,11 @@ protected:
  * @details The cone tip is at `m_tip`. The cone body opens in the **-z** direction from the tip
  * (the interior, where SDF < 0, is the solid region extending downward along -z within the
  * cone surface). The full opening angle `a_angle` (tip-to-tip across the cone) is halved
- * internally; the half-angle is stored as `m_c = (sin(half_angle), cos(half_angle))`.
+ * internally; the half-angle is stored as `m_c = (std::sin(half_angle), std::cos(half_angle))`.
  *
  * For a 45° full opening angle the half-angle is 22.5°; a point directly below the tip at
  * depth `d` sits on the cone surface when its radial distance from the axis equals
- * `d * tan(half_angle)`.
+ * `d * std::tan(half_angle)`.
  *
  * The cone is infinite: it has no base plane. By default the tip is at the origin and the full
  * opening angle is 45°, with the body extending along -z.
@@ -1090,10 +1090,10 @@ public:
     EBGEOMETRY_EXPECT(std::abs(length(m_c) - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
 
     const Vec3T<T> delta = a_point - m_tip;
-    const Vec2T<T> q(sqrt(delta[0] * delta[0] + delta[1] * delta[1]), -delta[2]);
+    const Vec2T<T> q(std::sqrt(delta[0] * delta[0] + delta[1] * delta[1]), -delta[2]);
 
     const T d1 = length(q - m_c * std::max(dot(q, m_c), T(0.0)));
-    const T d2 = d1 * ((q.x * m_c.y - q.y * m_c.x < 0.0) ? -1.0 : 1.0);
+    const T d2 = d1 * ((q.x * m_c.y - q.y * m_c.x < T(0.0)) ? T(-1.0) : T(1.0));
 
     return d2;
   }
@@ -1114,12 +1114,12 @@ protected:
  * @brief Signed distance field for a finite cone.
  * @details The cone tip is at `m_tip` and the body opens in the **-z** direction, so the base
  * disc lies at `m_tip + (0, 0, -m_height)`. The full opening angle `a_angle` is the tip-to-tip
- * apex angle; internally the half-angle is encoded as `m_c = (sin(half_angle), cos(half_angle))`.
- * The base radius equals `m_height * tan(half_angle) = m_height * m_c.x / m_c.y`.
+ * apex angle; internally the half-angle is encoded as `m_c = (std::sin(half_angle), std::cos(half_angle))`.
+ * The base radius equals `m_height * std::tan(half_angle) = m_height * m_c.x / m_c.y`.
  *
  * The SDF is negative inside the solid cone (including the base disc) and positive outside.
  * By default the tip is at the origin, the height is 1, and the full opening angle is 45°,
- * giving a base radius of `tan(22.5°) ≈ 0.414`.
+ * giving a base radius of `std::tan(22.5°) ≈ 0.414`.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -1201,7 +1201,7 @@ public:
     EBGEOMETRY_EXPECT(m_c.y > T(0));
 
     const Vec3T<T> delta = a_point - m_tip;
-    const T        dr    = sqrt(delta[0] * delta[0] + delta[1] * delta[1]);
+    const T        dr    = std::sqrt(delta[0] * delta[0] + delta[1] * delta[1]);
     const T        dz    = delta[2];
 
     constexpr T zero = T(0.0);
@@ -1218,7 +1218,7 @@ public:
     const T d = std::min(dot(a, a), dot(b, b));
     const T s = std::max(k * (w.x * q.y - w.y * q.x), k * (w.y - q.y));
 
-    return sqrt(d) * sign(s);
+    return std::sqrt(d) * sign(s);
   }
 
 protected:
@@ -1446,7 +1446,7 @@ public:
     T        curAmp  = 1.0;
 
     for (unsigned int curOctave = 0; curOctave < m_noiseOctaves; curOctave++) {
-      ret += 0.5 * curAmp * (1 + this->noise(a_point * curFreq));
+      ret += T(0.5) * curAmp * (T(1) + this->noise(a_point * curFreq));
 
       curFreq = curFreq / m_noisePersistence;
       curAmp  = curAmp * m_noisePersistence;
@@ -1725,11 +1725,11 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-    const T    xz = sqrt(a_point[2] * a_point[2] + a_point[0] * a_point[0]);
+    const T    xz = std::sqrt(a_point[2] * a_point[2] + a_point[0] * a_point[0]);
     const auto d1 = Vec2T<T>(xz - m_majorRadius, std::abs(a_point[1]) - m_height);
     const auto d2 = Vec2T<T>(std::max(d1.x, T(0)), std::max(d1.y, T(0)));
 
-    return std::min(std::max(d1.x, d1.y), T(0)) + sqrt(d2.x * d2.x + d2.y * d2.y) - m_minorRadius;
+    return std::min(std::max(d1.x, d1.y), T(0)) + std::sqrt(d2.x * d2.x + d2.y * d2.y) - m_minorRadius;
   }
 
 protected:

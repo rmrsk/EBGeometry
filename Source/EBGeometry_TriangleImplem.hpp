@@ -150,7 +150,7 @@ Triangle<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
   T ret = std::numeric_limits<T>::max();
 
-  auto sgn = [](const T x) -> int { return (x > 0.0) ? 1 : -1; };
+  auto sgn = [](const T x) -> int { return (x > T(0.0)) ? 1 : -1; };
 
   const Vec3 v21 = m_vertexPositions[1] - m_vertexPositions[0];
   const Vec3 v32 = m_vertexPositions[2] - m_vertexPositions[1];
@@ -180,9 +180,9 @@ Triangle<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
   ret = (p2.length() > std::abs(ret)) ? ret : p2.length() * sgn(m_vertexNormals[1].dot(p2));
   ret = (p3.length() > std::abs(ret)) ? ret : p3.length() * sgn(m_vertexNormals[2].dot(p3));
 
-  ret = (t1 > 0.0 && t1 < 1.0 && y1.length() < std::abs(ret)) ? y1.length() * sgn(m_edgeNormals[0].dot(y1)) : ret;
-  ret = (t2 > 0.0 && t2 < 1.0 && y2.length() < std::abs(ret)) ? y2.length() * sgn(m_edgeNormals[1].dot(y2)) : ret;
-  ret = (t3 > 0.0 && t3 < 1.0 && y3.length() < std::abs(ret)) ? y3.length() * sgn(m_edgeNormals[2].dot(y3)) : ret;
+  ret = (t1 > T(0.0) && t1 < T(1.0) && y1.length() < std::abs(ret)) ? y1.length() * sgn(m_edgeNormals[0].dot(y1)) : ret;
+  ret = (t2 > T(0.0) && t2 < T(1.0) && y2.length() < std::abs(ret)) ? y2.length() * sgn(m_edgeNormals[1].dot(y2)) : ret;
+  ret = (t3 > T(0.0) && t3 < T(1.0) && y3.length() < std::abs(ret)) ? y3.length() * sgn(m_edgeNormals[2].dot(y3)) : ret;
 
   // With outward normals all three si are -1 for interior projections (sum=-3);
   // with inward normals they are all +1 (sum=+3).  Check both.

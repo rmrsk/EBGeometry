@@ -500,7 +500,7 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m128 s1       = _mm_or_ps(_mm_andnot_ps(pos_mask, one), _mm_and_ps(pos_mask, s1d));
     const __m128 s2       = _mm_or_ps(_mm_andnot_ps(pos_mask, one), _mm_and_ps(pos_mask, s2d));
 
-    // Point-in-triangle test: abs(s0+s1+s2) >= 2 (works for both inward and outward normals)
+    // Point-in-triangle test: std::abs(s0+s1+s2) >= 2 (works for both inward and outward normals)
     const __m128 ssum   = _mm_add_ps(_mm_add_ps(s0, s1), s2);
     const __m128 in_tri = _mm_cmpge_ps(_mm_andnot_ps(pos_mask, ssum), _mm_set1_ps(2.f));
 

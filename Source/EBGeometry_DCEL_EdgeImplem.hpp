@@ -309,11 +309,11 @@ EdgeT<T, Meta>::signedDistance(const Vec3& a_x0) const noexcept
   // Project point to edge.
   const T t = this->projectPointToEdge(a_x0);
 
-  if (t <= 0.0) {
+  if (t <= T(0.0)) {
     // Closest point is the starting vertex
     retval = this->getVertex()->signedDistance(a_x0);
   }
-  else if (t >= 1.0) {
+  else if (t >= T(1.0)) {
     // Closest point is the end vertex
     retval = this->getOtherVertex()->signedDistance(a_x0);
   }
@@ -324,7 +324,7 @@ EdgeT<T, Meta>::signedDistance(const Vec3& a_x0) const noexcept
     const Vec3 delta     = a_x0 - linePoint;
     const T    dot       = m_normal.dot(delta);
 
-    const int sgn = (dot > 0.0) ? 1 : -1;
+    const int sgn = (dot > T(0.0)) ? 1 : -1;
 
     retval = sgn * delta.length();
   }

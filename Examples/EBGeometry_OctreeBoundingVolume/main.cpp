@@ -23,11 +23,11 @@ main()
   // Create a sphere, translate it, scale it, mollify it, and rotate it.
   std::shared_ptr<ImplicitFunction<T>> func;
 
-  func = std::make_shared<SphereSDF<T>>(Vec3::zeros(), 1.0);
+  func = std::make_shared<SphereSDF<T>>(Vec3::zeros(), T(1.0));
   func = Translate(func, Vec3::ones());
-  func = Scale(func, 2.0);
-  func = Mollify(func, 0.25);
-  func = Rotate(func, 45.0, 0);
+  func = Scale(func, T(2.0));
+  func = Mollify(func, T(0.25));
+  func = Rotate(func, T(45.0), 0);
 
   // Try to compute a bounding volume for the sphere.
   const Vec3 initLo = -10 * Vec3::ones();

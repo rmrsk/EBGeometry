@@ -21,7 +21,12 @@ function(ebgeometry_add_test name)
   target_compile_options(${name} PRIVATE
     -Wall -Wextra -Wpedantic -Wcast-qual -Wcast-align -Wnon-virtual-dtor
     -Wdouble-promotion -Woverloaded-virtual -Wnull-dereference
-    -Wno-unused-parameter -Werror)
+    -Wno-unused-parameter -Werror
+    # GCC's -Wnull-dereference has confirmed false positives in heavily-inlined
+    # shared_ptr/Vec3T template code that only surface at -O2/-O3 (Release);
+    # Clang does not warn on the same code at the same optimisation level. Not an
+    # issue at -O0 (Debug), so only suppressed for Release-type configs.
+    $<$<CONFIG:Release>:-Wno-null-dereference>)
   # Expose the test-data directory as a compile-time string so tests can load files.
   target_compile_definitions(${name} PRIVATE
     EBGEOMETRY_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
@@ -55,4 +60,6 @@ target_link_libraries(InstantiateAll PRIVATE EBGeometry::EBGeometry)
 target_compile_options(InstantiateAll PRIVATE
   -Wall -Wextra -Wpedantic -Wcast-qual -Wcast-align -Wnon-virtual-dtor
   -Wdouble-promotion -Woverloaded-virtual -Wnull-dereference
-  -Wno-unused-parameter -Werror)
+  -Wno-unused-parameter -Werror
+  # See the matching comment in ebgeometry_add_test() above.
+  $<$<CONFIG:Release>:-Wno-null-dereference>)

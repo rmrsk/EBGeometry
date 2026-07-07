@@ -291,7 +291,7 @@ VertexT<T, Meta>::computeVertexNormalAngleWeighted(const std::vector<FacePtr>& a
 
     const Vec3& norm = f->getNormal();
 
-    // Clamp to [-1,1] to guard against acos(NaN) from floating-point rounding.
+    // Clamp to [-1,1] to guard against std::acos(NaN) from floating-point rounding.
     const T alpha = std::acos(std::clamp(v1.dot(v2), T(-1), T(1)));
 
     m_normal += alpha * norm;
@@ -374,7 +374,7 @@ VertexT<T, Meta>::signedDistance(const Vec3& a_x0) const noexcept
   const auto delta = a_x0 - m_position;
   const T    dist  = delta.length();
   const T    dot   = m_normal.dot(delta);
-  const int  sign  = (dot > 0.) ? 1 : -1;
+  const int  sign  = (dot > T(0.)) ? 1 : -1;
 
   return dist * sign;
 }

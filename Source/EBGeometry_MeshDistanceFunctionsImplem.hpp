@@ -330,7 +330,7 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
 
   const EBGeometry::BVH::Visiter<Node, T> visiter = [&shortestDistanceSoFar](const Node&,
                                                                              const BVHMeta& a_bvDist) noexcept -> bool {
-    return a_bvDist <= 0.0 || a_bvDist <= shortestDistanceSoFar;
+    return a_bvDist <= T(0.0) || a_bvDist <= shortestDistanceSoFar;
   };
 
   const EBGeometry::BVH::PackedSorter<T, K> sorter =
@@ -349,7 +349,7 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
     [&shortestDistanceSoFar, &a_point, &candidateFaces](
       const std::vector<std::shared_ptr<const Face>>& a_faces, size_t offset, size_t count) noexcept -> void {
     for (size_t i = offset; i < offset + count; i++) {
-      const T distToFace = sqrt(a_faces[i]->unsignedDistance2(a_point));
+      const T distToFace = std::sqrt(a_faces[i]->unsignedDistance2(a_point));
 
       EBGEOMETRY_EXPECT(!std::isnan(distToFace));
 

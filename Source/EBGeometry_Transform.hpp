@@ -582,7 +582,7 @@ public:
   /**
    * @brief Value function.
    * @param[in] a_point Query point
-   * @return abs(f(a_point)) - m_delta, hollowing out the shape at distance m_delta from the surface
+   * @return std::abs(f(a_point)) - m_delta, hollowing out the shape at distance m_delta from the surface
    */
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;

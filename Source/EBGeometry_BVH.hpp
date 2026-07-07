@@ -457,7 +457,7 @@ SAH2WaySplit(PrimAndBVList<P, BV>& a_list, const size_t a_begin, const size_t a_
 
 /**
  * @brief Internal helper: recursively split [a_begin, a_end) into a_K groups via 2-way SAH.
- * @details Splits into floor(a_K/2) and ceil(a_K/2) sub-groups recursively.  For power-of-two
+ * @details Splits into std::floor(a_K/2) and std::ceil(a_K/2) sub-groups recursively.  For power-of-two
  * K this is equivalent to a balanced binary subdivision tree applied a_K times.
  * @tparam T  Floating-point precision.
  * @tparam P  Primitive type.
@@ -504,7 +504,7 @@ SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
  * @details For each split, evaluates 32 candidate planes per axis and picks the one
  * minimising @c SA(left)*N_left + SA(right)*N_right (the standard ray-tracing SAH
  * cost without the traversal constant).  K groups are produced by recursively splitting
- * into floor(K/2) and ceil(K/2) subsets — exact for power-of-two K; a reasonable
+ * into std::floor(K/2) and std::ceil(K/2) subsets — exact for power-of-two K; a reasonable
  * approximation for other values.
  *
  * Recommended K values by ISA:
