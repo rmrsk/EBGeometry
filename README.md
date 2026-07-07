@@ -62,6 +62,26 @@ list of bundled examples. Examples that couple EBGeometry to a third-party appli
 (AMReX, Chombo) live under [`ThirdParty/`](ThirdParty/README.md) instead -- see its README
 for an important caveat about how those are maintained.
 
+## Build and test everything
+
+The repository ships [CMake presets](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html)
+that build the unit-test suite and every example under `Examples/` in one step, and run them
+through `ctest`:
+
+```bash
+cmake --preset debug                # configure: Debug, assertions on, tests + examples enabled
+cmake --build --preset debug --parallel $(nproc)
+
+ctest --preset debug                # unit tests only (Catch2), sub-second
+ctest --preset examples             # every example under Examples/, several minutes in Debug mode
+```
+
+`cmake --preset release-test` builds the same thing optimised (no assertions, AVX), and
+`cmake --preset debug-san` additionally enables AddressSanitizer and UndefinedBehaviorSanitizer.
+See [Contributing and testing](https://rmrsk.github.io/EBGeometry/Contributing.html) for the full
+preset table, how to run a single test file, and `Scripts/run-all-checks.sh`, which reproduces
+everything the continuous integration pipeline checks in one local command.
+
 ## Get help
 
 If you encounter any issues when installing or using EBGeometry, you may obtain help through:
