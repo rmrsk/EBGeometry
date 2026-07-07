@@ -56,6 +56,19 @@ path = [
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
+# Third-party integration examples (AMReX, Chombo): build files and per-example
+# documentation. main.cpp files carry their own inline SPDX headers.
+[[annotations]]
+path = [
+  "ThirdParty/README.md",
+  "ThirdParty/**/GNUmakefile",
+  "ThirdParty/**/Make.package",
+  "ThirdParty/**/*.inputs",
+  "ThirdParty/**/README.md",
+]
+SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
 # Tests: build files and the small self-authored test fixture mesh
 [[annotations]]
 path = [

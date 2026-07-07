@@ -3,16 +3,16 @@
 Examples
 ========
 
-The :file:`Examples/` folder contains two kinds of example code:
+The :file:`Examples/` folder contains pure ``EBGeometry`` examples with no third-party
+dependencies.  Each one can be built directly with a compiler, with GNU Make, or with CMake
+(see :ref:`Chap:BuildingDirectCompile`, :ref:`Chap:BuildingGNUMake`, :ref:`Chap:BuildingCMake`),
+and every folder ships all three (a ``GNUmakefile``, a ``CMakeLists.txt``, and a plain
+``main.cpp`` compilable with a single compiler invocation).  These are covered below.
 
-* :file:`Examples/EBGeometry_<something>` — pure ``EBGeometry`` examples with no third-party
-  dependencies.  Each one can be built directly with a compiler, with GNU Make, or with CMake
-  (see :ref:`Chap:BuildingDirectCompile`, :ref:`Chap:BuildingGNUMake`, :ref:`Chap:BuildingCMake`),
-  and every folder ships all three (a ``GNUmakefile``, a ``CMakeLists.txt``, and a plain
-  ``main.cpp`` compilable with a single compiler invocation).  These are covered below.
-* :file:`Examples/AMReX_<something>` — application-code examples that couple ``EBGeometry`` to
-  `AMReX <https://amrex-codes.github.io/amrex/>`_'s embedded-boundary grid generation, and
-  additionally require AMReX to be installed.  These are covered in :ref:`Chap:AMReXExamples`.
+Examples that couple ``EBGeometry`` to a third-party application code's embedded-boundary grid
+generation (`AMReX <https://amrex-codes.github.io/amrex/>`_, `Chombo
+<https://commons.lbl.gov/display/chombo/>`_) live separately under :file:`ThirdParty/` instead,
+and additionally require that platform to be installed — see :ref:`Chap:AMReXExamples`.
 
 None of the ``EBGeometry`` examples below produce output for visualization; they print timing
 and/or correctness information to the terminal.  Each example folder also ships its own
@@ -25,7 +25,7 @@ and/or correctness information to the terminal.  Each example folder also ships 
 Building and running any of them
 ----------------------------------
 
-Every :file:`EBGeometry_<something>` example needs the path to the ``EBGeometry`` root — the
+Every example needs the path to the ``EBGeometry`` root — the
 directory containing ``EBGeometry.hpp`` — which is two levels up (``../..``) when building in
 place. All three build methods accept the same two overrides: ``PRECISION``/``EBGEOMETRY_PRECISION``
 (``float`` or ``double``, default ``double``) and the location of the ``EBGeometry`` tree
@@ -51,8 +51,8 @@ tree itself lives:
 Run every example from inside its own folder — several resolve a default input mesh relative to
 the run directory.
 
-EBGeometry_Shapes
-------------------
+Shapes
+------
 
 A very basic example of using ``EBGeometry`` for creating analytic signed distance fields
 (see :ref:`Chap:ImplemCSG`).  A good starting point for exploring the library's built-in shapes
@@ -60,11 +60,11 @@ and transformations.
 
 .. code-block:: bash
 
-   cd Examples/EBGeometry_Shapes
-   ./EBGeometry_Shapes.ex
+   cd Examples/Shapes
+   ./Shapes.ex
 
-EBGeometry_MeshSDF
--------------------
+MeshSDF
+-------
 
 Reads a surface mesh and evaluates its signed distance field using all three mesh-SDF
 representations described in :ref:`Chap:MeshSDFClasses`:
@@ -81,15 +81,15 @@ representations described in :ref:`Chap:MeshSDFClasses`:
 
 .. code-block:: bash
 
-   cd Examples/EBGeometry_MeshSDF
-   ./EBGeometry_MeshSDF.ex                                            # defaults to armadillo.obj
-   ./EBGeometry_MeshSDF.ex ../../common-3d-test-models/data/cow.obj   # or pick another mesh
+   cd Examples/MeshSDF
+   ./MeshSDF.ex                                            # defaults to armadillo.obj
+   ./MeshSDF.ex ../../common-3d-test-models/data/cow.obj   # or pick another mesh
 
 With no argument the example loads ``armadillo.obj`` from the ``common-3d-test-models``
 submodule, so make sure it is checked out first (see :ref:`Sec:Cloning`).
 
-EBGeometry_CSGUnion
---------------------
+CSGUnion
+--------
 
 Builds a CSG *union* of two different kinds of implicit function — a signed distance field read
 from a surface mesh, and an analytic sphere.  Both derive from ``ImplicitFunction<T>``, so they
@@ -99,12 +99,12 @@ that closest-object queries traverse the tree instead of testing every object (s
 
 .. code-block:: bash
 
-   cd Examples/EBGeometry_CSGUnion
-   ./EBGeometry_CSGUnion.ex                                           # defaults to cow.obj
-   ./EBGeometry_CSGUnion.ex ../../common-3d-test-models/data/cow.obj
+   cd Examples/CSGUnion
+   ./CSGUnion.ex                                           # defaults to cow.obj
+   ./CSGUnion.ex ../../common-3d-test-models/data/cow.obj
 
-EBGeometry_PackedSpheres
---------------------------
+PackedSpheres
+-------------
 
 Creates a scene of :math:`N^3` analytic spheres and combines them with two kinds of union: a
 standard union that scans every object, and a BVH-accelerated union
@@ -113,27 +113,27 @@ closest-object queries as the object count grows.
 
 .. code-block:: bash
 
-   cd Examples/EBGeometry_PackedSpheres
-   ./EBGeometry_PackedSpheres.ex
+   cd Examples/PackedSpheres
+   ./PackedSpheres.ex
 
-EBGeometry_RandomCity
------------------------
+RandomCity
+----------
 
-Creates a scene of randomly placed boxes ("buildings") and, like ``EBGeometry_PackedSpheres``,
+Creates a scene of randomly placed boxes ("buildings") and, like ``PackedSpheres``,
 compares a standard union against a BVH-accelerated union for closest-object queries.
 
 .. code-block:: bash
 
-   cd Examples/EBGeometry_RandomCity
-   ./EBGeometry_RandomCity.ex
+   cd Examples/RandomCity
+   ./RandomCity.ex
 
-EBGeometry_OctreeBoundingVolume
-----------------------------------
+OctreeBoundingVolume
+---------------------
 
 Computes an approximate bounding volume for an implicit function using octree refinement (see
 :ref:`Chap:ImplemOctree` and ``ImplicitFunction::approximateBoundingVolumeOctree``).
 
 .. code-block:: bash
 
-   cd Examples/EBGeometry_OctreeBoundingVolume
-   ./EBGeometry_OctreeBoundingVolume.ex
+   cd Examples/OctreeBoundingVolume
+   ./OctreeBoundingVolume.ex

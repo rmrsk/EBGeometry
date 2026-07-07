@@ -94,7 +94,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=clang++-14 \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
       - name: Run clang-tidy over the library headers
-        run: run-clang-tidy-18 -p build/debug -quiet '(Tests/|Examples/EBGeometry_).*\.cpp'
+        run: run-clang-tidy-18 -p build/debug -quiet '(Tests/|Examples/).*\.cpp'
 
   Linux-GNU:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
@@ -104,7 +104,7 @@ jobs:
     strategy:
       matrix:
         comp: [g++-11, g++-12]
-        directory: [Examples/EBGeometry_CSGUnion, Examples/EBGeometry_MeshSDF, Examples/EBGeometry_OctreeBoundingVolume, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
+        directory: [Examples/CSGUnion, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
 
     steps:
       - uses: actions/checkout@v4
@@ -138,7 +138,7 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        directory: [Examples/EBGeometry_MeshSDF, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
+        directory: [Examples/MeshSDF, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
 
     steps:
       - uses: actions/checkout@v4
@@ -176,7 +176,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        directory: [Examples/EBGeometry_CSGUnion, Examples/EBGeometry_MeshSDF, Examples/EBGeometry_OctreeBoundingVolume, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
+        directory: [Examples/CSGUnion, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
     steps:
       - uses: actions/checkout@v4
         with:

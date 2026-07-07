@@ -3,24 +3,30 @@
 AMReX examples
 ================
 
-The :file:`Examples/AMReX_<something>` folders couple ``EBGeometry`` to
+The :file:`ThirdParty/AMReX/<something>` folders couple ``EBGeometry`` to
 `AMReX <https://amrex-codes.github.io/amrex/>`_'s embedded-boundary (EB) grid generation: an
 ``EBGeometry`` signed distance function is handed to AMReX, which uses it to cut cells at the
 implicit surface.  They are intended to expose the same underlying ``EBGeometry`` features as
 the pure examples in :ref:`Chap:Examples`, but driven through AMReX's grid-generation and MPI
 infrastructure instead of a standalone ``main()``.
 
+.. important::
+
+   Unlike the examples in :ref:`Chap:Examples`, everything under :file:`ThirdParty/` is
+   illustrative only and not built or run as part of continuous integration -- see
+   :file:`ThirdParty/README.md` at the repository root for why.
+
 Requirements
 ------------
 
-Unlike the ``EBGeometry_<something>`` examples, these require `AMReX
+These require `AMReX
 <https://amrex-codes.github.io/amrex/>`_ to be installed separately, with the ``AMREX_HOME``
 environment variable pointing to it.  Compile each example with AMReX's standard GNU Make
 workflow from inside its folder:
 
 .. code-block:: bash
 
-   cd Examples/AMReX_<something>
+   cd ThirdParty/AMReX/<something>
    make -s -j8 DIM=3
 
 and run the resulting executable (named ``main3d.<config>.ex``, where ``<config>`` encodes the
@@ -59,7 +65,7 @@ Common input options
    :local:
    :depth: 1
 
-AMReX_Shapes
+Shapes
 -------------
 
 Uses AMReX's EB grid generation directly on ``EBGeometry``'s analytic signed distance fields
@@ -98,7 +104,7 @@ Uses AMReX's EB grid generation directly on ``EBGeometry``'s analytic signed dis
    * - 13
      - Perlin gradient-noise SDF
 
-AMReX_MeshSDF
+MeshSDF
 --------------
 
 Uses AMReX's EB grid generation on a surface-mesh signed distance field (see
@@ -128,23 +134,24 @@ Selectable via ``which_geom``:
    * - 7
      - Adirondack
 
-AMReX_PackedSpheres
+PackedSpheres
 ---------------------
 
-The AMReX-coupled counterpart of ``EBGeometry_PackedSpheres``: constructs a packed spherical bed
-and cuts AMReX cells against it, with ``bvh = true/false`` toggling the BVH-accelerated CSG union.
-
-AMReX_RandomCity
-------------------
-
-The AMReX-coupled counterpart of ``EBGeometry_RandomCity``: constructs a random urban city
-environment (boxes) and cuts AMReX cells against it, with ``bvh = true/false`` toggling the
+The AMReX-coupled counterpart of ``PackedSpheres`` (see :ref:`Chap:Examples`): constructs a
+packed spherical bed and cuts AMReX cells against it, with ``bvh = true/false`` toggling the
 BVH-accelerated CSG union.
 
-AMReX_PaintEB
+RandomCity
+------------------
+
+The AMReX-coupled counterpart of ``RandomCity`` (see :ref:`Chap:Examples`): constructs a random
+urban city environment (boxes) and cuts AMReX cells against it, with ``bvh = true/false``
+toggling the BVH-accelerated CSG union.
+
+PaintEB
 ---------------
 
 Associates triangle metadata (the ``Meta`` template parameter described in :ref:`Chap:DCEL`)
 with the AMReX-generated cut-cells, so that per-triangle data (e.g. a material ID or boundary
 condition tag) can be carried through into the discrete EB representation.  Uses the same
-``which_geom`` selection as ``AMReX_MeshSDF`` above.
+``which_geom`` selection as ``MeshSDF`` above.

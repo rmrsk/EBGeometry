@@ -28,7 +28,7 @@ namespace EBGeometry {
 namespace BoundingVolumes {
 
 /**
- * @brief Bounding sphere — the smallest sphere enclosing a set of 3D points.
+ * @brief Bounding sphere — an approximation to the smallest sphere enclosing a set of 3D points.
  * @tparam T Floating-point precision (e.g., float or double).
  */
 template <class T>

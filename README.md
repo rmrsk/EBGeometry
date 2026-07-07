@@ -4,14 +4,15 @@ EBGeometry is a header-only C++17 library for turning surface geometry into fast
 signed distance functions (SDFs).
 
 * Turns watertight, orientable surface meshes into SDFs, via a half-edge (DCEL) mesh
-  representation.
+  representation or raw triangles.
 * Fast SDF evaluation using bounding volume hierarchies (BVHs) -- both a pointer-based tree BVH
   and a flattened, SIMD-accelerated packed BVH.
+* A library of analytic signed distance functions and implicit functions (spheres, boxes, and
+  more), composable with transforms (translation, rotation, scaling, rounding, blending).  
 * BVH-accelerated constructive solid geometry (CSG): unions, intersections, differences, and
   smooth blends, of both meshes and analytic shapes.
-* A library of analytic signed distance functions and implicit functions (spheres, boxes, and
-  more), composable with transforms (translation, rotation, scaling, rounding, blending).
 * Readers for triangulated surface meshes in STL, PLY, OBJ, and VTK format.
+* Precision-templated.
 
 EBGeometry has no external dependencies -- drop `EBGeometry.hpp` into any C++17 project and
 include it. It was originally written for embedded-boundary (EB) codes like AMReX, but is useful
@@ -23,6 +24,8 @@ as a general-purpose SDF/CSG library.
 </p>
 
 ## Documentation
+
+There are three types of documentation available:
 
 * [HTML](https://rmrsk.github.io/EBGeometry/) -- the user guide: concepts, building, testing, and
   examples.
@@ -40,24 +43,28 @@ git clone --recurse-submodules https://github.com/rmrsk/EBGeometry.git
 cd EBGeometry
 ```
 
-Build and run the `EBGeometry_MeshSDF` example, which reads a triangulated surface mesh and
+Build and run the `MeshSDF` example, which reads a triangulated surface mesh and
 evaluates it as a signed distance function:
 
 ```bash
-cd Examples/EBGeometry_MeshSDF
-g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o EBGeometry_MeshSDF.ex
-./EBGeometry_MeshSDF.ex
+cd Examples/MeshSDF
+g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o MeshSDF.ex
+./MeshSDF.ex
 ```
 
 This loads `armadillo.obj` from the `common-3d-test-models` submodule by default; pass a path to
-run it on a different STL/PLY/OBJ/VTK file instead. `EBGeometry_MeshSDF` -- like every example
-under `Examples/EBGeometry_*` -- can also be built with [CMake](https://cmake.org/) or GNU
+run it on a different STL/PLY/OBJ/VTK file instead. `MeshSDF` -- like every example
+under `Examples/` -- can also be built with [CMake](https://cmake.org/) or GNU
 `make`, and accepts `-DEBGEOMETRY_PRECISION=float`/`PRECISION=float` for single precision; see
-[Examples/EBGeometry_MeshSDF/README.md](Examples/EBGeometry_MeshSDF/README.md) for the exact
+[Examples/MeshSDF/README.md](Examples/MeshSDF/README.md) for the exact
 commands, and the [Examples](https://rmrsk.github.io/EBGeometry/Examples.html) page for the full
-list of bundled examples.
+list of bundled examples. Examples that couple EBGeometry to a third-party application code
+(AMReX, Chombo) live under [`ThirdParty/`](ThirdParty/README.md) instead -- see its README
+for an important caveat about how those are maintained.
 
 ## Get help
+
+If you encounter any issues when installing or using EBGeometry, you may obtain help through:
 
 * [GitHub issues](https://github.com/rmrsk/EBGeometry/issues) -- bug reports and feature requests.
 * [GitHub discussions](https://github.com/rmrsk/EBGeometry/discussions) -- usage questions and
@@ -65,6 +72,8 @@ list of bundled examples.
 
 ## Contribute
 
+We welcome contributions to EBGeometry -- the best approach is either to reach out to us to see
+if we have time to implement a specific feature, or fork the repository and submit a pull request.
 See [Contributing and testing](https://rmrsk.github.io/EBGeometry/Contributing.html) in the user
 guide for how to build and run the test suite locally, what the continuous integration pipeline
 checks, and the code style/conventions expected of contributions.

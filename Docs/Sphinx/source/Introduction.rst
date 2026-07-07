@@ -79,13 +79,14 @@ examples directly:
 
 .. code-block:: bash
 
-   cd Examples/EBGeometry_Shapes
+   cd Examples/Shapes
    g++ -O3 -std=c++17 main.cpp && ./a.out
 
-Every folder under :file:`Examples/EBGeometry_<something>` is a pure ``EBGeometry`` example: it
+Every folder under :file:`Examples/<something>` is a pure ``EBGeometry`` example: it
 has no third-party dependencies and can be compiled with the one-liner above (see
-:ref:`Chap:Examples`).  Folders named :file:`Examples/AMReX_<something>` additionally require
-`AMReX <https://amrex-codes.github.io/amrex/>`_ to be installed.
+:ref:`Chap:Examples`).  Folders under :file:`ThirdParty/<Platform>/<something>` couple
+``EBGeometry`` to a third-party application code (AMReX, Chombo) and additionally require that
+platform to be installed -- see :ref:`Chap:AMReXExamples`.
 
 Building your own project against ``EBGeometry``
 --------------------------------------------------

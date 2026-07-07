@@ -20,8 +20,10 @@ for embedded-boundary (EB) codes like AMReX, but is general-purpose.
 
 Single-word orientation: `Source/` is the library (all headers, no `.cpp`), `Tests/` is the Catch2
 unit-test suite (fetched via CMake `FetchContent`, not vendored), `Examples/` holds small
-standalone programs (each independently buildable — see below), and `Docs/Sphinx/` +
-`Docs/doxygen.conf` are the two documentation systems.
+standalone programs with no third-party dependencies (each independently buildable — see below),
+`ThirdParty/` holds illustrative (not CI-tested) examples coupling EBGeometry to third-party
+application codes (AMReX, Chombo), and `Docs/Sphinx/` + `Docs/doxygen.conf` are the two
+documentation systems.
 
 ## Cloning
 
@@ -30,28 +32,28 @@ git clone --recurse-submodules git@github.com:rmrsk/EBGeometry.git
 ```
 
 The `common-3d-test-models` submodule provides mesh files (`armadillo.obj`, `cow.obj`, ...) used
-by the `EBGeometry_MeshSDF`/`EBGeometry_CSGUnion` examples. If cloned without
+by the `MeshSDF`/`CSGUnion` examples. If cloned without
 `--recurse-submodules`, run `git submodule update --init` afterward. It is **not** needed to build
 or test the library itself — only to run those two examples with their default (no-argument)
 input.
 
 ## Compiling
 
-Three independent, equally-supported ways to build any `Examples/EBGeometry_<something>` program
+Three independent, equally-supported ways to build any `Examples/<something>` program
 (see `Examples/README.md` and each example's own `README.md`); all three now place the resulting
 binary in the same location: `<Example>.ex`, directly in that example's own folder.
 
 ```bash
 # 1. Direct compiler invocation
-cd Examples/EBGeometry_Shapes
-g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o EBGeometry_Shapes.ex
+cd Examples/Shapes
+g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o Shapes.ex
 
 # 2. GNU make
-cd Examples/EBGeometry_Shapes
+cd Examples/Shapes
 make                                    # override with PRECISION=float, EBGEOMETRY_HOME=...
 
 # 3. CMake (standalone, this example only)
-cd Examples/EBGeometry_Shapes
+cd Examples/Shapes
 cmake -S . -B build && cmake --build build
 ```
 
@@ -87,7 +89,7 @@ cache variables if you need a combination not covered by a preset.
 ```bash
 ctest --preset debug                 # 130+ unit tests (Catch2), sub-second
 ctest --preset debug-san             # same, under AddressSanitizer + UBSan
-ctest --preset examples              # every EBGeometry_* example, run to completion
+ctest --preset examples              # every Examples/* program, run to completion
 ctest --preset release-test          # unit tests + examples, optimised build
 ```
 

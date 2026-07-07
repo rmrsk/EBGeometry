@@ -5,29 +5,15 @@
 
 build
 
-Examples/AMReX_MeshSDF/plt*
-Examples/AMReX_MeshSDF/tmp_build_dir
-Examples/AMReX_MeshSDF/Backtrace.*
+# AMReX build/run artifacts (any example under ThirdParty/AMReX/<name>/).
+ThirdParty/AMReX/*/plt*
+ThirdParty/AMReX/*/tmp_build_dir
+ThirdParty/AMReX/*/Backtrace.*
 
-Examples/AMReX_F18/plt*
-Examples/AMReX_F18/tmp_build_dir
-Examples/AMReX_F18/Backtrace.*
-
-Examples/AMReX_PackedSpheres/plt*
-Examples/AMReX_PackedSpheres/tmp_build_dir
-Examples/AMReX_PackedSpheres/Backtrace.*
-
-Examples/AMReX_RandomCity/plt*
-Examples/AMReX_RandomCity/tmp_build_dir
-Examples/AMReX_RandomCity/Backtrace.*
-
-Examples/AMReX_Shapes/plt*
-Examples/AMReX_Shapes/tmp_build_dir
-Examples/AMReX_Shapes/Backtrace.*
-
-Examples/AMReX_PaintEB/plt*
-Examples/AMReX_PaintEB/tmp_build_dir
-Examples/AMReX_PaintEB/Backtrace.*
+# Chombo build artifacts (any example under ThirdParty/Chombo/<name>/).
+ThirdParty/Chombo/*/d/**
+ThirdParty/Chombo/*/o/**
+ThirdParty/Chombo/*/f/**
 
 Docs/*
 !Docs/.nojekyll

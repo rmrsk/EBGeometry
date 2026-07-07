@@ -1,0 +1,3 @@
+n_cells    = 64
+grid_size  = 16
+which_geom = 0
