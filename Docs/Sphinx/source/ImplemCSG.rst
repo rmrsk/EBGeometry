@@ -6,28 +6,28 @@ Geometry representation
 Implicit functions
 ------------------
 
-``EBGeometry`` implements implement functions and signed distance functions through virtual classes
+``EBGeometry`` implements implicit functions and signed distance functions through virtual classes
 
 .. literalinclude:: ../../../Source/EBGeometry_ImplicitFunction.hpp
    :language: c++
-   :lines: 25-74
+   :lines: 24-81
 
 Signed distance fields inherit from implicit functions as follows:
 
 .. literalinclude:: ../../../Source/EBGeometry_SignedDistanceFunction.hpp
    :language: c++
-   :lines: 30-66
+   :lines: 23-75
 
 Note that ``T`` is a floating point precision, which is supported because DCEL meshes can take up quite a bit of computer memory.
 These declarations are found in
 
 * :file:`Source/EBGeometry_ImplicitFunction.hpp` for implicit functions.
-* :file:`Source/EBGeometry_SignedDistanceFunction.hpp` for signed distance field.
+* :file:`Source/EBGeometry_SignedDistanceFunction.hpp` for signed distance fields.
 
 Various useful implementations of implicit functions and distance fields are found in:
 
-* :file:`Source/EBGeometry_AnalyticDistanceFields.hpp` for various pre-defined analytic distance fields.
-* :file:`Source/EBGeometry_MeshDistanceFields.hpp` for various distance field representations for DCEL meshes. 
+* :file:`Source/EBGeometry_AnalyticDistanceFunctions.hpp` for various pre-defined analytic distance fields (spheres, boxes, planes, cylinders, tori, ...).
+* :file:`Source/EBGeometry_MeshDistanceFunctions.hpp` for the DCEL/triangle-mesh-backed distance field representations (``FlatMeshSDF``, ``MeshSDF``, ``TriMeshSDF``), see :ref:`Chap:MeshSDFClasses`.
 
 Transformations
 ---------------
@@ -37,7 +37,7 @@ These are also available through functions that automatically cast the resulting
 
 .. literalinclude:: ../../../Source/EBGeometry_Transform.hpp
    :language: c++
-   :lines: 19-130
+   :lines: 27-138
 
 CSG operations
 --------------
@@ -47,7 +47,7 @@ These also include accelerated variants that take advantage of BVH partitioning 
 
 .. literalinclude:: ../../../Source/EBGeometry_CSG.hpp
    :language: c++
-   :lines: 22-214
+   :lines: 32-284
 
 Bounding volumes
 ----------------
@@ -59,7 +59,7 @@ However, more complicated implicit functions require us to compute the bounding 
 
 .. literalinclude:: ../../../Source/EBGeometry_ImplicitFunction.hpp
    :language: c++
-   :lines: 57-75
+   :lines: 62-80
    :dedent: 2
 
 This function initializes a cubic region in space and uses octree refinement near the implicit surface.

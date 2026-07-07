@@ -19,7 +19,7 @@ The normal vector is always
 .. math::
 
    \mathbf{n} = \nabla S\left(\mathbf{x}\right).
-   
+
 ``EBGeometry`` uses the following convention for the sign:
 
 .. math::
@@ -30,13 +30,25 @@ The normal vector is always
    < 0, & \textrm{for points inside the object},
    \end{cases}
 
-which means that the normal vector :math:`\mathbf{n}` points away from the object. 
+which means that the normal vector :math:`\mathbf{n}` points away from the object.
+
+In code, every signed distance function derives from :cpp:class:`SignedDistanceFunction\<T\>`
+(:file:`Source/EBGeometry_SignedDistanceFunction.hpp`) and implements a single virtual member
+function
+
+.. code-block:: c++
+
+   virtual T signedDistance(const Vec3T<T>& a_point) const noexcept = 0;
+
+All of the concrete SDF types described later on this page and in :ref:`Chap:Implementation` —
+analytic shapes, DCEL meshes, CSG combinations — implement exactly this interface, which is why
+they can be freely combined and swapped for one another.
 
 Implicit functions
 ------------------
 
 Like distance functions, implicit functions also determine whether or not a point :math:`\mathbf{x}` is inside or outside an object.
-Signed distance functions are also *implicit functions*, but not vice versa. 
+Signed distance functions are also *implicit functions*, but not vice versa.
 For example, the signed distance function for a sphere with center :math:`\mathbf{x}_0` and radius :math:`R` can be written
 
 .. math::
@@ -46,11 +58,18 @@ For example, the signed distance function for a sphere with center :math:`\mathb
 An example of an implicit function for the same sphere is
 
 .. math::
-   
+
    I_{\textrm{sph}}\left(\mathbf{x}\right) = \left|\mathbf{x} - \mathbf{x}_0\right|^2 - R^2.
 
 An important difference between these is the Eikonal property in :eq:`Eikonal`, ensuring that the signed distance function always returns the exact distance to the object.
 Signed distance functions are more useful objects, but many operations (e.g. CSG unions) do not preserve the signed distance property (but still provide *bounds* for the signed distance).
+
+The corresponding base class is :cpp:class:`ImplicitFunction\<T\>`
+(:file:`Source/EBGeometry_ImplicitFunction.hpp`), which ``SignedDistanceFunction<T>`` publicly
+inherits from. ``ImplicitFunction<T>`` additionally provides
+``approximateBoundingVolumeOctree``, a member function that estimates a bounding volume for an
+*arbitrary* implicit function (one with no closed-form bound) using octree refinement near the
+implicit surface — see :ref:`Chap:ImplemOctree`.
 
 .. _Chap:DCEL:
 
@@ -69,7 +88,7 @@ The DCEL structures consist of the following objects:
 
 As shown in :numref:`Fig:DCEL`, half-edges circulate the inside of the facet, with pointer access to the next half-edge.
 A half-edge also stores a reference to its starting vertex, as well as a reference to its pair-edge.
-From the DCEL structure we can obtain all edges or vertices belonging to a single facet by iterating through the half-edges, and also jump to a neighboring facet by fetching the pair edge. 
+From the DCEL structure we can obtain all edges or vertices belonging to a single facet by iterating through the half-edges, and also jump to a neighboring facet by fetching the pair edge.
 
 .. _Fig:DCEL:
 .. figure:: /_static/DCEL.png
@@ -79,8 +98,35 @@ From the DCEL structure we can obtain all edges or vertices belonging to a singl
    DCEL mesh structure. Each half-edge stores references to next half-edge, the pair edge, and the starting vertex.
    Vertices store a coordinate as well as a reference to one of the outgoing half-edges.
 
-In ``EBGeometry`` the half-edge data structure is implemented in its own namespace.
-This is a comparatively standard implementation of the DCEL structure, supplemented by functions that permit signed distance computations to various features on such a mesh.
+In ``EBGeometry`` the half-edge data structure is implemented in the namespace ``EBGeometry::DCEL``
+(:file:`Source/EBGeometry_DCEL_*.hpp`), as four class templates that mirror the picture above
+one-to-one:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 30 48
+
+   * - Concept
+     - Class
+     - Stores
+   * - Vertex
+     - :cpp:class:`DCEL::VertexT\<T, Meta\>`
+     - Position, pseudonormal, one outgoing half-edge.
+   * - Half-edge
+     - :cpp:class:`DCEL::EdgeT\<T, Meta\>`
+     - Owning face, next edge, pair edge, starting vertex, pseudonormal.
+   * - Facet
+     - :cpp:class:`DCEL::FaceT\<T, Meta\>`
+     - One boundary half-edge, face normal, a 2D embedding of the polygon, centroid.
+   * - Mesh
+     - :cpp:class:`DCEL::MeshT\<T, Meta\>`
+     - All vertices, half-edges, and faces; itself a ``SignedDistanceFunction<T>`` if watertight.
+
+This is a comparatively standard implementation of the half-edge structure, supplemented by
+member functions that compute signed distances to the various mesh features. Every one of the
+four classes above is templated on a floating-point precision ``T`` and a user-supplied
+``Meta`` type, which lets arbitrary metadata (material IDs, boundary condition tags, colors,
+...) ride along on every vertex, edge, and face at zero cost when ``Meta`` is empty.
 
 .. important::
 
@@ -90,7 +136,7 @@ This is a comparatively standard implementation of the DCEL structure, supplemen
 Signed distance
 ---------------
 
-The signed distance to a surface mesh is equivalent to the signed distance to the closest polygon face in the mesh. 
+The signed distance to a surface mesh is equivalent to the signed distance to the closest polygon face in the mesh.
 When computing the signed distance from a point :math:`\mathbf{x}` to a polygon face (e.g., a triangle), the closest feature on the polygon can be one of the vertices, edges, or the interior of the polygon face, see :numref:`Fig:PolygonProjection`.
 
 .. _Fig:PolygonProjection:
@@ -100,32 +146,52 @@ When computing the signed distance from a point :math:`\mathbf{x}` to a polygon 
 
    Possible closest-feature cases after projecting a point :math:`\mathbf{x}` to the plane of a polygon face.
 
-Three cases can be distinguished:
+Three cases can be distinguished, and each has a direct counterpart in the DCEL classes: every
+one of ``VertexT``, ``EdgeT``, ``FaceT``, and ``MeshT`` implements both
 
-#. **Facet/Polygon face**.
-   
+.. code-block:: c++
+
+   T signedDistance(const Vec3T<T>& a_point) const noexcept;
+   T unsignedDistance2(const Vec3T<T>& a_point) const noexcept;
+
+where ``unsignedDistance2`` returns the *squared* unsigned distance, avoiding a square root
+when only the closest feature (not the exact distance to it) needs to be determined — this is
+the quantity BVH traversal compares against when descending through a mesh, see
+:ref:`Chap:BVH`.
+
+#. **Facet/Polygon face** — :cpp:func:`DCEL::FaceT::signedDistance`.
+
    When computing the distance from a point :math:`\mathbf{x}` to the polygon face we first determine if the projection of :math:`\mathbf{x}` to the face plane lies inside or outside the face.
    This is more involved than one might think, and it is done by first computing the two-dimensional projection of the polygon face, ignoring one of the coordinates.
-   Next, we determine, using 2D algorithms, if the projected point lies inside the embedded 2D representation of the polygon face. 
+   Next, we determine, using 2D algorithms, if the projected point lies inside the embedded 2D representation of the polygon face.
    Various algorithms for this are available, such as computing the winding number, the crossing number, or the subtended angle between the projected point and the 2D polygon.
+   The 2D embedding itself is computed once, at mesh-construction time, and stored on
+   ``FaceT`` as :cpp:class:`Polygon2D\<T\>` (:file:`Source/EBGeometry_Polygon2D.hpp`).
 
    .. tip::
-   
-      ``EBGeometry`` uses the crossing number algorithm by default. 
-      
+
+      ``EBGeometry`` uses the crossing number algorithm by default.
+
    If the point projects to the inside of the face, the signed distance is just :math:`\mathbf{n}_f\cdot\left(\mathbf{x} - \mathbf{x}_f\right)` where :math:`\mathbf{n}_f` is the face normal and :math:`\mathbf{x}_f` is a point on the face plane (e.g., a vertex).
    If the point projects to *outside* the polygon face, the closest feature is either an edge or a vertex.
-   
-#. **Edge**.
-   
+
+#. **Edge** — :cpp:func:`DCEL::EdgeT::signedDistance`.
+
    When computing the signed distance to an edge, the edge is parametrized as :math:`\mathbf{e}(t) = \mathbf{x}_0 + \left(\mathbf{x}_1 - \mathbf{x}_0\right)t`, where :math:`\mathbf{x}_0` and :math:`\mathbf{x}_1` are the starting and ending vertex coordinates.
    The point :math:`\mathbf{x}` is projected to this line, and if the projection yields :math:`t^\prime \in [0,1]` then the edge is the closest point.
-   In that case the signed distance is the projected distance and the sign is given by the sign of :math:`\mathbf{n}_e\cdot\left(\mathbf{x} - \mathbf{x}_0\right)` where :math:`\mathbf{n}_e` is the pseudonormal vector of the edge. 
+   In that case the signed distance is the projected distance and the sign is given by the sign of :math:`\mathbf{n}_e\cdot\left(\mathbf{x} - \mathbf{x}_0\right)` where :math:`\mathbf{n}_e` is the pseudonormal vector of the edge.
    Otherwise, the closest point is one of the vertices.
 
-#. **Vertex**.
+#. **Vertex** — :cpp:func:`DCEL::VertexT::signedDistance`.
 
    If the closest point is a vertex then the signed distance is simply :math:`\mathbf{n}_v\cdot\left(\mathbf{x}-\mathbf{x}_v\right)` where :math:`\mathbf{n}_v` is the vertex pseudonormal and :math:`\mathbf{x}_v` is the vertex position.
+
+``DCEL::MeshT`` itself implements ``signedDistance`` by falling back to a brute-force :math:`O(N)`
+scan over every face (via :cpp:func:`DCEL::MeshT::DirectSignedDistance2`, which uses the squared
+distance to find the closest face before taking a single final square root). This direct scan is
+what :cpp:class:`FlatMeshSDF` exposes for debugging and tiny meshes; production code instead
+wraps the mesh in a BVH (:cpp:class:`MeshSDF`, :cpp:class:`TriMeshSDF`) to avoid the linear scan
+— see :ref:`Chap:MeshSDFClasses`.
 
 .. _Chap:NormalDCEL:
 
@@ -146,7 +212,7 @@ The vertex pseudonormal is given by
 
   \mathbf{n}_{v} = \frac{\sum_i\alpha_i\mathbf{n}_{f_i}}{\left|\sum_i\alpha_i\right|},
 
-where the sum runs over all faces which share :math:`v` as a vertex, and where :math:`\alpha_i` is the subtended angle of the face :math:`f_i`, see :numref:`Fig:Pseudonormal`. 
+where the sum runs over all faces which share :math:`v` as a vertex, and where :math:`\alpha_i` is the subtended angle of the face :math:`f_i`, see :numref:`Fig:Pseudonormal`.
 
 .. _Fig:Pseudonormal:
 .. figure:: /_static/Pseudonormal.png
@@ -155,12 +221,28 @@ where the sum runs over all faces which share :math:`v` as a vertex, and where :
 
    Edge and vertex pseudonormals.
 
+This angle-weighted algorithm is implemented as
+:cpp:func:`DCEL::VertexT::computeVertexNormalAngleWeighted` for vertices, and the analogous
+half-sum above is computed directly on :cpp:class:`DCEL::EdgeT` when the mesh is built (e.g. by
+:cpp:func:`Soup::soupToDCEL`, see :ref:`Chap:PolySoups`). Both are computed once, at mesh
+construction time, and then simply stored and reused by every subsequent ``signedDistance`` call.
+
 Triangles
 =========
 
 ``EBGeometry`` also supports using direct triangles rather than DCEL polygons.
 In this case the user can parse his/her files and ask for triangle description rather than a DCEL description.
-Internally, triangles are represented as *pseudo-triangles* that contain normal vectors on both the edges and vertices, completely similar to a DCEL polygon.
+Internally, triangles are represented as *pseudo-triangles* — :cpp:class:`Triangle\<T, Meta\>`
+(:file:`Source/EBGeometry_Triangle.hpp`) — that contain normal vectors on both the edges and
+vertices, completely similar to a DCEL polygon, but as a single self-contained value type with
+no half-edge/pointer topology at all.
+
+Because ``Triangle<T, Meta>`` holds no external references, groups of them can be packed
+by value into a *structure-of-arrays* block, :cpp:class:`TriangleSoAT\<T, W\>`
+(:file:`Source/EBGeometry_TriangleSoA.hpp`), which stores the vertex/normal data for :math:`W`
+triangles in flat, SIMD-aligned arrays rather than as :math:`W` separate objects. This is what
+lets :cpp:class:`TriMeshSDF` evaluate :math:`W` triangles per BVH leaf with a single SIMD
+instruction sequence — see :ref:`Sec:SIMD` and :ref:`Chap:MeshSDFClasses`.
 
 .. _Chap:BVH:
 
@@ -169,7 +251,10 @@ Bounding volume hierarchies
 
 Bounding volume hierarchies (BVHs) are tree structures where the regular nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces or implicit functions) further down in the hierarchy.
 This means that every node in a BVH is associated with a *bounding volume*.
-The bounding volume can, in principle, be any type of volume. 
+The bounding volume can, in principle, be any type of volume; ``EBGeometry`` ships
+:cpp:class:`BoundingVolumes::AABBT\<T\>` (axis-aligned box) and
+:cpp:class:`BoundingVolumes::SphereT\<T\>` (bounding sphere), both in
+:file:`Source/EBGeometry_BoundingVolumes.hpp`.
 There are two types of nodes in a BVH:
 
 * **Regular/interior nodes.** These do not contain any of the primitives/objects, but store references to subtrees (aka child nodes).
@@ -181,7 +266,7 @@ Its bounding volume, an axis-aligned bounding box or AABB for short, is illustra
 The interior node :math:`P` stores references to the leaf nodes :math:`L` and :math:`R`.
 As shown in :numref:`Fig:TrianglesBVH`, :math:`L` contains 5 triangles enclosed by another AABB.
 The other child node :math:`R` contains 6 triangles that are also enclosed by an AABB.
-Note that the bounding volume for :math:`P` encloses the bounding volumes of :math:`L` and :math:`R` and that the bounding volumes for :math:`L` and :math:`R` contain a small overlap. 
+Note that the bounding volume for :math:`P` encloses the bounding volumes of :math:`L` and :math:`R` and that the bounding volumes for :math:`L` and :math:`R` contain a small overlap.
 
 .. _Fig:TrianglesBVH:
 .. figure:: /_static/TrianglesBVH.png
@@ -193,33 +278,42 @@ Note that the bounding volume for :math:`P` encloses the bounding volumes of :ma
 There is no fundamental limitation to what type of primitives/objects can be enclosed in BVHs, which makes BVHs useful beyond triangulated data sets.
 For example, analytic signed distance functions can also be embedded in BVHs, provided that we can construct bounding volumes that enclose them.
 
+``EBGeometry`` provides two BVH representations of the tree in the figure above, both in
+namespace ``EBGeometry::BVH`` (:file:`Source/EBGeometry_BVH.hpp`):
+
+* :cpp:class:`BVH::TreeBVH\<T, P, BV, K\>` — the pointer-based tree used while *building* and
+  *partitioning* the hierarchy (interior nodes hold ``shared_ptr`` s to their children).
+* :cpp:class:`BVH::PackedBVH\<T, P, K\>` — a flattened, depth-first array representation of a
+  completed ``TreeBVH``, produced by calling ``TreeBVH::pack()``. This is the representation
+  actually used for fast queries — see :ref:`Chap:PackedBVH`.
+
 .. important::
-   
-   ``EBGeometry`` is not limited to binary trees, but supports :math:`k` -ary trees where each regular node has :math:`k` child nodes. 
+
+   ``EBGeometry`` is not limited to binary trees, but supports :math:`k` -ary trees where each regular node has :math:`k` child nodes (the template parameter ``K`` above).
 
 Construction
 ------------
 
 BVH construction is fairly flexible.
-For example, the child nodes :math:`L` and :math:`R` in :numref:`Fig:TrianglesBVH` could be partitioned in any number of ways, with the only requirement being that each child node gets at least one triangle/primitive. 
+For example, the child nodes :math:`L` and :math:`R` in :numref:`Fig:TrianglesBVH` could be partitioned in any number of ways, with the only requirement being that each child node gets at least one triangle/primitive.
 
 Although the rules for BVH construction are highly flexible, performant BVHs are completely reliant on having balanced trees with the following heuristic properties:
 
 * **Tight bounding volumes** that enclose the primitives as tightly as possible.
 * **Minimal overlap** between the bounding volumes.
-* **Balanced**, in the sense that the tree depth does not vary greatly through the tree, and there is approximately the same number of primitives in each leaf node. 
+* **Balanced**, in the sense that the tree depth does not vary greatly through the tree, and there is approximately the same number of primitives in each leaf node.
 
 Construction of a BVH is usually done recursively, from top to bottom (so-called top-down construction).
-Alternative construction methods also exist, but are not used in ``EBGeometry``. 
+Alternative construction methods also exist, but are not used in ``EBGeometry``.
 In this case one can represent the BVH construction of a :math:`k` -ary tree is done through a single function:
 
 .. math::
    :label: Partition
-   
-   \textrm{Partition}\left(\vec{O}\right): \vec{O} \rightarrow \left(\vec{O}_1, \vec{O}_2, \ldots, \vec{O}_k\right), 
-   
+
+   \textrm{Partition}\left(\vec{O}\right): \vec{O} \rightarrow \left(\vec{O}_1, \vec{O}_2, \ldots, \vec{O}_k\right),
+
 where :math:`\vec{O}` is an input a list of objects/primitives, which is *partitioned* into :math:`k` new list of primitives.
-Note that the lists :math:`\vec{O}_i` do not contain duplicates, there is a unique set of primitives associated in each new leaf node. 
+Note that the lists :math:`\vec{O}_i` do not contain duplicates, there is a unique set of primitives associated in each new leaf node.
 Top-down construction can thus be illustrated as a recursive procedure:
 
 .. code-block:: text
@@ -234,9 +328,23 @@ Top-down construction can thus be illustrated as a recursive procedure:
 	    child.topDownConstruction(child.objects)
 
 In practice, the above procedure is supplemented by more sophisticated criteria for terminating the recursion, as well as routines for creating the bounding volumes around the newly inserted nodes.
+``EBGeometry`` implements this as :cpp:func:`BVH::TreeBVH::topDownSortAndPartition`, which
+accepts a user-supplied ``Partitioner`` functor (the :math:`\mathrm{Partition}` above) and
+``StopFunction`` (the termination criterion). Two ready-made partitioners are provided,
+``BVCentroidPartitioner`` (splits on bounding-volume centroids, the default) and
+``PrimitiveCentroidPartitioner`` (splits on primitive centroids); a third,
+``BinnedSAHPartitioner``, implements the Surface Area Heuristic and typically yields the best
+query performance at a higher construction cost.
 
 Bottom-up construction is also possible, in which case one constructs the leaf nodes first, and then merge the nodes upward until one reaches a root node.
-In ``EBGeometry``, bottom-up construction is done by means of space-filling curves (e.g., Morton codes).
+In ``EBGeometry``, bottom-up construction is done by means of space-filling curves (e.g., Morton codes), via :cpp:func:`BVH::TreeBVH::bottomUpSortAndPartition\<S\>`, templated on the
+space-filling curve type ``S`` (``SFC::Morton`` or ``SFC::Nested``, namespace ``EBGeometry::SFC``,
+:file:`Source/EBGeometry_SFC.hpp`).
+
+Callers rarely drive ``topDownSortAndPartition``/``bottomUpSortAndPartition`` by hand; instead
+they pick one member of the ``BVH::Build`` enum (``TopDown``, ``Morton``, ``Nested``, ``SAH``) and
+pass it to a higher-level entry point such as :cpp:func:`Parser::readIntoPackedBVH`, which
+dispatches to the corresponding construction method internally — see :ref:`Chap:Parsers`.
 
 Tree traversal
 --------------
@@ -246,9 +354,9 @@ Consider the case in :numref:`Fig:TreePruning`, where the goal of the BVH traver
 For the traversal algorithm we consider the following steps:
 
 * When descending from node :math:`P` we determine that we first investigate the left subtree (node :math:`A`) since its bounding volume is closer than the bounding volumes for the other subtree.
-  The other subtree will is investigated after we have recursed to the bottom of the :math:`A` subtree. 
+  The other subtree will is investigated after we have recursed to the bottom of the :math:`A` subtree.
 * Since :math:`A` is a leaf node, we compute the signed distance from :math:`\mathbf{x}` to the primitives in :math:`A`.
-  This requires us to iterate over all the triangles in :math:`A`. 
+  This requires us to iterate over all the triangles in :math:`A`.
 * When investigating the other child node of :math:`P`, we find that the distance to the primitives in :math:`A` is shorter than the distance from :math:`\mathbf{x}` to the bounding volume that encloses nodes :math:`B` and :math:`C`.
   This immediately permits us to prune the entire subtree containing :math:`B` and :math:`C`.
 
@@ -260,13 +368,19 @@ For the traversal algorithm we consider the following steps:
    Example of BVH tree pruning.
 
 .. warning::
-   
+
    BVH traversal has :math:`\log N` complexity on average.
    However in the worst case the traversal algorithm may have linear complexity if the primitives are all at approximately the same distance from the query point.
    For example, it is necessary to traverse almost the entire tree when one tries to compute the signed distance at the origin of a tessellated sphere since all triangles and their bounding volumes are approximately at the same distance from the center.
 
 Other types of tree traversal (that do not compute the signed distance) are also possible.
-``EBGeometry`` supports a fairly flexible approach to the tree traversal and update algorithms such that the user is permitted to use the hierarhical traversal algorithm also for other types of operations (e.g., for finding all facets within a specified distance from a point).
+``EBGeometry`` supports a fairly flexible approach to the tree traversal and update algorithms
+through :cpp:func:`BVH::PackedBVH::traverse`, parametrized by four user-supplied callbacks
+(``Updater``, ``Visiter``, ``Sorter``, ``MetaUpdater``) such that the user is permitted to use
+the hierarchical traversal algorithm also for other types of operations (e.g., for finding all
+facets within a specified distance from a point, as :cpp:func:`MeshSDF::getClosestFaces` does).
+The full mechanics, including the SIMD-accelerated specialisation used by
+:cpp:func:`BVH::PackedBVH::signedDistance`, are described in :ref:`Chap:ImplemBVH`.
 
 Octree
 ======
@@ -280,8 +394,13 @@ Octree construction can be done in (at least) two ways:
 #. In depth-first order where entire sub-trees are built first.
 #. In breadth-first order where tree levels are added one at a time.
 
-``EBGeometry`` supports both of these methods. 
-Octree traversal is generally speaking quite similar to the traversal algorithms used for BVH trees.
+``EBGeometry`` supports both of these methods, through :cpp:class:`Octree::Node\<Meta, Data\>`
+(namespace ``EBGeometry::Octree``, :file:`Source/EBGeometry_Octree.hpp`).
+Octree traversal is generally speaking quite similar to the traversal algorithms used for BVH
+trees. The primary consumer of the octree inside ``EBGeometry`` itself is
+:cpp:func:`ImplicitFunction::approximateBoundingVolumeOctree`, which refines an octree near an
+implicit surface to estimate a bounding volume for implicit functions with no closed-form bound
+— see :ref:`Chap:ImplemOctree`.
 
 Constructive solid geometry
 ===========================
@@ -290,29 +409,36 @@ Basic transformations
 ---------------------
 
 Implicit functions, and by extension also signed distance fields, can be manipulated using basic transformations (like rotations).
-``EBGeometry`` supports many of these:
+``EBGeometry`` supports many of these, as free functions in :file:`Source/EBGeometry_Transform.hpp`
+that return a transformed ``ImplicitFunction<T>``:
 
-* Rotations.
-* Translations.
-* Surface offsets.
-* Shell extraction.
-* Mollification (e.g., smoothing)
+* ``Translate`` and ``Rotate``.
+* ``Scale``.
+* ``Complement`` (surface offset / sign flip).
+* ``Reflect``.
+* ``Shell`` (shell extraction).
+* ``Annular`` (mollification / smoothing of the surface offset).
 * ... and others.
 
 .. warning::
-   
+
    Some of these operations preserve the signed distance property, and others do not.
 
 Combining objects
 -----------------
 
-``EBGeometry`` supports standard operations in which implicit functions can be combined:
+``EBGeometry`` supports standard operations in which implicit functions can be combined, as free
+functions in :file:`Source/EBGeometry_CSG.hpp`:
 
-* Union.
-* Intersection.
-* Difference.
+* ``Union``, ``Intersection``, ``Difference``.
+* ``SmoothUnion``, ``SmoothIntersection``, ``SmoothDifference`` — smooth equivalents, i.e. for
+  smoothing the transition between combined objects, controlled by a blending functor
+  (``SmoothMin``/``SmoothMax``/``ExpMin``).
+* ``BVHUnion`` and ``BVHSmoothUnion`` — BVH-accelerated variants, backed by the
+  ``BVHUnionIF``/``BVHSmoothUnionIF`` classes.
 
-Some of these CSG operations also have smooth equivalents, i.e. for smoothing the transition between combined objects.
 Fast CSG operations are also supported by ``EBGeometry``, e.g. the BVH-accelerated CSG union where one uses the BVH when searching for the relevant geometric primitive(s).
 This functionality is motivated by the fact that a CSG union is normally implemented as :math:`\min\left(I_1, I_2, I_3, \ldots,I_N\right)`, which has :math:`\mathcal{O}\left(N\right)` complexity when there are :math:`N` objects.
-BVH trees can reduce this to :math:`\mathcal{O}\left(\log N\right)` complexity.
+BVH trees can reduce this to :math:`\mathcal{O}\left(\log N\right)` complexity, using the same
+``PackedBVH::traverse`` machinery described above for mesh signed distances — see
+:ref:`Chap:ImplemCSG`.

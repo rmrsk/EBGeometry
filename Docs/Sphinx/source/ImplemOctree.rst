@@ -11,12 +11,11 @@ Octrees are encapsulated by a class
 
 .. literalinclude:: ../../../Source/EBGeometry_Octree.hpp
    :language: c++
-   :lines: 74-75
-
+   :lines: 72-81
 
 where the template parameters are:
 
-*  ``Meta`` Meta-information contained in the node (e.g. upper/lower corners). 
+*  ``Meta`` Meta-information contained in the node (e.g. upper/lower corners).
 *  ``Data`` Data contained in the node.
 
 ``Node`` describes both regular and leaf nodes in the octree.
@@ -34,12 +33,12 @@ Constructing the octree is done by first initializing the root node and then bui
 
 .. literalinclude:: ../../../Source/EBGeometry_Octree.hpp
    :language: c++
-   :lines: 75-100, 180-200
+   :lines: 216-242
    :dedent: 2
 
 The input functions to ``buildDepthFirst`` and ``buildBreadthFirst`` are as follows:
 
-#. ``StopFunction`` determines if the node should be split or not. If it returns true, the node will *not* be split.
+#. ``SplitFunction`` determines if the node should be split or not. If it returns true, the node *will* be split into eight children.
 #. ``MetaConstructor`` constructs meta-data in the child nodes. This can/should include the physical corners of the node, but this is not a requirement.
 #. ``DataConstructor`` constructs data in the child node. This can e.g. be a partitioning of the parent data.
 
@@ -48,7 +47,7 @@ Tree traversal
 
 .. literalinclude:: ../../../Source/EBGeometry_Octree.hpp
    :language: c++
-   :lines: 75-76, 102-119, 202-214
+   :lines: 106-123, 244-259
    :dedent: 2
 
 The input functions to ``traverse`` are as follows:
@@ -61,5 +60,5 @@ The input functions to ``traverse`` are as follows:
 Example
 -------
 
-An example of how to use the Octree functionality is given in :file:`EBGeometry_ImplicitFunctionImplem.hpp` where the octree functionality is used for spatial partitioning of an implicit function.
+An example of how to use the Octree functionality is given in :file:`Source/EBGeometry_ImplicitFunctionImplem.hpp` where the octree functionality is used for spatial partitioning of an implicit function (:cpp:func:`ImplicitFunction::approximateBoundingVolumeOctree`, see :ref:`Chap:ImplemCSG`).
 This includes both the octree construction and traversal.

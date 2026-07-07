@@ -138,12 +138,18 @@ jobs:
           sudo apt install texlive
           sudo apt install texlive-latex-extra
           sudo apt install latexmk
+          sudo apt install poppler-utils
           python3 -m pip install sphinx==5.0.0 sphinx_rtd_theme sphinxcontrib-bibtex
 
       - name: Build doxygen
         working-directory: ${{ github.workspace }}/Docs
         run: |
-          doxygen doxyfile
+          doxygen doxygen.conf
+
+      - name: Build documentation figures
+        working-directory: ${{ github.workspace }}
+        run: |
+          Scripts/build-doc-figures.sh
 
       - name: Build HTML documentation
         working-directory: ${{ github.workspace }}/Docs/Sphinx

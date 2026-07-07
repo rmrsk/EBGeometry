@@ -1,5 +1,5 @@
 ci:
-  skip: [doxygen-check, sphinx-build]
+  skip: [doxygen-check, build-doc-figures, sphinx-build-html, sphinx-build-pdf]
 
 repos:
   - repo: https://github.com/pre-commit/mirrors-clang-format
@@ -52,10 +52,28 @@ repos:
         files: \.(hpp|cpp)$
         stages: [manual]
 
-      - id: sphinx-build
-        name: Build Sphinx documentation (warnings as errors)
+      - id: build-doc-figures
+        name: Render documentation figures from LaTeX/TikZ sources
+        entry: bash Scripts/build-doc-figures.sh
+        language: system
+        pass_filenames: false
+        stages: [manual]
+
+      - id: sphinx-build-html
+        name: Build Sphinx HTML documentation (warnings as errors)
         entry: sphinx-build
         args: [-W, --keep-going, -E, -b, html, Docs/Sphinx/source, Docs/Sphinx/build/html]
+        language: python
+        additional_dependencies:
+          - "sphinx==5.0.0"
+          - sphinx-rtd-theme
+          - sphinxcontrib-bibtex
+        pass_filenames: false
+        stages: [manual]
+
+      - id: sphinx-build-pdf
+        name: Build Sphinx PDF documentation (requires a LaTeX toolchain)
+        entry: bash -c "cd Docs/Sphinx && make latexpdf"
         language: python
         additional_dependencies:
           - "sphinx==5.0.0"

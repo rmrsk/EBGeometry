@@ -46,11 +46,10 @@ g++ -O3 -std=c++17 main.cpp && ./a.out
 # BVH-accelerated CSG union of spheres
 cd Examples/EBGeometry_PackedSpheres
 g++ -O3 -std=c++17 main.cpp && ./a.out
-
-# Composite F18 geometry (65 parts)
-cd Examples/EBGeometry_F18
-g++ -O3 -std=c++17 main.cpp -lstdc++fs && ./a.out
 ```
+
+See [Examples](https://rmrsk.github.io/EBGeometry/Examples.html) in the user documentation for
+the full list of bundled examples, including the AMReX-coupled ones.
 
 Add `-mavx -mfma` for AVX SIMD acceleration on modern x86-64 hardware.
 
@@ -103,10 +102,6 @@ Available presets at a glance:
 
 <p align="center">
    <img src="Docs/Sphinx/source/_static/example_spheres.png" width="300" alt="Packed bed geometry"/>
-</p>
-
-<p align="center">
-   <img src="Docs/Sphinx/source/_static/example_f18.png" width="400" alt="F18 composite geometry"/>
 </p>
 
 ## License

@@ -54,7 +54,10 @@ Introduction
    :hidden:
 
    Introduction.rst
-   BuildingAndUsing.rst
+   BuildingDirectCompile.rst
+   BuildingGNUMake.rst
+   BuildingCMake.rst
+   SIMDAndAssertions.rst
 
 Concepts
 ********
@@ -91,6 +94,7 @@ Examples
    :hidden:	     
 
    Examples.rst
+   AMReXExamples.rst
 
 Contributing and testing
 ************************
@@ -101,6 +105,9 @@ Contributing and testing
    :hidden:
 
    Contributing.rst
+   TestingLocally.rst
+   ContinuousIntegration.rst
+   ContributionGuidelines.rst
 
 .. toctree::
    :maxdepth: 3

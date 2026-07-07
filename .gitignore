@@ -34,12 +34,17 @@ Docs/*
 !Docs/Sphinx
 !Docs/doxygen.conf
 !Docs/README.md
+!Docs/mainpage.md
 Docs/Sphinx/build/*
 
-# LaTeX build artifacts for documentation figures (regenerated from the .tex sources)
+# LaTeX build artifacts for documentation figures (regenerated from the .tex sources
+# by Scripts/build-doc-figures.sh). Only the .tex source is tracked; the rendered PNG
+# referenced by the RST files (Docs/Sphinx/source/_static/<Name>.png) is a build product.
 Docs/Sphinx/source/_static/**/*.aux
 Docs/Sphinx/source/_static/**/*.log
 Docs/Sphinx/source/_static/**/*.pdf
+Docs/Sphinx/source/_static/**/*.png
+!Docs/Sphinx/source/_static/example_*.png
 
 # Local clang-tidy capture (not part of the project)
 /clang-tidy.log
