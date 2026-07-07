@@ -21,7 +21,9 @@
 #include <immintrin.h>
 #endif
 
+// Our includes
 #include "EBGeometry_Triangle.hpp"
+#include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
 
@@ -80,7 +82,16 @@ DefaultWidth() noexcept
  * @details signedDistance() dispatches to a packed intrinsics path for (T,W) combinations that
  * fill a SIMD register exactly — SSE4.1 (float, W=4), AVX (float, W=8; double, W=4 or W=8), or
  * AVX-512F (float, W=16; double, W=8) — evaluating all W triangles simultaneously. Any other
- * (T,W) falls back to a scalar loop over validCount triangles.
+ * (T,W) falls back to a scalar loop over m_validCount triangles.
+ * @warning This type is over-aligned (up to 64 bytes, for AVX-512F) via alignas. The library's own
+ * usage (PackedBVH storing groups inside a std::vector<TriangleSoAT>) is safe: C++17 mandates that
+ * std::allocator respect over-alignment, which has been verified empirically for every (T,W)
+ * combination this class supports. If you allocate a TriangleSoAT yourself outside of that path —
+ * a raw `new`, a container with a custom/pre-C++17-style allocator, placement-new into
+ * externally-owned storage, or a `malloc`'d buffer — you are responsible for ensuring the memory is
+ * aligned to `alignof(TriangleSoAT<T, W>)`; nothing in this class enforces or checks that, and a
+ * misaligned SIMD load will crash (or silently read the wrong data on some platforms) rather than
+ * failing gracefully.
  * @tparam T  Floating-point precision.
  * @tparam W  SIMD width: 4 for SSE (128-bit), 8 for AVX (256-bit float) or AVX-512F (512-bit
  * double), 16 for AVX-512F (512-bit float).
@@ -91,78 +102,14 @@ struct TriangleSoAT
   static_assert(W > 0, "W must be positive");
   static_assert(std::is_floating_point_v<T>, "TriangleSoAT requires a floating-point type T");
 
-  /**
-   * @brief x-coordinates of vertex positions. vx[i][j] = x-coord of vertex i for triangle j.
-   */
-  alignas(W * sizeof(T)) T vx[3][W];
-
-  /**
-   * @brief y-coordinates of vertex positions. vy[i][j] = y-coord of vertex i for triangle j.
-   */
-  T vy[3][W];
-
-  /**
-   * @brief z-coordinates of vertex positions. vz[i][j] = z-coord of vertex i for triangle j.
-   */
-  T vz[3][W];
-
-  /**
-   * @brief x-components of face normals. nx[j] = x-component of the face normal for triangle j.
-   */
-  alignas(W * sizeof(T)) T nx[W];
-
-  /**
-   * @brief y-components of face normals.
-   */
-  T ny[W];
-
-  /**
-   * @brief z-components of face normals.
-   */
-  T nz[W];
-
-  /**
-   * @brief x-components of vertex normals. vnx[i][j] = x of vertex normal i for triangle j.
-   */
-  alignas(W * sizeof(T)) T vnx[3][W];
-
-  /**
-   * @brief y-components of vertex normals. vny[i][j] = y of vertex normal i for triangle j.
-   */
-  T vny[3][W];
-
-  /**
-   * @brief z-components of vertex normals. vnz[i][j] = z of vertex normal i for triangle j.
-   */
-  T vnz[3][W];
-
-  /**
-   * @brief x-components of edge normals. enx[i][j] = x of edge normal i for triangle j.
-   */
-  alignas(W * sizeof(T)) T enx[3][W];
-
-  /**
-   * @brief y-components of edge normals. eny[i][j] = y of edge normal i for triangle j.
-   */
-  T eny[3][W];
-
-  /**
-   * @brief z-components of edge normals. enz[i][j] = z of edge normal i for triangle j.
-   */
-  T enz[3][W];
-
-  /**
-   * @brief Number of valid (non-padded) triangles in this group (1..W).
-   */
-  uint32_t validCount;
-
+public:
   /**
    * @brief Pack count triangles from tris[0..count-1] into this SoA group.
    * @details Pads lanes count..W-1 by repeating the last real triangle so that all W
    * lanes hold valid data and SIMD loads never read uninitialised memory.
    * @tparam Meta Triangle meta-data type (forwarded from Triangle<T,Meta>).
-   * @param[in] tris  Source triangle array with at least count elements.
-   * @param[in] count Number of valid triangles to pack (1 ≤ count ≤ W).
+   * @param[in] tris  Source triangle array with at least count elements. Must not be null.
+   * @param[in] count Number of valid triangles to pack. Must satisfy 1 <= count <= W.
    */
   template <class Meta>
   void
@@ -170,10 +117,11 @@ struct TriangleSoAT
 
   /**
    * @brief Evaluate signed distance from a_point to the closest triangle in this group.
-   * @details Returns the signed distance with minimum absolute value among validCount triangles.
+   * @details Returns the signed distance with minimum absolute value among m_validCount triangles.
    * Dispatches to an SSE4.1 packed-float path for (T=float, W=4), to AVX packed-float for
    * (T=float, W=8), to AVX packed-double for (T=double, W=4 or W=8), or to a scalar fallback.
-   * @param[in] a_point Query point.
+   * Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
+   * @param[in] a_point Query point. Must be finite.
    * @return Signed distance from a_point to the closest valid triangle, with sign determined by
    * the outward normal of the nearest feature (face, edge, or vertex).
    */
@@ -182,13 +130,83 @@ struct TriangleSoAT
 
   /**
    * @brief Compute the bounding volume enclosing all valid triangles in this group.
+   * @details Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
    * @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a
    * std::vector<Vec3T<T>> of vertex positions.
-   * @return Bounding volume enclosing all vertices of the validCount triangles.
+   * @return Bounding volume enclosing all vertices of the m_validCount triangles.
    */
   template <class BV>
   [[nodiscard]] BV
   computeBoundingVolume() const noexcept;
+
+protected:
+  /**
+   * @brief x-coordinates of vertex positions. m_vx[i][j] = x-coord of vertex i for triangle j.
+   */
+  alignas(W * sizeof(T)) T m_vx[3][W];
+
+  /**
+   * @brief y-coordinates of vertex positions. m_vy[i][j] = y-coord of vertex i for triangle j.
+   */
+  T m_vy[3][W];
+
+  /**
+   * @brief z-coordinates of vertex positions. m_vz[i][j] = z-coord of vertex i for triangle j.
+   */
+  T m_vz[3][W];
+
+  /**
+   * @brief x-components of face normals. m_nx[j] = x-component of the face normal for triangle j.
+   */
+  alignas(W * sizeof(T)) T m_nx[W];
+
+  /**
+   * @brief y-components of face normals.
+   */
+  T m_ny[W];
+
+  /**
+   * @brief z-components of face normals.
+   */
+  T m_nz[W];
+
+  /**
+   * @brief x-components of vertex normals. m_vnx[i][j] = x of vertex normal i for triangle j.
+   */
+  alignas(W * sizeof(T)) T m_vnx[3][W];
+
+  /**
+   * @brief y-components of vertex normals. m_vny[i][j] = y of vertex normal i for triangle j.
+   */
+  T m_vny[3][W];
+
+  /**
+   * @brief z-components of vertex normals. m_vnz[i][j] = z of vertex normal i for triangle j.
+   */
+  T m_vnz[3][W];
+
+  /**
+   * @brief x-components of edge normals. m_enx[i][j] = x of edge normal i for triangle j.
+   */
+  alignas(W * sizeof(T)) T m_enx[3][W];
+
+  /**
+   * @brief y-components of edge normals. m_eny[i][j] = y of edge normal i for triangle j.
+   */
+  T m_eny[3][W];
+
+  /**
+   * @brief z-components of edge normals. m_enz[i][j] = z of edge normal i for triangle j.
+   */
+  T m_enz[3][W];
+
+  /**
+   * @brief Number of valid (non-padded) triangles in this group (1..W).
+   * @details Zero-initialized so that a default-constructed (not-yet-packed) group reliably fails
+   * the EBGEOMETRY_EXPECT(m_validCount >= 1) precondition in signedDistance() and
+   * computeBoundingVolume(), rather than reading whatever indeterminate value happened to be there.
+   */
+  uint32_t m_validCount = 0;
 };
 
 } // namespace EBGeometry

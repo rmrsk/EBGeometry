@@ -19,6 +19,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "EBGeometry_Macros.hpp"
 #include "EBGeometry_TriangleSoA.hpp"
 
 namespace EBGeometry {
@@ -28,32 +29,41 @@ template <class Meta>
 void
 TriangleSoAT<T, W>::pack(const Triangle<T, Meta>* tris, uint32_t count) noexcept
 {
-  validCount = count;
+  EBGEOMETRY_EXPECT(tris != nullptr);
+  EBGEOMETRY_EXPECT(count >= 1U);
+  EBGEOMETRY_EXPECT(count <= W);
+
+  m_validCount = count;
+
   for (uint32_t j = 0; j < W; j++) {
     const uint32_t src = (j < count) ? j : (count - 1U);
-    const auto&    tri = tris[src];
-    const auto&    vp  = tri.getVertexPositions();
-    const auto&    vn  = tri.getVertexNormals();
-    const auto&    en  = tri.getEdgeNormals();
-    const auto&    n   = tri.getNormal();
+
+    const auto& tri = tris[src];
+    const auto& vp  = tri.getVertexPositions();
+    const auto& vn  = tri.getVertexNormals();
+    const auto& en  = tri.getEdgeNormals();
+    const auto& n   = tri.getNormal();
 
     for (uint32_t v = 0; v < 3; v++) {
-      vx[v][j] = vp[v][0];
-      vy[v][j] = vp[v][1];
-      vz[v][j] = vp[v][2];
+      m_vx[v][j] = vp[v][0];
+      m_vy[v][j] = vp[v][1];
+      m_vz[v][j] = vp[v][2];
     }
-    nx[j] = n[0];
-    ny[j] = n[1];
-    nz[j] = n[2];
+
+    m_nx[j] = n[0];
+    m_ny[j] = n[1];
+    m_nz[j] = n[2];
+
     for (uint32_t v = 0; v < 3; v++) {
-      vnx[v][j] = vn[v][0];
-      vny[v][j] = vn[v][1];
-      vnz[v][j] = vn[v][2];
+      m_vnx[v][j] = vn[v][0];
+      m_vny[v][j] = vn[v][1];
+      m_vnz[v][j] = vn[v][2];
     }
+
     for (uint32_t e = 0; e < 3; e++) {
-      enx[e][j] = en[e][0];
-      eny[e][j] = en[e][1];
-      enz[e][j] = en[e][2];
+      m_enx[e][j] = en[e][0];
+      m_eny[e][j] = en[e][1];
+      m_enz[e][j] = en[e][2];
     }
   }
 }
@@ -62,6 +72,29 @@ template <class T, size_t W>
 T
 TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
 {
+  // Only the first array in each logical group (m_vx, m_nx, m_vnx, m_enx) carries an explicit
+  // alignas in the class declaration: since each group's total size (a multiple of 3*W or W
+  // elements) is itself a multiple of the group's required alignment, every other array in the
+  // group inherits SIMD-safe alignment for free from sequential, padding-free layout. These
+  // static_asserts pin that assumption down so that a future reordering or insertion of a member
+  // fails to compile instead of segfaulting on a misaligned SIMD load. offsetof requires a complete
+  // type, so this can only be checked here (in a member function body), not inside the class itself.
+  using SoA = TriangleSoAT<T, W>;
+  static_assert(offsetof(SoA, m_vy) % (W * sizeof(T)) == 0, "m_vy is not SIMD-aligned");
+  static_assert(offsetof(SoA, m_vz) % (W * sizeof(T)) == 0, "m_vz is not SIMD-aligned");
+  static_assert(offsetof(SoA, m_ny) % (W * sizeof(T)) == 0, "m_ny is not SIMD-aligned");
+  static_assert(offsetof(SoA, m_nz) % (W * sizeof(T)) == 0, "m_nz is not SIMD-aligned");
+  static_assert(offsetof(SoA, m_vny) % (W * sizeof(T)) == 0, "m_vny is not SIMD-aligned");
+  static_assert(offsetof(SoA, m_vnz) % (W * sizeof(T)) == 0, "m_vnz is not SIMD-aligned");
+  static_assert(offsetof(SoA, m_eny) % (W * sizeof(T)) == 0, "m_eny is not SIMD-aligned");
+  static_assert(offsetof(SoA, m_enz) % (W * sizeof(T)) == 0, "m_enz is not SIMD-aligned");
+
+  EBGEOMETRY_EXPECT(std::isfinite(a_p[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_p[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_p[2]));
+  EBGEOMETRY_EXPECT(m_validCount >= 1U);
+  EBGEOMETRY_EXPECT(m_validCount <= W);
+
 #if defined(__AVX512F__)
   if constexpr (W == 16 && std::is_same_v<T, float>) {
     static_assert(alignof(TriangleSoAT<T, W>) == W * sizeof(T),
@@ -72,11 +105,11 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m512 one = _mm512_set1_ps(1.f);
     const __m512 zer = _mm512_setzero_ps();
 
-    const __m512 v0x = _mm512_load_ps(vx[0]), v0y = _mm512_load_ps(vy[0]), v0z = _mm512_load_ps(vz[0]);
-    const __m512 v1x = _mm512_load_ps(vx[1]), v1y = _mm512_load_ps(vy[1]), v1z = _mm512_load_ps(vz[1]);
-    const __m512 v2x = _mm512_load_ps(vx[2]), v2y = _mm512_load_ps(vy[2]), v2z = _mm512_load_ps(vz[2]);
+    const __m512 v0x = _mm512_load_ps(m_vx[0]), v0y = _mm512_load_ps(m_vy[0]), v0z = _mm512_load_ps(m_vz[0]);
+    const __m512 v1x = _mm512_load_ps(m_vx[1]), v1y = _mm512_load_ps(m_vy[1]), v1z = _mm512_load_ps(m_vz[1]);
+    const __m512 v2x = _mm512_load_ps(m_vx[2]), v2y = _mm512_load_ps(m_vy[2]), v2z = _mm512_load_ps(m_vz[2]);
 
-    const __m512 fnx = _mm512_load_ps(nx), fny = _mm512_load_ps(ny), fnz = _mm512_load_ps(nz);
+    const __m512 fnx = _mm512_load_ps(m_nx), fny = _mm512_load_ps(m_ny), fnz = _mm512_load_ps(m_nz);
 
     const __m512 v21x = _mm512_sub_ps(v1x, v0x), v21y = _mm512_sub_ps(v1y, v0y), v21z = _mm512_sub_ps(v1z, v0z);
     const __m512 v32x = _mm512_sub_ps(v2x, v1x), v32y = _mm512_sub_ps(v2y, v1y), v32z = _mm512_sub_ps(v2z, v1z);
@@ -150,12 +183,12 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m512 y3y     = _mm512_sub_ps(p3y, _mm512_mul_ps(t3, v13y));
     const __m512 y3z     = _mm512_sub_ps(p3z, _mm512_mul_ps(t3, v13z));
 
-    const __m512 vn0x = _mm512_load_ps(vnx[0]), vn0y = _mm512_load_ps(vny[0]), vn0z = _mm512_load_ps(vnz[0]);
-    const __m512 vn1x = _mm512_load_ps(vnx[1]), vn1y = _mm512_load_ps(vny[1]), vn1z = _mm512_load_ps(vnz[1]);
-    const __m512 vn2x = _mm512_load_ps(vnx[2]), vn2y = _mm512_load_ps(vny[2]), vn2z = _mm512_load_ps(vnz[2]);
-    const __m512 en0x = _mm512_load_ps(enx[0]), en0y = _mm512_load_ps(eny[0]), en0z = _mm512_load_ps(enz[0]);
-    const __m512 en1x = _mm512_load_ps(enx[1]), en1y = _mm512_load_ps(eny[1]), en1z = _mm512_load_ps(enz[1]);
-    const __m512 en2x = _mm512_load_ps(enx[2]), en2y = _mm512_load_ps(eny[2]), en2z = _mm512_load_ps(enz[2]);
+    const __m512 vn0x = _mm512_load_ps(m_vnx[0]), vn0y = _mm512_load_ps(m_vny[0]), vn0z = _mm512_load_ps(m_vnz[0]);
+    const __m512 vn1x = _mm512_load_ps(m_vnx[1]), vn1y = _mm512_load_ps(m_vny[1]), vn1z = _mm512_load_ps(m_vnz[1]);
+    const __m512 vn2x = _mm512_load_ps(m_vnx[2]), vn2y = _mm512_load_ps(m_vny[2]), vn2z = _mm512_load_ps(m_vnz[2]);
+    const __m512 en0x = _mm512_load_ps(m_enx[0]), en0y = _mm512_load_ps(m_eny[0]), en0z = _mm512_load_ps(m_enz[0]);
+    const __m512 en1x = _mm512_load_ps(m_enx[1]), en1y = _mm512_load_ps(m_eny[1]), en1z = _mm512_load_ps(m_enz[1]);
+    const __m512 en2x = _mm512_load_ps(m_enx[2]), en2y = _mm512_load_ps(m_eny[2]), en2z = _mm512_load_ps(m_enz[2]);
 
     const __m512 p1d2 = dot3(p1x, p1y, p1z, p1x, p1y, p1z);
     const __m512 p2d2 = dot3(p2x, p2y, p2z, p2x, p2y, p2z);
@@ -216,7 +249,7 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
 
     float best = std::numeric_limits<float>::max();
     float babs = std::numeric_limits<float>::max();
-    for (uint32_t i = 0; i < validCount; i++) {
+    for (uint32_t i = 0; i < m_validCount; i++) {
       const float ad = std::abs(d16[i]);
       if (ad < babs) {
         best = d16[i];
@@ -234,11 +267,11 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m512d one = _mm512_set1_pd(1.0);
     const __m512d zer = _mm512_setzero_pd();
 
-    const __m512d v0x = _mm512_load_pd(vx[0]), v0y = _mm512_load_pd(vy[0]), v0z = _mm512_load_pd(vz[0]);
-    const __m512d v1x = _mm512_load_pd(vx[1]), v1y = _mm512_load_pd(vy[1]), v1z = _mm512_load_pd(vz[1]);
-    const __m512d v2x = _mm512_load_pd(vx[2]), v2y = _mm512_load_pd(vy[2]), v2z = _mm512_load_pd(vz[2]);
+    const __m512d v0x = _mm512_load_pd(m_vx[0]), v0y = _mm512_load_pd(m_vy[0]), v0z = _mm512_load_pd(m_vz[0]);
+    const __m512d v1x = _mm512_load_pd(m_vx[1]), v1y = _mm512_load_pd(m_vy[1]), v1z = _mm512_load_pd(m_vz[1]);
+    const __m512d v2x = _mm512_load_pd(m_vx[2]), v2y = _mm512_load_pd(m_vy[2]), v2z = _mm512_load_pd(m_vz[2]);
 
-    const __m512d fnx = _mm512_load_pd(nx), fny = _mm512_load_pd(ny), fnz = _mm512_load_pd(nz);
+    const __m512d fnx = _mm512_load_pd(m_nx), fny = _mm512_load_pd(m_ny), fnz = _mm512_load_pd(m_nz);
 
     const __m512d v21x = _mm512_sub_pd(v1x, v0x), v21y = _mm512_sub_pd(v1y, v0y), v21z = _mm512_sub_pd(v1z, v0z);
     const __m512d v32x = _mm512_sub_pd(v2x, v1x), v32y = _mm512_sub_pd(v2y, v1y), v32z = _mm512_sub_pd(v2z, v1z);
@@ -313,12 +346,12 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m512d y3y     = _mm512_sub_pd(p3y, _mm512_mul_pd(t3, v13y));
     const __m512d y3z     = _mm512_sub_pd(p3z, _mm512_mul_pd(t3, v13z));
 
-    const __m512d vn0x = _mm512_load_pd(vnx[0]), vn0y = _mm512_load_pd(vny[0]), vn0z = _mm512_load_pd(vnz[0]);
-    const __m512d vn1x = _mm512_load_pd(vnx[1]), vn1y = _mm512_load_pd(vny[1]), vn1z = _mm512_load_pd(vnz[1]);
-    const __m512d vn2x = _mm512_load_pd(vnx[2]), vn2y = _mm512_load_pd(vny[2]), vn2z = _mm512_load_pd(vnz[2]);
-    const __m512d en0x = _mm512_load_pd(enx[0]), en0y = _mm512_load_pd(eny[0]), en0z = _mm512_load_pd(enz[0]);
-    const __m512d en1x = _mm512_load_pd(enx[1]), en1y = _mm512_load_pd(eny[1]), en1z = _mm512_load_pd(enz[1]);
-    const __m512d en2x = _mm512_load_pd(enx[2]), en2y = _mm512_load_pd(eny[2]), en2z = _mm512_load_pd(enz[2]);
+    const __m512d vn0x = _mm512_load_pd(m_vnx[0]), vn0y = _mm512_load_pd(m_vny[0]), vn0z = _mm512_load_pd(m_vnz[0]);
+    const __m512d vn1x = _mm512_load_pd(m_vnx[1]), vn1y = _mm512_load_pd(m_vny[1]), vn1z = _mm512_load_pd(m_vnz[1]);
+    const __m512d vn2x = _mm512_load_pd(m_vnx[2]), vn2y = _mm512_load_pd(m_vny[2]), vn2z = _mm512_load_pd(m_vnz[2]);
+    const __m512d en0x = _mm512_load_pd(m_enx[0]), en0y = _mm512_load_pd(m_eny[0]), en0z = _mm512_load_pd(m_enz[0]);
+    const __m512d en1x = _mm512_load_pd(m_enx[1]), en1y = _mm512_load_pd(m_eny[1]), en1z = _mm512_load_pd(m_enz[1]);
+    const __m512d en2x = _mm512_load_pd(m_enx[2]), en2y = _mm512_load_pd(m_eny[2]), en2z = _mm512_load_pd(m_enz[2]);
 
     const __m512d p1d2 = dot3(p1x, p1y, p1z, p1x, p1y, p1z);
     const __m512d p2d2 = dot3(p2x, p2y, p2z, p2x, p2y, p2z);
@@ -379,7 +412,7 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
 
     double best = std::numeric_limits<double>::max();
     double babs = std::numeric_limits<double>::max();
-    for (uint32_t i = 0; i < validCount; i++) {
+    for (uint32_t i = 0; i < m_validCount; i++) {
       const double ad = std::abs(d8[i]);
       if (ad < babs) {
         best = d8[i];
@@ -400,20 +433,20 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m128 zer = _mm_setzero_ps();
 
     // v0, v1, v2 vertex positions
-    const __m128 v0x = _mm_load_ps(vx[0]);
-    const __m128 v0y = _mm_load_ps(vy[0]);
-    const __m128 v0z = _mm_load_ps(vz[0]);
-    const __m128 v1x = _mm_load_ps(vx[1]);
-    const __m128 v1y = _mm_load_ps(vy[1]);
-    const __m128 v1z = _mm_load_ps(vz[1]);
-    const __m128 v2x = _mm_load_ps(vx[2]);
-    const __m128 v2y = _mm_load_ps(vy[2]);
-    const __m128 v2z = _mm_load_ps(vz[2]);
+    const __m128 v0x = _mm_load_ps(m_vx[0]);
+    const __m128 v0y = _mm_load_ps(m_vy[0]);
+    const __m128 v0z = _mm_load_ps(m_vz[0]);
+    const __m128 v1x = _mm_load_ps(m_vx[1]);
+    const __m128 v1y = _mm_load_ps(m_vy[1]);
+    const __m128 v1z = _mm_load_ps(m_vz[1]);
+    const __m128 v2x = _mm_load_ps(m_vx[2]);
+    const __m128 v2y = _mm_load_ps(m_vy[2]);
+    const __m128 v2z = _mm_load_ps(m_vz[2]);
 
     // Face normals
-    const __m128 fnx = _mm_load_ps(nx);
-    const __m128 fny = _mm_load_ps(ny);
-    const __m128 fnz = _mm_load_ps(nz);
+    const __m128 fnx = _mm_load_ps(m_nx);
+    const __m128 fny = _mm_load_ps(m_ny);
+    const __m128 fnz = _mm_load_ps(m_nz);
 
     // Edge vectors v21 = v1 - v0, v32 = v2 - v1, v13 = v0 - v2
     const __m128 v21x = _mm_sub_ps(v1x, v0x);
@@ -497,25 +530,25 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m128 y3z     = _mm_sub_ps(p3z, _mm_mul_ps(t3, v13z));
 
     // Vertex normals
-    const __m128 vn0x = _mm_load_ps(vnx[0]);
-    const __m128 vn0y = _mm_load_ps(vny[0]);
-    const __m128 vn0z = _mm_load_ps(vnz[0]);
-    const __m128 vn1x = _mm_load_ps(vnx[1]);
-    const __m128 vn1y = _mm_load_ps(vny[1]);
-    const __m128 vn1z = _mm_load_ps(vnz[1]);
-    const __m128 vn2x = _mm_load_ps(vnx[2]);
-    const __m128 vn2y = _mm_load_ps(vny[2]);
-    const __m128 vn2z = _mm_load_ps(vnz[2]);
+    const __m128 vn0x = _mm_load_ps(m_vnx[0]);
+    const __m128 vn0y = _mm_load_ps(m_vny[0]);
+    const __m128 vn0z = _mm_load_ps(m_vnz[0]);
+    const __m128 vn1x = _mm_load_ps(m_vnx[1]);
+    const __m128 vn1y = _mm_load_ps(m_vny[1]);
+    const __m128 vn1z = _mm_load_ps(m_vnz[1]);
+    const __m128 vn2x = _mm_load_ps(m_vnx[2]);
+    const __m128 vn2y = _mm_load_ps(m_vny[2]);
+    const __m128 vn2z = _mm_load_ps(m_vnz[2]);
     // Edge normals
-    const __m128 en0x = _mm_load_ps(enx[0]);
-    const __m128 en0y = _mm_load_ps(eny[0]);
-    const __m128 en0z = _mm_load_ps(enz[0]);
-    const __m128 en1x = _mm_load_ps(enx[1]);
-    const __m128 en1y = _mm_load_ps(eny[1]);
-    const __m128 en1z = _mm_load_ps(enz[1]);
-    const __m128 en2x = _mm_load_ps(enx[2]);
-    const __m128 en2y = _mm_load_ps(eny[2]);
-    const __m128 en2z = _mm_load_ps(enz[2]);
+    const __m128 en0x = _mm_load_ps(m_enx[0]);
+    const __m128 en0y = _mm_load_ps(m_eny[0]);
+    const __m128 en0z = _mm_load_ps(m_enz[0]);
+    const __m128 en1x = _mm_load_ps(m_enx[1]);
+    const __m128 en1y = _mm_load_ps(m_eny[1]);
+    const __m128 en1z = _mm_load_ps(m_enz[1]);
+    const __m128 en2x = _mm_load_ps(m_enx[2]);
+    const __m128 en2y = _mm_load_ps(m_eny[2]);
+    const __m128 en2z = _mm_load_ps(m_enz[2]);
 
     // Squared distances and signed distances for each feature
     const __m128 p1d2 = dot3(p1x, p1y, p1z, p1x, p1y, p1z);
@@ -573,13 +606,13 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m128 ev_d   = _mm_mul_ps(best_sgn, _mm_sqrt_ps(best_d2));
     const __m128 best_d = _mm_blendv_ps(ev_d, face_d, in_tri);
 
-    // Horizontal reduction over W lanes (validCount lanes only)
+    // Horizontal reduction over W lanes (m_validCount lanes only)
     alignas(16) float d4[4];
     _mm_store_ps(d4, best_d);
 
     float best = std::numeric_limits<float>::max();
     float babs = std::numeric_limits<float>::max();
-    for (uint32_t i = 0; i < validCount; i++) {
+    for (uint32_t i = 0; i < m_validCount; i++) {
       const float ad = std::abs(d4[i]);
       if (ad < babs) {
         best = d4[i];
@@ -599,11 +632,11 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m256 one = _mm256_set1_ps(1.f);
     const __m256 zer = _mm256_setzero_ps();
 
-    const __m256 v0x = _mm256_load_ps(vx[0]), v0y = _mm256_load_ps(vy[0]), v0z = _mm256_load_ps(vz[0]);
-    const __m256 v1x = _mm256_load_ps(vx[1]), v1y = _mm256_load_ps(vy[1]), v1z = _mm256_load_ps(vz[1]);
-    const __m256 v2x = _mm256_load_ps(vx[2]), v2y = _mm256_load_ps(vy[2]), v2z = _mm256_load_ps(vz[2]);
+    const __m256 v0x = _mm256_load_ps(m_vx[0]), v0y = _mm256_load_ps(m_vy[0]), v0z = _mm256_load_ps(m_vz[0]);
+    const __m256 v1x = _mm256_load_ps(m_vx[1]), v1y = _mm256_load_ps(m_vy[1]), v1z = _mm256_load_ps(m_vz[1]);
+    const __m256 v2x = _mm256_load_ps(m_vx[2]), v2y = _mm256_load_ps(m_vy[2]), v2z = _mm256_load_ps(m_vz[2]);
 
-    const __m256 fnx = _mm256_load_ps(nx), fny = _mm256_load_ps(ny), fnz = _mm256_load_ps(nz);
+    const __m256 fnx = _mm256_load_ps(m_nx), fny = _mm256_load_ps(m_ny), fnz = _mm256_load_ps(m_nz);
 
     const __m256 v21x = _mm256_sub_ps(v1x, v0x), v21y = _mm256_sub_ps(v1y, v0y), v21z = _mm256_sub_ps(v1z, v0z);
     const __m256 v32x = _mm256_sub_ps(v2x, v1x), v32y = _mm256_sub_ps(v2y, v1y), v32z = _mm256_sub_ps(v2z, v1z);
@@ -666,12 +699,12 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m256 y3y     = _mm256_sub_ps(p3y, _mm256_mul_ps(t3, v13y));
     const __m256 y3z     = _mm256_sub_ps(p3z, _mm256_mul_ps(t3, v13z));
 
-    const __m256 vn0x = _mm256_load_ps(vnx[0]), vn0y = _mm256_load_ps(vny[0]), vn0z = _mm256_load_ps(vnz[0]);
-    const __m256 vn1x = _mm256_load_ps(vnx[1]), vn1y = _mm256_load_ps(vny[1]), vn1z = _mm256_load_ps(vnz[1]);
-    const __m256 vn2x = _mm256_load_ps(vnx[2]), vn2y = _mm256_load_ps(vny[2]), vn2z = _mm256_load_ps(vnz[2]);
-    const __m256 en0x = _mm256_load_ps(enx[0]), en0y = _mm256_load_ps(eny[0]), en0z = _mm256_load_ps(enz[0]);
-    const __m256 en1x = _mm256_load_ps(enx[1]), en1y = _mm256_load_ps(eny[1]), en1z = _mm256_load_ps(enz[1]);
-    const __m256 en2x = _mm256_load_ps(enx[2]), en2y = _mm256_load_ps(eny[2]), en2z = _mm256_load_ps(enz[2]);
+    const __m256 vn0x = _mm256_load_ps(m_vnx[0]), vn0y = _mm256_load_ps(m_vny[0]), vn0z = _mm256_load_ps(m_vnz[0]);
+    const __m256 vn1x = _mm256_load_ps(m_vnx[1]), vn1y = _mm256_load_ps(m_vny[1]), vn1z = _mm256_load_ps(m_vnz[1]);
+    const __m256 vn2x = _mm256_load_ps(m_vnx[2]), vn2y = _mm256_load_ps(m_vny[2]), vn2z = _mm256_load_ps(m_vnz[2]);
+    const __m256 en0x = _mm256_load_ps(m_enx[0]), en0y = _mm256_load_ps(m_eny[0]), en0z = _mm256_load_ps(m_enz[0]);
+    const __m256 en1x = _mm256_load_ps(m_enx[1]), en1y = _mm256_load_ps(m_eny[1]), en1z = _mm256_load_ps(m_enz[1]);
+    const __m256 en2x = _mm256_load_ps(m_enx[2]), en2y = _mm256_load_ps(m_eny[2]), en2z = _mm256_load_ps(m_enz[2]);
 
     const __m256 p1d2 = dot3(p1x, p1y, p1z, p1x, p1y, p1z);
     const __m256 p2d2 = dot3(p2x, p2y, p2z, p2x, p2y, p2z);
@@ -732,7 +765,7 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
 
     float best = std::numeric_limits<float>::max();
     float babs = std::numeric_limits<float>::max();
-    for (uint32_t i = 0; i < validCount; i++) {
+    for (uint32_t i = 0; i < m_validCount; i++) {
       const float ad = std::abs(d8[i]);
       if (ad < babs) {
         best = d8[i];
@@ -754,19 +787,19 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m256d zer = _mm256_setzero_pd();
 
     // lo = triangles 0-3, hi = triangles 4-7
-    const __m256d v0x_lo = _mm256_load_pd(vx[0]), v0x_hi = _mm256_load_pd(vx[0] + 4);
-    const __m256d v0y_lo = _mm256_load_pd(vy[0]), v0y_hi = _mm256_load_pd(vy[0] + 4);
-    const __m256d v0z_lo = _mm256_load_pd(vz[0]), v0z_hi = _mm256_load_pd(vz[0] + 4);
-    const __m256d v1x_lo = _mm256_load_pd(vx[1]), v1x_hi = _mm256_load_pd(vx[1] + 4);
-    const __m256d v1y_lo = _mm256_load_pd(vy[1]), v1y_hi = _mm256_load_pd(vy[1] + 4);
-    const __m256d v1z_lo = _mm256_load_pd(vz[1]), v1z_hi = _mm256_load_pd(vz[1] + 4);
-    const __m256d v2x_lo = _mm256_load_pd(vx[2]), v2x_hi = _mm256_load_pd(vx[2] + 4);
-    const __m256d v2y_lo = _mm256_load_pd(vy[2]), v2y_hi = _mm256_load_pd(vy[2] + 4);
-    const __m256d v2z_lo = _mm256_load_pd(vz[2]), v2z_hi = _mm256_load_pd(vz[2] + 4);
+    const __m256d v0x_lo = _mm256_load_pd(m_vx[0]), v0x_hi = _mm256_load_pd(m_vx[0] + 4);
+    const __m256d v0y_lo = _mm256_load_pd(m_vy[0]), v0y_hi = _mm256_load_pd(m_vy[0] + 4);
+    const __m256d v0z_lo = _mm256_load_pd(m_vz[0]), v0z_hi = _mm256_load_pd(m_vz[0] + 4);
+    const __m256d v1x_lo = _mm256_load_pd(m_vx[1]), v1x_hi = _mm256_load_pd(m_vx[1] + 4);
+    const __m256d v1y_lo = _mm256_load_pd(m_vy[1]), v1y_hi = _mm256_load_pd(m_vy[1] + 4);
+    const __m256d v1z_lo = _mm256_load_pd(m_vz[1]), v1z_hi = _mm256_load_pd(m_vz[1] + 4);
+    const __m256d v2x_lo = _mm256_load_pd(m_vx[2]), v2x_hi = _mm256_load_pd(m_vx[2] + 4);
+    const __m256d v2y_lo = _mm256_load_pd(m_vy[2]), v2y_hi = _mm256_load_pd(m_vy[2] + 4);
+    const __m256d v2z_lo = _mm256_load_pd(m_vz[2]), v2z_hi = _mm256_load_pd(m_vz[2] + 4);
 
-    const __m256d fnx_lo = _mm256_load_pd(nx), fnx_hi = _mm256_load_pd(nx + 4);
-    const __m256d fny_lo = _mm256_load_pd(ny), fny_hi = _mm256_load_pd(ny + 4);
-    const __m256d fnz_lo = _mm256_load_pd(nz), fnz_hi = _mm256_load_pd(nz + 4);
+    const __m256d fnx_lo = _mm256_load_pd(m_nx), fnx_hi = _mm256_load_pd(m_nx + 4);
+    const __m256d fny_lo = _mm256_load_pd(m_ny), fny_hi = _mm256_load_pd(m_ny + 4);
+    const __m256d fnz_lo = _mm256_load_pd(m_nz), fnz_hi = _mm256_load_pd(m_nz + 4);
 
     const __m256d v21x_lo = _mm256_sub_pd(v1x_lo, v0x_lo), v21x_hi = _mm256_sub_pd(v1x_hi, v0x_hi);
     const __m256d v21y_lo = _mm256_sub_pd(v1y_lo, v0y_lo), v21y_hi = _mm256_sub_pd(v1y_hi, v0y_hi);
@@ -870,24 +903,24 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m256d y3z_lo     = _mm256_sub_pd(p3z_lo, _mm256_mul_pd(t3_lo, v13z_lo));
     const __m256d y3z_hi     = _mm256_sub_pd(p3z_hi, _mm256_mul_pd(t3_hi, v13z_hi));
 
-    const __m256d vn0x_lo = _mm256_load_pd(vnx[0]), vn0x_hi = _mm256_load_pd(vnx[0] + 4);
-    const __m256d vn0y_lo = _mm256_load_pd(vny[0]), vn0y_hi = _mm256_load_pd(vny[0] + 4);
-    const __m256d vn0z_lo = _mm256_load_pd(vnz[0]), vn0z_hi = _mm256_load_pd(vnz[0] + 4);
-    const __m256d vn1x_lo = _mm256_load_pd(vnx[1]), vn1x_hi = _mm256_load_pd(vnx[1] + 4);
-    const __m256d vn1y_lo = _mm256_load_pd(vny[1]), vn1y_hi = _mm256_load_pd(vny[1] + 4);
-    const __m256d vn1z_lo = _mm256_load_pd(vnz[1]), vn1z_hi = _mm256_load_pd(vnz[1] + 4);
-    const __m256d vn2x_lo = _mm256_load_pd(vnx[2]), vn2x_hi = _mm256_load_pd(vnx[2] + 4);
-    const __m256d vn2y_lo = _mm256_load_pd(vny[2]), vn2y_hi = _mm256_load_pd(vny[2] + 4);
-    const __m256d vn2z_lo = _mm256_load_pd(vnz[2]), vn2z_hi = _mm256_load_pd(vnz[2] + 4);
-    const __m256d en0x_lo = _mm256_load_pd(enx[0]), en0x_hi = _mm256_load_pd(enx[0] + 4);
-    const __m256d en0y_lo = _mm256_load_pd(eny[0]), en0y_hi = _mm256_load_pd(eny[0] + 4);
-    const __m256d en0z_lo = _mm256_load_pd(enz[0]), en0z_hi = _mm256_load_pd(enz[0] + 4);
-    const __m256d en1x_lo = _mm256_load_pd(enx[1]), en1x_hi = _mm256_load_pd(enx[1] + 4);
-    const __m256d en1y_lo = _mm256_load_pd(eny[1]), en1y_hi = _mm256_load_pd(eny[1] + 4);
-    const __m256d en1z_lo = _mm256_load_pd(enz[1]), en1z_hi = _mm256_load_pd(enz[1] + 4);
-    const __m256d en2x_lo = _mm256_load_pd(enx[2]), en2x_hi = _mm256_load_pd(enx[2] + 4);
-    const __m256d en2y_lo = _mm256_load_pd(eny[2]), en2y_hi = _mm256_load_pd(eny[2] + 4);
-    const __m256d en2z_lo = _mm256_load_pd(enz[2]), en2z_hi = _mm256_load_pd(enz[2] + 4);
+    const __m256d vn0x_lo = _mm256_load_pd(m_vnx[0]), vn0x_hi = _mm256_load_pd(m_vnx[0] + 4);
+    const __m256d vn0y_lo = _mm256_load_pd(m_vny[0]), vn0y_hi = _mm256_load_pd(m_vny[0] + 4);
+    const __m256d vn0z_lo = _mm256_load_pd(m_vnz[0]), vn0z_hi = _mm256_load_pd(m_vnz[0] + 4);
+    const __m256d vn1x_lo = _mm256_load_pd(m_vnx[1]), vn1x_hi = _mm256_load_pd(m_vnx[1] + 4);
+    const __m256d vn1y_lo = _mm256_load_pd(m_vny[1]), vn1y_hi = _mm256_load_pd(m_vny[1] + 4);
+    const __m256d vn1z_lo = _mm256_load_pd(m_vnz[1]), vn1z_hi = _mm256_load_pd(m_vnz[1] + 4);
+    const __m256d vn2x_lo = _mm256_load_pd(m_vnx[2]), vn2x_hi = _mm256_load_pd(m_vnx[2] + 4);
+    const __m256d vn2y_lo = _mm256_load_pd(m_vny[2]), vn2y_hi = _mm256_load_pd(m_vny[2] + 4);
+    const __m256d vn2z_lo = _mm256_load_pd(m_vnz[2]), vn2z_hi = _mm256_load_pd(m_vnz[2] + 4);
+    const __m256d en0x_lo = _mm256_load_pd(m_enx[0]), en0x_hi = _mm256_load_pd(m_enx[0] + 4);
+    const __m256d en0y_lo = _mm256_load_pd(m_eny[0]), en0y_hi = _mm256_load_pd(m_eny[0] + 4);
+    const __m256d en0z_lo = _mm256_load_pd(m_enz[0]), en0z_hi = _mm256_load_pd(m_enz[0] + 4);
+    const __m256d en1x_lo = _mm256_load_pd(m_enx[1]), en1x_hi = _mm256_load_pd(m_enx[1] + 4);
+    const __m256d en1y_lo = _mm256_load_pd(m_eny[1]), en1y_hi = _mm256_load_pd(m_eny[1] + 4);
+    const __m256d en1z_lo = _mm256_load_pd(m_enz[1]), en1z_hi = _mm256_load_pd(m_enz[1] + 4);
+    const __m256d en2x_lo = _mm256_load_pd(m_enx[2]), en2x_hi = _mm256_load_pd(m_enx[2] + 4);
+    const __m256d en2y_lo = _mm256_load_pd(m_eny[2]), en2y_hi = _mm256_load_pd(m_eny[2] + 4);
+    const __m256d en2z_lo = _mm256_load_pd(m_enz[2]), en2z_hi = _mm256_load_pd(m_enz[2] + 4);
 
     const __m256d p1d2_lo = dot3(p1x_lo, p1y_lo, p1z_lo, p1x_lo, p1y_lo, p1z_lo);
     const __m256d p1d2_hi = dot3(p1x_hi, p1y_hi, p1z_hi, p1x_hi, p1y_hi, p1z_hi);
@@ -981,7 +1014,7 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
 
     double best = std::numeric_limits<double>::max();
     double babs = std::numeric_limits<double>::max();
-    for (uint32_t i = 0; i < validCount; i++) {
+    for (uint32_t i = 0; i < m_validCount; i++) {
       const double ad = std::abs(d8[i]);
       if (ad < babs) {
         best = d8[i];
@@ -1000,11 +1033,11 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m256d one = _mm256_set1_pd(1.0);
     const __m256d zer = _mm256_setzero_pd();
 
-    const __m256d v0x = _mm256_load_pd(vx[0]), v0y = _mm256_load_pd(vy[0]), v0z = _mm256_load_pd(vz[0]);
-    const __m256d v1x = _mm256_load_pd(vx[1]), v1y = _mm256_load_pd(vy[1]), v1z = _mm256_load_pd(vz[1]);
-    const __m256d v2x = _mm256_load_pd(vx[2]), v2y = _mm256_load_pd(vy[2]), v2z = _mm256_load_pd(vz[2]);
+    const __m256d v0x = _mm256_load_pd(m_vx[0]), v0y = _mm256_load_pd(m_vy[0]), v0z = _mm256_load_pd(m_vz[0]);
+    const __m256d v1x = _mm256_load_pd(m_vx[1]), v1y = _mm256_load_pd(m_vy[1]), v1z = _mm256_load_pd(m_vz[1]);
+    const __m256d v2x = _mm256_load_pd(m_vx[2]), v2y = _mm256_load_pd(m_vy[2]), v2z = _mm256_load_pd(m_vz[2]);
 
-    const __m256d fnx = _mm256_load_pd(nx), fny = _mm256_load_pd(ny), fnz = _mm256_load_pd(nz);
+    const __m256d fnx = _mm256_load_pd(m_nx), fny = _mm256_load_pd(m_ny), fnz = _mm256_load_pd(m_nz);
 
     const __m256d v21x = _mm256_sub_pd(v1x, v0x), v21y = _mm256_sub_pd(v1y, v0y), v21z = _mm256_sub_pd(v1z, v0z);
     const __m256d v32x = _mm256_sub_pd(v2x, v1x), v32y = _mm256_sub_pd(v2y, v1y), v32z = _mm256_sub_pd(v2z, v1z);
@@ -1068,12 +1101,12 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
     const __m256d y3y     = _mm256_sub_pd(p3y, _mm256_mul_pd(t3, v13y));
     const __m256d y3z     = _mm256_sub_pd(p3z, _mm256_mul_pd(t3, v13z));
 
-    const __m256d vn0x = _mm256_load_pd(vnx[0]), vn0y = _mm256_load_pd(vny[0]), vn0z = _mm256_load_pd(vnz[0]);
-    const __m256d vn1x = _mm256_load_pd(vnx[1]), vn1y = _mm256_load_pd(vny[1]), vn1z = _mm256_load_pd(vnz[1]);
-    const __m256d vn2x = _mm256_load_pd(vnx[2]), vn2y = _mm256_load_pd(vny[2]), vn2z = _mm256_load_pd(vnz[2]);
-    const __m256d en0x = _mm256_load_pd(enx[0]), en0y = _mm256_load_pd(eny[0]), en0z = _mm256_load_pd(enz[0]);
-    const __m256d en1x = _mm256_load_pd(enx[1]), en1y = _mm256_load_pd(eny[1]), en1z = _mm256_load_pd(enz[1]);
-    const __m256d en2x = _mm256_load_pd(enx[2]), en2y = _mm256_load_pd(eny[2]), en2z = _mm256_load_pd(enz[2]);
+    const __m256d vn0x = _mm256_load_pd(m_vnx[0]), vn0y = _mm256_load_pd(m_vny[0]), vn0z = _mm256_load_pd(m_vnz[0]);
+    const __m256d vn1x = _mm256_load_pd(m_vnx[1]), vn1y = _mm256_load_pd(m_vny[1]), vn1z = _mm256_load_pd(m_vnz[1]);
+    const __m256d vn2x = _mm256_load_pd(m_vnx[2]), vn2y = _mm256_load_pd(m_vny[2]), vn2z = _mm256_load_pd(m_vnz[2]);
+    const __m256d en0x = _mm256_load_pd(m_enx[0]), en0y = _mm256_load_pd(m_eny[0]), en0z = _mm256_load_pd(m_enz[0]);
+    const __m256d en1x = _mm256_load_pd(m_enx[1]), en1y = _mm256_load_pd(m_eny[1]), en1z = _mm256_load_pd(m_enz[1]);
+    const __m256d en2x = _mm256_load_pd(m_enx[2]), en2y = _mm256_load_pd(m_eny[2]), en2z = _mm256_load_pd(m_enz[2]);
 
     const __m256d p1d2 = dot3(p1x, p1y, p1z, p1x, p1y, p1z);
     const __m256d p2d2 = dot3(p2x, p2y, p2z, p2x, p2y, p2z);
@@ -1134,7 +1167,7 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
 
     double best = std::numeric_limits<double>::max();
     double babs = std::numeric_limits<double>::max();
-    for (uint32_t i = 0; i < validCount; i++) {
+    for (uint32_t i = 0; i < m_validCount; i++) {
       const double ad = std::abs(d4[i]);
       if (ad < babs) {
         best = d4[i];
@@ -1148,26 +1181,31 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
   T best     = std::numeric_limits<T>::max();
   T best_abs = std::numeric_limits<T>::max();
 
-  for (uint32_t i = 0; i < validCount; i++) {
-    const Vec3T<T> v0{vx[0][i], vy[0][i], vz[0][i]};
-    const Vec3T<T> v1{vx[1][i], vy[1][i], vz[1][i]};
-    const Vec3T<T> v2{vx[2][i], vy[2][i], vz[2][i]};
-    const Vec3T<T> n{nx[i], ny[i], nz[i]};
-    const Vec3T<T> vn0{vnx[0][i], vny[0][i], vnz[0][i]};
-    const Vec3T<T> vn1{vnx[1][i], vny[1][i], vnz[1][i]};
-    const Vec3T<T> vn2{vnx[2][i], vny[2][i], vnz[2][i]};
-    const Vec3T<T> en0{enx[0][i], eny[0][i], enz[0][i]};
-    const Vec3T<T> en1{enx[1][i], eny[1][i], enz[1][i]};
-    const Vec3T<T> en2{enx[2][i], eny[2][i], enz[2][i]};
+  for (uint32_t i = 0; i < m_validCount; i++) {
+    const Vec3T<T> v0{m_vx[0][i], m_vy[0][i], m_vz[0][i]};
+    const Vec3T<T> v1{m_vx[1][i], m_vy[1][i], m_vz[1][i]};
+    const Vec3T<T> v2{m_vx[2][i], m_vy[2][i], m_vz[2][i]};
+    const Vec3T<T> n{m_nx[i], m_ny[i], m_nz[i]};
+    const Vec3T<T> vn0{m_vnx[0][i], m_vny[0][i], m_vnz[0][i]};
+    const Vec3T<T> vn1{m_vnx[1][i], m_vny[1][i], m_vnz[1][i]};
+    const Vec3T<T> vn2{m_vnx[2][i], m_vny[2][i], m_vnz[2][i]};
+    const Vec3T<T> en0{m_enx[0][i], m_eny[0][i], m_enz[0][i]};
+    const Vec3T<T> en1{m_enx[1][i], m_eny[1][i], m_enz[1][i]};
+    const Vec3T<T> en2{m_enx[2][i], m_eny[2][i], m_enz[2][i]};
 
     auto sgn = [](const T x) -> int { return (x > T(0)) ? 1 : -1; };
 
     const Vec3T<T> v21 = v1 - v0;
     const Vec3T<T> v32 = v2 - v1;
     const Vec3T<T> v13 = v0 - v2;
-    const Vec3T<T> p1  = a_p - v0;
-    const Vec3T<T> p2  = a_p - v1;
-    const Vec3T<T> p3  = a_p - v2;
+
+    EBGEOMETRY_EXPECT(dot(v21, v21) > T(0));
+    EBGEOMETRY_EXPECT(dot(v32, v32) > T(0));
+    EBGEOMETRY_EXPECT(dot(v13, v13) > T(0));
+
+    const Vec3T<T> p1 = a_p - v0;
+    const Vec3T<T> p2 = a_p - v1;
+    const Vec3T<T> p3 = a_p - v2;
 
     const T ss0 = sgn(dot(v21.cross(n), p1));
     const T ss1 = sgn(dot(v32.cross(n), p2));
@@ -1244,12 +1282,15 @@ template <class BV>
 BV
 TriangleSoAT<T, W>::computeBoundingVolume() const noexcept
 {
+  EBGEOMETRY_EXPECT(m_validCount >= 1U);
+  EBGEOMETRY_EXPECT(m_validCount <= W);
+
   std::vector<Vec3T<T>> pts;
-  pts.reserve(3 * validCount);
-  for (uint32_t j = 0; j < validCount; j++) {
-    pts.emplace_back(vx[0][j], vy[0][j], vz[0][j]);
-    pts.emplace_back(vx[1][j], vy[1][j], vz[1][j]);
-    pts.emplace_back(vx[2][j], vy[2][j], vz[2][j]);
+  pts.reserve(3 * m_validCount);
+  for (uint32_t j = 0; j < m_validCount; j++) {
+    pts.emplace_back(m_vx[0][j], m_vy[0][j], m_vz[0][j]);
+    pts.emplace_back(m_vx[1][j], m_vy[1][j], m_vz[1][j]);
+    pts.emplace_back(m_vx[2][j], m_vy[2][j], m_vz[2][j]);
   }
   return BV(pts);
 }
