@@ -16,6 +16,7 @@
 #include <cstdint>
 
 // Our includes
+#include "EBGeometry_Macros.hpp"
 #include "EBGeometry_SFC.hpp"
 
 namespace EBGeometry {
@@ -24,6 +25,10 @@ namespace SFC {
 inline uint64_t
 Morton::encode(const Index& a_point) noexcept
 {
+  EBGEOMETRY_EXPECT(a_point[0] <= ValidSpan);
+  EBGEOMETRY_EXPECT(a_point[1] <= ValidSpan);
+  EBGEOMETRY_EXPECT(a_point[2] <= ValidSpan);
+
   uint64_t code = 0;
 
   const uint_fast32_t x = a_point[0];
@@ -50,6 +55,8 @@ Morton::encode(const Index& a_point) noexcept
 inline Index
 Morton::decode(const uint64_t& a_code) noexcept
 {
+  EBGEOMETRY_EXPECT(a_code <= ((static_cast<uint64_t>(1) << (3 * ValidBits)) - 1));
+
   auto getEveryThirdBit = [](const uint64_t m) -> uint_fast32_t {
     uint_fast32_t x = m & Mask_64[5];
 
@@ -72,6 +79,10 @@ Morton::decode(const uint64_t& a_code) noexcept
 inline uint64_t
 Nested::encode(const Index& a_point) noexcept
 {
+  EBGEOMETRY_EXPECT(a_point[0] <= ValidSpan);
+  EBGEOMETRY_EXPECT(a_point[1] <= ValidSpan);
+  EBGEOMETRY_EXPECT(a_point[2] <= ValidSpan);
+
   // Use base = ValidSpan + 1 = 2^ValidBits so that every coordinate in
   // [0, ValidSpan] maps to a unique code. Using ValidSpan as the base would
   // make coordinate == ValidSpan alias to coordinate 0 of the next "row".
@@ -87,7 +98,10 @@ Nested::encode(const Index& a_point) noexcept
 inline Index
 Nested::decode(const uint64_t& a_code) noexcept
 {
-  constexpr uint64_t base = static_cast<uint64_t>(SFC::ValidSpan) + 1ULL;
+  constexpr uint64_t base    = static_cast<uint64_t>(SFC::ValidSpan) + 1ULL;
+  constexpr uint64_t maxCode = static_cast<uint64_t>(SFC::ValidSpan) * (1ULL + base + base * base);
+
+  EBGEOMETRY_EXPECT(a_code <= maxCode);
 
   const unsigned int z = static_cast<unsigned int>(a_code / (base * base));
   const unsigned int y = static_cast<unsigned int>((a_code - z * base * base) / base);

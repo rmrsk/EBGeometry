@@ -80,6 +80,7 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
   // fails to compile instead of segfaulting on a misaligned SIMD load. offsetof requires a complete
   // type, so this can only be checked here (in a member function body), not inside the class itself.
   using SoA = TriangleSoAT<T, W>;
+
   static_assert(offsetof(SoA, m_vy) % (W * sizeof(T)) == 0, "m_vy is not SIMD-aligned");
   static_assert(offsetof(SoA, m_vz) % (W * sizeof(T)) == 0, "m_vz is not SIMD-aligned");
   static_assert(offsetof(SoA, m_ny) % (W * sizeof(T)) == 0, "m_ny is not SIMD-aligned");
