@@ -53,18 +53,24 @@ public:
    */
   enum class InsideOutsideAlgorithm
   {
-    SubtendedAngle,
-    CrossingNumber,
-    WindingNumber
+    SubtendedAngle, ///< Sums the subtended angle of the point with each polygon edge; the point is
+                    ///< inside if the sum is +-2*pi (360 degrees) and outside if it is 0. See
+                    ///< isPointInsidePolygonSubtend() and computeSubtendedAngle().
+    CrossingNumber, ///< Casts a ray from the point along +x and counts how many times it crosses a
+                    ///< polygon edge; the point is inside if the crossing count is odd (even-odd
+                    ///< rule). See isPointInsidePolygonCrossingNumber() and computeCrossingNumber().
+    WindingNumber   ///< Computes the winding number of the polygon boundary around the point; the
+                    ///< point is inside if the winding number is non-zero. See
+                    ///< isPointInsidePolygonWindingNumber() and computeWindingNumber().
   };
 
   /**
-   * @brief Alias to cut down on typing
+   * @brief Alias for the 2D vector type used for the projected polygon points.
    */
   using Vec2 = Vec2T<T>;
 
   /**
-   * @brief Alias to cut down on typing
+   * @brief Alias for the 3D vector type used for the polygon's original (unprojected) points.
    */
   using Vec3 = Vec3T<T>;
 
@@ -75,15 +81,44 @@ public:
 
   /**
    * @brief Full constructor
-   * @param[in] a_normal Normal vector of the 3D polygon face
-   * @param[in] a_points Vertex coordinates of the 3D polygon face
+   * @param[in] a_normal Normal vector of the 3D polygon face. Must be finite and non-degenerate
+   * (length > 0).
+   * @param[in] a_points Vertex coordinates of the 3D polygon face. Must have at least 3 points.
    */
   Polygon2D(const Vec3& a_normal, const std::vector<Vec3>& a_points);
+
+  /**
+   * @brief Copy constructor.
+   * @param[in] a_other Other polygon.
+   */
+  Polygon2D(const Polygon2D& a_other) = default;
+
+  /**
+   * @brief Move constructor.
+   * @param[in, out] a_other Other polygon.
+   */
+  Polygon2D(Polygon2D&& a_other) noexcept = default;
 
   /**
    * @brief Destructor.
    */
   ~Polygon2D() = default;
+
+  /**
+   * @brief Copy assignment operator.
+   * @param[in] a_other Other polygon.
+   * @return Reference to (*this).
+   */
+  Polygon2D&
+  operator=(const Polygon2D& a_other) = default;
+
+  /**
+   * @brief Move assignment operator.
+   * @param[in, out] a_other Other polygon.
+   * @return Reference to (*this).
+   */
+  Polygon2D&
+  operator=(Polygon2D&& a_other) noexcept = default;
 
   /**
    * @brief Check if a point is inside or outside the 2D polygon.
@@ -128,12 +163,12 @@ private:
   /**
    * @brief The corresponding 2D x-direction (one direction is ignored)
    */
-  size_t m_xDir;
+  size_t m_xDir = 0;
 
   /**
    * @brief The corresponding 2D y-direction (one direction is ignored)
    */
-  size_t m_yDir;
+  size_t m_yDir = 0;
 
   /**
    * @brief Projected set of points in 2D

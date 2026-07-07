@@ -53,13 +53,14 @@ class MeshT
 public:
   /**
    * @brief Possible search algorithms for DCEL::MeshT
-   * @details Direct means compute the signed distance for all primitives,
-   * Direct2 means compute the squared signed distance for all primitives.
    */
   enum class SearchAlgorithm
   {
-    Direct,
-    Direct2,
+    Direct, ///< Computes the signed distance to every face and returns the one with the smallest
+            ///< magnitude. See DirectSignedDistance().
+    Direct2 ///< Computes the squared unsigned distance to every face to find the closest one, then
+            ///< returns the signed distance to only that face. Equivalent to Direct but usually
+            ///< faster since it avoids a square root per face. See DirectSignedDistance2().
   };
 
   /**
@@ -103,20 +104,35 @@ public:
   using FacePtr = std::shared_ptr<Face>;
 
   /**
-   * @brief Default constructor. Leaves unobject in an unusable state
+   * @brief Default constructor.
+   * @details Leaves the mesh empty (no vertices, edges, or faces) with the default search
+   * algorithm; use define() or the mutable getVertices()/getEdges()/getFaces() to populate it.
    */
-  MeshT() noexcept;
+  MeshT() noexcept = default;
 
   /**
-   * @brief Disallowed copy construction
-   * @param[in] a_otherMesh Other mesh
+   * @brief Disallowed copy construction.
+   * @details Copying is deliberately disallowed: a shallow copy of m_vertices/m_edges/m_faces would
+   * share the same underlying vertex/edge/face objects as the original (they reference each other
+   * internally), so it would not behave like an independent mesh -- mutating the "copy" would also
+   * mutate the original. Use a file parser to build an independent mesh instead. Moving is allowed
+   * (see the move constructor), since that transfers ownership rather than aliasing it.
+   * @param[in] a_otherMesh Other mesh.
    */
   MeshT(const Mesh& a_otherMesh) = delete;
 
   /**
+   * @brief Move constructor.
+   * @param[in, out] a_otherMesh Other mesh.
+   */
+  MeshT(Mesh&& a_otherMesh) noexcept = default;
+
+  /**
    * @brief Full constructor. This provides the faces, edges, and vertices to the
    * mesh.
-   * @details Calls define(a_faces, a_edges, a_vertices)
+   * @details Copies the three vectors directly into m_faces/m_edges/m_vertices. This only
+   * associates pointer structures through the mesh; internal parameters like face area and normal
+   * are computed by reconcile().
    * @param[in] a_faces    Polygon faces
    * @param[in] a_edges    Half-edges
    * @param[in] a_vertices Vertices
@@ -129,21 +145,39 @@ public:
   /**
    * @brief Destructor (does nothing)
    */
-  virtual ~MeshT() noexcept;
+  ~MeshT() noexcept = default;
 
   /**
-   * @brief Define function. Puts Mesh in usable state.
-   * @param[in] a_faces    Polygon faces
-   * @param[in] a_edges    Half-edges
-   * @param[in] a_vertices Vertices
-   * @note The function arguments should provide a complete DCEL mesh
-   * description. This is usually done through a file parser which reads a mesh
-   * file format and creates the DCEL mesh structure. Note that this only
-   * involves associating pointer structures through the mesh. Internal
-   * parameters like face area and normal is computed in MeshT<T, Meta>::reconcile.
+   * @brief Disallowed copy assignment.
+   * @details Has the same rationale as the disallowed copy constructor; see its documentation.
+   * @param[in] a_otherMesh Other mesh.
+   * @return Reference to (*this).
    */
-  inline void
-  define(std::vector<FacePtr>& a_faces, std::vector<EdgePtr>& a_edges, std::vector<VertexPtr>& a_vertices) noexcept;
+  Mesh&
+  operator=(const Mesh& a_otherMesh) = delete;
+
+  /**
+   * @brief Move assignment operator.
+   * @param[in, out] a_otherMesh Other mesh.
+   * @return Reference to (*this).
+   */
+  Mesh&
+  operator=(Mesh&& a_otherMesh) noexcept = default;
+
+  /**
+   * @brief Create an independent, fully-decoupled copy of this mesh.
+   * @details Since copy construction/assignment are disallowed (see their documentation), this is
+   * the supported way to duplicate a mesh. Unlike a shallow copy, this creates brand new
+   * VertexT/EdgeT/FaceT objects and relinks all of their internal pointers (outgoing edge, pair
+   * edge, next edge, half edge, adjacent faces) so that the copy shares no vertex, edge, or face
+   * with the original -- mutating one mesh does not affect the other. Every field is preserved
+   * exactly (position, normal vector, centroid, area, meta-data, search algorithm) rather than
+   * recomputed, so a mesh that has had flipNormal()/flip() called on it and not yet been
+   * re-reconciled will be copied faithfully rather than silently "un-flipped".
+   * @return A new mesh, independent of this one.
+   */
+  [[nodiscard]] inline std::shared_ptr<Mesh>
+  deepCopy() const;
 
   /**
    * @brief Perform a sanity check.
@@ -250,7 +284,8 @@ public:
    * why this function is almost never called. Rather, MeshT<T, Meta> can be embedded
    * in a bounding volume hierarchy for faster access.
    * @note This will call the other version with the object's search algorithm.
-   * @return Signed distance to the mesh; negative inside, positive outside.
+   * @return Signed distance to the mesh; negative inside, positive outside. Returns +infinity if
+   * the mesh has no faces.
    */
   [[nodiscard]] inline T
   signedDistance(const Vec3& a_x0) const noexcept;
@@ -263,7 +298,8 @@ public:
    * the value with the smallest magnitude. This is horrendously slow, which is
    * why this function is almost never called. Rather, MeshT<T, Meta> can be embedded
    * in a bounding volume hierarchy for faster access.
-   * @return Signed distance to the mesh; negative inside, positive outside.
+   * @return Signed distance to the mesh; negative inside, positive outside. Returns +infinity if
+   * the mesh has no faces.
    */
   [[nodiscard]] inline T
   signedDistance(const Vec3& a_x0, SearchAlgorithm a_algorithm) const noexcept;
@@ -275,8 +311,7 @@ public:
    * the value with the smallest magnitude. This is horrendously slow, which is
    * why this function is almost never called. Rather, MeshT<T, Meta> can be embedded
    * in a bounding volume hierarchy for faster access.
-   * @note This will call the other version with the object's search algorithm.
-   * @return Squared unsigned distance to the nearest face.
+   * @return Squared unsigned distance to the nearest face, or +infinity if the mesh has no faces.
    */
   [[nodiscard]] inline T
   unsignedDistance2(const Vec3& a_x0) const noexcept;
@@ -285,7 +320,7 @@ protected:
   /**
    * @brief Search algorithm. Only used in signed distance functions.
    */
-  SearchAlgorithm m_algorithm;
+  SearchAlgorithm m_algorithm = SearchAlgorithm::Direct2;
 
   /**
    * @brief Mesh vertices
@@ -329,19 +364,19 @@ protected:
    * @brief Flip all face normals
    */
   inline void
-  flipFaces() noexcept;
+  flipFaceNormals() noexcept;
 
   /**
    * @brief Flip all edge normals
    */
   inline void
-  flipEdges() noexcept;
+  flipEdgeNormals() noexcept;
 
   /**
-   * @brief Flip all vertex normal
+   * @brief Flip all vertex normals
    */
   inline void
-  flipVertices() noexcept;
+  flipVertexNormals() noexcept;
 
   /**
    * @brief Implementation of signed distance function which iterates through all

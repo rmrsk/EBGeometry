@@ -115,8 +115,9 @@ public:
    * @param[in] a_otherVertex Other vertex.
    * @details Copies only the position, normal vector, and outgoing edge pointer from the other
    * vertex. The polygon face list (m_faces) and meta-data (m_metaData) are deliberately NOT
-   * copied -- they default-construct empty/default instead. Rationale: m_faces and m_outgoingEdge
-   * are back-references into a specific mesh's topology (the faces/edges they point to still
+   * copied -- they default-construct empty/default instead; use addFace()/setMetaData()
+   * afterwards if they need to be populated. Rationale: m_faces and m_outgoingEdge are
+   * back-references into a specific mesh's topology (the faces/edges they point to still
    * reference the original vertex, not this copy), so copying them wholesale would not be
    * topologically meaningful; only the geometric value (position, normal) survives a copy.
    * operator=(const Vertex&) has identical semantics.
@@ -143,7 +144,9 @@ public:
 
   /**
    * @brief Copy assignment operator.
-   * @details Has the same narrow-copy semantics as the copy constructor; see its documentation.
+   * @details Has the same narrow-copy semantics as the copy constructor (including that m_faces
+   * and m_metaData are not copied; use addFace()/setMetaData() afterwards if they need to be
+   * populated). See the copy constructor's documentation for details.
    * @param[in] a_otherVertex Other vertex.
    * @return Reference to (*this).
    */
@@ -190,6 +193,13 @@ public:
    */
   inline void
   setEdge(const EdgePtr& a_edge) noexcept;
+
+  /**
+   * @brief Set the meta-data.
+   * @param[in] a_metaData Meta-data.
+   */
+  inline void
+  setMetaData(const Meta& a_metaData) noexcept;
 
   /**
    * @brief Add a face to the polygon face list.

@@ -114,6 +114,13 @@ VertexT<T, Meta>::setEdge(const EdgePtr& a_edge) noexcept
 
 template <class T, class Meta>
 inline void
+VertexT<T, Meta>::setMetaData(const Meta& a_metaData) noexcept
+{
+  m_metaData = a_metaData;
+}
+
+template <class T, class Meta>
+inline void
 VertexT<T, Meta>::setNormal(const Vec3& a_normal) noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_normal[0]));

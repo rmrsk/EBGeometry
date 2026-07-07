@@ -99,7 +99,7 @@ public:
    * @brief Default constructor. Sets the half-edge to zero and the
    * inside/outside algorithm to crossing number algorithm
    */
-  FaceT();
+  FaceT() = default;
 
   /**
    * @brief Partial constructor. Calls default constructor but associates a
@@ -109,17 +109,54 @@ public:
   FaceT(const EdgePtr& a_edge);
 
   /**
-   * @brief Partial constructor.
-   * @details Calls default constructor but sets the normal vector and half-edge
-   * equal to the other face's (rest is undefined)
-   * @param[in] a_otherFace Other face to copy normal and half-edge from.
+   * @brief Copy constructor.
+   * @details Copies the normal vector, half-edge pointer, centroid, and area from the other face.
+   * Meta-data (m_metaData), the 2D embedding (m_poly2), and the inside/outside algorithm
+   * (m_poly2Algorithm) are deliberately NOT copied -- they default-construct instead; use
+   * setMetaData() and reconcile() afterwards if they need to be (re)populated. Rationale: m_halfEdge
+   * is a back-reference into a specific mesh's topology (same as VertexT/EdgeT's copy constructors),
+   * so copying it wholesale is not topologically meaningful in general, but is occasionally useful.
+   * m_normal, m_centroid, and m_area are plain geometric/cached values with no such concern, so they
+   * are copied like any other value. operator=(const Face&) has identical semantics.
+   * @param[in] a_otherFace Other face to copy from.
    */
   FaceT(const Face& a_otherFace);
 
   /**
+   * @brief Move constructor.
+   * @details Unlike the copy constructor, this transfers the entire state (including m_metaData,
+   * m_poly2, and m_poly2Algorithm) from a_otherFace, since moving relocates a single object's
+   * identity. Defaulted (memberwise move) rather than hand-written: explicitly defaulting is
+   * required here since the presence of a user-declared copy constructor would otherwise suppress
+   * the implicitly-generated move constructor. Not marked noexcept since Meta is an unconstrained
+   * template parameter whose move constructor is not guaranteed to be noexcept.
+   * @param[in, out] a_otherFace Other face.
+   */
+  FaceT(Face&& a_otherFace) = default;
+
+  /**
    * @brief Destructor (does nothing)
    */
-  virtual ~FaceT();
+  ~FaceT() = default;
+
+  /**
+   * @brief Copy assignment operator.
+   * @details Has the same semantics as the copy constructor; see its documentation.
+   * @param[in] a_otherFace Other face.
+   * @return Reference to (*this).
+   */
+  Face&
+  operator=(const Face& a_otherFace) noexcept;
+
+  /**
+   * @brief Move assignment operator.
+   * @details Has the same full-state-transfer semantics as the move constructor (defaulted
+   * memberwise move; see its documentation for why this must be defaulted explicitly).
+   * @param[in, out] a_otherFace Other face.
+   * @return Reference to (*this).
+   */
+  Face&
+  operator=(Face&& a_otherFace) = default;
 
   /**
    * @brief Define function which sets the normal vector and half-edge
@@ -139,10 +176,22 @@ public:
   reconcile();
 
   /**
+   * @brief Compute the 2D embedding of this polygon from the current normal vector and topology,
+   * without touching the normal vector, centroid, or area.
+   * @details Unlike reconcile(), this does not recompute the normal vector, so it is safe to call
+   * after manually restoring a normal vector (e.g. when deep-copying a face and preserving whatever
+   * normal it had, including one set via flipNormal()) without having that normal silently
+   * overwritten by a geometrically-derived one.
+   * @note The face must be complete with half edges and there can be no dangling edges.
+   */
+  inline void
+  computePolygon2D();
+
+  /**
    * @brief Flip the normal vector
    */
   inline void
-  flip() noexcept;
+  flipNormal() noexcept;
 
   /**
    * @brief Set the half edge
@@ -150,6 +199,13 @@ public:
    */
   inline void
   setHalfEdge(const EdgePtr& a_halfEdge) noexcept;
+
+  /**
+   * @brief Set the meta-data.
+   * @param[in] a_metaData Meta-data.
+   */
+  inline void
+  setMetaData(const Meta& a_metaData) noexcept;
 
   /**
    * @brief Set the inside/outside algorithm when determining if a point projects
@@ -220,10 +276,17 @@ public:
   getNormal() const noexcept;
 
   /**
-   * @brief Get the stored polygon area (computed during reconcile()).
-   * @return Area of this polygon face.
+   * @brief Get modifiable polygon area (computed during reconcile()).
+   * @return Reference to m_area.
    */
-  [[nodiscard]] inline T
+  [[nodiscard]] inline T&
+  getArea() noexcept;
+
+  /**
+   * @brief Get immutable polygon area (computed during reconcile()).
+   * @return Const reference to m_area.
+   */
+  [[nodiscard]] inline const T&
   getArea() const noexcept;
 
   /**
@@ -239,13 +302,6 @@ public:
    */
   [[nodiscard]] inline const Meta&
   getMetaData() const noexcept;
-
-  /**
-   * @brief Compute the area of this polygon
-   * @return Area of this polygon face.
-   */
-  [[nodiscard]] inline T
-  computeArea();
 
   /**
    * @brief Compute the signed distance to a point.
@@ -313,22 +369,25 @@ protected:
   /**
    * @brief This polygon's half-edge. A valid face will always have != nullptr
    */
-  EdgePtr m_halfEdge;
+  EdgePtr m_halfEdge = nullptr;
 
   /**
    * @brief Polygon face normal vector
    */
-  Vec3 m_normal;
+  Vec3 m_normal = Vec3::zeros();
 
   /**
    * @brief Polygon face centroid position
    */
-  Vec3 m_centroid;
+  Vec3 m_centroid = Vec3::zeros();
 
   /**
    * @brief Meta-data attached to this face
+   * @details Value-initialized so that every constructor leaves it in a defined state: for a
+   * fundamental Meta type (e.g. short, int), a member with no initializer and no explicit mention
+   * in a constructor's member-initializer list is left indeterminate, not zero.
    */
-  Meta m_metaData;
+  Meta m_metaData{};
 
   /**
    * @brief Cached polygon face area (stored by reconcile()).
@@ -339,12 +398,12 @@ protected:
    * @brief 2D embedding of this polygon. This is the 2D view of the current
    * object projected along its normal vector cardinal.
    */
-  std::shared_ptr<Polygon2D<T>> m_poly2;
+  std::shared_ptr<Polygon2D<T>> m_poly2 = nullptr;
 
   /**
    * @brief Algorithm for inside/outside tests
    */
-  typename Polygon2D<T>::InsideOutsideAlgorithm m_poly2Algorithm;
+  typename Polygon2D<T>::InsideOutsideAlgorithm m_poly2Algorithm = Polygon2D<T>::InsideOutsideAlgorithm::CrossingNumber;
 
   /**
    * @brief Compute the centroid position of this polygon
@@ -359,10 +418,10 @@ protected:
   computeNormal();
 
   /**
-   * @brief Compute the 2D embedding of this polygon
+   * @brief Compute the area of this polygon and cache it in m_area.
    */
   inline void
-  computePolygon2D();
+  computeArea();
 
   /**
    * @brief Normalize the normal vector, ensuring it has a length of 1

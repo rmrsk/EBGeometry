@@ -91,13 +91,33 @@ public:
    * @brief Default constructor. Sets all pointers to zero and vectors to zero
    * vectors
    */
-  EdgeT() noexcept;
+  EdgeT() noexcept = default;
 
   /**
-   * @brief Copy constructor. Copies all information from the other half-edge.
-   * @param[in] a_otherEdge Other edge
+   * @brief Copy constructor.
+   * @details Copies the normal vector and all four topology pointers (vertex, pair edge, next
+   * edge, face) from the other half-edge. Meta-data (m_metaData) is deliberately NOT copied --
+   * it default-constructs instead; use setMetaData() afterwards if it needs to be populated.
+   * Rationale: same as VertexT's copy constructor -- these pointers are back-references into a
+   * specific mesh's topology (the objects they point to still reference the original edge, not
+   * this copy), so copying them wholesale is not topologically meaningful in general, but is
+   * occasionally useful (e.g. duplicating an edge's geometric/adjacency snapshot).
+   * operator=(const Edge&) has identical semantics.
+   * @param[in] a_otherEdge Other edge.
    */
   EdgeT(const Edge& a_otherEdge) noexcept;
+
+  /**
+   * @brief Move constructor.
+   * @details Unlike the copy constructor, this transfers the entire state (including m_metaData)
+   * from a_otherEdge, since moving relocates a single object's identity. Defaulted (memberwise
+   * move) rather than hand-written: explicitly defaulting is required here since the presence of a
+   * user-declared copy constructor would otherwise suppress the implicitly-generated move
+   * constructor. Not marked noexcept since Meta is an unconstrained template parameter whose move
+   * constructor is not guaranteed to be noexcept.
+   * @param[in, out] a_otherEdge Other edge.
+   */
+  EdgeT(Edge&& a_otherEdge) = default;
 
   /**
    * @brief Partial constructor. Calls the default constructor but sets the
@@ -109,7 +129,28 @@ public:
   /**
    * @brief Destructor (does nothing)
    */
-  virtual ~EdgeT();
+  ~EdgeT() = default;
+
+  /**
+   * @brief Copy assignment operator.
+   * @details Has the same semantics as the copy constructor (including that m_metaData is not
+   * copied; use setMetaData() afterwards if it needs to be populated). See the copy constructor's
+   * documentation for details.
+   * @param[in] a_otherEdge Other edge.
+   * @return Reference to (*this).
+   */
+  Edge&
+  operator=(const Edge& a_otherEdge) noexcept;
+
+  /**
+   * @brief Move assignment operator.
+   * @details Has the same full-state-transfer semantics as the move constructor (defaulted
+   * memberwise move; see its documentation for why this must be defaulted explicitly).
+   * @param[in, out] a_otherEdge Other edge.
+   * @return Reference to (*this).
+   */
+  Edge&
+  operator=(Edge&& a_otherEdge) = default;
 
   /**
    * @brief Get size (in bytes) of this object.
@@ -138,7 +179,7 @@ public:
    * @brief Flip surface normal
    */
   inline void
-  flip() noexcept;
+  flipNormal() noexcept;
 
   /**
    * @brief Set the starting vertex
@@ -167,6 +208,13 @@ public:
    */
   inline void
   setFace(const FacePtr& a_face) noexcept;
+
+  /**
+   * @brief Set the meta-data.
+   * @param[in] a_metaData Meta-data.
+   */
+  inline void
+  setMetaData(const Meta& a_metaData) noexcept;
 
   /**
    * @brief Get modifiable starting vertex
@@ -233,6 +281,13 @@ public:
   computeNormal() const noexcept;
 
   /**
+   * @brief Get modifiable normal vector.
+   * @return Reference to m_normal.
+   */
+  [[nodiscard]] inline Vec3T<T>&
+  getNormal() noexcept;
+
+  /**
    * @brief Get the stored normal vector.
    * @return Const reference to m_normal.
    */
@@ -293,32 +348,35 @@ protected:
   /**
    * @brief Normal vector
    */
-  Vec3 m_normal;
+  Vec3 m_normal = Vec3::zeros();
 
   /**
    * @brief Starting vertex
    */
-  VertexPtr m_vertex;
+  VertexPtr m_vertex = nullptr;
 
   /**
    * @brief Pair edge
    */
-  EdgePtr m_pairEdge;
+  EdgePtr m_pairEdge = nullptr;
 
   /**
    * @brief Next edge
    */
-  EdgePtr m_nextEdge;
+  EdgePtr m_nextEdge = nullptr;
 
   /**
    * @brief Enclosing polygon face
    */
-  FacePtr m_face;
+  FacePtr m_face = nullptr;
 
   /**
    * @brief Meta-data attached to this edge
+   * @details Value-initialized so that every constructor leaves it in a defined state: for a
+   * fundamental Meta type (e.g. short, int), a member with no initializer and no explicit mention
+   * in a constructor's member-initializer list is left indeterminate, not zero.
    */
-  Meta m_metaData;
+  Meta m_metaData{};
 
   /**
    * @brief Returns the parametric projection of a_x0 onto this edge.
