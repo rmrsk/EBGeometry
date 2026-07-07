@@ -2,8 +2,8 @@ Examples/EBGeometry_Shapes
 --------------------------
 
 This folder shows how to construct a gallery of basic geometric shapes: a plane, a sphere, a
-box, a torus, finite and infinite cylinders, a capsule, finite and infinite cones, a rounded
-box, and a bumpy sphere perturbed with Perlin noise.
+box, a torus, finite and infinite cylinders, a capsule, finite and infinite cones, and a rounded
+box.
 
 Each of these shapes is represented as a *signed distance function*: given any point in space,
 it returns how far that point is from the shape's surface, with a sign that tells you which
@@ -16,6 +16,14 @@ $$S(\mathbf{x}) = \lvert \mathbf{x} \rvert - r.$$
 The other shapes follow the same idea with more involved formulas. See the
 [Geometry representations](https://rmrsk.github.io/EBGeometry/Concepts.html) page in the user
 documentation for the general theory, including the sign convention and why it matters.
+
+The example also constructs a fractal Perlin noise field: a smoothly varying, pseudo-random
+scalar field (the same kind of noise used to generate natural-looking terrain or textures in
+computer graphics) built by summing several octaves of noise at decreasing amplitude and
+increasing frequency. It isn't a signed distance function to any particular shape by itself, but
+it's a common building block for adding organic-looking surface variation to one -- for example,
+adding a small multiple of it to a sphere's distance value would perturb the sphere into a
+bumpy, asteroid-like shape.
 
 Building
 --------

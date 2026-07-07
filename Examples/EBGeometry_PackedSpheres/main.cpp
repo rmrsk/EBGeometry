@@ -63,14 +63,18 @@ main()
   // iterates through each and every object in the scene.
   auto slowUnion = EBGeometry::Union<T, Sphere>(spheres);
 
-  // Make a fast union. To do this we must have the SDF objects (our vector of
-  // spheres) as well as a way for enclosing these objects. We need to define
-  // ourselves a lambda that creates an appropriate bounding volumes for each
-  // SDF.
+  // Make a fast (BVH-accelerated) union from the same spheres and their precomputed
+  // bounding volumes above: the BVH lets a query skip most of the spheres whose bounding
+  // box is nowhere near the query point.
   std::cout << "Partitioning " << spheres.size() << " spheres\n" << '\n';
   const EBGeometry::BVHUnionIF<T, Sphere, AABB, K> fastUnion(spheres, boundingVolumes);
 
-  // Create a finite repetition of one of the spheres. This is a third type of object representation.
+  // A third representation: rather than storing all M^3 spheres explicitly, tile a single
+  // sphere periodically. A query point is folded into its nearest tile before evaluating the
+  // sphere, so this needs neither a list of spheres nor a search structure -- just the tile
+  // period (center-to-center spacing) and how many tiles to repeat along the increasing
+  // direction of each axis (0 in the decreasing direction, since the packed lattice above
+  // only extends in the positive octant).
   auto sph         = std::make_shared<Sphere>(Vec3::zeros(), radius);
   auto sphereArray = EBGeometry::FiniteRepetition<T, Sphere>(
     sph, (delta + 2 * radius) * Vec3::ones(), Vec3::zeros(), 80.0 * Vec3::ones());

@@ -37,7 +37,9 @@ main()
   //
   // K         : BVH tree branching factor
   // N         : Number of random points to sample.
-  // M         : Number of buildings per coordinate direction
+  // M         : Number of building *lots* per coordinate direction, indexed 0..M inclusive,
+  //             so the lattice actually places (M+1) x (M+1) buildings -- the "Partitioning
+  //             ... buildings" message below undercounts this slightly (M^2, not (M+1)^2).
   // dx        : Minimum separation between the buildings.
   // Wmin, Wmax: Minimum and maximum building width
   // Lmin, Lmax: Minimum and maximum building length
@@ -84,6 +86,8 @@ main()
   }
 
   // Create a standard and an optimized CSG union.
+  // (std::pow(M, 2) undercounts slightly -- see the M comment above; buildings.size() has the
+  // exact count.)
   std::cout << "Partitioning " << std::pow(M, 2) << " buildings" << '\n';
   auto slowUnion = EBGeometry::Union<T, Box>(buildings);
   auto fastUnion = EBGeometry::BVHUnion<T, Box, AABB, K>(buildings, boundingVolumes);
