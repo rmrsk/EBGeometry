@@ -17,7 +17,7 @@
 namespace EBGeometry {
 
 /**
- * @brief Simple timer class used for local performance profiling. Does not include MPI capabilities and is therefore local to each rank.
+ * @brief Simple timer class used for local performance profiling.
  */
 class SimpleTimer
 {
@@ -46,6 +46,7 @@ public:
 
   /**
    * @brief Start timing
+   * @note Calling this resets timers that are already running.
    */
   inline void
   start() noexcept;
@@ -65,12 +66,12 @@ public:
 
 protected:
   /**
-   * @brief Start point
+   * @brief Start time point
    */
   TimePoint m_start;
 
   /**
-   * @brief Stop point
+   * @brief Stop time point
    */
   TimePoint m_stop;
 };
