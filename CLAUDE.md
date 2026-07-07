@@ -7,7 +7,7 @@ Guidance for Claude Code (or any agent) working in this repository.
 EBGeometry is a **header-only C++17 library** for:
 
 1. Turning watertight, orientable surface meshes into signed distance functions (SDFs), via a
-   half-edge (DCEL) mesh representation.
+   half-edge (DCEL) mesh or raw triangle representation.
 2. Fast SDF evaluation using bounding volume hierarchies (BVHs) — both a pointer-based `TreeBVH`
    and a flattened, SIMD-friendly `PackedBVH`.
 3. BVH-accelerated constructive solid geometry (CSG) unions of many objects.
