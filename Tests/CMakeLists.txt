@@ -50,6 +50,7 @@ ebgeometry_add_test(TestSTL)
 ebgeometry_add_test(TestPLY)
 ebgeometry_add_test(TestOBJ)
 ebgeometry_add_test(TestVTK)
+ebgeometry_add_test(TestBVH)
 
 # Compile-only target that explicitly instantiates every public class template so
 # clang-tidy (and the strong warning set) analyse them all regardless of what the

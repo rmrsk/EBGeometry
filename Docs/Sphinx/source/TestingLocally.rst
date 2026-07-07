@@ -35,9 +35,9 @@ debugger output), and turns on both the test suite and the examples.
 
 A successful unit-test run looks like::
 
-   100% tests passed, 0 tests failed out of 127
+   100% tests passed, 0 tests failed out of 132
    Label Time Summary:
-   unit    =   0.27 sec*proc (127 tests)
+   unit    =   0.31 sec*proc (132 tests)
 
 Running with sanitizers (AddressSanitizer + UBSan)
 -----------------------------------------------------
@@ -197,6 +197,14 @@ Test coverage
      - :cpp:class:`VTK`: construction, copy/move semantics; named
        point-data/cell-data scalar array storage and retrieval (including the
        out-of-range-name error path); round-trip through ``convertToDCEL``.
+   * - ``TestBVH``
+     - A regular dodecahedron (20 vertices, 36 triangulated faces), read from disk in all four
+       supported formats, used to verify: identical topology/geometry across formats;
+       :cpp:class:`BVH::TreeBVH`/:cpp:class:`BVH::PackedBVH` ``signedDistance`` agreement with a
+       brute-force scan across every partitioning strategy (top-down with the default and SAH
+       partitioners, bottom-up with Morton and Nested space-filling curves); :cpp:class:`MeshSDF`
+       and :cpp:class:`TriMeshSDF` agreement with :cpp:class:`FlatMeshSDF` for every
+       :cpp:class:`BVH::Build` strategy; and :cpp:func:`MeshSDF::getClosestFaces` ordering.
 
 .. note::
 
