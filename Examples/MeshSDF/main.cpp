@@ -99,11 +99,17 @@ main(int argc, char* argv[])
   const std::chrono::duration<T, std::micro> meshTime = t2 - t1;
   const std::chrono::duration<T, std::micro> triTime  = t3 - t2;
 
+  bool mismatch = false;
   if (std::abs(meshSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
     std::cerr << "MeshSDF did not give same distance as FlatMeshSDF! Diff = " << meshSum - dcelSum << "\n";
+    mismatch = true;
   }
   if (std::abs(triSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
     std::cerr << "TriMeshSDF did not give same distance as FlatMeshSDF! Diff = " << triSum - dcelSum << "\n";
+    mismatch = true;
+  }
+  if (mismatch) {
+    return 1;
   }
 
   // clang-format off
