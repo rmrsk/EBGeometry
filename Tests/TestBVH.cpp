@@ -9,20 +9,20 @@
 // enough primitives to meaningfully exercise BVH partitioning and traversal.
 
 #include "EBGeometry.hpp"
+#include "TestFloatingPointUtils.hpp"
 
 #include <cmath>
+#include <type_traits>
 #include <vector>
 
-#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 using namespace EBGeometry;
 
 namespace {
 
-using T    = double;
 using Meta = DCEL::DefaultMetaData;
-using AABB = BoundingVolumes::AABBT<T>;
 
 std::string
 dataPath(const std::string& a_filename)
@@ -32,27 +32,53 @@ dataPath(const std::string& a_filename)
 
 // A handful of query points spanning inside, outside, and near-surface -- enough to catch a BVH
 // traversal or partitioning bug without the test suite taking noticeably longer to run.
+template <class T>
 std::vector<Vec3T<T>>
 queryPoints()
 {
+  using Vec3 = Vec3T<T>;
   return {
-    Vec3T<T>(0, 0, 0),
-    Vec3T<T>(0.5, 0.5, 0.5),
-    Vec3T<T>(1.0, 1.0, 1.0),
-    Vec3T<T>(1.5, 0.0, 0.0),
-    Vec3T<T>(0.0, 1.5, 0.0),
-    Vec3T<T>(0.0, 0.0, 1.5),
-    Vec3T<T>(-1.5, -1.5, -1.5),
-    Vec3T<T>(3.0, 3.0, 3.0),
-    Vec3T<T>(10.0, 0.0, 0.0),
-    Vec3T<T>(-5.0, 2.0, 1.0),
+    Vec3(0, 0, 0),
+    Vec3(0.5, 0.5, 0.5),
+    Vec3(1.0, 1.0, 1.0),
+    Vec3(1.5, 0.0, 0.0),
+    Vec3(0.0, 1.5, 0.0),
+    Vec3(0.0, 0.0, 1.5),
+    Vec3(-1.5, -1.5, -1.5),
+    Vec3(3.0, 3.0, 3.0),
+    Vec3(10.0, 0.0, 0.0),
+    Vec3(-5.0, 2.0, 1.0),
   };
+}
+
+// Comparisons across independently-parsed file formats of literally the same geometry should
+// agree almost exactly; the residual gap is down to how each format's ASCII/binary encoding
+// round-trips floating-point coordinates, not accumulated BVH arithmetic.
+template <class T>
+double
+formatMargin()
+{
+  return std::is_same_v<T, float> ? 1.0e-4 : 1.0e-9;
+}
+
+// Comparisons between a brute-force scan and a BVH-accelerated traversal (or between different
+// partitioning/packing/build strategies) chain many more dot/cross products across the mesh's 36
+// faces, so tolerate more accumulated rounding error than a simple format round-trip.
+template <class T>
+double
+traversalMargin()
+{
+  return std::is_same_v<T, float> ? 1.0e-2 : 1.0e-6;
 }
 
 } // namespace
 
-TEST_CASE("Dodecahedron: all four file formats parse into an identical, watertight DCEL mesh", "[BVH][Dodecahedron]")
+TEMPLATE_TEST_CASE("Dodecahedron: all four file formats parse into an identical, watertight DCEL mesh",
+                   "[BVH][Dodecahedron]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
+  using T = TestType;
+
   const auto meshSTL = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
   const auto meshPLY = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.ply"));
   const auto meshOBJ = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"));
@@ -70,19 +96,23 @@ TEST_CASE("Dodecahedron: all four file formats parse into an identical, watertig
   }
 
   // Same geometry regardless of source format: signed distance must agree at every query point.
-  for (const auto& p : queryPoints()) {
+  for (const auto& p : queryPoints<T>()) {
     const T d = meshSTL->signedDistance(p);
 
-    REQUIRE_THAT(meshPLY->signedDistance(p), Catch::Matchers::WithinAbs(d, 1.0e-9));
-    REQUIRE_THAT(meshOBJ->signedDistance(p), Catch::Matchers::WithinAbs(d, 1.0e-9));
-    REQUIRE_THAT(meshVTK->signedDistance(p), Catch::Matchers::WithinAbs(d, 1.0e-9));
+    REQUIRE_THAT(meshPLY->signedDistance(p), withinAbsT(d, formatMargin<T>()));
+    REQUIRE_THAT(meshOBJ->signedDistance(p), withinAbsT(d, formatMargin<T>()));
+    REQUIRE_THAT(meshVTK->signedDistance(p), withinAbsT(d, formatMargin<T>()));
   }
 }
 
-TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-force mesh scan, for every "
-          "partitioning strategy",
-          "[BVH][Dodecahedron]")
+TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-force mesh scan, for "
+                   "every partitioning strategy",
+                   "[BVH][Dodecahedron]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+
   constexpr size_t K = 4;
 
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"));
@@ -112,8 +142,8 @@ TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-force mesh sc
     REQUIRE(packed != nullptr);
     REQUIRE(packed->getPrimitives().size() == 36);
 
-    for (const auto& p : queryPoints()) {
-      REQUIRE_THAT(packed->signedDistance(p), Catch::Matchers::WithinAbs(brute(p), 1.0e-6));
+    for (const auto& p : queryPoints<T>()) {
+      REQUIRE_THAT(packed->signedDistance(p), withinAbsT(brute(p), traversalMargin<T>()));
     }
   };
 
@@ -132,8 +162,12 @@ TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-force mesh sc
   buildAndCheck("BottomUp (Nested)", [](auto& a_tree) { a_tree.template bottomUpSortAndPartition<SFC::Nested>(); });
 }
 
-TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BVH::Build strategy", "[BVH][Dodecahedron]")
+TEMPLATE_TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BVH::Build strategy",
+                   "[BVH][Dodecahedron]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
+  using T = TestType;
+
   constexpr size_t K = 4;
 
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
@@ -144,15 +178,18 @@ TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BVH::Build 
   for (const auto build : {BVH::Build::TopDown, BVH::Build::Morton, BVH::Build::Nested, BVH::Build::SAH}) {
     const MeshSDF<T, Meta, K> packed(mesh, build);
 
-    for (const auto& p : queryPoints()) {
-      REQUIRE_THAT(packed.signedDistance(p), Catch::Matchers::WithinAbs(flat.signedDistance(p), 1.0e-6));
+    for (const auto& p : queryPoints<T>()) {
+      REQUIRE_THAT(packed.signedDistance(p), withinAbsT(flat.signedDistance(p), traversalMargin<T>()));
     }
   }
 }
 
-TEST_CASE("TriMeshSDF: signedDistance agrees with FlatMeshSDF and MeshSDF for every BVH::Build strategy",
-          "[BVH][Dodecahedron][TriMesh]")
+TEMPLATE_TEST_CASE("TriMeshSDF: signedDistance agrees with FlatMeshSDF and MeshSDF for every BVH::Build strategy",
+                   "[BVH][Dodecahedron][TriMesh]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
+  using T = TestType;
+
   constexpr size_t K = 4;
   constexpr size_t W = 4;
 
@@ -165,16 +202,19 @@ TEST_CASE("TriMeshSDF: signedDistance agrees with FlatMeshSDF and MeshSDF for ev
   for (const auto build : {BVH::Build::TopDown, BVH::Build::Morton, BVH::Build::Nested, BVH::Build::SAH}) {
     const TriMeshSDF<T, Meta, K, W> tri(mesh, build, 2);
 
-    for (const auto& p : queryPoints()) {
-      REQUIRE_THAT(tri.signedDistance(p), Catch::Matchers::WithinAbs(flat.signedDistance(p), 1.0e-6));
-      REQUIRE_THAT(tri.signedDistance(p), Catch::Matchers::WithinAbs(packed.signedDistance(p), 1.0e-6));
+    for (const auto& p : queryPoints<T>()) {
+      REQUIRE_THAT(tri.signedDistance(p), withinAbsT(flat.signedDistance(p), traversalMargin<T>()));
+      REQUIRE_THAT(tri.signedDistance(p), withinAbsT(packed.signedDistance(p), traversalMargin<T>()));
     }
   }
 }
 
-TEST_CASE("MeshSDF::getClosestFaces returns the correct number of candidate faces, sorted on request",
-          "[BVH][Dodecahedron]")
+TEMPLATE_TEST_CASE("MeshSDF::getClosestFaces returns the correct number of candidate faces, sorted on request",
+                   "[BVH][Dodecahedron]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
+  using T = TestType;
+
   constexpr size_t K = 4;
 
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.vtk"));
@@ -193,11 +233,15 @@ TEST_CASE("MeshSDF::getClosestFaces returns the correct number of candidate face
 
   // The closest face reported must be consistent with the scalar signed-distance query.
   const T closestUnsignedDist = sorted.front().second;
-  REQUIRE_THAT(closestUnsignedDist, Catch::Matchers::WithinAbs(std::abs(packed.signedDistance(p)), 1.0e-6));
+  REQUIRE_THAT(closestUnsignedDist, withinAbsT(std::abs(packed.signedDistance(p)), traversalMargin<T>()));
 }
 
-TEST_CASE("Parser::readIntoPackedBVH matches MeshSDF built directly from the same mesh", "[BVH][Parser]")
+TEMPLATE_TEST_CASE("Parser::readIntoPackedBVH matches MeshSDF built directly from the same mesh",
+                   "[BVH][Parser]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
+  using T = TestType;
+
   constexpr size_t K = 4;
 
   const auto direct = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
@@ -208,15 +252,18 @@ TEST_CASE("Parser::readIntoPackedBVH matches MeshSDF built directly from the sam
 
   REQUIRE(fromFile != nullptr);
 
-  for (const auto& p : queryPoints()) {
-    REQUIRE_THAT(fromFile->signedDistance(p), Catch::Matchers::WithinAbs(expected.signedDistance(p), 1.0e-9));
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE_THAT(fromFile->signedDistance(p), withinAbsT(expected.signedDistance(p), formatMargin<T>()));
   }
 }
 
-TEST_CASE("Parser: multi-file overloads return one result per file, each matching the "
-          "corresponding single-file call",
-          "[BVH][Parser]")
+TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, each matching the "
+                   "corresponding single-file call",
+                   "[BVH][Parser]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
+  using T = TestType;
+
   constexpr size_t K = 4;
 
   // Two different formats of the *same* underlying geometry -- the point isn't that the two
@@ -233,8 +280,8 @@ TEST_CASE("Parser: multi-file overloads return one result per file, each matchin
       const auto single = Parser::readIntoDCEL<T, Meta>(files[i]);
       REQUIRE(meshes[i]->getVertices().size() == single->getVertices().size());
       REQUIRE(meshes[i]->getFaces().size() == single->getFaces().size());
-      for (const auto& p : queryPoints()) {
-        REQUIRE_THAT(meshes[i]->signedDistance(p), Catch::Matchers::WithinAbs(single->signedDistance(p), 1.0e-9));
+      for (const auto& p : queryPoints<T>()) {
+        REQUIRE_THAT(meshes[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
       }
     }
   }
@@ -246,8 +293,8 @@ TEST_CASE("Parser: multi-file overloads return one result per file, each matchin
 
     for (size_t i = 0; i < files.size(); i++) {
       const auto single = Parser::readIntoMesh<T, Meta>(files[i]);
-      for (const auto& p : queryPoints()) {
-        REQUIRE_THAT(flatSDFs[i]->signedDistance(p), Catch::Matchers::WithinAbs(single->signedDistance(p), 1.0e-9));
+      for (const auto& p : queryPoints<T>()) {
+        REQUIRE_THAT(flatSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
       }
     }
   }
@@ -259,8 +306,8 @@ TEST_CASE("Parser: multi-file overloads return one result per file, each matchin
 
     for (size_t i = 0; i < files.size(); i++) {
       const auto single = Parser::readIntoPackedBVH<T, Meta, K>(files[i]);
-      for (const auto& p : queryPoints()) {
-        REQUIRE_THAT(packedSDFs[i]->signedDistance(p), Catch::Matchers::WithinAbs(single->signedDistance(p), 1.0e-9));
+      for (const auto& p : queryPoints<T>()) {
+        REQUIRE_THAT(packedSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
       }
     }
   }
@@ -272,8 +319,8 @@ TEST_CASE("Parser: multi-file overloads return one result per file, each matchin
 
     for (size_t i = 0; i < files.size(); i++) {
       const auto single = Parser::readIntoTriangleBVH<T, Meta>(files[i]);
-      for (const auto& p : queryPoints()) {
-        REQUIRE_THAT(triSDFs[i]->signedDistance(p), Catch::Matchers::WithinAbs(single->signedDistance(p), 1.0e-9));
+      for (const auto& p : queryPoints<T>()) {
+        REQUIRE_THAT(triSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
       }
     }
   }
