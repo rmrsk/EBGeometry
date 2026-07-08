@@ -108,7 +108,7 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
     const Vec3 center = 0.5 * (loCorner + hiCorner);
     const Vec3 dx     = 0.5 * (hiCorner - loCorner);
 
-    intersection = std::abs(this->value(center)) <= (1.0 + a_safetyFactor) * dx.length();
+    intersection = std::abs(this->value(center)) <= (T(1.0) + a_safetyFactor) * dx.length();
 
     return meta;
   };
@@ -127,7 +127,7 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
   std::get<0>(metaRoot) = a_initialLowCorner;
   std::get<1>(metaRoot) = a_initialHighCorner;
   std::get<2>(metaRoot) = 0;
-  std::get<3>(metaRoot) = std::abs(this->value(initialCenter)) <= (1.0 + a_safetyFactor) * initialDx.length();
+  std::get<3>(metaRoot) = std::abs(this->value(initialCenter)) <= (T(1.0) + a_safetyFactor) * initialDx.length();
 
   std::vector<Vec3> vertices;
 
