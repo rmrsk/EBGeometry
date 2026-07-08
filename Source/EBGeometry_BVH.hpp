@@ -565,9 +565,9 @@ auto DefaultStopFunction =
  *
  * @tparam T  Floating-point precision.
  * @tparam P  Primitive type. Must provide getCentroid() -- construction/partitioning never
- * calls signedDistance() on it. PackedBVH itself imposes no interface requirement on P either;
- * any requirement (e.g. signedDistance(Vec3T<T>)) comes entirely from whatever leaf-eval a caller
- * passes to PackedBVH::pruneTraverse() or PackedBVH::traverse() (see PackedBVH below).
+ * calls any other method on it. PackedBVH itself imposes no interface requirement on P either;
+ * any further requirement comes entirely from whatever leaf-eval a caller passes to
+ * PackedBVH::pruneTraverse() or PackedBVH::traverse() (see PackedBVH below).
  * @tparam BV Bounding volume type.
  * @tparam K  Tree branching factor (must be >= 2).
  */
@@ -819,9 +819,9 @@ protected:
  *
  * PackedBVH imposes no interface requirement on P by itself -- it holds primitives opaquely and
  * only ever hands them back to a caller-supplied callback (traverse()'s Updater, or
- * pruneTraverse()'s LeafEval). signedDistance()-style nearest-surface queries are not a
- * PackedBVH member; see MeshSDF::signedDistance() and TriMeshSDF::signedDistance() for the
- * thin wrapper each builds around pruneTraverse() for their own primitive type.
+ * pruneTraverse()'s LeafEvaluator). Nearest-surface (signed-distance-style) queries are not a
+ * PackedBVH member; callers build their own thin wrapper around pruneTraverse(), supplying
+ * whatever primitive interface their own query needs.
  *
  * SIMD paths are selected at compile time via if constexpr, in pruneTraverse():
  * - K==4, T==float  → SSE4.1 (__m128)
@@ -1101,12 +1101,11 @@ public:
    * @brief Generic SIMD-accelerated, distance-pruned traversal.
    * @details A non-recursive, stack-based traversal that discards (prunes) subtrees whose
    * bounding volume is already farther from the query point than the caller's current best, and
-   * otherwise visits the closest-looking child first -- the same box-pruning strategy used
-   * throughout this library (see :ref:`Chap:BVH`'s traversal section in the Sphinx docs, or the
-   * @c traverse() member above, for the non-SIMD version of the same idea). What sets this method
-   * apart from @c traverse() is that the box test itself is vectorised, and that the three moving
-   * parts of the search -- what "best so far" means, how a leaf updates it, and how it is turned
-   * into a pruning distance -- are all supplied by the caller instead of being fixed.
+   * otherwise visits the closest-looking child first -- the same box-pruning strategy as the
+   * @c traverse() member above, but with two differences: the box test itself is vectorised, and
+   * the three moving parts of the search -- what "best so far" means, how a leaf updates it, and
+   * how it is turned into a pruning distance -- are all supplied by the caller instead of being
+   * fixed.
    *
    * How the traversal proceeds, precisely:
    * 1. A LIFO stack of (node index, squared distance from a_point to that node's bounding
@@ -1126,9 +1125,7 @@ public:
    * 5. Repeat until the stack is empty; @c a_state now holds the final answer.
    *
    * The child-distance batch in step 4 is where SIMD applies: which of six hand-written
-   * intrinsics branches runs is selected at compile time via @c if @c constexpr on @c (K, T), and
-   * is exactly the same dispatch used by TriMeshSDF's leaf evaluation (see
-   * :ref:`Chap:SIMDClasses`):
+   * intrinsics branches runs is selected at compile time via @c if @c constexpr on @c (K, T):
    * - K==8,  T==double -> AVX-512F (one @c _mm512_load_pd covering all 8 children)
    * - K==16, T==float  -> AVX-512F (one @c _mm512_load_ps covering all 16 children)
    * - K==4,  T==double -> AVX (one @c _mm256_load_pd)
@@ -1140,33 +1137,33 @@ public:
    *
    * How the three caller-supplied signatures fit together: @c State is whatever the search needs
    * to remember between leaf visits -- often just the best value found so far, but it can be
-   * richer (e.g. a running best together with the primitive that produced it). @c LeafEval is
-   * called only at leaves and is the sole place @c State is allowed to change; it never sees the
-   * pruning bound directly, only @c a_state itself. @c PruneDist2 is called only to turn the
+   * richer (e.g. a running best together with the primitive that produced it). @c LeafEvaluator
+   * is called only at leaves and is the sole place @c State is allowed to change; it never sees
+   * the pruning bound directly, only @c a_state itself. @c PruneDist2 is called only to turn the
    * *current* @c a_state into a squared-distance bound for the pruning test in steps 2 and 4 --
    * it is queried repeatedly (twice per interior node visited) and must be cheap and consistent
-   * with whatever @c LeafEval just wrote. Splitting the two apart like this is what lets a
-   * primitive with no notion of "signed distance" at all reuse the same SIMD box test: a
-   * nearest-neighbor search over a point cloud can track a plain running squared distance in
-   * @c State (no @c abs(), no extra squaring, no square root anywhere in the hot path), whereas
-   * MeshSDF::signedDistance() and TriMeshSDF::signedDistance() track a signed distance and square
-   * its magnitude for the pruning bound -- both are ordinary instantiations of the same method.
+   * with whatever @c LeafEvaluator just wrote. Splitting the two apart like this is what lets a
+   * primitive with no notion of "signed distance" reuse the same SIMD box test: a nearest-neighbor
+   * search over a point cloud can track a plain running squared distance in @c State (no
+   * @c abs(), no extra squaring, no square root anywhere in the hot path); a query that does care
+   * about sign would instead track a signed value and square its magnitude for the pruning bound.
+   * Both are ordinary instantiations of this same method -- PackedBVH has no opinion on which.
    *
-   * @tparam State     Caller-defined running search state, carried by reference through the whole traversal.
-   * @tparam LeafEval   Callable: (State&, size_t offset, size_t count) noexcept -> void. Scans
+   * @tparam State        Caller-defined running search state, carried by reference through the whole traversal.
+   * @tparam LeafEvaluator Callable: (State&, size_t offset, size_t count) noexcept -> void. Scans
    * primitives [offset, offset+count) and updates a_state in place.
-   * @tparam PruneDist2 Callable: (const State&) noexcept -> T. Returns the current squared-distance
+   * @tparam PruneDist2    Callable: (const State&) noexcept -> T. Returns the current squared-distance
    * pruning bound derived from a_state; a node farther than this (in squared distance) is pruned.
    * @param[in]     a_point      Query point.
    * @param[in,out] a_state      Running search state; mutated by a_evalLeaf, read by a_pruneDist2.
    * @param[in]     a_evalLeaf   Leaf-visit callback.
    * @param[in]     a_pruneDist2 Pruning-bound callback.
    */
-  template <class State, class LeafEval, class PruneDist2>
+  template <class State, class LeafEvaluator, class PruneDist2>
   inline void
   pruneTraverse(const Vec3T<T>& a_point,
                 State&          a_state,
-                LeafEval&&      a_evalLeaf,
+                LeafEvaluator&& a_evalLeaf,
                 PruneDist2&&    a_pruneDist2) const noexcept;
 
 protected:
