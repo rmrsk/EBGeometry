@@ -549,22 +549,17 @@ PackedBVH<T, P, K>::traverse(const BVH::PackedUpdater<P>&        a_updater,
 }
 
 template <class T, class P, size_t K>
-inline T
-PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
+template <class State, class LeafEval, class PruneDist2>
+inline void
+PackedBVH<T, P, K>::pruneTraverse(const Vec3T<T>& a_point,
+                                  State&          a_state,
+                                  LeafEval&&      a_evalLeaf,
+                                  PruneDist2&&    a_pruneDist2) const noexcept
 {
   struct StackEntry
   {
     uint32_t idx;
     T        dist2;
-  };
-
-  [[maybe_unused]] auto evalLeaf = [this, &a_point](auto& a_minDist, size_t a_offset, size_t a_count) noexcept {
-    for (size_t i = 0; i < a_count; i++) {
-      const auto d = m_primitives[a_offset + i]->signedDistance(a_point);
-      if (std::abs(d) < std::abs(a_minDist)) {
-        a_minDist = d;
-      }
-    }
   };
 
   // ──────────────────────────────────────────────────────────────────────────────
@@ -587,7 +582,6 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   if constexpr (K == 8 && std::is_same_v<T, double>) {
     static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,
                   "ChildAABBSoA alignment mismatch: _mm512_load_pd requires 64-byte alignment");
-    double minDist = std::numeric_limits<double>::max();
 
     const __m512d px   = _mm512_set1_pd(a_point[0]);
     const __m512d py   = _mm512_set1_pd(a_point[1]);
@@ -601,7 +595,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
     while (top > 0) {
       const StackEntry entry    = stack[--top];
-      const double     curBest2 = minDist * minDist;
+      const double     curBest2 = static_cast<double>(a_pruneDist2(a_state));
 
       if (entry.dist2 > curBest2) {
         continue;
@@ -610,7 +604,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
       const Node& node = m_linearNodes[entry.idx];
 
       if (node.isLeaf()) {
-        evalLeaf(minDist, node.getPrimitivesOffset(), node.getNumPrimitives());
+        a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
       }
       else {
         const auto& soa = m_childAabbSoA[entry.idx];
@@ -644,7 +638,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
                     return a.first > b.first;
                   });
 
-        const double newBest2 = minDist * minDist;
+        const double newBest2 = static_cast<double>(a_pruneDist2(a_state));
 
         for (const auto& [d, idx] : children) {
           if (d <= newBest2) {
@@ -654,13 +648,12 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
       }
     }
 
-    return static_cast<T>(minDist);
+    return;
   }
 
   if constexpr (K == 16 && std::is_same_v<T, float>) {
     static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,
                   "ChildAABBSoA alignment mismatch: _mm512_load_ps requires 64-byte alignment");
-    float minDist = std::numeric_limits<float>::max();
 
     const __m512 px   = _mm512_set1_ps((float)a_point[0]);
     const __m512 py   = _mm512_set1_ps((float)a_point[1]);
@@ -674,7 +667,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
     while (top > 0) {
       const StackEntry entry    = stack[--top];
-      const float      curBest2 = minDist * minDist;
+      const float      curBest2 = static_cast<float>(a_pruneDist2(a_state));
 
       if (entry.dist2 > curBest2) {
         continue;
@@ -683,7 +676,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
       const Node& node = m_linearNodes[entry.idx];
 
       if (node.isLeaf()) {
-        evalLeaf(minDist, node.getPrimitivesOffset(), node.getNumPrimitives());
+        a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
       }
       else {
         const auto& soa = m_childAabbSoA[entry.idx];
@@ -717,7 +710,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
                     return a.first > b.first;
                   });
 
-        const float newBest2 = minDist * minDist;
+        const float newBest2 = static_cast<float>(a_pruneDist2(a_state));
 
         for (const auto& [d, idx] : children) {
           if (d <= newBest2) {
@@ -727,7 +720,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
       }
     }
 
-    return static_cast<T>(minDist);
+    return;
   }
 #endif // __AVX512F__
 
@@ -739,7 +732,6 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   if constexpr (K == 4 && std::is_same_v<T, double>) {
     static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,
                   "ChildAABBSoA alignment mismatch: _mm256_load_pd requires 32-byte alignment");
-    double minDist = std::numeric_limits<double>::max();
 
     const __m256d px   = _mm256_set1_pd(a_point[0]);
     const __m256d py   = _mm256_set1_pd(a_point[1]);
@@ -753,7 +745,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
     while (top > 0) {
       const StackEntry entry    = stack[--top];
-      const double     curBest2 = minDist * minDist;
+      const double     curBest2 = static_cast<double>(a_pruneDist2(a_state));
 
       if (entry.dist2 > curBest2) {
         continue;
@@ -761,7 +753,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
       const Node& node = m_linearNodes[entry.idx];
       if (node.isLeaf()) {
-        evalLeaf(minDist, node.getPrimitivesOffset(), node.getNumPrimitives());
+        a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
       }
       else {
         const auto& soa = m_childAabbSoA[entry.idx];
@@ -796,7 +788,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
                     return a.first > b.first;
                   });
 
-        const double newBest2 = minDist * minDist;
+        const double newBest2 = static_cast<double>(a_pruneDist2(a_state));
 
         for (const auto& [d, idx] : children) {
           if (d <= newBest2)
@@ -805,12 +797,11 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
       }
     }
 
-    return static_cast<T>(minDist);
+    return;
   }
   if constexpr (K == 8 && std::is_same_v<T, float>) {
     static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,
                   "ChildAABBSoA alignment mismatch: _mm256_load_ps requires 32-byte alignment");
-    float minDist = std::numeric_limits<float>::max();
 
     const __m256 px   = _mm256_set1_ps((float)a_point[0]);
     const __m256 py   = _mm256_set1_ps((float)a_point[1]);
@@ -824,7 +815,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
     while (top > 0) {
       const StackEntry entry    = stack[--top];
-      const float      curBest2 = minDist * minDist;
+      const float      curBest2 = static_cast<float>(a_pruneDist2(a_state));
 
       if (entry.dist2 > curBest2) {
         continue;
@@ -832,7 +823,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
       const Node& node = m_linearNodes[entry.idx];
       if (node.isLeaf()) {
-        evalLeaf(minDist, node.getPrimitivesOffset(), node.getNumPrimitives());
+        a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
       }
       else {
         const auto& soa = m_childAabbSoA[entry.idx];
@@ -867,7 +858,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
                     return a.first > b.first;
                   });
 
-        const float newBest2 = minDist * minDist;
+        const float newBest2 = static_cast<float>(a_pruneDist2(a_state));
 
         for (const auto& [d, idx] : children) {
           if (d <= newBest2) {
@@ -877,13 +868,12 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
       }
     }
 
-    return static_cast<T>(minDist);
+    return;
   }
 
   if constexpr (K == 8 && std::is_same_v<T, double>) {
     static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,
                   "ChildAABBSoA alignment mismatch: _mm256_load_pd requires 32-byte alignment");
-    double minDist = std::numeric_limits<double>::max();
 
     const __m256d px   = _mm256_set1_pd(a_point[0]);
     const __m256d py   = _mm256_set1_pd(a_point[1]);
@@ -897,7 +887,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
     while (top > 0) {
       const StackEntry entry    = stack[--top];
-      const double     curBest2 = minDist * minDist;
+      const double     curBest2 = static_cast<double>(a_pruneDist2(a_state));
 
       if (entry.dist2 > curBest2) {
         continue;
@@ -906,7 +896,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
       const Node& node = m_linearNodes[entry.idx];
 
       if (node.isLeaf()) {
-        evalLeaf(minDist, node.getPrimitivesOffset(), node.getNumPrimitives());
+        a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
       }
       else {
         const auto& soa = m_childAabbSoA[entry.idx];
@@ -955,7 +945,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
                     return a.first > b.first;
                   });
 
-        const double newBest2 = minDist * minDist;
+        const double newBest2 = static_cast<double>(a_pruneDist2(a_state));
 
         for (const auto& [d, idx] : children) {
           if (d <= newBest2) {
@@ -965,14 +955,13 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
       }
     }
 
-    return static_cast<T>(minDist);
+    return;
   }
 #endif
 #if defined(__SSE4_1__)
   if constexpr (K == 4 && std::is_same_v<T, float>) {
     static_assert(alignof(ChildAABBSoA) == sizeof(T) * K,
                   "ChildAABBSoA alignment mismatch: _mm_load_ps requires 16-byte alignment");
-    T minDist = std::numeric_limits<T>::max();
 
     const __m128 px   = _mm_set1_ps(a_point[0]);
     const __m128 py   = _mm_set1_ps(a_point[1]);
@@ -985,7 +974,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
     while (top > 0) {
       const StackEntry entry    = stack[--top];
-      const float      curBest2 = minDist * minDist;
+      const float      curBest2 = static_cast<float>(a_pruneDist2(a_state));
 
       if (entry.dist2 > curBest2) {
         continue;
@@ -994,7 +983,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
       const Node& node = m_linearNodes[entry.idx];
 
       if (node.isLeaf()) {
-        evalLeaf(minDist, node.getPrimitivesOffset(), node.getNumPrimitives());
+        a_evalLeaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
       }
       else {
         const auto& soa = m_childAabbSoA[entry.idx];
@@ -1028,7 +1017,7 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
                     return a.first > b.first;
                   });
 
-        const float newBest2 = minDist * minDist;
+        const float newBest2 = static_cast<float>(a_pruneDist2(a_state));
 
         for (const auto& [d, idx] : children) {
           if (d <= newBest2) {
@@ -1038,27 +1027,19 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
       }
     }
 
-    return minDist;
+    return;
   }
 #endif
 
   // Scalar fallback for all other (T, K) combinations.
-  T minDist = std::numeric_limits<T>::max();
-
-  const BVH::PackedUpdater<P> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& prims,
-                                                             size_t                                       offset,
-                                                             size_t count) noexcept -> void {
-    for (size_t i = 0; i < count; i++) {
-      const T d = prims[offset + i]->signedDistance(a_point);
-
-      if (std::abs(d) < std::abs(minDist)) {
-        minDist = d;
-      }
-    }
+  const BVH::PackedUpdater<P> updater = [&a_state, &a_evalLeaf](const std::vector<std::shared_ptr<const P>>&,
+                                                                size_t offset,
+                                                                size_t count) noexcept -> void {
+    a_evalLeaf(a_state, offset, count);
   };
 
-  const BVH::Visiter<Node, T> visiter = [&minDist](const Node& /*n*/, const T& d) noexcept -> bool {
-    return d <= std::abs(minDist);
+  const BVH::Visiter<Node, T> visiter = [&a_state, &a_pruneDist2](const Node& /*n*/, const T& d) noexcept -> bool {
+    return d * d <= a_pruneDist2(a_state);
   };
 
   const BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& ch) noexcept -> void {
@@ -1072,8 +1053,6 @@ PackedBVH<T, P, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   };
 
   this->traverse(updater, visiter, sorter, metaUpdater);
-
-  return minDist;
 }
 
 } // namespace BVH

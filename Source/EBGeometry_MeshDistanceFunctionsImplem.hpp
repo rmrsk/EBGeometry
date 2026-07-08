@@ -274,36 +274,22 @@ MeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  T minDist = std::numeric_limits<T>::max();
+  T           minDist = std::numeric_limits<T>::max();
+  const auto& faces   = m_bvh->getPrimitives();
 
-  const BVH::PackedUpdater<Face> updater = [&minDist, &a_point](const std::vector<std::shared_ptr<const Face>>& faces,
-                                                                size_t                                          offset,
-                                                                size_t count) noexcept -> void {
-    for (size_t i = offset; i < offset + count; i++) {
+  const auto evalLeaf = [&faces, &a_point](T& a_state, size_t a_offset, size_t a_count) noexcept {
+    for (size_t i = a_offset; i < a_offset + a_count; i++) {
       const T curDist = faces[i]->signedDistance(a_point);
 
       EBGEOMETRY_EXPECT(!std::isnan(curDist));
 
-      minDist = std::abs(curDist) < std::abs(minDist) ? curDist : minDist;
+      a_state = std::abs(curDist) < std::abs(a_state) ? curDist : a_state;
     }
   };
 
-  const BVH::Visiter<Node, T> visiter = [&minDist](const Node&, const T& a_bvDist) noexcept -> bool {
-    return a_bvDist <= std::abs(minDist);
-  };
+  const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state * a_state; };
 
-  const BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
-    std::sort(
-      a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
-        return n1.second > n2.second;
-      });
-  };
-
-  const BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
-    return a_node.getDistanceToBoundingVolume(a_point);
-  };
-
-  m_bvh->traverse(updater, visiter, sorter, metaUpdater);
+  m_bvh->pruneTraverse(a_point, minDist, evalLeaf, pruneDist2);
 
   return minDist;
 }
@@ -498,7 +484,23 @@ TriMeshSDF<T, Meta, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcep
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  return m_bvh->signedDistance(a_point);
+  T           minDist = std::numeric_limits<T>::max();
+  const auto& groups  = m_bvh->getPrimitives();
+
+  const auto evalLeaf = [&groups, &a_point](T& a_state, size_t a_offset, size_t a_count) noexcept {
+    for (size_t i = 0; i < a_count; i++) {
+      const T d = groups[a_offset + i]->signedDistance(a_point);
+      if (std::abs(d) < std::abs(a_state)) {
+        a_state = d;
+      }
+    }
+  };
+
+  const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state * a_state; };
+
+  m_bvh->pruneTraverse(a_point, minDist, evalLeaf, pruneDist2);
+
+  return minDist;
 }
 
 template <class T, class Meta, size_t K, size_t W>

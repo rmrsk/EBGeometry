@@ -60,10 +60,16 @@ arrays across all :math:`K` children), alongside the usual index-offset node dat
 :ref:`Chap:PackedBVH` for the rest of the packed representation.
 
 **What is vectorised:** the point-to-bounding-box squared-distance test used to decide which
-children to descend into (or prune) during traversal, in ``PackedBVH::signedDistance()``. All
+children to descend into (or prune) during traversal, in ``PackedBVH::pruneTraverse()``. All
 :math:`K` children of a node are tested against the query point in a single SIMD batch --
 one ``_mm(256\|512)_load_p[sd]`` per coordinate array, then vectorised subtract/max/multiply/add
 to get all :math:`K` squared distances at once -- rather than a scalar loop over children.
+``PackedBVH`` has no ``signedDistance()`` of its own; ``MeshSDF``/``TriMeshSDF::signedDistance()``
+each build a thin wrapper around ``pruneTraverse()``, supplying a signed-distance leaf-eval and
+pruning rule. Any caller can invoke ``pruneTraverse()`` directly with its own leaf-eval/pruning-
+rule pair to get the same SIMD node pruning over a different search (e.g. nearest-neighbor search
+over a primitive type with no ``signedDistance()`` at all). See :ref:`Chap:PruneTraverse` for the
+full callback contract and traversal algorithm.
 
 **What this means in practice:** the cost of deciding which subtree(s) to visit next no longer
 scales with :math:`K` the way a scalar loop would; a wider branching factor (larger :math:`K`)

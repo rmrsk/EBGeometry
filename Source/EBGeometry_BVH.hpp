@@ -565,9 +565,9 @@ auto DefaultStopFunction =
  *
  * @tparam T  Floating-point precision.
  * @tparam P  Primitive type. Must provide getCentroid() -- construction/partitioning never
- * calls signedDistance() on it. A signedDistance(Vec3T<T>) member is only required if the
- * resulting PackedBVH's own signedDistance() query is used (see PackedBVH below); a custom
- * traverse() updater need not require it at all.
+ * calls signedDistance() on it. PackedBVH itself imposes no interface requirement on P either;
+ * any requirement (e.g. signedDistance(Vec3T<T>)) comes entirely from whatever leaf-eval a caller
+ * passes to PackedBVH::pruneTraverse() or PackedBVH::traverse() (see PackedBVH below).
  * @tparam BV Bounding volume type.
  * @tparam K  Tree branching factor (must be >= 2).
  */
@@ -817,7 +817,13 @@ protected:
  * Instances are obtained by calling TreeBVH::pack() (same primitive type) or
  * TreeBVH::packWith<Q>(converter) (type-converting pack).
  *
- * SIMD paths are selected at compile time via if constexpr:
+ * PackedBVH imposes no interface requirement on P by itself -- it holds primitives opaquely and
+ * only ever hands them back to a caller-supplied callback (traverse()'s Updater, or
+ * pruneTraverse()'s LeafEval). signedDistance()-style nearest-surface queries are not a
+ * PackedBVH member; see MeshSDF::signedDistance() and TriMeshSDF::signedDistance() for the
+ * thin wrapper each builds around pruneTraverse() for their own primitive type.
+ *
+ * SIMD paths are selected at compile time via if constexpr, in pruneTraverse():
  * - K==4, T==float  → SSE4.1 (__m128)
  * - K==4, T==double → AVX    (__m256d)
  * - K==8, T==float  → AVX    (__m256)
@@ -825,7 +831,7 @@ protected:
  * All other combinations fall back to scalar traversal.
  *
  * @tparam T Floating-point precision.
- * @tparam P Primitive type. Must provide signedDistance(Vec3T<T>).
+ * @tparam P Primitive type.
  * @tparam K BVH branching factor.
  */
 template <class T, class P, size_t K>
@@ -1092,13 +1098,76 @@ public:
            const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept;
 
   /**
-   * @brief Compute the signed distance from a_point to the nearest primitive.
-   * @details Uses SIMD traversal where available and falls back to scalar otherwise.
-   * @param[in] a_point Query point.
-   * @return Signed distance to the nearest primitive surface.
+   * @brief Generic SIMD-accelerated, distance-pruned traversal.
+   * @details A non-recursive, stack-based traversal that discards (prunes) subtrees whose
+   * bounding volume is already farther from the query point than the caller's current best, and
+   * otherwise visits the closest-looking child first -- the same box-pruning strategy used
+   * throughout this library (see :ref:`Chap:BVH`'s traversal section in the Sphinx docs, or the
+   * @c traverse() member above, for the non-SIMD version of the same idea). What sets this method
+   * apart from @c traverse() is that the box test itself is vectorised, and that the three moving
+   * parts of the search -- what "best so far" means, how a leaf updates it, and how it is turned
+   * into a pruning distance -- are all supplied by the caller instead of being fixed.
+   *
+   * How the traversal proceeds, precisely:
+   * 1. A LIFO stack of (node index, squared distance from a_point to that node's bounding
+   *    volume) is seeded with the root (distance 0, since the root is never pruned).
+   * 2. Pop the top entry. If its stored squared distance exceeds @c a_pruneDist2(a_state) --
+   *    i.e. the node cannot possibly beat what the caller has already found -- skip it entirely
+   *    and continue with the next stack entry. This is the "prune" step.
+   * 3. Otherwise, if the popped node is a leaf, call @c a_evalLeaf(a_state, offset, count) once
+   *    for the whole leaf; this is the only point at which primitives are actually touched.
+   * 4. If the popped node is interior, compute all @c K children's squared distances to
+   *    a_point in one batch (see below), sort them so the closest child ends up last (and is
+   *    therefore popped -- i.e. visited -- next, since the stack is LIFO), and push every child
+   *    whose squared distance is still within @c a_pruneDist2(a_state). This bound is
+   *    re-evaluated at the moment of this node's own visit rather than cached from the start of
+   *    the traversal, so any leaf visited earlier on the stack (a different subtree entirely, not
+   *    necessarily a sibling) immediately tightens the pruning applied here.
+   * 5. Repeat until the stack is empty; @c a_state now holds the final answer.
+   *
+   * The child-distance batch in step 4 is where SIMD applies: which of six hand-written
+   * intrinsics branches runs is selected at compile time via @c if @c constexpr on @c (K, T), and
+   * is exactly the same dispatch used by TriMeshSDF's leaf evaluation (see
+   * :ref:`Chap:SIMDClasses`):
+   * - K==8,  T==double -> AVX-512F (one @c _mm512_load_pd covering all 8 children)
+   * - K==16, T==float  -> AVX-512F (one @c _mm512_load_ps covering all 16 children)
+   * - K==4,  T==double -> AVX (one @c _mm256_load_pd)
+   * - K==8,  T==float  -> AVX (one @c _mm256_load_ps)
+   * - K==8,  T==double -> AVX (two @c _mm256_load_pd passes, used when AVX-512F isn't available)
+   * - K==4,  T==float  -> SSE4.1 (one @c _mm_load_ps)
+   * - any other (K, T) -> scalar fallback, which reuses the generic traverse() above (still
+   *   correct, just without the vectorised box test).
+   *
+   * How the three caller-supplied signatures fit together: @c State is whatever the search needs
+   * to remember between leaf visits -- often just the best value found so far, but it can be
+   * richer (e.g. a running best together with the primitive that produced it). @c LeafEval is
+   * called only at leaves and is the sole place @c State is allowed to change; it never sees the
+   * pruning bound directly, only @c a_state itself. @c PruneDist2 is called only to turn the
+   * *current* @c a_state into a squared-distance bound for the pruning test in steps 2 and 4 --
+   * it is queried repeatedly (twice per interior node visited) and must be cheap and consistent
+   * with whatever @c LeafEval just wrote. Splitting the two apart like this is what lets a
+   * primitive with no notion of "signed distance" at all reuse the same SIMD box test: a
+   * nearest-neighbor search over a point cloud can track a plain running squared distance in
+   * @c State (no @c abs(), no extra squaring, no square root anywhere in the hot path), whereas
+   * MeshSDF::signedDistance() and TriMeshSDF::signedDistance() track a signed distance and square
+   * its magnitude for the pruning bound -- both are ordinary instantiations of the same method.
+   *
+   * @tparam State     Caller-defined running search state, carried by reference through the whole traversal.
+   * @tparam LeafEval   Callable: (State&, size_t offset, size_t count) noexcept -> void. Scans
+   * primitives [offset, offset+count) and updates a_state in place.
+   * @tparam PruneDist2 Callable: (const State&) noexcept -> T. Returns the current squared-distance
+   * pruning bound derived from a_state; a node farther than this (in squared distance) is pruned.
+   * @param[in]     a_point      Query point.
+   * @param[in,out] a_state      Running search state; mutated by a_evalLeaf, read by a_pruneDist2.
+   * @param[in]     a_evalLeaf   Leaf-visit callback.
+   * @param[in]     a_pruneDist2 Pruning-bound callback.
    */
-  [[nodiscard]] inline T
-  signedDistance(const Vec3T<T>& a_point) const noexcept;
+  template <class State, class LeafEval, class PruneDist2>
+  inline void
+  pruneTraverse(const Vec3T<T>& a_point,
+                State&          a_state,
+                LeafEval&&      a_evalLeaf,
+                PruneDist2&&    a_pruneDist2) const noexcept;
 
 protected:
   /**
@@ -1131,7 +1200,7 @@ protected:
   };
 
   /**
-   * @brief Per-node SoA AABB cache used by the SIMD traversal in signedDistance().
+   * @brief Per-node SoA AABB cache used by the SIMD traversal in pruneTraverse().
    */
   std::vector<ChildAABBSoA> m_childAabbSoA;
 
