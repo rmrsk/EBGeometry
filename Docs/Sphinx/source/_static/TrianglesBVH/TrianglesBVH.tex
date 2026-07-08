@@ -3,7 +3,7 @@
 \usepackage{graphicx,color,tikz,pgfplots}
 \usepackage[paperwidth=14.5cm,paperheight=4.6cm,lmargin=0in,rmargin=0in,tmargin=0.in,bmargin=0.in]{geometry}
 \usepackage{bm}
-\usetikzlibrary{arrows,shadings,shapes.arrows,decorations.pathreplacing,calc, positioning}
+\usetikzlibrary{arrows,shadings,shapes.arrows,decorations.pathreplacing,calc, positioning,shadows}
 \usepgfplotslibrary{fillbetween}
 
 \pgfplotsset{
@@ -22,8 +22,8 @@
 
 \tikzset{
   edge/.style={thick, draw=black},
-  tree/.style={thick, draw=black, densely dotted},
-  bvh/.style={draw=black, minimum width=5mm, minimum height=5mm, rectangle, very thick},
+  tree/.style={thick, draw=black, densely dotted,->},
+  bvh/.style={draw=black, minimum width=7mm, minimum height=7mm, rectangle, very thick,drop shadow,fill=white,rounded corners=5pt},
   vertex/.style={circle, inner sep=0pt, minimum width=4pt, draw=black, fill=black, node contents={}},
   point/.style={circle, inner sep=0pt, minimum width=6pt, thick, draw=black, fill=white},
   root/.style={ultra thick, densely dashed, draw=black},
@@ -32,6 +32,7 @@
 }
 
 \begin{document}
+\nopagecolor
 \centering
 \begin{tikzpicture}
 
@@ -76,8 +77,8 @@
     \node[anchor=north west] at (-2.25\dx,1.5\dx) {L};
     \node[anchor=north east] at (\dx, 1.1\dx) {R};
 
-    \draw[edge] (P) -- (L);
-    \draw[edge] (P) -- (R);
+    \draw[edge,->] (P) -- (L);
+    \draw[edge,->] (P) -- (R);
     \draw[tree] (ROOT) -- (P);
     \draw[tree] (ROOT) -- (subtree);
 

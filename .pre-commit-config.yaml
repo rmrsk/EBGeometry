@@ -1,0 +1,90 @@
+ci:
+  skip: [doxygen-check, build-doc-figures, sphinx-build-html, sphinx-build-pdf]
+
+repos:
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v21.1.8
+    hooks:
+      - id: clang-format
+        name: Format source files (clang-format)
+        types_or: [c++, c]
+
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: v6.1.0
+    hooks:
+      - id: reuse
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.6
+    hooks:
+      - id: codespell
+        files: ^(Source|Docs|Exec)/
+        args:
+          - "--ignore-words=.codespellignore"
+          - "--skip=*.bib,*.js,*.log,Docs/Sphinx/build,Docs/doxygen"
+
+  # Static analysis is done with clang-tidy (see .clang-tidy): the manual-stage
+  # clang-tidy hook below plus the Static-analysis CI job. It is manual-stage
+  # because it needs a compile database and is slow. The old cppcheck hook only
+  # matched Source/**.cpp (there are none), so it never ran and has been removed.
+  - repo: local
+    hooks:
+      - id: doxygen-check
+        name: Check doxygen documentation (warnings as errors)
+        entry: bash -c "cd Docs && doxygen doxygen.conf"
+        language: system
+        pass_filenames: false
+        files: \.(H|cpp)$
+
+      - id: clang-tidy
+        name: Static analysis (clang-tidy)
+        entry: bash Scripts/clang-tidy-check.sh
+        language: system
+        pass_filenames: false
+        files: \.(hpp|cpp)$
+        stages: [manual]
+
+      - id: build-tests
+        name: Compile unit tests (debug preset)
+        entry: bash Scripts/build-tests-check.sh
+        language: system
+        pass_filenames: false
+        files: \.(hpp|cpp)$
+        stages: [manual]
+
+      - id: check-docs
+        name: Ban literalinclude in Sphinx docs
+        entry: python3 Scripts/CheckDocs.py
+        language: system
+        pass_filenames: false
+        stages: [manual]
+
+      - id: build-doc-figures
+        name: Render documentation figures from LaTeX/TikZ sources
+        entry: bash Scripts/build-doc-figures.sh
+        language: system
+        pass_filenames: false
+        stages: [manual]
+
+      - id: sphinx-build-html
+        name: Build Sphinx HTML documentation (warnings as errors)
+        entry: sphinx-build
+        args: [-W, --keep-going, -E, -b, html, Docs/Sphinx/source, Docs/Sphinx/build/html]
+        language: python
+        additional_dependencies:
+          - "sphinx==5.3.0"
+          - sphinx-rtd-theme
+          - sphinxcontrib-bibtex
+        pass_filenames: false
+        stages: [manual]
+
+      - id: sphinx-build-pdf
+        name: Build Sphinx PDF documentation (requires a LaTeX toolchain)
+        entry: bash -c "cd Docs/Sphinx && make latexpdf"
+        language: python
+        additional_dependencies:
+          - "sphinx==5.3.0"
+          - sphinx-rtd-theme
+          - sphinxcontrib-bibtex
+        pass_filenames: false
+        stages: [manual]

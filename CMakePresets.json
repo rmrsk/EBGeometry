@@ -1,0 +1,97 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 22, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "EBGEOMETRY_BUILD_TESTS": "ON",
+        "EBGEOMETRY_BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "debug",
+      "inherits": "base",
+      "displayName": "Debug",
+      "description": "Debug build: assertions on, no SIMD. Used for local development and CI unit tests.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "EBGEOMETRY_ENABLE_ASSERTIONS": "ON",
+        "EBGEOMETRY_SIMD": "none"
+      }
+    },
+    {
+      "name": "debug-san",
+      "inherits": "debug",
+      "displayName": "Debug + Sanitizers",
+      "description": "Debug build with AddressSanitizer and UBSan enabled.",
+      "cacheVariables": {
+        "EBGEOMETRY_ENABLE_SANITIZERS": "ON"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "displayName": "Release",
+      "description": "Optimised release build with AVX. Tests and examples disabled by default.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "EBGEOMETRY_ENABLE_ASSERTIONS": "OFF",
+        "EBGEOMETRY_SIMD": "avx",
+        "EBGEOMETRY_BUILD_TESTS": "OFF",
+        "EBGEOMETRY_BUILD_EXAMPLES": "OFF"
+      }
+    },
+    {
+      "name": "release-test",
+      "inherits": "release",
+      "displayName": "Release + tests + examples",
+      "description": "Release build with the full test suite and examples enabled.",
+      "cacheVariables": {
+        "EBGEOMETRY_BUILD_TESTS": "ON",
+        "EBGEOMETRY_BUILD_EXAMPLES": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "debug",        "configurePreset": "debug"        },
+    { "name": "debug-san",    "configurePreset": "debug-san"    },
+    { "name": "release",      "configurePreset": "release"      },
+    { "name": "release-test", "configurePreset": "release-test" }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "displayName": "Unit tests (debug)",
+      "configurePreset": "debug",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "unit" } },
+      "execution": { "timeout": 60 }
+    },
+    {
+      "name": "debug-san",
+      "displayName": "Unit tests (debug + sanitizers)",
+      "configurePreset": "debug-san",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "unit" } },
+      "execution": { "timeout": 120 }
+    },
+    {
+      "name": "examples",
+      "displayName": "Examples (debug)",
+      "configurePreset": "debug",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "example" } },
+      "execution": { "timeout": 300 }
+    },
+    {
+      "name": "release-test",
+      "displayName": "Unit tests + examples (release)",
+      "configurePreset": "release-test",
+      "output": { "outputOnFailure": true },
+      "execution": { "timeout": 120 }
+    }
+  ]
+}

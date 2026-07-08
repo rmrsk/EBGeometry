@@ -1,79 +1,86 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * @file   EBGeometry_ImplicitFunction.hpp
+ * @brief  Abstract base class for representing an implicit function.
+ * @author Robert Marskar
  */
 
-/*!
-  @file   EBGeometry_ImplicitFunction.hpp
-  @brief  Abstract base class for representing an implicit function.
-  @author Robert Marskar
-*/
+#ifndef EBGEOMETRY_IMPLICITFUNCTION_HPP
+#define EBGEOMETRY_IMPLICITFUNCTION_HPP
 
-#ifndef EBGeometry_ImplicitFunction
-#define EBGeometry_ImplicitFunction
+// Std includes
+#include <type_traits>
+#include <vector>
 
 // Our includes
-#include "EBGeometry_Vec.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+#include "EBGeometry_Vec.hpp"
 
-/*!
-  @brief Abstract representation of an implicit function function (not necessarily signed distance). 
+namespace EBGeometry {
 
-  The value function must be implemented by subclasses. 
-*/
+/**
+ * @brief Abstract representation of an implicit function (not necessarily a signed distance function).
+ * @details The value function must be implemented by subclasses.  Points with value < 0 are considered
+ * inside the object; points with value > 0 are outside.
+ * @tparam T Floating-point precision.
+ */
 template <class T>
 class ImplicitFunction
 {
+  static_assert(std::is_floating_point_v<T>, "T must be a floating-point type");
+
 public:
-  /*!
-    @brief Disallowed, use the full constructor
-  */
+  /**
+   * @brief Default constructor.
+   */
   ImplicitFunction() = default;
 
-  /*!
-    @brief Destructor (does nothing)
-  */
+  /**
+   * @brief Default destructor.
+   */
   virtual ~ImplicitFunction() = default;
 
-  /*!
-    @brief Value function. Points are outside the object if value > 0.0 and inside
-    if value < 0.0
-    @param[in] a_point 3D point.
-  */
-  virtual T
+  /**
+   * @brief Value function. Points are outside the object if value > 0.0 and inside if value < 0.0.
+   * @param[in] a_point 3D query point.
+   * @return Implicit function value at a_point.
+   */
+  [[nodiscard]] virtual T
   value(const Vec3T<T>& a_point) const noexcept = 0;
 
-  /*!
-    @brief Alternative signature for the value function.
-    @param[in] a_point 3D point.
-  */
-  T
+  /**
+   * @brief Call operator — alternative signature for the value function.
+   * @param[in] a_point 3D query point.
+   * @return Implicit function value at a_point (delegates to value()).
+   */
+  [[nodiscard]] T
   operator()(const Vec3T<T>& a_point) const noexcept;
 
-  /*!
-    @brief Compute an approximation to the bounding volume for the implicit surface, using octrees.
-    @details This routine will try to compute a bonding using octree subdivision of the implicit function. This routine will
-    characterize a cubic region in space as being 'inside', 'outside', or intersected by computing the value function at the
-    center of the cube. If the value function is larger than the extents of the cube, we assume that there is no intersection
-    inside the cube. The success of this algorithm therefore relies on the implicit function also being a signed distance 
-    function, or at the very least not being horrendously far from being an SDF. If octree subdivision fails, this will return
-    the maximally representable bounding volume.
-    @param[in] a_initialLowCorner Initial low corner. 
-    @param[in] a_initialHighCorner Initial high corner. 
-    @param[in] a_maxTreeDepth Maximum permitted octree depth.
-    @param[in] a_safety Safety factor when determining intersection. a_safety=1 sets safety factor to cube width, a_safety=2 sets twice the cube width, etc. 
-    @note The bounding volume type BV MUST have a constructor BV(std::vector<Vec3T<T>>).
-  */
+  /**
+   * @brief Compute an approximation to the bounding volume for the implicit surface using octree subdivision.
+   * @details Recursively subdivides the initial box and marks each child cell as intersected when
+   * `|value(center)| <= (1+a_safety)*half_width`. The bounding volume is built from the corners of all
+   * intersected leaf cells. Relies on the implicit function being reasonably close to a signed distance
+   * function; if octree subdivision fails entirely, returns the maximally representable bounding volume.
+   * @tparam BV Bounding volume type; must be constructible from `std::vector<Vec3T<T>>`.
+   * @param[in] a_initialLowCorner  Low corner of the initial search box.
+   * @param[in] a_initialHighCorner High corner of the initial search box.
+   * @param[in] a_maxTreeDepth      Maximum permitted octree depth.
+   * @param[in] a_safety            Safety factor for intersection test; 0 = exact, 1 = 1x cell-width margin.
+   * @return Bounding volume enclosing the approximate zero-isosurface region.
+   */
   template <class BV>
-  inline BV
+  [[nodiscard]] inline BV
   approximateBoundingVolumeOctree(const Vec3T<T>&    a_initialLowCorner,
                                   const Vec3T<T>&    a_initialHighCorner,
                                   const unsigned int a_maxTreeDepth,
-                                  const T&           a_safety = 0.0) const noexcept;
+                                  const T&           a_safety = 0.0) const;
 };
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #include "EBGeometry_ImplicitFunctionImplem.hpp"
 

@@ -6,63 +6,84 @@
 EBGeometry's user documentation
 ===============================
 
-This is the user documentation for EBGeometry, a small C++ package for efficiently representing implicit functions and signed distance fields for complex geometries.
-Although EBGeometry is a self-contained package, it is was originally written for usage with embedded boundary (EB) and immersed boundary (IB) codes.
-EBGeometry provides the geometry representation through an implicit or signed distance function, but does not provide the discrete geometry generation, i.e. the generation of cut-cells for a given geometry.
+EBGeometry is a header-only C++17 library for constructive solid geometry (CSG) with implicit
+functions. It can turn surface geometries into fast, queryable signed distance functions (SDFs),
+and manipulate them with CSG operations.
 
-The basic features of EBGeometry are as follows:
+Main features:
 
-* Representation of water-tight surface grids as signed distance fields.
-* Many analytic distance functions and transformations. 
-* Bounding volume hierarchies (BVHs) for use as acceleration structures for polygon or full object lookup.
-  The BVHs can be represented in full or compact (i.e., linearized) forms.
-* Support for both conventional and accelerated (using BVHs) constructive solid geometry (CSG).
-* Examples of how to couple EBGeometry to AMReX and Chombo.     
+* Turn surface meshes into SDFs, via a half-edge (DCEL) mesh representation or raw triangles.
+* Fast SDF evaluation using bounding volume hierarchies (BVHs).
+* Supports both pointer-based tree BVHs, and flattened SIMD-accelerated packed BVHs.
+* A library of analytic signed distance functions and implicit functions (spheres, boxes, and
+  more).
+* Composable with transforms (translation, rotation, scaling, rounding, blending).
+* BVH-accelerated constructive solid geometry (CSG): unions, intersections, differences, and
+  smooth blends, of both meshes and analytic shapes.
+* Readers for triangulated surface meshes in STL, PLY, OBJ, and VTK format.
+* Drop-in precision-templated for flexible usage.
+* No external dependencies -- drop ``EBGeometry.hpp`` into any C++17 project and include it.
 
 .. important::
 
-   This is the user documentation for EBGeometry.
-   The source code is found at `<https://github.com/rmrsk/EBGeometry>`_ and a separate Doxygen-generated API of EBGeometry is available at `<https://rmrsk.github.io/EBGeometry/doxygen/html/index.html>`_.
+   This is the user documentation for EBGeometry. A
+   `PDF version <https://github.com/rmrsk/EBGeometry/raw/gh-pages/ebgeometry.pdf>`_
+   of this documentation is also available.
 
-.. This is for getting rid of the TOC in html view. 
+   * If you are looking for the source code, it is hosted on
+     `GitHub <https://github.com/rmrsk/EBGeometry>`_.
+   * The developer documentation is a separate
+     `Doxygen-generated API <https://rmrsk.github.io/EBGeometry/doxygen/html/index.html>`_
+     of EBGeometry.
+
+.. This is for getting rid of the TOC in html view.
 .. raw:: html
 
    <style>
-   section#introduction,
+   section#getting-started,
    section#concepts,
    section#implementation,
    section#examples,
+   section#contributing-and-testing,
    section#references,
-   section#bibliography,
-   section#epilogue {
-	 display:none;
+   section#bibliography {
+     display:none;
    }
    </style>
-   
+
 .. only:: latex
 
    .. toctree::
-      :caption: Contents   
+      :caption: Contents
 
-Introduction
-************
+Getting started
+****************
 
 .. toctree::
    :maxdepth: 3
-   :caption: Introduction
+   :caption: Getting started
    :hidden:
 
-   Introduction.rst
+   ObtainingEBGeometry.rst
+   Quickstart.rst
+   Building.rst
+   SIMDAcceleration.rst
+   ConfigurationOptions.rst
 
 Concepts
 ********
 
 .. toctree::
    :maxdepth: 3
-   :caption: Basic concepts
-   :hidden:	     
-	     
-   Concepts.rst
+   :caption: Concepts
+   :hidden:
+
+   GeometryRepresentations.rst
+   DCEL.rst
+   BVH.rst
+   Octree.rst
+   CSG.rst
+   Triangles.rst
 
 Implementation
 **************
@@ -70,15 +91,16 @@ Implementation
 .. toctree::
    :maxdepth: 3
    :caption: Implementation
-   :hidden:	     
-	     
+   :hidden:
+
    Implementation.rst
    ImplemVec.rst
    ImplemCSG.rst
-   ImplemDCEL.rst   
+   ImplemDCEL.rst
    ImplemBVH.rst
    ImplemOctree.rst
    Parsers.rst
+   SIMDClasses.rst
 
 Examples
 ********
@@ -86,13 +108,33 @@ Examples
 .. toctree::
    :maxdepth: 3
    :caption: Examples
-   :hidden:	     
+   :hidden:
 
    Examples.rst
+   ExampleShapes.rst
+   ExampleMeshSDF.rst
+   ExampleCSGUnion.rst
+   ExamplePackedSpheres.rst
+   ExampleRandomCity.rst
+   ExampleOctreeBoundingVolume.rst
+   ThirdParty.rst
+
+Contributing and testing
+************************
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Contributing and testing
+   :hidden:
+
+   Contributing.rst
+   TestingLocally.rst
+   ContinuousIntegration.rst
+   ContributionGuidelines.rst
 
 .. toctree::
    :maxdepth: 3
    :caption: References
-   :hidden:	     
+   :hidden:
 
-   ZZReferences.rst      
+   ZZReferences.rst

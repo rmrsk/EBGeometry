@@ -3,7 +3,7 @@
 \usepackage{graphicx,color,tikz,pgfplots}
 \usepackage[paperwidth=14.5cm,paperheight=6.6cm,lmargin=0in,rmargin=0in,tmargin=0.in,bmargin=0.in]{geometry}
 \usepackage{bm}
-\usetikzlibrary{arrows,shadings,shapes.arrows,decorations.pathreplacing,calc, positioning}
+\usetikzlibrary{arrows,shadings,shapes.arrows,decorations.pathreplacing,calc, positioning, shadows}
 \usepgfplotslibrary{fillbetween}
 
 \pgfplotsset{
@@ -22,8 +22,8 @@
 
 \tikzset{
   edge/.style={draw=black},
-  tree/.style={thick, draw=black, solid},
-  bvh/.style={draw=black, minimum width=5mm, minimum height=5mm, rectangle, very thick},
+  tree/.style={thick, draw=black, solid,->},
+  bvh/.style={draw=black, minimum width=7mm, minimum height=7mm, rectangle, very thick,fill=white,drop shadow, rounded corners=5pt},
   vertex/.style={circle, inner sep=0pt, minimum width=4pt, draw=black, fill=white, node contents={}},
   point/.style={circle, inner sep=0pt, minimum width=6pt, thick, draw=black, fill=white},
   root/.style={ultra thick, densely dashed, draw=black},
@@ -34,6 +34,7 @@
 }
 
 \begin{document}
+\nopagecolor
 \centering
 \begin{tikzpicture}
 
@@ -70,7 +71,7 @@
     \draw[edge] (v9)--(v5);
     \draw[edge] (v9)--(v7);
 
-    \node[bvh, alias=ROOT] at (3.5\dx, 1.4\dx) {};
+    \node[bvh, alias=ROOT] at (4.0\dx, 2.0\dx) {};
     \node[bvh, alias=subtree, below right=0.6\dx and 0.3\dx of ROOT] {};
     \node[bvh, alias=P, below left=0.6\dx and 0.3\dx of ROOT] {P};
     \node[bvh, alias=L, below left=0.6\dx and 0.3\dx of P] {A};

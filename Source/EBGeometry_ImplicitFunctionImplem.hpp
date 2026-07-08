@@ -1,29 +1,41 @@
-/* EBGeometry
- * Copyright © 2023 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
+// SPDX-FileCopyrightText: 2023 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * @file   EBGeometry_ImplicitFunctionImplem.hpp
+ * @brief  Implementation of EBGeometry_ImplicitFunction.hpp
+ * @author Robert Marskar
  */
 
-/*!
-  @file   EBGeometry_ImplicitFunctionImplem.hpp
-  @brief  Implementation of EBGeometry_ImplicitFunction.hpp
-  @author Robert Marskar
-*/
-
-#ifndef EBGeometry_ImplicitFunctionImplem
-#define EBGeometry_ImplicitFunctionImplem
+#ifndef EBGEOMETRY_IMPLICITFUNCTIONIMPLEM_HPP
+#define EBGEOMETRY_IMPLICITFUNCTIONIMPLEM_HPP
 
 // Std includes
+#include <cmath>
+#include <cstddef>
+#include <iostream>
+#include <memory>
+#include <string>
 #include <tuple>
+#include <vector>
 
 // Our includes
-#include "EBGeometry_Octree.hpp"
 #include "EBGeometry_ImplicitFunction.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+#include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Octree.hpp"
+#include "EBGeometry_Vec.hpp"
+
+namespace EBGeometry {
 
 template <class T>
 T
 ImplicitFunction<T>::operator()(const Vec3T<T>& a_point) const noexcept
 {
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
   return this->value(a_point);
 }
 
@@ -33,8 +45,16 @@ BV
 ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initialLowCorner,
                                                      const Vec3T<T>&    a_initialHighCorner,
                                                      const unsigned int a_maxTreeDepth,
-                                                     const T&           a_safetyFactor) const noexcept
+                                                     const T&           a_safetyFactor) const
 {
+  EBGEOMETRY_EXPECT(std::isfinite(a_initialLowCorner[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_initialLowCorner[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_initialLowCorner[2]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_initialHighCorner[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_initialHighCorner[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_initialHighCorner[2]));
+  EBGEOMETRY_EXPECT(a_safetyFactor >= T(0));
+
   using namespace Octree;
 
   // TLDR: This routine computes a bounding volume using octree subdivision of the implicit function surface. This code
@@ -58,7 +78,7 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
     const auto containsIntersection = std::get<3>(a_node.getMetaData());
     const auto nodeLevel            = std::get<2>(a_node.getMetaData());
 
-    return (nodeLevel >= a_maxTreeDepth) || !containsIntersection;
+    return containsIntersection && (nodeLevel < a_maxTreeDepth);
   };
 
   // Update meta-information for the leaf node. This updates the two corners of the node, the node level, and
@@ -88,15 +108,13 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
     const Vec3 center = 0.5 * (loCorner + hiCorner);
     const Vec3 dx     = 0.5 * (hiCorner - loCorner);
 
-    intersection = std::abs(this->value(center)) <= (1.0 + a_safetyFactor) * dx.length();
+    intersection = std::abs(this->value(center)) <= (T(1.0) + a_safetyFactor) * dx.length();
 
     return meta;
   };
 
   // Data builder for leaf nodes. Our nodes don't contain data so return a null pointer instead.
-  auto dataBuild = [](const OctantIndex& a_index, const std::shared_ptr<Data>& a_parentData) -> std::shared_ptr<Data> {
-    return nullptr;
-  };
+  auto dataBuild = [](const OctantIndex&, const std::shared_ptr<Data>&) -> std::shared_ptr<Data> { return nullptr; };
 
   // Initialize the root node and build the octree.
   auto root = std::make_shared<Node>();
@@ -109,7 +127,7 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
   std::get<0>(metaRoot) = a_initialLowCorner;
   std::get<1>(metaRoot) = a_initialHighCorner;
   std::get<2>(metaRoot) = 0;
-  std::get<3>(metaRoot) = std::abs(this->value(initialCenter)) <= (1.0 + a_safetyFactor) * initialDx.length();
+  std::get<3>(metaRoot) = std::abs(this->value(initialCenter)) <= (T(1.0) + a_safetyFactor) * initialDx.length();
 
   std::vector<Vec3> vertices;
 
@@ -119,13 +137,13 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
     std::cerr << baseError + "'a_initialLowCorner >= a_initialHighCorner'\n";
 
     vertices.emplace_back(-Vec3::max());
-    vertices.emplace_back(Vec3::max());
+    vertices.emplace_back(+Vec3::max());
   }
   else if (!(std::get<3>(metaRoot))) {
     std::cerr << baseError + "'input volume does not contain surface.'\n";
 
     vertices.emplace_back(-Vec3::max());
-    vertices.emplace_back(Vec3::max());
+    vertices.emplace_back(+Vec3::max());
   }
   else {
     root->buildBreadthFirst(splitNode, metaBuild, dataBuild);
@@ -160,6 +178,6 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
   return BV(vertices);
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

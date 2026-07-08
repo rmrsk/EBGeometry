@@ -1,35 +1,43 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * @file   EBGeometry_ParserImplem.hpp
+ * @brief  Implementation of EBGeometry_Parser.hpp
+ * @author Robert Marskar
  */
 
-/*!
-  @file   EBGeometry_ParserImplem.hpp
-  @brief  Implementation of EBGeometry_Parser.hpp
-  @author Robert Marskar
-*/
-
-#ifndef EBGeometry_ParserImplem
-#define EBGeometry_ParserImplem
+#ifndef EBGEOMETRY_PARSERIMPLEM_HPP
+#define EBGEOMETRY_PARSERIMPLEM_HPP
 
 // Std includes
-#include <iostream>
-#include <fstream>
-#include <iterator>
-#include <sstream>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <map>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 // Our includes
 #include "EBGeometry_Parser.hpp"
 #include "EBGeometry_Soup.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 inline Parser::FileType
-Parser::getFileType(const std::string a_filename) noexcept
+Parser::getFileType(const std::string& a_filename) noexcept
 {
   auto ft = Parser::FileType::Unsupported;
 
-  const std::string ext = a_filename.substr(a_filename.find_last_of(".") + 1);
+  const std::string ext = a_filename.substr(a_filename.find_last_of('.') + 1);
 
   if (ext == "stl" || ext == "STL") {
     ft = Parser::FileType::STL;
@@ -40,12 +48,15 @@ Parser::getFileType(const std::string a_filename) noexcept
   else if (ext == "vtk" || ext == "VTK") {
     ft = Parser::FileType::VTK;
   }
+  else if (ext == "obj" || ext == "OBJ") {
+    ft = Parser::FileType::OBJ;
+  }
 
   return ft;
 }
 
 inline static Parser::Encoding
-Parser::getFileEncoding(const std::string a_filename) noexcept
+Parser::getFileEncoding(const std::string& a_filename) noexcept
 {
   Parser::Encoding encoding = Parser::Encoding::Unknown;
 
@@ -62,7 +73,7 @@ Parser::getFileEncoding(const std::string a_filename) noexcept
       std::string buffer(chars, static_cast<size_t>(is.gcount()));
       std::transform(buffer.begin(), buffer.end(), buffer.begin(), ::tolower);
 
-      if (buffer.find("solid") != std::string::npos && buffer.find("\n") != std::string::npos &&
+      if (buffer.find("solid") != std::string::npos && buffer.find('\n') != std::string::npos &&
           buffer.find("facet") != std::string::npos && buffer.find("normal") != std::string::npos) {
 
         encoding = Parser::Encoding::ASCII;
@@ -115,7 +126,6 @@ Parser::getFileEncoding(const std::string a_filename) noexcept
 
       std::string line;
       std::string str1;
-      std::string str2;
 
       // Read first line (version identifier)
       std::getline(is, line);
@@ -139,6 +149,12 @@ Parser::getFileEncoding(const std::string a_filename) noexcept
 
     break;
   }
+  case Parser::FileType::OBJ: {
+    // Wavefront OBJ is a plain-text (ASCII) format.
+    encoding = Parser::Encoding::ASCII;
+
+    break;
+  }
   default: {
     std::cerr << "Parser::getFileEncoding - file type unsupported for '" + a_filename + "'\n";
 
@@ -150,13 +166,14 @@ Parser::getFileEncoding(const std::string a_filename) noexcept
 }
 
 template <typename T>
-STL<T>
-Parser::readSTL(const std::string& a_filename) noexcept
+[[nodiscard]] STL<T>
+Parser::readSTL(const std::string& a_filename)
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readSTL requires T to be a floating-point type");
   STL<T> stl(a_filename);
 
   // Storage for vertices and facets from the STL object. Note that we do not care about the triangle normals when
-  // raeding the file since they are always recalculated within EBGeometry.
+  // reading the file since they are always recalculated within EBGeometry.
   std::vector<Vec3T<T>>&            vertices = stl.getVertexCoordinates();
   std::vector<std::vector<size_t>>& facets   = stl.getFacets();
 
@@ -207,7 +224,7 @@ Parser::readSTL(const std::string& a_filename) noexcept
         ss >> str;
 
         if (str == "facet") {
-          facets.emplace_back(std::vector<size_t>());
+          facets.emplace_back();
         }
         else if (str == "vertex") {
           T x;
@@ -283,7 +300,7 @@ Parser::readSTL(const std::string& a_filename) noexcept
         memcpy(&y, ptr, 4);
         ptr += 4;
         memcpy(&z, ptr, 4);
-        v[0] = Vec3T<T>(x, y, z);
+        v[0] = Vec3T<T>(static_cast<T>(x), static_cast<T>(y), static_cast<T>(z));
 
         ptr = v2;
         memcpy(&x, ptr, 4);
@@ -291,7 +308,7 @@ Parser::readSTL(const std::string& a_filename) noexcept
         memcpy(&y, ptr, 4);
         ptr += 4;
         memcpy(&z, ptr, 4);
-        v[1] = Vec3T<T>(x, y, z);
+        v[1] = Vec3T<T>(static_cast<T>(x), static_cast<T>(y), static_cast<T>(z));
 
         ptr = v3;
         memcpy(&x, ptr, 4);
@@ -299,7 +316,7 @@ Parser::readSTL(const std::string& a_filename) noexcept
         memcpy(&y, ptr, 4);
         ptr += 4;
         memcpy(&z, ptr, 4);
-        v[2] = Vec3T<T>(x, y, z);
+        v[2] = Vec3T<T>(static_cast<T>(x), static_cast<T>(y), static_cast<T>(z));
 
         memcpy(&id, &att, 2);
 
@@ -312,8 +329,8 @@ Parser::readSTL(const std::string& a_filename) noexcept
 
         // Insert a new facet.
         std::vector<size_t> curFacet;
-        for (size_t j = 0; j < 3; j++) {
-          objectVertices.emplace_back(v[j]);
+        for (auto& j : v) {
+          objectVertices.emplace_back(j);
           curFacet.emplace_back(objectVertices.size() - 1);
         }
 
@@ -340,11 +357,13 @@ Parser::readSTL(const std::string& a_filename) noexcept
 }
 
 template <typename T>
-std::vector<STL<T>>
-Parser::readSTL(const std::vector<std::string>& a_filenames) noexcept
+[[nodiscard]] std::vector<STL<T>>
+Parser::readSTL(const std::vector<std::string>& a_filenames)
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readSTL requires T to be a floating-point type");
   std::vector<STL<T>> stl;
 
+  stl.reserve(a_filenames.size());
   for (const auto& f : a_filenames) {
     stl.emplace_back(Parser::readSTL<T>(f));
   }
@@ -353,9 +372,10 @@ Parser::readSTL(const std::vector<std::string>& a_filenames) noexcept
 }
 
 template <typename T>
-PLY<T>
-Parser::readPLY(const std::string& a_filename) noexcept
+[[nodiscard]] PLY<T>
+Parser::readPLY(const std::string& a_filename)
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readPLY requires T to be a floating-point type");
   PLY<T> ply(a_filename);
 
   const Parser::Encoding encoding = Parser::getFileEncoding(a_filename);
@@ -811,7 +831,7 @@ Parser::readPLY(const std::string& a_filename) noexcept
         for (size_t i = 0; i < facePropertyNames.size(); i++) {
           if (facePropertyTypes[i] == "list") {
             // Read list property
-            size_t numIndices = readBinarySizeT(faceListSizeTypes[i]);
+            const size_t numIndices = readBinarySizeT(faceListSizeTypes[i]);
 
             faceIndices.resize(numIndices);
             for (size_t j = 0; j < numIndices; j++) {
@@ -869,11 +889,13 @@ Parser::readPLY(const std::string& a_filename) noexcept
 }
 
 template <typename T>
-std::vector<PLY<T>>
-Parser::readPLY(const std::vector<std::string>& a_filenames) noexcept
+[[nodiscard]] std::vector<PLY<T>>
+Parser::readPLY(const std::vector<std::string>& a_filenames)
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readPLY requires T to be a floating-point type");
   std::vector<PLY<T>> ply;
 
+  ply.reserve(a_filenames.size());
   for (const auto& f : a_filenames) {
     ply.emplace_back(Parser::readPLY<T>(f));
   }
@@ -882,9 +904,10 @@ Parser::readPLY(const std::vector<std::string>& a_filenames) noexcept
 }
 
 template <typename T>
-VTK<T>
-Parser::readVTK(const std::string& a_filename) noexcept
+[[nodiscard]] VTK<T>
+Parser::readVTK(const std::string& a_filename)
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readVTK requires T to be a floating-point type");
   VTK<T> vtk(a_filename);
 
   const Parser::Encoding encoding = Parser::getFileEncoding(a_filename);
@@ -934,7 +957,7 @@ Parser::readVTK(const std::string& a_filename) noexcept
           facets.reserve(numPolygons);
 
           // Check if this is the modern format with OFFSETS/CONNECTIVITY
-          std::streampos pos = filestream.tellg();
+          const std::streampos pos = filestream.tellg();
           std::getline(filestream, line); // Read next line after POLYGONS
 
           std::stringstream checkStream(line);
@@ -989,8 +1012,8 @@ Parser::readVTK(const std::string& a_filename) noexcept
             // For polygon i: vertices are connectivity[offsets[i]] to connectivity[offsets[i+1]-1]
             // For the last polygon: vertices are connectivity[offsets[n-1]] to connectivity[end]
             for (size_t i = 0; i < numPolygons; i++) {
-              size_t              startIdx = offsets[i];
-              size_t              endIdx   = (i + 1 < numPolygons) ? offsets[i + 1] : connectivity.size();
+              const size_t        startIdx = offsets[i];
+              const size_t        endIdx   = (i + 1 < numPolygons) ? offsets[i + 1] : connectivity.size();
               std::vector<size_t> faceIndices;
 
               // Skip empty polygons (startIdx >= connectivity.size() or startIdx == endIdx)
@@ -1251,7 +1274,7 @@ Parser::readVTK(const std::string& a_filename) noexcept
           facets.reserve(numPolygons);
 
           // Check if this is the modern format with OFFSETS/CONNECTIVITY
-          std::streampos pos = filestream.tellg();
+          const std::streampos pos = filestream.tellg();
           std::getline(filestream, line); // Read next line
 
           std::stringstream checkStream(line);
@@ -1292,7 +1315,7 @@ Parser::readVTK(const std::string& a_filename) noexcept
 
             // In the modern VTK format, listSize on the POLYGONS line is the total
             // number of connectivity entries (not numPolygons + connectivity as in legacy).
-            size_t estimatedConnSize = listSize;
+            const size_t estimatedConnSize = listSize;
 
             std::vector<int64_t> connectivity;
             connectivity.reserve(estimatedConnSize);
@@ -1313,8 +1336,8 @@ Parser::readVTK(const std::string& a_filename) noexcept
 
             // Reconstruct facets from offsets and connectivity
             for (size_t i = 0; i < numPolygons; i++) {
-              size_t startIdx = static_cast<size_t>(offsets[i]);
-              size_t endIdx   = (i + 1 < numPolygons) ? static_cast<size_t>(offsets[i + 1]) : connectivity.size();
+              const size_t startIdx = static_cast<size_t>(offsets[i]);
+              const size_t endIdx   = (i + 1 < numPolygons) ? static_cast<size_t>(offsets[i + 1]) : connectivity.size();
               std::vector<size_t> faceIndices;
 
               // Skip empty polygons
@@ -1337,13 +1360,13 @@ Parser::readVTK(const std::string& a_filename) noexcept
             filestream.seekg(pos);
 
             for (size_t i = 0; i < numPolygons; i++) {
-              int32_t numIndices = readBinaryInt();
+              const int32_t numIndices = readBinaryInt();
 
               std::vector<size_t> faceIndices;
               faceIndices.reserve(numIndices);
 
               for (int32_t j = 0; j < numIndices; j++) {
-                int32_t idx = readBinaryInt();
+                const int32_t idx = readBinaryInt();
                 faceIndices.emplace_back(static_cast<size_t>(idx));
               }
               facets.emplace_back(faceIndices);
@@ -1417,7 +1440,7 @@ Parser::readVTK(const std::string& a_filename) noexcept
               ss >> arrayName >> dataType;
 
               const size_t bytesPerElem = (dataType == "double") ? 8 : 4;
-              filestream.seekg(numData * 3 * bytesPerElem, std::ios_base::cur);
+              filestream.seekg(static_cast<std::streamoff>(numData * 3 * bytesPerElem), std::ios_base::cur);
               filestream.get(); // consume trailing '\n'
             }
             else if (dataKeyword == "FIELD") {
@@ -1442,7 +1465,7 @@ Parser::readVTK(const std::string& a_filename) noexcept
                     vtk.setPointDataScalars(arrayName, scalarData);
                   }
                   else {
-                    filestream.seekg(numComponents * numTuples * 4, std::ios_base::cur);
+                    filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * 4), std::ios_base::cur);
                   }
                 }
                 else if (dataType == "double") {
@@ -1455,7 +1478,7 @@ Parser::readVTK(const std::string& a_filename) noexcept
                     vtk.setPointDataScalars(arrayName, scalarData);
                   }
                   else {
-                    filestream.seekg(numComponents * numTuples * 8, std::ios_base::cur);
+                    filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * 8), std::ios_base::cur);
                   }
                 }
                 else if (dataType == "int") {
@@ -1468,17 +1491,17 @@ Parser::readVTK(const std::string& a_filename) noexcept
                     vtk.setPointDataScalars(arrayName, scalarData);
                   }
                   else {
-                    filestream.seekg(numComponents * numTuples * 4, std::ios_base::cur);
+                    filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * 4), std::ios_base::cur);
                   }
                 }
                 else if (dataType == "char" || dataType == "unsigned_char") {
-                  filestream.seekg(numComponents * numTuples * 1, std::ios_base::cur);
+                  filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * 1), std::ios_base::cur);
                 }
                 else if (dataType == "short" || dataType == "unsigned_short") {
-                  filestream.seekg(numComponents * numTuples * 2, std::ios_base::cur);
+                  filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * 2), std::ios_base::cur);
                 }
                 else if (dataType == "long" || dataType == "unsigned_long") {
-                  filestream.seekg(numComponents * numTuples * 8, std::ios_base::cur);
+                  filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * 8), std::ios_base::cur);
                 }
                 else {
                   std::cerr << "Parser::readVTK - Unsupported FIELD data type: " << dataType << "\n";
@@ -1582,7 +1605,8 @@ Parser::readVTK(const std::string& a_filename) noexcept
                   bytesPerElem = 8;
 
                 if (bytesPerElem > 0) {
-                  filestream.seekg(numComponents * numTuples * bytesPerElem, std::ios_base::cur);
+                  filestream.seekg(static_cast<std::streamoff>(numComponents * numTuples * bytesPerElem),
+                                   std::ios_base::cur);
                 }
                 else {
                   std::cerr << "Parser::readVTK - Unsupported CELL_DATA FIELD type: " << dataType << "\n";
@@ -1620,11 +1644,13 @@ Parser::readVTK(const std::string& a_filename) noexcept
 }
 
 template <typename T>
-std::vector<VTK<T>>
-Parser::readVTK(const std::vector<std::string>& a_filenames) noexcept
+[[nodiscard]] std::vector<VTK<T>>
+Parser::readVTK(const std::vector<std::string>& a_filenames)
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readVTK requires T to be a floating-point type");
   std::vector<VTK<T>> vtk;
 
+  vtk.reserve(a_filenames.size());
   for (const auto& f : a_filenames) {
     vtk.emplace_back(Parser::readVTK<T>(f));
   }
@@ -1632,33 +1658,130 @@ Parser::readVTK(const std::vector<std::string>& a_filenames) noexcept
   return vtk;
 }
 
-template <typename T, typename Meta>
-inline std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-Parser::readIntoDCEL(const std::string a_filename) noexcept
+template <typename T>
+[[nodiscard]] OBJ<T>
+Parser::readOBJ(const std::string& a_filename)
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readOBJ requires T to be a floating-point type");
+  OBJ<T> obj(a_filename);
+
+  // OBJ stores a single global vertex table; faces reference it by (1-based) index. Texture/normal indices are
+  // discarded since EBGeometry recomputes vertex normals when building the DCEL mesh.
+  std::vector<Vec3T<T>>&            vertices = obj.getVertexCoordinates();
+  std::vector<std::vector<size_t>>& facets   = obj.getFacets();
+
+  vertices.resize(0);
+  facets.resize(0);
+
+  std::ifstream filestream(a_filename);
+
+  if (filestream.is_open()) {
+    std::string line;
+
+    while (std::getline(filestream, line)) {
+      std::stringstream sstream(line);
+      std::string       keyword;
+      sstream >> keyword;
+
+      if (keyword == "v") {
+        // Vertex record: v x y z [w]. The optional w coordinate is ignored.
+        T x;
+        T y;
+        T z;
+
+        sstream >> x >> y >> z;
+
+        vertices.emplace_back(Vec3T<T>(x, y, z));
+      }
+      else if (keyword == "f") {
+        // Face record: f t0 t1 t2 ..., where each token ti is 'v', 'v/vt', 'v/vt/vn', or 'v//vn'. Only the
+        // vertex index is used. OBJ indices are 1-based; negative indices count back from the current vertex list.
+        std::vector<size_t> facet;
+        std::string         token;
+
+        while (sstream >> token) {
+          std::stringstream tokstream(token.substr(0, token.find('/')));
+
+          long idx = 0;
+          tokstream >> idx;
+
+          if (tokstream.fail()) {
+            continue;
+          }
+
+          if (idx > 0) {
+            facet.emplace_back(static_cast<size_t>(idx - 1));
+          }
+          else if (idx < 0) {
+            facet.emplace_back(static_cast<size_t>(static_cast<long>(vertices.size()) + idx));
+          }
+        }
+
+        // Skip degenerate faces (points/lines); polygons with three or more vertices are supported.
+        if (facet.size() >= 3) {
+          facets.emplace_back(facet);
+        }
+      }
+      // All other records (vt, vn, vp, g, o, s, usemtl, mtllib, '#' comments, blank lines) are ignored.
+    }
+  }
+  else {
+    std::cerr << "Parser::readOBJ -- Error! Could not open file " + a_filename + "\n";
+  }
+
+  return obj;
+}
+
+template <typename T>
+[[nodiscard]] std::vector<OBJ<T>>
+Parser::readOBJ(const std::vector<std::string>& a_filenames)
+{
+  static_assert(std::is_floating_point_v<T>, "Parser::readOBJ requires T to be a floating-point type");
+  std::vector<OBJ<T>> obj;
+
+  obj.reserve(a_filenames.size());
+  for (const auto& f : a_filenames) {
+    obj.emplace_back(Parser::readOBJ<T>(f));
+  }
+
+  return obj;
+}
+
+template <typename T, typename Meta>
+[[nodiscard]] inline std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+Parser::readIntoDCEL(const std::string a_filename)
+{
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoDCEL requires T to be a floating-point type");
   auto mesh = std::make_shared<EBGeometry::DCEL::MeshT<T, Meta>>();
 
   const auto ft = Parser::getFileType(a_filename);
 
   switch (ft) {
   case Parser::FileType::STL: {
-    STL<T> stl = readSTL<T>(a_filename);
+    const STL<T> stl = readSTL<T>(a_filename);
 
     mesh = stl.template convertToDCEL<Meta>();
 
     break;
   }
   case Parser::FileType::PLY: {
-    PLY<T> ply = readPLY<T>(a_filename);
+    const PLY<T> ply = readPLY<T>(a_filename);
 
     mesh = ply.template convertToDCEL<Meta>();
 
     break;
   }
   case Parser::FileType::VTK: {
-    VTK<T> vtk = readVTK<T>(a_filename);
+    const VTK<T> vtk = readVTK<T>(a_filename);
 
     mesh = vtk.template convertToDCEL<Meta>();
+
+    break;
+  }
+  case Parser::FileType::OBJ: {
+    const OBJ<T> obj = readOBJ<T>(a_filename);
+
+    mesh = obj.template convertToDCEL<Meta>();
 
     break;
   }
@@ -1678,11 +1801,12 @@ Parser::readIntoDCEL(const std::string a_filename) noexcept
 }
 
 template <typename T, typename Meta>
-inline std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>>
-Parser::readIntoDCEL(const std::vector<std::string> a_files) noexcept
+[[nodiscard]] inline std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>>
+Parser::readIntoDCEL(const std::vector<std::string>& a_files)
 {
   std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>> objects;
 
+  objects.reserve(a_files.size());
   for (const auto& file : a_files) {
     objects.emplace_back(Parser::readIntoDCEL<T, Meta>(file));
   }
@@ -1691,20 +1815,21 @@ Parser::readIntoDCEL(const std::vector<std::string> a_files) noexcept
 }
 
 template <typename T, typename Meta>
-inline std::shared_ptr<MeshSDF<T, Meta>>
-Parser::readIntoMesh(const std::string a_filename) noexcept
+[[nodiscard]] inline std::shared_ptr<FlatMeshSDF<T, Meta>>
+Parser::readIntoMesh(const std::string a_filename)
 {
   const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename);
 
-  return std::make_shared<MeshSDF<T, Meta>>(mesh);
+  return std::make_shared<FlatMeshSDF<T, Meta>>(mesh);
 }
 
 template <typename T, typename Meta>
-inline std::vector<std::shared_ptr<MeshSDF<T, Meta>>>
-Parser::readIntoMesh(const std::vector<std::string> a_files) noexcept
+[[nodiscard]] inline std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>>
+Parser::readIntoMesh(const std::vector<std::string>& a_files)
 {
-  std::vector<std::shared_ptr<MeshSDF<T, Meta>>> implicitFunctions;
+  std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>> implicitFunctions;
 
+  implicitFunctions.reserve(a_files.size());
   for (const auto& file : a_files) {
     implicitFunctions.emplace_back(Parser::readIntoMesh<T, Meta>(file));
   }
@@ -1713,8 +1838,8 @@ Parser::readIntoMesh(const std::vector<std::string> a_files) noexcept
 }
 
 template <typename T, typename Meta>
-std::vector<std::shared_ptr<Triangle<T, Meta>>>
-Parser::readIntoTriangles(const std::string a_filename) noexcept
+[[nodiscard]] std::vector<std::shared_ptr<Triangle<T, Meta>>>
+Parser::readIntoTriangles(const std::string a_filename)
 {
   const auto mesh = Parser::readIntoDCEL<T, Meta>(a_filename);
 
@@ -1750,11 +1875,12 @@ Parser::readIntoTriangles(const std::string a_filename) noexcept
 }
 
 template <typename T, typename Meta>
-std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
-Parser::readIntoTriangles(const std::vector<std::string> a_files) noexcept
+[[nodiscard]] std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
+Parser::readIntoTriangles(const std::vector<std::string>& a_files)
 {
   std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>> triangles;
 
+  triangles.reserve(a_files.size());
   for (const auto& file : a_files) {
     triangles.emplace_back(Parser::readIntoTriangles<T, Meta>(file));
   }
@@ -1762,72 +1888,64 @@ Parser::readIntoTriangles(const std::vector<std::string> a_files) noexcept
   return triangles;
 }
 
-template <typename T, typename Meta, typename BV, size_t K>
-inline std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>
-Parser::readIntoFullBVH(const std::string a_filename) noexcept
+template <typename T, typename Meta, size_t K, size_t W>
+[[nodiscard]] inline std::shared_ptr<TriMeshSDF<T, Meta, K, W>>
+Parser::readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafGroups, const BVH::Build a_build)
 {
-  const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
-
-  return std::make_shared<FastMeshSDF<T, Meta, BV, K>>(mesh);
-}
-
-template <typename T, typename Meta, typename BV, size_t K>
-inline std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>>
-Parser::readIntoFullBVH(const std::vector<std::string> a_files) noexcept
-{
-  std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>> implicitFunctions;
-
-  for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoFullBVH<T, Meta, BV, K>(file));
-  }
-
-  return implicitFunctions;
-}
-
-template <typename T, typename Meta, typename BV, size_t K>
-inline std::shared_ptr<FastTriMeshSDF<T, Meta, BV, K>>
-Parser::readIntoTriangleBVH(const std::string a_filename) noexcept
-{
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
+  static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
+  static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
   const auto mesh = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename);
 
-  return std::make_shared<FastTriMeshSDF<T, Meta, BV, K>>(mesh);
+  return std::make_shared<TriMeshSDF<T, Meta, K, W>>(mesh, a_build, a_maxLeafGroups);
 }
 
-template <typename T, typename Meta, typename BV, size_t K>
-inline std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>>
-Parser::readIntoTriangleBVH(const std::vector<std::string> a_files) noexcept
+template <typename T, typename Meta, size_t K, size_t W>
+[[nodiscard]] inline std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>>
+Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
+                            const size_t                    a_maxLeafGroups,
+                            const BVH::Build                a_build)
 {
-  std::vector<std::shared_ptr<FastTriMeshSDF<T, Meta, BV, K>>> implicitFunctions;
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
+  static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
+  static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
+  std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>> implicitFunctions;
 
+  implicitFunctions.reserve(a_files.size());
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoTriangleBVH<T, Meta, BV, K>(file));
+    implicitFunctions.emplace_back(Parser::readIntoTriangleBVH<T, Meta, K, W>(file, a_maxLeafGroups, a_build));
   }
 
   return implicitFunctions;
 }
 
-template <typename T, typename Meta, typename BV, size_t K>
-inline std::shared_ptr<FastCompactMeshSDF<T, Meta, BV, K>>
-Parser::readIntoLinearBVH(const std::string a_filename) noexcept
+template <typename T, typename Meta, size_t K>
+[[nodiscard]] inline std::shared_ptr<MeshSDF<T, Meta, K>>
+Parser::readIntoPackedBVH(const std::string a_filename, const BVH::Build a_build)
 {
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
+  static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
   const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(a_filename);
 
-  return std::make_shared<FastCompactMeshSDF<T, Meta, BV, K>>(mesh);
+  return std::make_shared<MeshSDF<T, Meta, K>>(mesh, a_build);
 }
 
-template <typename T, typename Meta, typename BV, size_t K>
-inline std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, BV, K>>>
-Parser::readIntoLinearBVH(const std::vector<std::string> a_files) noexcept
+template <typename T, typename Meta, size_t K>
+[[nodiscard]] inline std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>>
+Parser::readIntoPackedBVH(const std::vector<std::string>& a_files, const BVH::Build a_build)
 {
-  std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, BV, K>>> implicitFunctions;
+  static_assert(std::is_floating_point_v<T>, "Parser::readIntoPackedBVH requires T to be a floating-point type");
+  static_assert(K > 0, "Parser::readIntoPackedBVH requires K > 0");
+  std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>> implicitFunctions;
 
+  implicitFunctions.reserve(a_files.size());
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoLinearBVH<T, Meta, BV, K>(file));
+    implicitFunctions.emplace_back(Parser::readIntoPackedBVH<T, Meta, K>(file, a_build));
   }
 
   return implicitFunctions;
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

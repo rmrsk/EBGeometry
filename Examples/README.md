@@ -1,9 +1,16 @@
-This folder contains some basic and advanced examples of using EBGeometry.
+This folder contains examples of using EBGeometry on its own (header-only, C++17, no
+third-party dependencies):
 
-* `AMReX_DCEL` For using EBGeometry DCEL functionality with AMReX.
-* `AMReX_Shapes` For using EBGeometry analytic signed distance functions with AMReX.
-* `Chombo3_DCEL` For using EBGeometry DCEL functionality with Chombo3.
-* `Chombo3_Shapes` For using EBGeometry analytic signed distance functions with Chombo3.
-* `EBGeometry_DCEL` For showing how to use the DCEL functionality in EBGeometry.
-* `EBGeometry_Union` For setting up multi-object scenes with standard and optimized unions.
-* `Scenes` Contains various scenes/surface grids. 
+* `CSGUnion` For merging a surface mesh with an analytic sphere using a BVH-accelerated CSG union.
+* `MeshSDF` For reading a surface mesh and evaluating it with the DCEL/BVH signed-distance representations.
+* `OctreeBoundingVolume` For using the octree bounding-volume functionality.
+* `PackedSpheres` For a scene composed of many analytic spheres.
+* `RandomCity` For procedurally building a scene of many objects.
+* `Shapes` For using the analytic signed distance functions.
+
+Examples that couple EBGeometry to a third-party application code (AMReX, Chombo) live under
+[`ThirdParty/`](../ThirdParty/README.md) at the repository root instead.
+
+The mesh files used by the examples come from the [common-3d-test-models](https://github.com/alecjacobson/common-3d-test-models)
+git submodule (`common-3d-test-models/`) at the repository root. Clone the repository with `--recurse-submodules` (or run
+`git submodule update --init --recursive`); see the "Building and using" documentation for details.

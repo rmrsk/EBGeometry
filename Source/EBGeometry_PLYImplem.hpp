@@ -1,39 +1,35 @@
-/* EBGeometry
- * Copyright © 2026 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * @file   EBGeometry_PLYImplem.hpp
+ * @brief  Implementation of EBGeometry_PLY.hpp
+ * @author Robert Marskar
  */
 
-#ifndef EBGeometry_PLYImplem
-#define EBGeometry_PLYImplem
+#ifndef EBGEOMETRY_PLYIMPLEM_HPP
+#define EBGEOMETRY_PLYIMPLEM_HPP
+
+// Std includes
+#include <cstddef>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 // Our includes
+#include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_PLY.hpp"
 #include "EBGeometry_Soup.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 template <typename T>
-PLY<T>::PLY() noexcept
-{
-  m_vertexCoordinates.resize(0);
-  m_facets.resize(0);
-  m_vertexProperties.clear();
-  m_faceProperties.clear();
-  m_id = std::string();
-}
-
-template <typename T>
-PLY<T>::PLY(const std::string a_id) noexcept : PLY()
+PLY<T>::PLY(const std::string& a_id) noexcept : PLY()
 {
   m_id = a_id;
-}
-
-template <typename T>
-PLY<T>::~PLY() noexcept
-{
-  m_vertexCoordinates.resize(0);
-  m_facets.resize(0);
-  m_vertexProperties.clear();
-  m_faceProperties.clear();
 }
 
 template <typename T>
@@ -108,16 +104,16 @@ PLY<T>::getFaceProperties(const std::string a_property) const
 
 template <typename T>
 void
-PLY<T>::setVertexProperties(const std::string a_property, const std::vector<T>& a_data)
+PLY<T>::setVertexProperties(const std::string a_property, std::vector<T> a_data)
 {
-  m_vertexProperties[a_property] = a_data;
+  m_vertexProperties[a_property] = std::move(a_data);
 }
 
 template <typename T>
 void
-PLY<T>::setFaceProperties(const std::string a_property, const std::vector<T>& a_data)
+PLY<T>::setFaceProperties(const std::string a_property, std::vector<T> a_data)
 {
-  m_faceProperties[a_property] = a_data;
+  m_faceProperties[a_property] = std::move(a_data);
 }
 
 template <typename T>
@@ -141,6 +137,6 @@ PLY<T>::convertToDCEL() const noexcept
   return mesh;
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

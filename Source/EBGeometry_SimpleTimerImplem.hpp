@@ -1,45 +1,47 @@
-/* chombo-discharge
- * Copyright © 2024 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the chombo-discharge root directory.
+// SPDX-FileCopyrightText: 2024 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * @file   EBGeometry_SimpleTimerImplem.hpp
+ * @brief  Implementation of EBGeometry_SimpleTimer.hpp
+ * @author Robert Marskar
  */
 
-/*!
-  @file   EBGeometry_SimpleTimerImplem.hpp
-  @brief  Implementation of EBGeometry_SimpleTimer.hpp
-  @author Robert Marskar
-*/
+#ifndef EBGEOMETRY_SIMPLETIMERIMPLEM_HPP
+#define EBGEOMETRY_SIMPLETIMERIMPLEM_HPP
 
-#ifndef EBGeometry_SimpleTimerImplem
-#define EBGeometry_SimpleTimerImplem
+// Std includes
+#include <chrono>
 
 // Our includes
 #include "EBGeometry_SimpleTimer.hpp"
 
 namespace EBGeometry {
 
-  inline SimpleTimer::SimpleTimer() noexcept
-  {
-    this->start();
-    this->stop();
-  }
+inline SimpleTimer::SimpleTimer() noexcept
+{
+  this->start();
+  this->stop();
+}
 
-  inline void
-  SimpleTimer::start() noexcept
-  {
-    m_start = Clock::now();
-  }
+inline void
+SimpleTimer::start() noexcept
+{
+  m_start = Clock::now();
+}
 
-  inline void
-  SimpleTimer::stop() noexcept
-  {
-    m_stop = Clock::now();
-  }
+inline void
+SimpleTimer::stop() noexcept
+{
+  m_stop = Clock::now();
+}
 
-  inline double
-  SimpleTimer::seconds() const noexcept
-  {
-    return std::chrono::duration_cast<std::chrono::duration<double>>(m_stop - m_start).count();
-  }
+inline double
+SimpleTimer::seconds() const noexcept
+{
+  return std::chrono::duration_cast<std::chrono::duration<double>>(m_stop - m_start).count();
+}
 
 } // namespace EBGeometry
 

@@ -1,39 +1,35 @@
-/* EBGeometry
- * Copyright © 2026 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * @file   EBGeometry_VTKImplem.hpp
+ * @brief  Implementation of EBGeometry_VTK.hpp
+ * @author Robert Marskar
  */
 
-#ifndef EBGeometry_VTKImplem
-#define EBGeometry_VTKImplem
+#ifndef EBGEOMETRY_VTKIMPLEM_HPP
+#define EBGEOMETRY_VTKIMPLEM_HPP
+
+// Std includes
+#include <cstddef>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 // Our includes
-#include "EBGeometry_VTK.hpp"
+#include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_Soup.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+#include "EBGeometry_VTK.hpp"
+
+namespace EBGeometry {
 
 template <typename T>
-VTK<T>::VTK() noexcept
-{
-  m_vertexCoordinates.resize(0);
-  m_facets.resize(0);
-  m_pointDataScalars.clear();
-  m_cellDataScalars.clear();
-  m_id = std::string();
-}
-
-template <typename T>
-VTK<T>::VTK(const std::string a_id) noexcept : VTK()
+VTK<T>::VTK(const std::string& a_id) noexcept : VTK()
 {
   m_id = a_id;
-}
-
-template <typename T>
-VTK<T>::~VTK() noexcept
-{
-  m_vertexCoordinates.resize(0);
-  m_facets.resize(0);
-  m_pointDataScalars.clear();
-  m_cellDataScalars.clear();
 }
 
 template <typename T>
@@ -108,16 +104,16 @@ VTK<T>::getCellDataScalars(const std::string a_name) const
 
 template <typename T>
 void
-VTK<T>::setPointDataScalars(const std::string a_name, const std::vector<T>& a_data)
+VTK<T>::setPointDataScalars(const std::string a_name, std::vector<T> a_data)
 {
-  m_pointDataScalars[a_name] = a_data;
+  m_pointDataScalars[a_name] = std::move(a_data);
 }
 
 template <typename T>
 void
-VTK<T>::setCellDataScalars(const std::string a_name, const std::vector<T>& a_data)
+VTK<T>::setCellDataScalars(const std::string a_name, std::vector<T> a_data)
 {
-  m_cellDataScalars[a_name] = a_data;
+  m_cellDataScalars[a_name] = std::move(a_data);
 }
 
 template <typename T>
@@ -141,6 +137,6 @@ VTK<T>::convertToDCEL() const noexcept
   return mesh;
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

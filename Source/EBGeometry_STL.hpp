@@ -1,111 +1,154 @@
-/* EBGeometry
- * Copyright © 2026 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * @file   EBGeometry_STL.hpp
+ * @brief  Declaration of a class for storing raw STL (stereolithography) file contents.
+ * @author Robert Marskar
  */
 
-#ifndef EBGeometry_STL
-#define EBGeometry_STL
+#ifndef EBGEOMETRY_STL_HPP
+#define EBGEOMETRY_STL_HPP
 
 // Std includes
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <type_traits>
 #include <vector>
-#include <map>
 
 // Our includes
+#include "EBGeometry_DCEL.hpp"
 #include "EBGeometry_Vec.hpp"
-#include "EBGeometry_DCEL_Mesh.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
 
-/*!
-  @brief Class for storing contents of STL files.
-  @details This structure is simply used as conversion utility between STL files and various EBGeometry objects (triangle soups, DCEL meshes, etc).
-  @note T is the precision used for storing the mesh.
-*/
+namespace EBGeometry {
+
+/**
+ * @brief Class for storing contents of STL files.
+ * @details This structure is simply used as conversion utility between STL files and various EBGeometry objects (triangle soups, DCEL meshes, etc).
+ * @tparam T Floating-point precision for vertex coordinates.
+ */
 template <typename T>
 class STL
 {
+  static_assert(std::is_floating_point_v<T>, "STL<T>: T must be a floating-point type");
+
 public:
-  /*!
-    @brief Default constructor. Initializes empty member data holder
-  */
-  STL() noexcept;
+  /**
+   * @brief Default constructor. Initializes empty member data holder
+   */
+  STL() noexcept = default;
 
-  /*!
-    @brief Constructor. Initializes empty vertices and facets but sets the STL ID (usually the file name
-    @param[in] a_id Identifier for STL object
-  */
-  STL(const std::string a_id) noexcept;
+  /**
+   * @brief Constructor. Initializes empty vertices and facets but sets the STL ID (usually the file name
+   * @param[in] a_id Identifier for STL object
+   */
+  STL(const std::string& a_id) noexcept;
 
-  /*!
-    @brief Destructor. Clears all data.
-  */
-  virtual ~STL() noexcept;
+  /**
+   * @brief Copy constructor.
+   * @param[in] a_other Other STL object.
+   */
+  STL(const STL& a_other) = default;
 
-  /*!
-    @brief Get the identifier for this object
-  */
-  std::string&
+  /**
+   * @brief Move constructor.
+   * @param[in, out] a_other Other STL object.
+   */
+  STL(STL&& a_other) noexcept = default;
+
+  /**
+   * @brief Copy assignment operator.
+   * @param[in] a_other Other STL object.
+   * @return Reference to (*this).
+   */
+  STL&
+  operator=(const STL& a_other) = default;
+
+  /**
+   * @brief Move assignment operator.
+   * @param[in, out] a_other Other STL object.
+   * @return Reference to (*this).
+   */
+  STL&
+  operator=(STL&& a_other) noexcept = default;
+
+  /**
+   * @brief Destructor (does nothing).
+   */
+  ~STL() noexcept = default;
+
+  /**
+   * @brief Get the identifier for this object.
+   * @return Reference to the STL object identifier.
+   */
+  [[nodiscard]] std::string&
   getID() noexcept;
 
-  /*!
-    @brief Get the identifier for this object
-  */
-  const std::string&
+  /**
+   * @brief Get the identifier for this object.
+   * @return Const reference to the STL object identifier.
+   */
+  [[nodiscard]] const std::string&
   getID() const noexcept;
 
-  /*!
-    @brief Get the vertex coordinates
-    @return m_vertexCoordinates
-  */
-  std::vector<Vec3T<T>>&
+  /**
+   * @brief Get the vertex coordinates
+   * @return m_vertexCoordinates
+   */
+  [[nodiscard]] std::vector<Vec3T<T>>&
   getVertexCoordinates() noexcept;
 
-  /*!
-    @brief Get the vertex coordinates
-    @return m_vertexCoordinates    
-  */
-  const std::vector<Vec3T<T>>&
+  /**
+   * @brief Get the vertex coordinates
+   * @return m_vertexCoordinates
+   */
+  [[nodiscard]] const std::vector<Vec3T<T>>&
   getVertexCoordinates() const noexcept;
 
-  /*!
-    @brief Get the triangle facet indices
-    @return m_facets
-  */
-  std::vector<std::vector<size_t>>&
+  /**
+   * @brief Get the triangle facet indices
+   * @return m_facets
+   */
+  [[nodiscard]] std::vector<std::vector<size_t>>&
   getFacets() noexcept;
 
-  /*!
-    @brief Get the triangle facet indices
-    @return m_facets
-  */
-  const std::vector<std::vector<size_t>>&
+  /**
+   * @brief Get the triangle facet indices
+   * @return m_facets
+   */
+  [[nodiscard]] const std::vector<std::vector<size_t>>&
   getFacets() const noexcept;
 
-  /*!
-    @brief Turn the STL mesh into a DCEL mesh.
-    @note This call does not populate any meta-data in the DCEL mesh structures. 
-  */
+  /**
+   * @brief Turn the STL mesh into a DCEL mesh.
+   * @details This call does not populate any meta-data in the DCEL mesh structures.
+   * @tparam Meta Metadata type attached to DCEL vertices, edges, and faces.
+   * @return Shared pointer to the constructed DCEL mesh.
+   */
   template <typename Meta>
-  std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+  [[nodiscard]] std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
   convertToDCEL() const noexcept;
 
 protected:
-  /*!
-    @brief STL object ID.
-  */
+  /**
+   * @brief STL object ID.
+   */
   std::string m_id;
 
-  /*!
-    @brief Vertex coordinates
-  */
+  /**
+   * @brief Vertex coordinates
+   */
   std::vector<Vec3T<T>> m_vertexCoordinates;
 
-  /*!
-    @brief Triangle facets
-  */
+  /**
+   * @brief Triangle facets
+   */
   std::vector<std::vector<size_t>> m_facets;
 };
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #include "EBGeometry_STLImplem.hpp"
 

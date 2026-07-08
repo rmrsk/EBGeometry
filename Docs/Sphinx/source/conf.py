@@ -28,8 +28,10 @@ PygmentsBridge.latex_formatter = CustomLatexFormatter
 # -- Project information -----------------------------------------------------
 
 project = 'EBGeometry'
-copyright = '2022, Robert Marskar'
+copyright = 'Robert Marskar / SINTEF Energy Research'
 author = ''
+
+html_show_copyright = False
 
 # The full version, including alpha/beta/rc tags
 #release = 'Latest'

@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Curated static-analysis set for EBGeometry (a header-only, template-heavy library).
+# Disabled checks are either intentional design here (decl/impl include cycle), unsafe in
+# headers (anonymous namespace / internal linkage), or pure style noise (use-auto, enum-size).
+---
+Checks: >
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  portability-*,
+  misc-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-branch-clone,
+  -misc-const-correctness,
+  -misc-non-private-member-variables-in-classes,
+  -misc-no-recursion,
+  -misc-header-include-cycle,
+  -misc-use-anonymous-namespace,
+  -misc-use-internal-linkage,
+  -misc-include-cleaner,
+  -misc-unused-parameters,
+  -modernize-use-trailing-return-type,
+  -modernize-avoid-c-arrays,
+  -modernize-use-auto,
+  -modernize-concat-nested-namespaces,
+  -performance-enum-size
+
+WarningsAsErrors: ''
+HeaderFilterRegex: 'EBGeometry_[A-Za-z0-9_]*\.hpp'
+FormatStyle: none
