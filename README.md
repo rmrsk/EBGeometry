@@ -4,20 +4,19 @@ EBGeometry is a header-only C++17 library for constructive solid geometry (CSG) 
 functions. It can turn surface geometries into fast, queryable signed distance functions (SDFs), 
 and manipulate them with CSG operations. 
 
-* Turns surface meshes into SDFs, via a half-edge (DCEL) mesh representation or raw triangles.
+Main features:
+
+* Turn surface meshes into SDFs, via a half-edge (DCEL) mesh representation or raw triangles.
 * Fast SDF evaluation using bounding volume hierarchies (BVHs).
-* Supports both pointer-based tree BVHs, and flattened, SIMD-accelerated packed BVHs.
+* Supports both pointer-based tree BVHs, and flattened SIMD-accelerated packed BVHs.
 * A library of analytic signed distance functions and implicit functions (spheres, boxes, and
   more)
 * Composable with transforms (translation, rotation, scaling, rounding, blending).
 * BVH-accelerated constructive solid geometry (CSG): unions, intersections, differences, and
   smooth blends, of both meshes and analytic shapes.
 * Readers for triangulated surface meshes in STL, PLY, OBJ, and VTK format.
-* Precision-templated.
-
-EBGeometry has no external dependencies -- drop `EBGeometry.hpp` into any C++17 project and
-include it. It was originally written for embedded-boundary (EB) codes like AMReX, but is useful
-as a general-purpose SDF/CSG library.
+* Drop-in precision-templated for flexible usage.
+* No external dependencies -- drop `EBGeometry.hpp` into any C++17 project and include it. 
 
 <p align="center">
    <img src="Docs/Sphinx/source/_static/example_dcel.png" width="300" alt="Signed distance field from Armadillo geometry"/>
