@@ -1,7 +1,8 @@
 ## EBGeometry
 
-EBGeometry is a header-only C++17 library for turning surface geometry into fast, queryable
-signed distance functions (SDFs).
+EBGeometry is a header-only C++17 library for constructive solid geometry (CSG) with implicit 
+functions. It can turn surface geometries into fast, queryable signed distance functions (SDFs), 
+and manipulate them with CSG operations. 
 
 * Turns surface meshes into SDFs, via a half-edge (DCEL) mesh representation or raw triangles.
 * Fast SDF evaluation using bounding volume hierarchies (BVHs).
