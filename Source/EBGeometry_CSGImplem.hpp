@@ -483,7 +483,7 @@ BVHUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
   };
 
   const BVH::Visiter<Node, T> visiter = [&minDist](const Node&, const T& a_bvDist) noexcept -> bool {
-    return a_bvDist <= 0.0 || a_bvDist <= minDist;
+    return a_bvDist <= T(0.0) || a_bvDist <= minDist;
   };
 
   const BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
@@ -575,7 +575,7 @@ BVHSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
   };
 
   BVH::Visiter<Node, T> visiter = [&a, &b](const Node&, const T& a_bvDist) noexcept -> bool {
-    return a_bvDist <= 0.0 || a_bvDist <= a || a_bvDist <= b;
+    return a_bvDist <= T(0.0) || a_bvDist <= a || a_bvDist <= b;
   };
 
   BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
