@@ -3,7 +3,7 @@
 \usepackage{graphicx,color,tikz,pgfplots}
 \usepackage[paperwidth=6cm,paperheight=8cm,lmargin=0in,rmargin=0in,tmargin=0.in,bmargin=0.in]{geometry}
 \usepackage{bm}
-\usetikzlibrary{arrows,shadings,shapes.arrows,decorations.pathreplacing,calc, positioning}
+\usetikzlibrary{arrows,shadings,shapes.arrows,decorations.pathreplacing,calc, positioning, shadows}
 \usepgfplotslibrary{fillbetween}
 
 \pgfplotsset{
@@ -23,7 +23,7 @@
 \tikzset{
   edge/.style={draw=black},
   tree/.style={thick, draw=black, solid, ->},
-  bvh/.style={draw=black, minimum width=5mm, minimum height=5mm, rectangle, rounded corners, very thick},
+  bvh/.style={draw=black, minimum width=5mm, minimum height=5mm, rectangle, rounded corners, very thick, fill=white, drop shadow},
   vertex/.style={circle, inner sep=0pt, minimum width=4pt, draw=black, fill=white, node contents={}},
   point/.style={circle, inner sep=0pt, minimum width=6pt, thick, draw=black, fill=white},
   root/.style={ultra thick, densely dashed, draw=black},
@@ -32,6 +32,7 @@
 }
 
 \begin{document}
+\nopagecolor
 \centering
 \begin{tikzpicture}
 

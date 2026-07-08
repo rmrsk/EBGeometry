@@ -1,5 +1,5 @@
 .. only:: html
-	  
+
    Bibliography
    ------------
 

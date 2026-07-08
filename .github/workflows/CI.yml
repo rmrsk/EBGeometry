@@ -24,23 +24,92 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run clang-format
-        uses: jidicula/clang-format-action@v4.10.1
+        uses: jidicula/clang-format-action@v4.18.0
         with:
-          clang-format-version: '18'
+          clang-format-version: '21'
           check-path: ${{ matrix.directory }}
 
+  Codespell:
+    name: Codespell
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run codespell (pre-commit hook)
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: codespell --all-files
+
+  Reuse:
+    name: REUSE license compliance
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run reuse lint (pre-commit hook)
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: reuse --all-files
+
+  Doxygen-check:
+    name: Doxygen (warnings as errors)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install doxygen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+      - name: Run doxygen-check (pre-commit hook)
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: doxygen-check --all-files
+
+  Static-analysis:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Static analysis (clang-tidy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Advisory for now: the curated clang-tidy set still has a review backlog
+    # (const-correctness, narrowing conversions, ...). Set continue-on-error to
+    # false to make this a hard gate once that backlog has been reviewed.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install clang-tidy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy-18 clang-14
+      - name: Cache Catch2 build
+        uses: actions/cache@v4
+        with:
+          path: build/debug/_deps
+          key: ${{ runner.os }}-catch2-clang14-${{ hashFiles('Tests/CMakeLists.txt') }}
+      - name: Configure (export compile commands)
+        run: |
+          cmake --preset debug \
+            -DCMAKE_CXX_COMPILER=clang++-14 \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - name: Run clang-tidy over the library headers
+        run: run-clang-tidy-18 -p build/debug -quiet '(Tests/|Examples/).*\.cpp'
+
   Linux-GNU:
-    needs: Formatting
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Linux-GNU
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       matrix:
-        comp: [g++-9, g++-10, g++-11, g++-12]
-        directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_F18, Examples/EBGeometry_OctreeBoundingVolume, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]
+        comp: [g++-11, g++-12]
+        directory: [Examples/CSGUnion, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -49,7 +118,7 @@ jobs:
       - name: Compile examples
         working-directory: ${{ matrix.directory }}
         run: |
-          ${{ matrix.comp }} -std=c++17 \
+          ${{ matrix.comp }} -std=c++17 -I../.. \
           -pedantic -Wall -Wextra  -Wcast-align  -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 \
           -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
           -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel \
@@ -60,21 +129,23 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: |
           ./a.out
-          if [[ $? == 0 ]]; then exit 0; else exit 1; fi          
+          if [[ $? == 0 ]]; then exit 0; else exit 1; fi
 
   Linux-Intel:
-    needs: Formatting
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Linux-Intel
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       matrix:
-        directory: [Examples/EBGeometry_DCEL, Examples/EBGeometry_PackedSpheres, Examples/EBGeometry_RandomCity, Examples/EBGeometry_Shapes]    
+        directory: [Examples/MeshSDF, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
 
     steps:
-      - uses: actions/checkout@v4      
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: Install Intel oneAPI
-        working-directory: /tmp        
+        working-directory: /tmp
         run: |
           wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
           sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
@@ -85,7 +156,7 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: |
           source /opt/intel/oneapi/setvars.sh
-          icpx -std=c++17 -O0 \
+          icpx -std=c++17 -O0 -fp-model=precise -I../.. \
           -Wall -Warray-bounds -Wcomment -Wenum-compare -Wformat -Wuninitialized -Wmaybe-uninitialized -Wmain -Wnarrowing -Wnonnull \
           -Wparentheses -Wpointer-sign -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point -Wtrigraphs -Wunused-function -Wunused-but-set-variable \
           -Wunused-variable -Wwrite-strings -Werror \
@@ -97,11 +168,84 @@ jobs:
           ./a.out
           if [[ $? == 0 ]]; then exit 0; else exit 1; fi
 
-  Build-documentation:
-    needs: Formatting
+  Examples-GNUMake:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Examples (GNUmakefile, ${{ matrix.directory }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: [Examples/CSGUnion, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
     steps:
-      - uses: actions/checkout@v4      
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build and run with GNU make
+        working-directory: ${{ matrix.directory }}
+        run: make run
+
+  Examples-CMake:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Examples (CMake, debug preset, assertions on)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Cache Catch2 build
+        uses: actions/cache@v4
+        with:
+          path: build/debug/_deps
+          key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
+      - name: Configure (debug preset)
+        run: cmake --preset debug
+      - name: Build
+        run: cmake --build --preset debug --parallel 2
+      # Exercises the CMake-driven example build+run path with assertions enabled --
+      # this is the path that caught the MeshSDF dangling-weak_ptr regression, and
+      # neither Linux-GNU/Linux-Intel (raw compiler invocation, no CMake, no
+      # assertions) nor Unit-Tests/Sanitizers (which build with examples disabled)
+      # exercise it.
+      - name: Run examples (ctest --preset examples)
+        run: ctest --preset examples
+
+  Examples-FloatPrecision:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Examples (CMake, float precision)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Cache Catch2 build
+        uses: actions/cache@v4
+        with:
+          path: build/debug/_deps
+          key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
+      # EBGEOMETRY_PRECISION is a CACHE variable shared by every example's own
+      # CMakeLists.txt, so setting it once here applies to all of them.
+      - name: Configure (debug preset, float precision)
+        run: cmake --preset debug -DEBGEOMETRY_PRECISION=float
+      - name: Build
+        run: cmake --build --preset debug --parallel 2
+      - name: Run examples
+        run: ctest --preset examples
+
+  Build-documentation:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Build-documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-sphinx-${{ hashFiles('.github/workflows/CI.yml') }}
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -110,15 +254,21 @@ jobs:
           sudo apt install texlive
           sudo apt install texlive-latex-extra
           sudo apt install latexmk
-          python3 -m pip install sphinx==5.0.0 sphinx_rtd_theme sphinxcontrib-bibtex          
-          
+          sudo apt install poppler-utils
+          python3 -m pip install sphinx==5.3.0 sphinx_rtd_theme sphinxcontrib-bibtex
+
       - name: Build doxygen
         working-directory: ${{ github.workspace }}/Docs
         run: |
-          doxygen doxyfile
+          doxygen doxygen.conf
+
+      - name: Build documentation figures
+        working-directory: ${{ github.workspace }}
+        run: |
+          Scripts/build-doc-figures.sh
 
       - name: Build HTML documentation
-        working-directory: ${{ github.workspace }}/Docs/Sphinx        
+        working-directory: ${{ github.workspace }}/Docs/Sphinx
         run: |
           make html
 
@@ -138,10 +288,125 @@ jobs:
         run: |
           cp -a Sphinx/build/html/* ./
           mv Sphinx/build/latex/ebgeometry.pdf ./
-          rm -rf Sphinx/build          
+          rm -rf Sphinx/build
+
+  Unit-Tests:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Unit tests (${{ matrix.compiler }}, SIMD=${{ matrix.simd }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++-12, clang++-14]
+        simd: [none, avx, avx512]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install compiler
+        run: |
+          sudo apt-get update
+          if [[ "${{ matrix.compiler }}" == g++* ]]; then
+            sudo apt-get install -y ${{ matrix.compiler }}
+          else
+            sudo apt-get install -y clang-14
+          fi
+
+      - name: Cache Catch2 build
+        uses: actions/cache@v4
+        with:
+          path: build/debug/_deps
+          key: ${{ runner.os }}-catch2-${{ matrix.compiler }}-${{ hashFiles('Tests/CMakeLists.txt') }}
+
+      - name: Configure (debug preset)
+        run: |
+          cmake --preset debug \
+            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
+            -DEBGEOMETRY_SIMD=${{ matrix.simd }} \
+            -DEBGEOMETRY_BUILD_EXAMPLES=OFF \
+            -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
+
+      - name: Build
+        run: cmake --build --preset debug --parallel 2
+
+      - name: Run tests
+        # AVX-512 is compiled unconditionally (catches ISA-specific compile errors
+        # in the PackedBVH/TriangleSoA code paths regardless of runner hardware),
+        # but only actually executed if the runner's CPU supports it -- most
+        # GitHub-hosted runners do not, and running AVX-512 instructions on
+        # unsupporting hardware is a SIGILL crash, not a meaningful test result.
+        run: |
+          if [[ "${{ matrix.simd }}" == "avx512" ]] && ! grep -q avx512f /proc/cpuinfo; then
+            echo "Runner CPU lacks AVX-512F; skipping runtime execution (compile-only verification passed)."
+          else
+            ctest --preset debug
+          fi
+
+  Release-Test:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Release build (full test + example suite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Cache Catch2 build
+        uses: actions/cache@v4
+        with:
+          path: build/release-test/_deps
+          key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
+      - name: Configure (release-test preset)
+        run: cmake --preset release-test -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
+      - name: Build
+        run: cmake --build --preset release-test --parallel 2
+      - name: Run full suite (unit tests + examples)
+        run: ctest --preset release-test
+
+  Sanitizers:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Sanitizers (${{ matrix.compiler }}, SIMD=${{ matrix.simd }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++-12, clang++-14]
+        simd: [none, avx]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install compiler
+        run: |
+          sudo apt-get update
+          if [[ "${{ matrix.compiler }}" == g++* ]]; then
+            sudo apt-get install -y ${{ matrix.compiler }}
+          else
+            sudo apt-get install -y clang-14
+          fi
+      - name: Cache Catch2 build
+        uses: actions/cache@v4
+        with:
+          path: build/debug-san/_deps
+          key: ${{ runner.os }}-catch2-san-${{ matrix.compiler }}-${{ hashFiles('Tests/CMakeLists.txt') }}
+      - name: Configure (debug-san preset, ASan + UBSan)
+        run: |
+          cmake --preset debug-san \
+            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
+            -DEBGEOMETRY_SIMD=${{ matrix.simd }} \
+            -DEBGEOMETRY_BUILD_EXAMPLES=OFF \
+            -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
+      - name: Build
+        run: cmake --build --preset debug-san --parallel 2
+      - name: Run tests under sanitizers
+        run: ctest --preset debug-san
+        env:
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+          ASAN_OPTIONS: detect_leaks=1
 
   CI-passed:
-    needs: [Linux-GNU, Linux-Intel, Build-documentation]
+    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers]
     runs-on: ubuntu-latest
     steps:
       - name: Do nothing

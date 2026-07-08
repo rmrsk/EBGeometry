@@ -1,239 +1,310 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * @file   EBGeometry_Parser.hpp
+ * @brief  Declaration of utilities for reading files into EBGeometry data
+ * structures.
+ * @author Robert Marskar
  */
 
-/*!
-  @file   EBGeometry_Parser.hpp
-  @brief  Declaration of utilities for reading files into EBGeometry data
-  structures.
-  @author Robert Marskar
-*/
-
-#ifndef EBGeometry_Parser
-#define EBGeometry_Parser
+#ifndef EBGEOMETRY_PARSER_HPP
+#define EBGEOMETRY_PARSER_HPP
 
 // Std includes
-#include <vector>
+#include <cstddef>
 #include <memory>
-#include <map>
+#include <string>
+#include <vector>
 
 // Our includes
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_MeshDistanceFunctions.hpp"
-#include "EBGeometry_Triangle.hpp"
+#include "EBGeometry_OBJ.hpp"
 #include "EBGeometry_PLY.hpp"
 #include "EBGeometry_STL.hpp"
+#include "EBGeometry_Triangle.hpp"
+#include "EBGeometry_TriangleSoA.hpp"
 #include "EBGeometry_VTK.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
 
-/*!
-  @brief Namespace which encapsulates possible file parsers for building
-  EBGeometry data structures.
-*/
+namespace EBGeometry {
+
+/**
+ * @brief Namespace which encapsulates possible file parsers for building
+ * EBGeometry data structures.
+ */
 namespace Parser {
 
-  /*!
-    @brief Simple enum for separating ASCII and binary files
-  */
-  enum class Encoding
-  {
-    ASCII,
-    Binary,
-    Unknown
-  };
+/**
+ * @brief Simple enum for separating ASCII and binary files
+ */
+enum class Encoding
+{
+  ASCII,  ///< File is plain text
+  Binary, ///< File is binary-encoded
+  Unknown ///< Encoding could not be determined
+};
 
-  /*!
-    @brief Various supported file types
-  */
-  enum class FileType
-  {
-    STL,
-    PLY,
-    VTK,
-    Unsupported
-  };
+/**
+ * @brief Various supported file types
+ */
+enum class FileType
+{
+  STL,        ///< Stereolithography format (.stl)
+  PLY,        ///< Polygon File Format (.ply)
+  VTK,        ///< VTK legacy or XML polydata format (.vtk)
+  OBJ,        ///< Wavefront OBJ format (.obj)
+  Unsupported ///< File type is not recognised
+};
 
-  /*!
-    @brief Get file type
-    @param[in] a_filename File name
-  */
-  inline static Parser::FileType
-  getFileType(const std::string a_filename) noexcept;
+/**
+ * @brief Determine file type from the file extension.
+ * @param[in] a_filename File name.
+ * @return Detected FileType (STL, PLY, VTK, or Unsupported).
+ */
+[[nodiscard]] inline static Parser::FileType
+getFileType(const std::string& a_filename) noexcept;
 
-  /*!
-    @brief Get file encoding. 
-    @param[in] a_filename File name    
-  */
-  inline static Parser::Encoding
-  getFileEncoding(const std::string a_filename) noexcept;
+/**
+ * @brief Determine file encoding (ASCII or binary) by inspecting the file header.
+ * @param[in] a_filename File name.
+ * @return Detected Encoding (ASCII, Binary, or Unknown).
+ */
+[[nodiscard]] inline static Parser::Encoding
+getFileEncoding(const std::string& a_filename) noexcept;
 
-  /*!
-    @brief Read a single PLY file
-    @param[in] a_filename PLY file name.
-  */
-  template <typename T>
-  PLY<T>
-  readPLY(const std::string& a_filename) noexcept;
+/**
+ * @brief Read a single PLY file into a raw PLY data structure.
+ * @tparam T Floating-point precision used for vertex coordinates.
+ * @param[in] a_filename PLY file name.
+ * @return Populated PLY<T> object containing vertex coordinates and face indices.
+ */
+template <typename T>
+[[nodiscard]] PLY<T>
+readPLY(const std::string& a_filename);
 
-  /*!
-    @brief Read multiple PLY files. 
-    @param[in] a_filenames PLY file names.
-  */
-  template <typename T>
-  std::vector<PLY<T>>
-  readPLY(const std::vector<std::string>& a_filenames) noexcept;
+/**
+ * @brief Read multiple PLY files into raw PLY data structures.
+ * @tparam T Floating-point precision used for vertex coordinates.
+ * @param[in] a_filenames List of PLY file names.
+ * @return Vector of populated PLY<T> objects, one per file.
+ */
+template <typename T>
+[[nodiscard]] std::vector<PLY<T>>
+readPLY(const std::vector<std::string>& a_filenames);
 
-  /*!
-    @brief Read a single STL file
-    @param[in] a_filename STL file name.
-    @note If the STL file contains multiple solids (which is uncommon but technically supported), this routine
-    will only read the first one. 
-  */
-  template <typename T>
-  STL<T>
-  readSTL(const std::string& a_filename) noexcept;
+/**
+ * @brief Read a single STL file into a raw STL data structure.
+ * @tparam T Floating-point precision used for vertex coordinates.
+ * @param[in] a_filename STL file name.
+ * @return Populated STL<T> object containing vertex coordinates and face indices.
+ * @note If the STL file contains multiple solids (which is uncommon but technically supported), this routine
+ * will only read the first one.
+ */
+template <typename T>
+[[nodiscard]] STL<T>
+readSTL(const std::string& a_filename);
 
-  /*!
-    @brief Read multiple STL files.
-    @param[in] a_filenames STL file names.
-    @note If the STL file contains multiple solids (which is uncommon but technically supported), this routine
-    will only read the first one.
-  */
-  template <typename T>
-  std::vector<STL<T>>
-  readSTL(const std::vector<std::string>& a_filenames) noexcept;
+/**
+ * @brief Read multiple STL files into raw STL data structures.
+ * @tparam T Floating-point precision used for vertex coordinates.
+ * @param[in] a_filenames List of STL file names.
+ * @return Vector of populated STL<T> objects, one per file.
+ * @note If the STL file contains multiple solids (which is uncommon but technically supported), this routine
+ * will only read the first one.
+ */
+template <typename T>
+[[nodiscard]] std::vector<STL<T>>
+readSTL(const std::vector<std::string>& a_filenames);
 
-  /*!
-    @brief Read a single VTK file
-    @param[in] a_filename VTK file name.
-  */
-  template <typename T>
-  VTK<T>
-  readVTK(const std::string& a_filename) noexcept;
+/**
+ * @brief Read a single Wavefront OBJ file into a raw OBJ data structure.
+ * @tparam T Floating-point precision used for vertex coordinates.
+ * @param[in] a_filename OBJ file name.
+ * @return Populated OBJ<T> object containing vertex coordinates and face indices.
+ */
+template <typename T>
+[[nodiscard]] OBJ<T>
+readOBJ(const std::string& a_filename);
 
-  /*!
-    @brief Read multiple VTK files.
-    @param[in] a_filenames VTK file names.
-  */
-  template <typename T>
-  std::vector<VTK<T>>
-  readVTK(const std::vector<std::string>& a_filenames) noexcept;
+/**
+ * @brief Read multiple Wavefront OBJ files into raw OBJ data structures.
+ * @tparam T Floating-point precision used for vertex coordinates.
+ * @param[in] a_filenames List of OBJ file names.
+ * @return Vector of populated OBJ<T> objects, one per file.
+ */
+template <typename T>
+[[nodiscard]] std::vector<OBJ<T>>
+readOBJ(const std::vector<std::string>& a_filenames);
 
-  /*!
-    @brief Read a file containing a single watertight object and return it as a DCEL mesh
-    @param[in] a_filename File name
-  */
-  template <typename T, typename Meta = DCEL::DefaultMetaData>
-  inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
-  readIntoDCEL(const std::string a_filename) noexcept;
+/**
+ * @brief Read a single VTK legacy polydata file into a raw VTK data structure.
+ * @tparam T Floating-point precision used for vertex coordinates.
+ * @param[in] a_filename VTK file name.
+ * @return Populated VTK<T> object containing vertex coordinates and face indices.
+ */
+template <typename T>
+[[nodiscard]] VTK<T>
+readVTK(const std::string& a_filename);
 
-  /*!
-    @brief Read multiple files containing single watertight objects and return them as DCEL meshes
-    @param[in] a_files File names
-  */
-  template <typename T, typename Meta = DCEL::DefaultMetaData>
-  inline static std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>>
-  readIntoDCEL(const std::vector<std::string> a_files) noexcept;
+/**
+ * @brief Read multiple VTK legacy polydata files into raw VTK data structures.
+ * @tparam T Floating-point precision used for vertex coordinates.
+ * @param[in] a_filenames List of VTK file names.
+ * @return Vector of populated VTK<T> objects, one per file.
+ */
+template <typename T>
+[[nodiscard]] std::vector<VTK<T>>
+readVTK(const std::vector<std::string>& a_filenames);
 
-  /*!
-    @brief Read a file containing a single watertight object and return it as an implicit function.
-    @param[in] a_filename File name
-  */
-  template <typename T, typename Meta = DCEL::DefaultMetaData>
-  inline static std::shared_ptr<MeshSDF<T, Meta>>
-  readIntoMesh(const std::string a_filename) noexcept;
+/**
+ * @brief Read a file containing a single watertight object and return it as a DCEL mesh.
+ * @tparam T    Floating-point precision for vertex coordinates.
+ * @tparam Meta Per-face metadata type stored in the DCEL mesh.
+ * @param[in] a_filename File name (STL, PLY, or VTK).
+ * @return Shared pointer to the constructed DCEL mesh.
+ */
+template <typename T, typename Meta = DCEL::DefaultMetaData>
+[[nodiscard]] inline static std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>
+readIntoDCEL(const std::string a_filename);
 
-  /*!
-    @brief Read multiple files containing single watertight objects and return them as an implicit functions.
-    @param[in] a_files File names
-  */
-  template <typename T, typename Meta = DCEL::DefaultMetaData>
-  inline static std::vector<std::shared_ptr<MeshSDF<T, Meta>>>
-  readIntoMesh(const std::vector<std::string> a_files) noexcept;
+/**
+ * @brief Read multiple files containing single watertight objects and return them as DCEL meshes.
+ * @tparam T    Floating-point precision for vertex coordinates.
+ * @tparam Meta Per-face metadata type stored in the DCEL mesh.
+ * @param[in] a_files List of file names (STL, PLY, or VTK).
+ * @return Vector of shared pointers to the constructed DCEL meshes, one per file.
+ */
+template <typename T, typename Meta = DCEL::DefaultMetaData>
+[[nodiscard]] inline static std::vector<std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>>
+readIntoDCEL(const std::vector<std::string>& a_files);
 
-  /*!
-    @brief Read a file containing a single watertight object and return it as a DCEL mesh enclosed in a full BVH.
-    @param[in] a_filename File name
-  */
-  template <typename T,
-            typename Meta = DCEL::DefaultMetaData,
-            typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
-            size_t K      = 4>
-  inline static std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>
-  readIntoFullBVH(const std::string a_filename) noexcept;
+/**
+ * @brief Read a file and return it as a bare DCEL signed-distance function (O(N) scan, no BVH).
+ * @tparam T    Floating-point precision for signed-distance evaluation.
+ * @tparam Meta Per-face metadata type stored in the DCEL mesh.
+ * @param[in] a_filename File name (STL, PLY, or VTK).
+ * @return Shared pointer to the FlatMeshSDF wrapping the parsed DCEL mesh.
+ */
+template <typename T, typename Meta = DCEL::DefaultMetaData>
+[[nodiscard]] inline static std::shared_ptr<FlatMeshSDF<T, Meta>>
+readIntoMesh(const std::string a_filename);
 
-  /*!
-    @brief Read multiple files containing single watertight objects and return them as DCEL meshes enclosed in BVHs.
-    @param[in] a_files File names
-  */
-  template <typename T,
-            typename Meta = DCEL::DefaultMetaData,
-            typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
-            size_t K      = 4>
-  inline static std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>>
-  readIntoFullBVH(const std::vector<std::string> a_files) noexcept;
+/**
+ * @brief Read multiple files and return each as a bare DCEL signed-distance function.
+ * @tparam T    Floating-point precision for signed-distance evaluation.
+ * @tparam Meta Per-face metadata type stored in the DCEL mesh.
+ * @param[in] a_files List of file names (STL, PLY, or VTK).
+ * @return Vector of shared pointers to FlatMeshSDF objects, one per file.
+ */
+template <typename T, typename Meta = DCEL::DefaultMetaData>
+[[nodiscard]] inline static std::vector<std::shared_ptr<FlatMeshSDF<T, Meta>>>
+readIntoMesh(const std::vector<std::string>& a_files);
 
-  /*!
-    @brief Read a file containing a single watertight object and return it as a DCEL mesh enclosed in a linearized BVH
-    @param[in] a_filename File name
-  */
-  template <typename T,
-            typename Meta = DCEL::DefaultMetaData,
-            typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
-            size_t K      = 4>
-  inline static std::shared_ptr<FastCompactMeshSDF<T, Meta, BV, K>>
-  readIntoLinearBVH(const std::string a_filename) noexcept;
+/**
+ * @brief Read a file and return it enclosed in a SIMD-accelerated PackedBVH over DCEL faces.
+ * @details Supports any polygon mesh, not just triangles. For triangle-only meshes with
+ * maximum throughput, prefer readIntoTriangleBVH which uses SoA leaf grouping.
+ * @tparam T    Floating-point precision for signed-distance evaluation.
+ * @tparam Meta Per-face metadata type stored in the DCEL mesh.
+ * @tparam K    BVH branching factor (number of children per internal node).
+ * @param[in] a_filename File name (STL, PLY, or VTK).
+ * @param[in] a_build    BVH build strategy. SAH is the default and recommended choice.
+ * @return Shared pointer to the MeshSDF enclosing the mesh.
+ */
+template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
+[[nodiscard]] inline static std::shared_ptr<MeshSDF<T, Meta, K>>
+readIntoPackedBVH(const std::string a_filename, const BVH::Build a_build = BVH::Build::SAH);
 
-  /*!
-    @brief Read multiple files containing single watertight objects and return them as DCEL meshes enclosed in linearized BVHs.
-    @param[in] a_files File names
-  */
-  template <typename T,
-            typename Meta = DCEL::DefaultMetaData,
-            typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
-            size_t K      = 4>
-  inline static std::vector<std::shared_ptr<FastCompactMeshSDF<T, Meta, BV, K>>>
-  readIntoLinearBVH(const std::vector<std::string> a_files) noexcept;
+/**
+ * @brief Read multiple files and return each enclosed in a SIMD-accelerated PackedBVH over DCEL faces.
+ * @tparam T    Floating-point precision for signed-distance evaluation.
+ * @tparam Meta Per-face metadata type stored in the DCEL mesh.
+ * @tparam K    BVH branching factor (number of children per internal node).
+ * @param[in] a_files List of file names (STL, PLY, or VTK).
+ * @param[in] a_build BVH build strategy. SAH is the default and recommended choice.
+ * @return Vector of shared pointers to MeshSDF objects, one per file.
+ */
+template <typename T, typename Meta = DCEL::DefaultMetaData, size_t K = 4>
+[[nodiscard]] inline static std::vector<std::shared_ptr<MeshSDF<T, Meta, K>>>
+readIntoPackedBVH(const std::vector<std::string>& a_files, const BVH::Build a_build = BVH::Build::SAH);
 
-  /*!
-    @brief Read a file containing a single watertight object and return it as a DCEL mesh enclosed in a full BVH.
-    @param[in] a_filename File name
-  */
-  template <typename T, typename Meta, typename BV = EBGeometry::BoundingVolumes::AABBT<T>, size_t K = 4>
-  inline static std::shared_ptr<FastTriMeshSDF<T, Meta, BV, K>>
-  readIntoTriangleBVH(const std::string a_filename) noexcept;
+/**
+ * @brief Read a file and return the mesh enclosed in a SIMD-optimised triangle BVH.
+ * @details Triangles are grouped into SoA bundles of W and packed into a linearised K-ary BVH.
+ * At query time the BVH uses SIMD intrinsics to evaluate W triangles per leaf visit.
+ * @tparam T    Floating-point precision for signed-distance evaluation.
+ * @tparam Meta Per-face metadata type.
+ * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() — the SIMD-optimal value for
+ * T on the current ISA (K=16/float or K=8/double on AVX-512F; K=8/float or K=4/double
+ * on AVX; K=4 otherwise). Override only when benchmarking or using non-SIMD builds.
+ * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>()
+ * (8/float or 4/double on AVX; 4 otherwise).
+ * @param[in] a_filename      File name (STL, PLY, or VTK).
+ * @param[in] a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
+ * actual raw-triangle leaf-size bound used is a_maxLeafGroups * W (see TriMeshSDF's mesh-based
+ * constructor for the tree-quality/SIMD-occupancy trade-off). Defaults to 2.
+ * @param[in] a_build         BVH build strategy. SAH is the default and recommended choice.
+ * @return Shared pointer to the TriMeshSDF enclosing the mesh.
+ */
+template <typename T,
+          typename Meta = DCEL::DefaultMetaData,
+          size_t K      = BVH::DefaultBranchingRatio<T>(),
+          size_t W      = TriangleSoA::DefaultWidth<T>()>
+[[nodiscard]] inline static std::shared_ptr<TriMeshSDF<T, Meta, K, W>>
+readIntoTriangleBVH(const std::string a_filename,
+                    const size_t      a_maxLeafGroups = 4,
+                    const BVH::Build  a_build         = BVH::Build::SAH);
 
-  /*!
-    @brief Read multiple files containing single watertight objects and return them as DCEL meshes enclosed in BVHs.
-    @param[in] a_files File names
-  */
-  template <typename T,
-            typename Meta = DCEL::DefaultMetaData,
-            typename BV   = EBGeometry::BoundingVolumes::AABBT<T>,
-            size_t K      = 4>
-  inline static std::vector<std::shared_ptr<FastMeshSDF<T, Meta, BV, K>>>
-  readIntoTriangleBVH(const std::vector<std::string> a_files) noexcept;
+/**
+ * @brief Read multiple files and return each mesh enclosed in a SIMD-optimised triangle BVH.
+ * @tparam T    Floating-point precision for signed-distance evaluation.
+ * @tparam Meta Per-face metadata type.
+ * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() (see single-file overload).
+ * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>().
+ * @param[in] a_files         List of file names (STL, PLY, or VTK).
+ * @param[in] a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
+ * the single-file overload for details). Defaults to 2.
+ * @param[in] a_build         BVH build strategy. SAH is the default and recommended choice.
+ * @return Vector of shared pointers to TriMeshSDF objects, one per file.
+ */
+template <typename T,
+          typename Meta = DCEL::DefaultMetaData,
+          size_t K      = BVH::DefaultBranchingRatio<T>(),
+          size_t W      = TriangleSoA::DefaultWidth<T>()>
+[[nodiscard]] inline static std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>>
+readIntoTriangleBVH(const std::vector<std::string>& a_files,
+                    const size_t                    a_maxLeafGroups = 2,
+                    const BVH::Build                a_build         = BVH::Build::SAH);
 
-  /*!
-    @brief Read a file containing a single watertight object and return it as an implicit function.
-    @param[in] a_filename File name
-  */
-  template <typename T, typename Meta>
-  inline static std::vector<std::shared_ptr<Triangle<T, Meta>>>
-  readIntoTriangles(const std::string a_filename) noexcept;
+/**
+ * @brief Read a file and return all faces as a flat list of Triangle objects.
+ * @details The mesh is first parsed into a DCEL, then each face is extracted into an
+ * independent Triangle with precomputed vertex positions, normals, and edge normals.
+ * @tparam T    Floating-point precision for vertex coordinates and normals.
+ * @tparam Meta Per-face metadata type.
+ * @param[in] a_filename File name (STL, PLY, or VTK).
+ * @return Flat vector of shared pointers to Triangle objects.
+ */
+template <typename T, typename Meta>
+[[nodiscard]] inline static std::vector<std::shared_ptr<Triangle<T, Meta>>>
+readIntoTriangles(const std::string a_filename);
 
-  /*!
-    @brief Read multiple files containing single watertight objects and return them as an implicit functions.
-    @param[in] a_files File names
-  */
-  template <typename T, typename Meta>
-  inline static std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
-  readIntoTriangles(const std::vector<std::string> a_files) noexcept;
+/**
+ * @brief Read multiple files and return all faces from each as flat lists of Triangle objects.
+ * @tparam T    Floating-point precision for vertex coordinates and normals.
+ * @tparam Meta Per-face metadata type.
+ * @param[in] a_files List of file names (STL, PLY, or VTK).
+ * @return Outer vector indexed by file; each inner vector is the flat triangle list for that file.
+ */
+template <typename T, typename Meta>
+[[nodiscard]] inline static std::vector<std::vector<std::shared_ptr<Triangle<T, Meta>>>>
+readIntoTriangles(const std::vector<std::string>& a_files);
 } // namespace Parser
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #include "EBGeometry_ParserImplem.hpp"
 

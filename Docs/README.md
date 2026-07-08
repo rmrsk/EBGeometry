@@ -4,7 +4,7 @@
 To build the doxygen documentation locally, run
 
 ```
-doxygen doxyfile
+doxygen doxygen.conf
 ```
 
 in this folder. 
@@ -12,6 +12,19 @@ This will install the doxygen documentation in the `doxygen` subfolder.
 
 ## Manual build
 We use Sphinx with reStructured text for building the user documentation. 
+
+Several figures in the user documentation (e.g. the DCEL and BVH diagrams) are only tracked as
+LaTeX/TikZ sources under `Sphinx/source/_static/<Name>/<Name>.tex`; the rendered PNGs are build
+artifacts and are not committed to git. Render them once (from the repository root) before
+building the HTML or PDF documentation, and again whenever a `.tex` figure source changes:
+
+```
+Scripts/build-doc-figures.sh
+```
+
+This requires `pdflatex` (from a `texlive-latex-extra`-equivalent install) and `pdftoppm` (from
+`poppler-utils`) to be on your `PATH`.
+
 To build the documentation locally, navigate to the Sphinx subfolder and run
 
 ```

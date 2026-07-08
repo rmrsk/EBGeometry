@@ -1,64 +1,36 @@
 *.out
 *.ex
-*.o
-*.d
-*.F90
-*.hdf5
-pout.*
 *.mod
-docs/**
-Examples/AMReX_DCEL/plt*
-Examples/AMReX_DCEL/tmp_build_dir
-Examples/AMReX_DCEL/Backtrace.*
+.serena
 
-Examples/AMReX_F18/plt*
-Examples/AMReX_F18/tmp_build_dir
-Examples/AMReX_F18/Backtrace.*
+build
 
-Examples/AMReX_PackedSpheres/plt*
-Examples/AMReX_PackedSpheres/tmp_build_dir
-Examples/AMReX_PackedSpheres/Backtrace.*
+# AMReX build/run artifacts (any example under ThirdParty/AMReX/<name>/).
+ThirdParty/AMReX/*/plt*
+ThirdParty/AMReX/*/tmp_build_dir
+ThirdParty/AMReX/*/Backtrace.*
 
-Examples/AMReX_RandomCity/plt*
-Examples/AMReX_RandomCity/tmp_build_dir
-Examples/AMReX_RandomCity/Backtrace.*
-
-Examples/AMReX_Shapes/plt*
-Examples/AMReX_Shapes/tmp_build_dir
-Examples/AMReX_Shapes/Backtrace.*
-
-Examples/AMReX_PaintEB/plt*
-Examples/AMReX_PaintEB/tmp_build_dir
-Examples/AMReX_PaintEB/Backtrace.*
-
-Examples/Chombo3_DCEL/d/**
-Examples/Chombo3_DCEL/o/**
-Examples/Chombo3_DCEL/f/**
-Examples/Chombo3_DCEL/d/**
-
-Examples/Chombo3_F18/d/**
-Examples/Chombo3_F18/o/**
-Examples/Chombo3_F18/f/**
-Examples/Chombo3_F18/d/**
-
-Examples/Chombo3_PackedSpheres/d/**
-Examples/Chombo3_PackedSpheres/o/**
-Examples/Chombo3_PackedSpheres/f/**
-Examples/Chombo3_PackedSpheres/d/**
-
-Examples/Chombo3_RandomCity/d/**
-Examples/Chombo3_RandomCity/o/**
-Examples/Chombo3_RandomCity/f/**
-Examples/Chombo3_RandomCity/d/**
-
-Examples/Chombo3_Shapes/d/**
-Examples/Chombo3_Shapes/o/**
-Examples/Chombo3_Shapes/f/**
-Examples/Chombo3_Shapes/d/**
+# Chombo build artifacts (any example under ThirdParty/Chombo/<name>/).
+ThirdParty/Chombo/*/d/**
+ThirdParty/Chombo/*/o/**
+ThirdParty/Chombo/*/f/**
 
 Docs/*
 !Docs/.nojekyll
 !Docs/Sphinx
-!Docs/doxyfile
+!Docs/doxygen.conf
 !Docs/README.md
+!Docs/mainpage.md
 Docs/Sphinx/build/*
+
+# LaTeX build artifacts for documentation figures (regenerated from the .tex sources
+# by Scripts/build-doc-figures.sh). Only the .tex source is tracked; the rendered PNG
+# referenced by the RST files (Docs/Sphinx/source/_static/<Name>.png) is a build product.
+Docs/Sphinx/source/_static/**/*.aux
+Docs/Sphinx/source/_static/**/*.log
+Docs/Sphinx/source/_static/**/*.pdf
+Docs/Sphinx/source/_static/**/*.png
+!Docs/Sphinx/source/_static/example_*.png
+
+# Local clang-tidy capture (not part of the project)
+/clang-tidy.log

@@ -1,291 +1,62 @@
-/* EBGeometry
- * Copyright © 2022 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
+// SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * @file   EBGeometry_CSGImplem.hpp
+ * @brief  Implementation of EBGeometry_CSG.hpp
+ * @author Robert Marskar
  */
 
-/*!
-  @file   EBGeometry_CSGImplem.hpp
-  @brief  Implementation of EBGeometry_CSG.hpp
-  @author Robert Marskar
-*/
+#ifndef EBGEOMETRY_CSGIMPLEM_HPP
+#define EBGEOMETRY_CSGIMPLEM_HPP
 
-#ifndef EBGeometry_CSGImplem
-#define EBGeometry_CSGImplem
+// Std includes
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 // Our includes
 #include "EBGeometry_CSG.hpp"
+#include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Transform.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+#include "EBGeometry_Vec.hpp"
 
-template <class T, class P>
-std::shared_ptr<ImplicitFunction<T>>
-Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept
-{
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
+namespace EBGeometry {
 
-  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
-  for (const auto& f : a_implicitFunctions) {
-    implicitFunctions.emplace_back(f);
-  }
+/**
+ * @brief Internal helpers shared by BVHUnionIF and BVHSmoothUnionIF
+ */
+namespace CSGDetail {
 
-  return std::make_shared<UnionIF<T>>(implicitFunctions);
-}
-
-template <class T, class P1, class P2>
-std::shared_ptr<ImplicitFunction<T>>
-Union(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>& a_implicitFunction2) noexcept
-{
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
-
-  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
-
-  implicitFunctions.emplace_back(a_implicitFunction1);
-  implicitFunctions.emplace_back(a_implicitFunction2);
-
-  return std::make_shared<UnionIF<T>>(implicitFunctions);
-}
-
-template <class T, class P>
-std::shared_ptr<ImplicitFunction<T>>
-SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth) noexcept
-{
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
-
-  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
-  for (const auto& f : a_implicitFunctions) {
-    implicitFunctions.emplace_back(f);
-  }
-
-  return std::make_shared<SmoothUnionIF<T>>(implicitFunctions, a_smooth);
-}
-
-template <class T, class P1, class P2>
-std::shared_ptr<ImplicitFunction<T>>
-SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
-            const std::shared_ptr<P2>& a_implicitFunction2,
-            const T                    a_smooth) noexcept
-{
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
-
-  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
-
-  implicitFunctions.emplace_back(a_implicitFunction1);
-  implicitFunctions.emplace_back(a_implicitFunction2);
-
-  return std::make_shared<SmoothUnionIF<T>>(implicitFunctions, a_smooth);
-}
-
+/**
+ * @brief Build a PackedBVH from primitive/BV pairs using the requested strategy.
+ * @details Internal helper; not part of the public API.
+ * @tparam T  Floating-point precision.
+ * @tparam P  Primitive type.
+ * @tparam BV Bounding volume type (e.g. AABBT<T>).
+ * @tparam K  BVH branching factor.
+ * @param[in] a_primsAndBVs Primitives and their bounding volumes (must be non-empty).
+ * @param[in] a_build       BVH construction strategy.
+ * @return Shared pointer to the packed BVH root.
+ */
 template <class T, class P, class BV, size_t K>
-std::shared_ptr<ImplicitFunction<T>>
-FastUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std::vector<BV>& a_boundingVolumes) noexcept
+[[nodiscard]] inline std::shared_ptr<EBGeometry::BVH::PackedBVH<T, P, K>>
+buildBVH(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs, const BVH::Build a_build) noexcept
 {
-  return std::make_shared<EBGeometry::FastUnionIF<T, P, BV, K>>(a_implicitFunctions, a_boundingVolumes);
-}
+  static_assert(std::is_floating_point_v<T>, "CSGDetail::buildBVH requires a floating-point type T");
 
-template <class T, class P, class BV, size_t K>
-std::shared_ptr<ImplicitFunction<T>>
-FastSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
-                const std::vector<BV>&                 a_boundingVolumes,
-                const T                                a_smoothLen) noexcept
-{
-  return std::make_shared<EBGeometry::FastSmoothUnionIF<T, P, BV, K>>(
-    a_implicitFunctions, a_boundingVolumes, a_smoothLen);
-}
+  EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
-template <class T, class P>
-std::shared_ptr<ImplicitFunction<T>>
-Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions) noexcept
-{
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
-
-  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
-  for (const auto& f : a_implicitFunctions) {
-    implicitFunctions.emplace_back(f);
-  }
-
-  return std::make_shared<IntersectionIF<T>>(implicitFunctions);
-}
-
-template <class T, class P1, class P2>
-std::shared_ptr<ImplicitFunction<T>>
-Intersection(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>& a_implicitFunction2) noexcept
-{
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
-
-  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
-
-  implicitFunctions.emplace_back(a_implicitFunction1);
-  implicitFunctions.emplace_back(a_implicitFunction2);
-
-  return std::make_shared<IntersectionIF<T>>(implicitFunctions);
-}
-
-template <class T, class P>
-std::shared_ptr<ImplicitFunction<T>>
-SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth) noexcept
-{
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
-
-  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
-  for (const auto& f : a_implicitFunctions) {
-    implicitFunctions.emplace_back(f);
-  }
-
-  return std::make_shared<SmoothIntersection<T>>(implicitFunctions, a_smooth);
-}
-
-template <class T, class P1, class P2>
-std::shared_ptr<ImplicitFunction<T>>
-SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
-                   const std::shared_ptr<P2>& a_implicitFunction2,
-                   const T                    a_smooth) noexcept
-{
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
-
-  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
-
-  implicitFunctions.emplace_back(a_implicitFunction1);
-  implicitFunctions.emplace_back(a_implicitFunction2);
-
-  return std::make_shared<SmoothIntersectionIF<T>>(implicitFunctions, a_smooth);
-}
-
-template <class T, class P1, class P2>
-std::shared_ptr<ImplicitFunction<T>>
-Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB) noexcept
-{
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
-
-  return std::make_shared<DifferenceIF<T>>(a_implicitFunctionA, a_implicitFunctionB);
-}
-
-template <class T, class P1, class P2>
-std::shared_ptr<ImplicitFunction<T>>
-SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
-                 const std::shared_ptr<P2>& a_implicitFunctionB,
-                 const T                    a_smoothLen) noexcept
-{
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P1>::value, "P1 must derive from ImplicitFunction<T>");
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P2>::value, "P2 must derive from ImplicitFunction<T>");
-
-  return std::make_shared<SmoothDifferenceIF<T>>(a_implicitFunctionA, a_implicitFunctionB, a_smoothLen);
-}
-
-template <class T, class P>
-std::shared_ptr<ImplicitFunction<T>>
-FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
-                 const Vec3T<T>&           a_period,
-                 const Vec3T<T>&           a_repeatLo,
-                 const Vec3T<T>&           a_repeatHi) noexcept
-{
-  static_assert(std::is_base_of<EBGeometry::ImplicitFunction<T>, P>::value, "P must derive from ImplicitFunction<T>");
-
-  return std::make_shared<FiniteRepetitionIF<T>>(a_implicitFunction, a_period, a_repeatLo, a_repeatHi);
-}
-
-template <class T>
-UnionIF<T>::UnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions) noexcept
-{
-  for (const auto& prim : a_implicitFunctions) {
-    m_implicitFunctions.emplace_back(prim);
-  }
-}
-
-template <class T>
-T
-UnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
-{
-  T ret = std::numeric_limits<T>::infinity();
-
-  for (const auto& prim : m_implicitFunctions) {
-    ret = std::min(ret, prim->value(a_point));
-  }
-
-  return ret;
-}
-
-template <class T>
-SmoothUnionIF<T>::SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>&    a_implicitFunctions,
-                                const T                                                     a_smoothLen,
-                                const std::function<T(const T& a_, const T& b, const T& s)> a_smoothMin) noexcept
-{
-  for (const auto& prim : a_implicitFunctions) {
-    m_implicitFunctions.emplace_back(prim);
-  }
-
-  m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
-  m_smoothMin = a_smoothMin;
-}
-
-template <class T>
-T
-SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
-{
-  T ret = std::numeric_limits<T>::infinity();
-
-  if (m_implicitFunctions.size() == 1) {
-    ret = m_implicitFunctions.front()->value(a_point);
-  }
-  else if (m_implicitFunctions.size() > 1) {
-    T a = std::numeric_limits<T>::infinity();
-    T b = std::numeric_limits<T>::infinity();
-
-    for (const auto& implicitFunction : m_implicitFunctions) {
-      const T curValue = implicitFunction->value(a_point);
-
-      if (curValue < a) {
-        b = a;
-        a = curValue;
-      }
-      else if (curValue < b) {
-        b = curValue;
-      }
-    }
-
-    // Smooth minimum function.
-    ret = m_smoothMin(a, b, m_smoothLen);
-  }
-
-  return ret;
-}
-
-template <class T, class P, class BV, size_t K>
-FastUnionIF<T, P, BV, K>::FastUnionIF(
-  const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs) noexcept
-{
-  this->buildTree(a_primsAndBVs);
-}
-
-template <class T, class P, class BV, size_t K>
-FastUnionIF<T, P, BV, K>::FastUnionIF(const std::vector<std::shared_ptr<P>>& a_primitives,
-                                      const std::vector<BV>&                 a_boundingVolumes) noexcept
-{
-  if (a_primitives.size() != a_boundingVolumes.size()) {
-    std::cerr << "FastUnionIF(std::vector, std::vector) - input arguments not same length!\n";
-  }
-  else {
-    std::vector<std::pair<std::shared_ptr<const P>, BV>> primsAndBVs;
-
-    for (size_t i = 0; i < a_primitives.size(); i++) {
-      primsAndBVs.emplace_back(std::make_pair(a_primitives[i], a_boundingVolumes[i]));
-    }
-
-    this->buildTree(primsAndBVs);
-  }
-}
-
-template <class T, class P, class BV, size_t K>
-void
-FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
-                                    const BVH::Build                                            a_build) noexcept
-{
-  // Init the root node, partition it, and flatten it.
-  auto root = std::make_shared<EBGeometry::BVH::NodeT<T, P, BV, K>>(a_primsAndBVs);
+  auto root = std::make_shared<EBGeometry::BVH::TreeBVH<T, P, BV, K>>(a_primsAndBVs);
 
   switch (a_build) {
   case BVH::Build::TopDown: {
@@ -303,41 +74,426 @@ FastUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<
 
     break;
   }
+  case BVH::Build::SAH: {
+    using Node     = EBGeometry::BVH::TreeBVH<T, P, BV, K>;
+    using StopFunc = typename Node::StopFunction;
+
+    const StopFunc stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
+
+    root->topDownSortAndPartition(EBGeometry::BVH::BinnedSAHPartitioner<T, P, BV, K>, stopCrit);
+
+    break;
+  }
   default: {
-    std::cerr << "EBGeometry_CSGImplem.hpp in FastUnionIF::buildTree - unsupported build method requested" << std::endl;
+    EBGEOMETRY_EXPECT(false);
+
     break;
   }
   }
 
-  m_bvh = root->flattenTree();
+  return root->pack();
+}
+
+} // namespace CSGDetail
+
+template <class T, class P>
+std::shared_ptr<ImplicitFunction<T>>
+Union(const std::vector<std::shared_ptr<P>>& a_implicitFunctions)
+{
+  static_assert(std::is_floating_point_v<T>, "Union requires a floating-point type T");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
+
+  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+
+  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
+
+  implicitFunctions.reserve(a_implicitFunctions.size());
+
+  for (const auto& f : a_implicitFunctions) {
+    implicitFunctions.emplace_back(f);
+  }
+
+  return std::make_shared<UnionIF<T>>(implicitFunctions);
+}
+
+template <class T, class P1, class P2>
+std::shared_ptr<ImplicitFunction<T>>
+Union(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>& a_implicitFunction2)
+{
+  static_assert(std::is_floating_point_v<T>, "Union requires a floating-point type T");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
+
+  EBGEOMETRY_EXPECT(a_implicitFunction1 != nullptr);
+  EBGEOMETRY_EXPECT(a_implicitFunction2 != nullptr);
+
+  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
+
+  implicitFunctions.emplace_back(a_implicitFunction1);
+  implicitFunctions.emplace_back(a_implicitFunction2);
+
+  return std::make_shared<UnionIF<T>>(implicitFunctions);
+}
+
+template <class T, class P>
+std::shared_ptr<ImplicitFunction<T>>
+SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth)
+{
+  static_assert(std::is_floating_point_v<T>, "SmoothUnion requires a floating-point type T");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
+
+  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+  EBGEOMETRY_EXPECT(a_smooth > T(0));
+
+  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
+
+  implicitFunctions.reserve(a_implicitFunctions.size());
+
+  for (const auto& f : a_implicitFunctions) {
+    implicitFunctions.emplace_back(f);
+  }
+
+  return std::make_shared<SmoothUnionIF<T>>(implicitFunctions, a_smooth);
+}
+
+template <class T, class P1, class P2>
+std::shared_ptr<ImplicitFunction<T>>
+SmoothUnion(const std::shared_ptr<P1>& a_implicitFunction1,
+            const std::shared_ptr<P2>& a_implicitFunction2,
+            const T                    a_smooth)
+{
+  static_assert(std::is_floating_point_v<T>, "SmoothUnion requires a floating-point type T");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
+
+  EBGEOMETRY_EXPECT(a_implicitFunction1 != nullptr);
+  EBGEOMETRY_EXPECT(a_implicitFunction2 != nullptr);
+  EBGEOMETRY_EXPECT(a_smooth > T(0));
+
+  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
+
+  implicitFunctions.emplace_back(a_implicitFunction1);
+  implicitFunctions.emplace_back(a_implicitFunction2);
+
+  return std::make_shared<SmoothUnionIF<T>>(implicitFunctions, a_smooth);
+}
+
+template <class T, class P, class BV, size_t K>
+std::shared_ptr<ImplicitFunction<T>>
+BVHUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std::vector<BV>& a_boundingVolumes)
+{
+  static_assert(std::is_floating_point_v<T>, "BVHUnion requires a floating-point type T");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
+
+  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+  EBGEOMETRY_EXPECT(a_implicitFunctions.size() == a_boundingVolumes.size());
+
+  return std::make_shared<EBGeometry::BVHUnionIF<T, P, BV, K>>(a_implicitFunctions, a_boundingVolumes);
+}
+
+template <class T, class P, class BV, size_t K>
+std::shared_ptr<ImplicitFunction<T>>
+BVHSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
+               const std::vector<BV>&                 a_boundingVolumes,
+               const T                                a_smoothLen) noexcept
+{
+  static_assert(std::is_floating_point_v<T>, "BVHSmoothUnion requires a floating-point type T");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
+
+  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+  EBGEOMETRY_EXPECT(a_implicitFunctions.size() == a_boundingVolumes.size());
+  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+
+  return std::make_shared<EBGeometry::BVHSmoothUnionIF<T, P, BV, K>>(
+    a_implicitFunctions, a_boundingVolumes, a_smoothLen);
+}
+
+template <class T, class P>
+std::shared_ptr<ImplicitFunction<T>>
+Intersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions)
+{
+  static_assert(std::is_floating_point_v<T>, "Intersection requires a floating-point type T");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
+
+  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+
+  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
+
+  implicitFunctions.reserve(a_implicitFunctions.size());
+
+  for (const auto& f : a_implicitFunctions) {
+    implicitFunctions.emplace_back(f);
+  }
+
+  return std::make_shared<IntersectionIF<T>>(implicitFunctions);
+}
+
+template <class T, class P1, class P2>
+std::shared_ptr<ImplicitFunction<T>>
+Intersection(const std::shared_ptr<P1>& a_implicitFunction1, const std::shared_ptr<P2>& a_implicitFunction2)
+{
+  static_assert(std::is_floating_point_v<T>, "Intersection requires a floating-point type T");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
+
+  EBGEOMETRY_EXPECT(a_implicitFunction1 != nullptr);
+  EBGEOMETRY_EXPECT(a_implicitFunction2 != nullptr);
+
+  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
+
+  implicitFunctions.emplace_back(a_implicitFunction1);
+  implicitFunctions.emplace_back(a_implicitFunction2);
+
+  return std::make_shared<IntersectionIF<T>>(implicitFunctions);
+}
+
+template <class T, class P>
+std::shared_ptr<ImplicitFunction<T>>
+SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth)
+{
+  static_assert(std::is_floating_point_v<T>, "SmoothIntersection requires a floating-point type T");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
+
+  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+  EBGEOMETRY_EXPECT(a_smooth > T(0));
+
+  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
+
+  for (const auto& f : a_implicitFunctions) {
+    implicitFunctions.emplace_back(f);
+  }
+
+  return std::make_shared<SmoothIntersectionIF<T>>(implicitFunctions, a_smooth);
+}
+
+template <class T, class P1, class P2>
+std::shared_ptr<ImplicitFunction<T>>
+SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunction1,
+                   const std::shared_ptr<P2>& a_implicitFunction2,
+                   const T                    a_smooth)
+{
+  static_assert(std::is_floating_point_v<T>, "SmoothIntersection requires a floating-point type T");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
+
+  EBGEOMETRY_EXPECT(a_implicitFunction1 != nullptr);
+  EBGEOMETRY_EXPECT(a_implicitFunction2 != nullptr);
+  EBGEOMETRY_EXPECT(a_smooth > T(0));
+
+  std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
+
+  implicitFunctions.emplace_back(a_implicitFunction1);
+  implicitFunctions.emplace_back(a_implicitFunction2);
+
+  return std::make_shared<SmoothIntersectionIF<T>>(implicitFunctions, a_smooth);
+}
+
+template <class T, class P1, class P2>
+std::shared_ptr<ImplicitFunction<T>>
+Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>& a_implicitFunctionB)
+{
+  static_assert(std::is_floating_point_v<T>, "Difference requires a floating-point type T");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
+
+  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
+  EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
+
+  return std::make_shared<DifferenceIF<T>>(a_implicitFunctionA, a_implicitFunctionB);
+}
+
+template <class T, class P1, class P2>
+std::shared_ptr<ImplicitFunction<T>>
+SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
+                 const std::shared_ptr<P2>& a_implicitFunctionB,
+                 const T                    a_smoothLen)
+{
+  static_assert(std::is_floating_point_v<T>, "SmoothDifference requires a floating-point type T");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P1>, "P1 must derive from ImplicitFunction<T>");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P2>, "P2 must derive from ImplicitFunction<T>");
+
+  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
+  EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
+  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+
+  return std::make_shared<SmoothDifferenceIF<T>>(a_implicitFunctionA, a_implicitFunctionB, a_smoothLen);
+}
+
+template <class T, class P>
+std::shared_ptr<ImplicitFunction<T>>
+FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
+                 const Vec3T<T>&           a_period,
+                 const Vec3T<T>&           a_repeatLo,
+                 const Vec3T<T>&           a_repeatHi)
+{
+  static_assert(std::is_floating_point_v<T>, "FiniteRepetition requires a floating-point type T");
+  static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>, "P must derive from ImplicitFunction<T>");
+
+  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+
+  for (size_t i = 0; i < 3; i++) {
+    EBGEOMETRY_EXPECT(a_period[i] > T(0));
+  }
+
+  return std::make_shared<FiniteRepetitionIF<T>>(a_implicitFunction, a_period, a_repeatLo, a_repeatHi);
+}
+
+template <class T>
+UnionIF<T>::UnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions)
+{
+  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+
+  for (const auto& prim : a_implicitFunctions) {
+    EBGEOMETRY_EXPECT(prim != nullptr);
+
+    m_implicitFunctions.emplace_back(prim);
+  }
+}
+
+template <class T>
+T
+UnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
+{
+  T ret = std::numeric_limits<T>::infinity();
+
+  for (const auto& prim : m_implicitFunctions) {
+    const T v = prim->value(a_point);
+
+    EBGEOMETRY_EXPECT(!std::isnan(v));
+
+    ret = std::min(ret, v);
+  }
+
+  return ret;
+}
+
+template <class T>
+SmoothUnionIF<T>::SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>&    a_implicitFunctions,
+                                const T                                                     a_smoothLen,
+                                const std::function<T(const T& a_, const T& b, const T& s)> a_smoothMin)
+{
+  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+
+  for (const auto& prim : a_implicitFunctions) {
+    EBGEOMETRY_EXPECT(prim != nullptr);
+
+    m_implicitFunctions.emplace_back(prim);
+  }
+
+  m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
+  m_smoothMin = a_smoothMin;
+}
+
+template <class T>
+T
+SmoothUnionIF<T>::value(const Vec3T<T>& a_point) const noexcept
+{
+  T ret = std::numeric_limits<T>::infinity();
+
+  if (m_implicitFunctions.size() == 1) {
+    ret = m_implicitFunctions.front()->value(a_point);
+
+    EBGEOMETRY_EXPECT(!std::isnan(ret));
+  }
+  else if (m_implicitFunctions.size() > 1) {
+    T a = std::numeric_limits<T>::infinity();
+    T b = std::numeric_limits<T>::infinity();
+
+    for (const auto& implicitFunction : m_implicitFunctions) {
+      const T curValue = implicitFunction->value(a_point);
+
+      EBGEOMETRY_EXPECT(!std::isnan(curValue));
+
+      if (curValue < a) {
+        b = a;
+        a = curValue;
+      }
+      else if (curValue < b) {
+        b = curValue;
+      }
+    }
+
+    ret = m_smoothMin(a, b, m_smoothLen);
+  }
+
+  return ret;
+}
+
+template <class T, class P, class BV, size_t K>
+BVHUnionIF<T, P, BV, K>::BVHUnionIF(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs)
+{
+  EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+
+  for (const auto& [prim, bv] : a_primsAndBVs) {
+    EBGEOMETRY_EXPECT(prim != nullptr);
+  }
+
+  this->buildTree(a_primsAndBVs);
+}
+
+template <class T, class P, class BV, size_t K>
+BVHUnionIF<T, P, BV, K>::BVHUnionIF(const std::vector<std::shared_ptr<P>>& a_primitives,
+                                    const std::vector<BV>&                 a_boundingVolumes)
+{
+  EBGEOMETRY_EXPECT(!a_primitives.empty());
+  EBGEOMETRY_EXPECT(a_primitives.size() == a_boundingVolumes.size());
+
+  for (const auto& p : a_primitives) {
+    EBGEOMETRY_EXPECT(p != nullptr);
+  }
+
+  std::vector<std::pair<std::shared_ptr<const P>, BV>> primsAndBVs;
+
+  primsAndBVs.reserve(a_primitives.size());
+
+  for (size_t i = 0; i < a_primitives.size(); i++) {
+    primsAndBVs.emplace_back(std::make_pair(a_primitives[i], a_boundingVolumes[i]));
+  }
+
+  this->buildTree(primsAndBVs);
+}
+
+template <class T, class P, class BV, size_t K>
+void
+BVHUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
+                                   const BVH::Build                                            a_build) noexcept
+{
+  m_bvh = CSGDetail::buildBVH<T, P, BV, K>(a_primsAndBVs, a_build);
 }
 
 template <class T, class P, class BV, size_t K>
 T
-FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
+BVHUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 {
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+
   T minDist = std::numeric_limits<T>::infinity();
 
-  BVH::Updater<P> updater =
-    [&minDist, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions) noexcept -> void {
-    for (const auto& implicitFunction : a_implicitFunctions) {
-      minDist = std::min(minDist, implicitFunction->value(a_point));
+  const BVH::PackedUpdater<P> updater =
+    [&minDist, &a_point](
+      const std::vector<std::shared_ptr<const P>>& a_implicitFunctions, size_t offset, size_t count) noexcept -> void {
+    for (size_t i = offset; i < offset + count; i++) {
+      const T v = a_implicitFunctions[i]->value(a_point);
+
+      EBGEOMETRY_EXPECT(!std::isnan(v));
+
+      minDist = std::min(minDist, v);
     }
   };
 
-  BVH::Visiter<Node, T> visiter = [&minDist](const Node& a_node, const T& a_bvDist) noexcept -> bool {
-    return a_bvDist <= 0.0 || a_bvDist <= minDist;
+  const BVH::Visiter<Node, T> visiter = [&minDist](const Node&, const T& a_bvDist) noexcept -> bool {
+    return a_bvDist <= T(0.0) || a_bvDist <= minDist;
   };
 
-  BVH::Sorter<Node, T, K> sorter =
-    [](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
-    std::sort(a_leaves.begin(),
-              a_leaves.end(),
-              [](const std::pair<std::shared_ptr<const Node>, T>& n1,
-                 const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
+  const BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
+    std::sort(
+      a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
+        return n1.second > n2.second;
+      });
   };
 
-  BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
+  const BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
     return a_node.getDistanceToBoundingVolume(a_point);
   };
 
@@ -347,39 +503,66 @@ FastUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T, class P, class BV, size_t K>
-const BV&
-FastUnionIF<T, P, BV, K>::getBoundingVolume() const noexcept
+const EBGeometry::BoundingVolumes::AABBT<T>&
+BVHUnionIF<T, P, BV, K>::getBoundingVolume() const noexcept
 {
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+
   return m_bvh->getBoundingVolume();
 }
 
 template <class T, class P, class BV, size_t K>
-FastSmoothUnionIF<T, P, BV, K>::FastSmoothUnionIF(
+BVHSmoothUnionIF<T, P, BV, K>::BVHSmoothUnionIF(
   const std::vector<std::shared_ptr<P>>&               a_distanceFunctions,
   const std::vector<BV>&                               a_boundingVolumes,
   const T                                              a_smoothLen,
   const std::function<T(const T&, const T&, const T&)> a_smoothMin) noexcept
-  : FastUnionIF<T, P, BV, K>(a_distanceFunctions, a_boundingVolumes)
 {
+  EBGEOMETRY_EXPECT(!a_distanceFunctions.empty());
+  EBGEOMETRY_EXPECT(a_distanceFunctions.size() == a_boundingVolumes.size());
+  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+
+  for (const auto& p : a_distanceFunctions) {
+    EBGEOMETRY_EXPECT(p != nullptr);
+  }
+
+  std::vector<std::pair<std::shared_ptr<const P>, BV>> primsAndBVs;
+
+  primsAndBVs.reserve(a_distanceFunctions.size());
+
+  for (size_t i = 0; i < a_distanceFunctions.size(); i++) {
+    primsAndBVs.emplace_back(std::make_pair(a_distanceFunctions[i], a_boundingVolumes[i]));
+  }
+
+  this->buildTree(primsAndBVs);
+
   m_smoothLen = std::max(a_smoothLen, std::numeric_limits<T>::min());
   m_smoothMin = a_smoothMin;
 }
 
 template <class T, class P, class BV, size_t K>
-T
-FastSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
+void
+BVHSmoothUnionIF<T, P, BV, K>::buildTree(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndBVs,
+                                         const BVH::Build                                            a_build) noexcept
 {
-  // For the smoothed CSG union we use a smooth min operator on the two closest
-  // primitives.
+  m_bvh = CSGDetail::buildBVH<T, P, BV, K>(a_primsAndBVs, a_build);
+}
 
-  // Closest and next closest primitives.
+template <class T, class P, class BV, size_t K>
+T
+BVHSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+
   T a = std::numeric_limits<T>::infinity();
   T b = std::numeric_limits<T>::infinity();
 
-  BVH::Updater<P> updater =
-    [&a, &b, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions) noexcept -> void {
-    for (const auto& implicitFunction : a_implicitFunctions) {
-      const auto& d = implicitFunction->value(a_point);
+  BVH::PackedUpdater<P> updater = [&a, &b, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions,
+                                                     size_t                                       offset,
+                                                     size_t count) noexcept -> void {
+    for (size_t i = offset; i < offset + count; i++) {
+      const T d = a_implicitFunctions[i]->value(a_point);
+      EBGEOMETRY_EXPECT(!std::isnan(d));
 
       if (d < a) {
         b = a;
@@ -391,32 +574,43 @@ FastSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
     }
   };
 
-  BVH::Visiter<Node, T> visiter = [&a, &b](const Node& a_node, const T& a_bvDist) noexcept -> bool {
-    return a_bvDist <= 0.0 || a_bvDist <= a || a_bvDist <= b;
+  BVH::Visiter<Node, T> visiter = [&a, &b](const Node&, const T& a_bvDist) noexcept -> bool {
+    return a_bvDist <= T(0.0) || a_bvDist <= a || a_bvDist <= b;
   };
 
-  BVH::Sorter<Node, T, K> sorter =
-    [&a_point](std::array<std::pair<std::shared_ptr<const Node>, T>, K>& a_leaves) noexcept -> void {
+  BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
     std::sort(
-      a_leaves.begin(),
-      a_leaves.end(),
-      [&a_point](const std::pair<std::shared_ptr<const Node>, T>& n1,
-                 const std::pair<std::shared_ptr<const Node>, T>& n2) -> bool { return n1.second > n2.second; });
+      a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
+        return n1.second > n2.second;
+      });
   };
 
   BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
     return a_node.getDistanceToBoundingVolume(a_point);
   };
 
-  this->m_bvh->traverse(updater, visiter, sorter, metaUpdater);
+  m_bvh->traverse(updater, visiter, sorter, metaUpdater);
 
   return m_smoothMin(a, b, m_smoothLen);
+}
+
+template <class T, class P, class BV, size_t K>
+const EBGeometry::BoundingVolumes::AABBT<T>&
+BVHSmoothUnionIF<T, P, BV, K>::getBoundingVolume() const noexcept
+{
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+
+  return m_bvh->getBoundingVolume();
 }
 
 template <class T>
 IntersectionIF<T>::IntersectionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions) noexcept
 {
+  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+
   for (const auto& prim : a_implicitFunctions) {
+    EBGEOMETRY_EXPECT(prim != nullptr);
+
     m_implicitFunctions.emplace_back(prim);
   }
 }
@@ -428,7 +622,11 @@ IntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
   T ret = -std::numeric_limits<T>::infinity();
 
   for (const auto& prim : m_implicitFunctions) {
-    ret = std::max(ret, prim->value(a_point));
+    const T v = prim->value(a_point);
+
+    EBGEOMETRY_EXPECT(!std::isnan(v));
+
+    ret = std::max(ret, v);
   }
 
   return ret;
@@ -441,6 +639,9 @@ SmoothIntersectionIF<T>::SmoothIntersectionIF(
   const T                                               a_smoothLen,
   const std::function<T(const T&, const T&, const T&)>& a_smoothMax) noexcept
 {
+  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
+  EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
+  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
 
   m_implicitFunctions.emplace_back(a_implicitFunctionA);
   m_implicitFunctions.emplace_back(a_implicitFunctionB);
@@ -455,7 +656,12 @@ SmoothIntersectionIF<T>::SmoothIntersectionIF(
   const T                                                  a_smoothLen,
   const std::function<T(const T&, const T&, const T&)>&    a_smoothMax) noexcept
 {
+  EBGEOMETRY_EXPECT(!a_implicitFunctions.empty());
+  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
+
   for (const auto& prim : a_implicitFunctions) {
+    EBGEOMETRY_EXPECT(prim != nullptr);
+
     m_implicitFunctions.emplace_back(prim);
   }
 
@@ -471,6 +677,8 @@ SmoothIntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 
   if (m_implicitFunctions.size() == 1) {
     ret = m_implicitFunctions.front()->value(a_point);
+
+    EBGEOMETRY_EXPECT(!std::isnan(ret));
   }
   else if (m_implicitFunctions.size() > 1) {
     T a = -std::numeric_limits<T>::infinity();
@@ -478,6 +686,8 @@ SmoothIntersectionIF<T>::value(const Vec3T<T>& a_point) const noexcept
 
     for (const auto& implicitFunction : m_implicitFunctions) {
       const T curValue = implicitFunction->value(a_point);
+
+      EBGEOMETRY_EXPECT(!std::isnan(curValue));
 
       if (curValue > a) {
         b = a;
@@ -498,6 +708,9 @@ template <class T>
 DifferenceIF<T>::DifferenceIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionA,
                               const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionB) noexcept
 {
+  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
+  EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
+
   m_implicitFunctionA = a_implicitFunctionA;
   m_implicitFunctionB = a_implicitFunctionB;
 }
@@ -506,6 +719,9 @@ template <class T>
 DifferenceIF<T>::DifferenceIF(const std::shared_ptr<ImplicitFunction<T>>&              a_implicitFunctionA,
                               const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctionsB) noexcept
 {
+  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
+  EBGEOMETRY_EXPECT(!a_implicitFunctionsB.empty());
+
   m_implicitFunctionA = a_implicitFunctionA;
   m_implicitFunctionB = EBGeometry::Union<T>(a_implicitFunctionsB);
 }
@@ -514,7 +730,13 @@ template <class T>
 T
 DifferenceIF<T>::value(const Vec3T<T>& a_point) const noexcept
 {
-  return std::max(m_implicitFunctionA->value(a_point), -m_implicitFunctionB->value(a_point));
+  const T a = m_implicitFunctionA->value(a_point);
+  const T b = m_implicitFunctionB->value(a_point);
+
+  EBGEOMETRY_EXPECT(!std::isnan(a));
+  EBGEOMETRY_EXPECT(!std::isnan(b));
+
+  return std::max(a, -b);
 }
 
 template <class T>
@@ -524,6 +746,9 @@ SmoothDifferenceIF<T>::SmoothDifferenceIF(
   const T                                                     a_smoothLen,
   const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax) noexcept
 {
+  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
+  EBGEOMETRY_EXPECT(a_implicitFunctionB != nullptr);
+  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
 
   m_smoothIntersectionIF = std::make_shared<SmoothIntersectionIF<T>>(
     a_implicitFunctionA, EBGeometry::Complement<T>(a_implicitFunctionB), a_smoothLen, a_smoothMax);
@@ -536,12 +761,18 @@ SmoothDifferenceIF<T>::SmoothDifferenceIF(
   const T                                                     a_smoothLen,
   const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax) noexcept
 {
+  EBGEOMETRY_EXPECT(a_implicitFunctionA != nullptr);
+  EBGEOMETRY_EXPECT(!a_implicitFunctionsB.empty());
+  EBGEOMETRY_EXPECT(a_smoothLen > T(0));
 
   std::vector<std::shared_ptr<ImplicitFunction<T>>> implicitFunctions;
 
+  implicitFunctions.reserve(1 + a_implicitFunctionsB.size());
   implicitFunctions.emplace_back(a_implicitFunctionA);
 
   for (const auto& subtractedFunction : a_implicitFunctionsB) {
+    EBGEOMETRY_EXPECT(subtractedFunction != nullptr);
+
     implicitFunctions.emplace_back(EBGeometry::Complement<T>(subtractedFunction));
   }
 
@@ -552,6 +783,8 @@ template <class T>
 T
 SmoothDifferenceIF<T>::value(const Vec3T<T>& a_point) const noexcept
 {
+  EBGEOMETRY_EXPECT(m_smoothIntersectionIF != nullptr);
+
   return m_smoothIntersectionIF->value(a_point);
 }
 
@@ -561,6 +794,12 @@ FiniteRepetitionIF<T>::FiniteRepetitionIF(const std::shared_ptr<ImplicitFunction
                                           const Vec3T<T>&                             a_repeatLo,
                                           const Vec3T<T>&                             a_repeatHi) noexcept
 {
+  EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
+
+  for (size_t i = 0; i < 3; i++) {
+    EBGEOMETRY_EXPECT(a_period[i] > T(0));
+  }
+
   m_implicitFunction = a_implicitFunction;
   m_period           = a_period;
   m_repeatLo         = a_repeatLo;
@@ -574,12 +813,16 @@ FiniteRepetitionIF<T>::value(const Vec3T<T>& a_point) const noexcept
   Vec3T<T> q;
 
   for (size_t i = 0; i < 3; i++) {
-    q[i] = a_point[i] - m_period[i] * std::round(clamp((a_point[i] / m_period[i]), -m_repeatLo[i], m_repeatHi[i]));
+    q[i] = a_point[i] - m_period[i] * std::round(std::clamp((a_point[i] / m_period[i]), -m_repeatLo[i], m_repeatHi[i]));
   }
 
-  return m_implicitFunction->value(q);
+  const T ret = m_implicitFunction->value(q);
+
+  EBGEOMETRY_EXPECT(!std::isnan(ret));
+
+  return ret;
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

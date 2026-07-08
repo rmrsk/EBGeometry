@@ -1,35 +1,34 @@
-/* EBGeometry
- * Copyright © 2026 Robert Marskar
- * Please refer to Copyright.txt and LICENSE in the EBGeometry root directory.
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * @file   EBGeometry_STLImplem.hpp
+ * @brief  Implementation of EBGeometry_STL.hpp
+ * @author Robert Marskar
  */
 
-#ifndef EBGeometry_STLImplem
-#define EBGeometry_STLImplem
+#ifndef EBGEOMETRY_STLIMPLEM_HPP
+#define EBGEOMETRY_STLIMPLEM_HPP
+
+// Std includes
+#include <cstddef>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
 
 // Our includes
+#include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_STL.hpp"
 #include "EBGeometry_Soup.hpp"
-#include "EBGeometry_NamespaceHeader.hpp"
+
+namespace EBGeometry {
 
 template <typename T>
-STL<T>::STL() noexcept
-{
-  m_vertexCoordinates.resize(0);
-  m_facets.resize(0);
-  m_id = std::string();
-}
-
-template <typename T>
-STL<T>::STL(const std::string a_id) noexcept : STL()
+STL<T>::STL(const std::string& a_id) noexcept : STL()
 {
   m_id = a_id;
-}
-
-template <typename T>
-STL<T>::~STL() noexcept
-{
-  m_vertexCoordinates.resize(0);
-  m_facets.resize(0);
 }
 
 template <typename T>
@@ -95,6 +94,6 @@ STL<T>::convertToDCEL() const noexcept
   return mesh;
 }
 
-#include "EBGeometry_NamespaceFooter.hpp"
+} // namespace EBGeometry
 
 #endif

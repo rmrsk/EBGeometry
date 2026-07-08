@@ -1,0 +1,178 @@
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "EBGeometry.hpp"
+#include "TestFloatingPointUtils.hpp"
+
+#include <catch2/catch_template_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+using namespace EBGeometry;
+using BoundingVolumes::AABBT;
+using BoundingVolumes::SphereT;
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AABBT
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEMPLATE_TEST_CASE("AABBT: construction from lo/hi corners", "[AABBT]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const Vec3T<T> lo(-1, -2, -3);
+  const Vec3T<T> hi(1, 2, 3);
+  AABBT<T>       box(lo, hi);
+
+  REQUIRE(box.getLowCorner()[0] == T(-1.0));
+  REQUIRE(box.getHighCorner()[2] == T(3.0));
+
+  auto c = box.getCentroid();
+  REQUIRE(c[0] == T(0.0));
+  REQUIRE(c[1] == T(0.0));
+  REQUIRE(c[2] == T(0.0));
+}
+
+TEMPLATE_TEST_CASE("AABBT: construction from point cloud", "[AABBT]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const std::vector<Vec3T<T>> pts = {Vec3T<T>(0, 0, 0), Vec3T<T>(3, 0, 0), Vec3T<T>(0, 4, 0), Vec3T<T>(0, 0, 5)};
+  AABBT<T>                    box(pts);
+
+  REQUIRE(box.getLowCorner()[0] == T(0.0));
+  REQUIRE(box.getHighCorner()[0] == T(3.0));
+  REQUIRE(box.getHighCorner()[1] == T(4.0));
+  REQUIRE(box.getHighCorner()[2] == T(5.0));
+}
+
+TEMPLATE_TEST_CASE("AABBT: volume and surface area", "[AABBT]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const AABBT<T> unit(Vec3T<T>(0, 0, 0), Vec3T<T>(1, 1, 1));
+  REQUIRE_THAT(unit.getVolume(), WithinRel(T(1.0)));
+  REQUIRE_THAT(unit.getArea(), WithinRel(T(6.0)));
+
+  const AABBT<T> rect(Vec3T<T>(0, 0, 0), Vec3T<T>(2, 3, 4));
+  REQUIRE_THAT(rect.getVolume(), WithinRel(T(24.0)));
+}
+
+TEMPLATE_TEST_CASE("AABBT: distance to point", "[AABBT]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const AABBT<T> unit(Vec3T<T>(0, 0, 0), Vec3T<T>(1, 1, 1));
+
+  // Inside: distance should be 0
+  REQUIRE_THAT(unit.getDistance(Vec3T<T>(T(0.5), T(0.5), T(0.5))), WithinAbs(0.0, tightMargin<T>()));
+
+  // Outside along one axis
+  REQUIRE_THAT(unit.getDistance(Vec3T<T>(T(3.0), T(0.5), T(0.5))), WithinRel(T(2.0)));
+
+  // Outside at a corner
+  const Vec3T<T> corner_pt(2.0, 0.0, 0.0);
+  REQUIRE_THAT(unit.getDistance(corner_pt), WithinRel(T(1.0)));
+}
+
+TEMPLATE_TEST_CASE("AABBT: intersects", "[AABBT]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const AABBT<T> a(Vec3T<T>(0, 0, 0), Vec3T<T>(2, 2, 2));
+  const AABBT<T> b(Vec3T<T>(1, 1, 1), Vec3T<T>(3, 3, 3));
+  const AABBT<T> c(Vec3T<T>(5, 5, 5), Vec3T<T>(6, 6, 6));
+
+  REQUIRE(a.intersects(b));
+  REQUIRE(b.intersects(a));
+  REQUIRE(!a.intersects(c));
+  REQUIRE(!c.intersects(a));
+}
+
+TEMPLATE_TEST_CASE("AABBT: overlapping volume", "[AABBT]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const AABBT<T> a(Vec3T<T>(0, 0, 0), Vec3T<T>(2, 2, 2));
+  const AABBT<T> b(Vec3T<T>(1, 1, 1), Vec3T<T>(3, 3, 3));
+
+  // Overlap is a 1×1×1 cube
+  REQUIRE_THAT(a.getOverlappingVolume(b), WithinRel(T(1.0)));
+
+  // No overlap
+  const AABBT<T> c(Vec3T<T>(5, 5, 5), Vec3T<T>(6, 6, 6));
+  REQUIRE_THAT(a.getOverlappingVolume(c), WithinAbs(0.0, tightMargin<T>()));
+
+  // Identical boxes
+  REQUIRE_THAT(a.getOverlappingVolume(a), WithinRel(T(8.0)));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SphereT
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEMPLATE_TEST_CASE("SphereT: construction", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const Vec3T<T> c(1, 2, 3);
+  SphereT<T>     s(c, T(5.0));
+
+  REQUIRE(s.getRadius() == T(5.0));
+  REQUIRE(s.getCentroid()[0] == T(1.0));
+  REQUIRE(s.getCentroid()[1] == T(2.0));
+  REQUIRE(s.getCentroid()[2] == T(3.0));
+}
+
+TEMPLATE_TEST_CASE("SphereT: construction from point cloud (Ritter)", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const std::vector<Vec3T<T>> pts = {Vec3T<T>(-2, 0, 0), Vec3T<T>(2, 0, 0), Vec3T<T>(0, 2, 0), Vec3T<T>(0, -2, 0)};
+  SphereT<T>                  s(pts); // uses Ritter algorithm by default
+  // Ritter's algorithm is not guaranteed tight, but must enclose all points
+  const T relativeMargin = T(1000) * std::numeric_limits<T>::epsilon();
+  for (const auto& p : pts) {
+    const T dist = (p - s.getCentroid()).length();
+    REQUIRE(dist <= s.getRadius() + relativeMargin * s.getRadius());
+  }
+}
+
+TEMPLATE_TEST_CASE("SphereT: intersects", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const SphereT<T> a(Vec3T<T>(0, 0, 0), T(1.0));
+  const SphereT<T> b(Vec3T<T>(1.5, 0, 0), T(1.0)); // overlap
+  const SphereT<T> c(Vec3T<T>(5, 0, 0), T(1.0));   // no overlap
+
+  REQUIRE(a.intersects(b));
+  REQUIRE(!a.intersects(c));
+}
+
+TEMPLATE_TEST_CASE("SphereT: overlapping volume (concentric)", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Identical spheres: overlap = full volume = 4/3 π r³
+  const SphereT<T> a(Vec3T<T>(0, 0, 0), T(1.0));
+  constexpr T      pi    = T(3.14159265358979323846);
+  const T          exact = (T(4.0) / T(3.0)) * pi;
+  REQUIRE_THAT(a.getOverlappingVolume(a), WithinRel(exact, T(1.0e-4)));
+
+  // Non-overlapping: volume = 0
+  const SphereT<T> b(Vec3T<T>(10, 0, 0), T(1.0));
+  REQUIRE_THAT(a.getOverlappingVolume(b), WithinAbs(0.0, tightMargin<T>()));
+}
+
+TEMPLATE_TEST_CASE("SphereT: volume and area", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr T      pi = T(3.14159265358979323846);
+  const SphereT<T> s(Vec3T<T>(0, 0, 0), T(2.0));
+
+  REQUIRE_THAT(s.getVolume(), WithinRel((T(4.0) / T(3.0)) * pi * T(8.0), T(1.0e-4)));
+  REQUIRE_THAT(s.getArea(), WithinRel(T(4.0) * pi * T(4.0), T(1.0e-4)));
+}

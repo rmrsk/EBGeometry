@@ -1,0 +1,3 @@
+[submodule "common-3d-test-models"]
+	path = common-3d-test-models
+	url = https://github.com/alecjacobson/common-3d-test-models
