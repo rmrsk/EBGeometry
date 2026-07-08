@@ -26,7 +26,7 @@ Main features:
 ## Documentation
 
 The EBGeometry documentation is updated on every pull request and is a live document that evolves
-with the code. There are three types of documentation available:
+together with the code. There are three types of documentation available:
 
 * [HTML](https://rmrsk.github.io/EBGeometry/) -- The user guide: concepts, building, testing, and
   examples.
@@ -102,7 +102,7 @@ checks, and the code style/conventions expected of contributions.
 
 ## AI usage
 
-As of 2026, we have begun to take advantage of expert-steered AI development. A CLAUDE.md lives 
-in this project, which can be used to steer Claude code. Code contributions written by an AI 
+As of 2026, we have begun to take advantage of expert-steered AI code development. A CLAUDE.md 
+lives in this project, which can be used to steer Claude code. Code contributions written by an AI 
 coding agent are thus welcome. All *merged* code, however, is always reviewed by a human before
 accepted.
