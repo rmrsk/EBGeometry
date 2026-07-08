@@ -3,7 +3,7 @@
 Running the unit tests locally
 ================================
 
-``EBGeometry`` ships a `Catch2 <https://github.com/catchorg/Catch2>`_ v3 unit
+EBGeometry ships a `Catch2 <https://github.com/catchorg/Catch2>`_ v3 unit
 test suite under ``Tests/``.  Catch2 is fetched automatically at CMake configure
 time via ``FetchContent`` — no manual installation is needed.
 
@@ -35,9 +35,21 @@ debugger output), and turns on both the test suite and the examples.
 
 A successful unit-test run looks like::
 
-   100% tests passed, 0 tests failed out of 132
+   100% tests passed, 0 tests failed out of 220
    Label Time Summary:
-   unit    =   0.31 sec*proc (132 tests)
+   unit    =   1.43 sec*proc (220 tests)
+
+Most test files are written with Catch2's ``TEMPLATE_TEST_CASE`` so they can run under both
+``float`` and ``double``, but locally, by default, only ``double`` runs (fast iteration,
+matching whatever the CMake preset otherwise builds) -- the count above is double-only. CI
+additionally configures with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON`` to run the full suite
+under both precisions (422 tests). To do the same locally:
+
+.. code-block:: bash
+
+   cmake --preset debug -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
+   cmake --build --preset debug --parallel $(nproc)
+   ctest --preset debug
 
 Running with sanitizers (AddressSanitizer + UBSan)
 -----------------------------------------------------
@@ -205,13 +217,45 @@ Test coverage
        partitioners, bottom-up with Morton and Nested space-filling curves); :cpp:class:`MeshSDF`
        and :cpp:class:`TriMeshSDF` agreement with :cpp:class:`FlatMeshSDF` for every
        :cpp:class:`BVH::Build` strategy; and :cpp:func:`MeshSDF::getClosestFaces` ordering.
+   * - ``TestCSG``
+     - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin` blending primitives;
+       sharp and smooth :cpp:class:`UnionIF`/:cpp:class:`IntersectionIF`/:cpp:class:`DifferenceIF`
+       (and their BVH-accelerated counterparts); :cpp:class:`FiniteRepetitionIF` tiling and
+       boundary clamping.
+   * - ``TestTransform``
+     - :cpp:class:`ComplementIF`, :cpp:class:`TranslateIF`, :cpp:class:`RotateIF`,
+       :cpp:class:`ScaleIF`, :cpp:class:`OffsetIF`, :cpp:class:`AnnularIF`, :cpp:class:`BlurIF`,
+       :cpp:class:`MollifyIF`, :cpp:class:`ElongateIF`, :cpp:class:`ReflectIF`: each transform's
+       free-function/class-constructor equivalence, and correctness against a hand-computable
+       expected value.
+   * - ``TestOctree``
+     - :cpp:class:`Octree::Node`: depth-first/breadth-first construction, traversal pruning and
+       custom sort order; :cpp:func:`ImplicitFunction::approximateBoundingVolumeOctree`
+       correctness (tightening bound with depth, degenerate/non-intersecting input fallback).
+   * - ``TestPolygon2D``
+     - :cpp:class:`Polygon2D`: winding-number/crossing-number/subtended-angle containment
+       algorithms, agreement between them on convex and concave (notched) polygons, and on a
+       non-axis-aligned embedding plane.
+   * - ``TestTriangleSoA``
+     - :cpp:class:`TriangleSoAT`: ``signedDistance`` agreement with the minimum over the
+       individual packed :cpp:class:`Triangle` instances (including padding when fewer than
+       ``W`` triangles are packed), and bounding-volume construction from the packed data.
+   * - ``TestSimpleTimer``
+     - ``SimpleTimer``: near-zero elapsed time on construction, measured duration against a
+       requested sleep, restart-on-``start()`` semantics, and relative ordering of two
+       different sleep durations.
+
+``Tests/InstantiateAll.cpp`` is not itself a test binary and does not appear in the table
+above: it is a compile-only target (built by ``cmake --build``, but never run by ``ctest``)
+that explicitly instantiates every public class template for both ``float`` and ``double``.
+Its purpose is to give ``clang-tidy`` and the project's warning set (in particular
+``-Wdouble-promotion``) something to analyse for both precisions, regardless of what the
+Catch2 tests above happen to exercise -- ``float`` support would otherwise only be checked
+by whichever public classes a test happens to instantiate. See
+:ref:`Chap:ContributionGuidelines` for when to add a new class to it.
 
 .. note::
 
-   The DCEL signed-distance convention matches the analytic SDF convention:
-   face normals are computed as :math:`(\mathbf{x}_2 - \mathbf{x}_0)
-   \times (\mathbf{x}_2 - \mathbf{x}_1)` from the half-edge vertex order, which
-   yields outward-pointing normals for the default STL winding order.
-   :cpp:class:`FlatMeshSDF` therefore returns a **negative** value inside the mesh
-   and a **positive** value outside, consistent with :cpp:class:`SphereSDF` and
-   other analytic types.
+   All of the mesh- and BVH-related tests above rely on the sign convention (negative inside,
+   positive outside) and face-normal computation described in :ref:`Chap:GeometryRepresentations`
+   and :ref:`Chap:DCEL` -- see those pages rather than this one for the convention itself.

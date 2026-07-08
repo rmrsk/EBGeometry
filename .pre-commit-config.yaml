@@ -53,11 +53,10 @@ repos:
         stages: [manual]
 
       - id: check-docs
-        name: Flag literalincludes that reference changed source files (advisory)
+        name: Ban literalinclude in Sphinx docs
         entry: python3 Scripts/CheckDocs.py
         language: system
         pass_filenames: false
-        files: \.(hpp|cpp|options|inputs|md)$
         stages: [manual]
 
       - id: build-doc-figures

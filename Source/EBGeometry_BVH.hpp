@@ -564,7 +564,10 @@ auto DefaultStopFunction =
  * pack() to obtain a cache-friendly PackedBVH for traversal.
  *
  * @tparam T  Floating-point precision.
- * @tparam P  Primitive type. Must provide getCentroid() and signedDistance(Vec3T<T>).
+ * @tparam P  Primitive type. Must provide getCentroid() -- construction/partitioning never
+ * calls signedDistance() on it. A signedDistance(Vec3T<T>) member is only required if the
+ * resulting PackedBVH's own signedDistance() query is used (see PackedBVH below); a custom
+ * traverse() updater need not require it at all.
  * @tparam BV Bounding volume type.
  * @tparam K  Tree branching factor (must be >= 2).
  */

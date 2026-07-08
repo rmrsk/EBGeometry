@@ -17,37 +17,26 @@ Code style
   for types, ``lowerCamel`` with ``a_`` prefix for function parameters,
   ``m_`` prefix for member variables).
 
-``noexcept`` policy
-----------------------
+Static and dynamic assertions
+--------------------------------
 
-* Every function that cannot propagate an exception — pure arithmetic, trivial
-  accessors, constructors that only copy POD values — **must** be declared
-  ``noexcept``.
-* Functions that perform heap allocation (``std::vector``, ``std::make_shared``,
-  ``std::string`` construction, file I/O) **must not** be declared ``noexcept``.
-  Marking an allocating function ``noexcept`` silently converts a
-  ``std::bad_alloc`` into ``std::terminate``, which is almost never the right
-  behaviour.
-* When in doubt, omit ``noexcept`` rather than adding it incorrectly.
+EBGeometry guards its preconditions with two complementary mechanisms: a compile-time
+``static_assert`` for anything decidable from template parameters alone, and the runtime
+``EBGEOMETRY_EXPECT(cond)`` macro for anything that can only be checked from actual argument
+values. When adding new functionality, follow the same split:
 
-``[[nodiscard]]``
---------------------
-
-* Add ``[[nodiscard]]`` to every function whose return value conveys the
-  result of a computation (signed-distance queries, accessors, parser
-  functions, BVH builders, mathematical operators).  Silently discarding
-  such values is almost always a programming error.
-
-``EBGEOMETRY_EXPECT``
-------------------------
-
-* Guard all public-facing preconditions (non-zero radii, valid axis indices,
+* Guard all public-facing runtime preconditions (non-zero radii, valid axis indices,
   non-null pointers in public API, non-empty containers) with
-  ``EBGEOMETRY_EXPECT(cond)``.
-* Do **not** guard internal invariants that the surrounding code already
-  enforces — this adds noise without safety benefit.
-* See :ref:`Sec:Assertions` for how the macro behaves with and without
-  ``EBGEOMETRY_ENABLE_ASSERTIONS``.
+  ``EBGEOMETRY_EXPECT(cond)``. Do **not** guard internal invariants that the surrounding code
+  already enforces — this adds noise without safety benefit.
+* Guard template-parameter invariants that are known at compile time (a floating-point type,
+  an in-range branching factor, ...) with ``static_assert`` instead — a violation should fail
+  the build rather than exercise a runtime check that can never actually be reached.
+
+See :ref:`Chap:ConfigurationOptions`'s "Compile-time assertions (``static_assert``)" and
+:ref:`Sec:Assertions` ("Runtime assertions (``EBGEOMETRY_EXPECT``)") subsections for the full
+detail on how each mechanism behaves, including with and without
+``EBGEOMETRY_ENABLE_ASSERTIONS``.
 
 Adding tests
 --------------

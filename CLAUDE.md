@@ -147,47 +147,64 @@ has caused exactly this before.**
 ## When you change code, check whether the docs still agree with it
 
 Sphinx docs and Doxygen comments describe the code but aren't checked by the compiler, so they
-silently drift out of sync with it. This has already happened once in this repository: adding a
-field to `MeshSDF`'s constructor shifted line numbers in
-`Source/EBGeometry_MeshDistanceFunctionsImplem.hpp`, which silently made
-`Docs/Sphinx/source/ImplemBVH.rst`'s `literalinclude` `:lines:` range cite the wrong span --
-nothing failed to compile, no test failed, and the only reason it was caught was a manual full
-Sphinx rebuild and a careful read of the rendered excerpt.
+silently drift out of sync with it. This repository used to embed source excerpts directly into
+the Sphinx docs via `.. literalinclude::`, and a line-number shift in the source (e.g. adding a
+field to a constructor) could silently make a `:lines:` range cite the wrong span -- nothing
+failed to compile, no test failed, and the only reason it was ever caught was a manual full Sphinx
+rebuild and a careful read of the rendered excerpt.
+
+**`literalinclude` is banned in `Docs/Sphinx/source/*.rst`.** Every occurrence has been removed;
+never add a new one. Where a reader needs the exact C++ signature of a class or function, link to
+its Doxygen-generated page instead (e.g.
+`` `TreeBVH <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__ ``) rather than showing source
+inline -- Doxygen is regenerated from the header itself on every build, so it cannot drift the way
+a hand-maintained line range could. Before adding a Doxygen link, verify the target actually
+exists: build Doxygen locally (`cd Docs && doxygen doxygen.conf`) and check the generated `.html`
+filename/anchor under `Docs/doxygen/html/`, since a wrong mangled class name or a stale
+member-function anchor produces a silently-broken link.
+
+**The Sphinx docs must be updated before a PR is merged, not left for later.** If a change alters
+a documented class/function's behavior, signature, or existence, the corresponding
+`Docs/Sphinx/source/*.rst` page(s) must be updated in the same PR -- an undocumented behavior
+change is not a finished change.
+
+**Claude must begin auditing the `.rst` docs as soon as a PR is marked ready for review (i.e. no
+longer a draft), not only when explicitly asked.** Check the PR's draft status (e.g.
+`gh pr view <number> --json isDraft`); once it is out of draft, treat a documentation audit of
+that PR's changes as part of finishing the work, following the steps below, even if the user
+hasn't separately requested a docs pass.
 
 Before treating a code change as finished, look at what you actually staged/changed
 (`git diff --staged --name-only`, or `git diff HEAD --name-only` if not yet staged) and, for each
 changed `Source/*.hpp` file:
 
-1. **Find `literalinclude`s pointing at it**: `grep -rn "literalinclude.*<filename>" Docs/Sphinx/source/`.
-   For each match, check whether its `:lines:`/`:start-after:`/`:end-before:` range still bounds
-   the *intended* snippet after your edit -- adding, removing, or reordering even one line upstream
-   of a fixed `:lines: N-M` range silently shifts what gets excerpted. Prefer `:start-after:`/
-   `:end-before:` (anchored to text, not line numbers) over `:lines:` when editing or adding a new
-   literalinclude, since it survives future line-number drift; leave existing `:lines:` ranges as
-   `:lines:` unless you're touching them anyway.
-2. **Rebuild the Sphinx HTML docs** (see below) and check both for build warnings (a
-   "non-whitespace stripped by dedent"-style warning means the range no longer aligns with a code
-   block) and, if the affected page renders a code snippet a reader is meant to learn from, that the
-   *rendered* excerpt is still the right one -- a shifted range can still produce syntactically
-   plausible C++ that is simply the wrong function.
-3. **Grep for renamed/removed identifiers** in prose, not just code blocks: if you renamed a class,
-   method, or parameter, `grep -rn "<oldName>" Docs/Sphinx/source/ Docs/mainpage.md README.md
-   CLAUDE.md` to catch references outside literalincludes (which update automatically) that don't.
-4. **If you added a new public class/function**, add it to `Tests/InstantiateAll.cpp` (for
-   clang-tidy/compile coverage under both precisions, per the existing convention) and check whether
-   it deserves a mention on the relevant `Docs/Sphinx/source/Implem*.rst` conceptual page and/or a
-   row in a `Tests/TestingLocally.rst`-style coverage table, matching how existing sibling
-   classes are documented.
-5. **If you changed a function's signature** (added/removed/renamed a parameter, changed a return
+1. **Confirm no `literalinclude` crept back in**: `grep -rn "literalinclude" Docs/Sphinx/source/`
+   must return nothing. If it does, replace it with a Doxygen link as described above.
+2. **Grep for renamed/removed identifiers** in prose: if you renamed a class, method, or
+   parameter, `grep -rn "<oldName>" Docs/Sphinx/source/ Docs/mainpage.md README.md CLAUDE.md` to
+   catch stale references -- a Doxygen link doesn't automatically break when the linked class is
+   renamed the way a literalinclude would, so this needs an explicit check.
+3. **If you added a new public class/function**, add it to `Tests/InstantiateAll.cpp` (for
+   clang-tidy/compile coverage under both precisions, per the existing convention) and check
+   whether it deserves a mention on the relevant `Docs/Sphinx/source/Implem*.rst` implementation
+   page (concrete API, Doxygen-linked) and/or its `Docs/Sphinx/source/*.rst` Concepts-section
+   counterpart (conceptual picture, no implementation classes named) and/or a row in a
+   `Tests/TestingLocally.rst`-style coverage table, matching how existing sibling classes are
+   documented.
+4. **If you changed a function's signature** (added/removed/renamed a parameter, changed a return
    type), update its Doxygen `@param`/`@tparam`/`@return` comment in the same header -- `doxygen
    doxygen.conf` (`WARN_AS_ERROR = FAIL_ON_WARNINGS`) will catch a genuinely missing `@param` for a
    new parameter, but won't catch a stale description that no longer matches what the parameter
-   does.
+   does, or a `Docs/Sphinx/source/*.rst` page that still describes the old signature.
+5. **Rebuild the Sphinx HTML docs** (see below) and check for build warnings -- a broken internal
+   cross-reference (`:ref:`/`:numref:`/`:eq:`) will not stop the build, but usually surfaces as a
+   warning.
 
-The `check-docs` pre-commit hook (`Scripts/CheckDocs.py`, manual stage) automates a coarse version
-of step 1: it diffs against `main` and prints every `literalinclude` whose referenced file changed.
-Treat it as a starting point, not a replacement for the above -- it only flags "this file changed,"
-never "this range is now wrong," which is precisely the failure mode that bit this repo before.
+The `check-docs` pre-commit hook (`Scripts/CheckDocs.py`, manual stage) enforces the ban
+mechanically: it fails if any `.. literalinclude::` directive exists anywhere under
+`Docs/Sphinx/source/`. Treat it as a floor, not a replacement for the steps above -- it only
+catches the banned directive itself, never "this page no longer describes what the code does,"
+which needs the manual read-through above.
 
 ## Reproducing CI locally / before pushing
 
