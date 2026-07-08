@@ -7,6 +7,19 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Catch2)
 
+# Catch2's WithinAbs/WithinRel matchers always operate on `double` internally
+# (MatcherBase<double>), regardless of which type-specific overload built them -- so
+# REQUIRE_THAT(<float value>, WithinRel(...)/WithinAbs(...)) triggers an implicit
+# float->double promotion *inside Catch2's own header*, which -Wdouble-promotion flags under
+# Clang (not GCC) once EBGEOMETRY_TEST_BOTH_PRECISIONS actually instantiates a TEMPLATE_TEST_CASE
+# with T=float. This isn't a bug in EBGeometry's own code, so mark Catch2's headers as system
+# includes (-isystem) instead of chasing every call site.
+foreach(_ebgeometry_catch2_target Catch2 Catch2WithMain)
+  get_target_property(_ebgeometry_catch2_includes ${_ebgeometry_catch2_target} INTERFACE_INCLUDE_DIRECTORIES)
+  set_target_properties(${_ebgeometry_catch2_target} PROPERTIES
+    INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${_ebgeometry_catch2_includes}")
+endforeach()
+
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(CTest)
 include(Catch)
