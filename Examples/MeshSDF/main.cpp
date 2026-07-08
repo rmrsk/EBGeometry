@@ -5,6 +5,7 @@
 #include <chrono>
 #include <random>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <EBGeometry.hpp>
@@ -101,8 +102,11 @@ main(int argc, char* argv[])
 
   // Summing Nsamp signed distances in a different order (brute-force scan vs. BVH traversal)
   // is not bit-for-bit reproducible -- floating-point addition isn't associative -- so compare
-  // the two sums with a relative tolerance rather than requiring exact agreement.
-  constexpr T relativeTolerance = T(1.0e-7);
+  // the two sums with a relative tolerance rather than requiring exact agreement. float needs a
+  // looser tolerance than double: accumulating Nsamp terms in a different order can land right
+  // at float's own ~1.19e-7 epsilon (observed relative diff ~1.2e-7 on the armadillo mesh, which
+  // a flat 1e-7 tolerance flagged as a mismatch).
+  constexpr T relativeTolerance = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-7);
 
   bool    mismatch  = false;
   const T meshScale = std::max(std::abs(dcelSum), std::abs(meshSum));

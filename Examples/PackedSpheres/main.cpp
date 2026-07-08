@@ -7,6 +7,7 @@
 #include <random>
 #include <string>
 #include <thread>
+#include <type_traits>
 
 #include <EBGeometry.hpp>
 
@@ -122,8 +123,11 @@ main()
 
   // Summing Nsamp values in a different order (naive scan vs. BVH traversal vs. finite-repetition
   // folding) is not bit-for-bit reproducible -- floating-point addition isn't associative -- so
-  // compare the sums with a relative tolerance rather than requiring exact agreement.
-  constexpr T relativeTolerance = T(1.0e-7);
+  // compare the sums with a relative tolerance rather than requiring exact agreement. float needs
+  // a looser tolerance than double: accumulating Nsamp terms in a different order can land right
+  // at float's own ~1.19e-7 epsilon, which a flat 1e-7 tolerance intermittently flags as a
+  // mismatch (observed in CI).
+  constexpr T relativeTolerance = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-7);
 
   const T fastScale  = std::max(std::abs(sumSlow), std::abs(sumFast));
   const T arrayScale = std::max(std::abs(sumSlow), std::abs(sumArray));

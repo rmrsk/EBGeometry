@@ -7,6 +7,7 @@
 #include <random>
 #include <string>
 #include <thread>
+#include <type_traits>
 
 #include <EBGeometry.hpp>
 
@@ -129,8 +130,11 @@ main()
 
   // Summing N values in a different order (naive scan vs. BVH traversal) is not bit-for-bit
   // reproducible -- floating-point addition isn't associative -- so compare the sums with a
-  // relative tolerance rather than requiring exact agreement.
-  constexpr T relativeTolerance = T(1.0e-7);
+  // relative tolerance rather than requiring exact agreement. float needs a looser tolerance
+  // than double: accumulating N terms in a different order can land right at float's own
+  // ~1.19e-7 epsilon, which a flat 1e-7 tolerance intermittently flags as a mismatch (observed
+  // in CI).
+  constexpr T relativeTolerance = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-7);
   const T     scale             = std::max(std::abs(sumSlow), std::abs(sumFast));
 
   if (std::abs(sumSlow - sumFast) > relativeTolerance * std::max(scale, T(1.0))) {
