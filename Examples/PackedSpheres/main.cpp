@@ -120,7 +120,16 @@ main()
   }
   const auto t4 = std::chrono::high_resolution_clock::now();
 
-  if (sumSlow != sumFast || sumSlow != sumArray) {
+  // Summing Nsamp values in a different order (naive scan vs. BVH traversal vs. finite-repetition
+  // folding) is not bit-for-bit reproducible -- floating-point addition isn't associative -- so
+  // compare the sums with a relative tolerance rather than requiring exact agreement.
+  constexpr T relativeTolerance = T(1.0e-7);
+
+  const T fastScale  = std::max(std::abs(sumSlow), std::abs(sumFast));
+  const T arrayScale = std::max(std::abs(sumSlow), std::abs(sumArray));
+
+  if (std::abs(sumSlow - sumFast) > relativeTolerance * std::max(fastScale, T(1.0)) ||
+      std::abs(sumSlow - sumArray) > relativeTolerance * std::max(arrayScale, T(1.0))) {
     std::cerr << "Got wrong distance!" << '\n';
 
     return 2;

@@ -127,7 +127,13 @@ main()
   }
   const auto t3 = std::chrono::high_resolution_clock::now();
 
-  if (sumSlow != sumFast) {
+  // Summing N values in a different order (naive scan vs. BVH traversal) is not bit-for-bit
+  // reproducible -- floating-point addition isn't associative -- so compare the sums with a
+  // relative tolerance rather than requiring exact agreement.
+  constexpr T relativeTolerance = T(1.0e-7);
+  const T     scale             = std::max(std::abs(sumSlow), std::abs(sumFast));
+
+  if (std::abs(sumSlow - sumFast) > relativeTolerance * std::max(scale, T(1.0))) {
     std::cerr << "Got wrong distance!" << '\n';
 
     return 2;
