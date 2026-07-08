@@ -1164,13 +1164,14 @@ public:
    * supports. PackedBVH also hardcodes AABBT<T> as its sole bounding volume (unlike TreeBVH, which
    * takes a caller-supplied BV), so no other box shape exists today that would call for a
    * different distance formula in the first place.
-   * @todo If a second distance metric or bounding-volume shape is ever needed, the clean extension
-   * point is an additional, defaulted template parameter (e.g. @c ChildDistancer) that computes
-   * the @c K per-child pruning values for a node, with the current six SIMD branches becoming its
-   * default implementation and pruneTraverse()'s own algorithm reduced to the generic stack/sort/
-   * prune skeleton around whatever those @c K values mean. Whoever supplies a custom one would
-   * take on the obligation of proving it is still an admissible (non-overestimating) bound, since
-   * that is what keeps the pruning correct. Nothing in EBGeometry needs this today.
+   * @extension If a second distance metric or bounding-volume shape is ever needed, the clean
+   * extension point is an additional, defaulted template parameter (e.g. @c ChildDistancer) that
+   * computes the @c K per-child pruning values for a node, with the current six SIMD branches
+   * becoming its default implementation and pruneTraverse()'s own algorithm reduced to the
+   * generic stack/sort/prune skeleton around whatever those @c K values mean. Whoever supplies a
+   * custom one would take on the obligation of proving it is still an admissible
+   * (non-overestimating) bound, since that is what keeps the pruning correct. Nothing in
+   * EBGeometry needs this today.
    *
    * @tparam State        Caller-defined running search state, carried by reference through the whole traversal.
    * @tparam LeafEvaluator Callable: (State&, size_t offset, size_t count) noexcept -> void. Scans

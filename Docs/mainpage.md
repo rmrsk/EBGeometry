@@ -39,6 +39,12 @@ integration, the underlying geometric concepts), see the
 | `EBGeometry::TriangleSoA` | Structure-of-arrays triangle groups used as SIMD-friendly `PackedBVH` leaves |
 | `EBGeometry::Parser` | File readers (STL, PLY, OBJ, VTK) that build DCEL meshes, mesh SDFs, or triangle BVHs |
 
+### Extension ideas
+
+Some places in the API are deliberately more general than any current caller strictly needs, with
+the further generalization documented but intentionally not built until a caller actually needs
+it. These are collected on the @ref extension "Extension ideas" page.
+
 ### Elsewhere
 
 * Source repository: <https://github.com/rmrsk/EBGeometry>
