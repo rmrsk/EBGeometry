@@ -2,33 +2,36 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "EBGeometry.hpp"
+#include "TestFloatingPointUtils.hpp"
 
 #include <array>
 #include <stdexcept>
 #include <vector>
 
-#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_template_test_macros.hpp>
 
 using namespace EBGeometry;
 
-using TestPLY = PLY<double>;
+template <class T>
+using Ply = PLY<T>;
 
 // Build a raw (uncompressed) tetrahedron soup directly into a PLY<T> object, mimicking how a real
 // PLY file stores each facet's vertex indices independently (i.e. with duplicates).
-static TestPLY
+template <class T>
+static Ply<T>
 buildTetrahedronSoup()
 {
-  TestPLY ply("tetrahedron-soup");
+  Ply<T> ply("tetrahedron-soup");
 
   auto& vertices = ply.getVertexCoordinates();
   auto& facets   = ply.getFacets();
 
-  const Vec3T<double> A(0, 0, 0);
-  const Vec3T<double> B(1, 0, 0);
-  const Vec3T<double> C(0, 1, 0);
-  const Vec3T<double> D(0, 0, 1);
+  const Vec3T<T> A(0, 0, 0);
+  const Vec3T<T> B(1, 0, 0);
+  const Vec3T<T> C(0, 1, 0);
+  const Vec3T<T> D(0, 0, 1);
 
-  const std::vector<std::array<Vec3T<double>, 3>> faces = {
+  const std::vector<std::array<Vec3T<T>, 3>> faces = {
     {A, C, B},
     {A, B, D},
     {A, D, C},
@@ -47,59 +50,75 @@ buildTetrahedronSoup()
   return ply;
 }
 
-TEST_CASE("PLY: default construction is empty", "[PLY]")
+TEMPLATE_TEST_CASE("PLY: default construction is empty", "[PLY]", EBGEOMETRY_TEST_PRECISIONS)
 {
-  TestPLY ply;
+  using T = TestType;
+
+  Ply<T> ply;
 
   REQUIRE(ply.getID().empty());
   REQUIRE(ply.getVertexCoordinates().empty());
   REQUIRE(ply.getFacets().empty());
 }
 
-TEST_CASE("PLY: id constructor sets the identifier only", "[PLY]")
+TEMPLATE_TEST_CASE("PLY: id constructor sets the identifier only", "[PLY]", EBGEOMETRY_TEST_PRECISIONS)
 {
-  TestPLY ply("my-id");
+  using T = TestType;
+
+  Ply<T> ply("my-id");
 
   REQUIRE(ply.getID() == "my-id");
   REQUIRE(ply.getVertexCoordinates().empty());
   REQUIRE(ply.getFacets().empty());
 }
 
-TEST_CASE("PLY: setVertexProperties/setFaceProperties store data retrievable by name", "[PLY]")
+TEMPLATE_TEST_CASE("PLY: setVertexProperties/setFaceProperties store data retrievable by name",
+                   "[PLY]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
-  TestPLY ply;
+  using T = TestType;
 
-  ply.setVertexProperties("nx", std::vector<double>{0.0, 0.0, 1.0});
-  ply.setFaceProperties("quality", std::vector<double>{1.0, 2.0});
+  Ply<T> ply;
 
-  REQUIRE(ply.getVertexProperties("nx") == std::vector<double>{0.0, 0.0, 1.0});
-  REQUIRE(ply.getFaceProperties("quality") == std::vector<double>{1.0, 2.0});
+  ply.setVertexProperties("nx", std::vector<T>{0.0, 0.0, 1.0});
+  ply.setFaceProperties("quality", std::vector<T>{1.0, 2.0});
+
+  REQUIRE(ply.getVertexProperties("nx") == std::vector<T>{0.0, 0.0, 1.0});
+  REQUIRE(ply.getFaceProperties("quality") == std::vector<T>{1.0, 2.0});
 }
 
-TEST_CASE("PLY: getVertexProperties/getFaceProperties throw on an unknown property name", "[PLY]")
+TEMPLATE_TEST_CASE("PLY: getVertexProperties/getFaceProperties throw on an unknown property name",
+                   "[PLY]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
-  TestPLY ply;
-  ply.setVertexProperties("nx", std::vector<double>{1.0});
+  using T = TestType;
+
+  Ply<T> ply;
+  ply.setVertexProperties("nx", std::vector<T>{1.0});
 
   REQUIRE_THROWS_AS(ply.getVertexProperties("does-not-exist"), std::out_of_range);
   REQUIRE_THROWS_AS(ply.getFaceProperties("does-not-exist"), std::out_of_range);
 }
 
-TEST_CASE("PLY: copy construction and copy assignment duplicate data independently", "[PLY]")
+TEMPLATE_TEST_CASE("PLY: copy construction and copy assignment duplicate data independently",
+                   "[PLY]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
-  auto src = buildTetrahedronSoup();
-  src.setVertexProperties("nx", std::vector<double>{1.0, 2.0, 3.0, 4.0});
+  using T = TestType;
 
-  TestPLY copyCtor(src);
+  auto src = buildTetrahedronSoup<T>();
+  src.setVertexProperties("nx", std::vector<T>{1.0, 2.0, 3.0, 4.0});
+
+  Ply<T> copyCtor(src);
   REQUIRE(copyCtor.getID() == src.getID());
   REQUIRE(copyCtor.getVertexCoordinates() == src.getVertexCoordinates());
   REQUIRE(copyCtor.getVertexProperties("nx") == src.getVertexProperties("nx"));
 
   // Mutating the copy must not affect the original.
-  copyCtor.getVertexCoordinates()[0] = Vec3T<double>(999, 999, 999);
-  REQUIRE(src.getVertexCoordinates()[0] != Vec3T<double>(999, 999, 999));
+  copyCtor.getVertexCoordinates()[0] = Vec3T<T>(999, 999, 999);
+  REQUIRE(src.getVertexCoordinates()[0] != Vec3T<T>(999, 999, 999));
 
-  TestPLY copyAssign;
+  Ply<T> copyAssign;
   copyAssign = src;
   REQUIRE(copyAssign.getVertexCoordinates() == src.getVertexCoordinates());
 
@@ -107,31 +126,37 @@ TEST_CASE("PLY: copy construction and copy assignment duplicate data independent
   REQUIRE_FALSE(src.getFacets().empty());
 }
 
-TEST_CASE("PLY: move construction and move assignment transfer data", "[PLY]")
+TEMPLATE_TEST_CASE("PLY: move construction and move assignment transfer data", "[PLY]", EBGEOMETRY_TEST_PRECISIONS)
 {
-  auto       moveCtorSrc        = buildTetrahedronSoup();
+  using T = TestType;
+
+  auto       moveCtorSrc        = buildTetrahedronSoup<T>();
   const auto expectedVertexSize = moveCtorSrc.getVertexCoordinates().size();
 
-  TestPLY moved(std::move(moveCtorSrc));
+  Ply<T> moved(std::move(moveCtorSrc));
   REQUIRE(moved.getID() == "tetrahedron-soup");
   REQUIRE(moved.getVertexCoordinates().size() == expectedVertexSize);
 
-  auto    moveAssignSrc = buildTetrahedronSoup();
-  TestPLY moveAssignDst;
+  auto   moveAssignSrc = buildTetrahedronSoup<T>();
+  Ply<T> moveAssignDst;
   moveAssignDst = std::move(moveAssignSrc);
   REQUIRE(moveAssignDst.getID() == "tetrahedron-soup");
   REQUIRE(moveAssignDst.getVertexCoordinates().size() == expectedVertexSize);
 }
 
-TEST_CASE("PLY: convertToDCEL builds a mesh with the correct compressed vertex and face counts", "[PLY]")
+TEMPLATE_TEST_CASE("PLY: convertToDCEL builds a mesh with the correct compressed vertex and face counts",
+                   "[PLY]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
-  auto ply = buildTetrahedronSoup();
+  using T = TestType;
+
+  auto ply = buildTetrahedronSoup<T>();
 
   // The raw soup has one vertex entry per facet corner (no compression yet).
   REQUIRE(ply.getVertexCoordinates().size() == 12);
   REQUIRE(ply.getFacets().size() == 4);
 
-  auto mesh = ply.convertToDCEL<DCEL::DefaultMetaData>();
+  auto mesh = ply.template convertToDCEL<DCEL::DefaultMetaData>();
 
   REQUIRE(mesh != nullptr);
   REQUIRE(mesh->getVertices().size() == 4); // Compressed down to the 4 unique corners.

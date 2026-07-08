@@ -2,36 +2,39 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "EBGeometry.hpp"
+#include "TestFloatingPointUtils.hpp"
 
 #include <array>
 #include <string>
 #include <vector>
 
-#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_template_test_macros.hpp>
 
 using namespace EBGeometry;
 
-using TestSTL = STL<double>;
+template <class T>
+using Stl = STL<T>;
 
 // Path to test data injected by CMake.
 static const std::string g_dataDir = EBGEOMETRY_TEST_DATA_DIR;
 
 // Build a raw (uncompressed) tetrahedron soup directly into an STL<T> object, mimicking how a
 // real STL file stores each facet's vertices independently (i.e. with duplicates).
-static TestSTL
+template <class T>
+static Stl<T>
 buildTetrahedronSoup()
 {
-  TestSTL stl("tetrahedron-soup");
+  Stl<T> stl("tetrahedron-soup");
 
   auto& vertices = stl.getVertexCoordinates();
   auto& facets   = stl.getFacets();
 
-  const Vec3T<double> A(0, 0, 0);
-  const Vec3T<double> B(1, 0, 0);
-  const Vec3T<double> C(0, 1, 0);
-  const Vec3T<double> D(0, 0, 1);
+  const Vec3T<T> A(0, 0, 0);
+  const Vec3T<T> B(1, 0, 0);
+  const Vec3T<T> C(0, 1, 0);
+  const Vec3T<T> D(0, 0, 1);
 
-  const std::vector<std::array<Vec3T<double>, 3>> faces = {
+  const std::vector<std::array<Vec3T<T>, 3>> faces = {
     {A, C, B},
     {A, B, D},
     {A, D, C},
@@ -50,38 +53,46 @@ buildTetrahedronSoup()
   return stl;
 }
 
-TEST_CASE("STL: default construction is empty", "[STL]")
+TEMPLATE_TEST_CASE("STL: default construction is empty", "[STL]", EBGEOMETRY_TEST_PRECISIONS)
 {
-  TestSTL stl;
+  using T = TestType;
+
+  Stl<T> stl;
 
   REQUIRE(stl.getID().empty());
   REQUIRE(stl.getVertexCoordinates().empty());
   REQUIRE(stl.getFacets().empty());
 }
 
-TEST_CASE("STL: id constructor sets the identifier only", "[STL]")
+TEMPLATE_TEST_CASE("STL: id constructor sets the identifier only", "[STL]", EBGEOMETRY_TEST_PRECISIONS)
 {
-  TestSTL stl("my-id");
+  using T = TestType;
+
+  Stl<T> stl("my-id");
 
   REQUIRE(stl.getID() == "my-id");
   REQUIRE(stl.getVertexCoordinates().empty());
   REQUIRE(stl.getFacets().empty());
 }
 
-TEST_CASE("STL: copy construction and copy assignment duplicate data independently", "[STL]")
+TEMPLATE_TEST_CASE("STL: copy construction and copy assignment duplicate data independently",
+                   "[STL]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
-  auto src = buildTetrahedronSoup();
+  using T = TestType;
 
-  TestSTL copyCtor(src);
+  auto src = buildTetrahedronSoup<T>();
+
+  Stl<T> copyCtor(src);
   REQUIRE(copyCtor.getID() == src.getID());
   REQUIRE(copyCtor.getVertexCoordinates() == src.getVertexCoordinates());
   REQUIRE(copyCtor.getFacets() == src.getFacets());
 
   // Mutating the copy must not affect the original.
-  copyCtor.getVertexCoordinates()[0] = Vec3T<double>(999, 999, 999);
-  REQUIRE(src.getVertexCoordinates()[0] != Vec3T<double>(999, 999, 999));
+  copyCtor.getVertexCoordinates()[0] = Vec3T<T>(999, 999, 999);
+  REQUIRE(src.getVertexCoordinates()[0] != Vec3T<T>(999, 999, 999));
 
-  TestSTL copyAssign;
+  Stl<T> copyAssign;
   copyAssign = src;
   REQUIRE(copyAssign.getVertexCoordinates() == src.getVertexCoordinates());
 
@@ -89,31 +100,37 @@ TEST_CASE("STL: copy construction and copy assignment duplicate data independent
   REQUIRE_FALSE(src.getFacets().empty());
 }
 
-TEST_CASE("STL: move construction and move assignment transfer data", "[STL]")
+TEMPLATE_TEST_CASE("STL: move construction and move assignment transfer data", "[STL]", EBGEOMETRY_TEST_PRECISIONS)
 {
-  auto       moveCtorSrc        = buildTetrahedronSoup();
+  using T = TestType;
+
+  auto       moveCtorSrc        = buildTetrahedronSoup<T>();
   const auto expectedVertexSize = moveCtorSrc.getVertexCoordinates().size();
 
-  TestSTL moved(std::move(moveCtorSrc));
+  Stl<T> moved(std::move(moveCtorSrc));
   REQUIRE(moved.getID() == "tetrahedron-soup");
   REQUIRE(moved.getVertexCoordinates().size() == expectedVertexSize);
 
-  auto    moveAssignSrc = buildTetrahedronSoup();
-  TestSTL moveAssignDst;
+  auto   moveAssignSrc = buildTetrahedronSoup<T>();
+  Stl<T> moveAssignDst;
   moveAssignDst = std::move(moveAssignSrc);
   REQUIRE(moveAssignDst.getID() == "tetrahedron-soup");
   REQUIRE(moveAssignDst.getVertexCoordinates().size() == expectedVertexSize);
 }
 
-TEST_CASE("STL: convertToDCEL builds a mesh with the correct compressed vertex and face counts", "[STL]")
+TEMPLATE_TEST_CASE("STL: convertToDCEL builds a mesh with the correct compressed vertex and face counts",
+                   "[STL]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
-  auto stl = buildTetrahedronSoup();
+  using T = TestType;
+
+  auto stl = buildTetrahedronSoup<T>();
 
   // The raw soup has one vertex entry per facet corner (no compression yet).
   REQUIRE(stl.getVertexCoordinates().size() == 12);
   REQUIRE(stl.getFacets().size() == 4);
 
-  auto mesh = stl.convertToDCEL<DCEL::DefaultMetaData>();
+  auto mesh = stl.template convertToDCEL<DCEL::DefaultMetaData>();
 
   REQUIRE(mesh != nullptr);
   REQUIRE(mesh->getVertices().size() == 4); // Compressed down to the 4 unique corners.
@@ -124,9 +141,13 @@ TEST_CASE("STL: convertToDCEL builds a mesh with the correct compressed vertex a
   REQUIRE(stl.getVertexCoordinates().size() == 12);
 }
 
-TEST_CASE("Parser::readSTL reads the test tetrahedron file into raw vertex/facet data", "[STL]")
+TEMPLATE_TEST_CASE("Parser::readSTL reads the test tetrahedron file into raw vertex/facet data",
+                   "[STL]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
-  auto stl = Parser::readSTL<double>(g_dataDir + "/tetrahedron.stl");
+  using T = TestType;
+
+  auto stl = Parser::readSTL<T>(g_dataDir + "/tetrahedron.stl");
 
   REQUIRE_FALSE(stl.getVertexCoordinates().empty());
   REQUIRE(stl.getFacets().size() == 4); // A tetrahedron has 4 triangular faces.
@@ -136,10 +157,14 @@ TEST_CASE("Parser::readSTL reads the test tetrahedron file into raw vertex/facet
   }
 }
 
-TEST_CASE("Parser::readSTL + convertToDCEL round-trips into a valid, watertight DCEL mesh", "[STL]")
+TEMPLATE_TEST_CASE("Parser::readSTL + convertToDCEL round-trips into a valid, watertight DCEL mesh",
+                   "[STL]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
-  auto stl  = Parser::readSTL<double>(g_dataDir + "/tetrahedron.stl");
-  auto mesh = stl.convertToDCEL<DCEL::DefaultMetaData>();
+  using T = TestType;
+
+  auto stl  = Parser::readSTL<T>(g_dataDir + "/tetrahedron.stl");
+  auto mesh = stl.template convertToDCEL<DCEL::DefaultMetaData>();
 
   REQUIRE(mesh != nullptr);
   REQUIRE(mesh->getVertices().size() == 4);
