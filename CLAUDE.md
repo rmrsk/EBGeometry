@@ -136,10 +136,17 @@ make html      # output: Docs/Sphinx/build/html/index.html
 make latexpdf   # requires a LaTeX toolchain
 ```
 
-Sphinx is pinned to `sphinx==5.0.0` (see `.pre-commit-config.yaml`) for compatibility with
-`sphinxcontrib-bibtex`; installing/using a different Sphinx version standalone can produce stale
-or incompatible `Docs/Sphinx/build/` doctree caches. **If a Sphinx build throws an internal error
-in `sphinx.environment.collectors.toctree`, or `rm -rf Docs/Sphinx/build` fails with "Directory not
+Sphinx is pinned to `sphinx==5.3.0` (see `.pre-commit-config.yaml` and
+`.github/workflows/{CI,docs}.yml`) — not to a specific `sphinxcontrib-bibtex` requirement (bibtex
+only requires `Sphinx>=3.5`, no upper bound), but because **`sphinx==5.0.0` has a real internal
+crash bug**: its generic cross-reference-resolution post-transform (`ReferencesResolver`) throws
+`AttributeError: 'Text' object has no attribute 'rawsource'` while deep-copying the content node
+of a `:ref:`/`:any:` reference that has no explicit link text — a totally standard, correct usage
+pattern used throughout this doc set, not a docs bug. `5.3.0` (the last 5.x release) fixes it with
+no other observable behavior change; installing/using a different Sphinx version standalone can
+still produce stale or incompatible `Docs/Sphinx/build/` doctree caches, so stick to this pin
+rather than a system-installed Sphinx. **If a Sphinx build throws an internal error in
+`sphinx.environment.collectors.toctree`, or `rm -rf Docs/Sphinx/build` fails with "Directory not
 empty," check for a stray `sphinx-autobuild` (or other long-running `sphinx-build`) process first
 (`pgrep -fa sphinx`) — a forgotten one rebuilding into the same output directory in the background
 has caused exactly this before.**
