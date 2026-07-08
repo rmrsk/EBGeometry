@@ -1149,6 +1149,29 @@ public:
    * about sign would instead track a signed value and square its magnitude for the pruning bound.
    * Both are ordinary instantiations of this same method -- PackedBVH has no opinion on which.
    *
+   * @note Only the *bound* side of the pruning test (@c PruneDist2, derived from @c State) is
+   * customisable; the *per-child* quantity it is compared against -- Euclidean squared distance
+   * from a_point to each child's AABB -- is not. This is not an arbitrary restriction: it is
+   * exactly the one computation @c ChildAABBSoA and the six SIMD branches above know how to do
+   * for all @c K children at once, and vectorising it is only possible because it is the same
+   * uniform arithmetic in every lane. An arbitrary per-child predicate (the way @c Visiter takes a
+   * caller-supplied (node, meta) callback for the generic traverse() above) cannot be vectorised
+   * the same way, since SIMD requires one fixed computation applied uniformly across lanes, not
+   * arbitrary code invoked once per child -- that is just the scalar loop traverse() already runs.
+   * It is also not purely a performance choice: branch-and-bound pruning is only sound if the
+   * per-child quantity is a true lower bound on the distance to anything inside that box, and
+   * Euclidean squared-distance-to-AABB has that property for every query PackedBVH currently
+   * supports. PackedBVH also hardcodes AABBT<T> as its sole bounding volume (unlike TreeBVH, which
+   * takes a caller-supplied BV), so no other box shape exists today that would call for a
+   * different distance formula in the first place.
+   * @todo If a second distance metric or bounding-volume shape is ever needed, the clean extension
+   * point is an additional, defaulted template parameter (e.g. @c ChildDistancer) that computes
+   * the @c K per-child pruning values for a node, with the current six SIMD branches becoming its
+   * default implementation and pruneTraverse()'s own algorithm reduced to the generic stack/sort/
+   * prune skeleton around whatever those @c K values mean. Whoever supplies a custom one would
+   * take on the obligation of proving it is still an admissible (non-overestimating) bound, since
+   * that is what keeps the pruning correct. Nothing in EBGeometry needs this today.
+   *
    * @tparam State        Caller-defined running search state, carried by reference through the whole traversal.
    * @tparam LeafEvaluator Callable: (State&, size_t offset, size_t count) noexcept -> void. Scans
    * primitives [offset, offset+count) and updates a_state in place.
