@@ -11,6 +11,13 @@ list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(CTest)
 include(Catch)
 
+# Tests written with TEMPLATE_TEST_CASE(..., EBGEOMETRY_TEST_PRECISIONS) (see
+# TestFloatingPointUtils.hpp) instantiate over `double` only by default, for fast local
+# iteration. CI turns this on to additionally verify `float` behaviorally (not just that it
+# compiles, via InstantiateAll.cpp) -- see the Unit-Tests/Sanitizers/Release-Test jobs in
+# .github/workflows/CI.yml.
+option(EBGEOMETRY_TEST_BOTH_PRECISIONS "Run the unit test suite under both float and double" OFF)
+
 # ── Helper: register one test executable ──────────────────────────────────────
 function(ebgeometry_add_test name)
   add_executable(${name} ${name}.cpp)
@@ -31,6 +38,10 @@ function(ebgeometry_add_test name)
   target_compile_definitions(${name} PRIVATE
     EBGEOMETRY_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
   )
+
+  if(EBGEOMETRY_TEST_BOTH_PRECISIONS)
+    target_compile_definitions(${name} PRIVATE EBGEOMETRY_TEST_BOTH_PRECISIONS)
+  endif()
 
   if(EBGEOMETRY_ENABLE_SANITIZERS)
     target_compile_options(${name} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)

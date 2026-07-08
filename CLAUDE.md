@@ -102,6 +102,17 @@ instantiates every public class template for both `float` and `double` — it ex
 clang-tidy and `-Wdouble-promotion`/friends analyse both precisions; add new public classes there
 when you add them to the library.
 
+Most test files are written with `TEMPLATE_TEST_CASE(..., EBGEOMETRY_TEST_PRECISIONS)` (see
+`Tests/TestFloatingPointUtils.hpp`) rather than a hardcoded `double`, so they can run under both
+precisions -- but locally, by default, only `double` actually runs (fast iteration, matching
+whatever the CMake preset otherwise builds). CI configures with
+`-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON` (`Tests/CMakeLists.txt`'s
+`EBGEOMETRY_TEST_BOTH_PRECISIONS` option) to additionally verify `float` *behaviorally* on every
+push, not just that it compiles via `InstantiateAll.cpp`. When adding a new test, prefer
+`TEMPLATE_TEST_CASE` and `EBGEOMETRY_TEST_PRECISIONS` over a hardcoded `double`; use
+`tightMargin<T>()`/`looseMargin<T>()`/`withinAbsT<T>(...)` from `TestFloatingPointUtils.hpp` for
+`WithinAbs` comparisons, since (unlike `WithinRel`) it has no type-specific default margin.
+
 To run a single test file or a specific Catch2 test case, build the individual binary and invoke
 it directly (each test binary supports the full Catch2 CLI, e.g. `-l` to list, name filters, `-s`
 for successful-assertion output):

@@ -325,7 +325,8 @@ jobs:
           cmake --preset debug \
             -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
             -DEBGEOMETRY_SIMD=${{ matrix.simd }} \
-            -DEBGEOMETRY_BUILD_EXAMPLES=OFF
+            -DEBGEOMETRY_BUILD_EXAMPLES=OFF \
+            -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
 
       - name: Build
         run: cmake --build --preset debug --parallel 2
@@ -358,7 +359,7 @@ jobs:
           path: build/release-test/_deps
           key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
       - name: Configure (release-test preset)
-        run: cmake --preset release-test
+        run: cmake --preset release-test -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
       - name: Build
         run: cmake --build --preset release-test --parallel 2
       - name: Run full suite (unit tests + examples)
@@ -394,7 +395,8 @@ jobs:
           cmake --preset debug-san \
             -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
             -DEBGEOMETRY_SIMD=${{ matrix.simd }} \
-            -DEBGEOMETRY_BUILD_EXAMPLES=OFF
+            -DEBGEOMETRY_BUILD_EXAMPLES=OFF \
+            -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
       - name: Build
         run: cmake --build --preset debug-san --parallel 2
       - name: Run tests under sanitizers

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "EBGeometry.hpp"
+#include "TestFloatingPointUtils.hpp"
 
 #include <cmath>
 
@@ -31,29 +32,22 @@ makeRightTriangle()
   return Tri<T>({v0, v1, v2});
 }
 
-// WithinAbs has no type-specific default margin, so exact-zero comparisons scale their own
-// margin by the precision in use.
-template <class T>
-double
-smallMargin()
-{
-  return static_cast<double>(T(1000) * std::numeric_limits<T>::epsilon());
-}
-
 } // namespace
 
-TEMPLATE_TEST_CASE("Triangle: face normal is computed from vertex ordering", "[Triangle]", float, double)
+TEMPLATE_TEST_CASE("Triangle: face normal is computed from vertex ordering", "[Triangle]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   const Tri<T> tri = makeRightTriangle<T>();
 
-  REQUIRE_THAT(tri.getNormal()[0], WithinAbs(0.0, smallMargin<T>()));
-  REQUIRE_THAT(tri.getNormal()[1], WithinAbs(0.0, smallMargin<T>()));
-  REQUIRE_THAT(tri.getNormal()[2], WithinAbs(1.0, smallMargin<T>()));
+  REQUIRE_THAT(tri.getNormal()[0], WithinAbs(0.0, tightMargin<T>()));
+  REQUIRE_THAT(tri.getNormal()[1], WithinAbs(0.0, tightMargin<T>()));
+  REQUIRE_THAT(tri.getNormal()[2], WithinAbs(1.0, tightMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("Triangle: signed distance for a point projecting to the face interior", "[Triangle]", float, double)
+TEMPLATE_TEST_CASE("Triangle: signed distance for a point projecting to the face interior",
+                   "[Triangle]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -71,10 +65,10 @@ TEMPLATE_TEST_CASE("Triangle: signed distance for a point projecting to the face
   REQUIRE_THAT(tri.signedDistance(Vec3T<T>(1.0, 1.0, -3.0)), WithinRel(T(-3.0)));
 
   // On the surface, inside the footprint: zero distance.
-  REQUIRE_THAT(tri.signedDistance(Vec3T<T>(1.0, 1.0, 0.0)), WithinAbs(0.0, smallMargin<T>()));
+  REQUIRE_THAT(tri.signedDistance(Vec3T<T>(1.0, 1.0, 0.0)), WithinAbs(0.0, tightMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("Triangle: signed distance for a point closest to an edge", "[Triangle]", float, double)
+TEMPLATE_TEST_CASE("Triangle: signed distance for a point closest to an edge", "[Triangle]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -95,7 +89,9 @@ TEMPLATE_TEST_CASE("Triangle: signed distance for a point closest to an edge", "
   REQUIRE_THAT(tri.signedDistance(queryPoint), WithinRel(T(1.0), T(1.0e-4)));
 }
 
-TEMPLATE_TEST_CASE("Triangle: signed distance for a point closest to a vertex", "[Triangle]", float, double)
+TEMPLATE_TEST_CASE("Triangle: signed distance for a point closest to a vertex",
+                   "[Triangle]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 

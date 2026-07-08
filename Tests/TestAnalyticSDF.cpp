@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "EBGeometry.hpp"
+#include "TestFloatingPointUtils.hpp"
 
 #include <cmath>
 #include <memory>
@@ -13,25 +14,11 @@ using namespace EBGeometry;
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
-namespace {
-
-// WithinAbs has no type-specific default margin (unlike WithinRel), so exact-zero comparisons
-// that are only "exact" up to a genuine floating-point computation (a sqrt, not a perfect square)
-// scale their own margin by the precision in use.
-template <class T>
-double
-looseMargin()
-{
-  return static_cast<double>(T(1.0e5) * std::numeric_limits<T>::epsilon());
-}
-
-} // namespace
-
 // ─────────────────────────────────────────────────────────────────────────────
 // SphereSDF
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("SphereSDF: exact signed distances", "[SphereSDF]", float, double)
+TEMPLATE_TEST_CASE("SphereSDF: exact signed distances", "[SphereSDF]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -52,7 +39,7 @@ TEMPLATE_TEST_CASE("SphereSDF: exact signed distances", "[SphereSDF]", float, do
   REQUIRE_THAT(sphere.signedDistance(Vec3T<T>(0.5, 0, 0)), WithinRel(T(-0.5)));
 }
 
-TEMPLATE_TEST_CASE("SphereSDF: off-centre sphere", "[SphereSDF]", float, double)
+TEMPLATE_TEST_CASE("SphereSDF: off-centre sphere", "[SphereSDF]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -73,7 +60,7 @@ TEMPLATE_TEST_CASE("SphereSDF: off-centre sphere", "[SphereSDF]", float, double)
 // PlaneSDF
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("PlaneSDF: signed distances from xy-plane", "[PlaneSDF]", float, double)
+TEMPLATE_TEST_CASE("PlaneSDF: signed distances from xy-plane", "[PlaneSDF]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -85,7 +72,7 @@ TEMPLATE_TEST_CASE("PlaneSDF: signed distances from xy-plane", "[PlaneSDF]", flo
   REQUIRE_THAT(plane.signedDistance(Vec3T<T>(5, 7, 0)), WithinAbs(0.0, looseMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("PlaneSDF: non-unit normal is normalised", "[PlaneSDF]", float, double)
+TEMPLATE_TEST_CASE("PlaneSDF: non-unit normal is normalised", "[PlaneSDF]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -100,7 +87,7 @@ TEMPLATE_TEST_CASE("PlaneSDF: non-unit normal is normalised", "[PlaneSDF]", floa
 // BoxSDF
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("BoxSDF: axis-aligned unit box", "[BoxSDF]", float, double)
+TEMPLATE_TEST_CASE("BoxSDF: axis-aligned unit box", "[BoxSDF]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -125,7 +112,7 @@ TEMPLATE_TEST_CASE("BoxSDF: axis-aligned unit box", "[BoxSDF]", float, double)
 // CylinderSDF (defined by two end-cap centres + radius)
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("CylinderSDF: unit cylinder along z-axis", "[CylinderSDF]", float, double)
+TEMPLATE_TEST_CASE("CylinderSDF: unit cylinder along z-axis", "[CylinderSDF]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -149,7 +136,7 @@ TEMPLATE_TEST_CASE("CylinderSDF: unit cylinder along z-axis", "[CylinderSDF]", f
 // TorusSDF
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("TorusSDF: point on surface", "[TorusSDF]", float, double)
+TEMPLATE_TEST_CASE("TorusSDF: point on surface", "[TorusSDF]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -170,7 +157,7 @@ TEMPLATE_TEST_CASE("TorusSDF: point on surface", "[TorusSDF]", float, double)
 // CSG: Union and Complement
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("CSG Union of two spheres", "[CSG][Union]", float, double)
+TEMPLATE_TEST_CASE("CSG Union of two spheres", "[CSG][Union]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T  = TestType;
   using IF = ImplicitFunction<T>;
@@ -191,7 +178,7 @@ TEMPLATE_TEST_CASE("CSG Union of two spheres", "[CSG][Union]", float, double)
   REQUIRE(u->value(Vec3T<T>(100, 0, 0)) > T(0.0));
 }
 
-TEMPLATE_TEST_CASE("CSG Complement of sphere inverts sign", "[CSG][Complement]", float, double)
+TEMPLATE_TEST_CASE("CSG Complement of sphere inverts sign", "[CSG][Complement]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -205,7 +192,7 @@ TEMPLATE_TEST_CASE("CSG Complement of sphere inverts sign", "[CSG][Complement]",
   REQUIRE(comp->value(Vec3T<T>(5, 0, 0)) < T(0.0));
 }
 
-TEMPLATE_TEST_CASE("CSG Intersection of two overlapping spheres", "[CSG][Intersection]", float, double)
+TEMPLATE_TEST_CASE("CSG Intersection of two overlapping spheres", "[CSG][Intersection]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T  = TestType;
   using IF = ImplicitFunction<T>;

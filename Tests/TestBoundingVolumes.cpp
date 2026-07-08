@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "EBGeometry.hpp"
+#include "TestFloatingPointUtils.hpp"
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -12,26 +13,11 @@ using BoundingVolumes::SphereT;
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
-namespace {
-
-// WithinAbs (unlike WithinRel) has no type-specific default margin, only a `double` overload, so
-// absolute-zero comparisons scale their own margin by the precision in use and return it as a
-// double directly (an explicit narrowing/widening point, rather than an implicit one at the
-// WithinAbs call site).
-template <class T>
-double
-smallMargin()
-{
-  return static_cast<double>(T(1000) * std::numeric_limits<T>::epsilon());
-}
-
-} // namespace
-
 // ─────────────────────────────────────────────────────────────────────────────
 // AABBT
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("AABBT: construction from lo/hi corners", "[AABBT]", float, double)
+TEMPLATE_TEST_CASE("AABBT: construction from lo/hi corners", "[AABBT]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -48,7 +34,7 @@ TEMPLATE_TEST_CASE("AABBT: construction from lo/hi corners", "[AABBT]", float, d
   REQUIRE(c[2] == T(0.0));
 }
 
-TEMPLATE_TEST_CASE("AABBT: construction from point cloud", "[AABBT]", float, double)
+TEMPLATE_TEST_CASE("AABBT: construction from point cloud", "[AABBT]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -61,7 +47,7 @@ TEMPLATE_TEST_CASE("AABBT: construction from point cloud", "[AABBT]", float, dou
   REQUIRE(box.getHighCorner()[2] == T(5.0));
 }
 
-TEMPLATE_TEST_CASE("AABBT: volume and surface area", "[AABBT]", float, double)
+TEMPLATE_TEST_CASE("AABBT: volume and surface area", "[AABBT]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -73,14 +59,14 @@ TEMPLATE_TEST_CASE("AABBT: volume and surface area", "[AABBT]", float, double)
   REQUIRE_THAT(rect.getVolume(), WithinRel(T(24.0)));
 }
 
-TEMPLATE_TEST_CASE("AABBT: distance to point", "[AABBT]", float, double)
+TEMPLATE_TEST_CASE("AABBT: distance to point", "[AABBT]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
   const AABBT<T> unit(Vec3T<T>(0, 0, 0), Vec3T<T>(1, 1, 1));
 
   // Inside: distance should be 0
-  REQUIRE_THAT(unit.getDistance(Vec3T<T>(T(0.5), T(0.5), T(0.5))), WithinAbs(0.0, smallMargin<T>()));
+  REQUIRE_THAT(unit.getDistance(Vec3T<T>(T(0.5), T(0.5), T(0.5))), WithinAbs(0.0, tightMargin<T>()));
 
   // Outside along one axis
   REQUIRE_THAT(unit.getDistance(Vec3T<T>(T(3.0), T(0.5), T(0.5))), WithinRel(T(2.0)));
@@ -90,7 +76,7 @@ TEMPLATE_TEST_CASE("AABBT: distance to point", "[AABBT]", float, double)
   REQUIRE_THAT(unit.getDistance(corner_pt), WithinRel(T(1.0)));
 }
 
-TEMPLATE_TEST_CASE("AABBT: intersects", "[AABBT]", float, double)
+TEMPLATE_TEST_CASE("AABBT: intersects", "[AABBT]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -104,7 +90,7 @@ TEMPLATE_TEST_CASE("AABBT: intersects", "[AABBT]", float, double)
   REQUIRE(!c.intersects(a));
 }
 
-TEMPLATE_TEST_CASE("AABBT: overlapping volume", "[AABBT]", float, double)
+TEMPLATE_TEST_CASE("AABBT: overlapping volume", "[AABBT]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -116,7 +102,7 @@ TEMPLATE_TEST_CASE("AABBT: overlapping volume", "[AABBT]", float, double)
 
   // No overlap
   const AABBT<T> c(Vec3T<T>(5, 5, 5), Vec3T<T>(6, 6, 6));
-  REQUIRE_THAT(a.getOverlappingVolume(c), WithinAbs(0.0, smallMargin<T>()));
+  REQUIRE_THAT(a.getOverlappingVolume(c), WithinAbs(0.0, tightMargin<T>()));
 
   // Identical boxes
   REQUIRE_THAT(a.getOverlappingVolume(a), WithinRel(T(8.0)));
@@ -126,7 +112,7 @@ TEMPLATE_TEST_CASE("AABBT: overlapping volume", "[AABBT]", float, double)
 // SphereT
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("SphereT: construction", "[SphereT]", float, double)
+TEMPLATE_TEST_CASE("SphereT: construction", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -139,7 +125,7 @@ TEMPLATE_TEST_CASE("SphereT: construction", "[SphereT]", float, double)
   REQUIRE(s.getCentroid()[2] == T(3.0));
 }
 
-TEMPLATE_TEST_CASE("SphereT: construction from point cloud (Ritter)", "[SphereT]", float, double)
+TEMPLATE_TEST_CASE("SphereT: construction from point cloud (Ritter)", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -153,7 +139,7 @@ TEMPLATE_TEST_CASE("SphereT: construction from point cloud (Ritter)", "[SphereT]
   }
 }
 
-TEMPLATE_TEST_CASE("SphereT: intersects", "[SphereT]", float, double)
+TEMPLATE_TEST_CASE("SphereT: intersects", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -165,7 +151,7 @@ TEMPLATE_TEST_CASE("SphereT: intersects", "[SphereT]", float, double)
   REQUIRE(!a.intersects(c));
 }
 
-TEMPLATE_TEST_CASE("SphereT: overlapping volume (concentric)", "[SphereT]", float, double)
+TEMPLATE_TEST_CASE("SphereT: overlapping volume (concentric)", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -177,10 +163,10 @@ TEMPLATE_TEST_CASE("SphereT: overlapping volume (concentric)", "[SphereT]", floa
 
   // Non-overlapping: volume = 0
   const SphereT<T> b(Vec3T<T>(10, 0, 0), T(1.0));
-  REQUIRE_THAT(a.getOverlappingVolume(b), WithinAbs(0.0, smallMargin<T>()));
+  REQUIRE_THAT(a.getOverlappingVolume(b), WithinAbs(0.0, tightMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("SphereT: volume and area", "[SphereT]", float, double)
+TEMPLATE_TEST_CASE("SphereT: volume and area", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 

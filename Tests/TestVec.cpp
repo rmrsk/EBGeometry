@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "EBGeometry.hpp"
+#include "TestFloatingPointUtils.hpp"
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -13,7 +14,7 @@ using Catch::Matchers::WithinRel;
 // Vec3T
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("Vec3T: default construction is zero", "[Vec3T]", float, double)
+TEMPLATE_TEST_CASE("Vec3T: default construction is zero", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -23,7 +24,7 @@ TEMPLATE_TEST_CASE("Vec3T: default construction is zero", "[Vec3T]", float, doub
   REQUIRE(v[2] == T(0.0));
 }
 
-TEMPLATE_TEST_CASE("Vec3T: component construction fills correctly", "[Vec3T]", float, double)
+TEMPLATE_TEST_CASE("Vec3T: component construction fills correctly", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -33,7 +34,7 @@ TEMPLATE_TEST_CASE("Vec3T: component construction fills correctly", "[Vec3T]", f
   REQUIRE(v[2] == T(7.0));
 }
 
-TEMPLATE_TEST_CASE("Vec3T: component construction", "[Vec3T]", float, double)
+TEMPLATE_TEST_CASE("Vec3T: component construction", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -43,7 +44,7 @@ TEMPLATE_TEST_CASE("Vec3T: component construction", "[Vec3T]", float, double)
   REQUIRE(v[2] == T(3.0));
 }
 
-TEMPLATE_TEST_CASE("Vec3T: static factories", "[Vec3T]", float, double)
+TEMPLATE_TEST_CASE("Vec3T: static factories", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -69,7 +70,7 @@ TEMPLATE_TEST_CASE("Vec3T: static factories", "[Vec3T]", float, double)
   REQUIRE(ez[2] == T(1.0));
 }
 
-TEMPLATE_TEST_CASE("Vec3T: arithmetic operators", "[Vec3T]", float, double)
+TEMPLATE_TEST_CASE("Vec3T: arithmetic operators", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -128,7 +129,7 @@ TEMPLATE_TEST_CASE("Vec3T: arithmetic operators", "[Vec3T]", float, double)
   }
 }
 
-TEMPLATE_TEST_CASE("Vec3T: compound assignment operators", "[Vec3T]", float, double)
+TEMPLATE_TEST_CASE("Vec3T: compound assignment operators", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -143,7 +144,7 @@ TEMPLATE_TEST_CASE("Vec3T: compound assignment operators", "[Vec3T]", float, dou
   REQUIRE(v[0] == T(5.0));
 }
 
-TEMPLATE_TEST_CASE("Vec3T: dot product", "[Vec3T]", float, double)
+TEMPLATE_TEST_CASE("Vec3T: dot product", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -156,7 +157,7 @@ TEMPLATE_TEST_CASE("Vec3T: dot product", "[Vec3T]", float, double)
   REQUIRE_THAT(dot(d, d), WithinRel(T(3.0)));
 }
 
-TEMPLATE_TEST_CASE("Vec3T: cross product", "[Vec3T]", float, double)
+TEMPLATE_TEST_CASE("Vec3T: cross product", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -172,7 +173,7 @@ TEMPLATE_TEST_CASE("Vec3T: cross product", "[Vec3T]", float, double)
   REQUIRE(mz[2] == T(-1.0));
 }
 
-TEMPLATE_TEST_CASE("Vec3T: length", "[Vec3T]", float, double)
+TEMPLATE_TEST_CASE("Vec3T: length", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -184,7 +185,7 @@ TEMPLATE_TEST_CASE("Vec3T: length", "[Vec3T]", float, double)
   REQUIRE_THAT(unit.length(), WithinRel(T(1.0)));
 }
 
-TEMPLATE_TEST_CASE("Vec3T: component-wise min/max (free functions)", "[Vec3T]", float, double)
+TEMPLATE_TEST_CASE("Vec3T: component-wise min/max (free functions)", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -202,7 +203,7 @@ TEMPLATE_TEST_CASE("Vec3T: component-wise min/max (free functions)", "[Vec3T]", 
   REQUIRE(hi[2] == T(6.0));
 }
 
-TEMPLATE_TEST_CASE("Vec3T: minDir and maxDir", "[Vec3T]", float, double)
+TEMPLATE_TEST_CASE("Vec3T: minDir and maxDir", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -211,7 +212,7 @@ TEMPLATE_TEST_CASE("Vec3T: minDir and maxDir", "[Vec3T]", float, double)
   REQUIRE(v.maxDir(false) == 0); // index of largest component (no abs-value)
 }
 
-TEMPLATE_TEST_CASE("Vec3T: lexicographic ordering", "[Vec3T]", float, double)
+TEMPLATE_TEST_CASE("Vec3T: lexicographic ordering", "[Vec3T]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -228,7 +229,7 @@ TEMPLATE_TEST_CASE("Vec3T: lexicographic ordering", "[Vec3T]", float, double)
 // Vec2T
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("Vec2T: construction and operators", "[Vec2T]", float, double)
+TEMPLATE_TEST_CASE("Vec2T: construction and operators", "[Vec2T]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -248,7 +249,7 @@ TEMPLATE_TEST_CASE("Vec2T: construction and operators", "[Vec2T]", float, double
   REQUIRE(r.y == T(2.0));
 }
 
-TEMPLATE_TEST_CASE("Vec2T: dot product", "[Vec2T]", float, double)
+TEMPLATE_TEST_CASE("Vec2T: dot product", "[Vec2T]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
