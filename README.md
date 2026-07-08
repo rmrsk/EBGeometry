@@ -1,4 +1,4 @@
-## EBGeometry
+## EBGeometry - a header-only C++ library for signed distance fields
 
 EBGeometry is a header-only C++17 library for constructive solid geometry (CSG) with implicit 
 functions. It can turn surface geometries into fast, queryable signed distance functions (SDFs), 
