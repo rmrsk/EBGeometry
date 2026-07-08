@@ -99,12 +99,19 @@ main(int argc, char* argv[])
   const std::chrono::duration<T, std::micro> meshTime = t2 - t1;
   const std::chrono::duration<T, std::micro> triTime  = t3 - t2;
 
-  bool mismatch = false;
-  if (std::abs(meshSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
+  // Summing Nsamp signed distances in a different order (brute-force scan vs. BVH traversal)
+  // is not bit-for-bit reproducible -- floating-point addition isn't associative -- so compare
+  // the two sums with a relative tolerance rather than requiring exact agreement.
+  constexpr T relativeTolerance = T(1.0e-7);
+
+  bool    mismatch  = false;
+  const T meshScale = std::max(std::abs(dcelSum), std::abs(meshSum));
+  if (std::abs(meshSum - dcelSum) > relativeTolerance * std::max(meshScale, T(1.0))) {
     std::cerr << "MeshSDF did not give same distance as FlatMeshSDF! Diff = " << meshSum - dcelSum << "\n";
     mismatch = true;
   }
-  if (std::abs(triSum - dcelSum) > std::numeric_limits<T>::epsilon()) {
+  const T triScale = std::max(std::abs(dcelSum), std::abs(triSum));
+  if (std::abs(triSum - dcelSum) > relativeTolerance * std::max(triScale, T(1.0))) {
     std::cerr << "TriMeshSDF did not give same distance as FlatMeshSDF! Diff = " << triSum - dcelSum << "\n";
     mismatch = true;
   }
