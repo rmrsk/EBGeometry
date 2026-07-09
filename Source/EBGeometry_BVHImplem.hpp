@@ -655,6 +655,64 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
+inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>>          a_primsAndBVs,
+                                                    const BVH::Partitioner<P, BV, K>&      a_partitioner,
+                                                    const BVH::LeafPredicate<T, P, BV, K>& a_stopCrit)
+{
+  EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+
+  // shared_ptr-wrap each primitive once, up front, so the existing Partitioner/LeafPredicate
+  // machinery (which operates on PrimAndBVList) can be reused unchanged. This is not the cost
+  // this constructor targets -- see its doxygen comment -- only the persistent, per-node
+  // shared_ptr<TreeBVH> allocation is avoided.
+  BVH::PrimAndBVList<P, BV> wrapped;
+  wrapped.reserve(a_primsAndBVs.size());
+  for (auto& pbv : a_primsAndBVs) {
+    wrapped.emplace_back(std::make_shared<P>(std::move(pbv.first)), pbv.second);
+  }
+  a_primsAndBVs.clear();
+
+  // Recursively partition top-down, writing nodes directly into m_linearNodes in pre-order (root
+  // first) as the recursion unwinds -- unlike the SFC-build constructor above, top-down
+  // partitioning visits the root before its children, so no relayout pass is needed here. At every
+  // split, a lightweight, stack-local TreeBVH ("probe") is constructed purely to evaluate
+  // a_stopCrit (whose signature expects an actual TreeBVH node, matching
+  // TreeBVH::topDownSortAndPartition()'s own contract) and to read off its primitive list; it is
+  // discarded immediately afterward, never linked into a persistent tree.
+  std::function<uint32_t(const BVH::PrimAndBVList<P, BV>&)> build =
+    [&](const BVH::PrimAndBVList<P, BV>& a_prims) -> uint32_t {
+    const uint32_t idx = static_cast<uint32_t>(m_linearNodes.size());
+    m_linearNodes.push_back({});
+
+    const BVH::TreeBVH<T, P, BV, K> probe(a_prims);
+    m_linearNodes[idx].setBoundingVolume(probe.getBoundingVolume());
+
+    if (a_stopCrit(probe) || a_prims.size() < K) {
+      const auto& leafPrims = probe.getPrimitives();
+
+      m_linearNodes[idx].setPrimitivesOffset(static_cast<uint32_t>(m_primitives.size()));
+      m_linearNodes[idx].setNumPrimitives(static_cast<uint32_t>(leafPrims.size()));
+
+      StoragePolicy::appendTreeLeaf(m_primitives, leafPrims);
+    }
+    else {
+      const auto children = a_partitioner(a_prims);
+
+      for (size_t k = 0; k < K; k++) {
+        const uint32_t childIdx = build(children[k]);
+        m_linearNodes[idx].setChildOffset(childIdx, k);
+      }
+    }
+
+    return idx;
+  };
+
+  build(wrapped);
+
+  buildSoA();
+}
+
+template <class T, class P, size_t K, class StoragePolicy>
 inline const std::vector<typename PackedBVH<T, P, K, StoragePolicy>::StorageType>&
 PackedBVH<T, P, K, StoragePolicy>::getPrimitives() const noexcept
 {

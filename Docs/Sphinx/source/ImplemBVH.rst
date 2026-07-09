@@ -145,6 +145,29 @@ Internally, this constructor:
 Since this still produces an ordinary ``PackedBVH``, every existing traversal/query facility
 (``traverse()``, ``pruneTraverse()``, the SIMD dispatch) works with it identically, unchanged.
 
+``PackedBVH`` also has a second, overloaded direct constructor covering top-down (and SAH)
+construction rather than the SFC-based one above:
+
+.. code-block:: cpp
+
+   BVH::PackedBVH<T, P, K> packed(std::move(primsAndBVs));                                    // top-down
+   BVH::PackedBVH<T, P, K> packed(std::move(primsAndBVs), BVH::BinnedSAHPartitioner<T, P, AABBT<T>, K>, stopCrit); // SAH
+
+It reuses ``TreeBVH``'s own ``Partitioner``/``LeafPredicate`` machinery unchanged (any of
+``BVCentroidPartitioner``, ``BinnedSAHPartitioner``, ``PrimitiveCentroidPartitioner``, or a
+caller-supplied one), so it accepts the same arguments ``topDownSortAndPartition()`` does — but
+writes nodes directly into the flat node array in depth-first pre-order as the recursion unwinds,
+rather than building a persistent, ``shared_ptr``-linked ``TreeBVH`` first. Since top-down
+recursion visits the root before its children, this needs no relayout pass (unlike the SFC-build
+constructor above, where a bottom-up merge naturally produces the root last). Each split still
+shared_ptr-wraps primitives once, up front (to reuse the existing ``Partitioner``/``LeafPredicate``
+signatures) and constructs one lightweight, stack-local ``TreeBVH`` per split purely to evaluate
+the stop criterion and read off its primitive list — proportionate to what
+``topDownSortAndPartition()`` already does at every node, and immediately discarded rather than
+kept alive as part of a persistent tree. What this constructor avoids is exactly the *persistent*
+``shared_ptr<TreeBVH>`` node allocation kept alive for the tree's lifetime, which the ``Examples/BuildBVH``
+benchmark measures as the traditional path's dominant build-time cost.
+
 .. tip::
 
    Higher-level entry points such as ``Parser::readIntoPackedBVH`` don't require you to

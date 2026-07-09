@@ -1267,6 +1267,38 @@ public:
   inline PackedBVH(std::vector<std::pair<P, BV>> a_primsAndBVs, size_t a_targetLeafSize, S a_sfc = S{});
 
   /**
+   * @brief Construct directly from a flat primitive list via top-down (optionally SAH) recursive
+   * partitioning, without ever building a TreeBVH.
+   * @details Reuses the existing (shared_ptr-based) Partitioner/LeafPredicate machinery --
+   * BVCentroidPartitioner, BinnedSAHPartitioner, PrimitiveCentroidPartitioner, or any
+   * caller-supplied one -- exactly as TreeBVH::topDownSortAndPartition() does, but writes nodes
+   * directly into m_linearNodes in depth-first pre-order as the recursion unwinds, instead of
+   * building a persistent, shared_ptr<TreeBVH>-linked tree first. Unlike the SFC-build
+   * constructor above, no relayout pass is needed here: top-down recursion visits the root before
+   * its children, matching PackedBVH's "root at index 0" invariant for free.
+   *
+   * This still shared_ptr-wraps each primitive once up front (needed to reuse the existing
+   * Partitioner/LeafPredicate signatures, which operate on PrimAndBVList), and a lightweight,
+   * stack-local TreeBVH is constructed (and immediately discarded) at every split purely to
+   * evaluate the LeafPredicate and read off its primitive list -- exactly the same primitive-handle
+   * copying TreeBVH::topDownSortAndPartition() already does at every node. What this constructor
+   * avoids is the *persistent*, heap-allocated shared_ptr<TreeBVH> node kept alive for the tree's
+   * lifetime at every level -- measured as the dominant cost of the traditional
+   * build-then-pack() path (see the "Direct construction" section of the Sphinx docs).
+   *
+   * @param[in] a_primsAndBVs Primitives and their bounding volumes, taken by value (a sink
+   * parameter the caller can std::move in) -- never requires shared_ptr-wrapping by the caller,
+   * regardless of this PackedBVH's StoragePolicy.
+   * @param[in] a_partitioner Partitioning function. Divides a (primitive, BV) list into K
+   * sub-lists. Defaults to BVCentroidPartitioner; pass BinnedSAHPartitioner for an SAH build.
+   * @param[in] a_stopCrit Stop function. Returns true when a node should become a leaf. Defaults
+   * to DefaultLeafPredicate.
+   */
+  inline PackedBVH(std::vector<std::pair<P, BV>>          a_primsAndBVs,
+                   const BVH::Partitioner<P, BV, K>&      a_partitioner = BVCentroidPartitioner<T, P, BV, K>,
+                   const BVH::LeafPredicate<T, P, BV, K>& a_stopCrit    = DefaultLeafPredicate<T, P, BV, K>);
+
+  /**
    * @brief Destructor.
    * @details Not virtual: PackedBVH is not intended to be subclassed or used polymorphically.
    */

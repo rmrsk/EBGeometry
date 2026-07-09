@@ -168,20 +168,23 @@ timeTreeBuild(const std::vector<Vec3>& a_positions, PartitionFn&& a_partitionFn)
 int
 main()
 {
-  // TLDR: this program builds the same random point cloud into a BVH five different ways --
+  // TLDR: this program builds the same random point cloud into a BVH seven different ways --
   //       TreeBVH top-down (default centroid split), TreeBVH top-down with the SAH partitioner,
-  //       TreeBVH bottom-up along the Morton and Nested space-filling curves, and PackedBVH's
-  //       direct constructor (no TreeBVH at all) -- and reports how long each takes to build, at
-  //       a few point-cloud sizes. It exists to give a reproducible, versioned answer to a
+  //       TreeBVH bottom-up along the Morton and Nested space-filling curves, and PackedBVH's two
+  //       direct constructors (no TreeBVH at all) in all three of their variants -- SFC-build
+  //       (Morton), direct top-down, and direct SAH -- and reports how long each takes to build,
+  //       at a few point-cloud sizes. It exists to give a reproducible, versioned answer to a
   //       question raised in EBGeometry issue #92 (rather than "standalone scratch benchmarks,
   //       not committed anywhere"): whether SFC-based construction still beats top-down
   //       construction once shared_ptr allocation overhead is removed from consideration
-  //       (compare the "TreeBVH + pack()" columns against the "PackedBVH direct" column).
+  //       (compare the "TreeBVH + pack()" columns against the "PackedBVH direct" columns using the
+  //       same partitioning idea -- TopDown vs. direct TopDown, SAH vs. direct SAH, Morton vs.
+  //       direct Morton).
   //
   // For each of the four TreeBVH-based strategies, two numbers are reported: the time to build
   // and partition the TreeBVH alone, and the additional time to pack() it into a queryable
   // PackedBVH -- since a TreeBVH by itself cannot answer queries, their sum is the fairer number
-  // to compare directly against the direct constructor's single number, which already produces a
+  // to compare directly against a direct constructor's single number, which already produces a
   // queryable PackedBVH.
   //
   // Every resulting PackedBVH is cross-checked against a brute-force scan for a handful of random
@@ -234,16 +237,31 @@ main()
       positions, [](Tree& a_tree) { a_tree.template bottomUpSortAndPartition<EBGeometry::SFC::Nested>(); });
 
     EBGeometry::SimpleTimer timer;
+
     timer.start();
-    Packed direct(makeFlatPrimitives(positions), targetLeafSize);
+    Packed directMorton(makeFlatPrimitives(positions), targetLeafSize);
     timer.stop();
-    const double directBuildTime = timer.seconds();
+    const double directMortonTime = timer.seconds();
+
+    timer.start();
+    Packed directTopDown(makeFlatPrimitives(positions));
+    timer.stop();
+    const double directTopDownTime = timer.seconds();
+
+    timer.start();
+    Packed directSAH(makeFlatPrimitives(positions),
+                     EBGeometry::BVH::BinnedSAHPartitioner<T, Point, AABB, K>,
+                     [](const Tree& a_node) noexcept -> bool { return a_node.getPrimitives().size() < K; });
+    timer.stop();
+    const double directSAHTime = timer.seconds();
 
     checkAgainstBruteForce("TopDown", *topDown.packed, positions, queryPoints);
     checkAgainstBruteForce("SAH", *sah.packed, positions, queryPoints);
     checkAgainstBruteForce("Morton", *morton.packed, positions, queryPoints);
     checkAgainstBruteForce("Nested", *nested.packed, positions, queryPoints);
-    checkAgainstBruteForce("Direct", direct, positions, queryPoints);
+    checkAgainstBruteForce("Direct Morton", directMorton, positions, queryPoints);
+    checkAgainstBruteForce("Direct TopDown", directTopDown, positions, queryPoints);
+    checkAgainstBruteForce("Direct SAH", directSAH, positions, queryPoints);
 
     std::cout << std::left << std::setw(24) << "Strategy" << std::right << std::setw(16) << "Build (s)" << std::setw(16)
               << "+ pack() (s)" << std::setw(16) << "Total (s)" << "\n";
@@ -253,12 +271,18 @@ main()
                 << a_packTime << std::setw(16) << (a_buildTime + a_packTime) << "\n";
     };
 
+    auto printDirectRow = [](const char* a_label, double a_buildTime) {
+      std::cout << std::left << std::setw(24) << a_label << std::right << std::setw(16) << a_buildTime << std::setw(16)
+                << "--" << std::setw(16) << a_buildTime << "\n";
+    };
+
     printRow("TreeBVH TopDown", topDown.buildTime, topDown.packTime);
     printRow("TreeBVH SAH", sah.buildTime, sah.packTime);
     printRow("TreeBVH Morton", morton.buildTime, morton.packTime);
     printRow("TreeBVH Nested", nested.buildTime, nested.packTime);
-    std::cout << std::left << std::setw(24) << "PackedBVH direct" << std::right << std::setw(16) << directBuildTime
-              << std::setw(16) << "--" << std::setw(16) << directBuildTime << "\n";
+    printDirectRow("PackedBVH direct Morton", directMortonTime);
+    printDirectRow("PackedBVH direct TopDown", directTopDownTime);
+    printDirectRow("PackedBVH direct SAH", directSAHTime);
   }
 
   return 0;
