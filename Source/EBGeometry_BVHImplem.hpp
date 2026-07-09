@@ -549,12 +549,12 @@ PackedBVH<T, P, K>::traverse(const BVH::PackedUpdater<P>&        a_updater,
 }
 
 template <class T, class P, size_t K>
-template <class State, class LeafEvaluator, class PruneDist2>
+template <class State, class LeafEvaluator, class PruneDistSquared>
 inline void
-PackedBVH<T, P, K>::pruneTraverse(const Vec3T<T>& a_point,
-                                  State&          a_state,
-                                  LeafEvaluator&& a_evalLeaf,
-                                  PruneDist2&&    a_pruneDist2) const noexcept
+PackedBVH<T, P, K>::pruneTraverse(const Vec3T<T>&    a_point,
+                                  State&             a_state,
+                                  LeafEvaluator&&    a_evalLeaf,
+                                  PruneDistSquared&& a_pruneDist2) const noexcept
 {
   struct StackEntry
   {

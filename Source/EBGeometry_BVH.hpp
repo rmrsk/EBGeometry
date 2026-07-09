@@ -1099,90 +1099,46 @@ public:
 
   /**
    * @brief Generic SIMD-accelerated, distance-pruned traversal.
-   * @details A non-recursive, stack-based traversal that discards (prunes) subtrees whose
-   * bounding volume is already farther from the query point than the caller's current best, and
-   * otherwise visits the closest-looking child first -- the same box-pruning strategy as the
-   * @c traverse() member above, but with two differences: the box test itself is vectorised, and
-   * the three moving parts of the search -- what "best so far" means, how a leaf updates it, and
-   * how it is turned into a pruning distance -- are all supplied by the caller instead of being
-   * fixed.
+   * @details Same box-pruning strategy as @c traverse() above (skip subtrees already farther than
+   * the current best; visit the closest-looking child first), but the box-vs-point distance test
+   * is vectorised across all @c K children at once (@c if @c constexpr dispatch on @c (K, T);
+   * falls back to the generic @c traverse() above when no compiled ISA path matches), and the
+   * search itself is expressed through three caller-supplied pieces instead of four fixed
+   * callbacks. @c State is whatever the search remembers between leaf visits. @c LeafEvaluator is
+   * called only at leaves and is the sole place @c State may change. @c PruneDistSquared turns the
+   * *current* @c State into a squared-distance pruning bound; it is re-read fresh at every node
+   * visited (never cached), so a leaf visited anywhere earlier on the stack immediately tightens
+   * the pruning applied to nodes visited afterwards, regardless of which subtree it came from.
+   * Splitting the bound from the leaf scan like this is what lets a primitive with no notion of
+   * "signed distance" reuse the same SIMD box test -- e.g. a nearest-neighbor search can track a
+   * plain running squared distance in @c State (no @c abs(), no sqrt anywhere in the hot path),
+   * while MeshSDF::signedDistance() and TriMeshSDF::signedDistance() track a signed value and
+   * square its magnitude for the bound. Both are ordinary instantiations of this one method.
    *
-   * How the traversal proceeds, precisely:
-   * 1. A LIFO stack of (node index, squared distance from a_point to that node's bounding
-   *    volume) is seeded with the root (distance 0, since the root is never pruned).
-   * 2. Pop the top entry. If its stored squared distance exceeds @c a_pruneDist2(a_state) --
-   *    i.e. the node cannot possibly beat what the caller has already found -- skip it entirely
-   *    and continue with the next stack entry. This is the "prune" step.
-   * 3. Otherwise, if the popped node is a leaf, call @c a_evalLeaf(a_state, offset, count) once
-   *    for the whole leaf; this is the only point at which primitives are actually touched.
-   * 4. If the popped node is interior, compute all @c K children's squared distances to
-   *    a_point in one batch (see below), sort them so the closest child ends up last (and is
-   *    therefore popped -- i.e. visited -- next, since the stack is LIFO), and push every child
-   *    whose squared distance is still within @c a_pruneDist2(a_state). This bound is
-   *    re-evaluated at the moment of this node's own visit rather than cached from the start of
-   *    the traversal, so any leaf visited earlier on the stack (a different subtree entirely, not
-   *    necessarily a sibling) immediately tightens the pruning applied here.
-   * 5. Repeat until the stack is empty; @c a_state now holds the final answer.
-   *
-   * The child-distance batch in step 4 is where SIMD applies: which of six hand-written
-   * intrinsics branches runs is selected at compile time via @c if @c constexpr on @c (K, T):
-   * - K==8,  T==double -> AVX-512F (one @c _mm512_load_pd covering all 8 children)
-   * - K==16, T==float  -> AVX-512F (one @c _mm512_load_ps covering all 16 children)
-   * - K==4,  T==double -> AVX (one @c _mm256_load_pd)
-   * - K==8,  T==float  -> AVX (one @c _mm256_load_ps)
-   * - K==8,  T==double -> AVX (two @c _mm256_load_pd passes, used when AVX-512F isn't available)
-   * - K==4,  T==float  -> SSE4.1 (one @c _mm_load_ps)
-   * - any other (K, T) -> scalar fallback, which reuses the generic traverse() above (still
-   *   correct, just without the vectorised box test).
-   *
-   * How the three caller-supplied signatures fit together: @c State is whatever the search needs
-   * to remember between leaf visits -- often just the best value found so far, but it can be
-   * richer (e.g. a running best together with the primitive that produced it). @c LeafEvaluator
-   * is called only at leaves and is the sole place @c State is allowed to change; it never sees
-   * the pruning bound directly, only @c a_state itself. @c PruneDist2 is called only to turn the
-   * *current* @c a_state into a squared-distance bound for the pruning test in steps 2 and 4 --
-   * it is queried repeatedly (twice per interior node visited) and must be cheap and consistent
-   * with whatever @c LeafEvaluator just wrote. Splitting the two apart like this is what lets a
-   * primitive with no notion of "signed distance" reuse the same SIMD box test: a nearest-neighbor
-   * search over a point cloud can track a plain running squared distance in @c State (no
-   * @c abs(), no extra squaring, no square root anywhere in the hot path); a query that does care
-   * about sign would instead track a signed value and square its magnitude for the pruning bound.
-   * Both are ordinary instantiations of this same method -- PackedBVH has no opinion on which.
-   *
-   * @note Only the *bound* side of the pruning test (@c PruneDist2, derived from @c State) is
-   * customisable; the *per-child* quantity it is compared against -- Euclidean squared distance
-   * from a_point to each child's AABB -- is not. This is not an arbitrary restriction: it is
-   * exactly the one computation @c ChildAABBSoA and the six SIMD branches above know how to do
-   * for all @c K children at once, and vectorising it is only possible because it is the same
-   * uniform arithmetic in every lane. An arbitrary per-child predicate (the way @c Visiter takes a
-   * caller-supplied (node, meta) callback for the generic traverse() above) cannot be vectorised
-   * the same way, since SIMD requires one fixed computation applied uniformly across lanes, not
-   * arbitrary code invoked once per child -- that is just the scalar loop traverse() already runs.
-   * It is also not purely a performance choice: branch-and-bound pruning is only sound if the
-   * per-child quantity is a true lower bound on the distance to anything inside that box, and
-   * Euclidean squared-distance-to-AABB has that property for every query PackedBVH currently
-   * supports. PackedBVH also hardcodes AABBT<T> as its sole bounding volume (unlike TreeBVH, which
-   * takes a caller-supplied BV), so no other box shape exists today that would call for a
-   * different distance formula in the first place. See
+   * @note Only the pruning *bound* (@c PruneDistSquared) is customisable; the per-child quantity it is
+   * compared against -- Euclidean squared distance to a child's AABB -- is not, since that is the
+   * one computation vectorised uniformly across @c K children, and branch-and-bound pruning is
+   * only sound if it is a true lower bound on the distance to anything inside that box. PackedBVH
+   * also hardcodes AABBT<T> as its sole bounding volume. See
    * https://github.com/rmrsk/EBGeometry/issues/96 for a sketch of what generalizing this would
-   * look like, if that ever changes.
+   * look like, if that is ever needed.
    *
    * @tparam State        Caller-defined running search state, carried by reference through the whole traversal.
    * @tparam LeafEvaluator Callable: (State&, size_t offset, size_t count) noexcept -> void. Scans
    * primitives [offset, offset+count) and updates a_state in place.
-   * @tparam PruneDist2    Callable: (const State&) noexcept -> T. Returns the current squared-distance
+   * @tparam PruneDistSquared    Callable: (const State&) noexcept -> T. Returns the current squared-distance
    * pruning bound derived from a_state; a node farther than this (in squared distance) is pruned.
    * @param[in]     a_point      Query point.
    * @param[in,out] a_state      Running search state; mutated by a_evalLeaf, read by a_pruneDist2.
    * @param[in]     a_evalLeaf   Leaf-visit callback.
    * @param[in]     a_pruneDist2 Pruning-bound callback.
    */
-  template <class State, class LeafEvaluator, class PruneDist2>
+  template <class State, class LeafEvaluator, class PruneDistSquared>
   inline void
-  pruneTraverse(const Vec3T<T>& a_point,
-                State&          a_state,
-                LeafEvaluator&& a_evalLeaf,
-                PruneDist2&&    a_pruneDist2) const noexcept;
+  pruneTraverse(const Vec3T<T>&    a_point,
+                State&             a_state,
+                LeafEvaluator&&    a_evalLeaf,
+                PruneDistSquared&& a_pruneDist2) const noexcept;
 
 protected:
   /**
