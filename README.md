@@ -1,3 +1,12 @@
+<!-- REMOVE this banner once downstream users have migrated (target: ~2026-Q4). -->
+> [!IMPORTANT]
+> **Git history rewritten (July 2026).** EBGeometry's history was rewritten to
+> remove large binary files from old commits, so **every commit hash before this
+> date has changed**. If you pin EBGeometry as a **submodule** at an older commit,
+> follow the [migration guide](https://github.com/rmrsk/EBGeometry-legacy/releases/tag/pre-history-rewrite)
+> (old&rarr;new commit map + how to repoint). If you just clone/build the library
+> or vendor `EBGeometry.hpp`, no action is needed.
+
 ## EBGeometry - a header-only C++ library for signed distance fields
 
 EBGeometry is a header-only C++17 library for constructive solid geometry (CSG) with implicit 
