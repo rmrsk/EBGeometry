@@ -22,7 +22,7 @@ jobs:
         directory: [Source, Examples]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Run clang-format
         uses: jidicula/clang-format-action@v4.18.0
         with:
@@ -34,37 +34,62 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - name: Run codespell (pre-commit hook)
-        uses: pre-commit/action@v3.0.1
+      - uses: actions/checkout@v7
+      # pre-commit/action@v3.0.1 (the last available release) is a composite action whose own
+      # internals pin actions/cache@v4 -- a Node 20 action we don't control and can't bump by
+      # changing our own workflow. Inlined here (same steps pre-commit/action itself runs), using
+      # our own actions/cache@v6, to actually clear the deprecation warning instead of just
+      # inheriting it from an unmaintained upstream action.
+      - name: Install pre-commit
+        run: python -m pip install pre-commit
+      - run: python -m pip freeze --local
+      - name: Cache pre-commit environments
+        uses: actions/cache@v6
         with:
-          extra_args: codespell --all-files
+          path: ~/.cache/pre-commit
+          key: pre-commit-3|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Run codespell (pre-commit hook)
+        run: pre-commit run --show-diff-on-failure --color=always codespell --all-files
 
   Reuse:
     name: REUSE license compliance
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - name: Run reuse lint (pre-commit hook)
-        uses: pre-commit/action@v3.0.1
+      - uses: actions/checkout@v7
+      # See the comment in the Codespell job above -- same reason for inlining pre-commit/action.
+      - name: Install pre-commit
+        run: python -m pip install pre-commit
+      - run: python -m pip freeze --local
+      - name: Cache pre-commit environments
+        uses: actions/cache@v6
         with:
-          extra_args: reuse --all-files
+          path: ~/.cache/pre-commit
+          key: pre-commit-3|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Run reuse lint (pre-commit hook)
+        run: pre-commit run --show-diff-on-failure --color=always reuse --all-files
 
   Doxygen-check:
     name: Doxygen (warnings as errors)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install doxygen
         run: |
           sudo apt-get update
           sudo apt-get install -y doxygen graphviz
-      - name: Run doxygen-check (pre-commit hook)
-        uses: pre-commit/action@v3.0.1
+      # See the comment in the Codespell job above -- same reason for inlining pre-commit/action.
+      - name: Install pre-commit
+        run: python -m pip install pre-commit
+      - run: python -m pip freeze --local
+      - name: Cache pre-commit environments
+        uses: actions/cache@v6
         with:
-          extra_args: doxygen-check --all-files
+          path: ~/.cache/pre-commit
+          key: pre-commit-3|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Run doxygen-check (pre-commit hook)
+        run: pre-commit run --show-diff-on-failure --color=always doxygen-check --all-files
 
   Static-analysis:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
@@ -76,7 +101,7 @@ jobs:
     # false to make this a hard gate once that backlog has been reviewed.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Install clang-tidy
@@ -84,7 +109,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang-tidy-18 clang-14
       - name: Cache Catch2 build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build/debug/_deps
           key: ${{ runner.os }}-catch2-clang14-${{ hashFiles('Tests/CMakeLists.txt') }}
@@ -107,7 +132,7 @@ jobs:
         directory: [Examples/CSGUnion, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Install dependencies
@@ -141,7 +166,7 @@ jobs:
         directory: [Examples/MeshSDF, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Install Intel oneAPI
@@ -178,7 +203,7 @@ jobs:
       matrix:
         directory: [Examples/CSGUnion, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Build and run with GNU make
@@ -191,11 +216,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Cache Catch2 build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build/debug/_deps
           key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
@@ -217,11 +242,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Cache Catch2 build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build/debug/_deps
           key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
@@ -240,9 +265,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Cache pip packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-sphinx-${{ hashFiles('.github/workflows/CI.yml') }}
@@ -278,7 +303,7 @@ jobs:
           make latexpdf
 
       - name: Upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: docs
           path: Docs/Sphinx/build
@@ -303,7 +328,7 @@ jobs:
         simd: [none, avx, avx512]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install compiler
         run: |
@@ -315,7 +340,7 @@ jobs:
           fi
 
       - name: Cache Catch2 build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build/debug/_deps
           key: ${{ runner.os }}-catch2-${{ matrix.compiler }}-${{ hashFiles('Tests/CMakeLists.txt') }}
@@ -350,11 +375,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Cache Catch2 build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build/release-test/_deps
           key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
@@ -376,7 +401,7 @@ jobs:
         compiler: [g++-12, clang++-14]
         simd: [none, avx]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install compiler
         run: |
           sudo apt-get update
@@ -386,7 +411,7 @@ jobs:
             sudo apt-get install -y clang-14
           fi
       - name: Cache Catch2 build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build/debug-san/_deps
           key: ${{ runner.os }}-catch2-san-${{ matrix.compiler }}-${{ hashFiles('Tests/CMakeLists.txt') }}

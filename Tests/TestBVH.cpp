@@ -71,6 +71,22 @@ traversalMargin()
   return std::is_same_v<T, float> ? 1.0e-2 : 1.0e-6;
 }
 
+// Bare point primitive (unsigned Euclidean distance stands in for "signedDistance" -- sign is
+// irrelevant for this test, only magnitude agreement with brute force is checked) used below to
+// exercise bottomUpSortAndPartition() on primitive sets whose centroids are degenerate along one
+// or more axes.
+template <class T>
+struct DistPoint
+{
+  Vec3T<T> m_pos;
+
+  [[nodiscard]] T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    return (m_pos - a_point).length();
+  }
+};
+
 } // namespace
 
 TEMPLATE_TEST_CASE("Dodecahedron: all four file formats parse into an identical, watertight DCEL mesh",
@@ -421,5 +437,81 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
         REQUIRE_THAT(triSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
       }
     }
+  }
+}
+
+TEMPLATE_TEST_CASE("TreeBVH::bottomUpSortAndPartition handles primitive sets whose centroids are "
+                   "degenerate along one or more axes",
+                   "[BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = DistPoint<T>;
+
+  constexpr size_t K = 4;
+
+  // bottomUpSortAndPartition() normalizes primitive centroids into the space-filling curve's
+  // coordinate system via (centroid - minCoord) / delta, where delta is derived from the
+  // centroid bounding box. If minCoord == maxCoord on some axis (every primitive's centroid
+  // coincides there), delta is zero on that axis and this division must not blow up.
+  auto buildAndCheck = [&](const std::vector<Vec3>& a_positions) {
+    BVH::PrimAndBVList<Pnt, AABB> primsAndBVs;
+    for (const auto& pos : a_positions) {
+      primsAndBVs.emplace_back(std::make_shared<Pnt>(Pnt{pos}), AABB(pos, pos));
+    }
+
+    for (const auto& sfcLabel : {"Morton", "Nested"}) {
+      INFO("Space-filling curve: " << sfcLabel);
+
+      auto tree = std::make_shared<BVH::TreeBVH<T, Pnt, AABB, K>>(primsAndBVs);
+
+      if (std::string(sfcLabel) == "Morton") {
+        tree->template bottomUpSortAndPartition<SFC::Morton>();
+      }
+      else {
+        tree->template bottomUpSortAndPartition<SFC::Nested>();
+      }
+
+      const auto packed = tree->pack();
+      REQUIRE(packed != nullptr);
+      REQUIRE(packed->getPrimitives().size() == a_positions.size());
+
+      for (const auto& q : queryPoints<T>()) {
+        T brute = std::numeric_limits<T>::max();
+        for (const auto& pos : a_positions) {
+          brute = std::min(brute, (pos - q).length());
+        }
+
+        REQUIRE_THAT(packed->signedDistance(q), withinAbsT(brute, traversalMargin<T>()));
+      }
+    }
+  };
+
+  SECTION("All primitives exactly coincident (degenerate on every axis)")
+  {
+    const std::vector<Vec3> positions(30, Vec3(2, -1, 3));
+    buildAndCheck(positions);
+  }
+
+  SECTION("Planar point cloud (z == 0 for every primitive, x/y vary normally)")
+  {
+    std::vector<Vec3> positions;
+    for (int i = 0; i < 8; i++) {
+      for (int j = 0; j < 8; j++) {
+        positions.emplace_back(T(i), T(j), T(0));
+      }
+    }
+    buildAndCheck(positions);
+  }
+
+  SECTION("Cluster of exact duplicates plus a few distinct outliers")
+  {
+    std::vector<Vec3> positions(20, Vec3(0, 0, 0));
+    positions.emplace_back(5, 5, 5);
+    positions.emplace_back(-5, -5, -5);
+    positions.emplace_back(10, 0, 0);
+    buildAndCheck(positions);
   }
 }

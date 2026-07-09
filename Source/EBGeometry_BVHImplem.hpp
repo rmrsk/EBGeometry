@@ -177,7 +177,20 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
     maxCoord = max(maxCoord, curCentroid);
   }
 
-  const Vec3 delta = (maxCoord - minCoord) / SFC::ValidSpan;
+  Vec3 delta = (maxCoord - minCoord) / SFC::ValidSpan;
+
+  // A zero delta component means every centroid coincides on that axis (minCoord == maxCoord
+  // there), e.g. a planar point cloud or a cluster of duplicate points -- not a hypothetical
+  // edge case. The numerator below is then also exactly zero on that axis for every primitive,
+  // so any nonzero divisor yields the same (correct) curBin == 0 there; this only exists to
+  // avoid dividing by zero, which would otherwise fire an assertion (or, with assertions
+  // compiled out, silently produce NaN and then invoke undefined behavior at the
+  // float-to-unsigned-int cast below).
+  for (size_t axis = 0; axis < 3; axis++) {
+    if (delta[axis] == T(0)) {
+      delta[axis] = T(1);
+    }
+  }
 
   for (const auto& bv : m_boundingVolumes) {
     const Vec3 curBin = (bv.getCentroid() - minCoord) / delta;
