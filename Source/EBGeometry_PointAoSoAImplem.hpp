@@ -1,0 +1,78 @@
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * @file   EBGeometry_PointAoSoAImplem.hpp
+ * @brief  Implementation of EBGeometry_PointAoSoA.hpp
+ * @author Robert Marskar
+ */
+
+#ifndef EBGEOMETRY_POINTAOSOAIMPLEM_HPP
+#define EBGEOMETRY_POINTAOSOAIMPLEM_HPP
+
+// Std includes
+#include <cstddef>
+#include <cstdint>
+
+#include "EBGeometry_Macros.hpp"
+#include "EBGeometry_PointAoSoA.hpp"
+
+namespace EBGeometry {
+
+template <class T, class Meta, size_t W>
+void
+PointAoSoA<T, Meta, W>::pack(const Vec3T<T>* positions, const Meta* metaData, uint32_t count) noexcept
+{
+  EBGEOMETRY_EXPECT(positions != nullptr);
+  EBGEOMETRY_EXPECT(metaData != nullptr);
+  EBGEOMETRY_EXPECT(count >= 1U);
+  EBGEOMETRY_EXPECT(count <= W);
+
+  m_validCount = count;
+
+  m_positions.pack(positions, count);
+
+  // Same padding convention as PointSoAT::pack(): lanes count..W-1 repeat the last real entry.
+  for (uint32_t j = 0; j < W; j++) {
+    const uint32_t src = (j < count) ? j : (count - 1U);
+
+    m_metaData[j] = metaData[src];
+  }
+}
+
+template <class T, class Meta, size_t W>
+T
+PointAoSoA<T, Meta, W>::getDistance(const Vec3T<T>& a_point) const noexcept
+{
+  return m_positions.getDistance(a_point);
+}
+
+template <class T, class Meta, size_t W>
+T
+PointAoSoA<T, Meta, W>::getDistance2(const Vec3T<T>& a_point) const noexcept
+{
+  return m_positions.getDistance2(a_point);
+}
+
+template <class T, class Meta, size_t W>
+const Meta&
+PointAoSoA<T, Meta, W>::getMetaData(size_t a_lane) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_lane < W);
+  EBGEOMETRY_EXPECT(m_validCount >= 1U);
+
+  return m_metaData[a_lane];
+}
+
+template <class T, class Meta, size_t W>
+template <class BV>
+BV
+PointAoSoA<T, Meta, W>::computeBoundingVolume() const noexcept
+{
+  return m_positions.template computeBoundingVolume<BV>();
+}
+
+} // namespace EBGeometry
+
+#endif

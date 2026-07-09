@@ -37,7 +37,7 @@ integration, the underlying geometric concepts), see the
 | `EBGeometry::SFC` | Space-filling curves (`Morton`, `Nested`) used for bottom-up BVH construction |
 | `EBGeometry::Soup` | Polygon-soup compression and soup-to-DCEL conversion |
 | `EBGeometry::TriangleSoA` | Structure-of-arrays triangle groups used as SIMD-friendly `PackedBVH` leaves |
-| `EBGeometry::PointSoA` | Structure-of-arrays point groups (`PointSoAT`) carrying per-point metadata, for nearest-neighbor-style `PackedBVH` leaves over point clouds; unsigned distance only (`getDistance`/`getDistance2`), no `signedDistance()` |
+| `EBGeometry::PointSoA` | True structure-of-arrays point-position groups (`PointSoAT`), for nearest-neighbor-style `PackedBVH` leaves over point clouds; unsigned distance only (`getDistance`/`getDistance2`), no `signedDistance()`. `PointAoSoA` wraps one `PointSoAT` plus per-point metadata, kept out of the distance computation entirely |
 | `EBGeometry::Parser` | File readers (STL, PLY, OBJ, VTK) that build DCEL meshes, mesh SDFs, or triangle BVHs |
 
 ### Elsewhere

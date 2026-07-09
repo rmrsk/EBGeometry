@@ -74,9 +74,6 @@ using Meta = short;
   /* -- Triangles -----------------------------------------------------------*/\
   template class Triangle<PREC, Meta>;                                      \
                                                                                \
-  /* -- Points --------------------------------------------------------------*/\
-  template class Point<PREC, Meta>;                                         \
-                                                                               \
   /* -- Mesh distance functions --------------------------------------------*/\
   template class FlatMeshSDF<PREC, Meta>;                                    \
                                                                                \

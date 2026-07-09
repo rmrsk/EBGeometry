@@ -26,7 +26,7 @@
 #include "Source/EBGeometry_Octree.hpp"
 #include "Source/EBGeometry_PLY.hpp"
 #include "Source/EBGeometry_Parser.hpp"
-#include "Source/EBGeometry_Point.hpp"
+#include "Source/EBGeometry_PointAoSoA.hpp"
 #include "Source/EBGeometry_PointSoA.hpp"
 #include "Source/EBGeometry_Polygon2D.hpp"
 #include "Source/EBGeometry_SFC.hpp"

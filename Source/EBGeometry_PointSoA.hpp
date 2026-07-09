@@ -4,7 +4,7 @@
 
 /**
  * @file   EBGeometry_PointSoA.hpp
- * @brief  Declaration of SoA point group for SIMD nearest-neighbor evaluation.
+ * @brief  Declaration of a true SoA point-position group for SIMD nearest-neighbor evaluation.
  * @author Robert Marskar
  */
 
@@ -12,7 +12,6 @@
 #define EBGEOMETRY_POINTSOA_HPP
 
 // Std includes
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -22,7 +21,6 @@
 #endif
 
 // Our includes
-#include "EBGeometry_Point.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -76,24 +74,25 @@ DefaultWidth() noexcept
 } // namespace PointSoA
 
 /**
- * @brief SoA (Structure of Arrays) layout for W points, enabling SIMD nearest-neighbor evaluation.
- * @details Unlike TriangleSoAT, a point has no orientation, so there is no signedDistance() here
- * -- only the unsigned getDistance()/getDistance2() (squared, sqrt-free) queries make sense for a
- * bare point. Each point's metadata is carried alongside its position (unlike TriangleSoAT, which
- * currently drops per-triangle metadata during packing -- see EBGeometry issue #105), retrievable
- * per lane via getMetaData().
+ * @brief True SoA (Structure of Arrays) layout for W point positions, enabling SIMD
+ * nearest-neighbor evaluation.
+ * @details Deliberately carries positions only -- no metadata, no orientation. A point has no
+ * inside/outside notion, so there is no signedDistance() here, only the unsigned
+ * getDistance()/getDistance2() (squared, sqrt-free) queries. Metadata, when needed, is carried by
+ * the separate PointAoSoA<T, Meta, W> wrapper (see EBGeometry_PointAoSoA.hpp) rather than as a
+ * member here, so that a pure position-only nearest-neighbor traversal never has metadata bytes
+ * anywhere near its hot data -- not merely unused, but physically absent from this type.
  * @warning This type is over-aligned (up to 64 bytes, for AVX-512F) via alignas. The library's own
  * usage (PackedBVH storing groups inside a std::vector<PointSoAT>) is safe: C++17 mandates that
  * std::allocator respect over-alignment. If you allocate a PointSoAT yourself outside of that path
  * -- a raw `new`, a container with a custom/pre-C++17-style allocator, placement-new into
  * externally-owned storage, or a `malloc`'d buffer -- you are responsible for ensuring the memory
- * is aligned to `alignof(PointSoAT<T, W, Meta>)`; nothing in this class enforces or checks that.
- * @tparam T    Floating-point precision.
- * @tparam W    SIMD width: 4 for SSE (128-bit), 8 for AVX (256-bit float) or AVX-512F (512-bit
+ * is aligned to `alignof(PointSoAT<T, W>)`; nothing in this class enforces or checks that.
+ * @tparam T Floating-point precision.
+ * @tparam W SIMD width: 4 for SSE (128-bit), 8 for AVX (256-bit float) or AVX-512F (512-bit
  * double), 16 for AVX-512F (512-bit float).
- * @tparam Meta User-defined metadata type stored with each point.
  */
-template <class T, size_t W, class Meta>
+template <class T, size_t W>
 struct PointSoAT
 {
   static_assert(W > 0, "W must be positive");
@@ -101,52 +100,43 @@ struct PointSoAT
 
 public:
   /**
-   * @brief Pack count points from points[0..count-1] into this SoA group.
-   * @details Pads lanes count..W-1 by repeating the last real point (position and metadata alike)
-   * so that all W lanes hold valid data and SIMD loads never read uninitialised memory.
-   * @param[in] points Source point array with at least count elements. Must not be null.
-   * @param[in] count  Number of valid points to pack. Must satisfy 1 <= count <= W.
+   * @brief Pack count positions from positions[0..count-1] into this SoA group.
+   * @details Pads lanes count..W-1 by repeating the last real position so that all W lanes hold
+   * valid data and SIMD loads never read uninitialised memory.
+   * @param[in] positions Source position array with at least count elements. Must not be null.
+   * @param[in] count     Number of valid positions to pack. Must satisfy 1 <= count <= W.
    */
   void
-  pack(const Point<T, Meta>* points, uint32_t count) noexcept;
+  pack(const Vec3T<T>* positions, uint32_t count) noexcept;
 
   /**
-   * @brief Evaluate the shortest unsigned distance from a_point to the closest point in this group.
+   * @brief Evaluate the shortest unsigned distance from a_point to the closest position in this
+   * group.
    * @details Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
    * @param[in] a_point Query point. Must be finite.
-   * @return Distance from a_point to the closest valid point in this group.
+   * @return Distance from a_point to the closest valid position in this group.
    */
   [[nodiscard]] T
   getDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
-   * @brief Evaluate the shortest squared unsigned distance from a_point to the closest point in
-   * this group.
+   * @brief Evaluate the shortest squared unsigned distance from a_point to the closest position
+   * in this group.
    * @details Avoids the sqrt that getDistance() pays -- prefer this whenever the caller only needs
    * the distance for comparison (e.g. BVH pruning, nearest-neighbor search), not its actual
    * magnitude. Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
    * @param[in] a_point Query point. Must be finite.
-   * @return Squared distance from a_point to the closest valid point in this group.
+   * @return Squared distance from a_point to the closest valid position in this group.
    */
   [[nodiscard]] T
   getDistance2(const Vec3T<T>& a_point) const noexcept;
 
   /**
-   * @brief Get the metadata for one lane of this group.
-   * @details Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
-   * @param[in] a_lane Lane index. Must satisfy 0 <= a_lane < W (padded lanes return the last real
-   * point's metadata -- see pack()).
-   * @return Metadata for the point at a_lane.
-   */
-  [[nodiscard]] const Meta&
-  getMetaData(size_t a_lane) const noexcept;
-
-  /**
-   * @brief Compute the bounding volume enclosing all valid points in this group.
+   * @brief Compute the bounding volume enclosing all valid positions in this group.
    * @details Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
    * @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a
-   * std::vector<Vec3T<T>> of point positions.
-   * @return Bounding volume enclosing all m_validCount valid point positions.
+   * std::vector<Vec3T<T>> of positions.
+   * @return Bounding volume enclosing all m_validCount valid positions.
    */
   template <class BV>
   [[nodiscard]] BV
@@ -169,12 +159,7 @@ protected:
   T m_z[W];
 
   /**
-   * @brief Per-lane metadata. m_metaData[j] = metadata of point j.
-   */
-  std::array<Meta, W> m_metaData;
-
-  /**
-   * @brief Number of valid (non-padded) points in this group (1..W).
+   * @brief Number of valid (non-padded) positions in this group (1..W).
    * @details Zero-initialized so that a default-constructed (not-yet-packed) group reliably fails
    * the EBGEOMETRY_EXPECT(m_validCount >= 1) precondition in getDistance()/getDistance2()/
    * computeBoundingVolume(), rather than reading whatever indeterminate value happened to be there.
