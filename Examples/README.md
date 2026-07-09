@@ -1,6 +1,7 @@
 This folder contains examples of using EBGeometry on its own (header-only, C++17, no
 third-party dependencies):
 
+* `BuildBVH` For comparing BVH build strategies (TreeBVH top-down/SAH/Morton/Nested, and PackedBVH's direct constructor) by build time.
 * `CSGUnion` For merging a surface mesh with an analytic sphere using a BVH-accelerated CSG union.
 * `MeshSDF` For reading a surface mesh and evaluating it with the DCEL/BVH signed-distance representations.
 * `OctreeBoundingVolume` For using the octree bounding-volume functionality.
