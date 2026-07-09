@@ -698,6 +698,137 @@ auto BinnedSAHPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> std
 };
 
 /**
+ * @brief Internal helper: 2-way spatial-midpoint split on the sub-range [a_begin, a_end).
+ * @details Unlike SAH2WaySplit (which evaluates 32 binned candidate planes) or
+ * BVCentroidPartitioner (which sorts by centroid), this computes exactly one split plane -- the
+ * midpoint of the centroid bounding box along its longest axis -- and partitions around it with a
+ * single std::partition pass. No sorting and no per-plane cost evaluation, at the cost of not
+ * adapting to the primitive distribution the way SAH does: entirely sort-less, O(N) per split.
+ * @tparam T  Floating-point precision.
+ * @tparam P  Primitive type.
+ * @tparam BV Bounding-volume type.
+ * @param[in,out] a_list Primitives and their bounding volumes; partitioned in place around the split.
+ * @param[in] a_begin First index of the sub-range to split.
+ * @param[in] a_end One-past-the-last index of the sub-range to split.
+ * @return Split index (index of the first element of the right group).
+ */
+template <class T, class P, class BV>
+inline size_t
+Midpoint2WaySplit(PrimAndBVList<P, BV>& a_list, const size_t a_begin, const size_t a_end) noexcept
+{
+  EBGEOMETRY_EXPECT(a_begin < a_end);
+
+  const size_t N = a_end - a_begin;
+
+  Vec3T<T> lo = +Vec3T<T>::max();
+  Vec3T<T> hi = -Vec3T<T>::max();
+
+  for (size_t i = a_begin; i < a_end; i++) {
+    const auto& c = a_list[i].second.getCentroid();
+
+    lo = min(lo, c);
+    hi = max(hi, c);
+  }
+
+  const size_t splitDir = (hi - lo).maxDir(true);
+  const T      midpoint = T(0.5) * (lo[splitDir] + hi[splitDir]);
+
+  auto mid = std::partition(
+    a_list.begin() + a_begin, a_list.begin() + a_end, [splitDir, midpoint](const PrimAndBV<P, BV>& pbv) noexcept {
+      return pbv.second.getCentroid()[splitDir] < midpoint;
+    });
+
+  const size_t splitIdx = static_cast<size_t>(std::distance(a_list.begin(), mid));
+
+  // Guard: if every centroid ended up on one side (e.g. all coincide on the split axis, or the
+  // distribution is skewed entirely to one side of the midpoint), fall back to an equal-count
+  // split so neither resulting group is ever empty.
+  return (splitIdx == a_begin || splitIdx == a_end) ? a_begin + N / 2 : splitIdx;
+}
+
+/**
+ * @brief Internal helper: recursively split [a_begin, a_end) into a_K groups via 2-way midpoint
+ * splits.
+ * @details Splits into std::floor(a_K/2) and std::ceil(a_K/2) sub-groups recursively -- exact for
+ * power-of-two K; a reasonable approximation for other values. Structurally identical to
+ * SAHKWaySplit, just calling Midpoint2WaySplit instead of SAH2WaySplit at each level.
+ * @tparam T  Floating-point precision.
+ * @tparam P  Primitive type.
+ * @tparam BV Bounding-volume type.
+ * @param[in,out] a_list Primitives and their bounding volumes; partitioned in place.
+ * @param[in] a_begin First index of the sub-range to split.
+ * @param[in] a_end One-past-the-last index of the sub-range to split.
+ * @param[in] a_K Number of groups to split the sub-range into.
+ * @param[out] a_groups Resulting groups as [begin, end) index pairs.
+ */
+template <class T, class P, class BV>
+inline void
+MidpointKWaySplit(PrimAndBVList<P, BV>&                   a_list,
+                  const size_t                            a_begin,
+                  const size_t                            a_end,
+                  const size_t                            a_K,
+                  std::vector<std::pair<size_t, size_t>>& a_groups) noexcept
+{
+  if (a_K <= 1 || a_begin >= a_end) {
+    a_groups.emplace_back(a_begin, a_end);
+
+    return;
+  }
+
+  const size_t K1 = a_K / 2;
+  const size_t K2 = a_K - K1;
+
+  // Clamp so the left half has >= K1 elements and the right has >= K2, guaranteeing neither
+  // recursive call receives an under-populated range (see SAHKWaySplit's identical clamp for why:
+  // an empty sub-list reaching the TreeBVH constructor crashes on AABBT(vector::front())).
+  const size_t rawMid = Midpoint2WaySplit<T, P, BV>(a_list, a_begin, a_end);
+  const size_t mid    = std::max(a_begin + K1, std::min(a_end - K2, rawMid));
+
+  MidpointKWaySplit<T, P, BV>(a_list, a_begin, mid, K1, a_groups);
+  MidpointKWaySplit<T, P, BV>(a_list, mid, a_end, K2, a_groups);
+}
+
+/**
+ * @brief Partitioner that recursively bisects primitives by spatial midpoint (no sorting).
+ * @details At every split, computes the midpoint of the centroid bounding box along its longest
+ * axis and partitions primitives around it in one O(N) std::partition pass -- unlike
+ * BVCentroidPartitioner (sorts by centroid) or BinnedSAHPartitioner (evaluates 32 candidate
+ * planes per axis), no sorting or per-plane cost evaluation happens anywhere. K groups are
+ * produced by recursively splitting into std::floor(K/2) and std::ceil(K/2) subsets, mirroring
+ * BinnedSAHPartitioner's own K-way structure exactly (see MidpointKWaySplit).
+ *
+ * This is the fastest of the three top-down partitioners to build (no sort, no per-axis binning),
+ * at the cost of build quality: it does not adapt to the primitive distribution at all, so a
+ * heavily clustered or skewed input can produce noticeably less balanced (and less
+ * query-efficient) trees than BVCentroidPartitioner or BinnedSAHPartitioner would.
+ *
+ * @tparam T  Floating-point precision.
+ * @tparam P  Primitive type.
+ * @tparam BV Bounding-volume type.
+ * @tparam K  Number of output sub-lists (branching factor of the resulting BVH).
+ * @param[in] a_primsAndBVs Input (primitive, BV) pairs.
+ * @return K sub-lists.
+ */
+template <class T, class P, class BV, size_t K>
+auto MidpointPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+  EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+
+  PrimAndBVList<P, BV>                   working(a_primsAndBVs);
+  std::vector<std::pair<size_t, size_t>> groups;
+  groups.reserve(K);
+
+  MidpointKWaySplit<T, P, BV>(working, 0, working.size(), K, groups);
+
+  std::array<PrimAndBVList<P, BV>, K> result;
+  for (size_t k = 0; k < K; k++) {
+    const auto [b, e] = groups[k];
+    result[k]         = PrimAndBVList<P, BV>(working.begin() + b, working.begin() + e);
+  }
+
+  return result;
+};
+
+/**
  * @brief Default stop function: stop partitioning when the node holds fewer than K primitives.
  * @tparam T  Floating-point precision.
  * @tparam P  Primitive type.

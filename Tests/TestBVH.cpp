@@ -1337,3 +1337,158 @@ TEMPLATE_TEST_CASE("PackedBVH: direct top-down-build constructor agrees exactly 
     REQUIRE(directState == treeState);
   }
 }
+
+TEMPLATE_TEST_CASE("BVH::MidpointPartitioner: matches brute-force nearest-neighbor via both "
+                   "TreeBVH::topDownSortAndPartition() and PackedBVH's direct top-down constructor",
+                   "[BVH][DirectTopDownBuild]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  std::vector<Vec3> positions;
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      for (int k = 0; k < 5; k++) {
+        positions.emplace_back(T(i) + T(0.3) * T(j), T(j) - T(0.2) * T(k), T(k) + T(0.1) * T(i));
+      }
+    }
+  }
+  REQUIRE(positions.size() == 125);
+
+  auto checkPacked = [&](const char* a_label, const BVH::PackedBVH<T, Pnt, K>& a_packed) {
+    INFO(a_label);
+    REQUIRE(a_packed.getPrimitives().size() == positions.size());
+
+    const auto& prims      = a_packed.getPrimitives();
+    const auto  pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+    for (const auto& q : queryPoints<T>()) {
+      T          state    = std::numeric_limits<T>::max();
+      const auto evalLeaf = [&prims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+        for (size_t i = 0; i < a_count; i++) {
+          const T d2 = (prims[a_offset + i]->m_pos - q).length2();
+          if (d2 < a_state) {
+            a_state = d2;
+          }
+        }
+      };
+
+      a_packed.pruneTraverse(q, state, evalLeaf, pruneDist2);
+
+      REQUIRE_THAT(state, withinAbsT(bruteForceNearest2(positions, q), traversalMargin<T>()));
+    }
+  };
+
+  SECTION("Via TreeBVH::topDownSortAndPartition() then pack()")
+  {
+    BVH::PrimAndBVList<Pnt, AABB> primsAndBVs;
+    for (const auto& pos : positions) {
+      primsAndBVs.emplace_back(std::make_shared<Pnt>(Pnt{pos}), AABB(pos, pos));
+    }
+
+    auto tree = std::make_shared<BVH::TreeBVH<T, Pnt, AABB, K>>(primsAndBVs);
+
+    using Node          = BVH::TreeBVH<T, Pnt, AABB, K>;
+    const auto stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
+    tree->topDownSortAndPartition(BVH::MidpointPartitioner<T, Pnt, AABB, K>, stopCrit);
+
+    const auto packed = tree->pack();
+    REQUIRE(packed != nullptr);
+    checkPacked("Via TreeBVH", *packed);
+  }
+
+  SECTION("Via PackedBVH's direct top-down constructor")
+  {
+    std::vector<std::pair<Pnt, AABB>> flatPrims;
+    flatPrims.reserve(positions.size());
+    for (const auto& pos : positions) {
+      flatPrims.emplace_back(Pnt{pos}, AABB(pos, pos));
+    }
+
+    using Node          = BVH::TreeBVH<T, Pnt, AABB, K>;
+    const auto stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
+    const BVH::PackedBVH<T, Pnt, K> packed(std::move(flatPrims), BVH::MidpointPartitioner<T, Pnt, AABB, K>, stopCrit);
+    checkPacked("Via direct constructor", packed);
+  }
+}
+
+TEMPLATE_TEST_CASE("BVH::MidpointPartitioner: handles degenerate-axis primitive sets without "
+                   "producing an empty group",
+                   "[BVH][DirectTopDownBuild]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  auto buildAndCheck = [&](const std::vector<Vec3>& a_positions) {
+    std::vector<std::pair<Pnt, AABB>> flatPrims;
+    flatPrims.reserve(a_positions.size());
+    for (const auto& pos : a_positions) {
+      flatPrims.emplace_back(Pnt{pos}, AABB(pos, pos));
+    }
+
+    using Node = BVH::TreeBVH<T, Pnt, AABB, K>;
+    // GCC requires capturing K here (it's a local constexpr referenced from a lambda nested
+    // inside another lambda); Clang's C++17 relaxed rules don't need it, hence the NOLINT.
+    const auto stopCrit = [K](const Node& n) noexcept -> bool { // NOLINT(clang-diagnostic-unused-lambda-capture)
+      return n.getPrimitives().size() < K;
+    };
+    const BVH::PackedBVH<T, Pnt, K> packed(std::move(flatPrims), BVH::MidpointPartitioner<T, Pnt, AABB, K>, stopCrit);
+
+    REQUIRE(packed.getPrimitives().size() == a_positions.size());
+
+    const auto& prims      = packed.getPrimitives();
+    const auto  pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+    for (const auto& q : queryPoints<T>()) {
+      T          state    = std::numeric_limits<T>::max();
+      const auto evalLeaf = [&prims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+        for (size_t i = 0; i < a_count; i++) {
+          const T d2 = (prims[a_offset + i]->m_pos - q).length2();
+          if (d2 < a_state) {
+            a_state = d2;
+          }
+        }
+      };
+
+      packed.pruneTraverse(q, state, evalLeaf, pruneDist2);
+
+      REQUIRE_THAT(state, withinAbsT(bruteForceNearest2(a_positions, q), traversalMargin<T>()));
+    }
+  };
+
+  SECTION("All primitives exactly coincident (degenerate on every axis)")
+  {
+    const std::vector<Vec3> positions(30, Vec3(2, -1, 3));
+    buildAndCheck(positions);
+  }
+
+  SECTION("Planar point cloud (z == 0 for every primitive, x/y vary normally)")
+  {
+    std::vector<Vec3> positions;
+    for (int i = 0; i < 8; i++) {
+      for (int j = 0; j < 8; j++) {
+        positions.emplace_back(T(i), T(j), T(0));
+      }
+    }
+    buildAndCheck(positions);
+  }
+
+  SECTION("Cluster of exact duplicates plus a few distinct outliers")
+  {
+    std::vector<Vec3> positions(20, Vec3(0, 0, 0));
+    positions.emplace_back(5, 5, 5);
+    positions.emplace_back(-5, -5, -5);
+    positions.emplace_back(10, 0, 0);
+    buildAndCheck(positions);
+  }
+}

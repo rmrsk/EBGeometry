@@ -57,8 +57,8 @@ makeWrappedPrimitives(const std::vector<Vec3>& a_positions)
   return primsAndBVs;
 }
 
-// Build the flat (primitive, bounding volume) pair list PackedBVH's direct constructor wants --
-// no shared_ptr anywhere, matching what that constructor is actually for.
+// Build the flat (primitive, bounding volume) pair list PackedBVH's direct constructors want --
+// no shared_ptr anywhere, matching what those constructors are actually for.
 std::vector<std::pair<Point, AABB>>
 makeFlatPrimitives(const std::vector<Vec3>& a_positions)
 {
@@ -132,20 +132,28 @@ checkAgainstBruteForce(const char*              a_label,
   }
 }
 
-// One measured TreeBVH-based build: buildTime is topDownSortAndPartition()/
-// bottomUpSortAndPartition() alone; packTime is the additional pack() call. Reported separately
-// (see main()'s comment for why), with their sum being the fair comparison against
-// PackedBVH's direct constructor.
-struct TreeBuildResult
+// Build-time results for one strategy: treeBuildTime is TreeBVH construction + partitioning
+// alone; packTime is the additional pack() call; directBuildTime is PackedBVH's direct
+// constructor (no TreeBVH at all). treeBuildTime + packTime is the fair number to compare against
+// directBuildTime, since a bare TreeBVH cannot answer queries on its own.
+struct StrategyResult
 {
-  double                  buildTime;
-  double                  packTime;
-  std::shared_ptr<Packed> packed;
+  double treeBuildTime;
+  double packTime;
+  double directBuildTime;
 };
 
-template <class PartitionFn>
-TreeBuildResult
-timeTreeBuild(const std::vector<Vec3>& a_positions, PartitionFn&& a_partitionFn)
+// Times one "partitioner family" strategy (TopDown/SAH/Midpoint): both the TreeBVH path (build +
+// a_partitionFn, then pack()) and PackedBVH's direct top-down constructor with the same
+// a_partitioner/a_stopCrit, then cross-checks both results against brute force.
+template <class PartitionFn, class Partitioner, class LeafPred>
+StrategyResult
+runPartitionerFamily(const char*              a_label,
+                     const std::vector<Vec3>& a_positions,
+                     const std::vector<Vec3>& a_queryPoints,
+                     PartitionFn&&            a_partitionFn,
+                     Partitioner&&            a_partitioner,
+                     LeafPred&&               a_stopCrit)
 {
   EBGeometry::SimpleTimer timer;
 
@@ -153,14 +161,56 @@ timeTreeBuild(const std::vector<Vec3>& a_positions, PartitionFn&& a_partitionFn)
   auto tree = std::make_shared<Tree>(makeWrappedPrimitives(a_positions));
   a_partitionFn(*tree);
   timer.stop();
-  const double buildTime = timer.seconds();
+  const double treeBuildTime = timer.seconds();
 
   timer.start();
   auto packed = tree->pack();
   timer.stop();
   const double packTime = timer.seconds();
 
-  return {buildTime, packTime, packed};
+  timer.start();
+  const Packed direct(makeFlatPrimitives(a_positions), a_partitioner, a_stopCrit);
+  timer.stop();
+  const double directBuildTime = timer.seconds();
+
+  checkAgainstBruteForce(a_label, *packed, a_positions, a_queryPoints);
+  checkAgainstBruteForce(a_label, direct, a_positions, a_queryPoints);
+
+  return {treeBuildTime, packTime, directBuildTime};
+}
+
+// Times one "SFC family" strategy (Morton/Nested): both the TreeBVH path
+// (bottomUpSortAndPartition<S>(), then pack()) and PackedBVH's direct SFC-build constructor with
+// the same curve S, then cross-checks both results against brute force.
+template <class S>
+StrategyResult
+runSFCFamily(const char*              a_label,
+             const std::vector<Vec3>& a_positions,
+             const std::vector<Vec3>& a_queryPoints,
+             size_t                   a_targetLeafSize)
+{
+  EBGeometry::SimpleTimer timer;
+
+  timer.start();
+  auto tree = std::make_shared<Tree>(makeWrappedPrimitives(a_positions));
+  tree->template bottomUpSortAndPartition<S>();
+  timer.stop();
+  const double treeBuildTime = timer.seconds();
+
+  timer.start();
+  auto packed = tree->pack();
+  timer.stop();
+  const double packTime = timer.seconds();
+
+  timer.start();
+  const Packed direct(makeFlatPrimitives(a_positions), a_targetLeafSize, S{});
+  timer.stop();
+  const double directBuildTime = timer.seconds();
+
+  checkAgainstBruteForce(a_label, *packed, a_positions, a_queryPoints);
+  checkAgainstBruteForce(a_label, direct, a_positions, a_queryPoints);
+
+  return {treeBuildTime, packTime, directBuildTime};
 }
 
 } // namespace
@@ -168,36 +218,33 @@ timeTreeBuild(const std::vector<Vec3>& a_positions, PartitionFn&& a_partitionFn)
 int
 main()
 {
-  // TLDR: this program builds the same random point cloud into a BVH seven different ways --
-  //       TreeBVH top-down (default centroid split), TreeBVH top-down with the SAH partitioner,
-  //       TreeBVH bottom-up along the Morton and Nested space-filling curves, and PackedBVH's two
-  //       direct constructors (no TreeBVH at all) in all three of their variants -- SFC-build
-  //       (Morton), direct top-down, and direct SAH -- and reports how long each takes to build,
-  //       at a few point-cloud sizes. It exists to give a reproducible, versioned answer to a
-  //       question raised in EBGeometry issue #92 (rather than "standalone scratch benchmarks,
-  //       not committed anywhere"): whether SFC-based construction still beats top-down
-  //       construction once shared_ptr allocation overhead is removed from consideration
-  //       (compare the "TreeBVH + pack()" columns against the "PackedBVH direct" columns using the
-  //       same partitioning idea -- TopDown vs. direct TopDown, SAH vs. direct SAH, Morton vs.
-  //       direct Morton).
+  // TLDR: this program builds the same random point cloud into a BVH via all five construction
+  //       strategies EBGeometry offers -- top-down with the default centroid partitioner, SAH,
+  //       and the sort-less midpoint-split partitioner; and bottom-up along the Morton and Nested
+  //       space-filling curves -- and for EACH strategy times both ways of reaching a queryable
+  //       PackedBVH: the traditional TreeBVH-then-pack() path, and PackedBVH's direct constructor
+  //       (no TreeBVH at all). It exists to give a reproducible, versioned answer to a question
+  //       raised in EBGeometry issue #92 (rather than "standalone scratch benchmarks, not
+  //       committed anywhere"): whether SFC-based construction still beats top-down construction
+  //       once shared_ptr allocation overhead is removed from consideration.
   //
-  // For each of the four TreeBVH-based strategies, two numbers are reported: the time to build
-  // and partition the TreeBVH alone, and the additional time to pack() it into a queryable
-  // PackedBVH -- since a TreeBVH by itself cannot answer queries, their sum is the fairer number
-  // to compare directly against a direct constructor's single number, which already produces a
+  // For the TreeBVH path, two numbers are reported: the time to build and partition the TreeBVH
+  // alone, and the additional time to pack() it into a queryable PackedBVH -- since a bare
+  // TreeBVH cannot answer queries, their sum ("Total") is the fair number to compare directly
+  // against the direct constructor's single "Direct build" number, which already produces a
   // queryable PackedBVH.
   //
-  // Every resulting PackedBVH is cross-checked against a brute-force scan for a handful of random
-  // query points, so a build strategy that produced a wrong tree would be caught here, not just
-  // timed.
+  // Every resulting PackedBVH (both paths, all five strategies) is cross-checked against a
+  // brute-force scan for a handful of random query points, so a build strategy that produced a
+  // wrong tree would be caught here, not just timed.
 
   const std::vector<size_t> sizes = {1'000, 10'000, 100'000};
 
-  // Target leaf size for PackedBVH's direct constructor. Chosen to match K, the leaf occupancy
-  // the other four strategies naturally converge to (topDownSortAndPartition()'s default
+  // Target leaf size for the SFC-family direct constructors. Chosen to match K, the leaf
+  // occupancy every strategy naturally converges to (topDownSortAndPartition()'s default
   // LeafPredicate stops once a node holds fewer than K primitives; bottomUpSortAndPartition()'s
-  // leaf count likewise divides the primitives into groups of roughly K), so the comparison
-  // isn't skewed by one strategy simply building shallower or deeper trees than the others.
+  // leaf count likewise divides the primitives into groups of roughly K), so the comparison isn't
+  // skewed by one strategy simply building shallower or deeper trees than the others.
   constexpr size_t targetLeafSize = K;
 
   constexpr int numQueryPoints = 200;
@@ -222,67 +269,56 @@ main()
       queryPoints.emplace_back(udist(rng), udist(rng), udist(rng));
     }
 
-    const auto topDown = timeTreeBuild(positions, [](Tree& a_tree) { a_tree.topDownSortAndPartition(); });
+    using LeafPred          = typename Tree::LeafPredicate;
+    const LeafPred stopCrit = [](const Tree& a_node) noexcept -> bool { return a_node.getPrimitives().size() < K; };
 
-    const auto sah = timeTreeBuild(positions, [](Tree& a_tree) {
-      using LeafPred          = typename Tree::LeafPredicate;
-      const LeafPred stopCrit = [](const Tree& a_node) noexcept -> bool { return a_node.getPrimitives().size() < K; };
-      a_tree.topDownSortAndPartition(EBGeometry::BVH::BinnedSAHPartitioner<T, Point, AABB, K>, stopCrit);
-    });
+    const auto topDown = runPartitionerFamily(
+      "TopDown",
+      positions,
+      queryPoints,
+      [](Tree& a_tree) { a_tree.topDownSortAndPartition(); },
+      EBGeometry::BVH::BVCentroidPartitioner<T, Point, AABB, K>,
+      stopCrit);
 
-    const auto morton = timeTreeBuild(
-      positions, [](Tree& a_tree) { a_tree.template bottomUpSortAndPartition<EBGeometry::SFC::Morton>(); });
+    const auto sah = runPartitionerFamily(
+      "SAH",
+      positions,
+      queryPoints,
+      [stopCrit](Tree& a_tree) {
+        a_tree.topDownSortAndPartition(EBGeometry::BVH::BinnedSAHPartitioner<T, Point, AABB, K>, stopCrit);
+      },
+      EBGeometry::BVH::BinnedSAHPartitioner<T, Point, AABB, K>,
+      stopCrit);
 
-    const auto nested = timeTreeBuild(
-      positions, [](Tree& a_tree) { a_tree.template bottomUpSortAndPartition<EBGeometry::SFC::Nested>(); });
+    const auto midpoint = runPartitionerFamily(
+      "Midpoint",
+      positions,
+      queryPoints,
+      [stopCrit](Tree& a_tree) {
+        a_tree.topDownSortAndPartition(EBGeometry::BVH::MidpointPartitioner<T, Point, AABB, K>, stopCrit);
+      },
+      EBGeometry::BVH::MidpointPartitioner<T, Point, AABB, K>,
+      stopCrit);
 
-    EBGeometry::SimpleTimer timer;
+    const auto morton = runSFCFamily<EBGeometry::SFC::Morton>("Morton", positions, queryPoints, targetLeafSize);
 
-    timer.start();
-    Packed directMorton(makeFlatPrimitives(positions), targetLeafSize);
-    timer.stop();
-    const double directMortonTime = timer.seconds();
+    const auto nested = runSFCFamily<EBGeometry::SFC::Nested>("Nested", positions, queryPoints, targetLeafSize);
 
-    timer.start();
-    Packed directTopDown(makeFlatPrimitives(positions));
-    timer.stop();
-    const double directTopDownTime = timer.seconds();
+    std::cout << std::left << std::setw(12) << "Strategy" << std::right << std::setw(16) << "TreeBVH (s)"
+              << std::setw(16) << "+ pack() (s)" << std::setw(16) << "Total (s)" << std::setw(18) << "Direct build (s)"
+              << "\n";
 
-    timer.start();
-    Packed directSAH(makeFlatPrimitives(positions),
-                     EBGeometry::BVH::BinnedSAHPartitioner<T, Point, AABB, K>,
-                     [](const Tree& a_node) noexcept -> bool { return a_node.getPrimitives().size() < K; });
-    timer.stop();
-    const double directSAHTime = timer.seconds();
-
-    checkAgainstBruteForce("TopDown", *topDown.packed, positions, queryPoints);
-    checkAgainstBruteForce("SAH", *sah.packed, positions, queryPoints);
-    checkAgainstBruteForce("Morton", *morton.packed, positions, queryPoints);
-    checkAgainstBruteForce("Nested", *nested.packed, positions, queryPoints);
-    checkAgainstBruteForce("Direct Morton", directMorton, positions, queryPoints);
-    checkAgainstBruteForce("Direct TopDown", directTopDown, positions, queryPoints);
-    checkAgainstBruteForce("Direct SAH", directSAH, positions, queryPoints);
-
-    std::cout << std::left << std::setw(24) << "Strategy" << std::right << std::setw(16) << "Build (s)" << std::setw(16)
-              << "+ pack() (s)" << std::setw(16) << "Total (s)" << "\n";
-
-    auto printRow = [](const char* a_label, double a_buildTime, double a_packTime) {
-      std::cout << std::left << std::setw(24) << a_label << std::right << std::setw(16) << a_buildTime << std::setw(16)
-                << a_packTime << std::setw(16) << (a_buildTime + a_packTime) << "\n";
+    auto printRow = [](const char* a_label, const StrategyResult& a_result) {
+      std::cout << std::left << std::setw(12) << a_label << std::right << std::setw(16) << a_result.treeBuildTime
+                << std::setw(16) << a_result.packTime << std::setw(16) << (a_result.treeBuildTime + a_result.packTime)
+                << std::setw(18) << a_result.directBuildTime << "\n";
     };
 
-    auto printDirectRow = [](const char* a_label, double a_buildTime) {
-      std::cout << std::left << std::setw(24) << a_label << std::right << std::setw(16) << a_buildTime << std::setw(16)
-                << "--" << std::setw(16) << a_buildTime << "\n";
-    };
-
-    printRow("TreeBVH TopDown", topDown.buildTime, topDown.packTime);
-    printRow("TreeBVH SAH", sah.buildTime, sah.packTime);
-    printRow("TreeBVH Morton", morton.buildTime, morton.packTime);
-    printRow("TreeBVH Nested", nested.buildTime, nested.packTime);
-    printDirectRow("PackedBVH direct Morton", directMortonTime);
-    printDirectRow("PackedBVH direct TopDown", directTopDownTime);
-    printDirectRow("PackedBVH direct SAH", directSAHTime);
+    printRow("TopDown", topDown);
+    printRow("SAH", sah);
+    printRow("Midpoint", midpoint);
+    printRow("Morton", morton);
+    printRow("Nested", nested);
   }
 
   return 0;

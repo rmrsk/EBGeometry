@@ -1,30 +1,30 @@
 Examples/BuildBVH
 -----------------
 
-This folder benchmarks the different ways to build a BVH over a random point cloud: `TreeBVH`
-top-down (default centroid split), `TreeBVH` top-down with the Surface-Area-Heuristic (SAH)
-partitioner, `TreeBVH` bottom-up along the Morton and Nested space-filling curves, and all three
-variants of `PackedBVH`'s two direct constructors -- SFC-build (Morton), direct top-down, and
-direct SAH -- each of which builds straight into a flat, queryable representation without ever
+This folder benchmarks every BVH construction strategy EBGeometry offers, over a random point
+cloud: top-down with the default centroid partitioner, top-down with the Surface-Area-Heuristic
+(SAH) partitioner, top-down with the sort-less midpoint-split partitioner, and bottom-up along the
+Morton and Nested space-filling curves. For each of these five strategies, it times both ways of
+reaching a queryable `PackedBVH`: the traditional `TreeBVH`-then-`pack()` path, and `PackedBVH`'s
+direct constructor, which builds straight into a flat, queryable representation without ever
 constructing a `TreeBVH` at all.
 
 It exists to give a reproducible, versioned answer to a question raised while designing
 `PackedBVH`'s direct constructors (see [EBGeometry issue #92](https://github.com/rmrsk/EBGeometry/issues/92)):
 does SFC-based (Morton/Nested) construction still beat top-down construction once `shared_ptr`
-allocation overhead is removed from the comparison? Compare the "Total (s)" column for each
-`TreeBVH`-based strategy against the matching direct constructor's single number (TopDown vs.
-direct TopDown, SAH vs. direct SAH, Morton vs. direct Morton).
+allocation overhead is removed from the comparison? Compare the "Total (s)" column against
+"Direct build (s)" for each strategy.
 
-For each of the four `TreeBVH`-based strategies, two times are reported: **Build**, the time to
-construct and partition the `TreeBVH` alone (including wrapping every point in a `shared_ptr`,
-which the traditional API requires), and **+ pack()**, the additional time to flatten that
-`TreeBVH` into a queryable `PackedBVH`. Their sum (**Total**) is the fair number to compare
-against a direct constructor's single Build time, since a bare `TreeBVH` cannot answer queries on
-its own -- only their sum represents "time to a query-ready structure" for the traditional path.
+For the `TreeBVH` path, two times are reported: **TreeBVH**, the time to construct and partition
+the `TreeBVH` alone (including wrapping every point in a `shared_ptr`, which the traditional API
+requires), and **+ pack()**, the additional time to flatten that `TreeBVH` into a queryable
+`PackedBVH`. Their sum (**Total**) is the fair number to compare against **Direct build**, since a
+bare `TreeBVH` cannot answer queries on its own -- only the sum represents "time to a query-ready
+structure" for the traditional path.
 
-Every resulting `PackedBVH` (all seven) is checked against a brute-force nearest-neighbor scan
-before any times are printed, so a build strategy producing a wrong tree would fail loudly here,
-not just report a (meaningless) time.
+Every resulting `PackedBVH` (both paths, all five strategies) is checked against a brute-force
+nearest-neighbor scan before any times are printed, so a build strategy producing a wrong tree
+would fail loudly here, not just report a (meaningless) time.
 
 Building
 --------
@@ -69,24 +69,22 @@ Running
 
 This example takes no arguments. It generates a random point cloud (fixed seed, so results are
 reproducible run to run on the same machine) at three sizes -- 1,000, 10,000, and 100,000 points
--- and prints a build-time table for each size, in seconds, for all seven strategies.
+-- and prints a build-time table for each size, in seconds, for all five strategies.
 
 Some things worth noting when reading the output:
 
-* `TreeBVH` top-down (both the default centroid partitioner and SAH) is noticeably slower to
-  build than every other strategy at larger point counts -- almost entirely the cost of one
-  *persistent* `shared_ptr<TreeBVH>` allocation per tree node, not the partitioning logic itself.
-* The direct top-down and direct SAH constructors use the exact same partitioning logic (they
-  literally call the same `BVCentroidPartitioner`/`BinnedSAHPartitioner` functions) but write
-  nodes straight into the flat array instead of a persistent tree, discarding one lightweight,
-  stack-local `TreeBVH` per split as soon as it's used -- so any gap between e.g. "TreeBVH SAH"
-  and "PackedBVH direct SAH" is attributable to that persistent-node allocation specifically, not
-  a difference in tree shape or quality.
-* `TreeBVH` bottom-up (Morton/Nested) is much closer to `PackedBVH direct Morton`'s time than the
-  top-down strategies are, since it avoids most of top-down's recursive node allocation -- but it
-  still isn't quite as fast, since it still builds a temporary `TreeBVH` (with its own
-  `shared_ptr<TreeBVH>` overhead) before `pack()` can flatten it, whereas the direct SFC-build
-  constructor never allocates a `TreeBVH` node at all.
+* Top-down strategies (default centroid, SAH) are noticeably slower to build via `TreeBVH` than
+  bottom-up (Morton/Nested) at larger point counts -- almost entirely the cost of one *persistent*
+  `shared_ptr<TreeBVH>` allocation per tree node, not the partitioning logic itself.
+* The midpoint-split partitioner is the fastest of the three top-down strategies to build (no
+  sorting, no per-plane SAH cost evaluation -- just one bounding-box pass and one
+  `std::partition` per split), at the cost of not adapting to the primitive distribution the way
+  centroid-sort or SAH do.
+* Every "Direct build" number uses the exact same partitioning logic as its `TreeBVH` counterpart
+  (they literally call the same partitioner functions), just writing nodes straight into the flat
+  array instead of a persistent tree -- so any gap between e.g. "SAH" Total and its Direct build
+  time is attributable to that persistent-node allocation specifically, not a difference in tree
+  shape or quality.
 * This is not an apples-to-apples comparison of tree *quality* -- only of *build* time. A faster
   build does not necessarily mean faster queries; that would need a separate traversal-time
   benchmark, which this example does not attempt.

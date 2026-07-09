@@ -82,14 +82,20 @@ Top-down construction is done through the member function ``topDownSortAndPartit
 takes two optional arguments: a *partitioner* and a *leaf predicate*.
 
 The partitioner is a functor that splits a list of ``(primitive, BV)`` pairs into ``K`` new
-lists whenever a leaf is subdivided. Three ready-made partitioners are provided:
+lists whenever a leaf is subdivided. Four ready-made partitioners are provided:
 ``BVCentroidPartitioner`` (splits on bounding-volume centroids along the longest axis -- the
 default), ``PrimitiveCentroidPartitioner`` (the same idea, but splits on primitive centroids
-instead), and ``BinnedSAHPartitioner`` (a Surface-Area-Heuristic partitioner, used automatically
+instead), ``BinnedSAHPartitioner`` (a Surface-Area-Heuristic partitioner, used automatically
 when building via ``BVH::Build::SAH`` -- see below -- and typically producing the
-best-performing trees at a higher construction cost). The leaf predicate takes a ``TreeBVH`` node
-and decides whether it should become a leaf (i.e. not be split any further); a default is provided,
-but callers are free to supply their own of either kind.
+best-performing trees at a higher construction cost), and ``MidpointPartitioner`` (splits on the
+midpoint of the bounding-volume centroids' extent along the longest axis, with a single
+``std::partition`` pass -- no sorting and no per-plane cost evaluation, making it the fastest of
+the four to build, at the cost of not adapting to the primitive distribution the way the other
+three do). ``BinnedSAHPartitioner`` and ``MidpointPartitioner`` both produce ``K`` groups by
+recursively splitting into two (``std::floor(K/2)`` and ``std::ceil(K/2)``) halves, exact for
+power-of-two ``K``. The leaf predicate takes a ``TreeBVH``
+node and decides whether it should become a leaf (i.e. not be split any further); a default is
+provided, but callers are free to supply their own of either kind.
 
 Bottom-up construction
 ________________________
