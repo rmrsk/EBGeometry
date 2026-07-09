@@ -30,7 +30,7 @@ together with the code. There are three types of documentation available:
 
 * [HTML](https://rmrsk.github.io/EBGeometry/) -- The user guide: concepts, building, testing, and
   examples.
-* [PDF](https://github.com/rmrsk/EBGeometry/raw/gh-pages/ebgeometry.pdf) -- The same user guide, as
+* [PDF](https://rmrsk.github.io/EBGeometry/ebgeometry.pdf) -- The same user guide, as
   a single PDF.
 * [Doxygen](https://rmrsk.github.io/EBGeometry/doxygen/html/index.html) -- The generated API
   reference for every class and function.

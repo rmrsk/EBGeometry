@@ -43,4 +43,4 @@ integration, the underlying geometric concepts), see the
 
 * Source repository: <https://github.com/rmrsk/EBGeometry>
 * User documentation (HTML): <https://rmrsk.github.io/EBGeometry/>
-* User documentation (PDF): <https://github.com/rmrsk/EBGeometry/raw/gh-pages/ebgeometry.pdf>
+* User documentation (PDF): <https://rmrsk.github.io/EBGeometry/ebgeometry.pdf>

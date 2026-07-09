@@ -27,7 +27,7 @@ Main features:
 .. important::
 
    This is the user documentation for EBGeometry. A
-   `PDF version <https://github.com/rmrsk/EBGeometry/raw/gh-pages/ebgeometry.pdf>`_
+   `PDF version <https://rmrsk.github.io/EBGeometry/ebgeometry.pdf>`_
    of this documentation is also available.
 
    * If you are looking for the source code, it is hosted on
