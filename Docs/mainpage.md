@@ -31,7 +31,7 @@ integration, the underlying geometric concepts), see the
 |---|---|
 | `EBGeometry` | Vectors (`Vec2T`, `Vec3T`), implicit functions, signed distance functions, analytic shapes, CSG operators, transformations, the SDF/BVH wrapper classes (`MeshSDF`, `TriMeshSDF`, `FlatMeshSDF`) |
 | `EBGeometry::DCEL` | The half-edge surface mesh: `VertexT`, `EdgeT`, `FaceT`, `MeshT`, and mesh iterators |
-| `EBGeometry::BVH` | `TreeBVH`, `PackedBVH`, partitioners, traversal callback types (`Updater`, `Visiter`, `Sorter`, `MetaUpdater`) |
+| `EBGeometry::BVH` | `TreeBVH`, `PackedBVH`, partitioners, traversal callback types (`LeafEvaluator`, `PrunePredicate`, `ChildOrderer`, `NodeKeyFactory`) |
 | `EBGeometry::BoundingVolumes` | `AABBT` (axis-aligned box) and `SphereT` (bounding sphere) |
 | `EBGeometry::Octree` | Pointer-based octree used internally for bounding-volume estimation of arbitrary implicit functions |
 | `EBGeometry::SFC` | Space-filling curves (`Morton`, `Nested`) used for bottom-up BVH construction |

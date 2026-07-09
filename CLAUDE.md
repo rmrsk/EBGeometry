@@ -233,6 +233,23 @@ hooks (clang-tidy, the debug build, Sphinx) only run via this script or explicit
 compilers, SIMD levels, precisions, sanitizers, both Debug and Release) that isn't practical to
 reproduce byte-for-byte locally.
 
+## Branching, pull requests, and other spin-offs
+
+**You are never allowed to automatically create new branches, submit pull requests, create git
+worktrees, or take any similar spin-off action without first asking the user and obtaining explicit
+approval.** Any spin-off must obtain explicit user approval. This holds even when it looks like the
+obvious next step — for example, isolating an unrelated change onto its own branch, or opening a PR
+once work is done: surface the option and let the user decide, do not just do it. Committing to the
+branch you are *already on* (once the user has asked for that work) is fine; it is the creation of
+new refs and the outward submission of PRs that always needs a green light first.
+
+When the user *does* ask you to open a PR, **always use the repository's pull-request template**
+(`.github/pull_request_template.md`) — its `# Summary` sections (`Background`, `Solution`,
+`Side-effects`, `Alternative solutions`) followed by the `Reviewer checklist`. Fill in the prose
+sections (this is the "PR note") but **leave every checklist item unchecked** (`- [ ]`) — the
+checklist is for a human reviewer to complete, not you. If a PR was already opened with a body that
+does not follow this template, edit the PR body to conform to it.
+
 ## A few non-obvious things worth knowing
 
 - **Precision is a compile-time parameter, not a runtime one.** Nearly everything is templated on

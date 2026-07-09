@@ -521,7 +521,7 @@ public:
   /**
    * @brief Destructor.
    */
-  virtual ~BVHSmoothUnionIF() = default;
+  ~BVHSmoothUnionIF() override = default;
 
   /**
    * @brief Evaluates the smoothly blended signed distance at a_point using BVH traversal.
