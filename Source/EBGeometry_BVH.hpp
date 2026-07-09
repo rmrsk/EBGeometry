@@ -94,7 +94,7 @@ DefaultBranchingRatio() noexcept
 }
 
 /**
- * @brief Forward declaration of the tree-structured BVH. Needed by StopFunction and the
+ * @brief Forward declaration of the tree-structured BVH. Needed by LeafPredicate and the
  * default-partitioner lambdas defined below.
  */
 template <class T, class P, class BV, size_t K>
@@ -151,19 +151,19 @@ using Partitioner = std::function<std::array<PrimAndBVList<P, BV>, K>(const Prim
  * @return True if the node should not be sub-divided further.
  */
 template <class T, class P, class BV, size_t K>
-using StopFunction = std::function<bool(const TreeBVH<T, P, BV, K>& a_node)>;
+using LeafPredicate = std::function<bool(const TreeBVH<T, P, BV, K>& a_node)>;
 
 /**
- * @brief Leaf-update callback for TreeBVH::traverse.
+ * @brief Leaf-evaluation callback for TreeBVH::traverse.
  * @details Called once for every leaf node visited during traversal.
  * @tparam P Primitive type.
  * @param[in] a_primitives Primitive list stored in the leaf.
  */
 template <class P>
-using Updater = std::function<void(const PrimitiveList<P>& a_primitives)>;
+using LeafEvaluator = std::function<void(const PrimitiveList<P>& a_primitives)>;
 
 /**
- * @brief Leaf-update callback for PackedBVH::traverse.
+ * @brief Leaf-evaluation callback for PackedBVH::traverse.
  * @details Receives a view into the global primitive array (offset + count) rather than a
  * temporary sub-list, avoiding a heap allocation per leaf visit.
  * @tparam P Primitive type.
@@ -172,55 +172,56 @@ using Updater = std::function<void(const PrimitiveList<P>& a_primitives)>;
  * @param[in] a_count      Number of primitives in this leaf.
  */
 template <class P>
-using PackedUpdater = std::function<void(const PrimitiveList<P>& a_primitives, size_t a_offset, size_t a_count)>;
+using PackedLeafEvaluator = std::function<void(const PrimitiveList<P>& a_primitives, size_t a_offset, size_t a_count)>;
 
 /**
  * @brief Node-visit predicate for BVH traversal.
  * @details Must return true to descend into the node and false to prune it.
  * @tparam NodeType Node type (TreeBVH or PackedBVH::Node).
- * @tparam Meta     Caller-supplied auxiliary data type attached to each stack entry
+ * @tparam NodeKey  Caller-supplied per-node key attached to each stack entry
  * (e.g. a running minimum distance).
  * @param[in] a_node Node under consideration.
- * @param[in] a_meta Caller-supplied meta-data for this stack entry.
+ * @param[in] a_nodeKey Caller-supplied key for this stack entry.
  * @return True if the subtree rooted at a_node should be visited.
  */
-template <class NodeType, class Meta>
-using Visiter = std::function<bool(const NodeType& a_node, const Meta& a_meta)>;
+template <class NodeType, class NodeKey>
+using PrunePredicate = std::function<bool(const NodeType& a_node, const NodeKey& a_nodeKey)>;
 
 /**
  * @brief Child-ordering callback for TreeBVH traversal.
- * @details Sorts an array of (child-node-pointer, meta) pairs in-place so that
+ * @details Sorts an array of (child-node-pointer, key) pairs in-place so that
  * the most promising child is visited first.
  * @tparam NodeType Node type (TreeBVH).
- * @tparam Meta     Auxiliary data type attached to each stack entry.
+ * @tparam NodeKey  Per-node key attached to each stack entry.
  * @tparam K        Tree branching factor.
- * @param[in,out] a_children K child nodes together with their meta-data.
+ * @param[in,out] a_children K child nodes together with their node keys.
  */
-template <class NodeType, class Meta, size_t K>
-using Sorter = std::function<void(std::array<std::pair<std::shared_ptr<const NodeType>, Meta>, K>& a_children)>;
+template <class NodeType, class NodeKey, size_t K>
+using ChildOrderer =
+  std::function<void(std::array<std::pair<std::shared_ptr<const NodeType>, NodeKey>, K>& a_children)>;
 
 /**
  * @brief Child-ordering callback for PackedBVH traversal.
- * @details Same role as Sorter but uses 32-bit node indices instead of shared_ptrs,
+ * @details Same role as ChildOrderer but uses 32-bit node indices instead of shared_ptrs,
  * halving the stack-entry size.
- * @tparam Meta Auxiliary data type attached to each stack entry.
+ * @tparam NodeKey Per-node key attached to each stack entry.
  * @tparam K    Tree branching factor.
- * @param[in,out] a_children K (node-index, meta) pairs to sort.
+ * @param[in,out] a_children K (node-index, key) pairs to sort.
  */
-template <class Meta, size_t K>
-using PackedSorter = std::function<void(std::array<std::pair<uint32_t, Meta>, K>& a_children)>;
+template <class NodeKey, size_t K>
+using PackedChildOrderer = std::function<void(std::array<std::pair<uint32_t, NodeKey>, K>& a_children)>;
 
 /**
- * @brief Meta-data factory called once per node during BVH traversal.
- * @details Produces the Meta value that will be passed to Visiter and Sorter for
+ * @brief Node-key factory called once per node during BVH traversal.
+ * @details Produces the NodeKey value that will be passed to PrunePredicate and ChildOrderer for
  * each child of the current node.
  * @tparam NodeType Node type (TreeBVH or PackedBVH::Node).
- * @tparam Meta     Auxiliary data type to produce.
+ * @tparam NodeKey  Per-node key type to produce.
  * @param[in] a_node Current node.
- * @return Meta value for a_node's children.
+ * @return NodeKey value for a_node's children.
  */
-template <class NodeType, class Meta>
-using MetaUpdater = std::function<Meta(const NodeType& a_node)>;
+template <class NodeType, class NodeKey>
+using NodeKeyFactory = std::function<NodeKey(const NodeType& a_node)>;
 
 /**
  * @brief Utility: split a vector into K almost-equal contiguous chunks.
@@ -551,7 +552,7 @@ auto BinnedSAHPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> std
  * @return True if the node has fewer than K primitives.
  */
 template <class T, class P, class BV, size_t K>
-auto DefaultStopFunction =
+auto DefaultLeafPredicate =
   [](const BVH::TreeBVH<T, P, BV, K>& a_node) noexcept -> bool { return (a_node.getPrimitives()).size() < K; };
 
 /**
@@ -606,7 +607,7 @@ public:
   /**
    * @brief Alias for the stop-function type.
    */
-  using StopFunction = BVH::StopFunction<T, P, BV, K>;
+  using LeafPredicate = BVH::LeafPredicate<T, P, BV, K>;
 
   /**
    * @brief Default constructor. Creates an empty interior node.
@@ -631,8 +632,8 @@ public:
    * @param[in] a_stopCrit    Stop function. Returns true when a node should become a leaf.
    */
   inline void
-  topDownSortAndPartition(const Partitioner&  a_partitioner = BVCentroidPartitioner<T, P, BV, K>,
-                          const StopFunction& a_stopCrit    = DefaultStopFunction<T, P, BV, K>);
+  topDownSortAndPartition(const Partitioner&   a_partitioner = BVCentroidPartitioner<T, P, BV, K>,
+                          const LeafPredicate& a_stopCrit    = DefaultLeafPredicate<T, P, BV, K>);
 
   /**
    * @brief Recursively partition this node bottom-up along a space-filling curve.
@@ -701,40 +702,40 @@ public:
 
   /**
    * @brief Recursion-free BVH traversal using an explicit LIFO stack (depth-first order).
-   * @details The traversal maintains a stack of (node, Meta) pairs. It is seeded with the
-   * root node paired with @p a_metaUpdater applied to the root. On each iteration:
+   * @details The traversal maintains a stack of (node, NodeKey) pairs. It is seeded with the
+   * root node paired with @p a_nodeKeyFactory applied to the root. On each iteration:
    *
-   * 1. Pop the top (node, meta) pair.
-   * 2. Call @p a_visiter(node, meta). If it returns false the entire subtree rooted at
+   * 1. Pop the top (node, nodeKey) pair.
+   * 2. Call @p a_prunePredicate(node, nodeKey). If it returns false the entire subtree rooted at
    * that node is skipped (pruned) and the loop continues with the next stack entry.
-   * 3. If the node is a leaf, call @p a_updater with the leaf's primitive list.
+   * 3. If the node is a leaf, call @p a_leafEvaluator with the leaf's primitive list.
    * 4. If the node is an interior node:
-   * a. Compute a Meta value for each of the K children by calling
-   * @p a_metaUpdater on each child.
-   * b. Collect the K (child, Meta) pairs into a local array and pass them to
-   * @p a_sorter, which reorders the array in-place.
+   * a. Compute a NodeKey value for each of the K children by calling
+   * @p a_nodeKeyFactory on each child.
+   * b. Collect the K (child, NodeKey) pairs into a local array and pass them to
+   * @p a_childOrderer, which reorders the array in-place.
    * c. Push all K pairs onto the stack in sorted order.
    *
-   * Because the stack is LIFO, the child pushed last is visited first. @p a_sorter
+   * Because the stack is LIFO, the child pushed last is visited first. @p a_childOrderer
    * should therefore place the most promising child last in the array. For a
    * nearest-distance query this means sorting children in descending order of
    * distance — farthest child first, nearest child last — so the nearest child
    * sits on top of the stack and is expanded next.
    *
-   * @tparam Meta Auxiliary data type carried on the traversal stack (e.g. a running minimum distance).
-   * @param[in] a_updater     Called at each leaf with the leaf's primitive list.
-   * @param[in] a_visiter     Called at each node; return true to descend, false to prune.
-   * @param[in] a_sorter      Reorders the K (child, Meta) pairs in-place before they are
+   * @tparam NodeKey Auxiliary data type carried on the traversal stack (e.g. a running minimum distance).
+   * @param[in] a_leafEvaluator     Called at each leaf with the leaf's primitive list.
+   * @param[in] a_prunePredicate     Called at each node; return true to descend, false to prune.
+   * @param[in] a_childOrderer      Reorders the K (child, NodeKey) pairs in-place before they are
    * pushed; the last element after sorting is visited first.
-   * @param[in] a_metaUpdater Produces a Meta value for a node; called once for the root
+   * @param[in] a_nodeKeyFactory Produces a NodeKey value for a node; called once for the root
    * and once per child of every interior node that is visited.
    */
-  template <class Meta>
+  template <class NodeKey>
   inline void
-  traverse(const BVH::Updater<P>&              a_updater,
-           const BVH::Visiter<Node, Meta>&     a_visiter,
-           const BVH::Sorter<Node, Meta, K>&   a_sorter,
-           const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept;
+  traverse(const BVH::LeafEvaluator<P>&               a_leafEvaluator,
+           const BVH::PrunePredicate<Node, NodeKey>&  a_prunePredicate,
+           const BVH::ChildOrderer<Node, NodeKey, K>& a_childOrderer,
+           const BVH::NodeKeyFactory<Node, NodeKey>&  a_nodeKeyFactory) const noexcept;
 
   /**
    * @brief Flatten this tree into a cache-friendly PackedBVH with the same primitive type.
@@ -818,7 +819,7 @@ protected:
  * TreeBVH::packWith<Q>(converter) (type-converting pack).
  *
  * PackedBVH imposes no interface requirement on P by itself -- it holds primitives opaquely and
- * only ever hands them back to a caller-supplied callback (traverse()'s Updater, or
+ * only ever hands them back to a caller-supplied callback (traverse()'s LeafEvaluator, or
  * pruneTraverse()'s LeafEvaluator). Nearest-surface (signed-distance-style) queries are not a
  * PackedBVH member; callers build their own thin wrapper around pruneTraverse(), supplying
  * whatever primitive interface their own query needs.
@@ -850,7 +851,7 @@ public:
    * @brief Compact BVH node stored in the flat node array.
    * @details Each node holds a bounding volume, a primitive range (leaves) or child
    * index table (interior nodes). Exposed as a public nested type so that users can
-   * write traverse() callbacks (Visiter, MetaUpdater) that inspect nodes.
+   * write traverse() callbacks (PrunePredicate, NodeKeyFactory) that inspect nodes.
    */
   struct Node
   {
@@ -1059,43 +1060,43 @@ public:
    *
    * The stack is a std::vector used as a LIFO queue via push_back/pop_back, pre-reserved to
    * 64 entries to avoid reallocation for typical tree depths. It is seeded with node index 0
-   * (the root) paired with @p a_metaUpdater applied to the root node. On each iteration:
+   * (the root) paired with @p a_nodeKeyFactory applied to the root node. On each iteration:
    *
-   * 1. Pop the back entry to obtain a (nodeIdx, meta) pair.
+   * 1. Pop the back entry to obtain a (nodeIdx, nodeKey) pair.
    * 2. Look up the node at m_linearNodes[nodeIdx].
-   * 3. Call @p a_visiter(node, meta). If it returns false the entire subtree rooted at
+   * 3. Call @p a_prunePredicate(node, nodeKey). If it returns false the entire subtree rooted at
    * that node is skipped (pruned) and the loop continues.
-   * 4. If the node is a leaf, call @p a_updater with the global primitive list
-   * m_primitives, the leaf's primitive offset, and its primitive count. The updater
+   * 4. If the node is a leaf, call @p a_leafEvaluator with the global primitive list
+   * m_primitives, the leaf's primitive offset, and its primitive count. The leafEvaluator
    * receives a view into the shared list rather than a freshly allocated sub-list,
    * avoiding a heap allocation per leaf visit.
    * 5. If the node is an interior node:
    * a. Collect the K child indices from node.getChildOffsets(), look each child up in
-   * m_linearNodes, and call @p a_metaUpdater on each to produce a Meta value.
-   * b. Bundle the K (childIdx, Meta) pairs into a local array and pass it to
-   * @p a_sorter, which reorders the array in-place.
+   * m_linearNodes, and call @p a_nodeKeyFactory on each to produce a NodeKey value.
+   * b. Bundle the K (childIdx, NodeKey) pairs into a local array and pass it to
+   * @p a_childOrderer, which reorders the array in-place.
    * c. Push all K pairs onto the back of the stack in sorted order.
    *
-   * Because the stack is LIFO, the child pushed last is visited first. @p a_sorter
+   * Because the stack is LIFO, the child pushed last is visited first. @p a_childOrderer
    * should therefore place the most promising child last in the array. For a
    * nearest-distance query this means sorting children in descending order of
    * distance — farthest child first, nearest child last — so the nearest child
    * sits at the back of the vector and is expanded next.
    *
-   * @tparam Meta Auxiliary data type carried on the traversal stack (e.g. a running minimum distance).
-   * @param[in] a_updater     Called at each leaf with the global primitive list, offset, and count.
-   * @param[in] a_visiter     Called at each node; return true to descend, false to prune.
-   * @param[in] a_sorter      Reorders the K (childIdx, Meta) pairs in-place before they are
+   * @tparam NodeKey Auxiliary data type carried on the traversal stack (e.g. a running minimum distance).
+   * @param[in] a_leafEvaluator     Called at each leaf with the global primitive list, offset, and count.
+   * @param[in] a_prunePredicate     Called at each node; return true to descend, false to prune.
+   * @param[in] a_childOrderer      Reorders the K (childIdx, NodeKey) pairs in-place before they are
    * pushed; the last element after sorting is visited first.
-   * @param[in] a_metaUpdater Produces a Meta value for a node; called once for the root
+   * @param[in] a_nodeKeyFactory Produces a NodeKey value for a node; called once for the root
    * and once per child of every interior node that is visited.
    */
-  template <class Meta>
+  template <class NodeKey>
   inline void
-  traverse(const BVH::PackedUpdater<P>&        a_updater,
-           const BVH::Visiter<Node, Meta>&     a_visiter,
-           const BVH::PackedSorter<Meta, K>&   a_sorter,
-           const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept;
+  traverse(const BVH::PackedLeafEvaluator<P>&         a_leafEvaluator,
+           const BVH::PrunePredicate<Node, NodeKey>&  a_prunePredicate,
+           const BVH::PackedChildOrderer<NodeKey, K>& a_childOrderer,
+           const BVH::NodeKeyFactory<Node, NodeKey>&  a_nodeKeyFactory) const noexcept;
 
   /**
    * @brief Generic SIMD-accelerated, distance-pruned traversal.

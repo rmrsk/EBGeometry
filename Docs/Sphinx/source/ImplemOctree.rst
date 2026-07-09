@@ -54,15 +54,15 @@ Tree traversal
 ---------------
 
 Tree traversal is done through the member function ``traverse``, which visits nodes top-down using
-a visit-sort-update pattern analogous to the BVH traversal described in :ref:`Chap:ImplemBVH`. The
+a prune-order-evaluate pattern analogous to the BVH traversal described in :ref:`Chap:ImplemBVH`. The
 input functions to ``traverse`` are as follows:
 
-#. ``Visiter`` -- a predicate ``bool(const Node&)`` called on every node (interior or leaf);
+#. ``PrunePredicate`` -- a predicate ``bool(const Node&)`` called on every node (interior or leaf);
    returning ``false`` prunes that entire subtree from the traversal.
-#. ``Sorter`` -- reorders a node's (up to) eight children in-place before they are visited, so the
+#. ``ChildOrderer`` -- reorders a node's (up to) eight children in-place before they are visited, so the
    traversal can, e.g., visit the closest child first. By default, no sorting is done and children
    are visited in lexicographical octant order.
-#. ``Updater`` -- called on every *leaf* node that ``Visiter`` did not prune; this is where the
+#. ``LeafEvaluator`` -- called on every *leaf* node that ``PrunePredicate`` did not prune; this is where the
    caller actually consumes the leaf (e.g. to accumulate a result).
 
 .. _Sec:OctreeBoundingVolume:
@@ -97,7 +97,7 @@ Given an initial search box and a maximum tree depth, the algorithm is:
    -- this is the "bounded refinement" mentioned above, implemented entirely inside the
    ``SplitFunction``/``MetaConstructor`` pair rather than by any feature of ``Node`` itself. The
    tree is built with ``buildBreadthFirst``.
-#. The tree is then traversed (``Visiter`` keeps only flagged nodes, ``Updater`` collects each
+#. The tree is then traversed (``PrunePredicate`` keeps only flagged nodes, ``LeafEvaluator`` collects each
    surviving leaf's eight corner points), and the final bounding volume is constructed directly
    from that point set: ``BV`` need only be constructible from a ``std::vector<Vec3T<T>>``.
 

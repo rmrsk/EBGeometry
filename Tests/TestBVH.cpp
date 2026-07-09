@@ -71,20 +71,14 @@ traversalMargin()
   return std::is_same_v<T, float> ? 1.0e-2 : 1.0e-6;
 }
 
-// Bare point primitive (unsigned Euclidean distance stands in for "signedDistance" -- sign is
-// irrelevant for this test, only magnitude agreement with brute force is checked) used below to
-// exercise bottomUpSortAndPartition() on primitive sets whose centroids are degenerate along one
-// or more axes.
+// Bare point primitive -- just a position, with no signedDistance() (or any other) member. Used
+// below to exercise bottomUpSortAndPartition() on primitive sets whose centroids are degenerate
+// along one or more axes; the nearest-neighbor query is done via pruneTraverse(), which imposes
+// no interface requirement on the primitive type.
 template <class T>
 struct DistPoint
 {
   Vec3T<T> m_pos;
-
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept
-  {
-    return (m_pos - a_point).length();
-  }
 };
 
 } // namespace
@@ -186,8 +180,8 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
 
   buildAndCheck("TopDown (BinnedSAHPartitioner)", [](auto& a_tree) {
     using Node              = BVH::TreeBVH<T, Face, AABB, K>;
-    using StopFunc          = typename Node::StopFunction;
-    const StopFunc stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
+    using LeafPred          = typename Node::LeafPredicate;
+    const LeafPred stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
 
     a_tree.topDownSortAndPartition(BVH::BinnedSAHPartitioner<T, Face, AABB, K>, stopCrit);
   });
@@ -478,13 +472,31 @@ TEMPLATE_TEST_CASE("TreeBVH::bottomUpSortAndPartition handles primitive sets who
       REQUIRE(packed != nullptr);
       REQUIRE(packed->getPrimitives().size() == a_positions.size());
 
+      const auto& prims = packed->getPrimitives();
+
+      // PackedBVH has no signedDistance() of its own -- do the nearest-neighbor search via
+      // pruneTraverse(), whose State here is the running *squared* distance to the point cloud.
+      const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
       for (const auto& q : queryPoints<T>()) {
-        T brute = std::numeric_limits<T>::max();
+        T          state    = std::numeric_limits<T>::max();
+        const auto evalLeaf = [&prims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+          for (size_t i = 0; i < a_count; i++) {
+            const T d2 = (prims[a_offset + i]->m_pos - q).length2();
+            if (d2 < a_state) {
+              a_state = d2;
+            }
+          }
+        };
+
+        packed->pruneTraverse(q, state, evalLeaf, pruneDist2);
+
+        T bruteMin2 = std::numeric_limits<T>::max();
         for (const auto& pos : a_positions) {
-          brute = std::min(brute, (pos - q).length());
+          bruteMin2 = std::min(bruteMin2, (pos - q).length2());
         }
 
-        REQUIRE_THAT(packed->signedDistance(q), withinAbsT(brute, traversalMargin<T>()));
+        REQUIRE_THAT(state, withinAbsT(bruteMin2, traversalMargin<T>()));
       }
     }
   };

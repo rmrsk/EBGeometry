@@ -104,23 +104,23 @@ public:
     std::function<std::shared_ptr<Data>(const OctantIndex& a_index, const std::shared_ptr<Data>& a_parentData)>;
 
   /**
-   * @brief Updater pattern for Node::traverse. This is called when visiting a leaf node.
+   * @brief LeafEvaluator pattern for Node::traverse. This is called when visiting a leaf node.
    * @param[in] a_node Leaf node that is visited.
    */
-  using Updater = std::function<void(const Node<Meta, Data>& a_node)>;
+  using LeafEvaluator = std::function<void(const Node<Meta, Data>& a_node)>;
 
   /**
-   * @brief Visiter pattern for Node::traverse. This is called on interior and leaf nodes. Must return true if we should
+   * @brief PrunePredicate pattern for Node::traverse. This is called on interior and leaf nodes. Must return true if we should
    * query the node and false otherwise.
    * @param[in] a_node Node to visit or not.
    */
-  using Visiter = std::function<bool(const Node<Meta, Data>& a_node)>;
+  using PrunePredicate = std::function<bool(const Node<Meta, Data>& a_node)>;
 
   /**
-   * @brief Sorter for traverse pattern. This is called on interior nodes for deciding which sub-tree to visit first.
+   * @brief ChildOrderer for traverse pattern. This is called on interior nodes for deciding which sub-tree to visit first.
    * @param[inout] a_children Sortable children nodes, first node is visited first, then the second, etc.
    */
-  using Sorter = std::function<void(std::array<std::shared_ptr<const Node<Meta, Data>>, 8>& a_children)>;
+  using ChildOrderer = std::function<void(std::array<std::shared_ptr<const Node<Meta, Data>>, 8>& a_children)>;
 
   /**
    * @brief Default constructor. All children default-null (leaf node); m_meta and m_data are
@@ -244,17 +244,17 @@ public:
   /**
    * @brief Traverse the tree
    * @details Since this uses shared_from_this() internally, the node must already be owned by a
-   * std::shared_ptr (see the class-level @note). a_updater and a_visiter must be non-empty
-   * (callable); a_sorter, if explicitly supplied, must be non-empty too.
-   * @param[in] a_updater Updater when visiting leaf nodes.
-   * @param[in] a_visiter Visiter for deciding to visit a node.
-   * @param[in] a_sorter Sorter method for deciding which subtree to investigate first.
+   * std::shared_ptr (see the class-level @note). a_leafEvaluator and a_prunePredicate must be non-empty
+   * (callable); a_childOrderer, if explicitly supplied, must be non-empty too.
+   * @param[in] a_leafEvaluator LeafEvaluator when visiting leaf nodes.
+   * @param[in] a_prunePredicate PrunePredicate for deciding to visit a node.
+   * @param[in] a_childOrderer ChildOrderer method for deciding which subtree to investigate first.
    */
   inline void
   traverse(
-    const Updater& a_updater,
-    const Visiter& a_visiter,
-    const Sorter&  a_sorter = [](std::array<std::shared_ptr<const Node<Meta, Data>>, 8>&) -> void {
+    const LeafEvaluator&  a_leafEvaluator,
+    const PrunePredicate& a_prunePredicate,
+    const ChildOrderer&   a_childOrderer = [](std::array<std::shared_ptr<const Node<Meta, Data>>, 8>&) -> void {
       return;
     }) const noexcept;
 

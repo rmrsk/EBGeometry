@@ -46,8 +46,8 @@ countLeaves(const std::shared_ptr<LevelNode>& a_root)
 {
   size_t count = 0;
 
-  const LevelNode::Updater countingUpdater = [&count](const LevelNode&) -> void { count++; };
-  const LevelNode::Visiter visitAll        = [](const LevelNode&) -> bool { return true; };
+  const LevelNode::LeafEvaluator  countingUpdater = [&count](const LevelNode&) -> void { count++; };
+  const LevelNode::PrunePredicate visitAll        = [](const LevelNode&) -> bool { return true; };
 
   a_root->traverse(countingUpdater, visitAll);
 
@@ -135,7 +135,7 @@ TEST_CASE("Octree::Node: buildDepthFirst and buildBreadthFirst produce trees wit
   REQUIRE(countLeaves(depthFirstRoot) == static_cast<size_t>(std::pow(8, depth)));
 }
 
-TEST_CASE("Octree::Node::traverse: a visiter that prunes a subtree stops that subtree's leaves "
+TEST_CASE("Octree::Node::traverse: a prunePredicate that prunes a subtree stops that subtree's leaves "
           "from being visited",
           "[Octree]")
 {
@@ -143,11 +143,11 @@ TEST_CASE("Octree::Node::traverse: a visiter that prunes a subtree stops that su
 
   size_t visitedCount = 0;
 
-  const LevelNode::Updater counting = [&visitedCount](const LevelNode&) -> void { visitedCount++; };
+  const LevelNode::LeafEvaluator counting = [&visitedCount](const LevelNode&) -> void { visitedCount++; };
 
   // Only descend into the root and its first child (octant 0); every other direct child of the
   // root is pruned outright, so only the first child's 8 grandchildren should ever be visited.
-  const LevelNode::Visiter pruneAllButFirstChild = [&root](const LevelNode& a_node) -> bool {
+  const LevelNode::PrunePredicate pruneAllButFirstChild = [&root](const LevelNode& a_node) -> bool {
     if (&a_node == root.get() || &a_node == root->getChildren()[0].get()) {
       return true;
     }
@@ -166,21 +166,22 @@ TEST_CASE("Octree::Node::traverse: a visiter that prunes a subtree stops that su
   REQUIRE(visitedCount == 8);
 }
 
-TEST_CASE("Octree::Node::traverse: a custom sorter changes the visitation order", "[Octree]")
+TEST_CASE("Octree::Node::traverse: a custom childOrderer changes the visitation order", "[Octree]")
 {
   const auto root = buildUniformTree(1);
 
   std::vector<const void*> defaultOrder;
   std::vector<const void*> reversedOrder;
 
-  const LevelNode::Updater recordDefault = [&defaultOrder](const LevelNode& a_node) -> void {
+  const LevelNode::LeafEvaluator recordDefault = [&defaultOrder](const LevelNode& a_node) -> void {
     defaultOrder.push_back(static_cast<const void*>(&a_node));
   };
-  const LevelNode::Updater recordReversed = [&reversedOrder](const LevelNode& a_node) -> void {
+  const LevelNode::LeafEvaluator recordReversed = [&reversedOrder](const LevelNode& a_node) -> void {
     reversedOrder.push_back(static_cast<const void*>(&a_node));
   };
-  const LevelNode::Visiter visitAll        = [](const LevelNode&) -> bool { return true; };
-  const LevelNode::Sorter  reverseChildren = [](std::array<std::shared_ptr<const LevelNode>, 8>& a_children) -> void {
+  const LevelNode::PrunePredicate visitAll = [](const LevelNode&) -> bool { return true; };
+  const LevelNode::ChildOrderer   reverseChildren =
+    [](std::array<std::shared_ptr<const LevelNode>, 8>& a_children) -> void {
     std::reverse(a_children.begin(), a_children.end());
   };
 

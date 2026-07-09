@@ -120,7 +120,7 @@ TreeBVH<T, P, BV, K>::getChildren() const noexcept
 
 template <class T, class P, class BV, size_t K>
 inline void
-TreeBVH<T, P, BV, K>::topDownSortAndPartition(const Partitioner& a_partitioner, const StopFunction& a_stopCrit)
+TreeBVH<T, P, BV, K>::topDownSortAndPartition(const Partitioner& a_partitioner, const LeafPredicate& a_stopCrit)
 {
   // Check if this node should be split into more nodes.
   const auto numPrimsInThisNode = m_primitives.size();
@@ -311,36 +311,36 @@ TreeBVH<T, P, BV, K>::getDistanceToBoundingVolume(const Vec3& a_point) const noe
 }
 
 template <class T, class P, class BV, size_t K>
-template <class Meta>
+template <class NodeKey>
 inline void
-TreeBVH<T, P, BV, K>::traverse(const BVH::Updater<P>&              a_updater,
-                               const BVH::Visiter<Node, Meta>&     a_visiter,
-                               const BVH::Sorter<Node, Meta, K>&   a_sorter,
-                               const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept
+TreeBVH<T, P, BV, K>::traverse(const BVH::LeafEvaluator<P>&               a_leafEvaluator,
+                               const BVH::PrunePredicate<Node, NodeKey>&  a_prunePredicate,
+                               const BVH::ChildOrderer<Node, NodeKey, K>& a_childOrderer,
+                               const BVH::NodeKeyFactory<Node, NodeKey>&  a_nodeKeyFactory) const noexcept
 {
-  std::array<std::pair<std::shared_ptr<const Node>, Meta>, K> children;
-  std::stack<std::pair<std::shared_ptr<const Node>, Meta>>    q;
+  std::array<std::pair<std::shared_ptr<const Node>, NodeKey>, K> children;
+  std::stack<std::pair<std::shared_ptr<const Node>, NodeKey>>    q;
 
-  q.emplace(this->shared_from_this(), a_metaUpdater(*this));
+  q.emplace(this->shared_from_this(), a_nodeKeyFactory(*this));
 
   while (!(q.empty())) {
-    const auto& node = q.top().first;
-    const auto& meta = q.top().second;
+    const auto& node    = q.top().first;
+    const auto& nodeKey = q.top().second;
 
     q.pop();
 
-    if (a_visiter(*node, meta)) {
+    if (a_prunePredicate(*node, nodeKey)) {
       if (node->isLeaf()) {
-        a_updater(node->getPrimitives());
+        a_leafEvaluator(node->getPrimitives());
       }
       else {
         for (size_t k = 0; k < K; k++) {
           children[k].first  = node->getChildren()[k];
-          children[k].second = a_metaUpdater(*children[k].first);
+          children[k].second = a_nodeKeyFactory(*children[k].first);
         }
 
         // User-based visit pattern.
-        a_sorter(children);
+        a_childOrderer(children);
 
         for (const auto& child : children) {
           q.push(child);
@@ -518,40 +518,40 @@ PackedBVH<T, P, K>::computeBoundingVolume() const noexcept
 }
 
 template <class T, class P, size_t K>
-template <class Meta>
+template <class NodeKey>
 inline void
-PackedBVH<T, P, K>::traverse(const BVH::PackedUpdater<P>&        a_updater,
-                             const BVH::Visiter<Node, Meta>&     a_visiter,
-                             const BVH::PackedSorter<Meta, K>&   a_sorter,
-                             const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept
+PackedBVH<T, P, K>::traverse(const BVH::PackedLeafEvaluator<P>&         a_leafEvaluator,
+                             const BVH::PrunePredicate<Node, NodeKey>&  a_prunePredicate,
+                             const BVH::PackedChildOrderer<NodeKey, K>& a_childOrderer,
+                             const BVH::NodeKeyFactory<Node, NodeKey>&  a_nodeKeyFactory) const noexcept
 {
-  std::array<std::pair<uint32_t, Meta>, K> children;
+  std::array<std::pair<uint32_t, NodeKey>, K> children;
 
   // Vector-backed stack avoids deque chunk allocations; reserve avoids reallocs.
-  std::vector<std::pair<uint32_t, Meta>> q;
+  std::vector<std::pair<uint32_t, NodeKey>> q;
 
   q.reserve(64);
-  q.emplace_back(static_cast<uint32_t>(0), a_metaUpdater(m_linearNodes[0]));
+  q.emplace_back(static_cast<uint32_t>(0), a_nodeKeyFactory(m_linearNodes[0]));
 
   while (!q.empty()) {
     const uint32_t nodeIdx = q.back().first;
-    const Meta     meta    = q.back().second;
+    const NodeKey  nodeKey = q.back().second;
     q.pop_back();
 
     const Node& node = m_linearNodes[nodeIdx];
 
-    if (a_visiter(node, meta)) {
+    if (a_prunePredicate(node, nodeKey)) {
       if (node.isLeaf()) {
-        a_updater(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
+        a_leafEvaluator(m_primitives, node.getPrimitivesOffset(), node.getNumPrimitives());
       }
       else {
         for (size_t k = 0; k < K; k++) {
           const uint32_t childIdx = node.getChildOffsets()[k];
           children[k].first       = childIdx;
-          children[k].second      = a_metaUpdater(m_linearNodes[childIdx]);
+          children[k].second      = a_nodeKeyFactory(m_linearNodes[childIdx]);
         }
 
-        a_sorter(children);
+        a_childOrderer(children);
 
         for (const auto& child : children) {
           q.push_back(child);
@@ -1045,27 +1045,27 @@ PackedBVH<T, P, K>::pruneTraverse(const Vec3T<T>&    a_point,
 #endif
 
   // Scalar fallback for all other (T, K) combinations.
-  const BVH::PackedUpdater<P> updater = [&a_state, &a_evalLeaf](const std::vector<std::shared_ptr<const P>>&,
-                                                                size_t offset,
-                                                                size_t count) noexcept -> void {
-    a_evalLeaf(a_state, offset, count);
-  };
+  const BVH::PackedLeafEvaluator<P> leafEvaluator =
+    [&a_state, &a_evalLeaf](const std::vector<std::shared_ptr<const P>>&,
+                            size_t offset,
+                            size_t count) noexcept -> void { a_evalLeaf(a_state, offset, count); };
 
-  const BVH::Visiter<Node, T> visiter = [&a_state, &a_pruneDist2](const Node& /*n*/, const T& d) noexcept -> bool {
+  const BVH::PrunePredicate<Node, T> prunePredicate = [&a_state, &a_pruneDist2](const Node& /*n*/,
+                                                                                const T& d) noexcept -> bool {
     return d * d <= a_pruneDist2(a_state);
   };
 
-  const BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& ch) noexcept -> void {
+  const BVH::PackedChildOrderer<T, K> childOrderer = [](std::array<std::pair<uint32_t, T>, K>& ch) noexcept -> void {
     std::sort(ch.begin(), ch.end(), [](const std::pair<uint32_t, T>& a, const std::pair<uint32_t, T>& b) noexcept {
       return a.second > b.second;
     });
   };
 
-  const BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& n) noexcept -> T {
+  const BVH::NodeKeyFactory<Node, T> nodeKeyFactory = [&a_point](const Node& n) noexcept -> T {
     return n.getDistanceToBoundingVolume(a_point);
   };
 
-  this->traverse(updater, visiter, sorter, metaUpdater);
+  this->traverse(leafEvaluator, prunePredicate, childOrderer, nodeKeyFactory);
 }
 
 } // namespace BVH
