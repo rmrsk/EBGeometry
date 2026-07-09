@@ -519,3 +519,95 @@ TEMPLATE_TEST_CASE("TreeBVH::bottomUpSortAndPartition handles primitive sets who
     buildAndCheck(positions);
   }
 }
+
+TEMPLATE_TEST_CASE("PackedBVH: BVH::ValueStorage and the default BVH::SharedPtrStorage agree exactly",
+                   "[BVH][StoragePolicy]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  std::vector<Vec3> positions;
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      for (int k = 0; k < 5; k++) {
+        positions.emplace_back(T(i) + T(0.3) * T(j), T(j) - T(0.2) * T(k), T(k) + T(0.1) * T(i));
+      }
+    }
+  }
+
+  BVH::PrimAndBVList<Pnt, AABB> primsAndBVs;
+  for (const auto& pos : positions) {
+    primsAndBVs.emplace_back(std::make_shared<Pnt>(Pnt{pos}), AABB(pos, pos));
+  }
+
+  auto tree = std::make_shared<BVH::TreeBVH<T, Pnt, AABB, K>>(primsAndBVs);
+  tree->topDownSortAndPartition();
+
+  const auto sharedPacked = tree->pack();
+  const auto valuePacked  = tree->template pack<BVH::ValueStorage<Pnt>>();
+
+  REQUIRE(sharedPacked != nullptr);
+  REQUIRE(valuePacked != nullptr);
+  REQUIRE(sharedPacked->getPrimitives().size() == positions.size());
+  REQUIRE(valuePacked->getPrimitives().size() == positions.size());
+
+  const auto& sharedPrims = sharedPacked->getPrimitives();
+  const auto& valuePrims  = valuePacked->getPrimitives();
+
+  // Both policies were built from the same TreeBVH, so a leaf's primitives must land in the same
+  // order regardless of how they are stored -- not just agree as sets.
+  for (size_t i = 0; i < positions.size(); i++) {
+    REQUIRE(sharedPrims[i]->m_pos == valuePrims[i].m_pos);
+  }
+
+  const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+  for (const auto& q : queryPoints<T>()) {
+    T sharedState = std::numeric_limits<T>::max();
+    T valueState  = std::numeric_limits<T>::max();
+
+    const auto sharedEval = [&sharedPrims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        const T d2 = (sharedPrims[a_offset + i]->m_pos - q).length2();
+        if (d2 < a_state) {
+          a_state = d2;
+        }
+      }
+    };
+    const auto valueEval = [&valuePrims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        const T d2 = (valuePrims[a_offset + i].m_pos - q).length2();
+        if (d2 < a_state) {
+          a_state = d2;
+        }
+      }
+    };
+
+    sharedPacked->pruneTraverse(q, sharedState, sharedEval, pruneDist2);
+    valuePacked->pruneTraverse(q, valueState, valueEval, pruneDist2);
+
+    REQUIRE(sharedState == valueState);
+  }
+}
+
+TEMPLATE_TEST_CASE("PackedBVH: BVH::ValueStorage stores primitives inline with no pointer indirection",
+                   "[BVH][StoragePolicy]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T   = TestType;
+  using Pnt = BareTestPoint<T>;
+
+  // BVH::ValueStorage<P>::StorageType is P itself -- packing must not add any indirection.
+  static_assert(std::is_same_v<typename BVH::ValueStorage<Pnt>::StorageType, Pnt>);
+  static_assert(sizeof(typename BVH::ValueStorage<Pnt>::StorageType) == sizeof(Pnt));
+
+  // BVH::SharedPtrStorage<P>::StorageType is a shared_ptr<const P>, matching pre-StoragePolicy
+  // behavior -- this is the "no behavior change for existing callers" guarantee made concrete.
+  static_assert(std::is_same_v<typename BVH::SharedPtrStorage<Pnt>::StorageType, std::shared_ptr<const Pnt>>);
+  static_assert(sizeof(typename BVH::SharedPtrStorage<Pnt>::StorageType) == sizeof(std::shared_ptr<const Pnt>));
+}

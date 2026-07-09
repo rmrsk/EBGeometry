@@ -14,8 +14,8 @@ There are two representations of a BVH:
 *  ``BVH::TreeBVH<T, P, BV, K>``, a pointer-based tree used while *building* and
    *partitioning* the hierarchy. See `the doxygen page for TreeBVH
    <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__.
-*  ``BVH::PackedBVH<T, P, K>``, where the nodes are stored in depth-first order in a
-   flat array and contain index offsets to children and primitives rather than pointers. This is
+*  ``BVH::PackedBVH<T, P, K, StoragePolicy>``, where the nodes are stored in depth-first order in
+   a flat array and contain index offsets to children and primitives rather than pointers. This is
    the representation used for fast queries, see :ref:`Chap:PackedBVH`. See `the doxygen page
    for PackedBVH <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
 
@@ -132,9 +132,10 @@ The ``PackedBVH`` can be automatically constructed from a ``TreeBVH`` but not vi
    Each interior node stores index offsets to its children and primitives.
 
 The rationale for the ``PackedBVH`` is its tighter memory footprint and depth-first ordering, which allows more efficient traversal, particularly when primitives are sorted in the same order.
-``PackedBVH<T, P, K>`` is templated on the same ``T``, ``P``, ``K`` as ``TreeBVH`` (its bounding
-volume is always ``AABBT<T>``), and internally stores two things: a flat, depth-first array of
-nodes, and a global primitive array holding every primitive in leaf order.
+``PackedBVH<T, P, K, StoragePolicy>`` is templated on the same ``T``, ``P``, ``K`` as ``TreeBVH``
+(its bounding volume is always ``AABBT<T>``), plus a fourth ``StoragePolicy`` parameter described
+below, and internally stores two things: a flat, depth-first array of nodes, and a global
+primitive array holding every primitive in leaf order.
 
 Each entry of the node array plays the same role a ``TreeBVH`` node plays, but stores offsets
 into the flat arrays rather than pointers to children: a bounding volume for the node's subtree,
@@ -159,6 +160,34 @@ via one of two ``TreeBVH`` member functions:
 
 See `the doxygen page for TreeBVH <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__ for
 the exact signatures of ``pack()`` and ``packWith()``.
+
+Storage policy
+______________
+
+``pack()``/``packWith()`` both take an optional ``StoragePolicy`` template argument controlling
+*how* the resulting ``PackedBVH``'s global primitive array stores each primitive. A storage
+policy is a stateless struct exposing a ``StorageType`` type alias plus the static methods
+``get()``, ``appendTreeLeaf()``, and ``appendAliased()`` that ``PackedBVH`` calls internally when
+packing and querying; see `the BVH namespace's doxygen page
+<doxygen/html/namespaceEBGeometry_1_1BVH.html>`__ for the exact member list each one must provide.
+Two are provided out of the box:
+
+*  ``BVH::SharedPtrStorage<P>`` (the default for both ``pack()`` and ``packWith()``) stores each
+   primitive as a ``std::shared_ptr<const P>``, matching the pre-existing behavior of every
+   caller that does not name a ``StoragePolicy`` explicitly. Primitives are shared with whatever
+   else still holds a pointer to them (e.g. a ``DCEL::FaceT`` referenced by a ``TreeBVH``), at the
+   cost of one pointer indirection per access during traversal.
+*  ``BVH::ValueStorage<P>`` stores each primitive inline, by value: ``StorageType`` is ``P``
+   itself, with no indirection at all. This trades away sharing (the ``PackedBVH`` now owns an
+   independent copy of every primitive) for a smaller, more cache-friendly primitive array — most
+   useful when ``P`` is a small, cheaply-copyable value type (e.g. a point or particle) rather
+   than something large or already reference-counted elsewhere.
+
+Both policies are drop-in compatible with every existing ``PackedBVH`` consumer: swapping the
+policy only changes the element type of ``getPrimitives()`` and the leaf-primitive vector handed
+to ``LeafEvaluator``/``PackedLeafEvaluator`` callbacks, never the tree structure, traversal order,
+or query results. A caller that wants ``ValueStorage`` instead of the default simply names it
+explicitly, e.g. ``tree->pack<BVH::ValueStorage<P>>()``.
 
 Tree traversal
 ---------------

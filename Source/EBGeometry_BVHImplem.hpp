@@ -351,27 +351,28 @@ TreeBVH<T, P, BV, K>::traverse(const BVH::LeafEvaluator<P>&               a_leaf
 }
 
 template <class T, class P, class BV, size_t K>
-inline std::shared_ptr<PackedBVH<T, P, K>>
+template <class StoragePolicy>
+inline std::shared_ptr<PackedBVH<T, P, K, StoragePolicy>>
 TreeBVH<T, P, BV, K>::pack() const
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "TreeBVH::pack requires BV == AABBT<T>");
 
-  return std::make_shared<PackedBVH<T, P, K>>(*this);
+  return std::make_shared<PackedBVH<T, P, K, StoragePolicy>>(*this);
 }
 
 template <class T, class P, class BV, size_t K>
-template <class Q, class Converter>
-inline std::shared_ptr<PackedBVH<T, Q, K>>
+template <class Q, class Converter, class StoragePolicy>
+inline std::shared_ptr<PackedBVH<T, Q, K, StoragePolicy>>
 TreeBVH<T, P, BV, K>::packWith(Converter&& a_converter) const
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "TreeBVH::packWith requires BV == AABBT<T>");
 
-  return std::make_shared<PackedBVH<T, Q, K>>(*this, std::forward<Converter>(a_converter));
+  return std::make_shared<PackedBVH<T, Q, K, StoragePolicy>>(*this, std::forward<Converter>(a_converter));
 }
 
-template <class T, class P, size_t K>
+template <class T, class P, size_t K, class StoragePolicy>
 inline void
-PackedBVH<T, P, K>::buildSoA()
+PackedBVH<T, P, K, StoragePolicy>::buildSoA()
 {
   m_childAabbSoA.resize(m_linearNodes.size());
 
@@ -399,8 +400,9 @@ PackedBVH<T, P, K>::buildSoA()
   }
 }
 
-template <class T, class P, size_t K>
-inline PackedBVH<T, P, K>::PackedBVH(const TreeBVH<T, P, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree)
+template <class T, class P, size_t K, class StoragePolicy>
+inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(
+  const TreeBVH<T, P, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree)
 {
   using AABBType = EBGeometry::BoundingVolumes::AABBT<T>;
 
@@ -421,7 +423,7 @@ inline PackedBVH<T, P, K>::PackedBVH(const TreeBVH<T, P, EBGeometry::BoundingVol
       m_linearNodes[idx].m_primOff  = static_cast<uint32_t>(m_primitives.size());
       m_linearNodes[idx].m_numPrims = static_cast<uint32_t>(prims.size());
 
-      m_primitives.insert(m_primitives.end(), prims.begin(), prims.end());
+      StoragePolicy::appendTreeLeaf(m_primitives, prims);
     }
     else {
       m_linearNodes[idx].m_numPrims = 0U;
@@ -440,15 +442,16 @@ inline PackedBVH<T, P, K>::PackedBVH(const TreeBVH<T, P, EBGeometry::BoundingVol
   buildSoA();
 }
 
-template <class T, class P, size_t K>
+template <class T, class P, size_t K, class StoragePolicy>
 template <class Q, class Converter>
-inline PackedBVH<T, P, K>::PackedBVH(const TreeBVH<T, Q, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree,
-                                     Converter&&                                                    a_converter)
+inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(
+  const TreeBVH<T, Q, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree, Converter&& a_converter)
 {
   using AABBType = EBGeometry::BoundingVolumes::AABBT<T>;
 
-  // Accumulate converted P-values into a single contiguous buffer; aliased
-  // shared_ptrs are created after all push_backs so no dangling pointers.
+  // Accumulate converted P-values into a single contiguous buffer; StoragePolicy::appendAliased
+  // materialises it into m_primitives once every push_back below has completed (aliased
+  // shared_ptrs, for the default SharedPtrStorage<P>, so no dangling pointers).
   auto dstStorage = std::make_shared<std::vector<P>>();
 
   std::function<uint32_t(const TreeBVH<T, Q, AABBType, K>&)> dfs =
@@ -487,43 +490,39 @@ inline PackedBVH<T, P, K>::PackedBVH(const TreeBVH<T, Q, EBGeometry::BoundingVol
 
   dfs(a_tree);
 
-  m_primitives.reserve(dstStorage->size());
-
-  for (size_t i = 0; i < dstStorage->size(); i++) {
-    m_primitives.emplace_back(dstStorage, &(*dstStorage)[i]);
-  }
+  StoragePolicy::appendAliased(m_primitives, dstStorage);
 
   this->buildSoA();
 }
 
-template <class T, class P, size_t K>
-inline const std::vector<std::shared_ptr<const P>>&
-PackedBVH<T, P, K>::getPrimitives() const noexcept
+template <class T, class P, size_t K, class StoragePolicy>
+inline const std::vector<typename PackedBVH<T, P, K, StoragePolicy>::StorageType>&
+PackedBVH<T, P, K, StoragePolicy>::getPrimitives() const noexcept
 {
   return m_primitives;
 }
 
-template <class T, class P, size_t K>
+template <class T, class P, size_t K, class StoragePolicy>
 inline const EBGeometry::BoundingVolumes::AABBT<T>&
-PackedBVH<T, P, K>::getBoundingVolume() const noexcept
+PackedBVH<T, P, K, StoragePolicy>::getBoundingVolume() const noexcept
 {
   return m_linearNodes.front().getBoundingVolume();
 }
 
-template <class T, class P, size_t K>
+template <class T, class P, size_t K, class StoragePolicy>
 inline EBGeometry::BoundingVolumes::AABBT<T>
-PackedBVH<T, P, K>::computeBoundingVolume() const noexcept
+PackedBVH<T, P, K, StoragePolicy>::computeBoundingVolume() const noexcept
 {
   return m_linearNodes.front().getBoundingVolume();
 }
 
-template <class T, class P, size_t K>
+template <class T, class P, size_t K, class StoragePolicy>
 template <class NodeKey>
 inline void
-PackedBVH<T, P, K>::traverse(const BVH::PackedLeafEvaluator<P>&         a_leafEvaluator,
-                             const BVH::PrunePredicate<Node, NodeKey>&  a_prunePredicate,
-                             const BVH::PackedChildOrderer<NodeKey, K>& a_childOrderer,
-                             const BVH::NodeKeyFactory<Node, NodeKey>&  a_nodeKeyFactory) const noexcept
+PackedBVH<T, P, K, StoragePolicy>::traverse(const BVH::PackedLeafEvaluator<P, StoragePolicy>& a_leafEvaluator,
+                                            const BVH::PrunePredicate<Node, NodeKey>&         a_prunePredicate,
+                                            const BVH::PackedChildOrderer<NodeKey, K>&        a_childOrderer,
+                                            const BVH::NodeKeyFactory<Node, NodeKey>& a_nodeKeyFactory) const noexcept
 {
   std::array<std::pair<uint32_t, NodeKey>, K> children;
 
@@ -561,13 +560,13 @@ PackedBVH<T, P, K>::traverse(const BVH::PackedLeafEvaluator<P>&         a_leafEv
   }
 }
 
-template <class T, class P, size_t K>
+template <class T, class P, size_t K, class StoragePolicy>
 template <class State, class LeafEvaluator, class PruneDistSquared>
 inline void
-PackedBVH<T, P, K>::pruneTraverse(const Vec3T<T>&    a_point,
-                                  State&             a_state,
-                                  LeafEvaluator&&    a_evalLeaf,
-                                  PruneDistSquared&& a_pruneDist2) const noexcept
+PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
+                                                 State&             a_state,
+                                                 LeafEvaluator&&    a_evalLeaf,
+                                                 PruneDistSquared&& a_pruneDist2) const noexcept
 {
   struct StackEntry
   {
@@ -1045,10 +1044,10 @@ PackedBVH<T, P, K>::pruneTraverse(const Vec3T<T>&    a_point,
 #endif
 
   // Scalar fallback for all other (T, K) combinations.
-  const BVH::PackedLeafEvaluator<P> leafEvaluator =
-    [&a_state, &a_evalLeaf](const std::vector<std::shared_ptr<const P>>&,
-                            size_t offset,
-                            size_t count) noexcept -> void { a_evalLeaf(a_state, offset, count); };
+  const BVH::PackedLeafEvaluator<P, StoragePolicy> leafEvaluator =
+    [&a_state, &a_evalLeaf](const std::vector<StorageType>&, size_t offset, size_t count) noexcept -> void {
+    a_evalLeaf(a_state, offset, count);
+  };
 
   const BVH::PrunePredicate<Node, T> prunePredicate = [&a_state, &a_pruneDist2](const Node& /*n*/,
                                                                                 const T& d) noexcept -> bool {
