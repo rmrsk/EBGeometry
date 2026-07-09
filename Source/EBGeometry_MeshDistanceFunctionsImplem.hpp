@@ -96,9 +96,9 @@ buildDCELTreeBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcel
   }
   case BVH::Build::SAH: {
     using Node     = EBGeometry::BVH::TreeBVH<T, Prim, BV, K>;
-    using StopFunc = typename Node::StopFunction;
+    using LeafPred = typename Node::LeafPredicate;
 
-    const StopFunc stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
+    const LeafPred stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
 
     bvh->topDownSortAndPartition(EBGeometry::BVH::BinnedSAHPartitioner<T, Prim, BV, K>, stopCrit);
 
@@ -164,8 +164,8 @@ buildTriTreeBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Meta>>
   switch (a_build) {
   case BVH::Build::TopDown: {
     using Node              = EBGeometry::BVH::TreeBVH<T, Prim, BV, K>;
-    using StopFunc          = typename Node::StopFunction;
-    const StopFunc stopCrit = [a_maxLeafSize](const Node& n) noexcept -> bool {
+    using LeafPred          = typename Node::LeafPredicate;
+    const LeafPred stopCrit = [a_maxLeafSize](const Node& n) noexcept -> bool {
       return n.getPrimitives().size() <= a_maxLeafSize;
     };
     bvh->topDownSortAndPartition(EBGeometry::BVH::BVCentroidPartitioner<T, Prim, BV, K>, stopCrit);
@@ -184,9 +184,9 @@ buildTriTreeBVH(const std::vector<std::shared_ptr<EBGeometry::Triangle<T, Meta>>
   }
   case BVH::Build::SAH: {
     using Node     = EBGeometry::BVH::TreeBVH<T, Prim, BV, K>;
-    using StopFunc = typename Node::StopFunction;
+    using LeafPred = typename Node::LeafPredicate;
 
-    const StopFunc stopCrit = [a_maxLeafSize](const Node& n) noexcept -> bool {
+    const LeafPred stopCrit = [a_maxLeafSize](const Node& n) noexcept -> bool {
       return n.getPrimitives().size() <= a_maxLeafSize;
     };
 
@@ -309,17 +309,17 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
   std::vector<FaceAndDist> candidateFaces;
 
   // Declaration of the BVH metadata attached to each node - this will be the distance to the node itself.
-  using BVHMeta = T;
+  using BVHNodeKey = T;
 
   // Shortest distance so far.
-  BVHMeta shortestDistanceSoFar = std::numeric_limits<T>::max();
+  BVHNodeKey shortestDistanceSoFar = std::numeric_limits<T>::max();
 
-  const EBGeometry::BVH::Visiter<Node, T> visiter = [&shortestDistanceSoFar](const Node&,
-                                                                             const BVHMeta& a_bvDist) noexcept -> bool {
+  const EBGeometry::BVH::PrunePredicate<Node, T> prunePredicate =
+    [&shortestDistanceSoFar](const Node&, const BVHNodeKey& a_bvDist) noexcept -> bool {
     return a_bvDist <= T(0.0) || a_bvDist <= shortestDistanceSoFar;
   };
 
-  const EBGeometry::BVH::PackedSorter<T, K> sorter =
+  const EBGeometry::BVH::PackedChildOrderer<T, K> childOrderer =
     [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
     std::sort(
       a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
@@ -327,11 +327,10 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
       });
   };
 
-  const EBGeometry::BVH::MetaUpdater<Node, BVHMeta> metaUpdater = [&a_point](const Node& a_node) noexcept -> BVHMeta {
-    return a_node.getDistanceToBoundingVolume(a_point);
-  };
+  const EBGeometry::BVH::NodeKeyFactory<Node, BVHNodeKey> nodeKeyFactory =
+    [&a_point](const Node& a_node) noexcept -> BVHNodeKey { return a_node.getDistanceToBoundingVolume(a_point); };
 
-  const EBGeometry::BVH::PackedUpdater<Face> updater =
+  const EBGeometry::BVH::PackedLeafEvaluator<Face> leafEvaluator =
     [&shortestDistanceSoFar, &a_point, &candidateFaces](
       const std::vector<std::shared_ptr<const Face>>& a_faces, size_t offset, size_t count) noexcept -> void {
     for (size_t i = offset; i < offset + count; i++) {
@@ -346,7 +345,7 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
     }
   };
 
-  m_bvh->traverse(updater, visiter, sorter, metaUpdater);
+  m_bvh->traverse(leafEvaluator, prunePredicate, childOrderer, nodeKeyFactory);
 
   if (a_sorted) {
     std::sort(candidateFaces.begin(), candidateFaces.end(), [](const FaceAndDist& a, const FaceAndDist& b) {

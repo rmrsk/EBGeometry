@@ -167,11 +167,13 @@ Node<Meta, Data>::buildBreadthFirst(const SplitFunction&   a_splitFunction,
 
 template <typename Meta, typename Data>
 inline void
-Node<Meta, Data>::traverse(const Updater& a_updater, const Visiter& a_visiter, const Sorter& a_sorter) const noexcept
+Node<Meta, Data>::traverse(const LeafEvaluator&  a_leafEvaluator,
+                           const PrunePredicate& a_prunePredicate,
+                           const ChildOrderer&   a_childOrderer) const noexcept
 {
-  EBGEOMETRY_EXPECT(a_updater);
-  EBGEOMETRY_EXPECT(a_visiter);
-  EBGEOMETRY_EXPECT(a_sorter);
+  EBGEOMETRY_EXPECT(a_leafEvaluator);
+  EBGEOMETRY_EXPECT(a_prunePredicate);
+  EBGEOMETRY_EXPECT(a_childOrderer);
   EBGEOMETRY_EXPECT(!this->weak_from_this().expired());
 
   std::array<std::shared_ptr<const Node<Meta, Data>>, 8> children;
@@ -186,9 +188,9 @@ Node<Meta, Data>::traverse(const Updater& a_updater, const Visiter& a_visiter, c
 
     q.pop();
 
-    if (a_visiter(curNode)) {
+    if (a_prunePredicate(curNode)) {
       if (curNode.isLeaf()) {
-        a_updater(curNode);
+        a_leafEvaluator(curNode);
       }
       else {
         for (size_t k = 0; k < 8; k++) {
@@ -197,7 +199,7 @@ Node<Meta, Data>::traverse(const Updater& a_updater, const Visiter& a_visiter, c
           EBGEOMETRY_EXPECT(children[k] != nullptr);
         }
 
-        a_sorter(children);
+        a_childOrderer(children);
 
         for (const auto& c : children) {
           q.push(c);

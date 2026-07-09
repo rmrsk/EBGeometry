@@ -76,9 +76,9 @@ buildBVH(const std::vector<std::pair<std::shared_ptr<const P>, BV>>& a_primsAndB
   }
   case BVH::Build::SAH: {
     using Node     = EBGeometry::BVH::TreeBVH<T, P, BV, K>;
-    using StopFunc = typename Node::StopFunction;
+    using LeafPred = typename Node::LeafPredicate;
 
-    const StopFunc stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
+    const LeafPred stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
 
     root->topDownSortAndPartition(EBGeometry::BVH::BinnedSAHPartitioner<T, P, BV, K>, stopCrit);
 
@@ -470,7 +470,7 @@ BVHUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 
   T minDist = std::numeric_limits<T>::infinity();
 
-  const BVH::PackedUpdater<P> updater =
+  const BVH::PackedLeafEvaluator<P> leafEvaluator =
     [&minDist, &a_point](
       const std::vector<std::shared_ptr<const P>>& a_implicitFunctions, size_t offset, size_t count) noexcept -> void {
     for (size_t i = offset; i < offset + count; i++) {
@@ -482,22 +482,23 @@ BVHUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
     }
   };
 
-  const BVH::Visiter<Node, T> visiter = [&minDist](const Node&, const T& a_bvDist) noexcept -> bool {
+  const BVH::PrunePredicate<Node, T> prunePredicate = [&minDist](const Node&, const T& a_bvDist) noexcept -> bool {
     return a_bvDist <= T(0.0) || a_bvDist <= minDist;
   };
 
-  const BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
+  const BVH::PackedChildOrderer<T, K> childOrderer =
+    [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
     std::sort(
       a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
         return n1.second > n2.second;
       });
   };
 
-  const BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
+  const BVH::NodeKeyFactory<Node, T> nodeKeyFactory = [&a_point](const Node& a_node) noexcept -> T {
     return a_node.getDistanceToBoundingVolume(a_point);
   };
 
-  m_bvh->traverse(updater, visiter, sorter, metaUpdater);
+  m_bvh->traverse(leafEvaluator, prunePredicate, childOrderer, nodeKeyFactory);
 
   return minDist;
 }
@@ -557,9 +558,9 @@ BVHSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
   T a = std::numeric_limits<T>::infinity();
   T b = std::numeric_limits<T>::infinity();
 
-  BVH::PackedUpdater<P> updater = [&a, &b, &a_point](const std::vector<std::shared_ptr<const P>>& a_implicitFunctions,
-                                                     size_t                                       offset,
-                                                     size_t count) noexcept -> void {
+  BVH::PackedLeafEvaluator<P> leafEvaluator =
+    [&a, &b, &a_point](
+      const std::vector<std::shared_ptr<const P>>& a_implicitFunctions, size_t offset, size_t count) noexcept -> void {
     for (size_t i = offset; i < offset + count; i++) {
       const T d = a_implicitFunctions[i]->value(a_point);
       EBGEOMETRY_EXPECT(!std::isnan(d));
@@ -574,22 +575,22 @@ BVHSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
     }
   };
 
-  BVH::Visiter<Node, T> visiter = [&a, &b](const Node&, const T& a_bvDist) noexcept -> bool {
+  BVH::PrunePredicate<Node, T> prunePredicate = [&a, &b](const Node&, const T& a_bvDist) noexcept -> bool {
     return a_bvDist <= T(0.0) || a_bvDist <= a || a_bvDist <= b;
   };
 
-  BVH::PackedSorter<T, K> sorter = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
+  BVH::PackedChildOrderer<T, K> childOrderer = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
     std::sort(
       a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
         return n1.second > n2.second;
       });
   };
 
-  BVH::MetaUpdater<Node, T> metaUpdater = [&a_point](const Node& a_node) noexcept -> T {
+  BVH::NodeKeyFactory<Node, T> nodeKeyFactory = [&a_point](const Node& a_node) noexcept -> T {
     return a_node.getDistanceToBoundingVolume(a_point);
   };
 
-  m_bvh->traverse(updater, visiter, sorter, metaUpdater);
+  m_bvh->traverse(leafEvaluator, prunePredicate, childOrderer, nodeKeyFactory);
 
   return m_smoothMin(a, b, m_smoothLen);
 }

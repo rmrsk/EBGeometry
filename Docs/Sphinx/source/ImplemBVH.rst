@@ -79,7 +79,7 @@ Top-down construction
 ______________________
 
 Top-down construction is done through the member function ``topDownSortAndPartition()``, which
-takes two optional arguments: a *partitioner* and a *stop function*.
+takes two optional arguments: a *partitioner* and a *leaf predicate*.
 
 The partitioner is a functor that splits a list of ``(primitive, BV)`` pairs into ``K`` new
 lists whenever a leaf is subdivided. Three ready-made partitioners are provided:
@@ -87,9 +87,9 @@ lists whenever a leaf is subdivided. Three ready-made partitioners are provided:
 default), ``PrimitiveCentroidPartitioner`` (the same idea, but splits on primitive centroids
 instead), and ``BinnedSAHPartitioner`` (a Surface-Area-Heuristic partitioner, used automatically
 when building via ``BVH::Build::SAH`` -- see below -- and typically producing the
-best-performing trees at a higher construction cost). The stop function takes a ``TreeBVH`` node
-and decides whether it should be split any further; a default is provided, but callers are free
-to supply their own of either kind.
+best-performing trees at a higher construction cost). The leaf predicate takes a ``TreeBVH`` node
+and decides whether it should become a leaf (i.e. not be split any further); a default is provided,
+but callers are free to supply their own of either kind.
 
 Bottom-up construction
 ________________________
@@ -168,51 +168,51 @@ BVH with user-specified criteria. For both BVH representations, tree traversal i
 single ``traverse()`` member function taking four caller-supplied callbacks, and uses a
 stack-based traversal pattern driven by those callbacks. The full type signatures for the four
 callback roles below are documented on `the BVH namespace's doxygen page
-<doxygen/html/namespaceEBGeometry_1_1BVH.html>`__ (look for ``Visiter``, ``Sorter``/
-``PackedSorter``, ``Updater``/``PackedUpdater``, and ``MetaUpdater``).
+<doxygen/html/namespaceEBGeometry_1_1BVH.html>`__ (look for ``PrunePredicate``, ``ChildOrderer``/
+``PackedChildOrderer``, ``LeafEvaluator``/``PackedLeafEvaluator``, and ``NodeKeyFactory``).
 
 Node visit
 __________
 
-The *visiter* callback decides, for a given node and its associated meta-data (see below),
+The *prune-predicate* callback decides, for a given node and its associated node key (see below),
 whether that node's subtree should be investigated or pruned from the traversal: it is a
-predicate taking the node and its meta-data, returning ``true`` to visit the subtree and
-``false`` to prune it. Typically, the meta-data parameter will contain the necessary information
+predicate taking the node and its node key, returning ``true`` to visit the subtree and
+``false`` to prune it. Typically, the node key will contain the necessary information
 that determines whether or not to visit the subtree.
 
-Traversal pattern
-_________________
+Child ordering
+______________
 
 If a subtree is visited in the traversal, there is a question of which of the child nodes to visit first.
-The *sorter* callback determines this order by letting the user sort the ``K`` children (each
-paired with its meta-data) in-place based on order of importance -- for ``PackedBVH`` the
+The *child-orderer* callback determines this order by letting the user sort the ``K`` children (each
+paired with its node key) in-place based on order of importance -- for ``PackedBVH`` the
 children are identified by their node index rather than a pointer, halving the per-entry stack
 size relative to ``TreeBVH``. Note that a correct visitation pattern can yield large performance
-benefits. Sorting the child nodes is completely optional; the user can leave this function empty
+benefits. Ordering the child nodes is completely optional; the user can leave this function empty
 if it does not matter which subtrees are visited first.
 
-Update rule
-___________
+Leaf evaluation
+_______________
 
 If a leaf node is visited in the traversal, distance or other types of queries to the geometric
-primitive(s) in the node are usually made. These are done by the *updater* callback. For
+primitive(s) in the node are usually made. These are done by the *leaf-evaluator* callback. For
 ``PackedBVH`` this callback receives an offset and count into the BVH's global primitive array,
 rather than a freshly-allocated sub-list, avoiding a heap allocation per leaf visit; for
-``TreeBVH`` it receives the leaf's primitive list directly. Typically, the updater will modify
+``TreeBVH`` it receives the leaf's primitive list directly. Typically, the leaf-evaluator will modify
 parameters that appear in a local scope outside of the tree traversal (e.g. updating the minimum
 distance to a DCEL mesh).
 
-Meta-data
-_________
+Node key
+________
 
-During the traversal, it might be necessary to compute meta-data that is helpful during the traversal, and this meta-data is attached to each node that is queried.
-This meta-data is usually, but not necessarily, equal to the distance to the nodes' bounding volumes.
-The *meta-updater* callback produces this meta-data for a node's children, given the node itself.
-The biggest difference between the updater and the meta-updater is that the updater is *only*
-called on leaf nodes whereas the meta-updater is also called for internal nodes. One typical
-example for DCEL meshes is that the updater computes the distance from an input point to the
-triangles in a leaf node, whereas the meta-updater computes the distance from the input point to
-the bounding volumes of a child node. This information is then used by the sorter in order to
+During the traversal, it might be necessary to compute a per-node key that is helpful during the traversal, and this key is attached to each node that is queried.
+This key is usually, but not necessarily, equal to the distance to the nodes' bounding volumes.
+The *node-key-factory* callback produces this key for a node's children, given the node itself.
+The biggest difference between the leaf-evaluator and the node-key-factory is that the leaf-evaluator is *only*
+called on leaf nodes whereas the node-key-factory is also called for internal nodes. One typical
+example for DCEL meshes is that the leaf-evaluator computes the distance from an input point to the
+triangles in a leaf node, whereas the node-key-factory computes the distance from the input point to
+the bounding volumes of a child node. This information is then used by the child-orderer in order to
 determine a preferred child visit pattern when descending along subtrees.
 
 Traversal algorithm
@@ -220,9 +220,9 @@ ___________________
 
 ``PackedBVH::traverse()`` implements this with a non-recursive, vector-backed stack rather than
 recursion. Each stack entry holds a node index together with that node's already-computed
-meta-data. The root is pushed first; then, until the stack is empty, the traversal pops an entry,
-asks the visiter whether to visit it, and if so either runs the updater (if it is a leaf) or
-computes the meta-updater for each of its ``K`` children, lets the sorter reorder them, and
+node key. The root is pushed first; then, until the stack is empty, the traversal pops an entry,
+asks the prune-predicate whether to visit it, and if so either runs the leaf-evaluator (if it is a leaf) or
+computes the node-key-factory for each of its ``K`` children, lets the child-orderer reorder them, and
 pushes them all onto the stack. For the full API, see the Doxygen reference for
 `PackedBVH <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
 
@@ -292,9 +292,9 @@ The DCEL mesh distance fields use a traversal pattern based on
 * When visiting a leaf node, check if the primitives are closer than the minimum distance computed so far.
 
 ``MeshSDF::signedDistance()`` implements these rules directly as the four traversal callbacks:
-the updater scans a leaf's faces and keeps the signed distance with the smallest magnitude seen so
-far; the visiter prunes any node whose bounding-volume distance already exceeds that magnitude;
-the sorter visits the closest child first; and the meta-updater supplies each node's distance to
+the leaf-evaluator scans a leaf's faces and keeps the signed distance with the smallest magnitude seen so
+far; the prune-predicate prunes any node whose bounding-volume distance already exceeds that magnitude;
+the child-orderer visits the closest child first; and the node-key-factory supplies each node's distance to
 its bounding volume. For the full API, see the Doxygen reference for
 `MeshSDF <doxygen/html/classEBGeometry_1_1MeshSDF.html>`__.
 
@@ -305,9 +305,9 @@ Combinations of implicit functions in EBGeometry into aggregate objects can be d
 One such union is known as the *smooth union*, in which the transition between two objects is gradual rather than abrupt.
 
 ``BVHSmoothUnionIF::value()`` traverses the tree while tracking the two smallest values seen so
-far, ``a`` and ``b`` (``a`` the closest, ``b`` the second-closest): the updater updates both as
-leaves are scanned, the visiter prunes any node whose bounding-volume distance exceeds both,
-the sorter visits the closest child first, and the meta-updater again supplies each node's
+far, ``a`` and ``b`` (``a`` the closest, ``b`` the second-closest): the leaf-evaluator updates both as
+leaves are scanned, the prune-predicate prunes any node whose bounding-volume distance exceeds both,
+the child-orderer visits the closest child first, and the node-key-factory again supplies each node's
 distance to its bounding volume. Once traversal completes, the two values are blended with the
 stored smooth-minimum operator. See :ref:`Chap:ImplemCSG` for the CSG combinators themselves, and
 the Doxygen reference for

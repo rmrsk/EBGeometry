@@ -71,22 +71,6 @@ traversalMargin()
   return std::is_same_v<T, float> ? 1.0e-2 : 1.0e-6;
 }
 
-// Bare point primitive (unsigned Euclidean distance stands in for "signedDistance" -- sign is
-// irrelevant for this test, only magnitude agreement with brute force is checked) used below to
-// exercise bottomUpSortAndPartition() on primitive sets whose centroids are degenerate along one
-// or more axes.
-template <class T>
-struct DistPoint
-{
-  Vec3T<T> m_pos;
-
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept
-  {
-    return (m_pos - a_point).length();
-  }
-};
-
 } // namespace
 
 TEMPLATE_TEST_CASE("Dodecahedron: all four file formats parse into an identical, watertight DCEL mesh",
@@ -186,8 +170,8 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
 
   buildAndCheck("TopDown (BinnedSAHPartitioner)", [](auto& a_tree) {
     using Node              = BVH::TreeBVH<T, Face, AABB, K>;
-    using StopFunc          = typename Node::StopFunction;
-    const StopFunc stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
+    using LeafPred          = typename Node::LeafPredicate;
+    const LeafPred stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
 
     a_tree.topDownSortAndPartition(BVH::BinnedSAHPartitioner<T, Face, AABB, K>, stopCrit);
   });
@@ -276,7 +260,9 @@ namespace {
 // Bare point primitive with no signedDistance() (or any other) member at all -- used below to
 // prove that PackedBVH::pruneTraverse() imposes no interface requirement on its primitive type,
 // unlike a caller-built signed-distance wrapper (e.g. MeshSDF/TriMeshSDF::signedDistance()),
-// which requires P::signedDistance(Vec3T<T>).
+// which requires P::signedDistance(Vec3T<T>). Also reused by the degenerate-axis
+// bottomUpSortAndPartition test further below, whose nearest-neighbor query likewise goes
+// through pruneTraverse().
 template <class T>
 struct BareTestPoint
 {
@@ -448,7 +434,7 @@ TEMPLATE_TEST_CASE("TreeBVH::bottomUpSortAndPartition handles primitive sets who
   using T    = TestType;
   using AABB = BoundingVolumes::AABBT<T>;
   using Vec3 = Vec3T<T>;
-  using Pnt  = DistPoint<T>;
+  using Pnt  = BareTestPoint<T>;
 
   constexpr size_t K = 4;
 
@@ -478,13 +464,31 @@ TEMPLATE_TEST_CASE("TreeBVH::bottomUpSortAndPartition handles primitive sets who
       REQUIRE(packed != nullptr);
       REQUIRE(packed->getPrimitives().size() == a_positions.size());
 
+      const auto& prims = packed->getPrimitives();
+
+      // PackedBVH has no signedDistance() of its own -- do the nearest-neighbor search via
+      // pruneTraverse(), whose State here is the running *squared* distance to the point cloud.
+      const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
       for (const auto& q : queryPoints<T>()) {
-        T brute = std::numeric_limits<T>::max();
+        T          state    = std::numeric_limits<T>::max();
+        const auto evalLeaf = [&prims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+          for (size_t i = 0; i < a_count; i++) {
+            const T d2 = (prims[a_offset + i]->m_pos - q).length2();
+            if (d2 < a_state) {
+              a_state = d2;
+            }
+          }
+        };
+
+        packed->pruneTraverse(q, state, evalLeaf, pruneDist2);
+
+        T bruteMin2 = std::numeric_limits<T>::max();
         for (const auto& pos : a_positions) {
-          brute = std::min(brute, (pos - q).length());
+          bruteMin2 = std::min(bruteMin2, (pos - q).length2());
         }
 
-        REQUIRE_THAT(packed->signedDistance(q), withinAbsT(brute, traversalMargin<T>()));
+        REQUIRE_THAT(state, withinAbsT(bruteMin2, traversalMargin<T>()));
       }
     }
   };

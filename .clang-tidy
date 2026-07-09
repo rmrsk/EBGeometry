@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Curated static-analysis set for EBGeometry (a header-only, template-heavy library).
-# Disabled checks are either intentional design here (decl/impl include cycle), unsafe in
-# headers (anonymous namespace / internal linkage), or pure style noise (use-auto, enum-size).
+# Disabled checks are either intentional design here (decl/impl include cycle; hand-written
+# x86 SIMD intrinsics guarded by ISA macros, which simd-intrinsics wants replaced by a portable
+# wrapper), unsafe in headers (anonymous namespace / internal linkage), or pure style noise
+# (use-auto, enum-size).
 ---
 Checks: >
   bugprone-*,
@@ -25,7 +27,8 @@ Checks: >
   -modernize-avoid-c-arrays,
   -modernize-use-auto,
   -modernize-concat-nested-namespaces,
-  -performance-enum-size
+  -performance-enum-size,
+  -portability-simd-intrinsics
 
 WarningsAsErrors: ''
 HeaderFilterRegex: 'EBGeometry_[A-Za-z0-9_]*\.hpp'
