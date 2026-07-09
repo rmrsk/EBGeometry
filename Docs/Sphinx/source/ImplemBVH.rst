@@ -213,6 +213,38 @@ storage-sharing question above:
 Both classes' destructors are non-virtual: neither is intended to be subclassed or used
 polymorphically.
 
+When ``ValueStorage`` is the wrong choice
+_________________________________________
+
+There are two situations where ``ValueStorage`` should not be used and ``SharedPtrStorage`` (the
+default) must be kept:
+
+*  **Polymorphic primitives.** ``ValueStorage<P>`` stores ``P`` by value, so it requires ``P`` to
+   be a concrete, copyable value type. If ``P`` is an abstract base (or you rely on virtual
+   dispatch through a base pointer), value storage either fails to compile or slices the object to
+   its static type. This is exactly the situation of the BVH-accelerated CSG unions
+   (:ref:`Chap:ImplemCSG`), whose primitive is ``ImplicitFunction<T>`` and whose leaf evaluator
+   calls a virtual ``value()`` through a ``std::shared_ptr<const ImplicitFunction<T>>``; those
+   classes therefore always use ``SharedPtrStorage`` and do not expose the policy. Use
+   ``ValueStorage`` only when ``P`` is a self-contained value type (a point, a particle, an SoA
+   triangle group), never for a polymorphic hierarchy.
+*  **Nesting a BVH inside a BVH.** A ``PackedBVH`` whose primitive is itself another
+   ``PackedBVH`` (or a mesh SDF that owns one) is a supported construction, and nothing stops it
+   recursing further — ``PackedBVH`` of ``PackedBVH`` of ``PackedBVH``, to any depth. At every
+   level the *outer* ``PackedBVH`` should stay on ``SharedPtrStorage`` so it shares each inner BVH
+   by pointer. Naming ``ValueStorage`` on an outer level instead copies every inner ``PackedBVH``
+   wholesale — its node, SoA, and primitive arrays — into the outer array: packing draws each
+   primitive from the source tree as a ``std::shared_ptr<const P>``, so each inner BVH is *copied*
+   (not moved) into place, even though ``PackedBVH`` is otherwise fully movable (see *Copy and move
+   semantics* above). The cost of that copy is proportional to the *entire* memory footprint
+   reachable below the primitive, so it becomes exceedingly expensive whenever an inner BVH is
+   large, and compounds with nesting depth: each by-value level duplicates everything beneath it,
+   which may itself be duplicating everything beneath *it*. ``SharedPtrStorage`` at every outer
+   level avoids this for no loss of correctness. The common realisation of nesting — a
+   ``BVHUnion`` over several mesh SDFs, each holding its own inner ``PackedBVH`` — is exactly the
+   polymorphic-primitive case above, so it already sits on ``SharedPtrStorage`` at the outer level
+   and shares each mesh SDF by pointer.
+
 Tree traversal
 ---------------
 

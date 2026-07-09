@@ -31,6 +31,7 @@ endfunction()
 
 ebgeometry_add_example(CSGUnion)
 ebgeometry_add_example(MeshSDF)
+ebgeometry_add_example(NestedBVH)
 ebgeometry_add_example(OctreeBoundingVolume)
 ebgeometry_add_example(PackedSpheres)
 ebgeometry_add_example(RandomCity)

@@ -1,0 +1,101 @@
+// SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include <EBGeometry.hpp>
+
+// Floating-point precision. Overridable from CMake (-DEBGEOMETRY_PRECISION=float).
+#ifndef EBGEOMETRY_PRECISION
+#define EBGEOMETRY_PRECISION double
+#endif
+
+using namespace EBGeometry;
+
+// BVH branching factor, used at both levels of the hierarchy.
+constexpr size_t K = 4;
+
+// SoA triangle-group width for each inner mesh BVH.
+constexpr size_t W = 4;
+
+using T       = EBGEOMETRY_PRECISION;
+using Meta    = short;
+using Vec3    = EBGeometry::Vec3T<T>;
+using BV      = EBGeometry::BoundingVolumes::AABBT<T>;
+using IF      = EBGeometry::ImplicitFunction<T>;
+using TriMesh = EBGeometry::TriMeshSDF<T, Meta, K, W>;
+
+int
+main(int argc, char* argv[])
+{
+  // This example builds a *nested* bounding volume hierarchy: an outer BVH-accelerated CSG union
+  // (BVHUnionIF) whose primitives are themselves BVH-backed mesh signed distance functions
+  // (TriMeshSDF). Each TriMeshSDF owns an inner PackedBVH over its SoA triangle groups, so a single
+  // distance query descends the outer union BVH to locate the nearby mesh(es), then descends each of
+  // those meshes' own inner BVH -- two levels of BVH traversal for one query.
+  //
+  // The outer union stores its primitives as std::shared_ptr<const ImplicitFunction<T>> (the default
+  // SharedPtrStorage): it shares each mesh SDF by pointer rather than copying it. This is the
+  // recommended way to nest BVHs -- and nesting can recurse to any depth (a BVH of BVHs of BVHs...).
+  // See the "Storage policy" section of the BVH implementation docs (Docs/Sphinx/source/ImplemBVH.rst)
+  // for why the outer level must not use ValueStorage here: ImplicitFunction<T> is polymorphic so it
+  // cannot be stored by value at all, and even for a concrete primitive by-value storage copies each
+  // inner BVH's entire memory footprint, which becomes exceedingly expensive for large inner BVHs and
+  // compounds with nesting depth.
+
+  // Mesh to place several copies of. Pass a path on the command line, or fall back to the
+  // dodecahedron fixture shipped in the repository (Tests/data), so this example needs no
+  // submodule. The path is relative to this example's own folder, which is the working directory
+  // when the example is run.
+  std::string file = "../../Tests/data/dodecahedron.stl";
+  if (argc >= 2) {
+    file = std::string(argv[1]);
+  }
+  else {
+    std::cout << "No mesh file given; defaulting to the in-repo dodecahedron.stl fixture.\n"
+              << "Usage: ./NestedBVH.ex <mesh-file>  (STL/PLY/VTK/OBJ, triangles only)\n";
+  }
+
+  // Read the triangle mesh once into a DCEL representation.
+  const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(file);
+
+  // Place several translated copies of the mesh. Each copy is an independent TriMeshSDF (its own
+  // inner PackedBVH), translated into position and exposed through the common base type. Its
+  // bounding volume for the outer union is the mesh's own AABB shifted by the same offset.
+  const std::vector<Vec3> shifts = {
+    Vec3(0, 0, 0),
+    Vec3(4, 0, 0),
+    Vec3(0, 4, 0),
+    Vec3(4, 4, 0),
+    Vec3(2, 2, 4),
+  };
+
+  std::vector<std::shared_ptr<IF>> primitives;
+  std::vector<BV>                  boundingVolumes;
+  primitives.reserve(shifts.size());
+  boundingVolumes.reserve(shifts.size());
+
+  for (const Vec3& shift : shifts) {
+    const auto tri = std::make_shared<TriMesh>(mesh, BVH::Build::SAH, 2);
+    const BV   bv  = tri->computeBoundingVolume();
+
+    primitives.emplace_back(EBGeometry::Translate<T>(tri, shift));
+    boundingVolumes.emplace_back(bv.getLowCorner() + shift, bv.getHighCorner() + shift);
+  }
+
+  // Outer BVH: a BVH-accelerated union over the mesh SDFs. This is the nested (two-level) BVH.
+  const auto nestedUnion = EBGeometry::BVHUnion<T, IF, BV, K>(primitives, boundingVolumes);
+
+  std::cout << "Built a BVH union over " << primitives.size() << " BVH-backed mesh SDFs (a nested, two-level BVH).\n";
+
+  // Evaluate at a few points: on the first copy, between copies, and far outside everything.
+  for (const Vec3& p : {Vec3(0, 0, 0), Vec3(2, 2, 0), Vec3(20, 20, 20)}) {
+    std::cout << "value(" << p << ") = " << nestedUnion->value(p) << "\n";
+  }
+
+  return 0;
+}

@@ -114,6 +114,7 @@ Examples
    ExampleShapes.rst
    ExampleMeshSDF.rst
    ExampleCSGUnion.rst
+   ExampleNestedBVH.rst
    ExamplePackedSpheres.rst
    ExampleRandomCity.rst
    ExampleOctreeBoundingVolume.rst

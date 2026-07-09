@@ -794,3 +794,67 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: move constructor/assignment 
   static_assert(std::is_move_constructible_v<TriMeshSDF<T, Meta, K, W>>);
   static_assert(std::is_move_assignable_v<TriMeshSDF<T, Meta, K, W>>);
 }
+
+TEMPLATE_TEST_CASE("Nested BVH: a BVHUnion over several TriMeshSDF objects nests each mesh's inner "
+                   "PackedBVH inside the outer union PackedBVH and matches a brute-force min",
+                   "[BVH][CSG][BVHUnion][Nested]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using BV   = BoundingVolumes::AABBT<T>;
+  using IF   = ImplicitFunction<T>;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // Two distinct triangle meshes read from the in-repo fixtures. Each TriMeshSDF owns an inner
+  // PackedBVH over SoA triangle groups (ValueStorage by default) -- these are the inner BVHs that
+  // the outer union BVH nests over.
+  const auto dodec = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
+  const auto tetra = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron.stl"));
+  REQUIRE(dodec != nullptr);
+  REQUIRE(tetra != nullptr);
+
+  // Spread several translated mesh SDFs out so the outer union BVH has real structure to partition
+  // and prune, rather than collapsing to a single leaf.
+  const std::vector<std::pair<std::shared_ptr<DCEL::MeshT<T, Meta>>, Vec3>> placements = {
+    {dodec, Vec3(0, 0, 0)},
+    {dodec, Vec3(4, 0, 0)},
+    {tetra, Vec3(0, 4, 0)},
+    {tetra, Vec3(-4, -4, 2)},
+  };
+
+  std::vector<std::shared_ptr<IF>> primitives;
+  std::vector<BV>                  boundingVolumes;
+  primitives.reserve(placements.size());
+  boundingVolumes.reserve(placements.size());
+
+  for (const auto& [mesh, shift] : placements) {
+    // Inner BVH: a TriMeshSDF holds its own PackedBVH over the mesh's SoA triangle groups.
+    const auto tri = std::make_shared<TriMeshSDF<T, Meta, K, W>>(mesh, BVH::Build::SAH, 2);
+    const BV   bv  = tri->computeBoundingVolume();
+
+    // Store each mesh SDF as the common base type, translated into place. Its bounding volume for
+    // the outer union is the mesh's own AABB shifted by the same amount.
+    primitives.emplace_back(Translate<T>(tri, shift));
+    boundingVolumes.emplace_back(bv.getLowCorner() + shift, bv.getHighCorner() + shift);
+  }
+
+  // Outer BVH: a PackedBVH over std::shared_ptr<const ImplicitFunction<T>>, each element pointing
+  // at a TriMeshSDF that owns an inner PackedBVH -- a genuine two-level BVH hierarchy.
+  const auto nestedUnion = BVHUnion<T, IF, BV, K>(primitives, boundingVolumes);
+  REQUIRE(nestedUnion != nullptr);
+
+  // The union value is the minimum over all primitives; BVH pruning can never discard the actual
+  // nearest one, so the nested traversal must agree exactly with a brute-force min over the same
+  // translated primitives.
+  for (const auto& p : queryPoints<T>()) {
+    T bruteMin = std::numeric_limits<T>::infinity();
+    for (const auto& prim : primitives) {
+      bruteMin = std::min(bruteMin, prim->value(p));
+    }
+
+    REQUIRE_THAT(nestedUnion->value(p), withinAbsT(bruteMin, traversalMargin<T>()));
+  }
+}
