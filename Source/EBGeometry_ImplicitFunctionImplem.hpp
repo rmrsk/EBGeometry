@@ -150,7 +150,7 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
 
     // Traverse the octree and collect the vertex coordinates of each node that contains an
     // intersection.
-    auto updater = [&vertices](const Node& a_node) -> void {
+    auto leafEvaluator = [&vertices](const Node& a_node) -> void {
       if (std::get<3>(a_node.getMetaData())) {
         const Vec3 lo = std::get<0>(a_node.getMetaData());
         const Vec3 hi = std::get<1>(a_node.getMetaData());
@@ -166,13 +166,13 @@ ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initia
       }
     };
 
-    auto visiter = [](const Node& a_node) -> bool {
+    auto prunePredicate = [](const Node& a_node) -> bool {
       const MetaData& meta = a_node.getMetaData();
 
       return std::get<3>(meta);
     };
 
-    root->traverse(updater, visiter);
+    root->traverse(leafEvaluator, prunePredicate);
   }
 
   return BV(vertices);

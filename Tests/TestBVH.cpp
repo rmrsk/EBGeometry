@@ -71,16 +71,6 @@ traversalMargin()
   return std::is_same_v<T, float> ? 1.0e-2 : 1.0e-6;
 }
 
-// Bare point primitive -- just a position, with no signedDistance() (or any other) member. Used
-// below to exercise bottomUpSortAndPartition() on primitive sets whose centroids are degenerate
-// along one or more axes; the nearest-neighbor query is done via pruneTraverse(), which imposes
-// no interface requirement on the primitive type.
-template <class T>
-struct DistPoint
-{
-  Vec3T<T> m_pos;
-};
-
 } // namespace
 
 TEMPLATE_TEST_CASE("Dodecahedron: all four file formats parse into an identical, watertight DCEL mesh",
@@ -270,7 +260,9 @@ namespace {
 // Bare point primitive with no signedDistance() (or any other) member at all -- used below to
 // prove that PackedBVH::pruneTraverse() imposes no interface requirement on its primitive type,
 // unlike a caller-built signed-distance wrapper (e.g. MeshSDF/TriMeshSDF::signedDistance()),
-// which requires P::signedDistance(Vec3T<T>).
+// which requires P::signedDistance(Vec3T<T>). Also reused by the degenerate-axis
+// bottomUpSortAndPartition test further below, whose nearest-neighbor query likewise goes
+// through pruneTraverse().
 template <class T>
 struct BareTestPoint
 {
@@ -442,7 +434,7 @@ TEMPLATE_TEST_CASE("TreeBVH::bottomUpSortAndPartition handles primitive sets who
   using T    = TestType;
   using AABB = BoundingVolumes::AABBT<T>;
   using Vec3 = Vec3T<T>;
-  using Pnt  = DistPoint<T>;
+  using Pnt  = BareTestPoint<T>;
 
   constexpr size_t K = 4;
 

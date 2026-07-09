@@ -46,10 +46,10 @@ countLeaves(const std::shared_ptr<LevelNode>& a_root)
 {
   size_t count = 0;
 
-  const LevelNode::LeafEvaluator  countingUpdater = [&count](const LevelNode&) -> void { count++; };
-  const LevelNode::PrunePredicate visitAll        = [](const LevelNode&) -> bool { return true; };
+  const LevelNode::LeafEvaluator  countingEvaluator = [&count](const LevelNode&) -> void { count++; };
+  const LevelNode::PrunePredicate visitAll          = [](const LevelNode&) -> bool { return true; };
 
-  a_root->traverse(countingUpdater, visitAll);
+  a_root->traverse(countingEvaluator, visitAll);
 
   return count;
 }

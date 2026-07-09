@@ -79,7 +79,7 @@ Top-down construction
 ______________________
 
 Top-down construction is done through the member function ``topDownSortAndPartition()``, which
-takes two optional arguments: a *partitioner* and a *stop function*.
+takes two optional arguments: a *partitioner* and a *leaf predicate*.
 
 The partitioner is a functor that splits a list of ``(primitive, BV)`` pairs into ``K`` new
 lists whenever a leaf is subdivided. Three ready-made partitioners are provided:
@@ -87,9 +87,9 @@ lists whenever a leaf is subdivided. Three ready-made partitioners are provided:
 default), ``PrimitiveCentroidPartitioner`` (the same idea, but splits on primitive centroids
 instead), and ``BinnedSAHPartitioner`` (a Surface-Area-Heuristic partitioner, used automatically
 when building via ``BVH::Build::SAH`` -- see below -- and typically producing the
-best-performing trees at a higher construction cost). The stop function takes a ``TreeBVH`` node
-and decides whether it should be split any further; a default is provided, but callers are free
-to supply their own of either kind.
+best-performing trees at a higher construction cost). The leaf predicate takes a ``TreeBVH`` node
+and decides whether it should become a leaf (i.e. not be split any further); a default is provided,
+but callers are free to supply their own of either kind.
 
 Bottom-up construction
 ________________________
@@ -292,9 +292,9 @@ The DCEL mesh distance fields use a traversal pattern based on
 * When visiting a leaf node, check if the primitives are closer than the minimum distance computed so far.
 
 ``MeshSDF::signedDistance()`` implements these rules directly as the four traversal callbacks:
-the updater scans a leaf's faces and keeps the signed distance with the smallest magnitude seen so
-far; the visiter prunes any node whose bounding-volume distance already exceeds that magnitude;
-the sorter visits the closest child first; and the meta-updater supplies each node's distance to
+the leaf-evaluator scans a leaf's faces and keeps the signed distance with the smallest magnitude seen so
+far; the prune-predicate prunes any node whose bounding-volume distance already exceeds that magnitude;
+the child-orderer visits the closest child first; and the node-key-factory supplies each node's distance to
 its bounding volume. For the full API, see the Doxygen reference for
 `MeshSDF <doxygen/html/classEBGeometry_1_1MeshSDF.html>`__.
 
@@ -305,9 +305,9 @@ Combinations of implicit functions in EBGeometry into aggregate objects can be d
 One such union is known as the *smooth union*, in which the transition between two objects is gradual rather than abrupt.
 
 ``BVHSmoothUnionIF::value()`` traverses the tree while tracking the two smallest values seen so
-far, ``a`` and ``b`` (``a`` the closest, ``b`` the second-closest): the updater updates both as
-leaves are scanned, the visiter prunes any node whose bounding-volume distance exceeds both,
-the sorter visits the closest child first, and the meta-updater again supplies each node's
+far, ``a`` and ``b`` (``a`` the closest, ``b`` the second-closest): the leaf-evaluator updates both as
+leaves are scanned, the prune-predicate prunes any node whose bounding-volume distance exceeds both,
+the child-orderer visits the closest child first, and the node-key-factory again supplies each node's
 distance to its bounding volume. Once traversal completes, the two values are blended with the
 stored smooth-minimum operator. See :ref:`Chap:ImplemCSG` for the CSG combinators themselves, and
 the Doxygen reference for
