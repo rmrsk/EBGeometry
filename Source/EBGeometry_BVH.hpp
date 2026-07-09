@@ -1322,6 +1322,20 @@ public:
     {
       return m_bv.getDistance(a_point);
     }
+
+    /**
+     * @brief Get the squared distance from a_point to this node's bounding volume.
+     * @details Avoids the sqrt that getDistanceToBoundingVolume() pays. pruneTraverse()'s
+     * scalar-fallback branch-and-bound compares against a squared pruning bound, so it uses this
+     * directly rather than taking a square root only to square it again.
+     * @param[in] a_point Query point.
+     * @return Squared distance to the bounding-box surface, or zero if inside.
+     */
+    [[nodiscard]] inline T
+    getDistanceToBoundingVolume2(const Vec3T<T>& a_point) const noexcept
+    {
+      return m_bv.getDistance2(a_point);
+    }
   };
 
   /**

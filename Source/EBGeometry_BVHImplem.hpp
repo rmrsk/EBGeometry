@@ -1279,10 +1279,13 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
     a_evalLeaf(a_state, offset, count);
   };
 
-  const BVH::PrunePredicate<Node, T> prunePredicate = [&a_state, &a_pruneDist2](const Node& /*n*/,
-                                                                                const T& d) noexcept -> bool {
-    return d * d <= a_pruneDist2(a_state);
-  };
+  // The node key is the *squared* box distance (getDistanceToBoundingVolume2), matching the squared
+  // pruning bound a_pruneDist2 returns -- so the predicate compares directly, with no sqrt anywhere.
+  // (Squaring is monotonic, so ordering children by squared distance is identical to ordering by
+  // distance.) The SIMD paths above already work entirely in squared distance; this keeps the
+  // scalar fallback consistent instead of taking a square root only to square it back.
+  const BVH::PrunePredicate<Node, T> prunePredicate =
+    [&a_state, &a_pruneDist2](const Node& /*n*/, const T& d2) noexcept -> bool { return d2 <= a_pruneDist2(a_state); };
 
   const BVH::PackedChildOrderer<T, K> childOrderer = [](std::array<std::pair<uint32_t, T>, K>& ch) noexcept -> void {
     std::sort(ch.begin(), ch.end(), [](const std::pair<uint32_t, T>& a, const std::pair<uint32_t, T>& b) noexcept {
@@ -1291,7 +1294,7 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
   };
 
   const BVH::NodeKeyFactory<Node, T> nodeKeyFactory = [&a_point](const Node& n) noexcept -> T {
-    return n.getDistanceToBoundingVolume(a_point);
+    return n.getDistanceToBoundingVolume2(a_point);
   };
 
   this->traverse(leafEvaluator, prunePredicate, childOrderer, nodeKeyFactory);
