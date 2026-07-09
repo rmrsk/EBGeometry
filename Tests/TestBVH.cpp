@@ -158,8 +158,27 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
     REQUIRE(packed != nullptr);
     REQUIRE(packed->getPrimitives().size() == 36);
 
+    // PackedBVH has no signedDistance() of its own -- callers build their own thin wrapper
+    // around pruneTraverse(), exactly as MeshSDF/TriMeshSDF::signedDistance() do.
+    const auto& faces = packed->getPrimitives();
+
     for (const auto& p : queryPoints<T>()) {
-      REQUIRE_THAT(packed->signedDistance(p), withinAbsT(brute(p), traversalMargin<T>()));
+      T state = std::numeric_limits<T>::max();
+
+      const auto evalLeaf = [&faces, &p](T& a_state, size_t a_offset, size_t a_count) noexcept {
+        for (size_t i = 0; i < a_count; i++) {
+          const T d = faces[a_offset + i]->signedDistance(p);
+          if (std::abs(d) < std::abs(a_state)) {
+            a_state = d;
+          }
+        }
+      };
+
+      const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state * a_state; };
+
+      packed->pruneTraverse(p, state, evalLeaf, pruneDist2);
+
+      REQUIRE_THAT(state, withinAbsT(brute(p), traversalMargin<T>()));
     }
   };
 
@@ -250,6 +269,85 @@ TEMPLATE_TEST_CASE("MeshSDF::getClosestFaces returns the correct number of candi
   // The closest face reported must be consistent with the scalar signed-distance query.
   const T closestUnsignedDist = sorted.front().second;
   REQUIRE_THAT(closestUnsignedDist, withinAbsT(std::abs(packed.signedDistance(p)), traversalMargin<T>()));
+}
+
+namespace {
+
+// Bare point primitive with no signedDistance() (or any other) member at all -- used below to
+// prove that PackedBVH::pruneTraverse() imposes no interface requirement on its primitive type,
+// unlike a caller-built signed-distance wrapper (e.g. MeshSDF/TriMeshSDF::signedDistance()),
+// which requires P::signedDistance(Vec3T<T>).
+template <class T>
+struct BareTestPoint
+{
+  Vec3T<T> m_pos;
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("PackedBVH::pruneTraverse: nearest-neighbor search over a primitive with no "
+                   "signedDistance() matches a brute-force scan",
+                   "[BVH][pruneTraverse]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  // A modest, non-lattice point cloud -- enough to force multiple leaves/levels through the
+  // default partitioner without making the brute-force cross-check slow.
+  std::vector<Vec3> positions;
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      for (int k = 0; k < 5; k++) {
+        positions.emplace_back(T(i) + T(0.3) * T(j), T(j) - T(0.2) * T(k), T(k) + T(0.1) * T(i));
+      }
+    }
+  }
+  REQUIRE(positions.size() == 125);
+
+  BVH::PrimAndBVList<Pnt, AABB> primsAndBVs;
+  for (const auto& pos : positions) {
+    primsAndBVs.emplace_back(std::make_shared<Pnt>(Pnt{pos}), AABB(pos, pos));
+  }
+
+  auto tree = std::make_shared<BVH::TreeBVH<T, Pnt, AABB, K>>(primsAndBVs);
+  tree->topDownSortAndPartition();
+
+  const auto packed = tree->pack();
+  REQUIRE(packed != nullptr);
+  REQUIRE(packed->getPrimitives().size() == positions.size());
+
+  const auto& prims = packed->getPrimitives();
+
+  // State is a running *squared* distance -- no abs(), no extra squaring for pruning, unlike
+  // signedDistance()'s state -- exactly the shape a point-cloud nearest-neighbor search wants.
+  const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+  for (const auto& q : queryPoints<T>()) {
+    T state = std::numeric_limits<T>::max();
+
+    const auto evalLeaf = [&prims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        const T d2 = (prims[a_offset + i]->m_pos - q).length2();
+        if (d2 < a_state) {
+          a_state = d2;
+        }
+      }
+    };
+
+    packed->pruneTraverse(q, state, evalLeaf, pruneDist2);
+
+    T bruteMin2 = std::numeric_limits<T>::max();
+    for (const auto& pos : positions) {
+      bruteMin2 = std::min(bruteMin2, (pos - q).length2());
+    }
+
+    REQUIRE_THAT(state, withinAbsT(bruteMin2, traversalMargin<T>()));
+  }
 }
 
 TEMPLATE_TEST_CASE("Parser::readIntoPackedBVH matches MeshSDF built directly from the same mesh",
