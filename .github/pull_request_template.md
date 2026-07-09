@@ -8,7 +8,7 @@
 
 ### Alternative solutions 
 
-### Reviewer checklist
+### Reviewer checklist (to be completed by a human)
 
 - [ ] The test suite compiles and runs to completion without warnings or errors.
 - [ ] All relevant new features are documented in the user documentation (Sphinx).
