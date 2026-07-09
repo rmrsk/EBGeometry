@@ -22,7 +22,7 @@ jobs:
         directory: [Source, Examples]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Run clang-format
         uses: jidicula/clang-format-action@v4.18.0
         with:
@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Run codespell (pre-commit hook)
         uses: pre-commit/action@v3.0.1
         with:
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Run reuse lint (pre-commit hook)
         uses: pre-commit/action@v3.0.1
         with:
@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install doxygen
         run: |
           sudo apt-get update
@@ -76,7 +76,7 @@ jobs:
     # false to make this a hard gate once that backlog has been reviewed.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Install clang-tidy
@@ -84,7 +84,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang-tidy-18 clang-14
       - name: Cache Catch2 build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build/debug/_deps
           key: ${{ runner.os }}-catch2-clang14-${{ hashFiles('Tests/CMakeLists.txt') }}
@@ -107,7 +107,7 @@ jobs:
         directory: [Examples/CSGUnion, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Install dependencies
@@ -141,7 +141,7 @@ jobs:
         directory: [Examples/MeshSDF, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Install Intel oneAPI
@@ -178,7 +178,7 @@ jobs:
       matrix:
         directory: [Examples/CSGUnion, Examples/MeshSDF, Examples/OctreeBoundingVolume, Examples/PackedSpheres, Examples/RandomCity, Examples/Shapes]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Build and run with GNU make
@@ -191,11 +191,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Cache Catch2 build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build/debug/_deps
           key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
@@ -217,11 +217,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Cache Catch2 build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build/debug/_deps
           key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
@@ -240,9 +240,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Cache pip packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-sphinx-${{ hashFiles('.github/workflows/CI.yml') }}
@@ -278,7 +278,7 @@ jobs:
           make latexpdf
 
       - name: Upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: docs
           path: Docs/Sphinx/build
@@ -303,7 +303,7 @@ jobs:
         simd: [none, avx, avx512]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install compiler
         run: |
@@ -315,7 +315,7 @@ jobs:
           fi
 
       - name: Cache Catch2 build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build/debug/_deps
           key: ${{ runner.os }}-catch2-${{ matrix.compiler }}-${{ hashFiles('Tests/CMakeLists.txt') }}
@@ -350,11 +350,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Cache Catch2 build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build/release-test/_deps
           key: ${{ runner.os }}-catch2-default-${{ hashFiles('Tests/CMakeLists.txt') }}
@@ -376,7 +376,7 @@ jobs:
         compiler: [g++-12, clang++-14]
         simd: [none, avx]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install compiler
         run: |
           sudo apt-get update
@@ -386,7 +386,7 @@ jobs:
             sudo apt-get install -y clang-14
           fi
       - name: Cache Catch2 build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build/debug-san/_deps
           key: ${{ runner.os }}-catch2-san-${{ matrix.compiler }}-${{ hashFiles('Tests/CMakeLists.txt') }}
