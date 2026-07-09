@@ -490,6 +490,9 @@ TriMeshSDF<T, Meta, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcep
   const auto evalLeaf = [&groups, &a_point](T& a_state, size_t a_offset, size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
       const T d = groups[i]->signedDistance(a_point);
+
+      EBGEOMETRY_EXPECT(!std::isnan(d));
+
       if (std::abs(d) < std::abs(a_state)) {
         a_state = d;
       }
