@@ -65,6 +65,38 @@ public:
   ~FlatMeshSDF() override = default;
 
   /**
+   * @brief Copy constructor.
+   * @details Explicitly defaulted for documentation purposes: FlatMeshSDF's only member (m_mesh)
+   * is a shared_ptr, so the implicitly-generated copy is a cheap, correct handle-copy.
+   * @param[in] a_other Other instance to copy.
+   */
+  FlatMeshSDF(const FlatMeshSDF& a_other) = default;
+
+  /**
+   * @brief Copy assignment operator.
+   * @param[in] a_other Other instance to copy.
+   * @return Reference to *this.
+   */
+  FlatMeshSDF&
+  operator=(const FlatMeshSDF& a_other) = default;
+
+  /**
+   * @brief Move constructor.
+   * @details Explicitly defaulted: the user-declared destructor above would otherwise suppress
+   * the implicitly-generated move constructor.
+   * @param[in,out] a_other Other instance to move from.
+   */
+  FlatMeshSDF(FlatMeshSDF&& a_other) noexcept = default;
+
+  /**
+   * @brief Move assignment operator.
+   * @param[in,out] a_other Other instance to move from.
+   * @return Reference to *this.
+   */
+  FlatMeshSDF&
+  operator=(FlatMeshSDF&& a_other) noexcept = default;
+
+  /**
    * @brief Compute the signed distance from a_point to the mesh.
    * @param[in] a_point Query point.
    * @return Signed distance to the nearest face; negative inside the mesh.
@@ -157,6 +189,38 @@ public:
    * @brief Destructor
    */
   ~MeshSDF() override = default;
+
+  /**
+   * @brief Copy constructor.
+   * @details Explicitly defaulted for documentation purposes: MeshSDF's members (m_bvh, m_mesh)
+   * are both shared_ptr, so the implicitly-generated copy is a cheap, correct handle-copy.
+   * @param[in] a_other Other instance to copy.
+   */
+  MeshSDF(const MeshSDF& a_other) = default;
+
+  /**
+   * @brief Copy assignment operator.
+   * @param[in] a_other Other instance to copy.
+   * @return Reference to *this.
+   */
+  MeshSDF&
+  operator=(const MeshSDF& a_other) = default;
+
+  /**
+   * @brief Move constructor.
+   * @details Explicitly defaulted: the user-declared destructor above would otherwise suppress
+   * the implicitly-generated move constructor.
+   * @param[in,out] a_other Other instance to move from.
+   */
+  MeshSDF(MeshSDF&& a_other) noexcept = default;
+
+  /**
+   * @brief Move assignment operator.
+   * @param[in,out] a_other Other instance to move from.
+   * @return Reference to *this.
+   */
+  MeshSDF&
+  operator=(MeshSDF&& a_other) noexcept = default;
 
   /**
    * @brief Compute the signed distance from a_point to the mesh.
@@ -309,6 +373,38 @@ public:
    * @brief Destructor
    */
   ~TriMeshSDF() override = default;
+
+  /**
+   * @brief Copy constructor.
+   * @details Explicitly defaulted for documentation purposes: TriMeshSDF's only member (m_bvh)
+   * is a shared_ptr, so the implicitly-generated copy is a cheap, correct handle-copy.
+   * @param[in] a_other Other instance to copy.
+   */
+  TriMeshSDF(const TriMeshSDF& a_other) = default;
+
+  /**
+   * @brief Copy assignment operator.
+   * @param[in] a_other Other instance to copy.
+   * @return Reference to *this.
+   */
+  TriMeshSDF&
+  operator=(const TriMeshSDF& a_other) = default;
+
+  /**
+   * @brief Move constructor.
+   * @details Explicitly defaulted: the user-declared destructor above would otherwise suppress
+   * the implicitly-generated move constructor.
+   * @param[in,out] a_other Other instance to move from.
+   */
+  TriMeshSDF(TriMeshSDF&& a_other) noexcept = default;
+
+  /**
+   * @brief Move assignment operator.
+   * @param[in,out] a_other Other instance to move from.
+   * @return Reference to *this.
+   */
+  TriMeshSDF&
+  operator=(TriMeshSDF&& a_other) noexcept = default;
 
   /**
    * @brief Compute the signed distance from a_point to the triangle mesh.

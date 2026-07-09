@@ -763,6 +763,42 @@ public:
   ~TreeBVH() noexcept;
 
   /**
+   * @brief Deleted copy constructor.
+   * @details A TreeBVH is a recursive structure of shared_ptr-linked children (m_children);
+   * copying it would only alias the same child subtrees rather than cloning them, since no
+   * deep-clone is implemented. topDownSortAndPartition()/bottomUpSortAndPartition() mutate a
+   * node's children in place, so such a "copy" could silently share mutable state with the
+   * original instead of being independent. Disallowed outright rather than doing the wrong thing.
+   * @param[in] a_other Other instance (unused; deleted).
+   */
+  TreeBVH(const TreeBVH& a_other) = delete;
+
+  /**
+   * @brief Deleted copy assignment operator.
+   * @details See the copy constructor for why copying is disallowed.
+   * @param[in] a_other Other instance (unused; deleted).
+   * @return Reference to *this (unused; deleted).
+   */
+  TreeBVH&
+  operator=(const TreeBVH& a_other) = delete;
+
+  /**
+   * @brief Move constructor.
+   * @details Explicitly defaulted: the user-declared destructor above would otherwise suppress
+   * the implicitly-generated move constructor.
+   * @param[in,out] a_other Other instance to move from.
+   */
+  TreeBVH(TreeBVH&& a_other) noexcept = default;
+
+  /**
+   * @brief Move assignment operator.
+   * @param[in,out] a_other Other instance to move from.
+   * @return Reference to *this.
+   */
+  TreeBVH&
+  operator=(TreeBVH&& a_other) noexcept = default;
+
+  /**
    * @brief Recursively partition this node top-down.
    * @details The stop criterion and partitioner determine the tree shape.
    * @param[in] a_partitioner Partitioning function. Divides a (primitive, BV) list into K sub-lists.
@@ -1182,9 +1218,48 @@ public:
   inline PackedBVH(const TreeBVH<T, Q, BV, K>& a_tree, Converter&& a_converter);
 
   /**
-   * @brief Virtual destructor.
+   * @brief Destructor.
+   * @details Not virtual: PackedBVH is not intended to be subclassed or used polymorphically.
    */
-  inline virtual ~PackedBVH() = default;
+  inline ~PackedBVH() = default;
+
+  /**
+   * @brief Copy constructor.
+   * @details Explicitly defaulted for documentation purposes: unlike TreeBVH, PackedBVH's
+   * members (m_linearNodes, m_primitives, m_childAabbSoA) are all owned value containers with no
+   * shared mutable substructure, so the implicitly-generated deep copy is correct and safe under
+   * both BVH::SharedPtrStorage (primitives are aliased shared_ptr, the same sharing model as
+   * TreeBVH) and BVH::ValueStorage (primitives are copied by value -- safe as long as the
+   * primitive type's own copy constructor is complete; see DCEL::FaceT's copy-constructor
+   * documentation for a case where it deliberately is not, which is why MeshSDF never uses
+   * BVH::ValueStorage).
+   * @param[in] a_other Other instance to copy.
+   */
+  PackedBVH(const PackedBVH& a_other) = default;
+
+  /**
+   * @brief Copy assignment operator.
+   * @param[in] a_other Other instance to copy.
+   * @return Reference to *this.
+   */
+  PackedBVH&
+  operator=(const PackedBVH& a_other) = default;
+
+  /**
+   * @brief Move constructor.
+   * @details Explicitly defaulted: the user-declared destructor above would otherwise suppress
+   * the implicitly-generated move constructor.
+   * @param[in,out] a_other Other instance to move from.
+   */
+  PackedBVH(PackedBVH&& a_other) noexcept = default;
+
+  /**
+   * @brief Move assignment operator.
+   * @param[in,out] a_other Other instance to move from.
+   * @return Reference to *this.
+   */
+  PackedBVH&
+  operator=(PackedBVH&& a_other) noexcept = default;
 
   /**
    * @brief Get the global primitive list (in leaf-traversal order).

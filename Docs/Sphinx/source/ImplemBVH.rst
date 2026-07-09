@@ -189,6 +189,30 @@ to ``LeafEvaluator``/``PackedLeafEvaluator`` callbacks, never the tree structure
 or query results. A caller that wants ``ValueStorage`` instead of the default simply names it
 explicitly, e.g. ``tree->pack<BVH::ValueStorage<P>>()``.
 
+Copy and move semantics
+________________________
+
+``TreeBVH`` and ``PackedBVH`` differ in whether copying is allowed, precisely because of the
+storage-sharing question above:
+
+*  ``TreeBVH`` deletes its copy constructor and copy assignment operator. It is a recursive
+   structure of ``shared_ptr``-linked children, and no deep-clone is implemented; a naive
+   (compiler-generated) copy would only alias the same child subtrees rather than cloning them,
+   which ``topDownSortAndPartition()``/``bottomUpSortAndPartition()`` could then mutate out from
+   under a supposedly independent "copy". Copying is disallowed outright rather than silently
+   doing the wrong thing. Its move constructor and move assignment operator are explicitly
+   defaulted and fully supported.
+*  ``PackedBVH`` allows both copying and moving. Its members (the flattened node array, the
+   primitive array, and the SIMD AABB cache) are all owned value containers with no shared
+   mutable substructure, so the compiler-generated deep copy is correct and safe under both
+   ``BVH::SharedPtrStorage`` (primitives are aliased ``shared_ptr``, the same sharing model as
+   ``TreeBVH``) and ``BVH::ValueStorage`` (primitives are copied by value -- safe as long as the
+   primitive type's own copy constructor is complete; see the note on ``DCEL::FaceT`` in
+   :ref:`Chap:MeshSDFClasses` for a case where it deliberately is not).
+
+Both classes' destructors are non-virtual: neither is intended to be subclassed or used
+polymorphically.
+
 Tree traversal
 ---------------
 

@@ -681,3 +681,116 @@ TEMPLATE_TEST_CASE("Parser::readIntoTriangleBVH accepts an explicit StoragePolic
     REQUIRE_THAT(sharedTri->signedDistance(p), withinAbsT(defaultTri->signedDistance(p), formatMargin<T>()));
   }
 }
+
+TEMPLATE_TEST_CASE("TreeBVH: copy is disallowed (would alias mutable child subtrees); move is allowed",
+                   "[BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Pnt  = BareTestPoint<T>;
+  using Tree = BVH::TreeBVH<T, Pnt, AABB, 4>;
+
+  static_assert(!std::is_copy_constructible_v<Tree>);
+  static_assert(!std::is_copy_assignable_v<Tree>);
+  static_assert(std::is_move_constructible_v<Tree>);
+  static_assert(std::is_move_assignable_v<Tree>);
+}
+
+TEMPLATE_TEST_CASE("PackedBVH: copy is allowed and produces an independent deep copy under both "
+                   "StoragePolicy choices; move is allowed too",
+                   "[BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  using Packed      = BVH::PackedBVH<T, Pnt, K>;
+  using PackedValue = BVH::PackedBVH<T, Pnt, K, BVH::ValueStorage<Pnt>>;
+
+  static_assert(std::is_copy_constructible_v<Packed>);
+  static_assert(std::is_copy_assignable_v<Packed>);
+  static_assert(std::is_move_constructible_v<Packed>);
+  static_assert(std::is_move_assignable_v<Packed>);
+  static_assert(std::is_copy_constructible_v<PackedValue>);
+  static_assert(std::is_copy_assignable_v<PackedValue>);
+  static_assert(std::is_move_constructible_v<PackedValue>);
+  static_assert(std::is_move_assignable_v<PackedValue>);
+
+  std::vector<Vec3> positions;
+  positions.reserve(5);
+  for (int i = 0; i < 5; i++) {
+    positions.emplace_back(T(i), T(i) * T(0.5), T(-i));
+  }
+
+  BVH::PrimAndBVList<Pnt, AABB> primsAndBVs;
+  primsAndBVs.reserve(positions.size());
+  for (const auto& pos : positions) {
+    primsAndBVs.emplace_back(std::make_shared<Pnt>(Pnt{pos}), AABB(pos, pos));
+  }
+
+  auto tree = std::make_shared<BVH::TreeBVH<T, Pnt, AABB, K>>(primsAndBVs);
+  tree->topDownSortAndPartition();
+
+  auto original = tree->template pack<BVH::ValueStorage<Pnt>>();
+  REQUIRE(original != nullptr);
+
+  const PackedValue copy(*original); // copy constructor
+  REQUIRE(copy.getPrimitives().size() == original->getPrimitives().size());
+
+  // Destroy the source entirely -- the copy must remain fully valid and independent, proving the
+  // copy constructor performed a real deep copy rather than aliasing the source's storage.
+  original.reset();
+
+  const Vec3  q(0, 0, 0);
+  T           state    = std::numeric_limits<T>::max();
+  const auto& prims    = copy.getPrimitives();
+  const auto  evalLeaf = [&prims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+    for (size_t i = 0; i < a_count; i++) {
+      const T d2 = (prims[a_offset + i].m_pos - q).length2();
+      if (d2 < a_state) {
+        a_state = d2;
+      }
+    }
+  };
+  const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+  copy.pruneTraverse(q, state, evalLeaf, pruneDist2);
+
+  T bruteMin2 = std::numeric_limits<T>::max();
+  for (const auto& pos : positions) {
+    bruteMin2 = std::min(bruteMin2, (pos - q).length2());
+  }
+
+  REQUIRE_THAT(state, withinAbsT(bruteMin2, traversalMargin<T>()));
+}
+
+TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: move constructor/assignment are usable (no "
+                   "longer implicitly suppressed by the user-declared destructor)",
+                   "[BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  static_assert(std::is_copy_constructible_v<FlatMeshSDF<T, Meta>>);
+  static_assert(std::is_copy_assignable_v<FlatMeshSDF<T, Meta>>);
+  static_assert(std::is_move_constructible_v<FlatMeshSDF<T, Meta>>);
+  static_assert(std::is_move_assignable_v<FlatMeshSDF<T, Meta>>);
+
+  static_assert(std::is_copy_constructible_v<MeshSDF<T, Meta, K>>);
+  static_assert(std::is_copy_assignable_v<MeshSDF<T, Meta, K>>);
+  static_assert(std::is_move_constructible_v<MeshSDF<T, Meta, K>>);
+  static_assert(std::is_move_assignable_v<MeshSDF<T, Meta, K>>);
+
+  static_assert(std::is_copy_constructible_v<TriMeshSDF<T, Meta, K, W>>);
+  static_assert(std::is_copy_assignable_v<TriMeshSDF<T, Meta, K, W>>);
+  static_assert(std::is_move_constructible_v<TriMeshSDF<T, Meta, K, W>>);
+  static_assert(std::is_move_assignable_v<TriMeshSDF<T, Meta, K, W>>);
+}
