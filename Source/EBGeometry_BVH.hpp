@@ -565,9 +565,9 @@ auto DefaultStopFunction =
  *
  * @tparam T  Floating-point precision.
  * @tparam P  Primitive type. Must provide getCentroid() -- construction/partitioning never
- * calls signedDistance() on it. A signedDistance(Vec3T<T>) member is only required if the
- * resulting PackedBVH's own signedDistance() query is used (see PackedBVH below); a custom
- * traverse() updater need not require it at all.
+ * calls any other method on it. PackedBVH itself imposes no interface requirement on P either;
+ * any further requirement comes entirely from whatever leaf-eval a caller passes to
+ * PackedBVH::pruneTraverse() or PackedBVH::traverse() (see PackedBVH below).
  * @tparam BV Bounding volume type.
  * @tparam K  Tree branching factor (must be >= 2).
  */
@@ -817,7 +817,13 @@ protected:
  * Instances are obtained by calling TreeBVH::pack() (same primitive type) or
  * TreeBVH::packWith<Q>(converter) (type-converting pack).
  *
- * SIMD paths are selected at compile time via if constexpr:
+ * PackedBVH imposes no interface requirement on P by itself -- it holds primitives opaquely and
+ * only ever hands them back to a caller-supplied callback (traverse()'s Updater, or
+ * pruneTraverse()'s LeafEvaluator). Nearest-surface (signed-distance-style) queries are not a
+ * PackedBVH member; callers build their own thin wrapper around pruneTraverse(), supplying
+ * whatever primitive interface their own query needs.
+ *
+ * SIMD paths are selected at compile time via if constexpr, in pruneTraverse():
  * - K==4, T==float  → SSE4.1 (__m128)
  * - K==4, T==double → AVX    (__m256d)
  * - K==8, T==float  → AVX    (__m256)
@@ -825,7 +831,7 @@ protected:
  * All other combinations fall back to scalar traversal.
  *
  * @tparam T Floating-point precision.
- * @tparam P Primitive type. Must provide signedDistance(Vec3T<T>).
+ * @tparam P Primitive type.
  * @tparam K BVH branching factor.
  */
 template <class T, class P, size_t K>
@@ -1092,13 +1098,47 @@ public:
            const BVH::MetaUpdater<Node, Meta>& a_metaUpdater) const noexcept;
 
   /**
-   * @brief Compute the signed distance from a_point to the nearest primitive.
-   * @details Uses SIMD traversal where available and falls back to scalar otherwise.
-   * @param[in] a_point Query point.
-   * @return Signed distance to the nearest primitive surface.
+   * @brief Generic SIMD-accelerated, distance-pruned traversal.
+   * @details Same box-pruning strategy as @c traverse() above (skip subtrees already farther than
+   * the current best; visit the closest-looking child first), but the box-vs-point distance test
+   * is vectorised across all @c K children at once (@c if @c constexpr dispatch on @c (K, T);
+   * falls back to the generic @c traverse() above when no compiled ISA path matches), and the
+   * search itself is expressed through three caller-supplied pieces instead of four fixed
+   * callbacks. @c State is whatever the search remembers between leaf visits. @c LeafEvaluator is
+   * called only at leaves and is the sole place @c State may change. @c PruneDistSquared turns the
+   * *current* @c State into a squared-distance pruning bound; it is re-read fresh at every node
+   * visited (never cached), so a leaf visited anywhere earlier on the stack immediately tightens
+   * the pruning applied to nodes visited afterwards, regardless of which subtree it came from.
+   * Splitting the bound from the leaf scan like this is what lets a primitive with no notion of
+   * "signed distance" reuse the same SIMD box test -- e.g. a nearest-neighbor search can track a
+   * plain running squared distance in @c State (no @c abs(), no sqrt anywhere in the hot path),
+   * while MeshSDF::signedDistance() and TriMeshSDF::signedDistance() track a signed value and
+   * square its magnitude for the bound. Both are ordinary instantiations of this one method.
+   *
+   * @note Only the pruning *bound* (@c PruneDistSquared) is customisable; the per-child quantity it is
+   * compared against -- Euclidean squared distance to a child's AABB -- is not, since that is the
+   * one computation vectorised uniformly across @c K children, and branch-and-bound pruning is
+   * only sound if it is a true lower bound on the distance to anything inside that box. PackedBVH
+   * also hardcodes AABBT<T> as its sole bounding volume. See
+   * https://github.com/rmrsk/EBGeometry/issues/96 for a sketch of what generalizing this would
+   * look like, if that is ever needed.
+   *
+   * @tparam State        Caller-defined running search state, carried by reference through the whole traversal.
+   * @tparam LeafEvaluator Callable: (State&, size_t offset, size_t count) noexcept -> void. Scans
+   * primitives [offset, offset+count) and updates a_state in place.
+   * @tparam PruneDistSquared    Callable: (const State&) noexcept -> T. Returns the current squared-distance
+   * pruning bound derived from a_state; a node farther than this (in squared distance) is pruned.
+   * @param[in]     a_point      Query point.
+   * @param[in,out] a_state      Running search state; mutated by a_evalLeaf, read by a_pruneDist2.
+   * @param[in]     a_evalLeaf   Leaf-visit callback.
+   * @param[in]     a_pruneDist2 Pruning-bound callback.
    */
-  [[nodiscard]] inline T
-  signedDistance(const Vec3T<T>& a_point) const noexcept;
+  template <class State, class LeafEvaluator, class PruneDistSquared>
+  inline void
+  pruneTraverse(const Vec3T<T>&    a_point,
+                State&             a_state,
+                LeafEvaluator&&    a_evalLeaf,
+                PruneDistSquared&& a_pruneDist2) const noexcept;
 
 protected:
   /**
@@ -1131,7 +1171,7 @@ protected:
   };
 
   /**
-   * @brief Per-node SoA AABB cache used by the SIMD traversal in signedDistance().
+   * @brief Per-node SoA AABB cache used by the SIMD traversal in pruneTraverse().
    */
   std::vector<ChildAABBSoA> m_childAabbSoA;
 

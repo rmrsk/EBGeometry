@@ -22,11 +22,14 @@ There are two representations of a BVH:
 The template parameters shared by both are:
 
 *  ``T`` Floating-point precision.
-*  ``P`` Primitive type. The requirement on ``P`` differs between the two representations, since
-   each only calls what it actually needs: ``TreeBVH`` construction/partitioning only ever calls
-   ``getCentroid()`` on it, while ``signedDistance(Vec3T<T>)`` is required only if the *packed*
-   tree's own built-in ``PackedBVH::signedDistance()`` query is used (see below) -- a ``P`` driven
-   entirely through a custom ``traverse()`` updater need not provide ``signedDistance()`` at all.
+*  ``P`` Primitive type. Neither representation imposes an interface requirement of its own:
+   ``TreeBVH`` construction/partitioning only ever calls ``getCentroid()`` on it, and
+   ``PackedBVH`` holds primitives opaquely, handing them back only to whatever leaf-visit
+   callback a caller supplies to ``traverse()`` or ``pruneTraverse()`` (see below). Whether
+   ``P`` needs a ``signedDistance(Vec3T<T>)`` member (or anything else) is entirely up to that
+   callback -- see ``MeshSDF``/``TriMeshSDF::signedDistance()`` in :ref:`Chap:MeshSDFClasses` for
+   the signed-distance case, and the nearest-neighbor example in ``Tests/TestBVH.cpp`` for a
+   primitive with no ``signedDistance()`` at all.
 *  ``BV`` Bounding volume type (``TreeBVH`` only — ``PackedBVH`` always uses
    ``BoundingVolumes::AABBT<T>`` internally).
 *  ``K`` BVH degree. ``K=2`` will yield a binary tree, ``K=3`` yields a tertiary tree and so on.
@@ -223,14 +226,55 @@ computes the meta-updater for each of its ``K`` children, lets the sorter reorde
 pushes them all onto the stack. For the full API, see the Doxygen reference for
 `PackedBVH <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
 
-.. note::
+.. _Chap:PruneTraverse:
 
-   ``BVH::PackedBVH::signedDistance`` does **not** go through this generic traversal on
-   the SIMD code paths — it uses a hand-written, SIMD-batched stack walk instead, described in
-   :ref:`Chap:MeshSDFClasses` below and in :ref:`Chap:SIMDClasses`. The generic ``traverse()``
-   above is what the *scalar* fallback of ``signedDistance()`` uses, and what every other
-   BVH-accelerated query in EBGeometry (mesh nearest-face queries, BVH-accelerated CSG unions) is
-   built on.
+Distance-pruned traversal: ``pruneTraverse()``
+________________________________________________
+
+``PackedBVH`` has no ``signedDistance()`` of its own, and does not privilege any one query.
+Alongside the generic ``traverse()`` described above, it exposes a second traversal,
+``PackedBVH::pruneTraverse()``, that implements the same "closest bounding volume first, prune
+anything already known to be farther than the best answer so far" strategy, but with two
+differences: the box-vs-point distance test is SIMD-batched across all ``K`` children at once
+(see :ref:`Chap:SIMDClasses` for exactly which instructions run for which ``(K, T)``, and the
+list-table below for the ISA-to-``K`` mapping), and -- unlike ``traverse()``'s four independent
+callbacks -- the search is expressed through exactly three cooperating pieces supplied by the
+caller:
+
+* **State** -- whatever the search needs to remember between leaf visits. Often just "the best
+  value found so far", but it can be richer (e.g. a running best paired with the primitive that
+  produced it). This is the only thing that persists across the whole traversal.
+* **Leaf-eval** -- called once per leaf, with the leaf's offset and count into the BVH's global
+  primitive array (never a freshly-allocated sub-list). It is the *only* place primitives are
+  actually touched, and the only place ``State`` is allowed to change.
+* **Pruning rule** -- called on the *current* ``State`` to produce a squared-distance bound: a
+  node farther than this (in squared distance) is skipped without being visited. It never touches
+  primitives directly, only whatever ``Leaf-eval`` has already written into ``State``.
+
+Precisely, the traversal seeds a stack with the root node (at distance zero, so it is never
+pruned), then repeatedly pops the top entry and: skips it outright if its already-known squared
+distance to the query point exceeds the pruning rule's *current* bound; otherwise, if it is a
+leaf, calls leaf-eval once for the whole leaf; otherwise (an interior node), computes all ``K``
+children's squared distances to the query point in a single SIMD batch, sorts them so the
+closest child is visited next, and pushes every child still within the (freshly re-evaluated)
+pruning bound. Because the bound is re-read from the current ``State`` at every node visited --
+never cached from the start of the traversal -- a leaf visited anywhere earlier on the stack
+immediately tightens the pruning applied to every node visited afterwards, regardless of which
+subtree it came from.
+
+Splitting the pruning rule apart from the leaf-eval like this is what lets a primitive with no
+notion of "signed distance" reuse the same SIMD box test: a nearest-neighbor search over a point
+cloud can track a plain running squared distance as its ``State`` (no ``abs()``, no extra
+squaring, no square root anywhere in the hot path) with a pruning rule that returns the state
+unchanged, whereas ``MeshSDF``/``TriMeshSDF::signedDistance()`` (see :ref:`Chap:MeshSDFClasses`)
+track a signed distance and square its magnitude for the bound -- both are ordinary
+instantiations of the same ``pruneTraverse()``, not special cases hardcoded into ``PackedBVH``.
+``Tests/TestBVH.cpp`` has a worked example of the former: a bare point struct with no
+``signedDistance()`` member at all, searched for its nearest neighbor via ``pruneTraverse()``,
+checked against a brute-force scan.
+
+For the exact template signature and callback contracts, see `the doxygen page for
+PackedBVH::pruneTraverse <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
 
 Traversal examples
 __________________
@@ -296,29 +340,32 @@ BVH type, and supported geometry:
    * - ``MeshSDF<T, Meta, K>``
      - DCEL mesh
      - ``PackedBVH`` over ``DCEL::FaceT``
-     - Generic ``traverse()`` (scalar)
+     - ``pruneTraverse()`` (SIMD when ``(K, T)`` matches a compiled ISA path)
      - Any polygon mesh; not restricted to triangles
    * - ``TriMeshSDF<T, Meta, K, W>``
      - DCEL mesh or triangle soup
      - ``PackedBVH`` over SoA triangle groups
-     - SIMD-batched ``signedDistance()``
+     - ``pruneTraverse()`` over SoA-packed leaves
      - Triangle meshes only; highest throughput
 
 ``FlatMeshSDF`` is useful for correctness checks and tiny meshes. See `its doxygen page
 <doxygen/html/classEBGeometry_1_1FlatMeshSDF.html>`__.
 
 ``MeshSDF`` handles arbitrary polygon meshes; its ``signedDistance()`` builds the traversal
-criteria shown above and drives them through the generic, scalar ``PackedBVH::traverse()``. See
-`its doxygen page <doxygen/html/classEBGeometry_1_1MeshSDF.html>`__.
+criteria shown above (a leaf-eval and a pruning rule, not the full four-callback ``traverse()``
+shape) and drives them through ``PackedBVH::pruneTraverse()``, picking up SIMD node pruning
+whenever ``(K, T)`` matches a compiled ISA path and falling back to the generic, scalar
+``traverse()`` otherwise. See `its doxygen page <doxygen/html/classEBGeometry_1_1MeshSDF.html>`__.
 
 ``TriMeshSDF`` is the recommended default for triangle meshes: it packs triangles into
-Structure-of-Arrays groups of width ``W`` (via ``TreeBVH::packWith()``, see above) and calls
-``PackedBVH::signedDistance()`` directly, so that on a matching ``(K, T)`` combination each BVH
-leaf evaluates ``W`` triangles with a single SIMD register operation, and even the
-AABB-vs-running-best comparisons during descent are done on squared distances (no square root)
-until the very last step. See `its doxygen page
-<doxygen/html/classEBGeometry_1_1TriMeshSDF.html>`__, and `the doxygen page for TriangleSoAT
-<doxygen/html/structEBGeometry_1_1TriangleSoAT.html>`__ for the SoA storage itself.
+Structure-of-Arrays groups of width ``W`` (via ``TreeBVH::packWith()``, see above) and builds the
+same kind of thin ``pruneTraverse()`` wrapper as ``MeshSDF``, over ``TriangleSoAT<T, W>`` leaves
+instead of individual faces, so that on a matching ``(K, T)`` combination each BVH leaf evaluates
+``W`` triangles with a single SIMD register operation, and even the AABB-vs-running-best
+comparisons during descent are done on squared distances (no square root) until the very last
+step. See `its doxygen page <doxygen/html/classEBGeometry_1_1TriMeshSDF.html>`__, and `the doxygen
+page for TriangleSoAT <doxygen/html/structEBGeometry_1_1TriangleSoAT.html>`__ for the SoA storage
+itself.
 
 What is actually vectorised in ``TriMeshSDF``/``PackedBVH`` is covered in
 :ref:`Chap:SIMDClasses` -- see that page for the full detail rather than repeating it here.
