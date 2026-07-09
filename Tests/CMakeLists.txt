@@ -80,6 +80,8 @@ ebgeometry_add_test(TestTransform)
 ebgeometry_add_test(TestOctree)
 ebgeometry_add_test(TestPolygon2D)
 ebgeometry_add_test(TestTriangleSoA)
+ebgeometry_add_test(TestPoint)
+ebgeometry_add_test(TestPointSoA)
 ebgeometry_add_test(TestSimpleTimer)
 
 # Compile-only target that explicitly instantiates every public class template so
