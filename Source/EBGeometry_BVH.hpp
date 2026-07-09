@@ -214,8 +214,13 @@ struct ValueStorage
   static void
   appendTreeLeaf(std::vector<StorageType>& a_dst, const PrimitiveList<P>& a_leafPrims)
   {
-    a_dst.reserve(a_dst.size() + a_leafPrims.size());
-
+    // NB: do NOT reserve(a_dst.size() + a_leafPrims.size()) here. appendTreeLeaf is called once per
+    // leaf as the whole tree is packed, and reserving to an each-time-slightly-larger *exact* size
+    // defeats std::vector's geometric growth -- it forces a fresh reallocation (copying every
+    // element already appended) on every leaf, making a whole build O(N^2) in the primitive count.
+    // Both the identity pack() constructor and the direct top-down PackedBVH constructor append
+    // leaves this way, so the quadratic hit every ValueStorage build over many leaves. Plain
+    // push_back grows the buffer geometrically and keeps construction linear.
     for (const auto& p : a_leafPrims) {
       a_dst.push_back(*p);
     }

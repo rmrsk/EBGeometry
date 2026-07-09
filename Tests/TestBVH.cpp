@@ -12,7 +12,11 @@
 #include "TestFloatingPointUtils.hpp"
 
 #include <cmath>
+#include <limits>
+#include <memory>
+#include <random>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -333,6 +337,90 @@ TEMPLATE_TEST_CASE("PackedBVH::pruneTraverse: nearest-neighbor search over a pri
     }
 
     REQUIRE_THAT(state, withinAbsT(bruteMin2, traversalMargin<T>()));
+  }
+}
+
+// Regression test for the ValueStorage::appendTreeLeaf O(N^2) build bug: a per-leaf
+// reserve(size + leafSize) that defeated std::vector's geometric growth, reallocating the whole
+// primitive buffer on every leaf. Both ValueStorage build paths that append leaves one at a time
+// -- the direct top-down PackedBVH constructor and TreeBVH::pack<ValueStorage>() -- hit it, so this
+// exercises both and checks nearest-neighbor correctness against brute force. The primitive count
+// is deliberately large: a reintroduced quadratic would blow well past the unit-test timeout here
+// (minutes), while the linear build stays well under a second. Double only -- the append path is
+// precision-independent, and one heavy build is enough of a guard.
+TEST_CASE("PackedBVH (ValueStorage): a large per-leaf build stays linear and correct",
+          "[BVH][pruneTraverse][regression]")
+{
+  using T     = double;
+  using AABB  = BoundingVolumes::AABBT<T>;
+  using Vec3  = Vec3T<T>;
+  using Pnt   = BareTestPoint<T>;
+  using Store = BVH::ValueStorage<Pnt>;
+
+  constexpr size_t K = 4;
+  constexpr size_t N = 60000;
+
+  std::mt19937_64                   rng(20260709ULL);
+  std::uniform_real_distribution<T> dist(T(0), T(1));
+
+  std::vector<Vec3> positions;
+  positions.reserve(N);
+  for (size_t i = 0; i < N; i++) {
+    positions.emplace_back(dist(rng), dist(rng), dist(rng));
+  }
+
+  using Packed = BVH::PackedBVH<T, Pnt, K, Store>;
+
+  // Path 1: the direct top-down PackedBVH constructor (ValueStorage), which appends each leaf via
+  // appendTreeLeaf as it linearizes.
+  std::vector<std::pair<Pnt, AABB>> flat;
+  flat.reserve(N);
+  for (const auto& pos : positions) {
+    flat.emplace_back(Pnt{pos}, AABB(pos, pos));
+  }
+  const Packed directBVH(std::move(flat));
+
+  // Path 2: TreeBVH::pack<ValueStorage>(), which appends each leaf the same way.
+  BVH::PrimAndBVList<Pnt, AABB> primsAndBVs;
+  primsAndBVs.reserve(N);
+  for (const auto& pos : positions) {
+    primsAndBVs.emplace_back(std::make_shared<Pnt>(Pnt{pos}), AABB(pos, pos));
+  }
+  auto tree = std::make_shared<BVH::TreeBVH<T, Pnt, AABB, K>>(primsAndBVs);
+  tree->topDownSortAndPartition();
+  const auto packedBVH = tree->template pack<Store>();
+
+  REQUIRE(directBVH.getPrimitives().size() == N);
+  REQUIRE(packedBVH->getPrimitives().size() == N);
+
+  const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+  const auto nearest2 = [&pruneDist2](const Packed& a_bvh, const Vec3& a_query) noexcept -> T {
+    const auto& prims = a_bvh.getPrimitives();
+
+    T state = std::numeric_limits<T>::max();
+
+    const auto evalLeaf = [&prims, &a_query](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        const T d2 = (Store::get(prims[a_offset + i]).m_pos - a_query).length2();
+        if (d2 < a_state) {
+          a_state = d2;
+        }
+      }
+    };
+
+    a_bvh.pruneTraverse(a_query, state, evalLeaf, pruneDist2);
+    return state;
+  };
+
+  for (const auto& q : queryPoints<T>()) {
+    T brute2 = std::numeric_limits<T>::max();
+    for (const auto& pos : positions) {
+      brute2 = std::min(brute2, (pos - q).length2());
+    }
+
+    REQUIRE_THAT(nearest2(directBVH, q), withinAbsT(brute2, traversalMargin<T>()));
+    REQUIRE_THAT(nearest2(*packedBVH, q), withinAbsT(brute2, traversalMargin<T>()));
   }
 }
 
