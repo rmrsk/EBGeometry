@@ -218,9 +218,12 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
   using PrimBvAndCode = std::tuple<std::shared_ptr<const P>, BV, SFC::Code>;
 
   std::vector<PrimBvAndCode> sortedPrimitives;
+  sortedPrimitives.reserve(m_primitives.size());
 
   for (size_t i = 0; i < m_primitives.size(); i++) {
-    sortedPrimitives.emplace_back(std::make_tuple(m_primitives[i], m_boundingVolumes[i], S::encode(bins[i])));
+    // Construct the tuple in place rather than std::make_tuple(...) into a temporary and then
+    // moving/copying that into the vector.
+    sortedPrimitives.emplace_back(m_primitives[i], m_boundingVolumes[i], S::encode(bins[i]));
   }
 
   auto sortCrit = [](const PrimBvAndCode& A, const PrimBvAndCode& B) -> bool {
@@ -240,6 +243,7 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
   if (treeDepth > 0) {
 
     std::vector<std::vector<std::shared_ptr<TreeBVH<T, P, BV, K>>>> nodes(treeDepth + 1);
+    nodes[treeDepth].reserve(numLeaves);
 
     // Build the leaves by partitioning the primitives along the SFC.
     size_t startIndex = 0;
@@ -255,6 +259,7 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
       }
 
       std::vector<BVH::PrimAndBV<P, BV>> primsAndBVs;
+      primsAndBVs.reserve(endIndex - startIndex + 1);
 
       for (size_t i = startIndex; i <= endIndex; i++) {
         const auto& cur = sortedPrimitives[i];
@@ -275,6 +280,8 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
       for (int l = 0; l < lvl; l++) {
         numNodesAtLevel *= K;
       }
+
+      nodes[static_cast<size_t>(lvl)].reserve(numNodesAtLevel);
 
       for (size_t inode = 0; inode < numNodesAtLevel; inode++) {
 
@@ -557,6 +564,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
   };
 
   std::vector<LeafRange> leafRanges;
+  leafRanges.reserve(numPrimitives / a_targetLeafSize + 1);
   for (size_t i = 0; i < numPrimitives;) {
     const size_t count = std::min(a_targetLeafSize, numPrimitives - i);
 
@@ -590,6 +598,11 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
   }
 
   std::vector<Node> scratch(paddedLeafCount);
+  // Reserve the exact final node count up front -- for a full K-ary tree with paddedLeafCount
+  // leaves (itself a power of K), the total node count across every level is
+  // (paddedLeafCount * K - 1) / (K - 1) (geometric series 1 + K + K^2 + ... + paddedLeafCount) --
+  // so the emplace_back() calls building interior nodes below never trigger a reallocation.
+  scratch.reserve((paddedLeafCount * K - 1) / (K - 1));
   for (size_t i = 0; i < numRealLeaves; i++) {
     scratch[i].setBoundingVolume(leafRanges[i].bv);
     scratch[i].setPrimitivesOffset(leafRanges[i].offset);
