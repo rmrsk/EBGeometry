@@ -1,0 +1,63 @@
+name: Claude Code Review
+
+# Security gate: see the comment in claude.yml -- the same actor-permission check is used
+# here so both Claude-triggering workflows in this repo enforce access the same way.
+on:
+  issue_comment:
+    types: [created]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  check-mention:
+    runs-on: ubuntu-latest
+    if: |
+      github.event.issue.pull_request != null &&
+      contains(github.event.comment.body, '@claude review')
+    outputs:
+      allowed: ${{ steps.check.outputs.allowed }}
+    steps:
+      - name: Check that the triggering actor has write access
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: context.actor,
+            });
+            const allowed = ['admin', 'write'].includes(data.permission);
+            core.setOutput('allowed', allowed);
+            if (!allowed) {
+              core.notice(`@claude review ignored: ${context.actor} has '${data.permission}' permission on this repo (needs write or admin).`);
+            }
+
+  claude-review:
+    needs: check-mention
+    if: needs.check-mention.outputs.allowed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
+          plugins: 'code-review@claude-code-plugins'
+          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.issue.number }}'
+          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
+          # or https://code.claude.com/docs/en/cli-reference for available options
