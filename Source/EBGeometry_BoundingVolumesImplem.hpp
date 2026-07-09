@@ -461,6 +461,26 @@ AABBT<T>::getDistance(const Vec3& a_point) const noexcept
 
 template <class T>
 inline T
+AABBT<T>::getDistance2(const Vec3& a_point) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_loCorner[0] <= m_hiCorner[0]);
+  EBGEOMETRY_EXPECT(m_loCorner[1] <= m_hiCorner[1]);
+  EBGEOMETRY_EXPECT(m_loCorner[2] <= m_hiCorner[2]);
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+  // Same per-axis gap construction as getDistance() -- see its comment -- but squared and
+  // summed directly, without ever taking a square root.
+  const Vec3 gap(std::max(m_loCorner[0] - a_point[0], a_point[0] - m_hiCorner[0]),
+                 std::max(m_loCorner[1] - a_point[1], a_point[1] - m_hiCorner[1]),
+                 std::max(m_loCorner[2] - a_point[2], a_point[2] - m_hiCorner[2]));
+
+  return max(Vec3::zeros(), gap).length2();
+}
+
+template <class T>
+inline T
 AABBT<T>::getVolume() const noexcept
 {
   EBGEOMETRY_EXPECT(m_loCorner[0] <= m_hiCorner[0]);

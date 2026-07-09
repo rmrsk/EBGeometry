@@ -76,6 +76,29 @@ TEMPLATE_TEST_CASE("AABBT: distance to point", "[AABBT]", EBGEOMETRY_TEST_PRECIS
   REQUIRE_THAT(unit.getDistance(corner_pt), WithinRel(T(1.0)));
 }
 
+TEMPLATE_TEST_CASE("AABBT: getDistance2 agrees with getDistance()*getDistance() but avoids the sqrt",
+                   "[AABBT]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const AABBT<T> unit(Vec3T<T>(0, 0, 0), Vec3T<T>(1, 1, 1));
+
+  const std::vector<Vec3T<T>> queryPoints = {
+    Vec3T<T>(T(0.5), T(0.5), T(0.5)), // inside
+    Vec3T<T>(T(3.0), T(0.5), T(0.5)), // outside along one axis
+    Vec3T<T>(2.0, 0.0, 0.0),          // outside at a corner
+    Vec3T<T>(-5.0, -5.0, -5.0),       // outside, far away on every axis
+  };
+
+  for (const auto& p : queryPoints) {
+    const T d  = unit.getDistance(p);
+    const T d2 = unit.getDistance2(p);
+
+    REQUIRE_THAT(d2, WithinAbs(static_cast<double>(d * d), tightMargin<T>()));
+  }
+}
+
 TEMPLATE_TEST_CASE("AABBT: intersects", "[AABBT]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;

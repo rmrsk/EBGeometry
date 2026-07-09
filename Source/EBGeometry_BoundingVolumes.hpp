@@ -389,6 +389,16 @@ public:
   getDistance(const Vec3& a_x0) const noexcept;
 
   /**
+   * @brief Compute the squared unsigned distance from @p a_x0 to this AABB.
+   * @details Avoids the sqrt that getDistance() pays -- prefer this whenever the caller only
+   * needs the distance for comparison (e.g. BVH pruning), not its actual magnitude.
+   * @param[in] a_x0 3D query point.
+   * @return Squared distance from @p a_x0 to the nearest box face; zero if @p a_x0 is inside.
+   */
+  [[nodiscard]] inline T
+  getDistance2(const Vec3& a_x0) const noexcept;
+
+  /**
    * @brief Compute the AABB volume.
    * @return Product of the three side lengths: dx * dy * dz.
    */

@@ -263,6 +263,24 @@ template <class P, class BV>
 using PrimAndBVList = std::vector<PrimAndBV<P, BV>>;
 
 /**
+ * @brief Bin a set of points into the space-filling curve's integer grid, normalizing by their
+ * own bounding range.
+ * @details Used by both TreeBVH::bottomUpSortAndPartition() and PackedBVH's direct SFC-build
+ * constructor to convert real-valued centroids into SFC::Index values suitable for
+ * SFC::Morton::encode() or SFC::Nested::encode(). If every point coincides on some axis (e.g. a
+ * planar point cloud, or fully-duplicate points), that axis's normalization divisor would
+ * otherwise be zero; clamping it to 1 avoids the division (the numerator is also exactly zero on
+ * that axis for every point, so any nonzero divisor yields the same, correct bin index of 0
+ * there).
+ * @tparam T Floating-point precision.
+ * @param[in] a_centroids Points to bin (typically bounding-volume centroids).
+ * @return One SFC::Index per input point, in the same order.
+ */
+template <class T>
+[[nodiscard]] inline std::vector<SFC::Index>
+computeSFCBins(const std::vector<Vec3T<T>>& a_centroids) noexcept;
+
+/**
  * @brief Polymorphic partitioner: splits a list of (primitive, BV) pairs into K sub-lists.
  * @tparam P  Primitive type.
  * @tparam BV Bounding volume type.
@@ -1216,6 +1234,37 @@ public:
    */
   template <class Q, class Converter>
   inline PackedBVH(const TreeBVH<T, Q, BV, K>& a_tree, Converter&& a_converter);
+
+  /**
+   * @brief Construct directly from a flat primitive list, without ever building a TreeBVH.
+   * @details Bypasses TreeBVH entirely: no per-node shared_ptr<TreeBVH> allocation, and (with
+   * StoragePolicy = ValueStorage<P>) no per-primitive shared_ptr allocation either. Primitives are
+   * sorted along the space-filling curve @p S (same normalization as
+   * TreeBVH::bottomUpSortAndPartition(), via BVH::computeSFCBins()), then cut into leaves by one
+   * linear left-to-right scan at @p a_targetLeafSize -- unlike
+   * TreeBVH::bottomUpSortAndPartition(), which derives a leaf count of K^floor(log_K(N)) purely
+   * from N and K, this lets the caller control leaf size directly.
+   *
+   * Because the resulting leaf count generally isn't a power of K, the K-ary merge pads up to the
+   * next power of K by re-using the last real leaf's index in place of a missing child -- so every
+   * interior node still has exactly K children (no change to Node's shape or to traverse()/
+   * pruneTraverse(), which assume this), at the cost of that one leaf's primitives potentially
+   * being visited more than once by a query in the (bounded, rare) case where the real leaf count
+   * isn't already a power of K. This never duplicates primitive data, only (cheap) Node entries.
+   *
+   * @tparam S Space-filling curve type (e.g. SFC::Morton, SFC::Nested). Defaults to SFC::Morton;
+   * a constructor template's own parameters cannot be explicitly specified the way a named
+   * function template's can (constructors have no name of their own to attach a template-argument
+   * list to), so @p a_sfc is a stateless tag value purely so @p S can be deduced from it -- pass
+   * e.g. @c SFC::Nested{} to select a different curve, or omit it entirely for the default.
+   * @param[in] a_primsAndBVs   Primitives and their bounding volumes, taken by value (a sink
+   * parameter the caller can std::move in) -- never requires shared_ptr-wrapping regardless of
+   * this PackedBVH's StoragePolicy.
+   * @param[in] a_targetLeafSize Target number of primitives per leaf. Must be > 0.
+   * @param[in] a_sfc Unused tag value; see @p S.
+   */
+  template <class S = SFC::Morton>
+  inline PackedBVH(std::vector<std::pair<P, BV>> a_primsAndBVs, size_t a_targetLeafSize, S a_sfc = S{});
 
   /**
    * @brief Destructor.

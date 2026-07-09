@@ -794,3 +794,280 @@ TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: move constructor/assignment 
   static_assert(std::is_move_constructible_v<TriMeshSDF<T, Meta, K, W>>);
   static_assert(std::is_move_assignable_v<TriMeshSDF<T, Meta, K, W>>);
 }
+
+namespace {
+
+// Brute-force nearest-squared-distance scan, shared by the direct-SFC-build tests below.
+template <class T>
+T
+bruteForceNearest2(const std::vector<Vec3T<T>>& a_positions, const Vec3T<T>& a_query)
+{
+  T best2 = std::numeric_limits<T>::max();
+  for (const auto& pos : a_positions) {
+    best2 = std::min(best2, (pos - a_query).length2());
+  }
+  return best2;
+}
+
+// Nearest-squared-distance query via pruneTraverse(), shared by the direct-SFC-build tests below.
+// Works for both BVH::SharedPtrStorage and BVH::ValueStorage primitives since StorageType's `->`
+// vs `.` access is hidden behind the caller-supplied evalLeaf in each test.
+
+} // namespace
+
+TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor (no TreeBVH) matches brute-force "
+                   "nearest-neighbor, including target leaf sizes that don't divide evenly into a "
+                   "power of K",
+                   "[BVH][DirectSFCBuild]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  std::vector<Vec3> positions;
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      for (int k = 0; k < 5; k++) {
+        positions.emplace_back(T(i) + T(0.3) * T(j), T(j) - T(0.2) * T(k), T(k) + T(0.1) * T(i));
+      }
+    }
+  }
+  REQUIRE(positions.size() == 125);
+
+  // Target leaf sizes chosen so the resulting real-leaf count lands both exactly on a power of K
+  // (125/25=5 real leaves -> pads to 8) and well off of one (125/7=18 real leaves -> pads to 32;
+  // 125/1=125 real leaves -> pads to 128), exercising the padding path at different ratios.
+  for (const size_t targetLeafSize : {size_t(1), size_t(7), size_t(25), size_t(125)}) {
+    INFO("Target leaf size: " << targetLeafSize);
+
+    std::vector<std::pair<Pnt, AABB>> primsAndBVs;
+    primsAndBVs.reserve(positions.size());
+    for (const auto& pos : positions) {
+      primsAndBVs.emplace_back(Pnt{pos}, AABB(pos, pos));
+    }
+
+    const BVH::PackedBVH<T, Pnt, K> packed(std::move(primsAndBVs), targetLeafSize);
+
+    REQUIRE(packed.getPrimitives().size() == positions.size());
+
+    const auto& prims = packed.getPrimitives();
+
+    const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+    for (const auto& q : queryPoints<T>()) {
+      T          state    = std::numeric_limits<T>::max();
+      const auto evalLeaf = [&prims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+        for (size_t i = 0; i < a_count; i++) {
+          const T d2 = (prims[a_offset + i]->m_pos - q).length2();
+          if (d2 < a_state) {
+            a_state = d2;
+          }
+        }
+      };
+
+      packed.pruneTraverse(q, state, evalLeaf, pruneDist2);
+
+      REQUIRE_THAT(state, withinAbsT(bruteForceNearest2(positions, q), traversalMargin<T>()));
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor handles degenerate-axis primitive "
+                   "sets, same as TreeBVH::bottomUpSortAndPartition",
+                   "[BVH][DirectSFCBuild]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  auto buildAndCheck = [&](const std::vector<Vec3>& a_positions) {
+    std::vector<std::pair<Pnt, AABB>> primsAndBVs;
+    primsAndBVs.reserve(a_positions.size());
+    for (const auto& pos : a_positions) {
+      primsAndBVs.emplace_back(Pnt{pos}, AABB(pos, pos));
+    }
+
+    const BVH::PackedBVH<T, Pnt, K> packed(std::move(primsAndBVs), size_t(4));
+
+    REQUIRE(packed.getPrimitives().size() == a_positions.size());
+
+    const auto& prims      = packed.getPrimitives();
+    const auto  pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+    for (const auto& q : queryPoints<T>()) {
+      T          state    = std::numeric_limits<T>::max();
+      const auto evalLeaf = [&prims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+        for (size_t i = 0; i < a_count; i++) {
+          const T d2 = (prims[a_offset + i]->m_pos - q).length2();
+          if (d2 < a_state) {
+            a_state = d2;
+          }
+        }
+      };
+
+      packed.pruneTraverse(q, state, evalLeaf, pruneDist2);
+
+      REQUIRE_THAT(state, withinAbsT(bruteForceNearest2(a_positions, q), traversalMargin<T>()));
+    }
+  };
+
+  SECTION("All primitives exactly coincident (degenerate on every axis)")
+  {
+    const std::vector<Vec3> positions(30, Vec3(2, -1, 3));
+    buildAndCheck(positions);
+  }
+
+  SECTION("Planar point cloud (z == 0 for every primitive, x/y vary normally)")
+  {
+    std::vector<Vec3> positions;
+    for (int i = 0; i < 8; i++) {
+      for (int j = 0; j < 8; j++) {
+        positions.emplace_back(T(i), T(j), T(0));
+      }
+    }
+    buildAndCheck(positions);
+  }
+
+  SECTION("Cluster of exact duplicates plus a few distinct outliers")
+  {
+    std::vector<Vec3> positions(20, Vec3(0, 0, 0));
+    positions.emplace_back(5, 5, 5);
+    positions.emplace_back(-5, -5, -5);
+    positions.emplace_back(10, 0, 0);
+    buildAndCheck(positions);
+  }
+
+  SECTION("Single primitive (root is itself a leaf, no internal nodes at all)")
+  {
+    const std::vector<Vec3> positions{Vec3(1, 2, 3)};
+    buildAndCheck(positions);
+  }
+}
+
+TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor -- BVH::ValueStorage agrees with the "
+                   "default BVH::SharedPtrStorage",
+                   "[BVH][DirectSFCBuild][StoragePolicy]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  std::vector<Vec3> positions;
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      for (int k = 0; k < 5; k++) {
+        positions.emplace_back(T(i) + T(0.3) * T(j), T(j) - T(0.2) * T(k), T(k) + T(0.1) * T(i));
+      }
+    }
+  }
+
+  auto buildPrims = [&]() {
+    std::vector<std::pair<Pnt, AABB>> primsAndBVs;
+    primsAndBVs.reserve(positions.size());
+    for (const auto& pos : positions) {
+      primsAndBVs.emplace_back(Pnt{pos}, AABB(pos, pos));
+    }
+    return primsAndBVs;
+  };
+
+  const BVH::PackedBVH<T, Pnt, K>                         sharedStorage(buildPrims(), size_t(7));
+  const BVH::PackedBVH<T, Pnt, K, BVH::ValueStorage<Pnt>> valueStorage(buildPrims(), size_t(7));
+
+  REQUIRE(sharedStorage.getPrimitives().size() == positions.size());
+  REQUIRE(valueStorage.getPrimitives().size() == positions.size());
+
+  const auto& sharedPrims = sharedStorage.getPrimitives();
+  const auto& valuePrims  = valueStorage.getPrimitives();
+
+  const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+  for (const auto& q : queryPoints<T>()) {
+    T sharedState = std::numeric_limits<T>::max();
+    T valueState  = std::numeric_limits<T>::max();
+
+    const auto sharedEval = [&sharedPrims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        const T d2 = (sharedPrims[a_offset + i]->m_pos - q).length2();
+        if (d2 < a_state) {
+          a_state = d2;
+        }
+      }
+    };
+    const auto valueEval = [&valuePrims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        const T d2 = (valuePrims[a_offset + i].m_pos - q).length2();
+        if (d2 < a_state) {
+          a_state = d2;
+        }
+      }
+    };
+
+    sharedStorage.pruneTraverse(q, sharedState, sharedEval, pruneDist2);
+    valueStorage.pruneTraverse(q, valueState, valueEval, pruneDist2);
+
+    REQUIRE_THAT(valueState, withinAbsT(sharedState, traversalMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("PackedBVH: direct SFC-build constructor accepts an explicit SFC curve "
+                   "(SFC::Nested)",
+                   "[BVH][DirectSFCBuild]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  std::vector<Vec3> positions;
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      for (int k = 0; k < 5; k++) {
+        positions.emplace_back(T(i) + T(0.3) * T(j), T(j) - T(0.2) * T(k), T(k) + T(0.1) * T(i));
+      }
+    }
+  }
+
+  std::vector<std::pair<Pnt, AABB>> primsAndBVs;
+  primsAndBVs.reserve(positions.size());
+  for (const auto& pos : positions) {
+    primsAndBVs.emplace_back(Pnt{pos}, AABB(pos, pos));
+  }
+
+  const BVH::PackedBVH<T, Pnt, K> packed(std::move(primsAndBVs), size_t(6), SFC::Nested{});
+
+  REQUIRE(packed.getPrimitives().size() == positions.size());
+
+  const auto& prims      = packed.getPrimitives();
+  const auto  pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+  for (const auto& q : queryPoints<T>()) {
+    T          state    = std::numeric_limits<T>::max();
+    const auto evalLeaf = [&prims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        const T d2 = (prims[a_offset + i]->m_pos - q).length2();
+        if (d2 < a_state) {
+          a_state = d2;
+        }
+      }
+    };
+
+    packed.pruneTraverse(q, state, evalLeaf, pruneDist2);
+
+    REQUIRE_THAT(state, withinAbsT(bruteForceNearest2(positions, q), traversalMargin<T>()));
+  }
+}

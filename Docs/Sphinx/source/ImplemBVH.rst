@@ -108,6 +108,43 @@ Build times for SFC-based bottom-up construction are generally speaking faster t
 see the Doxygen reference for
 `TreeBVH <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__.
 
+.. _Chap:DirectSFCBuild:
+
+Direct construction (no TreeBVH)
+___________________________________
+
+Both construction methods above build a ``TreeBVH`` first, then require a separate ``pack()``/
+``packWith()`` call to obtain a ``PackedBVH``. For workloads with many small, cheaply-copyable
+primitives (points, particles) built and rebuilt often, the per-node ``shared_ptr<TreeBVH>``
+allocation this implies can dominate build time. ``PackedBVH`` has a constructor that skips
+``TreeBVH`` entirely:
+
+.. code-block:: cpp
+
+   BVH::PackedBVH<T, P, K> packed(std::move(primsAndBVs), targetLeafSize);
+
+It takes primitives **by value** (``std::vector<std::pair<P, BV>>``, a sink parameter the caller
+can ``std::move`` in) rather than requiring a ``shared_ptr``-wrapped list, regardless of this
+``PackedBVH``'s ``StoragePolicy`` (see :ref:`Chap:PackedBVH`'s "Storage policy" section) — combined
+with ``BVH::ValueStorage<P>``, this is genuinely pointer-free from input to final storage.
+
+Internally, this constructor:
+
+#. Sorts primitives along a space-filling curve (``SFC::Morton`` by default; pass e.g.
+   ``SFC::Nested{}`` as an optional trailing argument to select another curve — a constructor
+   template's own parameters can't be explicitly named the way a regular function template's can,
+   so this is a stateless tag value purely to let the curve type be deduced).
+#. Cuts leaves via a single linear left-to-right scan at a caller-chosen **target leaf size**,
+   rather than deriving a leaf count purely from primitive count and ``K`` the way
+   ``bottomUpSortAndPartition()`` does — giving direct control over leaf occupancy.
+#. Merges the resulting leaves upward in groups of ``K``, padding the leaf count up to the next
+   power of ``K`` (by re-using the last real leaf's node in place of any missing child, rather than
+   inventing an empty placeholder) whenever it isn't already one, so every interior node still has
+   exactly ``K`` children — no change to ``Node``'s shape or to ``traverse()``/``pruneTraverse()``.
+
+Since this still produces an ordinary ``PackedBVH``, every existing traversal/query facility
+(``traverse()``, ``pruneTraverse()``, the SIMD dispatch) works with it identically, unchanged.
+
 .. tip::
 
    Higher-level entry points such as ``Parser::readIntoPackedBVH`` don't require you to

@@ -157,27 +157,22 @@ TreeBVH<T, P, BV, K>::topDownSortAndPartition(const Partitioner& a_partitioner, 
   m_partitioned = true;
 }
 
-template <class T, class P, class BV, size_t K>
-template <typename S>
-inline void
-TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
+template <class T>
+inline std::vector<SFC::Index>
+computeSFCBins(const std::vector<Vec3T<T>>& a_centroids) noexcept
 {
   // The space-filling curves operate on positive coordinates only, using up to 2^21 valid bits
-  // per coordinate direction. The centroids of the bounding volumes use this coordinate system
-  // rather than the "real" coordinates.
-  std::vector<SFC::Index> bins;
+  // per coordinate direction. The input centroids use this coordinate system rather than the
+  // "real" coordinates.
+  Vec3T<T> minCoord = +Vec3T<T>::infinity();
+  Vec3T<T> maxCoord = -Vec3T<T>::infinity();
 
-  Vec3 minCoord = +Vec3::infinity();
-  Vec3 maxCoord = -Vec3::infinity();
-
-  for (const auto& bv : m_boundingVolumes) {
-    const auto& curCentroid = bv.getCentroid();
-
-    minCoord = min(minCoord, curCentroid);
-    maxCoord = max(maxCoord, curCentroid);
+  for (const auto& c : a_centroids) {
+    minCoord = min(minCoord, c);
+    maxCoord = max(maxCoord, c);
   }
 
-  Vec3 delta = (maxCoord - minCoord) / SFC::ValidSpan;
+  Vec3T<T> delta = (maxCoord - minCoord) / SFC::ValidSpan;
 
   // A zero delta component means every centroid coincides on that axis (minCoord == maxCoord
   // there), e.g. a planar point cloud or a cluster of duplicate points -- not a hypothetical
@@ -192,13 +187,32 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
     }
   }
 
-  for (const auto& bv : m_boundingVolumes) {
-    const Vec3 curBin = (bv.getCentroid() - minCoord) / delta;
+  std::vector<SFC::Index> bins;
+  bins.reserve(a_centroids.size());
+
+  for (const auto& c : a_centroids) {
+    const Vec3T<T> curBin = (c - minCoord) / delta;
 
     bins.emplace_back(SFC::Index{static_cast<unsigned int>(std::floor(curBin[0])),
                                  static_cast<unsigned int>(std::floor(curBin[1])),
                                  static_cast<unsigned int>(std::floor(curBin[2]))});
   }
+
+  return bins;
+}
+
+template <class T, class P, class BV, size_t K>
+template <typename S>
+inline void
+TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
+{
+  std::vector<Vec3> centroids;
+  centroids.reserve(m_boundingVolumes.size());
+  for (const auto& bv : m_boundingVolumes) {
+    centroids.push_back(bv.getCentroid());
+  }
+
+  const std::vector<SFC::Index> bins = BVH::computeSFCBins<T>(centroids);
 
   // Sort the primitives, their BVs, and their spatial bins along the space-filling curves.
   using PrimBvAndCode = std::tuple<std::shared_ptr<const P>, BV, SFC::Code>;
@@ -493,6 +507,151 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(
   StoragePolicy::appendAliased(m_primitives, dstStorage);
 
   this->buildSoA();
+}
+
+template <class T, class P, size_t K, class StoragePolicy>
+template <class S>
+inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>> a_primsAndBVs,
+                                                    size_t                        a_targetLeafSize,
+                                                    S)
+{
+  EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+  EBGEOMETRY_EXPECT(a_targetLeafSize > 0);
+
+  const size_t numPrimitives = a_primsAndBVs.size();
+
+  // Sort primitives along the space-filling curve, exactly like
+  // TreeBVH::bottomUpSortAndPartition() (same binning helper), but keeping P by value throughout
+  // -- no shared_ptr anywhere in this constructor.
+  std::vector<Vec3T<T>> centroids;
+  centroids.reserve(numPrimitives);
+  for (const auto& pbv : a_primsAndBVs) {
+    centroids.push_back(pbv.second.getCentroid());
+  }
+
+  const std::vector<SFC::Index> bins = BVH::computeSFCBins<T>(centroids);
+
+  using PrimBvAndCode = std::tuple<P, BV, SFC::Code>;
+
+  std::vector<PrimBvAndCode> sortedPrimitives;
+  sortedPrimitives.reserve(numPrimitives);
+  for (size_t i = 0; i < numPrimitives; i++) {
+    sortedPrimitives.emplace_back(std::move(a_primsAndBVs[i].first), a_primsAndBVs[i].second, S::encode(bins[i]));
+  }
+  a_primsAndBVs.clear();
+
+  std::sort(sortedPrimitives.begin(),
+            sortedPrimitives.end(),
+            [](const PrimBvAndCode& a_lhs, const PrimBvAndCode& a_rhs) noexcept -> bool {
+              return std::get<2>(a_lhs) < std::get<2>(a_rhs);
+            });
+
+  // Cut leaves via a single linear scan at the target leaf size (unlike
+  // TreeBVH::bottomUpSortAndPartition(), which derives a leaf count of K^floor(log_K(N)) from N
+  // and K alone).
+  struct LeafRange
+  {
+    uint32_t offset;
+    uint32_t count;
+    BV       bv;
+  };
+
+  std::vector<LeafRange> leafRanges;
+  for (size_t i = 0; i < numPrimitives;) {
+    const size_t count = std::min(a_targetLeafSize, numPrimitives - i);
+
+    std::vector<BV> leafBVs;
+    leafBVs.reserve(count);
+    for (size_t j = 0; j < count; j++) {
+      leafBVs.push_back(std::get<1>(sortedPrimitives[i + j]));
+    }
+
+    leafRanges.push_back({static_cast<uint32_t>(i), static_cast<uint32_t>(count), BV(leafBVs)});
+    i += count;
+  }
+
+  // Populate the primitive array once, in final sorted order -- independent of whatever order
+  // the node array below ends up being built/relaid-out in.
+  auto primBlock = std::make_shared<std::vector<P>>();
+  primBlock->reserve(numPrimitives);
+  for (auto& entry : sortedPrimitives) {
+    primBlock->push_back(std::move(std::get<0>(entry)));
+  }
+  StoragePolicy::appendAliased(m_primitives, primBlock);
+
+  // Build the K-ary structure bottom-up in a scratch array (reusing Node's own shape), then relay
+  // it out into m_linearNodes in depth-first pre-order below -- a bottom-up merge naturally
+  // produces the root last, but PackedBVH's traversal assumes the root is always at index 0.
+  const size_t numRealLeaves = leafRanges.size();
+
+  size_t paddedLeafCount = 1;
+  while (paddedLeafCount < numRealLeaves) {
+    paddedLeafCount *= K;
+  }
+
+  std::vector<Node> scratch(paddedLeafCount);
+  for (size_t i = 0; i < numRealLeaves; i++) {
+    scratch[i].setBoundingVolume(leafRanges[i].bv);
+    scratch[i].setPrimitivesOffset(leafRanges[i].offset);
+    scratch[i].setNumPrimitives(leafRanges[i].count);
+  }
+
+  // Padding slots (present only when numRealLeaves isn't already a power of K) reuse the last
+  // real leaf's scratch index rather than inventing an empty placeholder node: the resulting
+  // duplicate Node entries (one per parent that references it) are cheap, and re-visiting the
+  // same primitives more than once is harmless for any min-reduction query -- see the
+  // constructor's doxygen comment.
+  std::vector<uint32_t> levelIndices(paddedLeafCount);
+  for (size_t i = 0; i < paddedLeafCount; i++) {
+    levelIndices[i] = static_cast<uint32_t>(i < numRealLeaves ? i : numRealLeaves - 1);
+  }
+
+  while (levelIndices.size() > 1) {
+    const size_t          numParents = levelIndices.size() / K;
+    std::vector<uint32_t> parentIndices(numParents);
+
+    for (size_t p = 0; p < numParents; p++) {
+      const uint32_t parentIdx = static_cast<uint32_t>(scratch.size());
+      scratch.emplace_back();
+
+      std::vector<BV> childBVs;
+      childBVs.reserve(K);
+      for (size_t c = 0; c < K; c++) {
+        const uint32_t childIdx = levelIndices[p * K + c];
+        scratch[parentIdx].setChildOffset(childIdx, c);
+        childBVs.push_back(scratch[childIdx].getBoundingVolume());
+      }
+      scratch[parentIdx].setBoundingVolume(BV(childBVs));
+
+      parentIndices[p] = parentIdx;
+    }
+
+    levelIndices = std::move(parentIndices);
+  }
+
+  const uint32_t scratchRoot = levelIndices.front();
+
+  // Relay the scratch tree into m_linearNodes in depth-first pre-order (root at index 0), exactly
+  // matching the invariant the other two constructors establish.
+  m_linearNodes.reserve(scratch.size());
+
+  std::function<uint32_t(uint32_t)> relayout = [&](uint32_t a_scratchIdx) -> uint32_t {
+    const uint32_t newIdx = static_cast<uint32_t>(m_linearNodes.size());
+    m_linearNodes.push_back(scratch[a_scratchIdx]);
+
+    if (!scratch[a_scratchIdx].isLeaf()) {
+      for (size_t c = 0; c < K; c++) {
+        const uint32_t newChildIdx = relayout(scratch[a_scratchIdx].getChildOffsets()[c]);
+        m_linearNodes[newIdx].setChildOffset(static_cast<uint32_t>(newChildIdx), c);
+      }
+    }
+
+    return newIdx;
+  };
+
+  relayout(scratchRoot);
+
+  buildSoA();
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
