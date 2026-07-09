@@ -35,9 +35,10 @@ namespace EBGeometry {
  * which lane (and therefore which point) won, via getMetaData().
  * @tparam T    Floating-point precision.
  * @tparam Meta User-defined metadata type stored with each point.
- * @tparam W    SIMD width; see PointSoAT.
+ * @tparam W    SIMD width; see PointSoAT. Defaults to PointSoA::DefaultWidth<T>(), matching
+ * PointSoAT's own default.
  */
-template <class T, class Meta, size_t W>
+template <class T, class Meta, size_t W = PointSoA::DefaultWidth<T>()>
 struct PointAoSoA
 {
   static_assert(W > 0, "W must be positive");

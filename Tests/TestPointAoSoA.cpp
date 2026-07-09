@@ -156,3 +156,42 @@ TEMPLATE_TEST_CASE("PointAoSoA::computeBoundingVolume matches an AABB built dire
     REQUIRE_THAT(bv.getHighCorner()[i], withinAbsT(expected.getHighCorner()[i], looseMargin<T>()));
   }
 }
+
+TEMPLATE_TEST_CASE("PointAoSoA: omitting W defaults to PointSoA::DefaultWidth<T>(), matching "
+                   "PointSoAT's own default",
+                   "[PointAoSoA]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T                 = TestType;
+  using DefaultWidthAoSoA = PointAoSoA<T, short>;
+
+  static_assert(std::is_same_v<DefaultWidthAoSoA, PointAoSoA<T, short, PointSoA::DefaultWidth<T>()>>,
+                "PointAoSoA<T, Meta> (W omitted) must equal PointAoSoA<T, Meta, PointSoA::DefaultWidth<T>()>");
+
+  const size_t defaultWidth = PointSoA::DefaultWidth<T>();
+
+  std::vector<Vec3T<T>> positions;
+  std::vector<short>    metaData;
+  positions.reserve(defaultWidth);
+  metaData.reserve(defaultWidth);
+  for (size_t i = 0; i < defaultWidth; i++) {
+    positions.emplace_back(T(3.0) * T(i), T(0), T(0));
+    metaData.emplace_back(static_cast<short>(10 + i));
+  }
+
+  DefaultWidthAoSoA group;
+  group.pack(positions.data(), metaData.data(), static_cast<uint32_t>(positions.size()));
+
+  for (const auto& q : queryPoints<T>()) {
+    T best2 = std::numeric_limits<T>::max();
+    for (const auto& pos : positions) {
+      best2 = std::min(best2, (pos - q).length2());
+    }
+
+    REQUIRE_THAT(group.getDistance2(q), withinAbsT(best2, looseMargin<T>()));
+  }
+
+  for (size_t i = 0; i < defaultWidth; i++) {
+    REQUIRE(group.getMetaData(i) == static_cast<short>(10 + i));
+  }
+}

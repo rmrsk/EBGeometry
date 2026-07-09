@@ -90,9 +90,12 @@ DefaultWidth() noexcept
  * is aligned to `alignof(PointSoAT<T, W>)`; nothing in this class enforces or checks that.
  * @tparam T Floating-point precision.
  * @tparam W SIMD width: 4 for SSE (128-bit), 8 for AVX (256-bit float) or AVX-512F (512-bit
- * double), 16 for AVX-512F (512-bit float).
+ * double), 16 for AVX-512F (512-bit float). Defaults to PointSoA::DefaultWidth<T>(), the width
+ * that fills one SIMD register exactly for T on the current target ISA -- note this default is
+ * itself different for float and double (see the table above), so PointSoAT<float> and
+ * PointSoAT<double> do not, in general, share a width even both left at their defaults.
  */
-template <class T, size_t W>
+template <class T, size_t W = PointSoA::DefaultWidth<T>()>
 struct PointSoAT
 {
   static_assert(W > 0, "W must be positive");

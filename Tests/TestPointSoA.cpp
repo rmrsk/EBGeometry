@@ -217,3 +217,37 @@ TEMPLATE_TEST_CASE("PointSoAT (W=8): getDistance/getDistance2 unaffected by padd
     REQUIRE_THAT(group.getDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
   }
 }
+
+// Leaving W unspecified must pick up PointSoA::DefaultWidth<T>() -- and, per that function's own
+// table, float and double do not, in general, share a default width on the same ISA (e.g. AVX:
+// float->8, double->4), so this is checked per-precision rather than assumed to match TestType's
+// sibling.
+TEMPLATE_TEST_CASE("PointSoAT: omitting W defaults to PointSoA::DefaultWidth<T>(), and is usable "
+                   "end-to-end at that width",
+                   "[PointSoA]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T               = TestType;
+  using DefaultWidthSoA = PointSoAT<T>;
+
+  static_assert(std::is_same_v<DefaultWidthSoA, PointSoAT<T, PointSoA::DefaultWidth<T>()>>,
+                "PointSoAT<T> (W omitted) must equal PointSoAT<T, PointSoA::DefaultWidth<T>()>");
+
+  const size_t defaultWidth = PointSoA::DefaultWidth<T>();
+
+  std::vector<Vec3T<T>> positions;
+  positions.reserve(defaultWidth);
+  for (size_t i = 0; i < defaultWidth; i++) {
+    positions.emplace_back(T(3.0) * T(i), T(0), T(0));
+  }
+
+  DefaultWidthSoA group;
+  group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
+
+  for (const auto& q : queryPoints<T>()) {
+    const T expected2 = minDistance2<T>(positions, q);
+
+    REQUIRE_THAT(group.getDistance2(q), withinAbsT(expected2, looseMargin<T>()));
+    REQUIRE_THAT(group.getDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
+  }
+}
