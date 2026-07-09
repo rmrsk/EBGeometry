@@ -4,19 +4,25 @@ on:
   push:
     branches: main
 
+# Allow the deploy job to publish to GitHub Pages via OIDC (no branch, no stored credentials).
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-docs
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          persist-credentials: false        
+          persist-credentials: false
 
       - name: Install dependencies
         run: |
@@ -40,7 +46,7 @@ jobs:
           Scripts/build-doc-figures.sh
 
       - name: Build HTML documentation
-        working-directory: ${{ github.workspace }}/Docs/Sphinx        
+        working-directory: ${{ github.workspace }}/Docs/Sphinx
         run: |
           make html
 
@@ -55,12 +61,19 @@ jobs:
           cp -a Sphinx/build/html/* ./
           mv Sphinx/build/latex/ebgeometry.pdf ./
           rm -rf Sphinx/build
-          
-      - name: Deploy
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'        
-        uses: JamesIves/github-pages-deploy-action@3.7.1
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: gh-pages
-          folder: Docs
-          clean: false
+          path: Docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
