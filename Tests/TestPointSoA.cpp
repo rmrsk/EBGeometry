@@ -147,3 +147,73 @@ TEMPLATE_TEST_CASE("PointSoAT::computeBoundingVolume matches an AABB built direc
     REQUIRE_THAT(bv.getHighCorner()[i], withinAbsT(expected.getHighCorner()[i], looseMargin<T>()));
   }
 }
+
+// W=8 coverage, in addition to the W=4 cases above: on this repo's supported compile targets,
+// W=4 exercises the SSE4.1 (float) and single-pass AVX (double) SIMD branches, while W=8
+// exercises the AVX (float) and two-pass AVX (double) branches -- a different pair of branches in
+// PointSoAT::getDistance2()'s dispatch. (AVX-512F's W=16 float / W=8 double branches are not
+// covered by a runtime test in this repo's CI hardware; they get a compile-only check instead --
+// see Scripts/clang-tidy-check.sh's -DEBGEOMETRY_SIMD=avx512 configuration.)
+namespace {
+
+constexpr size_t W8 = 8;
+
+template <class T>
+using SoA8 = PointSoAT<T, W8>;
+
+template <class T>
+std::vector<Vec3T<T>>
+eightPositions()
+{
+  using Vec3 = Vec3T<T>;
+
+  std::vector<Vec3> positions;
+  positions.reserve(W8);
+  for (int i = 0; i < 8; i++) {
+    positions.emplace_back(T(3.0 * i), T(0), T(0));
+  }
+  return positions;
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("PointSoAT (W=8): getDistance/getDistance2 match the closest position when "
+                   "fully packed",
+                   "[PointSoA]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const auto positions = eightPositions<T>();
+  REQUIRE(positions.size() == W8);
+
+  SoA8<T> group;
+  group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
+
+  for (const auto& q : queryPoints<T>()) {
+    const T expected2 = minDistance2<T>(positions, q);
+
+    REQUIRE_THAT(group.getDistance2(q), withinAbsT(expected2, looseMargin<T>()));
+    REQUIRE_THAT(group.getDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("PointSoAT (W=8): getDistance/getDistance2 unaffected by padding when count < W",
+                   "[PointSoA]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  auto positions = eightPositions<T>();
+  positions.resize(3); // Pack only 3 of the 8; lanes 3-7 padded.
+
+  SoA8<T> group;
+  group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
+
+  for (const auto& q : queryPoints<T>()) {
+    const T expected2 = minDistance2<T>(positions, q);
+
+    REQUIRE_THAT(group.getDistance2(q), withinAbsT(expected2, looseMargin<T>()));
+    REQUIRE_THAT(group.getDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
+  }
+}
