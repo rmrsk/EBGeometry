@@ -35,10 +35,21 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      - name: Run codespell (pre-commit hook)
-        uses: pre-commit/action@v3.0.1
+      # pre-commit/action@v3.0.1 (the last available release) is a composite action whose own
+      # internals pin actions/cache@v4 -- a Node 20 action we don't control and can't bump by
+      # changing our own workflow. Inlined here (same steps pre-commit/action itself runs), using
+      # our own actions/cache@v6, to actually clear the deprecation warning instead of just
+      # inheriting it from an unmaintained upstream action.
+      - name: Install pre-commit
+        run: python -m pip install pre-commit
+      - run: python -m pip freeze --local
+      - name: Cache pre-commit environments
+        uses: actions/cache@v6
         with:
-          extra_args: codespell --all-files
+          path: ~/.cache/pre-commit
+          key: pre-commit-3|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Run codespell (pre-commit hook)
+        run: pre-commit run --show-diff-on-failure --color=always codespell --all-files
 
   Reuse:
     name: REUSE license compliance
@@ -46,10 +57,17 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      - name: Run reuse lint (pre-commit hook)
-        uses: pre-commit/action@v3.0.1
+      # See the comment in the Codespell job above -- same reason for inlining pre-commit/action.
+      - name: Install pre-commit
+        run: python -m pip install pre-commit
+      - run: python -m pip freeze --local
+      - name: Cache pre-commit environments
+        uses: actions/cache@v6
         with:
-          extra_args: reuse --all-files
+          path: ~/.cache/pre-commit
+          key: pre-commit-3|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Run reuse lint (pre-commit hook)
+        run: pre-commit run --show-diff-on-failure --color=always reuse --all-files
 
   Doxygen-check:
     name: Doxygen (warnings as errors)
@@ -61,10 +79,17 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y doxygen graphviz
-      - name: Run doxygen-check (pre-commit hook)
-        uses: pre-commit/action@v3.0.1
+      # See the comment in the Codespell job above -- same reason for inlining pre-commit/action.
+      - name: Install pre-commit
+        run: python -m pip install pre-commit
+      - run: python -m pip freeze --local
+      - name: Cache pre-commit environments
+        uses: actions/cache@v6
         with:
-          extra_args: doxygen-check --all-files
+          path: ~/.cache/pre-commit
+          key: pre-commit-3|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Run doxygen-check (pre-commit hook)
+        run: pre-commit run --show-diff-on-failure --color=always doxygen-check --all-files
 
   Static-analysis:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
