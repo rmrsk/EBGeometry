@@ -30,6 +30,7 @@ function(ebgeometry_add_example name)
 endfunction()
 
 ebgeometry_add_example(BuildBVH)
+ebgeometry_add_example(ClosestPoint)
 ebgeometry_add_example(CSGUnion)
 ebgeometry_add_example(MeshSDF)
 ebgeometry_add_example(OctreeBoundingVolume)
