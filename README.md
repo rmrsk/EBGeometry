@@ -23,7 +23,7 @@ Main features:
 * Turn surface meshes into SDFs, via a half-edge (DCEL) mesh representation or raw triangles.
 * Fast SDF evaluation using bounding volume hierarchies (BVHs).
 * Supports both pointer-based tree BVHs, and flattened SIMD-accelerated packed BVHs.
-* Flexible support for fast nearest-neighbor queries.
+* Generic BVH traversal, adaptable to custom queries like nearest-neighbor searches.
 * A library of analytic signed distance functions and implicit functions (spheres, boxes, and
   more)
 * Composable with transforms (translation, rotation, scaling, rounding, blending).
