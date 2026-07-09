@@ -611,3 +611,73 @@ TEMPLATE_TEST_CASE("PackedBVH: BVH::ValueStorage stores primitives inline with n
   static_assert(std::is_same_v<typename BVH::SharedPtrStorage<Pnt>::StorageType, std::shared_ptr<const Pnt>>);
   static_assert(sizeof(typename BVH::SharedPtrStorage<Pnt>::StorageType) == sizeof(std::shared_ptr<const Pnt>));
 }
+
+TEMPLATE_TEST_CASE("TriMeshSDF: default StoragePolicy is BVH::ValueStorage<TriSoA>; MeshSDF has no "
+                   "StoragePolicy choice at all",
+                   "[BVH][StoragePolicy]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  using Face   = DCEL::FaceT<T, Meta>;
+  using TriSoA = TriangleSoAT<T, W>;
+
+  // MeshSDF always shares each packed face with the DCEL mesh's own face list (no copy, and no
+  // StoragePolicy template parameter to override it): DCEL::FaceT's copy constructor deliberately
+  // does not copy its cached 2D polygon embedding (m_poly2, needed by signedDistance()'s
+  // point-in-face test), so a naive by-value copy is unsafe -- see FaceT's copy-constructor
+  // documentation. TriMeshSDF's SoA groups have no such restriction (freshly built by packing,
+  // shared with nothing else), so it defaults to storing them inline with no indirection. See
+  // ImplemBVH.rst's "Storage policy" section for the full rationale.
+  static_assert(std::is_same_v<typename MeshSDF<T, Meta, K>::Root::StorageType, std::shared_ptr<const Face>>);
+  static_assert(std::is_same_v<typename TriMeshSDF<T, Meta, K, W>::Root::StorageType, TriSoA>);
+}
+
+TEMPLATE_TEST_CASE("TriMeshSDF: explicit BVH::SharedPtrStorage<TriSoA> agrees with the default "
+                   "BVH::ValueStorage<TriSoA>",
+                   "[BVH][Dodecahedron][StoragePolicy]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  using TriSoA = TriangleSoAT<T, W>;
+
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
+  REQUIRE(mesh != nullptr);
+
+  const TriMeshSDF<T, Meta, K, W>                                defaultStorage(mesh, BVH::Build::SAH, 2);
+  const TriMeshSDF<T, Meta, K, W, BVH::SharedPtrStorage<TriSoA>> sharedStorage(mesh, BVH::Build::SAH, 2);
+
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE_THAT(sharedStorage.signedDistance(p), withinAbsT(defaultStorage.signedDistance(p), traversalMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("Parser::readIntoTriangleBVH accepts an explicit StoragePolicy override",
+                   "[BVH][Parser][StoragePolicy]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  using TriSoA = TriangleSoAT<T, W>;
+
+  const auto defaultTri = Parser::readIntoTriangleBVH<T, Meta, K, W>(dataPath("dodecahedron.stl"));
+  const auto sharedTri =
+    Parser::readIntoTriangleBVH<T, Meta, K, W, BVH::SharedPtrStorage<TriSoA>>(dataPath("dodecahedron.stl"));
+
+  REQUIRE(defaultTri != nullptr);
+  REQUIRE(sharedTri != nullptr);
+
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE_THAT(sharedTri->signedDistance(p), withinAbsT(defaultTri->signedDistance(p), formatMargin<T>()));
+  }
+}

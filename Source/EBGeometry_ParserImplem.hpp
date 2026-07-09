@@ -1888,8 +1888,8 @@ Parser::readIntoTriangles(const std::vector<std::string>& a_files)
   return triangles;
 }
 
-template <typename T, typename Meta, size_t K, size_t W>
-[[nodiscard]] inline std::shared_ptr<TriMeshSDF<T, Meta, K, W>>
+template <typename T, typename Meta, size_t K, size_t W, class StoragePolicy>
+[[nodiscard]] inline std::shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>
 Parser::readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeafGroups, const BVH::Build a_build)
 {
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
@@ -1897,11 +1897,11 @@ Parser::readIntoTriangleBVH(const std::string a_filename, const size_t a_maxLeaf
   static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
   const auto mesh = EBGeometry::Parser::readIntoTriangles<T, Meta>(a_filename);
 
-  return std::make_shared<TriMeshSDF<T, Meta, K, W>>(mesh, a_build, a_maxLeafGroups);
+  return std::make_shared<TriMeshSDF<T, Meta, K, W, StoragePolicy>>(mesh, a_build, a_maxLeafGroups);
 }
 
-template <typename T, typename Meta, size_t K, size_t W>
-[[nodiscard]] inline std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>>
+template <typename T, typename Meta, size_t K, size_t W, class StoragePolicy>
+[[nodiscard]] inline std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>>
 Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
                             const size_t                    a_maxLeafGroups,
                             const BVH::Build                a_build)
@@ -1909,11 +1909,12 @@ Parser::readIntoTriangleBVH(const std::vector<std::string>& a_files,
   static_assert(std::is_floating_point_v<T>, "Parser::readIntoTriangleBVH requires T to be a floating-point type");
   static_assert(K > 0, "Parser::readIntoTriangleBVH requires K > 0");
   static_assert(W > 0, "Parser::readIntoTriangleBVH requires W > 0");
-  std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>> implicitFunctions;
+  std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>> implicitFunctions;
 
   implicitFunctions.reserve(a_files.size());
   for (const auto& file : a_files) {
-    implicitFunctions.emplace_back(Parser::readIntoTriangleBVH<T, Meta, K, W>(file, a_maxLeafGroups, a_build));
+    implicitFunctions.emplace_back(
+      Parser::readIntoTriangleBVH<T, Meta, K, W, StoragePolicy>(file, a_maxLeafGroups, a_build));
   }
 
   return implicitFunctions;

@@ -368,12 +368,12 @@ BVH type, and supported geometry:
      - Debug / tiny meshes only; no build cost
    * - ``MeshSDF<T, Meta, K>``
      - DCEL mesh
-     - ``PackedBVH`` over ``DCEL::FaceT``
+     - ``PackedBVH`` over ``DCEL::FaceT`` (always ``BVH::SharedPtrStorage``)
      - ``pruneTraverse()`` (SIMD when ``(K, T)`` matches a compiled ISA path)
      - Any polygon mesh; not restricted to triangles
-   * - ``TriMeshSDF<T, Meta, K, W>``
+   * - ``TriMeshSDF<T, Meta, K, W, StoragePolicy>``
      - DCEL mesh or triangle soup
-     - ``PackedBVH`` over SoA triangle groups
+     - ``PackedBVH`` over SoA triangle groups (``BVH::ValueStorage`` by default)
      - ``pruneTraverse()`` over SoA-packed leaves
      - Triangle meshes only; highest throughput
 
@@ -398,6 +398,39 @@ itself.
 
 What is actually vectorised in ``TriMeshSDF``/``PackedBVH`` is covered in
 :ref:`Chap:SIMDClasses` -- see that page for the full detail rather than repeating it here.
+
+Primitive storage: why MeshSDF and TriMeshSDF default differently
+___________________________________________________________________
+
+Both classes' underlying ``PackedBVH`` accepts the ``StoragePolicy`` axis described above, but
+they default -- and, for ``MeshSDF``, are restricted -- differently:
+
+*  ``MeshSDF`` always uses ``BVH::SharedPtrStorage<DCEL::FaceT<T, Meta>>`` and does not expose a
+   ``StoragePolicy`` template parameter at all. This is not merely a default: ``DCEL::FaceT``'s
+   copy constructor deliberately does *not* copy its cached 2D polygon embedding (used by
+   ``signedDistance()``'s point-in-face test) or its inside/outside algorithm choice, since
+   ``FaceT``'s half-edge back-reference is only topologically meaningful relative to a specific
+   mesh (the same reasoning documented for ``VertexT``/``EdgeT``'s copy constructors). A
+   ``BVH::ValueStorage``-style plain copy would therefore leave every packed face with an
+   uninitialized embedding, crashing on the first query rather than merely losing sharing --
+   so ``MeshSDF`` simply never offers that choice.
+*  ``TriMeshSDF`` defaults to ``BVH::ValueStorage<TriangleSoAT<T, W>>`` instead of
+   ``BVH::SharedPtrStorage``, and *does* expose ``StoragePolicy`` as an overridable template
+   parameter (its 5th, after ``W``). Unlike ``DCEL::FaceT``, each ``TriangleSoAT<T, W>`` group is
+   a plain aggregate of coordinate arrays with no cached derived state or back-references, built
+   fresh by ``groupTrianglesIntoSoA()`` during packing and shared with nothing else -- so storing
+   it inline is both safe and, avoiding one heap allocation and pointer indirection per group,
+   the better default.
+
+Neither default is affected by instancing the same mesh multiple times (e.g. placing several
+``Translate``/``Rotate``/``Scale``-wrapped copies of one mesh into a ``Union``): those wrappers
+hold a ``shared_ptr`` to the whole ``MeshSDF``/``TriMeshSDF`` object (see :ref:`Chap:ImplemCSG`),
+so its packed data is shared once per wrapper regardless of how that one object's own
+``PackedBVH`` stores its primitives internally.
+
+``Parser::readIntoPackedBVH`` mirrors ``MeshSDF`` (no ``StoragePolicy`` parameter);
+``Parser::readIntoTriangleBVH`` mirrors ``TriMeshSDF`` (``StoragePolicy`` as its 5th template
+parameter, defaulting to ``BVH::ValueStorage<TriangleSoAT<T, W>>``). See :ref:`Chap:Parsers`.
 
 SIMD-optimal K and W by ISA
 ______________________________

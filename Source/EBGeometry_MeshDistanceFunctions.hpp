@@ -99,7 +99,14 @@ protected:
  * @brief Signed distance function for a DCEL mesh. Stores the mesh in a PackedBVH for
  * SIMD-accelerated traversal. Accepts any polygon, not just triangles.
  * @details The mesh faces are packed into a flat-array PackedBVH. SIMD traversal
- * is used when T and K match an available ISA path.
+ * is used when T and K match an available ISA path. Unlike TriMeshSDF, MeshSDF does not expose a
+ * PackedBVH StoragePolicy choice: its PackedBVH always uses BVH::SharedPtrStorage<Face>, sharing
+ * each packed face with the DCEL mesh's own face list rather than copying it. This is not just a
+ * default -- DCEL::FaceT's copy constructor deliberately does not copy its cached 2D polygon
+ * embedding (m_poly2, used by signedDistance()'s point-in-face test), so a naive by-value copy
+ * (as BVH::ValueStorage would produce) is left with a null embedding and crashes on first query;
+ * see FaceT's copy-constructor documentation. See :ref:`Chap:MeshSDFClasses` in the Sphinx docs
+ * for the full rationale, including why TriMeshSDF's SoA groups do not have this restriction.
  * @tparam T    Floating-point precision type (float or double).
  * @tparam Meta Triangle metadata type stored on each DCEL face.
  * @tparam K    BVH branching factor (number of children per internal node).
@@ -220,8 +227,21 @@ protected:
  * @tparam Meta Triangle metadata type.
  * @tparam K    BVH branching factor (number of children per internal node). Must be >= 2.
  * @tparam W    SoA width: number of triangles per SIMD group. Must be > 0.
+ * @tparam StoragePolicy PackedBVH primitive storage policy (see BVH::SharedPtrStorage /
+ * BVH::ValueStorage). Defaults to BVH::ValueStorage<TriangleSoAT<T, W>>, storing each SoA group
+ * inline with no pointer indirection -- unlike MeshSDF's faces, these groups are freshly
+ * constructed by groupTrianglesIntoSoA() during packing and shared with nothing else, so there is
+ * no aliasing benefit to give up. Note that instancing the same mesh multiple times (e.g. via
+ * Translate/Rotate/Scale or a CSG union) is unaffected either way: those wrappers hold a
+ * shared_ptr to the whole TriMeshSDF, so its packed data -- however StoragePolicy stores it -- is
+ * never duplicated per placement. See :ref:`Chap:MeshSDFClasses` in the Sphinx docs for the full
+ * rationale.
  */
-template <class T, class Meta, size_t K, size_t W>
+template <class T,
+          class Meta,
+          size_t K,
+          size_t W,
+          class StoragePolicy = BVH::ValueStorage<EBGeometry::TriangleSoAT<T, W>>>
 class TriMeshSDF : public SignedDistanceFunction<T>
 {
   static_assert(std::is_floating_point_v<T>, "TriMeshSDF<T,Meta,K,W> requires a floating-point T");
@@ -247,7 +267,7 @@ public:
   /**
    * @brief Alias for which BVH root node
    */
-  using Root = typename EBGeometry::BVH::PackedBVH<T, TriSoA, K>;
+  using Root = typename EBGeometry::BVH::PackedBVH<T, TriSoA, K, StoragePolicy>;
 
   /**
    * @brief Default disallowed constructor

@@ -242,6 +242,9 @@ readIntoPackedBVH(const std::vector<std::string>& a_files, const BVH::Build a_bu
  * on AVX; K=4 otherwise). Override only when benchmarking or using non-SIMD builds.
  * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>()
  * (8/float or 4/double on AVX; 4 otherwise).
+ * @tparam StoragePolicy PackedBVH primitive storage policy forwarded to TriMeshSDF (see
+ * BVH::SharedPtrStorage / BVH::ValueStorage). Defaults to
+ * BVH::ValueStorage<TriangleSoAT<T, W>>, matching TriMeshSDF's own default.
  * @param[in] a_filename      File name (STL, PLY, or VTK).
  * @param[in] a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
  * actual raw-triangle leaf-size bound used is a_maxLeafGroups * W (see TriMeshSDF's mesh-based
@@ -250,10 +253,11 @@ readIntoPackedBVH(const std::vector<std::string>& a_files, const BVH::Build a_bu
  * @return Shared pointer to the TriMeshSDF enclosing the mesh.
  */
 template <typename T,
-          typename Meta = DCEL::DefaultMetaData,
-          size_t K      = BVH::DefaultBranchingRatio<T>(),
-          size_t W      = TriangleSoA::DefaultWidth<T>()>
-[[nodiscard]] inline static std::shared_ptr<TriMeshSDF<T, Meta, K, W>>
+          typename Meta       = DCEL::DefaultMetaData,
+          size_t K            = BVH::DefaultBranchingRatio<T>(),
+          size_t W            = TriangleSoA::DefaultWidth<T>(),
+          class StoragePolicy = BVH::ValueStorage<TriangleSoAT<T, W>>>
+[[nodiscard]] inline static std::shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>
 readIntoTriangleBVH(const std::string a_filename,
                     const size_t      a_maxLeafGroups = 4,
                     const BVH::Build  a_build         = BVH::Build::SAH);
@@ -264,6 +268,8 @@ readIntoTriangleBVH(const std::string a_filename,
  * @tparam Meta Per-face metadata type.
  * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() (see single-file overload).
  * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>().
+ * @tparam StoragePolicy PackedBVH primitive storage policy forwarded to TriMeshSDF (see the
+ * single-file overload).
  * @param[in] a_files         List of file names (STL, PLY, or VTK).
  * @param[in] a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf (see
  * the single-file overload for details). Defaults to 2.
@@ -271,10 +277,11 @@ readIntoTriangleBVH(const std::string a_filename,
  * @return Vector of shared pointers to TriMeshSDF objects, one per file.
  */
 template <typename T,
-          typename Meta = DCEL::DefaultMetaData,
-          size_t K      = BVH::DefaultBranchingRatio<T>(),
-          size_t W      = TriangleSoA::DefaultWidth<T>()>
-[[nodiscard]] inline static std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W>>>
+          typename Meta       = DCEL::DefaultMetaData,
+          size_t K            = BVH::DefaultBranchingRatio<T>(),
+          size_t W            = TriangleSoA::DefaultWidth<T>(),
+          class StoragePolicy = BVH::ValueStorage<TriangleSoAT<T, W>>>
+[[nodiscard]] inline static std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>>
 readIntoTriangleBVH(const std::vector<std::string>& a_files,
                     const size_t                    a_maxLeafGroups = 2,
                     const BVH::Build                a_build         = BVH::Build::SAH);
