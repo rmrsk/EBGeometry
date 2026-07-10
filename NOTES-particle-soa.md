@@ -20,16 +20,25 @@ Last updated: 2026-07-10.
   - **top-down construction if TRAVERSAL / query time matters** — top-down trees are tighter, so
     fewer leaf visits per query. This is illustrated by the two `Examples/NearestNeighbor*`
     programs (compare their Build-ms vs Leaf-visits columns).
-- **Float precision helps BUILD time only, not traversal.** Measured: `float` build is ~2× faster
-  than `double` (i.e. `double` build takes about twice as long), while **traversal is about the same
-  in both — actually a slight edge to `double`.** Precision is a compile-time template parameter
-  (`EBGEOMETRY_PRECISION=float`). Why this shape: build is **memory-traffic bound** (see the Midpoint
-  finding below — it is dominated by copying/scanning/sorting BV+centroid data, not arithmetic), so
-  halving every value's byte size (`double` 8B -> `float` 4B) roughly halves it. Traversal is
-  **latency / branch bound** (pointer-chasing nodes, comparing a few distances), so byte size barely
-  matters; and `float`'s slightly looser tree (less precise split planes / BVs at build) gives
-  `double` a marginal traversal edge. Net rule: **use `float` when build time dominates; it buys
-  nothing (costs a hair) at query time.**
+- **Float precision helps BUILD time; traversal is on par with `double` *at the same SoA width*.**
+  Build: `float` ~2× faster than `double` — build is **memory-traffic bound** (see the Midpoint
+  finding below: it copies/scans/sorts BV+centroid data, not arithmetic), so halving every value's
+  byte size (8B -> 4B) roughly halves it. Traversal: at the hard-coded `W=4`, `float` and `double`
+  are **on par** — within a few %, row-dependent, NOT a float regression (float verification passes).
+  Precision is a compile-time template parameter (`EBGEOMETRY_PRECISION=float`).
+- **The "float traversal is slower" effect is a SoA-WIDTH effect, not precision — and `W=4` fixes
+  it.** `DefaultWidth<float>()` on AVX is **8** (vs **4** for `double`), so before pinning `W=4` the
+  float examples ran width-8 leaves. For closest-point / nearest-neighbor **min-queries**, the hot
+  cost is the per-lane **scalar reduction** (keeping the running best / the `Knn::tryInsert` dedupe +
+  insert, plus the reciprocal update in the k-NN example) — NOT the SIMD distance kernel. That scalar
+  work scales with `W`: a width-8 leaf does ~2× the per-lane reductions while the query only wants
+  the single nearest, most of it wasted. Measured (NearestNeighbor ClusterSAH, 500k, µs/pt):
+  `double@4 ~0.885`, `float@4 ~0.867`, **`float@8 ~1.34` (~1.5× slower)**. So hard-coding `W=4`
+  *improves* float traversal for these queries — the ISA-"optimal" width was tuned to fill the SIMD
+  distance register, but a min-query is bound by the scalar reduction instead. **`W=K=4` is the right
+  query-time sweet spot for BOTH precisions.** (Caveat: the effect is query-shape dependent — for the
+  cheap single-`min` ClosestPoint reduction, `float@8` was marginally *faster* on query, ~7%, than
+  `float@4`; only the heavier k-NN `tryInsert`/reciprocal reduction makes wide groups clearly lose.)
 
 ## What ClusterSAH is
 
