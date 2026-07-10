@@ -21,6 +21,10 @@ them from a `TreeBVH` via `packWith()`), building a `PackedBVH` five ways, and d
 the construction path (so the **SFC vs Tree** split no longer exists) *and* the `pruneTraverse`
 guts, behind a few high-level query methods.
 
+`GridNN/` is a separate prototype (not a superseded example): a uniform spatial-grid nearest-neighbor
+search benchmarked head to head against `PointCloudBVH`, exploring whether a grid should replace the
+tree for the self-kNN use case. See `GridNN/README.md`. Delete with the rest of `Dev/`.
+
 They are retained only so the two paths can be compared side by side during review (build strategy
 sweeps, reciprocal-culling demonstration, the SFC-vs-Tree construction contrast). None of them is
 registered in `Examples/CMakeLists.txt`, so they are **not** built or run by the top-level project
