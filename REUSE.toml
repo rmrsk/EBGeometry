@@ -31,6 +31,13 @@ path = [
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
+# Dev/: superseded point-cloud examples, kept temporarily for review comparison.
+# DELETE THIS BLOCK (and the Dev/ folder) before merging -- see Dev/DELETE_BEFORE_MERGE.md.
+[[annotations]]
+path = "Dev/**"
+SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
 # GitHub metadata and workflows
 [[annotations]]
 path = ".github/**"

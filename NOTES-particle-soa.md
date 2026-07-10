@@ -191,15 +191,30 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
   for expensive-leaf SDF/mesh queries: at every interior node it does a **near-first ordered descent**
   -- a per-node `std::sort` of the K children, driven by a SIMD child-AABB kernel that reads a
   separate `m_childAabbSoA` side array (~4 MB, thrashes L2). For cheap SoA point leaves the ordering
-  costs more than the nodes it prunes (it cuts 35.8 -> 10.9 nodes/pt, but net slower). **Fix:** the
-  k==1 path now uses a lean **unordered scalar DFS** over the packed nodes (k>1 stays on pruneTraverse,
-  where the k-best insert dominates and the tighter bound helps). Traversal-only, 500k self-NN,
-  double: pruneTraverse 0.35 -> lean **0.28** us/pt (~20% win; even beats the 0.315 prototype -- the
-  class tree is slightly tighter, 2.16 vs 2.22 leaf/pt). The apparent extra "2x vs prototype" was a
-  **harness artifact**: a repeat-call benchmark charged `allNearestNeighbors`'s once-per-call
-  `SFC::order<Hilbert>` (500k sort) + 8 MB `vector<Hit>` alloc on every rep, which the prototype
-  hoisted out of its timer. Measured attribution: Hit-width 3% (not a factor), query()-call boundary
-  ~0%, the rest was that hoisted sort+alloc.
+  costs more than the nodes it prunes (it cuts 35.8 -> 10.9 nodes/pt, but net slower). **Fix (k==1
+  path, SEED-CONDITIONAL):** a lean **unordered scalar DFS** for *seeded self-queries*, but the base
+  `pruneTraverse` is KEPT for *unseeded external queries*. The split is essential and was found the
+  hard way: with a seed, the own-leaf scan gives a tight bound up front, so ordering doesn't matter
+  and the unordered DFS wins (pruneTraverse 0.35 -> lean **0.28** us/pt, ~20%; even beats the 0.315
+  prototype -- class tree slightly tighter, 2.16 vs 2.22 leaf/pt). WITHOUT a seed the bound starts at
+  infinity, so ordering is decisive: an unordered DFS explores huge far regions first and is
+  **~17x slower** (external closestPoint: lean 10.8 us vs pruneTraverse 0.617 us). So the ordering
+  cost that doesn't pay for self-queries is exactly what makes external queries fast -- branch on
+  `a_seedCnt > 0`. k>1 stays entirely on pruneTraverse (k-best insert dominates; tighter bound helps).
+  The apparent extra "2x vs prototype" on the self path was a **harness artifact**: a repeat-call
+  benchmark charged `allNearestNeighbors`'s once-per-call `SFC::order<Hilbert>` (500k sort) + 8 MB
+  `vector<Hit>` alloc on every rep, which the prototype hoisted out of its timer. Measured
+  attribution: Hit-width 3% (not a factor), query()-call boundary ~0%, the rest was that hoisted
+  sort+alloc. **Single-precision query ~ double** (float 0.245 vs double 0.254 us/pt seeded): precision
+  buys build time, not traversal.
+- **Examples collapsed 4 -> 2 on PointCloudBVH (committed).** The four hand-rolled point-cloud
+  examples (`ClosestPoint{SFC,Tree}Packed`, `NearestNeighbor{SFC,Tree}Packed`) are replaced by
+  **`Examples/ClosestPoint`** (external `closestPoint`/`closestPoints`) and
+  **`Examples/NearestNeighbor`** (self `allNearestNeighbors` k-NN graph), each a few lines on the
+  turnkey class. Since PointCloudBVH builds itself, the SFC-vs-Tree construction split vanishes. The
+  old four were moved to **`Dev/`** at the repo root with a `DELETE_BEFORE_MERGE.md` and a temporary
+  `Dev/**` REUSE.toml block (both to be removed pre-merge, kept only for review comparison). `SIMDClasses.rst`
+  updated to cite the two new examples; `Examples/CMakeLists.txt`/`README.md` updated.
 - **Index-based build: PROTOTYPED, closes the build gap (76 ms vs 275-390 ms).** Mirrored nanoflann:
   partition a single `uint32` index array **in place** by longest-axis Midpoint, pack each leaf's
   points into `PointGroup`s **inline** during the build -- no `make_shared`, no per-node sublist

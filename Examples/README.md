@@ -2,12 +2,10 @@ This folder contains examples of using EBGeometry on its own (header-only, C++17
 third-party dependencies):
 
 * `BuildBVH` For comparing BVH build strategies (TreeBVH top-down/SAH/Morton/Nested/Hilbert, and PackedBVH's direct constructor) by build time.
-* `ClosestPointSFCPacked` For closest-point search over a point cloud, building PointAoSoA-grouped PackedBVH leaves directly from a space-filling-curve ordering under five build strategies (Morton/Hilbert/TopDown/Midpoint/SAH), benchmarked against brute force.
-* `ClosestPointTreePacked` For closest-point search over a point cloud, forming PointAoSoA-grouped PackedBVH leaves from a per-point TreeBVH via `packWith()` under five build strategies, benchmarked against brute force.
+* `ClosestPoint` For closest-point search over a point cloud using the turnkey `PointCloudBVH` class: build once from positions, then `closestPoint()` / `closestPoints()` for arbitrary query points, checked against brute force.
 * `CSGUnion` For merging a surface mesh with an analytic sphere using a BVH-accelerated CSG union.
 * `MeshSDF` For reading a surface mesh and evaluating it with the DCEL/BVH signed-distance representations.
-* `NearestNeighborSFCPacked` For the 3 nearest neighbors of every point in a cloud, over directly-built PointAoSoA-grouped PackedBVH leaves, using reciprocal (symmetric) distance culling; five build strategies, checked against brute force.
-* `NearestNeighborTreePacked` For the 3 nearest neighbors of every point in a cloud, over `packWith()`-built PointAoSoA-grouped PackedBVH leaves, using reciprocal distance culling; five build strategies, checked against brute force.
+* `NearestNeighbor` For the k nearest neighbors of every point in a cloud (the k-NN graph) using `PointCloudBVH::allNearestNeighbors()`, checked against brute force.
 * `NestedBVH` For a nested BVH: a BVH-accelerated union over several BVH-backed mesh SDFs.
 * `OctreeBoundingVolume` For using the octree bounding-volume functionality.
 * `PackedSpheres` For a scene composed of many analytic spheres.

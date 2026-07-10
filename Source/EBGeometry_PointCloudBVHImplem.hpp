@@ -216,16 +216,13 @@ PointCloudBVH<T, Meta, K, Width>::query(const Vec3T<T>& a_query,
       }
     };
     if (a_seedCnt > 0) {
+      // Seeded self-query: scanning the query particle's own leaf first gives a tight prune bound
+      // immediately, so a plain unordered scalar DFS prunes just as hard as an ordered descent --
+      // without paying pruneTraverse's per-interior-node child-sort and its separate m_childAabbSoA
+      // SIMD load. For these cheap SoA point leaves that makes the unordered DFS ~20% faster. (This
+      // holds ONLY because of the seed: see the external branch below.)
       scan1(best, a_seedOff, a_seedCnt);
-    }
-    // Lean unordered scalar DFS instead of the base pruneTraverse. pruneTraverse is tuned for
-    // expensive-leaf SDF/mesh queries: it does a near-first ordered descent (a per-interior-node
-    // std::sort of the K children) driven by a SIMD child-AABB kernel that reads a separate
-    // m_childAabbSoA side array. That pays off when leaves are few and fat. Here the leaves are
-    // cheap SoA point groups and AABB tests are abundant and nearly free, so the ordering machinery
-    // costs more than the nodes it prunes -- a plain unordered scalar DFS over the packed nodes is
-    // ~15% faster on the single-nearest hot path.
-    {
+
       std::uint32_t stack[64];
       int           sp = 0;
       stack[sp++]      = 0U;
@@ -236,7 +233,7 @@ PointCloudBVH<T, Meta, K, Width>::query(const Vec3T<T>& a_query,
         }
         if (node.isLeaf()) {
           const std::uint32_t off = node.getPrimitivesOffset();
-          if (!(a_seedCnt > 0 && off == a_seedOff)) {
+          if (off != a_seedOff) {
             scan1(best, off, node.getNumPrimitives());
           }
         }
@@ -247,6 +244,18 @@ PointCloudBVH<T, Meta, K, Width>::query(const Vec3T<T>& a_query,
           }
         }
       }
+    }
+    else {
+      // Unseeded external query: the prune bound starts at infinity, so the order in which leaves are
+      // visited is decisive -- pruneTraverse's near-first ordered descent tightens the bound fast,
+      // whereas an unordered DFS would explore huge far-away regions before finding a close point (it
+      // is ~17x slower here). The ordering cost that does not pay for seeded self-queries is exactly
+      // what makes external queries fast, so this branch keeps the base traversal.
+      const auto eval1 = [&scan1](Best& a_best, std::size_t a_off, std::size_t a_cnt) noexcept {
+        scan1(a_best, a_off, a_cnt);
+      };
+      const auto prune1 = [](const Best& a_best) noexcept -> T { return a_best.d2; };
+      this->pruneTraverse(a_query, best, eval1, prune1);
     }
     if (best.idx != s_none) {
       a_out[0] = Hit{best.idx, best.d2};

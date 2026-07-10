@@ -71,9 +71,9 @@ scan wants.
 
 **What this means in practice:** evaluating the distance to a whole :math:`W`-point block costs
 roughly the same as one scalar point distance, but produces the answer for :math:`W` of them. This is
-the leaf-level cost of a point-cloud ``PackedBVH`` search -- see ``Examples/ClosestPointSFCPacked`` /
-``Examples/ClosestPointTreePacked`` (closest point) and ``Examples/NearestNeighborSFCPacked`` /
-``Examples/NearestNeighborTreePacked`` (k nearest neighbors).
+the leaf-level cost of a point-cloud ``PackedBVH`` search -- see ``Examples/ClosestPoint`` (closest
+point) and ``Examples/NearestNeighbor`` (k nearest neighbors), both built on the ``PointCloudBVH``
+class.
 
 **Choosing and tuning** :math:`W`: the width is chosen from ISA auto-detection at compile time via
 ``EBGeometry::PointSoA::DefaultWidth<T>()`` -- the width that fills one SIMD register exactly for
