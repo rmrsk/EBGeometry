@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// All-k-nearest-neighbors (k = 3) over a random point cloud, using PointAoSoA<T, Meta, W> groups as
+// All-k-nearest-neighbors (kNN = 1) over a random point cloud, using PointAoSoA<T, Meta, W> groups as
 // the leaves of a PackedBVH. Unlike Examples/ClosestPointSFCPacked -- which resolves a batch of
 // independent closest-point queries (one nearest point each) -- this example finds, for *every*
-// point in the cloud, its three nearest neighbors (the classic k-NN graph). It mirrors
+// point in the cloud, its kNN nearest neighbors (the classic k-NN graph). It mirrors
 // ClosestPointSFCPacked's organization: the points are SFC-sorted and chunked into groups up front,
 // then the same groups are built into a PackedBVH five ways via the direct constructors. The novel
 // piece is *reciprocal distance culling*: when point A's traversal discovers neighbor B at distance
@@ -46,11 +46,11 @@ using PointGroup = EBGeometry::PointAoSoA<T, size_t, W>;
 using Packed     = EBGeometry::BVH::PackedBVH<T, PointGroup, K, EBGeometry::BVH::ValueStorage<PointGroup>>;
 using Tree       = EBGeometry::BVH::TreeBVH<T, PointGroup, AABB, K>;
 
-// Run configuration. k is the number of nearest neighbors per point (hard-coded to 3). numVerify
+// Run configuration. kNN is the number of nearest neighbors per point (hard-coded to 1). numVerify
 // points are checked against a brute-force scan (full all-pairs would be O(N^2)). maxLeafGroups is
 // the target groups per leaf.
 constexpr size_t   numPoints     = 100000;
-constexpr size_t   k             = 3;
+constexpr size_t   kNN           = 1;
 constexpr size_t   numVerify     = 500;
 constexpr uint64_t pointSeed     = 123456789ULL;
 constexpr size_t   maxLeafGroups = 16;
@@ -61,8 +61,8 @@ constexpr size_t maxClusterGroups = 8;
 namespace {
 
 /**
- * @brief A point's k nearest neighbors so far, doubling as the running state of its BVH traversal.
- * @details Holds up to @c k (cloud index, squared distance) pairs, kept sorted by ascending squared
+ * @brief A point's kNN nearest neighbors so far, doubling as the running state of its BVH traversal.
+ * @details Holds up to @c kNN (cloud index, squared distance) pairs, kept sorted by ascending squared
  * distance. worst2() -- the current k-th distance, or +inf until k are found -- is the pruneTraverse
  * bound: it is always a valid *upper* bound on the point's true k-th-nearest distance (every entry
  * is a real point at a real distance), so using it to prune never discards a true neighbor. Squared
@@ -70,9 +70,9 @@ namespace {
  */
 struct Knn
 {
-  std::array<T, k>      dist2 = {}; ///< Squared distances to the k best, ascending (valid for lanes < count).
-  std::array<size_t, k> index = {}; ///< Cloud indices of the k best, parallel to dist2.
-  size_t                count = 0;  ///< Number of valid entries so far (0..k).
+  std::array<T, kNN>      dist2 = {}; ///< Squared distances to the k best, ascending (valid for lanes < count).
+  std::array<size_t, kNN> index = {}; ///< Cloud indices of the k best, parallel to dist2.
+  size_t                  count = 0;  ///< Number of valid entries so far (0..kNN).
 
   /**
    * @brief Current pruning bound: the k-th smallest squared distance, or +inf until k are found.
@@ -80,17 +80,17 @@ struct Knn
   [[nodiscard]] T
   worst2() const noexcept
   {
-    return (count < k) ? std::numeric_limits<T>::max() : dist2[k - 1];
+    return (count < kNN) ? std::numeric_limits<T>::max() : dist2[kNN - 1];
   }
 
   /**
-   * @brief Offer one candidate neighbor; keep it iff it is among the k closest and not already held.
+   * @brief Offer one candidate neighbor; keep it iff it is among the kNN closest and not already held.
    * @details De-duplicates by cloud index -- so a PointAoSoA group's padded lanes (which repeat the
    * last real index) are no-ops, and a neighbor found both directly and via the reciprocal update is
    * listed once. Keeps the arrays sorted by ascending distance.
    * @param[in] a_dist2 Squared distance to the candidate.
    * @param[in] a_index Candidate's cloud index.
-   * @return True iff the candidate was newly accepted into the k best (worth reciprocating).
+   * @return True iff the candidate was newly accepted into the kNN best (worth reciprocating).
    */
   bool
   tryInsert(T a_dist2, size_t a_index) noexcept
@@ -100,11 +100,11 @@ struct Knn
         return false; // already held -- no new information
       }
     }
-    if (count == k && a_dist2 >= dist2[k - 1]) {
-      return false; // not among the k closest
+    if (count == kNN && a_dist2 >= dist2[kNN - 1]) {
+      return false; // not among the kNN closest
     }
 
-    size_t pos = (count < k) ? count++ : (k - 1); // grow, or overwrite the current worst
+    size_t pos = (count < kNN) ? count++ : (kNN - 1); // grow, or overwrite the current worst
     dist2[pos] = a_dist2;
     index[pos] = a_index;
 
@@ -170,12 +170,12 @@ buildGroups(const std::vector<Vec3>& a_positions)
 }
 
 /**
- * @brief The k nearest neighbors of one point by brute force -- the ground truth for verification.
+ * @brief The kNN nearest neighbors of one point by brute force -- the ground truth for verification.
  * @param[in] a_positions The point cloud.
  * @param[in] a_query     Cloud index of the point whose neighbors are wanted (excluded from its own).
- * @return The k smallest squared distances to other points, ascending.
+ * @return The kNN smallest squared distances to other points, ascending.
  */
-std::array<T, k>
+std::array<T, kNN>
 bruteForceKnn(const std::vector<Vec3>& a_positions, size_t a_query)
 {
   Knn best;
@@ -186,7 +186,7 @@ bruteForceKnn(const std::vector<Vec3>& a_positions, size_t a_query)
     best.tryInsert((a_positions[i] - a_positions[a_query]).length2(), i);
   }
 
-  return best.dist2; // k filled since numPoints > k, and already sorted ascending
+  return best.dist2; // kNN filled since numPoints > kNN, and already sorted ascending
 }
 
 /**
@@ -205,7 +205,7 @@ bruteForceKnn(const std::vector<Vec3>& a_positions, size_t a_query)
  * @param[in]     a_reciprocal Whether to push each discovered distance to the neighbor's Knn too.
  * @param[in,out] a_leafVisits Accumulates leaf nodes visited (a traversal statistic).
  * @param[in,out] a_groupEvals Accumulates groups scanned (a traversal statistic).
- * @return One Knn per cloud point (its 3 nearest neighbors, sorted by ascending squared distance).
+ * @return One Knn per cloud point (its kNN nearest neighbors, sorted by ascending squared distance).
  */
 std::vector<Knn>
 knnPass(const Packed&                a_bvh,
@@ -272,12 +272,12 @@ knnPass(const Packed&                a_bvh,
  * @return Timing and leaf-visit statistics; build time is filled in by the caller.
  */
 StrategyResult
-benchmarkStrategy(const Packed&                        a_bvh,
-                  const std::vector<Vec3>&             a_positions,
-                  const std::vector<uint32_t>&         a_order,
-                  bool                                 a_reciprocal,
-                  const std::vector<size_t>&           a_verifyIdx,
-                  const std::vector<std::array<T, k>>& a_bruteKnn)
+benchmarkStrategy(const Packed&                          a_bvh,
+                  const std::vector<Vec3>&               a_positions,
+                  const std::vector<uint32_t>&           a_order,
+                  bool                                   a_reciprocal,
+                  const std::vector<size_t>&             a_verifyIdx,
+                  const std::vector<std::array<T, kNN>>& a_bruteKnn)
 {
   constexpr T tolerance = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-9);
 
@@ -291,8 +291,8 @@ benchmarkStrategy(const Packed&                        a_bvh,
 
   for (size_t s = 0; s < a_verifyIdx.size(); s++) {
     const Knn& result = knn[a_verifyIdx[s]];
-    EBGEOMETRY_EXPECT(result.count == k);
-    for (size_t j = 0; j < k; j++) {
+    EBGEOMETRY_EXPECT(result.count == kNN);
+    for (size_t j = 0; j < kNN; j++) {
       EBGEOMETRY_EXPECT(std::abs(result.dist2[j] - a_bruteKnn[s][j]) <= tolerance * std::max(a_bruteKnn[s][j], T(1.0)));
     }
   }
@@ -329,13 +329,13 @@ printRow(const char* a_label, const StrategyResult& a_result, double a_brutePerP
 int
 main()
 {
-  std::cout << "NearestNeighborSFCPacked: " << k << " nearest neighbors of every point in a " << numPoints
+  std::cout << "NearestNeighborSFCPacked: " << kNN << " nearest neighbors of every point in a " << numPoints
             << "-point cloud\n";
   std::cout << "  Precision T             = " << (std::is_same_v<T, float> ? "float" : "double") << '\n';
   std::cout << "  SoA width W             = " << W << " (PointSoA::DefaultWidth<T>())\n";
   std::cout << "  BVH branching factor K  = " << K << " (BVH::DefaultBranchingRatio<T>())\n";
   std::cout << "  Points                  = " << numPoints << '\n';
-  std::cout << "  Neighbors per point k   = " << k << '\n';
+  std::cout << "  Neighbors per point kNN = " << kNN << '\n';
   std::cout << "  Target leaf size        = " << maxLeafGroups << " groups (" << maxLeafGroups * W << " points)\n\n";
 
   const std::vector<Vec3> positions = EBGeometry::Random::samplePoints<T>(numPoints, pointSeed);
@@ -388,9 +388,9 @@ main()
 
   // Brute-force ground truth for a spread-out sample of points, timed so its per-point cost is the
   // baseline for the speedup column (full all-pairs brute force would be O(N^2)).
-  std::vector<size_t>           verifyIdx(numVerify);
-  std::vector<std::array<T, k>> bruteKnn(numVerify);
-  const size_t                  stride = numPoints / numVerify;
+  std::vector<size_t>             verifyIdx(numVerify);
+  std::vector<std::array<T, kNN>> bruteKnn(numVerify);
+  const size_t                    stride = numPoints / numVerify;
   for (size_t s = 0; s < numVerify; s++) {
     verifyIdx[s] = s * stride;
   }

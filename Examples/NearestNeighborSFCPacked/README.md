@@ -1,7 +1,7 @@
 Examples/NearestNeighborSFCPacked
 ---------------------------------
 
-The **3 nearest neighbors of every point** in a random cloud (the classic k-NN graph), using the
+The **kNN nearest neighbors of every point** in a random cloud (the classic k-NN graph), using the
 point-cloud primitive `PointAoSoA<T, Meta, W>` as a `PackedBVH` leaf (see
 [EBGeometry issue #92](https://github.com/rmrsk/EBGeometry/issues/92)).
 
@@ -12,8 +12,8 @@ six ways (**Morton (SFC)**, **Hilbert (SFC)**, **TopDown centroid**, **Midpoint*
 **ClusterSAH** -- density-adaptive clustering of the groups, then SAH over the clusters, which reaches
 SAH-level tree quality at a much lower build cost) via the direct constructors -- but a different
 query. Instead of one closest point per query, it finds, for
-*every* point in the cloud, its `k = 3` nearest *other* points. Each point walks the tree with
-`pruneTraverse()`, keeping a 3-slot sorted set of nearest neighbors whose current 3rd distance is the
+*every* point in the cloud, its `kNN = 1` nearest *other* points. Each point walks the tree with
+`pruneTraverse()`, keeping a kNN-slot sorted set of nearest neighbors whose current kNN-th distance is the
 pruning bound. A spread-out sample of points is checked against a brute-force scan.
 
 Its companion, [`Examples/NearestNeighborTreePacked`](../NearestNeighborTreePacked/README.md), solves
@@ -25,13 +25,13 @@ Reciprocal distance culling
 
 The k-NN graph is symmetric: if B is near A, then A is near B, at the *same* distance. The example
 exploits this. Points are processed in Hilbert order (so a point's neighbors are handled close
-together in time), and whenever point A's traversal *accepts* B into A's 3 nearest, it immediately
+together in time), and whenever point A's traversal *accepts* B into A's kNN nearest, it immediately
 offers A back to B's neighbor set. That tightens B's pruning bound **before B is ever traversed**, so
 when B's turn comes it prunes more aggressively and visits fewer leaves. Reciprocating only *accepted*
 neighbors (not every far candidate the traversal happens to touch) keeps the bookkeeping cheap.
 
-This is always correct: a neighbor set only ever holds *real* points at *real* distances, so its 3rd
-distance is always a valid upper bound on the true 3rd-nearest distance -- pruning by it never drops a
+This is always correct: a neighbor set only ever holds *real* points at *real* distances, so its kNN-th
+distance is always a valid upper bound on the true kNN-th-nearest distance -- pruning by it never drops a
 true neighbor. Reciprocal offers to points already finished are harmless no-ops.
 
 The output's **Reciprocal culling OFF** rows re-run the same BVHs with the reciprocal step disabled.
@@ -86,9 +86,9 @@ Running
 
 Takes no arguments. It generates a random 100,000-point cloud (fixed seed, so results are
 reproducible on a given machine) and prints a short header followed by one table row per strategy
-giving build time, average time to find one point's 3 neighbors, speedup over brute force, average
+giving build time, average time to find one point's kNN neighbors, speedup over brute force, average
 leaf visits per point, and the average number of `PointAoSoA` groups per visited leaf. A section of
-**Reciprocal culling OFF** rows follows. A spread-out sample of 500 points has its 3 neighbors
+**Reciprocal culling OFF** rows follows. A spread-out sample of 500 points has its kNN neighbors
 checked against a brute-force scan with `EBGEOMETRY_EXPECT`, so building with
 `-DEBGEOMETRY_ENABLE_ASSERTIONS` aborts on any mismatch; the checks compile out otherwise.
 
@@ -99,5 +99,5 @@ Worth noting when reading the output:
   "Brute force" microseconds-per-point (and every speedup) is representative, not a full N² run.
 * **Leaf visits drive query time**, and the reciprocal culling reduces them -- most for the loose
   Morton/Hilbert builds, least for SAH. See the ON vs OFF rows.
-* **`k` is hard-coded to 3** (`k` in `main.cpp`); `maxLeafGroups` tunes the leaf size. `K` (tree
+* **`kNN` is hard-coded to 1** (`kNN` in `main.cpp`); `maxLeafGroups` tunes the leaf size. `K` (tree
   fan-out) and `W` (points per group) derive from the ISA.
