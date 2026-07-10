@@ -40,6 +40,28 @@ Last updated: 2026-07-10.
   cheap single-`min` ClosestPoint reduction, `float@8` was marginally *faster* on query, ~7%, than
   `float@4`; only the heavier k-NN `tryInsert`/reciprocal reduction makes wide groups clearly lose.)
 
+## Recommended all-NN query recipe (what the examples now ship)
+
+The consistently-good combination — every lever that helps-or-is-flat (never hurts) and stays *local*
+so it parallelizes over the outer-threaded independent trees:
+
+1. **Seed-from-own-leaf + skip** — seed each point's prune bound from the leaf it already lives in,
+   skip that leaf in traversal. Local; **beats reciprocal culling and makes it redundant** (SFCPacked
+   SAH, us/pt: reciprocal-only 0.73, seed-only 0.64, seed+reciprocal 0.65). So **drop reciprocal
+   culling** — done in both examples now.
+2. **Process queries in spatial (Hilbert ≈ leaf) order** — ~35% cache win, free, never hurts.
+3. **`tryInsert` reorder + `if constexpr (kNN==1)`** (committed), **W = K = 4**.
+4. **Build:** a tight-ish tree — SAH-over-points if build-once/query-many, ClusterSAH if build-bound
+   (seed then buys back most of the query gap). Prefer **bigger leaves (~32 groups for kNN=1)** — a
+   shallower tree is the lever that actually moves query time.
+
+Both `Examples/NearestNeighbor{SFC,Tree}Packed` now default to this (seed on, reciprocal removed,
+Hilbert order); a "Pre-seed OFF" section shows the win. Measured double, 500k, us/pt (build ms):
+SFCPacked SAH 0.65 (97), ClusterSAH 0.71 (41), Midpoint 0.75 (50), Morton 1.54 (55); TreePacked SAH
+0.44 (336), Midpoint 0.45 (174), Hilbert 0.85 (303). Caveat: seed is flat on an already-optimal tight
+tree — the win concentrates on looser/cheap-build trees, which is where you want it. `maxLeafGroups`
+still 16 in the examples (bumping to ~32 would speed the kNN case; see leaf-size finding below).
+
 ## What ClusterSAH is
 
 Density-adaptive clustering of primitives (recursive centroid-bbox midpoint split on the longest

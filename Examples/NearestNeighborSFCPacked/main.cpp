@@ -7,10 +7,11 @@
 // independent closest-point queries (one nearest point each) -- this example finds, for *every*
 // point in the cloud, its kNN nearest neighbors (the classic k-NN graph). It mirrors
 // ClosestPointSFCPacked's organization: the points are SFC-sorted and chunked into groups up front,
-// then the same groups are built into a PackedBVH five ways via the direct constructors. The novel
-// piece is *reciprocal distance culling*: when point A's traversal discovers neighbor B at distance
-// d, A is recorded as a candidate neighbor of B too (distance is symmetric), tightening B's search
-// radius before B is ever processed, so B's later traversal prunes harder. See README.md.
+// then the same groups are built into a PackedBVH six ways via the direct constructors. Each point's
+// nearest neighbor is found by a pruned traversal using *seed-from-own-leaf*: since the query point
+// already lives in a leaf, its prune bound is seeded from that leaf (and the leaf skipped in
+// traversal) so the descent prunes from a tight bound. Points are processed in Hilbert order for
+// cache locality. This local strategy replaces (and beats) reciprocal distance culling. See README.md.
 
 #include <algorithm>
 #include <array>
@@ -90,8 +91,8 @@ struct Knn
    * @details Tests the cheap distance bound before the de-dupe scan: most candidates in a leaf are
    * farther than the current worst, so rejecting them by distance first lets them skip the index
    * scan entirely. The de-dupe -- which stops a PointAoSoA group's padded lanes (repeating the last
-   * real index) and a neighbor found both directly and via the reciprocal update from being listed
-   * twice -- is only reached by a candidate that would actually be inserted. For kNN == 1 it is
+   * real index) from being inserted twice -- is only reached by a candidate that would actually be
+   * inserted. For kNN == 1 it is
    * redundant (a repeat is either the current best, already rejected by a_dist2 >= dist2[0], or
    * farther, same) and is compiled out. Keeps the arrays sorted by ascending distance.
    * @param[in] a_dist2 Squared distance to the candidate.
@@ -198,24 +199,6 @@ bruteForceKnn(const std::vector<Vec3>& a_positions, size_t a_query)
   return best.dist2; // kNN filled since numPoints > kNN, and already sorted ascending
 }
 
-/**
- * @brief Run the all-k-NN pass over the whole cloud via pruneTraverse(), with reciprocal culling.
- * @details Processes the points in @p a_order (a spatial ordering) so that a point's near neighbors
- * are visited close together in time -- which is what makes reciprocal culling pay off. For each
- * processed point P, the traversal state is P's own Knn; at every leaf, each candidate C (self and
- * padded-lane duplicates skipped by the Knn de-dupe) is offered to P's Knn, and -- when
- * @p a_reciprocal is set -- P is offered right back to C's Knn, tightening C's bound before C is
- * processed. All distance work stays squared: PointAoSoA::getDistances2() computes all W lane
- * distances to the query in one SIMD kernel, and getMetaData() names each lane's cloud index
- * (getMinimumDistance2() would only give the group's single closest, no use for k-NN).
- * @param[in]     a_bvh        BVH over the PointGroup leaves.
- * @param[in]     a_positions  The point cloud.
- * @param[in]     a_order      Processing order (cloud indices); spatial order maximises culling.
- * @param[in]     a_reciprocal Whether to push each discovered distance to the neighbor's Knn too.
- * @param[in,out] a_leafVisits Accumulates leaf nodes visited (a traversal statistic).
- * @param[in,out] a_groupEvals Accumulates groups scanned (a traversal statistic).
- * @return One Knn per cloud point (its kNN nearest neighbors, sorted by ascending squared distance).
- */
 // Map each point to the [offset, count) group range of the BVH leaf it lives in, via a single
 // no-prune traversal that visits every leaf exactly once. Built once per BVH and reused across all
 // queries when own-leaf seeding is enabled.
@@ -245,11 +228,29 @@ buildLeafMap(const Packed&          a_bvh,
   a_bvh.pruneTraverse(a_anyQuery, dummy, record, noPrune);
 }
 
+/**
+ * @brief Run the all-nearest-neighbor pass over the whole cloud via pruneTraverse().
+ * @details Processes the points in @p a_order (a spatial ordering) for cache locality: consecutive
+ * queries touch nearby leaves. For each point P the traversal state is P's own Knn; at every visited
+ * leaf each candidate C (self and padded-lane duplicates skipped by the Knn de-dupe) is offered to
+ * P's Knn. When @p a_seedOwnLeaf is set, P's prune bound is first seeded from the leaf it already
+ * lives in (looked up in @p a_leafOff / @p a_leafCnt) and that leaf is skipped during traversal, so
+ * the descent prunes from a tight bound. All distance work stays squared: PointAoSoA::getDistances2()
+ * computes all W lane distances in one SIMD kernel, and getMetaData() names each lane's cloud index.
+ * @param[in]     a_bvh         BVH over the PointGroup leaves.
+ * @param[in]     a_positions   The point cloud.
+ * @param[in]     a_order       Processing order (cloud indices); spatial order improves cache reuse.
+ * @param[in,out] a_leafVisits  Accumulates leaf nodes visited (a traversal statistic).
+ * @param[in,out] a_groupEvals  Accumulates groups scanned (a traversal statistic).
+ * @param[in]     a_seedOwnLeaf Whether to seed each point's bound from its own leaf and skip it.
+ * @param[in]     a_leafOff     Per-point own-leaf group offset (used iff a_seedOwnLeaf; else null).
+ * @param[in]     a_leafCnt     Per-point own-leaf group count (used iff a_seedOwnLeaf; else null).
+ * @return One Knn per cloud point (its kNN nearest neighbors, sorted by ascending squared distance).
+ */
 std::vector<Knn>
 knnPass(const Packed&                a_bvh,
         const std::vector<Vec3>&     a_positions,
         const std::vector<uint32_t>& a_order,
-        bool                         a_reciprocal,
         long long&                   a_leafVisits,
         long long&                   a_groupEvals,
         bool                         a_seedOwnLeaf = false,
@@ -264,8 +265,8 @@ knnPass(const Packed&                a_bvh,
     Knn&           state  = knn[p];
     const uint32_t ownOff = a_seedOwnLeaf ? (*a_leafOff)[p] : 0xFFFFFFFFu;
 
-    // Scan one leaf's groups into knn[p] (reciprocating accepted neighbours). Shared by the optional
-    // own-leaf seed and the traversal callback so both do exactly the same per-leaf work.
+    // Scan one leaf's groups into knn[p]. Shared by the optional own-leaf seed and the traversal
+    // callback so both do exactly the same per-leaf work.
     const auto scanLeaf = [&](size_t a_offset, size_t a_count) noexcept {
       a_leafVisits++;
       a_groupEvals += static_cast<long long>(a_count);
@@ -281,14 +282,7 @@ knnPass(const Packed&                a_bvh,
           if (c == p) {
             continue; // skip self (P finds itself at distance 0); padded lanes de-dupe by index in tryInsert
           }
-          const T d2 = distances[lane];
-          // Reciprocate only when C is actually accepted as one of P's neighbors: distances are
-          // symmetric, so P is then a strong candidate for C too, and offering it now tightens C's
-          // bound before C is processed. Reciprocating every far candidate instead (they get
-          // rejected anyway) is pure overhead -- see README.
-          if (state.tryInsert(d2, c) && a_reciprocal) { // state is knn[p]
-            knn[c].tryInsert(d2, p);
-          }
+          state.tryInsert(distances[lane], c); // offer the candidate to knn[p]
         }
       }
     };
@@ -325,7 +319,6 @@ knnPass(const Packed&                a_bvh,
  * @param[in] a_bvh        BVH to query.
  * @param[in] a_positions  The point cloud.
  * @param[in] a_order      Processing order (cloud indices).
- * @param[in] a_reciprocal Whether reciprocal culling is enabled.
  * @param[in] a_verifyIdx  Cloud indices of the verification sample.
  * @param[in] a_bruteKnn   Brute-force ground truth for a_verifyIdx (parallel arrays).
  * @return Timing and leaf-visit statistics; build time is filled in by the caller.
@@ -334,7 +327,6 @@ StrategyResult
 benchmarkStrategy(const Packed&                          a_bvh,
                   const std::vector<Vec3>&               a_positions,
                   const std::vector<uint32_t>&           a_order,
-                  bool                                   a_reciprocal,
                   const std::vector<size_t>&             a_verifyIdx,
                   const std::vector<std::array<T, kNN>>& a_bruteKnn,
                   bool                                   a_seedOwnLeaf = false,
@@ -349,7 +341,7 @@ benchmarkStrategy(const Packed&                          a_bvh,
   EBGeometry::SimpleTimer timer;
   timer.start();
   const std::vector<Knn> knn =
-    knnPass(a_bvh, a_positions, a_order, a_reciprocal, leafVisits, groupEvals, a_seedOwnLeaf, a_leafOff, a_leafCnt);
+    knnPass(a_bvh, a_positions, a_order, leafVisits, groupEvals, a_seedOwnLeaf, a_leafOff, a_leafCnt);
   timer.stop();
 
   for (size_t s = 0; s < a_verifyIdx.size(); s++) {
@@ -403,8 +395,8 @@ main()
 
   const std::vector<Vec3> positions = EBGeometry::Random::samplePoints<T>(numPoints, pointSeed);
 
-  // Process points in Hilbert order so a point's neighbors are visited close together -- the spatial
-  // locality that makes reciprocal culling pay off. Ordering affects only efficiency, never results.
+  // Process points in Hilbert order (spatial locality: consecutive queries touch nearby leaves, so
+  // tree nodes and the seeded own-leaf data stay hot in cache). Ordering affects efficiency, not results.
   const std::vector<uint32_t> order = EBGeometry::SFC::order<EBGeometry::SFC::Hilbert>(positions);
 
   // Shared across every build strategy: SFC-sort the points and pack them into spatially-coherent
@@ -464,32 +456,34 @@ main()
   timer.stop();
   const double brutePerPointSec = timer.seconds() / double(numVerify);
 
-  // All-k-NN with reciprocal culling on, for each strategy.
-  StrategyResult mortonRes     = benchmarkStrategy(mortonBVH, positions, order, true, verifyIdx, bruteKnn);
-  StrategyResult hilbertRes    = benchmarkStrategy(hilbertBVH, positions, order, true, verifyIdx, bruteKnn);
-  StrategyResult topDownRes    = benchmarkStrategy(topDownBVH, positions, order, true, verifyIdx, bruteKnn);
-  StrategyResult midpointRes   = benchmarkStrategy(midpointBVH, positions, order, true, verifyIdx, bruteKnn);
-  StrategyResult sahRes        = benchmarkStrategy(sahBVH, positions, order, true, verifyIdx, bruteKnn);
-  StrategyResult clusterSahRes = benchmarkStrategy(clusterSahBVH, positions, order, true, verifyIdx, bruteKnn);
+  // Recommended query strategy: seed each point's prune bound from the leaf it already lives in and
+  // skip that leaf during traversal, processing points in Hilbert (spatial) order. A one-time
+  // no-prune pass (buildLeafMap) maps each point to its leaf's group range. This is a *local*
+  // tightener (no cross-point coupling, no ordering dependence -> parallelizes trivially) and, for
+  // all-nearest-neighbor, consistently beats reciprocal distance culling -- so this example uses it
+  // as the default and does not do culling. See README.
+  std::vector<uint32_t> leafOff(numPoints);
+  std::vector<uint32_t> leafCnt(numPoints);
+  const auto            seeded = [&](const Packed& a_bvh, double a_buildSeconds) {
+    buildLeafMap(a_bvh, positions[0], leafOff, leafCnt);
+    StrategyResult r = benchmarkStrategy(a_bvh, positions, order, verifyIdx, bruteKnn, true, &leafOff, &leafCnt);
+    r.buildSeconds = a_buildSeconds;
+    return r;
+  };
+  StrategyResult mortonRes     = seeded(mortonBVH, mortonBuild);
+  StrategyResult hilbertRes    = seeded(hilbertBVH, hilbertBuild);
+  StrategyResult topDownRes    = seeded(topDownBVH, topDownBuild);
+  StrategyResult midpointRes   = seeded(midpointBVH, midpointBuild);
+  StrategyResult sahRes        = seeded(sahBVH, sahBuild);
+  StrategyResult clusterSahRes = seeded(clusterSahBVH, clusterSahBuild);
 
-  mortonRes.buildSeconds     = mortonBuild;
-  hilbertRes.buildSeconds    = hilbertBuild;
-  topDownRes.buildSeconds    = topDownBuild;
-  midpointRes.buildSeconds   = midpointBuild;
-  sahRes.buildSeconds        = sahBuild;
-  clusterSahRes.buildSeconds = clusterSahBuild;
-
-  // The same BVHs, but with reciprocal culling OFF -- the contrast that shows the culling win.
-  // Culling reduces leaf visits in proportion to how loose the baseline traversal is: the SFC-direct
-  // builds (Morton/Hilbert) form looser trees over the pre-made groups and visit many leaves whose
-  // points aren't actually near the query, so pre-seeding a point's true neighbors prunes them
-  // sharply; the tighter SAH build has less to gain. See README.
-  StrategyResult mortonNoCull  = benchmarkStrategy(mortonBVH, positions, order, false, verifyIdx, bruteKnn);
-  StrategyResult hilbertNoCull = benchmarkStrategy(hilbertBVH, positions, order, false, verifyIdx, bruteKnn);
-  StrategyResult sahNoCull     = benchmarkStrategy(sahBVH, positions, order, false, verifyIdx, bruteKnn);
-  mortonNoCull.buildSeconds    = mortonBuild;
-  hilbertNoCull.buildSeconds   = hilbertBuild;
-  sahNoCull.buildSeconds       = sahBuild;
+  // The same BVHs without the pre-seed (plain top-down from +inf) -- the contrast that shows the win.
+  StrategyResult mortonNoSeed  = benchmarkStrategy(mortonBVH, positions, order, verifyIdx, bruteKnn);
+  StrategyResult hilbertNoSeed = benchmarkStrategy(hilbertBVH, positions, order, verifyIdx, bruteKnn);
+  StrategyResult sahNoSeed     = benchmarkStrategy(sahBVH, positions, order, verifyIdx, bruteKnn);
+  mortonNoSeed.buildSeconds    = mortonBuild;
+  hilbertNoSeed.buildSeconds   = hilbertBuild;
+  sahNoSeed.buildSeconds       = sahBuild;
 
   std::cout << std::left << std::setw(24) << "Strategy" << std::right << std::setw(13) << "Build (ms)" << std::setw(15)
             << "kNN (us/pt)" << std::setw(11) << "Speedup" << std::setw(14) << "Leaf visits" << std::setw(14)
@@ -508,30 +502,10 @@ main()
   printRow("SAH", sahRes, brutePerPointSec);
   printRow("ClusterSAH", clusterSahRes, brutePerPointSec);
   std::cout << std::string(91, '-') << '\n';
-  std::cout << "Reciprocal culling OFF (compare against the rows above):\n";
-  printRow("Morton (no cull)", mortonNoCull, brutePerPointSec);
-  printRow("Hilbert (no cull)", hilbertNoCull, brutePerPointSec);
-  printRow("SAH (no cull)", sahNoCull, brutePerPointSec);
-
-  std::cout << std::string(91, '-') << '\n';
-  std::cout << "Seed-from-own-leaf (reciprocal OFF): each point already lives in a leaf, so seed its prune\n";
-  std::cout << "bound from that leaf and skip the leaf in traversal. This is a *local* bound-tightener (no\n";
-  std::cout << "cross-point coupling, no ordering dependence) -- an alternative to reciprocal culling.\n";
-  std::cout << "Compare to the 'no cull' rows (both off) and the main rows (reciprocal on):\n";
-  std::vector<uint32_t> leafOff(numPoints);
-  std::vector<uint32_t> leafCnt(numPoints);
-  const auto            seededRow = [&](const char* a_label, const Packed& a_bvh, double a_buildSeconds) {
-    buildLeafMap(a_bvh, positions[0], leafOff, leafCnt);
-    StrategyResult r = benchmarkStrategy(a_bvh, positions, order, false, verifyIdx, bruteKnn, true, &leafOff, &leafCnt);
-    r.buildSeconds = a_buildSeconds;
-    printRow(a_label, r, brutePerPointSec);
-  };
-  seededRow("Morton (seed)", mortonBVH, mortonBuild);
-  seededRow("Hilbert (seed)", hilbertBVH, hilbertBuild);
-  seededRow("TopDown (seed)", topDownBVH, topDownBuild);
-  seededRow("Midpoint (seed)", midpointBVH, midpointBuild);
-  seededRow("SAH (seed)", sahBVH, sahBuild);
-  seededRow("ClusterSAH (seed)", clusterSahBVH, clusterSahBuild);
+  std::cout << "Pre-seed OFF (plain top-down from +inf; compare against the rows above):\n";
+  printRow("Morton (no seed)", mortonNoSeed, brutePerPointSec);
+  printRow("Hilbert (no seed)", hilbertNoSeed, brutePerPointSec);
+  printRow("SAH (no seed)", sahNoSeed, brutePerPointSec);
 
   return 0;
 }

@@ -13,55 +13,38 @@ all-kNN-nearest-neighbors problem over the same 500,000-point cloud and the same
 but forms the `PointAoSoA<T, size_t, W>` groups the other way -- a `TreeBVH` is built over the
 *individual* points and the groups are materialised from its leaves via `TreeBVH::packWith()`
 (**Morton**/**Hilbert** bottom-up, **TopDown**/**Midpoint**/**SAH** top-down). Each point walks the
-tree with `pruneTraverse()`, keeping a kNN-slot sorted set of nearest neighbors whose kNN-th distance is
-the pruning bound; a spread-out sample is checked against a brute-force scan.
+tree with `pruneTraverse()`, keeping a kNN-slot sorted set whose kNN-th distance is the pruning bound;
+a spread-out sample is checked against a brute-force scan.
 
-Reciprocal distance culling
----------------------------
+Seed-from-own-leaf (the query strategy)
+---------------------------------------
 
-The k-NN graph is symmetric: if B is near A, then A is near B, at the *same* distance. Points are
-processed in Hilbert order, and whenever point A's traversal *accepts* B into A's kNN nearest, it
-immediately offers A back to B's neighbor set -- tightening B's pruning bound **before B is ever
-traversed**, so B's later traversal prunes harder. Only *accepted* neighbors are reciprocated (not
-every far candidate), keeping it cheap. This is always correct: a neighbor set holds only real points
-at real distances, so its kNN-th distance is a valid upper bound on the true kNN-th-nearest distance, and
-pruning by it never drops a true neighbor.
+Since this is *all*-nearest-neighbor, every query point already *lives in a leaf* of the BVH -- so
+descending from the root with a `+inf` bound is wasted work. Instead, before traversing, scan that
+own leaf, **seed** the point's pruning bound from it, and **skip that leaf during traversal** (visit
+it once, not twice). The descent then prunes with an already-tight bound. A single no-prune pass
+(`buildLeafMap`) maps each point to its leaf's group range up front, reused across all queries. Points
+are processed in **Hilbert order** so consecutive queries touch nearby leaves and keep the tree nodes
+(and the seeded own-leaf data) hot in cache.
 
-The output's **Reciprocal culling OFF** rows re-run the same BVHs with the reciprocal step disabled.
-The comparison shows the key insight: **culling reduces leaf visits in proportion to how loose the
-baseline traversal is.**
+It is **local** -- each point seeds only from its own leaf, with no cross-point coupling and no
+dependence on processing order, so it parallelizes trivially (matching the intended deployment, where
+each core owns its own cloud and tree). It replaces the *reciprocal distance culling* an earlier
+version used (a global scheme offering each accepted neighbor back to tighten the other point's bound);
+for all-nearest-neighbor, seed-from-own-leaf is simpler and consistently at least as fast.
+
+The output's **Pre-seed OFF** rows re-run a few strategies with plain top-down traversal (bound from
+`+inf`), so the gain is visible. Its size depends on how tight the tree is:
 
 * **Morton (SFC)** and **Hilbert (SFC)** are bottom-up over individual points, so their leaves hold
-  only `K` points -- a point's own leaf does *not* fill its kNN-neighbor set, the search stays loose,
-  and culling cuts leaf visits sharply (often halving them or more).
-* **SAH** (and the other top-down builds) partition the full cloud into a very tight tree that
-  already visits close to the minimum number of leaves, so there is almost nothing left to cull --
-  culling on/off are nearly indistinguishable.
-
-(This differs from `NearestNeighborSFCPacked`, whose looser trees-over-groups let culling help *every*
-strategy, SAH included -- so which regime you are in depends on the construction, not just on `kNN`.)
+  only `K` points and the descent from `+inf` stays loose -- pre-seeding cuts leaf visits sharply.
+* **SAH** (and the other top-down builds) partition the full cloud into a very tight tree already near
+  the ~2-leaf minimum, so there is almost nothing left to recover -- pre-seed on/off are nearly
+  indistinguishable. (`NearestNeighborSFCPacked`, whose trees-over-groups are looser, benefits on
+  every strategy including SAH -- so which regime you are in depends on the construction.)
 
 Distances come straight from the SIMD kernel: `PointAoSoA::getDistances2()` returns all `W` lane
 squared distances to the query at once, and `getMetaData()` names each lane's cloud index.
-
-Seed-from-own-leaf
-------------------
-
-A second, independent bound-tightener the example profiles: since this is *all*-nearest-neighbor,
-every query point already *lives in a leaf* of the BVH. So before traversing, scan that own leaf,
-seed the point's pruning bound from it, and **skip that leaf during traversal** (visit it once, not
-twice). The descent then prunes with an already-tight bound instead of starting from `+inf`. A single
-no-prune pass (`buildLeafMap`) maps each point to its leaf's group range up front, reused across all
-queries.
-
-Unlike reciprocal culling this is **local**: each point seeds only from its own leaf, with no
-cross-point coupling and no dependence on processing order -- so it also parallelizes trivially. The
-output's **Seed-from-own-leaf** rows run it with reciprocal culling *off*, to isolate the effect
-against the *both-off* "no cull" rows. On loose trees it is a large win (the top-down descent from
-`+inf` otherwise wanders through many leaves before finding a tight bound) and typically **beats
-reciprocal culling**; on an already-optimal tree that is at the ~2-leaf floor there is nothing left to
-recover, so it is flat. The two levers overlap (both pre-tighten the bound), so stacking seed *on top
-of* reciprocal helps only where reciprocal has not already reached the floor.
 
 Building
 --------
@@ -109,7 +92,7 @@ Takes no arguments. It generates a random 500,000-point cloud (fixed seed, so re
 reproducible on a given machine) and prints a short header followed by one table row per strategy
 giving build time, average time to find one point's kNN neighbors, speedup over brute force, average
 leaf visits per point, and the average number of `PointAoSoA` groups per visited leaf. A section of
-**Reciprocal culling OFF** rows follows. A spread-out sample of 500 points has its kNN neighbors
+**Pre-seed OFF** rows follows. A spread-out sample of 500 points has its kNN neighbors
 checked against a brute-force scan with `EBGEOMETRY_EXPECT`, so building with
 `-DEBGEOMETRY_ENABLE_ASSERTIONS` aborts on any mismatch; the checks compile out otherwise.
 
