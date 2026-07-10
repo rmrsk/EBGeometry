@@ -612,6 +612,48 @@ TEMPLATE_TEST_CASE("PackedBVH: BVH::ValueStorage stores primitives inline with n
   static_assert(sizeof(typename BVH::SharedPtrStorage<Pnt>::StorageType) == sizeof(std::shared_ptr<const Pnt>));
 }
 
+TEMPLATE_TEST_CASE("StoragePolicy: appendAliased genuinely appends for both policies (not only on the "
+                   "single-call packWith path)",
+                   "[BVH][StoragePolicy]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  // Build a fresh contiguous conversion buffer of three points offset by a_base.
+  const auto makeBlock = [](T a_base) {
+    auto block = std::make_shared<std::vector<Pnt>>();
+    for (int i = 0; i < 3; i++) {
+      block->push_back(Pnt{Vec3(a_base + T(i), a_base, a_base)});
+    }
+    return block;
+  };
+
+  // Two calls: the first into an empty destination (the fast path), the second into a non-empty
+  // one. appendAliased must add to what is already there, not replace it -- the two policies have
+  // to agree on this regardless of call count, or a future second call site would silently lose
+  // the first block under ValueStorage while working under SharedPtrStorage.
+  {
+    std::vector<Pnt> dst;
+    BVH::ValueStorage<Pnt>::appendAliased(dst, makeBlock(T(0)));
+    BVH::ValueStorage<Pnt>::appendAliased(dst, makeBlock(T(10)));
+
+    REQUIRE(dst.size() == 6);
+    REQUIRE(dst[0].m_pos == Vec3(0, 0, 0));
+    REQUIRE(dst[3].m_pos == Vec3(10, 10, 10));
+  }
+  {
+    std::vector<std::shared_ptr<const Pnt>> dst;
+    BVH::SharedPtrStorage<Pnt>::appendAliased(dst, makeBlock(T(0)));
+    BVH::SharedPtrStorage<Pnt>::appendAliased(dst, makeBlock(T(10)));
+
+    REQUIRE(dst.size() == 6);
+    REQUIRE(dst[0]->m_pos == Vec3(0, 0, 0));
+    REQUIRE(dst[3]->m_pos == Vec3(10, 10, 10));
+  }
+}
+
 TEMPLATE_TEST_CASE("TriMeshSDF: default StoragePolicy is BVH::ValueStorage<TriSoA>; MeshSDF has no "
                    "StoragePolicy choice at all",
                    "[BVH][StoragePolicy]",
