@@ -3,8 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Closest-point search over a random point cloud, using PointAoSoA<T, Meta, W> groups as the
-// leaves of a PackedBVH. The same groups are built four ways (Morton, top-down centroid, midpoint,
-// SAH) and queried against a brute-force baseline. See README.md.
+// leaves of a PackedBVH. The points are Morton-sorted and chunked into groups up front, then the
+// same groups are built into a PackedBVH four ways (Morton, top-down centroid, midpoint, SAH) via
+// its direct constructors and queried against a brute-force baseline. Examples/ClosestPointPacked
+// forms the same groups differently -- from the leaves of a TreeBVH via packWith(). See README.md.
 
 #include <algorithm>
 #include <array>
@@ -267,7 +269,7 @@ printRow(const char* a_label, const StrategyResult& a_result, double a_bruteSeco
 int
 main()
 {
-  std::cout << "ClosestPoint: closest-point search over a " << numPoints << "-point cloud in the unit cube\n";
+  std::cout << "ClosestPointSFC: closest-point search over a " << numPoints << "-point cloud in the unit cube\n";
   std::cout << "  Precision T             = " << (std::is_same_v<T, float> ? "float" : "double") << '\n';
   std::cout << "  SoA width W             = " << W << " (PointSoA::DefaultWidth<T>())\n";
   std::cout << "  BVH branching factor K  = " << K << " (BVH::DefaultBranchingRatio<T>())\n";

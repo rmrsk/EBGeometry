@@ -1,17 +1,24 @@
-Examples/ClosestPoint
----------------------
+Examples/ClosestPointSFC
+------------------------
 
 Closest-point search over a point cloud, demonstrating the point-cloud primitive
 `PointAoSoA<T, Meta, W>` as a `PackedBVH` leaf (see
 [EBGeometry issue #92](https://github.com/rmrsk/EBGeometry/issues/92)).
 
-50,000 random points in the unit cube are Morton-sorted and packed into `PointAoSoA<T, int, W>`
+50,000 random points in the unit cube are Morton-sorted and packed into `PointAoSoA<T, size_t, W>`
 groups of up to `W` points each (`W` is `PointSoA::DefaultWidth<T>()`, the SIMD-optimal width for
 the target ISA and precision), with each point carrying its cloud index as metadata. The *same*
 groups are then built into a `PackedBVH` four ways -- **Morton (SFC)**, **TopDown centroid**,
-**Midpoint**, and **SAH** -- so their closest-point query performance can be compared head to
-head. 500 query points are resolved against each via `pruneTraverse()` and checked against a
-brute-force scan.
+**Midpoint**, and **SAH** -- via the `PackedBVH` direct constructors, so their closest-point query
+performance can be compared head to head. 500 query points are resolved against each via
+`pruneTraverse()` and checked against a brute-force scan.
+
+This is the **space-filling-curve** construction path: the groups are formed up front from the
+Morton order of the cloud, and the BVH is then built over those pre-formed groups. Its companion,
+[`Examples/ClosestPointPacked`](../ClosestPointPacked/README.md), forms the same kind of groups the
+other way around -- building a `TreeBVH` over the *individual* points first and materializing the
+`PointAoSoA` groups from each leaf via `TreeBVH::packWith()`. Running both and comparing their `SAH`
+rows shows the trade-off between the two.
 
 One detail is worth calling out, since it is the crux of using these primitives efficiently: the
 whole search stays in **squared distance** (`getDistance2()`). `pruneTraverse()` compares its bound
@@ -34,7 +41,7 @@ documentation for more detail on each approach.
     cmake -S . -B build
     cmake --build build
 
-The binary is `ClosestPoint.ex`, in this same directory (same as the other two methods below).
+The binary is `ClosestPointSFC.ex`, in this same directory (same as the other two methods below).
 Build in single precision, against a library in a different location, or with
 `EBGEOMETRY_EXPECT()` runtime assertions enabled, with cache variables:
 
@@ -44,13 +51,13 @@ Build in single precision, against a library in a different location, or with
 
     make
 
-This produces `./ClosestPoint.ex`. Override the defaults on the command line:
+This produces `./ClosestPointSFC.ex`. Override the defaults on the command line:
 
     make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry ASSERTIONS=ON
 
 **Directly with a compiler**
 
-    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o ClosestPoint.ex
+    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o ClosestPointSFC.ex
 
 Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE_ASSERTIONS` to enable
 `EBGEOMETRY_EXPECT()` runtime assertion checks.
@@ -58,7 +65,7 @@ Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE
 Running
 -------
 
-    ./ClosestPoint.ex
+    ./ClosestPointSFC.ex
 
 Takes no arguments. It generates a random 50,000-point cloud and 500 query points (fixed seeds, so
 results are reproducible on a given machine) and prints a short header followed by one table row per
