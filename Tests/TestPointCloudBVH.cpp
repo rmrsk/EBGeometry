@@ -153,4 +153,49 @@ TEMPLATE_TEST_CASE("PointCloudBVH queries match brute force", "[PointCloudBVH]",
       CHECK_THAT((bvh.position(i) - pos[i]).length2(), withinAbsT<T>(T(0), tol));
     }
   }
+
+  SECTION("brute-force reference methods match an independent scan (and the accelerated queries)")
+  {
+    constexpr std::size_t k = 4;
+
+    // External: closestPoint(s)BruteForce vs the independent oracle, and vs the accelerated query.
+    const std::vector<Vec3T<T>>                 queries = makeCloud<T>(120, 4242u);
+    typename PointCloudBVH<T, std::size_t>::Hit refOut[k];
+    for (const auto& q : queries) {
+      const auto ref   = bvh.closestPointBruteForce(q);
+      const auto truth = bruteForce<T>(pos, q, 1, n);
+      REQUIRE(ref.index < n);
+      CHECK_THAT(ref.distanceSquared, withinAbsT<T>(truth[0], tol));
+      // The accelerated query must agree with the brute-force reference.
+      CHECK_THAT(bvh.closestPoint(q).distanceSquared, withinAbsT<T>(ref.distanceSquared, tol));
+
+      const std::size_t found  = bvh.closestPointsBruteForce(q, k, refOut);
+      const auto        truthK = bruteForce<T>(pos, q, k, n);
+      REQUIRE(found == k);
+      for (std::size_t j = 0; j < k; j++) {
+        if (j > 0) {
+          CHECK(refOut[j - 1].distanceSquared <= refOut[j].distanceSquared); // ascending
+        }
+        CHECK_THAT(refOut[j].distanceSquared, withinAbsT<T>(truthK[j], tol));
+      }
+    }
+
+    // Self (excludes the query particle itself).
+    for (std::size_t i = 0; i < n; i += 47) {
+      const auto ref   = bvh.nearestNeighborBruteForce(i);
+      const auto truth = bruteForce<T>(pos, pos[i], 1, i);
+      REQUIRE(ref.index < n);
+      CHECK(ref.index != i);
+      CHECK_THAT(ref.distanceSquared, withinAbsT<T>(truth[0], tol));
+      CHECK_THAT(bvh.nearestNeighbor(i).distanceSquared, withinAbsT<T>(ref.distanceSquared, tol));
+
+      const std::size_t found  = bvh.nearestNeighborsBruteForce(i, k, refOut);
+      const auto        truthK = bruteForce<T>(pos, pos[i], k, i);
+      REQUIRE(found == k);
+      for (std::size_t j = 0; j < k; j++) {
+        CHECK(refOut[j].index != i);
+        CHECK_THAT(refOut[j].distanceSquared, withinAbsT<T>(truthK[j], tol));
+      }
+    }
+  }
 }

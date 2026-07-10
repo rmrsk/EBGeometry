@@ -44,34 +44,6 @@ constexpr std::size_t   kNN        = 1;
 constexpr std::size_t   sampleSize = 500; // how many points to verify against brute force
 constexpr std::uint64_t pointSeed  = 123456789ULL;
 
-namespace {
-
-/**
- * @brief The kNN smallest squared distances from a_query to all *other* points, ascending.
- * @details Brute-force ground truth for one point; excludes the query point itself (a self query
- * would otherwise always find itself at distance zero).
- * @param[in] a_positions The point cloud.
- * @param[in] a_self      Index of the query point (excluded from its own neighbor set).
- * @param[in] a_k         Number of neighbors.
- * @return The a_k smallest squared distances, ascending.
- */
-std::vector<T>
-bruteForceNeighbors(const std::vector<Vec3>& a_positions, std::size_t a_self, std::size_t a_k)
-{
-  std::vector<T> d2;
-  d2.reserve(a_positions.size());
-  for (std::size_t i = 0; i < a_positions.size(); i++) {
-    if (i != a_self) {
-      d2.push_back((a_positions[i] - a_positions[a_self]).length2());
-    }
-  }
-  std::sort(d2.begin(), d2.end());
-  d2.resize(std::min(a_k, d2.size()));
-  return d2;
-}
-
-} // namespace
-
 int
 main()
 {
@@ -102,18 +74,21 @@ main()
   timer.stop();
   const double graphSeconds = timer.seconds();
 
-  // Verify a spread sample against brute force, and time the brute-force sample to extrapolate a
-  // fair per-point baseline (a full N^2 all-pairs scan is infeasible at this size).
+  // Verify a spread sample against the class's own O(N) brute-force reference (no hand-rolled scan),
+  // and time that sample to extrapolate a fair per-point baseline (a full N^2 all-pairs scan is
+  // infeasible at this size).
   constexpr T tolerance = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-9);
 
-  const std::size_t stride = numPoints / sampleSize;
+  std::vector<PointCloud::Hit> truth(kNN);
+  const std::size_t            stride = numPoints / sampleSize;
   timer.start();
   for (std::size_t s = 0; s < sampleSize; s++) {
-    const std::size_t    i     = s * stride;
-    const std::vector<T> truth = bruteForceNeighbors(positions, i, kNN);
+    const std::size_t i = s * stride;
+    bvh.nearestNeighborsBruteForce(i, kNN, truth.data());
     for (std::size_t j = 0; j < kNN; j++) {
       const T got = graph[i * kNN + j].distanceSquared;
-      EBGEOMETRY_EXPECT(std::abs(got - truth[j]) <= tolerance * std::max(truth[j], T(1.0)));
+      EBGEOMETRY_EXPECT(std::abs(got - truth[j].distanceSquared) <=
+                        tolerance * std::max(truth[j].distanceSquared, T(1.0)));
       (void)got;
     }
   }

@@ -44,33 +44,6 @@ constexpr std::size_t   numQueries = 500;
 constexpr std::uint64_t pointSeed  = 123456789ULL;
 constexpr std::uint64_t querySeed  = 987654321ULL;
 
-namespace {
-
-/**
- * @brief Closest point by brute force -- the ground truth the BVH search is checked against.
- * @param[in]  a_positions The point cloud to search.
- * @param[in]  a_query     Query point.
- * @param[out] a_index     Index of the closest point in a_positions.
- * @return The closest point's squared distance.
- */
-T
-bruteForceClosest(const std::vector<Vec3>& a_positions, const Vec3& a_query, std::size_t& a_index)
-{
-  T           best  = std::numeric_limits<T>::max();
-  std::size_t bestI = 0;
-  for (std::size_t i = 0; i < a_positions.size(); i++) {
-    const T d2 = (a_positions[i] - a_query).length2();
-    if (d2 < best) {
-      best  = d2;
-      bestI = i;
-    }
-  }
-  a_index = bestI;
-  return best;
-}
-
-} // namespace
-
 int
 main()
 {
@@ -97,12 +70,12 @@ main()
   timer.stop();
   const double buildSeconds = timer.seconds();
 
-  // Brute-force ground truth for every query, plus its own timing (the baseline to beat).
-  std::vector<std::size_t> truthIndex(numQueries);
-  std::vector<T>           truthDist2(numQueries);
+  // Brute-force ground truth for every query, via the class's own O(N) reference method -- no need to
+  // hand-roll a scan here. This also times the baseline the accelerated query beats.
+  std::vector<PointCloud::Hit> truth(numQueries);
   timer.start();
   for (std::size_t q = 0; q < numQueries; q++) {
-    truthDist2[q] = bruteForceClosest(positions, queryPoints[q], truthIndex[q]);
+    truth[q] = bvh.closestPointBruteForce(queryPoints[q]);
   }
   timer.stop();
   const double bruteSeconds = timer.seconds();
@@ -110,14 +83,15 @@ main()
   constexpr T tolerance = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-9);
 
   // Query every point via the BVH, timing the batch. EBGEOMETRY_EXPECT (opt-in via
-  // EBGEOMETRY_ENABLE_ASSERTIONS) checks every result against brute force; a volatile sink keeps the
-  // query live in no-assertion builds.
+  // EBGEOMETRY_ENABLE_ASSERTIONS) checks every result against the brute-force reference; a volatile
+  // sink keeps the query live in no-assertion builds.
   volatile std::size_t sink = 0;
   timer.start();
   for (std::size_t q = 0; q < numQueries; q++) {
     const PointCloud::Hit hit = bvh.closestPoint(queryPoints[q]);
 
-    EBGEOMETRY_EXPECT(std::abs(hit.distanceSquared - truthDist2[q]) <= tolerance * std::max(truthDist2[q], T(1.0)));
+    EBGEOMETRY_EXPECT(std::abs(hit.distanceSquared - truth[q].distanceSquared) <=
+                      tolerance * std::max(truth[q].distanceSquared, T(1.0)));
 
     sink += hit.index;
   }

@@ -654,6 +654,14 @@ metadata is reachable through ``metadata()``. ``closestPoint`` / ``closestPoints
 answer an arbitrary external point, while ``nearestNeighbor`` / ``nearestNeighbors``
 (and the batch ``allNearestNeighbors``) answer a particle already in the cloud and
 additionally seed the search bound from that particle's own leaf -- a strictly
-cheaper search an external point cannot use. See the
+cheaper search an external point cannot use.
+
+Each accelerated query also has an ``O(N)`` brute-force counterpart --
+``closestPointBruteForce`` / ``closestPointsBruteForce`` /
+``nearestNeighborBruteForce`` / ``nearestNeighborsBruteForce`` -- that answers the
+same question by a full linear scan. These are reference implementations for
+testing and debugging (verify an accelerated result against ground truth, or
+A/B-test a suspected tree/traversal bug against an unaccelerated path) and are not
+meant for production queries. See the
 `PointCloudBVH doxygen page
 <doxygen/html/classEBGeometry_1_1PointCloudBVH.html>`__ for the full interface.

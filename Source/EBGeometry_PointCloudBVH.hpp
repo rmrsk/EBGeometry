@@ -144,6 +144,56 @@ public:
   [[nodiscard]] inline std::vector<Hit>
   allNearestNeighbors(std::size_t a_k = 1) const;
 
+  // ── Brute-force reference queries ────────────────────────────────────────────────────────────
+  // O(N) full-scan counterparts of the accelerated queries above. They exist so tests, examples,
+  // and downstream debugging can check a BVH result against ground truth without re-implementing a
+  // scan, and so a suspected tree/traversal bug can be A/B-tested against an unaccelerated path.
+  // They are NOT for production queries -- each is linear in the cloud size; use closestPoint() etc.
+
+  /*!
+    @brief Brute-force closest particle to an arbitrary point (O(N) reference for closestPoint()).
+    @details Full linear scan; for testing/debugging only, never a hot path. Same result contract as
+    closestPoint().
+    @param[in] a_query Query point (need not be in the cloud).
+    @return The nearest particle and its squared distance.
+  */
+  [[nodiscard]] inline Hit
+  closestPointBruteForce(const Vec3T<T>& a_query) const noexcept;
+
+  /*!
+    @brief Brute-force a_k closest particles to an arbitrary point (O(N) reference for closestPoints()).
+    @details Full linear scan; for testing/debugging only. Same result contract as closestPoints().
+    @param[in]  a_query Query point (need not be in the cloud).
+    @param[in]  a_k     Number of neighbors requested.
+    @param[out] a_out   Buffer of at least a_k Hits; filled [0, returned count), ascending by distance.
+    @return The number of neighbors found (min(a_k, cloud size)).
+  */
+  inline std::size_t
+  closestPointsBruteForce(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out) const;
+
+  /*!
+    @brief Brute-force nearest *other* particle to a cloud particle (O(N) reference for nearestNeighbor()).
+    @details Full linear scan excluding the particle itself; for testing/debugging only. Same result
+    contract as nearestNeighbor().
+    @param[in] a_particle Cloud index of the query particle; excluded from its own result.
+    @return The nearest other particle and its squared distance.
+  */
+  [[nodiscard]] inline Hit
+  nearestNeighborBruteForce(std::size_t a_particle) const noexcept;
+
+  /*!
+    @brief Brute-force a_k nearest *other* particles to a cloud particle (O(N) reference for
+    nearestNeighbors()).
+    @details Full linear scan excluding the particle itself; for testing/debugging only. Same result
+    contract as nearestNeighbors().
+    @param[in]  a_particle Cloud index of the query particle; excluded from its own result.
+    @param[in]  a_k        Number of neighbors requested.
+    @param[out] a_out      Buffer of at least a_k Hits; filled [0, returned count), ascending.
+    @return The number of neighbors found (min(a_k, cloud size - 1)).
+  */
+  inline std::size_t
+  nearestNeighborsBruteForce(std::size_t a_particle, std::size_t a_k, Hit* a_out) const;
+
   /*! @brief Number of particles in the cloud. @return The particle count. */
   [[nodiscard]] inline std::size_t
   numParticles() const noexcept
@@ -210,6 +260,26 @@ private:
         std::size_t     a_exclude,
         std::uint32_t   a_seedOff,
         std::uint32_t   a_seedCnt) const noexcept;
+
+  /*!
+    @brief Brute-force single nearest by full scan (shared by closestPointBruteForce / nearestNeighborBruteForce).
+    @param[in] a_query   Query point.
+    @param[in] a_exclude Cloud index to exclude, or s_none to exclude nothing.
+    @return The nearest (non-excluded) particle and its squared distance; a default Hit if none.
+  */
+  [[nodiscard]] inline Hit
+  bruteForceOne(const Vec3T<T>& a_query, std::size_t a_exclude) const noexcept;
+
+  /*!
+    @brief Brute-force a_k nearest by full scan (shared by closestPointsBruteForce / nearestNeighborsBruteForce).
+    @param[in]  a_query   Query point.
+    @param[in]  a_k       Neighbors requested.
+    @param[out] a_out     Buffer of at least a_k Hits; filled ascending by distance.
+    @param[in]  a_exclude Cloud index to exclude, or s_none to exclude nothing.
+    @return The number of neighbors found.
+  */
+  inline std::size_t
+  bruteForceK(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out, std::size_t a_exclude) const;
 
   /*! @brief Sentinel meaning "exclude no particle". */
   static constexpr std::size_t s_none = std::numeric_limits<std::size_t>::max();

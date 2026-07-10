@@ -207,6 +207,13 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
   attribution: Hit-width 3% (not a factor), query()-call boundary ~0%, the rest was that hoisted
   sort+alloc. **Single-precision query ~ double** (float 0.245 vs double 0.254 us/pt seeded): precision
   buys build time, not traversal.
+- **Brute-force reference queries added (committed).** `closestPointBruteForce` /
+  `closestPointsBruteForce` / `nearestNeighborBruteForce` / `nearestNeighborsBruteForce` -- O(N)
+  full-scan counterparts of the accelerated queries, clearly documented as testing/debugging-only
+  (not production). Share two private cores (`bruteForceOne` no-alloc min-scan; `bruteForceK`
+  scratch + `partial_sort`). Both examples now use them for their baselines/verification instead of
+  hand-rolled scans, and `TestPointCloudBVH` gained a section checking them against its independent
+  oracle AND cross-checking the accelerated queries against them (3320 assertions, was 1440).
 - **Examples collapsed 4 -> 2 on PointCloudBVH (committed).** The four hand-rolled point-cloud
   examples (`ClosestPoint{SFC,Tree}Packed`, `NearestNeighbor{SFC,Tree}Packed`) are replaced by
   **`Examples/ClosestPoint`** (external `closestPoint`/`closestPoints`) and

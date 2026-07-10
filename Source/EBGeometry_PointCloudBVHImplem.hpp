@@ -386,6 +386,82 @@ PointCloudBVH<T, Meta, K, Width>::allNearestNeighbors(std::size_t a_k) const
   return result;
 }
 
+template <class T, class Meta, size_t K, size_t Width>
+inline typename PointCloudBVH<T, Meta, K, Width>::Hit
+PointCloudBVH<T, Meta, K, Width>::bruteForceOne(const Vec3T<T>& a_query, std::size_t a_exclude) const noexcept
+{
+  Hit best;
+  for (std::size_t i = 0; i < m_positions.size(); i++) {
+    if (i == a_exclude) {
+      continue;
+    }
+    const T d2 = (m_positions[i] - a_query).length2();
+    if (d2 < best.distanceSquared) {
+      best.distanceSquared = d2;
+      best.index           = i;
+    }
+  }
+  return best;
+}
+
+template <class T, class Meta, size_t K, size_t Width>
+inline std::size_t
+PointCloudBVH<T, Meta, K, Width>::bruteForceK(const Vec3T<T>& a_query,
+                                              std::size_t     a_k,
+                                              Hit*            a_out,
+                                              std::size_t     a_exclude) const
+{
+  // Full scan into a scratch buffer, then partial_sort the a_k smallest to the front. Deliberately
+  // simple and obviously correct -- this is the reference path, not a hot one.
+  std::vector<Hit> all;
+  all.reserve(m_positions.size());
+  for (std::size_t i = 0; i < m_positions.size(); i++) {
+    if (i == a_exclude) {
+      continue;
+    }
+    all.push_back(Hit{i, (m_positions[i] - a_query).length2()});
+  }
+
+  const std::size_t k = std::min(a_k, all.size());
+  std::partial_sort(
+    all.begin(),
+    all.begin() + static_cast<std::ptrdiff_t>(k),
+    all.end(),
+    [](const Hit& a_lhs, const Hit& a_rhs) noexcept { return a_lhs.distanceSquared < a_rhs.distanceSquared; });
+  for (std::size_t j = 0; j < k; j++) {
+    a_out[j] = all[j];
+  }
+  return k;
+}
+
+template <class T, class Meta, size_t K, size_t Width>
+inline typename PointCloudBVH<T, Meta, K, Width>::Hit
+PointCloudBVH<T, Meta, K, Width>::closestPointBruteForce(const Vec3T<T>& a_query) const noexcept
+{
+  return this->bruteForceOne(a_query, s_none);
+}
+
+template <class T, class Meta, size_t K, size_t Width>
+inline std::size_t
+PointCloudBVH<T, Meta, K, Width>::closestPointsBruteForce(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out) const
+{
+  return this->bruteForceK(a_query, a_k, a_out, s_none);
+}
+
+template <class T, class Meta, size_t K, size_t Width>
+inline typename PointCloudBVH<T, Meta, K, Width>::Hit
+PointCloudBVH<T, Meta, K, Width>::nearestNeighborBruteForce(std::size_t a_particle) const noexcept
+{
+  return this->bruteForceOne(m_positions[a_particle], a_particle);
+}
+
+template <class T, class Meta, size_t K, size_t Width>
+inline std::size_t
+PointCloudBVH<T, Meta, K, Width>::nearestNeighborsBruteForce(std::size_t a_particle, std::size_t a_k, Hit* a_out) const
+{
+  return this->bruteForceK(m_positions[a_particle], a_k, a_out, a_particle);
+}
+
 } // namespace EBGeometry
 
 #endif
