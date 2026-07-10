@@ -87,9 +87,13 @@ struct Knn
 
   /**
    * @brief Offer one candidate neighbor; keep it iff it is among the kNN closest and not already held.
-   * @details De-duplicates by cloud index -- so a PointAoSoA group's padded lanes (which repeat the
-   * last real index) are no-ops, and a neighbor found both directly and via the reciprocal update is
-   * listed once. Keeps the arrays sorted by ascending distance.
+   * @details Tests the cheap distance bound before the de-dupe scan: most candidates in a leaf are
+   * farther than the current worst, so rejecting them by distance first lets them skip the index
+   * scan entirely. The de-dupe -- which stops a PointAoSoA group's padded lanes (repeating the last
+   * real index) and a neighbor found both directly and via the reciprocal update from being listed
+   * twice -- is only reached by a candidate that would actually be inserted. For kNN == 1 it is
+   * redundant (a repeat is either the current best, already rejected by a_dist2 >= dist2[0], or
+   * farther, same) and is compiled out. Keeps the arrays sorted by ascending distance.
    * @param[in] a_dist2 Squared distance to the candidate.
    * @param[in] a_index Candidate's cloud index.
    * @return True iff the candidate was newly accepted into the kNN best (worth reciprocating).
@@ -97,13 +101,16 @@ struct Knn
   bool
   tryInsert(T a_dist2, size_t a_index) noexcept
   {
-    for (size_t i = 0; i < count; i++) {
-      if (index[i] == a_index) {
-        return false; // already held -- no new information
-      }
-    }
     if (count == kNN && a_dist2 >= dist2[kNN - 1]) {
-      return false; // not among the kNN closest
+      return false; // not among the kNN closest -- cheap reject first, before the de-dupe scan
+    }
+
+    if constexpr (kNN > 1) {
+      for (size_t i = 0; i < count; i++) {
+        if (index[i] == a_index) {
+          return false; // already held -- no new information
+        }
+      }
     }
 
     size_t pos = (count < kNN) ? count++ : (kNN - 1); // grow, or overwrite the current worst
