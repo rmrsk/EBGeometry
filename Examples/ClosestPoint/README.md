@@ -66,10 +66,11 @@ Running
     ./ClosestPoint.ex
 
 Takes no arguments. It generates a random 50,000-point cloud and 500 query points (fixed seeds, so
-results are reproducible on a given machine), verifies every strategy's nearest-neighbor result
-against brute force (aborting on any mismatch), and prints one table row per strategy giving build
-time, average query time, speedup over brute force, average leaf visits per query, and the average
-number of `PointAoSoA` groups per visited leaf.
+results are reproducible on a given machine) and prints a short header followed by one table row per
+strategy giving build time, average query time, speedup over brute force, average leaf visits per
+query, and the average number of `PointAoSoA` groups per visited leaf. Every query's result is
+checked against a brute-force scan with `EBGEOMETRY_EXPECT`, so building with
+`-DEBGEOMETRY_ENABLE_ASSERTIONS` aborts on any mismatch; the checks compile out otherwise.
 
 Worth noting when reading the output:
 

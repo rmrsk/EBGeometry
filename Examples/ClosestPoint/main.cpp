@@ -162,24 +162,23 @@ bvhNearest(const Packed&            a_bvh,
   return best;
 }
 
-// Timing/verification result for one BVH build strategy.
+// Timing result for one BVH build strategy.
 struct StrategyResult
 {
   double buildSeconds     = 0.0; // Construction time (filled in by the caller, which times it).
   double querySeconds     = 0.0; // Total time for all queries.
   double avgLeafVisits    = 0.0; // Average leaf nodes visited per query.
   double avgGroupsPerLeaf = 0.0; // Average groups per visited leaf (the leaf occupancy achieved).
-  int    indexMatches     = 0;   // Queries whose winning index equalled brute force's.
 };
 
-// Runs every query against a_bvh, aborting on any nearest-distance mismatch vs brute force, and
-// accumulates timing, leaf-visit, and metadata-agreement statistics.
+// Runs every query against a_bvh, accumulating timing and leaf-visit statistics. Correctness is
+// checked with EBGEOMETRY_EXPECT (opt-in via EBGEOMETRY_ENABLE_ASSERTIONS): the BVH's nearest
+// squared distance must match brute force's for every query, or the assertion aborts.
 StrategyResult
 benchmarkStrategy(const Packed&               a_bvh,
                   const std::vector<Vec3>&    a_positions,
                   const std::vector<Vec3>&    a_queries,
-                  const std::vector<Nearest>& a_bruteForce,
-                  const char*                 a_label)
+                  const std::vector<Nearest>& a_bruteForce)
 {
   constexpr T tolerance = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-9);
 
@@ -187,25 +186,20 @@ benchmarkStrategy(const Packed&               a_bvh,
 
   long long               leafVisits = 0;
   long long               groupEvals = 0;
-  EBGeometry::SimpleTimer timer;
+  volatile T              sink       = T(0); // Consume each result so the query (metadata rescan
+  EBGeometry::SimpleTimer timer;             // included) is not optimized away in no-assertion builds.
 
   timer.start();
   for (size_t q = 0; q < a_queries.size(); q++) {
     const Nearest bvhResult = bvhNearest(a_bvh, a_positions, a_queries[q], leafVisits, groupEvals);
 
-    const Nearest& bruteResult = a_bruteForce[q];
+    EBGEOMETRY_EXPECT(std::abs(bvhResult.dist2 - a_bruteForce[q].dist2) <=
+                      tolerance * std::max(a_bruteForce[q].dist2, T(1.0)));
 
-    if (std::abs(bvhResult.dist2 - bruteResult.dist2) > tolerance * std::max(bruteResult.dist2, T(1.0))) {
-      std::cerr << a_label << ": nearest-distance mismatch (BVH dist2 = " << bvhResult.dist2
-                << ", brute-force dist2 = " << bruteResult.dist2 << ")\n";
-      std::exit(1);
-    }
-
-    if (bvhResult.index == bruteResult.index) {
-      result.indexMatches++;
-    }
+    sink += bvhResult.dist2;
   }
   timer.stop();
+  (void)sink;
 
   result.querySeconds     = timer.seconds();
   result.avgLeafVisits    = double(leafVisits) / double(a_queries.size());
@@ -224,7 +218,8 @@ main()
   std::cout << "  SoA width W             = " << W << " (PointSoA::DefaultWidth<T>())\n";
   std::cout << "  BVH branching factor K  = " << K << " (BVH::DefaultBranchingRatio<T>())\n";
   std::cout << "  Points                  = " << numPoints << '\n';
-  std::cout << "  Queries                 = " << numQueries << "\n\n";
+  std::cout << "  Queries                 = " << numQueries << '\n';
+  std::cout << "  Target leaf size        = " << maxLeafGroups << " groups (" << maxLeafGroups * W << " points)\n\n";
 
   const std::vector<Vec3> positions  = EBGeometry::Random::samplePoints<T>(numPoints, pointSeed);
   const std::vector<Vec3> rawQueries = EBGeometry::Random::samplePoints<T>(numQueries, querySeed);
@@ -280,38 +275,15 @@ main()
   timer.stop();
   const double bruteSeconds = timer.seconds();
 
-  StrategyResult morton   = benchmarkStrategy(mortonBVH, positions, queries, bruteForce, "Morton (SFC)");
-  StrategyResult topDown  = benchmarkStrategy(topDownBVH, positions, queries, bruteForce, "TopDown centroid");
-  StrategyResult midpoint = benchmarkStrategy(midpointBVH, positions, queries, bruteForce, "Midpoint");
-  StrategyResult sah      = benchmarkStrategy(sahBVH, positions, queries, bruteForce, "SAH");
+  StrategyResult morton   = benchmarkStrategy(mortonBVH, positions, queries, bruteForce);
+  StrategyResult topDown  = benchmarkStrategy(topDownBVH, positions, queries, bruteForce);
+  StrategyResult midpoint = benchmarkStrategy(midpointBVH, positions, queries, bruteForce);
+  StrategyResult sah      = benchmarkStrategy(sahBVH, positions, queries, bruteForce);
 
   morton.buildSeconds   = mortonBuild;
   topDown.buildSeconds  = topDownBuild;
   midpoint.buildSeconds = midpointBuild;
   sah.buildSeconds      = sahBuild;
-
-  // Every strategy passed the per-query distance check inside benchmarkStrategy; the metadata index
-  // can differ from brute force only on an exact equidistant tie.
-  const int worstIndexMatches =
-    std::min({morton.indexMatches, topDown.indexMatches, midpoint.indexMatches, sah.indexMatches});
-
-  T avgDist = T(0.0);
-  for (const auto& b : bruteForce) {
-    avgDist += std::sqrt(b.dist2);
-  }
-  avgDist /= T(numQueries);
-
-  std::cout << "All four BVH strategies agree with brute force on every query's nearest distance.\n";
-  std::cout << "Nearest-point metadata (index) matched brute force in at least " << worstIndexMatches << "/"
-            << numQueries << " queries per strategy";
-  if (worstIndexMatches != int(numQueries)) {
-    std::cout << " (the rest were exact equidistant ties between two points)";
-  }
-  std::cout << ".\n";
-  std::cout << std::setprecision(9);
-  std::cout << "Average nearest distance = " << avgDist << '\n';
-  std::cout << "Target leaf size         = " << maxLeafGroups << " groups (" << maxLeafGroups * W
-            << " points) per leaf\n\n";
 
   // Query time is the headline; build time, leaf visits, and groups-per-leaf are shown alongside
   // because they explain it (a tighter tree visits fewer leaves and queries faster, usually at the
