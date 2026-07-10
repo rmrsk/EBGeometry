@@ -8,8 +8,10 @@ point-cloud primitive `PointAoSoA<T, Meta, W>` as a `PackedBVH` leaf (see
 This is the k-nearest-neighbor counterpart to
 [`Examples/ClosestPointSFCPacked`](../ClosestPointSFCPacked/README.md): same organization -- 100,000
 points SFC-sorted and chunked into `PointAoSoA<T, size_t, W>` groups, then built into a `PackedBVH`
-five ways (**Morton (SFC)**, **Hilbert (SFC)**, **TopDown centroid**, **Midpoint**, **SAH**) via the
-direct constructors -- but a different query. Instead of one closest point per query, it finds, for
+six ways (**Morton (SFC)**, **Hilbert (SFC)**, **TopDown centroid**, **Midpoint**, **SAH**, and
+**ClusterSAH** -- density-adaptive clustering of the groups, then SAH over the clusters, which reaches
+SAH-level tree quality at a much lower build cost) via the direct constructors -- but a different
+query. Instead of one closest point per query, it finds, for
 *every* point in the cloud, its `k = 3` nearest *other* points. Each point walks the tree with
 `pruneTraverse()`, keeping a 3-slot sorted set of nearest neighbors whose current 3rd distance is the
 pruning bound. A spread-out sample of points is checked against a brute-force scan.

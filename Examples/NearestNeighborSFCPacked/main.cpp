@@ -54,6 +54,9 @@ constexpr size_t   k             = 3;
 constexpr size_t   numVerify     = 500;
 constexpr uint64_t pointSeed     = 123456789ULL;
 constexpr size_t   maxLeafGroups = 16;
+// ClusterSAH bucket size (in groups). Its leaves hold up to a few buckets, so this is chosen so its
+// leaves are comparable to the other strategies' maxLeafGroups; tune to trade build time vs query.
+constexpr size_t maxClusterGroups = 8;
 
 namespace {
 
@@ -376,6 +379,13 @@ main()
   timer.stop();
   const double sahBuild = timer.seconds();
 
+  // ClusterSAH: density-adaptive clustering of the groups, then SAH over the clusters -- near-SAH tree
+  // quality at a fraction of SAH's build cost. Direct-only, disambiguated by the ClusterSpec argument.
+  timer.start();
+  const Packed clusterSahBVH(groups, EBGeometry::BVH::ClusterSpec{maxClusterGroups});
+  timer.stop();
+  const double clusterSahBuild = timer.seconds();
+
   // Brute-force ground truth for a spread-out sample of points, timed so its per-point cost is the
   // baseline for the speedup column (full all-pairs brute force would be O(N^2)).
   std::vector<size_t>           verifyIdx(numVerify);
@@ -392,17 +402,19 @@ main()
   const double brutePerPointSec = timer.seconds() / double(numVerify);
 
   // All-k-NN with reciprocal culling on, for each strategy.
-  StrategyResult mortonRes   = benchmarkStrategy(mortonBVH, positions, order, true, verifyIdx, bruteKnn);
-  StrategyResult hilbertRes  = benchmarkStrategy(hilbertBVH, positions, order, true, verifyIdx, bruteKnn);
-  StrategyResult topDownRes  = benchmarkStrategy(topDownBVH, positions, order, true, verifyIdx, bruteKnn);
-  StrategyResult midpointRes = benchmarkStrategy(midpointBVH, positions, order, true, verifyIdx, bruteKnn);
-  StrategyResult sahRes      = benchmarkStrategy(sahBVH, positions, order, true, verifyIdx, bruteKnn);
+  StrategyResult mortonRes     = benchmarkStrategy(mortonBVH, positions, order, true, verifyIdx, bruteKnn);
+  StrategyResult hilbertRes    = benchmarkStrategy(hilbertBVH, positions, order, true, verifyIdx, bruteKnn);
+  StrategyResult topDownRes    = benchmarkStrategy(topDownBVH, positions, order, true, verifyIdx, bruteKnn);
+  StrategyResult midpointRes   = benchmarkStrategy(midpointBVH, positions, order, true, verifyIdx, bruteKnn);
+  StrategyResult sahRes        = benchmarkStrategy(sahBVH, positions, order, true, verifyIdx, bruteKnn);
+  StrategyResult clusterSahRes = benchmarkStrategy(clusterSahBVH, positions, order, true, verifyIdx, bruteKnn);
 
-  mortonRes.buildSeconds   = mortonBuild;
-  hilbertRes.buildSeconds  = hilbertBuild;
-  topDownRes.buildSeconds  = topDownBuild;
-  midpointRes.buildSeconds = midpointBuild;
-  sahRes.buildSeconds      = sahBuild;
+  mortonRes.buildSeconds     = mortonBuild;
+  hilbertRes.buildSeconds    = hilbertBuild;
+  topDownRes.buildSeconds    = topDownBuild;
+  midpointRes.buildSeconds   = midpointBuild;
+  sahRes.buildSeconds        = sahBuild;
+  clusterSahRes.buildSeconds = clusterSahBuild;
 
   // The same BVHs, but with reciprocal culling OFF -- the contrast that shows the culling win.
   // Culling reduces leaf visits in proportion to how loose the baseline traversal is: the SFC-direct
@@ -431,6 +443,7 @@ main()
   printRow("TopDown centroid", topDownRes, brutePerPointSec);
   printRow("Midpoint", midpointRes, brutePerPointSec);
   printRow("SAH", sahRes, brutePerPointSec);
+  printRow("ClusterSAH", clusterSahRes, brutePerPointSec);
   std::cout << std::string(91, '-') << '\n';
   std::cout << "Reciprocal culling OFF (compare against the rows above):\n";
   printRow("Morton (no cull)", mortonNoCull, brutePerPointSec);
