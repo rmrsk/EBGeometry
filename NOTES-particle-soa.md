@@ -89,6 +89,20 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
   seed+reciprocal stacked is then redundant overhead. Verified float+double. The bottom-up
   "start at the leaf, walk up" variant would hit the same floor and needs parent pointers `PackedBVH`
   lacks, so seeding (which needs nothing new) is the practical form.
+- **Leaf size: FEWER groups per leaf is WORSE; the kNN=1 query sweet spot is BIGGER (~32–64 groups),
+  not the current 16.** Swept `maxLeafGroups` on the tight SAH-over-points tree with seed+skip (500k,
+  double, us/pt): leaf=1→0.53, 8→0.34, **16→0.31 (current), 32→0.29, 64→0.28 (min)**, 128→0.39,
+  256→0.41 — a U-shape, and build cost drops monotonically with bigger leaves (leaf=16 ~275 ms vs 64
+  ~212 ms). Counterintuitive: shrinking leaves scans FEWER points per query yet is SLOWER. Why:
+  **leaf visits stay ~2 regardless of leaf size** (the seeded bound finds the NN in ~2 leaves either
+  way), so smaller leaves only make the tree DEEPER — and the cost is the latency-bound tree
+  descent (node pointer-chasing), NOT the leaf scan, which is cheap cache-friendly SIMD. So the lever
+  that works is **make the tree shallower (bigger leaves)** until the leaf scan itself gets too big
+  (~128+ groups). This is the SAME lesson as the bottom-up result: traversal is the cost, leaf/AABB
+  work is cheap — cutting individual AABB tests (bottom-up) didn't help, cutting tree DEPTH (bigger
+  leaves) does (~10% query + ~20% build vs leaf=16). Workload-specific (kNN=1); larger kNN wants
+  bigger leaves anyway. Examples still ship `maxLeafGroups=16` (a general choice) — bumping to ~32
+  would speed the kNN examples; not changed unilaterally.
 - **Bottom-up (leaf-anchored) traversal: PROTOTYPED and REJECTED — cuts AABB tests but no wall-clock
   gain.** Idea (Robert's): every all-NN query point already lives in a leaf, so start AT that leaf and
   walk UP, checking only sibling subtrees at each ancestor — skipping the root→leaf descent and its
