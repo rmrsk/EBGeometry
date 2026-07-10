@@ -1525,11 +1525,12 @@ TEMPLATE_TEST_CASE("BVH::MidpointPartitioner: handles degenerate-axis primitive 
     }
 
     using Node = BVH::TreeBVH<T, Pnt, AABB, K>;
-    // GCC requires capturing K here (it's a local constexpr referenced from a lambda nested
-    // inside another lambda); Clang's C++17 relaxed rules don't need it, hence the NOLINT.
-    const auto stopCrit = [K](const Node& n) noexcept -> bool { // NOLINT(clang-diagnostic-unused-lambda-capture)
-      return n.getPrimitives().size() < K;
-    };
+    // A capture-default (not an explicit [K]) is deliberate: this lambda is nested inside another,
+    // and the two toolchains disagree about the constexpr K. GCC requires it be captured (errors
+    // "K is not captured" with no capture list), while Clang -Werror rejects an explicit [K] as an
+    // unused capture. A [=] default satisfies GCC and is not flagged by Clang. (Do not use [&]
+    // here: g++ 13 ICEs on a by-reference capture in this exact nesting.)
+    const auto stopCrit = [=](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
     const BVH::PackedBVH<T, Pnt, K> packed(std::move(flatPrims), BVH::MidpointPartitioner<T, Pnt, AABB, K>, stopCrit);
 
     REQUIRE(packed.getPrimitives().size() == a_positions.size());
