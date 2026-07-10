@@ -37,29 +37,32 @@ performance is the number that matters, and there is no inner loop to thread.
   query is per-point `knnSearch(k = 2)` taking the second result (the first is the point itself at
   distance 0).
 
-Each strategy is queried in **two processing orders** -- natural index order and Hilbert-sorted --
-to expose the query-ordering (cache-locality) lever; the result is order-independent, only the time
-changes. It cross-checks that every strategy agrees with nanoflann on each point's nearest
-**distance** (indices may differ on exact ties).
+Every EBGeometry query runs in **Hilbert (spatial) order** -- the in-order processing that is part
+of the recommended strategy -- and is timed both as a plain **top-down** traversal (bound from
+`+inf`) and with our **seed-from-own-leaf + skip** optimization (each point's bound seeded from the
+leaf it already lives in, that leaf skipped in traversal; `buildLeafMap` builds the point->leaf map
+once per tree). nanoflann is timed **vanilla** in natural order (typical usage) and, for an
+equal-footing tree comparison, in the same Hilbert order. Results are cross-checked identical.
 
 ### Reading the result
 
-On a typical AVX2 machine (500k points, single core) nanoflann is roughly **~2x faster than
-EBGeometry on both build and query** for pure point NN -- the expected outcome of a *specialized
-kd-tree* versus a *general BVH* (the same `PackedBVH` EBGeometry uses for mesh SDFs and CSG). The
-**SAH-over-points** tree is EBGeometry's closest: query within ~13% of nanoflann (natural order), but
-at ~6x the build cost; SAH/ClusterSAH over pre-made groups stay ~2.4x on query. So the kd-tree wins
-the combined build+query, as expected.
+With our full optimization stack (seed-from-own-leaf + skip, Hilbert-order queries, `W=K=4`, lean
+`kNN=1` query loop) on the tight **SAH-over-points** tree, EBGeometry queries at **~0.33-0.35 us/pt**
+(500k, double) -- versus vanilla nanoflann at **~0.58 us/pt** in natural order or **~0.27** if its
+queries are also spatially pre-sorted. So the comparison depends on what "vanilla" means:
 
-**Query ordering** is a real ~30-50% wall-clock lever: processing points in Hilbert order instead of
-natural index order gives every strategy a large cache-locality speedup (see the `SFC gain` column).
-Note it is *not* an EBGeometry advantage -- nanoflann's tighter nodes exploit locality even more (it
-gains ~50% vs EBGeometry's ~35%), so SFC ordering slightly *widens* the same-order gap rather than
-closing it. It is still worth doing in a real particle code (queries ~1.5x faster), and there the
-particles are often already spatially coherent.
+* **vs vanilla nanoflann (natural-order queries):** EBGeometry is **~1.7x faster** on query (0.35 vs
+  0.58). Visit-in-order is one of *our* optimizations; a nanoflann user who does not reorder queries
+  pays the natural-order price.
+* **vs nanoflann on the same spatial ordering:** nanoflann is **~1.3x faster** on query (0.27 vs
+  0.35) -- the specialized kd-tree still wins apples-to-apples, but our optimizations narrowed the
+  query gap from the ~2x an unoptimized traversal shows to ~1.3x.
+* **Build:** EBGeometry's tight tree is **~6x** nanoflann's build (SAH-over-points ~360 ms vs ~57 ms);
+  the cheap-build **ClusterSAH** is ~2x nanoflann's build and queries at ~0.5 us/pt.
 
-Precision matters mostly on build: `float` roughly halves EBGeometry's build (it is memory-traffic
-bound) while nanoflann's index build is precision-insensitive; query is ~unchanged.
+seed-from-own-leaf itself is worth ~20-35% (e.g. SAH-groups 0.70 -> 0.47, ClusterSAH 0.77 -> 0.52).
+The honest bottom line: a *general* BVH carrying our optimizations either beats or is within ~1.3x of
+a *specialized* kd-tree on query (depending on the ordering assumption), at a higher build cost.
 
 ### Building and running
 
