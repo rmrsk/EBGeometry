@@ -16,14 +16,15 @@
 
 using namespace EBGeometry;
 
-// BVH branching factor, used at both levels of the hierarchy.
-constexpr size_t K = 4;
+using T    = EBGEOMETRY_PRECISION;
+using Meta = short;
 
-// SoA triangle-group width for each inner mesh BVH.
-constexpr size_t W = 4;
+// BVH branching factor (used at both levels of the hierarchy) and SoA triangle-group width for the
+// inner mesh BVHs. Default to the SIMD-optimal values for T on the compiled ISA -- the same
+// defaults Parser::readIntoTriangleBVH picks internally.
+constexpr size_t K = BVH::DefaultBranchingRatio<T>();
+constexpr size_t W = TriangleSoA::DefaultWidth<T>();
 
-using T       = EBGEOMETRY_PRECISION;
-using Meta    = short;
 using Vec3    = EBGeometry::Vec3T<T>;
 using BV      = EBGeometry::BoundingVolumes::AABBT<T>;
 using IF      = EBGeometry::ImplicitFunction<T>;
@@ -41,8 +42,8 @@ main(int argc, char* argv[])
   // The outer union stores its primitives as std::shared_ptr<const ImplicitFunction<T>> (the default
   // SharedPtrStorage): it shares each mesh SDF by pointer rather than copying it. This is the
   // recommended way to nest BVHs -- and nesting can recurse to any depth (a BVH of BVHs of BVHs...).
-  // See the "Storage policy" section of the BVH implementation docs (Docs/Sphinx/source/ImplemBVH.rst)
-  // for why the outer level must not use ValueStorage here: ImplicitFunction<T> is polymorphic so it
+  // See the "Storage policy" section in the user documentation of the BVH implementation for why the
+  // outer level must not use ValueStorage here: ImplicitFunction<T> is polymorphic so it
   // cannot be stored by value at all, and even for a concrete primitive by-value storage copies each
   // inner BVH's entire memory footprint, which becomes exceedingly expensive for large inner BVHs and
   // compounds with nesting depth.
