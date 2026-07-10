@@ -64,9 +64,15 @@ main(int argc, char* argv[])
   // Read the triangle mesh once into a DCEL representation.
   const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(file);
 
-  // Place several translated copies of the mesh. Each copy is an independent TriMeshSDF (its own
-  // inner PackedBVH), translated into position and exposed through the common base type. Its
-  // bounding volume for the outer union is the mesh's own AABB shifted by the same offset.
+  // Build the BVH-backed mesh SDF *once*, then instance it at several positions. Because every
+  // placement is the same mesh, they should all share a single TriMeshSDF: its (value-stored) inner
+  // packed BVH is built and stored exactly once, and each placement is just an EBGeometry::Translate
+  // wrapper holding a shared_ptr to that same object -- shared by pointer, never rebuilt or copied
+  // per placement. This is the idiomatic way to replicate one mesh across a scene. (To place
+  // genuinely different meshes instead, build one TriMeshSDF per mesh file and translate each.)
+  const auto tri   = std::make_shared<TriMesh>(mesh, BVH::Build::SAH, 2);
+  const BV   triBV = tri->computeBoundingVolume();
+
   const std::vector<Vec3> shifts = {
     Vec3(0, 0, 0),
     Vec3(4, 0, 0),
@@ -80,20 +86,20 @@ main(int argc, char* argv[])
   primitives.reserve(shifts.size());
   boundingVolumes.reserve(shifts.size());
 
+  // Each placement shares the one inner mesh BVH; only its translation -- and its bounding volume
+  // for the outer union (the mesh's own AABB shifted by the same offset) -- differs.
   for (const Vec3& shift : shifts) {
-    const auto tri = std::make_shared<TriMesh>(mesh, BVH::Build::SAH, 2);
-    const BV   bv  = tri->computeBoundingVolume();
-
     primitives.emplace_back(EBGeometry::Translate<T>(tri, shift));
-    boundingVolumes.emplace_back(bv.getLowCorner() + shift, bv.getHighCorner() + shift);
+    boundingVolumes.emplace_back(triBV.getLowCorner() + shift, triBV.getHighCorner() + shift);
   }
 
-  // Outer BVH: a BVH-accelerated union over the mesh SDFs. This is the nested (two-level) BVH.
+  // Outer BVH: a BVH-accelerated union over the placements. This is the nested (two-level) BVH.
   const auto nestedUnion = EBGeometry::BVHUnion<T, IF, BV, K>(primitives, boundingVolumes);
 
-  std::cout << "Built a BVH union over " << primitives.size() << " BVH-backed mesh SDFs (a nested, two-level BVH).\n";
+  std::cout << "Built a BVH union over " << primitives.size()
+            << " placements of one BVH-backed mesh SDF (a nested, two-level BVH).\n";
 
-  // Evaluate at a few points: on the first copy, between copies, and far outside everything.
+  // Evaluate at a few points: on a placement, between placements, and far outside everything.
   for (const Vec3& p : {Vec3(0, 0, 0), Vec3(2, 2, 0), Vec3(20, 20, 20)}) {
     std::cout << "value(" << p << ") = " << nestedUnion->value(p) << "\n";
   }

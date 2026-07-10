@@ -5,16 +5,19 @@ This folder shows how to build a *nested* bounding volume hierarchy (BVH): an ou
 BVH-accelerated CSG union whose primitives are themselves BVH-backed mesh signed distance
 functions.
 
-Each mesh is loaded as a `TriMeshSDF`, which stores the mesh triangles in its own inner
-`PackedBVH`. Several translated copies of the mesh are then combined with `BVHUnion`, which builds
-an *outer* `PackedBVH` over those mesh SDFs. A single distance query therefore descends two levels
-of BVH: first the outer union hierarchy, to find which mesh copy (or copies) is near the query
-point, then that mesh's own inner hierarchy, to find the nearest triangle. The union's value is the
-minimum signed distance over all copies -- negative inside any copy, positive outside all of them.
+The mesh is loaded once into a `TriMeshSDF`, which stores the mesh triangles in its own inner
+`PackedBVH`. That single mesh SDF is then instanced at several positions -- each placement is a
+`Translate` wrapper holding a shared pointer to the *same* `TriMeshSDF` -- and the placements are
+combined with `BVHUnion`, which builds an *outer* `PackedBVH` over them. A single distance query
+therefore descends two levels of BVH: first the outer union hierarchy, to find which placement (or
+placements) is near the query point, then the mesh's own inner hierarchy, to find the nearest
+triangle. The union's value is the minimum signed distance over all placements -- negative inside
+any of them, positive outside all of them.
 
 The outer union stores its primitives as `std::shared_ptr<const ImplicitFunction<T>>` (the default
-`SharedPtrStorage`), so it *shares* each mesh SDF by pointer rather than copying it. This is the
-recommended way to nest BVHs. See the "Storage policy" section of the
+`SharedPtrStorage`), so it *shares* each placement by pointer rather than copying it -- and because
+the placements all point at one `TriMeshSDF`, the inner packed BVH is built and stored just once.
+This is the recommended way to nest BVHs. See the "Storage policy" section of the
 [BVH implementation](https://rmrsk.github.io/EBGeometry/ImplemBVH.html) documentation for why the
 outer level should not use `ValueStorage` here: it would deep-copy every inner BVH, and because the
 union primitive is the polymorphic base `ImplicitFunction<T>` it cannot be stored by value at all.
