@@ -715,6 +715,245 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
+inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>> a_primsAndBVs,
+                                                    BVH::ClusterSpec              a_spec)
+{
+  static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "ClusterSAH requires BV == AABBT<T>");
+
+  EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+  EBGEOMETRY_EXPECT(a_spec.maxClusterSize > 0);
+
+  const size_t maxC = a_spec.maxClusterSize;
+
+  // A cluster: its bounding volume, centroid, and the primitives it owns (moved in).
+  struct Cluster
+  {
+    BV                            bv;
+    Vec3T<T>                      centroid;
+    std::vector<std::pair<P, BV>> prims;
+  };
+
+  // ---- Phase 1: density-adaptive clustering --------------------------------------------------
+  // Recursively split a_primsAndBVs[begin, end) at the midpoint of its centroid bounding box (longest
+  // axis) until a range holds at most maxC primitives, then freeze it as a cluster. The midpoint
+  // splits are cheap, the subdivision is shallow, and it follows the primitive density (fine where
+  // dense, coarse where sparse), so no cluster overcrowds -- robust where a fixed grid would fail.
+  std::vector<Cluster> clusters;
+  clusters.reserve(a_primsAndBVs.size() / maxC + 1);
+
+  std::function<void(size_t, size_t)> makeClusters = [&](size_t a_begin, size_t a_end) -> void {
+    if (a_end - a_begin <= maxC) {
+      Cluster cluster;
+      cluster.prims.reserve(a_end - a_begin);
+
+      Vec3T<T> lo = +Vec3T<T>::max();
+      Vec3T<T> hi = -Vec3T<T>::max();
+      for (size_t i = a_begin; i < a_end; i++) {
+        lo = min(lo, a_primsAndBVs[i].second.getLowCorner());
+        hi = max(hi, a_primsAndBVs[i].second.getHighCorner());
+        cluster.prims.push_back(std::move(a_primsAndBVs[i]));
+      }
+      cluster.bv       = BV(lo, hi);
+      cluster.centroid = cluster.bv.getCentroid();
+
+      clusters.push_back(std::move(cluster));
+
+      return;
+    }
+
+    Vec3T<T> clo = +Vec3T<T>::max();
+    Vec3T<T> chi = -Vec3T<T>::max();
+    for (size_t i = a_begin; i < a_end; i++) {
+      const auto& c = a_primsAndBVs[i].second.getCentroid();
+      clo           = min(clo, c);
+      chi           = max(chi, c);
+    }
+
+    const size_t axis = (chi - clo).maxDir(true);
+    const T      mid  = T(0.5) * (clo[axis] + chi[axis]);
+
+    const auto pivot = std::partition(
+      a_primsAndBVs.begin() + a_begin,
+      a_primsAndBVs.begin() + a_end,
+      [axis, mid](const std::pair<P, BV>& a_pb) noexcept { return a_pb.second.getCentroid()[axis] < mid; });
+
+    size_t split = static_cast<size_t>(pivot - a_primsAndBVs.begin());
+    if (split == a_begin || split == a_end) {
+      split = a_begin + (a_end - a_begin) / 2; // all centroids on one side: fall back to equal counts
+    }
+
+    makeClusters(a_begin, split);
+    makeClusters(split, a_end);
+  };
+  makeClusters(0, a_primsAndBVs.size());
+  a_primsAndBVs.clear();
+
+  // ---- Phase 2: binned SAH over the clusters -------------------------------------------------
+  // A self-contained 2-way binned SAH over clusters[begin, end) -- mirrors SAH2WaySplit but over
+  // cluster boxes, deliberately isolated so the primitive SAH path is untouched. Partitions the
+  // clusters in place and returns the split index.
+  constexpr int BINS = 32;
+
+  const auto sah2Way = [&clusters](size_t a_begin, size_t a_end) noexcept -> size_t {
+    const size_t nClusters = a_end - a_begin;
+
+    Vec3T<T> clo = +Vec3T<T>::max();
+    Vec3T<T> chi = -Vec3T<T>::max();
+    for (size_t i = a_begin; i < a_end; i++) {
+      clo = min(clo, clusters[i].centroid);
+      chi = max(chi, clusters[i].centroid);
+    }
+
+    T   bestCost  = std::numeric_limits<T>::max();
+    T   bestPlane = T(0);
+    int bestAxis  = -1;
+
+    Vec3T<T> binLo[BINS];
+    Vec3T<T> binHi[BINS];
+    int      binCnt[BINS];
+    T        leftArea[BINS - 1];
+    int      leftCnt[BINS - 1];
+
+    for (int axis = 0; axis < 3; axis++) {
+      const T lo  = clo[axis];
+      const T hi  = chi[axis];
+      const T ext = hi - lo;
+      if (ext <= T(0)) {
+        continue;
+      }
+      const T scale = T(BINS) / ext;
+
+      for (int b = 0; b < BINS; b++) {
+        binLo[b]  = Vec3T<T>::max();
+        binHi[b]  = -Vec3T<T>::max();
+        binCnt[b] = 0;
+      }
+      for (size_t i = a_begin; i < a_end; i++) {
+        const int b = std::min(BINS - 1, static_cast<int>((clusters[i].centroid[axis] - lo) * scale));
+        binLo[b]    = min(binLo[b], clusters[i].bv.getLowCorner());
+        binHi[b]    = max(binHi[b], clusters[i].bv.getHighCorner());
+        binCnt[b]   = binCnt[b] + 1;
+      }
+
+      Vec3T<T> rlo  = Vec3T<T>::max();
+      Vec3T<T> rhi  = -Vec3T<T>::max();
+      int      rcnt = 0;
+      for (int b = 0; b < BINS - 1; b++) {
+        if (binCnt[b] > 0) {
+          rlo = min(rlo, binLo[b]);
+          rhi = max(rhi, binHi[b]);
+        }
+        rcnt        = rcnt + binCnt[b];
+        leftArea[b] = (rcnt > 0) ? BV(rlo, rhi).getArea() : T(0);
+        leftCnt[b]  = rcnt;
+      }
+
+      Vec3T<T> rrlo  = Vec3T<T>::max();
+      Vec3T<T> rrhi  = -Vec3T<T>::max();
+      int      rrcnt = 0;
+      for (int b = BINS - 1; b >= 1; b--) {
+        if (binCnt[b] > 0) {
+          rrlo = min(rrlo, binLo[b]);
+          rrhi = max(rrhi, binHi[b]);
+        }
+        rrcnt += binCnt[b];
+        if (leftCnt[b - 1] > 0 && rrcnt > 0) {
+          const T cost = leftArea[b - 1] * T(leftCnt[b - 1]) + BV(rrlo, rrhi).getArea() * T(rrcnt);
+          if (cost < bestCost) {
+            bestCost  = cost;
+            bestAxis  = axis;
+            bestPlane = lo + static_cast<T>(b) / scale;
+          }
+        }
+      }
+    }
+
+    if (bestAxis < 0) {
+      return a_begin + nClusters / 2; // degenerate (all cluster centroids coincide): equal-count split
+    }
+
+    const auto pivot =
+      std::partition(clusters.begin() + a_begin,
+                     clusters.begin() + a_end,
+                     [bestAxis, bestPlane](const Cluster& a_c) noexcept { return a_c.centroid[bestAxis] < bestPlane; });
+    size_t split = static_cast<size_t>(pivot - clusters.begin());
+    if (split == a_begin || split == a_end) {
+      split = a_begin + nClusters / 2;
+    }
+    return split;
+  };
+
+  // K-way SAH split: recursively bisect into floor(K/2)/ceil(K/2), mirroring SAHKWaySplit.
+  std::function<void(size_t, size_t, size_t, std::vector<std::pair<size_t, size_t>>&)> sahKWay =
+    [&](size_t a_begin, size_t a_end, size_t a_K, std::vector<std::pair<size_t, size_t>>& a_groups) -> void {
+    if (a_K <= 1 || a_begin >= a_end) {
+      a_groups.emplace_back(a_begin, a_end);
+      return;
+    }
+    const size_t K1 = a_K / 2;
+    const size_t K2 = a_K - K1;
+
+    const size_t raw = sah2Way(a_begin, a_end);
+    const size_t mid = std::max(a_begin + K1, std::min(a_end - K2, raw));
+
+    sahKWay(a_begin, mid, K1, a_groups);
+    sahKWay(mid, a_end, K2, a_groups);
+  };
+
+  // Build the flat node array top-down (pre-order), populating the primitive block in DFS-leaf order
+  // so each leaf's primitives are a contiguous [offset, count) range.
+  auto   primBlock = std::make_shared<std::vector<P>>();
+  size_t total     = 0;
+  for (const auto& c : clusters) {
+    total += c.prims.size();
+  }
+  primBlock->reserve(total);
+
+  std::function<uint32_t(size_t, size_t)> build = [&](size_t a_begin, size_t a_end) -> uint32_t {
+    const uint32_t idx = static_cast<uint32_t>(m_linearNodes.size());
+    m_linearNodes.push_back({});
+
+    Vec3T<T> nlo = +Vec3T<T>::max();
+    Vec3T<T> nhi = -Vec3T<T>::max();
+    for (size_t i = a_begin; i < a_end; i++) {
+      nlo = min(nlo, clusters[i].bv.getLowCorner());
+      nhi = max(nhi, clusters[i].bv.getHighCorner());
+    }
+    m_linearNodes[idx].setBoundingVolume(BV(nlo, nhi));
+
+    if (a_end - a_begin < K) {
+      // Leaf: fewer than K clusters -- append their primitives to the block, contiguously.
+      m_linearNodes[idx].setPrimitivesOffset(static_cast<uint32_t>(primBlock->size()));
+      uint32_t count = 0;
+      for (size_t i = a_begin; i < a_end; i++) {
+        for (auto& pb : clusters[i].prims) {
+          primBlock->push_back(std::move(pb.first));
+          count++;
+        }
+      }
+      m_linearNodes[idx].setNumPrimitives(count);
+    }
+    else {
+      std::vector<std::pair<size_t, size_t>> groups;
+      groups.reserve(K);
+      sahKWay(a_begin, a_end, K, groups);
+
+      for (size_t k = 0; k < K; k++) {
+        const uint32_t childIdx = build(groups[k].first, groups[k].second);
+        m_linearNodes[idx].setChildOffset(childIdx, k);
+      }
+    }
+
+    return idx;
+  };
+  build(0, clusters.size());
+
+  StoragePolicy::appendAliased(m_primitives, primBlock);
+
+  buildSoA();
+}
+
+template <class T, class P, size_t K, class StoragePolicy>
 inline const std::vector<typename PackedBVH<T, P, K, StoragePolicy>::StorageType>&
 PackedBVH<T, P, K, StoragePolicy>::getPrimitives() const noexcept
 {

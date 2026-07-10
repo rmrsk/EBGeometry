@@ -213,17 +213,40 @@ runSFCFamily(const char*              a_label,
   return {treeBuildTime, packTime, directBuildTime};
 }
 
+// Times ClusterSAH: PackedBVH's direct ClusterSAH constructor (density-adaptive clustering, then SAH
+// over the clusters). Direct-only -- there is no TreeBVH path -- so treeBuild/pack are reported as
+// "--". Cross-checks the result against brute force.
+StrategyResult
+runClusterSAH(const char*              a_label,
+              const std::vector<Vec3>& a_positions,
+              const std::vector<Vec3>& a_queryPoints,
+              size_t                   a_maxClusterSize)
+{
+  EBGeometry::SimpleTimer timer;
+
+  timer.start();
+  const Packed direct(makeFlatPrimitives(a_positions), EBGeometry::BVH::ClusterSpec{a_maxClusterSize});
+  timer.stop();
+  const double directBuildTime = timer.seconds();
+
+  checkAgainstBruteForce(a_label, direct, a_positions, a_queryPoints);
+
+  return {-1.0, -1.0, directBuildTime}; // treeBuild/pack sentinel: direct-only strategy
+}
+
 } // namespace
 
 int
 main()
 {
-  // TLDR: this program builds the same random point cloud into a BVH via all six construction
+  // TLDR: this program builds the same random point cloud into a BVH via all the construction
   //       strategies EBGeometry offers -- top-down with the default centroid partitioner, SAH,
-  //       and the sort-less midpoint-split partitioner; and bottom-up along the Morton, Nested, and
-  //       Hilbert space-filling curves -- and for EACH strategy times both ways of reaching a queryable
+  //       and the sort-less midpoint-split partitioner; bottom-up along the Morton, Nested, and
+  //       Hilbert space-filling curves; and ClusterSAH (density-adaptive clustering, then SAH over
+  //       the clusters -- direct-only). For the first six it times both ways of reaching a queryable
   //       PackedBVH: the traditional TreeBVH-then-pack() path, and PackedBVH's direct constructor
-  //       (no TreeBVH at all). It exists to give a reproducible, versioned answer to a question
+  //       (no TreeBVH at all); ClusterSAH has only a direct path. It exists to give a reproducible,
+  //       versioned answer to a question
   //       raised in EBGeometry issue #92 (rather than "standalone scratch benchmarks, not
   //       committed anywhere"): whether SFC-based construction still beats top-down construction
   //       once shared_ptr allocation overhead is removed from consideration.
@@ -234,7 +257,7 @@ main()
   // against the direct constructor's single "Direct build" number, which already produces a
   // queryable PackedBVH.
   //
-  // Every resulting PackedBVH (both paths, all six strategies) is cross-checked against a
+  // Every resulting PackedBVH (all strategies, both paths where applicable) is cross-checked against a
   // brute-force scan for a handful of random query points, so a build strategy that produced a
   // wrong tree would be caught here, not just timed.
 
@@ -306,14 +329,23 @@ main()
 
     const auto hilbert = runSFCFamily<EBGeometry::SFC::Hilbert>("Hilbert", positions, queryPoints, targetLeafSize);
 
+    // ClusterSAH is direct-only: cluster to <= maxClusterSize primitives, then SAH over the clusters.
+    const auto clusterSah = runClusterSAH("ClusterSAH", positions, queryPoints, /*maxClusterSize=*/8);
+
     std::cout << std::left << std::setw(12) << "Strategy" << std::right << std::setw(16) << "TreeBVH (s)"
               << std::setw(16) << "+ pack() (s)" << std::setw(16) << "Total (s)" << std::setw(18) << "Direct build (s)"
               << "\n";
 
     auto printRow = [](const char* a_label, const StrategyResult& a_result) {
-      std::cout << std::left << std::setw(12) << a_label << std::right << std::setw(16) << a_result.treeBuildTime
-                << std::setw(16) << a_result.packTime << std::setw(16) << (a_result.treeBuildTime + a_result.packTime)
-                << std::setw(18) << a_result.directBuildTime << "\n";
+      std::cout << std::left << std::setw(12) << a_label << std::right;
+      if (a_result.treeBuildTime < 0.0) { // direct-only strategy: no TreeBVH path
+        std::cout << std::setw(16) << "--" << std::setw(16) << "--" << std::setw(16) << "--";
+      }
+      else {
+        std::cout << std::setw(16) << a_result.treeBuildTime << std::setw(16) << a_result.packTime << std::setw(16)
+                  << (a_result.treeBuildTime + a_result.packTime);
+      }
+      std::cout << std::setw(18) << a_result.directBuildTime << "\n";
     };
 
     printRow("TopDown", topDown);
@@ -322,6 +354,7 @@ main()
     printRow("Morton", morton);
     printRow("Nested", nested);
     printRow("Hilbert", hilbert);
+    printRow("ClusterSAH", clusterSah);
   }
 
   return 0;

@@ -4,10 +4,11 @@ Examples/BuildBVH
 This folder benchmarks every BVH construction strategy EBGeometry offers, over a random point
 cloud: top-down with the default centroid partitioner, top-down with the Surface-Area-Heuristic
 (SAH) partitioner, top-down with the sort-less midpoint-split partitioner, and bottom-up along the
-Morton, Nested, and Hilbert space-filling curves. For each of these six strategies, it times both
-ways of reaching a queryable `PackedBVH`: the traditional `TreeBVH`-then-`pack()` path, and
-`PackedBVH`'s direct constructor, which builds straight into a flat, queryable representation without
-ever constructing a `TreeBVH` at all.
+Morton, Nested, and Hilbert space-filling curves; and ClusterSAH (density-adaptive clustering, then
+SAH over the clusters). For each of the six top-down/SFC strategies, it times both ways of reaching a
+queryable `PackedBVH`: the traditional `TreeBVH`-then-`pack()` path, and `PackedBVH`'s direct
+constructor, which builds straight into a flat, queryable representation without ever constructing a
+`TreeBVH` at all. ClusterSAH is direct-only, so only its `PackedBVH` constructor is timed.
 
 It exists to give a reproducible, versioned answer to a question raised while designing
 `PackedBVH`'s direct constructors (see [EBGeometry issue #92](https://github.com/rmrsk/EBGeometry/issues/92)):
@@ -24,7 +25,7 @@ requires), and **+ pack()**, the additional time to flatten that `TreeBVH` into 
 bare `TreeBVH` cannot answer queries on its own -- only the sum represents "time to a query-ready
 structure" for the traditional path.
 
-Every resulting `PackedBVH` (both paths, all six strategies) is checked against a brute-force
+Every resulting `PackedBVH` (all strategies, both paths where applicable) is checked against a brute-force
 nearest-neighbor scan before any times are printed, so a build strategy producing a wrong tree
 would fail loudly here, not just report a (meaningless) time.
 
@@ -71,7 +72,7 @@ Running
 
 This example takes no arguments. It generates a random 500,000-point cloud (fixed seed, so results
 are reproducible run to run on the same machine) and 500 query points, and prints a build-time table
-in seconds for all six strategies. (Raise or lower the point count, or restore the original
+in seconds for all strategies (ClusterSAH is direct-only). (Raise or lower the point count, or restore the original
 multi-size sweep, by editing `sizes` in `main.cpp`.)
 
 Some things worth noting when reading the output:

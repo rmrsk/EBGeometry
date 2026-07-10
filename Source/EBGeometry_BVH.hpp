@@ -55,6 +55,22 @@ enum class Build
 };
 
 /**
+ * @brief Configuration for the ClusterSAH direct PackedBVH construction path.
+ * @details ClusterSAH first groups primitives into small, spatially-tight *clusters* (buckets of at
+ * most @c maxClusterSize primitives, formed by a cheap density-adaptive midpoint subdivision that
+ * stops early), then runs binned SAH top-down over the clusters -- so SAH partitions ~N/maxClusterSize
+ * boxes instead of all N primitives. The result is a near-SAH-quality tree at a fraction of the
+ * single-threaded build cost, robust across uniform, surface, and clustered primitive distributions
+ * (unlike a fixed Cartesian grid, which overcrowds on non-uniform data). @c maxClusterSize trades
+ * build time (larger -> fewer, cheaper SAH units, faster build) against query quality (larger ->
+ * coarser leaves).
+ */
+struct ClusterSpec
+{
+  size_t maxClusterSize = 8; ///< Maximum primitives per cluster (the leaf/bucket granularity). Must be > 0.
+};
+
+/**
  * @brief Returns the SIMD-optimal BVH branching factor for type T on the current target ISA.
  * @details Maps the floating-point type and the compile-time ISA to the K that fills one
  * SIMD register exactly:
@@ -1468,6 +1484,25 @@ public:
   inline PackedBVH(std::vector<std::pair<P, BV>>          a_primsAndBVs,
                    const BVH::Partitioner<P, BV, K>&      a_partitioner = BVCentroidPartitioner<T, P, BV, K>,
                    const BVH::LeafPredicate<T, P, BV, K>& a_stopCrit    = DefaultLeafPredicate<T, P, BV, K>);
+
+  /**
+   * @brief Construct directly via ClusterSAH: cluster primitives, then SAH over the clusters.
+   * @details A single-threaded build that gets close to full-SAH tree quality at a fraction of the
+   * build cost, by shrinking what SAH has to partition. In two passes, both keeping @p P by value
+   * (no shared_ptr anywhere): (1) group the primitives into buckets of at most
+   * @c a_spec.maxClusterSize each, using a cheap density-adaptive midpoint subdivision that stops as
+   * soon as a bucket is small enough -- so buckets are spatially tight and follow the primitive
+   * density (robust on surface/clustered data, where a fixed Cartesian grid would overcrowd); (2) run
+   * binned SAH top-down over the @em buckets (their bounding boxes) to build the flat node array,
+   * with each leaf holding one or a few buckets' primitives. SAH thus partitions ~N/maxClusterSize
+   * boxes rather than all N primitives -- the source of the speedup. Requires BV == AABBT<T>;
+   * enforced by static_assert at instantiation. Disambiguated from the SFC-build constructor by the
+   * @c ClusterSpec parameter type.
+   * @param[in] a_primsAndBVs Primitives and their bounding volumes, taken by value (a sink parameter
+   * the caller can std::move in) -- never requires shared_ptr-wrapping regardless of StoragePolicy.
+   * @param[in] a_spec Clustering configuration (bucket size). See ClusterSpec.
+   */
+  inline PackedBVH(std::vector<std::pair<P, BV>> a_primsAndBVs, BVH::ClusterSpec a_spec);
 
   /**
    * @brief Destructor.
