@@ -176,6 +176,25 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
     = SAH over *clusters* not points). The real gap-closer (SAH-quality tree at LBVH build speed) is
     **LBVH + treelet reoptimization** -- a real project, untried. For per-step rebuild (moving
     particles) use ClusterSAH/Midpoint; tight SAH-over-points is for build-once/query-many.
+- **How nanoflann builds its kd-tree (studied its source for build hints).** (1) Partitions a single
+  `std::vector<uint32_t> vAcc_` of INDICES **in place** -- no per-primitive alloc, no `shared_ptr`, no
+  per-node sublist copies; points read via an accessor. (2) **Pool-allocated nodes** (bump allocator).
+  (3) Split (`middleSplit_`) = **longest-axis MIDPOINT**: max-spread dim via one unrolled min/max
+  scan, split at the bbox midpoint clamped to [min,max] and nudged toward count/2 for balance, one
+  Dutch-flag `planeSplit` pass -- **no SAH, no sort**. So nanoflann's kd-tree ≈ our
+  `MidpointPartitioner`, over individual points, index-based. Hints:
+  - **(1) SAH is unnecessary for the tight tree (MEASURED).** Over individual points on a uniform
+    cloud, Midpoint / BVCentroid / SAH all give **identical query** (~0.34 us/pt, ~2.1 leaf/pt) -- the
+    tightness comes from point-granularity partitioning, not from SAH. So the ~330 ms SAH is wasted
+    for point clouds; **Midpoint (or longest-axis SAH) over points is as tight**, and cheaper.
+  - **(2) The remaining gap is build MACHINERY, not the algorithm.** Even Midpoint-over-points is
+    ~200-275 ms vs nanoflann's ~57 ms for the *same* algorithm -- the difference is EBGeometry's
+    per-primitive `make_shared` (~29 ms) + per-node sublist copies through the pointer `TreeBVH` +
+    `packWith` (~42 ms, the SoA-group price). nanoflann's index-in-place + pool-alloc has none of it.
+  - **The real improvement: an index-based, copy-free, pool-allocated top-down build (nanoflann/LBVH
+    style) with a cheap Midpoint split.** Attacks the plumbing that dominates once SAH is dropped.
+    Real Source project; the design to mirror is nanoflann `divideTree`/`middleSplit_`/`planeSplit`
+    over an index permutation. (`packWith`'s ~42 ms is inherent to the SIMD SoA-group query rep.)
 - **Midpoint's dominant build cost is plumbing, not the split.** `Midpoint2WaySplit` /
   `MidpointKWaySplit` (`Source/EBGeometry_BVH.hpp`) are a centroid-bbox scan + one `std::partition`
   per level — trivially cheap. Time goes to: (1) up-front `std::make_shared<P>` wrapping of every
