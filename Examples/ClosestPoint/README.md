@@ -13,15 +13,10 @@ groups are then built into a `PackedBVH` four ways -- **Morton (SFC)**, **TopDow
 head. 500 query points are resolved against each via `pruneTraverse()` and checked against a
 brute-force scan.
 
-Two details are worth calling out, since they are the crux of using these primitives efficiently:
-
-* The whole search stays in **squared distance** (`getDistance2()`). `pruneTraverse()` compares its
-  bound against the *squared* distance to each child box, so no `sqrt()` appears on the hot path
-  (only once at the very end, to report the average distance). A linear bound would be a unit
-  mismatch that prunes far too loosely.
-* The query batch is **Morton-sorted** before querying, so spatially-near queries run consecutively
-  and reuse warm cache -- the query is memory-latency bound, and this costs nothing but a one-time
-  sort (it applies to any batch of queries you are free to reorder).
+One detail is worth calling out, since it is the crux of using these primitives efficiently: the
+whole search stays in **squared distance** (`getDistance2()`). `pruneTraverse()` compares its bound
+against the *squared* distance to each child box, so no `sqrt()` appears anywhere on the query path;
+a linear bound would be a unit mismatch that prunes far too loosely.
 
 Building
 --------

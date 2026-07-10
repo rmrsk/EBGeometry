@@ -204,7 +204,7 @@ bvhClosest(const Packed&            a_bvh,
  * away in no-assertion builds.
  * @param[in] a_bvh        BVH to query.
  * @param[in] a_positions  The point cloud.
- * @param[in] a_queries    Query points (already Morton-ordered by the caller).
+ * @param[in] a_queries    Query points.
  * @param[in] a_bruteForce Per-query ground truth to check against.
  * @return Query timing and leaf-visit statistics; build time is filled in by the caller.
  */
@@ -274,8 +274,8 @@ main()
   std::cout << "  Queries                 = " << numQueries << '\n';
   std::cout << "  Target leaf size        = " << maxLeafGroups << " groups (" << maxLeafGroups * W << " points)\n\n";
 
-  const std::vector<Vec3> positions  = EBGeometry::Random::samplePoints<T>(numPoints, pointSeed);
-  const std::vector<Vec3> rawQueries = EBGeometry::Random::samplePoints<T>(numQueries, querySeed);
+  const std::vector<Vec3> positions   = EBGeometry::Random::samplePoints<T>(numPoints, pointSeed);
+  const std::vector<Vec3> queryPoints = EBGeometry::Random::samplePoints<T>(numQueries, querySeed);
 
   // Shared across every build strategy: Morton-sort the points and pack them into spatially-coherent
   // PointGroup leaves. Only the outer tree over these groups varies between strategies.
@@ -309,29 +309,20 @@ main()
   timer.stop();
   const double sahBuild = timer.seconds();
 
-  // Morton-sort the query batch so every strategy visits queries in the same spatially-coherent
-  // order: consecutive queries descend through nearly the same nodes and reuse warm cache (the query
-  // is memory-latency bound). A one-time cost that applies to any batch of queries free to reorder.
-  std::vector<Vec3> queries;
-  queries.reserve(numQueries);
-  for (const uint32_t idx : EBGeometry::SFC::order<EBGeometry::SFC::Morton>(rawQueries)) {
-    queries.push_back(rawQueries[idx]);
-  }
-
   // Brute-force ground truth for every query, plus its own timing (the baseline to beat).
   std::vector<Closest> bruteForce;
   bruteForce.reserve(numQueries);
   timer.start();
-  for (const auto& q : queries) {
+  for (const auto& q : queryPoints) {
     bruteForce.push_back(bruteForceClosest(positions, q));
   }
   timer.stop();
   const double bruteSeconds = timer.seconds();
 
-  StrategyResult morton   = benchmarkStrategy(mortonBVH, positions, queries, bruteForce);
-  StrategyResult topDown  = benchmarkStrategy(topDownBVH, positions, queries, bruteForce);
-  StrategyResult midpoint = benchmarkStrategy(midpointBVH, positions, queries, bruteForce);
-  StrategyResult sah      = benchmarkStrategy(sahBVH, positions, queries, bruteForce);
+  StrategyResult morton   = benchmarkStrategy(mortonBVH, positions, queryPoints, bruteForce);
+  StrategyResult topDown  = benchmarkStrategy(topDownBVH, positions, queryPoints, bruteForce);
+  StrategyResult midpoint = benchmarkStrategy(midpointBVH, positions, queryPoints, bruteForce);
+  StrategyResult sah      = benchmarkStrategy(sahBVH, positions, queryPoints, bruteForce);
 
   morton.buildSeconds   = mortonBuild;
   topDown.buildSeconds  = topDownBuild;
