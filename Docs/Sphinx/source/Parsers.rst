@@ -138,7 +138,7 @@ DCEL polygons to triangles, packs them into SoA groups of ``W``, and builds a ``
 returning a ``shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>`` (or a vector thereof). SIMD
 intrinsics evaluate up to ``W`` triangles per leaf visit. ``K`` and ``W`` default to the
 SIMD-optimal values for ``T`` on the current ISA (``BVH::DefaultBranchingRatio<T>()`` and
-``TriangleSoA::DefaultWidth<T>()``, see :ref:`Chap:MeshSDFClasses`); ``maxLeafGroups`` (default 2)
+``TriangleSoA::DefaultWidth<T>()``, see :ref:`Chap:MeshSDFClasses`); ``maxLeafGroups`` (default 4)
 bounds the number of full ``W``-sized SoA groups per BVH leaf; ``StoragePolicy`` defaults to
 ``BVH::ValueStorage<TriangleSoAT<T, W>>``, matching ``TriMeshSDF``'s own default (see
 :ref:`Chap:MeshSDFClasses` for the rationale, and why ``readIntoPackedBVH``/``MeshSDF`` above has
