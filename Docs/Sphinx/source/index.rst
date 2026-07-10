@@ -26,9 +26,12 @@ Main features:
 
 .. important::
 
-   This is the user documentation for EBGeometry. A
-   `PDF version <https://rmrsk.github.io/EBGeometry/ebgeometry.pdf>`_
-   of this documentation is also available.
+   This is the user documentation for EBGeometry.
+
+   .. only:: html
+
+      A `PDF version <https://rmrsk.github.io/EBGeometry/ebgeometry.pdf>`_ of this documentation is
+      also available.
 
    * If you are looking for the source code, it is hosted on
      `GitHub <https://github.com/rmrsk/EBGeometry>`_.
@@ -114,6 +117,7 @@ Examples
    ExampleShapes.rst
    ExampleMeshSDF.rst
    ExampleCSGUnion.rst
+   ExampleNestedBVH.rst
    ExamplePackedSpheres.rst
    ExampleRandomCity.rst
    ExampleOctreeBoundingVolume.rst

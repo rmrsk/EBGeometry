@@ -13,6 +13,7 @@
 
 #include <cmath>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -517,5 +518,494 @@ TEMPLATE_TEST_CASE("TreeBVH::bottomUpSortAndPartition handles primitive sets who
     positions.emplace_back(-5, -5, -5);
     positions.emplace_back(10, 0, 0);
     buildAndCheck(positions);
+  }
+}
+
+TEMPLATE_TEST_CASE("PackedBVH: BVH::ValueStorage and the default BVH::SharedPtrStorage agree exactly",
+                   "[BVH][StoragePolicy]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  std::vector<Vec3> positions;
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      for (int k = 0; k < 5; k++) {
+        positions.emplace_back(T(i) + T(0.3) * T(j), T(j) - T(0.2) * T(k), T(k) + T(0.1) * T(i));
+      }
+    }
+  }
+
+  BVH::PrimAndBVList<Pnt, AABB> primsAndBVs;
+  for (const auto& pos : positions) {
+    primsAndBVs.emplace_back(std::make_shared<Pnt>(Pnt{pos}), AABB(pos, pos));
+  }
+
+  auto tree = std::make_shared<BVH::TreeBVH<T, Pnt, AABB, K>>(primsAndBVs);
+  tree->topDownSortAndPartition();
+
+  const auto sharedPacked = tree->pack();
+  const auto valuePacked  = tree->template pack<BVH::ValueStorage<Pnt>>();
+
+  REQUIRE(sharedPacked != nullptr);
+  REQUIRE(valuePacked != nullptr);
+  REQUIRE(sharedPacked->getPrimitives().size() == positions.size());
+  REQUIRE(valuePacked->getPrimitives().size() == positions.size());
+
+  const auto& sharedPrims = sharedPacked->getPrimitives();
+  const auto& valuePrims  = valuePacked->getPrimitives();
+
+  // Both policies were built from the same TreeBVH, so a leaf's primitives must land in the same
+  // order regardless of how they are stored -- not just agree as sets.
+  for (size_t i = 0; i < positions.size(); i++) {
+    REQUIRE(sharedPrims[i]->m_pos == valuePrims[i].m_pos);
+  }
+
+  const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+  for (const auto& q : queryPoints<T>()) {
+    T sharedState = std::numeric_limits<T>::max();
+    T valueState  = std::numeric_limits<T>::max();
+
+    const auto sharedEval = [&sharedPrims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        const T d2 = (sharedPrims[a_offset + i]->m_pos - q).length2();
+        if (d2 < a_state) {
+          a_state = d2;
+        }
+      }
+    };
+    const auto valueEval = [&valuePrims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        const T d2 = (valuePrims[a_offset + i].m_pos - q).length2();
+        if (d2 < a_state) {
+          a_state = d2;
+        }
+      }
+    };
+
+    sharedPacked->pruneTraverse(q, sharedState, sharedEval, pruneDist2);
+    valuePacked->pruneTraverse(q, valueState, valueEval, pruneDist2);
+
+    REQUIRE(sharedState == valueState);
+  }
+}
+
+TEMPLATE_TEST_CASE("PackedBVH: BVH::ValueStorage stores primitives inline with no pointer indirection",
+                   "[BVH][StoragePolicy]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T   = TestType;
+  using Pnt = BareTestPoint<T>;
+
+  // BVH::ValueStorage<P>::StorageType is P itself -- packing must not add any indirection.
+  static_assert(std::is_same_v<typename BVH::ValueStorage<Pnt>::StorageType, Pnt>);
+  static_assert(sizeof(typename BVH::ValueStorage<Pnt>::StorageType) == sizeof(Pnt));
+
+  // BVH::SharedPtrStorage<P>::StorageType is a shared_ptr<const P>, matching pre-StoragePolicy
+  // behavior -- this is the "no behavior change for existing callers" guarantee made concrete.
+  static_assert(std::is_same_v<typename BVH::SharedPtrStorage<Pnt>::StorageType, std::shared_ptr<const Pnt>>);
+  static_assert(sizeof(typename BVH::SharedPtrStorage<Pnt>::StorageType) == sizeof(std::shared_ptr<const Pnt>));
+}
+
+TEMPLATE_TEST_CASE("StoragePolicy: appendAliased genuinely appends for both policies (not only on the "
+                   "single-call packWith path)",
+                   "[BVH][StoragePolicy]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  // Build a fresh contiguous conversion buffer of three points offset by a_base.
+  const auto makeBlock = [](T a_base) {
+    auto block = std::make_shared<std::vector<Pnt>>();
+    for (int i = 0; i < 3; i++) {
+      block->push_back(Pnt{Vec3(a_base + T(i), a_base, a_base)});
+    }
+    return block;
+  };
+
+  // Two calls: the first into an empty destination (the fast path), the second into a non-empty
+  // one. appendAliased must add to what is already there, not replace it -- the two policies have
+  // to agree on this regardless of call count, or a future second call site would silently lose
+  // the first block under ValueStorage while working under SharedPtrStorage.
+  {
+    std::vector<Pnt> dst;
+    BVH::ValueStorage<Pnt>::appendAliased(dst, makeBlock(T(0)));
+    BVH::ValueStorage<Pnt>::appendAliased(dst, makeBlock(T(10)));
+
+    REQUIRE(dst.size() == 6);
+    REQUIRE(dst[0].m_pos == Vec3(0, 0, 0));
+    REQUIRE(dst[3].m_pos == Vec3(10, 10, 10));
+  }
+  {
+    std::vector<std::shared_ptr<const Pnt>> dst;
+    BVH::SharedPtrStorage<Pnt>::appendAliased(dst, makeBlock(T(0)));
+    BVH::SharedPtrStorage<Pnt>::appendAliased(dst, makeBlock(T(10)));
+
+    REQUIRE(dst.size() == 6);
+    REQUIRE(dst[0]->m_pos == Vec3(0, 0, 0));
+    REQUIRE(dst[3]->m_pos == Vec3(10, 10, 10));
+  }
+}
+
+TEMPLATE_TEST_CASE("TriMeshSDF: default StoragePolicy is BVH::ValueStorage<TriSoA>; MeshSDF has no "
+                   "StoragePolicy choice at all",
+                   "[BVH][StoragePolicy]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  using Face   = DCEL::FaceT<T, Meta>;
+  using TriSoA = TriangleSoAT<T, W>;
+
+  // MeshSDF always shares each packed face with the DCEL mesh's own face list (no copy, and no
+  // StoragePolicy template parameter to override it): DCEL::FaceT's copy constructor deliberately
+  // does not copy its cached 2D polygon embedding (m_poly2, needed by signedDistance()'s
+  // point-in-face test), so a naive by-value copy is unsafe -- see FaceT's copy-constructor
+  // documentation. TriMeshSDF's SoA groups have no such restriction (freshly built by packing,
+  // shared with nothing else), so it defaults to storing them inline with no indirection. See
+  // ImplemBVH.rst's "Storage policy" section for the full rationale.
+  static_assert(std::is_same_v<typename MeshSDF<T, Meta, K>::Root::StorageType, std::shared_ptr<const Face>>);
+  static_assert(std::is_same_v<typename TriMeshSDF<T, Meta, K, W>::Root::StorageType, TriSoA>);
+}
+
+TEMPLATE_TEST_CASE("TriMeshSDF: explicit BVH::SharedPtrStorage<TriSoA> agrees with the default "
+                   "BVH::ValueStorage<TriSoA>",
+                   "[BVH][Dodecahedron][StoragePolicy]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  using TriSoA = TriangleSoAT<T, W>;
+
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
+  REQUIRE(mesh != nullptr);
+
+  const TriMeshSDF<T, Meta, K, W>                                defaultStorage(mesh, BVH::Build::SAH, 2);
+  const TriMeshSDF<T, Meta, K, W, BVH::SharedPtrStorage<TriSoA>> sharedStorage(mesh, BVH::Build::SAH, 2);
+
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE_THAT(sharedStorage.signedDistance(p), withinAbsT(defaultStorage.signedDistance(p), traversalMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("Parser::readIntoTriangleBVH accepts an explicit StoragePolicy override",
+                   "[BVH][Parser][StoragePolicy]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  using TriSoA = TriangleSoAT<T, W>;
+
+  const auto defaultTri = Parser::readIntoTriangleBVH<T, Meta, K, W>(dataPath("dodecahedron.stl"));
+  const auto sharedTri =
+    Parser::readIntoTriangleBVH<T, Meta, K, W, BVH::SharedPtrStorage<TriSoA>>(dataPath("dodecahedron.stl"));
+
+  REQUIRE(defaultTri != nullptr);
+  REQUIRE(sharedTri != nullptr);
+
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE_THAT(sharedTri->signedDistance(p), withinAbsT(defaultTri->signedDistance(p), formatMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("TreeBVH: copy is disallowed (would alias mutable child subtrees); move is allowed",
+                   "[BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Pnt  = BareTestPoint<T>;
+  using Tree = BVH::TreeBVH<T, Pnt, AABB, 4>;
+
+  static_assert(!std::is_copy_constructible_v<Tree>);
+  static_assert(!std::is_copy_assignable_v<Tree>);
+  static_assert(std::is_move_constructible_v<Tree>);
+  static_assert(std::is_move_assignable_v<Tree>);
+}
+
+TEMPLATE_TEST_CASE("PackedBVH: copy is allowed and produces an independent deep copy under both "
+                   "StoragePolicy choices; move is allowed too",
+                   "[BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  using Packed      = BVH::PackedBVH<T, Pnt, K>;
+  using PackedValue = BVH::PackedBVH<T, Pnt, K, BVH::ValueStorage<Pnt>>;
+
+  static_assert(std::is_copy_constructible_v<Packed>);
+  static_assert(std::is_copy_assignable_v<Packed>);
+  static_assert(std::is_move_constructible_v<Packed>);
+  static_assert(std::is_move_assignable_v<Packed>);
+  static_assert(std::is_copy_constructible_v<PackedValue>);
+  static_assert(std::is_copy_assignable_v<PackedValue>);
+  static_assert(std::is_move_constructible_v<PackedValue>);
+  static_assert(std::is_move_assignable_v<PackedValue>);
+
+  std::vector<Vec3> positions;
+  positions.reserve(5);
+  for (int i = 0; i < 5; i++) {
+    positions.emplace_back(T(i), T(i) * T(0.5), T(-i));
+  }
+
+  BVH::PrimAndBVList<Pnt, AABB> primsAndBVs;
+  primsAndBVs.reserve(positions.size());
+  for (const auto& pos : positions) {
+    primsAndBVs.emplace_back(std::make_shared<Pnt>(Pnt{pos}), AABB(pos, pos));
+  }
+
+  auto tree = std::make_shared<BVH::TreeBVH<T, Pnt, AABB, K>>(primsAndBVs);
+  tree->topDownSortAndPartition();
+
+  auto original = tree->template pack<BVH::ValueStorage<Pnt>>();
+  REQUIRE(original != nullptr);
+
+  const PackedValue copy(*original); // copy constructor
+  REQUIRE(copy.getPrimitives().size() == original->getPrimitives().size());
+
+  // Destroy the source entirely -- the copy must remain fully valid and independent, proving the
+  // copy constructor performed a real deep copy rather than aliasing the source's storage.
+  original.reset();
+
+  const Vec3  q(0, 0, 0);
+  T           state    = std::numeric_limits<T>::max();
+  const auto& prims    = copy.getPrimitives();
+  const auto  evalLeaf = [&prims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+    for (size_t i = 0; i < a_count; i++) {
+      const T d2 = (prims[a_offset + i].m_pos - q).length2();
+      if (d2 < a_state) {
+        a_state = d2;
+      }
+    }
+  };
+  const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+  copy.pruneTraverse(q, state, evalLeaf, pruneDist2);
+
+  T bruteMin2 = std::numeric_limits<T>::max();
+  for (const auto& pos : positions) {
+    bruteMin2 = std::min(bruteMin2, (pos - q).length2());
+  }
+
+  REQUIRE_THAT(state, withinAbsT(bruteMin2, traversalMargin<T>()));
+}
+
+TEMPLATE_TEST_CASE("FlatMeshSDF/MeshSDF/TriMeshSDF: move constructor/assignment are usable (no "
+                   "longer implicitly suppressed by the user-declared destructor)",
+                   "[BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  static_assert(std::is_copy_constructible_v<FlatMeshSDF<T, Meta>>);
+  static_assert(std::is_copy_assignable_v<FlatMeshSDF<T, Meta>>);
+  static_assert(std::is_move_constructible_v<FlatMeshSDF<T, Meta>>);
+  static_assert(std::is_move_assignable_v<FlatMeshSDF<T, Meta>>);
+
+  static_assert(std::is_copy_constructible_v<MeshSDF<T, Meta, K>>);
+  static_assert(std::is_copy_assignable_v<MeshSDF<T, Meta, K>>);
+  static_assert(std::is_move_constructible_v<MeshSDF<T, Meta, K>>);
+  static_assert(std::is_move_assignable_v<MeshSDF<T, Meta, K>>);
+
+  static_assert(std::is_copy_constructible_v<TriMeshSDF<T, Meta, K, W>>);
+  static_assert(std::is_copy_assignable_v<TriMeshSDF<T, Meta, K, W>>);
+  static_assert(std::is_move_constructible_v<TriMeshSDF<T, Meta, K, W>>);
+  static_assert(std::is_move_assignable_v<TriMeshSDF<T, Meta, K, W>>);
+}
+
+TEMPLATE_TEST_CASE("Nested BVH: a BVHUnion over several TriMeshSDF objects nests each mesh's inner "
+                   "PackedBVH inside the outer union PackedBVH and matches a brute-force min",
+                   "[BVH][CSG][BVHUnion][Nested]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using BV   = BoundingVolumes::AABBT<T>;
+  using IF   = ImplicitFunction<T>;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // Two distinct triangle meshes read from the in-repo fixtures. Each TriMeshSDF owns an inner
+  // PackedBVH over SoA triangle groups (ValueStorage by default) -- these are the inner BVHs that
+  // the outer union BVH nests over.
+  const auto dodec = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
+  const auto tetra = Parser::readIntoDCEL<T, Meta>(dataPath("tetrahedron.stl"));
+  REQUIRE(dodec != nullptr);
+  REQUIRE(tetra != nullptr);
+
+  // Spread several translated mesh SDFs out so the outer union BVH has real structure to partition
+  // and prune, rather than collapsing to a single leaf.
+  const std::vector<std::pair<std::shared_ptr<DCEL::MeshT<T, Meta>>, Vec3>> placements = {
+    {dodec, Vec3(0, 0, 0)},
+    {dodec, Vec3(4, 0, 0)},
+    {tetra, Vec3(0, 4, 0)},
+    {tetra, Vec3(-4, -4, 2)},
+  };
+
+  std::vector<std::shared_ptr<IF>> primitives;
+  std::vector<BV>                  boundingVolumes;
+  primitives.reserve(placements.size());
+  boundingVolumes.reserve(placements.size());
+
+  for (const auto& [mesh, shift] : placements) {
+    // Inner BVH: a TriMeshSDF holds its own PackedBVH over the mesh's SoA triangle groups.
+    const auto tri = std::make_shared<TriMeshSDF<T, Meta, K, W>>(mesh, BVH::Build::SAH, 2);
+    const BV   bv  = tri->computeBoundingVolume();
+
+    // Store each mesh SDF as the common base type, translated into place. Its bounding volume for
+    // the outer union is the mesh's own AABB shifted by the same amount.
+    primitives.emplace_back(Translate<T>(tri, shift));
+    boundingVolumes.emplace_back(bv.getLowCorner() + shift, bv.getHighCorner() + shift);
+  }
+
+  // Outer BVH: a PackedBVH over std::shared_ptr<const ImplicitFunction<T>>, each element pointing
+  // at a TriMeshSDF that owns an inner PackedBVH -- a genuine two-level BVH hierarchy.
+  const auto nestedUnion = BVHUnion<T, IF, BV, K>(primitives, boundingVolumes);
+  REQUIRE(nestedUnion != nullptr);
+
+  // The union value is the minimum over all primitives; BVH pruning can never discard the actual
+  // nearest one, so the nested traversal must agree exactly with a brute-force min over the same
+  // translated primitives.
+  for (const auto& p : queryPoints<T>()) {
+    T bruteMin = std::numeric_limits<T>::infinity();
+    for (const auto& prim : primitives) {
+      bruteMin = std::min(bruteMin, prim->value(p));
+    }
+
+    REQUIRE_THAT(nestedUnion->value(p), withinAbsT(bruteMin, traversalMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shared primitives, "
+                   "identical queries; the copies partition independently",
+                   "[BVH][Dodecahedron]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Face = DCEL::FaceT<T, Meta>;
+
+  constexpr size_t K = 4;
+
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
+  REQUIRE(mesh != nullptr);
+
+  BVH::PrimAndBVList<Face, AABB> primsAndBVs;
+  for (const auto& f : mesh->getFaces()) {
+    primsAndBVs.emplace_back(f, AABB(f->getAllVertexCoordinates()));
+  }
+
+  const FlatMeshSDF<T, Meta> flat(mesh);
+  const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
+
+  // Pack a (partitioned) tree and query it the way MeshSDF does, comparing to the brute-force scan.
+  const auto packAndCheck = [&](const auto& a_tree) {
+    const auto  packed = a_tree->pack();
+    const auto& faces  = packed->getPrimitives();
+
+    for (const auto& p : queryPoints<T>()) {
+      T          state    = std::numeric_limits<T>::max();
+      const auto evalLeaf = [&faces, &p](T& a_state, size_t a_offset, size_t a_count) noexcept {
+        for (size_t i = 0; i < a_count; i++) {
+          const T d = faces[a_offset + i]->signedDistance(p);
+          if (std::abs(d) < std::abs(a_state)) {
+            a_state = d;
+          }
+        }
+      };
+      const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state * a_state; };
+
+      packed->pruneTraverse(p, state, evalLeaf, pruneDist2);
+
+      REQUIRE_THAT(state, withinAbsT(brute(p), traversalMargin<T>()));
+    }
+  };
+
+  SECTION("clone of an unpartitioned tree shares primitives; the copies then partition independently")
+  {
+    auto tree = std::make_shared<BVH::TreeBVH<T, Face, AABB, K>>(primsAndBVs);
+    REQUIRE_FALSE(tree->isPartitioned());
+
+    const auto clone = tree->deepCopy();
+    REQUIRE(clone != nullptr);
+    REQUIRE(clone.get() != tree.get());
+    REQUIRE(clone->isPartitioned() == tree->isPartitioned());
+
+    // Primitives are shared by handle, not cloned: same underlying Face objects, same order.
+    // (std::as_const selects the public const getPrimitives() overload; the mutable one is protected.)
+    const auto& treePrims  = std::as_const(*tree).getPrimitives();
+    const auto& clonePrims = std::as_const(*clone).getPrimitives();
+    REQUIRE(clonePrims.size() == treePrims.size());
+    for (size_t i = 0; i < treePrims.size(); i++) {
+      REQUIRE(clonePrims[i].get() == treePrims[i].get());
+    }
+
+    // Partition the two copies with different strategies. Each must build correctly, and neither
+    // may disturb the other -- the guarantee the deleted shallow copy could not provide.
+    tree->topDownSortAndPartition();
+    clone->template bottomUpSortAndPartition<SFC::Morton>();
+
+    REQUIRE(tree->isPartitioned());
+    REQUIRE(clone->isPartitioned());
+    packAndCheck(tree);
+    packAndCheck(clone);
+  }
+
+  SECTION("clone of a partitioned tree duplicates the node hierarchy but shares primitives")
+  {
+    auto tree = std::make_shared<BVH::TreeBVH<T, Face, AABB, K>>(primsAndBVs);
+    tree->topDownSortAndPartition();
+    REQUIRE(tree->isPartitioned());
+
+    const auto clone = tree->deepCopy();
+    REQUIRE(clone != nullptr);
+    REQUIRE(clone->isPartitioned());
+
+    // Interior child nodes are brand-new objects, not aliases of the original's -- this is exactly
+    // what a shallow copy would have failed to do (36 faces guarantee the root is interior).
+    bool anyInterior = false;
+    for (size_t k = 0; k < K; k++) {
+      if (tree->getChildren()[k] != nullptr) {
+        anyInterior = true;
+        REQUIRE(clone->getChildren()[k] != nullptr);
+        REQUIRE(clone->getChildren()[k].get() != tree->getChildren()[k].get());
+      }
+      else {
+        REQUIRE(clone->getChildren()[k] == nullptr);
+      }
+    }
+    REQUIRE(anyInterior);
+
+    // Behaviorally identical, and independent: destroying the original leaves the clone fully valid
+    // (its nodes are its own; the shared faces are kept alive by the mesh).
+    packAndCheck(clone);
+    tree.reset();
+    packAndCheck(clone);
   }
 }
