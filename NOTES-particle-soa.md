@@ -183,11 +183,23 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
   hiding pruneTraverse: `closestPoint`/`closestPoints` (external), `nearestNeighbor`/`nearestNeighbors`
   (self, seed-from-own-leaf), `allNearestNeighbors(k)` (batch, Hilbert-ordered). Leaves carry the
   cloud INDEX; user Meta stored alongside (metadata()/position() accessors). Build ~87 ms/500k (near
-  nanoflann's 57), query ~0.52-0.59 us/pt via the internal query (uses the k-best set + pruneTraverse;
-  the bare-loop prototype hit 0.32 -- there is ~1.5x codegen headroom in the class query, a later
-  micro-opt). Tests (TestPointCloudBVH, both precisions vs brute force), InstantiateAll, doxygen, and
-  an ImplemBVH.rst mention all in. **Follow-ups:** rewrite the ClosestPoint*/NearestNeighbor* examples
-  to use it (they collapse to a few lines); dedicated Sphinx example page; the query micro-opt.
+  nanoflann's 57). Tests (TestPointCloudBVH, both precisions vs brute force), InstantiateAll, doxygen,
+  and an ImplemBVH.rst mention all in. **Follow-ups:** rewrite the ClosestPoint*/NearestNeighbor*
+  examples to use it (they collapse to a few lines); dedicated Sphinx example page.
+- **Query "2x above benchmark" -- ROOT-CAUSED and FIXED.** The single-nearest hot path
+  (closestPoint/nearestNeighbor/allNearestNeighbors(1)) used the base `pruneTraverse`, which is tuned
+  for expensive-leaf SDF/mesh queries: at every interior node it does a **near-first ordered descent**
+  -- a per-node `std::sort` of the K children, driven by a SIMD child-AABB kernel that reads a
+  separate `m_childAabbSoA` side array (~4 MB, thrashes L2). For cheap SoA point leaves the ordering
+  costs more than the nodes it prunes (it cuts 35.8 -> 10.9 nodes/pt, but net slower). **Fix:** the
+  k==1 path now uses a lean **unordered scalar DFS** over the packed nodes (k>1 stays on pruneTraverse,
+  where the k-best insert dominates and the tighter bound helps). Traversal-only, 500k self-NN,
+  double: pruneTraverse 0.35 -> lean **0.28** us/pt (~20% win; even beats the 0.315 prototype -- the
+  class tree is slightly tighter, 2.16 vs 2.22 leaf/pt). The apparent extra "2x vs prototype" was a
+  **harness artifact**: a repeat-call benchmark charged `allNearestNeighbors`'s once-per-call
+  `SFC::order<Hilbert>` (500k sort) + 8 MB `vector<Hit>` alloc on every rep, which the prototype
+  hoisted out of its timer. Measured attribution: Hit-width 3% (not a factor), query()-call boundary
+  ~0%, the rest was that hoisted sort+alloc.
 - **Index-based build: PROTOTYPED, closes the build gap (76 ms vs 275-390 ms).** Mirrored nanoflann:
   partition a single `uint32` index array **in place** by longest-axis Midpoint, pack each leaf's
   points into `PointGroup`s **inline** during the build -- no `make_shared`, no per-node sublist
