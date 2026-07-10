@@ -6,6 +6,8 @@ third-party dependencies):
 * `ClosestPointTreePacked` For closest-point search over a point cloud, forming PointAoSoA-grouped PackedBVH leaves from a per-point TreeBVH via `packWith()` under five build strategies, benchmarked against brute force.
 * `CSGUnion` For merging a surface mesh with an analytic sphere using a BVH-accelerated CSG union.
 * `MeshSDF` For reading a surface mesh and evaluating it with the DCEL/BVH signed-distance representations.
+* `NearestNeighborSFCPacked` For the 3 nearest neighbors of every point in a cloud, over directly-built PointAoSoA-grouped PackedBVH leaves, using reciprocal (symmetric) distance culling; five build strategies, checked against brute force.
+* `NearestNeighborTreePacked` For the 3 nearest neighbors of every point in a cloud, over `packWith()`-built PointAoSoA-grouped PackedBVH leaves, using reciprocal distance culling; five build strategies, checked against brute force.
 * `NestedBVH` For a nested BVH: a BVH-accelerated union over several BVH-backed mesh SDFs.
 * `OctreeBoundingVolume` For using the octree bounding-volume functionality.
 * `PackedSpheres` For a scene composed of many analytic spheres.
