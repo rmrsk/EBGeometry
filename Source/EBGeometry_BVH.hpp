@@ -1684,6 +1684,21 @@ public:
 
 protected:
   /**
+   * @brief Adopt pre-built node and primitive arrays, then finalize the SoA child-AABB layout.
+   * @details Not part of the public API. It exists so a specialized builder in a derived class (e.g.
+   * PointCloudBVH, which fills the arrays with its own index-based build) can construct the packed
+   * representation directly, without going through a TreeBVH or a PrimAndBVList. The node array must
+   * be a valid depth-first pre-order flattening (root at index 0) referencing @p a_primitives.
+   * @param[in] a_linearNodes Flattened node array (moved in).
+   * @param[in] a_primitives  Global primitive list in leaf-traversal order (moved in).
+   */
+  inline PackedBVH(std::vector<Node>&& a_linearNodes, std::vector<StorageType>&& a_primitives) noexcept
+    : m_linearNodes(std::move(a_linearNodes)), m_primitives(std::move(a_primitives))
+  {
+    this->buildSoA();
+  }
+
+  /**
    * @brief Flat depth-first node array.
    */
   std::vector<Node> m_linearNodes;

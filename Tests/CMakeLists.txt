@@ -82,6 +82,7 @@ ebgeometry_add_test(TestPolygon2D)
 ebgeometry_add_test(TestTriangleSoA)
 ebgeometry_add_test(TestPointSoA)
 ebgeometry_add_test(TestPointAoSoA)
+ebgeometry_add_test(TestPointCloudBVH)
 ebgeometry_add_test(TestSimpleTimer)
 ebgeometry_add_test(TestRandom)
 

@@ -77,6 +77,9 @@ using Meta = short;
   /* -- Mesh distance functions --------------------------------------------*/\
   template class FlatMeshSDF<PREC, Meta>;                                    \
                                                                                \
+  /* -- Point clouds --------------------------------------------------------*/\
+  template class PointCloudBVH<PREC, Meta>;                                  \
+                                                                               \
   namespace BoundingVolumes {                                                \
   template class AABBT<PREC>;                                                \
   template class SphereT<PREC>;                                              \

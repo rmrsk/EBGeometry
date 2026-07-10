@@ -176,6 +176,18 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
     = SAH over *clusters* not points). The real gap-closer (SAH-quality tree at LBVH build speed) is
     **LBVH + treelet reoptimization** -- a real project, untried. For per-step rebuild (moving
     particles) use ClusterSAH/Midpoint; tight SAH-over-points is for build-once/query-many.
+- **PointCloudBVH: LANDED (committed).** `PointCloudBVH<T, Meta, K, W> : public PackedBVH<T,
+  PointAoSoA<T,size_t,W>, K, ValueStorage<...>>` -- a subclass that (a) builds via the index-based
+  copy-free Midpoint build (below) directly from positions + a parallel user-metadata array, using a
+  new **protected `PackedBVH(nodes&&, prims&&)` adopt-arrays ctor**, and (b) exposes turnkey queries
+  hiding pruneTraverse: `closestPoint`/`closestPoints` (external), `nearestNeighbor`/`nearestNeighbors`
+  (self, seed-from-own-leaf), `allNearestNeighbors(k)` (batch, Hilbert-ordered). Leaves carry the
+  cloud INDEX; user Meta stored alongside (metadata()/position() accessors). Build ~87 ms/500k (near
+  nanoflann's 57), query ~0.52-0.59 us/pt via the internal query (uses the k-best set + pruneTraverse;
+  the bare-loop prototype hit 0.32 -- there is ~1.5x codegen headroom in the class query, a later
+  micro-opt). Tests (TestPointCloudBVH, both precisions vs brute force), InstantiateAll, doxygen, and
+  an ImplemBVH.rst mention all in. **Follow-ups:** rewrite the ClosestPoint*/NearestNeighbor* examples
+  to use it (they collapse to a few lines); dedicated Sphinx example page; the query micro-opt.
 - **Index-based build: PROTOTYPED, closes the build gap (76 ms vs 275-390 ms).** Mirrored nanoflann:
   partition a single `uint32` index array **in place** by longest-axis Midpoint, pack each leaf's
   points into `PointGroup`s **inline** during the build -- no `make_shared`, no per-node sublist
