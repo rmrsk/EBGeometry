@@ -119,6 +119,31 @@ TreeBVH<T, P, BV, K>::getChildren() const noexcept
 }
 
 template <class T, class P, class BV, size_t K>
+inline std::shared_ptr<TreeBVH<T, P, BV, K>>
+TreeBVH<T, P, BV, K>::deepCopy() const
+{
+  auto copy = std::make_shared<TreeBVH<T, P, BV, K>>();
+
+  // Copy this node's own state. m_primitives holds shared_ptr<const P>, copied by handle: the
+  // primitives are immutable and intentionally shared (e.g. with a DCEL mesh), so they are not
+  // cloned -- only the node hierarchy is.
+  copy->m_boundingVolume  = m_boundingVolume;
+  copy->m_primitives      = m_primitives;
+  copy->m_boundingVolumes = m_boundingVolumes;
+  copy->m_partitioned     = m_partitioned;
+
+  // Recursively clone children so the returned tree owns independent nodes rather than aliasing
+  // this tree's mutable sub-structure.
+  for (size_t k = 0; k < K; k++) {
+    if (m_children[k] != nullptr) {
+      copy->m_children[k] = m_children[k]->deepCopy();
+    }
+  }
+
+  return copy;
+}
+
+template <class T, class P, class BV, size_t K>
 inline void
 TreeBVH<T, P, BV, K>::topDownSortAndPartition(const Partitioner& a_partitioner, const LeafPredicate& a_stopCrit)
 {

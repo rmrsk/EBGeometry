@@ -137,8 +137,8 @@ protected:
  * default -- DCEL::FaceT's copy constructor deliberately does not copy its cached 2D polygon
  * embedding (m_poly2, used by signedDistance()'s point-in-face test), so a naive by-value copy
  * (as BVH::ValueStorage would produce) is left with a null embedding and crashes on first query;
- * see FaceT's copy-constructor documentation. See :ref:`Chap:MeshSDFClasses` in the Sphinx docs
- * for the full rationale, including why TriMeshSDF's SoA groups do not have this restriction.
+ * see FaceT's copy-constructor documentation. See the user documentation for the full rationale,
+ * including why TriMeshSDF's SoA groups do not have this restriction.
  * @tparam T    Floating-point precision type (float or double).
  * @tparam Meta Triangle metadata type stored on each DCEL face.
  * @tparam K    BVH branching factor (number of children per internal node).
@@ -298,8 +298,7 @@ protected:
  * no aliasing benefit to give up. Note that instancing the same mesh multiple times (e.g. via
  * Translate/Rotate/Scale or a CSG union) is unaffected either way: those wrappers hold a
  * shared_ptr to the whole TriMeshSDF, so its packed data -- however StoragePolicy stores it -- is
- * never duplicated per placement. See :ref:`Chap:MeshSDFClasses` in the Sphinx docs for the full
- * rationale.
+ * never duplicated per placement. See the user documentation for the full rationale.
  */
 template <class T,
           class Meta,

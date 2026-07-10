@@ -1,14 +1,29 @@
+<!-- REMOVE this banner once downstream users have migrated (target: ~2026-Q4). -->
+> [!IMPORTANT]
+> **Git history rewritten (July 2026).** EBGeometry's history was rewritten to
+> remove large binary files from old commits, so **every commit hash before this
+> date has changed**. If you pin EBGeometry as a **submodule** at an older commit,
+> follow the [migration guide](https://github.com/rmrsk/EBGeometry-legacy/releases/tag/pre-history-rewrite)
+> (old&rarr;new commit map + how to repoint). If you just clone/build the library
+> or vendor `EBGeometry.hpp`, no action is needed.
+
 ## EBGeometry - a header-only C++ library for signed distance fields
+
+[![Documentation](https://github.com/rmrsk/EBGeometry/actions/workflows/docs.yml/badge.svg)](https://rmrsk.github.io/EBGeometry/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Language](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
+[![Header-only](https://img.shields.io/badge/header--only-yes-brightgreen.svg)](EBGeometry.hpp)
 
 EBGeometry is a header-only C++17 library for constructive solid geometry (CSG) with implicit 
 functions. It can turn surface geometries into fast, queryable signed distance functions (SDFs), 
-and manipulate them with CSG operations. 
+and manipulate them with accelerated CSG operations. 
 
 Main features:
 
 * Turn surface meshes into SDFs, via a half-edge (DCEL) mesh representation or raw triangles.
 * Fast SDF evaluation using bounding volume hierarchies (BVHs).
 * Supports both pointer-based tree BVHs, and flattened SIMD-accelerated packed BVHs.
+* Generic BVH traversal, adaptable to custom queries like nearest-neighbor searches.
 * A library of analytic signed distance functions and implicit functions (spheres, boxes, and
   more)
 * Composable with transforms (translation, rotation, scaling, rounding, blending).

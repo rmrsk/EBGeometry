@@ -175,6 +175,16 @@ a documented class/function's behavior, signature, or existence, the correspondi
 `Docs/Sphinx/source/*.rst` page(s) must be updated in the same PR -- an undocumented behavior
 change is not a finished change.
 
+**Never point users to tests (`Tests/*`) to see a functionality demonstrated.** The unit tests
+exist to verify behavior, not to teach it. When the docs (`.rst` files) or a public header comment
+want to show a user how to *use* something, they must point to an `Examples/` program instead --
+and only to one that actually exists as a page in the Sphinx Examples section (the toctree in
+`Docs/Sphinx/source/index.rst`, e.g. `ExampleShapes.rst`). If no such example exists yet, either
+add one (with its `Example*.rst` page wired into that toctree) or describe the capability inline
+without citing any file -- do not fall back to citing a test. (Pointing to `Tests/` is fine only
+in genuinely contribution/testing-oriented docs like `ContributionGuidelines.rst`/
+`TestingLocally.rst`, which are about the tests themselves, not about demonstrating a feature.)
+
 **Claude must begin auditing the `.rst` docs as soon as a PR is marked ready for review (i.e. no
 longer a draft), not only when explicitly asked.** Check the PR's draft status (e.g.
 `gh pr view <number> --json isDraft`); once it is out of draft, treat a documentation audit of
@@ -243,7 +253,13 @@ once work is done: surface the option and let the user decide, do not just do it
 branch you are *already on* (once the user has asked for that work) is fine; it is the creation of
 new refs and the outward submission of PRs that always needs a green light first.
 
-When the user *does* ask you to open a PR, **always use the repository's pull-request template**
+When the user *does* ask you to open a PR, **always open it as a draft** (`gh pr create --draft`) —
+never open a PR ready for review. The user promotes it out of draft themselves when they judge it
+ready; this is also what gates the `.rst` documentation audit described above (which begins once
+the PR is no longer a draft). If a non-draft PR was already opened, convert it back with
+`gh pr ready --undo <number>`.
+
+When opening a PR, **always use the repository's pull-request template**
 (`.github/pull_request_template.md`) — its `# Summary` sections (`Background`, `Solution`,
 `Side-effects`, `Alternative solutions`) followed by the `Reviewer checklist`. Fill in the prose
 sections (this is the "PR note") but **leave every checklist item unchecked** (`- [ ]`) — the

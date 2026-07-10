@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <iterator>
 #include <limits>
 #include <memory>
 #include <type_traits>
@@ -114,8 +115,11 @@ using PrimitiveList = std::vector<std::shared_ptr<const P>>;
  * (@c StorageType) with the handful of operations PackedBVH needs to build and read it: @c get()
  * (per-element access, used by every leaf-visit callback), @c appendTreeLeaf() (copying a TreeBVH
  * leaf's primitives into PackedBVH's flat array during the identity pack() constructor), and
- * @c appendAliased() (materialising a converting packWith() constructor's single contiguous
- * conversion buffer into PackedBVH's flat array). Swapping the policy changes nothing about tree
+ * @c appendAliased() (appending a converting packWith() constructor's single contiguous
+ * conversion buffer to PackedBVH's flat array). Both @c appendTreeLeaf() and @c appendAliased()
+ * are appenders: they add to whatever @p a_dst already holds rather than replacing it, so every
+ * policy behaves identically no matter how many times PackedBVH calls them. Swapping the policy
+ * changes nothing about tree
  * construction or traversal -- TreeBVH itself always stores primitives as shared_ptr, regardless
  * of which policy the PackedBVH built from it uses -- only what PackedBVH's own primitive array
  * holds.
@@ -219,8 +223,8 @@ struct ValueStorage
     // defeats std::vector's geometric growth -- it forces a fresh reallocation (copying every
     // element already appended) on every leaf, making a whole build O(N^2) in the primitive count.
     // Both the identity pack() constructor and the direct top-down PackedBVH constructor append
-    // leaves this way, so the quadratic hit every ValueStorage build over many leaves. Plain
-    // push_back grows the buffer geometrically and keeps construction linear.
+    // leaves this way, so the quadratic cost would hit every ValueStorage build over many leaves.
+    // Plain push_back grows the buffer geometrically and keeps construction linear.
     for (const auto& p : a_leafPrims) {
       a_dst.push_back(*p);
     }
@@ -229,16 +233,23 @@ struct ValueStorage
   /**
    * @brief Materialise a converting packWith() constructor's single contiguous conversion buffer
    * into PackedBVH's flat primitive array.
-   * @details Cheaper than SharedPtrStorage<P>'s equivalent: no aliasing shared_ptr machinery (and
-   * its control-block allocation) is needed at all -- the already-contiguous buffer is simply
-   * moved into place.
+   * @details Like SharedPtrStorage<P>'s equivalent, this *appends* @p a_block to @p a_dst, so the
+   * two policies honour the same contract regardless of how many times it is called. When @p a_dst
+   * is still empty (the case for PackedBVH's single-call converting constructor) it takes the fast
+   * path of stealing the already-contiguous buffer wholesale -- no aliasing shared_ptr machinery,
+   * no control-block allocation, and no per-element move; otherwise it move-appends each element.
    * @param[in,out] a_dst   PackedBVH's flat primitive array.
    * @param[in]     a_block Single contiguous buffer holding every converted primitive.
    */
   static void
   appendAliased(std::vector<StorageType>& a_dst, const std::shared_ptr<std::vector<P>>& a_block)
   {
-    a_dst = std::move(*a_block);
+    if (a_dst.empty()) {
+      a_dst = std::move(*a_block);
+    }
+    else {
+      a_dst.insert(a_dst.end(), std::make_move_iterator(a_block->begin()), std::make_move_iterator(a_block->end()));
+    }
   }
 };
 
@@ -901,10 +912,11 @@ public:
   /**
    * @brief Deleted copy constructor.
    * @details A TreeBVH is a recursive structure of shared_ptr-linked children (m_children);
-   * copying it would only alias the same child subtrees rather than cloning them, since no
-   * deep-clone is implemented. topDownSortAndPartition()/bottomUpSortAndPartition() mutate a
-   * node's children in place, so such a "copy" could silently share mutable state with the
-   * original instead of being independent. Disallowed outright rather than doing the wrong thing.
+   * a compiler-generated copy would only alias the same child subtrees rather than cloning them.
+   * topDownSortAndPartition()/bottomUpSortAndPartition() mutate a node's children in place, so such
+   * a "copy" could silently share mutable state with the original instead of being independent.
+   * Disallowed outright rather than doing the wrong thing; use deepCopy() to replicate a tree
+   * independently.
    * @param[in] a_other Other instance (unused; deleted).
    */
   TreeBVH(const TreeBVH& a_other) = delete;
@@ -1008,6 +1020,21 @@ public:
    */
   [[nodiscard]] inline const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>&
   getChildren() const noexcept;
+
+  /**
+   * @brief Produce an independent deep copy of this tree.
+   * @details Recursively clones the node hierarchy: the returned tree owns brand-new nodes, so it
+   * can be partitioned or otherwise mutated without affecting this tree (and vice versa). The
+   * copy constructor is deleted precisely because a shallow copy would instead alias these mutable
+   * child nodes; this is the explicit, correct way to replicate a tree. Primitives are *shared*,
+   * not cloned -- each node's std::shared_ptr<const P> entries are copied by handle, matching how a
+   * TreeBVH normally references its (immutable) primitives, e.g. faces shared with a DCEL mesh.
+   * Works in either state: an unpartitioned tree clones to an unpartitioned leaf (build once, then
+   * partition the copies differently), and a partitioned tree clones its full sub-structure.
+   * @return Shared pointer to an independent clone of this tree.
+   */
+  [[nodiscard]] inline std::shared_ptr<TreeBVH<T, P, BV, K>>
+  deepCopy() const;
 
   /**
    * @brief Recursion-free BVH traversal using an explicit LIFO stack (depth-first order).

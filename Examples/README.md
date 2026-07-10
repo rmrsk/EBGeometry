@@ -6,6 +6,7 @@ third-party dependencies):
 * `ClosestPointSFC` For closest-point search over a point cloud, using Morton-ordered PointAoSoA-grouped PackedBVH leaves built four ways, benchmarked against brute force.
 * `CSGUnion` For merging a surface mesh with an analytic sphere using a BVH-accelerated CSG union.
 * `MeshSDF` For reading a surface mesh and evaluating it with the DCEL/BVH signed-distance representations.
+* `NestedBVH` For a nested BVH: a BVH-accelerated union over several BVH-backed mesh SDFs.
 * `OctreeBoundingVolume` For using the octree bounding-volume functionality.
 * `PackedSpheres` For a scene composed of many analytic spheres.
 * `RandomCity` For procedurally building a scene of many objects.

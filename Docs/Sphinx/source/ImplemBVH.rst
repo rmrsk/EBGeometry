@@ -28,8 +28,8 @@ The template parameters shared by both are:
    callback a caller supplies to ``traverse()`` or ``pruneTraverse()`` (see below). Whether
    ``P`` needs a ``signedDistance(Vec3T<T>)`` member (or anything else) is entirely up to that
    callback -- see ``MeshSDF``/``TriMeshSDF::signedDistance()`` in :ref:`Chap:MeshSDFClasses` for
-   the signed-distance case, and the nearest-neighbor example in ``Tests/TestBVH.cpp`` for a
-   primitive with no ``signedDistance()`` at all.
+   the signed-distance case; a callback could equally perform, say, a nearest-neighbor search over
+   a point cloud whose primitive carries no ``signedDistance()`` at all.
 *  ``BV`` Bounding volume type (``TreeBVH`` only — ``PackedBVH`` always uses
    ``BoundingVolumes::AABBT<T>`` internally).
 *  ``K`` BVH degree. ``K=2`` will yield a binary tree, ``K=3`` yields a tertiary tree and so on.
@@ -262,12 +262,17 @@ ________________________
 storage-sharing question above:
 
 *  ``TreeBVH`` deletes its copy constructor and copy assignment operator. It is a recursive
-   structure of ``shared_ptr``-linked children, and no deep-clone is implemented; a naive
-   (compiler-generated) copy would only alias the same child subtrees rather than cloning them,
-   which ``topDownSortAndPartition()``/``bottomUpSortAndPartition()`` could then mutate out from
-   under a supposedly independent "copy". Copying is disallowed outright rather than silently
-   doing the wrong thing. Its move constructor and move assignment operator are explicitly
-   defaulted and fully supported.
+   structure of ``shared_ptr``-linked children, so a naive (compiler-generated) copy would only
+   alias the same child subtrees rather than cloning them, which
+   ``topDownSortAndPartition()``/``bottomUpSortAndPartition()`` could then mutate out from under a
+   supposedly independent "copy". Copying is disallowed outright rather than silently doing the
+   wrong thing. Its move constructor and move assignment operator are explicitly defaulted and
+   fully supported. To *replicate* a tree independently -- e.g. to build once and then partition
+   two copies with different strategies, or to keep a pristine copy alongside one you go on to
+   mutate -- use ``deepCopy()``, which recursively clones the node hierarchy (returning a new
+   ``std::shared_ptr<TreeBVH>``) while still sharing the immutable ``std::shared_ptr<const P>``
+   primitives by handle. (Copying a ``std::shared_ptr<TreeBVH>`` is, of course, always fine -- that
+   is shared ownership of the *same* tree, not a replica.)
 *  ``PackedBVH`` allows both copying and moving. Its members (the flattened node array, the
    primitive array, and the SIMD AABB cache) are all owned value containers with no shared
    mutable substructure, so the compiler-generated deep copy is correct and safe under both
@@ -278,6 +283,38 @@ storage-sharing question above:
 
 Both classes' destructors are non-virtual: neither is intended to be subclassed or used
 polymorphically.
+
+When ``ValueStorage`` is the wrong choice
+_________________________________________
+
+There are two situations where ``ValueStorage`` should not be used and ``SharedPtrStorage`` (the
+default) must be kept:
+
+*  **Polymorphic primitives.** ``ValueStorage<P>`` stores ``P`` by value, so it requires ``P`` to
+   be a concrete, copyable value type. If ``P`` is an abstract base (or you rely on virtual
+   dispatch through a base pointer), value storage either fails to compile or slices the object to
+   its static type. This is exactly the situation of the BVH-accelerated CSG unions
+   (:ref:`Chap:ImplemCSG`), whose primitive is ``ImplicitFunction<T>`` and whose leaf evaluator
+   calls a virtual ``value()`` through a ``std::shared_ptr<const ImplicitFunction<T>>``; those
+   classes therefore always use ``SharedPtrStorage`` and do not expose the policy. Use
+   ``ValueStorage`` only when ``P`` is a self-contained value type (a point, a particle, an SoA
+   triangle group), never for a polymorphic hierarchy.
+*  **Nesting a BVH inside a BVH.** A ``PackedBVH`` whose primitive is itself another
+   ``PackedBVH`` (or a mesh SDF that owns one) is a supported construction, and nothing stops it
+   recursing further — ``PackedBVH`` of ``PackedBVH`` of ``PackedBVH``, to any depth. At every
+   level the *outer* ``PackedBVH`` should stay on ``SharedPtrStorage`` so it shares each inner BVH
+   by pointer. Naming ``ValueStorage`` on an outer level instead copies every inner ``PackedBVH``
+   wholesale — its node, SoA, and primitive arrays — into the outer array: packing draws each
+   primitive from the source tree as a ``std::shared_ptr<const P>``, so each inner BVH is *copied*
+   (not moved) into place, even though ``PackedBVH`` is otherwise fully movable (see *Copy and move
+   semantics* above). The cost of that copy is proportional to the *entire* memory footprint
+   reachable below the primitive, so it becomes exceedingly expensive whenever an inner BVH is
+   large, and compounds with nesting depth: each by-value level duplicates everything beneath it,
+   which may itself be duplicating everything beneath *it*. ``SharedPtrStorage`` at every outer
+   level avoids this for no loss of correctness. The common realisation of nesting — a
+   ``BVHUnion`` over several mesh SDFs, each holding its own inner ``PackedBVH`` — is exactly the
+   polymorphic-primitive case above, so it already sits on ``SharedPtrStorage`` at the outer level
+   and shares each mesh SDF by pointer.
 
 Tree traversal
 ---------------
@@ -388,9 +425,8 @@ squaring, no square root anywhere in the hot path) with a pruning rule that retu
 unchanged, whereas ``MeshSDF``/``TriMeshSDF::signedDistance()`` (see :ref:`Chap:MeshSDFClasses`)
 track a signed distance and square its magnitude for the bound -- both are ordinary
 instantiations of the same ``pruneTraverse()``, not special cases hardcoded into ``PackedBVH``.
-``Tests/TestBVH.cpp`` has a worked example of the former: a bare point struct with no
-``signedDistance()`` member at all, searched for its nearest neighbor via ``pruneTraverse()``,
-checked against a brute-force scan.
+The former needs nothing more than a bare point struct with no ``signedDistance()`` member at all,
+searched for its nearest neighbor via ``pruneTraverse()`` against a running squared distance.
 
 For the exact template signature and callback contracts, see `the doxygen page for
 PackedBVH::pruneTraverse <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
