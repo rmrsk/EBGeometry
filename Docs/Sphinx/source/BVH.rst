@@ -87,7 +87,7 @@ In EBGeometry, bottom-up construction is done by means of space-filling curves (
 
 .. _Fig:CompactBVH:
 .. figure:: /_static/CompactBVH.png
-   :width: 360px
+   :width: 240px
    :align: center
 
    A pointer-based tree (top) and an equivalent, flattened representation of the same tree
