@@ -57,6 +57,24 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
 
 ## Supporting findings (so they are not re-derived)
 
+- **`Knn::tryInsert` (the hot per-lane scalar reduction of the min-query) was optimized — committed.**
+  Two changes in both `Examples/NearestNeighbor*`: (1) test the cheap distance bound
+  `count == kNN && a_dist2 >= dist2[kNN-1]` **before** the de-dupe index scan, so the vast majority of
+  candidates (farther than the current worst) skip the scan; (2) for `kNN == 1` the de-dupe is
+  redundant — a repeat is either the current best (already rejected by the bound) or farther (same) —
+  so it is `if constexpr (kNN > 1)`-compiled out. Behavior-preserving for all `kNN` (a candidate only
+  reaches the scan if it would be inserted). **~30% faster traversal** (NN ClusterSAH, float, 500k:
+  ~0.87 → ~0.61 µs/pt); verified in float + double.
+- **Group-min per-group reduction: PROFILED and REJECTED (it is SLOWER).** Idea (kNN==1 only): reduce
+  a group's `W` lane distances to the single nearest lane, then one `tryInsert` per group instead of
+  `W`. Prototyped and benchmarked — **~30–40% slower** (NN float 500k: ClusterSAH ~0.61 → ~0.87,
+  Midpoint ~0.88 → ~1.11 µs/pt) and leaf visits rise slightly (5.7 → 5.9). Two reasons the profiling
+  exposed: (a) it does **not** remove the inherent O(`W`) per-lane scan — the optimized `tryInsert`
+  fast path is already a single compare, the same cost as the min-compare — while adding
+  min-tracking bookkeeping; (b) it **weakens reciprocal culling**, which currently reciprocates
+  *every* transiently-accepted lane (seeding many neighbors' bounds); group-min reciprocates only the
+  group's single nearest, so bounds tighten slower and more leaves are visited. The per-lane
+  reciprocal offers are worth more than the saved inserts. **Closed — do not retry for point clouds.**
 - **Midpoint's dominant build cost is plumbing, not the split.** `Midpoint2WaySplit` /
   `MidpointKWaySplit` (`Source/EBGeometry_BVH.hpp`) are a centroid-bbox scan + one `std::partition`
   per level — trivially cheap. Time goes to: (1) up-front `std::make_shared<P>` wrapping of every
