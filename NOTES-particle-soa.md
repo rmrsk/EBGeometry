@@ -146,6 +146,24 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
   loop, fragmented descend stacks vs one unified traversal). Net: not worth the machinery; the
   `getNodes()` accessor was reverted. **Top-down seed+skip is effectively optimal** — the descent is
   "wasteful" in test count but cheap in time. Closed.
+- **Tree-build profiling (closing the ~6× build gap vs nanoflann's 57 ms).** SAH-over-points build
+  (~390 ms, double 500k) decomposes: make_shared wrap+AABBs 29 ms (7%), TreeBVH ctor 15 ms (4%),
+  **SAH `topDownSortAndPartition` 330 ms (79%)**, packWith 42 ms (10%). So the *tight-tree* build is
+  dominated by the SAH partitioner -- NOT the shared_ptr plumbing (that was the *Midpoint* story,
+  where the split is trivial). Binned SAH over 500k points is inherently ~5-6× nanoflann's
+  median-split kd-tree build. Levers profiled/identified:
+  - **(a) longest-axis SAH** (bin only the longest centroid-bbox axis, not all 3 -- `SAH2WaySplit`
+    loops `axis 0..3` re-binning all N each): MEASURED **~23% off the SAH build** (390->301 ms) with
+    **ZERO query cost** (0.31 vs 0.32 us/pt, 2.06 vs 2.09 leaf/pt). Real free win -- but should be an
+    **option**, not the library default (3-axis may matter more for mesh BVHs than uniform points).
+  - **(b) index-based build** (drop the per-primitive `make_shared`, partition an index permutation):
+    recovers the ~11% wrap+ctor phases.
+  - **(c) radix-sort the Morton codes** (`SFCImplem.hpp:280` is a comparison `std::sort` on integer
+    codes) -- speeds the fast SFC-packed builds and ClusterSAH's clustering.
+  - The pragmatic **cheap-tight-build already exists: ClusterSAH** (~40-125 ms build, 0.52 us/pt query
+    = SAH over *clusters* not points). The real gap-closer (SAH-quality tree at LBVH build speed) is
+    **LBVH + treelet reoptimization** -- a real project, untried. For per-step rebuild (moving
+    particles) use ClusterSAH/Midpoint; tight SAH-over-points is for build-once/query-many.
 - **Midpoint's dominant build cost is plumbing, not the split.** `Midpoint2WaySplit` /
   `MidpointKWaySplit` (`Source/EBGeometry_BVH.hpp`) are a centroid-bbox scan + one `std::partition`
   per level — trivially cheap. Time goes to: (1) up-front `std::make_shared<P>` wrapping of every
