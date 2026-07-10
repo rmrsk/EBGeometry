@@ -2,6 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// Nearest-neighbor search over a random point cloud, using PointAoSoA<T, Meta, W> groups as the
+// leaves of a PackedBVH. The same groups are built four ways (Morton, top-down centroid, midpoint,
+// SAH) and queried against a brute-force baseline. See README.md.
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -26,29 +30,21 @@ using T = EBGEOMETRY_PRECISION;
 using Vec3 = EBGeometry::Vec3T<T>;
 using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 
-// SIMD width for each leaf group: the ISA-optimal width for T (EBGeometry::PointSoA::
-// DefaultWidth<T>()'s own table -- e.g. 8 for float / 4 for double under AVX, 16/8 under
-// AVX-512F). Each leaf primitive below packs up to this many points, with each point's index in
-// the original 50,000-point cloud carried alongside as metadata.
+// Points per SoA group: the ISA-optimal SIMD width for T (PointSoA::DefaultWidth<T>()).
 constexpr size_t W = EBGeometry::PointSoA::DefaultWidth<T>();
 
-// Leaf primitive: one SoA group of up to W points plus their per-point metadata (here, each
-// point's own index into the original point cloud).
+// Leaf primitive: W point positions plus each point's index into the cloud, carried as metadata.
 using Group = EBGeometry::PointAoSoA<T, int, W>;
 
-// BVH branching factor. Independent of W (it governs the *outer* tree over groups, not how many
-// points live inside one group) -- fixed rather than ISA-dependent so the tree shape doesn't vary
-// with the compiling machine's SIMD tier, matching Examples/BuildBVH's own convention.
-constexpr size_t K = 4;
+// BVH branching factor: the ISA-optimal fan-out for T's SIMD box test (BVH::DefaultBranchingRatio<T>()),
+// so pruneTraverse's K-wide child test fills one SIMD register.
+constexpr size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
 
-// Every group below is freshly built by buildGroups() and shared with nothing else, so
-// ValueStorage<Group> (primitives stored by value, no shared_ptr indirection) is a clear win over
-// the default SharedPtrStorage<Group> -- exactly the "self-contained value type, frequently
-// re-visited leaves" case ValueStorage's own doc comment calls out for a point-cloud search.
+// Groups are freshly built and shared with nothing else, so store them by value (ValueStorage) --
+// no shared_ptr indirection on the hot leaf-visit path.
 using Packed = EBGeometry::BVH::PackedBVH<T, Group, K, EBGeometry::BVH::ValueStorage<Group>>;
 
-// TreeBVH type over the same groups, used only to name the LeafPredicate type below (the direct
-// top-down PackedBVH constructor's stop criterion is expressed in terms of a TreeBVH node).
+// TreeBVH alias, used only to name the LeafPredicate type the top-down partitioners take.
 using Tree = EBGeometry::BVH::TreeBVH<T, Group, AABB, K>;
 
 constexpr size_t   numPoints  = 50000;
@@ -56,25 +52,13 @@ constexpr size_t   numQueries = 500;
 constexpr uint64_t pointSeed  = 123456789ULL;
 constexpr uint64_t querySeed  = 987654321ULL;
 
-// Target PointAoSoA groups per BVH leaf, shared by all four build strategies (the SFC-family
-// Morton constructor takes it directly; the top-down partitioners stop splitting once a node holds
-// this many groups or fewer, via the leaf predicate in main()). At W points per group this is
-// maxLeafGroups * W points per leaf.
-//
-// 16 is deliberate, not incidental: a leaf-size sweep (1..64 groups) on this exact workload showed
-// every strategy gets *faster* as leaves grow from the naive ~K up through ~16-32 groups -- fewer,
-// fatter leaves mean fewer interior nodes to traverse (fewer SIMD box tests, stack operations, and
-// branch mispredicts), while the extra in-leaf getDistance2() scans are cheap SIMD -- then plateaus
-// and slightly regresses past ~32 as the growing linear in-leaf scan starts to outweigh the saved
-// traversal. 16 sits at the knee (captures the bulk of the speedup; e.g. SAH query time drops
-// ~0.88 -> ~0.72 us/q vs a ~K-sized leaf) and is a good default across all four strategies. Try
-// 8 or 32 here to see the shoulders of that curve.
+// Target groups per leaf, shared by all strategies. A leaf-size sweep on this workload put the
+// query-time knee around 16-32 groups; 16 is a good default. Try 8 or 32 to see the effect.
 constexpr size_t maxLeafGroups = 16;
 
 namespace {
 
-// Uniform random points in the unit cube. Fixed seed: reproducible run-to-run (matches
-// Examples/BuildBVH's own convention).
+// Uniform random points in the unit cube. Fixed seed: reproducible run to run.
 std::vector<Vec3>
 makeRandomPoints(size_t a_count, uint64_t a_seed)
 {
@@ -90,27 +74,28 @@ makeRandomPoints(size_t a_count, uint64_t a_seed)
   return points;
 }
 
-// Group the point cloud into spatially-coherent PointAoSoA<T, int, W> leaves: sort all points
-// along the Morton curve first (the same BVH::computeSFCBins() + SFC::Morton::encode() pairing
-// TreeBVH::bottomUpSortAndPartition() and PackedBVH's own direct SFC-build constructor use
-// internally), then chunk the sorted order into consecutive runs of W points. This way each
-// group's up-to-W points are genuinely close together -- a group built from an arbitrary
-// (unsorted) slice of the input would have a needlessly large bounding volume and prune far worse.
-// Each point's ORIGINAL index (its position in a_positions, before this sort) is packed as that
-// lane's metadata, so it survives being reshuffled into group order.
-//
-// This grouping is shared, unchanged, by every BVH build strategy compared in main(); only the
-// *outer* tree over these groups differs between strategies.
-std::vector<std::pair<Group, AABB>>
-buildGroups(const std::vector<Vec3>& a_positions)
+// Indices that sort a_points along the Morton curve (BVH::computeSFCBins + SFC::Morton::encode).
+std::vector<uint32_t>
+mortonOrder(const std::vector<Vec3>& a_points)
 {
-  const auto bins = EBGeometry::BVH::computeSFCBins<T>(a_positions);
+  const auto bins = EBGeometry::BVH::computeSFCBins<T>(a_points);
 
-  std::vector<uint32_t> order(a_positions.size());
+  std::vector<uint32_t> order(a_points.size());
   std::iota(order.begin(), order.end(), uint32_t(0));
   std::sort(order.begin(), order.end(), [&bins](uint32_t a_a, uint32_t a_b) noexcept -> bool {
     return EBGeometry::SFC::Morton::encode(bins[a_a]) < EBGeometry::SFC::Morton::encode(bins[a_b]);
   });
+
+  return order;
+}
+
+// Group the cloud into spatially-coherent PointAoSoA leaves: Morton-sort the points, then chunk the
+// sorted order into consecutive runs of W. Compact groups have tight bounding volumes and prune
+// well. Each point's original index rides along as its lane metadata, surviving the reshuffle.
+std::vector<std::pair<Group, AABB>>
+buildGroups(const std::vector<Vec3>& a_positions)
+{
+  const std::vector<uint32_t> order = mortonOrder(a_positions);
 
   const size_t numGroups = (a_positions.size() + W - 1U) / W;
 
@@ -133,16 +118,13 @@ buildGroups(const std::vector<Vec3>& a_positions)
     Group group;
     group.pack(posArr.data(), metaArr.data(), static_cast<uint32_t>(count));
 
-    const AABB bv = group.template computeBoundingVolume<AABB>();
-
-    groupsAndBVs.emplace_back(group, bv);
+    groupsAndBVs.emplace_back(group, group.template computeBoundingVolume<AABB>());
   }
 
   return groupsAndBVs;
 }
 
-// A nearest-neighbor result: squared distance to the closest point found, and that point's index
-// in the original (unsorted) point cloud.
+// Squared distance to the closest point found, and that point's index in the cloud.
 struct Nearest
 {
   T   dist2;
@@ -166,19 +148,11 @@ bruteForceNearest(const std::vector<Vec3>& a_positions, const Vec3& a_query)
   return best;
 }
 
-// Nearest neighbor via PackedBVH::pruneTraverse(). State is a running *squared* distance -- no
-// sqrt anywhere in the hot path -- plus the flattened index of the group that currently holds it.
-//
-// The pruning bound MUST be this squared distance, not its square root: pruneTraverse() compares
-// the bound against the *squared* distance from the query to each child's AABB. Returning a linear
-// distance instead would be a unit mismatch that, in the unit cube (where every distance is < 1,
-// so squaring shrinks it), makes the bound far too loose to prune -- correct answers, but an order
-// of magnitude more leaf visits. This is exactly why PointAoSoA offers getDistance2() at all.
-//
-// getMetaData() -- the whole reason to use PointAoSoA over a bare PointSoAT here -- is read only
-// once the traversal is over, and only for the single group that won: a final, tiny (<= W) per-lane
-// rescan against a_positions (using each lane's own metadata as the index into it) recovers which
-// point, and therefore which metadata, achieved that group's minimum.
+// Nearest neighbor via PackedBVH::pruneTraverse(). The search state is a running *squared* distance
+// -- pruneTraverse compares the bound against squared box distances, so there is no sqrt on the hot
+// path -- plus the index of the group currently holding it. getMetaData() is read only once the
+// traversal is over, and only for the winning group, to recover the actual point index. a_leafVisits
+// and a_groupEvals accumulate traversal statistics for the report.
 Nearest
 bvhNearest(const Packed&            a_bvh,
            const std::vector<Vec3>& a_positions,
@@ -227,63 +201,18 @@ bvhNearest(const Packed&            a_bvh,
   return best;
 }
 
-// Indices that put a_points into Morton-curve order -- the same BVH::computeSFCBins +
-// SFC::Morton::encode pairing used to group the cloud, here applied to the query points so
-// spatially-near queries can be issued consecutively (see the query-ordering demo in main()).
-std::vector<uint32_t>
-mortonOrder(const std::vector<Vec3>& a_points)
-{
-  const auto bins = EBGeometry::BVH::computeSFCBins<T>(a_points);
-
-  std::vector<uint32_t> order(a_points.size());
-  std::iota(order.begin(), order.end(), uint32_t(0));
-  std::sort(order.begin(), order.end(), [&bins](uint32_t a_a, uint32_t a_b) noexcept -> bool {
-    return EBGeometry::SFC::Morton::encode(bins[a_a]) < EBGeometry::SFC::Morton::encode(bins[a_b]);
-  });
-
-  return order;
-}
-
-// Average per-query time (microseconds) of running every query in a_queries through a_bvh, averaged
-// over several passes for a stable reading. Results are discarded (correctness is already checked in
-// benchmarkStrategy) -- this exists only to measure how the *order* of the query stream affects
-// cache reuse.
-double
-timeQueries(const Packed& a_bvh, const std::vector<Vec3>& a_positions, const std::vector<Vec3>& a_queries)
-{
-  constexpr int passes = 20;
-
-  long long               dummyLeafVisits = 0;
-  long long               dummyGroupEvals = 0;
-  volatile T              sink            = T(0);
-  EBGeometry::SimpleTimer timer;
-
-  timer.start();
-  for (int p = 0; p < passes; p++) {
-    for (const auto& q : a_queries) {
-      sink += bvhNearest(a_bvh, a_positions, q, dummyLeafVisits, dummyGroupEvals).dist2;
-    }
-  }
-  timer.stop();
-  (void)sink;
-
-  return 1.0e6 * timer.seconds() / double(passes * a_queries.size());
-}
-
 // Timing/verification result for one BVH build strategy.
 struct StrategyResult
 {
-  double buildSeconds     = 0.0; // Time to build this PackedBVH from the (already-grouped) points.
-  double querySeconds     = 0.0; // Total time for all numQueries nearest-neighbor queries.
-  double avgLeafVisits    = 0.0; // Average leaf nodes visited per query (explains the query time).
-  double avgGroupsPerLeaf = 0.0; // Average PointAoSoA groups per visited leaf (this tree's leaf occupancy).
-  int    indexMatches     = 0;   // Queries whose winning metadata index equalled brute force's.
+  double buildSeconds     = 0.0; // Construction time (filled in by the caller, which times it).
+  double querySeconds     = 0.0; // Total time for all queries.
+  double avgLeafVisits    = 0.0; // Average leaf nodes visited per query.
+  double avgGroupsPerLeaf = 0.0; // Average groups per visited leaf (the leaf occupancy achieved).
+  int    indexMatches     = 0;   // Queries whose winning index equalled brute force's.
 };
 
-// Runs all numQueries against a_bvh: verifies every result against brute force (aborting the
-// program on any nearest-distance mismatch -- a wrong tree is a bug, not a slow benchmark),
-// accumulates timing and leaf-visit statistics, and records how often the nearest *point's
-// metadata* also matched brute force (it can legitimately differ only on an exact equidistant tie).
+// Runs every query against a_bvh, aborting on any nearest-distance mismatch vs brute force, and
+// accumulates timing, leaf-visit, and metadata-agreement statistics.
 StrategyResult
 benchmarkStrategy(const Packed&               a_bvh,
                   const std::vector<Vec3>&    a_positions,
@@ -317,11 +246,8 @@ benchmarkStrategy(const Packed&               a_bvh,
   }
   timer.stop();
 
-  result.buildSeconds  = 0.0; // filled in by the caller (which timed construction)
-  result.querySeconds  = timer.seconds();
-  result.avgLeafVisits = double(leafVisits) / double(a_queries.size());
-  // Groups per *visited* leaf -- the leaf occupancy this tree actually achieved (top-down splits
-  // into K children make actual occupancy fall somewhat below the maxLeafGroups target).
+  result.querySeconds     = timer.seconds();
+  result.avgLeafVisits    = double(leafVisits) / double(a_queries.size());
   result.avgGroupsPerLeaf = (leafVisits > 0) ? double(groupEvals) / double(leafVisits) : 0.0;
 
   return result;
@@ -335,38 +261,24 @@ main()
   std::cout << "ClosestPoint: nearest-neighbor search over a " << numPoints << "-point cloud in the unit cube\n";
   std::cout << "  Precision T             = " << (std::is_same_v<T, float> ? "float" : "double") << '\n';
   std::cout << "  SoA width W             = " << W << " (PointSoA::DefaultWidth<T>())\n";
-  std::cout << "  BVH branching factor K  = " << K << '\n';
+  std::cout << "  BVH branching factor K  = " << K << " (BVH::DefaultBranchingRatio<T>())\n";
   std::cout << "  Points                  = " << numPoints << '\n';
   std::cout << "  Queries                 = " << numQueries << "\n\n";
 
-  const std::vector<Vec3> positions = makeRandomPoints(numPoints, pointSeed);
-  const std::vector<Vec3> queries   = makeRandomPoints(numQueries, querySeed);
+  const std::vector<Vec3> positions  = makeRandomPoints(numPoints, pointSeed);
+  const std::vector<Vec3> rawQueries = makeRandomPoints(numQueries, querySeed);
 
-  // Shared across every build strategy: sort the points onto the Morton curve and pack them into
-  // spatially-coherent PointAoSoA groups. Only the outer tree over these groups varies below.
+  // Shared across every build strategy: Morton-sort the points and pack them into spatially-coherent
+  // PointAoSoA groups. Only the outer tree over these groups varies between strategies.
   const std::vector<std::pair<Group, AABB>> groups = buildGroups(positions);
 
-  // Brute-force ground truth for all queries, plus its own timing (the baseline to beat).
-  std::vector<Nearest> bruteForce;
-  bruteForce.reserve(numQueries);
-  EBGeometry::SimpleTimer timer;
-  timer.start();
-  for (const auto& q : queries) {
-    bruteForce.push_back(bruteForceNearest(positions, q));
-  }
-  timer.stop();
-  const double bruteSeconds = timer.seconds();
-
-  // Stop criterion shared by the three top-down partitioners: a node becomes a leaf once it holds
-  // maxLeafGroups groups or fewer (the query-tuned leaf size chosen above, matching the target the
-  // Morton constructor is given below so all four strategies aim for the same leaf occupancy).
+  // Build the same groups four ways, timing each. Each constructor takes its primitive list by
+  // value, so passing `groups` copies it in -- an identical, fair cost for all four.
   const EBGeometry::BVH::LeafPredicate<T, Group, AABB, K> stopCrit = [](const Tree& a_node) noexcept -> bool {
     return a_node.getPrimitives().size() <= maxLeafGroups;
   };
 
-  // Build the same groups four ways, timing each construction. Every constructor takes its
-  // primitive list by value, so passing the shared `groups` list copies it in (leaving `groups`
-  // intact for the next build) -- an identical, and therefore fair, copy cost for all four.
+  EBGeometry::SimpleTimer timer;
 
   timer.start();
   const Packed mortonBVH(groups, maxLeafGroups, EBGeometry::SFC::Morton{});
@@ -388,7 +300,25 @@ main()
   timer.stop();
   const double sahBuild = timer.seconds();
 
-  // Query and verify each strategy.
+  // Morton-sort the query batch so every strategy visits queries in the same spatially-coherent
+  // order: consecutive queries descend through nearly the same nodes and reuse warm cache (the query
+  // is memory-latency bound). A one-time cost that applies to any batch of queries free to reorder.
+  std::vector<Vec3> queries;
+  queries.reserve(numQueries);
+  for (const uint32_t idx : mortonOrder(rawQueries)) {
+    queries.push_back(rawQueries[idx]);
+  }
+
+  // Brute-force ground truth for every query, plus its own timing (the baseline to beat).
+  std::vector<Nearest> bruteForce;
+  bruteForce.reserve(numQueries);
+  timer.start();
+  for (const auto& q : queries) {
+    bruteForce.push_back(bruteForceNearest(positions, q));
+  }
+  timer.stop();
+  const double bruteSeconds = timer.seconds();
+
   StrategyResult morton   = benchmarkStrategy(mortonBVH, positions, queries, bruteForce, "Morton (SFC)");
   StrategyResult topDown  = benchmarkStrategy(topDownBVH, positions, queries, bruteForce, "TopDown centroid");
   StrategyResult midpoint = benchmarkStrategy(midpointBVH, positions, queries, bruteForce, "Midpoint");
@@ -399,8 +329,8 @@ main()
   midpoint.buildSeconds = midpointBuild;
   sah.buildSeconds      = sahBuild;
 
-  // Every strategy already passed the per-query nearest-distance check inside benchmarkStrategy;
-  // the metadata (index) agreement can differ from brute force only on exact equidistant ties.
+  // Every strategy passed the per-query distance check inside benchmarkStrategy; the metadata index
+  // can differ from brute force only on an exact equidistant tie.
   const int worstIndexMatches =
     std::min({morton.indexMatches, topDown.indexMatches, midpoint.indexMatches, sah.indexMatches});
 
@@ -422,11 +352,9 @@ main()
   std::cout << "Target leaf size         = " << maxLeafGroups << " groups (" << maxLeafGroups * W
             << " points) per leaf\n\n";
 
-  // Results table. Query time is the star (this is a query benchmark); build time, average leaf
-  // visits, and average groups per visited leaf are shown alongside because they explain the query
-  // time -- a tighter tree (fewer leaf visits) queries faster, generally at the cost of a slower
-  // build, and the groups/leaf column is the actual leaf occupancy each partitioner achieved for
-  // the shared maxLeafGroups target.
+  // Query time is the headline; build time, leaf visits, and groups-per-leaf are shown alongside
+  // because they explain it (a tighter tree visits fewer leaves and queries faster, usually at the
+  // cost of a slower build).
   std::cout << std::left << std::setw(20) << "Strategy" << std::right << std::setw(13) << "Build (ms)" << std::setw(15)
             << "Query (us/q)" << std::setw(11) << "Speedup" << std::setw(14) << "Leaf visits" << std::setw(14)
             << "Groups/leaf" << '\n';
@@ -452,30 +380,6 @@ main()
   printRow("TopDown centroid", topDown, bruteSeconds);
   printRow("Midpoint", midpoint, bruteSeconds);
   printRow("SAH", sah, bruteSeconds);
-
-  // Query-stream ordering (using the SAH BVH, the fastest above). The query is memory-latency
-  // bound -- most of its time is spent chasing dependent node loads down the tree, which (at a few
-  // MB) does not fit in L1/L2. Two spatially-near query points descend through nearly the same
-  // nodes, so issuing them back-to-back finds those nodes already warm in cache. Sorting the query
-  // *batch* along the same Morton curve used to build the tree therefore cuts cache misses -- with
-  // no change to the data structure or the distance math. This is a property of the query *order*,
-  // not the tree: it only helps when you have a batch of queries you are free to reorder (a single
-  // online query, or queries that must be answered in arrival order, cannot benefit).
-  std::vector<Vec3> sortedQueries;
-  sortedQueries.reserve(numQueries);
-  for (const uint32_t idx : mortonOrder(queries)) {
-    sortedQueries.push_back(queries[idx]);
-  }
-
-  const double usGenerationOrder = timeQueries(sahBVH, positions, queries);
-  const double usMortonSorted    = timeQueries(sahBVH, positions, sortedQueries);
-
-  std::cout << "\nQuery-stream ordering (SAH BVH, " << numQueries << " queries, cache-locality only):\n";
-  std::cout << std::setprecision(3);
-  std::cout << "  queries in generation order          = " << usGenerationOrder << " us/q\n";
-  std::cout << "  queries Morton-sorted                = " << usMortonSorted << " us/q\n";
-  std::cout << std::setprecision(2);
-  std::cout << "  speedup from sorting the query batch = " << usGenerationOrder / usMortonSorted << "x\n";
 
   return 0;
 }
