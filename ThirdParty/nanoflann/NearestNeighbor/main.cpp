@@ -88,16 +88,18 @@ buildGroups(const std::vector<Vec3>& a_positions)
 }
 
 // Run the all-nearest-neighbor query over a built PackedBVH: for every point, its single nearest
-// *other* point via pruneTraverse(). Returns the nearest index per point and the total query time.
+// *other* point via pruneTraverse(), processing points in the given order. Processing order does not
+// change the result, only the query time (via cache locality). Returns the nearest index per point
+// and the total query time.
 std::pair<std::vector<uint32_t>, double>
-runEbQuery(const Packed& a_bvh, const std::vector<Vec3>& a_positions)
+runEbQuery(const Packed& a_bvh, const std::vector<Vec3>& a_positions, const std::vector<uint32_t>& a_order)
 {
   std::vector<uint32_t> nearest(a_positions.size());
   const auto&           groups = a_bvh.getPrimitives();
 
   EBGeometry::SimpleTimer timer;
   timer.start();
-  for (size_t p = 0; p < a_positions.size(); p++) {
+  for (const uint32_t p : a_order) {
     const Vec3 q        = a_positions[p];
     const auto evalLeaf = [&groups, &q, p](std::pair<T, uint32_t>& st, size_t off, size_t cnt) noexcept {
       for (size_t g = 0; g < cnt; g++) {
@@ -174,6 +176,26 @@ struct Cloud
 };
 using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<T, Cloud>, Cloud, 3, uint32_t>;
 
+// Run the all-nearest-neighbor query over the nanoflann kd-tree in the given processing order,
+// mirroring runEbQuery() so the two are timed identically.
+std::pair<std::vector<uint32_t>, double>
+runNfQuery(const KDTree& a_tree, const std::vector<Vec3>& a_positions, const std::vector<uint32_t>& a_order)
+{
+  std::vector<uint32_t> nearest(a_positions.size());
+
+  EBGeometry::SimpleTimer timer;
+  timer.start();
+  for (const uint32_t p : a_order) {
+    const T                 q[3] = {a_positions[p][0], a_positions[p][1], a_positions[p][2]};
+    std::array<uint32_t, 2> idx{};
+    std::array<T, 2>        dist{};
+    (void)a_tree.knnSearch(q, 2, idx.data(), dist.data()); // idx[0] is self (dist 0); idx[1] nearest other
+    nearest[p] = idx[1];
+  }
+  timer.stop();
+  return {nearest, timer.seconds()};
+}
+
 } // namespace
 
 int
@@ -229,11 +251,23 @@ main()
   timer.stop();
   const double ebSahPointsBuild = timer.seconds();
 
-  const auto [clusterNearest, clusterQuery] = runEbQuery(clusterBvh, positions);
-  const auto [sahNearest, sahQuery]         = runEbQuery(sahBvh, positions);
-  const auto [sahPtsNearest, sahPtsQuery]   = runEbQuery(*sahPointsBvh, positions);
+  // Processing orders: natural (index 0..N-1) and Hilbert-sorted. Same results either way; only the
+  // cache locality -- hence query time -- differs. Building the Hilbert order is a one-time O(N log N),
+  // and in a real particle code the particles are often already stored in a spatially coherent order.
+  std::vector<uint32_t> naturalOrder(numPoints);
+  for (uint32_t i = 0; i < numPoints; i++) {
+    naturalOrder[i] = i;
+  }
+  const std::vector<uint32_t> hilbertOrder = EBGeometry::SFC::order<EBGeometry::SFC::Hilbert>(positions);
 
-  // ---- nanoflann: build kd-tree, then all-nearest-neighbor query ----
+  const auto clusterNat = runEbQuery(clusterBvh, positions, naturalOrder);
+  const auto clusterSFC = runEbQuery(clusterBvh, positions, hilbertOrder);
+  const auto sahGrpNat  = runEbQuery(sahBvh, positions, naturalOrder);
+  const auto sahGrpSFC  = runEbQuery(sahBvh, positions, hilbertOrder);
+  const auto sahPtsNat  = runEbQuery(*sahPointsBvh, positions, naturalOrder);
+  const auto sahPtsSFC  = runEbQuery(*sahPointsBvh, positions, hilbertOrder);
+
+  // ---- nanoflann: build kd-tree, then query it in both orders too (the lever helps any tree) ----
   const Cloud                               cloud{positions};
   nanoflann::KDTreeSingleIndexAdaptorParams params(
     nanoflannLeaf, nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex, 1u);
@@ -243,17 +277,8 @@ main()
   timer.stop();
   const double nfBuild = timer.seconds();
 
-  std::vector<uint32_t> nfNearest(numPoints);
-  timer.start();
-  for (size_t p = 0; p < numPoints; p++) {
-    const T                 q[3] = {positions[p][0], positions[p][1], positions[p][2]};
-    std::array<uint32_t, 2> idx{};
-    std::array<T, 2>        dist{};
-    (void)tree.knnSearch(q, 2, idx.data(), dist.data()); // idx[0] is self (dist 0); idx[1] is nearest other
-    nfNearest[p] = idx[1];
-  }
-  timer.stop();
-  const double nfQuery = timer.seconds();
+  const auto nfNat = runNfQuery(tree, positions, naturalOrder);
+  const auto nfSFC = runNfQuery(tree, positions, hilbertOrder);
 
   // ---- cross-check: every strategy must agree on each point's nearest distance (ties aside) ----
   const T    tol           = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-9);
@@ -268,32 +293,31 @@ main()
     }
     return n;
   };
-  const size_t mmCluster = countMismatch(clusterNearest, nfNearest);
-  const size_t mmSah     = countMismatch(sahNearest, nfNearest);
-  const size_t mmSahPts  = countMismatch(sahPtsNearest, nfNearest);
+  const size_t mmCluster = countMismatch(clusterNat.first, nfNat.first);
+  const size_t mmSah     = countMismatch(sahGrpNat.first, nfNat.first);
+  const size_t mmSahPts  = countMismatch(sahPtsNat.first, nfNat.first);
 
   // ---- report ----
   const double us  = 1.0e6 / double(numPoints);
-  const auto   row = [&](const char* label, double buildSec, double querySec) {
-    std::cout << std::left << std::setw(24) << label << std::right << std::fixed << std::setw(12)
-              << std::setprecision(2) << 1.0e3 * buildSec << std::setw(16) << std::setprecision(3) << querySec * us
-              << '\n';
+  const auto   row = [&](const char* label, double buildSec, double qNat, double qSFC) {
+    const double gain = 100.0 * (1.0 - qSFC / qNat);
+    std::cout << std::left << std::setw(24) << label << std::right << std::fixed << std::setw(11)
+              << std::setprecision(1) << 1.0e3 * buildSec << std::setw(12) << std::setprecision(3) << qNat * us
+              << std::setw(12) << std::setprecision(3) << qSFC * us << std::setw(8) << std::setprecision(0) << gain
+              << "%\n";
   };
-  std::cout << std::left << std::setw(24) << "Strategy" << std::right << std::setw(12) << "Build (ms)" << std::setw(16)
-            << "Query (us/pt)" << '\n';
-  std::cout << std::string(52, '-') << '\n';
-  row("EBGeometry SAH (points)", ebSahPointsBuild, sahPtsQuery);
-  row("EBGeometry SAH (groups)", ebPack + ebSahBuild, sahQuery);
-  row("EBGeometry ClusterSAH", ebPack + ebClusterBuild, clusterQuery);
-  row("nanoflann kd-tree", nfBuild, nfQuery);
-  std::cout << std::string(52, '-') << '\n';
+  std::cout << std::left << std::setw(24) << "Strategy" << std::right << std::setw(11) << "Build ms" << std::setw(12)
+            << "Q nat" << std::setw(12) << "Q SFC" << std::setw(9) << "SFC gain" << '\n';
+  std::cout << "  (query us/pt; natural index order vs Hilbert-sorted processing order)\n";
+  std::cout << std::string(68, '-') << '\n';
+  row("EBGeometry SAH (points)", ebSahPointsBuild, sahPtsNat.second, sahPtsSFC.second);
+  row("EBGeometry SAH (groups)", ebPack + ebSahBuild, sahGrpNat.second, sahGrpSFC.second);
+  row("EBGeometry ClusterSAH", ebPack + ebClusterBuild, clusterNat.second, clusterSFC.second);
+  row("nanoflann kd-tree", nfBuild, nfNat.second, nfSFC.second);
+  std::cout << std::string(68, '-') << '\n';
   std::cout << std::setprecision(2);
-  std::cout << "EBGeometry group-build = " << 1.0e3 * ebPack << " ms SFC-pack + {" << 1.0e3 * ebSahBuild << " ms SAH | "
-            << 1.0e3 * ebClusterBuild << " ms ClusterSAH};  SAH-over-points build = " << 1.0e3 * ebSahPointsBuild
-            << " ms\n";
-  std::cout << "Query vs nanoflann -- SAH(points): " << (sahPtsQuery / nfQuery)
-            << "x its time; SAH(groups): " << (sahQuery / nfQuery) << "x; ClusterSAH: " << (clusterQuery / nfQuery)
-            << "x  (<1 = faster than nanoflann)\n";
+  std::cout << "Best (SFC-ordered) query vs nanoflann(SFC) -- SAH(points): " << (sahPtsSFC.second / nfSFC.second)
+            << "x its time  (<1 = faster than nanoflann)\n";
   std::cout << "Nearest-distance mismatches vs nanoflann: SAH(points) " << mmSahPts << ", SAH(groups) " << mmSah
             << ", ClusterSAH " << mmCluster << " / " << numPoints
             << (mmSahPts == 0 && mmSah == 0 && mmCluster == 0 ? "  (all identical)\n" : "  (see note on ties)\n");

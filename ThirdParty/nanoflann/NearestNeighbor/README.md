@@ -25,28 +25,39 @@ performance is the number that matters, and there is no inner loop to thread.
 
 ### What it measures
 
-* **EBGeometry**: SFC (Morton) pack of the cloud into `PointAoSoA<T, size_t, 4>` groups, then a
-  `PackedBVH` built with the density-adaptive **ClusterSAH** direct constructor; query is per-point
-  `pruneTraverse()` (independent queries, no reciprocal culling, to match nanoflann's independent
-  queries). The reported build time covers the whole raw-points-to-queryable pipeline, and is broken
-  down into the SFC-pack and the ClusterSAH halves.
+* **EBGeometry**, three build strategies over the same cloud, all queried with per-point
+  `pruneTraverse()` (independent queries, no reciprocal culling, to match nanoflann):
+  * **SAH (points)** -- a `TreeBVH` built over the *individual* points (binned SAH), then
+    `packWith()` into `PointAoSoA<T, size_t, 4>` groups. Partitions at point granularity, so the
+    tightest tree -- at the highest build cost.
+  * **SAH (groups)** and **ClusterSAH** -- built over pre-made Morton-packed groups (top-down binned
+    SAH, and density-adaptive clustering respectively). Cheaper builds, but they can only partition
+    at group granularity, so looser trees.
 * **nanoflann**: `KDTreeSingleIndexAdaptor` (L2, 3-D, `leaf_max_size = 16`, single-threaded build);
   query is per-point `knnSearch(k = 2)` taking the second result (the first is the point itself at
   distance 0).
 
-It cross-checks that both agree on every point's nearest **distance** (indices may differ on exact
-ties) and prints the build- and query-time ratios.
+Each strategy is queried in **two processing orders** -- natural index order and Hilbert-sorted --
+to expose the query-ordering (cache-locality) lever; the result is order-independent, only the time
+changes. It cross-checks that every strategy agrees with nanoflann on each point's nearest
+**distance** (indices may differ on exact ties).
 
 ### Reading the result
 
 On a typical AVX2 machine (500k points, single core) nanoflann is roughly **~2x faster than
-EBGeometry on both build and query** -- the expected outcome of a specialized kd-tree versus a
-general BVH. Being within ~2x of a dedicated kd-tree, while `PackedBVH` is the *same* structure
-EBGeometry uses for mesh SDFs and CSG, is a reasonable place to be. Two levers narrow the query gap
-that this harness does not exercise: a tighter top-down (SAH) tree trades higher build cost for fewer
-leaf visits per query, and the **reciprocal distance culling** in
-[`Examples/NearestNeighborSFCPacked`](../../../Examples/NearestNeighborSFCPacked/README.md) cuts
-query time further when computing *every* point's neighbor as a batch (nanoflann has no equivalent).
+EBGeometry on both build and query** for pure point NN -- the expected outcome of a *specialized
+kd-tree* versus a *general BVH* (the same `PackedBVH` EBGeometry uses for mesh SDFs and CSG). The
+**SAH-over-points** tree is EBGeometry's closest: query within ~13% of nanoflann (natural order), but
+at ~6x the build cost; SAH/ClusterSAH over pre-made groups stay ~2.4x on query. So the kd-tree wins
+the combined build+query, as expected.
+
+**Query ordering** is a real ~30-50% wall-clock lever: processing points in Hilbert order instead of
+natural index order gives every strategy a large cache-locality speedup (see the `SFC gain` column).
+Note it is *not* an EBGeometry advantage -- nanoflann's tighter nodes exploit locality even more (it
+gains ~50% vs EBGeometry's ~35%), so SFC ordering slightly *widens* the same-order gap rather than
+closing it. It is still worth doing in a real particle code (queries ~1.5x faster), and there the
+particles are often already spatially coherent.
+
 Precision matters mostly on build: `float` roughly halves EBGeometry's build (it is memory-traffic
 bound) while nanoflann's index build is precision-insensitive; query is ~unchanged.
 
