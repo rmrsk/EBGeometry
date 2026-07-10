@@ -50,8 +50,8 @@ namespace EBGeometry {
   @tparam T    Floating-point precision.
   @tparam Meta User metadata type stored per particle and returned via metadata(). Defaults to the
                cloud index itself (std::size_t).
-  @tparam K    BVH branching factor. Defaults to the SIMD-optimal value for T.
-  @tparam W    Particles per SoA leaf lane group. Defaults to the SIMD-optimal width for T.
+  @tparam K     BVH branching factor. Defaults to the SIMD-optimal value for T.
+  @tparam Width Particles per SoA leaf lane group. Defaults to the SIMD-optimal width for T.
 */
 template <class T,
           class Meta   = std::size_t,
@@ -248,7 +248,7 @@ private:
     @param[in]  a_k       Neighbors requested.
     @param[out] a_out     Buffer of at least a_k Hits.
     @param[out] a_found   Number of neighbors found.
-    @param[in]  a_exclude Cloud index to exclude (self-queries); Base::npos() to exclude nothing.
+    @param[in]  a_exclude Cloud index to exclude (self-queries); s_none to exclude nothing.
     @param[in]  a_seedOff Group offset of the own leaf to seed from (self-queries; ignored if a_seedCnt == 0).
     @param[in]  a_seedCnt Group count of the own leaf; 0 means "no seed" (external queries).
   */
