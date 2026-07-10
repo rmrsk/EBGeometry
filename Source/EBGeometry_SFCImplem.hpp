@@ -115,6 +115,110 @@ Nested::decode(const uint64_t& a_code) noexcept
   return Index({x, y, z});
 }
 
+inline uint64_t
+Hilbert::encode(const Index& a_point) noexcept
+{
+  EBGEOMETRY_EXPECT(a_point[0] <= ValidSpan);
+  EBGEOMETRY_EXPECT(a_point[1] <= ValidSpan);
+  EBGEOMETRY_EXPECT(a_point[2] <= ValidSpan);
+
+  constexpr unsigned int nDims = 3;
+  constexpr unsigned int nBits = ValidBits;
+
+  // Skilling's AxesToTranspose: transform the coordinates in place into the Hilbert transpose
+  // representation.
+  std::array<uint32_t, nDims> X = {a_point[0], a_point[1], a_point[2]};
+
+  const uint32_t highBit = uint32_t(1) << (nBits - 1);
+
+  // Inverse undo.
+  for (uint32_t q = highBit; q > 1; q >>= 1) {
+    const uint32_t p = q - 1;
+    for (unsigned int i = 0; i < nDims; i++) {
+      if ((X[i] & q) != 0u) {
+        X[0] ^= p;
+      }
+      else {
+        const uint32_t t = (X[0] ^ X[i]) & p;
+        X[0] ^= t;
+        X[i] ^= t;
+      }
+    }
+  }
+
+  // Gray encode.
+  for (unsigned int i = 1; i < nDims; i++) {
+    X[i] ^= X[i - 1];
+  }
+  uint32_t t = 0;
+  for (uint32_t q = highBit; q > 1; q >>= 1) {
+    if ((X[nDims - 1] & q) != 0u) {
+      t ^= q - 1;
+    }
+  }
+  for (unsigned int i = 0; i < nDims; i++) {
+    X[i] ^= t;
+  }
+
+  // Bit-interleave the transpose into the linear Hilbert distance: most-significant bit level first,
+  // and within each level the dimensions in order 0, 1, 2.
+  uint64_t code = 0;
+  for (int bit = int(nBits) - 1; bit >= 0; bit--) {
+    for (unsigned int i = 0; i < nDims; i++) {
+      code = (code << 1) | static_cast<uint64_t>((X[i] >> static_cast<unsigned int>(bit)) & uint32_t(1));
+    }
+  }
+
+  return code;
+}
+
+inline Index
+Hilbert::decode(const uint64_t& a_code) noexcept
+{
+  constexpr unsigned int nDims     = 3;
+  constexpr unsigned int nBits     = ValidBits;
+  constexpr unsigned int totalBits = nDims * nBits;
+
+  EBGEOMETRY_EXPECT(a_code <= ((static_cast<uint64_t>(1) << totalBits) - 1));
+
+  // De-interleave the linear distance back into the transpose representation (exact inverse of the
+  // interleave loop in encode()).
+  std::array<uint32_t, nDims> X = {0, 0, 0};
+  for (unsigned int k = 0; k < totalBits; k++) {
+    const uint32_t     bitVal = static_cast<uint32_t>((a_code >> (totalBits - 1 - k)) & uint64_t(1));
+    const unsigned int bit    = nBits - 1 - (k / nDims);
+    const unsigned int i      = k % nDims;
+    X[i] |= (bitVal << bit);
+  }
+
+  // Skilling's TransposeToAxes.
+  const uint32_t n = uint32_t(2) << (nBits - 1);
+
+  // Gray decode by H ^ (H/2).
+  uint32_t t = X[nDims - 1] >> 1;
+  for (int i = int(nDims) - 1; i > 0; i--) {
+    X[i] ^= X[i - 1];
+  }
+  X[0] ^= t;
+
+  // Undo excess work.
+  for (uint32_t q = 2; q != n; q <<= 1) {
+    const uint32_t p = q - 1;
+    for (int i = int(nDims) - 1; i >= 0; i--) {
+      if ((X[static_cast<unsigned int>(i)] & q) != 0u) {
+        X[0] ^= p;
+      }
+      else {
+        t = (X[0] ^ X[static_cast<unsigned int>(i)]) & p;
+        X[0] ^= t;
+        X[static_cast<unsigned int>(i)] ^= t;
+      }
+    }
+  }
+
+  return Index{X[0], X[1], X[2]};
+}
+
 template <class T>
 inline std::vector<Index>
 computeBins(const std::vector<Vec3T<T>>& a_points) noexcept

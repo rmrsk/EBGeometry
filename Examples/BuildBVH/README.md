@@ -4,16 +4,18 @@ Examples/BuildBVH
 This folder benchmarks every BVH construction strategy EBGeometry offers, over a random point
 cloud: top-down with the default centroid partitioner, top-down with the Surface-Area-Heuristic
 (SAH) partitioner, top-down with the sort-less midpoint-split partitioner, and bottom-up along the
-Morton and Nested space-filling curves. For each of these five strategies, it times both ways of
-reaching a queryable `PackedBVH`: the traditional `TreeBVH`-then-`pack()` path, and `PackedBVH`'s
-direct constructor, which builds straight into a flat, queryable representation without ever
-constructing a `TreeBVH` at all.
+Morton, Nested, and Hilbert space-filling curves. For each of these six strategies, it times both
+ways of reaching a queryable `PackedBVH`: the traditional `TreeBVH`-then-`pack()` path, and
+`PackedBVH`'s direct constructor, which builds straight into a flat, queryable representation without
+ever constructing a `TreeBVH` at all.
 
 It exists to give a reproducible, versioned answer to a question raised while designing
 `PackedBVH`'s direct constructors (see [EBGeometry issue #92](https://github.com/rmrsk/EBGeometry/issues/92)):
-does SFC-based (Morton/Nested) construction still beat top-down construction once `shared_ptr`
+does SFC-based (Morton/Nested/Hilbert) construction still beat top-down construction once `shared_ptr`
 allocation overhead is removed from the comparison? Compare the "Total (s)" column against
-"Direct build (s)" for each strategy.
+"Direct build (s)" for each strategy. (The Hilbert curve costs a little more per point to encode than
+Morton or Nested -- the Skilling transform does more bit-twiddling -- but still builds far faster
+than any top-down strategy.)
 
 For the `TreeBVH` path, two times are reported: **TreeBVH**, the time to construct and partition
 the `TreeBVH` alone (including wrapping every point in a `shared_ptr`, which the traditional API
@@ -22,7 +24,7 @@ requires), and **+ pack()**, the additional time to flatten that `TreeBVH` into 
 bare `TreeBVH` cannot answer queries on its own -- only the sum represents "time to a query-ready
 structure" for the traditional path.
 
-Every resulting `PackedBVH` (both paths, all five strategies) is checked against a brute-force
+Every resulting `PackedBVH` (both paths, all six strategies) is checked against a brute-force
 nearest-neighbor scan before any times are printed, so a build strategy producing a wrong tree
 would fail loudly here, not just report a (meaningless) time.
 
@@ -67,14 +69,15 @@ Running
 
     ./BuildBVH.ex
 
-This example takes no arguments. It generates a random point cloud (fixed seed, so results are
-reproducible run to run on the same machine) at three sizes -- 1,000, 10,000, and 100,000 points
--- and prints a build-time table for each size, in seconds, for all five strategies.
+This example takes no arguments. It generates a random 500,000-point cloud (fixed seed, so results
+are reproducible run to run on the same machine) and 500 query points, and prints a build-time table
+in seconds for all six strategies. (Raise or lower the point count, or restore the original
+multi-size sweep, by editing `sizes` in `main.cpp`.)
 
 Some things worth noting when reading the output:
 
 * Top-down strategies (default centroid, SAH) are noticeably slower to build via `TreeBVH` than
-  bottom-up (Morton/Nested) at larger point counts -- almost entirely the cost of one *persistent*
+  bottom-up (Morton/Nested/Hilbert) -- almost entirely the cost of one *persistent*
   `shared_ptr<TreeBVH>` allocation per tree node, not the partitioning logic itself.
 * The midpoint-split partitioner is the fastest of the three top-down strategies to build (no
   sorting, no per-plane SAH cost evaluation -- just one bounding-box pass and one

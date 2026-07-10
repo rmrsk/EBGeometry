@@ -1,9 +1,9 @@
 This folder contains examples of using EBGeometry on its own (header-only, C++17, no
 third-party dependencies):
 
-* `BuildBVH` For comparing BVH build strategies (TreeBVH top-down/SAH/Morton/Nested, and PackedBVH's direct constructor) by build time.
-* `ClosestPointPacked` For closest-point search over a point cloud, forming PointAoSoA-grouped PackedBVH leaves from a per-point TreeBVH via `packWith()` under four build strategies, benchmarked against brute force.
-* `ClosestPointSFC` For closest-point search over a point cloud, using Morton-ordered PointAoSoA-grouped PackedBVH leaves built four ways, benchmarked against brute force.
+* `BuildBVH` For comparing BVH build strategies (TreeBVH top-down/SAH/Morton/Nested/Hilbert, and PackedBVH's direct constructor) by build time.
+* `ClosestPointSFCPacked` For closest-point search over a point cloud, building PointAoSoA-grouped PackedBVH leaves directly from a space-filling-curve ordering under five build strategies (Morton/Hilbert/TopDown/Midpoint/SAH), benchmarked against brute force.
+* `ClosestPointTreePacked` For closest-point search over a point cloud, forming PointAoSoA-grouped PackedBVH leaves from a per-point TreeBVH via `packWith()` under five build strategies, benchmarked against brute force.
 * `CSGUnion` For merging a surface mesh with an analytic sphere using a BVH-accelerated CSG union.
 * `MeshSDF` For reading a surface mesh and evaluating it with the DCEL/BVH signed-distance representations.
 * `NestedBVH` For a nested BVH: a BVH-accelerated union over several BVH-backed mesh SDFs.

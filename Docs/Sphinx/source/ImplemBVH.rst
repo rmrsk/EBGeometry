@@ -107,8 +107,11 @@ To use bottom-up construction, one may use the member function template
 The template argument is the space-filling curve that the user wants to apply, from namespace
 ``EBGeometry::SFC`` (:file:`Source/EBGeometry_SFC.hpp`, see `the doxygen API
 <doxygen/html/namespaceEBGeometry_1_1SFC.html>`__).
-Currently, we support Morton codes and nested indices.
-For Morton curves, one would e.g. call ``bottomUpSortAndPartition<SFC::Morton>`` while for nested indices (which are not recommended) the signature is likewise ``bottomUpSortAndPartition<SFC::Nested>``.
+Currently, we support Morton codes, Hilbert curves, and nested indices.
+For Morton curves, one would e.g. call ``bottomUpSortAndPartition<SFC::Morton>``; the Hilbert curve
+(better spatial locality than Morton, since consecutive codes are always spatially adjacent) is
+``bottomUpSortAndPartition<SFC::Hilbert>``; while for nested indices (which are not recommended) the
+signature is likewise ``bottomUpSortAndPartition<SFC::Nested>``.
 
 Build times for SFC-based bottom-up construction are generally speaking faster than top-down construction, but it tends to produce worse trees such that traversal becomes slower. For the full API,
 see the Doxygen reference for

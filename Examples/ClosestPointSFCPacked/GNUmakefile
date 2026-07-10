@@ -19,7 +19,7 @@ ifeq ($(ASSERTIONS),ON)
   CXXFLAGS += -DEBGEOMETRY_ENABLE_ASSERTIONS
 endif
 
-TARGET := ClosestPointPacked.ex
+TARGET := ClosestPointSFCPacked.ex
 
 $(TARGET): main.cpp
 	$(CXX) $(CXXFLAGS) -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_PRECISION=$(PRECISION) $< -o $@

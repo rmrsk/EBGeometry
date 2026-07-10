@@ -6,6 +6,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <cstddef>
+#include <cstdlib>
 #include <vector>
 
 using namespace EBGeometry;
@@ -111,6 +112,72 @@ TEST_CASE("Nested SFC: encode(0,0,0) == 0", "[SFC][Nested]")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Hilbert SFC
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST_CASE("Hilbert SFC: encode → decode roundtrip", "[SFC][Hilbert]")
+{
+  std::vector<SFC::Index> points = {
+    {0, 0, 0},
+    {1, 0, 0},
+    {0, 1, 0},
+    {0, 0, 1},
+    {3, 5, 7},
+    {100, 200, 300},
+    {kMaxCoord, 0, 0},
+    {0, kMaxCoord, 0},
+    {kMaxCoord, kMaxCoord, kMaxCoord}, // max valid coordinate
+  };
+
+  // A spread of pseudo-random interior points (deterministic; no <random> needed here).
+  unsigned int state = 123457u;
+  const auto   next  = [&state]() -> unsigned int {
+    state = state * 1103515245u + 12345u;
+    return (state >> 8) % 2000000u;
+  };
+  for (int i = 0; i < 2000; i++) {
+    points.push_back({next(), next(), next()});
+  }
+
+  for (const auto& p : points) {
+    const SFC::Code  code    = SFC::Hilbert::encode(p);
+    const SFC::Index decoded = SFC::Hilbert::decode(code);
+    REQUIRE(decoded[0] == p[0]);
+    REQUIRE(decoded[1] == p[1]);
+    REQUIRE(decoded[2] == p[2]);
+  }
+}
+
+TEST_CASE("Hilbert SFC: consecutive codes map to adjacent cells (the defining locality property)", "[SFC][Hilbert]")
+{
+  // The distinguishing property of the Hilbert curve (vs Morton): stepping the code by 1 always
+  // moves to a face-adjacent cell -- exactly one coordinate changes, and by exactly 1. This is what
+  // gives it better spatial locality than Z-order.
+  for (SFC::Code d = 0; d < 100000; d++) {
+    const SFC::Index a = SFC::Hilbert::decode(d);
+    const SFC::Index b = SFC::Hilbert::decode(d + 1);
+
+    const long manhattan = std::labs(static_cast<long>(a[0]) - static_cast<long>(b[0])) +
+                           std::labs(static_cast<long>(a[1]) - static_cast<long>(b[1])) +
+                           std::labs(static_cast<long>(a[2]) - static_cast<long>(b[2]));
+
+    REQUIRE(manhattan == 1);
+  }
+}
+
+TEST_CASE("Hilbert SFC: distinct points produce distinct codes", "[SFC][Hilbert]")
+{
+  const SFC::Index a = {1, 2, 3};
+  const SFC::Index b = {3, 2, 1};
+  REQUIRE(SFC::Hilbert::encode(a) != SFC::Hilbert::encode(b));
+}
+
+TEST_CASE("Hilbert SFC: encode(0,0,0) == 0", "[SFC][Hilbert]")
+{
+  REQUIRE(SFC::Hilbert::encode({0, 0, 0}) == 0u);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // computeBins / order (double is enough; the binning/ordering is precision-agnostic)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -178,5 +245,12 @@ TEST_CASE("SFC::order: is a permutation ordering points by non-decreasing SFC co
   REQUIRE(orderNested.size() == points.size());
   for (size_t i = 1; i < orderNested.size(); i++) {
     REQUIRE(SFC::Nested::encode(bins[orderNested[i - 1]]) <= SFC::Nested::encode(bins[orderNested[i]]));
+  }
+
+  // Hilbert likewise produces a valid, code-ordered permutation.
+  const auto orderHilbert = SFC::order<SFC::Hilbert>(points);
+  REQUIRE(orderHilbert.size() == points.size());
+  for (size_t i = 1; i < orderHilbert.size(); i++) {
+    REQUIRE(SFC::Hilbert::encode(bins[orderHilbert[i - 1]]) <= SFC::Hilbert::encode(bins[orderHilbert[i]]));
   }
 }

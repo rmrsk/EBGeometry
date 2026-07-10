@@ -218,10 +218,10 @@ runSFCFamily(const char*              a_label,
 int
 main()
 {
-  // TLDR: this program builds the same random point cloud into a BVH via all five construction
+  // TLDR: this program builds the same random point cloud into a BVH via all six construction
   //       strategies EBGeometry offers -- top-down with the default centroid partitioner, SAH,
-  //       and the sort-less midpoint-split partitioner; and bottom-up along the Morton and Nested
-  //       space-filling curves -- and for EACH strategy times both ways of reaching a queryable
+  //       and the sort-less midpoint-split partitioner; and bottom-up along the Morton, Nested, and
+  //       Hilbert space-filling curves -- and for EACH strategy times both ways of reaching a queryable
   //       PackedBVH: the traditional TreeBVH-then-pack() path, and PackedBVH's direct constructor
   //       (no TreeBVH at all). It exists to give a reproducible, versioned answer to a question
   //       raised in EBGeometry issue #92 (rather than "standalone scratch benchmarks, not
@@ -234,11 +234,11 @@ main()
   // against the direct constructor's single "Direct build" number, which already produces a
   // queryable PackedBVH.
   //
-  // Every resulting PackedBVH (both paths, all five strategies) is cross-checked against a
+  // Every resulting PackedBVH (both paths, all six strategies) is cross-checked against a
   // brute-force scan for a handful of random query points, so a build strategy that produced a
   // wrong tree would be caught here, not just timed.
 
-  const std::vector<size_t> sizes = {1'000, 10'000, 100'000};
+  const std::vector<size_t> sizes = {500'000};
 
   // Target leaf size for the SFC-family direct constructors. Chosen to match K, the leaf
   // occupancy every strategy naturally converges to (topDownSortAndPartition()'s default
@@ -247,7 +247,7 @@ main()
   // skewed by one strategy simply building shallower or deeper trees than the others.
   constexpr size_t targetLeafSize = K;
 
-  constexpr int numQueryPoints = 200;
+  constexpr int numQueryPoints = 500;
 
   std::mt19937_64                   rng(123456789ULL); // Fixed seed: reproducible run-to-run.
   std::uniform_real_distribution<T> udist(T(0.0), T(1.0));
@@ -304,6 +304,8 @@ main()
 
     const auto nested = runSFCFamily<EBGeometry::SFC::Nested>("Nested", positions, queryPoints, targetLeafSize);
 
+    const auto hilbert = runSFCFamily<EBGeometry::SFC::Hilbert>("Hilbert", positions, queryPoints, targetLeafSize);
+
     std::cout << std::left << std::setw(12) << "Strategy" << std::right << std::setw(16) << "TreeBVH (s)"
               << std::setw(16) << "+ pack() (s)" << std::setw(16) << "Total (s)" << std::setw(18) << "Direct build (s)"
               << "\n";
@@ -319,6 +321,7 @@ main()
     printRow("Midpoint", midpoint);
     printRow("Morton", morton);
     printRow("Nested", nested);
+    printRow("Hilbert", hilbert);
   }
 
   return 0;

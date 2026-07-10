@@ -3,13 +3,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Closest-point search over a random point cloud, using PointAoSoA<T, Meta, W> groups as the
-// leaves of a PackedBVH. This is the companion to Examples/ClosestPointSFC and compares the same
-// four build strategies (Morton, top-down centroid, midpoint, SAH) against a brute-force baseline,
-// but forms the groups the other way around: rather than chunking a Morton-sorted cloud into groups
-// up front, it builds a TreeBVH over the *individual* points and then materialises the PointAoSoA
-// groups from each leaf via TreeBVH::packWith() -- the same pattern the library's own TriMeshSDF
-// uses. Letting the partitioner see all N points, rather than a coarser set of pre-formed groups,
-// tends to build a higher-quality tree -- fewer leaf visits per query. See README.md.
+// leaves of a PackedBVH. This is the companion to Examples/ClosestPointSFCPacked and compares the
+// same five build strategies (Morton, Hilbert, top-down centroid, midpoint, SAH) against a
+// brute-force baseline, but forms the groups the other way around: rather than chunking an
+// SFC-sorted cloud into groups up front, it builds a TreeBVH over the *individual* points and then
+// materialises the PointAoSoA groups from each leaf via TreeBVH::packWith() -- the same pattern the
+// library's own TriMeshSDF uses. Letting the partitioner see all N points, rather than a coarser
+// set of pre-formed groups, tends to build a higher-quality tree -- fewer leaf visits per query.
+// See README.md.
 
 #include <algorithm>
 #include <array>
@@ -66,8 +67,8 @@ using Packed     = EBGeometry::BVH::PackedBVH<T, PointGroup, K, EBGeometry::BVH:
 // Run configuration. maxLeafGroups is the target groups per leaf for the top-down partitioners; a
 // leaf-size sweep on this workload put the query-time knee at ~16-32, so 16 is a good default (try 8
 // or 32). The bottom-up Morton build instead produces fixed K-primitive leaves (see main()).
-constexpr size_t   numPoints     = 100000;
-constexpr size_t   numQueries    = 1000;
+constexpr size_t   numPoints     = 500000;
+constexpr size_t   numQueries    = 500;
 constexpr uint64_t pointSeed     = 123456789ULL;
 constexpr uint64_t querySeed     = 987654321ULL;
 constexpr size_t   maxLeafGroups = 16;
@@ -149,7 +150,7 @@ groupPointsIntoSoA(const std::vector<std::shared_ptr<const Point>>& a_points, ui
  * a_partition (the only thing that varies between strategies), then packWith()s it -- coalescing
  * each leaf into PointAoSoA groups -- into a by-value PackedBVH. The returned time covers tree
  * construction + partitioning + packing; the shared primitive list is built once by the caller and
- * excluded, exactly as ClosestPointSFC excludes its shared, once-built group list.
+ * excluded, exactly as ClosestPointSFCPacked excludes its shared, once-built group list.
  * @param[in] a_primsAndBVs Shared per-point (primitive, bounding volume) list.
  * @param[in] a_partition   Partitions the tree (e.g. top-down SAH, or bottom-up Morton).
  * @return The packed BVH and the construction time in seconds.
@@ -325,7 +326,7 @@ printRow(const char* a_label, const StrategyResult& a_result, double a_bruteSeco
 int
 main()
 {
-  std::cout << "ClosestPointPacked: closest-point search over a " << numPoints << "-point cloud in the unit cube\n";
+  std::cout << "ClosestPointTreePacked: closest-point search over a " << numPoints << "-point cloud in the unit cube\n";
   std::cout << "  Precision T             = " << (std::is_same_v<T, float> ? "float" : "double") << '\n';
   std::cout << "  SoA width W             = " << W << " (PointSoA::DefaultWidth<T>())\n";
   std::cout << "  BVH branching factor K  = " << K << " (BVH::DefaultBranchingRatio<T>())\n";
@@ -338,7 +339,7 @@ main()
 
   // The per-point primitive list: one primitive per cloud point, its bounding volume the degenerate
   // box at the point. It does not depend on the partitioner, so it is built once here and reused
-  // across strategies (each TreeBVH constructor copies it in). As in ClosestPointSFC -- which builds
+  // across strategies (each TreeBVH constructor copies it in). As in ClosestPointSFCPacked -- which builds
   // its Morton-ordered groups once and reuses them -- this shared setup is excluded from the
   // per-strategy build timing below.
   EBGeometry::BVH::PrimAndBVList<Point, AABB> primsAndBVs;
@@ -348,7 +349,7 @@ main()
   }
 
   // The top-down partitioners stop splitting once a node holds <= maxLeafGroups*W points. (The
-  // bottom-up Morton build ignores this and produces fixed K-primitive leaves instead.)
+  // bottom-up SFC builds ignore this and produce fixed K-primitive leaves instead.)
   const size_t                                            maxLeafSize = maxLeafGroups * W;
   const EBGeometry::BVH::LeafPredicate<T, Point, AABB, K> stopCrit =
     // maxLeafSize is a constant expression (maxLeafGroups and W are constexpr), so a named capture
@@ -356,11 +357,14 @@ main()
     // capture-default satisfies both.
     [=](const PointTree& a_node) noexcept -> bool { return a_node.getPrimitives().size() <= maxLeafSize; };
 
-  // Build the same points into a PackedBVH via the packWith path four ways -- matching
-  // ClosestPointSFC's strategies -- timing each (tree construction + partition + pack). Only the
-  // partition step differs: three top-down partitioners, plus bottom-up along the Morton curve.
+  // Build the same points into a PackedBVH via the packWith path five ways -- matching
+  // ClosestPointSFCPacked's strategies -- timing each (tree construction + partition + pack). Only
+  // the partition step differs: three top-down partitioners, plus bottom-up along the Morton and
+  // Hilbert curves.
   const auto morton =
     buildPacked(primsAndBVs, [](PointTree& a_tree) { a_tree.bottomUpSortAndPartition<EBGeometry::SFC::Morton>(); });
+  const auto hilbert =
+    buildPacked(primsAndBVs, [](PointTree& a_tree) { a_tree.bottomUpSortAndPartition<EBGeometry::SFC::Hilbert>(); });
   const auto topDown  = buildPacked(primsAndBVs, [&stopCrit](PointTree& a_tree) {
     a_tree.topDownSortAndPartition(EBGeometry::BVH::BVCentroidPartitioner<T, Point, AABB, K>, stopCrit);
   });
@@ -391,6 +395,7 @@ main()
   };
   const std::vector<Strategy> strategies = {
     {"Morton (SFC)", morton.first, morton.second},
+    {"Hilbert (SFC)", hilbert.first, hilbert.second},
     {"TopDown centroid", topDown.first, topDown.second},
     {"Midpoint", midpoint.first, midpoint.second},
     {"SAH", sah.first, sah.second},

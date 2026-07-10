@@ -4,9 +4,10 @@
 
 // Closest-point search over a random point cloud, using PointAoSoA<T, Meta, W> groups as the
 // leaves of a PackedBVH. The points are Morton-sorted and chunked into groups up front, then the
-// same groups are built into a PackedBVH four ways (Morton, top-down centroid, midpoint, SAH) via
-// its direct constructors and queried against a brute-force baseline. Examples/ClosestPointPacked
-// forms the same groups differently -- from the leaves of a TreeBVH via packWith(). See README.md.
+// same groups are built into a PackedBVH five ways (Morton, Hilbert, top-down centroid, midpoint,
+// SAH) via its direct constructors and queried against a brute-force baseline.
+// Examples/ClosestPointTreePacked forms the same groups differently -- from the leaves of a TreeBVH via
+// packWith(). See README.md.
 
 #include <algorithm>
 #include <array>
@@ -44,8 +45,8 @@ using Tree       = EBGeometry::BVH::TreeBVH<T, PointGroup, AABB, K>;
 
 // Run configuration. maxLeafGroups is the target groups per leaf; a leaf-size sweep on this
 // workload put the query-time knee at ~16-32, so 16 is a good default (try 8 or 32).
-constexpr size_t   numPoints     = 100000;
-constexpr size_t   numQueries    = 1000;
+constexpr size_t   numPoints     = 500000;
+constexpr size_t   numQueries    = 500;
 constexpr uint64_t pointSeed     = 123456789ULL;
 constexpr uint64_t querySeed     = 987654321ULL;
 constexpr size_t   maxLeafGroups = 16;
@@ -269,7 +270,7 @@ printRow(const char* a_label, const StrategyResult& a_result, double a_bruteSeco
 int
 main()
 {
-  std::cout << "ClosestPointSFC: closest-point search over a " << numPoints << "-point cloud in the unit cube\n";
+  std::cout << "ClosestPointSFCPacked: closest-point search over a " << numPoints << "-point cloud in the unit cube\n";
   std::cout << "  Precision T             = " << (std::is_same_v<T, float> ? "float" : "double") << '\n';
   std::cout << "  SoA width W             = " << W << " (PointSoA::DefaultWidth<T>())\n";
   std::cout << "  BVH branching factor K  = " << K << " (BVH::DefaultBranchingRatio<T>())\n";
@@ -298,6 +299,11 @@ main()
   const double mortonBuild = timer.seconds();
 
   timer.start();
+  const Packed hilbertBVH(groups, maxLeafGroups, EBGeometry::SFC::Hilbert{});
+  timer.stop();
+  const double hilbertBuild = timer.seconds();
+
+  timer.start();
   const Packed topDownBVH(groups, EBGeometry::BVH::BVCentroidPartitioner<T, PointGroup, AABB, K>, stopCrit);
   timer.stop();
   const double topDownBuild = timer.seconds();
@@ -323,11 +329,13 @@ main()
   const double bruteSeconds = timer.seconds();
 
   StrategyResult morton   = benchmarkStrategy(mortonBVH, positions, queryPoints, bruteForce);
+  StrategyResult hilbert  = benchmarkStrategy(hilbertBVH, positions, queryPoints, bruteForce);
   StrategyResult topDown  = benchmarkStrategy(topDownBVH, positions, queryPoints, bruteForce);
   StrategyResult midpoint = benchmarkStrategy(midpointBVH, positions, queryPoints, bruteForce);
   StrategyResult sah      = benchmarkStrategy(sahBVH, positions, queryPoints, bruteForce);
 
   morton.buildSeconds   = mortonBuild;
+  hilbert.buildSeconds  = hilbertBuild;
   topDown.buildSeconds  = topDownBuild;
   midpoint.buildSeconds = midpointBuild;
   sah.buildSeconds      = sahBuild;
@@ -347,6 +355,7 @@ main()
             << '\n';
 
   printRow("Morton (SFC)", morton, bruteSeconds);
+  printRow("Hilbert (SFC)", hilbert, bruteSeconds);
   printRow("TopDown centroid", topDown, bruteSeconds);
   printRow("Midpoint", midpoint, bruteSeconds);
   printRow("SAH", sah, bruteSeconds);

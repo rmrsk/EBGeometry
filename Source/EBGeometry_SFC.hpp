@@ -29,7 +29,7 @@ namespace EBGeometry {
  * orderings of primitives (e.g. TreeBVH::bottomUpSortAndPartition<S>(), which sorts primitives by
  * S::encode(...) of their binned cell index before partitioning into a tree).
  *
- * Every SFC in this namespace (e.g. Morton, Nested) implements exactly two static member
+ * Every SFC in this namespace (e.g. Morton, Nested, Hilbert) implements exactly two static member
  * functions:
  * @code{.cpp}
  * [[nodiscard]] static Code  encode(const Index& a_point) noexcept;
@@ -113,6 +113,37 @@ struct Nested
    * @brief Decode the 64-bit SFC code into an Index.
    * @param[in] a_code SFC code to decode. Must be a code actually produced by encode(), i.e. at
    * most (ValidSpan+1)^3 - 1.
+   * @return 3D grid index corresponding to a_code.
+   */
+  [[nodiscard]] inline static Index
+  decode(const uint64_t& a_code) noexcept;
+};
+
+/**
+ * @brief Implementation of the 3D Hilbert space-filling curve.
+ * @details Uses Skilling's algorithm (J. Skilling, "Programming the Hilbert curve", AIP Conf. Proc.
+ * 707, 381 (2004)): encode() maps the 3D grid index into the Hilbert "transpose" representation and
+ * bit-interleaves it into the linear Hilbert distance; decode() reverses both steps. Unlike Morton
+ * (Z-order), the Hilbert curve has no long-range jumps -- consecutive codes always map to spatially
+ * adjacent cells (Manhattan distance 1) -- so an ordering along it produces more compact, better
+ * localized runs of primitives, which is why it is often preferred for building spatially coherent
+ * leaves. Encodes/decodes the same [0, ValidSpan] per-axis range as Morton and Nested, using the
+ * full 3*ValidBits = 63 bits of the code.
+ */
+struct Hilbert
+{
+  /**
+   * @brief Encode the input point into the linear Hilbert distance.
+   * @param[in] a_point 3D grid index to encode. Each component must be <= ValidSpan.
+   * @return 64-bit Hilbert code (distance along the curve) for a_point.
+   */
+  [[nodiscard]] inline static uint64_t
+  encode(const Index& a_point) noexcept;
+
+  /**
+   * @brief Decode the linear Hilbert distance back into an Index.
+   * @param[in] a_code Hilbert code to decode. Must be a code actually produced by encode(), i.e. no
+   * bits above position 3*ValidBits-1 may be set.
    * @return 3D grid index corresponding to a_code.
    */
   [[nodiscard]] inline static Index
