@@ -1,7 +1,7 @@
 Examples/ClosestPoint
 ---------------------
 
-Nearest-neighbor search over a point cloud, demonstrating the point-cloud primitive
+Closest-point search over a point cloud, demonstrating the point-cloud primitive
 `PointAoSoA<T, Meta, W>` as a `PackedBVH` leaf (see
 [EBGeometry issue #92](https://github.com/rmrsk/EBGeometry/issues/92)).
 
@@ -9,7 +9,7 @@ Nearest-neighbor search over a point cloud, demonstrating the point-cloud primit
 groups of up to `W` points each (`W` is `PointSoA::DefaultWidth<T>()`, the SIMD-optimal width for
 the target ISA and precision), with each point carrying its cloud index as metadata. The *same*
 groups are then built into a `PackedBVH` four ways -- **Morton (SFC)**, **TopDown centroid**,
-**Midpoint**, and **SAH** -- so their nearest-neighbor query performance can be compared head to
+**Midpoint**, and **SAH** -- so their closest-point query performance can be compared head to
 head. 500 query points are resolved against each via `pruneTraverse()` and checked against a
 brute-force scan.
 
