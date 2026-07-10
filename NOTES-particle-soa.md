@@ -52,15 +52,16 @@ so it parallelizes over the outer-threaded independent trees:
 2. **Process queries in spatial (Hilbert ≈ leaf) order** — ~35% cache win, free, never hurts.
 3. **`tryInsert` reorder + `if constexpr (kNN==1)`** (committed), **W = K = 4**.
 4. **Build:** a tight-ish tree — SAH-over-points if build-once/query-many, ClusterSAH if build-bound
-   (seed then buys back most of the query gap). Prefer **bigger leaves (~32 groups for kNN=1)** — a
-   shallower tree is the lever that actually moves query time.
+   (seed then buys back most of the query gap). **Leaf size ~16 groups for the examples' general
+   `Knn` query** — a shallower tree helps, but the optimum shifts with the query-loop cost (below).
 
 Both `Examples/NearestNeighbor{SFC,Tree}Packed` now default to this (seed on, reciprocal removed,
 Hilbert order); a "Pre-seed OFF" section shows the win. Measured double, 500k, us/pt (build ms):
 SFCPacked SAH 0.65 (97), ClusterSAH 0.71 (41), Midpoint 0.75 (50), Morton 1.54 (55); TreePacked SAH
 0.44 (336), Midpoint 0.45 (174), Hilbert 0.85 (303). Caveat: seed is flat on an already-optimal tight
 tree — the win concentrates on looser/cheap-build trees, which is where you want it. `maxLeafGroups`
-still 16 in the examples (bumping to ~32 would speed the kNN case; see leaf-size finding below).
+= 16 in the examples, which is query-optimal for their general `Knn` query (32 helps build but
+slows query -- see leaf-size finding).
 
 ## What ClusterSAH is
 
@@ -111,8 +112,9 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
   seed+reciprocal stacked is then redundant overhead. Verified float+double. The bottom-up
   "start at the leaf, walk up" variant would hit the same floor and needs parent pointers `PackedBVH`
   lacks, so seeding (which needs nothing new) is the practical form.
-- **Leaf size: FEWER groups per leaf is WORSE; the kNN=1 query sweet spot is BIGGER (~32–64 groups),
-  not the current 16.** Swept `maxLeafGroups` on the tight SAH-over-points tree with seed+skip (500k,
+- **Leaf size: FEWER groups per leaf is WORSE; but the sweet spot depends on the QUERY-LOOP cost.** In
+  a *lean* query (direct min + cached bound) the kNN=1 optimum is ~32–64 groups; for the examples'
+  general `Knn` query it is ~16 (reconciliation below). Swept `maxLeafGroups` on the tight SAH-over-points tree with seed+skip (500k,
   double, us/pt): leaf=1→0.53, 8→0.34, **16→0.31 (current), 32→0.29, 64→0.28 (min)**, 128→0.39,
   256→0.41 — a U-shape, and build cost drops monotonically with bigger leaves (leaf=16 ~275 ms vs 64
   ~212 ms). Counterintuitive: shrinking leaves scans FEWER points per query yet is SLOWER. Why:
@@ -122,9 +124,14 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
   that works is **make the tree shallower (bigger leaves)** until the leaf scan itself gets too big
   (~128+ groups). This is the SAME lesson as the bottom-up result: traversal is the cost, leaf/AABB
   work is cheap — cutting individual AABB tests (bottom-up) didn't help, cutting tree DEPTH (bigger
-  leaves) does (~10% query + ~20% build vs leaf=16). Workload-specific (kNN=1); larger kNN wants
-  bigger leaves anyway. Examples still ship `maxLeafGroups=16` (a general choice) — bumping to ~32
-  would speed the kNN examples; not changed unilaterally.
+  leaves) does -- but only up to where the per-leaf scan cost bites. **Reconciliation (important):**
+  that ~32–64 optimum used the *lean* scratch query. The examples' real query is heavier per lane
+  (`Knn::tryInsert` + `worst2()` as the prune bound), so scanning the bigger leaves' extra points
+  costs more and the example's query optimum is back at **~16** -- measured: bumping the examples
+  16→32 SLOWED query (SFCPacked SAH 0.65→0.71, TreePacked SAH 0.44→0.53) while speeding build. So
+  **keep `maxLeafGroups=16` for the examples**; bigger leaves win only with a lean per-point scan.
+  Lesson: profile the ACTUAL query loop, not a lean proxy. (Also kNN-specific: larger kNN wants
+  bigger leaves regardless.)
 - **Bottom-up (leaf-anchored) traversal: PROTOTYPED and REJECTED — cuts AABB tests but no wall-clock
   gain.** Idea (Robert's): every all-NN query point already lives in a leaf, so start AT that leaf and
   walk UP, checking only sibling subtrees at each ancestor — skipping the root→leaf descent and its
