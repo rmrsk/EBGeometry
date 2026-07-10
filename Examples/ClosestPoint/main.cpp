@@ -13,7 +13,6 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
-#include <numeric>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -27,67 +26,29 @@
 
 using T = EBGEOMETRY_PRECISION;
 
-using Vec3 = EBGeometry::Vec3T<T>;
-using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
-
-// Points per SoA group: the ISA-optimal SIMD width for T (PointSoA::DefaultWidth<T>()).
+// SIMD widths, both derived from the ISA so each SIMD op fills one register: W points per group
+// (leaf distance test) and K children per BVH node (box test).
 constexpr size_t W = EBGeometry::PointSoA::DefaultWidth<T>();
-
-// Leaf primitive: W point positions plus each point's index into the cloud, carried as metadata.
-using Group = EBGeometry::PointAoSoA<T, int, W>;
-
-// BVH branching factor: the ISA-optimal fan-out for T's SIMD box test (BVH::DefaultBranchingRatio<T>()),
-// so pruneTraverse's K-wide child test fills one SIMD register.
 constexpr size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
 
-// Groups are freshly built and shared with nothing else, so store them by value (ValueStorage) --
-// no shared_ptr indirection on the hot leaf-visit path.
+// Type aliases. Group is the leaf primitive (W points + each point's cloud index as metadata);
+// Packed stores groups by value (ValueStorage, no pointer indirection on the hot path); Tree only
+// names the LeafPredicate type the top-down partitioners take.
+using Vec3   = EBGeometry::Vec3T<T>;
+using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
+using Group  = EBGeometry::PointAoSoA<T, int, W>;
 using Packed = EBGeometry::BVH::PackedBVH<T, Group, K, EBGeometry::BVH::ValueStorage<Group>>;
+using Tree   = EBGeometry::BVH::TreeBVH<T, Group, AABB, K>;
 
-// TreeBVH alias, used only to name the LeafPredicate type the top-down partitioners take.
-using Tree = EBGeometry::BVH::TreeBVH<T, Group, AABB, K>;
-
-constexpr size_t   numPoints  = 50000;
-constexpr size_t   numQueries = 500;
-constexpr uint64_t pointSeed  = 123456789ULL;
-constexpr uint64_t querySeed  = 987654321ULL;
-
-// Target groups per leaf, shared by all strategies. A leaf-size sweep on this workload put the
-// query-time knee around 16-32 groups; 16 is a good default. Try 8 or 32 to see the effect.
-constexpr size_t maxLeafGroups = 16;
+// Run configuration. maxLeafGroups is the target groups per leaf; a leaf-size sweep on this
+// workload put the query-time knee at ~16-32, so 16 is a good default (try 8 or 32).
+constexpr size_t   numPoints     = 50000;
+constexpr size_t   numQueries    = 500;
+constexpr uint64_t pointSeed     = 123456789ULL;
+constexpr uint64_t querySeed     = 987654321ULL;
+constexpr size_t   maxLeafGroups = 16;
 
 namespace {
-
-// Uniform random points in the unit cube. Fixed seed: reproducible run to run.
-std::vector<Vec3>
-makeRandomPoints(size_t a_count, uint64_t a_seed)
-{
-  std::mt19937_64                   rng(a_seed);
-  std::uniform_real_distribution<T> dist(T(0.0), T(1.0));
-
-  std::vector<Vec3> points;
-  points.reserve(a_count);
-  for (size_t i = 0; i < a_count; i++) {
-    points.emplace_back(dist(rng), dist(rng), dist(rng));
-  }
-
-  return points;
-}
-
-// Indices that sort a_points along the Morton curve (BVH::computeSFCBins + SFC::Morton::encode).
-std::vector<uint32_t>
-mortonOrder(const std::vector<Vec3>& a_points)
-{
-  const auto bins = EBGeometry::BVH::computeSFCBins<T>(a_points);
-
-  std::vector<uint32_t> order(a_points.size());
-  std::iota(order.begin(), order.end(), uint32_t(0));
-  std::sort(order.begin(), order.end(), [&bins](uint32_t a_a, uint32_t a_b) noexcept -> bool {
-    return EBGeometry::SFC::Morton::encode(bins[a_a]) < EBGeometry::SFC::Morton::encode(bins[a_b]);
-  });
-
-  return order;
-}
 
 // Group the cloud into spatially-coherent PointAoSoA leaves: Morton-sort the points, then chunk the
 // sorted order into consecutive runs of W. Compact groups have tight bounding volumes and prune
@@ -95,7 +56,7 @@ mortonOrder(const std::vector<Vec3>& a_points)
 std::vector<std::pair<Group, AABB>>
 buildGroups(const std::vector<Vec3>& a_positions)
 {
-  const std::vector<uint32_t> order = mortonOrder(a_positions);
+  const std::vector<uint32_t> order = EBGeometry::SFC::order(a_positions, EBGeometry::SFC::Morton{});
 
   const size_t numGroups = (a_positions.size() + W - 1U) / W;
 
@@ -265,8 +226,8 @@ main()
   std::cout << "  Points                  = " << numPoints << '\n';
   std::cout << "  Queries                 = " << numQueries << "\n\n";
 
-  const std::vector<Vec3> positions  = makeRandomPoints(numPoints, pointSeed);
-  const std::vector<Vec3> rawQueries = makeRandomPoints(numQueries, querySeed);
+  const std::vector<Vec3> positions  = EBGeometry::Random::samplePoints<T>(numPoints, pointSeed);
+  const std::vector<Vec3> rawQueries = EBGeometry::Random::samplePoints<T>(numQueries, querySeed);
 
   // Shared across every build strategy: Morton-sort the points and pack them into spatially-coherent
   // PointAoSoA groups. Only the outer tree over these groups varies between strategies.
@@ -305,7 +266,7 @@ main()
   // is memory-latency bound). A one-time cost that applies to any batch of queries free to reorder.
   std::vector<Vec3> queries;
   queries.reserve(numQueries);
-  for (const uint32_t idx : mortonOrder(rawQueries)) {
+  for (const uint32_t idx : EBGeometry::SFC::order(rawQueries, EBGeometry::SFC::Morton{})) {
     queries.push_back(rawQueries[idx]);
   }
 

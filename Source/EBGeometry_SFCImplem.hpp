@@ -12,12 +12,17 @@
 #define EBGEOMETRY_SFCIMPLEM_HPP
 
 // Std includes
+#include <algorithm>
 #include <climits>
+#include <cmath>
 #include <cstdint>
+#include <numeric>
+#include <vector>
 
 // Our includes
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_SFC.hpp"
+#include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
 namespace SFC {
@@ -109,6 +114,67 @@ Nested::decode(const uint64_t& a_code) noexcept
 
   return Index({x, y, z});
 }
+
+template <class T>
+inline std::vector<Index>
+computeBins(const std::vector<Vec3T<T>>& a_points) noexcept
+{
+  // The space-filling curves operate on positive integer coordinates only, using up to 2^21 valid
+  // bits per direction. Normalize the real-valued points into that grid.
+  Vec3T<T> minCoord = +Vec3T<T>::infinity();
+  Vec3T<T> maxCoord = -Vec3T<T>::infinity();
+
+  for (const auto& p : a_points) {
+    minCoord = min(minCoord, p);
+    maxCoord = max(maxCoord, p);
+  }
+
+  Vec3T<T> delta = (maxCoord - minCoord) / ValidSpan;
+
+  // A zero delta component means every point coincides on that axis (a planar cloud or duplicate
+  // points). The numerator below is then also exactly zero there for every point, so any nonzero
+  // divisor yields the same, correct bin index of 0; clamp to 1 only to avoid the divide-by-zero.
+  for (size_t axis = 0; axis < 3; axis++) {
+    if (delta[axis] == T(0)) {
+      delta[axis] = T(1);
+    }
+  }
+
+  std::vector<Index> bins;
+  bins.reserve(a_points.size());
+
+  for (const auto& p : a_points) {
+    const Vec3T<T> curBin = (p - minCoord) / delta;
+
+    bins.emplace_back(Index{static_cast<unsigned int>(std::floor(curBin[0])),
+                            static_cast<unsigned int>(std::floor(curBin[1])),
+                            static_cast<unsigned int>(std::floor(curBin[2]))});
+  }
+
+  return bins;
+}
+
+template <class T, class S>
+inline std::vector<uint32_t>
+order(const std::vector<Vec3T<T>>& a_points, S) noexcept
+{
+  const std::vector<Index> bins = computeBins<T>(a_points);
+
+  std::vector<Code> codes;
+  codes.reserve(a_points.size());
+  for (const auto& bin : bins) {
+    codes.push_back(S::encode(bin));
+  }
+
+  std::vector<uint32_t> indices(a_points.size());
+  std::iota(indices.begin(), indices.end(), uint32_t(0));
+  std::sort(indices.begin(), indices.end(), [&codes](uint32_t a_lhs, uint32_t a_rhs) noexcept -> bool {
+    return codes[a_lhs] < codes[a_rhs];
+  });
+
+  return indices;
+}
+
 } // namespace SFC
 } // namespace EBGeometry
 

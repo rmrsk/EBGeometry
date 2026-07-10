@@ -14,6 +14,10 @@
 // Std includes
 #include <array>
 #include <cstdint>
+#include <vector>
+
+// Our includes
+#include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
 
@@ -114,6 +118,43 @@ struct Nested
   [[nodiscard]] inline static Index
   decode(const uint64_t& a_code) noexcept;
 };
+
+/**
+ * @brief Bin a set of points into the space-filling curve's integer grid, normalizing by their own
+ * bounding range.
+ * @details Converts real-valued points into SFC::Index values suitable for SFC::Morton::encode() or
+ * SFC::Nested::encode(). The binning itself is curve-independent -- every curve grids the same way;
+ * only the subsequent encode() differs -- so this takes no curve type (see order() for the
+ * curve-parameterized ordering built on top of it). If every point coincides on some axis (a planar
+ * cloud or duplicate points), that axis's normalization divisor would be zero; it is clamped to 1
+ * (the numerator is also exactly zero there for every point, so any nonzero divisor yields the same,
+ * correct bin index of 0), avoiding a divide-by-zero.
+ * @tparam T Floating-point precision.
+ * @param[in] a_points Points to bin (e.g. bounding-volume centroids, or a raw point cloud).
+ * @return One SFC::Index per input point, in the same order.
+ */
+template <class T>
+[[nodiscard]] inline std::vector<Index>
+computeBins(const std::vector<Vec3T<T>>& a_points) noexcept;
+
+/**
+ * @brief Return the index permutation that orders a_points along a space-filling curve.
+ * @details Bins the points (computeBins), encodes each cell with S::encode(), and returns the
+ * indices sorted by ascending code -- so a_points[result[0]], a_points[result[1]], ... walk the
+ * curve. This is the one-call form of the "bin, encode, sort" pattern; the points themselves are
+ * not moved or copied. @p a_sfc is an unused tag whose only purpose is to let S be deduced, exactly
+ * as for PackedBVH's SFC-build constructor -- pass e.g. SFC::Nested{} to select a different curve,
+ * or omit it for the Morton default.
+ * @tparam T Floating-point precision.
+ * @tparam S Space-filling curve type (SFC::Morton, SFC::Nested, ...). Defaults to SFC::Morton.
+ * @param[in] a_points Points to order.
+ * @param[in] a_sfc    Unused tag value; see @p S.
+ * @return Indices into a_points, sorted by ascending SFC code.
+ */
+template <class T, class S = Morton>
+[[nodiscard]] inline std::vector<uint32_t>
+order(const std::vector<Vec3T<T>>& a_points, S a_sfc = S{}) noexcept;
+
 } // namespace SFC
 
 } // namespace EBGeometry

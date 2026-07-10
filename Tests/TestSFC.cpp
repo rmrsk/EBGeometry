@@ -5,6 +5,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <cstddef>
+#include <vector>
+
 using namespace EBGeometry;
 
 // SFC::ValidSpan is uint64_t; cast to unsigned int for use in Index (fits: ValidBits=21).
@@ -105,4 +108,75 @@ TEST_CASE("Nested SFC: ValidSpan boundary is handled correctly", "[SFC][Nested]"
 TEST_CASE("Nested SFC: encode(0,0,0) == 0", "[SFC][Nested]")
 {
   REQUIRE(SFC::Nested::encode({0, 0, 0}) == 0u);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// computeBins / order (double is enough; the binning/ordering is precision-agnostic)
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST_CASE("SFC::computeBins: points map into the valid integer grid", "[SFC][bins]")
+{
+  using Vec3 = Vec3T<double>;
+
+  const std::vector<Vec3> points = {Vec3(0, 0, 0), Vec3(1, 1, 1), Vec3(0.5, 0.25, 0.75)};
+
+  const auto bins = SFC::computeBins<double>(points);
+
+  REQUIRE(bins.size() == points.size());
+  REQUIRE(bins[0] == SFC::Index{0, 0, 0}); // the min corner lands at the grid origin
+  for (const auto& b : bins) {
+    for (int i = 0; i < 3; i++) {
+      REQUIRE(b[i] <= kMaxCoord);
+    }
+  }
+}
+
+TEST_CASE("SFC::computeBins: coincident points collapse to bin 0 (no divide-by-zero)", "[SFC][bins]")
+{
+  using Vec3 = Vec3T<double>;
+
+  const std::vector<Vec3> points(10, Vec3(0.3, 0.7, -0.1));
+
+  for (const auto& b : SFC::computeBins<double>(points)) {
+    REQUIRE(b == SFC::Index{0, 0, 0});
+  }
+}
+
+TEST_CASE("SFC::order: is a permutation ordering points by non-decreasing SFC code", "[SFC][order]")
+{
+  using Vec3 = Vec3T<double>;
+
+  std::vector<Vec3> points;
+  points.reserve(50);
+  for (int i = 0; i < 50; i++) {
+    points.emplace_back(0.017 * ((i * 7) % 50), 0.017 * ((i * 13) % 50), 0.017 * ((i * 29) % 50));
+  }
+
+  const auto bins  = SFC::computeBins<double>(points);
+  const auto order = SFC::order(points, SFC::Morton{});
+
+  REQUIRE(order.size() == points.size());
+
+  // A valid permutation: every index appears exactly once.
+  std::vector<char> seen(points.size(), 0);
+  for (const auto idx : order) {
+    REQUIRE(idx < points.size());
+    REQUIRE(seen[idx] == 0);
+    seen[idx] = 1;
+  }
+
+  // Codes are non-decreasing along the returned order.
+  for (size_t i = 1; i < order.size(); i++) {
+    REQUIRE(SFC::Morton::encode(bins[order[i - 1]]) <= SFC::Morton::encode(bins[order[i]]));
+  }
+
+  // The default tag selects Morton.
+  REQUIRE(SFC::order(points) == order);
+
+  // Nested produces its own valid, code-ordered permutation.
+  const auto orderNested = SFC::order(points, SFC::Nested{});
+  REQUIRE(orderNested.size() == points.size());
+  for (size_t i = 1; i < orderNested.size(); i++) {
+    REQUIRE(SFC::Nested::encode(bins[orderNested[i - 1]]) <= SFC::Nested::encode(bins[orderNested[i]]));
+  }
 }

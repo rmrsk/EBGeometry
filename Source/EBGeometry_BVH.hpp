@@ -268,24 +268,6 @@ template <class P, class BV>
 using PrimAndBVList = std::vector<PrimAndBV<P, BV>>;
 
 /**
- * @brief Bin a set of points into the space-filling curve's integer grid, normalizing by their
- * own bounding range.
- * @details Used by both TreeBVH::bottomUpSortAndPartition() and PackedBVH's direct SFC-build
- * constructor to convert real-valued centroids into SFC::Index values suitable for
- * SFC::Morton::encode() or SFC::Nested::encode(). If every point coincides on some axis (e.g. a
- * planar point cloud, or fully-duplicate points), that axis's normalization divisor would
- * otherwise be zero; clamping it to 1 avoids the division (the numerator is also exactly zero on
- * that axis for every point, so any nonzero divisor yields the same, correct bin index of 0
- * there).
- * @tparam T Floating-point precision.
- * @param[in] a_centroids Points to bin (typically bounding-volume centroids).
- * @return One SFC::Index per input point, in the same order.
- */
-template <class T>
-[[nodiscard]] inline std::vector<SFC::Index>
-computeSFCBins(const std::vector<Vec3T<T>>& a_centroids) noexcept;
-
-/**
  * @brief Polymorphic partitioner: splits a list of (primitive, BV) pairs into K sub-lists.
  * @tparam P  Primitive type.
  * @tparam BV Bounding volume type.
@@ -1390,7 +1372,7 @@ public:
    * @details Bypasses TreeBVH entirely: no per-node shared_ptr<TreeBVH> allocation, and (with
    * StoragePolicy = ValueStorage<P>) no per-primitive shared_ptr allocation either. Primitives are
    * sorted along the space-filling curve @p S (same normalization as
-   * TreeBVH::bottomUpSortAndPartition(), via BVH::computeSFCBins()), then cut into leaves by one
+   * TreeBVH::bottomUpSortAndPartition(), via SFC::computeBins()), then cut into leaves by one
    * linear left-to-right scan at @p a_targetLeafSize -- unlike
    * TreeBVH::bottomUpSortAndPartition(), which derives a leaf count of K^floor(log_K(N)) purely
    * from N and K, this lets the caller control leaf size directly.

@@ -157,50 +157,6 @@ TreeBVH<T, P, BV, K>::topDownSortAndPartition(const Partitioner& a_partitioner, 
   m_partitioned = true;
 }
 
-template <class T>
-inline std::vector<SFC::Index>
-computeSFCBins(const std::vector<Vec3T<T>>& a_centroids) noexcept
-{
-  // The space-filling curves operate on positive coordinates only, using up to 2^21 valid bits
-  // per coordinate direction. The input centroids use this coordinate system rather than the
-  // "real" coordinates.
-  Vec3T<T> minCoord = +Vec3T<T>::infinity();
-  Vec3T<T> maxCoord = -Vec3T<T>::infinity();
-
-  for (const auto& c : a_centroids) {
-    minCoord = min(minCoord, c);
-    maxCoord = max(maxCoord, c);
-  }
-
-  Vec3T<T> delta = (maxCoord - minCoord) / SFC::ValidSpan;
-
-  // A zero delta component means every centroid coincides on that axis (minCoord == maxCoord
-  // there), e.g. a planar point cloud or a cluster of duplicate points -- not a hypothetical
-  // edge case. The numerator below is then also exactly zero on that axis for every primitive,
-  // so any nonzero divisor yields the same (correct) curBin == 0 there; this only exists to
-  // avoid dividing by zero, which would otherwise fire an assertion (or, with assertions
-  // compiled out, silently produce NaN and then invoke undefined behavior at the
-  // float-to-unsigned-int cast below).
-  for (size_t axis = 0; axis < 3; axis++) {
-    if (delta[axis] == T(0)) {
-      delta[axis] = T(1);
-    }
-  }
-
-  std::vector<SFC::Index> bins;
-  bins.reserve(a_centroids.size());
-
-  for (const auto& c : a_centroids) {
-    const Vec3T<T> curBin = (c - minCoord) / delta;
-
-    bins.emplace_back(SFC::Index{static_cast<unsigned int>(std::floor(curBin[0])),
-                                 static_cast<unsigned int>(std::floor(curBin[1])),
-                                 static_cast<unsigned int>(std::floor(curBin[2]))});
-  }
-
-  return bins;
-}
-
 template <class T, class P, class BV, size_t K>
 template <typename S>
 inline void
@@ -212,7 +168,7 @@ TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
     centroids.push_back(bv.getCentroid());
   }
 
-  const std::vector<SFC::Index> bins = BVH::computeSFCBins<T>(centroids);
+  const std::vector<SFC::Index> bins = SFC::computeBins<T>(centroids);
 
   // Sort the primitives, their BVs, and their spatial bins along the space-filling curves.
   using PrimBvAndCode = std::tuple<std::shared_ptr<const P>, BV, SFC::Code>;
@@ -536,7 +492,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
     centroids.push_back(pbv.second.getCentroid());
   }
 
-  const std::vector<SFC::Index> bins = BVH::computeSFCBins<T>(centroids);
+  const std::vector<SFC::Index> bins = SFC::computeBins<T>(centroids);
 
   using PrimBvAndCode = std::tuple<P, BV, SFC::Code>;
 

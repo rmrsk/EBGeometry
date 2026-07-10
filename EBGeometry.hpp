@@ -29,6 +29,7 @@
 #include "Source/EBGeometry_PointAoSoA.hpp"
 #include "Source/EBGeometry_PointSoA.hpp"
 #include "Source/EBGeometry_Polygon2D.hpp"
+#include "Source/EBGeometry_Random.hpp"
 #include "Source/EBGeometry_SFC.hpp"
 #include "Source/EBGeometry_STL.hpp"
 #include "Source/EBGeometry_SignedDistanceFunction.hpp"
