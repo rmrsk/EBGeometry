@@ -280,14 +280,19 @@ using PrimAndBVList = std::vector<PrimAndBV<P, BV>>;
 
 /**
  * @brief Polymorphic partitioner: splits a list of (primitive, BV) pairs into K sub-lists.
+ * @details The input list is taken *by value* (a sink): callers move their list in, and an
+ * implementation should partition it in place and *move* the K sub-lists out -- so a whole top-down
+ * build reorders primitive handles rather than repeatedly copying them (the built-in partitioners
+ * all do this). The split arithmetic is the cheap part; avoiding the copies is what keeps
+ * construction fast.
  * @tparam P  Primitive type.
  * @tparam BV Bounding volume type.
  * @tparam K  Tree branching factor.
- * @param[in] a_primsAndBVs Input primitives and their bounding volumes.
+ * @param[in] a_primsAndBVs Input primitives and their bounding volumes (consumed).
  * @return K-element array of sub-lists.
  */
 template <class P, class BV, size_t K>
-using Partitioner = std::function<std::array<PrimAndBVList<P, BV>, K>(const PrimAndBVList<P, BV>& a_primsAndBVs)>;
+using Partitioner = std::function<std::array<PrimAndBVList<P, BV>, K>(PrimAndBVList<P, BV> a_primsAndBVs)>;
 
 /**
  * @brief Predicate for deciding when a TreeBVH node should become a leaf (i.e., no further splitting).
@@ -384,7 +389,7 @@ using NodeKeyFactory = std::function<NodeKey(const NodeType& a_node)>;
  * @return Array of K sub-vectors whose sizes differ by at most 1.
  */
 template <class X, size_t K>
-auto EqualCounts = [](const std::vector<X>& a_primitives) noexcept -> std::array<std::vector<X>, K> {
+auto EqualCounts = [](std::vector<X> a_primitives) noexcept -> std::array<std::vector<X>, K> {
   static_assert(K >= 2, "EqualCounts<X, K>: branching factor K must be at least 2");
 
   EBGEOMETRY_EXPECT(!a_primitives.empty());
@@ -401,7 +406,10 @@ auto EqualCounts = [](const std::vector<X>& a_primitives) noexcept -> std::array
     end += (remain > 0) ? length + 1 : length;
     remain--;
 
-    chunks[k] = std::vector<X>(a_primitives.begin() + begin, a_primitives.begin() + end);
+    // Move the [begin, end) slice out -- the input is taken by value and not reused, so the elements
+    // (e.g. shared_ptr primitive handles) transfer without copying or refcount churn.
+    chunks[k] = std::vector<X>(std::make_move_iterator(a_primitives.begin() + begin),
+                               std::make_move_iterator(a_primitives.begin() + end));
 
     begin = end;
   }
@@ -420,7 +428,7 @@ auto EqualCounts = [](const std::vector<X>& a_primitives) noexcept -> std::array
  */
 template <class T, class P, class BV, size_t K>
 auto PrimitiveCentroidPartitioner =
-  [](const PrimAndBVList<P, BV>& a_primsAndBVs) noexcept -> std::array<PrimAndBVList<P, BV>, K> {
+  [](PrimAndBVList<P, BV> a_primsAndBVs) noexcept -> std::array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
   Vec3T<T> lo = +Vec3T<T>::max();
@@ -433,15 +441,14 @@ auto PrimitiveCentroidPartitioner =
 
   const size_t splitDir = (hi - lo).maxDir(true);
 
-  PrimAndBVList<P, BV> sortedPrimsAndBVs(a_primsAndBVs);
-
-  std::sort(sortedPrimsAndBVs.begin(),
-            sortedPrimsAndBVs.end(),
+  // The input is taken by value; sort it in place (no working copy) and move it into EqualCounts.
+  std::sort(a_primsAndBVs.begin(),
+            a_primsAndBVs.end(),
             [splitDir](const PrimAndBV<P, BV>& pbv1, const PrimAndBV<P, BV>& pbv2) -> bool {
               return pbv1.first->getCentroid(splitDir) < pbv2.first->getCentroid(splitDir);
             });
 
-  return BVH::EqualCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);
+  return BVH::EqualCounts<PrimAndBV<P, BV>, K>(std::move(a_primsAndBVs));
 };
 
 /**
@@ -454,7 +461,7 @@ auto PrimitiveCentroidPartitioner =
  * @return K sub-lists.
  */
 template <class T, class P, class BV, size_t K>
-auto BVCentroidPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+auto BVCentroidPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
   Vec3T<T> lo = +Vec3T<T>::max();
@@ -467,15 +474,14 @@ auto BVCentroidPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> st
 
   const size_t splitDir = (hi - lo).maxDir(true);
 
-  PrimAndBVList<P, BV> sortedPrimsAndBVs(a_primsAndBVs);
-
-  std::sort(sortedPrimsAndBVs.begin(),
-            sortedPrimsAndBVs.end(),
+  // The input is taken by value; sort it in place (no working copy) and move it into EqualCounts.
+  std::sort(a_primsAndBVs.begin(),
+            a_primsAndBVs.end(),
             [splitDir](const PrimAndBV<P, BV>& pbv1, const PrimAndBV<P, BV>& pbv2) -> bool {
               return pbv1.second.getCentroid()[splitDir] < pbv2.second.getCentroid()[splitDir];
             });
 
-  return BVH::EqualCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);
+  return BVH::EqualCounts<PrimAndBV<P, BV>, K>(std::move(a_primsAndBVs));
 };
 
 /**
@@ -677,19 +683,21 @@ SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
  * @return K sub-lists.
  */
 template <class T, class P, class BV, size_t K>
-auto BinnedSAHPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+auto BinnedSAHPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
-  PrimAndBVList<P, BV>                   working(a_primsAndBVs);
+  // The input is taken by value; partition it in place (no working copy). SAHKWaySplit reorders it
+  // and yields K [begin, end) index ranges, which we move out (disjoint, each moved once).
   std::vector<std::pair<size_t, size_t>> groups;
   groups.reserve(K);
 
-  SAHKWaySplit<T, P, BV>(working, 0, working.size(), K, groups);
+  SAHKWaySplit<T, P, BV>(a_primsAndBVs, 0, a_primsAndBVs.size(), K, groups);
 
   std::array<PrimAndBVList<P, BV>, K> result;
   for (size_t k = 0; k < K; k++) {
     const auto [b, e] = groups[k];
-    result[k]         = PrimAndBVList<P, BV>(working.begin() + b, working.begin() + e);
+    result[k]         = PrimAndBVList<P, BV>(std::make_move_iterator(a_primsAndBVs.begin() + b),
+                                     std::make_move_iterator(a_primsAndBVs.begin() + e));
   }
 
   return result;
@@ -808,19 +816,23 @@ MidpointKWaySplit(PrimAndBVList<P, BV>&                   a_list,
  * @return K sub-lists.
  */
 template <class T, class P, class BV, size_t K>
-auto MidpointPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+auto MidpointPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
-  PrimAndBVList<P, BV>                   working(a_primsAndBVs);
+  // The input is taken by value; partition it in place (no working copy). MidpointKWaySplit reorders
+  // it and yields K [begin, end) index ranges, which we move out (disjoint, each moved once). This
+  // is the crux of the partitioner's cost: the midpoint split itself is a couple of std::partition
+  // passes, so the plumbing (copies) is what dominated before -- now eliminated.
   std::vector<std::pair<size_t, size_t>> groups;
   groups.reserve(K);
 
-  MidpointKWaySplit<T, P, BV>(working, 0, working.size(), K, groups);
+  MidpointKWaySplit<T, P, BV>(a_primsAndBVs, 0, a_primsAndBVs.size(), K, groups);
 
   std::array<PrimAndBVList<P, BV>, K> result;
   for (size_t k = 0; k < K; k++) {
     const auto [b, e] = groups[k];
-    result[k]         = PrimAndBVList<P, BV>(working.begin() + b, working.begin() + e);
+    result[k]         = PrimAndBVList<P, BV>(std::make_move_iterator(a_primsAndBVs.begin() + b),
+                                     std::make_move_iterator(a_primsAndBVs.begin() + e));
   }
 
   return result;
@@ -902,7 +914,7 @@ public:
    * @brief Construct a leaf node from a set of (primitive, BV) pairs.
    * @param[in] a_primsAndBVs Primitives and their bounding volumes.
    */
-  TreeBVH(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs);
+  TreeBVH(std::vector<PrimAndBV<P, BV>> a_primsAndBVs);
 
   /**
    * @brief Destructor.

@@ -48,11 +48,16 @@ inline TreeBVH<T, P, BV, K>::TreeBVH() noexcept
 }
 
 template <class T, class P, class BV, size_t K>
-inline TreeBVH<T, P, BV, K>::TreeBVH(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs) : TreeBVH<T, P, BV, K>()
+inline TreeBVH<T, P, BV, K>::TreeBVH(std::vector<PrimAndBV<P, BV>> a_primsAndBVs) : TreeBVH<T, P, BV, K>()
 {
-  for (const auto& pbv : a_primsAndBVs) {
-    m_primitives.emplace_back(pbv.first);
-    m_boundingVolumes.emplace_back(pbv.second);
+  // Taken by value: an rvalue argument (e.g. a partitioner's moved-out sub-list) transfers its
+  // elements in without copying or shared_ptr refcount churn; an lvalue copies into the parameter
+  // exactly as before.
+  m_primitives.reserve(a_primsAndBVs.size());
+  m_boundingVolumes.reserve(a_primsAndBVs.size());
+  for (auto& pbv : a_primsAndBVs) {
+    m_primitives.emplace_back(std::move(pbv.first));
+    m_boundingVolumes.emplace_back(std::move(pbv.second));
   }
 
   m_boundingVolume = BV(m_boundingVolumes);
@@ -155,23 +160,25 @@ TreeBVH<T, P, BV, K>::topDownSortAndPartition(const Partitioner& a_partitioner, 
 
   if (!stopRecursiveSplitting && hasEnoughPrimitives) {
 
-    // Pack primitives and BVs.
+    // Pack primitives and BVs, moving them out of this node (it is about to stop being a leaf, so its
+    // own lists are cleared below) -- no shared_ptr refcount churn.
     PrimAndBVList<P, BV> primsAndBVs;
+    primsAndBVs.reserve(numPrimsInThisNode);
     for (size_t i = 0; i < numPrimsInThisNode; i++) {
-      primsAndBVs.emplace_back(std::make_pair(m_primitives[i], m_boundingVolumes[i]));
-    }
-
-    // Partition into sub-sets.
-    const auto& newPartitions = a_partitioner(primsAndBVs);
-
-    // Create children nodes.
-    for (size_t c = 0; c < K; c++) {
-      m_children[c] = std::make_shared<TreeBVH<T, P, BV, K>>(newPartitions[c]);
+      primsAndBVs.emplace_back(std::move(m_primitives[i]), std::move(m_boundingVolumes[i]));
     }
 
     // This is no longer a leaf node.
     m_primitives.resize(0);
     m_boundingVolumes.resize(0);
+
+    // Partition into sub-sets (the partitioner takes the list by value and moves the sub-lists out),
+    // then move each sub-list into its child node.
+    std::array<PrimAndBVList<P, BV>, K> newPartitions = a_partitioner(std::move(primsAndBVs));
+
+    for (size_t c = 0; c < K; c++) {
+      m_children[c] = std::make_shared<TreeBVH<T, P, BV, K>>(std::move(newPartitions[c]));
+    }
 
     // Recursive partitioning.
     for (auto& c : m_children) {
@@ -673,8 +680,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
   // a_stopCrit (whose signature expects an actual TreeBVH node, matching
   // TreeBVH::topDownSortAndPartition()'s own contract) and to read off its primitive list; it is
   // discarded immediately afterward, never linked into a persistent tree.
-  std::function<uint32_t(const BVH::PrimAndBVList<P, BV>&)> build =
-    [&](const BVH::PrimAndBVList<P, BV>& a_prims) -> uint32_t {
+  std::function<uint32_t(BVH::PrimAndBVList<P, BV>)> build = [&](BVH::PrimAndBVList<P, BV> a_prims) -> uint32_t {
     const uint32_t idx = static_cast<uint32_t>(m_linearNodes.size());
     m_linearNodes.push_back({});
 
@@ -690,10 +696,12 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
       StoragePolicy::appendTreeLeaf(m_primitives, leafPrims);
     }
     else {
-      const auto children = a_partitioner(a_prims);
+      // The partitioner takes its list by value and moves the sub-lists out; a_prims is not used
+      // after this, so move it in, and move each child sub-list into the recursion.
+      std::array<BVH::PrimAndBVList<P, BV>, K> children = a_partitioner(std::move(a_prims));
 
       for (size_t k = 0; k < K; k++) {
-        const uint32_t childIdx = build(children[k]);
+        const uint32_t childIdx = build(std::move(children[k]));
         m_linearNodes[idx].setChildOffset(childIdx, k);
       }
     }
@@ -701,7 +709,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
     return idx;
   };
 
-  build(wrapped);
+  build(std::move(wrapped));
 
   buildSoA();
 }
