@@ -19,16 +19,13 @@ using namespace EBGeometry;
 using T    = EBGEOMETRY_PRECISION;
 using Meta = short;
 
-// BVH branching factor (used at both levels of the hierarchy) and SoA triangle-group width for the
-// inner mesh BVHs. Default to the SIMD-optimal values for T on the compiled ISA -- the same
-// defaults Parser::readIntoTriangleBVH picks internally.
+// Branching factor for the outer union BVH. Defaults to the SIMD-optimal value for T on the
+// compiled ISA -- the same default readIntoTriangleBVH uses for the inner mesh BVHs.
 constexpr size_t K = BVH::DefaultBranchingRatio<T>();
-constexpr size_t W = TriangleSoA::DefaultWidth<T>();
 
-using Vec3    = EBGeometry::Vec3T<T>;
-using BV      = EBGeometry::BoundingVolumes::AABBT<T>;
-using IF      = EBGeometry::ImplicitFunction<T>;
-using TriMesh = EBGeometry::TriMeshSDF<T, Meta, K, W>;
+using Vec3 = EBGeometry::Vec3T<T>;
+using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
+using IF   = EBGeometry::ImplicitFunction<T>;
 
 int
 main(int argc, char* argv[])
@@ -48,7 +45,7 @@ main(int argc, char* argv[])
   // inner BVH's entire memory footprint, which becomes exceedingly expensive for large inner BVHs and
   // compounds with nesting depth.
 
-  // Mesh to place several copies of. Pass a path on the command line, or fall back to the
+  // Mesh to place at several positions. Pass a path on the command line, or fall back to the
   // dodecahedron fixture shipped in the repository (Tests/data), so this example needs no
   // submodule. The path is relative to this example's own folder, which is the working directory
   // when the example is run.
@@ -61,16 +58,15 @@ main(int argc, char* argv[])
               << "Usage: ./NestedBVH.ex <mesh-file>  (STL/PLY/VTK/OBJ, triangles only)\n";
   }
 
-  // Read the triangle mesh once into a DCEL representation.
-  const auto mesh = EBGeometry::Parser::readIntoDCEL<T, Meta>(file);
-
-  // Build the BVH-backed mesh SDF *once*, then instance it at several positions. Because every
-  // placement is the same mesh, they should all share a single TriMeshSDF: its (value-stored) inner
-  // packed BVH is built and stored exactly once, and each placement is just an EBGeometry::Translate
-  // wrapper holding a shared_ptr to that same object -- shared by pointer, never rebuilt or copied
-  // per placement. This is the idiomatic way to replicate one mesh across a scene. (To place
-  // genuinely different meshes instead, build one TriMeshSDF per mesh file and translate each.)
-  const auto tri   = std::make_shared<TriMesh>(mesh, BVH::Build::SAH, 2);
+  // Read the mesh directly into a BVH-backed TriMeshSDF using the library's default parameters
+  // (SIMD-optimal branching factor and SoA width, ValueStorage, SAH build). Build it *once*, then
+  // instance it at several positions below: because every placement is the same mesh, they all
+  // share this single TriMeshSDF -- its (value-stored) inner packed BVH is built and stored exactly
+  // once, and each placement is just an EBGeometry::Translate wrapper holding a shared_ptr to that
+  // same object, shared by pointer and never rebuilt or copied per placement. This is the idiomatic
+  // way to replicate one mesh across a scene. (To place genuinely different meshes instead, read one
+  // TriMeshSDF per mesh file and translate each.)
+  const auto tri   = EBGeometry::Parser::readIntoTriangleBVH<T, Meta>(file);
   const BV   triBV = tri->computeBoundingVolume();
 
   const std::vector<Vec3> shifts = {
