@@ -199,6 +199,22 @@ SphereT<T>::getDistance(const Vec3& a_x0) const noexcept
 
 template <class T>
 inline T
+SphereT<T>::getDistance2(const Vec3& a_x0) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_radius >= T(0));
+  EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
+
+  // A sphere's surface distance is radial (|a_x0 - center| - radius), so -- unlike AABBT -- the
+  // square root cannot be avoided; this is just the unsigned surface distance squared.
+  const T distance = std::max(T(0), (a_x0 - m_center).length() - m_radius);
+
+  return distance * distance;
+}
+
+template <class T>
+inline T
 SphereT<T>::getVolume() const noexcept
 {
   EBGEOMETRY_EXPECT(m_radius >= T(0));

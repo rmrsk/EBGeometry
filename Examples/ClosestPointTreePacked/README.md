@@ -39,7 +39,7 @@ The five strategies are not all built the same way, which the output makes visib
   SFC rows are a different construction -- `PackedBVH`'s direct SFC constructor with a tunable leaf
   size -- so the two examples' Morton/Hilbert rows are not directly comparable.)
 
-As in `ClosestPointSFCPacked`, the whole search stays in **squared distance** (`getDistance2()`):
+As in `ClosestPointSFCPacked`, the whole search stays in **squared distance** (`getMinimumDistance2()`):
 `pruneTraverse()` compares its bound against the *squared* distance to each child box, so no
 `sqrt()` appears anywhere on the query path.
 

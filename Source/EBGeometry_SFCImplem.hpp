@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstdint>
 #include <numeric>
+#include <type_traits>
 #include <vector>
 
 // Our includes
@@ -223,6 +224,8 @@ template <class T>
 inline std::vector<Index>
 computeBins(const std::vector<Vec3T<T>>& a_points) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "EBGeometry::SFC::computeBins requires a floating-point type T");
+
   // The space-filling curves operate on positive integer coordinates only, using up to 2^21 valid
   // bits per direction. Normalize the real-valued points into that grid.
   Vec3T<T> minCoord = +Vec3T<T>::infinity();
@@ -262,6 +265,8 @@ template <class Curve, class T>
 inline std::vector<uint32_t>
 order(const std::vector<Vec3T<T>>& a_points) noexcept
 {
+  static_assert(std::is_floating_point_v<T>, "EBGeometry::SFC::order requires a floating-point type T");
+
   const std::vector<Index> bins = computeBins<T>(a_points);
 
   std::vector<Code> codes;

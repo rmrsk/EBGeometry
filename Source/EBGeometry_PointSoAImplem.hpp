@@ -12,6 +12,8 @@
 #define EBGEOMETRY_POINTSOAIMPLEM_HPP
 
 // Std includes
+#include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -45,8 +47,8 @@ PointSoAT<T, W>::pack(const Vec3T<T>* positions, uint32_t count) noexcept
 }
 
 template <class T, size_t W>
-T
-PointSoAT<T, W>::getDistance2(const Vec3T<T>& a_point) const noexcept
+std::array<T, W>
+PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 {
   // Only m_x carries an explicit alignas in the class declaration: since each array's size (a
   // multiple of W elements) is itself a multiple of the required alignment, m_y and m_z inherit
@@ -66,7 +68,8 @@ PointSoAT<T, W>::getDistance2(const Vec3T<T>& a_point) const noexcept
 
   // Unlike TriangleSoAT::signedDistance(), there is no inside/outside feature classification here
   // -- every branch below is just "squared distance to W points, computed simultaneously, then
-  // horizontally reduced to the minimum over the m_validCount real (non-padded) lanes."
+  // stored per-lane." The horizontal reductions (min/max) live in the small wrappers below, so this
+  // one kernel serves all of them and getDistances2() alike.
 #if defined(__AVX512F__)
   if constexpr (W == 16 && std::is_same_v<T, float>) {
     static_assert(alignof(SoA) == W * sizeof(T),
@@ -82,16 +85,10 @@ PointSoAT<T, W>::getDistance2(const Vec3T<T>& a_point) const noexcept
 
     const __m512 d2 = _mm512_add_ps(_mm512_add_ps(_mm512_mul_ps(dx, dx), _mm512_mul_ps(dy, dy)), _mm512_mul_ps(dz, dz));
 
-    alignas(64) float d16[16];
-    _mm512_store_ps(d16, d2);
+    std::array<T, W> distances;
+    _mm512_storeu_ps(distances.data(), d2);
 
-    T best2 = std::numeric_limits<T>::max();
-    for (uint32_t i = 0; i < m_validCount; i++) {
-      if (d16[i] < best2) {
-        best2 = d16[i];
-      }
-    }
-    return best2;
+    return distances;
   }
   if constexpr (W == 8 && std::is_same_v<T, double>) {
     static_assert(alignof(SoA) == W * sizeof(T),
@@ -108,16 +105,10 @@ PointSoAT<T, W>::getDistance2(const Vec3T<T>& a_point) const noexcept
     const __m512d d2 =
       _mm512_add_pd(_mm512_add_pd(_mm512_mul_pd(dx, dx), _mm512_mul_pd(dy, dy)), _mm512_mul_pd(dz, dz));
 
-    alignas(64) double d8[8];
-    _mm512_store_pd(d8, d2);
+    std::array<T, W> distances;
+    _mm512_storeu_pd(distances.data(), d2);
 
-    T best2 = std::numeric_limits<T>::max();
-    for (uint32_t i = 0; i < m_validCount; i++) {
-      if (d8[i] < best2) {
-        best2 = d8[i];
-      }
-    }
-    return best2;
+    return distances;
   }
 #endif
 #if defined(__SSE4_1__)
@@ -135,16 +126,10 @@ PointSoAT<T, W>::getDistance2(const Vec3T<T>& a_point) const noexcept
 
     const __m128 d2 = _mm_add_ps(_mm_add_ps(_mm_mul_ps(dx, dx), _mm_mul_ps(dy, dy)), _mm_mul_ps(dz, dz));
 
-    alignas(16) float d4[4];
-    _mm_store_ps(d4, d2);
+    std::array<T, W> distances;
+    _mm_storeu_ps(distances.data(), d2);
 
-    T best2 = std::numeric_limits<T>::max();
-    for (uint32_t i = 0; i < m_validCount; i++) {
-      if (d4[i] < best2) {
-        best2 = d4[i];
-      }
-    }
-    return best2;
+    return distances;
   }
 #endif
 #if defined(__AVX__)
@@ -162,16 +147,10 @@ PointSoAT<T, W>::getDistance2(const Vec3T<T>& a_point) const noexcept
 
     const __m256 d2 = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(dx, dx), _mm256_mul_ps(dy, dy)), _mm256_mul_ps(dz, dz));
 
-    alignas(32) float d8[8];
-    _mm256_store_ps(d8, d2);
+    std::array<T, W> distances;
+    _mm256_storeu_ps(distances.data(), d2);
 
-    T best2 = std::numeric_limits<T>::max();
-    for (uint32_t i = 0; i < m_validCount; i++) {
-      if (d8[i] < best2) {
-        best2 = d8[i];
-      }
-    }
-    return best2;
+    return distances;
   }
   if constexpr (W == 4 && std::is_same_v<T, double>) {
     static_assert(alignof(SoA) == W * sizeof(T),
@@ -188,16 +167,10 @@ PointSoAT<T, W>::getDistance2(const Vec3T<T>& a_point) const noexcept
     const __m256d d2 =
       _mm256_add_pd(_mm256_add_pd(_mm256_mul_pd(dx, dx), _mm256_mul_pd(dy, dy)), _mm256_mul_pd(dz, dz));
 
-    alignas(32) double d4[4];
-    _mm256_store_pd(d4, d2);
+    std::array<T, W> distances;
+    _mm256_storeu_pd(distances.data(), d2);
 
-    T best2 = std::numeric_limits<T>::max();
-    for (uint32_t i = 0; i < m_validCount; i++) {
-      if (d4[i] < best2) {
-        best2 = d4[i];
-      }
-    }
-    return best2;
+    return distances;
   }
   if constexpr (W == 8 && std::is_same_v<T, double>) {
     static_assert(alignof(SoA) == W * sizeof(T),
@@ -222,33 +195,50 @@ PointSoAT<T, W>::getDistance2(const Vec3T<T>& a_point) const noexcept
     const __m256d d2_hi = _mm256_add_pd(_mm256_add_pd(_mm256_mul_pd(dx_hi, dx_hi), _mm256_mul_pd(dy_hi, dy_hi)),
                                         _mm256_mul_pd(dz_hi, dz_hi));
 
-    alignas(32) double d8[8];
-    _mm256_store_pd(d8, d2_lo);
-    _mm256_store_pd(d8 + 4, d2_hi);
+    std::array<T, W> distances;
+    _mm256_storeu_pd(distances.data(), d2_lo);
+    _mm256_storeu_pd(distances.data() + 4, d2_hi);
 
-    T best2 = std::numeric_limits<T>::max();
-    for (uint32_t i = 0; i < m_validCount; i++) {
-      if (d8[i] < best2) {
-        best2 = d8[i];
-      }
-    }
-    return best2;
+    return distances;
   }
 #endif
 
-  // Scalar fallback for every (T, W) combination not covered above.
-  T best2 = std::numeric_limits<T>::max();
+  // Scalar fallback for every (T, W) combination not covered above. Computes all W lanes; padded
+  // lanes hold the last real position (see pack()), so their squared distance is a valid duplicate.
+  std::array<T, W> distances;
 
-  for (uint32_t j = 0; j < m_validCount; j++) {
+  for (uint32_t j = 0; j < W; j++) {
     const T dx = a_point[0] - m_x[j];
     const T dy = a_point[1] - m_y[j];
     const T dz = a_point[2] - m_z[j];
 
-    const T d2 = dx * dx + dy * dy + dz * dz;
+    distances[j] = dx * dx + dy * dy + dz * dz;
+  }
 
-    if (d2 < best2) {
-      best2 = d2;
-    }
+  return distances;
+}
+
+template <class T, size_t W>
+std::array<T, W>
+PointSoAT<T, W>::getDistances(const Vec3T<T>& a_point) const noexcept
+{
+  std::array<T, W> distances = this->getDistances2(a_point);
+  for (size_t j = 0; j < W; j++) {
+    distances[j] = std::sqrt(distances[j]);
+  }
+
+  return distances;
+}
+
+template <class T, size_t W>
+T
+PointSoAT<T, W>::getMinimumDistance2(const Vec3T<T>& a_point) const noexcept
+{
+  const std::array<T, W> distances = this->getDistances2(a_point);
+
+  T best2 = std::numeric_limits<T>::max();
+  for (uint32_t i = 0; i < m_validCount; i++) {
+    best2 = std::min(best2, distances[i]);
   }
 
   return best2;
@@ -256,9 +246,30 @@ PointSoAT<T, W>::getDistance2(const Vec3T<T>& a_point) const noexcept
 
 template <class T, size_t W>
 T
-PointSoAT<T, W>::getDistance(const Vec3T<T>& a_point) const noexcept
+PointSoAT<T, W>::getMinimumDistance(const Vec3T<T>& a_point) const noexcept
 {
-  return std::sqrt(this->getDistance2(a_point));
+  return std::sqrt(this->getMinimumDistance2(a_point));
+}
+
+template <class T, size_t W>
+T
+PointSoAT<T, W>::getMaximumDistance2(const Vec3T<T>& a_point) const noexcept
+{
+  const std::array<T, W> distances = this->getDistances2(a_point);
+
+  T best2 = std::numeric_limits<T>::lowest();
+  for (uint32_t i = 0; i < m_validCount; i++) {
+    best2 = std::max(best2, distances[i]);
+  }
+
+  return best2;
+}
+
+template <class T, size_t W>
+T
+PointSoAT<T, W>::getMaximumDistance(const Vec3T<T>& a_point) const noexcept
+{
+  return std::sqrt(this->getMaximumDistance2(a_point));
 }
 
 template <class T, size_t W>

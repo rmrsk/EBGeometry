@@ -28,7 +28,7 @@ always spatially adjacent), so it produces more compact groups and tree nodes. O
 build cost -- a direct illustration of why Hilbert is often preferred for spatial ordering.
 
 One detail is worth calling out, since it is the crux of using these primitives efficiently: the
-whole search stays in **squared distance** (`getDistance2()`). `pruneTraverse()` compares its bound
+whole search stays in **squared distance** (`getMinimumDistance2()`). `pruneTraverse()` compares its bound
 against the *squared* distance to each child box, so no `sqrt()` appears anywhere on the query path;
 a linear bound would be a unit mismatch that prunes far too loosely.
 

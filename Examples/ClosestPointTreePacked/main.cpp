@@ -225,7 +225,7 @@ bvhClosest(const Packed&            a_bvh,
       a_leafVisits++;
       a_groupEvals += static_cast<long long>(a_count);
       for (size_t i = 0; i < a_count; i++) {
-        const T d2 = groups[a_offset + i].getDistance2(a_query);
+        const T d2 = groups[a_offset + i].getMinimumDistance2(a_query);
         if (d2 < a_state.dist2) {
           a_state.dist2 = d2;
           a_state.index = a_offset + i;

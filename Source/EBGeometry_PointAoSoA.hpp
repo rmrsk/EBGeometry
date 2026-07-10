@@ -28,11 +28,12 @@ namespace EBGeometry {
  * @details Structurally this is an AoSoA (Array of Structures of Arrays): PointSoAT<T, W> itself
  * is true SoA (one flat array per coordinate, no per-point structure at all), and PointAoSoA adds
  * exactly one more member -- a std::array<Meta, W> -- alongside it. The two are never merged or
- * interleaved: getDistance()/getDistance2() (delegated straight through to the embedded
- * PointSoAT) never read m_metaData at all, so a pure nearest-neighbor traversal over
- * PointAoSoA-packed leaves touches exactly the same bytes it would touch over bare
- * PointSoAT-packed leaves -- metadata is only ever read afterward, once a query already knows
- * which lane (and therefore which point) won, via getMetaData().
+ * interleaved: the distance queries (getMinimumDistance2(), getMaximumDistance2(), getDistances2(),
+ * and their sqrt forms -- all delegated straight through to the embedded PointSoAT) never read
+ * m_metaData at all, so a pure position-only distance traversal over PointAoSoA-packed leaves
+ * touches exactly the same bytes it would touch over bare PointSoAT-packed leaves -- metadata is
+ * only ever read afterward, once a query already knows which lane (and therefore which point) it
+ * cares about, via getMetaData().
  * @tparam T    Floating-point precision.
  * @tparam Meta User-defined metadata type stored with each point.
  * @tparam W    SIMD width; see PointSoAT. Defaults to PointSoA::DefaultWidth<T>(), matching
@@ -59,25 +60,62 @@ public:
   pack(const Vec3T<T>* positions, const Meta* metaData, uint32_t count) noexcept;
 
   /**
-   * @brief Evaluate the shortest unsigned distance from a_point to the closest point in this group.
-   * @details Delegates entirely to the embedded PointSoAT<T, W>; never touches m_metaData.
+   * @brief Squared unsigned distances from a_point to every one of the W lane points.
+   * @details Delegates entirely to the embedded PointSoAT<T, W>; never touches m_metaData. Padded
+   * lanes repeat the last real point's value -- pair each lane with getMetaData() to identify (and
+   * de-duplicate) it, e.g. for a k-nearest-neighbor scan. See PointSoAT::getDistances2().
    * @param[in] a_point Query point. Must be finite.
-   * @return Distance from a_point to the closest valid point in this group.
+   * @return Per-lane squared distances, one per W lanes.
    */
-  [[nodiscard]] T
-  getDistance(const Vec3T<T>& a_point) const noexcept;
+  [[nodiscard]] std::array<T, W>
+  getDistances2(const Vec3T<T>& a_point) const noexcept;
 
   /**
-   * @brief Evaluate the shortest squared unsigned distance from a_point to the closest point in
-   * this group.
+   * @brief Unsigned distances from a_point to every one of the W lane points.
+   * @details Delegates to PointSoAT<T, W>::getDistances(); the sqrt of each getDistances2() lane.
+   * @param[in] a_point Query point. Must be finite.
+   * @return Per-lane distances, one per W lanes.
+   */
+  [[nodiscard]] std::array<T, W>
+  getDistances(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Shortest squared unsigned distance from a_point to the closest point in this group.
    * @details Delegates entirely to the embedded PointSoAT<T, W>; never touches m_metaData. Avoids
-   * the sqrt that getDistance() pays -- prefer this whenever the caller only needs the distance
+   * the sqrt that getMinimumDistance() pays -- prefer it whenever the caller only needs the distance
    * for comparison, not its actual magnitude.
    * @param[in] a_point Query point. Must be finite.
    * @return Squared distance from a_point to the closest valid point in this group.
    */
   [[nodiscard]] T
-  getDistance2(const Vec3T<T>& a_point) const noexcept;
+  getMinimumDistance2(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Shortest unsigned distance from a_point to the closest point in this group.
+   * @details Delegates to PointSoAT<T, W>::getMinimumDistance(); the sqrt of getMinimumDistance2().
+   * @param[in] a_point Query point. Must be finite.
+   * @return Distance from a_point to the closest valid point in this group.
+   */
+  [[nodiscard]] T
+  getMinimumDistance(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Largest squared unsigned distance from a_point to the farthest point in this group.
+   * @details Delegates entirely to the embedded PointSoAT<T, W>; never touches m_metaData.
+   * @param[in] a_point Query point. Must be finite.
+   * @return Squared distance from a_point to the farthest valid point in this group.
+   */
+  [[nodiscard]] T
+  getMaximumDistance2(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Largest unsigned distance from a_point to the farthest point in this group.
+   * @details Delegates to PointSoAT<T, W>::getMaximumDistance(); the sqrt of getMaximumDistance2().
+   * @param[in] a_point Query point. Must be finite.
+   * @return Distance from a_point to the farthest valid point in this group.
+   */
+  [[nodiscard]] T
+  getMaximumDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief Get the metadata for one lane of this group.

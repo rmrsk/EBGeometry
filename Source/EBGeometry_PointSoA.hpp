@@ -12,6 +12,7 @@
 #define EBGEOMETRY_POINTSOA_HPP
 
 // Std includes
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -74,14 +75,17 @@ DefaultWidth() noexcept
 } // namespace PointSoA
 
 /**
- * @brief True SoA (Structure of Arrays) layout for W point positions, enabling SIMD
- * nearest-neighbor evaluation.
+ * @brief True SoA (Structure of Arrays) layout for W point positions, enabling SIMD distance
+ * evaluation against the whole group at once.
  * @details Deliberately carries positions only -- no metadata, no orientation. A point has no
- * inside/outside notion, so there is no signedDistance() here, only the unsigned
- * getDistance()/getDistance2() (squared, sqrt-free) queries. Metadata, when needed, is carried by
- * the separate PointAoSoA<T, Meta, W> wrapper (see EBGeometry_PointAoSoA.hpp) rather than as a
- * member here, so that a pure position-only nearest-neighbor traversal never has metadata bytes
- * anywhere near its hot data -- not merely unused, but physically absent from this type.
+ * inside/outside notion, so there is no signedDistance() here, only unsigned distance queries. The
+ * one SIMD kernel computes the squared distance from the query point to all W lane positions
+ * simultaneously; everything the class exposes is a thin wrapper over it -- getDistances2()/
+ * getDistances() return the whole W-lane array, and getMinimumDistance2()/getMaximumDistance2() (and
+ * their sqrt counterparts) horizontally reduce it. Metadata, when needed, is carried by the separate
+ * PointAoSoA<T, Meta, W> wrapper (see EBGeometry_PointAoSoA.hpp) rather than as a member here, so
+ * that a pure position-only distance traversal never has metadata bytes anywhere near its hot data
+ * -- not merely unused, but physically absent from this type.
  * @warning This type is over-aligned (up to 64 bytes, for AVX-512F) via alignas. The library's own
  * usage (PackedBVH storing groups inside a std::vector<PointSoAT>) is safe: C++17 mandates that
  * std::allocator respect over-alignment. If you allocate a PointSoAT yourself outside of that path
@@ -113,26 +117,67 @@ public:
   pack(const Vec3T<T>* positions, uint32_t count) noexcept;
 
   /**
-   * @brief Evaluate the shortest unsigned distance from a_point to the closest position in this
-   * group.
-   * @details Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
+   * @brief Squared unsigned distances from a_point to every one of the W lane positions.
+   * @details This is the group's one SIMD kernel; every other distance query is a wrapper over it.
+   * Squared, so sqrt-free -- prefer it (and getMinimumDistance2()/getMaximumDistance2()) whenever the
+   * caller only needs distances for comparison, not their actual magnitude. All W lanes are returned:
+   * padded lanes (indices m_validCount..W-1) repeat the last real position's squared distance,
+   * matching pack()'s padding, so a caller iterating lanes should stop at the real count (or, if it
+   * lacks that count, de-duplicate -- e.g. PointAoSoA pairs each lane with getMetaData()).
+   * Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
    * @param[in] a_point Query point. Must be finite.
-   * @return Distance from a_point to the closest valid position in this group.
+   * @return Per-lane squared distances, one per W lanes.
    */
-  [[nodiscard]] T
-  getDistance(const Vec3T<T>& a_point) const noexcept;
+  [[nodiscard]] std::array<T, W>
+  getDistances2(const Vec3T<T>& a_point) const noexcept;
 
   /**
-   * @brief Evaluate the shortest squared unsigned distance from a_point to the closest position
-   * in this group.
-   * @details Avoids the sqrt that getDistance() pays -- prefer this whenever the caller only needs
-   * the distance for comparison (e.g. BVH pruning, nearest-neighbor search), not its actual
-   * magnitude. Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
+   * @brief Unsigned distances from a_point to every one of the W lane positions.
+   * @details The sqrt of each getDistances2() lane; see it for the padding convention. Prefer
+   * getDistances2() when only comparisons are needed.
+   * @param[in] a_point Query point. Must be finite.
+   * @return Per-lane distances, one per W lanes.
+   */
+  [[nodiscard]] std::array<T, W>
+  getDistances(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Shortest squared unsigned distance from a_point to the closest position in this group.
+   * @details Horizontal minimum over the real lanes of getDistances2(). Requires the group to have
+   * already been packed via pack() (1 <= m_validCount <= W).
    * @param[in] a_point Query point. Must be finite.
    * @return Squared distance from a_point to the closest valid position in this group.
    */
   [[nodiscard]] T
-  getDistance2(const Vec3T<T>& a_point) const noexcept;
+  getMinimumDistance2(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Shortest unsigned distance from a_point to the closest position in this group.
+   * @details The sqrt of getMinimumDistance2(); prefer that when only comparisons are needed.
+   * @param[in] a_point Query point. Must be finite.
+   * @return Distance from a_point to the closest valid position in this group.
+   */
+  [[nodiscard]] T
+  getMinimumDistance(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Largest squared unsigned distance from a_point to the farthest position in this group.
+   * @details Horizontal maximum over the real lanes of getDistances2(). Requires the group to have
+   * already been packed via pack() (1 <= m_validCount <= W).
+   * @param[in] a_point Query point. Must be finite.
+   * @return Squared distance from a_point to the farthest valid position in this group.
+   */
+  [[nodiscard]] T
+  getMaximumDistance2(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Largest unsigned distance from a_point to the farthest position in this group.
+   * @details The sqrt of getMaximumDistance2(); prefer that when only comparisons are needed.
+   * @param[in] a_point Query point. Must be finite.
+   * @return Distance from a_point to the farthest valid position in this group.
+   */
+  [[nodiscard]] T
+  getMaximumDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief Compute the bounding volume enclosing all valid positions in this group.

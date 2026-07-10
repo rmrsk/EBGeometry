@@ -11,6 +11,9 @@
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <algorithm>
+#include <array>
+
 using namespace EBGeometry;
 
 namespace {
@@ -48,6 +51,17 @@ minDistance2(const std::vector<Vec3T<T>>& a_positions, const Vec3T<T>& a_query)
 }
 
 template <class T>
+T
+maxDistance2(const std::vector<Vec3T<T>>& a_positions, const Vec3T<T>& a_query)
+{
+  T best2 = std::numeric_limits<T>::lowest();
+  for (const auto& pos : a_positions) {
+    best2 = std::max(best2, (pos - a_query).length2());
+  }
+  return best2;
+}
+
+template <class T>
 std::vector<Vec3T<T>>
 queryPoints()
 {
@@ -64,7 +78,7 @@ queryPoints()
 
 } // namespace
 
-TEMPLATE_TEST_CASE("PointSoAT: getDistance/getDistance2 match the closest position when fully "
+TEMPLATE_TEST_CASE("PointSoAT: getMinimumDistance/getMinimumDistance2 match the closest position when fully "
                    "packed (count == W)",
                    "[PointSoA]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -80,12 +94,12 @@ TEMPLATE_TEST_CASE("PointSoAT: getDistance/getDistance2 match the closest positi
   for (const auto& q : queryPoints<T>()) {
     const T expected2 = minDistance2<T>(positions, q);
 
-    REQUIRE_THAT(group.getDistance2(q), withinAbsT(expected2, looseMargin<T>()));
-    REQUIRE_THAT(group.getDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
+    REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
+    REQUIRE_THAT(group.getMinimumDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
   }
 }
 
-TEMPLATE_TEST_CASE("PointSoAT: getDistance/getDistance2 unaffected by padding when count < W",
+TEMPLATE_TEST_CASE("PointSoAT: getMinimumDistance/getMinimumDistance2 unaffected by padding when count < W",
                    "[PointSoA]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -100,12 +114,12 @@ TEMPLATE_TEST_CASE("PointSoAT: getDistance/getDistance2 unaffected by padding wh
   for (const auto& q : queryPoints<T>()) {
     const T expected2 = minDistance2<T>(positions, q);
 
-    REQUIRE_THAT(group.getDistance2(q), withinAbsT(expected2, looseMargin<T>()));
-    REQUIRE_THAT(group.getDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
+    REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
+    REQUIRE_THAT(group.getMinimumDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
   }
 }
 
-TEMPLATE_TEST_CASE("PointSoAT: getDistance/getDistance2 handle a single packed position (count == 1)",
+TEMPLATE_TEST_CASE("PointSoAT: getMinimumDistance/getMinimumDistance2 handle a single packed position (count == 1)",
                    "[PointSoA]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -120,8 +134,71 @@ TEMPLATE_TEST_CASE("PointSoAT: getDistance/getDistance2 handle a single packed p
   for (const auto& q : queryPoints<T>()) {
     const T expected2 = (positions.front() - q).length2();
 
-    REQUIRE_THAT(group.getDistance2(q), withinAbsT(expected2, looseMargin<T>()));
-    REQUIRE_THAT(group.getDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
+    REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
+    REQUIRE_THAT(group.getMinimumDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("PointSoAT: getMaximumDistance/getMaximumDistance2 match the farthest position",
+                   "[PointSoA]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const auto positions = fourPositions<T>();
+
+  SoA<T> group;
+  group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
+
+  for (const auto& q : queryPoints<T>()) {
+    const T expected2 = maxDistance2<T>(positions, q);
+
+    REQUIRE_THAT(group.getMaximumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
+    REQUIRE_THAT(group.getMaximumDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("PointSoAT: getMaximumDistance2 unaffected by padding (padded lanes duplicate a real point)",
+                   "[PointSoA]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  auto positions = fourPositions<T>();
+  positions.resize(2); // lanes 2, 3 padded (repeat position 1); the max over reals must be unchanged.
+
+  SoA<T> group;
+  group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
+
+  for (const auto& q : queryPoints<T>()) {
+    REQUIRE_THAT(group.getMaximumDistance2(q), withinAbsT(maxDistance2<T>(positions, q), looseMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("PointSoAT: getDistances2/getDistances return every lane's distance (padded lanes repeat the "
+                   "last real position)",
+                   "[PointSoA]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  auto positions = fourPositions<T>();
+  positions.resize(3); // lanes 0,1,2 real; lane 3 padded (repeats position 2).
+
+  SoA<T> group;
+  group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
+
+  for (const auto& q : queryPoints<T>()) {
+    const std::array<T, W> d2 = group.getDistances2(q);
+    const std::array<T, W> d  = group.getDistances(q);
+
+    for (size_t lane = 0; lane < W; lane++) {
+      const size_t src      = (lane < positions.size()) ? lane : (positions.size() - 1); // padding source
+      const T      expected = (positions[src] - q).length2();
+
+      REQUIRE_THAT(d2[lane], withinAbsT(expected, looseMargin<T>()));
+      REQUIRE_THAT(d[lane], withinAbsT(std::sqrt(expected), looseMargin<T>()));
+    }
   }
 }
 
@@ -151,7 +228,7 @@ TEMPLATE_TEST_CASE("PointSoAT::computeBoundingVolume matches an AABB built direc
 // W=8 coverage, in addition to the W=4 cases above: on this repo's supported compile targets,
 // W=4 exercises the SSE4.1 (float) and single-pass AVX (double) SIMD branches, while W=8
 // exercises the AVX (float) and two-pass AVX (double) branches -- a different pair of branches in
-// PointSoAT::getDistance2()'s dispatch. (AVX-512F's W=16 float / W=8 double branches are not
+// PointSoAT::getMinimumDistance2()'s dispatch. (AVX-512F's W=16 float / W=8 double branches are not
 // covered by a runtime test in this repo's CI hardware; they get a compile-only check instead --
 // see Scripts/clang-tidy-check.sh's -DEBGEOMETRY_SIMD=avx512 configuration.)
 namespace {
@@ -177,7 +254,7 @@ eightPositions()
 
 } // namespace
 
-TEMPLATE_TEST_CASE("PointSoAT (W=8): getDistance/getDistance2 match the closest position when "
+TEMPLATE_TEST_CASE("PointSoAT (W=8): getMinimumDistance/getMinimumDistance2 match the closest position when "
                    "fully packed",
                    "[PointSoA]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -193,12 +270,12 @@ TEMPLATE_TEST_CASE("PointSoAT (W=8): getDistance/getDistance2 match the closest 
   for (const auto& q : queryPoints<T>()) {
     const T expected2 = minDistance2<T>(positions, q);
 
-    REQUIRE_THAT(group.getDistance2(q), withinAbsT(expected2, looseMargin<T>()));
-    REQUIRE_THAT(group.getDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
+    REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
+    REQUIRE_THAT(group.getMinimumDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
   }
 }
 
-TEMPLATE_TEST_CASE("PointSoAT (W=8): getDistance/getDistance2 unaffected by padding when count < W",
+TEMPLATE_TEST_CASE("PointSoAT (W=8): getMinimumDistance/getMinimumDistance2 unaffected by padding when count < W",
                    "[PointSoA]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -213,8 +290,8 @@ TEMPLATE_TEST_CASE("PointSoAT (W=8): getDistance/getDistance2 unaffected by padd
   for (const auto& q : queryPoints<T>()) {
     const T expected2 = minDistance2<T>(positions, q);
 
-    REQUIRE_THAT(group.getDistance2(q), withinAbsT(expected2, looseMargin<T>()));
-    REQUIRE_THAT(group.getDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
+    REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
+    REQUIRE_THAT(group.getMinimumDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
   }
 }
 
@@ -247,7 +324,7 @@ TEMPLATE_TEST_CASE("PointSoAT: omitting W defaults to PointSoA::DefaultWidth<T>(
   for (const auto& q : queryPoints<T>()) {
     const T expected2 = minDistance2<T>(positions, q);
 
-    REQUIRE_THAT(group.getDistance2(q), withinAbsT(expected2, looseMargin<T>()));
-    REQUIRE_THAT(group.getDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
+    REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
+    REQUIRE_THAT(group.getMinimumDistance(q), withinAbsT(std::sqrt(expected2), looseMargin<T>()));
   }
 }

@@ -148,6 +148,27 @@ TEMPLATE_TEST_CASE("SphereT: construction", "[SphereT]", EBGEOMETRY_TEST_PRECISI
   REQUIRE(s.getCentroid()[2] == T(3.0));
 }
 
+TEMPLATE_TEST_CASE("SphereT: getDistance/getDistance2 (zero inside, radial outside)",
+                   "[SphereT]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const SphereT<T> s(Vec3T<T>(0, 0, 0), T(2.0));
+
+  // Interior and surface points: unsigned distance is zero.
+  REQUIRE_THAT(s.getDistance(Vec3T<T>(0, 0, 0)), WithinAbs(0.0, tightMargin<T>()));
+  REQUIRE_THAT(s.getDistance2(Vec3T<T>(1, 0, 0)), WithinAbs(0.0, tightMargin<T>()));
+  REQUIRE_THAT(s.getDistance(Vec3T<T>(2, 0, 0)), WithinAbs(0.0, tightMargin<T>()));
+
+  // Exterior points: distance is |x - center| - radius, and getDistance2 == getDistance()^2.
+  for (const auto& p : {Vec3T<T>(5, 0, 0), Vec3T<T>(0, -4, 0), Vec3T<T>(3, 4, 0)}) {
+    const T d = s.getDistance(p);
+    REQUIRE_THAT(d, WithinRel((p - s.getCentroid()).length() - T(2.0)));
+    REQUIRE_THAT(s.getDistance2(p), withinAbsT(d * d, looseMargin<T>()));
+  }
+}
+
 TEMPLATE_TEST_CASE("SphereT: construction from point cloud (Ritter)", "[SphereT]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;

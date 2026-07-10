@@ -192,6 +192,18 @@ public:
   getDistance(const Vec3& a_x0) const noexcept;
 
   /**
+   * @brief Compute the squared unsigned distance from @p a_x0 to this sphere.
+   * @details Mirrors AABBT::getDistance2(), giving both bounding volumes a uniform squared-distance
+   * query (e.g. for a BVH's sqrt-free pruning). Unlike the box, a sphere's surface distance is
+   * inherently radial, so this cannot avoid the square root the way AABBT::getDistance2() does -- it
+   * is simply getDistance() squared.
+   * @param[in] a_x0 3D query point.
+   * @return Squared distance from @p a_x0 to the sphere surface; zero if @p a_x0 is inside.
+   */
+  [[nodiscard]] inline T
+  getDistance2(const Vec3& a_x0) const noexcept;
+
+  /**
    * @brief Compute the sphere volume (4/3 * pi * r^3).
    * @return Sphere volume.
    */

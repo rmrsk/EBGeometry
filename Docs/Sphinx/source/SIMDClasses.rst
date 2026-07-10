@@ -5,7 +5,7 @@ SIMD-accelerated classes
 
 SIMD acceleration in EBGeometry is implemented with hand-written compiler intrinsics
 (``__m128``/``__m256``/``__m512`` and their ``double`` counterparts), not compiler
-auto-vectorisation. As of today it is confined to the two places listed below; everything else
+auto-vectorisation. As of today it is confined to the three places listed below; everything else
 in the library is scalar code. This is a statement about the current state of the
 implementation, not an architectural ceiling -- further classes may become SIMD-accelerated in
 the same style in the future. This page lists the SIMD-accelerated classes as they exist today,
@@ -46,6 +46,39 @@ BVH leaf visit.
 ``Parser::readIntoTriangleBVH`` default to the ISA-appropriate :math:`W` for whichever precision
 ``T`` is in use. See :ref:`Chap:MeshSDFClasses` for the full ISA/precision-to-default table, how
 to override :math:`W` explicitly, and the data-alignment requirements it relies on.
+
+Per-point distance evaluation: ``PointSoAT<T, W>`` / ``PointAoSoA<T, Meta, W>``
+--------------------------------------------------------------------------------
+
+:file:`Source/EBGeometry_PointSoA.hpp` / :file:`EBGeometry_PointSoAImplem.hpp` (and the
+metadata-carrying wrapper :file:`EBGeometry_PointAoSoA.hpp` / :file:`EBGeometry_PointAoSoAImplem.hpp`)
+
+**What it stores:** the positions of :math:`W` points, laid out as a *structure of arrays* (one
+flat, ``alignas``-aligned array per coordinate, rather than :math:`W` separate point objects).
+``PointSoAT`` is position-only; ``PointAoSoA<T, Meta, W>`` adds a physically separate
+``std::array<Meta, W>`` of per-point metadata alongside it, never interleaved with the positions, so
+the distance kernel touches exactly the same bytes either way -- metadata is read only afterward, via
+``getMetaData(lane)``.
+
+**What is vectorised:** the squared distance from a query point to all :math:`W` lane positions,
+computed in one SIMD batch -- one ``_mm(128\|256\|512)_load_p[sd]`` per coordinate array, then
+vectorised subtract/multiply/add for all :math:`W` lanes at once. This one kernel
+(``getDistances2()``, which returns the whole :math:`W`-lane array) backs every distance query:
+``getMinimumDistance2()`` / ``getMaximumDistance2()`` horizontally reduce the lanes to the
+nearest / farthest, and the ``*Distance()`` forms add a single ``sqrt``. The full array is what an
+all-neighbors (k-nearest-neighbor) leaf scan wants; the reduced minimum is what a closest-point leaf
+scan wants.
+
+**What this means in practice:** evaluating the distance to a whole :math:`W`-point block costs
+roughly the same as one scalar point distance, but produces the answer for :math:`W` of them. This is
+the leaf-level cost of a point-cloud ``PackedBVH`` search -- see ``Examples/ClosestPointSFCPacked`` /
+``Examples/ClosestPointTreePacked`` (closest point) and ``Examples/NearestNeighborSFCPacked`` /
+``Examples/NearestNeighborTreePacked`` (k nearest neighbors).
+
+**Choosing and tuning** :math:`W`: the width is chosen from ISA auto-detection at compile time via
+``EBGeometry::PointSoA::DefaultWidth<T>()`` -- the width that fills one SIMD register exactly for
+``T``, on the same ISA/precision table as ``TriangleSoA``'s. Pass a different ``W`` explicitly as the
+final template argument to override it.
 
 SIMD-accelerated bounding-box pruning: ``BVH::PackedBVH<T, P, K>``
 -----------------------------------------------------------------------

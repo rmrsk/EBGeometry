@@ -12,6 +12,7 @@
 #define EBGEOMETRY_POINTAOSOAIMPLEM_HPP
 
 // Std includes
+#include <array>
 #include <cstddef>
 #include <cstdint>
 
@@ -42,17 +43,45 @@ PointAoSoA<T, Meta, W>::pack(const Vec3T<T>* positions, const Meta* metaData, ui
 }
 
 template <class T, class Meta, size_t W>
-T
-PointAoSoA<T, Meta, W>::getDistance(const Vec3T<T>& a_point) const noexcept
+std::array<T, W>
+PointAoSoA<T, Meta, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
 {
-  return m_positions.getDistance(a_point);
+  return m_positions.getDistances2(a_point);
+}
+
+template <class T, class Meta, size_t W>
+std::array<T, W>
+PointAoSoA<T, Meta, W>::getDistances(const Vec3T<T>& a_point) const noexcept
+{
+  return m_positions.getDistances(a_point);
 }
 
 template <class T, class Meta, size_t W>
 T
-PointAoSoA<T, Meta, W>::getDistance2(const Vec3T<T>& a_point) const noexcept
+PointAoSoA<T, Meta, W>::getMinimumDistance2(const Vec3T<T>& a_point) const noexcept
 {
-  return m_positions.getDistance2(a_point);
+  return m_positions.getMinimumDistance2(a_point);
+}
+
+template <class T, class Meta, size_t W>
+T
+PointAoSoA<T, Meta, W>::getMinimumDistance(const Vec3T<T>& a_point) const noexcept
+{
+  return m_positions.getMinimumDistance(a_point);
+}
+
+template <class T, class Meta, size_t W>
+T
+PointAoSoA<T, Meta, W>::getMaximumDistance2(const Vec3T<T>& a_point) const noexcept
+{
+  return m_positions.getMaximumDistance2(a_point);
+}
+
+template <class T, class Meta, size_t W>
+T
+PointAoSoA<T, Meta, W>::getMaximumDistance(const Vec3T<T>& a_point) const noexcept
+{
+  return m_positions.getMaximumDistance(a_point);
 }
 
 template <class T, class Meta, size_t W>

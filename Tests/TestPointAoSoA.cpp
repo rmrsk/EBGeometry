@@ -12,6 +12,8 @@
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <array>
+
 using namespace EBGeometry;
 
 namespace {
@@ -62,7 +64,7 @@ queryPoints()
 
 } // namespace
 
-TEMPLATE_TEST_CASE("PointAoSoA: getDistance/getDistance2 agree exactly with a plain PointSoAT "
+TEMPLATE_TEST_CASE("PointAoSoA: getMinimumDistance/getMinimumDistance2 agree exactly with a plain PointSoAT "
                    "built from the same positions",
                    "[PointAoSoA]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -82,9 +84,13 @@ TEMPLATE_TEST_CASE("PointAoSoA: getDistance/getDistance2 agree exactly with a pl
 
   for (const auto& q : queryPoints<T>()) {
     // Bit-for-bit: both walk the identical scalar loop over the identical positions, so metadata
-    // truly never enters the distance computation.
-    REQUIRE(withMeta.getDistance2(q) == positionOnly.getDistance2(q));
-    REQUIRE(withMeta.getDistance(q) == positionOnly.getDistance(q));
+    // truly never enters the distance computation. Every distance query delegates straight through.
+    REQUIRE(withMeta.getMinimumDistance2(q) == positionOnly.getMinimumDistance2(q));
+    REQUIRE(withMeta.getMinimumDistance(q) == positionOnly.getMinimumDistance(q));
+    REQUIRE(withMeta.getMaximumDistance2(q) == positionOnly.getMaximumDistance2(q));
+    REQUIRE(withMeta.getMaximumDistance(q) == positionOnly.getMaximumDistance(q));
+    REQUIRE(withMeta.getDistances2(q) == positionOnly.getDistances2(q));
+    REQUIRE(withMeta.getDistances(q) == positionOnly.getDistances(q));
   }
 }
 
@@ -109,7 +115,7 @@ TEMPLATE_TEST_CASE("PointAoSoA: getMetaData returns each lane's own metadata, an
   REQUIRE(group.getMetaData(3) == short(11));
 }
 
-TEMPLATE_TEST_CASE("PointAoSoA: getDistance/getDistance2 unaffected by padding when count < W",
+TEMPLATE_TEST_CASE("PointAoSoA: getMinimumDistance/getMinimumDistance2 unaffected by padding when count < W",
                    "[PointAoSoA]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -129,7 +135,7 @@ TEMPLATE_TEST_CASE("PointAoSoA: getDistance/getDistance2 unaffected by padding w
       best2 = std::min(best2, (pos - q).length2());
     }
 
-    REQUIRE_THAT(group.getDistance2(q), withinAbsT(best2, looseMargin<T>()));
+    REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(best2, looseMargin<T>()));
   }
 }
 
@@ -188,7 +194,7 @@ TEMPLATE_TEST_CASE("PointAoSoA: omitting W defaults to PointSoA::DefaultWidth<T>
       best2 = std::min(best2, (pos - q).length2());
     }
 
-    REQUIRE_THAT(group.getDistance2(q), withinAbsT(best2, looseMargin<T>()));
+    REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(best2, looseMargin<T>()));
   }
 
   for (size_t i = 0; i < defaultWidth; i++) {
