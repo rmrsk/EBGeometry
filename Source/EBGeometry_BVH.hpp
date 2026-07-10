@@ -930,7 +930,16 @@ public:
    * @brief Construct a leaf node from a set of (primitive, BV) pairs.
    * @param[in] a_primsAndBVs Primitives and their bounding volumes.
    */
-  TreeBVH(std::vector<PrimAndBV<P, BV>> a_primsAndBVs);
+  TreeBVH(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs);
+
+  /**
+   * @brief Construct a leaf node holding the given (primitive, bounding volume) pairs, moved in.
+   * @details Rvalue overload: transfers the elements without copying or shared_ptr refcount churn.
+   * Used where a caller can relinquish its list (e.g. topDownSortAndPartition moving a partitioner's
+   * sub-list into a child node).
+   * @param[in,out] a_primsAndBVs Primitives and their bounding volumes (consumed).
+   */
+  TreeBVH(std::vector<PrimAndBV<P, BV>>&& a_primsAndBVs);
 
   /**
    * @brief Destructor.

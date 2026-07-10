@@ -48,11 +48,26 @@ inline TreeBVH<T, P, BV, K>::TreeBVH() noexcept
 }
 
 template <class T, class P, class BV, size_t K>
-inline TreeBVH<T, P, BV, K>::TreeBVH(std::vector<PrimAndBV<P, BV>> a_primsAndBVs) : TreeBVH<T, P, BV, K>()
+inline TreeBVH<T, P, BV, K>::TreeBVH(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs) : TreeBVH<T, P, BV, K>()
 {
-  // Taken by value: an rvalue argument (e.g. a partitioner's moved-out sub-list) transfers its
-  // elements in without copying or shared_ptr refcount churn; an lvalue copies into the parameter
-  // exactly as before.
+  // Copy overload (lvalue callers, e.g. the direct top-down constructor's per-node probe): copy each
+  // element straight into the members -- no intermediate parameter vector, no extra move pass.
+  m_primitives.reserve(a_primsAndBVs.size());
+  m_boundingVolumes.reserve(a_primsAndBVs.size());
+  for (const auto& pbv : a_primsAndBVs) {
+    m_primitives.emplace_back(pbv.first);
+    m_boundingVolumes.emplace_back(pbv.second);
+  }
+
+  m_boundingVolume = BV(m_boundingVolumes);
+  m_partitioned    = false;
+}
+
+template <class T, class P, class BV, size_t K>
+inline TreeBVH<T, P, BV, K>::TreeBVH(std::vector<PrimAndBV<P, BV>>&& a_primsAndBVs) : TreeBVH<T, P, BV, K>()
+{
+  // Move overload (rvalue callers, e.g. topDownSortAndPartition moving a partitioner's sub-list into a
+  // child): transfer each element in without copying or shared_ptr refcount churn.
   m_primitives.reserve(a_primsAndBVs.size());
   m_boundingVolumes.reserve(a_primsAndBVs.size());
   for (auto& pbv : a_primsAndBVs) {
