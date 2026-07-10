@@ -28,8 +28,8 @@ The template parameters shared by both are:
    callback a caller supplies to ``traverse()`` or ``pruneTraverse()`` (see below). Whether
    ``P`` needs a ``signedDistance(Vec3T<T>)`` member (or anything else) is entirely up to that
    callback -- see ``MeshSDF``/``TriMeshSDF::signedDistance()`` in :ref:`Chap:MeshSDFClasses` for
-   the signed-distance case, and the nearest-neighbor example in ``Tests/TestBVH.cpp`` for a
-   primitive with no ``signedDistance()`` at all.
+   the signed-distance case; a callback could equally perform, say, a nearest-neighbor search over
+   a point cloud whose primitive carries no ``signedDistance()`` at all.
 *  ``BV`` Bounding volume type (``TreeBVH`` only — ``PackedBVH`` always uses
    ``BoundingVolumes::AABBT<T>`` internally).
 *  ``K`` BVH degree. ``K=2`` will yield a binary tree, ``K=3`` yields a tertiary tree and so on.
@@ -359,9 +359,8 @@ squaring, no square root anywhere in the hot path) with a pruning rule that retu
 unchanged, whereas ``MeshSDF``/``TriMeshSDF::signedDistance()`` (see :ref:`Chap:MeshSDFClasses`)
 track a signed distance and square its magnitude for the bound -- both are ordinary
 instantiations of the same ``pruneTraverse()``, not special cases hardcoded into ``PackedBVH``.
-``Tests/TestBVH.cpp`` has a worked example of the former: a bare point struct with no
-``signedDistance()`` member at all, searched for its nearest neighbor via ``pruneTraverse()``,
-checked against a brute-force scan.
+The former needs nothing more than a bare point struct with no ``signedDistance()`` member at all,
+searched for its nearest neighbor via ``pruneTraverse()`` against a running squared distance.
 
 For the exact template signature and callback contracts, see `the doxygen page for
 PackedBVH::pruneTraverse <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
