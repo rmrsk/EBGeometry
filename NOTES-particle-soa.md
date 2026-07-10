@@ -146,6 +146,17 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
   loop, fragmented descend stacks vs one unified traversal). Net: not worth the machinery; the
   `getNodes()` accessor was reverted. **Top-down seed+skip is effectively optimal** — the descent is
   "wasteful" in test count but cheap in time. Closed.
+- **ClusterSAH build↔query knee swept (`maxClusterSize`), lean seed+skip query, SFC-packed groups,
+  double 500k:** mcs=2 → 117 ms/0.53, 4 → 66/0.47, **8 (default) → 50/0.435, 16 → 23/0.424**, 32 →
+  19/0.469, 64 → 17/0.61. **Knee at mcs≈16: build ~23 ms (2.5× FASTER than nanoflann's 57 ms), query
+  0.42 (~1.6× nanoflann)** — a strong operating point; mcs=8 is PAST the knee (2× build for the same
+  query). **BUT the leaf-size trap strikes a third time:** this free lunch holds only for the LEAN
+  query. In the examples' general-`Knn` query, mcs 8→16 REGRESSED query (0.71→0.81 us/pt, grp/leaf
+  10.7→19.7) while halving build — bigger clusters = bigger leaves = heavier per-lane `tryInsert`
+  scan. So examples keep mcs=8 (query-optimal for their query). **The recurring lean-vs-general
+  divergence is the signal: specializing the query to lean kNN=1 (direct min + cached bound) unlocks
+  the cheaper build too** (bigger clusters/leaves become free) — build 23 ms AND query 0.42
+  simultaneously. That is the compounding case for the lean-query specialization.
 - **Tree-build profiling (closing the ~6× build gap vs nanoflann's 57 ms).** SAH-over-points build
   (~390 ms, double 500k) decomposes: make_shared wrap+AABBs 29 ms (7%), TreeBVH ctor 15 ms (4%),
   **SAH `topDownSortAndPartition` 330 ms (79%)**, packWith 42 ms (10%). So the *tight-tree* build is
