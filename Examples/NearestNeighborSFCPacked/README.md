@@ -6,7 +6,7 @@ point-cloud primitive `PointAoSoA<T, Meta, W>` as a `PackedBVH` leaf (see
 [EBGeometry issue #92](https://github.com/rmrsk/EBGeometry/issues/92)).
 
 This is the k-nearest-neighbor counterpart to
-[`Examples/ClosestPointSFCPacked`](../ClosestPointSFCPacked/README.md): same organization -- 100,000
+[`Examples/ClosestPointSFCPacked`](../ClosestPointSFCPacked/README.md): same organization -- 500,000
 points SFC-sorted and chunked into `PointAoSoA<T, size_t, W>` groups, then built into a `PackedBVH`
 six ways (**Morton (SFC)**, **Hilbert (SFC)**, **TopDown centroid**, **Midpoint**, **SAH**, and
 **ClusterSAH** -- density-adaptive clustering of the groups, then SAH over the clusters, which reaches
@@ -84,7 +84,7 @@ Running
 
     ./NearestNeighborSFCPacked.ex
 
-Takes no arguments. It generates a random 100,000-point cloud (fixed seed, so results are
+Takes no arguments. It generates a random 500,000-point cloud (fixed seed, so results are
 reproducible on a given machine) and prints a short header followed by one table row per strategy
 giving build time, average time to find one point's kNN neighbors, speedup over brute force, average
 leaf visits per point, and the average number of `PointAoSoA` groups per visited leaf. A section of
@@ -100,4 +100,4 @@ Worth noting when reading the output:
 * **Leaf visits drive query time**, and the reciprocal culling reduces them -- most for the loose
   Morton/Hilbert builds, least for SAH. See the ON vs OFF rows.
 * **`kNN` is hard-coded to 1** (`kNN` in `main.cpp`); `maxLeafGroups` tunes the leaf size. `K` (tree
-  fan-out) and `W` (points per group) derive from the ISA.
+  fan-out) and `W` (points per group) are fixed at 4 -- a good sweet spot.

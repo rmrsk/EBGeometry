@@ -29,10 +29,12 @@
 
 using T = EBGEOMETRY_PRECISION;
 
-// SIMD widths, both derived from the ISA so each SIMD op fills one register: W points per group
-// (leaf distance test) and K children per BVH node (box test).
-constexpr size_t W = EBGeometry::PointSoA::DefaultWidth<T>();
-constexpr size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
+// SoA width W (points per group, sizing the leaf SIMD distance kernel) and branching factor K
+// (children per node, sizing the box test), both fixed at 4 -- a good sweet spot balancing build
+// and query time. Each trailing comment is the ISA-adaptive default it replaces, which instead
+// picks the SIMD-optimal value for the compiled precision.
+constexpr size_t W = 4; // = EBGeometry::PointSoA::DefaultWidth<T>()
+constexpr size_t K = 4; // = EBGeometry::BVH::DefaultBranchingRatio<T>()
 
 // Type aliases. PointGroup is the leaf primitive (W points + each point's cloud index as metadata);
 // Packed stores groups by value (ValueStorage, no pointer indirection on the hot path); Tree only
@@ -272,8 +274,8 @@ main()
 {
   std::cout << "ClosestPointSFCPacked: closest-point search over a " << numPoints << "-point cloud in the unit cube\n";
   std::cout << "  Precision T             = " << (std::is_same_v<T, float> ? "float" : "double") << '\n';
-  std::cout << "  SoA width W             = " << W << " (PointSoA::DefaultWidth<T>())\n";
-  std::cout << "  BVH branching factor K  = " << K << " (BVH::DefaultBranchingRatio<T>())\n";
+  std::cout << "  SoA width W             = " << W << " (fixed; DefaultWidth<T>() picks the ISA width)\n";
+  std::cout << "  BVH branching factor K  = " << K << " (fixed; DefaultBranchingRatio<T>() picks the ISA value)\n";
   std::cout << "  Points                  = " << numPoints << '\n';
   std::cout << "  Queries                 = " << numQueries << '\n';
   std::cout << "  Target leaf size        = " << maxLeafGroups << " groups (" << maxLeafGroups * W << " points)\n\n";

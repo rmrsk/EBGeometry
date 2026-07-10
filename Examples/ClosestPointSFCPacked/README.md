@@ -6,8 +6,8 @@ Closest-point search over a point cloud, demonstrating the point-cloud primitive
 [EBGeometry issue #92](https://github.com/rmrsk/EBGeometry/issues/92)).
 
 500,000 random points in the unit cube are Morton-sorted and packed into `PointAoSoA<T, size_t, W>`
-groups of up to `W` points each (`W` is `PointSoA::DefaultWidth<T>()`, the SIMD-optimal width for
-the target ISA and precision), with each point carrying its cloud index as metadata. The *same*
+groups of up to `W` points each (`W` is fixed at 4, a good sweet spot; `PointSoA::DefaultWidth<T>()` would instead pick the
+SIMD-optimal width for the target ISA and precision), with each point carrying its cloud index as metadata. The *same*
 groups are then built into a `PackedBVH` five ways -- **Morton (SFC)**, **Hilbert (SFC)**,
 **TopDown centroid**, **Midpoint**, and **SAH** -- via the `PackedBVH` direct constructors, so their
 closest-point query performance can be compared head to head. 500 query points are resolved against
@@ -92,6 +92,6 @@ Worth noting when reading the output:
 * **Speedup grows with the point count.** At 500,000 points brute force is only hundreds of
   microseconds, so the speedup is already large; the BVH's per-query cost grows only logarithmically
   while brute force grows linearly, so the gap widens further for larger clouds (raise `numPoints`).
-* `K` (the tree fan-out) and `W` (points per group) both derive from the ISA via
-  `BVH::DefaultBranchingRatio<T>()` and `PointSoA::DefaultWidth<T>()`, so the SIMD box test and leaf
-  distance test each fill one register.
+* `K` (the tree fan-out) and `W` (points per group) are both fixed at 4 -- a good sweet spot
+  balancing build and query time; `BVH::DefaultBranchingRatio<T>()` and `PointSoA::DefaultWidth<T>()`
+  would instead pick the SIMD-optimal value for the target ISA and precision.

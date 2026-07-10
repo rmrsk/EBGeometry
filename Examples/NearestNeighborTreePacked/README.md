@@ -9,7 +9,7 @@ point-cloud primitive `PointAoSoA<T, Meta, W>` as a `PackedBVH` leaf (see
 This is the k-nearest-neighbor counterpart to
 [`Examples/ClosestPointTreePacked`](../ClosestPointTreePacked/README.md), and the companion to
 [`Examples/NearestNeighborSFCPacked`](../NearestNeighborSFCPacked/README.md): it solves the same
-all-kNN-nearest-neighbors problem over the same 100,000-point cloud and the same five build strategies,
+all-kNN-nearest-neighbors problem over the same 500,000-point cloud and the same five build strategies,
 but forms the `PointAoSoA<T, size_t, W>` groups the other way -- a `TreeBVH` is built over the
 *individual* points and the groups are materialised from its leaves via `TreeBVH::packWith()`
 (**Morton**/**Hilbert** bottom-up, **TopDown**/**Midpoint**/**SAH** top-down). Each point walks the
@@ -86,7 +86,7 @@ Running
 
     ./NearestNeighborTreePacked.ex
 
-Takes no arguments. It generates a random 100,000-point cloud (fixed seed, so results are
+Takes no arguments. It generates a random 500,000-point cloud (fixed seed, so results are
 reproducible on a given machine) and prints a short header followed by one table row per strategy
 giving build time, average time to find one point's kNN neighbors, speedup over brute force, average
 leaf visits per point, and the average number of `PointAoSoA` groups per visited leaf. A section of
@@ -102,4 +102,4 @@ Worth noting when reading the output:
   is over `W`x as many primitives (points, not groups) -- but that same full-cloud partitioning is
   what makes the top-down trees tight (few leaf visits per query).
 * **`kNN` is hard-coded to 1** (`kNN` in `main.cpp`); `maxLeafGroups` tunes the top-down leaf size (the
-  bottom-up SFC builds ignore it). `K` (tree fan-out) and `W` (points per group) derive from the ISA.
+  bottom-up SFC builds ignore it). `K` (tree fan-out) and `W` (points per group) are fixed at 4 -- a good sweet spot.

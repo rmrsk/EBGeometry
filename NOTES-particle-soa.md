@@ -8,6 +8,11 @@ Last updated: 2026-07-10.
 ## Converged conclusion (this is the decision — do not re-open without reason)
 
 - **Keep the ClusterSAH build method.** It stays in the library and in the examples.
+- **`K = W = 4` (BVH branching factor and SoA width) is a good sweet spot** — it balances build and
+  query time well across strategies, and the point-cloud examples now **hard-code both to 4** (with
+  the ISA-adaptive `DefaultBranchingRatio<T>()` / `DefaultWidth<T>()` left as a trailing comment)
+  rather than deriving them from the compiled ISA. On AVX/`double` the default already *was* 4; the
+  fix pins it for `float`/other ISAs too, so example timings are comparable across machines.
 - **Build and traversal times are now within acceptable ranges** — this line of investigation is
   done.
 - **SAH and Midpoint are the fastest methods.** Between the two *construction paths*:
@@ -72,6 +77,10 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
 - `Examples/NearestNeighbor{SFC,Tree}Packed`: neighbor-count parameter renamed `k` -> `kNN` and set
   to **1** (was 3), across code, doc comments, and the two READMEs (READMEs now written against the
   `kNN` parameter rather than the literal). Type name `Knn` / `knnPass` and the term "k-NN" kept.
+- All four point-cloud examples (`ClosestPoint{SFC,Tree}Packed`, `NearestNeighbor{SFC,Tree}Packed`):
+  `W` and `K` hard-coded to **4** (Default*() kept as trailing comment); `numPoints` is **500,000**.
+  `BuildBVH` already fixed `K = 4`; `NestedBVH` intentionally left on the default (its outer-union K
+  matches its inner mesh BVHs' default, so pinning only the outer would desync them).
 
 ## Follow-ups still open (not blocking; do only if asked)
 

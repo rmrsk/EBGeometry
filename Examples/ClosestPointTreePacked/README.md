@@ -104,6 +104,6 @@ Worth noting when reading the output:
 * **Leaf size is tuned via `maxLeafGroups` in `main.cpp`** for the top-down strategies. A leaf-size
   sweep on this workload put the query-time knee around 16-32 groups per leaf; 16 is the default. Try
   8 or 32 to see the effect. (The bottom-up SFC builds are unaffected.)
-* `K` (the tree fan-out) and `W` (points per group) both derive from the ISA via
-  `BVH::DefaultBranchingRatio<T>()` and `PointSoA::DefaultWidth<T>()`, so the SIMD box test and leaf
-  distance test each fill one register.
+* `K` (the tree fan-out) and `W` (points per group) are both fixed at 4 -- a good sweet spot
+  balancing build and query time; `BVH::DefaultBranchingRatio<T>()` and `PointSoA::DefaultWidth<T>()`
+  would instead pick the SIMD-optimal value for the target ISA and precision.
