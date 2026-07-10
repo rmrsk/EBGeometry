@@ -196,12 +196,17 @@ ________________________
 storage-sharing question above:
 
 *  ``TreeBVH`` deletes its copy constructor and copy assignment operator. It is a recursive
-   structure of ``shared_ptr``-linked children, and no deep-clone is implemented; a naive
-   (compiler-generated) copy would only alias the same child subtrees rather than cloning them,
-   which ``topDownSortAndPartition()``/``bottomUpSortAndPartition()`` could then mutate out from
-   under a supposedly independent "copy". Copying is disallowed outright rather than silently
-   doing the wrong thing. Its move constructor and move assignment operator are explicitly
-   defaulted and fully supported.
+   structure of ``shared_ptr``-linked children, so a naive (compiler-generated) copy would only
+   alias the same child subtrees rather than cloning them, which
+   ``topDownSortAndPartition()``/``bottomUpSortAndPartition()`` could then mutate out from under a
+   supposedly independent "copy". Copying is disallowed outright rather than silently doing the
+   wrong thing. Its move constructor and move assignment operator are explicitly defaulted and
+   fully supported. To *replicate* a tree independently -- e.g. to build once and then partition
+   two copies with different strategies, or to keep a pristine copy alongside one you go on to
+   mutate -- use ``deepCopy()``, which recursively clones the node hierarchy (returning a new
+   ``std::shared_ptr<TreeBVH>``) while still sharing the immutable ``std::shared_ptr<const P>``
+   primitives by handle. (Copying a ``std::shared_ptr<TreeBVH>`` is, of course, always fine -- that
+   is shared ownership of the *same* tree, not a replica.)
 *  ``PackedBVH`` allows both copying and moving. Its members (the flattened node array, the
    primitive array, and the SIMD AABB cache) are all owned value containers with no shared
    mutable substructure, so the compiler-generated deep copy is correct and safe under both

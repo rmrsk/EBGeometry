@@ -776,10 +776,11 @@ public:
   /**
    * @brief Deleted copy constructor.
    * @details A TreeBVH is a recursive structure of shared_ptr-linked children (m_children);
-   * copying it would only alias the same child subtrees rather than cloning them, since no
-   * deep-clone is implemented. topDownSortAndPartition()/bottomUpSortAndPartition() mutate a
-   * node's children in place, so such a "copy" could silently share mutable state with the
-   * original instead of being independent. Disallowed outright rather than doing the wrong thing.
+   * a compiler-generated copy would only alias the same child subtrees rather than cloning them.
+   * topDownSortAndPartition()/bottomUpSortAndPartition() mutate a node's children in place, so such
+   * a "copy" could silently share mutable state with the original instead of being independent.
+   * Disallowed outright rather than doing the wrong thing; use deepCopy() to replicate a tree
+   * independently.
    * @param[in] a_other Other instance (unused; deleted).
    */
   TreeBVH(const TreeBVH& a_other) = delete;
@@ -883,6 +884,21 @@ public:
    */
   [[nodiscard]] inline const std::array<std::shared_ptr<TreeBVH<T, P, BV, K>>, K>&
   getChildren() const noexcept;
+
+  /**
+   * @brief Produce an independent deep copy of this tree.
+   * @details Recursively clones the node hierarchy: the returned tree owns brand-new nodes, so it
+   * can be partitioned or otherwise mutated without affecting this tree (and vice versa). The
+   * copy constructor is deleted precisely because a shallow copy would instead alias these mutable
+   * child nodes; this is the explicit, correct way to replicate a tree. Primitives are *shared*,
+   * not cloned -- each node's std::shared_ptr<const P> entries are copied by handle, matching how a
+   * TreeBVH normally references its (immutable) primitives, e.g. faces shared with a DCEL mesh.
+   * Works in either state: an unpartitioned tree clones to an unpartitioned leaf (build once, then
+   * partition the copies differently), and a partitioned tree clones its full sub-structure.
+   * @return Shared pointer to an independent clone of this tree.
+   */
+  [[nodiscard]] inline std::shared_ptr<TreeBVH<T, P, BV, K>>
+  deepCopy() const;
 
   /**
    * @brief Recursion-free BVH traversal using an explicit LIFO stack (depth-first order).

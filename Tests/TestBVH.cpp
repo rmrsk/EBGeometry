@@ -13,6 +13,7 @@
 
 #include <cmath>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -898,5 +899,113 @@ TEMPLATE_TEST_CASE("Nested BVH: a BVHUnion over several TriMeshSDF objects nests
     }
 
     REQUIRE_THAT(nestedUnion->value(p), withinAbsT(bruteMin, traversalMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shared primitives, "
+                   "identical queries; the copies partition independently",
+                   "[BVH][Dodecahedron]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Face = DCEL::FaceT<T, Meta>;
+
+  constexpr size_t K = 4;
+
+  const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
+  REQUIRE(mesh != nullptr);
+
+  BVH::PrimAndBVList<Face, AABB> primsAndBVs;
+  for (const auto& f : mesh->getFaces()) {
+    primsAndBVs.emplace_back(f, AABB(f->getAllVertexCoordinates()));
+  }
+
+  const FlatMeshSDF<T, Meta> flat(mesh);
+  const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
+
+  // Pack a (partitioned) tree and query it the way MeshSDF does, comparing to the brute-force scan.
+  const auto packAndCheck = [&](const auto& a_tree) {
+    const auto  packed = a_tree->pack();
+    const auto& faces  = packed->getPrimitives();
+
+    for (const auto& p : queryPoints<T>()) {
+      T          state    = std::numeric_limits<T>::max();
+      const auto evalLeaf = [&faces, &p](T& a_state, size_t a_offset, size_t a_count) noexcept {
+        for (size_t i = 0; i < a_count; i++) {
+          const T d = faces[a_offset + i]->signedDistance(p);
+          if (std::abs(d) < std::abs(a_state)) {
+            a_state = d;
+          }
+        }
+      };
+      const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state * a_state; };
+
+      packed->pruneTraverse(p, state, evalLeaf, pruneDist2);
+
+      REQUIRE_THAT(state, withinAbsT(brute(p), traversalMargin<T>()));
+    }
+  };
+
+  SECTION("clone of an unpartitioned tree shares primitives; the copies then partition independently")
+  {
+    auto tree = std::make_shared<BVH::TreeBVH<T, Face, AABB, K>>(primsAndBVs);
+    REQUIRE_FALSE(tree->isPartitioned());
+
+    const auto clone = tree->deepCopy();
+    REQUIRE(clone != nullptr);
+    REQUIRE(clone.get() != tree.get());
+    REQUIRE(clone->isPartitioned() == tree->isPartitioned());
+
+    // Primitives are shared by handle, not cloned: same underlying Face objects, same order.
+    // (std::as_const selects the public const getPrimitives() overload; the mutable one is protected.)
+    const auto& treePrims  = std::as_const(*tree).getPrimitives();
+    const auto& clonePrims = std::as_const(*clone).getPrimitives();
+    REQUIRE(clonePrims.size() == treePrims.size());
+    for (size_t i = 0; i < treePrims.size(); i++) {
+      REQUIRE(clonePrims[i].get() == treePrims[i].get());
+    }
+
+    // Partition the two copies with different strategies. Each must build correctly, and neither
+    // may disturb the other -- the guarantee the deleted shallow copy could not provide.
+    tree->topDownSortAndPartition();
+    clone->template bottomUpSortAndPartition<SFC::Morton>();
+
+    REQUIRE(tree->isPartitioned());
+    REQUIRE(clone->isPartitioned());
+    packAndCheck(tree);
+    packAndCheck(clone);
+  }
+
+  SECTION("clone of a partitioned tree duplicates the node hierarchy but shares primitives")
+  {
+    auto tree = std::make_shared<BVH::TreeBVH<T, Face, AABB, K>>(primsAndBVs);
+    tree->topDownSortAndPartition();
+    REQUIRE(tree->isPartitioned());
+
+    const auto clone = tree->deepCopy();
+    REQUIRE(clone != nullptr);
+    REQUIRE(clone->isPartitioned());
+
+    // Interior child nodes are brand-new objects, not aliases of the original's -- this is exactly
+    // what a shallow copy would have failed to do (36 faces guarantee the root is interior).
+    bool anyInterior = false;
+    for (size_t k = 0; k < K; k++) {
+      if (tree->getChildren()[k] != nullptr) {
+        anyInterior = true;
+        REQUIRE(clone->getChildren()[k] != nullptr);
+        REQUIRE(clone->getChildren()[k].get() != tree->getChildren()[k].get());
+      }
+      else {
+        REQUIRE(clone->getChildren()[k] == nullptr);
+      }
+    }
+    REQUIRE(anyInterior);
+
+    // Behaviorally identical, and independent: destroying the original leaves the clone fully valid
+    // (its nodes are its own; the shared faces are kept alive by the mesh).
+    packAndCheck(clone);
+    tree.reset();
+    packAndCheck(clone);
   }
 }
