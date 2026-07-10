@@ -36,7 +36,7 @@ constexpr size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
 // names the LeafPredicate type the top-down partitioners take.
 using Vec3       = EBGeometry::Vec3T<T>;
 using AABB       = EBGeometry::BoundingVolumes::AABBT<T>;
-using PointGroup = EBGeometry::PointAoSoA<T, int, W>;
+using PointGroup = EBGeometry::PointAoSoA<T, size_t, W>;
 using Packed     = EBGeometry::BVH::PackedBVH<T, PointGroup, K, EBGeometry::BVH::ValueStorage<PointGroup>>;
 using Tree       = EBGeometry::BVH::TreeBVH<T, PointGroup, AABB, K>;
 
@@ -60,8 +60,8 @@ namespace {
  */
 struct Closest
 {
-  T   dist2 = std::numeric_limits<T>::max(); ///< Squared distance to the closest point found so far.
-  int index = -1;                            ///< Cloud point index (a group index mid-traversal), or -1 if none.
+  T      dist2 = std::numeric_limits<T>::max(); ///< Squared distance to the closest point found so far.
+  size_t index = 0;                             ///< Cloud point index (a group index mid-traversal).
 };
 
 /**
@@ -97,13 +97,13 @@ buildGroups(const std::vector<Vec3>& a_positions)
     const size_t offset = g * W;
     const size_t count  = std::min(W, a_positions.size() - offset);
 
-    std::array<Vec3, W> posArr;
-    std::array<int, W>  metaArr;
+    std::array<Vec3, W>   posArr;
+    std::array<size_t, W> metaArr;
     for (size_t i = 0; i < count; i++) {
       const uint32_t srcIdx = order[offset + i];
 
       posArr[i]  = a_positions[srcIdx];
-      metaArr[i] = static_cast<int>(srcIdx);
+      metaArr[i] = srcIdx;
     }
 
     PointGroup group;
@@ -130,7 +130,7 @@ bruteForceClosest(const std::vector<Vec3>& a_positions, const Vec3& a_query)
     const T d2 = (a_positions[i] - a_query).length2();
     if (d2 < best.dist2) {
       best.dist2 = d2;
-      best.index = static_cast<int>(i);
+      best.index = i;
     }
   }
 
@@ -169,7 +169,7 @@ bvhClosest(const Packed&            a_bvh,
         const T d2 = groups[a_offset + i].getDistance2(a_query);
         if (d2 < a_state.dist2) {
           a_state.dist2 = d2;
-          a_state.index = static_cast<int>(a_offset + i);
+          a_state.index = a_offset + i;
         }
       }
     };
@@ -177,16 +177,17 @@ bvhClosest(const Packed&            a_bvh,
 
   a_bvh.pruneTraverse(a_query, state, evalLeaf, pruneDist2);
 
-  EBGEOMETRY_EXPECT(state.index >= 0); // The initial (infinite) bound guarantees at least one leaf.
+  // The traversal always evaluates at least one group (the initial infinite bound prunes nothing).
+  EBGEOMETRY_EXPECT(state.dist2 < std::numeric_limits<T>::max());
 
   // Resolve the winning group's metadata to the actual cloud point: rescan its lanes, keeping the
   // closest, which turns state's group index into the point index.
-  const PointGroup& winner = groups[static_cast<size_t>(state.index)];
+  const PointGroup& winner = groups[state.index];
 
   Closest best;
   for (size_t lane = 0; lane < W; lane++) {
-    const int idx = winner.getMetaData(lane);
-    const T   d2  = (a_positions[static_cast<size_t>(idx)] - a_query).length2();
+    const size_t idx = winner.getMetaData(lane);
+    const T      d2  = (a_positions[idx] - a_query).length2();
     if (d2 < best.dist2) {
       best.dist2 = d2;
       best.index = idx;
