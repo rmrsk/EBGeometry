@@ -176,6 +176,19 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
     = SAH over *clusters* not points). The real gap-closer (SAH-quality tree at LBVH build speed) is
     **LBVH + treelet reoptimization** -- a real project, untried. For per-step rebuild (moving
     particles) use ClusterSAH/Midpoint; tight SAH-over-points is for build-once/query-many.
+- **Index-based build: PROTOTYPED, closes the build gap (76 ms vs 275-390 ms).** Mirrored nanoflann:
+  partition a single `uint32` index array **in place** by longest-axis Midpoint, pack each leaf's
+  points into `PointGroup`s **inline** during the build -- no `make_shared`, no per-node sublist
+  copies, no separate `packWith`, no `TreeBVH`. Point->own-leaf map falls out of the build for free
+  (so seeding needs no extra pass). Measured (double 500k): **build 76 ms** (vs current
+  Midpoint-over-points ~275, SAH-over-points ~390; nanoflann ~57), **query 0.32 us/pt** (2.22 leaf/pt,
+  as tight as SAH; nanoflann ~0.26), **0/400 brute-force mismatches**. So an index-based Midpoint build
+  puts EBGeometry **within ~1.3x of nanoflann on BOTH build (76 vs 57) and query (0.32 vs 0.26)** --
+  from a general BVH, down from ~6.8x build / ~1.3x query for SAH-over-points. **Confirms definitively:
+  the build gap was machinery, not algorithm.** Prototype: /tmp scratch (FlatNode array + inline
+  packing). Next: integrate as a new direct `PackedBVH` point-cloud build path (write straight into
+  `m_linearNodes`/`m_primitives`); a pool/bump allocator + trimming the leaf-pack could chase the
+  remaining ~19 ms to nanoflann.
 - **How nanoflann builds its kd-tree (studied its source for build hints).** (1) Partitions a single
   `std::vector<uint32_t> vAcc_` of INDICES **in place** -- no per-primitive alloc, no `shared_ptr`, no
   per-node sublist copies; points read via an accessor. (2) **Pool-allocated nodes** (bump allocator).
