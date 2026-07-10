@@ -89,6 +89,20 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
   seed+reciprocal stacked is then redundant overhead. Verified float+double. The bottom-up
   "start at the leaf, walk up" variant would hit the same floor and needs parent pointers `PackedBVH`
   lacks, so seeding (which needs nothing new) is the practical form.
+- **Bottom-up (leaf-anchored) traversal: PROTOTYPED and REJECTED — cuts AABB tests but no wall-clock
+  gain.** Idea (Robert's): every all-NN query point already lives in a leaf, so start AT that leaf and
+  walk UP, checking only sibling subtrees at each ancestor — skipping the root→leaf descent and its
+  "own-path" AABB tests (which always pass, so are pure overhead). Prototyped via a temporary
+  `PackedBVH::getNodes()` accessor + parent / point→leaf-node maps + a custom bottom-up traversal;
+  correct (0 mismatches vs top-down, all trees). It DOES cut AABB tests **~18–23%** (ClusterSAH 45→37,
+  SAH-over-points 36→28) — exactly the wasteful own-path tests. **But wall-clock is FLAT to slightly
+  WORSE across all trees** (tight SAH-over-points 500k: top-down ~0.272 vs bottom-up ~0.283 µs/pt,
+  6-run mean; earlier "5% faster" was a noise outlier). Reason: the AABB tests are cheap
+  (cache-resident node-bbox ops) and NOT the bottleneck — leaf distance work + memory latency dominate,
+  and leaf visits are unchanged (~2.1). Bottom-up also adds overhead (parent walk, per-ancestor sibling
+  loop, fragmented descend stacks vs one unified traversal). Net: not worth the machinery; the
+  `getNodes()` accessor was reverted. **Top-down seed+skip is effectively optimal** — the descent is
+  "wasteful" in test count but cheap in time. Closed.
 - **Midpoint's dominant build cost is plumbing, not the split.** `Midpoint2WaySplit` /
   `MidpointKWaySplit` (`Source/EBGeometry_BVH.hpp`) are a centroid-bbox scan + one `std::partition`
   per level — trivially cheap. Time goes to: (1) up-front `std::make_shared<P>` wrapping of every
