@@ -49,7 +49,7 @@ using Tree       = EBGeometry::BVH::TreeBVH<T, PointGroup, AABB, K>;
 // Run configuration. kNN is the number of nearest neighbors per point (hard-coded to 1). numVerify
 // points are checked against a brute-force scan (full all-pairs would be O(N^2)). maxLeafGroups is
 // the target groups per leaf.
-constexpr size_t   numPoints     = 100000;
+constexpr size_t   numPoints     = 500000;
 constexpr size_t   kNN           = 1;
 constexpr size_t   numVerify     = 500;
 constexpr uint64_t pointSeed     = 123456789ULL;

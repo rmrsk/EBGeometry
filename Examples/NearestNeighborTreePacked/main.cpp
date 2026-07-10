@@ -68,7 +68,7 @@ using Packed     = EBGeometry::BVH::PackedBVH<T, PointGroup, K, EBGeometry::BVH:
 // Run configuration. kNN is the number of nearest neighbors per point (hard-coded to 1). numVerify
 // points are checked against a brute-force scan (full all-pairs would be O(N^2)). maxLeafGroups is
 // the target groups per leaf for the top-down partitioners.
-constexpr size_t   numPoints     = 100000;
+constexpr size_t   numPoints     = 500000;
 constexpr size_t   kNN           = 1;
 constexpr size_t   numVerify     = 500;
 constexpr uint64_t pointSeed     = 123456789ULL;
