@@ -94,6 +94,8 @@ points (fixed seeds, so results are reproducible run to run on the same machine)
 * A table with one row per strategy (plus brute force), giving build time, average per-query time,
   speedup over brute force, average leaf-node visits per query, and the average number of
   `PointAoSoA` groups per visited leaf (the leaf occupancy each partitioner actually achieved).
+* A final **query-stream ordering** measurement (using the SAH BVH): the same 500 queries timed in
+  generation order versus Morton-sorted order, and the speedup from sorting.
 
 Some things worth noting when reading the output:
 
@@ -119,6 +121,13 @@ Some things worth noting when reading the output:
   microseconds, so even the best tree shows a modest (tens-of-×) speedup; the BVH's per-query cost
   grows only logarithmically with the point count while brute force grows linearly, so the gap
   widens dramatically for larger clouds. Raise `numPoints` in `main.cpp` to see this.
+* **Query ordering is a free ~1.1-1.5× (batch workloads only).** The query is memory-latency bound
+  -- most of its time is dependent node loads down a tree that does not fit in L1/L2 -- so issuing
+  spatially-near queries consecutively reuses warm cache. The final section sorts the query batch
+  along the same Morton curve used to build the tree and reports the resulting speedup; it grows
+  with the point count (the tree gets larger relative to cache). This costs nothing in the data
+  structure or the math -- it is purely the *order* you issue queries in -- but applies only when
+  you have a batch you are free to reorder, not to a single online query.
 * The `PackedBVH`'s branching factor `K` and the SoA group width `W` are independent: `K` governs
   the outer tree's fan-out over groups, while `W` governs how many points live inside one leaf
   group. This example fixes `K = 4` (so tree shape doesn't vary with the compiling machine's SIMD

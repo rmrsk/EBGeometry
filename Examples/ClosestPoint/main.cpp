@@ -227,6 +227,49 @@ bvhNearest(const Packed&            a_bvh,
   return best;
 }
 
+// Indices that put a_points into Morton-curve order -- the same BVH::computeSFCBins +
+// SFC::Morton::encode pairing used to group the cloud, here applied to the query points so
+// spatially-near queries can be issued consecutively (see the query-ordering demo in main()).
+std::vector<uint32_t>
+mortonOrder(const std::vector<Vec3>& a_points)
+{
+  const auto bins = EBGeometry::BVH::computeSFCBins<T>(a_points);
+
+  std::vector<uint32_t> order(a_points.size());
+  std::iota(order.begin(), order.end(), uint32_t(0));
+  std::sort(order.begin(), order.end(), [&bins](uint32_t a_a, uint32_t a_b) noexcept -> bool {
+    return EBGeometry::SFC::Morton::encode(bins[a_a]) < EBGeometry::SFC::Morton::encode(bins[a_b]);
+  });
+
+  return order;
+}
+
+// Average per-query time (microseconds) of running every query in a_queries through a_bvh, averaged
+// over several passes for a stable reading. Results are discarded (correctness is already checked in
+// benchmarkStrategy) -- this exists only to measure how the *order* of the query stream affects
+// cache reuse.
+double
+timeQueries(const Packed& a_bvh, const std::vector<Vec3>& a_positions, const std::vector<Vec3>& a_queries)
+{
+  constexpr int passes = 20;
+
+  long long               dummyLeafVisits = 0;
+  long long               dummyGroupEvals = 0;
+  volatile T              sink            = T(0);
+  EBGeometry::SimpleTimer timer;
+
+  timer.start();
+  for (int p = 0; p < passes; p++) {
+    for (const auto& q : a_queries) {
+      sink += bvhNearest(a_bvh, a_positions, q, dummyLeafVisits, dummyGroupEvals).dist2;
+    }
+  }
+  timer.stop();
+  (void)sink;
+
+  return 1.0e6 * timer.seconds() / double(passes * a_queries.size());
+}
+
 // Timing/verification result for one BVH build strategy.
 struct StrategyResult
 {
@@ -409,6 +452,30 @@ main()
   printRow("TopDown centroid", topDown, bruteSeconds);
   printRow("Midpoint", midpoint, bruteSeconds);
   printRow("SAH", sah, bruteSeconds);
+
+  // Query-stream ordering (using the SAH BVH, the fastest above). The query is memory-latency
+  // bound -- most of its time is spent chasing dependent node loads down the tree, which (at a few
+  // MB) does not fit in L1/L2. Two spatially-near query points descend through nearly the same
+  // nodes, so issuing them back-to-back finds those nodes already warm in cache. Sorting the query
+  // *batch* along the same Morton curve used to build the tree therefore cuts cache misses -- with
+  // no change to the data structure or the distance math. This is a property of the query *order*,
+  // not the tree: it only helps when you have a batch of queries you are free to reorder (a single
+  // online query, or queries that must be answered in arrival order, cannot benefit).
+  std::vector<Vec3> sortedQueries;
+  sortedQueries.reserve(numQueries);
+  for (const uint32_t idx : mortonOrder(queries)) {
+    sortedQueries.push_back(queries[idx]);
+  }
+
+  const double usGenerationOrder = timeQueries(sahBVH, positions, queries);
+  const double usMortonSorted    = timeQueries(sahBVH, positions, sortedQueries);
+
+  std::cout << "\nQuery-stream ordering (SAH BVH, " << numQueries << " queries, cache-locality only):\n";
+  std::cout << std::setprecision(3);
+  std::cout << "  queries in generation order          = " << usGenerationOrder << " us/q\n";
+  std::cout << "  queries Morton-sorted                = " << usMortonSorted << " us/q\n";
+  std::cout << std::setprecision(2);
+  std::cout << "  speedup from sorting the query batch = " << usGenerationOrder / usMortonSorted << "x\n";
 
   return 0;
 }
