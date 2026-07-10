@@ -75,6 +75,20 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
   *every* transiently-accepted lane (seeding many neighbors' bounds); group-min reciprocates only the
   group's single nearest, so bounds tighten slower and more leaves are visited. The per-lane
   reciprocal offers are worth more than the saved inserts. **Closed — do not retry for point clouds.**
+- **Seed-from-own-leaf: a local bound-tightener that often beats reciprocal culling — WIRED IN
+  (committed) to both `NearestNeighbor*` examples.** For all-NN, every query point already lives in a
+  leaf, so descending from the root with a `+inf` bound is wasted. Before traversing, scan the point's
+  own leaf, seed its prune bound from it, and **skip that leaf during traversal** (visit once, not
+  twice — the skip is essential: seed-without-skip was *slower* on tight trees). A one-time no-prune
+  pass (`buildLeafMap`) maps each point → its leaf's group range, reused across all queries. It is
+  **local** (no cross-point coupling, no ordering dependence → parallelizes trivially), unlike
+  reciprocal culling. Measured (double, 500k, us/pt, reciprocal OFF vs the both-off baseline):
+  SFCPacked Morton 4.94→1.58, SAH 0.86→0.64; and it **beats reciprocal culling** on every SFCPacked
+  strategy and on the loose TreePacked trees (e.g. SFCPacked SAH: seed 0.64 < reciprocal 0.73). On an
+  already-optimal tree at the ~2-leaf floor (TreePacked SAH) it is flat — nothing left to recover, and
+  seed+reciprocal stacked is then redundant overhead. Verified float+double. The bottom-up
+  "start at the leaf, walk up" variant would hit the same floor and needs parent pointers `PackedBVH`
+  lacks, so seeding (which needs nothing new) is the practical form.
 - **Midpoint's dominant build cost is plumbing, not the split.** `Midpoint2WaySplit` /
   `MidpointKWaySplit` (`Source/EBGeometry_BVH.hpp`) are a centroid-bbox scan + one `std::partition`
   per level — trivially cheap. Time goes to: (1) up-front `std::make_shared<P>` wrapping of every

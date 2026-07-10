@@ -44,6 +44,25 @@ strategy, SAH included -- so which regime you are in depends on the construction
 Distances come straight from the SIMD kernel: `PointAoSoA::getDistances2()` returns all `W` lane
 squared distances to the query at once, and `getMetaData()` names each lane's cloud index.
 
+Seed-from-own-leaf
+------------------
+
+A second, independent bound-tightener the example profiles: since this is *all*-nearest-neighbor,
+every query point already *lives in a leaf* of the BVH. So before traversing, scan that own leaf,
+seed the point's pruning bound from it, and **skip that leaf during traversal** (visit it once, not
+twice). The descent then prunes with an already-tight bound instead of starting from `+inf`. A single
+no-prune pass (`buildLeafMap`) maps each point to its leaf's group range up front, reused across all
+queries.
+
+Unlike reciprocal culling this is **local**: each point seeds only from its own leaf, with no
+cross-point coupling and no dependence on processing order -- so it also parallelizes trivially. The
+output's **Seed-from-own-leaf** rows run it with reciprocal culling *off*, to isolate the effect
+against the *both-off* "no cull" rows. On loose trees it is a large win (the top-down descent from
+`+inf` otherwise wanders through many leaves before finding a tight bound) and typically **beats
+reciprocal culling**; on an already-optimal tree that is at the ~2-leaf floor there is nothing left to
+recover, so it is flat. The two levers overlap (both pre-tighten the bound), so stacking seed *on top
+of* reciprocal helps only where reciprocal has not already reached the floor.
+
 Building
 --------
 

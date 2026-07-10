@@ -216,21 +216,57 @@ bruteForceKnn(const std::vector<Vec3>& a_positions, size_t a_query)
  * @param[in,out] a_groupEvals Accumulates groups scanned (a traversal statistic).
  * @return One Knn per cloud point (its kNN nearest neighbors, sorted by ascending squared distance).
  */
+// Map each point to the [offset, count) group range of the BVH leaf it lives in, via a single
+// no-prune traversal that visits every leaf exactly once. Built once per BVH and reused across all
+// queries when own-leaf seeding is enabled.
+void
+buildLeafMap(const Packed&          a_bvh,
+             const Vec3&            a_anyQuery,
+             std::vector<uint32_t>& a_leafOff,
+             std::vector<uint32_t>& a_leafCnt)
+{
+  const size_t n      = a_leafOff.size();
+  const auto&  groups = a_bvh.getPrimitives();
+
+  int        dummy  = 0;
+  const auto record = [&](int&, size_t a_offset, size_t a_count) noexcept {
+    for (size_t g = 0; g < a_count; g++) {
+      for (size_t lane = 0; lane < W; lane++) {
+        const uint32_t c = static_cast<uint32_t>(groups[a_offset + g].getMetaData(lane));
+        if (c < n) {
+          a_leafOff[c] = static_cast<uint32_t>(a_offset);
+          a_leafCnt[c] = static_cast<uint32_t>(a_count);
+        }
+      }
+    }
+  };
+  const auto noPrune = [](const int&) noexcept -> T { return std::numeric_limits<T>::max(); };
+
+  a_bvh.pruneTraverse(a_anyQuery, dummy, record, noPrune);
+}
+
 std::vector<Knn>
 knnPass(const Packed&                a_bvh,
         const std::vector<Vec3>&     a_positions,
         const std::vector<uint32_t>& a_order,
         bool                         a_reciprocal,
         long long&                   a_leafVisits,
-        long long&                   a_groupEvals)
+        long long&                   a_groupEvals,
+        bool                         a_seedOwnLeaf = false,
+        const std::vector<uint32_t>* a_leafOff     = nullptr,
+        const std::vector<uint32_t>* a_leafCnt     = nullptr)
 {
   std::vector<Knn> knn(a_positions.size());
 
   const auto& groups = a_bvh.getPrimitives();
 
   for (const uint32_t p : a_order) {
-    const auto evalLeaf = [&groups, &knn, &a_positions, &a_leafVisits, &a_groupEvals, p, a_reciprocal](
-                            Knn& a_state, size_t a_offset, size_t a_count) noexcept {
+    Knn&           state  = knn[p];
+    const uint32_t ownOff = a_seedOwnLeaf ? (*a_leafOff)[p] : 0xFFFFFFFFu;
+
+    // Scan one leaf's groups into knn[p] (reciprocating accepted neighbours). Shared by the optional
+    // own-leaf seed and the traversal callback so both do exactly the same per-leaf work.
+    const auto scanLeaf = [&](size_t a_offset, size_t a_count) noexcept {
       a_leafVisits++;
       a_groupEvals += static_cast<long long>(a_count);
       for (size_t g = 0; g < a_count; g++) {
@@ -250,15 +286,29 @@ knnPass(const Packed&                a_bvh,
           // symmetric, so P is then a strong candidate for C too, and offering it now tightens C's
           // bound before C is processed. Reciprocating every far candidate instead (they get
           // rejected anyway) is pure overhead -- see README.
-          if (a_state.tryInsert(d2, c) && a_reciprocal) { // a_state is knn[p]
+          if (state.tryInsert(d2, c) && a_reciprocal) { // state is knn[p]
             knn[c].tryInsert(d2, p);
           }
         }
       }
     };
+
+    // The query point already lives in a leaf -- when enabled, seed the prune bound from that leaf up
+    // front, then skip it during traversal (visit it once, not twice) so the descent prunes with an
+    // already-tight bound instead of starting from +inf. See README.
+    if (a_seedOwnLeaf) {
+      scanLeaf(ownOff, (*a_leafCnt)[p]);
+    }
+
+    const auto evalLeaf = [&](Knn&, size_t a_offset, size_t a_count) noexcept {
+      if (a_seedOwnLeaf && static_cast<uint32_t>(a_offset) == ownOff) {
+        return; // own leaf already seeded above
+      }
+      scanLeaf(a_offset, a_count);
+    };
     const auto pruneDist2 = [](const Knn& a_state) noexcept -> T { return a_state.worst2(); };
 
-    a_bvh.pruneTraverse(a_positions[p], knn[p], evalLeaf, pruneDist2);
+    a_bvh.pruneTraverse(a_positions[p], state, evalLeaf, pruneDist2);
   }
 
   return knn;
@@ -286,7 +336,10 @@ benchmarkStrategy(const Packed&                          a_bvh,
                   const std::vector<uint32_t>&           a_order,
                   bool                                   a_reciprocal,
                   const std::vector<size_t>&             a_verifyIdx,
-                  const std::vector<std::array<T, kNN>>& a_bruteKnn)
+                  const std::vector<std::array<T, kNN>>& a_bruteKnn,
+                  bool                                   a_seedOwnLeaf = false,
+                  const std::vector<uint32_t>*           a_leafOff     = nullptr,
+                  const std::vector<uint32_t>*           a_leafCnt     = nullptr)
 {
   constexpr T tolerance = std::is_same_v<T, float> ? T(1.0e-4) : T(1.0e-9);
 
@@ -295,7 +348,8 @@ benchmarkStrategy(const Packed&                          a_bvh,
 
   EBGeometry::SimpleTimer timer;
   timer.start();
-  const std::vector<Knn> knn = knnPass(a_bvh, a_positions, a_order, a_reciprocal, leafVisits, groupEvals);
+  const std::vector<Knn> knn =
+    knnPass(a_bvh, a_positions, a_order, a_reciprocal, leafVisits, groupEvals, a_seedOwnLeaf, a_leafOff, a_leafCnt);
   timer.stop();
 
   for (size_t s = 0; s < a_verifyIdx.size(); s++) {
@@ -458,6 +512,26 @@ main()
   printRow("Morton (no cull)", mortonNoCull, brutePerPointSec);
   printRow("Hilbert (no cull)", hilbertNoCull, brutePerPointSec);
   printRow("SAH (no cull)", sahNoCull, brutePerPointSec);
+
+  std::cout << std::string(91, '-') << '\n';
+  std::cout << "Seed-from-own-leaf (reciprocal OFF): each point already lives in a leaf, so seed its prune\n";
+  std::cout << "bound from that leaf and skip the leaf in traversal. This is a *local* bound-tightener (no\n";
+  std::cout << "cross-point coupling, no ordering dependence) -- an alternative to reciprocal culling.\n";
+  std::cout << "Compare to the 'no cull' rows (both off) and the main rows (reciprocal on):\n";
+  std::vector<uint32_t> leafOff(numPoints);
+  std::vector<uint32_t> leafCnt(numPoints);
+  const auto            seededRow = [&](const char* a_label, const Packed& a_bvh, double a_buildSeconds) {
+    buildLeafMap(a_bvh, positions[0], leafOff, leafCnt);
+    StrategyResult r = benchmarkStrategy(a_bvh, positions, order, false, verifyIdx, bruteKnn, true, &leafOff, &leafCnt);
+    r.buildSeconds = a_buildSeconds;
+    printRow(a_label, r, brutePerPointSec);
+  };
+  seededRow("Morton (seed)", mortonBVH, mortonBuild);
+  seededRow("Hilbert (seed)", hilbertBVH, hilbertBuild);
+  seededRow("TopDown (seed)", topDownBVH, topDownBuild);
+  seededRow("Midpoint (seed)", midpointBVH, midpointBuild);
+  seededRow("SAH (seed)", sahBVH, sahBuild);
+  seededRow("ClusterSAH (seed)", clusterSahBVH, clusterSahBuild);
 
   return 0;
 }
