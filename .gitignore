@@ -5,6 +5,9 @@
 
 build
 
+# Fetched (not vendored) third-party single header for the nanoflann comparison harness.
+ThirdParty/nanoflann/**/nanoflann.hpp
+
 # AMReX build/run artifacts (any example under ThirdParty/AMReX/<name>/).
 ThirdParty/AMReX/*/plt*
 ThirdParty/AMReX/*/tmp_build_dir
