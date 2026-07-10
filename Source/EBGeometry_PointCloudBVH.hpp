@@ -50,19 +50,19 @@ namespace EBGeometry {
   @tparam T    Floating-point precision.
   @tparam Meta User metadata type stored per particle and returned via metadata(). Defaults to the
                cloud index itself (std::size_t).
-  @tparam K     BVH branching factor. Defaults to the SIMD-optimal value for T.
-  @tparam Width Particles per SoA leaf lane group. Defaults to the SIMD-optimal width for T.
+  @tparam K    BVH branching factor. Defaults to the SIMD-optimal value for T.
+  @tparam W    Particles per SoA leaf lane group. Defaults to the SIMD-optimal width for T.
 */
 template <class T,
-          class Meta   = std::size_t,
-          size_t K     = BVH::DefaultBranchingRatio<T>(),
-          size_t Width = PointSoA::DefaultWidth<T>()>
+          class Meta = std::size_t,
+          size_t K   = BVH::DefaultBranchingRatio<T>(),
+          size_t W   = PointSoA::DefaultWidth<T>()>
 class PointCloudBVH
-  : public BVH::PackedBVH<T, PointAoSoA<T, std::size_t, Width>, K, BVH::ValueStorage<PointAoSoA<T, std::size_t, Width>>>
+  : public BVH::PackedBVH<T, PointAoSoA<T, std::size_t, W>, K, BVH::ValueStorage<PointAoSoA<T, std::size_t, W>>>
 {
 public:
-  /*! @brief The SoA leaf primitive: a group of up to Width particles carrying their cloud indices. */
-  using ParticleGroup = PointAoSoA<T, std::size_t, Width>;
+  /*! @brief The SoA leaf primitive: a group of up to W particles carrying their cloud indices. */
+  using ParticleGroup = PointAoSoA<T, std::size_t, W>;
 
   /*! @brief The general packed BVH this specializes. */
   using Base = BVH::PackedBVH<T, ParticleGroup, K, BVH::ValueStorage<ParticleGroup>>;
@@ -95,7 +95,7 @@ public:
   */
   inline PointCloudBVH(const std::vector<Vec3T<T>>& a_positions,
                        const std::vector<Meta>&     a_metadata,
-                       std::size_t                  a_targetLeafSize = 16 * Width);
+                       std::size_t                  a_targetLeafSize = 16 * W);
 
   /*!
     @brief Closest cloud particle to an arbitrary query point.

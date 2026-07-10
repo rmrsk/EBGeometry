@@ -24,19 +24,19 @@
 
 namespace EBGeometry {
 
-template <class T, class Meta, size_t K, size_t Width>
-inline PointCloudBVH<T, Meta, K, Width>::PointCloudBVH(const std::vector<Vec3T<T>>& a_positions,
-                                                       const std::vector<Meta>&     a_metadata,
-                                                       std::size_t                  a_targetLeafSize)
+template <class T, class Meta, size_t K, size_t W>
+inline PointCloudBVH<T, Meta, K, W>::PointCloudBVH(const std::vector<Vec3T<T>>& a_positions,
+                                                   const std::vector<Meta>&     a_metadata,
+                                                   std::size_t                  a_targetLeafSize)
   : PointCloudBVH(buildTree(a_positions, a_targetLeafSize), a_positions, a_metadata)
 {
   EBGEOMETRY_EXPECT(a_positions.size() == a_metadata.size());
 }
 
-template <class T, class Meta, size_t K, size_t Width>
-inline PointCloudBVH<T, Meta, K, Width>::PointCloudBVH(BuildResult&&                a_build,
-                                                       const std::vector<Vec3T<T>>& a_positions,
-                                                       const std::vector<Meta>&     a_metadata)
+template <class T, class Meta, size_t K, size_t W>
+inline PointCloudBVH<T, Meta, K, W>::PointCloudBVH(BuildResult&&                a_build,
+                                                   const std::vector<Vec3T<T>>& a_positions,
+                                                   const std::vector<Meta>&     a_metadata)
   : Base(std::move(a_build.nodes), std::move(a_build.primitives)),
     m_positions(a_positions),
     m_metadata(a_metadata),
@@ -44,9 +44,9 @@ inline PointCloudBVH<T, Meta, K, Width>::PointCloudBVH(BuildResult&&            
     m_leafCnt(std::move(a_build.leafCnt))
 {}
 
-template <class T, class Meta, size_t K, size_t Width>
-inline typename PointCloudBVH<T, Meta, K, Width>::BuildResult
-PointCloudBVH<T, Meta, K, Width>::buildTree(const std::vector<Vec3T<T>>& a_positions, std::size_t a_leafSize)
+template <class T, class Meta, size_t K, size_t W>
+inline typename PointCloudBVH<T, Meta, K, W>::BuildResult
+PointCloudBVH<T, Meta, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions, std::size_t a_leafSize)
 {
   const std::size_t n = a_positions.size();
 
@@ -54,7 +54,7 @@ PointCloudBVH<T, Meta, K, Width>::buildTree(const std::vector<Vec3T<T>>& a_posit
   res.leafOff.assign(n, 0);
   res.leafCnt.assign(n, 0);
   res.nodes.reserve(n > 0 ? 2 * n / std::max<std::size_t>(a_leafSize, 1) + 4 : 4);
-  res.primitives.reserve(n / Width + 4);
+  res.primitives.reserve(n / W + 4);
 
   std::vector<std::uint32_t> idx(n);
   std::iota(idx.begin(), idx.end(), std::uint32_t{0});
@@ -122,11 +122,11 @@ PointCloudBVH<T, Meta, K, Width>::buildTree(const std::vector<Vec3T<T>>& a_posit
         Vec3T<T> blo = +Vec3T<T>::max();
         Vec3T<T> bhi = -Vec3T<T>::max();
 
-        for (std::uint32_t g = a_lo; g < a_hi; g += static_cast<std::uint32_t>(Width)) {
-          const std::uint32_t count = std::min<std::uint32_t>(static_cast<std::uint32_t>(Width), a_hi - g);
+        for (std::uint32_t g = a_lo; g < a_hi; g += static_cast<std::uint32_t>(W)) {
+          const std::uint32_t count = std::min<std::uint32_t>(static_cast<std::uint32_t>(W), a_hi - g);
 
-          std::array<Vec3T<T>, Width>    posArr;
-          std::array<std::size_t, Width> metaArr;
+          std::array<Vec3T<T>, W>    posArr;
+          std::array<std::size_t, W> metaArr;
           for (std::uint32_t j = 0; j < count; j++) {
             posArr[j]  = pos[idx[g + j]];
             metaArr[j] = idx[g + j];
@@ -182,15 +182,15 @@ PointCloudBVH<T, Meta, K, Width>::buildTree(const std::vector<Vec3T<T>>& a_posit
   return res;
 }
 
-template <class T, class Meta, size_t K, size_t Width>
+template <class T, class Meta, size_t K, size_t W>
 inline void
-PointCloudBVH<T, Meta, K, Width>::query(const Vec3T<T>& a_query,
-                                        std::size_t     a_k,
-                                        Hit*            a_out,
-                                        std::size_t&    a_found,
-                                        std::size_t     a_exclude,
-                                        std::uint32_t   a_seedOff,
-                                        std::uint32_t   a_seedCnt) const noexcept
+PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
+                                    std::size_t     a_k,
+                                    Hit*            a_out,
+                                    std::size_t&    a_found,
+                                    std::size_t     a_exclude,
+                                    std::uint32_t   a_seedOff,
+                                    std::uint32_t   a_seedCnt) const noexcept
 {
   // Fast path for the single-nearest case (closestPoint / nearestNeighbor / all-NN with k==1), the
   // common one: a lean {distance, index} state instead of the general k-best set, so the per-lane
@@ -204,9 +204,9 @@ PointCloudBVH<T, Meta, K, Width>::query(const Vec3T<T>& a_query,
     Best       best;
     const auto scan1 = [this, &a_query, a_exclude](Best& a_best, std::size_t a_off, std::size_t a_cnt) noexcept {
       for (std::size_t g = 0; g < a_cnt; g++) {
-        const ParticleGroup&       group     = this->m_primitives[a_off + g];
-        const std::array<T, Width> distances = group.getDistances2(a_query);
-        for (std::size_t lane = 0; lane < Width; lane++) {
+        const ParticleGroup&   group     = this->m_primitives[a_off + g];
+        const std::array<T, W> distances = group.getDistances2(a_query);
+        for (std::size_t lane = 0; lane < W; lane++) {
           const std::size_t c = group.getMetaData(lane);
           if (c != a_exclude && distances[lane] < a_best.d2) {
             a_best.d2  = distances[lane];
@@ -301,9 +301,9 @@ PointCloudBVH<T, Meta, K, Width>::query(const Vec3T<T>& a_query,
 
   const auto processLeaf = [this, &a_query](QState& a_state, std::size_t a_off, std::size_t a_cnt) noexcept {
     for (std::size_t g = 0; g < a_cnt; g++) {
-      const ParticleGroup&       group     = this->m_primitives[a_off + g];
-      const std::array<T, Width> distances = group.getDistances2(a_query);
-      for (std::size_t lane = 0; lane < Width; lane++) {
+      const ParticleGroup&   group     = this->m_primitives[a_off + g];
+      const std::array<T, W> distances = group.getDistances2(a_query);
+      for (std::size_t lane = 0; lane < W; lane++) {
         a_state.insert(distances[lane], group.getMetaData(lane));
       }
     }
@@ -328,9 +328,9 @@ PointCloudBVH<T, Meta, K, Width>::query(const Vec3T<T>& a_query,
   a_found = state.found;
 }
 
-template <class T, class Meta, size_t K, size_t Width>
-inline typename PointCloudBVH<T, Meta, K, Width>::Hit
-PointCloudBVH<T, Meta, K, Width>::closestPoint(const Vec3T<T>& a_query) const noexcept
+template <class T, class Meta, size_t K, size_t W>
+inline typename PointCloudBVH<T, Meta, K, W>::Hit
+PointCloudBVH<T, Meta, K, W>::closestPoint(const Vec3T<T>& a_query) const noexcept
 {
   Hit         hit;
   std::size_t found = 0;
@@ -338,18 +338,18 @@ PointCloudBVH<T, Meta, K, Width>::closestPoint(const Vec3T<T>& a_query) const no
   return hit;
 }
 
-template <class T, class Meta, size_t K, size_t Width>
+template <class T, class Meta, size_t K, size_t W>
 inline std::size_t
-PointCloudBVH<T, Meta, K, Width>::closestPoints(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out) const noexcept
+PointCloudBVH<T, Meta, K, W>::closestPoints(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out) const noexcept
 {
   std::size_t found = 0;
   this->query(a_query, a_k, a_out, found, s_none, 0, 0);
   return found;
 }
 
-template <class T, class Meta, size_t K, size_t Width>
-inline typename PointCloudBVH<T, Meta, K, Width>::Hit
-PointCloudBVH<T, Meta, K, Width>::nearestNeighbor(std::size_t a_particle) const noexcept
+template <class T, class Meta, size_t K, size_t W>
+inline typename PointCloudBVH<T, Meta, K, W>::Hit
+PointCloudBVH<T, Meta, K, W>::nearestNeighbor(std::size_t a_particle) const noexcept
 {
   Hit         hit;
   std::size_t found = 0;
@@ -357,18 +357,18 @@ PointCloudBVH<T, Meta, K, Width>::nearestNeighbor(std::size_t a_particle) const 
   return hit;
 }
 
-template <class T, class Meta, size_t K, size_t Width>
+template <class T, class Meta, size_t K, size_t W>
 inline std::size_t
-PointCloudBVH<T, Meta, K, Width>::nearestNeighbors(std::size_t a_particle, std::size_t a_k, Hit* a_out) const noexcept
+PointCloudBVH<T, Meta, K, W>::nearestNeighbors(std::size_t a_particle, std::size_t a_k, Hit* a_out) const noexcept
 {
   std::size_t found = 0;
   this->query(m_positions[a_particle], a_k, a_out, found, a_particle, m_leafOff[a_particle], m_leafCnt[a_particle]);
   return found;
 }
 
-template <class T, class Meta, size_t K, size_t Width>
-inline std::vector<typename PointCloudBVH<T, Meta, K, Width>::Hit>
-PointCloudBVH<T, Meta, K, Width>::allNearestNeighbors(std::size_t a_k) const
+template <class T, class Meta, size_t K, size_t W>
+inline std::vector<typename PointCloudBVH<T, Meta, K, W>::Hit>
+PointCloudBVH<T, Meta, K, W>::allNearestNeighbors(std::size_t a_k) const
 {
   const std::size_t n = m_positions.size();
 
@@ -386,9 +386,9 @@ PointCloudBVH<T, Meta, K, Width>::allNearestNeighbors(std::size_t a_k) const
   return result;
 }
 
-template <class T, class Meta, size_t K, size_t Width>
-inline typename PointCloudBVH<T, Meta, K, Width>::Hit
-PointCloudBVH<T, Meta, K, Width>::bruteForceOne(const Vec3T<T>& a_query, std::size_t a_exclude) const noexcept
+template <class T, class Meta, size_t K, size_t W>
+inline typename PointCloudBVH<T, Meta, K, W>::Hit
+PointCloudBVH<T, Meta, K, W>::bruteForceOne(const Vec3T<T>& a_query, std::size_t a_exclude) const noexcept
 {
   Hit best;
   for (std::size_t i = 0; i < m_positions.size(); i++) {
@@ -404,12 +404,12 @@ PointCloudBVH<T, Meta, K, Width>::bruteForceOne(const Vec3T<T>& a_query, std::si
   return best;
 }
 
-template <class T, class Meta, size_t K, size_t Width>
+template <class T, class Meta, size_t K, size_t W>
 inline std::size_t
-PointCloudBVH<T, Meta, K, Width>::bruteForceK(const Vec3T<T>& a_query,
-                                              std::size_t     a_k,
-                                              Hit*            a_out,
-                                              std::size_t     a_exclude) const
+PointCloudBVH<T, Meta, K, W>::bruteForceK(const Vec3T<T>& a_query,
+                                          std::size_t     a_k,
+                                          Hit*            a_out,
+                                          std::size_t     a_exclude) const
 {
   // Full scan into a scratch buffer, then partial_sort the a_k smallest to the front. Deliberately
   // simple and obviously correct -- this is the reference path, not a hot one.
@@ -434,30 +434,30 @@ PointCloudBVH<T, Meta, K, Width>::bruteForceK(const Vec3T<T>& a_query,
   return k;
 }
 
-template <class T, class Meta, size_t K, size_t Width>
-inline typename PointCloudBVH<T, Meta, K, Width>::Hit
-PointCloudBVH<T, Meta, K, Width>::closestPointBruteForce(const Vec3T<T>& a_query) const noexcept
+template <class T, class Meta, size_t K, size_t W>
+inline typename PointCloudBVH<T, Meta, K, W>::Hit
+PointCloudBVH<T, Meta, K, W>::closestPointBruteForce(const Vec3T<T>& a_query) const noexcept
 {
   return this->bruteForceOne(a_query, s_none);
 }
 
-template <class T, class Meta, size_t K, size_t Width>
+template <class T, class Meta, size_t K, size_t W>
 inline std::size_t
-PointCloudBVH<T, Meta, K, Width>::closestPointsBruteForce(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out) const
+PointCloudBVH<T, Meta, K, W>::closestPointsBruteForce(const Vec3T<T>& a_query, std::size_t a_k, Hit* a_out) const
 {
   return this->bruteForceK(a_query, a_k, a_out, s_none);
 }
 
-template <class T, class Meta, size_t K, size_t Width>
-inline typename PointCloudBVH<T, Meta, K, Width>::Hit
-PointCloudBVH<T, Meta, K, Width>::nearestNeighborBruteForce(std::size_t a_particle) const noexcept
+template <class T, class Meta, size_t K, size_t W>
+inline typename PointCloudBVH<T, Meta, K, W>::Hit
+PointCloudBVH<T, Meta, K, W>::nearestNeighborBruteForce(std::size_t a_particle) const noexcept
 {
   return this->bruteForceOne(m_positions[a_particle], a_particle);
 }
 
-template <class T, class Meta, size_t K, size_t Width>
+template <class T, class Meta, size_t K, size_t W>
 inline std::size_t
-PointCloudBVH<T, Meta, K, Width>::nearestNeighborsBruteForce(std::size_t a_particle, std::size_t a_k, Hit* a_out) const
+PointCloudBVH<T, Meta, K, W>::nearestNeighborsBruteForce(std::size_t a_particle, std::size_t a_k, Hit* a_out) const
 {
   return this->bruteForceK(m_positions[a_particle], a_k, a_out, a_particle);
 }
