@@ -5,12 +5,12 @@ Closest-point search over a point cloud, demonstrating the point-cloud primitive
 `PointAoSoA<T, Meta, W>` as a `PackedBVH` leaf (see
 [EBGeometry issue #92](https://github.com/rmrsk/EBGeometry/issues/92)).
 
-50,000 random points in the unit cube are Morton-sorted and packed into `PointAoSoA<T, size_t, W>`
+100,000 random points in the unit cube are Morton-sorted and packed into `PointAoSoA<T, size_t, W>`
 groups of up to `W` points each (`W` is `PointSoA::DefaultWidth<T>()`, the SIMD-optimal width for
 the target ISA and precision), with each point carrying its cloud index as metadata. The *same*
 groups are then built into a `PackedBVH` four ways -- **Morton (SFC)**, **TopDown centroid**,
 **Midpoint**, and **SAH** -- via the `PackedBVH` direct constructors, so their closest-point query
-performance can be compared head to head. 500 query points are resolved against each via
+performance can be compared head to head. 1,000 query points are resolved against each via
 `pruneTraverse()` and checked against a brute-force scan.
 
 This is the **space-filling-curve** construction path: the groups are formed up front from the
@@ -67,8 +67,8 @@ Running
 
     ./ClosestPointSFC.ex
 
-Takes no arguments. It generates a random 50,000-point cloud and 500 query points (fixed seeds, so
-results are reproducible on a given machine) and prints a short header followed by one table row per
+Takes no arguments. It generates a random 100,000-point cloud and 1,000 query points (fixed seeds,
+so results are reproducible on a given machine) and prints a short header followed by one table row per
 strategy giving build time, average query time, speedup over brute force, average leaf visits per
 query, and the average number of `PointAoSoA` groups per visited leaf. Every query's result is
 checked against a brute-force scan with `EBGEOMETRY_EXPECT`, so building with
@@ -82,7 +82,7 @@ Worth noting when reading the output:
   flip side of `Examples/BuildBVH`, which compares the same strategies' build times.
 * **Leaf size is tuned via `maxLeafGroups` in `main.cpp`.** A leaf-size sweep on this workload put
   the query-time knee around 16-32 groups per leaf; 16 is the default. Try 8 or 32 to see the effect.
-* **Speedup grows with the point count.** At 50,000 points brute force is only tens of microseconds,
+* **Speedup grows with the point count.** At 100,000 points brute force is only tens of microseconds,
   so the speedup is modest; the BVH's per-query cost grows only logarithmically while brute force
   grows linearly, so the gap widens for larger clouds (raise `numPoints`).
 * `K` (the tree fan-out) and `W` (points per group) both derive from the ISA via

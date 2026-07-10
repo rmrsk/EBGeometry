@@ -3,17 +3,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Closest-point search over a random point cloud, using PointAoSoA<T, Meta, W> groups as the
-// leaves of a PackedBVH. Unlike Examples/ClosestPointSFC -- which forms the groups up front from
-// the cloud's Morton order and builds a PackedBVH directly over them -- this example builds a
-// TreeBVH over the *individual* points first (SAH), then materialises the PointAoSoA groups from
-// each leaf via TreeBVH::packWith(). This is the same pattern the library's own TriMeshSDF uses.
-// Letting SAH partition all N points, rather than a coarser set of pre-formed groups, tends to
-// build a higher-quality tree -- fewer leaf visits per query. See README.md.
+// leaves of a PackedBVH. This is the companion to Examples/ClosestPointSFC and compares the same
+// four build strategies (Morton, top-down centroid, midpoint, SAH) against a brute-force baseline,
+// but forms the groups the other way around: rather than chunking a Morton-sorted cloud into groups
+// up front, it builds a TreeBVH over the *individual* points and then materialises the PointAoSoA
+// groups from each leaf via TreeBVH::packWith() -- the same pattern the library's own TriMeshSDF
+// uses. Letting the partitioner see all N points, rather than a coarser set of pre-formed groups,
+// tends to build a higher-quality tree -- fewer leaf visits per query. See README.md.
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -40,9 +42,9 @@ namespace {
 
 /**
  * @brief The BVH primitive during construction: a single cloud point plus its cloud index.
- * @details The TreeBVH is built over these individual points -- one primitive per point -- so SAH
- * partitions the full cloud. packWith() then coalesces each leaf's points into PointAoSoA groups,
- * carrying @c index along as each point's lane metadata.
+ * @details The TreeBVH is built over these individual points -- one primitive per point -- so the
+ * partitioner sees the full cloud. packWith() then coalesces each leaf's points into PointAoSoA
+ * groups, carrying @c index along as each point's lane metadata.
  */
 struct Point
 {
@@ -61,10 +63,11 @@ using PointGroup = EBGeometry::PointAoSoA<T, size_t, W>;
 using PointTree  = EBGeometry::BVH::TreeBVH<T, Point, AABB, K>;
 using Packed     = EBGeometry::BVH::PackedBVH<T, PointGroup, K, EBGeometry::BVH::ValueStorage<PointGroup>>;
 
-// Run configuration. maxLeafGroups is the target groups per leaf; a leaf-size sweep on this
-// workload put the query-time knee at ~16-32, so 16 is a good default (try 8 or 32).
-constexpr size_t   numPoints     = 50000;
-constexpr size_t   numQueries    = 500;
+// Run configuration. maxLeafGroups is the target groups per leaf for the top-down partitioners; a
+// leaf-size sweep on this workload put the query-time knee at ~16-32, so 16 is a good default (try 8
+// or 32). The bottom-up Morton build instead produces fixed K-primitive leaves (see main()).
+constexpr size_t   numPoints     = 100000;
+constexpr size_t   numQueries    = 1000;
 constexpr uint64_t pointSeed     = 123456789ULL;
 constexpr uint64_t querySeed     = 987654321ULL;
 constexpr size_t   maxLeafGroups = 16;
@@ -86,7 +89,7 @@ struct Closest
 };
 
 /**
- * @brief Timing and traversal statistics for the packed BVH.
+ * @brief Timing and traversal statistics for one BVH build strategy.
  */
 struct StrategyResult
 {
@@ -99,9 +102,11 @@ struct StrategyResult
 /**
  * @brief Leaf-conversion callback for TreeBVH::packWith(): coalesce one leaf's points into groups.
  * @details Called once per TreeBVH leaf. Chunks the leaf's contiguous run of points into
- * consecutive PointAoSoA groups of up to W each; because a leaf holds up to maxLeafGroups*W points,
- * only the final group of a leaf is ever partially filled, so the groups stay nearly full. Each
- * point's cloud index rides along as its lane metadata. This mirrors TriMeshSDF::groupTrianglesIntoSoA.
+ * consecutive PointAoSoA groups of up to W each. For the top-down builds a leaf holds up to
+ * maxLeafGroups*W points, so only the final group of a leaf is ever partially filled and the groups
+ * stay nearly full; for the bottom-up Morton build a leaf holds only K points, so it becomes a
+ * single (possibly partial) group. Each point's cloud index rides along as its lane metadata. This
+ * mirrors TriMeshSDF::groupTrianglesIntoSoA.
  * @param[in] a_points The full primitive list of the tree; only [a_offset, a_offset+a_count) is this leaf.
  * @param[in] a_offset Index of this leaf's first point in a_points.
  * @param[in] a_count  Number of points in this leaf.
@@ -136,6 +141,36 @@ groupPointsIntoSoA(const std::vector<std::shared_ptr<const Point>>& a_points, ui
   }
 
   return groups;
+}
+
+/**
+ * @brief Build one PackedBVH via the packWith path, timing the whole construction.
+ * @details Constructs a fresh TreeBVH over the shared per-point primitive list, partitions it with
+ * a_partition (the only thing that varies between strategies), then packWith()s it -- coalescing
+ * each leaf into PointAoSoA groups -- into a by-value PackedBVH. The returned time covers tree
+ * construction + partitioning + packing; the shared primitive list is built once by the caller and
+ * excluded, exactly as ClosestPointSFC excludes its shared, once-built group list.
+ * @param[in] a_primsAndBVs Shared per-point (primitive, bounding volume) list.
+ * @param[in] a_partition   Partitions the tree (e.g. top-down SAH, or bottom-up Morton).
+ * @return The packed BVH and the construction time in seconds.
+ */
+std::pair<std::shared_ptr<Packed>, double>
+buildPacked(const EBGeometry::BVH::PrimAndBVList<Point, AABB>& a_primsAndBVs,
+            const std::function<void(PointTree&)>&             a_partition)
+{
+  using Converter = decltype(&groupPointsIntoSoA);
+
+  EBGeometry::SimpleTimer timer;
+  timer.start();
+
+  auto tree = std::make_shared<PointTree>(a_primsAndBVs);
+  a_partition(*tree);
+  std::shared_ptr<Packed> packed =
+    tree->packWith<PointGroup, Converter, EBGeometry::BVH::ValueStorage<PointGroup>>(&groupPointsIntoSoA);
+
+  timer.stop();
+
+  return {packed, timer.seconds()};
 }
 
 /**
@@ -267,10 +302,10 @@ benchmarkStrategy(const Packed&               a_bvh,
 }
 
 /**
- * @brief Print one results-table row.
+ * @brief Print one results-table row for a build strategy.
  * @details Assumes std::cout is already in std::fixed mode (set by the caller before the table).
- * @param[in] a_label        Row name for the leftmost column.
- * @param[in] a_result       The timing and traversal statistics.
+ * @param[in] a_label        Strategy name for the leftmost column.
+ * @param[in] a_result       That strategy's timing and traversal statistics.
  * @param[in] a_bruteSeconds Brute-force baseline total time, used for the speedup column.
  */
 void
@@ -301,39 +336,45 @@ main()
   const std::vector<Vec3> positions   = EBGeometry::Random::samplePoints<T>(numPoints, pointSeed);
   const std::vector<Vec3> queryPoints = EBGeometry::Random::samplePoints<T>(numQueries, querySeed);
 
-  // Build a TreeBVH over the individual points (one primitive per point, its bounding volume the
-  // degenerate box at the point), SAH-partitioned down to maxLeafGroups*W points per leaf, then
-  // packWith() to coalesce each leaf's points into PointAoSoA groups in place. The whole build --
-  // per-point tree plus pack -- is timed as one, to compare fairly with ClosestPointSFC's SAH row.
-  EBGeometry::SimpleTimer timer;
-  timer.start();
-
+  // The per-point primitive list: one primitive per cloud point, its bounding volume the degenerate
+  // box at the point. It does not depend on the partitioner, so it is built once here and reused
+  // across strategies (each TreeBVH constructor copies it in). As in ClosestPointSFC -- which builds
+  // its Morton-ordered groups once and reuses them -- this shared setup is excluded from the
+  // per-strategy build timing below.
   EBGeometry::BVH::PrimAndBVList<Point, AABB> primsAndBVs;
   primsAndBVs.reserve(numPoints);
   for (size_t i = 0; i < positions.size(); i++) {
     primsAndBVs.emplace_back(std::make_shared<Point>(Point{positions[i], i}), AABB(positions[i], positions[i]));
   }
 
-  auto tree = std::make_shared<PointTree>(primsAndBVs);
-
+  // The top-down partitioners stop splitting once a node holds <= maxLeafGroups*W points. (The
+  // bottom-up Morton build ignores this and produces fixed K-primitive leaves instead.)
   const size_t                                            maxLeafSize = maxLeafGroups * W;
   const EBGeometry::BVH::LeafPredicate<T, Point, AABB, K> stopCrit =
     // maxLeafSize is a constant expression (maxLeafGroups and W are constexpr), so a named capture
     // ([maxLeafSize]) is "unused" to clang (-Wunused-lambda-capture) yet required by g++; the [=]
     // capture-default satisfies both.
     [=](const PointTree& a_node) noexcept -> bool { return a_node.getPrimitives().size() <= maxLeafSize; };
-  tree->topDownSortAndPartition(EBGeometry::BVH::BinnedSAHPartitioner<T, Point, AABB, K>, stopCrit);
 
-  using Converter = decltype(&groupPointsIntoSoA);
-  const std::shared_ptr<Packed> packed =
-    tree->packWith<PointGroup, Converter, EBGeometry::BVH::ValueStorage<PointGroup>>(&groupPointsIntoSoA);
-
-  timer.stop();
-  const double buildSeconds = timer.seconds();
+  // Build the same points into a PackedBVH via the packWith path four ways -- matching
+  // ClosestPointSFC's strategies -- timing each (tree construction + partition + pack). Only the
+  // partition step differs: three top-down partitioners, plus bottom-up along the Morton curve.
+  const auto morton =
+    buildPacked(primsAndBVs, [](PointTree& a_tree) { a_tree.bottomUpSortAndPartition<EBGeometry::SFC::Morton>(); });
+  const auto topDown  = buildPacked(primsAndBVs, [&stopCrit](PointTree& a_tree) {
+    a_tree.topDownSortAndPartition(EBGeometry::BVH::BVCentroidPartitioner<T, Point, AABB, K>, stopCrit);
+  });
+  const auto midpoint = buildPacked(primsAndBVs, [&stopCrit](PointTree& a_tree) {
+    a_tree.topDownSortAndPartition(EBGeometry::BVH::MidpointPartitioner<T, Point, AABB, K>, stopCrit);
+  });
+  const auto sah      = buildPacked(primsAndBVs, [&stopCrit](PointTree& a_tree) {
+    a_tree.topDownSortAndPartition(EBGeometry::BVH::BinnedSAHPartitioner<T, Point, AABB, K>, stopCrit);
+  });
 
   // Brute-force ground truth for every query, plus its own timing (the baseline to beat).
   std::vector<Closest> bruteForce;
   bruteForce.reserve(numQueries);
+  EBGeometry::SimpleTimer timer;
   timer.start();
   for (const auto& q : queryPoints) {
     bruteForce.push_back(bruteForceClosest(positions, q));
@@ -341,19 +382,23 @@ main()
   timer.stop();
   const double bruteSeconds = timer.seconds();
 
-  StrategyResult sah = benchmarkStrategy(*packed, positions, queryPoints, bruteForce);
-  sah.buildSeconds   = buildSeconds;
-
-  // How full packWith left the groups: building the tree over individual points and only splitting
-  // the last group of each leaf keeps groups nearly full, i.e. average occupancy close to W.
-  const size_t numGroups = packed->getPrimitives().size();
-  const double occupancy = double(numPoints) / double(numGroups);
-
-  std::cout << "Groups formed: " << numGroups << " for " << numPoints << " points (avg " << std::fixed
-            << std::setprecision(2) << occupancy << " of " << W << " points per group)\n\n";
+  // Pair each strategy's packed BVH with its build time, then benchmark queries against it.
+  struct Strategy
+  {
+    const char*             label;
+    std::shared_ptr<Packed> bvh;
+    double                  buildSeconds;
+  };
+  const std::vector<Strategy> strategies = {
+    {"Morton (SFC)", morton.first, morton.second},
+    {"TopDown centroid", topDown.first, topDown.second},
+    {"Midpoint", midpoint.first, midpoint.second},
+    {"SAH", sah.first, sah.second},
+  };
 
   // Query time is the headline; build time, leaf visits, and groups-per-leaf are shown alongside
-  // because they explain it (a tighter tree visits fewer leaves and queries faster).
+  // because they explain it (a tighter tree visits fewer leaves and queries faster, usually at the
+  // cost of a slower build).
   std::cout << std::left << std::setw(20) << "Strategy" << std::right << std::setw(13) << "Build (ms)" << std::setw(15)
             << "Query (us/q)" << std::setw(11) << "Speedup" << std::setw(14) << "Leaf visits" << std::setw(14)
             << "Groups/leaf" << '\n';
@@ -365,7 +410,12 @@ main()
             << std::setw(11) << std::setprecision(1) << "1.0x" << std::setw(14) << "--" << std::setw(14) << "--"
             << '\n';
 
-  printRow("SAH (packWith)", sah, bruteSeconds);
+  for (const auto& strategy : strategies) {
+    StrategyResult result = benchmarkStrategy(*strategy.bvh, positions, queryPoints, bruteForce);
+    result.buildSeconds   = strategy.buildSeconds;
+
+    printRow(strategy.label, result, bruteSeconds);
+  }
 
   return 0;
 }

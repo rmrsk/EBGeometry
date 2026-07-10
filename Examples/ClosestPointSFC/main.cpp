@@ -44,8 +44,8 @@ using Tree       = EBGeometry::BVH::TreeBVH<T, PointGroup, AABB, K>;
 
 // Run configuration. maxLeafGroups is the target groups per leaf; a leaf-size sweep on this
 // workload put the query-time knee at ~16-32, so 16 is a good default (try 8 or 32).
-constexpr size_t   numPoints     = 50000;
-constexpr size_t   numQueries    = 500;
+constexpr size_t   numPoints     = 100000;
+constexpr size_t   numQueries    = 1000;
 constexpr uint64_t pointSeed     = 123456789ULL;
 constexpr uint64_t querySeed     = 987654321ULL;
 constexpr size_t   maxLeafGroups = 16;
