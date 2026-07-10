@@ -86,7 +86,7 @@ struct StrategyResult
 std::vector<std::pair<PointGroup, AABB>>
 buildGroups(const std::vector<Vec3>& a_positions)
 {
-  const std::vector<uint32_t> order = EBGeometry::SFC::order(a_positions, EBGeometry::SFC::Morton{});
+  const std::vector<uint32_t> order = EBGeometry::SFC::order<EBGeometry::SFC::Morton>(a_positions);
 
   const size_t numGroups = (a_positions.size() + W - 1U) / W;
 
@@ -295,7 +295,7 @@ main()
   // is memory-latency bound). A one-time cost that applies to any batch of queries free to reorder.
   std::vector<Vec3> queries;
   queries.reserve(numQueries);
-  for (const uint32_t idx : EBGeometry::SFC::order(rawQueries, EBGeometry::SFC::Morton{})) {
+  for (const uint32_t idx : EBGeometry::SFC::order<EBGeometry::SFC::Morton>(rawQueries)) {
     queries.push_back(rawQueries[idx]);
   }
 

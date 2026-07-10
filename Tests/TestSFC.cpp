@@ -153,7 +153,7 @@ TEST_CASE("SFC::order: is a permutation ordering points by non-decreasing SFC co
   }
 
   const auto bins  = SFC::computeBins<double>(points);
-  const auto order = SFC::order(points, SFC::Morton{});
+  const auto order = SFC::order<SFC::Morton>(points);
 
   REQUIRE(order.size() == points.size());
 
@@ -174,7 +174,7 @@ TEST_CASE("SFC::order: is a permutation ordering points by non-decreasing SFC co
   REQUIRE(SFC::order(points) == order);
 
   // Nested produces its own valid, code-ordered permutation.
-  const auto orderNested = SFC::order(points, SFC::Nested{});
+  const auto orderNested = SFC::order<SFC::Nested>(points);
   REQUIRE(orderNested.size() == points.size());
   for (size_t i = 1; i < orderNested.size(); i++) {
     REQUIRE(SFC::Nested::encode(bins[orderNested[i - 1]]) <= SFC::Nested::encode(bins[orderNested[i]]));

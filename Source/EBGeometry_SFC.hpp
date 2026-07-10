@@ -139,21 +139,20 @@ computeBins(const std::vector<Vec3T<T>>& a_points) noexcept;
 
 /**
  * @brief Return the index permutation that orders a_points along a space-filling curve.
- * @details Bins the points (computeBins), encodes each cell with S::encode(), and returns the
+ * @details Bins the points (computeBins), encodes each cell with Curve::encode(), and returns the
  * indices sorted by ascending code -- so a_points[result[0]], a_points[result[1]], ... walk the
- * curve. This is the one-call form of the "bin, encode, sort" pattern; the points themselves are
- * not moved or copied. @p a_sfc is an unused tag whose only purpose is to let S be deduced, exactly
- * as for PackedBVH's SFC-build constructor -- pass e.g. SFC::Nested{} to select a different curve,
- * or omit it for the Morton default.
- * @tparam T Floating-point precision.
- * @tparam S Space-filling curve type (SFC::Morton, SFC::Nested, ...). Defaults to SFC::Morton.
+ * curve. This is the one-call form of the "bin, encode, sort" pattern; the points themselves are not
+ * moved or copied. @p Curve is a pure template parameter (encode() is static, so no instance is
+ * needed) and comes first so it can be named while @p T is still deduced from a_points -- e.g.
+ * order<SFC::Nested>(points), or just order(points) for the Morton default.
+ * @tparam Curve Space-filling curve type (SFC::Morton, SFC::Nested, ...). Defaults to SFC::Morton.
+ * @tparam T     Floating-point precision (deduced from a_points).
  * @param[in] a_points Points to order.
- * @param[in] a_sfc    Unused tag value; see @p S.
  * @return Indices into a_points, sorted by ascending SFC code.
  */
-template <class T, class S = Morton>
+template <class Curve = Morton, class T>
 [[nodiscard]] inline std::vector<uint32_t>
-order(const std::vector<Vec3T<T>>& a_points, S a_sfc = S{}) noexcept;
+order(const std::vector<Vec3T<T>>& a_points) noexcept;
 
 } // namespace SFC
 

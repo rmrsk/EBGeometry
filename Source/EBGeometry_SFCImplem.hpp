@@ -154,16 +154,16 @@ computeBins(const std::vector<Vec3T<T>>& a_points) noexcept
   return bins;
 }
 
-template <class T, class S>
+template <class Curve, class T>
 inline std::vector<uint32_t>
-order(const std::vector<Vec3T<T>>& a_points, S) noexcept
+order(const std::vector<Vec3T<T>>& a_points) noexcept
 {
   const std::vector<Index> bins = computeBins<T>(a_points);
 
   std::vector<Code> codes;
   codes.reserve(a_points.size());
   for (const auto& bin : bins) {
-    codes.push_back(S::encode(bin));
+    codes.push_back(Curve::encode(bin));
   }
 
   std::vector<uint32_t> indices(a_points.size());
