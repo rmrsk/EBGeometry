@@ -31,14 +31,14 @@ using T = EBGEOMETRY_PRECISION;
 constexpr size_t W = EBGeometry::PointSoA::DefaultWidth<T>();
 constexpr size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
 
-// Type aliases. Group is the leaf primitive (W points + each point's cloud index as metadata);
+// Type aliases. PointGroup is the leaf primitive (W points + each point's cloud index as metadata);
 // Packed stores groups by value (ValueStorage, no pointer indirection on the hot path); Tree only
 // names the LeafPredicate type the top-down partitioners take.
-using Vec3   = EBGeometry::Vec3T<T>;
-using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
-using Group  = EBGeometry::PointAoSoA<T, int, W>;
-using Packed = EBGeometry::BVH::PackedBVH<T, Group, K, EBGeometry::BVH::ValueStorage<Group>>;
-using Tree   = EBGeometry::BVH::TreeBVH<T, Group, AABB, K>;
+using Vec3       = EBGeometry::Vec3T<T>;
+using AABB       = EBGeometry::BoundingVolumes::AABBT<T>;
+using PointGroup = EBGeometry::PointAoSoA<T, int, W>;
+using Packed     = EBGeometry::BVH::PackedBVH<T, PointGroup, K, EBGeometry::BVH::ValueStorage<PointGroup>>;
+using Tree       = EBGeometry::BVH::TreeBVH<T, PointGroup, AABB, K>;
 
 // Run configuration. maxLeafGroups is the target groups per leaf; a leaf-size sweep on this
 // workload put the query-time knee at ~16-32, so 16 is a good default (try 8 or 32).
@@ -50,17 +50,47 @@ constexpr size_t   maxLeafGroups = 16;
 
 namespace {
 
-// Group the cloud into spatially-coherent PointAoSoA leaves: Morton-sort the points, then chunk the
-// sorted order into consecutive runs of W. Compact groups have tight bounding volumes and prune
-// well. Each point's original index rides along as its lane metadata, surviving the reshuffle.
-std::vector<std::pair<Group, AABB>>
+/**
+ * @brief A nearest-point search result, doubling as the running state of a BVH traversal.
+ * @details Both a query's answer (bruteForceNearest / bvhNearest return one) and the running best
+ * carried through a pruneTraverse() are just a squared distance plus an index, so they share this
+ * type. During a traversal @c index is the PackedBVH group currently holding the best distance;
+ * bvhNearest() resolves it to the cloud point index once the traversal is over. Squared distance
+ * throughout -- there is no sqrt on the hot path.
+ */
+struct Nearest
+{
+  T   dist2 = std::numeric_limits<T>::max(); ///< Squared distance to the closest point found so far.
+  int index = -1;                            ///< Cloud point index (a group index mid-traversal), or -1 if none.
+};
+
+/**
+ * @brief Timing and traversal statistics for one BVH build strategy.
+ */
+struct StrategyResult
+{
+  double buildSeconds     = 0.0; ///< Construction time (filled in by the caller, which times it).
+  double querySeconds     = 0.0; ///< Total time for all queries.
+  double avgLeafVisits    = 0.0; ///< Average leaf nodes visited per query.
+  double avgGroupsPerLeaf = 0.0; ///< Average groups per visited leaf (the leaf occupancy achieved).
+};
+
+/**
+ * @brief Group the cloud into spatially-coherent PointGroup leaves for the BVH.
+ * @details Morton-sorts the points, then chunks the sorted order into consecutive runs of W.
+ * Compact groups have tight bounding volumes and prune well. Each point's original index rides along
+ * as its lane metadata, surviving the reshuffle.
+ * @param[in] a_positions The point cloud.
+ * @return One (PointGroup, bounding volume) pair per group.
+ */
+std::vector<std::pair<PointGroup, AABB>>
 buildGroups(const std::vector<Vec3>& a_positions)
 {
   const std::vector<uint32_t> order = EBGeometry::SFC::order(a_positions, EBGeometry::SFC::Morton{});
 
   const size_t numGroups = (a_positions.size() + W - 1U) / W;
 
-  std::vector<std::pair<Group, AABB>> groupsAndBVs;
+  std::vector<std::pair<PointGroup, AABB>> groupsAndBVs;
   groupsAndBVs.reserve(numGroups);
 
   for (size_t g = 0; g < numGroups; g++) {
@@ -76,7 +106,7 @@ buildGroups(const std::vector<Vec3>& a_positions)
       metaArr[i] = static_cast<int>(srcIdx);
     }
 
-    Group group;
+    PointGroup group;
     group.pack(posArr.data(), metaArr.data(), static_cast<uint32_t>(count));
 
     groupsAndBVs.emplace_back(group, group.template computeBoundingVolume<AABB>());
@@ -85,18 +115,16 @@ buildGroups(const std::vector<Vec3>& a_positions)
   return groupsAndBVs;
 }
 
-// Squared distance to the closest point found, and that point's index in the cloud.
-struct Nearest
-{
-  T   dist2;
-  int index;
-};
-
-// Ground truth, and the baseline the BVH searches are benchmarked against.
+/**
+ * @brief Nearest neighbor by brute force -- the ground truth the BVH searches are checked against.
+ * @param[in] a_positions The point cloud to search.
+ * @param[in] a_query     Query point.
+ * @return The closest point's squared distance and its index in a_positions.
+ */
 Nearest
 bruteForceNearest(const std::vector<Vec3>& a_positions, const Vec3& a_query)
 {
-  Nearest best{std::numeric_limits<T>::max(), -1};
+  Nearest best;
 
   for (size_t i = 0; i < a_positions.size(); i++) {
     const T d2 = (a_positions[i] - a_query).length2();
@@ -109,11 +137,19 @@ bruteForceNearest(const std::vector<Vec3>& a_positions, const Vec3& a_query)
   return best;
 }
 
-// Nearest neighbor via PackedBVH::pruneTraverse(). The search state is a running *squared* distance
-// -- pruneTraverse compares the bound against squared box distances, so there is no sqrt on the hot
-// path -- plus the index of the group currently holding it. getMetaData() is read only once the
-// traversal is over, and only for the winning group, to recover the actual point index. a_leafVisits
-// and a_groupEvals accumulate traversal statistics for the report.
+/**
+ * @brief Nearest neighbor via PackedBVH::pruneTraverse().
+ * @details The search state is a running *squared* distance -- pruneTraverse() compares its bound
+ * against squared box distances, so there is no sqrt on the hot path -- plus the group currently
+ * holding it. Only once the traversal is over, and only for the winning group, is getMetaData() read
+ * to recover the actual cloud point index.
+ * @param[in]     a_bvh        BVH over the PointGroup leaves.
+ * @param[in]     a_positions  The point cloud (for resolving the winning group's metadata to a point).
+ * @param[in]     a_query      Query point.
+ * @param[in,out] a_leafVisits Accumulates the number of leaf nodes visited (a traversal statistic).
+ * @param[in,out] a_groupEvals Accumulates the number of group distance evaluations (a statistic).
+ * @return The closest point's squared distance and its index in a_positions.
+ */
 Nearest
 bvhNearest(const Packed&            a_bvh,
            const std::vector<Vec3>& a_positions,
@@ -121,38 +157,36 @@ bvhNearest(const Packed&            a_bvh,
            long long&               a_leafVisits,
            long long&               a_groupEvals)
 {
-  struct SearchState
-  {
-    T      dist2    = std::numeric_limits<T>::max();
-    size_t groupIdx = 0;
-  };
-
-  SearchState state;
+  Nearest state; // Until the rescan below, state.index is the winning *group*, not a point.
 
   const auto& groups = a_bvh.getPrimitives();
 
   const auto evalLeaf =
-    [&groups, &a_query, &a_leafVisits, &a_groupEvals](SearchState& a_state, size_t a_offset, size_t a_count) noexcept {
+    [&groups, &a_query, &a_leafVisits, &a_groupEvals](Nearest& a_state, size_t a_offset, size_t a_count) noexcept {
       a_leafVisits++;
       a_groupEvals += static_cast<long long>(a_count);
       for (size_t i = 0; i < a_count; i++) {
         const T d2 = groups[a_offset + i].getDistance2(a_query);
         if (d2 < a_state.dist2) {
-          a_state.dist2    = d2;
-          a_state.groupIdx = a_offset + i;
+          a_state.dist2 = d2;
+          a_state.index = static_cast<int>(a_offset + i);
         }
       }
     };
-  const auto pruneDist2 = [](const SearchState& a_state) noexcept -> T { return a_state.dist2; };
+  const auto pruneDist2 = [](const Nearest& a_state) noexcept -> T { return a_state.dist2; };
 
   a_bvh.pruneTraverse(a_query, state, evalLeaf, pruneDist2);
 
-  const Group& winner = groups[state.groupIdx];
+  EBGEOMETRY_EXPECT(state.index >= 0); // The initial (infinite) bound guarantees at least one leaf.
 
-  Nearest best{std::numeric_limits<T>::max(), -1};
+  // Resolve the winning group's metadata to the actual cloud point: rescan its lanes, keeping the
+  // closest, which turns state's group index into the point index.
+  const PointGroup& winner = groups[static_cast<size_t>(state.index)];
+
+  Nearest best;
   for (size_t lane = 0; lane < W; lane++) {
     const int idx = winner.getMetaData(lane);
-    const T   d2  = (a_positions[idx] - a_query).length2();
+    const T   d2  = (a_positions[static_cast<size_t>(idx)] - a_query).length2();
     if (d2 < best.dist2) {
       best.dist2 = d2;
       best.index = idx;
@@ -162,18 +196,18 @@ bvhNearest(const Packed&            a_bvh,
   return best;
 }
 
-// Timing result for one BVH build strategy.
-struct StrategyResult
-{
-  double buildSeconds     = 0.0; // Construction time (filled in by the caller, which times it).
-  double querySeconds     = 0.0; // Total time for all queries.
-  double avgLeafVisits    = 0.0; // Average leaf nodes visited per query.
-  double avgGroupsPerLeaf = 0.0; // Average groups per visited leaf (the leaf occupancy achieved).
-};
-
-// Runs every query against a_bvh, accumulating timing and leaf-visit statistics. Correctness is
-// checked with EBGEOMETRY_EXPECT (opt-in via EBGEOMETRY_ENABLE_ASSERTIONS): the BVH's nearest
-// squared distance must match brute force's for every query, or the assertion aborts.
+/**
+ * @brief Run every query against a_bvh, timing them and accumulating traversal statistics.
+ * @details Correctness is checked with EBGEOMETRY_EXPECT (opt-in via EBGEOMETRY_ENABLE_ASSERTIONS):
+ * every query's BVH nearest squared distance must match brute force's, or the assertion aborts. A
+ * volatile sink keeps each result live so the query -- metadata rescan included -- is not optimized
+ * away in no-assertion builds.
+ * @param[in] a_bvh        BVH to query.
+ * @param[in] a_positions  The point cloud.
+ * @param[in] a_queries    Query points (already Morton-ordered by the caller).
+ * @param[in] a_bruteForce Per-query ground truth to check against.
+ * @return Query timing and leaf-visit statistics; build time is filled in by the caller.
+ */
 StrategyResult
 benchmarkStrategy(const Packed&               a_bvh,
                   const std::vector<Vec3>&    a_positions,
@@ -225,12 +259,12 @@ main()
   const std::vector<Vec3> rawQueries = EBGeometry::Random::samplePoints<T>(numQueries, querySeed);
 
   // Shared across every build strategy: Morton-sort the points and pack them into spatially-coherent
-  // PointAoSoA groups. Only the outer tree over these groups varies between strategies.
-  const std::vector<std::pair<Group, AABB>> groups = buildGroups(positions);
+  // PointGroup leaves. Only the outer tree over these groups varies between strategies.
+  const std::vector<std::pair<PointGroup, AABB>> groups = buildGroups(positions);
 
   // Build the same groups four ways, timing each. Each constructor takes its primitive list by
   // value, so passing `groups` copies it in -- an identical, fair cost for all four.
-  const EBGeometry::BVH::LeafPredicate<T, Group, AABB, K> stopCrit = [](const Tree& a_node) noexcept -> bool {
+  const EBGeometry::BVH::LeafPredicate<T, PointGroup, AABB, K> stopCrit = [](const Tree& a_node) noexcept -> bool {
     return a_node.getPrimitives().size() <= maxLeafGroups;
   };
 
@@ -242,17 +276,17 @@ main()
   const double mortonBuild = timer.seconds();
 
   timer.start();
-  const Packed topDownBVH(groups, EBGeometry::BVH::BVCentroidPartitioner<T, Group, AABB, K>, stopCrit);
+  const Packed topDownBVH(groups, EBGeometry::BVH::BVCentroidPartitioner<T, PointGroup, AABB, K>, stopCrit);
   timer.stop();
   const double topDownBuild = timer.seconds();
 
   timer.start();
-  const Packed midpointBVH(groups, EBGeometry::BVH::MidpointPartitioner<T, Group, AABB, K>, stopCrit);
+  const Packed midpointBVH(groups, EBGeometry::BVH::MidpointPartitioner<T, PointGroup, AABB, K>, stopCrit);
   timer.stop();
   const double midpointBuild = timer.seconds();
 
   timer.start();
-  const Packed sahBVH(groups, EBGeometry::BVH::BinnedSAHPartitioner<T, Group, AABB, K>, stopCrit);
+  const Packed sahBVH(groups, EBGeometry::BVH::BinnedSAHPartitioner<T, PointGroup, AABB, K>, stopCrit);
   timer.stop();
   const double sahBuild = timer.seconds();
 
