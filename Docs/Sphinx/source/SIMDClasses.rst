@@ -5,7 +5,7 @@ SIMD-accelerated classes
 
 SIMD acceleration in EBGeometry is implemented with hand-written compiler intrinsics
 (``__m128``/``__m256``/``__m512`` and their ``double`` counterparts), not compiler
-auto-vectorisation. As of today it is confined to the three places listed below; everything else
+auto-vectorisation. As of today it is confined to the places listed below; everything else
 in the library is scalar code. This is a statement about the current state of the
 implementation, not an architectural ceiling -- further classes may become SIMD-accelerated in
 the same style in the future. This page lists the SIMD-accelerated classes as they exist today,
