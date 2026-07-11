@@ -128,6 +128,7 @@ Examples
    ExampleNearestNeighborBVH.rst
    ExampleNearestNeighborHashGrid.rst
    Integrations.rst
+   Benchmark.rst
 
 Contributing and testing
 ************************
