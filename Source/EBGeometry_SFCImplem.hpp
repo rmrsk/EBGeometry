@@ -185,10 +185,12 @@ Hilbert::decode(const uint64_t& a_code) noexcept
   // De-interleave the linear distance back into the transpose representation (exact inverse of the
   // interleave loop in encode()).
   std::array<uint32_t, nDims> X = {0, 0, 0};
+
   for (unsigned int k = 0; k < totalBits; k++) {
     const uint32_t     bitVal = static_cast<uint32_t>((a_code >> (totalBits - 1 - k)) & uint64_t(1));
     const unsigned int bit    = nBits - 1 - (k / nDims);
     const unsigned int i      = k % nDims;
+
     X[i] |= (bitVal << bit);
   }
 
@@ -200,11 +202,13 @@ Hilbert::decode(const uint64_t& a_code) noexcept
   for (int i = int(nDims) - 1; i > 0; i--) {
     X[i] ^= X[i - 1];
   }
+
   X[0] ^= t;
 
   // Undo excess work.
   for (uint32_t q = 2; q != n; q <<= 1) {
     const uint32_t p = q - 1;
+
     for (int i = int(nDims) - 1; i >= 0; i--) {
       if ((X[static_cast<unsigned int>(i)] & q) != 0u) {
         X[0] ^= p;
@@ -232,6 +236,10 @@ computeBins(const std::vector<Vec3T<T>>& a_points) noexcept
   Vec3T<T> maxCoord = -Vec3T<T>::infinity();
 
   for (const auto& p : a_points) {
+    EBGEOMETRY_EXPECT(std::isfinite(p[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(p[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(p[2]));
+
     minCoord = min(minCoord, p);
     maxCoord = max(maxCoord, p);
   }

@@ -107,14 +107,14 @@ struct PointSoAT
 
 public:
   /**
-   * @brief Pack count positions from positions[0..count-1] into this SoA group.
-   * @details Pads lanes count..W-1 by repeating the last real position so that all W lanes hold
+   * @brief Pack a_count positions from a_positions[0..a_count-1] into this SoA group.
+   * @details Pads lanes a_count..W-1 by repeating the last real position so that all W lanes hold
    * valid data and SIMD loads never read uninitialised memory.
-   * @param[in] positions Source position array with at least count elements. Must not be null.
-   * @param[in] count     Number of valid positions to pack. Must satisfy 1 <= count <= W.
+   * @param[in] a_positions Source position array with at least a_count elements. Must not be null.
+   * @param[in] a_count     Number of valid positions to pack. Must satisfy 1 <= a_count <= W.
    */
   void
-  pack(const Vec3T<T>* positions, uint32_t count) noexcept;
+  pack(const Vec3T<T>* a_positions, uint32_t a_count) noexcept;
 
   /**
    * @brief Squared unsigned distances from a_point to every one of the W lane positions.

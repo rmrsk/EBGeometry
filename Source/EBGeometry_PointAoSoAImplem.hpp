@@ -23,22 +23,22 @@ namespace EBGeometry {
 
 template <class T, class Meta, size_t W>
 void
-PointAoSoA<T, Meta, W>::pack(const Vec3T<T>* positions, const Meta* metaData, uint32_t count) noexcept
+PointAoSoA<T, Meta, W>::pack(const Vec3T<T>* a_positions, const Meta* a_metaData, uint32_t a_count) noexcept
 {
-  EBGEOMETRY_EXPECT(positions != nullptr);
-  EBGEOMETRY_EXPECT(metaData != nullptr);
-  EBGEOMETRY_EXPECT(count >= 1U);
-  EBGEOMETRY_EXPECT(count <= W);
+  EBGEOMETRY_EXPECT(a_positions != nullptr);
+  EBGEOMETRY_EXPECT(a_metaData != nullptr);
+  EBGEOMETRY_EXPECT(a_count >= 1U);
+  EBGEOMETRY_EXPECT(a_count <= W);
 
-  m_validCount = count;
+  m_validCount = a_count;
 
-  m_positions.pack(positions, count);
+  m_positions.pack(a_positions, a_count);
 
   // Same padding convention as PointSoAT::pack(): lanes count..W-1 repeat the last real entry.
   for (uint32_t j = 0; j < W; j++) {
-    const uint32_t src = (j < count) ? j : (count - 1U);
+    const uint32_t src = (j < a_count) ? j : (a_count - 1U);
 
-    m_metaData[j] = metaData[src];
+    m_metaData[j] = a_metaData[src];
   }
 }
 

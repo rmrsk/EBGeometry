@@ -27,18 +27,27 @@ namespace EBGeometry {
 
 template <class T, size_t W>
 void
-PointSoAT<T, W>::pack(const Vec3T<T>* positions, uint32_t count) noexcept
+PointSoAT<T, W>::pack(const Vec3T<T>* a_positions, uint32_t a_count) noexcept
 {
-  EBGEOMETRY_EXPECT(positions != nullptr);
-  EBGEOMETRY_EXPECT(count >= 1U);
-  EBGEOMETRY_EXPECT(count <= W);
+  EBGEOMETRY_EXPECT(a_positions != nullptr);
+  EBGEOMETRY_EXPECT(a_count >= 1U);
+  EBGEOMETRY_EXPECT(a_count <= W);
 
-  m_validCount = count;
+  // The distance kernels assume finite stored coordinates (getDistances2() only checks the query
+  // point). Catch a non-finite input here, at the point where it enters the SoA, rather than as a
+  // silent NaN surfacing in a later query.
+  for (uint32_t i = 0; i < a_count; i++) {
+    EBGEOMETRY_EXPECT(std::isfinite(a_positions[i][0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_positions[i][1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_positions[i][2]));
+  }
+
+  m_validCount = a_count;
 
   for (uint32_t j = 0; j < W; j++) {
-    const uint32_t src = (j < count) ? j : (count - 1U);
+    const uint32_t src = (j < a_count) ? j : (a_count - 1U);
 
-    const auto& pos = positions[src];
+    const auto& pos = a_positions[src];
 
     m_x[j] = pos[0];
     m_y[j] = pos[1];
@@ -237,6 +246,7 @@ PointSoAT<T, W>::getMinimumDistance2(const Vec3T<T>& a_point) const noexcept
   const std::array<T, W> distances = this->getDistances2(a_point);
 
   T best2 = std::numeric_limits<T>::max();
+
   for (uint32_t i = 0; i < m_validCount; i++) {
     best2 = std::min(best2, distances[i]);
   }
@@ -258,6 +268,7 @@ PointSoAT<T, W>::getMaximumDistance2(const Vec3T<T>& a_point) const noexcept
   const std::array<T, W> distances = this->getDistances2(a_point);
 
   T best2 = std::numeric_limits<T>::lowest();
+
   for (uint32_t i = 0; i < m_validCount; i++) {
     best2 = std::max(best2, distances[i]);
   }
@@ -281,6 +292,7 @@ PointSoAT<T, W>::computeBoundingVolume() const noexcept
   EBGEOMETRY_EXPECT(m_validCount <= W);
 
   std::vector<Vec3T<T>> positions;
+
   positions.reserve(m_validCount);
 
   for (uint32_t j = 0; j < m_validCount; j++) {

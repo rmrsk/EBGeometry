@@ -47,17 +47,17 @@ struct PointAoSoA
 
 public:
   /**
-   * @brief Pack count (position, metadata) pairs into this group.
-   * @details Pads lanes count..W-1 by repeating the last real position and metadata, matching
+   * @brief Pack a_count (position, metadata) pairs into this group.
+   * @details Pads lanes a_count..W-1 by repeating the last real position and metadata, matching
    * PointSoAT::pack()'s own padding convention, so all W lanes hold valid data.
-   * @param[in] positions Source position array with at least count elements. Must not be null.
-   * @param[in] metaData  Source metadata array with at least count elements, same order and
-   * length as positions. Must not be null.
-   * @param[in] count     Number of valid (position, metadata) pairs to pack. Must satisfy
-   * 1 <= count <= W.
+   * @param[in] a_positions Source position array with at least a_count elements. Must not be null.
+   * @param[in] a_metaData  Source metadata array with at least a_count elements, same order and
+   * length as a_positions. Must not be null.
+   * @param[in] a_count     Number of valid (position, metadata) pairs to pack. Must satisfy
+   * 1 <= a_count <= W.
    */
   void
-  pack(const Vec3T<T>* positions, const Meta* metaData, uint32_t count) noexcept;
+  pack(const Vec3T<T>* a_positions, const Meta* a_metaData, uint32_t a_count) noexcept;
 
   /**
    * @brief Squared unsigned distances from a_point to every one of the W lane points.
