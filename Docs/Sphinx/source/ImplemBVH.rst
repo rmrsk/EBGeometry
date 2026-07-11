@@ -494,8 +494,8 @@ the Doxygen reference for
 
 .. _Chap:MeshSDFClasses:
 
-Mesh Signed Distance Function Classes
---------------------------------------
+Mesh SDF classes
+----------------
 
 EBGeometry provides three concrete classes for evaluating signed distances to surface meshes.
 They share the same sign convention (negative inside, positive outside) but differ in data layout,
@@ -548,8 +548,8 @@ itself.
 What is actually vectorised in ``TriMeshSDF``/``PackedBVH`` is covered in
 :ref:`Chap:SIMDClasses` -- see that page for the full detail rather than repeating it here.
 
-Primitive storage: why MeshSDF and TriMeshSDF default differently
-___________________________________________________________________
+Primitive storage: Facets or triangles
+______________________________________
 
 Both classes' underlying ``PackedBVH`` accepts the ``StoragePolicy`` axis described above, but
 they default -- and, for ``MeshSDF``, are restricted -- differently:
