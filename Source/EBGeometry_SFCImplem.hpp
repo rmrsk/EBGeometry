@@ -250,12 +250,18 @@ computeBins(const std::vector<Vec3T<T>>& a_points) noexcept
   std::vector<Index> bins;
   bins.reserve(a_points.size());
 
+  // Clamp each floored index into [0, ValidSpan], the range encode() requires. Two float divisions
+  // can round a max-boundary point's index to ValidSpan + 1 (and a min-boundary point's to a tiny
+  // negative, which would wrap on the unsigned cast); the clamp defends both.
+  const auto toBin = [](T a_v) noexcept -> unsigned int {
+    const T f = std::floor(a_v);
+    return static_cast<unsigned int>(f < T(0) ? T(0) : (f > T(ValidSpan) ? T(ValidSpan) : f));
+  };
+
   for (const auto& p : a_points) {
     const Vec3T<T> curBin = (p - minCoord) / delta;
 
-    bins.emplace_back(Index{static_cast<unsigned int>(std::floor(curBin[0])),
-                            static_cast<unsigned int>(std::floor(curBin[1])),
-                            static_cast<unsigned int>(std::floor(curBin[2]))});
+    bins.emplace_back(Index{toBin(curBin[0]), toBin(curBin[1]), toBin(curBin[2])});
   }
 
   return bins;

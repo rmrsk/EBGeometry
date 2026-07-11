@@ -181,6 +181,22 @@ kept alive as part of a persistent tree. What this constructor avoids is exactly
 ``shared_ptr<TreeBVH>`` node allocation kept alive for the tree's lifetime, which the ``Examples/BuildBVH``
 benchmark measures as the traditional path's dominant build-time cost.
 
+A third direct constructor builds via **ClusterSAH**, a fast approximation of a full SAH tree:
+
+.. code-block:: cpp
+
+   BVH::PackedBVH<T, P, K> packed(std::move(primsAndBVs), BVH::ClusterSpec{maxClusterSize});
+
+It first groups the primitives into small, spatially-tight *clusters* (buckets of at most
+``maxClusterSize`` primitives, formed by a cheap density-adaptive midpoint subdivision that stops
+early), then runs binned SAH top-down over those clusters — so SAH partitions roughly
+``N / maxClusterSize`` boxes instead of all ``N`` primitives. The result is near-SAH tree quality at
+a fraction of the single-threaded SAH build cost, and it stays robust across uniform, surface, and
+clustered primitive distributions (a fixed Cartesian grid, by contrast, overcrowds on non-uniform
+data). ``BVH::ClusterSpec::maxClusterSize`` trades build time (larger → fewer, cheaper SAH units)
+against query quality (larger → coarser leaves); ``Examples/BuildBVH`` benchmarks its build time
+against the other strategies.
+
 .. tip::
 
    Higher-level entry points such as ``Parser::readIntoPackedBVH`` don't require you to

@@ -1405,6 +1405,53 @@ TEMPLATE_TEST_CASE("PackedBVH: direct top-down/SAH-build constructor (no TreeBVH
     const BVH::PackedBVH<T, Pnt, K> packed(makeFlatPrims(), BVH::BinnedSAHPartitioner<T, Pnt, AABB, K>, stopCrit);
     checkPacked("SAH", packed);
   }
+
+  SECTION("ClusterSAH partitioner (cluster primitives, then SAH over clusters)")
+  {
+    // Small maxClusterSize so several clusters form over the 125-point grid, exercising the
+    // cluster-then-SAH path rather than collapsing to a single cluster.
+    const BVH::PackedBVH<T, Pnt, K> packed(makeFlatPrims(), BVH::ClusterSpec{size_t(4)});
+    checkPacked("ClusterSAH", packed);
+  }
+
+  SECTION("Single primitive (root is itself a leaf) -- every direct partitioner")
+  {
+    const Vec3 only(T(1), T(2), T(3));
+
+    const auto onePrim = [&]() {
+      std::vector<std::pair<Pnt, AABB>> v;
+      v.emplace_back(Pnt{only}, AABB(only, only));
+      return v;
+    };
+
+    const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+    const auto checkOne = [&](const char* a_label, const BVH::PackedBVH<T, Pnt, K>& a_packed) {
+      INFO(a_label);
+      REQUIRE(a_packed.getPrimitives().size() == 1);
+
+      const auto& prims = a_packed.getPrimitives();
+      for (const auto& q : queryPoints<T>()) {
+        T          state    = std::numeric_limits<T>::max();
+        const auto evalLeaf = [&prims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+          for (size_t i = 0; i < a_count; i++) {
+            a_state = std::min(a_state, (prims[a_offset + i]->m_pos - q).length2());
+          }
+        };
+
+        a_packed.pruneTraverse(q, state, evalLeaf, pruneDist2);
+
+        REQUIRE_THAT(state, withinAbsT((only - q).length2(), traversalMargin<T>()));
+      }
+    };
+
+    using Node          = BVH::TreeBVH<T, Pnt, AABB, K>;
+    const auto stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
+
+    checkOne("Default", BVH::PackedBVH<T, Pnt, K>(onePrim()));
+    checkOne("SAH", BVH::PackedBVH<T, Pnt, K>(onePrim(), BVH::BinnedSAHPartitioner<T, Pnt, AABB, K>, stopCrit));
+    checkOne("ClusterSAH", BVH::PackedBVH<T, Pnt, K>(onePrim(), BVH::ClusterSpec{size_t(8)}));
+  }
 }
 
 TEMPLATE_TEST_CASE("PackedBVH: direct top-down-build constructor agrees exactly with building via "
