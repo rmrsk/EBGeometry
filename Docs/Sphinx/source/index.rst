@@ -101,6 +101,7 @@ Implementation
    ImplemCSG.rst
    ImplemDCEL.rst
    ImplemBVH.rst
+   PointCloud.rst
    ImplemOctree.rst
    Parsers.rst
    SIMDClasses.rst

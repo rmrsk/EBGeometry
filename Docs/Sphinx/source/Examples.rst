@@ -8,6 +8,16 @@ dependencies.  Each one can be built directly with a compiler, with GNU Make, or
 (see :ref:`Chap:Building`), and every folder ships all three (a ``GNUmakefile``, a
 ``CMakeLists.txt``, and a plain ``main.cpp`` compilable with a single compiler invocation).
 
+Alongside the examples with dedicated pages below, the following BVH and point-cloud examples ship in
+:file:`Examples/`:
+
+* ``BuildBVH`` -- compares the BVH construction strategies (top-down, SAH, and the Morton, Hilbert,
+  and Nested space-filling-curve builds) by build time.
+* ``ClosestPointBVH`` -- closest-point search over a point cloud using the ``PointCloudBVH`` class
+  (see :ref:`Chap:ImplemPointCloud`).
+* ``NearestNeighborBVH`` -- the k-nearest-neighbor graph of a point cloud via
+  ``PointCloudBVH::allNearestNeighbors()``.
+
 Examples that couple EBGeometry to a third-party application code's embedded-boundary grid
 generation (`AMReX <https://amrex-codes.github.io/amrex/>`_, `Chombo
 <https://commons.lbl.gov/display/chombo/>`_) live separately under :file:`ThirdParty/` instead,
