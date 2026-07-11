@@ -199,3 +199,55 @@ TEMPLATE_TEST_CASE("PointCloudBVH queries match brute force", "[PointCloudBVH]",
     }
   }
 }
+
+TEMPLATE_TEST_CASE("PointCloudBVH edge cases", "[PointCloudBVH]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T   = TestType;
+  using Hit = typename PointCloudBVH<T, std::size_t>::Hit;
+
+  const T notFound = std::numeric_limits<T>::max();
+
+  SECTION("empty cloud: no out-of-bounds access, queries report nothing")
+  {
+    const std::vector<Vec3T<T>>         pos;
+    const std::vector<std::size_t>      meta;
+    const PointCloudBVH<T, std::size_t> bvh(pos, meta);
+
+    CHECK(bvh.numParticles() == 0);
+    // Must not read m_linearNodes[0]; a miss is signalled by the sentinel distance.
+    CHECK(bvh.closestPoint(Vec3T<T>(T(0), T(0), T(0))).distanceSquared == notFound);
+    Hit               out[4];
+    const std::size_t found = bvh.closestPoints(Vec3T<T>(T(0), T(0), T(0)), 4, out);
+    CHECK(found == 0);
+    CHECK(bvh.allNearestNeighbors(1).empty());
+  }
+
+  SECTION("single particle: external query finds it, self query finds nothing")
+  {
+    const std::vector<Vec3T<T>>         pos  = {Vec3T<T>(T(0.25), T(0.5), T(0.75))};
+    const std::vector<std::size_t>      meta = {42};
+    const PointCloudBVH<T, std::size_t> bvh(pos, meta);
+
+    const auto hit = bvh.closestPoint(pos[0]);
+    CHECK(hit.index == 0);
+    CHECK_THAT(hit.distanceSquared, withinAbsT<T>(T(0), tightMargin<T>()));
+
+    // nearestNeighbor excludes self, so with only one particle there is no neighbor.
+    CHECK(bvh.nearestNeighbor(0).distanceSquared == notFound);
+  }
+
+  SECTION("deep tree (small leaves) still resolves seeded queries correctly")
+  {
+    // A small target leaf size forces many BVH levels, exercising the seeded fast-path DFS (and its
+    // stack) far more than the default. Every self query is checked against brute force.
+    constexpr std::size_t               n   = 3000;
+    const std::vector<Vec3T<T>>         pos = makeCloud<T>(n, 555u);
+    std::vector<std::size_t>            meta(n, 0);
+    const PointCloudBVH<T, std::size_t> bvh(pos, meta, /* targetLeafSize */ 2);
+
+    for (std::size_t i = 0; i < n; i += 23) {
+      const auto truth = bruteForce<T>(pos, pos[i], 1, i);
+      CHECK_THAT(bvh.nearestNeighbor(i).distanceSquared, withinAbsT<T>(truth[0], tightMargin<T>()));
+    }
+  }
+}

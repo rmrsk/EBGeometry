@@ -77,6 +77,10 @@ public:
     @brief One query result: the cloud index of a matched particle and its squared distance.
     @details @c index is the particle's position in the input @c positions / @c metadata arrays;
     use position()/metadata() to recover its data. @c distanceSquared avoids a sqrt on the hot path.
+    @note A "no match" result (an empty cloud, or a self-query on a cloud with no other particle) is
+    signalled by @c distanceSquared == std::numeric_limits<T>::max(); test that rather than @c index,
+    since the default @c index of 0 is indistinguishable from a genuine match on particle 0. The
+    multi-result queries instead report the count found via their return value.
   */
   struct Hit
   {

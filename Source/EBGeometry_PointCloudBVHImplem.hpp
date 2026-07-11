@@ -116,7 +116,11 @@ PointCloudBVH<T, Meta, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions
       const std::uint32_t ni = static_cast<std::uint32_t>(res.nodes.size());
       res.nodes.emplace_back();
 
-      if (a_hi - a_lo <= leafSize) {
+      // Make a leaf once the range is small enough -- but also never try to split a range with fewer
+      // than K particles, since partition() cannot produce K non-empty children from it (an empty
+      // child would become a malformed 0-primitive leaf with an inverted bounding volume). With the
+      // default leaf size (16*W >> K) this never binds; it only matters for very small targetLeafSize.
+      if (a_hi - a_lo <= std::max<std::size_t>(leafSize, K)) {
         const std::uint32_t primOff = static_cast<std::uint32_t>(res.primitives.size());
 
         Vec3T<T> blo = +Vec3T<T>::max();
@@ -196,6 +200,13 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
                                     std::uint32_t   a_seedOff,
                                     std::uint32_t   a_seedCnt) const noexcept
 {
+  a_found = 0;
+
+  // An empty cloud has no nodes; every traversal below would index m_linearNodes[0]. Bail out.
+  if (this->m_linearNodes.empty()) {
+    return;
+  }
+
   // Fast path for the single-nearest case (closestPoint / nearestNeighbor / all-NN with k==1), the
   // common one: a lean {distance, index} state instead of the general k-best set, so the per-lane
   // work is just a compare-and-maybe-store.
@@ -227,13 +238,19 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
       // holds ONLY because of the seed: see the external branch below.)
       scan1(best, a_seedOff, a_seedCnt);
 
-      std::uint32_t stack[64];
+      // Prune-before-push scalar DFS: a child is pushed only when its bounding volume is closer than
+      // the current best, so the working set stays bounded to nodes that can still improve the result
+      // (the seed gives a tight bound up front). This keeps the stack small without pruneTraverse's
+      // per-node child sort / SoA load. The 256-entry stack matches PackedBVH::pruneTraverse's
+      // convention; the guard catches a pathological overrun in debug builds.
+      constexpr int maxStack = 256;
+      std::uint32_t stack[maxStack];
       int           sp = 0;
       stack[sp++]      = 0U;
       while (sp > 0) {
         const Node& node = this->m_linearNodes[stack[--sp]];
         if (node.getDistanceToBoundingVolume2(a_query) >= best.d2) {
-          continue;
+          continue; // stale: best tightened since this node was pushed
         }
         if (node.isLeaf()) {
           const std::uint32_t off = node.getPrimitivesOffset();
@@ -244,7 +261,10 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
         else {
           const auto& kids = node.getChildOffsets();
           for (std::size_t k = 0; k < K; k++) {
-            stack[sp++] = kids[k];
+            if (this->m_linearNodes[kids[k]].getDistanceToBoundingVolume2(a_query) < best.d2) {
+              EBGEOMETRY_EXPECT(sp < maxStack);
+              stack[sp++] = kids[k];
+            }
           }
         }
       }
