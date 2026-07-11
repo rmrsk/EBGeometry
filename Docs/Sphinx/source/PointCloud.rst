@@ -54,6 +54,3 @@ member of the cloud. A point therefore already knows which cell or leaf it lives
 can be *seeded* from that group -- giving a tight pruning bound immediately -- and must exclude the
 point itself (otherwise it would trivially find itself at distance zero). This makes a batch of self
 queries strictly cheaper than the same number of independent external queries.
-
-See :ref:`Chap:ImplemPointCloud` for the two concrete classes that implement these ideas and the
-turnkey query interface they share.
