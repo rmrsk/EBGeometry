@@ -73,7 +73,7 @@ TEMPLATE_TEST_CASE("PointCloudHashGrid queries match brute force", "[PointCloudH
 
   REQUIRE(grid.numParticles() == n);
 
-  const T tol = tightMargin<T>();
+  const double tol = tightMargin<T>();
 
   SECTION("closestPoint (external query) matches brute force")
   {
