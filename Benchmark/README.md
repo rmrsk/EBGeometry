@@ -10,13 +10,18 @@ The comparison libraries are pinned as git submodules under [`Submodules/`](../S
 * [nanoflann](https://github.com/jlblancoc/nanoflann) — header-only KD-tree (point kNN)
 * [picoflann](https://github.com/rmsalinas/picoflann) — tiny header-only KD-tree (point kNN)
 * [fcpw](https://github.com/rohan-sawhney/fcpw) — closest-point / SDF on triangle meshes
+* [TriangleMeshDistance](https://github.com/InteractiveComputerGraphics/TriangleMeshDistance) — header-only signed distance to triangle meshes
 
 Fetch them (and the mesh submodule) with:
 
 ```bash
-git submodule update --init Submodules/nanoflann Submodules/picoflann Submodules/fcpw Submodules/common-3d-test-models
+git submodule update --init Submodules/nanoflann Submodules/picoflann Submodules/fcpw \
+                            Submodules/TriangleMeshDistance Submodules/common-3d-test-models
 git -C Submodules/fcpw submodule update --init deps/eigen   # fcpw's Eigen (skip the GPU slang-rhi dep)
 ```
+
+fcpw's Enoki CPU-vectorization headers are vendored inside the fcpw submodule, so no extra fetch is
+needed for it.
 
 Each benchmark has a `GNUmakefile` (`make && ./<name>.ex`). Every result is cross-checked against a
 brute-force / independent baseline so a wrong answer shows up as a mismatch.
@@ -46,22 +51,25 @@ picoflann            ~65         0.47
 `MeshSDF/` — closest-point on a triangle mesh
 ---------------------------------------------
 
-Closest-point queries against a triangle mesh (armadillo, ~100k triangles, float) — the task fcpw and
-EBGeometry's `TriMeshSDF` are both built for. The mesh is parsed once; each library then builds its
-own BVH over the same triangles and answers the same queries.
+Closest-point queries against a triangle mesh (armadillo, ~100k triangles) — the task `TriMeshSDF`,
+fcpw, and TriangleMeshDistance are all built for. The mesh is parsed once; each library then builds
+its own structure over the same triangles and answers the same queries.
 
 Representative result (one machine, 100k queries):
 
 ```
-Method        Build(ms)   Query(us/query)
-TriMeshSDF        ~65          2.6
-fcpw              ~55          7.5
+Method                  Build(ms)   Query(us/query)
+TriMeshSDF                  ~63          2.6
+fcpw (Enoki)                ~46          3.5
+TriangleMeshDistance       ~115         10.5
 ```
 
-- **Caveat:** fcpw here runs its **scalar Eigen fallback** (`FCPW_USE_ENOKI` off), while `TriMeshSDF`
-  is SIMD-vectorized (SoA triangle leaves). So the query gap flatters EBGeometry — fcpw's intended
-  fast path uses Enoki CPU vectorization, which would narrow it. Enabling Enoki is a heavier build
-  (an extra dependency) and is left as a follow-up. Build times and correctness are directly
-  comparable; the cross-check confirms the distances agree.
-- `TriMeshSDF` computes the *signed* distance (its purpose); fcpw's `findClosestPoint` returns the
-  unsigned closest point, so the comparison is on unsigned closest-surface distance.
+- **fcpw** is built with its **Enoki CPU vectorization** (`FCPW_USE_ENOKI`, vectorized MBVH), the same
+  SIMD fast path `TriMeshSDF` uses — a like-for-like float/SIMD comparison. (`FCPW_SIMD_WIDTH` in the
+  `GNUmakefile` should match your ISA: 4=SSE, 8=AVX2, 16=AVX-512.) fcpw's `findClosestPoint` returns
+  the *unsigned* closest point.
+- **TriangleMeshDistance** is a header-only, **double-precision, scalar** (non-SIMD) signed-distance
+  library — so its query runs in double and is not a same-precision comparison; it is included as a
+  widely-used point of reference.
+- `TriMeshSDF` and TriangleMeshDistance compute the *signed* distance (their purpose); the comparison
+  is on unsigned closest-surface distance, and the cross-check confirms all three agree.

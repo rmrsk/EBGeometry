@@ -15,7 +15,8 @@ on tasks they have in common. Fetch the comparison libraries (and the mesh submo
 
 .. code-block:: bash
 
-   git submodule update --init Submodules/nanoflann Submodules/picoflann Submodules/fcpw Submodules/common-3d-test-models
+   git submodule update --init Submodules/nanoflann Submodules/picoflann Submodules/fcpw \
+                               Submodules/TriangleMeshDistance Submodules/common-3d-test-models
    git -C Submodules/fcpw submodule update --init deps/eigen   # fcpw's Eigen (skip the GPU dep)
 
 Each benchmark ships a ``GNUmakefile`` (``make && ./<name>.ex``) and cross-checks every result against
@@ -26,4 +27,5 @@ representative numbers.
   `nanoflann <https://github.com/jlblancoc/nanoflann>`_ vs
   `picoflann <https://github.com/rmsalinas/picoflann>`_.
 * :file:`Benchmark/MeshSDF` -- closest-point on a triangle mesh: ``TriMeshSDF`` vs
-  `fcpw <https://github.com/rohan-sawhney/fcpw>`_.
+  `fcpw <https://github.com/rohan-sawhney/fcpw>`_ (built with its Enoki CPU vectorization) vs
+  `TriangleMeshDistance <https://github.com/InteractiveComputerGraphics/TriangleMeshDistance>`_.

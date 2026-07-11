@@ -2,15 +2,21 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Benchmark: EBGeometry TriMeshSDF vs fcpw (https://github.com/rohan-sawhney/fcpw) on closest-point
-// queries over a triangle mesh -- the task both libraries are built for (a BVH over triangles,
-// answering "closest point on the surface"). Float precision (fcpw is float).
+// Benchmark: EBGeometry TriMeshSDF vs fcpw (https://github.com/rohan-sawhney/fcpw) vs
+// TriangleMeshDistance (https://github.com/InteractiveComputerGraphics/TriangleMeshDistance) on
+// closest-point queries over a triangle mesh -- the task all three are built for (an acceleration
+// structure over triangles, answering "closest point on the surface").
 //
 // The mesh is parsed once (shared, untimed) from the common-3d-test-models submodule. Each library
-// then builds its own BVH over the same triangles (timed) and answers the same random closest-point
-// queries (timed). Results are cross-checked: |TriMeshSDF signed distance| vs fcpw's unsigned
-// closest-surface distance. Note TriMeshSDF additionally computes the sign (it is a signed-distance
-// library); fcpw's findClosestPoint returns the unsigned closest point.
+// then builds its own structure over the same triangles (timed) and answers the same random
+// closest-point queries (timed). Results are cross-checked against TriMeshSDF's unsigned distance.
+//
+// Precision / vectorization caveats (each library on its own intended fast path):
+//   - TriMeshSDF   -- float, SIMD-vectorized (this build's native ISA).
+//   - fcpw         -- float; built with its Enoki CPU vectorization (FCPW_USE_ENOKI, vectorized BVH).
+//                     fcpw returns an unsigned closest point; TriMeshSDF additionally computes a sign.
+//   - TriangleMeshDistance -- double, scalar (header-only, no SIMD). A signed-distance library like
+//                     TriMeshSDF; runs its queries in double, so it is not a same-precision comparison.
 
 #include <cmath>
 #include <cstddef>
@@ -22,6 +28,7 @@
 #include <EBGeometry.hpp>
 
 #include <fcpw/fcpw.h>
+#include <tmd/TriangleMeshDistance.h>
 
 using T    = float; // fcpw is float
 using Vec3 = EBGeometry::Vec3T<T>;
@@ -101,7 +108,7 @@ main(int argc, char** argv)
   scene.setObjectCount(1);
   scene.setObjectVertices(V, 0);
   scene.setObjectTriangles(F, 0);
-  scene.build(fcpw::AggregateType::Bvh_SurfaceArea, false /* vectorize (needs Enoki) */);
+  scene.build(fcpw::AggregateType::Bvh_SurfaceArea, true /* vectorize (Enoki MBVH) */);
   timer.stop();
   const double fcpwBuildMs = 1.0e3 * timer.seconds();
 
@@ -115,17 +122,61 @@ main(int argc, char** argv)
   timer.stop();
   const double fcpwQueryUs = 1.0e6 * timer.seconds() / double(numQueries);
 
-  // Cross-check on a spread sample: unsigned closest-surface distance must agree.
-  std::size_t bad = 0;
+  // ── TriangleMeshDistance (double, scalar, header-only) ──
+  // Same unwelded triangle soup, in double. Building the arrays + the structure is its timed setup,
+  // mirroring how fcpw's soup construction is folded into fcpw's build above.
+  std::vector<double> tmdVertices;
+  std::vector<int>    tmdTriangles;
+  tmdVertices.reserve(9 * nTri);
+  tmdTriangles.reserve(3 * nTri);
+  timer.start();
+  for (const auto& tri : tris) {
+    const auto& p    = tri->getVertexPositions();
+    const int   base = static_cast<int>(tmdVertices.size() / 3);
+    for (int k = 0; k < 3; k++) {
+      tmdVertices.push_back(double(p[k][0]));
+      tmdVertices.push_back(double(p[k][1]));
+      tmdVertices.push_back(double(p[k][2]));
+    }
+    tmdTriangles.push_back(base);
+    tmdTriangles.push_back(base + 1);
+    tmdTriangles.push_back(base + 2);
+  }
+  const tmd::TriangleMeshDistance tmdMesh(
+    tmdVertices.data(), tmdVertices.size() / 3, tmdTriangles.data(), tmdTriangles.size() / 3);
+  timer.stop();
+  const double tmdBuildMs = 1.0e3 * timer.seconds();
+
+  std::vector<T> tmdDist(numQueries);
+  timer.start();
+  for (std::size_t i = 0; i < numQueries; i++) {
+    const tmd::Result r =
+      tmdMesh.signed_distance({double(queries[i][0]), double(queries[i][1]), double(queries[i][2])});
+    tmdDist[i] = T(std::abs(r.distance));
+  }
+  timer.stop();
+  const double tmdQueryUs = 1.0e6 * timer.seconds() / double(numQueries);
+
+  // Cross-check on a spread sample: unsigned closest-surface distance must agree across all three.
+  std::size_t badFcpw = 0;
+  std::size_t badTmd  = 0;
   for (std::size_t s = 0; s < sampleSize; s++) {
     const std::size_t i = s * (numQueries / sampleSize);
     if (std::abs(ebDist[i] - fcpwDist[i]) > T(1.0e-3) * std::max(fcpwDist[i], T(1))) {
-      bad++;
+      badFcpw++;
+    }
+    if (std::abs(ebDist[i] - tmdDist[i]) > T(1.0e-3) * std::max(tmdDist[i], T(1))) {
+      badTmd++;
     }
   }
 
-  std::printf("  %-12s  build %7.1f ms   query %7.3f us/query\n", "TriMeshSDF", ebBuildMs, ebQueryUs);
-  std::printf("  %-12s  build %7.1f ms   query %7.3f us/query\n", "fcpw", fcpwBuildMs, fcpwQueryUs);
-  std::printf("  cross-check: %zu/%zu sample mismatches (|TriMeshSDF| vs fcpw unsigned distance)\n", bad, sampleSize);
+  std::printf("  %-22s  build %7.1f ms   query %7.3f us/query\n", "TriMeshSDF", ebBuildMs, ebQueryUs);
+  std::printf("  %-22s  build %7.1f ms   query %7.3f us/query\n", "fcpw (Enoki)", fcpwBuildMs, fcpwQueryUs);
+  std::printf("  %-22s  build %7.1f ms   query %7.3f us/query\n", "TriangleMeshDistance", tmdBuildMs, tmdQueryUs);
+  std::printf("  cross-check vs TriMeshSDF: fcpw %zu/%zu, TriangleMeshDistance %zu/%zu sample mismatches\n",
+              badFcpw,
+              sampleSize,
+              badTmd,
+              sampleSize);
   return 0;
 }

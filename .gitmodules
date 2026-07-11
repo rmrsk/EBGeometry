@@ -14,3 +14,6 @@
 	path = Submodules/fcpw
 	url = https://github.com/rohan-sawhney/fcpw.git
 	shallow = true
+[submodule "Submodules/TriangleMeshDistance"]
+	path = Submodules/TriangleMeshDistance
+	url = https://github.com/InteractiveComputerGraphics/TriangleMeshDistance
