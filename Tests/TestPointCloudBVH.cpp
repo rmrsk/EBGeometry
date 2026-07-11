@@ -71,7 +71,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH queries match brute force", "[PointCloudBVH]",
 
   REQUIRE(bvh.numParticles() == n);
 
-  const T tol = tightMargin<T>();
+  const double tol = tightMargin<T>();
 
   SECTION("closestPoint (external query) matches brute force")
   {
