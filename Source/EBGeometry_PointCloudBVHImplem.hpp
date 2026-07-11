@@ -20,7 +20,6 @@
 // Our includes
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_PointCloudBVH.hpp"
-#include "EBGeometry_SFC.hpp"
 
 namespace EBGeometry {
 
@@ -41,7 +40,8 @@ inline PointCloudBVH<T, Meta, K, W>::PointCloudBVH(BuildResult&&                
     m_positions(a_positions),
     m_metadata(a_metadata),
     m_leafOff(std::move(a_build.leafOff)),
-    m_leafCnt(std::move(a_build.leafCnt))
+    m_leafCnt(std::move(a_build.leafCnt)),
+    m_order(std::move(a_build.order))
 {}
 
 template <class T, class Meta, size_t K, size_t W>
@@ -178,6 +178,10 @@ PointCloudBVH<T, Meta, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions
     Builder builder{a_positions, idx, res, std::max<std::size_t>(a_leafSize, 1)};
     builder.build(0, static_cast<std::uint32_t>(n));
   }
+
+  // After the build, idx is the particle permutation in leaf (depth-first) order -- spatially
+  // coherent for free. Keep it so batch queries can iterate in that order without re-sorting.
+  res.order = std::move(idx);
 
   return res;
 }
@@ -374,11 +378,11 @@ PointCloudBVH<T, Meta, K, W>::allNearestNeighbors(std::size_t a_k) const
 
   std::vector<Hit> result(n * a_k);
 
-  // Process particles in Hilbert order: consecutive queries touch nearby leaves, so the tree nodes
-  // and each seeded own-leaf stay hot in cache. Ordering affects only speed, not results.
-  const std::vector<std::uint32_t> order = SFC::order<SFC::Hilbert>(m_positions);
-
-  for (const std::uint32_t p : order) {
+  // Process particles in leaf (build) order: the top-down build already grouped them spatially, so
+  // consecutive queries touch nearby leaves and each seeded own-leaf stays hot in cache -- the same
+  // benefit a Hilbert sort would give, but reusing m_order costs nothing per call (no re-sort).
+  // Ordering affects only speed, not results.
+  for (const std::uint32_t p : m_order) {
     std::size_t found = 0;
     this->query(m_positions[p], a_k, &result[p * a_k], found, p, m_leafOff[p], m_leafCnt[p]);
   }

@@ -135,8 +135,10 @@ public:
 
   /*!
     @brief For every particle, its a_k nearest *other* particles (the k-nearest-neighbor graph).
-    @details Processes particles in spatial (Hilbert) order and seeds each from its own leaf, so the
-    whole batch is cheaper than the sum of independent queries. Result is flattened row-major:
+    @details Processes particles in leaf (build) order -- already spatially coherent, so consecutive
+    queries touch nearby leaves and stay hot in cache, with no per-call sort -- and seeds each from its
+    own leaf, so the whole batch is cheaper than the sum of independent queries. Result is flattened
+    row-major:
     entry [i*a_k + j] is the j-th nearest neighbor of particle i (ascending by distance).
     @param[in] a_k Number of neighbors per particle.
     @return A vector of size numParticles()*a_k of Hits.
@@ -231,6 +233,7 @@ private:
     std::vector<ParticleGroup> primitives;
     std::vector<std::uint32_t> leafOff;
     std::vector<std::uint32_t> leafCnt;
+    std::vector<std::uint32_t> order; //!< Particle indices in leaf (build) order -- spatially coherent.
   };
 
   /*! @brief Delegated-to constructor: adopt the build result and keep the cloud data. */
@@ -288,6 +291,9 @@ private:
   std::vector<Meta>          m_metadata;  //!< User metadata, indexed by cloud index.
   std::vector<std::uint32_t> m_leafOff;   //!< Per-particle own-leaf group offset (for seeding).
   std::vector<std::uint32_t> m_leafCnt;   //!< Per-particle own-leaf group count (for seeding).
+  std::vector<std::uint32_t> m_order;     //!< Particle indices in leaf (build) order; the spatially
+                                          //!< coherent batch-query order, reused so allNearestNeighbors
+                                          //!< needn't recompute a space-filling-curve sort per call.
 };
 
 } // namespace EBGeometry
