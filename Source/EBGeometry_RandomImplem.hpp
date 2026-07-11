@@ -33,9 +33,9 @@ samplePoints(size_t a_count, uint64_t a_seed)
   std::uniform_real_distribution<T> dist(T(0.0), T(1.0));
 
   std::vector<Vec3T<T>> points;
-  
+
   points.reserve(a_count);
-  
+
   for (size_t i = 0; i < a_count; i++) {
     points.emplace_back(dist(rng), dist(rng), dist(rng));
   }
