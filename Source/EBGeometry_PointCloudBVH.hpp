@@ -9,8 +9,8 @@
  * @author  Robert Marskar
  */
 
-#ifndef EBGeometry_PointCloudBVH
-#define EBGeometry_PointCloudBVH
+#ifndef EBGEOMETRY_POINTCLOUDBVH_HPP
+#define EBGEOMETRY_POINTCLOUDBVH_HPP
 
 // Std includes
 #include <cstddef>
@@ -322,13 +322,31 @@ private:
    */
   static constexpr std::size_t s_none = std::numeric_limits<std::size_t>::max();
 
-  std::vector<Vec3T<T>>      m_positions; ///< Kept for self-query points and spatial ordering.
-  std::vector<Meta>          m_metadata;  ///< User metadata, indexed by cloud index.
-  std::vector<std::uint32_t> m_leafOff;   ///< Per-point own-leaf group offset (for seeding).
-  std::vector<std::uint32_t> m_leafCnt;   ///< Per-point own-leaf group count (for seeding).
-  std::vector<std::uint32_t> m_order;     ///< Point indices in leaf (build) order; the spatially
-                                          ///< coherent batch-query order, reused so allNearestNeighbors
-                                          ///< needn't recompute a space-filling-curve sort per call.
+  /**
+   * @brief Point positions, indexed by cloud index. Kept for self-query points and spatial ordering.
+   */
+  std::vector<Vec3T<T>> m_positions;
+
+  /**
+   * @brief User metadata, indexed by cloud index.
+   */
+  std::vector<Meta> m_metadata;
+
+  /**
+   * @brief Per-point own-leaf group offset (for seeding).
+   */
+  std::vector<std::uint32_t> m_leafOff;
+
+  /**
+   * @brief Per-point own-leaf group count (for seeding).
+   */
+  std::vector<std::uint32_t> m_leafCnt;
+
+  /**
+   * @brief Point indices in leaf (build) order; the spatially coherent batch-query order, reused so
+   * allNearestNeighbors needn't recompute a space-filling-curve sort per call.
+   */
+  std::vector<std::uint32_t> m_order;
 };
 
 } // namespace EBGeometry

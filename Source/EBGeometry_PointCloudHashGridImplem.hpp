@@ -8,8 +8,8 @@
  * @author  Robert Marskar
  */
 
-#ifndef EBGeometry_PointCloudHashGridImplem
-#define EBGeometry_PointCloudHashGridImplem
+#ifndef EBGEOMETRY_POINTCLOUDHASHGRIDIMPLEM_HPP
+#define EBGEOMETRY_POINTCLOUDHASHGRIDIMPLEM_HPP
 
 // Std includes
 #include <algorithm>
@@ -36,6 +36,10 @@ inline PointCloudHashGrid<T, Meta>::PointCloudHashGrid(const std::vector<Vec3T<T
   EBGEOMETRY_EXPECT(a_targetPerCell > T(0));
 
   const std::size_t numPoints = m_positions.size();
+
+  // Cloud indices are stored as uint32_t in the CSR arrays (m_cellStart / m_cellPoints), so the cloud
+  // must fit that width.
+  EBGEOMETRY_EXPECT(numPoints <= std::size_t(std::numeric_limits<std::uint32_t>::max()));
 
   // Bounding box of the cloud. Non-finite input would poison the min/max reductions (and every cell
   // computation downstream), so catch it here as a precondition.
@@ -74,13 +78,19 @@ inline PointCloudHashGrid<T, Meta>::PointCloudHashGrid(const std::vector<Vec3T<T
     m_h = T(1);
   }
 
+  EBGEOMETRY_EXPECT(m_h > T(0));
+
   m_invH = T(1) / m_h;
 
   m_nx = std::max(1, int((hi[0] - m_lo[0]) * m_invH) + 1);
   m_ny = std::max(1, int((hi[1] - m_lo[1]) * m_invH) + 1);
   m_nz = std::max(1, int((hi[2] - m_lo[2]) * m_invH) + 1);
 
+  EBGEOMETRY_EXPECT(m_nx >= 1 && m_ny >= 1 && m_nz >= 1);
+
   const std::size_t nCells = std::size_t(m_nx) * std::size_t(m_ny) * std::size_t(m_nz);
+
+  EBGEOMETRY_EXPECT(nCells >= 1);
 
   // Counting sort: histogram -> prefix sum (cellStart) -> scatter cloud indices into cell order.
   m_cellStart.assign(nCells + 1, 0);
@@ -92,6 +102,10 @@ inline PointCloudHashGrid<T, Meta>::PointCloudHashGrid(const std::vector<Vec3T<T
   for (std::size_t cell = 0; cell < nCells; cell++) {
     m_cellStart[cell + 1] += m_cellStart[cell];
   }
+
+  // Prefix sum leaves m_cellStart[nCells] holding the total; it must equal the point count if every
+  // point was bucketed into exactly one (in-range) cell.
+  EBGEOMETRY_EXPECT(std::size_t(m_cellStart[nCells]) == numPoints);
 
   m_cellPoints.resize(numPoints);
   std::vector<std::uint32_t> cursor(m_cellStart.begin(), m_cellStart.end() - 1);

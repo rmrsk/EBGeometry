@@ -8,8 +8,8 @@
  * @author  Robert Marskar
  */
 
-#ifndef EBGeometry_PointCloudBVHImplem
-#define EBGeometry_PointCloudBVHImplem
+#ifndef EBGEOMETRY_POINTCLOUDBVHIMPLEM_HPP
+#define EBGEOMETRY_POINTCLOUDBVHIMPLEM_HPP
 
 // Std includes
 #include <algorithm>

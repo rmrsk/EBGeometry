@@ -9,8 +9,8 @@
  * @author  Robert Marskar
  */
 
-#ifndef EBGeometry_PointCloudHashGrid
-#define EBGeometry_PointCloudHashGrid
+#ifndef EBGEOMETRY_POINTCLOUDHASHGRID_HPP
+#define EBGEOMETRY_POINTCLOUDHASHGRID_HPP
 
 // Std includes
 #include <cstddef>
@@ -274,16 +274,45 @@ private:
    */
   static constexpr std::size_t s_none = std::numeric_limits<std::size_t>::max();
 
-  std::vector<Vec3T<T>> m_positions; ///< Point positions, indexed by cloud index.
-  std::vector<Meta>     m_metadata;  ///< User metadata, indexed by cloud index.
+  /**
+   * @brief Point positions, indexed by cloud index.
+   */
+  std::vector<Vec3T<T>> m_positions;
 
-  Vec3T<T> m_lo;                         ///< Lower corner of the grid (cloud bounding-box minimum).
-  T        m_h    = T(1);                ///< Cell size (edge length).
-  T        m_invH = T(1);                ///< 1 / m_h, cached.
-  int      m_nx = 1, m_ny = 1, m_nz = 1; ///< Grid dimensions in cells.
+  /**
+   * @brief User metadata, indexed by cloud index.
+   */
+  std::vector<Meta> m_metadata;
 
-  std::vector<std::uint32_t> m_cellStart;  ///< CSR offsets, size nCells + 1.
-  std::vector<std::uint32_t> m_cellPoints; ///< Cloud indices sorted by cell, size numPoints().
+  /**
+   * @brief Lower corner of the grid (cloud bounding-box minimum).
+   */
+  Vec3T<T> m_lo;
+
+  /**
+   * @brief Cell size (edge length).
+   */
+  T m_h = T(1);
+
+  /**
+   * @brief 1 / m_h, cached.
+   */
+  T m_invH = T(1);
+
+  /**
+   * @brief Grid dimensions in cells (along x, y, z).
+   */
+  int m_nx = 1, m_ny = 1, m_nz = 1;
+
+  /**
+   * @brief CSR offsets, size nCells + 1.
+   */
+  std::vector<std::uint32_t> m_cellStart;
+
+  /**
+   * @brief Cloud indices sorted by cell, size numPoints().
+   */
+  std::vector<std::uint32_t> m_cellPoints;
 };
 
 } // namespace EBGeometry
