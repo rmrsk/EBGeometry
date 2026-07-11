@@ -68,7 +68,7 @@ Running
 Run from this directory so the default mesh path resolves:
 
     ./MeshSDF.ex
-    ./MeshSDF.ex ../../common-3d-test-models/data/cow.obj
+    ./MeshSDF.ex ../../Submodules/common-3d-test-models/data/cow.obj
 
 With no argument the example loads `armadillo.obj` from the
 `common-3d-test-models` submodule, so make sure it is checked out

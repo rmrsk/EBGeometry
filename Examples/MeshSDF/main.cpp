@@ -31,9 +31,9 @@ int
 main(int argc, char* argv[])
 {
   // Path to a surface mesh (STL/PLY/VTK/OBJ). Pass one on the command line, e.g.
-  //   ./a.out ../../common-3d-test-models/data/cow.obj
+  //   ./a.out ../../Submodules/common-3d-test-models/data/cow.obj
   // Paths are resolved relative to the run directory (this example's source folder when run via ctest).
-  std::string file = "../../common-3d-test-models/data/armadillo.obj";
+  std::string file = "../../Submodules/common-3d-test-models/data/armadillo.obj";
 
   if (argc == 2) {
     file = std::string(argv[1]);
