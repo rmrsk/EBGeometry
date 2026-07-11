@@ -7,8 +7,8 @@
 // interface as PointCloudBVH (same Hit, same methods), so switching structures is a one-line change:
 //
 //   PointCloudHashGrid<T> grid(positions, metadata);   // build once (counting-sort into cells)
-//   grid.nearestNeighbor(i);                             // nearest OTHER particle to particle i
-//   auto graph = grid.allNearestNeighbors(kNN);          // kNN nearest of EVERY particle, batched
+//   grid.nearestNeighbor(i);                             // nearest OTHER point to point i
+//   auto graph = grid.allNearestNeighbors(kNN);          // kNN nearest of EVERY point, batched
 //
 // For a near-uniform cloud the grid builds and queries faster than the tree; for a clustered cloud
 // PointCloudBVH's density adaptivity wins (see Examples/NearestNeighborBVH). A sample of the batch
@@ -54,8 +54,9 @@ main()
 
   const std::vector<Vec3> positions = EBGeometry::Random::samplePoints<T>(numPoints, pointSeed);
 
-  // Per-particle user metadata; see Examples/ClosestPointBVH. Tag each point with its own index.
+  // Per-point user metadata; see Examples/ClosestPointBVH. Tag each point with its own index.
   std::vector<std::size_t> metadata(numPoints);
+
   for (std::size_t i = 0; i < numPoints; i++) {
     metadata[i] = i;
   }
@@ -80,9 +81,11 @@ main()
   std::vector<PointCloud::Hit> truth(kNN);
   const std::size_t            stride = numPoints / sampleSize;
   timer.start();
+
   for (std::size_t s = 0; s < sampleSize; s++) {
     const std::size_t i = s * stride;
     grid.nearestNeighborsBruteForce(i, kNN, truth.data());
+
     for (std::size_t j = 0; j < kNN; j++) {
       const T got = graph[i * kNN + j].distanceSquared;
       EBGEOMETRY_EXPECT(std::abs(got - truth[j].distanceSquared) <=
@@ -90,6 +93,7 @@ main()
       (void)got;
     }
   }
+
   timer.stop();
   const double bruteSecondsPerPoint = timer.seconds() / double(sampleSize);
 
@@ -101,7 +105,7 @@ main()
   std::cout << "  PointCloudHashGrid: " << std::setprecision(3) << 1.0e6 * graphSecondsPerPoint << " us/point"
             << "   (" << std::setprecision(1) << bruteSecondsPerPoint / graphSecondsPerPoint << "x faster)\n\n";
 
-  // The single-point form: the nearest OTHER particle to one particle in the cloud.
+  // The single-point form: the nearest OTHER point to one point in the cloud.
   const PointCloud::Hit nn = grid.nearestNeighbor(0);
   std::cout << "  nearestNeighbor(0): cloud index " << nn.index << " at distance " << std::setprecision(5)
             << std::sqrt(nn.distanceSquared) << "   (metadata " << grid.metadata(nn.index) << ")\n";

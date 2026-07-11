@@ -71,7 +71,7 @@ TEMPLATE_TEST_CASE("PointCloudHashGrid queries match brute force", "[PointCloudH
 
   const PointCloudHashGrid<T, std::size_t> grid(pos, meta);
 
-  REQUIRE(grid.numParticles() == n);
+  REQUIRE(grid.numPoints() == n);
 
   const double tol = tightMargin<T>();
 
