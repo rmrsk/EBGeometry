@@ -76,7 +76,7 @@ commands, and the [Examples](https://rmrsk.github.io/EBGeometry/Examples.html) p
 list of bundled examples. 
 
 Examples that couple EBGeometry to a third-party application code
-(AMReX, Chombo) live under [`ThirdParty/`](ThirdParty/README.md) instead -- see its README
+(AMReX, Chombo) live under [`Integrations/`](Integrations/README.md) instead -- see its README
 for an important caveat about how those are maintained.
 
 ## Build and test everything

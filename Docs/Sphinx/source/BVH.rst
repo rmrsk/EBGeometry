@@ -78,7 +78,9 @@ centroids; a more expensive strategy based on the Surface Area Heuristic typical
 best query performance, at a higher construction cost.
 
 Bottom-up construction is also possible, in which case one constructs the leaf nodes first, and then merges the nodes upward until one reaches a root node.
-In EBGeometry, bottom-up construction is done by means of space-filling curves (e.g., Morton codes).
+In EBGeometry, bottom-up construction is done by means of space-filling curves -- Morton codes,
+Hilbert curves, or nested indices. The Hilbert curve has better spatial locality than Morton (its
+consecutive codes are always spatially adjacent), so it tends to produce tighter leaf groupings.
 
 .. important::
 

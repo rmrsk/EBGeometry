@@ -186,10 +186,10 @@ Test coverage
        :cpp:class:`FlatMeshSDF` (brute-force) and :cpp:class:`TriMeshSDF`
        (SIMD BVH).
    * - ``TestSFC``
-     - :cpp:class:`Morton` and :cpp:class:`Nested` space-filling curves:
+     - :cpp:class:`Morton`, :cpp:class:`Nested`, and :cpp:class:`Hilbert` space-filling curves:
        encode/decode roundtrip across the full valid coordinate range,
        monotonicity along one axis, injectivity, ``ValidSpan`` boundary
-       regression.
+       regression, and (for Hilbert) the consecutive-code adjacency property.
    * - ``TestTriangle``
      - :cpp:class:`Triangle`: face normal from vertex ordering, and
        signed-distance correctness for points closest to the face interior,
@@ -214,7 +214,8 @@ Test coverage
        supported formats, used to verify: identical topology/geometry across formats;
        :cpp:class:`BVH::TreeBVH`/:cpp:class:`BVH::PackedBVH` ``signedDistance`` agreement with a
        brute-force scan across every partitioning strategy (top-down with the default and SAH
-       partitioners, bottom-up with Morton and Nested space-filling curves); :cpp:class:`MeshSDF`
+       partitioners, bottom-up with Morton, Nested, and Hilbert space-filling curves);
+       :cpp:class:`MeshSDF`
        and :cpp:class:`TriMeshSDF` agreement with :cpp:class:`FlatMeshSDF` for every
        :cpp:class:`BVH::Build` strategy; and :cpp:func:`MeshSDF::getClosestFaces` ordering.
    * - ``TestCSG``

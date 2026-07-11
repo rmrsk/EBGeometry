@@ -101,6 +101,7 @@ Implementation
    ImplemCSG.rst
    ImplemDCEL.rst
    ImplemBVH.rst
+   PointCloud.rst
    ImplemOctree.rst
    Parsers.rst
    SIMDClasses.rst
@@ -121,7 +122,7 @@ Examples
    ExamplePackedSpheres.rst
    ExampleRandomCity.rst
    ExampleOctreeBoundingVolume.rst
-   ThirdParty.rst
+   Integrations.rst
 
 Contributing and testing
 ************************

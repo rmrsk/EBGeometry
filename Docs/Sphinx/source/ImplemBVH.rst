@@ -82,14 +82,24 @@ Top-down construction is done through the member function ``topDownSortAndPartit
 takes two optional arguments: a *partitioner* and a *leaf predicate*.
 
 The partitioner is a functor that splits a list of ``(primitive, BV)`` pairs into ``K`` new
-lists whenever a leaf is subdivided. Three ready-made partitioners are provided:
+lists whenever a leaf is subdivided. Four ready-made partitioners are provided:
 ``BVCentroidPartitioner`` (splits on bounding-volume centroids along the longest axis -- the
 default), ``PrimitiveCentroidPartitioner`` (the same idea, but splits on primitive centroids
-instead), and ``BinnedSAHPartitioner`` (a Surface-Area-Heuristic partitioner, used automatically
+instead), ``BinnedSAHPartitioner`` (a Surface-Area-Heuristic partitioner, used automatically
 when building via ``BVH::Build::SAH`` -- see below -- and typically producing the
-best-performing trees at a higher construction cost). The leaf predicate takes a ``TreeBVH`` node
-and decides whether it should become a leaf (i.e. not be split any further); a default is provided,
-but callers are free to supply their own of either kind.
+best-performing trees at a higher construction cost), and ``MidpointPartitioner`` (splits on the
+midpoint of the bounding-volume centroids' extent along the longest axis, with a single
+``std::partition`` pass -- no sorting and no per-plane cost evaluation, making it the fastest of
+the four to build, at the cost of not adapting to the primitive distribution the way the other
+three do). ``BinnedSAHPartitioner`` and ``MidpointPartitioner`` both produce ``K`` groups by
+recursively splitting into two (``std::floor(K/2)`` and ``std::ceil(K/2)``) halves, exact for
+power-of-two ``K``. ``BinnedSAHPartitioner`` takes an optional final template argument
+``LongestAxisOnly`` (default ``false``); setting it ``true`` bins candidate planes on only the
+longest centroid-bounding-box axis instead of all three, cutting roughly a third of the binning
+work (measured ~20% faster SAH builds on point clouds) for a tree-quality cost that is negligible
+on near-uniform inputs. The leaf predicate takes a ``TreeBVH``
+node and decides whether it should become a leaf (i.e. not be split any further); a default is
+provided, but callers are free to supply their own of either kind.
 
 Bottom-up construction
 ________________________
@@ -101,12 +111,91 @@ To use bottom-up construction, one may use the member function template
 The template argument is the space-filling curve that the user wants to apply, from namespace
 ``EBGeometry::SFC`` (:file:`Source/EBGeometry_SFC.hpp`, see `the doxygen API
 <doxygen/html/namespaceEBGeometry_1_1SFC.html>`__).
-Currently, we support Morton codes and nested indices.
-For Morton curves, one would e.g. call ``bottomUpSortAndPartition<SFC::Morton>`` while for nested indices (which are not recommended) the signature is likewise ``bottomUpSortAndPartition<SFC::Nested>``.
+Currently, we support Morton codes, Hilbert curves, and nested indices.
+For Morton curves, one would e.g. call ``bottomUpSortAndPartition<SFC::Morton>``; the Hilbert curve
+(better spatial locality than Morton, since consecutive codes are always spatially adjacent) is
+``bottomUpSortAndPartition<SFC::Hilbert>``; while for nested indices (which are not recommended) the
+signature is likewise ``bottomUpSortAndPartition<SFC::Nested>``.
 
 Build times for SFC-based bottom-up construction are generally speaking faster than top-down construction, but it tends to produce worse trees such that traversal becomes slower. For the full API,
 see the Doxygen reference for
 `TreeBVH <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__.
+
+.. _Chap:DirectSFCBuild:
+
+Direct construction (no TreeBVH)
+___________________________________
+
+Both construction methods above build a ``TreeBVH`` first, then require a separate ``pack()``/
+``packWith()`` call to obtain a ``PackedBVH``. For workloads with many small, cheaply-copyable
+primitives (points, particles) built and rebuilt often, the per-node ``shared_ptr<TreeBVH>``
+allocation this implies can dominate build time. ``PackedBVH`` has a constructor that skips
+``TreeBVH`` entirely:
+
+.. code-block:: cpp
+
+   BVH::PackedBVH<T, P, K> packed(std::move(primsAndBVs), targetLeafSize);
+
+It takes primitives **by value** (``std::vector<std::pair<P, BV>>``, a sink parameter the caller
+can ``std::move`` in) rather than requiring a ``shared_ptr``-wrapped list, regardless of this
+``PackedBVH``'s ``StoragePolicy`` (see :ref:`Chap:PackedBVH`'s "Storage policy" section) — combined
+with ``BVH::ValueStorage<P>``, this is genuinely pointer-free from input to final storage.
+
+Internally, this constructor:
+
+#. Sorts primitives along a space-filling curve (``SFC::Morton`` by default; pass e.g.
+   ``SFC::Hilbert{}`` or ``SFC::Nested{}`` as an optional trailing argument to select another curve —
+   a constructor template's own parameters can't be explicitly named the way a regular function
+   template's can, so this is a stateless tag value purely to let the curve type be deduced).
+#. Cuts leaves via a single linear left-to-right scan at a caller-chosen **target leaf size**,
+   rather than deriving a leaf count purely from primitive count and ``K`` the way
+   ``bottomUpSortAndPartition()`` does — giving direct control over leaf occupancy.
+#. Merges the resulting leaves upward in groups of ``K``, padding the leaf count up to the next
+   power of ``K`` (by re-using the last real leaf's node in place of any missing child, rather than
+   inventing an empty placeholder) whenever it isn't already one, so every interior node still has
+   exactly ``K`` children — no change to ``Node``'s shape or to ``traverse()``/``pruneTraverse()``.
+
+Since this still produces an ordinary ``PackedBVH``, every existing traversal/query facility
+(``traverse()``, ``pruneTraverse()``, the SIMD dispatch) works with it identically, unchanged.
+
+``PackedBVH`` also has a second, overloaded direct constructor covering top-down (and SAH)
+construction rather than the SFC-based one above:
+
+.. code-block:: cpp
+
+   BVH::PackedBVH<T, P, K> packed(std::move(primsAndBVs));                                    // top-down
+   BVH::PackedBVH<T, P, K> packed(std::move(primsAndBVs), BVH::BinnedSAHPartitioner<T, P, AABBT<T>, K>, stopCrit); // SAH
+
+It reuses ``TreeBVH``'s own ``Partitioner``/``LeafPredicate`` machinery unchanged (any of
+``BVCentroidPartitioner``, ``BinnedSAHPartitioner``, ``PrimitiveCentroidPartitioner``, or a
+caller-supplied one), so it accepts the same arguments ``topDownSortAndPartition()`` does — but
+writes nodes directly into the flat node array in depth-first pre-order as the recursion unwinds,
+rather than building a persistent, ``shared_ptr``-linked ``TreeBVH`` first. Since top-down
+recursion visits the root before its children, this needs no relayout pass (unlike the SFC-build
+constructor above, where a bottom-up merge naturally produces the root last). Each split still
+shared_ptr-wraps primitives once, up front (to reuse the existing ``Partitioner``/``LeafPredicate``
+signatures) and constructs one lightweight, stack-local ``TreeBVH`` per split purely to evaluate
+the stop criterion and read off its primitive list — proportionate to what
+``topDownSortAndPartition()`` already does at every node, and immediately discarded rather than
+kept alive as part of a persistent tree. What this constructor avoids is exactly the *persistent*
+``shared_ptr<TreeBVH>`` node allocation kept alive for the tree's lifetime, which the ``Examples/BuildBVH``
+benchmark measures as the traditional path's dominant build-time cost.
+
+A third direct constructor builds via **ClusterSAH**, a fast approximation of a full SAH tree:
+
+.. code-block:: cpp
+
+   BVH::PackedBVH<T, P, K> packed(std::move(primsAndBVs), BVH::ClusterSpec{maxClusterSize});
+
+It first groups the primitives into small, spatially-tight *clusters* (buckets of at most
+``maxClusterSize`` primitives, formed by a cheap density-adaptive midpoint subdivision that stops
+early), then runs binned SAH top-down over those clusters — so SAH partitions roughly
+``N / maxClusterSize`` boxes instead of all ``N`` primitives. The result is near-SAH tree quality at
+a fraction of the single-threaded SAH build cost, and it stays robust across uniform, surface, and
+clustered primitive distributions (a fixed Cartesian grid, by contrast, overcrowds on non-uniform
+data). ``BVH::ClusterSpec::maxClusterSize`` trades build time (larger → fewer, cheaper SAH units)
+against query quality (larger → coarser leaves); ``Examples/BuildBVH`` benchmarks its build time
+against the other strategies.
 
 .. tip::
 
@@ -405,8 +494,8 @@ the Doxygen reference for
 
 .. _Chap:MeshSDFClasses:
 
-Mesh Signed Distance Function Classes
---------------------------------------
+Mesh SDF classes
+----------------
 
 EBGeometry provides three concrete classes for evaluating signed distances to surface meshes.
 They share the same sign convention (negative inside, positive outside) but differ in data layout,
@@ -459,8 +548,8 @@ itself.
 What is actually vectorised in ``TriMeshSDF``/``PackedBVH`` is covered in
 :ref:`Chap:SIMDClasses` -- see that page for the full detail rather than repeating it here.
 
-Primitive storage: why MeshSDF and TriMeshSDF default differently
-___________________________________________________________________
+Primitive storage: Facets or triangles
+______________________________________
 
 Both classes' underlying ``PackedBVH`` accepts the ``StoragePolicy`` axis described above, but
 they default -- and, for ``MeshSDF``, are restricted -- differently:

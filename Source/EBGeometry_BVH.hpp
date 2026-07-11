@@ -55,6 +55,22 @@ enum class Build
 };
 
 /**
+ * @brief Configuration for the ClusterSAH direct PackedBVH construction path.
+ * @details ClusterSAH first groups primitives into small, spatially-tight *clusters* (buckets of at
+ * most @c maxClusterSize primitives, formed by a cheap density-adaptive midpoint subdivision that
+ * stops early), then runs binned SAH top-down over the clusters -- so SAH partitions ~N/maxClusterSize
+ * boxes instead of all N primitives. The result is a near-SAH-quality tree at a fraction of the
+ * single-threaded build cost, robust across uniform, surface, and clustered primitive distributions
+ * (unlike a fixed Cartesian grid, which overcrowds on non-uniform data). @c maxClusterSize trades
+ * build time (larger -> fewer, cheaper SAH units, faster build) against query quality (larger ->
+ * coarser leaves).
+ */
+struct ClusterSpec
+{
+  size_t maxClusterSize = 8; ///< Maximum primitives per cluster (the leaf/bucket granularity). Must be > 0.
+};
+
+/**
  * @brief Returns the SIMD-optimal BVH branching factor for type T on the current target ISA.
  * @details Maps the floating-point type and the compile-time ISA to the K that fills one
  * SIMD register exactly:
@@ -218,8 +234,13 @@ struct ValueStorage
   static void
   appendTreeLeaf(std::vector<StorageType>& a_dst, const PrimitiveList<P>& a_leafPrims)
   {
-    a_dst.reserve(a_dst.size() + a_leafPrims.size());
-
+    // NB: do NOT reserve(a_dst.size() + a_leafPrims.size()) here. appendTreeLeaf is called once per
+    // leaf as the whole tree is packed, and reserving to an each-time-slightly-larger *exact* size
+    // defeats std::vector's geometric growth -- it forces a fresh reallocation (copying every
+    // element already appended) on every leaf, making a whole build O(N^2) in the primitive count.
+    // Both the identity pack() constructor and the direct top-down PackedBVH constructor append
+    // leaves this way, so the quadratic cost would hit every ValueStorage build over many leaves.
+    // Plain push_back grows the buffer geometrically and keeps construction linear.
     for (const auto& p : a_leafPrims) {
       a_dst.push_back(*p);
     }
@@ -275,14 +296,19 @@ using PrimAndBVList = std::vector<PrimAndBV<P, BV>>;
 
 /**
  * @brief Polymorphic partitioner: splits a list of (primitive, BV) pairs into K sub-lists.
+ * @details The input list is taken *by value* (a sink): callers move their list in, and an
+ * implementation should partition it in place and *move* the K sub-lists out -- so a whole top-down
+ * build reorders primitive handles rather than repeatedly copying them (the built-in partitioners
+ * all do this). The split arithmetic is the cheap part; avoiding the copies is what keeps
+ * construction fast.
  * @tparam P  Primitive type.
  * @tparam BV Bounding volume type.
  * @tparam K  Tree branching factor.
- * @param[in] a_primsAndBVs Input primitives and their bounding volumes.
+ * @param[in] a_primsAndBVs Input primitives and their bounding volumes (consumed).
  * @return K-element array of sub-lists.
  */
 template <class P, class BV, size_t K>
-using Partitioner = std::function<std::array<PrimAndBVList<P, BV>, K>(const PrimAndBVList<P, BV>& a_primsAndBVs)>;
+using Partitioner = std::function<std::array<PrimAndBVList<P, BV>, K>(PrimAndBVList<P, BV> a_primsAndBVs)>;
 
 /**
  * @brief Predicate for deciding when a TreeBVH node should become a leaf (i.e., no further splitting).
@@ -379,7 +405,7 @@ using NodeKeyFactory = std::function<NodeKey(const NodeType& a_node)>;
  * @return Array of K sub-vectors whose sizes differ by at most 1.
  */
 template <class X, size_t K>
-auto EqualCounts = [](const std::vector<X>& a_primitives) noexcept -> std::array<std::vector<X>, K> {
+auto EqualCounts = [](std::vector<X> a_primitives) noexcept -> std::array<std::vector<X>, K> {
   static_assert(K >= 2, "EqualCounts<X, K>: branching factor K must be at least 2");
 
   EBGEOMETRY_EXPECT(!a_primitives.empty());
@@ -396,7 +422,10 @@ auto EqualCounts = [](const std::vector<X>& a_primitives) noexcept -> std::array
     end += (remain > 0) ? length + 1 : length;
     remain--;
 
-    chunks[k] = std::vector<X>(a_primitives.begin() + begin, a_primitives.begin() + end);
+    // Move the [begin, end) slice out -- the input is taken by value and not reused, so the elements
+    // (e.g. shared_ptr primitive handles) transfer without copying or refcount churn.
+    chunks[k] = std::vector<X>(std::make_move_iterator(a_primitives.begin() + begin),
+                               std::make_move_iterator(a_primitives.begin() + end));
 
     begin = end;
   }
@@ -415,7 +444,7 @@ auto EqualCounts = [](const std::vector<X>& a_primitives) noexcept -> std::array
  */
 template <class T, class P, class BV, size_t K>
 auto PrimitiveCentroidPartitioner =
-  [](const PrimAndBVList<P, BV>& a_primsAndBVs) noexcept -> std::array<PrimAndBVList<P, BV>, K> {
+  [](PrimAndBVList<P, BV> a_primsAndBVs) noexcept -> std::array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
   Vec3T<T> lo = +Vec3T<T>::max();
@@ -428,15 +457,14 @@ auto PrimitiveCentroidPartitioner =
 
   const size_t splitDir = (hi - lo).maxDir(true);
 
-  PrimAndBVList<P, BV> sortedPrimsAndBVs(a_primsAndBVs);
-
-  std::sort(sortedPrimsAndBVs.begin(),
-            sortedPrimsAndBVs.end(),
+  // The input is taken by value; sort it in place (no working copy) and move it into EqualCounts.
+  std::sort(a_primsAndBVs.begin(),
+            a_primsAndBVs.end(),
             [splitDir](const PrimAndBV<P, BV>& pbv1, const PrimAndBV<P, BV>& pbv2) -> bool {
               return pbv1.first->getCentroid(splitDir) < pbv2.first->getCentroid(splitDir);
             });
 
-  return BVH::EqualCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);
+  return BVH::EqualCounts<PrimAndBV<P, BV>, K>(std::move(a_primsAndBVs));
 };
 
 /**
@@ -449,7 +477,7 @@ auto PrimitiveCentroidPartitioner =
  * @return K sub-lists.
  */
 template <class T, class P, class BV, size_t K>
-auto BVCentroidPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+auto BVCentroidPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
   Vec3T<T> lo = +Vec3T<T>::max();
@@ -462,15 +490,14 @@ auto BVCentroidPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> st
 
   const size_t splitDir = (hi - lo).maxDir(true);
 
-  PrimAndBVList<P, BV> sortedPrimsAndBVs(a_primsAndBVs);
-
-  std::sort(sortedPrimsAndBVs.begin(),
-            sortedPrimsAndBVs.end(),
+  // The input is taken by value; sort it in place (no working copy) and move it into EqualCounts.
+  std::sort(a_primsAndBVs.begin(),
+            a_primsAndBVs.end(),
             [splitDir](const PrimAndBV<P, BV>& pbv1, const PrimAndBV<P, BV>& pbv2) -> bool {
               return pbv1.second.getCentroid()[splitDir] < pbv2.second.getCentroid()[splitDir];
             });
 
-  return BVH::EqualCounts<PrimAndBV<P, BV>, K>(sortedPrimsAndBVs);
+  return BVH::EqualCounts<PrimAndBV<P, BV>, K>(std::move(a_primsAndBVs));
 };
 
 /**
@@ -486,11 +513,17 @@ auto BVCentroidPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> st
  * @param[in,out] a_list Primitives and their bounding volumes; partitioned in place around the split.
  * @param[in] a_begin First index of the sub-range to split.
  * @param[in] a_end One-past-the-last index of the sub-range to split.
+ * @param[in] a_longestAxisOnly If true, evaluate candidate planes on only the longest centroid-bbox
+ * axis instead of all three -- roughly a third of the binning work, for a small tree-quality cost
+ * that is negligible on near-uniform inputs (e.g. point clouds). Default false (full 3-axis SAH).
  * @return Split index (index of the first element of the right group).
  */
 template <class T, class P, class BV>
 inline size_t
-SAH2WaySplit(PrimAndBVList<P, BV>& a_list, const size_t a_begin, const size_t a_end) noexcept
+SAH2WaySplit(PrimAndBVList<P, BV>& a_list,
+             const size_t          a_begin,
+             const size_t          a_end,
+             const bool            a_longestAxisOnly = false) noexcept
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "SAH2WaySplit requires BV == AABBT<T>");
 
@@ -523,7 +556,10 @@ SAH2WaySplit(PrimAndBVList<P, BV>& a_list, const size_t a_begin, const size_t a_
   T   leftArea[BINS - 1];
   int leftCnt[BINS - 1];
 
-  for (int axis = 0; axis < 3; axis++) {
+  const int firstAxis = a_longestAxisOnly ? (chi - clo).maxDir(true) : 0;
+  const int lastAxis  = a_longestAxisOnly ? firstAxis : 2;
+
+  for (int axis = firstAxis; axis <= lastAxis; axis++) {
     const T lo  = clo[axis];
     const T hi  = chi[axis];
     const T ext = hi - lo;
@@ -616,6 +652,7 @@ SAH2WaySplit(PrimAndBVList<P, BV>& a_list, const size_t a_begin, const size_t a_
  * @param[in] a_end One-past-the-last index of the sub-range to split.
  * @param[in] a_K Number of groups to split the sub-range into.
  * @param[out] a_groups Resulting groups as [begin, end) index pairs.
+ * @param[in] a_longestAxisOnly Forwarded to SAH2WaySplit: bin only the longest centroid-bbox axis.
  */
 template <class T, class P, class BV>
 inline void
@@ -623,7 +660,8 @@ SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
              const size_t                            a_begin,
              const size_t                            a_end,
              const size_t                            a_K,
-             std::vector<std::pair<size_t, size_t>>& a_groups) noexcept
+             std::vector<std::pair<size_t, size_t>>& a_groups,
+             const bool                              a_longestAxisOnly = false) noexcept
 {
   static_assert(std::is_same_v<BV, EBGeometry::BoundingVolumes::AABBT<T>>, "SAHKWaySplit requires BV == AABBT<T>");
 
@@ -641,11 +679,11 @@ SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
   // would cause empty sub-lists to reach the TreeBVH constructor and crash on
   // AABBT(vector::front()) when the vector is empty.
   // The clamp is valid whenever a_end - a_begin >= a_K = K1 + K2.
-  const size_t rawMid = SAH2WaySplit<T, P, BV>(a_list, a_begin, a_end);
+  const size_t rawMid = SAH2WaySplit<T, P, BV>(a_list, a_begin, a_end, a_longestAxisOnly);
   const size_t mid    = std::max(a_begin + K1, std::min(a_end - K2, rawMid));
 
-  SAHKWaySplit<T, P, BV>(a_list, a_begin, mid, K1, a_groups);
-  SAHKWaySplit<T, P, BV>(a_list, mid, a_end, K2, a_groups);
+  SAHKWaySplit<T, P, BV>(a_list, a_begin, mid, K1, a_groups, a_longestAxisOnly);
+  SAHKWaySplit<T, P, BV>(a_list, mid, a_end, K2, a_groups, a_longestAxisOnly);
 }
 
 /**
@@ -668,23 +706,163 @@ SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
  * @tparam P  Primitive type.
  * @tparam BV Bounding-volume type (must be AABBT<T>).
  * @tparam K  Number of output sub-lists (branching factor of the resulting BVH).
+ * @tparam LongestAxisOnly If true, bin candidate planes on only the longest centroid-bbox axis per
+ * split instead of all three -- ~a third of the binning work (measured ~20% faster builds on point
+ * clouds) for a tree-quality cost that is negligible on near-uniform inputs. Default false.
  * @param[in] a_primsAndBVs Input (primitive, BV) pairs.
  * @return K sub-lists.
  */
-template <class T, class P, class BV, size_t K>
-auto BinnedSAHPartitioner = [](const PrimAndBVList<P, BV>& a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+template <class T, class P, class BV, size_t K, bool LongestAxisOnly = false>
+auto BinnedSAHPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
   EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
 
-  PrimAndBVList<P, BV>                   working(a_primsAndBVs);
+  // The input is taken by value; partition it in place (no working copy). SAHKWaySplit reorders it
+  // and yields K [begin, end) index ranges, which we move out (disjoint, each moved once).
   std::vector<std::pair<size_t, size_t>> groups;
   groups.reserve(K);
 
-  SAHKWaySplit<T, P, BV>(working, 0, working.size(), K, groups);
+  SAHKWaySplit<T, P, BV>(a_primsAndBVs, 0, a_primsAndBVs.size(), K, groups, LongestAxisOnly);
 
   std::array<PrimAndBVList<P, BV>, K> result;
   for (size_t k = 0; k < K; k++) {
     const auto [b, e] = groups[k];
-    result[k]         = PrimAndBVList<P, BV>(working.begin() + b, working.begin() + e);
+    result[k]         = PrimAndBVList<P, BV>(std::make_move_iterator(a_primsAndBVs.begin() + b),
+                                     std::make_move_iterator(a_primsAndBVs.begin() + e));
+  }
+
+  return result;
+};
+
+/**
+ * @brief Internal helper: 2-way spatial-midpoint split on the sub-range [a_begin, a_end).
+ * @details Unlike SAH2WaySplit (which evaluates 32 binned candidate planes) or
+ * BVCentroidPartitioner (which sorts by centroid), this computes exactly one split plane -- the
+ * midpoint of the centroid bounding box along its longest axis -- and partitions around it with a
+ * single std::partition pass. No sorting and no per-plane cost evaluation, at the cost of not
+ * adapting to the primitive distribution the way SAH does: entirely sort-less, O(N) per split.
+ * @tparam T  Floating-point precision.
+ * @tparam P  Primitive type.
+ * @tparam BV Bounding-volume type.
+ * @param[in,out] a_list Primitives and their bounding volumes; partitioned in place around the split.
+ * @param[in] a_begin First index of the sub-range to split.
+ * @param[in] a_end One-past-the-last index of the sub-range to split.
+ * @return Split index (index of the first element of the right group).
+ */
+template <class T, class P, class BV>
+inline size_t
+Midpoint2WaySplit(PrimAndBVList<P, BV>& a_list, const size_t a_begin, const size_t a_end) noexcept
+{
+  EBGEOMETRY_EXPECT(a_begin < a_end);
+
+  const size_t N = a_end - a_begin;
+
+  Vec3T<T> lo = +Vec3T<T>::max();
+  Vec3T<T> hi = -Vec3T<T>::max();
+
+  for (size_t i = a_begin; i < a_end; i++) {
+    const auto& c = a_list[i].second.getCentroid();
+
+    lo = min(lo, c);
+    hi = max(hi, c);
+  }
+
+  const size_t splitDir = (hi - lo).maxDir(true);
+  const T      midpoint = T(0.5) * (lo[splitDir] + hi[splitDir]);
+
+  auto mid = std::partition(
+    a_list.begin() + a_begin, a_list.begin() + a_end, [splitDir, midpoint](const PrimAndBV<P, BV>& pbv) noexcept {
+      return pbv.second.getCentroid()[splitDir] < midpoint;
+    });
+
+  const size_t splitIdx = static_cast<size_t>(std::distance(a_list.begin(), mid));
+
+  // Guard: if every centroid ended up on one side (e.g. all coincide on the split axis, or the
+  // distribution is skewed entirely to one side of the midpoint), fall back to an equal-count
+  // split so neither resulting group is ever empty.
+  return (splitIdx == a_begin || splitIdx == a_end) ? a_begin + N / 2 : splitIdx;
+}
+
+/**
+ * @brief Internal helper: recursively split [a_begin, a_end) into a_K groups via 2-way midpoint
+ * splits.
+ * @details Splits into std::floor(a_K/2) and std::ceil(a_K/2) sub-groups recursively -- exact for
+ * power-of-two K; a reasonable approximation for other values. Structurally identical to
+ * SAHKWaySplit, just calling Midpoint2WaySplit instead of SAH2WaySplit at each level.
+ * @tparam T  Floating-point precision.
+ * @tparam P  Primitive type.
+ * @tparam BV Bounding-volume type.
+ * @param[in,out] a_list Primitives and their bounding volumes; partitioned in place.
+ * @param[in] a_begin First index of the sub-range to split.
+ * @param[in] a_end One-past-the-last index of the sub-range to split.
+ * @param[in] a_K Number of groups to split the sub-range into.
+ * @param[out] a_groups Resulting groups as [begin, end) index pairs.
+ */
+template <class T, class P, class BV>
+inline void
+MidpointKWaySplit(PrimAndBVList<P, BV>&                   a_list,
+                  const size_t                            a_begin,
+                  const size_t                            a_end,
+                  const size_t                            a_K,
+                  std::vector<std::pair<size_t, size_t>>& a_groups) noexcept
+{
+  if (a_K <= 1 || a_begin >= a_end) {
+    a_groups.emplace_back(a_begin, a_end);
+
+    return;
+  }
+
+  const size_t K1 = a_K / 2;
+  const size_t K2 = a_K - K1;
+
+  // Clamp so the left half has >= K1 elements and the right has >= K2, guaranteeing neither
+  // recursive call receives an under-populated range (see SAHKWaySplit's identical clamp for why:
+  // an empty sub-list reaching the TreeBVH constructor crashes on AABBT(vector::front())).
+  const size_t rawMid = Midpoint2WaySplit<T, P, BV>(a_list, a_begin, a_end);
+  const size_t mid    = std::max(a_begin + K1, std::min(a_end - K2, rawMid));
+
+  MidpointKWaySplit<T, P, BV>(a_list, a_begin, mid, K1, a_groups);
+  MidpointKWaySplit<T, P, BV>(a_list, mid, a_end, K2, a_groups);
+}
+
+/**
+ * @brief Partitioner that recursively bisects primitives by spatial midpoint (no sorting).
+ * @details At every split, computes the midpoint of the centroid bounding box along its longest
+ * axis and partitions primitives around it in one O(N) std::partition pass -- unlike
+ * BVCentroidPartitioner (sorts by centroid) or BinnedSAHPartitioner (evaluates 32 candidate
+ * planes per axis), no sorting or per-plane cost evaluation happens anywhere. K groups are
+ * produced by recursively splitting into std::floor(K/2) and std::ceil(K/2) subsets, mirroring
+ * BinnedSAHPartitioner's own K-way structure exactly (see MidpointKWaySplit).
+ *
+ * This is the fastest of the three top-down partitioners to build (no sort, no per-axis binning),
+ * at the cost of build quality: it does not adapt to the primitive distribution at all, so a
+ * heavily clustered or skewed input can produce noticeably less balanced (and less
+ * query-efficient) trees than BVCentroidPartitioner or BinnedSAHPartitioner would.
+ *
+ * @tparam T  Floating-point precision.
+ * @tparam P  Primitive type.
+ * @tparam BV Bounding-volume type.
+ * @tparam K  Number of output sub-lists (branching factor of the resulting BVH).
+ * @param[in] a_primsAndBVs Input (primitive, BV) pairs.
+ * @return K sub-lists.
+ */
+template <class T, class P, class BV, size_t K>
+auto MidpointPartitioner = [](PrimAndBVList<P, BV> a_primsAndBVs) -> std::array<PrimAndBVList<P, BV>, K> {
+  EBGEOMETRY_EXPECT(!a_primsAndBVs.empty());
+
+  // The input is taken by value; partition it in place (no working copy). MidpointKWaySplit reorders
+  // it and yields K [begin, end) index ranges, which we move out (disjoint, each moved once). This
+  // is the crux of the partitioner's cost: the midpoint split itself is a couple of std::partition
+  // passes, so the plumbing (copies) is what dominated before -- now eliminated.
+  std::vector<std::pair<size_t, size_t>> groups;
+  groups.reserve(K);
+
+  MidpointKWaySplit<T, P, BV>(a_primsAndBVs, 0, a_primsAndBVs.size(), K, groups);
+
+  std::array<PrimAndBVList<P, BV>, K> result;
+  for (size_t k = 0; k < K; k++) {
+    const auto [b, e] = groups[k];
+    result[k]         = PrimAndBVList<P, BV>(std::make_move_iterator(a_primsAndBVs.begin() + b),
+                                     std::make_move_iterator(a_primsAndBVs.begin() + e));
   }
 
   return result;
@@ -769,9 +947,18 @@ public:
   TreeBVH(const std::vector<PrimAndBV<P, BV>>& a_primsAndBVs);
 
   /**
+   * @brief Construct a leaf node holding the given (primitive, bounding volume) pairs, moved in.
+   * @details Rvalue overload: transfers the elements without copying or shared_ptr refcount churn.
+   * Used where a caller can relinquish its list (e.g. topDownSortAndPartition moving a partitioner's
+   * sub-list into a child node).
+   * @param[in,out] a_primsAndBVs Primitives and their bounding volumes (consumed).
+   */
+  TreeBVH(std::vector<PrimAndBV<P, BV>>&& a_primsAndBVs);
+
+  /**
    * @brief Destructor.
    */
-  ~TreeBVH() noexcept;
+  ~TreeBVH() noexcept = default;
 
   /**
    * @brief Deleted copy constructor.
@@ -1195,6 +1382,20 @@ public:
     {
       return m_bv.getDistance(a_point);
     }
+
+    /**
+     * @brief Get the squared distance from a_point to this node's bounding volume.
+     * @details Avoids the sqrt that getDistanceToBoundingVolume() pays. pruneTraverse()'s
+     * scalar-fallback branch-and-bound compares against a squared pruning bound, so it uses this
+     * directly rather than taking a square root only to square it again.
+     * @param[in] a_point Query point.
+     * @return Squared distance to the bounding-box surface, or zero if inside.
+     */
+    [[nodiscard]] inline T
+    getDistanceToBoundingVolume2(const Vec3T<T>& a_point) const noexcept
+    {
+      return m_bv.getDistance2(a_point);
+    }
   };
 
   /**
@@ -1243,6 +1444,88 @@ public:
    */
   template <class Q, class Converter>
   inline PackedBVH(const TreeBVH<T, Q, BV, K>& a_tree, Converter&& a_converter);
+
+  /**
+   * @brief Construct directly from a flat primitive list, without ever building a TreeBVH.
+   * @details Bypasses TreeBVH entirely: no per-node shared_ptr<TreeBVH> allocation, and (with
+   * StoragePolicy = ValueStorage<P>) no per-primitive shared_ptr allocation either. Primitives are
+   * sorted along the space-filling curve @p S (same normalization as
+   * TreeBVH::bottomUpSortAndPartition(), via SFC::computeBins()), then cut into leaves by one
+   * linear left-to-right scan at @p a_targetLeafSize -- unlike
+   * TreeBVH::bottomUpSortAndPartition(), which derives a leaf count of K^floor(log_K(N)) purely
+   * from N and K, this lets the caller control leaf size directly.
+   *
+   * Because the resulting leaf count generally isn't a power of K, the K-ary merge pads up to the
+   * next power of K by re-using the last real leaf's index in place of a missing child -- so every
+   * interior node still has exactly K children (no change to Node's shape or to traverse()/
+   * pruneTraverse(), which assume this), at the cost of that one leaf's primitives potentially
+   * being visited more than once by a query in the (bounded, rare) case where the real leaf count
+   * isn't already a power of K. This never duplicates primitive data, only (cheap) Node entries.
+   *
+   * @tparam S Space-filling curve type (e.g. SFC::Morton, SFC::Nested). Defaults to SFC::Morton;
+   * a constructor template's own parameters cannot be explicitly specified the way a named
+   * function template's can (constructors have no name of their own to attach a template-argument
+   * list to), so @p a_sfc is a stateless tag value purely so @p S can be deduced from it -- pass
+   * e.g. @c SFC::Nested{} to select a different curve, or omit it entirely for the default.
+   * @param[in] a_primsAndBVs   Primitives and their bounding volumes, taken by value (a sink
+   * parameter the caller can std::move in) -- never requires shared_ptr-wrapping regardless of
+   * this PackedBVH's StoragePolicy.
+   * @param[in] a_targetLeafSize Target number of primitives per leaf. Must be > 0.
+   * @param[in] a_sfc Unused tag value; see @p S.
+   */
+  template <class S = SFC::Morton>
+  inline PackedBVH(std::vector<std::pair<P, BV>> a_primsAndBVs, size_t a_targetLeafSize, S a_sfc = S{});
+
+  /**
+   * @brief Construct directly from a flat primitive list via top-down (optionally SAH) recursive
+   * partitioning, without ever building a TreeBVH.
+   * @details Reuses the existing (shared_ptr-based) Partitioner/LeafPredicate machinery --
+   * BVCentroidPartitioner, BinnedSAHPartitioner, PrimitiveCentroidPartitioner, or any
+   * caller-supplied one -- exactly as TreeBVH::topDownSortAndPartition() does, but writes nodes
+   * directly into m_linearNodes in depth-first pre-order as the recursion unwinds, instead of
+   * building a persistent, shared_ptr<TreeBVH>-linked tree first. Unlike the SFC-build
+   * constructor above, no relayout pass is needed here: top-down recursion visits the root before
+   * its children, matching PackedBVH's "root at index 0" invariant for free.
+   *
+   * This still shared_ptr-wraps each primitive once up front (needed to reuse the existing
+   * Partitioner/LeafPredicate signatures, which operate on PrimAndBVList), and a lightweight,
+   * stack-local TreeBVH is constructed (and immediately discarded) at every split purely to
+   * evaluate the LeafPredicate and read off its primitive list -- exactly the same primitive-handle
+   * copying TreeBVH::topDownSortAndPartition() already does at every node. What this constructor
+   * avoids is the *persistent*, heap-allocated shared_ptr<TreeBVH> node kept alive for the tree's
+   * lifetime at every level -- measured as the dominant cost of the traditional
+   * build-then-pack() path (see the "Direct construction" section of the Sphinx docs).
+   *
+   * @param[in] a_primsAndBVs Primitives and their bounding volumes, taken by value (a sink
+   * parameter the caller can std::move in) -- never requires shared_ptr-wrapping by the caller,
+   * regardless of this PackedBVH's StoragePolicy.
+   * @param[in] a_partitioner Partitioning function. Divides a (primitive, BV) list into K
+   * sub-lists. Defaults to BVCentroidPartitioner; pass BinnedSAHPartitioner for an SAH build.
+   * @param[in] a_stopCrit Stop function. Returns true when a node should become a leaf. Defaults
+   * to DefaultLeafPredicate.
+   */
+  inline PackedBVH(std::vector<std::pair<P, BV>>          a_primsAndBVs,
+                   const BVH::Partitioner<P, BV, K>&      a_partitioner = BVCentroidPartitioner<T, P, BV, K>,
+                   const BVH::LeafPredicate<T, P, BV, K>& a_stopCrit    = DefaultLeafPredicate<T, P, BV, K>);
+
+  /**
+   * @brief Construct directly via ClusterSAH: cluster primitives, then SAH over the clusters.
+   * @details A single-threaded build that gets close to full-SAH tree quality at a fraction of the
+   * build cost, by shrinking what SAH has to partition. In two passes, both keeping @p P by value
+   * (no shared_ptr anywhere): (1) group the primitives into buckets of at most
+   * @c a_spec.maxClusterSize each, using a cheap density-adaptive midpoint subdivision that stops as
+   * soon as a bucket is small enough -- so buckets are spatially tight and follow the primitive
+   * density (robust on surface/clustered data, where a fixed Cartesian grid would overcrowd); (2) run
+   * binned SAH top-down over the @em buckets (their bounding boxes) to build the flat node array,
+   * with each leaf holding one or a few buckets' primitives. SAH thus partitions ~N/maxClusterSize
+   * boxes rather than all N primitives -- the source of the speedup. Requires BV == AABBT<T>;
+   * enforced by static_assert at instantiation. Disambiguated from the SFC-build constructor by the
+   * @c ClusterSpec parameter type.
+   * @param[in] a_primsAndBVs Primitives and their bounding volumes, taken by value (a sink parameter
+   * the caller can std::move in) -- never requires shared_ptr-wrapping regardless of StoragePolicy.
+   * @param[in] a_spec Clustering configuration (bucket size). See ClusterSpec.
+   */
+  inline PackedBVH(std::vector<std::pair<P, BV>> a_primsAndBVs, BVH::ClusterSpec a_spec);
 
   /**
    * @brief Destructor.
@@ -1401,6 +1684,21 @@ public:
                 PruneDistSquared&& a_pruneDist2) const noexcept;
 
 protected:
+  /**
+   * @brief Adopt pre-built node and primitive arrays, then finalize the SoA child-AABB layout.
+   * @details Not part of the public API. It exists so a specialized builder in a derived class (e.g.
+   * PointCloudBVH, which fills the arrays with its own index-based build) can construct the packed
+   * representation directly, without going through a TreeBVH or a PrimAndBVList. The node array must
+   * be a valid depth-first pre-order flattening (root at index 0) referencing @p a_primitives.
+   * @param[in] a_linearNodes Flattened node array (moved in).
+   * @param[in] a_primitives  Global primitive list in leaf-traversal order (moved in).
+   */
+  inline PackedBVH(std::vector<Node>&& a_linearNodes, std::vector<StorageType>&& a_primitives) noexcept
+    : m_linearNodes(std::move(a_linearNodes)), m_primitives(std::move(a_primitives))
+  {
+    this->buildSoA();
+  }
+
   /**
    * @brief Flat depth-first node array.
    */
