@@ -7,21 +7,16 @@ class (see [EBGeometry issue #92](https://github.com/rmrsk/EBGeometry/issues/92)
 
 Where [`Examples/ClosestPointBVH`](../ClosestPointBVH/README.md) queries with arbitrary *external* points,
 this example queries with points that are **already in the cloud** -- the classic
-k-nearest-neighbor graph. Because each query point is a known cloud member, `PointCloudBVH` seeds the
-search from that point's own leaf (giving a tight prune bound immediately) and skips that leaf during
-traversal -- a strictly cheaper search than an external query can do. The whole pipeline is again
-hidden behind the constructor and one call:
+k-nearest-neighbor graph. The whole pipeline is hidden behind the constructor and one call:
 
     PointCloudBVH<T> bvh(positions, metadata);       // build once
     bvh.nearestNeighbor(i);                            // nearest OTHER particle to particle i
     auto graph = bvh.allNearestNeighbors(kNN);         // kNN nearest of EVERY particle, batched
 
 500,000 random points in the unit cube are built into a `PointCloudBVH`, then
-`allNearestNeighbors(kNN)` computes the `kNN` nearest neighbors of every point in one batched,
-Hilbert-ordered pass (processing points in spatial order keeps the tree and each seeded own-leaf hot
-in cache). `kNN` is fixed at 1 in `main.cpp`; raise it for a wider neighbor graph. A spread sample of
-the result is checked against a brute-force scan, and the same sample times the brute-force baseline
-to extrapolate a fair per-point speedup (a full N² all-pairs scan is infeasible at this size).
+`allNearestNeighbors(kNN)` computes the `kNN` nearest neighbors of every point in one batched pass.
+`kNN` is fixed at 1 in `main.cpp`; raise it for a wider neighbor graph. A spread sample of the result
+is checked against a brute-force scan.
 
 A self query excludes the point itself (otherwise it would always find itself at distance zero); the
 returned neighbors are the nearest *other* points. Everything stays in **squared distance**
@@ -72,7 +67,7 @@ Running
     ./NearestNeighborBVH.ex
 
 Takes no arguments. It generates a random 500,000-point cloud (fixed seed, so results are
-reproducible on a given machine) and prints the build time, the brute-force and `PointCloudBVH`
-per-point times with the speedup, and one worked `nearestNeighbor()` result. A spread sample of the
-neighbor graph is checked against a brute-force scan with `EBGEOMETRY_EXPECT`, so building with
-`-DEBGEOMETRY_ENABLE_ASSERTIONS` aborts on any mismatch; the checks compile out otherwise.
+reproducible on a given machine) and prints the build and per-point query times and one worked
+`nearestNeighbor()` result. A spread sample of the neighbor graph is checked against a brute-force
+scan with `EBGEOMETRY_EXPECT`, so building with `-DEBGEOMETRY_ENABLE_ASSERTIONS` aborts on any
+mismatch; the checks compile out otherwise.

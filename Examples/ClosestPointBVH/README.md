@@ -14,14 +14,12 @@ constructor and a couple of query methods:
     bvh.closestPoints(q, k, out);                 // the k nearest, ascending by distance
 
 500,000 random points in the unit cube are built into a `PointCloudBVH`, then 500 arbitrary query
-points are resolved with `closestPoint()` and checked against a brute-force scan. The program prints
-the build time and the average query time (with the speedup over brute force), then demonstrates the
-k-nearest form `closestPoints()` on one query point.
+points are resolved with `closestPoint()` and checked against a brute-force scan. It then
+demonstrates the k-nearest form `closestPoints()` on one query point.
 
 This is the **external** query form: the query points are arbitrary, not members of the cloud. Its
 counterpart, [`Examples/NearestNeighborBVH`](../NearestNeighborBVH/README.md), queries with points that
-are already in the cloud (the k-nearest-neighbor graph), which lets the class seed each search from
-the point's own leaf for a strictly cheaper traversal.
+are already in the cloud (the k-nearest-neighbor graph).
 
 Everything stays in **squared distance** (`Hit::distanceSquared`) on the hot path -- there is no
 `sqrt` in the traversal; the example only takes a square root when it prints a human-readable
@@ -72,7 +70,7 @@ Running
     ./ClosestPointBVH.ex
 
 Takes no arguments. It generates a random 500,000-point cloud and 500 query points (fixed seeds, so
-results are reproducible on a given machine) and prints the build time, the average brute-force and
-`PointCloudBVH` query times with the speedup, and one worked `closestPoints()` result. Every query is
-checked against a brute-force scan with `EBGEOMETRY_EXPECT`, so building with
-`-DEBGEOMETRY_ENABLE_ASSERTIONS` aborts on any mismatch; the checks compile out otherwise.
+results are reproducible on a given machine) and prints the build and query times and one worked
+`closestPoints()` result. Every query is checked against a brute-force scan with `EBGEOMETRY_EXPECT`,
+so building with `-DEBGEOMETRY_ENABLE_ASSERTIONS` aborts on any mismatch; the checks compile out
+otherwise.
