@@ -34,7 +34,7 @@ integration, the underlying geometric concepts), see the
 | `EBGeometry::BVH` | `TreeBVH`, `PackedBVH`, partitioners, traversal callback types (`LeafEvaluator`, `PrunePredicate`, `ChildOrderer`, `NodeKeyFactory`) |
 | `EBGeometry::BoundingVolumes` | `AABBT` (axis-aligned box) and `SphereT` (bounding sphere) |
 | `EBGeometry::Octree` | Pointer-based octree used internally for bounding-volume estimation of arbitrary implicit functions |
-| `EBGeometry::Random` | Centralized random sampling utilities (`samplePoints`) |
+| `EBGeometry::Random` | Centralized random sampling utilities |
 | `EBGeometry::SFC` | Space-filling curves (`Morton`, `Nested`, `Hilbert`), point-to-grid binning (`computeBins`), and curve ordering of points (`order`), used for bottom-up BVH construction and spatial sorting |
 | `EBGeometry::Soup` | Polygon-soup compression and soup-to-DCEL conversion |
 | `EBGeometry::TriangleSoA` | Structure-of-arrays triangle groups used as SIMD-friendly `PackedBVH` leaves |
