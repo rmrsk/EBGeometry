@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Nearest-neighbor search over a random point cloud using the turnkey PointCloudBVH API. Where
-// Examples/ClosestPoint queries with arbitrary external points, this queries with points that are
+// Examples/ClosestPointBVH queries with arbitrary external points, this queries with points that are
 // *already in the cloud* -- the classic k-nearest-neighbor graph -- which lets the class seed each
 // search from the particle's own leaf (a strictly cheaper traversal). The whole pipeline is again
 // hidden behind the constructor and one call:
@@ -47,7 +47,7 @@ constexpr std::uint64_t pointSeed  = 123456789ULL;
 int
 main()
 {
-  std::cout << "NearestNeighbor: the " << kNN << " nearest neighbor(s) of every point in a " << numPoints
+  std::cout << "NearestNeighborBVH: the " << kNN << " nearest neighbor(s) of every point in a " << numPoints
             << "-point cloud\n";
   std::cout << "  Precision T = " << (std::is_same_v<T, float> ? "float" : "double") << '\n';
   std::cout << "  Points      = " << numPoints << '\n';
@@ -55,7 +55,7 @@ main()
 
   const std::vector<Vec3> positions = EBGeometry::Random::samplePoints<T>(numPoints, pointSeed);
 
-  // Per-particle user metadata; see Examples/ClosestPoint. Tag each point with its own index.
+  // Per-particle user metadata; see Examples/ClosestPointBVH. Tag each point with its own index.
   std::vector<std::size_t> metadata(numPoints);
   for (std::size_t i = 0; i < numPoints; i++) {
     metadata[i] = i;

@@ -2,11 +2,11 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Standalone build file for the NearestNeighbor example. It can be built on its own
+# Standalone build file for the ClosestPointBVH example. It can be built on its own
 # (e.g. copied out as a template for a new project) or as part of the top-level
 # EBGeometry build.
 cmake_minimum_required(VERSION 3.16)
-project(NearestNeighbor CXX)
+project(ClosestPointBVH CXX)
 
 # Locate the header-only library. EBGEOMETRY_HOME is the directory that contains
 # EBGeometry.hpp (the repository root); it defaults to the in-tree location two
@@ -20,23 +20,23 @@ if(NOT TARGET EBGeometry::EBGeometry)
   target_compile_features(EBGeometry::EBGeometry INTERFACE cxx_std_17)
 endif()
 
-add_executable(NearestNeighbor main.cpp)
+add_executable(ClosestPointBVH main.cpp)
 
 # Give the binary a .ex extension so it's covered by the repo-wide *.ex .gitignore rule,
 # without needing a per-example ignore entry. Always place it directly in this
 # source directory (not wherever -B/--preset pointed the build tree), so all three
 # documented build methods (direct compile, GNU make, CMake) produce the binary in
-# the same place: ./NearestNeighbor.ex.
-set_target_properties(NearestNeighbor PROPERTIES
+# the same place: ./ClosestPointBVH.ex.
+set_target_properties(ClosestPointBVH PROPERTIES
   SUFFIX ".ex"
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(NearestNeighbor PRIVATE EBGeometry::EBGeometry)
-target_compile_options(NearestNeighbor PRIVATE -Wall -Wextra -Wno-unused-parameter)
+target_link_libraries(ClosestPointBVH PRIVATE EBGeometry::EBGeometry)
+target_compile_options(ClosestPointBVH PRIVATE -Wall -Wextra -Wno-unused-parameter)
 
 # Examples are meant to be fast to run, not to match the enclosing project's build
 # type (which may be an unoptimised Debug build, e.g. under the top-level project's
 # debug preset). Always build optimized for the local machine's ISA.
-target_compile_options(NearestNeighbor PRIVATE -O3 -march=native)
+target_compile_options(ClosestPointBVH PRIVATE -O3 -march=native)
 
 # ---------------------------------------------------------------------------
 # Floating-point precision for this example.
@@ -47,7 +47,7 @@ target_compile_options(NearestNeighbor PRIVATE -O3 -march=native)
 # ---------------------------------------------------------------------------
 set(EBGEOMETRY_PRECISION double CACHE STRING "Floating-point precision (float or double)")
 set_property(CACHE EBGEOMETRY_PRECISION PROPERTY STRINGS float double)
-target_compile_definitions(NearestNeighbor PRIVATE EBGEOMETRY_PRECISION=${EBGEOMETRY_PRECISION})
+target_compile_definitions(ClosestPointBVH PRIVATE EBGEOMETRY_PRECISION=${EBGEOMETRY_PRECISION})
 
 # ---------------------------------------------------------------------------
 # EBGEOMETRY_EXPECT() runtime assertions for this example.
@@ -58,5 +58,5 @@ target_compile_definitions(NearestNeighbor PRIVATE EBGEOMETRY_PRECISION=${EBGEOM
 # ---------------------------------------------------------------------------
 option(EBGEOMETRY_ENABLE_ASSERTIONS "Enable EBGEOMETRY_EXPECT() runtime assertion checks" OFF)
 if(EBGEOMETRY_ENABLE_ASSERTIONS)
-  target_compile_definitions(NearestNeighbor PRIVATE EBGEOMETRY_ENABLE_ASSERTIONS)
+  target_compile_definitions(ClosestPointBVH PRIVATE EBGEOMETRY_ENABLE_ASSERTIONS)
 endif()

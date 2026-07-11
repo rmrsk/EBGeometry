@@ -216,8 +216,8 @@ failed spatial "middle-out" and HLBVH experiments (noted separately) for what wa
   oracle AND cross-checking the accelerated queries against them (3320 assertions, was 1440).
 - **Examples collapsed 4 -> 2 on PointCloudBVH (committed).** The four hand-rolled point-cloud
   examples (`ClosestPoint{SFC,Tree}Packed`, `NearestNeighbor{SFC,Tree}Packed`) are replaced by
-  **`Examples/ClosestPoint`** (external `closestPoint`/`closestPoints`) and
-  **`Examples/NearestNeighbor`** (self `allNearestNeighbors` k-NN graph), each a few lines on the
+  **`Examples/ClosestPointBVH`** (external `closestPoint`/`closestPoints`) and
+  **`Examples/NearestNeighborBVH`** (self `allNearestNeighbors` k-NN graph), each a few lines on the
   turnkey class. Since PointCloudBVH builds itself, the SFC-vs-Tree construction split vanishes. The
   old four were moved to **`Dev/`** at the repo root with a `DELETE_BEFORE_MERGE.md` and a temporary
   `Dev/**` REUSE.toml block (both to be removed pre-merge, kept only for review comparison). `SIMDClasses.rst`

@@ -11,7 +11,7 @@
 //   bvh.closestPoints(q, k, out);                 // the k nearest, ascending by distance
 //
 // Every query is checked against a brute-force scan. See README.md. The self-query counterpart
-// (nearest neighbors of points already in the cloud) is Examples/NearestNeighbor.
+// (nearest neighbors of points already in the cloud) is Examples/NearestNeighborBVH.
 
 #include <algorithm>
 #include <cmath>
@@ -47,7 +47,7 @@ constexpr std::uint64_t querySeed  = 987654321ULL;
 int
 main()
 {
-  std::cout << "ClosestPoint: closest-point search over a " << numPoints << "-point cloud in the unit cube\n";
+  std::cout << "ClosestPointBVH: closest-point search over a " << numPoints << "-point cloud in the unit cube\n";
   std::cout << "  Precision T = " << (std::is_same_v<T, float> ? "float" : "double") << '\n';
   std::cout << "  Points      = " << numPoints << '\n';
   std::cout << "  Queries     = " << numQueries << "\n\n";

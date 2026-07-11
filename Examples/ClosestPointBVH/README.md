@@ -1,5 +1,5 @@
-Examples/ClosestPoint
----------------------
+Examples/ClosestPointBVH
+------------------------
 
 Closest-point search over a point cloud using the turnkey
 [`PointCloudBVH`](https://rmrsk.github.io/EBGeometry/doxygen/html/classEBGeometry_1_1PointCloudBVH.html)
@@ -19,7 +19,7 @@ the build time and the average query time (with the speedup over brute force), t
 k-nearest form `closestPoints()` on one query point.
 
 This is the **external** query form: the query points are arbitrary, not members of the cloud. Its
-counterpart, [`Examples/NearestNeighbor`](../NearestNeighbor/README.md), queries with points that
+counterpart, [`Examples/NearestNeighborBVH`](../NearestNeighborBVH/README.md), queries with points that
 are already in the cloud (the k-nearest-neighbor graph), which lets the class seed each search from
 the point's own leaf for a strictly cheaper traversal.
 
@@ -45,7 +45,7 @@ documentation for more detail on each approach.
     cmake -S . -B build
     cmake --build build
 
-The binary is `ClosestPoint.ex`, in this same directory (same as the other two methods below). Build
+The binary is `ClosestPointBVH.ex`, in this same directory (same as the other two methods below). Build
 in single precision, against a library in a different location, or with `EBGEOMETRY_EXPECT()` runtime
 assertions enabled, with cache variables:
 
@@ -55,13 +55,13 @@ assertions enabled, with cache variables:
 
     make
 
-This produces `./ClosestPoint.ex`. Override the defaults on the command line:
+This produces `./ClosestPointBVH.ex`. Override the defaults on the command line:
 
     make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry ASSERTIONS=ON
 
 **Directly with a compiler**
 
-    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o ClosestPoint.ex
+    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o ClosestPointBVH.ex
 
 Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE_ASSERTIONS` to enable
 `EBGEOMETRY_EXPECT()` runtime assertion checks.
@@ -69,7 +69,7 @@ Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE
 Running
 -------
 
-    ./ClosestPoint.ex
+    ./ClosestPointBVH.ex
 
 Takes no arguments. It generates a random 500,000-point cloud and 500 query points (fixed seeds, so
 results are reproducible on a given machine) and prints the build time, the average brute-force and
