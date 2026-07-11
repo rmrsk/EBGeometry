@@ -243,6 +243,16 @@ hooks (clang-tidy, the debug build, Sphinx) only run via this script or explicit
 compilers, SIMD levels, precisions, sanitizers, both Debug and Release) that isn't practical to
 reproduce byte-for-byte locally.
 
+## Whitespace conventions clang-format does not enforce
+
+clang-format handles indentation, brace placement, and line wrapping, but it cannot insert blank
+lines to group statements, so a few readability conventions are maintained by hand:
+
+- **A blank line both before and after every loop** (`for`/`while`), not just after it, so the loop
+  reads as its own block separated from the surrounding statements. Do not stack the blank line
+  directly against an enclosing closing brace (a loop that is the last statement in its block needs
+  no blank line between it and that closing brace).
+
 ## Branching, pull requests, and other spin-offs
 
 **You are never allowed to automatically create new branches, submit pull requests, create git

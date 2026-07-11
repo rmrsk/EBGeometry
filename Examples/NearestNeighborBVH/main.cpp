@@ -5,12 +5,12 @@
 // Nearest-neighbor search over a random point cloud using the turnkey PointCloudBVH API. Where
 // Examples/ClosestPointBVH queries with arbitrary external points, this queries with points that are
 // *already in the cloud* -- the classic k-nearest-neighbor graph -- which lets the class seed each
-// search from the particle's own leaf (a strictly cheaper traversal). The whole pipeline is again
+// search from the point's own leaf (a strictly cheaper traversal). The whole pipeline is again
 // hidden behind the constructor and one call:
 //
 //   PointCloudBVH<T> bvh(positions, metadata);       // build once
-//   bvh.nearestNeighbor(i);                            // nearest OTHER particle to particle i
-//   auto graph = bvh.allNearestNeighbors(kNN);         // kNN nearest of EVERY particle, batched
+//   bvh.nearestNeighbor(i);                            // nearest OTHER point to point i
+//   auto graph = bvh.allNearestNeighbors(kNN);         // kNN nearest of EVERY point, batched
 //
 // A sample of the batch result is checked against a brute-force scan. See README.md.
 
@@ -55,8 +55,9 @@ main()
 
   const std::vector<Vec3> positions = EBGeometry::Random::samplePoints<T>(numPoints, pointSeed);
 
-  // Per-particle user metadata; see Examples/ClosestPointBVH. Tag each point with its own index.
+  // Per-point user metadata; see Examples/ClosestPointBVH. Tag each point with its own index.
   std::vector<std::size_t> metadata(numPoints);
+
   for (std::size_t i = 0; i < numPoints; i++) {
     metadata[i] = i;
   }
@@ -82,9 +83,11 @@ main()
   std::vector<PointCloud::Hit> truth(kNN);
   const std::size_t            stride = numPoints / sampleSize;
   timer.start();
+
   for (std::size_t s = 0; s < sampleSize; s++) {
     const std::size_t i = s * stride;
     bvh.nearestNeighborsBruteForce(i, kNN, truth.data());
+
     for (std::size_t j = 0; j < kNN; j++) {
       const T got = graph[i * kNN + j].distanceSquared;
       EBGEOMETRY_EXPECT(std::abs(got - truth[j].distanceSquared) <=
@@ -92,6 +95,7 @@ main()
       (void)got;
     }
   }
+
   timer.stop();
   const double bruteSecondsPerPoint = timer.seconds() / double(sampleSize);
 
@@ -103,7 +107,7 @@ main()
   std::cout << "  PointCloudBVH : " << std::setprecision(3) << 1.0e6 * graphSecondsPerPoint << " us/point"
             << "   (" << std::setprecision(1) << bruteSecondsPerPoint / graphSecondsPerPoint << "x faster)\n\n";
 
-  // The single-point form: the nearest OTHER particle to one particle in the cloud.
+  // The single-point form: the nearest OTHER point to one point in the cloud.
   const PointCloud::Hit nn = bvh.nearestNeighbor(0);
   std::cout << "  nearestNeighbor(0): cloud index " << nn.index << " at distance " << std::setprecision(5)
             << std::sqrt(nn.distanceSquared) << "   (metadata " << bvh.metadata(nn.index) << ")\n";

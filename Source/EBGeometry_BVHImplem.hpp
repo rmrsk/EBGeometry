@@ -54,6 +54,7 @@ inline TreeBVH<T, P, BV, K>::TreeBVH(const std::vector<PrimAndBV<P, BV>>& a_prim
   // element straight into the members -- no intermediate parameter vector, no extra move pass.
   m_primitives.reserve(a_primsAndBVs.size());
   m_boundingVolumes.reserve(a_primsAndBVs.size());
+
   for (const auto& pbv : a_primsAndBVs) {
     m_primitives.emplace_back(pbv.first);
     m_boundingVolumes.emplace_back(pbv.second);
@@ -78,9 +79,6 @@ inline TreeBVH<T, P, BV, K>::TreeBVH(std::vector<PrimAndBV<P, BV>>&& a_primsAndB
   m_boundingVolume = BV(m_boundingVolumes);
   m_partitioned    = false;
 }
-
-template <class T, class P, class BV, size_t K>
-inline TreeBVH<T, P, BV, K>::~TreeBVH() noexcept = default;
 
 template <class T, class P, class BV, size_t K>
 inline bool
@@ -178,7 +176,9 @@ TreeBVH<T, P, BV, K>::topDownSortAndPartition(const Partitioner& a_partitioner, 
     // Pack primitives and BVs, moving them out of this node (it is about to stop being a leaf, so its
     // own lists are cleared below) -- no shared_ptr refcount churn.
     PrimAndBVList<P, BV> primsAndBVs;
+
     primsAndBVs.reserve(numPrimsInThisNode);
+
     for (size_t i = 0; i < numPrimsInThisNode; i++) {
       primsAndBVs.emplace_back(std::move(m_primitives[i]), std::move(m_boundingVolumes[i]));
     }
@@ -210,7 +210,9 @@ inline void
 TreeBVH<T, P, BV, K>::bottomUpSortAndPartition()
 {
   std::vector<Vec3> centroids;
+
   centroids.reserve(m_boundingVolumes.size());
+
   for (const auto& bv : m_boundingVolumes) {
     centroids.push_back(bv.getCentroid());
   }
@@ -544,7 +546,9 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
   using PrimBvAndCode = std::tuple<P, BV, SFC::Code>;
 
   std::vector<PrimBvAndCode> sortedPrimitives;
+
   sortedPrimitives.reserve(numPrimitives);
+
   for (size_t i = 0; i < numPrimitives; i++) {
     sortedPrimitives.emplace_back(std::move(a_primsAndBVs[i].first), a_primsAndBVs[i].second, S::encode(bins[i]));
   }
@@ -578,16 +582,20 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
     }
 
     leafRanges.push_back({static_cast<uint32_t>(i), static_cast<uint32_t>(count), BV(leafBVs)});
+
     i += count;
   }
 
   // Populate the primitive array once, in final sorted order -- independent of whatever order
   // the node array below ends up being built/relaid-out in.
   auto primBlock = std::make_shared<std::vector<P>>();
+
   primBlock->reserve(numPrimitives);
+
   for (auto& entry : sortedPrimitives) {
     primBlock->push_back(std::move(std::get<0>(entry)));
   }
+
   StoragePolicy::appendAliased(m_primitives, primBlock);
 
   // Build the K-ary structure bottom-up in a scratch array (reusing Node's own shape), then relay
@@ -596,6 +604,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
   const size_t numRealLeaves = leafRanges.size();
 
   size_t paddedLeafCount = 1;
+
   while (paddedLeafCount < numRealLeaves) {
     paddedLeafCount *= K;
   }
@@ -606,6 +615,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
   // (paddedLeafCount * K - 1) / (K - 1) (geometric series 1 + K + K^2 + ... + paddedLeafCount) --
   // so the emplace_back() calls building interior nodes below never trigger a reallocation.
   scratch.reserve((paddedLeafCount * K - 1) / (K - 1));
+
   for (size_t i = 0; i < numRealLeaves; i++) {
     scratch[i].setBoundingVolume(leafRanges[i].bv);
     scratch[i].setPrimitivesOffset(leafRanges[i].offset);
@@ -618,6 +628,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
   // same primitives more than once is harmless for any min-reduction query -- see the
   // constructor's doxygen comment.
   std::vector<uint32_t> levelIndices(paddedLeafCount);
+
   for (size_t i = 0; i < paddedLeafCount; i++) {
     levelIndices[i] = static_cast<uint32_t>(i < numRealLeaves ? i : numRealLeaves - 1);
   }
@@ -631,12 +642,15 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
       scratch.emplace_back();
 
       std::vector<BV> childBVs;
+
       childBVs.reserve(K);
+
       for (size_t c = 0; c < K; c++) {
         const uint32_t childIdx = levelIndices[p * K + c];
         scratch[parentIdx].setChildOffset(childIdx, c);
         childBVs.push_back(scratch[childIdx].getBoundingVolume());
       }
+
       scratch[parentIdx].setBoundingVolume(BV(childBVs));
 
       parentIndices[p] = parentIdx;
@@ -653,11 +667,13 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
 
   std::function<uint32_t(uint32_t)> relayout = [&](uint32_t a_scratchIdx) -> uint32_t {
     const uint32_t newIdx = static_cast<uint32_t>(m_linearNodes.size());
+
     m_linearNodes.push_back(scratch[a_scratchIdx]);
 
     if (!scratch[a_scratchIdx].isLeaf()) {
       for (size_t c = 0; c < K; c++) {
         const uint32_t newChildIdx = relayout(scratch[a_scratchIdx].getChildOffsets()[c]);
+
         m_linearNodes[newIdx].setChildOffset(static_cast<uint32_t>(newChildIdx), c);
       }
     }
@@ -682,10 +698,13 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
   // this constructor targets -- see its doxygen comment -- only the persistent, per-node
   // shared_ptr<TreeBVH> allocation is avoided.
   BVH::PrimAndBVList<P, BV> wrapped;
+
   wrapped.reserve(a_primsAndBVs.size());
+
   for (auto& pbv : a_primsAndBVs) {
     wrapped.emplace_back(std::make_shared<P>(std::move(pbv.first)), pbv.second);
   }
+
   a_primsAndBVs.clear();
 
   // Recursively partition top-down, writing nodes directly into m_linearNodes in pre-order (root
@@ -697,9 +716,11 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
   // discarded immediately afterward, never linked into a persistent tree.
   std::function<uint32_t(BVH::PrimAndBVList<P, BV>)> build = [&](BVH::PrimAndBVList<P, BV> a_prims) -> uint32_t {
     const uint32_t idx = static_cast<uint32_t>(m_linearNodes.size());
+
     m_linearNodes.push_back({});
 
     const BVH::TreeBVH<T, P, BV, K> probe(a_prims);
+
     m_linearNodes[idx].setBoundingVolume(probe.getBoundingVolume());
 
     if (a_stopCrit(probe) || a_prims.size() < K) {
@@ -850,9 +871,11 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
         binCnt[b]   = binCnt[b] + 1;
       }
 
-      Vec3T<T> rlo  = Vec3T<T>::max();
-      Vec3T<T> rhi  = -Vec3T<T>::max();
-      int      rcnt = 0;
+      Vec3T<T> rlo = +Vec3T<T>::max();
+      Vec3T<T> rhi = -Vec3T<T>::max();
+
+      int rcnt = 0;
+
       for (int b = 0; b < BINS - 1; b++) {
         if (binCnt[b] > 0) {
           rlo = min(rlo, binLo[b]);
@@ -863,17 +886,22 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
         leftCnt[b]  = rcnt;
       }
 
-      Vec3T<T> rrlo  = Vec3T<T>::max();
-      Vec3T<T> rrhi  = -Vec3T<T>::max();
-      int      rrcnt = 0;
+      Vec3T<T> rrlo = +Vec3T<T>::max();
+      Vec3T<T> rrhi = -Vec3T<T>::max();
+
+      int rrcnt = 0;
+
       for (int b = BINS - 1; b >= 1; b--) {
         if (binCnt[b] > 0) {
           rrlo = min(rrlo, binLo[b]);
           rrhi = max(rrhi, binHi[b]);
         }
+
         rrcnt += binCnt[b];
+
         if (leftCnt[b - 1] > 0 && rrcnt > 0) {
           const T cost = leftArea[b - 1] * T(leftCnt[b - 1]) + BV(rrlo, rrhi).getArea() * T(rrcnt);
+
           if (cost < bestCost) {
             bestCost  = cost;
             bestAxis  = axis;
@@ -905,6 +933,7 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
       a_groups.emplace_back(a_begin, a_end);
       return;
     }
+
     const size_t K1 = a_K / 2;
     const size_t K2 = a_K - K1;
 
@@ -917,11 +946,14 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
 
   // Build the flat node array top-down (pre-order), populating the primitive block in DFS-leaf order
   // so each leaf's primitives are a contiguous [offset, count) range.
-  auto   primBlock = std::make_shared<std::vector<P>>();
-  size_t total     = 0;
+  auto primBlock = std::make_shared<std::vector<P>>();
+
+  size_t total = 0;
+
   for (const auto& c : clusters) {
     total += c.prims.size();
   }
+
   primBlock->reserve(total);
 
   std::function<uint32_t(size_t, size_t)> build = [&](size_t a_begin, size_t a_end) -> uint32_t {
@@ -930,16 +962,20 @@ inline PackedBVH<T, P, K, StoragePolicy>::PackedBVH(std::vector<std::pair<P, BV>
 
     Vec3T<T> nlo = +Vec3T<T>::max();
     Vec3T<T> nhi = -Vec3T<T>::max();
+
     for (size_t i = a_begin; i < a_end; i++) {
       nlo = min(nlo, clusters[i].bv.getLowCorner());
       nhi = max(nhi, clusters[i].bv.getHighCorner());
     }
+
     m_linearNodes[idx].setBoundingVolume(BV(nlo, nhi));
 
     if (a_end - a_begin < K) {
       // Leaf: fewer than K clusters -- append their primitives to the block, contiguously.
       m_linearNodes[idx].setPrimitivesOffset(static_cast<uint32_t>(primBlock->size()));
+
       uint32_t count = 0;
+
       for (size_t i = a_begin; i < a_end; i++) {
         for (auto& pb : clusters[i].prims) {
           primBlock->push_back(std::move(pb.first));

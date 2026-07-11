@@ -558,6 +558,7 @@ SAH2WaySplit(PrimAndBVList<P, BV>& a_list,
 
   const int firstAxis = a_longestAxisOnly ? (chi - clo).maxDir(true) : 0;
   const int lastAxis  = a_longestAxisOnly ? firstAxis : 2;
+
   for (int axis = firstAxis; axis <= lastAxis; axis++) {
     const T lo  = clo[axis];
     const T hi  = chi[axis];
@@ -957,7 +958,7 @@ public:
   /**
    * @brief Destructor.
    */
-  ~TreeBVH() noexcept;
+  ~TreeBVH() noexcept = default;
 
   /**
    * @brief Deleted copy constructor.

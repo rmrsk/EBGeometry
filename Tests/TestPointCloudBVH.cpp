@@ -69,7 +69,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH queries match brute force", "[PointCloudBVH]",
 
   const PointCloudBVH<T, std::size_t> bvh(pos, meta);
 
-  REQUIRE(bvh.numParticles() == n);
+  REQUIRE(bvh.numPoints() == n);
 
   const double tol = tightMargin<T>();
 
@@ -213,7 +213,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH edge cases", "[PointCloudBVH]", EBGEOMETRY_TES
     const std::vector<std::size_t>      meta;
     const PointCloudBVH<T, std::size_t> bvh(pos, meta);
 
-    CHECK(bvh.numParticles() == 0);
+    CHECK(bvh.numPoints() == 0);
     // Must not read m_linearNodes[0]; a miss is signalled by the sentinel distance.
     CHECK(bvh.closestPoint(Vec3T<T>(T(0), T(0), T(0))).distanceSquared == notFound);
     Hit               out[4];
