@@ -78,33 +78,55 @@ inline PointCloudHashGrid<T, Meta>::PointCloudHashGrid(const std::vector<Vec3T<T
     m_h = T(1);
   }
 
-  // Cap the dense grid against a pathologically small a_targetPerCell (or otherwise tiny cell size),
-  // which would otherwise demand an enormous cell array and could overflow the int dimensions below.
-  // Enforce a minimum cell size that keeps the total cell count within a budget proportional to the
-  // point count; coarsening only changes grid resolution, never query results (the query is exact for
-  // any cell size). Only the volumetric branch can drive m_h arbitrarily small, so clamp only there.
-  if (vol > T(0)) {
-    const std::size_t maxCells = std::size_t(64) + std::size_t(8) * numPoints;
-    const T           hMin     = std::cbrt(vol / T(maxCells));
+  m_invH = T(1) / m_h;
 
-    if (m_h < hMin) {
-      m_h = hMin;
+  // Cap the dense grid size. m_h is sized to the cloud's *average* density over the whole bounding
+  // box, so a small a_targetPerCell -- or an anisotropic box (a tight cluster plus a single distant
+  // outlier stretches the box along one axis while the local spacing stays tiny) -- can drive the
+  // per-axis cell counts, and their product, arbitrarily large: an unbounded m_cellStart allocation,
+  // or undefined behaviour from the int() cast below overflowing. Coarsen m_h until the *actual*
+  // per-axis cell counts multiply to within a budget proportional to the point count. The counts are
+  // evaluated in double so the int casts below cannot overflow, and each cube-root step shrinks the
+  // product geometrically so the loop converges in a few iterations (the bound is a pure safety net).
+  // The budget is also capped to INT_MAX so no single axis dimension can overflow int. Coarsening
+  // changes only grid resolution, never query results (the query is exact for any cell size).
+  const std::size_t maxCells =
+    std::min(std::size_t(64) + std::size_t(8) * numPoints, std::size_t(std::numeric_limits<int>::max()));
+
+  const auto predictedCells = [&]() noexcept -> double {
+    const double dx = std::floor(double(hi[0] - m_lo[0]) * double(m_invH)) + 1.0;
+    const double dy = std::floor(double(hi[1] - m_lo[1]) * double(m_invH)) + 1.0;
+    const double dz = std::floor(double(hi[2] - m_lo[2]) * double(m_invH)) + 1.0;
+
+    return dx * dy * dz;
+  };
+
+  for (int guard = 0; guard < 100; guard++) {
+    const double predicted = predictedCells();
+
+    if (predicted <= double(maxCells)) {
+      break;
     }
+
+    m_h *= static_cast<T>(std::cbrt(predicted / double(maxCells)));
+    m_invH = T(1) / m_h;
   }
 
   EBGEOMETRY_EXPECT(m_h > T(0));
+  EBGEOMETRY_EXPECT(predictedCells() <= double(maxCells));
 
-  m_invH = T(1) / m_h;
-
-  m_nx = std::max(1, int((hi[0] - m_lo[0]) * m_invH) + 1);
-  m_ny = std::max(1, int((hi[1] - m_lo[1]) * m_invH) + 1);
-  m_nz = std::max(1, int((hi[2] - m_lo[2]) * m_invH) + 1);
+  // Derive the integer dimensions from the same double-valued counts used for the cap, so the product
+  // is guaranteed to match the budget check above and the int() casts cannot overflow.
+  m_nx = std::max(1, int(std::floor(double(hi[0] - m_lo[0]) * double(m_invH)) + 1.0));
+  m_ny = std::max(1, int(std::floor(double(hi[1] - m_lo[1]) * double(m_invH)) + 1.0));
+  m_nz = std::max(1, int(std::floor(double(hi[2] - m_lo[2]) * double(m_invH)) + 1.0));
 
   EBGEOMETRY_EXPECT(m_nx >= 1 && m_ny >= 1 && m_nz >= 1);
 
   const std::size_t nCells = std::size_t(m_nx) * std::size_t(m_ny) * std::size_t(m_nz);
 
   EBGEOMETRY_EXPECT(nCells >= 1);
+  EBGEOMETRY_EXPECT(nCells <= maxCells);
 
   // Counting sort: histogram -> prefix sum (cellStart) -> scatter cloud indices into cell order.
   m_cellStart.assign(nCells + 1, 0);

@@ -309,4 +309,24 @@ TEMPLATE_TEST_CASE("PointCloudHashGrid edge cases", "[PointCloudHashGrid]", EBGE
       }
     }
   }
+
+  SECTION("clustered cloud with a distant outlier stays bounded and correct")
+  {
+    // A tight cluster plus one far outlier makes the bounding box highly anisotropic (a huge x-extent
+    // with a tiny local spacing). The grid-size cap must keep the cell count bounded -- no runaway
+    // allocation or int overflow -- while queries stay exact. The outlier's own index is visited too.
+    constexpr std::size_t n   = 1000;
+    std::vector<Vec3T<T>> pos = makeCloud<T>(n - 1, 12u); // cluster in the unit cube
+    pos.push_back(Vec3T<T>(T(1e6), T(0.5), T(0.5)));      // distant outlier stretches the x-extent
+
+    const std::vector<std::size_t>           meta(n, 0);
+    const PointCloudHashGrid<T, std::size_t> grid(pos, meta);
+
+    REQUIRE(grid.numPoints() == n);
+
+    for (std::size_t i = 0; i < n; i += 37) {
+      const auto truth = bruteForce<T>(pos, pos[i], 1, i);
+      CHECK_THAT(grid.nearestNeighbor(i).distanceSquared, withinAbsT<T>(truth[0], tol));
+    }
+  }
 }
