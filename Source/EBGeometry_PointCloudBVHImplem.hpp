@@ -169,9 +169,11 @@ PointCloudBVH<T, Meta, K, W>::buildTree(const std::vector<Vec3T<T>>& a_positions
         blo              = min(blo, cbox.getLowCorner());
         bhi              = max(bhi, cbox.getHighCorner());
       }
+
       for (std::size_t k = 0; k < K; k++) {
         res.nodes[ni].setChildOffset(children[k], k); // interior: setNumPrimitives stays 0
       }
+
       res.nodes[ni].setBoundingVolume(AABB(blo, bhi));
 
       return ni;
@@ -359,6 +361,7 @@ PointCloudBVH<T, Meta, K, W>::closestPoint(const Vec3T<T>& a_query) const noexce
   Hit         hit;
   std::size_t found = 0;
   this->query(a_query, 1, &hit, found, s_none, 0, 0);
+
   return hit;
 }
 
@@ -368,6 +371,7 @@ PointCloudBVH<T, Meta, K, W>::closestPoints(const Vec3T<T>& a_query, std::size_t
 {
   std::size_t found = 0;
   this->query(a_query, a_k, a_out, found, s_none, 0, 0);
+
   return found;
 }
 
@@ -378,6 +382,7 @@ PointCloudBVH<T, Meta, K, W>::nearestNeighbor(std::size_t a_particle) const noex
   Hit         hit;
   std::size_t found = 0;
   this->query(m_positions[a_particle], 1, &hit, found, a_particle, m_leafOff[a_particle], m_leafCnt[a_particle]);
+
   return hit;
 }
 
@@ -387,6 +392,7 @@ PointCloudBVH<T, Meta, K, W>::nearestNeighbors(std::size_t a_particle, std::size
 {
   std::size_t found = 0;
   this->query(m_positions[a_particle], a_k, a_out, found, a_particle, m_leafOff[a_particle], m_leafCnt[a_particle]);
+
   return found;
 }
 
@@ -425,6 +431,7 @@ PointCloudBVH<T, Meta, K, W>::bruteForceOne(const Vec3T<T>& a_query, std::size_t
       best.index           = i;
     }
   }
+
   return best;
 }
 
@@ -455,6 +462,7 @@ PointCloudBVH<T, Meta, K, W>::bruteForceK(const Vec3T<T>& a_query,
   for (std::size_t j = 0; j < k; j++) {
     a_out[j] = all[j];
   }
+
   return k;
 }
 
