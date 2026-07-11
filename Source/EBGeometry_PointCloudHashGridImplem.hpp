@@ -78,6 +78,20 @@ inline PointCloudHashGrid<T, Meta>::PointCloudHashGrid(const std::vector<Vec3T<T
     m_h = T(1);
   }
 
+  // Cap the dense grid against a pathologically small a_targetPerCell (or otherwise tiny cell size),
+  // which would otherwise demand an enormous cell array and could overflow the int dimensions below.
+  // Enforce a minimum cell size that keeps the total cell count within a budget proportional to the
+  // point count; coarsening only changes grid resolution, never query results (the query is exact for
+  // any cell size). Only the volumetric branch can drive m_h arbitrarily small, so clamp only there.
+  if (vol > T(0)) {
+    const std::size_t maxCells = std::size_t(64) + std::size_t(8) * numPoints;
+    const T           hMin     = std::cbrt(vol / T(maxCells));
+
+    if (m_h < hMin) {
+      m_h = hMin;
+    }
+  }
+
   EBGEOMETRY_EXPECT(m_h > T(0));
 
   m_invH = T(1) / m_h;
@@ -235,7 +249,15 @@ PointCloudHashGrid<T, Meta>::query(
     // unvisited point is outside that world box, so its distance to the query is at least the distance
     // from the query to the nearest covered face. Stop once we hold a_k and that bound is not closer
     // than our current worst.
-    if (a_found == a_k) {
+    //
+    // Robustness: cell membership is decided with m_invH (see cellCoord()) while a covered face is
+    // reconstructed here with m_h, and m_invH is only a rounded reciprocal of m_h -- so a face
+    // reconstructed exactly at the searched box boundary could be off by a fraction of a cell and make
+    // the bound marginally optimistic. To stay exact we pull each guaranteed-covered face *one whole
+    // cell inside* the searched box: that full cell of slack dwarfs the sub-ULP reconstruction error
+    // for any realistic grid, at the cost of at most one extra shell. The inward face needs the query
+    // cell to lie strictly inside the searched box, so the bound is only evaluated for r >= 1.
+    if (a_found == a_k && r >= 1) {
       const T inf   = std::numeric_limits<T>::max();
       T       bound = inf;
 
@@ -243,11 +265,15 @@ PointCloudHashGrid<T, Meta>::query(
         const int c     = (axis == 0) ? cx : (axis == 1) ? cy : cz;
         const int nAxis = (axis == 0) ? m_nx : (axis == 1) ? m_ny : m_nz;
 
+        // Left: uncovered cells exist iff c-r > 0; guaranteed-covered lower face pulled in to cell
+        // (c-r+1).
         if (c - r > 0) {
-          bound = std::min(bound, a_query[axis] - (m_lo[axis] + T(c - r) * m_h));
+          bound = std::min(bound, a_query[axis] - (m_lo[axis] + T(c - r + 1) * m_h));
         }
+        // Right: uncovered cells exist iff c+r < nAxis-1; guaranteed-covered upper face pulled in to
+        // the top of cell (c+r-1), i.e. m_lo + (c+r)*m_h.
         if (c + r < nAxis - 1) {
-          bound = std::min(bound, (m_lo[axis] + T(c + r + 1) * m_h) - a_query[axis]);
+          bound = std::min(bound, (m_lo[axis] + T(c + r) * m_h) - a_query[axis]);
         }
       }
 

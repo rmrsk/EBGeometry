@@ -209,3 +209,104 @@ TEMPLATE_TEST_CASE("PointCloudHashGrid queries match brute force", "[PointCloudH
     }
   }
 }
+
+TEMPLATE_TEST_CASE("PointCloudHashGrid edge cases", "[PointCloudHashGrid]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T   = TestType;
+  using Hit = typename PointCloudHashGrid<T, std::size_t>::Hit;
+
+  const T      notFound = std::numeric_limits<T>::max();
+  const double tol      = tightMargin<T>();
+
+  SECTION("empty cloud: no out-of-bounds access, queries report nothing")
+  {
+    const std::vector<Vec3T<T>>              pos;
+    const std::vector<std::size_t>           meta;
+    const PointCloudHashGrid<T, std::size_t> grid(pos, meta);
+
+    CHECK(grid.numPoints() == 0);
+    CHECK(grid.closestPoint(Vec3T<T>(T(0), T(0), T(0))).distanceSquared == notFound);
+
+    Hit               out[4];
+    const std::size_t found = grid.closestPoints(Vec3T<T>(T(0), T(0), T(0)), 4, out);
+    CHECK(found == 0);
+    CHECK(grid.allNearestNeighbors(1).empty());
+  }
+
+  SECTION("single point: external query finds it, self query finds nothing")
+  {
+    const std::vector<Vec3T<T>>              pos  = {Vec3T<T>(T(0.25), T(0.5), T(0.75))};
+    const std::vector<std::size_t>           meta = {42};
+    const PointCloudHashGrid<T, std::size_t> grid(pos, meta);
+
+    const auto hit = grid.closestPoint(pos[0]);
+    CHECK(hit.index == 0);
+    CHECK_THAT(hit.distanceSquared, withinAbsT<T>(T(0), tol));
+
+    // nearestNeighbor excludes self, so with only one point there is no neighbor.
+    CHECK(grid.nearestNeighbor(0).distanceSquared == notFound);
+  }
+
+  SECTION("coincident points all land in one cell and still resolve")
+  {
+    constexpr std::size_t                    n = 16;
+    const std::vector<Vec3T<T>>              pos(n, Vec3T<T>(T(1), T(2), T(3)));
+    const std::vector<std::size_t>           meta(n, 0);
+    const PointCloudHashGrid<T, std::size_t> grid(pos, meta);
+
+    // Nearest OTHER point is another coincident point at distance 0.
+    const auto hit = grid.nearestNeighbor(0);
+    CHECK(hit.index != 0);
+    CHECK_THAT(hit.distanceSquared, withinAbsT<T>(T(0), tol));
+  }
+
+  SECTION("planar (zero-extent) cloud matches brute force")
+  {
+    // All z == 0: a degenerate, zero-volume bounding box exercises the cell-size fallback.
+    constexpr std::size_t n   = 500;
+    std::vector<Vec3T<T>> pos = makeCloud<T>(n, 7u);
+
+    for (auto& p : pos) {
+      p = Vec3T<T>(p[0], p[1], T(0));
+    }
+
+    const std::vector<std::size_t>           meta(n, 0);
+    const PointCloudHashGrid<T, std::size_t> grid(pos, meta);
+
+    for (std::size_t i = 0; i < n; i += 17) {
+      const auto truth = bruteForce<T>(pos, pos[i], 1, i);
+      CHECK_THAT(grid.nearestNeighbor(i).distanceSquared, withinAbsT<T>(truth[0], tol));
+    }
+  }
+
+  SECTION("k larger than the cloud returns every point")
+  {
+    const std::vector<Vec3T<T>>              pos = makeCloud<T>(3, 8u);
+    const std::vector<std::size_t>           meta(3, 0);
+    const PointCloudHashGrid<T, std::size_t> grid(pos, meta);
+
+    Hit               out[10];
+    const std::size_t found = grid.closestPoints(Vec3T<T>(T(0.5), T(0.5), T(0.5)), 10, out);
+    CHECK(found == 3);
+  }
+
+  SECTION("extreme cell-size targets stay correct (grid-size clamp and coarse grid)")
+  {
+    constexpr std::size_t          n   = 800;
+    const std::vector<Vec3T<T>>    pos = makeCloud<T>(n, 9u);
+    const std::vector<std::size_t> meta(n, 0);
+
+    // A tiny target would demand an enormous grid (clamped) and a huge target collapses toward one
+    // cell; both must still return exact results.
+    const T targets[] = {T(1e-6), T(1000)};
+
+    for (const T target : targets) {
+      const PointCloudHashGrid<T, std::size_t> grid(pos, meta, target);
+
+      for (std::size_t i = 0; i < n; i += 91) {
+        const auto truth = bruteForce<T>(pos, pos[i], 1, i);
+        CHECK_THAT(grid.nearestNeighbor(i).distanceSquared, withinAbsT<T>(truth[0], tol));
+      }
+    }
+  }
+}
