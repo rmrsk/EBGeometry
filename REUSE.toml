@@ -69,6 +69,16 @@ path = [
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
+# Benchmark comparison programs (illustrative, not CI-tested). main.cpp files carry inline SPDX.
+[[annotations]]
+path = [
+  "Benchmark/README.md",
+  "Benchmark/**/GNUmakefile",
+  "Benchmark/**/README.md",
+]
+SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
 # Tests: build files and the small self-authored test fixture mesh
 [[annotations]]
 path = [

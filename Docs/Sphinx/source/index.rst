@@ -123,6 +123,7 @@ Examples
    ExampleRandomCity.rst
    ExampleOctreeBoundingVolume.rst
    Integrations.rst
+   Benchmark.rst
 
 Contributing and testing
 ************************
