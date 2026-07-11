@@ -30,3 +30,33 @@ bug against an unaccelerated path) and are not meant for production queries.
 See the `PointCloudBVH doxygen page
 <doxygen/html/classEBGeometry_1_1PointCloudBVH.html>`__ for the full interface, and
 ``Examples/ClosestPointBVH`` / ``Examples/NearestNeighborBVH`` for worked usage.
+
+PointCloudHashGrid: a grid instead of a tree
+--------------------------------------------
+
+``PointCloudHashGrid`` (:file:`Source/EBGeometry_PointCloudHashGrid.hpp`) answers the same
+nearest-neighbor / closest-point queries over a point cloud as ``PointCloudBVH``, and exposes the
+**same public interface** -- the same ``Hit`` type, the same ``closestPoint`` / ``closestPoints`` /
+``nearestNeighbor`` / ``nearestNeighbors`` / ``allNearestNeighbors`` methods, the same ``O(N)``
+brute-force reference queries, and the same ``position()`` / ``metadata()`` accessors -- so the two
+are drop-in interchangeable. It is *not* a BVH, however: it circumvents the tree entirely and stores
+the cloud in a **uniform grid** instead.
+
+Points are counting-sorted into a dense array of fixed-size cells (a CSR bucket array keyed by
+integer cell coordinates) -- an ``O(N)`` build with no recursive partitioning and no tree nodes. A
+query is an **expanding-shell** search outward from the query point's cell (Chebyshev radius
+0, 1, 2, ...); it stops, exactly and without ever missing a neighbor, as soon as the k-th best
+distance found is closer than any unvisited cell can hold. With the default cell size (~1 point/cell)
+that is almost always one or two shells.
+
+The trade-off between the two is density. For a **near-uniform** cloud the grid both builds and
+queries faster than the BVH (a counting sort rather than a tree build, and a query touching only a
+handful of cells). For a **strongly clustered / multi-scale** cloud a single global cell size is a
+poor fit -- too coarse where the cloud is dense, too fine where it is sparse -- and ``PointCloudBVH``'s
+density-adaptive tree is the better choice. The grid is also bounded-domain (dense cells sized to the
+bounding box, ``O(N)`` memory for a compact cloud) and serves only point queries; unlike
+``PointCloudBVH`` it cannot be composed as a primitive inside an outer BVH/CSG.
+
+See the `PointCloudHashGrid doxygen page
+<doxygen/html/classEBGeometry_1_1PointCloudHashGrid.html>`__ for the full interface, and
+``Examples/NearestNeighborHashGrid`` for a worked comparison against the BVH example.

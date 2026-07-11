@@ -81,6 +81,7 @@ using Meta = short;
   template struct PointSoAT<PREC>;                                           \
   template struct PointAoSoA<PREC, Meta>;                                    \
   template class PointCloudBVH<PREC, Meta>;                                  \
+  template class PointCloudHashGrid<PREC, Meta>;                             \
                                                                                \
   namespace BoundingVolumes {                                                \
   template class AABBT<PREC>;                                                \
