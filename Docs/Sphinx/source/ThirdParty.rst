@@ -38,7 +38,7 @@ same spirit as the AMReX examples above. Chombo must be installed separately, wi
 ``CHOMBO_HOME`` environment variable pointing to it. Available examples:
 
 * :file:`ThirdParty/Chombo/Shapes`
-* :file:`ThirdParty/Chombo/DCEL`
+* :file:`ThirdParty/Chombo/MeshSDF`
 * :file:`ThirdParty/Chombo/PackedSpheres`
 * :file:`ThirdParty/Chombo/RandomCity`
 
