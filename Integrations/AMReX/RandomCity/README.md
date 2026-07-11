@@ -1,4 +1,4 @@
-ThirdParty/AMReX/RandomCity
+Integrations/AMReX/RandomCity
 -----------------------------
 
 This example uses the embedded boundary grid generation from AMReX for constructing a random urban city environment (consiting of boxes).

@@ -1,4 +1,4 @@
-ThirdParty/AMReX/Shapes
+Integrations/AMReX/Shapes
 -------------------------
 
 This example uses the embedded boundary grid generation from AMReX, using analytic SDFs from EBGeometry. 

@@ -60,11 +60,11 @@ SPDX-License-Identifier = "GPL-3.0-or-later"
 # documentation. main.cpp files carry their own inline SPDX headers.
 [[annotations]]
 path = [
-  "ThirdParty/README.md",
-  "ThirdParty/**/GNUmakefile",
-  "ThirdParty/**/Make.package",
-  "ThirdParty/**/*.inputs",
-  "ThirdParty/**/README.md",
+  "Integrations/README.md",
+  "Integrations/**/GNUmakefile",
+  "Integrations/**/Make.package",
+  "Integrations/**/*.inputs",
+  "Integrations/**/README.md",
 ]
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
 SPDX-License-Identifier = "GPL-3.0-or-later"

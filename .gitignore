@@ -5,15 +5,15 @@
 
 build
 
-# AMReX build/run artifacts (any example under ThirdParty/AMReX/<name>/).
-ThirdParty/AMReX/*/plt*
-ThirdParty/AMReX/*/tmp_build_dir
-ThirdParty/AMReX/*/Backtrace.*
+# AMReX build/run artifacts (any example under Integrations/AMReX/<name>/).
+Integrations/AMReX/*/plt*
+Integrations/AMReX/*/tmp_build_dir
+Integrations/AMReX/*/Backtrace.*
 
-# Chombo build artifacts (any example under ThirdParty/Chombo/<name>/).
-ThirdParty/Chombo/*/d/**
-ThirdParty/Chombo/*/o/**
-ThirdParty/Chombo/*/f/**
+# Chombo build artifacts (any example under Integrations/Chombo/<name>/).
+Integrations/Chombo/*/d/**
+Integrations/Chombo/*/o/**
+Integrations/Chombo/*/f/**
 
 Docs/*
 !Docs/.nojekyll

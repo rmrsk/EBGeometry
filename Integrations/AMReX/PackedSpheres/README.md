@@ -1,4 +1,4 @@
-ThirdParty/AMReX/PackedSpheres
+Integrations/AMReX/PackedSpheres
 --------------------------------
 
 This example uses the embedded boundary grid generation from AMReX for constructing a packed spherical bed.

@@ -1,4 +1,4 @@
-ThirdParty/AMReX/PaintEB
+Integrations/AMReX/PaintEB
 --------------------------
 
 This example uses the embedded boundary grid generation from AMReX and associates triangle meta-data with AMReX-based cut-cells.

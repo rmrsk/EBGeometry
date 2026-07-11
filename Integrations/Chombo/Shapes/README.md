@@ -1,4 +1,4 @@
-ThirdParty/Chombo/Shapes
+Integrations/Chombo/Shapes
 --------------------------
 
 This example uses the embedded boundary grid generation from Chombo3, and shows how to use basic SDFs from EBGeometry. 

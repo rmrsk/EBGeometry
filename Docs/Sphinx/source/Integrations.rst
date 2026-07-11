@@ -1,6 +1,6 @@
-.. _Chap:ThirdParty:
+.. _Chap:Integrations:
 
-Third party
+Integrations
 ============
 
 .. important::
@@ -15,31 +15,31 @@ Third party
 AMReX
 ------
 
-The :file:`ThirdParty/AMReX/<something>` folders couple EBGeometry to
+The :file:`Integrations/AMReX/<something>` folders couple EBGeometry to
 `AMReX <https://amrex-codes.github.io/amrex/>`_'s embedded-boundary grid generation: an
 EBGeometry signed distance function is handed to AMReX, which uses it to cut cells at the
 implicit surface. AMReX must be installed separately, with the ``AMREX_HOME`` environment
 variable pointing to it. Available examples:
 
-* :file:`ThirdParty/AMReX/Shapes`
-* :file:`ThirdParty/AMReX/MeshSDF`
-* :file:`ThirdParty/AMReX/PackedSpheres`
-* :file:`ThirdParty/AMReX/RandomCity`
-* :file:`ThirdParty/AMReX/PaintEB`
+* :file:`Integrations/AMReX/Shapes`
+* :file:`Integrations/AMReX/MeshSDF`
+* :file:`Integrations/AMReX/PackedSpheres`
+* :file:`Integrations/AMReX/RandomCity`
+* :file:`Integrations/AMReX/PaintEB`
 
 See the README in each folder for exact build and run instructions.
 
 Chombo
 -------
 
-The :file:`ThirdParty/Chombo/<something>` folders couple EBGeometry to
+The :file:`Integrations/Chombo/<something>` folders couple EBGeometry to
 `Chombo <https://commons.lbl.gov/display/chombo/>`_'s embedded-boundary grid generation, in the
 same spirit as the AMReX examples above. Chombo must be installed separately, with the
 ``CHOMBO_HOME`` environment variable pointing to it. Available examples:
 
-* :file:`ThirdParty/Chombo/Shapes`
-* :file:`ThirdParty/Chombo/MeshSDF`
-* :file:`ThirdParty/Chombo/PackedSpheres`
-* :file:`ThirdParty/Chombo/RandomCity`
+* :file:`Integrations/Chombo/Shapes`
+* :file:`Integrations/Chombo/MeshSDF`
+* :file:`Integrations/Chombo/PackedSpheres`
+* :file:`Integrations/Chombo/RandomCity`
 
 See the README in each folder for exact build and run instructions.

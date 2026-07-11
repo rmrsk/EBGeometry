@@ -21,7 +21,7 @@ for embedded-boundary (EB) codes like AMReX, but is general-purpose.
 Single-word orientation: `Source/` is the library (all headers, no `.cpp`), `Tests/` is the Catch2
 unit-test suite (fetched via CMake `FetchContent`, not vendored), `Examples/` holds small
 standalone programs with no third-party dependencies (each independently buildable — see below),
-`ThirdParty/` holds illustrative (not CI-tested) examples coupling EBGeometry to third-party
+`Integrations/` holds illustrative (not CI-tested) examples coupling EBGeometry to third-party
 application codes (AMReX, Chombo), and `Docs/Sphinx/` + `Docs/doxygen.conf` are the two
 documentation systems.
 

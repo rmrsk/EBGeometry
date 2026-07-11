@@ -1,4 +1,4 @@
-ThirdParty/Chombo/PackedSpheres
+Integrations/Chombo/PackedSpheres
 ---------------------------------
 
 This example uses the embedded boundary grid generation from Chombo3 for constructing a packed spherical bed. 

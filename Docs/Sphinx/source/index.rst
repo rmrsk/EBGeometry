@@ -122,7 +122,7 @@ Examples
    ExamplePackedSpheres.rst
    ExampleRandomCity.rst
    ExampleOctreeBoundingVolume.rst
-   ThirdParty.rst
+   Integrations.rst
 
 Contributing and testing
 ************************

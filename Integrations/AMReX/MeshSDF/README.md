@@ -1,4 +1,4 @@
-ThirdParty/AMReX/MeshSDF
+Integrations/AMReX/MeshSDF
 --------------------------
 
 This example uses the embedded boundary grid generation from AMReX.

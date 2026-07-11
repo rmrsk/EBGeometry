@@ -20,8 +20,8 @@ Alongside the examples with dedicated pages below, the following BVH and point-c
 
 Examples that couple EBGeometry to a third-party application code's embedded-boundary grid
 generation (`AMReX <https://amrex-codes.github.io/amrex/>`_, `Chombo
-<https://commons.lbl.gov/display/chombo/>`_) live separately under :file:`ThirdParty/` instead,
-and additionally require that platform to be installed — see :ref:`Chap:ThirdParty`.
+<https://commons.lbl.gov/display/chombo/>`_) live separately under :file:`Integrations/` instead,
+and additionally require that platform to be installed — see :ref:`Chap:Integrations`.
 
 None of the EBGeometry examples produce output for visualization; they print timing
 and/or correctness information to the terminal.  Each example folder also ships its own

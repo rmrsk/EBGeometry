@@ -1,5 +1,5 @@
-ThirdParty/Chombo/MeshSDF
--------------------------
+Integrations/Chombo/MeshSDF
+---------------------------
 
 This example uses the embedded boundary grid generation from Chombo3, loading a surface mesh as an EBGeometry signed distance function (via a flattened BVH over the mesh). 
 To compile this application, first install Chombo somewhere and point the CHOMBO_HOME environment variable to it.

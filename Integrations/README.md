@@ -1,4 +1,4 @@
-ThirdParty
+Integrations
 ============
 
 This folder contains examples of coupling `EBGeometry` to third-party application codes:

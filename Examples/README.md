@@ -13,7 +13,7 @@ third-party dependencies):
 * `Shapes` For using the analytic signed distance functions.
 
 Examples that couple EBGeometry to a third-party application code (AMReX, Chombo) live under
-[`ThirdParty/`](../ThirdParty/README.md) at the repository root instead.
+[`Integrations/`](../Integrations/README.md) at the repository root instead.
 
 The mesh files used by the examples come from the [common-3d-test-models](https://github.com/alecjacobson/common-3d-test-models)
 git submodule (`common-3d-test-models/`) at the repository root. Clone the repository with `--recurse-submodules` (or run

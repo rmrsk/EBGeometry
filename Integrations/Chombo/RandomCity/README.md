@@ -1,4 +1,4 @@
-ThirdParty/Chombo/RandomCity
+Integrations/Chombo/RandomCity
 ------------------------------
 
 This example uses the embedded boundary grid generation from Chombo3 for constructing a random urban environment.
