@@ -84,6 +84,7 @@ Concepts
    GeometryRepresentations.rst
    DCEL.rst
    BVH.rst
+   PointCloud.rst
    Octree.rst
    CSG.rst
    Triangles.rst
@@ -101,7 +102,7 @@ Implementation
    ImplemCSG.rst
    ImplemDCEL.rst
    ImplemBVH.rst
-   PointCloud.rst
+   ImplemPointCloud.rst
    ImplemOctree.rst
    Parsers.rst
    SIMDClasses.rst
