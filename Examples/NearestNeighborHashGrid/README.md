@@ -14,19 +14,15 @@ class -- the uniform-grid counterpart to
     auto graph = grid.allNearestNeighbors(kNN);         // kNN nearest of EVERY particle, batched
 
 500,000 random points in the unit cube are counting-sorted into a uniform grid, then
-`allNearestNeighbors(kNN)` computes the `kNN` nearest neighbors of every point in one batched,
-spatially-ordered pass. `kNN` is fixed at 1 in `main.cpp`; raise it for a wider neighbor graph. A
-spread sample of the result is checked against the class's own `O(N)` brute-force reference, which
-also times the baseline for a fair per-point speedup (a full N² all-pairs scan is infeasible at this
-size).
+`allNearestNeighbors(kNN)` computes the `kNN` nearest neighbors of every point in one batched pass.
+`kNN` is fixed at 1 in `main.cpp`; raise it for a wider neighbor graph. A spread sample of the result
+is checked against the class's own `O(N)` brute-force reference.
 
-**Grid vs. tree.** The grid stores points in a dense array of fixed-size cells and answers a query by
-an expanding-shell search outward from the query point's cell, stopping (exactly, never missing a
-neighbor) once the best distance is closer than any unvisited cell can hold. For a **near-uniform**
-cloud this builds and queries faster than the BVH — an O(N) counting-sort build with no tree, and a
-query that touches only a handful of cells. For a **clustered / multi-scale** cloud, though, a single
-global cell size is a poor fit and `PointCloudBVH`'s density-adaptive tree is the better choice. The
-grid also serves only point queries; it is not a BVH and cannot be composed into an outer BVH/CSG.
+The grid buckets points into fixed-size cells and answers a query by an expanding-shell search
+outward from the query point's cell. It suits **near-uniform** clouds; for **clustered / multi-scale**
+clouds a single global cell size is a poor fit and the density-adaptive `PointCloudBVH` is the better
+choice. The grid serves only point queries -- it is not a BVH and cannot be composed into an outer
+BVH/CSG.
 
 A self query excludes the point itself (otherwise it would always find itself at distance zero); the
 returned neighbors are the nearest *other* points. Everything stays in **squared distance**
@@ -75,7 +71,7 @@ Running
     ./NearestNeighborHashGrid.ex
 
 Takes no arguments. It generates a random 500,000-point cloud (fixed seed, so results are
-reproducible on a given machine) and prints the build time, the brute-force and `PointCloudHashGrid`
-per-point times with the speedup, and one worked `nearestNeighbor()` result. A spread sample of the
-neighbor graph is checked against a brute-force scan with `EBGEOMETRY_EXPECT`, so building with
-`-DEBGEOMETRY_ENABLE_ASSERTIONS` aborts on any mismatch; the checks compile out otherwise.
+reproducible on a given machine) and prints the build and per-point query times and one worked
+`nearestNeighbor()` result. A spread sample of the neighbor graph is checked against a brute-force
+scan with `EBGEOMETRY_EXPECT`, so building with `-DEBGEOMETRY_ENABLE_ASSERTIONS` aborts on any
+mismatch; the checks compile out otherwise.
