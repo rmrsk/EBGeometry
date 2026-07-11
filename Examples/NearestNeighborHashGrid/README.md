@@ -4,29 +4,13 @@ Examples/NearestNeighborHashGrid
 Nearest-neighbor search over a point cloud using the turnkey
 [`PointCloudHashGrid`](https://rmrsk.github.io/EBGeometry/doxygen/html/classEBGeometry_1_1PointCloudHashGrid.html)
 class -- the uniform-grid counterpart to
-[`Examples/NearestNeighborBVH`](../NearestNeighborBVH/README.md).
+[`Examples/NearestNeighborBVH`](../NearestNeighborBVH/README.md), with the **same interface**, so
+switching between the tree and the grid is a one-line type change.
 
-`PointCloudHashGrid` answers the same queries as `PointCloudBVH` and exposes the **same interface**
-(same `Hit`, same methods), so switching between the tree and the grid is a one-line type change:
-
-    PointCloudHashGrid<T> grid(positions, metadata);   // build once (counting-sort into cells)
-    grid.nearestNeighbor(i);                            // nearest OTHER particle to particle i
-    auto graph = grid.allNearestNeighbors(kNN);         // kNN nearest of EVERY particle, batched
-
-500,000 random points in the unit cube are counting-sorted into a uniform grid, then
-`allNearestNeighbors(kNN)` computes the `kNN` nearest neighbors of every point in one batched pass.
-`kNN` is fixed at 1 in `main.cpp`; raise it for a wider neighbor graph. A spread sample of the result
-is checked against the class's own `O(N)` brute-force reference.
-
-The grid buckets points into fixed-size cells and answers a query by an expanding-shell search
-outward from the query point's cell. It suits **near-uniform** clouds; for **clustered / multi-scale**
-clouds a single global cell size is a poor fit and the density-adaptive `PointCloudBVH` is the better
-choice. The grid serves only point queries -- it is not a BVH and cannot be composed into an outer
-BVH/CSG.
-
-A self query excludes the point itself (otherwise it would always find itself at distance zero); the
-returned neighbors are the nearest *other* points. Everything stays in **squared distance**
-(`Hit::distanceSquared`) on the hot path; the example only takes a square root when printing.
+`allNearestNeighbors(k)` computes the `k` nearest neighbors of every point in one batched pass; a
+self query excludes the point itself, so the neighbors returned are the nearest *other* points. The
+grid suits **near-uniform** clouds; for clustered or multi-scale clouds the density-adaptive
+`PointCloudBVH` is the better choice.
 
 Building
 --------
@@ -70,8 +54,6 @@ Running
 
     ./NearestNeighborHashGrid.ex
 
-Takes no arguments. It generates a random 500,000-point cloud (fixed seed, so results are
-reproducible on a given machine) and prints the build and per-point query times and one worked
-`nearestNeighbor()` result. A spread sample of the neighbor graph is checked against a brute-force
-scan with `EBGEOMETRY_EXPECT`, so building with `-DEBGEOMETRY_ENABLE_ASSERTIONS` aborts on any
-mismatch; the checks compile out otherwise.
+Takes no arguments. It prints the build and per-point query times and one worked `nearestNeighbor()`
+result. The neighbor graph is checked against a brute-force scan when built with
+`-DEBGEOMETRY_ENABLE_ASSERTIONS`.
