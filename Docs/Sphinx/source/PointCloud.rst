@@ -1,62 +1,59 @@
-.. _Chap:ImplemPointCloud:
+.. _Chap:PointCloud:
 
 Point clouds
 ============
 
-For nearest-neighbor and closest-point work over particle clouds, EBGeometry provides
-``PointCloudBVH`` (:file:`Source/EBGeometry_PointCloudBVH.hpp`). It specializes the :ref:`Chap:ImplemBVH`
-machinery: it is a subclass of ``BVH::PackedBVH`` with two things the general path does not offer -- a
-much cheaper **index-based build**, and **turnkey query methods** that hide ``pruneTraverse()``
-entirely.
+A *point cloud* is simply a set of points in space, with no connectivity, orientation, or
+inside/outside notion. Unlike a surface mesh, there is therefore no *signed* distance to a point
+cloud -- only unsigned distances between points. The operations of interest are proximity queries:
 
-It is built directly from a raw cloud -- particle positions plus a parallel array of user metadata --
-by partitioning an index permutation in place with a longest-axis midpoint split and packing the
-``PointAoSoA`` leaves inline (no intermediate primitive list, no ``shared_ptr``, no separate packing
-pass), which is several times faster to build than a full Surface-Area-Heuristic tree and, for
-near-uniform clouds, just as tight to query.
+* **Closest point.** Given an arbitrary query point, find the cloud point nearest to it.
+* **k nearest.** Find the :math:`k` closest cloud points to a query, in ascending order of distance.
+* **k-nearest-neighbor graph.** For *every* point in the cloud, find its :math:`k` nearest *other*
+  points -- the classic all-nearest-neighbors problem.
 
-Queries return the matched particle's cloud index (and squared distance); the user metadata is
-reachable through ``metadata()``. ``closestPoint`` / ``closestPoints`` answer an arbitrary external
-point, while ``nearestNeighbor`` / ``nearestNeighbors`` (and the batch ``allNearestNeighbors``) answer
-a particle already in the cloud and additionally seed the search bound from that particle's own leaf
--- a strictly cheaper search an external point cannot use.
+Answering one query by scanning all :math:`N` points is :math:`\mathcal{O}(N)`, so the
+all-nearest-neighbors graph is :math:`\mathcal{O}(N^2)` -- infeasible for large clouds. As with mesh
+distance queries, the cost is reduced by a spatial acceleration structure that lets a query rule out
+the vast majority of points without ever measuring the distance to them. EBGeometry offers two such
+structures, built on two different ideas.
 
-Each accelerated query also has an ``O(N)`` brute-force counterpart -- ``closestPointBruteForce`` /
-``closestPointsBruteForce`` / ``nearestNeighborBruteForce`` / ``nearestNeighborsBruteForce`` -- that
-answers the same question by a full linear scan. These are reference implementations for testing and
-debugging (verify an accelerated result against ground truth, or A/B-test a suspected tree/traversal
-bug against an unaccelerated path) and are not meant for production queries.
+Hierarchical partitioning
+--------------------------
 
-See the `PointCloudBVH doxygen page
-<doxygen/html/classEBGeometry_1_1PointCloudBVH.html>`__ for the full interface, and
-``Examples/ClosestPointBVH`` / ``Examples/NearestNeighborBVH`` for worked usage.
+The first idea is to build a tree over the points, recursively subdividing them into spatially tight
+groups -- exactly the bounding volume hierarchy described in :ref:`Chap:BVH`, with the points (or
+small groups of them) as the primitives. A query then descends the tree, at each node visiting the
+nearer child first and *pruning* any subtree whose bounding volume is already farther than the best
+match found so far. Because the subdivision follows the points themselves, the tree adapts to the
+cloud's density -- it stays balanced whether the points are uniform, lie on a surface, or clump into
+clusters -- and a query touches only :math:`\mathcal{O}(\log N)` nodes on average.
 
-PointCloudHashGrid: a grid instead of a tree
---------------------------------------------
+Uniform grid
+------------
 
-``PointCloudHashGrid`` (:file:`Source/EBGeometry_PointCloudHashGrid.hpp`) answers the same
-nearest-neighbor / closest-point queries over a point cloud as ``PointCloudBVH``, and exposes the
-**same public interface** -- the same ``Hit`` type, the same ``closestPoint`` / ``closestPoints`` /
-``nearestNeighbor`` / ``nearestNeighbors`` / ``allNearestNeighbors`` methods, the same ``O(N)``
-brute-force reference queries, and the same ``position()`` / ``metadata()`` accessors -- so the two
-are drop-in interchangeable. It is *not* a BVH, however: it circumvents the tree entirely and stores
-the cloud in a **uniform grid** instead.
+The second idea dispenses with the tree entirely and lays a single regular grid of fixed-size cells
+over the cloud, bucketing each point into the cell that contains it. A query starts in the cell
+containing the query point and searches outward one shell of cells at a time (Chebyshev radius
+0, 1, 2, ...). It can stop as soon as the best distance found so far is closer than the nearest edge
+of the next unvisited shell -- no closer point can lie beyond that shell, so the search terminates
+*exactly*, never missing a neighbor. If the cells are sized to hold about one point each, a query
+resolves in the first shell or two.
 
-Points are counting-sorted into a dense array of fixed-size cells (a CSR bucket array keyed by
-integer cell coordinates) -- an ``O(N)`` build with no recursive partitioning and no tree nodes. A
-query is an **expanding-shell** search outward from the query point's cell (Chebyshev radius
-0, 1, 2, ...); it stops, exactly and without ever missing a neighbor, as soon as the k-th best
-distance found is closer than any unvisited cell can hold. With the default cell size (~1 point/cell)
-that is almost always one or two shells.
+The grid trades adaptivity for simplicity. A single global cell size fits a **near-uniform** cloud
+best -- there, both building the grid (a counting sort) and querying it are cheaper than a tree. For
+a **strongly clustered or multi-scale** cloud a single cell size is a poor compromise (too coarse
+where the cloud is dense, too fine where it is sparse), and the density-adaptive hierarchy is the
+better choice.
 
-The trade-off between the two is density. For a **near-uniform** cloud the grid both builds and
-queries faster than the BVH (a counting sort rather than a tree build, and a query touching only a
-handful of cells). For a **strongly clustered / multi-scale** cloud a single global cell size is a
-poor fit -- too coarse where the cloud is dense, too fine where it is sparse -- and ``PointCloudBVH``'s
-density-adaptive tree is the better choice. The grid is also bounded-domain (dense cells sized to the
-bounding box, ``O(N)`` memory for a compact cloud) and serves only point queries; unlike
-``PointCloudBVH`` it cannot be composed as a primitive inside an outer BVH/CSG.
+Self queries
+------------
 
-See the `PointCloudHashGrid doxygen page
-<doxygen/html/classEBGeometry_1_1PointCloudHashGrid.html>`__ for the full interface, and
-``Examples/NearestNeighborHashGrid`` for a worked comparison against the BVH example.
+The all-nearest-neighbors graph is a special case worth calling out: every query point is *itself* a
+member of the cloud. A point therefore already knows which cell or leaf it lives in, so its search
+can be *seeded* from that group -- giving a tight pruning bound immediately -- and must exclude the
+point itself (otherwise it would trivially find itself at distance zero). This makes a batch of self
+queries strictly cheaper than the same number of independent external queries.
+
+See :ref:`Chap:ImplemPointCloud` for the two concrete classes that implement these ideas and the
+turnkey query interface they share.
