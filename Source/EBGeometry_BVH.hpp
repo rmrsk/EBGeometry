@@ -1125,6 +1125,32 @@ public:
            const BVH::NodeKeyFactory<Node, NodeKey>&  a_nodeKeyFactory) const noexcept;
 
   /**
+   * @brief Refit this subtree's bounding volumes in place after its primitives have moved.
+   * @details Keeps the tree *topology* -- the node hierarchy and each leaf's primitive assignment --
+   * exactly as it is, recomputing only the bounding volumes bottom-up: at every leaf, each
+   * primitive's bounding volume is recomputed via @p a_bvConstructor and the leaf's node volume is
+   * set to their union; at every interior node, the node volume is set to the union of its K
+   * children's (already-refitted) volumes. This is the cheap way to keep a BVH valid for a *moving*
+   * geometry -- primitives that shift a little between frames without changing which leaf they
+   * belong to -- avoiding a full rebuild-and-repack. Because it never re-partitions, a geometry that
+   * has deformed enough for primitives to migrate across the tree will accumulate looser (lower
+   * query quality) bounding volumes over time and should periodically be rebuilt from scratch
+   * instead.
+   *
+   * The primitives are reached by handle (@c std::shared_ptr<const P>): @p a_bvConstructor is called
+   * with each primitive and must return that primitive's *current* bounding volume. Whatever moved
+   * the geometry is expected to have updated the state the primitives read (e.g. a shared DCEL
+   * mesh's vertex positions) before refit() is called.
+   *
+   * @tparam BVConstructor Callable: (const P&) -> BV, returning one primitive's current bounding volume.
+   * @param[in] a_bvConstructor Bounding-volume constructor for a single primitive.
+   * @return Reference to this node's refitted bounding volume (so a parent can union its children).
+   */
+  template <class BVConstructor>
+  inline const BV&
+  refit(const BVConstructor& a_bvConstructor);
+
+  /**
    * @brief Flatten this tree into a cache-friendly PackedBVH with the same primitive type.
    * @details Requires BV == AABBT<T>; enforced by static_assert at instantiation.
    * @tparam StoragePolicy Storage policy for the resulting PackedBVH's primitive array (default:
@@ -1682,6 +1708,30 @@ public:
                 State&             a_state,
                 LeafEvaluator&&    a_evalLeaf,
                 PruneDistSquared&& a_pruneDist2) const noexcept;
+
+  /**
+   * @brief Refit every node's bounding volume in place after the primitives have moved.
+   * @details The flat-array counterpart of TreeBVH::refit(): keeps the node array, the primitive
+   * array, and every leaf's primitive range exactly as they are, recomputing only the bounding
+   * volumes. Because m_linearNodes is a depth-first pre-order flattening (root at index 0, every
+   * child at a higher index than its parent), a single reverse sweep over the array refits children
+   * before parents with no recursion or explicit stack: each leaf's box becomes the union of its
+   * primitives' boxes (recomputed via @p a_bvConstructor), and each interior node's box the union of
+   * its K children's freshly-refitted boxes. The per-node SoA AABB cache used by the SIMD traversal
+   * is rebuilt at the end, so pruneTraverse() stays consistent.
+   *
+   * Same use and caveats as TreeBVH::refit(): cheap per-frame maintenance for a geometry whose
+   * primitives shift without migrating between leaves, and not a substitute for a rebuild once a
+   * deformation is large enough to degrade the tree. @p a_bvConstructor receives each primitive
+   * (drawn from the primitive array via the storage policy) and must return its current bounding
+   * volume.
+   *
+   * @tparam BVConstructor Callable: (const P&) -> BV, returning one primitive's current bounding volume.
+   * @param[in] a_bvConstructor Bounding-volume constructor for a single primitive.
+   */
+  template <class BVConstructor>
+  inline void
+  refit(const BVConstructor& a_bvConstructor);
 
 protected:
   /**

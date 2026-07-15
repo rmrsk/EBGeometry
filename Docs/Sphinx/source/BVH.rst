@@ -97,6 +97,25 @@ consecutive codes are always spatially adjacent), so it tends to produce tighter
    order in a linear array; each interior node then stores index *offsets* to its children
    within the array, rather than pointers.
 
+Refitting
+---------
+
+Once a BVH has been built, its tree *topology* -- which primitive lives in which leaf, and how the
+nodes nest -- is independent of where the primitives actually sit in space. If a geometry *moves*
+slightly (a rigid displacement, or a small per-primitive jitter between frames) the topology is
+still perfectly usable; only the bounding volumes have gone stale. *Refitting* exploits this: it
+walks the tree from the leaves up, recomputing each leaf's bounding volume from its (now moved)
+primitives and each interior node's volume as the union of its children's, without re-partitioning
+anything. This is far cheaper than a full rebuild and is the standard way to keep a BVH valid for a
+moving geometry.
+
+The trade-off is quality rather than correctness: a refitted tree always *encloses* its primitives
+(so traversal stays correct), but because the partitioning is frozen, a geometry that deforms enough
+for primitives to drift into what used to be a neighbour's region produces increasingly loose,
+overlapping bounding volumes and slower queries. A periodic rebuild restores tight volumes once the
+deformation has grown large. See :ref:`Chap:ImplemBVH` for the concrete ``refit()`` member functions
+on both BVH representations.
+
 Tree traversal
 ---------------
 

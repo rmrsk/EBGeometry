@@ -217,7 +217,10 @@ Test coverage
        partitioners, bottom-up with Morton, Nested, and Hilbert space-filling curves);
        :cpp:class:`MeshSDF`
        and :cpp:class:`TriMeshSDF` agreement with :cpp:class:`FlatMeshSDF` for every
-       :cpp:class:`BVH::Build` strategy; and :cpp:func:`MeshSDF::getClosestFaces` ordering.
+       :cpp:class:`BVH::Build` strategy; :cpp:func:`MeshSDF::getClosestFaces` ordering; and
+       :cpp:func:`BVH::TreeBVH::refit`/:cpp:func:`BVH::PackedBVH::refit` keeping bounding volumes
+       correct after a moving geometry (idempotent on an unchanged cloud, queries still matching a
+       brute-force scan after displacement).
    * - ``TestCSG``
      - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin` blending primitives;
        sharp and smooth :cpp:class:`UnionIF`/:cpp:class:`IntersectionIF`/:cpp:class:`DifferenceIF`

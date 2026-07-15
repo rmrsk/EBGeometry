@@ -204,6 +204,24 @@ against the other strategies.
    ``BVH::Build`` enum value (``TopDown``, ``Morton``, ``Nested``, or ``SAH``) and dispatch to the
    corresponding construction method internally. See :ref:`Chap:Parsers`.
 
+.. _Chap:BVHRefit:
+
+Refitting for moving geometries
+-------------------------------
+
+Both representations expose a ``refit()`` member that recomputes every node's bounding volume in
+place, leaving the tree topology (node hierarchy and each leaf's primitive assignment) untouched --
+the cheap way to keep a BVH valid for a geometry whose primitives have *moved* between frames,
+without a full rebuild-and-repack. It takes a single functor mapping one primitive to its current
+bounding volume and unions volumes bottom-up: each leaf's from its primitives, each interior node's
+from its children. ``PackedBVH::refit()`` also rebuilds the per-node SoA AABB cache used by the SIMD
+``pruneTraverse()`` (see :ref:`Chap:PruneTraverse`) so queries stay consistent. Because it never
+re-partitions, a geometry that deforms enough for primitives to migrate across the tree accumulates
+looser bounding volumes over time and should periodically be rebuilt instead; see :ref:`Chap:BVH`
+for that trade-off. For the exact signatures, see the Doxygen references for `TreeBVH
+<doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__ and `PackedBVH
+<doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
+
 .. _Chap:PackedBVH:
 
 PackedBVH

@@ -377,6 +377,32 @@ TreeBVH<T, P, BV, K>::traverse(const BVH::LeafEvaluator<P>&               a_leaf
 }
 
 template <class T, class P, class BV, size_t K>
+template <class BVConstructor>
+inline const BV&
+TreeBVH<T, P, BV, K>::refit(const BVConstructor& a_bvConstructor)
+{
+  if (this->isLeaf()) {
+    for (size_t i = 0; i < m_primitives.size(); i++) {
+      m_boundingVolumes[i] = a_bvConstructor(*m_primitives[i]);
+    }
+
+    m_boundingVolume = BV(m_boundingVolumes);
+  }
+  else {
+    std::vector<BV> childBoundingVolumes;
+    childBoundingVolumes.reserve(K);
+
+    for (const auto& child : m_children) {
+      childBoundingVolumes.emplace_back(child->refit(a_bvConstructor));
+    }
+
+    m_boundingVolume = BV(childBoundingVolumes);
+  }
+
+  return m_boundingVolume;
+}
+
+template <class T, class P, class BV, size_t K>
 template <class StoragePolicy>
 inline std::shared_ptr<PackedBVH<T, P, K, StoragePolicy>>
 TreeBVH<T, P, BV, K>::pack() const
@@ -1577,6 +1603,52 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
   };
 
   this->traverse(leafEvaluator, prunePredicate, childOrderer, nodeKeyFactory);
+}
+
+template <class T, class P, size_t K, class StoragePolicy>
+template <class BVConstructor>
+inline void
+PackedBVH<T, P, K, StoragePolicy>::refit(const BVConstructor& a_bvConstructor)
+{
+  // m_linearNodes is a depth-first pre-order flattening, so every child has a higher index than its
+  // parent. Sweeping the array in reverse therefore refits all of a node's children before the node
+  // itself -- no recursion or explicit stack needed.
+  //
+  // The scratch vector feeding AABBT's union constructor is declared once here and clear()ed per
+  // node rather than reallocated inside the loop: its capacity stabilizes after the first few nodes,
+  // so a refit() (meant as cheap per-frame maintenance) makes effectively no steady-state heap
+  // allocations.
+  std::vector<BV> boundingVolumes;
+
+  for (size_t i = m_linearNodes.size(); i-- > 0;) {
+    Node& node = m_linearNodes[i];
+
+    boundingVolumes.clear();
+
+    if (node.isLeaf()) {
+      const uint32_t offset = node.getPrimitivesOffset();
+      const uint32_t count  = node.getNumPrimitives();
+
+      boundingVolumes.reserve(count);
+
+      for (uint32_t p = 0; p < count; p++) {
+        boundingVolumes.emplace_back(a_bvConstructor(StoragePolicy::get(m_primitives[offset + p])));
+      }
+    }
+    else {
+      const auto& childOffsets = node.getChildOffsets();
+
+      boundingVolumes.reserve(K);
+
+      for (size_t k = 0; k < K; k++) {
+        boundingVolumes.emplace_back(m_linearNodes[childOffsets[k]].getBoundingVolume());
+      }
+    }
+
+    node.setBoundingVolume(BV(boundingVolumes));
+  }
+
+  this->buildSoA();
 }
 
 } // namespace BVH
