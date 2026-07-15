@@ -240,7 +240,8 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
                                     std::size_t&    a_found,
                                     std::size_t     a_exclude,
                                     std::uint32_t   a_seedOff,
-                                    std::uint32_t   a_seedCnt) const noexcept
+                                    std::uint32_t   a_seedCnt,
+                                    T               a_pruneScale) const noexcept
 {
   EBGEOMETRY_EXPECT(a_k >= 1);
   EBGEOMETRY_EXPECT(a_out != nullptr);
@@ -308,8 +309,14 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
       while (stackTop > 0) {
         const Node& node = this->m_linearNodes[stack[--stackTop]];
 
-        if (node.getDistanceToBoundingVolume2(a_query) >= best.distanceSquared) {
-          continue; // stale: best tightened since this node was pushed
+        // a_pruneScale (== 1/(1+eps)^2, defaulting to 1 for an exact query) shrinks the acceptance
+        // bound: a box is explored only if it could hold a point closer than best/(1+eps), so an
+        // eps-approximate query skips boxes whose contents could improve the result by less than that
+        // factor. best.distanceSquared always stays the true squared distance to a real point.
+        const T pruneBound = best.distanceSquared * a_pruneScale;
+
+        if (node.getDistanceToBoundingVolume2(a_query) >= pruneBound) {
+          continue; // stale: best tightened since this node was pushed, or eps-pruned
         }
 
         if (node.isLeaf()) {
@@ -323,7 +330,7 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
           const auto& childOffsets = node.getChildOffsets();
 
           for (std::size_t k = 0; k < K; k++) {
-            if (this->m_linearNodes[childOffsets[k]].getDistanceToBoundingVolume2(a_query) < best.distanceSquared) {
+            if (this->m_linearNodes[childOffsets[k]].getDistanceToBoundingVolume2(a_query) < pruneBound) {
               EBGEOMETRY_EXPECT(stackTop < maxStack);
 
               stack[stackTop++] = childOffsets[k];
@@ -342,7 +349,9 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
         scanLeafBest(a_best, a_off, a_cnt);
       };
 
-      const auto pruneDist2 = [](const Best& a_best) noexcept -> T { return a_best.distanceSquared; };
+      const auto pruneDist2 = [a_pruneScale](const Best& a_best) noexcept -> T {
+        return a_best.distanceSquared * a_pruneScale;
+      };
 
       this->pruneTraverse(a_query, best, evalLeaf, pruneDist2);
     }
@@ -419,7 +428,9 @@ PointCloudBVH<T, Meta, K, W>::query(const Vec3T<T>& a_query,
     processLeaf(a_state, a_off, a_cnt);
   };
 
-  const auto pruneDist2 = [](const QState& a_state) noexcept -> T { return a_state.bound; };
+  const auto pruneDist2 = [a_pruneScale](const QState& a_state) noexcept -> T {
+    return a_state.bound * a_pruneScale;
+  };
 
   this->pruneTraverse(a_query, state, evalLeaf, pruneDist2);
 
@@ -483,11 +494,17 @@ PointCloudBVH<T, Meta, K, W>::nearestNeighbors(std::size_t a_point, std::size_t 
 
 template <class T, class Meta, size_t K, size_t W>
 inline std::vector<typename PointCloudBVH<T, Meta, K, W>::Hit>
-PointCloudBVH<T, Meta, K, W>::allNearestNeighbors(std::size_t a_k) const
+PointCloudBVH<T, Meta, K, W>::allNearestNeighbors(std::size_t a_k, T a_eps) const
 {
   EBGEOMETRY_EXPECT(a_k >= 1);
+  EBGEOMETRY_EXPECT(a_eps >= T(0));
 
   const std::size_t numPoints = m_positions.size();
+
+  // Approximate-query pruning factor: a box is explored only if it could beat best/(1+eps), so any
+  // returned neighbor is within a factor (1+a_eps) of the true nearest. a_eps == 0 (the default) makes
+  // the factor 1 and the search exact. Distances are squared throughout, hence the squared reciprocal.
+  const T pruneScale = T(1) / ((T(1) + a_eps) * (T(1) + a_eps));
 
   std::vector<Hit> result(numPoints * a_k);
 
@@ -500,7 +517,7 @@ PointCloudBVH<T, Meta, K, W>::allNearestNeighbors(std::size_t a_k) const
 
     std::size_t found = 0;
 
-    this->query(m_positions[p], a_k, &result[p * a_k], found, p, m_leafOff[p], m_leafCnt[p]);
+    this->query(m_positions[p], a_k, &result[p * a_k], found, p, m_leafOff[p], m_leafCnt[p], pruneScale);
   }
 
   return result;

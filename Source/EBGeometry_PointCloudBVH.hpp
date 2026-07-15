@@ -154,11 +154,14 @@ public:
    * its own leaf, so the whole batch is cheaper than the sum of independent queries. Result is
    * flattened row-major: entry [i*a_k + j] is the j-th nearest neighbor of point i (ascending by
    * distance).
-   * @param[in] a_k Number of neighbors per point.
+   * @param[in] a_k   Number of neighbors per point.
+   * @param[in] a_eps Approximation tolerance (>= 0). 0 (the default) is an exact search; a positive
+   *                  value returns, for each point, neighbors within a factor (1+a_eps) of the true
+   *                  nearest distance, pruning more aggressively for a faster query.
    * @return A vector of size numPoints()*a_k of Hits.
    */
   [[nodiscard]] inline std::vector<Hit>
-  allNearestNeighbors(std::size_t a_k = 1) const;
+  allNearestNeighbors(std::size_t a_k = 1, T a_eps = T(0)) const;
 
   /**
    * @brief Brute-force closest point to an arbitrary query point (O(N) reference for closestPoint()).
@@ -285,6 +288,9 @@ private:
    * @param[in]  a_seedOff Group offset of the own leaf to seed from (self-queries; ignored if
    *                       a_seedCnt == 0).
    * @param[in]  a_seedCnt Group count of the own leaf; 0 means "no seed" (external queries).
+   * @param[in]  a_pruneScale Multiplicative acceptance-bound factor in (0, 1]; 1 (the default) is an
+   *                       exact query. A value 1/(1+eps)^2 yields an eps-approximate query -- boxes
+   *                       that could improve the result by less than a factor (1+eps) are pruned.
    */
   inline void
   query(const Vec3T<T>& a_query,
@@ -293,7 +299,8 @@ private:
         std::size_t&    a_found,
         std::size_t     a_exclude,
         std::uint32_t   a_seedOff,
-        std::uint32_t   a_seedCnt) const noexcept;
+        std::uint32_t   a_seedCnt,
+        T               a_pruneScale = T(1)) const noexcept;
 
   /**
    * @brief Brute-force single nearest by full scan (shared by closestPointBruteForce /
