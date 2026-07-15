@@ -35,26 +35,39 @@ that transfers across machines even when the timings do not.
 `NearestNeighbor/` — all-nearest-neighbor on a point cloud
 ----------------------------------------------------------
 
-For every point in a 500,000-point uniform cloud in the unit cube (double precision), find its
-nearest *other* point. Compares `PointCloudBVH` vs picoflann vs nanoflann.
+For every point in a 500,000-point cloud (double precision), find its nearest *other* point. Compares
+EBGeometry's `PointCloudBVH` and `PointCloudHashGrid` against picoflann and nanoflann. The same
+comparison is run over two point distributions, since spatial structures behave very differently
+depending on how the points fill space:
 
-Representative result (one machine):
+* **Uniform in the unit cube** — points fill a 3D volume evenly (the balanced, easy case).
+* **On the unit-sphere surface** — points lie on a 2D manifold: locally dense, globally hollow. This
+  is the harder case for a uniform grid, whose bounding box is then mostly empty interior cells.
+
+Representative result (one machine, illustrative — see the note on machine dependence above):
 
 ```
-Method          Build(ms)   Query(us/pt)
-PointCloudBVH        ~78         0.29
-nanoflann           ~120         0.25
-picoflann            ~65         0.47
+                        uniform cube            sphere surface
+Method               Build(ms)  Query(us/pt)  Build(ms)  Query(us/pt)
+PointCloudBVH            ~165        0.90         ~155        0.66
+PointCloudHashGrid       ~19        1.85          ~17        2.04
+picoflann               ~132        0.87         ~130        0.55
+nanoflann               ~262        0.44         ~273        0.33
 ```
 
 - The KD-tree queries are iterated in **Hilbert order** so their node cache is as warm as
-  `PointCloudBVH`'s leaf-order batch (querying in natural order is ~2x slower, which would not be a
-  like-for-like comparison). That order costs the KD-trees a one-time ~0.18 us/pt spatial sort;
-  `PointCloudBVH` reuses the ordering its build already produced. Folding the sort in:
-  `PointCloudBVH` ~0.29 vs nanoflann ~0.43 vs picoflann ~0.65.
-- On this machine nanoflann has the fastest raw per-query traversal, while `PointCloudBVH` comes out
-  ahead on the end-to-end all-nearest-neighbor job because it gets the query order for free and builds
-  ~1.5x faster. Which end of that tradeoff matters depends on the workload.
+  EBGeometry's leaf-order batch (querying in natural order is ~2x slower, which would not be a
+  like-for-like comparison). That order costs the KD-trees a one-time spatial sort (~0.35 us/pt here);
+  the EBGeometry structures reuse the ordering their build already produced.
+- **`PointCloudHashGrid` trades query speed for build speed**: an O(N) uniform grid builds ~8x faster
+  than the BVH but scans neighbor cells per query, so it queries ~2x slower. It is the weakest on the
+  sphere surface (query ~2.0 us/pt) — the hollow distribution leaves its grid mostly empty while the
+  occupied surface cells are denser than the ~1-point-per-cell target.
+- The tree/BVH methods, by contrast, get *faster* on the sphere surface than in the cube (the local
+  neighborhood is effectively lower-dimensional, so pruning is tighter). nanoflann has the fastest
+  raw per-query traversal throughout; `PointCloudBVH` is competitive end-to-end because it gets its
+  query order for free and builds faster. Which structure to pick depends on the build/query balance
+  and the point distribution — that is the point of running both cases.
 
 `MeshSDF/` — closest-point on a triangle mesh
 ---------------------------------------------

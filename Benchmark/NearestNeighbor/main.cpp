@@ -2,9 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Benchmark: EBGeometry PointCloudBVH vs picoflann vs nanoflann, all-nearest-neighbor.
-// 500k random 3D points in the unit cube (double). Every point's nearest OTHER point. All three
+// Benchmark: EBGeometry PointCloudBVH and PointCloudHashGrid vs picoflann vs nanoflann,
+// all-nearest-neighbor. 500k 3D points (double). Every point's nearest OTHER point. All four
 // verified against a brute-force sample. Both KD-trees used vanilla; distances are squared throughout.
+//
+// Two point distributions are benchmarked in turn, since spatial data structures behave very
+// differently depending on how the points fill space:
+//   1. Uniform in the unit cube      -- points fill a 3D volume evenly (the easy, balanced case).
+//   2. On the unit-sphere surface    -- points lie on a 2D manifold: locally dense, globally hollow,
+//                                       a harder case for uniform grids (many empty cells inside).
 
 #include <algorithm>
 #include <cmath>
@@ -13,6 +19,8 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <random>
+#include <string>
 #include <vector>
 
 #include <EBGeometry.hpp>
@@ -62,6 +70,31 @@ struct NanoCloud
 };
 using NanoTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<T, NanoCloud>, NanoCloud, 3>;
 
+// Uniformly sample the surface of the unit sphere: draw a 3D Gaussian and normalize, which is
+// rotationally symmetric and hence uniform over the sphere. Points lie on a 2D manifold embedded in
+// 3D -- locally dense, globally hollow.
+std::vector<Vec3>
+samplePointsOnSphere(std::size_t a_count, std::uint64_t a_seed)
+{
+  std::mt19937_64             rng(a_seed);
+  std::normal_distribution<T> gauss(T(0), T(1));
+
+  std::vector<Vec3> points;
+  points.reserve(a_count);
+
+  for (std::size_t i = 0; i < a_count; i++) {
+    Vec3 v(gauss(rng), gauss(rng), gauss(rng));
+    T    len = v.length();
+    if (len < std::numeric_limits<T>::min()) {
+      v   = Vec3(T(1), T(0), T(0)); // Degenerate zero draw; nudge onto the sphere.
+      len = T(1);
+    }
+    points.emplace_back(v / len);
+  }
+
+  return points;
+}
+
 T
 bruteForceNN2(std::size_t a_self, const std::vector<Vec3>& a_pos)
 {
@@ -74,32 +107,30 @@ bruteForceNN2(std::size_t a_self, const std::vector<Vec3>& a_pos)
   return best;
 }
 
-} // namespace
-
-int
-main()
+// Run the full all-nearest-neighbor comparison over one point distribution and print a table.
+void
+runCase(const std::string& a_label, const std::vector<Vec3>& a_positions)
 {
-  std::cout << "All-nearest-neighbor: PointCloudBVH vs picoflann vs nanoflann\n";
-  std::cout << "  Points = " << numPoints << " (double, unit cube)\n\n";
-
-  const std::vector<Vec3>        positions = EBGeometry::Random::samplePoints<T>(numPoints, pointSeed);
-  const std::vector<std::size_t> meta(numPoints);
+  const std::size_t              n = a_positions.size();
+  const std::vector<std::size_t> meta(n);
 
   EBGeometry::SimpleTimer timer;
+
+  std::cout << "== " << a_label << " (" << n << " points, double) ==\n";
 
   // Query the flann trees in a spatially-coherent (Hilbert) order too, so their node cache is as warm
   // as EBGeometry's leaf-order batch. EBGeometry gets its order free from the build; the flann libs
   // must sort -- time that once so it can be folded in if desired.
   timer.start();
-  const std::vector<std::uint32_t> order = EBGeometry::SFC::order<EBGeometry::SFC::Hilbert>(positions);
+  const std::vector<std::uint32_t> order = EBGeometry::SFC::order<EBGeometry::SFC::Hilbert>(a_positions);
   timer.stop();
-  const double sortUsPerPt = 1.0e6 * timer.seconds() / double(numPoints);
+  const double sortUsPerPt = 1.0e6 * timer.seconds() / double(n);
 
-  const std::size_t stride = numPoints / sampleSize;
+  const std::size_t stride = n / sampleSize;
   std::vector<T>    truth(sampleSize);
   timer.start();
   for (std::size_t s = 0; s < sampleSize; s++) {
-    truth[s] = bruteForceNN2(s * stride, positions);
+    truth[s] = bruteForceNN2(s * stride, a_positions);
   }
   timer.stop();
   const double bruteUsPerPt = 1.0e6 * timer.seconds() / double(sampleSize);
@@ -124,14 +155,14 @@ main()
   // ── EBGeometry PointCloudBVH (batched all-NN) ──
   {
     timer.start();
-    const EBGeometry::PointCloudBVH<T, std::size_t> bvh(positions, meta);
+    const EBGeometry::PointCloudBVH<T, std::size_t> bvh(a_positions, meta);
     timer.stop();
     const double buildMs = 1.0e3 * timer.seconds();
 
     timer.start();
     const auto graph = bvh.allNearestNeighbors(1);
     timer.stop();
-    const double queryUs = 1.0e6 * timer.seconds() / double(numPoints);
+    const double queryUs = 1.0e6 * timer.seconds() / double(n);
 
     std::size_t bad = 0;
     for (std::size_t s = 0; s < sampleSize; s++) {
@@ -140,18 +171,37 @@ main()
     row("PointCloudBVH", buildMs, queryUs, bad);
   }
 
+  // ── EBGeometry PointCloudHashGrid (batched all-NN, uniform grid) ──
+  {
+    timer.start();
+    const EBGeometry::PointCloudHashGrid<T, std::size_t> grid(a_positions, meta);
+    timer.stop();
+    const double buildMs = 1.0e3 * timer.seconds();
+
+    timer.start();
+    const auto graph = grid.allNearestNeighbors(1);
+    timer.stop();
+    const double queryUs = 1.0e6 * timer.seconds() / double(n);
+
+    std::size_t bad = 0;
+    for (std::size_t s = 0; s < sampleSize; s++) {
+      bad += !ok(graph[s * stride].distanceSquared, s);
+    }
+    row("PointCloudHashGrid", buildMs, queryUs, bad);
+  }
+
   // ── picoflann (per-point searchKnn) ──
   {
     picoflann::KdTreeIndex<3, Vec3Adapter> kdtree;
     timer.start();
-    kdtree.build(positions);
+    kdtree.build(a_positions);
     timer.stop();
     const double buildMs = 1.0e3 * timer.seconds();
 
     volatile T sink = T(0);
     timer.start();
     for (const std::uint32_t p : order) {
-      const auto res = kdtree.searchKnn(positions, positions[p], 2);
+      const auto res = kdtree.searchKnn(a_positions, a_positions[p], 2);
       for (const auto& pr : res) {
         if (pr.first != p) {
           sink += pr.second;
@@ -161,11 +211,11 @@ main()
     }
     timer.stop();
     (void)sink;
-    const double queryUs = 1.0e6 * timer.seconds() / double(numPoints);
+    const double queryUs = 1.0e6 * timer.seconds() / double(n);
 
     std::size_t bad = 0;
     for (std::size_t s = 0; s < sampleSize; s++) {
-      const auto res = kdtree.searchKnn(positions, positions[s * stride], 2);
+      const auto res = kdtree.searchKnn(a_positions, a_positions[s * stride], 2);
       T          got = std::numeric_limits<T>::max();
       for (const auto& pr : res) {
         if (pr.first != s * stride) {
@@ -180,7 +230,7 @@ main()
 
   // ── nanoflann (per-point findNeighbors, k=2) ──
   {
-    NanoCloud cloud{positions};
+    NanoCloud cloud{a_positions};
     timer.start();
     NanoTree index(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10 /* leaf_max_size */));
     index.buildIndex();
@@ -192,7 +242,7 @@ main()
       T                          d2[2];
       nanoflann::KNNResultSet<T> rs(2);
       rs.init(idx, d2);
-      const T qp[3] = {positions[i][0], positions[i][1], positions[i][2]};
+      const T qp[3] = {a_positions[i][0], a_positions[i][1], a_positions[i][2]};
       index.findNeighbors(rs, qp);
       // idx[0] is the point itself (distance 0); take the first neighbor that is not itself.
       return (idx[0] != i) ? d2[0] : d2[1];
@@ -205,7 +255,7 @@ main()
     }
     timer.stop();
     (void)sink;
-    const double queryUs = 1.0e6 * timer.seconds() / double(numPoints);
+    const double queryUs = 1.0e6 * timer.seconds() / double(n);
 
     std::size_t bad = 0;
     for (std::size_t s = 0; s < sampleSize; s++) {
@@ -214,9 +264,20 @@ main()
     row("nanoflann", buildMs, queryUs, bad);
   }
 
-  std::cout << "\n  flann query loops iterate in Hilbert order (warm cache, like EBGeometry's leaf order).\n";
+  std::cout << "  flann query loops iterate in Hilbert order (warm cache, like EBGeometry's leaf order).\n";
   std::cout << "  One-time Hilbert sort the flann libs need for that order: " << std::setprecision(3) << sortUsPerPt
-            << " us/pt (add to their query if counted;\n  EBGeometry reuses its build order for free).\n";
+            << " us/pt\n  (add to their query if counted; EBGeometry reuses its build order for free).\n\n";
+}
+
+} // namespace
+
+int
+main()
+{
+  std::cout << "All-nearest-neighbor: PointCloudBVH & PointCloudHashGrid vs picoflann vs nanoflann\n\n";
+
+  runCase("Uniform in the unit cube", EBGeometry::Random::samplePoints<T>(numPoints, pointSeed));
+  runCase("On the unit-sphere surface", samplePointsOnSphere(numPoints, pointSeed));
 
   return 0;
 }
