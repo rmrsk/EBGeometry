@@ -37,10 +37,19 @@ TriangleAoSoA<T, Meta, W>::pack(const Triangle<T, Meta>* a_triangles, uint32_t a
   m_triangles.pack(a_triangles, a_count);
 
   // Same padding convention as TriangleSoAT::pack(): lanes a_count..W-1 repeat the last real entry.
-  for (uint32_t j = 0; j < W; j++) {
-    const uint32_t src = (j < a_count) ? j : (a_count - 1U);
+  // The last real metadata is carried forward in a local rather than re-read via a_triangles[a_count
+  // - 1]: the outer loop is bounded by the compile-time W and every a_triangles read is guarded by
+  // j < a_count, so no index can run past the source array -- which also keeps GCC's -Warray-bounds
+  // value analysis from mistaking the (assertion-guarded, hence Release-invisible) a_count >= 1
+  // precondition for a possible a_count - 1 unsigned underflow.
+  Meta lastMeta{};
 
-    m_metaData[j] = a_triangles[src].getMetaData();
+  for (uint32_t j = 0; j < W; j++) {
+    if (j < a_count) {
+      lastMeta = a_triangles[j].getMetaData();
+    }
+
+    m_metaData[j] = lastMeta;
   }
 }
 
