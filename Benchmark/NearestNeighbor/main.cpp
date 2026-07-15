@@ -266,53 +266,7 @@ runCase(const std::string& a_label, const std::vector<Vec3>& a_positions)
 
   std::cout << "  flann query loops iterate in Hilbert order (warm cache, like EBGeometry's leaf order).\n";
   std::cout << "  One-time Hilbert sort the flann libs need for that order: " << std::setprecision(3) << sortUsPerPt
-            << " us/pt\n  (add to their query if counted; EBGeometry reuses its build order for free).\n";
-
-  // ── PointCloudBVH eps-approximate all-NN: speed vs measured accuracy ──
-  // The nanoflann-inspired experiment: loosen the traversal's prune bound by a factor (1+eps) so
-  // boxes that could only marginally improve the result are skipped. eps == 0 is the exact search
-  // (identical to the table above). Accuracy is measured against the brute-force truth[] sample:
-  // "%exact" is how often the returned neighbor is still the true nearest; "max ratio" is the worst
-  // returned/true distance ratio over the sample (guaranteed <= 1+eps).
-  {
-    const EBGeometry::PointCloudBVH<T, std::size_t> bvh(a_positions, meta);
-
-    std::cout << "\n  PointCloudBVH eps-approximate all-NN (nanoflann-style loosened prune bound):\n";
-    std::cout << "    " << std::left << std::setw(8) << "eps" << std::right << std::setw(14) << "Query(us/pt)"
-              << std::setw(10) << "speedup" << std::setw(9) << "%exact" << std::setw(12) << "max ratio" << '\n';
-
-    double exactQueryUs = 1.0;
-    for (const double eps : {0.0, 0.1, 0.25, 0.5, 1.0, 2.0}) {
-      timer.start();
-      const auto graph = bvh.allNearestNeighbors(1, T(eps));
-      timer.stop();
-      const double queryUs = 1.0e6 * timer.seconds() / double(n);
-
-      if (eps == 0.0) {
-        exactQueryUs = queryUs;
-      }
-
-      std::size_t exact    = 0;
-      double      maxRatio = 1.0;
-      for (std::size_t s = 0; s < sampleSize; s++) {
-        const T got = graph[s * stride].distanceSquared;
-
-        if (ok(got, s)) {
-          exact++;
-        }
-        else {
-          maxRatio = std::max(maxRatio, std::sqrt(double(got) / std::max(double(truth[s]), 1.0e-300)));
-        }
-      }
-
-      std::cout << "    " << std::left << std::setw(8) << std::setprecision(2) << eps << std::right << std::setw(14)
-                << std::setprecision(3) << queryUs << std::setw(9) << std::setprecision(2) << exactQueryUs / queryUs
-                << "x" << std::setw(8) << std::setprecision(1) << 100.0 * double(exact) / double(sampleSize) << "%"
-                << std::setw(12) << std::setprecision(4) << maxRatio << '\n';
-    }
-  }
-
-  std::cout << '\n';
+            << " us/pt\n  (add to their query if counted; EBGeometry reuses its build order for free).\n\n";
 }
 
 } // namespace

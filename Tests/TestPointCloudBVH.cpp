@@ -146,31 +146,6 @@ TEMPLATE_TEST_CASE("PointCloudBVH queries match brute force", "[PointCloudBVH]",
     }
   }
 
-  SECTION("eps-approximate allNearestNeighbors stays within the (1+eps) distance guarantee")
-  {
-    const auto exact = bvh.allNearestNeighbors(1);
-    REQUIRE(exact.size() == n);
-
-    for (const T eps : {T(0.25), T(1.0), T(4.0)}) {
-      const T    ratioBound = (T(1) + eps) * (T(1) + eps); // guarantee is on distance, we compare squares
-      const auto approx     = bvh.allNearestNeighbors(1, eps);
-      REQUIRE(approx.size() == n);
-
-      for (std::size_t i = 0; i < n; i++) {
-        // The returned neighbor is a real point, so it is never closer than the true nearest, and no
-        // farther than a factor (1+eps): exactTrue <= approx <= (1+eps)^2 * exactTrue (squared).
-        CHECK(approx[i].distanceSquared >= exact[i].distanceSquared * (T(1) - looseMargin<T>()));
-        CHECK(approx[i].distanceSquared <= exact[i].distanceSquared * ratioBound * (T(1) + looseMargin<T>()));
-      }
-    }
-
-    // eps == 0 must reproduce the exact search bit-for-bit (the default path).
-    const auto exact0 = bvh.allNearestNeighbors(1, T(0));
-    for (std::size_t i = 0; i < n; i++) {
-      CHECK_THAT(exact0[i].distanceSquared, withinAbsT<T>(exact[i].distanceSquared, tol));
-    }
-  }
-
   SECTION("accessors return the stored cloud data")
   {
     for (std::size_t i = 0; i < n; i += 313) {
