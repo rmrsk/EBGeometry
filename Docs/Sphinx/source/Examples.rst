@@ -9,7 +9,7 @@ dependencies.  Each one can be built directly with a compiler, with GNU Make, or
 ``CMakeLists.txt``, and a plain ``main.cpp`` compilable with a single compiler invocation).
 
 Every example now has its own dedicated page, listed in the sidebar; each summarises what the
-example demonstrates and reproduces the exact build/run commands from its folder's ``README.md``.
+example demonstrates and gives the command to run it (see :ref:`Chap:Building` for how to build).
 
 Examples that couple EBGeometry to a third-party application code's embedded-boundary grid
 generation (`AMReX <https://amrex-codes.github.io/amrex/>`_, `Chombo
