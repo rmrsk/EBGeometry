@@ -204,6 +204,42 @@ against the other strategies.
    ``BVH::Build`` enum value (``TopDown``, ``Morton``, ``Nested``, or ``SAH``) and dispatch to the
    corresponding construction method internally. See :ref:`Chap:Parsers`.
 
+.. _Chap:BVHRefit:
+
+Refitting for moving geometries
+-------------------------------
+
+Both representations expose a ``refit()`` member that recomputes every node's bounding volume in
+place, leaving the tree topology (node hierarchy and each leaf's primitive assignment) untouched --
+the cheap way to keep a BVH valid for a geometry whose primitives have *moved* between frames,
+without the cost of a full rebuild-and-repack. See :ref:`Chap:BVH` for the conceptual picture and
+the quality/rebuild trade-off.
+
+.. code-block:: cpp
+
+   // bvConstructor: a callable (const P&) -> BV returning a primitive's *current* bounding volume.
+   tree->refit(bvConstructor);     // TreeBVH<T, P, BV, K>::refit
+   packed->refit(bvConstructor);   // PackedBVH<T, P, K, StoragePolicy>::refit
+
+Both take a single functor that maps one primitive to its current bounding volume; whatever moved
+the geometry is expected to have already updated the state each primitive reads (for instance a
+DCEL mesh's vertex positions, shared with the tree by pointer) before ``refit()`` is called.
+
+* ``TreeBVH::refit()`` recurses the pointer-based tree: at each leaf it recomputes every primitive's
+  bounding volume via the functor and sets the leaf's volume to their union, and at each interior
+  node it sets the volume to the union of its ``K`` children's already-refitted volumes, returning
+  the node's new volume so a parent can union its children.
+* ``PackedBVH::refit()`` does the same over the flat node array. Because that array is a depth-first
+  pre-order flattening (every child sits at a higher index than its parent), a single reverse sweep
+  refits children before parents with no recursion or explicit stack, and the per-node SoA AABB
+  cache used by the SIMD :ref:`Chap:PruneTraverse` is rebuilt at the end so queries stay consistent.
+
+Refitting never re-partitions, so a geometry that has deformed enough for primitives to migrate
+across the tree will accumulate looser (lower query quality) bounding volumes over time and should
+periodically be rebuilt from scratch instead. For the exact signatures, see the Doxygen references
+for `TreeBVH <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__ and
+`PackedBVH <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
+
 .. _Chap:PackedBVH:
 
 PackedBVH

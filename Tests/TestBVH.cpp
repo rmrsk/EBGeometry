@@ -432,6 +432,154 @@ TEST_CASE("PackedBVH (ValueStorage): a large per-leaf build stays linear and cor
   }
 }
 
+TEMPLATE_TEST_CASE("BVH refit: TreeBVH::refit and PackedBVH::refit update bounding volumes for a "
+                   "moving geometry, keeping queries correct without a rebuild",
+                   "[BVH][refit]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  // A modest, non-lattice point cloud -- enough to force multiple leaves/levels through the default
+  // partitioner while keeping the brute-force cross-check fast.
+  std::vector<Vec3> positions;
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      for (int k = 0; k < 5; k++) {
+        positions.emplace_back(T(i) + T(0.3) * T(j), T(j) - T(0.2) * T(k), T(k) + T(0.1) * T(i));
+      }
+    }
+  }
+  REQUIRE(positions.size() == 125);
+
+  // Keep mutable handles so the geometry can be *moved* after the BVH is built. The TreeBVH stores
+  // these very objects as shared_ptr<const Pnt>, and pack()'s default SharedPtrStorage aliases the
+  // same handles, so mutating a handle's position is exactly what a moving geometry does in practice
+  // -- both representations then see the new positions through the shared pointers.
+  std::vector<std::shared_ptr<Pnt>> handles;
+  handles.reserve(positions.size());
+  for (const auto& pos : positions) {
+    handles.emplace_back(std::make_shared<Pnt>(Pnt{pos}));
+  }
+
+  BVH::PrimAndBVList<Pnt, AABB> primsAndBVs;
+  for (const auto& h : handles) {
+    primsAndBVs.emplace_back(h, AABB(h->m_pos, h->m_pos));
+  }
+
+  auto tree = std::make_shared<BVH::TreeBVH<T, Pnt, AABB, K>>(primsAndBVs);
+  tree->topDownSortAndPartition();
+
+  const auto packed = tree->pack();
+  REQUIRE(packed != nullptr);
+  REQUIRE(packed->getPrimitives().size() == positions.size());
+
+  // A single primitive's current bounding volume: a zero-extent box at its (possibly moved) position.
+  const auto bvConstructor = [](const Pnt& a_p) noexcept -> AABB { return AABB(a_p.m_pos, a_p.m_pos); };
+
+  const auto& prims      = packed->getPrimitives();
+  const auto  pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+  // Nearest-neighbor (squared) over the packed BVH via pruneTraverse. If refit left any node volume
+  // too small to enclose its moved primitives, pruning would wrongly discard the true nearest and
+  // this would disagree with the brute-force scan below.
+  const auto nearest2 = [&prims, &packed, &pruneDist2](const Vec3& a_query) noexcept -> T {
+    T state = std::numeric_limits<T>::max();
+
+    const auto evalLeaf = [&prims, &a_query](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        const T d2 = (prims[a_offset + i]->m_pos - a_query).length2();
+
+        if (d2 < a_state) {
+          a_state = d2;
+        }
+      }
+    };
+
+    packed->pruneTraverse(a_query, state, evalLeaf, pruneDist2);
+
+    return state;
+  };
+
+  // Tight bounding box over the current handle positions -- what a correctly-refitted root equals.
+  const auto tightRoot = [&handles]() noexcept -> AABB {
+    Vec3 lo = +Vec3::max();
+    Vec3 hi = -Vec3::max();
+
+    for (const auto& h : handles) {
+      lo = min(lo, h->m_pos);
+      hi = max(hi, h->m_pos);
+    }
+
+    return AABB(lo, hi);
+  };
+
+  const auto bruteNearest2 = [&handles](const Vec3& a_query) noexcept -> T {
+    T brute2 = std::numeric_limits<T>::max();
+
+    for (const auto& h : handles) {
+      brute2 = std::min(brute2, (h->m_pos - a_query).length2());
+    }
+
+    return brute2;
+  };
+
+  SECTION("refit with unchanged geometry reproduces the original bounding volumes")
+  {
+    const AABB before = packed->getBoundingVolume();
+
+    tree->refit(bvConstructor);
+    packed->refit(bvConstructor);
+
+    for (int d = 0; d < 3; d++) {
+      REQUIRE_THAT(packed->getBoundingVolume().getLowCorner()[d],
+                   withinAbsT(before.getLowCorner()[d], tightMargin<T>()));
+      REQUIRE_THAT(packed->getBoundingVolume().getHighCorner()[d],
+                   withinAbsT(before.getHighCorner()[d], tightMargin<T>()));
+    }
+
+    for (const auto& q : queryPoints<T>()) {
+      REQUIRE_THAT(nearest2(q), withinAbsT(bruteNearest2(q), traversalMargin<T>()));
+    }
+  }
+
+  SECTION("refit after moving the geometry keeps every query correct")
+  {
+    // Displace every point by a per-point, non-uniform translation: primitives shift without
+    // migrating between leaves -- exactly the refit use case.
+    for (size_t i = 0; i < handles.size(); i++) {
+      const T s = T(0.05) * T(i);
+
+      handles[i]->m_pos += Vec3(T(2.0) + s, T(-1.0) - s, T(0.5) * s);
+    }
+
+    tree->refit(bvConstructor);
+    packed->refit(bvConstructor);
+
+    // Both roots must agree with the tight box over the moved cloud.
+    const AABB tight = tightRoot();
+
+    for (int d = 0; d < 3; d++) {
+      REQUIRE_THAT(tree->getBoundingVolume().getLowCorner()[d],
+                   withinAbsT(tight.getLowCorner()[d], tightMargin<T>()));
+      REQUIRE_THAT(tree->getBoundingVolume().getHighCorner()[d],
+                   withinAbsT(tight.getHighCorner()[d], tightMargin<T>()));
+      REQUIRE_THAT(packed->getBoundingVolume().getLowCorner()[d],
+                   withinAbsT(tight.getLowCorner()[d], tightMargin<T>()));
+      REQUIRE_THAT(packed->getBoundingVolume().getHighCorner()[d],
+                   withinAbsT(tight.getHighCorner()[d], tightMargin<T>()));
+    }
+
+    for (const auto& q : queryPoints<T>()) {
+      REQUIRE_THAT(nearest2(q), withinAbsT(bruteNearest2(q), traversalMargin<T>()));
+    }
+  }
+}
+
 TEMPLATE_TEST_CASE("Parser::readIntoPackedBVH matches MeshSDF built directly from the same mesh",
                    "[BVH][Parser]",
                    EBGEOMETRY_TEST_PRECISIONS)
