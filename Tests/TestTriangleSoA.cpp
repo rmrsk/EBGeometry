@@ -23,6 +23,9 @@ constexpr size_t W = 4;
 template <class T>
 using SoA = TriangleSoAT<T, W>;
 
+template <class T>
+using AoSoA = TriangleAoSoA<T, short, W>;
+
 // Four disjoint, well-separated triangles, spread out along x so each one is unambiguously the
 // closest for a query point placed near it.
 template <class T>
@@ -36,6 +39,20 @@ fourTriangles()
     const Vec3 base(T(3.0 * i), T(0), T(0));
     tris.emplace_back(std::array<Vec3, 3>{base + Vec3(0, 0, 0), base + Vec3(1, 0, 0), base + Vec3(0, 1, 0)});
   }
+  return tris;
+}
+
+// The same four triangles, each tagged with a distinct metadata value (10, 11, 12, 13) so a
+// closest-triangle query's returned metadata can be checked against the known closest triangle.
+template <class T>
+std::vector<Tri<T>>
+fourTrianglesWithMeta()
+{
+  auto tris = fourTriangles<T>();
+  for (size_t i = 0; i < tris.size(); i++) {
+    tris[i].setMetaData(static_cast<short>(10 + i));
+  }
+
   return tris;
 }
 
@@ -150,4 +167,90 @@ TEMPLATE_TEST_CASE("TriangleSoAT::computeBoundingVolume matches an AABB built di
     REQUIRE_THAT(bv.getLowCorner()[i], withinAbsT(expected.getLowCorner()[i], looseMargin<T>()));
     REQUIRE_THAT(bv.getHighCorner()[i], withinAbsT(expected.getHighCorner()[i], looseMargin<T>()));
   }
+}
+
+TEMPLATE_TEST_CASE("TriangleSoAT::signedDistances returns per-lane distances whose min-|value| "
+                   "equals signedDistance()",
+                   "[TriangleSoA]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const auto tris = fourTriangles<T>();
+
+  SoA<T> group;
+  group.template pack<short>(tris.data(), static_cast<uint32_t>(tris.size()));
+
+  for (const auto& p : queryPoints<T>()) {
+    const std::array<T, W> perLane = group.signedDistances(p);
+
+    // Each lane must match the corresponding individual triangle, and the min-|lane| must equal the
+    // reduced signedDistance().
+    T best = std::numeric_limits<T>::max();
+    for (size_t i = 0; i < tris.size(); i++) {
+      REQUIRE_THAT(perLane[i], withinAbsT(tris[i].signedDistance(p), looseMargin<T>()));
+
+      if (std::abs(perLane[i]) < std::abs(best)) {
+        best = perLane[i];
+      }
+    }
+
+    REQUIRE_THAT(group.signedDistance(p), withinAbsT(best, looseMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("TriangleAoSoA::signedDistance(point, meta) reports the closest triangle's "
+                   "metadata and matches the plain overload",
+                   "[TriangleSoA][TriangleAoSoA]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const auto tris = fourTrianglesWithMeta<T>();
+  REQUIRE(tris.size() == W);
+
+  AoSoA<T> group;
+  group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
+
+  for (const auto& p : queryPoints<T>()) {
+    // Brute-force the closest triangle (by |signed distance|) and its metadata.
+    T     best         = std::numeric_limits<T>::max();
+    short expectedMeta = -1;
+    for (const auto& tri : tris) {
+      const T d = tri.signedDistance(p);
+
+      if (std::abs(d) < std::abs(best)) {
+        best         = d;
+        expectedMeta = tri.getMetaData();
+      }
+    }
+
+    short   meta = -1;
+    const T d    = group.signedDistance(p, meta);
+
+    REQUIRE_THAT(d, withinAbsT(best, looseMargin<T>()));
+    REQUIRE(meta == expectedMeta);
+
+    // The plain overload (hot path) must agree with the metadata-reporting one.
+    REQUIRE_THAT(group.signedDistance(p), withinAbsT(best, looseMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("TriangleAoSoA::getMetaData returns each lane's metadata and pads with the last "
+                   "real triangle",
+                   "[TriangleSoA][TriangleAoSoA]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  auto tris = fourTrianglesWithMeta<T>();
+  tris.resize(2); // Pack only the first 2; lanes 2 and 3 are padded with the last real triangle.
+
+  AoSoA<T> group;
+  group.pack(tris.data(), 2);
+
+  REQUIRE(group.getMetaData(0) == short(10));
+  REQUIRE(group.getMetaData(1) == short(11));
+  REQUIRE(group.getMetaData(2) == short(11)); // padded -> last real triangle's metadata
+  REQUIRE(group.getMetaData(3) == short(11)); // padded -> last real triangle's metadata
 }

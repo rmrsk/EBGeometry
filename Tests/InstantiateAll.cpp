@@ -73,6 +73,8 @@ using Meta = short;
                                                                                \
   /* -- Triangles -----------------------------------------------------------*/\
   template class Triangle<PREC, Meta>;                                      \
+  template struct TriangleSoAT<PREC, 4>;                                     \
+  template struct TriangleAoSoA<PREC, Meta, 4>;                              \
                                                                                \
   /* -- Mesh distance functions --------------------------------------------*/\
   template class FlatMeshSDF<PREC, Meta>;                                    \

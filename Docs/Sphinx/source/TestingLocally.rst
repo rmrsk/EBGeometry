@@ -243,7 +243,9 @@ Test coverage
    * - ``TestTriangleSoA``
      - :cpp:class:`TriangleSoAT`: ``signedDistance`` agreement with the minimum over the
        individual packed :cpp:class:`Triangle` instances (including padding when fewer than
-       ``W`` triangles are packed), and bounding-volume construction from the packed data.
+       ``W`` triangles are packed), per-lane ``signedDistances`` consistency, and bounding-volume
+       construction from the packed data; :cpp:class:`TriangleAoSoA`: closest-triangle metadata
+       retrieval (``signedDistance(point, Meta&)``) and per-lane ``getMetaData`` with padding.
    * - ``TestSimpleTimer``
      - ``SimpleTimer``: near-zero elapsed time on construction, measured duration against a
        requested sleep, restart-on-``start()`` semantics, and relative ordering of two

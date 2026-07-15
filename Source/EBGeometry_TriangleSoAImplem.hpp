@@ -12,6 +12,7 @@
 #define EBGEOMETRY_TRIANGLESOAIMPLEM_HPP
 
 // Std includes
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -1183,92 +1184,9 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
   T best_abs = std::numeric_limits<T>::max();
 
   for (uint32_t i = 0; i < m_validCount; i++) {
-    const Vec3T<T> v0{m_vx[0][i], m_vy[0][i], m_vz[0][i]};
-    const Vec3T<T> v1{m_vx[1][i], m_vy[1][i], m_vz[1][i]};
-    const Vec3T<T> v2{m_vx[2][i], m_vy[2][i], m_vz[2][i]};
-    const Vec3T<T> n{m_nx[i], m_ny[i], m_nz[i]};
-    const Vec3T<T> vn0{m_vnx[0][i], m_vny[0][i], m_vnz[0][i]};
-    const Vec3T<T> vn1{m_vnx[1][i], m_vny[1][i], m_vnz[1][i]};
-    const Vec3T<T> vn2{m_vnx[2][i], m_vny[2][i], m_vnz[2][i]};
-    const Vec3T<T> en0{m_enx[0][i], m_eny[0][i], m_enz[0][i]};
-    const Vec3T<T> en1{m_enx[1][i], m_eny[1][i], m_enz[1][i]};
-    const Vec3T<T> en2{m_enx[2][i], m_eny[2][i], m_enz[2][i]};
-
-    auto sgn = [](const T x) -> int { return (x > T(0)) ? 1 : -1; };
-
-    const Vec3T<T> v21 = v1 - v0;
-    const Vec3T<T> v32 = v2 - v1;
-    const Vec3T<T> v13 = v0 - v2;
-
-    EBGEOMETRY_EXPECT(dot(v21, v21) > T(0));
-    EBGEOMETRY_EXPECT(dot(v32, v32) > T(0));
-    EBGEOMETRY_EXPECT(dot(v13, v13) > T(0));
-
-    const Vec3T<T> p1 = a_p - v0;
-    const Vec3T<T> p2 = a_p - v1;
-    const Vec3T<T> p3 = a_p - v2;
-
-    const T ss0 = sgn(dot(v21.cross(n), p1));
-    const T ss1 = sgn(dot(v32.cross(n), p2));
-    const T ss2 = sgn(dot(v13.cross(n), p3));
-
-    T d;
-    if (std::abs(ss0 + ss1 + ss2) >= T(2)) {
-      d = n.dot(p1);
-    }
-    else {
-      T        r2 = p1.dot(p1);
-      Vec3T<T> rv = p1;
-      Vec3T<T> rn = vn0;
-
-      const T p2d = p2.dot(p2);
-      if (p2d < r2) {
-        r2 = p2d;
-        rv = p2;
-        rn = vn1;
-      }
-      const T p3d = p3.dot(p3);
-      if (p3d < r2) {
-        r2 = p3d;
-        rv = p3;
-        rn = vn2;
-      }
-
-      const T t1 = dot(p1, v21) / dot(v21, v21);
-      if (t1 > T(0) && t1 < T(1)) {
-        const Vec3T<T> y1 = p1 - t1 * v21;
-        const T        yd = y1.dot(y1);
-        if (yd < r2) {
-          r2 = yd;
-          rv = y1;
-          rn = en0;
-        }
-      }
-      const T t2 = dot(p2, v32) / dot(v32, v32);
-      if (t2 > T(0) && t2 < T(1)) {
-        const Vec3T<T> y2 = p2 - t2 * v32;
-        const T        yd = y2.dot(y2);
-        if (yd < r2) {
-          r2 = yd;
-          rv = y2;
-          rn = en1;
-        }
-      }
-      const T t3 = dot(p3, v13) / dot(v13, v13);
-      if (t3 > T(0) && t3 < T(1)) {
-        const Vec3T<T> y3 = p3 - t3 * v13;
-        const T        yd = y3.dot(y3);
-        if (yd < r2) {
-          r2 = yd;
-          rv = y3;
-          rn = en2;
-        }
-      }
-
-      d = std::sqrt(r2) * sgn(rn.dot(rv));
-    }
-
+    const T d  = this->signedDistanceLane(i, a_p);
     const T ad = std::abs(d);
+
     if (ad < best_abs) {
       best     = d;
       best_abs = ad;
@@ -1276,6 +1194,125 @@ TriangleSoAT<T, W>::signedDistance(const Vec3T<T>& a_p) const noexcept
   }
 
   return best;
+}
+
+template <class T, size_t W>
+T
+TriangleSoAT<T, W>::signedDistanceLane(uint32_t a_lane, const Vec3T<T>& a_point) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_lane < W);
+
+  const uint32_t i = a_lane;
+
+  const Vec3T<T> v0{m_vx[0][i], m_vy[0][i], m_vz[0][i]};
+  const Vec3T<T> v1{m_vx[1][i], m_vy[1][i], m_vz[1][i]};
+  const Vec3T<T> v2{m_vx[2][i], m_vy[2][i], m_vz[2][i]};
+  const Vec3T<T> n{m_nx[i], m_ny[i], m_nz[i]};
+  const Vec3T<T> vn0{m_vnx[0][i], m_vny[0][i], m_vnz[0][i]};
+  const Vec3T<T> vn1{m_vnx[1][i], m_vny[1][i], m_vnz[1][i]};
+  const Vec3T<T> vn2{m_vnx[2][i], m_vny[2][i], m_vnz[2][i]};
+  const Vec3T<T> en0{m_enx[0][i], m_eny[0][i], m_enz[0][i]};
+  const Vec3T<T> en1{m_enx[1][i], m_eny[1][i], m_enz[1][i]};
+  const Vec3T<T> en2{m_enx[2][i], m_eny[2][i], m_enz[2][i]};
+
+  auto sgn = [](const T x) -> int { return (x > T(0)) ? 1 : -1; };
+
+  const Vec3T<T> v21 = v1 - v0;
+  const Vec3T<T> v32 = v2 - v1;
+  const Vec3T<T> v13 = v0 - v2;
+
+  EBGEOMETRY_EXPECT(dot(v21, v21) > T(0));
+  EBGEOMETRY_EXPECT(dot(v32, v32) > T(0));
+  EBGEOMETRY_EXPECT(dot(v13, v13) > T(0));
+
+  const Vec3T<T> p1 = a_point - v0;
+  const Vec3T<T> p2 = a_point - v1;
+  const Vec3T<T> p3 = a_point - v2;
+
+  const T ss0 = sgn(dot(v21.cross(n), p1));
+  const T ss1 = sgn(dot(v32.cross(n), p2));
+  const T ss2 = sgn(dot(v13.cross(n), p3));
+
+  T d;
+  if (std::abs(ss0 + ss1 + ss2) >= T(2)) {
+    d = n.dot(p1);
+  }
+  else {
+    T        r2 = p1.dot(p1);
+    Vec3T<T> rv = p1;
+    Vec3T<T> rn = vn0;
+
+    const T p2d = p2.dot(p2);
+    if (p2d < r2) {
+      r2 = p2d;
+      rv = p2;
+      rn = vn1;
+    }
+    const T p3d = p3.dot(p3);
+    if (p3d < r2) {
+      r2 = p3d;
+      rv = p3;
+      rn = vn2;
+    }
+
+    const T t1 = dot(p1, v21) / dot(v21, v21);
+    if (t1 > T(0) && t1 < T(1)) {
+      const Vec3T<T> y1 = p1 - t1 * v21;
+      const T        yd = y1.dot(y1);
+      if (yd < r2) {
+        r2 = yd;
+        rv = y1;
+        rn = en0;
+      }
+    }
+    const T t2 = dot(p2, v32) / dot(v32, v32);
+    if (t2 > T(0) && t2 < T(1)) {
+      const Vec3T<T> y2 = p2 - t2 * v32;
+      const T        yd = y2.dot(y2);
+      if (yd < r2) {
+        r2 = yd;
+        rv = y2;
+        rn = en1;
+      }
+    }
+    const T t3 = dot(p3, v13) / dot(v13, v13);
+    if (t3 > T(0) && t3 < T(1)) {
+      const Vec3T<T> y3 = p3 - t3 * v13;
+      const T        yd = y3.dot(y3);
+      if (yd < r2) {
+        r2 = yd;
+        rv = y3;
+        rn = en2;
+      }
+    }
+
+    d = std::sqrt(r2) * sgn(rn.dot(rv));
+  }
+
+  return d;
+}
+
+template <class T, size_t W>
+std::array<T, W>
+TriangleSoAT<T, W>::signedDistances(const Vec3T<T>& a_point) const noexcept
+{
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+  EBGEOMETRY_EXPECT(m_validCount >= 1U);
+  EBGEOMETRY_EXPECT(m_validCount <= W);
+
+  std::array<T, W> distances;
+
+  // Real lanes computed directly; padded lanes (m_validCount..W-1) repeat the last real lane's
+  // distance, matching pack()'s padding convention so a lane-iterating caller sees no fresh values.
+  for (uint32_t i = 0; i < W; i++) {
+    const uint32_t lane = (i < m_validCount) ? i : (m_validCount - 1U);
+
+    distances[i] = this->signedDistanceLane(lane, a_point);
+  }
+
+  return distances;
 }
 
 template <class T, size_t W>

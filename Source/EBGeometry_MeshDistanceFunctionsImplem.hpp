@@ -384,13 +384,13 @@ MeshSDF<T, Meta, K>::computeBoundingVolume() const noexcept
 };
 
 template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
-std::vector<typename TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriSoA>
+std::vector<typename TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriAoSoA>
 TriMeshSDF<T, Meta, K, W, StoragePolicy>::groupTrianglesIntoSoA(
   const std::vector<std::shared_ptr<const Tri>>& a_triangles, uint32_t a_offset, uint32_t a_count)
 {
   constexpr uint32_t soaWidth = static_cast<uint32_t>(W);
 
-  std::vector<TriSoA> groups;
+  std::vector<TriAoSoA> groups;
 
   const uint32_t numGroups = (a_count + soaWidth - 1U) / soaWidth;
   groups.reserve(numGroups);
@@ -406,7 +406,7 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::groupTrianglesIntoSoA(
       trisArr[i] = *a_triangles[groupOffset + i];
     }
 
-    TriSoA soa;
+    TriAoSoA soa;
     soa.pack(trisArr.data(), groupCount);
     groups.push_back(std::move(soa));
   }
@@ -456,7 +456,7 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::shared_ptr<Mesh>
   using Converter = decltype(&TriMeshSDF::groupTrianglesIntoSoA);
 
   m_bvh = EBGeometry::MeshDistanceFunctionsDetail::buildTriTreeBVH<T, Meta, AABB, K>(triangles, a_build, maxLeafSize)
-            ->template packWith<TriSoA, Converter, StoragePolicy>(&TriMeshSDF::groupTrianglesIntoSoA);
+            ->template packWith<TriAoSoA, Converter, StoragePolicy>(&TriMeshSDF::groupTrianglesIntoSoA);
 }
 
 template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
@@ -474,7 +474,7 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::vector<std::shar
   using Converter = decltype(&TriMeshSDF::groupTrianglesIntoSoA);
 
   m_bvh = EBGeometry::MeshDistanceFunctionsDetail::buildTriTreeBVH<T, Meta, AABB, K>(a_triangles, a_build, maxLeafSize)
-            ->template packWith<TriSoA, Converter, StoragePolicy>(&TriMeshSDF::groupTrianglesIntoSoA);
+            ->template packWith<TriAoSoA, Converter, StoragePolicy>(&TriMeshSDF::groupTrianglesIntoSoA);
 }
 
 template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
@@ -509,7 +509,47 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::signedDistance(const Vec3T<T>& a_point
 }
 
 template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
-std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleSoAT<T, W>, K, StoragePolicy>>&
+typename TriMeshSDF<T, Meta, K, W, StoragePolicy>::ClosestTriangle
+TriMeshSDF<T, Meta, K, W, StoragePolicy>::getClosestTriangle(const Vec3T<T>& a_point) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_bvh != nullptr);
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+  // Same SIMD-pruned traversal as signedDistance(), but the running state also carries the winning
+  // triangle's metadata: each visited leaf group reports both its closest signed distance and that
+  // triangle's Meta via TriangleAoSoA::signedDistance(point, Meta&). The pruning bound is still the
+  // squared running distance, so node pruning is identical to signedDistance()'s.
+  ClosestTriangle closest;
+
+  const auto& groups = m_bvh->getPrimitives();
+
+  const auto evalLeaf = [&groups, &a_point](ClosestTriangle& a_state, size_t a_offset, size_t a_count) noexcept {
+    for (size_t i = a_offset; i < a_offset + a_count; i++) {
+      Meta    groupMeta{};
+      const T d = StoragePolicy::get(groups[i]).signedDistance(a_point, groupMeta);
+
+      EBGEOMETRY_EXPECT(!std::isnan(d));
+
+      if (std::abs(d) < std::abs(a_state.signedDistance)) {
+        a_state.signedDistance = d;
+        a_state.metaData       = groupMeta;
+      }
+    }
+  };
+
+  const auto pruneDist2 = [](const ClosestTriangle& a_state) noexcept -> T {
+    return a_state.signedDistance * a_state.signedDistance;
+  };
+
+  m_bvh->pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
+
+  return closest;
+}
+
+template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
+std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleAoSoA<T, Meta, W>, K, StoragePolicy>>&
 TriMeshSDF<T, Meta, K, W, StoragePolicy>::getRoot() noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
@@ -518,7 +558,7 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::getRoot() noexcept
 }
 
 template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
-const std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleSoAT<T, W>, K, StoragePolicy>>&
+const std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::TriangleAoSoA<T, Meta, W>, K, StoragePolicy>>&
 TriMeshSDF<T, Meta, K, W, StoragePolicy>::getRoot() const noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
