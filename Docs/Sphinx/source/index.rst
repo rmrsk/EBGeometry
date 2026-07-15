@@ -123,6 +123,10 @@ Examples
    ExamplePackedSpheres.rst
    ExampleRandomCity.rst
    ExampleOctreeBoundingVolume.rst
+   ExampleBuildBVH.rst
+   ExampleClosestPointBVH.rst
+   ExampleNearestNeighborBVH.rst
+   ExampleNearestNeighborHashGrid.rst
    Integrations.rst
 
 Contributing and testing
