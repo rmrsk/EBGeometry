@@ -500,13 +500,15 @@ CSG Union
 Combinations of implicit functions in EBGeometry into aggregate objects can be done by means of CSG unions.
 One such union is known as the *smooth union*, in which the transition between two objects is gradual rather than abrupt.
 
-``BVHSmoothUnionIF::value()`` traverses the tree while tracking the two smallest values seen so
-far, ``a`` and ``b`` (``a`` the closest, ``b`` the second-closest): the leaf-evaluator updates both as
-leaves are scanned, the prune-predicate prunes any node whose bounding-volume distance exceeds both,
-the child-orderer visits the closest child first, and the node-key-factory again supplies each node's
-distance to its bounding volume. Once traversal completes, the two values are blended with the
-stored smooth-minimum operator. See :ref:`Chap:ImplemCSG` for the CSG combinators themselves, and
-the Doxygen reference for
+``BVHSmoothUnionIF::value()`` drives the SIMD-accelerated ``pruneTraverse()`` (see
+:ref:`Chap:PruneTraverse`) with a ``State`` holding the two smallest values seen so far, ``a`` and
+``b`` (``a`` the closest, ``b`` the second-closest): the leaf-evaluator updates both as leaves are
+scanned, and the pruning rule returns ``max(0, b)`` squared -- pruning against the *second*-smallest
+value rather than the nearest, so a primitive that is not the single closest but still contributes to
+the blend is never pruned away. Once traversal completes, the two values are blended with the stored
+smooth-minimum operator. ``BVHUnionIF::value()`` is the same pattern with a single running minimum
+and a ``max(0, minDist)``-squared pruning bound. See :ref:`Chap:ImplemCSG` for the CSG combinators
+themselves, and the Doxygen reference for
 `BVHSmoothUnionIF <doxygen/html/classEBGeometry_1_1BVHSmoothUnionIF.html>`__ /
 `BVHUnionIF <doxygen/html/classEBGeometry_1_1BVHUnionIF.html>`__ for the exact API.
 

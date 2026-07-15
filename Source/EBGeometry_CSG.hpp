@@ -412,11 +412,6 @@ public:
   using Root = EBGeometry::BVH::PackedBVH<T, P, K>;
 
   /**
-   * @brief Alias for a BVH node.
-   */
-  using Node = typename Root::Node;
-
-  /**
    * @brief Disallowed, use the full constructor.
    */
   BVHUnionIF() = delete;
@@ -495,11 +490,6 @@ public:
    * @brief Alias for the flat BVH type.
    */
   using Root = EBGeometry::BVH::PackedBVH<T, P, K>;
-
-  /**
-   * @brief Alias for a BVH node.
-   */
-  using Node = typename Root::Node;
 
   /**
    * @brief Disallowed, use the full constructor.

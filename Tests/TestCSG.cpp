@@ -445,6 +445,50 @@ TEMPLATE_TEST_CASE("BVHSmoothUnionIF: agrees with SmoothUnionIF far from any ble
   }
 }
 
+TEMPLATE_TEST_CASE("BVHSmoothUnionIF: matches a brute-force two-nearest smooth-min inside the blend region",
+                   "[CSG][BVHSmoothUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K         = 4;
+  const T          smoothLen = T(0.6); // Large enough to actively blend across the 1-unit surface gaps.
+
+  const auto spheres = sphereRow<T>();
+
+  const std::vector<BV<T>> bvs = sphereRowBVs<T>();
+
+  const BVHSmoothUnionIF<T, Sphere<T>, BV<T>, K> bvhSmooth(spheres, bvs, smoothLen);
+
+  // Brute-force reference: the smooth-minimum of the two smallest sphere values, found by a full
+  // linear scan instead of the pruned BVH traversal. This is exactly what BVHSmoothUnionIF computes,
+  // so it validates that the (squared, b-based) pruning bound retains *both* blend inputs even in the
+  // overlap region where the two nearest surfaces interpenetrate -- the migration's key invariant.
+  const auto bruteTwoNearest = [&spheres, &smoothLen](const Vec3& a_point) -> T {
+    T a = std::numeric_limits<T>::infinity();
+    T b = std::numeric_limits<T>::infinity();
+
+    for (const auto& sphere : spheres) {
+      const T d = sphere->value(a_point);
+
+      if (d < a) {
+        b = a;
+        a = d;
+      }
+      else if (d < b) {
+        b = d;
+      }
+    }
+
+    return SmoothMin<T>(a, b, smoothLen);
+  };
+
+  for (const auto& p : lineQueryPoints<T>()) {
+    REQUIRE_THAT(bvhSmooth.value(p), withinAbsT(bruteTwoNearest(p), exactMargin<T>()));
+  }
+}
+
 TEMPLATE_TEST_CASE("BVHSmoothUnion: free function matches BVHSmoothUnionIF",
                    "[CSG][BVHSmoothUnion]",
                    EBGEOMETRY_TEST_PRECISIONS)

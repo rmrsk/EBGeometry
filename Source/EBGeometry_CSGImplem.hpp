@@ -470,35 +470,31 @@ BVHUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 
   T minDist = std::numeric_limits<T>::infinity();
 
-  const BVH::PackedLeafEvaluator<P> leafEvaluator =
-    [&minDist, &a_point](
-      const std::vector<std::shared_ptr<const P>>& a_implicitFunctions, size_t offset, size_t count) noexcept -> void {
-    for (size_t i = offset; i < offset + count; i++) {
-      const T v = a_implicitFunctions[i]->value(a_point);
+  const auto& primitives = m_bvh->getPrimitives();
+
+  const auto evalLeaf = [&primitives, &a_point](T& a_minDist, size_t a_offset, size_t a_count) noexcept -> void {
+    for (size_t i = a_offset; i < a_offset + a_count; i++) {
+      const T v = primitives[i]->value(a_point);
 
       EBGEOMETRY_EXPECT(!std::isnan(v));
 
-      minDist = std::min(minDist, v);
+      a_minDist = std::min(a_minDist, v);
     }
   };
 
-  const BVH::PrunePredicate<Node, T> prunePredicate = [&minDist](const Node&, const T& a_bvDist) noexcept -> bool {
-    return a_bvDist <= T(0.0) || a_bvDist <= minDist;
+  // pruneTraverse prunes a node when its squared distance to a_point exceeds this bound, and visits
+  // children nearest-first via a SIMD child-box test. The original four-callback prune kept a node
+  // iff its (unsigned) bounding-volume distance was <= 0 or <= minDist, i.e. iff it was within
+  // max(0, minDist); squaring that bound reproduces exactly the same set of visited nodes. When the
+  // running best is negative (a_point is inside a primitive) the bound collapses to 0, so only nodes
+  // whose box contains a_point are descended into -- identical to the previous behaviour.
+  const auto pruneDist2 = [](const T& a_minDist) noexcept -> T {
+    const T bound = std::max(T(0), a_minDist);
+
+    return bound * bound;
   };
 
-  const BVH::PackedChildOrderer<T, K> childOrderer =
-    [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
-    std::sort(
-      a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
-        return n1.second > n2.second;
-      });
-  };
-
-  const BVH::NodeKeyFactory<Node, T> nodeKeyFactory = [&a_point](const Node& a_node) noexcept -> T {
-    return a_node.getDistanceToBoundingVolume(a_point);
-  };
-
-  m_bvh->traverse(leafEvaluator, prunePredicate, childOrderer, nodeKeyFactory);
+  m_bvh->pruneTraverse(a_point, minDist, evalLeaf, pruneDist2);
 
   return minDist;
 }
@@ -555,44 +551,51 @@ BVHSmoothUnionIF<T, P, BV, K>::value(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
 
-  T a = std::numeric_limits<T>::infinity();
-  T b = std::numeric_limits<T>::infinity();
+  // The smooth union blends only the two nearest primitive values, so the traversal state tracks the
+  // two smallest values seen so far (a <= b).
+  struct Closest
+  {
+    T a = std::numeric_limits<T>::infinity();
+    T b = std::numeric_limits<T>::infinity();
+  };
 
-  BVH::PackedLeafEvaluator<P> leafEvaluator =
-    [&a, &b, &a_point](
-      const std::vector<std::shared_ptr<const P>>& a_implicitFunctions, size_t offset, size_t count) noexcept -> void {
-    for (size_t i = offset; i < offset + count; i++) {
-      const T d = a_implicitFunctions[i]->value(a_point);
+  Closest closest;
+
+  const auto& primitives = m_bvh->getPrimitives();
+
+  const auto evalLeaf = [&primitives, &a_point](Closest& a_closest, size_t a_offset, size_t a_count) noexcept -> void {
+    for (size_t i = a_offset; i < a_offset + a_count; i++) {
+      const T d = primitives[i]->value(a_point);
+
       EBGEOMETRY_EXPECT(!std::isnan(d));
 
-      if (d < a) {
-        b = a;
-        a = d;
+      if (d < a_closest.a) {
+        a_closest.b = a_closest.a;
+        a_closest.a = d;
       }
-      else if (d < b) {
-        b = d;
+      else if (d < a_closest.b) {
+        a_closest.b = d;
       }
     }
   };
 
-  BVH::PrunePredicate<Node, T> prunePredicate = [&a, &b](const Node&, const T& a_bvDist) noexcept -> bool {
-    return a_bvDist <= T(0.0) || a_bvDist <= a || a_bvDist <= b;
+  // Prune against the second-smallest value b, not the nearest a: a primitive whose box is farther
+  // than b cannot be one of the two the blend uses, but one between a and b still can and must not be
+  // pruned. This is the smooth-union counterpart of BVHUnionIF's single-nearest bound, and squaring
+  // max(0, b) reproduces exactly the original four-callback prune (kept iff bvDist <= 0 || <= a ||
+  // <= b, which reduces to <= b since a <= b). Loosening it further by the smoothing length is
+  // unnecessary: the result depends only on the two smallest values, and the b-bound provably
+  // retains both -- extra nodes it would admit hold only values larger than b, which cannot change a
+  // or b.
+  const auto pruneDist2 = [](const Closest& a_closest) noexcept -> T {
+    const T bound = std::max(T(0), a_closest.b);
+
+    return bound * bound;
   };
 
-  BVH::PackedChildOrderer<T, K> childOrderer = [](std::array<std::pair<uint32_t, T>, K>& a_leaves) noexcept -> void {
-    std::sort(
-      a_leaves.begin(), a_leaves.end(), [](const std::pair<uint32_t, T>& n1, const std::pair<uint32_t, T>& n2) -> bool {
-        return n1.second > n2.second;
-      });
-  };
+  m_bvh->pruneTraverse(a_point, closest, evalLeaf, pruneDist2);
 
-  BVH::NodeKeyFactory<Node, T> nodeKeyFactory = [&a_point](const Node& a_node) noexcept -> T {
-    return a_node.getDistanceToBoundingVolume(a_point);
-  };
-
-  m_bvh->traverse(leafEvaluator, prunePredicate, childOrderer, nodeKeyFactory);
-
-  return m_smoothMin(a, b, m_smoothLen);
+  return m_smoothMin(closest.a, closest.b, m_smoothLen);
 }
 
 template <class T, class P, class BV, size_t K>
