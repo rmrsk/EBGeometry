@@ -1613,10 +1613,17 @@ PackedBVH<T, P, K, StoragePolicy>::refit(const BVConstructor& a_bvConstructor)
   // m_linearNodes is a depth-first pre-order flattening, so every child has a higher index than its
   // parent. Sweeping the array in reverse therefore refits all of a node's children before the node
   // itself -- no recursion or explicit stack needed.
+  //
+  // The scratch vector feeding AABBT's union constructor is declared once here and clear()ed per
+  // node rather than reallocated inside the loop: its capacity stabilizes after the first few nodes,
+  // so a refit() (meant as cheap per-frame maintenance) makes effectively no steady-state heap
+  // allocations.
+  std::vector<BV> boundingVolumes;
+
   for (size_t i = m_linearNodes.size(); i-- > 0;) {
     Node& node = m_linearNodes[i];
 
-    std::vector<BV> boundingVolumes;
+    boundingVolumes.clear();
 
     if (node.isLeaf()) {
       const uint32_t offset = node.getPrimitivesOffset();
