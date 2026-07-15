@@ -1,19 +1,19 @@
 [submodule "common-3d-test-models"]
-	path = Submodules/common-3d-test-models
+	path = common-3d-test-models
 	url = https://github.com/alecjacobson/common-3d-test-models
 	shallow = true
-[submodule "Submodules/nanoflann"]
-	path = Submodules/nanoflann
+[submodule "Benchmark/nanoflann"]
+	path = Benchmark/nanoflann
 	url = https://github.com/jlblancoc/nanoflann.git
 	shallow = true
-[submodule "Submodules/picoflann"]
-	path = Submodules/picoflann
+[submodule "Benchmark/picoflann"]
+	path = Benchmark/picoflann
 	url = https://github.com/rmsalinas/picoflann.git
 	shallow = true
-[submodule "Submodules/fcpw"]
-	path = Submodules/fcpw
+[submodule "Benchmark/fcpw"]
+	path = Benchmark/fcpw
 	url = https://github.com/rohan-sawhney/fcpw.git
 	shallow = true
-[submodule "Submodules/TriangleMeshDistance"]
-	path = Submodules/TriangleMeshDistance
+[submodule "Benchmark/TriangleMeshDistance"]
+	path = Benchmark/TriangleMeshDistance
 	url = https://github.com/InteractiveComputerGraphics/TriangleMeshDistance

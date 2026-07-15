@@ -23,7 +23,7 @@ for how to compile it with CMake, GNU Make, or a direct compiler invocation.
 
    cd Examples/MeshSDF
    ./MeshSDF.ex                                            # defaults to armadillo.obj
-   ./MeshSDF.ex ../../Submodules/common-3d-test-models/data/cow.obj   # or pick another mesh
+   ./MeshSDF.ex ../../common-3d-test-models/data/cow.obj   # or pick another mesh
 
 With no argument the example loads ``armadillo.obj`` from the ``common-3d-test-models``
 submodule, so make sure it is checked out first (see :ref:`Sec:Cloning`).

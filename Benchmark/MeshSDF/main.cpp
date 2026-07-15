@@ -42,7 +42,7 @@ using SDF               = EBGeometry::TriMeshSDF<T, Meta, K, W>;
 int
 main(int argc, char** argv)
 {
-  const std::string     objFile    = (argc > 1) ? argv[1] : "../../Submodules/common-3d-test-models/data/armadillo.obj";
+  const std::string     objFile    = (argc > 1) ? argv[1] : "../../common-3d-test-models/data/armadillo.obj";
   constexpr std::size_t numQueries = 100000;
   constexpr std::size_t sampleSize = 500;
   constexpr std::size_t maxLeafGroups = 4;

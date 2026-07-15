@@ -112,7 +112,7 @@ main(int argc, char* argv[])
   // Mesh file (STL/PLY/VTK/OBJ). Override with 'filename=<path>' in the inputs file. The default is a
   // small OBJ from the common-3d-test-models submodule (see the "Building and using" docs for how to
   // fetch it); the path is relative to this example's source folder, where the executable is run.
-  filename = "../../Submodules/common-3d-test-models/data/suzanne.obj";
+  filename = "../../common-3d-test-models/data/suzanne.obj";
   pp.query("filename", filename);
 
   RealBox rb({-5, -1, 2}, {0, 4, 6}); // bounds the default suzanne mesh

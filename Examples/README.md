@@ -17,5 +17,5 @@ Examples that couple EBGeometry to a third-party application code (AMReX, Chombo
 [`Integrations/`](../Integrations/README.md) at the repository root instead.
 
 The mesh files used by the examples come from the [common-3d-test-models](https://github.com/alecjacobson/common-3d-test-models)
-git submodule (`Submodules/common-3d-test-models/`) at the repository root. Clone the repository with `--recurse-submodules` (or run
+git submodule (`common-3d-test-models/`) at the repository root. Clone the repository with `--recurse-submodules` (or run
 `git submodule update --init --recursive`); see the "Building and using" documentation for details.

@@ -5,7 +5,7 @@
 # and layer on the repo-side concerns: optional sanitizers and test registration.
 #
 # The binary is run with its source directory as the working directory so that
-# relative mesh paths (e.g. "../../Submodules/common-3d-test-models/data/*.obj")
+# relative mesh paths (e.g. "../../common-3d-test-models/data/*.obj")
 # in each example resolve correctly.
 function(ebgeometry_add_example name)
   add_subdirectory(${name})
