@@ -32,12 +32,10 @@ namespace EBGeometry {
  * interleaved: the hot signedDistance(const Vec3T<T>&) query is delegated straight through to the
  * embedded TriangleSoAT and never reads m_metaData at all, so a pure signed-distance traversal over
  * TriangleAoSoA-packed leaves touches exactly the same bytes it would touch over bare
- * TriangleSoAT-packed leaves -- metadata is only ever read afterward, once a query already knows
- * which lane (and therefore which triangle) it cares about, via getMetaData() or the
- * metadata-reporting signedDistance(point, Meta&) overload. This is the exact same relationship
- * PointAoSoA<T, Meta, W> has with PointSoAT<T, W>, and it is what lets TriMeshSDF answer "which
- * triangle (and its metadata) is closest" -- the SIMD analogue of MeshSDF::getClosestFaces() -- with
- * no cost to its throughput signedDistance() path.
+ * TriangleSoAT-packed leaves. The metadata is read only afterward, once a query already knows which
+ * lane (and therefore which triangle) it cares about, via getMetaData() or the metadata-reporting
+ * signedDistance(point, Meta&) overload -- so a caller can recover which triangle (and its metadata)
+ * is closest at no cost to the throughput signedDistance() path.
  * @warning Inherits the embedded TriangleSoAT's over-alignment (up to 64 bytes, for AVX-512F). The
  * library's own usage (PackedBVH storing groups inside a std::vector<TriangleAoSoA>) is safe: C++17
  * mandates that std::allocator respect over-alignment. If you allocate a TriangleAoSoA yourself
@@ -96,7 +94,6 @@ public:
   /**
    * @brief Get the metadata for one lane of this group.
    * @details Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
-   * Mirrors PointAoSoA::getMetaData().
    * @param[in] a_lane Lane index. Must satisfy 0 <= a_lane < W (padded lanes return the last real
    * triangle's metadata -- see pack()).
    * @return Metadata for the triangle at a_lane.

@@ -295,8 +295,8 @@ protected:
  * @tparam W    SoA width: number of triangles per SIMD group. Must be > 0.
  * Each leaf primitive is a TriangleAoSoA<T, Meta, W>: an SoA triangle block for SIMD signed-distance
  * evaluation, plus a physically-separate per-lane metadata array. The hot signedDistance() path
- * never reads the metadata; getClosestTriangle() does, returning the closest triangle's Meta -- the
- * SIMD analogue of MeshSDF::getClosestFaces() (see issue #105).
+ * never reads the metadata; getClosestTriangle() does, returning the closest triangle's signed
+ * distance together with its Meta (see issue #105).
  * @tparam StoragePolicy PackedBVH primitive storage policy (see BVH::SharedPtrStorage /
  * BVH::ValueStorage). Defaults to BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>, storing each group
  * inline with no pointer indirection -- unlike MeshSDF's faces, these groups are freshly
@@ -341,9 +341,8 @@ public:
   /**
    * @brief Result of getClosestTriangle(): the signed distance to the closest triangle and that
    * triangle's metadata.
-   * @details Mirrors the purpose of MeshSDF::getClosestFaces() -- recovering per-primitive metadata
-   * for the nearest primitive -- but through the SIMD SoA path, and for the single closest triangle
-   * rather than a candidate list. @c m_signedDistance equals what signedDistance() returns.
+   * @details Recovers per-triangle metadata for the single nearest triangle through the SIMD SoA
+   * path. @c signedDistance equals what signedDistance() returns for the same point.
    */
   struct ClosestTriangle
   {
@@ -434,13 +433,12 @@ public:
 
   /**
    * @brief Signed distance to the closest triangle, together with that triangle's metadata.
-   * @details The metadata-retrieving companion to signedDistance(): it drives the same
-   * SIMD-pruned BVH traversal (PackedBVH::pruneTraverse), but each visited leaf group reports the
-   * winning triangle's metadata via TriangleAoSoA::signedDistance(point, Meta&), so the result
-   * carries both the signed distance and the Meta of the nearest triangle. This is the SIMD SoA
-   * analogue of MeshSDF::getClosestFaces() -- the supported path for callers who need both maximum
-   * SIMD throughput and per-triangle metadata retrieval (see issue #105). @c m_signedDistance in the
-   * result equals what signedDistance() would return for the same point.
+   * @details The metadata-retrieving companion to signedDistance(): it drives the same SIMD-pruned
+   * BVH traversal (PackedBVH::pruneTraverse), but each visited leaf group reports the winning
+   * triangle's metadata via TriangleAoSoA::signedDistance(point, Meta&), so the result carries both
+   * the signed distance and the Meta of the nearest triangle -- the supported path for callers who
+   * need both maximum SIMD throughput and per-triangle metadata retrieval (see issue #105). The
+   * result's @c signedDistance equals what signedDistance() would return for the same point.
    * @param[in] a_point Query point. Must be finite.
    * @return The closest triangle's signed distance and metadata.
    */

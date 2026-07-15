@@ -131,15 +131,14 @@ public:
 
   /**
    * @brief Signed distances from a_point to every one of the W lane triangles.
-   * @details The per-lane analogue of signedDistance(), mirroring PointSoAT::getDistances2():
-   * signedDistance() horizontally reduces this to the single minimum-|value| entry, whereas this
-   * returns all W of them so a caller can recover *which* lane won -- the piece the SIMD reduction
-   * discards, and the only way to index a parallel per-lane array such as TriangleAoSoA's metadata.
-   * Computed with a scalar per-lane loop rather than the SIMD kernel, since it is used only by the
-   * metadata-retrieving (non-throughput) path. All W lanes are filled: padded lanes
-   * (m_validCount..W-1) repeat the last real triangle's distance, matching pack()'s padding, so a
-   * caller iterating lanes should stop at m_validCount (or de-duplicate). Requires the group to have
-   * already been packed via pack() (1 <= m_validCount <= W).
+   * @details The per-lane analogue of signedDistance(): signedDistance() horizontally reduces the W
+   * per-triangle distances to the single minimum-|value| entry, whereas this returns all W of them so
+   * a caller can recover *which* lane won -- the piece the SIMD reduction discards. Computed with a
+   * scalar per-lane loop rather than the SIMD kernel, since it is used only by the metadata-retrieving
+   * (non-throughput) path. All W lanes are filled: padded lanes (m_validCount..W-1) repeat the last
+   * real triangle's distance, matching pack()'s padding, so a caller iterating lanes should stop at
+   * m_validCount (or de-duplicate). Requires the group to have already been packed via pack()
+   * (1 <= m_validCount <= W).
    * @param[in] a_point Query point. Must be finite.
    * @return Per-lane signed distances, one per W lanes.
    */
