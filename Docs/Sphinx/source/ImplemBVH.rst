@@ -232,7 +232,8 @@ DCEL mesh's vertex positions, shared with the tree by pointer) before ``refit()`
 * ``PackedBVH::refit()`` does the same over the flat node array. Because that array is a depth-first
   pre-order flattening (every child sits at a higher index than its parent), a single reverse sweep
   refits children before parents with no recursion or explicit stack, and the per-node SoA AABB
-  cache used by the SIMD :ref:`Chap:PruneTraverse` is rebuilt at the end so queries stay consistent.
+  cache used by the SIMD ``pruneTraverse()`` (see :ref:`Chap:PruneTraverse`) is rebuilt at the end
+  so queries stay consistent.
 
 Refitting never re-partitions, so a geometry that has deformed enough for primitives to migrate
 across the tree will accumulate looser (lower query quality) bounding volumes over time and should
