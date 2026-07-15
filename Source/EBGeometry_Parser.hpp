@@ -26,6 +26,7 @@
 #include "EBGeometry_PLY.hpp"
 #include "EBGeometry_STL.hpp"
 #include "EBGeometry_Triangle.hpp"
+#include "EBGeometry_TriangleAoSoA.hpp"
 #include "EBGeometry_TriangleSoA.hpp"
 #include "EBGeometry_VTK.hpp"
 
@@ -244,7 +245,7 @@ readIntoPackedBVH(const std::vector<std::string>& a_files, const BVH::Build a_bu
  * (8/float or 4/double on AVX; 4 otherwise).
  * @tparam StoragePolicy PackedBVH primitive storage policy forwarded to TriMeshSDF (see
  * BVH::SharedPtrStorage / BVH::ValueStorage). Defaults to
- * BVH::ValueStorage<TriangleSoAT<T, W>>, matching TriMeshSDF's own default.
+ * BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>, matching TriMeshSDF's own default.
  * @param[in] a_filename      File name (STL, PLY, or VTK).
  * @param[in] a_maxLeafGroups Maximum number of full W-sized TriangleSoA groups per BVH leaf; the
  * actual raw-triangle leaf-size bound used is a_maxLeafGroups * W (see TriMeshSDF's mesh-based
@@ -256,7 +257,7 @@ template <typename T,
           typename Meta       = DCEL::DefaultMetaData,
           size_t K            = BVH::DefaultBranchingRatio<T>(),
           size_t W            = TriangleSoA::DefaultWidth<T>(),
-          class StoragePolicy = BVH::ValueStorage<TriangleSoAT<T, W>>>
+          class StoragePolicy = BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>>
 [[nodiscard]] inline static std::shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>
 readIntoTriangleBVH(const std::string a_filename,
                     const size_t      a_maxLeafGroups = 4,
@@ -280,7 +281,7 @@ template <typename T,
           typename Meta       = DCEL::DefaultMetaData,
           size_t K            = BVH::DefaultBranchingRatio<T>(),
           size_t W            = TriangleSoA::DefaultWidth<T>(),
-          class StoragePolicy = BVH::ValueStorage<TriangleSoAT<T, W>>>
+          class StoragePolicy = BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>>
 [[nodiscard]] inline static std::vector<std::shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>>
 readIntoTriangleBVH(const std::vector<std::string>& a_files,
                     const size_t                    a_maxLeafGroups = 4,

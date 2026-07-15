@@ -262,7 +262,7 @@ via one of two ``TreeBVH`` member functions:
    source tree holds primitives of type ``P``, and a user-supplied ``Converter`` is called once
    per leaf to produce the ``Q`` values that the resulting ``PackedBVH<T, Q, K>`` will store.
    This is how ``TriMeshSDF`` turns a tree of individual ``Triangle<T, Meta>`` primitives into a
-   ``PackedBVH`` whose leaves hold SIMD-width ``TriangleSoAT<T, W>`` groups instead — see
+   ``PackedBVH`` whose leaves hold SIMD-width ``TriangleAoSoA<T, Meta, W>`` groups instead — see
    :ref:`Chap:MeshSDFClasses`.
 
 See `the doxygen page for TreeBVH <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__ for
@@ -540,9 +540,9 @@ BVH type, and supported geometry:
      - Any polygon mesh; not restricted to triangles
    * - ``TriMeshSDF<T, Meta, K, W, StoragePolicy>``
      - DCEL mesh or triangle soup
-     - ``PackedBVH`` over SoA triangle groups (``BVH::ValueStorage`` by default)
+     - ``PackedBVH`` over ``TriangleAoSoA`` groups (``BVH::ValueStorage`` by default)
      - ``pruneTraverse()`` over SoA-packed leaves
-     - Triangle meshes only; highest throughput
+     - Triangle meshes only; highest throughput; metadata via ``getClosestTriangle()``
 
 ``FlatMeshSDF`` is useful for correctness checks and tiny meshes. See `its doxygen page
 <doxygen/html/classEBGeometry_1_1FlatMeshSDF.html>`__.
@@ -555,13 +555,23 @@ whenever ``(K, T)`` matches a compiled ISA path and falling back to the generic,
 
 ``TriMeshSDF`` is the recommended default for triangle meshes: it packs triangles into
 Structure-of-Arrays groups of width ``W`` (via ``TreeBVH::packWith()``, see above) and builds the
-same kind of thin ``pruneTraverse()`` wrapper as ``MeshSDF``, over ``TriangleSoAT<T, W>`` leaves
-instead of individual faces, so that on a matching ``(K, T)`` combination each BVH leaf evaluates
-``W`` triangles with a single SIMD register operation, and even the AABB-vs-running-best
+same kind of thin ``pruneTraverse()`` wrapper as ``MeshSDF``, over ``TriangleAoSoA<T, Meta, W>``
+leaves instead of individual faces, so that on a matching ``(K, T)`` combination each BVH leaf
+evaluates ``W`` triangles with a single SIMD register operation, and even the AABB-vs-running-best
 comparisons during descent are done on squared distances (no square root) until the very last
 step. See `its doxygen page <doxygen/html/classEBGeometry_1_1TriMeshSDF.html>`__, and `the doxygen
 page for TriangleSoAT <doxygen/html/structEBGeometry_1_1TriangleSoAT.html>`__ for the SoA storage
 itself.
+
+Just as ``MeshSDF::getClosestFaces()`` recovers the nearest face (and its ``Meta``) for a DCEL mesh,
+``TriMeshSDF::getClosestTriangle()`` recovers the nearest triangle's signed distance *and* its
+metadata through the SIMD SoA path -- the supported route when you need both maximum SIMD throughput
+and per-triangle metadata retrieval. Each leaf group is a ``TriangleAoSoA<T, Meta, W>``: a
+geometry-only ``TriangleSoAT<T, W>`` plus a physically-separate per-lane ``std::array<Meta, W>`` (the
+same metadata-carrying wrapper relationship ``PointAoSoA`` has with ``PointSoAT``). The hot
+``signedDistance()`` path never reads the metadata array; only ``getClosestTriangle()`` does, taking a
+scalar per-lane step to recover the winning lane. See `the doxygen page for TriangleAoSoA
+<doxygen/html/structEBGeometry_1_1TriangleAoSoA.html>`__.
 
 What is actually vectorised in ``TriMeshSDF``/``PackedBVH`` is covered in
 :ref:`Chap:SIMDClasses` -- see that page for the full detail rather than repeating it here.
@@ -581,13 +591,13 @@ they default -- and, for ``MeshSDF``, are restricted -- differently:
    ``BVH::ValueStorage``-style plain copy would therefore leave every packed face with an
    uninitialized embedding, crashing on the first query rather than merely losing sharing --
    so ``MeshSDF`` simply never offers that choice.
-*  ``TriMeshSDF`` defaults to ``BVH::ValueStorage<TriangleSoAT<T, W>>`` instead of
+*  ``TriMeshSDF`` defaults to ``BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>`` instead of
    ``BVH::SharedPtrStorage``, and *does* expose ``StoragePolicy`` as an overridable template
-   parameter (its 5th, after ``W``). Unlike ``DCEL::FaceT``, each ``TriangleSoAT<T, W>`` group is
-   a plain aggregate of coordinate arrays with no cached derived state or back-references, built
-   fresh by ``groupTrianglesIntoSoA()`` during packing and shared with nothing else -- so storing
-   it inline is both safe and, avoiding one heap allocation and pointer indirection per group,
-   the better default.
+   parameter (its 5th, after ``W``). Unlike ``DCEL::FaceT``, each ``TriangleAoSoA<T, Meta, W>`` group
+   is a plain aggregate of coordinate arrays plus a per-lane metadata array, with no cached derived
+   state or back-references, built fresh by ``groupTrianglesIntoSoA()`` during packing and shared
+   with nothing else -- so storing it inline is both safe and, avoiding one heap allocation and
+   pointer indirection per group, the better default.
 
 Neither default is affected by instancing the same mesh multiple times (e.g. placing several
 ``Translate``/``Rotate``/``Scale``-wrapped copies of one mesh into a ``Union``): those wrappers
@@ -597,7 +607,7 @@ so its packed data is shared once per wrapper regardless of how that one object'
 
 ``Parser::readIntoPackedBVH`` mirrors ``MeshSDF`` (no ``StoragePolicy`` parameter);
 ``Parser::readIntoTriangleBVH`` mirrors ``TriMeshSDF`` (``StoragePolicy`` as its 5th template
-parameter, defaulting to ``BVH::ValueStorage<TriangleSoAT<T, W>>``). See :ref:`Chap:Parsers`.
+parameter, defaulting to ``BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>``). See :ref:`Chap:Parsers`.
 
 SIMD-optimal K and W by ISA
 ______________________________

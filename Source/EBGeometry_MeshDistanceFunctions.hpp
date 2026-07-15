@@ -14,6 +14,7 @@
 // Std includes
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -25,6 +26,7 @@
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_SignedDistanceFunction.hpp"
 #include "EBGeometry_Triangle.hpp"
+#include "EBGeometry_TriangleAoSoA.hpp"
 #include "EBGeometry_TriangleSoA.hpp"
 #include "EBGeometry_Vec.hpp"
 
@@ -281,8 +283,8 @@ protected:
 /**
  * @brief Signed distance function for a pure triangle mesh using SoA-grouped primitives
  * in a compact (linearized) BVH.
- * @details Triangles are packed into SoA groups of W triangles each (TriangleSoAT<T,W>),
- * enabling SIMD evaluation of up to W signed distances simultaneously.
+ * @details Triangles are packed into metadata-carrying SoA groups of W triangles each
+ * (TriangleAoSoA<T,Meta,W>), enabling SIMD evaluation of up to W signed distances simultaneously.
  *
  * No default arguments: this is a low-level constructor, and callers who excavate down to it
  * must consciously choose K and W. Use Parser::readIntoTriangleBVH for sensible ISA-tuned
@@ -291,8 +293,12 @@ protected:
  * @tparam Meta Triangle metadata type.
  * @tparam K    BVH branching factor (number of children per internal node). Must be >= 2.
  * @tparam W    SoA width: number of triangles per SIMD group. Must be > 0.
+ * Each leaf primitive is a TriangleAoSoA<T, Meta, W>: an SoA triangle block for SIMD signed-distance
+ * evaluation, plus a physically-separate per-lane metadata array. The hot signedDistance() path
+ * never reads the metadata; getClosestTriangle() does, returning the closest triangle's Meta -- the
+ * SIMD analogue of MeshSDF::getClosestFaces() (see issue #105).
  * @tparam StoragePolicy PackedBVH primitive storage policy (see BVH::SharedPtrStorage /
- * BVH::ValueStorage). Defaults to BVH::ValueStorage<TriangleSoAT<T, W>>, storing each SoA group
+ * BVH::ValueStorage). Defaults to BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>, storing each group
  * inline with no pointer indirection -- unlike MeshSDF's faces, these groups are freshly
  * constructed by groupTrianglesIntoSoA() during packing and shared with nothing else, so there is
  * no aliasing benefit to give up. Note that instancing the same mesh multiple times (e.g. via
@@ -304,7 +310,7 @@ template <class T,
           class Meta,
           size_t K,
           size_t W,
-          class StoragePolicy = BVH::ValueStorage<EBGeometry::TriangleSoAT<T, W>>>
+          class StoragePolicy = BVH::ValueStorage<EBGeometry::TriangleAoSoA<T, Meta, W>>>
 class TriMeshSDF : public SignedDistanceFunction<T>
 {
   static_assert(std::is_floating_point_v<T>, "TriMeshSDF<T,Meta,K,W> requires a floating-point T");
@@ -323,14 +329,27 @@ public:
   using Tri = typename EBGeometry::Triangle<T, Meta>;
 
   /**
-   * @brief Alias for the SoA triangle group type
+   * @brief Alias for the metadata-carrying SoA triangle group type (the BVH leaf primitive).
    */
-  using TriSoA = TriangleSoAT<T, W>;
+  using TriAoSoA = TriangleAoSoA<T, Meta, W>;
 
   /**
    * @brief Alias for which BVH root node
    */
-  using Root = typename EBGeometry::BVH::PackedBVH<T, TriSoA, K, StoragePolicy>;
+  using Root = typename EBGeometry::BVH::PackedBVH<T, TriAoSoA, K, StoragePolicy>;
+
+  /**
+   * @brief Result of getClosestTriangle(): the signed distance to the closest triangle and that
+   * triangle's metadata.
+   * @details Mirrors the purpose of MeshSDF::getClosestFaces() -- recovering per-primitive metadata
+   * for the nearest primitive -- but through the SIMD SoA path, and for the single closest triangle
+   * rather than a candidate list. @c m_signedDistance equals what signedDistance() returns.
+   */
+  struct ClosestTriangle
+  {
+    T    m_signedDistance = std::numeric_limits<T>::max(); ///< Signed distance to the closest triangle.
+    Meta m_metaData{};                                     ///< Metadata of the closest triangle.
+  };
 
   /**
    * @brief Default disallowed constructor
@@ -414,6 +433,21 @@ public:
   signedDistance(const Vec3T<T>& a_point) const noexcept override;
 
   /**
+   * @brief Signed distance to the closest triangle, together with that triangle's metadata.
+   * @details The metadata-retrieving companion to signedDistance(): it drives the same
+   * SIMD-pruned BVH traversal (PackedBVH::pruneTraverse), but each visited leaf group reports the
+   * winning triangle's metadata via TriangleAoSoA::signedDistance(point, Meta&), so the result
+   * carries both the signed distance and the Meta of the nearest triangle. This is the SIMD SoA
+   * analogue of MeshSDF::getClosestFaces() -- the supported path for callers who need both maximum
+   * SIMD throughput and per-triangle metadata retrieval (see issue #105). @c m_signedDistance in the
+   * result equals what signedDistance() would return for the same point.
+   * @param[in] a_point Query point. Must be finite.
+   * @return The closest triangle's signed distance and metadata.
+   */
+  [[nodiscard]] ClosestTriangle
+  getClosestTriangle(const Vec3T<T>& a_point) const noexcept;
+
+  /**
    * @brief Get the PackedBVH storing SoA triangle groups.
    * @return Mutable reference to the shared-pointer owning the packed BVH root.
    */
@@ -450,7 +484,7 @@ protected:
    * @param[in] a_count     Number of triangles in this leaf to convert.
    * @return SoA-packed triangle groups covering [a_offset, a_offset + a_count).
    */
-  [[nodiscard]] static std::vector<TriSoA>
+  [[nodiscard]] static std::vector<TriAoSoA>
   groupTrianglesIntoSoA(const std::vector<std::shared_ptr<const Tri>>& a_triangles,
                         uint32_t                                       a_offset,
                         uint32_t                                       a_count);

@@ -15,25 +15,39 @@ and explains precisely what gets vectorised in each.
    :local:
    :depth: 1
 
-Per-triangle signed-distance evaluation: ``TriangleSoAT<T, W>``
--------------------------------------------------------------------
+Per-triangle signed-distance evaluation: ``TriangleSoAT<T, W>`` / ``TriangleAoSoA<T, Meta, W>``
+-----------------------------------------------------------------------------------------------
 
-:file:`Source/EBGeometry_TriangleSoA.hpp` / :file:`EBGeometry_TriangleSoAImplem.hpp`
+:file:`Source/EBGeometry_TriangleSoA.hpp` / :file:`EBGeometry_TriangleSoAImplem.hpp` (and the
+metadata-carrying wrapper :file:`EBGeometry_TriangleAoSoA.hpp` /
+:file:`EBGeometry_TriangleAoSoAImplem.hpp`)
 
 See :ref:`Chap:Triangles` for the conceptual picture of why triangles are packed this way.
 
 **What it stores:** the vertex positions, vertex normals, edge normals, and face normal of
 :math:`W` triangles, laid out as a *structure of arrays* (one flat, ``alignas``-aligned array
-per coordinate/component, rather than :math:`W` separate ``Triangle`` objects). See
-:ref:`Chap:MeshSDFClasses` for the rest of the ``TriMeshSDF`` machinery this is packed into.
+per coordinate/component, rather than :math:`W` separate ``Triangle`` objects). ``TriangleSoAT``
+is geometry-only; ``TriangleAoSoA<T, Meta, W>`` adds a physically separate ``std::array<Meta, W>``
+of per-triangle metadata alongside it, never interleaved with the coordinates, so the
+signed-distance kernel touches exactly the same bytes either way -- metadata is read only afterward,
+via ``getMetaData(lane)``. This is the exact same relationship ``PointAoSoA`` has with ``PointSoAT``
+below, and it is what lets ``TriMeshSDF`` answer "which triangle (and its metadata) is closest" (see
+``TriMeshSDF::getClosestTriangle()`` in :ref:`Chap:MeshSDFClasses`) at no cost to the throughput
+path. See :ref:`Chap:MeshSDFClasses` for the rest of the ``TriMeshSDF`` machinery this is packed
+into.
 
 **What is vectorised:** the entire closest-point-on-triangle signed-distance query,
-``TriangleSoAT::signedDistance(point)``. This is the full algorithm -- classifying the
+``TriangleSoAT::signedDistance(point)`` (and, via delegation, ``TriangleAoSoA::signedDistance(point)``).
+This is the full algorithm -- classifying the
 projection of the query point against the triangle's three edge regions and interior region,
 computing the squared distance and sign for whichever region applies, per triangle -- executed
 for all :math:`W` triangles in the block *simultaneously*, one SIMD lane per triangle. The
 result is the minimum signed distance over the whole block, found with vectorised compare/blend
-instructions rather than a loop.
+instructions rather than a loop. The metadata-retrieving companion --
+``TriangleSoAT::signedDistances(point)`` (the per-lane array) and
+``TriangleAoSoA::signedDistance(point, Meta&)`` (which reports the winning lane's metadata) -- instead
+takes a scalar per-lane path, since recovering *which* lane won is the one thing the SIMD horizontal
+reduction discards; it is used only by the (non-throughput) closest-triangle query.
 
 **What this means in practice:** evaluating a ``TriangleSoAT<T, W>`` block costs roughly the
 same number of instructions as evaluating a *single* triangle scalar, but produces the answer

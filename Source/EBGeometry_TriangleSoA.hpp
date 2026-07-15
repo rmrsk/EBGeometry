@@ -12,6 +12,7 @@
 #define EBGEOMETRY_TRIANGLESOA_HPP
 
 // Std includes
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -129,6 +130,23 @@ public:
   signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
+   * @brief Signed distances from a_point to every one of the W lane triangles.
+   * @details The per-lane analogue of signedDistance(), mirroring PointSoAT::getDistances2():
+   * signedDistance() horizontally reduces this to the single minimum-|value| entry, whereas this
+   * returns all W of them so a caller can recover *which* lane won -- the piece the SIMD reduction
+   * discards, and the only way to index a parallel per-lane array such as TriangleAoSoA's metadata.
+   * Computed with a scalar per-lane loop rather than the SIMD kernel, since it is used only by the
+   * metadata-retrieving (non-throughput) path. All W lanes are filled: padded lanes
+   * (m_validCount..W-1) repeat the last real triangle's distance, matching pack()'s padding, so a
+   * caller iterating lanes should stop at m_validCount (or de-duplicate). Requires the group to have
+   * already been packed via pack() (1 <= m_validCount <= W).
+   * @param[in] a_point Query point. Must be finite.
+   * @return Per-lane signed distances, one per W lanes.
+   */
+  [[nodiscard]] std::array<T, W>
+  signedDistances(const Vec3T<T>& a_point) const noexcept;
+
+  /**
    * @brief Compute the bounding volume enclosing all valid triangles in this group.
    * @details Requires the group to have already been packed via pack() (1 <= m_validCount <= W).
    * @tparam BV Bounding volume type (e.g. AABBT<T>); must be constructible from a
@@ -140,6 +158,17 @@ public:
   computeBoundingVolume() const noexcept;
 
 protected:
+  /**
+   * @brief Signed distance from a_point to the single triangle stored in lane a_lane.
+   * @details The scalar per-lane kernel shared by the scalar fallback of signedDistance() and by
+   * signedDistances(). Reads only lane a_lane's coordinates/normals; performs no reduction.
+   * @param[in] a_lane  Lane index. Must satisfy 0 <= a_lane < W.
+   * @param[in] a_point Query point.
+   * @return Signed distance from a_point to lane a_lane's triangle, sign from its nearest feature.
+   */
+  [[nodiscard]] T
+  signedDistanceLane(uint32_t a_lane, const Vec3T<T>& a_point) const noexcept;
+
   /**
    * @brief x-coordinates of vertex positions. m_vx[i][j] = x-coord of vertex i for triangle j.
    */

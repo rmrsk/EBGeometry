@@ -267,6 +267,50 @@ TEMPLATE_TEST_CASE("MeshSDF::getClosestFaces returns the correct number of candi
   REQUIRE_THAT(closestUnsignedDist, withinAbsT(std::abs(packed.signedDistance(p)), traversalMargin<T>()));
 }
 
+TEMPLATE_TEST_CASE("TriMeshSDF::getClosestTriangle reports the closest triangle's metadata and a "
+                   "distance matching signedDistance()",
+                   "[BVH][TriMesh][Meta]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = 4;
+  constexpr size_t W = 4;
+
+  // A soup of well-separated triangles (3 apart along x), each tagged with a distinct metadata value
+  // so the closest-triangle query's returned metadata is unambiguous. Enough triangles to force
+  // several BVH leaves/levels.
+  constexpr int N = 12;
+
+  std::vector<std::shared_ptr<Triangle<T, Meta>>> tris;
+  for (int i = 0; i < N; i++) {
+    const Vec3 base(T(3 * i), T(0), T(0));
+
+    auto tri = std::make_shared<Triangle<T, Meta>>();
+    tri->setVertexPositions({base + Vec3(0, 0, 0), base + Vec3(1, 0, 0), base + Vec3(0, 1, 0)});
+    tri->setNormal(Vec3(0, 0, 1));
+    tri->setVertexNormals({Vec3(0, 0, 1), Vec3(0, 0, 1), Vec3(0, 0, 1)});
+    tri->setEdgeNormals({Vec3(0, 0, 1), Vec3(0, 0, 1), Vec3(0, 0, 1)});
+    tri->setMetaData(static_cast<Meta>(100 + i));
+
+    tris.emplace_back(tri);
+  }
+
+  for (const auto build : {BVH::Build::TopDown, BVH::Build::SAH}) {
+    const TriMeshSDF<T, Meta, K, W> tri(tris, build, 2);
+
+    for (int i = 0; i < N; i++) {
+      const Vec3 q(T(3 * i) + T(0.25), T(0.25), T(0.2)); // unambiguously nearest to triangle i
+
+      const auto closest = tri.getClosestTriangle(q);
+
+      REQUIRE(closest.m_metaData == static_cast<Meta>(100 + i));
+      REQUIRE_THAT(closest.m_signedDistance, withinAbsT(tri.signedDistance(q), traversalMargin<T>()));
+    }
+  }
+}
+
 namespace {
 
 // Bare point primitive with no signedDistance() (or any other) member at all -- used below to
@@ -564,8 +608,7 @@ TEMPLATE_TEST_CASE("BVH refit: TreeBVH::refit and PackedBVH::refit update boundi
     const AABB tight = tightRoot();
 
     for (int d = 0; d < 3; d++) {
-      REQUIRE_THAT(tree->getBoundingVolume().getLowCorner()[d],
-                   withinAbsT(tight.getLowCorner()[d], tightMargin<T>()));
+      REQUIRE_THAT(tree->getBoundingVolume().getLowCorner()[d], withinAbsT(tight.getLowCorner()[d], tightMargin<T>()));
       REQUIRE_THAT(tree->getBoundingVolume().getHighCorner()[d],
                    withinAbsT(tight.getHighCorner()[d], tightMargin<T>()));
       REQUIRE_THAT(packed->getBoundingVolume().getLowCorner()[d],
@@ -908,8 +951,8 @@ TEMPLATE_TEST_CASE("TriMeshSDF: default StoragePolicy is BVH::ValueStorage<TriSo
   constexpr size_t K = 4;
   constexpr size_t W = 4;
 
-  using Face   = DCEL::FaceT<T, Meta>;
-  using TriSoA = TriangleSoAT<T, W>;
+  using Face     = DCEL::FaceT<T, Meta>;
+  using TriAoSoA = TriangleAoSoA<T, Meta, W>;
 
   // MeshSDF always shares each packed face with the DCEL mesh's own face list (no copy, and no
   // StoragePolicy template parameter to override it): DCEL::FaceT's copy constructor deliberately
@@ -919,11 +962,11 @@ TEMPLATE_TEST_CASE("TriMeshSDF: default StoragePolicy is BVH::ValueStorage<TriSo
   // shared with nothing else), so it defaults to storing them inline with no indirection. See
   // ImplemBVH.rst's "Storage policy" section for the full rationale.
   static_assert(std::is_same_v<typename MeshSDF<T, Meta, K>::Root::StorageType, std::shared_ptr<const Face>>);
-  static_assert(std::is_same_v<typename TriMeshSDF<T, Meta, K, W>::Root::StorageType, TriSoA>);
+  static_assert(std::is_same_v<typename TriMeshSDF<T, Meta, K, W>::Root::StorageType, TriAoSoA>);
 }
 
-TEMPLATE_TEST_CASE("TriMeshSDF: explicit BVH::SharedPtrStorage<TriSoA> agrees with the default "
-                   "BVH::ValueStorage<TriSoA>",
+TEMPLATE_TEST_CASE("TriMeshSDF: explicit BVH::SharedPtrStorage<TriAoSoA> agrees with the default "
+                   "BVH::ValueStorage<TriAoSoA>",
                    "[BVH][Dodecahedron][StoragePolicy]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -932,13 +975,13 @@ TEMPLATE_TEST_CASE("TriMeshSDF: explicit BVH::SharedPtrStorage<TriSoA> agrees wi
   constexpr size_t K = 4;
   constexpr size_t W = 4;
 
-  using TriSoA = TriangleSoAT<T, W>;
+  using TriAoSoA = TriangleAoSoA<T, Meta, W>;
 
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
   REQUIRE(mesh != nullptr);
 
-  const TriMeshSDF<T, Meta, K, W>                                defaultStorage(mesh, BVH::Build::SAH, 2);
-  const TriMeshSDF<T, Meta, K, W, BVH::SharedPtrStorage<TriSoA>> sharedStorage(mesh, BVH::Build::SAH, 2);
+  const TriMeshSDF<T, Meta, K, W>                                  defaultStorage(mesh, BVH::Build::SAH, 2);
+  const TriMeshSDF<T, Meta, K, W, BVH::SharedPtrStorage<TriAoSoA>> sharedStorage(mesh, BVH::Build::SAH, 2);
 
   for (const auto& p : queryPoints<T>()) {
     REQUIRE_THAT(sharedStorage.signedDistance(p), withinAbsT(defaultStorage.signedDistance(p), traversalMargin<T>()));
@@ -954,11 +997,11 @@ TEMPLATE_TEST_CASE("Parser::readIntoTriangleBVH accepts an explicit StoragePolic
   constexpr size_t K = 4;
   constexpr size_t W = 4;
 
-  using TriSoA = TriangleSoAT<T, W>;
+  using TriAoSoA = TriangleAoSoA<T, Meta, W>;
 
   const auto defaultTri = Parser::readIntoTriangleBVH<T, Meta, K, W>(dataPath("dodecahedron.stl"));
   const auto sharedTri =
-    Parser::readIntoTriangleBVH<T, Meta, K, W, BVH::SharedPtrStorage<TriSoA>>(dataPath("dodecahedron.stl"));
+    Parser::readIntoTriangleBVH<T, Meta, K, W, BVH::SharedPtrStorage<TriAoSoA>>(dataPath("dodecahedron.stl"));
 
   REQUIRE(defaultTri != nullptr);
   REQUIRE(sharedTri != nullptr);
