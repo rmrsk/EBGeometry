@@ -305,8 +305,8 @@ TEMPLATE_TEST_CASE("TriMeshSDF::getClosestTriangle reports the closest triangle'
 
       const auto closest = tri.getClosestTriangle(q);
 
-      REQUIRE(closest.m_metaData == static_cast<Meta>(100 + i));
-      REQUIRE_THAT(closest.m_signedDistance, withinAbsT(tri.signedDistance(q), traversalMargin<T>()));
+      REQUIRE(closest.metaData == static_cast<Meta>(100 + i));
+      REQUIRE_THAT(closest.signedDistance, withinAbsT(tri.signedDistance(q), traversalMargin<T>()));
     }
   }
 }

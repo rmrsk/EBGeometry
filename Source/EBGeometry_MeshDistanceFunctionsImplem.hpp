@@ -532,15 +532,15 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::getClosestTriangle(const Vec3T<T>& a_p
 
       EBGEOMETRY_EXPECT(!std::isnan(d));
 
-      if (std::abs(d) < std::abs(a_state.m_signedDistance)) {
-        a_state.m_signedDistance = d;
-        a_state.m_metaData       = groupMeta;
+      if (std::abs(d) < std::abs(a_state.signedDistance)) {
+        a_state.signedDistance = d;
+        a_state.metaData       = groupMeta;
       }
     }
   };
 
   const auto pruneDist2 = [](const ClosestTriangle& a_state) noexcept -> T {
-    return a_state.m_signedDistance * a_state.m_signedDistance;
+    return a_state.signedDistance * a_state.signedDistance;
   };
 
   m_bvh->pruneTraverse(a_point, closest, evalLeaf, pruneDist2);

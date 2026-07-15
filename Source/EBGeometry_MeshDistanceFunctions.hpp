@@ -347,8 +347,8 @@ public:
    */
   struct ClosestTriangle
   {
-    T    m_signedDistance = std::numeric_limits<T>::max(); ///< Signed distance to the closest triangle.
-    Meta m_metaData{};                                     ///< Metadata of the closest triangle.
+    T    signedDistance = std::numeric_limits<T>::max(); ///< Signed distance to the closest triangle.
+    Meta metaData{};                                     ///< Metadata of the closest triangle.
   };
 
   /**
