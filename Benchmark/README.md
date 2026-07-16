@@ -54,7 +54,8 @@ PointCloudBVH           ~118        0.62         ~105        0.48
 PointCloudHashGrid       ~12        1.50          ~11        1.60
 picoflann               ~104        0.75         ~104        0.48
 nanoflann               ~225        0.41         ~230        0.36
-kd3                      ~83        0.57          ~86        0.50
+kd3 (double)             ~83        0.57          ~82        0.45
+kd3 (float)              ~75        0.51          ~74        0.42
 ```
 
 - The KD-tree queries are iterated in **Hilbert order** so their node cache is as warm as
@@ -79,6 +80,12 @@ kd3                      ~83        0.57          ~86        0.50
   OpenMP-parallel (its author notes it is still faster serially). In this fair single-threaded mode
   kd3 posts the fastest build and a competitive query. (kd3 needs C++23, so the benchmark is built
   with `-std=c++23`.)
+- **`kd3 (float)` is additionally shown as kd3's native best case** — its SoA/SIMD fast path in its
+  intended precision (a different-precision reference, not apples-to-apples with the double field,
+  exactly like TriangleMeshDistance's double column in the MeshSDF benchmark). It runs ~7–11% faster
+  than `kd3 (double)` here; the gain is modest on this particular machine because its AVX-512 clocks
+  down, damping the float SIMD-width advantage — elsewhere the float/double gap (and kd3's lead) is
+  larger. This is precisely why the tables are labelled machine-dependent snapshots.
 
 `MeshSDF/` — closest-point on a triangle mesh
 ---------------------------------------------

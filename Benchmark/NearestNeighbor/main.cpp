@@ -19,7 +19,9 @@
 // halves that SIMD width -- the main reason it does not reach 2x in this table. It is also compiled
 // without -fopenmp, so its build is single-threaded like everything else here; kd3's docs quote a
 // much faster build, but that number is OpenMP-parallel (its author notes it is still faster serially).
-// So these kd3 numbers are a fair single-threaded comparison, understated only by the double precision.
+// So the `kd3 (double)` numbers are a fair single-threaded comparison, understated only by precision;
+// `kd3 (float)` is additionally reported as kd3's native SoA/SIMD best case -- a different-precision
+// reference (like TriangleMeshDistance's double column in the MeshSDF benchmark), not apples-to-apples.
 
 #include <algorithm>
 #include <array>
@@ -45,6 +47,9 @@ using Vec3 = EBGeometry::Vec3T<T>;
 
 // kd3 tree, in double precision (its distance_t defaults to float; pin it to T for a fair comparison).
 using Kd3 = kd3::KdTree<kd3::limits<T, 3, T, std::uint32_t>>;
+
+// kd3 tree in its native float precision -- its SoA/SIMD best case (not a same-precision comparison).
+using Kd3f = kd3::KdTree<kd3::limits<float, 3, float, std::uint32_t>>;
 
 constexpr std::size_t   numPoints  = 500000;
 constexpr std::size_t   sampleSize = 500;
@@ -295,7 +300,7 @@ runCase(const std::string& a_label, const std::vector<Vec3>& a_positions)
     const double buildMs = 1.0e3 * timer.seconds();
 
     if (!treeExpected) {
-      row("kd3", buildMs, std::numeric_limits<double>::infinity(), sampleSize); // build failed -> flag it
+      row("kd3 (double)", buildMs, std::numeric_limits<double>::infinity(), sampleSize); // build failed
     }
     else {
       const Kd3& tree = *treeExpected;
@@ -327,7 +332,64 @@ runCase(const std::string& a_label, const std::vector<Vec3>& a_positions)
       for (std::size_t s = 0; s < sampleSize; s++) {
         bad += !ok(nnOther(s * stride), s);
       }
-      row("kd3", buildMs, queryUs, bad);
+      row("kd3 (double)", buildMs, queryUs, bad);
+    }
+  }
+
+  // ── kd3 in native float precision (its SoA/SIMD best case; NOT a same-precision comparison) ──
+  {
+    std::vector<Kd3f::FatPoint> fat(n);
+    timer.start();
+    for (std::size_t i = 0; i < n; i++) {
+      fat[i] = Kd3f::FatPoint{{static_cast<float>(a_positions[i][0]),
+                               static_cast<float>(a_positions[i][1]),
+                               static_cast<float>(a_positions[i][2])},
+                              static_cast<std::uint32_t>(i)};
+    }
+
+    auto treeExpected = Kd3f::build(fat);
+    timer.stop();
+    const double buildMs = 1.0e3 * timer.seconds();
+
+    if (!treeExpected) {
+      row("kd3 (float)", buildMs, std::numeric_limits<double>::infinity(), sampleSize); // build failed
+    }
+    else {
+      const Kd3f& tree = *treeExpected;
+
+      auto nnOther = [&](std::size_t i) -> float {
+        const Kd3f::point_t q = {static_cast<float>(a_positions[i][0]),
+                                 static_cast<float>(a_positions[i][1]),
+                                 static_cast<float>(a_positions[i][2])};
+        std::array<Kd3f::KnnResult, 2> buf{};
+        const auto                     res = tree.query_knn(q, buf);
+        if (res) {
+          for (const auto& kr : *res) {
+            if (kr.payload_id != static_cast<std::uint32_t>(i)) {
+              return kr.dist_sq;
+            }
+          }
+        }
+        return std::numeric_limits<float>::max();
+      };
+
+      volatile float sink = 0.0f;
+      timer.start();
+      for (const std::uint32_t p : order) {
+        sink += nnOther(p);
+      }
+      timer.stop();
+      (void)sink;
+      const double queryUs = 1.0e6 * timer.seconds() / double(n);
+
+      // Float-precision cross-check: looser tolerance than the double methods (float has ~7 digits),
+      // since the returned squared distance is computed in float against the double brute-force truth.
+      std::size_t bad = 0;
+      for (std::size_t s = 0; s < sampleSize; s++) {
+        const double got = static_cast<double>(nnOther(s * stride));
+        bad += (std::abs(got - truth[s]) > 1.0e-4 * std::max(truth[s], 1.0)) ? 1 : 0;
+      }
+      row("kd3 (float)", buildMs, queryUs, bad);
     }
   }
 

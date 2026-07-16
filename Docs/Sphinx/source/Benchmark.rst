@@ -30,8 +30,8 @@ the full detail and representative numbers.
 * :file:`Benchmark/NearestNeighbor` -- all-nearest-neighbor over a point cloud: ``PointCloudBVH`` and
   ``PointCloudHashGrid`` vs `nanoflann <https://github.com/jlblancoc/nanoflann>`_ vs
   `picoflann <https://github.com/rmsalinas/picoflann>`_ vs
-  `kd3 <https://github.com/KaruroChori/kd3>`_ (a SoA/SIMD KD-tree; needs C++23, run here in double --
-  halving its float SIMD width -- for a same-precision comparison).
+  `kd3 <https://github.com/KaruroChori/kd3>`_ (a SoA/SIMD KD-tree; needs C++23, shown both in double
+  for a same-precision comparison and in its native float as a best-case reference).
 * :file:`Benchmark/MeshSDF` -- closest-point on a triangle mesh: ``TriMeshSDF`` vs
   `fcpw <https://github.com/rohan-sawhney/fcpw>`_ (built with its Enoki CPU vectorization) vs
   `TriangleMeshDistance <https://github.com/InteractiveComputerGraphics/TriangleMeshDistance>`_.
