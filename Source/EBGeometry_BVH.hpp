@@ -71,20 +71,28 @@ struct ClusterSpec
 };
 
 /**
- * @brief Returns the SIMD-optimal BVH branching factor for type T on the current target ISA.
- * @details Maps the floating-point type and the compile-time ISA to the K that fills one
- * SIMD register exactly:
+ * @brief Returns the default BVH branching factor for type T on the current target ISA.
+ * @details Balances SIMD width against cache footprint. A wider K amortizes each traversal step over
+ * more children, but a node stores K child offsets, so a wider K spills the flat node across more
+ * cache lines. Traversal (e.g. PointCloudBVH nearest-neighbor) is memory-latency-bound, so the node
+ * fitting in a single cache line matters more than filling the SIMD register:
  *
  * | ISA       | T=float | T=double |
  * |-----------|---------|----------|
- * | AVX-512F  |   16    |    8     |
+ * | AVX-512F  |    8    |    8     |
  * | AVX       |    8    |    4     |
  * | SSE4.1    |    4    |    4     |
  * | fallback  |    4    |    4     |
  *
+ * The only case that is *not* register-filling is T=float on AVX-512F: the register-filling value
+ * there is 16, but a K=16 float node (24 B bounding volume + 8 B leaf fields + 16x4 B child offsets
+ * = 96 B) straddles two 64-byte cache lines, whereas K=8 (24 + 8 + 8x4 = 64 B) is exactly one. That
+ * cache-line-sized node measured faster in nearest-neighbor benchmarks than the wider SIMD fan-out,
+ * so float is capped at 8 to match double. Every other entry already fits one line.
+ *
  * Usage: `size_t K = BVH::DefaultBranchingRatio<T>()` as a template-parameter default.
  * @tparam T Floating-point precision type (float or double).
- * @return Optimal K for the current ISA and T.
+ * @return Default K for the current ISA and T.
  */
 template <typename T>
 [[nodiscard]] constexpr size_t
@@ -92,12 +100,11 @@ DefaultBranchingRatio() noexcept
 {
   static_assert(std::is_floating_point_v<T>, "BVH::DefaultBranchingRatio requires a floating-point T");
 #if defined(__AVX512F__)
-  if constexpr (std::is_same_v<T, double>) {
-    return 8;
-  }
-  else {
-    return 16;
-  }
+  // Both precisions use K=8. For double this is the SIMD-register-filling value. For float the
+  // register-filling value would be 16, but we deliberately cap at 8 so the flat node stays within a
+  // single 64-byte cache line instead of straddling two -- traversal is memory-latency-bound, and the
+  // cache-line-sized node beat the wider K=16 fan-out in nearest-neighbor benchmarks.
+  return 8;
 #elif defined(__AVX__)
   if constexpr (std::is_same_v<T, double>) {
     return 4;
@@ -694,8 +701,10 @@ SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
  * into std::floor(K/2) and std::ceil(K/2) subsets — exact for power-of-two K; a reasonable
  * approximation for other values.
  *
- * Recommended K values by ISA:
- * - AVX-512F, float  → K=16 (one @c _mm512_load_ps covers all K children)
+ * SIMD-register-filling K values by ISA (what one aligned load covers). These are the
+ * BVH::DefaultBranchingRatio<T>() defaults too, except AVX-512F/float, whose default is capped at 8
+ * (not 16) so the node fits one cache line -- see that helper's docs:
+ * - AVX-512F, float  → K=16 (one @c _mm512_load_ps covers all K children; default is 8, not 16)
  * - AVX-512F, double → K=8  (one @c _mm512_load_pd covers all K children)
  * - AVX,      float  → K=8  (one @c _mm256_load_ps)
  * - AVX,      double → K=4  (one @c _mm256_load_pd)

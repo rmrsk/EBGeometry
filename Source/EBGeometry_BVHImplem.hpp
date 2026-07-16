@@ -1120,7 +1120,12 @@ PackedBVH<T, P, K, StoragePolicy>::pruneTraverse(const Vec3T<T>&    a_point,
   // for both (K=8, T=double) and (K=16, T=float).  _mm512_load_pd / _mm512_load_ps
   // both require 64-byte alignment — the static_assert below catches any mismatch.
   //
-  // Recommended configurations on AVX-512 hardware:
+  // The K=16/float path below still fills a 512-bit register in one load and is kept for callers who
+  // opt into K=16 explicitly, but it is no longer the default: DefaultBranchingRatio<float>() caps K
+  // at 8 on AVX-512F so the flat node fits one cache line (see its docs). With the default K=8, float
+  // BVHs take the AVX (_mm256, K=8/float) child-distance path further below, not this K=16 branch.
+  //
+  // AVX-512 register-filling configurations (K=16/float requires an explicit K):
   //   float  → K=16, W=16  (one _mm512_load_ps covers all children and one leaf group)
   //   double → K=8,  W=8   (one _mm512_load_pd covers all children; AVX-512F replaces
   //                          the 2×_mm256_load_pd emulation in the AVX fallback below)

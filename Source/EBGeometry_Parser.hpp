@@ -238,9 +238,10 @@ readIntoPackedBVH(const std::vector<std::string>& a_files, const BVH::Build a_bu
  * At query time the BVH uses SIMD intrinsics to evaluate W triangles per leaf visit.
  * @tparam T    Floating-point precision for signed-distance evaluation.
  * @tparam Meta Per-face metadata type.
- * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() — the SIMD-optimal value for
- * T on the current ISA (K=16/float or K=8/double on AVX-512F; K=8/float or K=4/double
- * on AVX; K=4 otherwise). Override only when benchmarking or using non-SIMD builds.
+ * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>() — the SIMD/cache
+ * balanced value for T on the current ISA (K=8 for both float and double on AVX-512F, float capped at
+ * 8 rather than 16 so the node fits one cache line; K=8/float or K=4/double on AVX; K=4 otherwise).
+ * Override only when benchmarking or using non-SIMD builds.
  * @tparam W    SIMD lane width: triangles per SoA group. Defaults to TriangleSoA::DefaultWidth<T>()
  * (8/float or 4/double on AVX; 4 otherwise).
  * @tparam StoragePolicy PackedBVH primitive storage policy forwarded to TriMeshSDF (see

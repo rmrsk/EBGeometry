@@ -611,13 +611,16 @@ so its packed data is shared once per wrapper regardless of how that one object'
 ``Parser::readIntoTriangleBVH`` mirrors ``TriMeshSDF`` (``StoragePolicy`` as its 5th template
 parameter, defaulting to ``BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>``). See :ref:`Chap:Parsers`.
 
-SIMD-optimal K and W by ISA
+Default K and W by ISA
 ______________________________
 
-The helper ``BVH::DefaultBranchingRatio<T>()`` returns the SIMD-optimal branching factor for
-the current compilation target.  ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` gives the
-matching SoA width. Both are used as template defaults for ``TriMeshSDF`` and
-``Parser::readIntoTriangleBVH``.
+The helper ``BVH::DefaultBranchingRatio<T>()`` returns the default branching factor for the current
+compilation target, and ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` gives the matching SoA leaf
+width. Both are used as template defaults for ``TriMeshSDF`` and ``Parser::readIntoTriangleBVH``.
+The branching factor balances SIMD width against cache footprint: it is the SIMD-register-filling
+value in every case *except* ``float`` on AVX-512F, where it is capped at 8 (not the register-filling
+16) so the flat node stays within a single 64-byte cache line. Traversal is memory-latency-bound, and
+that cache-line-sized node measured faster than the wider fan-out. The SoA leaf width is unaffected.
 
 .. list-table:: Default K and W by ISA and precision
    :widths: 25 25 25 25
@@ -629,7 +632,7 @@ matching SoA width. Both are used as template defaults for ``TriMeshSDF`` and
      - ``TriangleSoA::DefaultWidth<T>()``
    * - AVX-512F
      - ``float``
-     - 16
+     - 8 (capped for cache; see below)
      - 16
    * - AVX-512F
      - ``double``
@@ -678,6 +681,9 @@ Rules of thumb:
   while the SAH/TopDown partitioner is still free to split down to smaller,
   tighter leaves wherever the geometry calls for it. A leaf smaller than ``W``
   simply pads its SoA block's unused lanes.
-* ``K = BVH::DefaultBranchingRatio<T>()`` is a good default. With AVX-512F
-  available you can try ``K = 16`` (float) — the child-AABB test is evaluated in
-  a single SIMD batch, and the wider fan-out reduces tree depth.
+* ``K = BVH::DefaultBranchingRatio<T>()`` is a good default. On AVX-512F with
+  ``float`` it is 8 (not 16), so the flat node fits one 64-byte cache line; since
+  traversal is memory-latency-bound this beat the wider fan-out in benchmarks. You
+  can still request ``K = 16`` (float) explicitly — the child-AABB test then fits a
+  single 512-bit SIMD batch and the tree is shallower, at the cost of a node that
+  straddles two cache lines — but measure before assuming the wider fan-out wins.
