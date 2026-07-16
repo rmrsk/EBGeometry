@@ -15,8 +15,11 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
+#include <limits>
 #include <numeric>
 #include <utility>
+#include <vector>
 
 // Our includes
 #include "EBGeometry_Macros.hpp"
@@ -501,6 +504,138 @@ PointCloudBVH<T, Meta, K, W>::allNearestNeighbors(std::size_t a_k) const
     std::size_t found = 0;
 
     this->query(m_positions[p], a_k, &result[p * a_k], found, p, m_leafOff[p], m_leafCnt[p]);
+  }
+
+  return result;
+}
+
+template <class T, class Meta, size_t K, size_t W>
+inline std::vector<typename PointCloudBVH<T, Meta, K, W>::Hit>
+PointCloudBVH<T, Meta, K, W>::allNearestNeighborsPacket(std::size_t a_packetSize) const
+{
+  const std::size_t numPoints = m_positions.size();
+
+  std::vector<Hit> result(numPoints);
+
+  if (this->m_linearNodes.empty() || numPoints == 0) {
+    return result;
+  }
+
+  constexpr std::size_t maxPacket = 64; // one uint64_t active mask per stack entry
+  const std::size_t     packet    = std::min(std::max<std::size_t>(a_packetSize, 1), maxPacket);
+
+  // Per-query traversal state. The query point, its running best (squared distance + cloud index),
+  // and the cloud index to exclude (the query point itself).
+  struct QState
+  {
+    Vec3T<T>    point;
+    T           bestDistanceSquared;
+    std::size_t bestIndex;
+    std::size_t exclude;
+  };
+
+  // Scan one leaf (a_cnt SoA groups from a_off) for a single query, updating its best. Identical in
+  // spirit to the single-query scanLeafBest, just parameterized on the QState.
+  const auto scanLeaf = [this](QState& a_q, std::uint32_t a_off, std::uint32_t a_cnt) noexcept {
+    for (std::uint32_t g = 0; g < a_cnt; g++) {
+      const PointGroup&      group     = this->m_primitives[a_off + g];
+      const std::array<T, W> distances = group.getDistances2(a_q.point);
+
+      for (std::size_t lane = 0; lane < W; lane++) {
+        const std::size_t cloudIndex = group.getMetaData(lane);
+
+        if (cloudIndex != a_q.exclude && distances[lane] < a_q.bestDistanceSquared) {
+          a_q.bestDistanceSquared = distances[lane];
+          a_q.bestIndex           = cloudIndex;
+        }
+      }
+    }
+  };
+
+  std::array<QState, maxPacket> q;
+
+  struct StackEntry
+  {
+    std::uint32_t nodeIdx;
+    std::uint64_t active; // bit i set => packet member i still needs this subtree
+  };
+
+  constexpr int maxStack = 256;
+
+  StackEntry stack[maxStack];
+
+  for (std::size_t base = 0; base < numPoints; base += packet) {
+    const std::size_t qn = std::min(packet, numPoints - base);
+
+    // Initialize each packet member and seed its bound from its own leaf (the tight up-front bound the
+    // single-query path relies on; without it the shared unordered descent would explore far regions).
+    for (std::size_t i = 0; i < qn; i++) {
+      const std::uint32_t p = m_order[base + i];
+
+      q[i] = QState{m_positions[p], std::numeric_limits<T>::max(), s_none, p};
+
+      scanLeaf(q[i], m_leafOff[p], m_leafCnt[p]);
+    }
+
+    const std::uint64_t allActive = (qn == 64) ? ~std::uint64_t(0) : ((std::uint64_t(1) << qn) - 1);
+
+    int stackTop = 0;
+
+    stack[stackTop++] = StackEntry{0U, allActive};
+
+    while (stackTop > 0) {
+      const StackEntry entry = stack[--stackTop];
+      const Node&      node  = this->m_linearNodes[entry.nodeIdx];
+
+      if (node.isLeaf()) {
+        const std::uint32_t primOffset = node.getPrimitivesOffset();
+        const std::uint32_t primCount  = node.getNumPrimitives();
+
+        // Scan this leaf once, reused across every still-relevant packet member; re-check each
+        // member's bound first, since it may have tightened below this node since it was pushed.
+        std::uint64_t m = entry.active;
+        while (m != 0) {
+          const int i = __builtin_ctzll(m);
+          m &= m - 1;
+
+          if (node.getDistanceToBoundingVolume2(q[i].point) < q[i].bestDistanceSquared) {
+            scanLeaf(q[i], primOffset, primCount);
+          }
+        }
+      }
+      else {
+        const auto& childOffsets = node.getChildOffsets();
+
+        for (std::size_t k = 0; k < K; k++) {
+          const Node&   child     = this->m_linearNodes[childOffsets[k]];
+          std::uint64_t childMask = 0;
+
+          std::uint64_t m = entry.active;
+          while (m != 0) {
+            const int i = __builtin_ctzll(m);
+            m &= m - 1;
+
+            if (child.getDistanceToBoundingVolume2(q[i].point) < q[i].bestDistanceSquared) {
+              childMask |= (std::uint64_t(1) << i);
+            }
+          }
+
+          if (childMask != 0) {
+            EBGEOMETRY_EXPECT(stackTop < maxStack);
+
+            stack[stackTop++] = StackEntry{childOffsets[k], childMask};
+          }
+        }
+      }
+    }
+
+    for (std::size_t i = 0; i < qn; i++) {
+      const std::uint32_t p = m_order[base + i];
+
+      if (q[i].bestIndex != s_none) {
+        result[p] = Hit{q[i].bestIndex, q[i].bestDistanceSquared};
+      }
+    }
   }
 
   return result;
