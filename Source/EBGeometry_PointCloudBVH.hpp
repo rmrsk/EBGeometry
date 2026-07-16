@@ -50,9 +50,7 @@ namespace EBGeometry {
  * @tparam T    Floating-point precision.
  * @tparam Meta User metadata type stored per point and returned via metadata(). Defaults to the
  *              cloud index itself (std::size_t).
- * @tparam K    BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>(), which balances SIMD
- *              width against node cache footprint (float is capped at 8 on AVX-512F so the node fits
- *              one cache line -- see that helper).
+ * @tparam K    BVH branching factor. Defaults to the SIMD-optimal value for T.
  * @tparam W    Points per SoA leaf lane group. Defaults to the SIMD-optimal width for T.
  */
 template <class T,

@@ -136,10 +136,9 @@ ________________________________
 ``readIntoTriangleBVH<T, Meta, K, W, StoragePolicy>(filename, maxLeafGroups, build)`` converts all
 DCEL polygons to triangles, packs them into SoA groups of ``W``, and builds a ``PackedBVH``,
 returning a ``shared_ptr<TriMeshSDF<T, Meta, K, W, StoragePolicy>>`` (or a vector thereof). SIMD
-intrinsics evaluate up to ``W`` triangles per leaf visit. ``K`` and ``W`` default to
-``BVH::DefaultBranchingRatio<T>()`` and ``TriangleSoA::DefaultWidth<T>()`` for ``T`` on the current
-ISA (``K`` balances SIMD width against node cache footprint -- capped at 8 for ``float`` on AVX-512F
-so the node fits one cache line; see :ref:`Chap:MeshSDFClasses`); ``maxLeafGroups`` (default 4)
+intrinsics evaluate up to ``W`` triangles per leaf visit. ``K`` and ``W`` default to the
+SIMD-optimal values for ``T`` on the current ISA (``BVH::DefaultBranchingRatio<T>()`` and
+``TriangleSoA::DefaultWidth<T>()``, see :ref:`Chap:MeshSDFClasses`); ``maxLeafGroups`` (default 4)
 bounds the number of full ``W``-sized SoA groups per BVH leaf; ``StoragePolicy`` defaults to
 ``BVH::ValueStorage<TriangleAoSoA<T, Meta, W>>``, matching ``TriMeshSDF``'s own default (see
 :ref:`Chap:MeshSDFClasses` for the rationale, and why ``readIntoPackedBVH``/``MeshSDF`` above has
