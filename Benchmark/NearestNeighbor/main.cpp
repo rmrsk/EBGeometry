@@ -13,9 +13,13 @@
 //                                       a harder case for uniform grids (many empty cells inside).
 //
 // kd3 (https://github.com/KaruroChori/kd3) requires C++23 (std::expected/std::span), so this whole
-// benchmark is built with -std=c++23. For a like-for-like comparison it is run here in double and
-// single-threaded (compiled without -fopenmp); kd3 is primarily float/SIMD-tuned and can parallelize
-// its build with OpenMP, neither of which is exercised here.
+// benchmark is built with -std=c++23. kd3's headline "~2.2x query throughput vs nanoflann" is a
+// single-threaded FLOAT result (in kd3's own benchmark both query loops are plain serial loops; the
+// speedup is its SoA/SIMD per-query kernel, not multithreading). Here kd3 is run in double, which
+// halves that SIMD width -- the main reason it does not reach 2x in this table. It is also compiled
+// without -fopenmp, so its build is single-threaded like everything else here; kd3's docs quote a
+// much faster build, but that number is OpenMP-parallel (its author notes it is still faster serially).
+// So these kd3 numbers are a fair single-threaded comparison, understated only by the double precision.
 
 #include <algorithm>
 #include <array>

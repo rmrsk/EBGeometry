@@ -70,12 +70,15 @@ kd3                      ~83        0.57          ~86        0.50
   raw per-query traversal throughout; `PointCloudBVH` is competitive end-to-end because it gets its
   query order for free and builds faster. Which structure to pick depends on the build/query balance
   and the point distribution — that is the point of running both cases.
-- **kd3 is run here in a deliberately restricted mode for parity**: double precision and
-  single-threaded (compiled without `-fopenmp`). In that mode it posts the fastest *build* and a
-  competitive query. Its headline ">2x faster than nanoflann" claim, though, is for `float` with its
-  SoA/SIMD fast path and an OpenMP-parallel build — none of which this same-precision, same-thread
-  comparison exercises, so treat kd3's numbers here as a lower bound on what it can do. (kd3 requires
-  C++23, so this benchmark is built with `-std=c++23`.)
+- **kd3's headline "~2.2x query throughput vs nanoflann" is a single-threaded `float` result** — in
+  kd3's own benchmark both query loops are plain serial loops, so the speedup is its SoA/SIMD
+  per-query kernel, *not* multithreading. Here kd3 is run in **double**, which halves that SIMD width;
+  that is the main reason it doesn't reach 2x in this table, and it's why these numbers are a lower
+  bound on what kd3 can do. It is compiled **without `-fopenmp`**, so its build is single-threaded
+  like the others — a *fairer* build comparison than kd3's own docs, whose fast build number is
+  OpenMP-parallel (its author notes it is still faster serially). In this fair single-threaded mode
+  kd3 posts the fastest build and a competitive query. (kd3 needs C++23, so the benchmark is built
+  with `-std=c++23`.)
 
 `MeshSDF/` — closest-point on a triangle mesh
 ---------------------------------------------
