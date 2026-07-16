@@ -163,22 +163,6 @@ public:
   allNearestNeighbors(std::size_t a_k = 1) const;
 
   /**
-   * @brief Experimental: packet variant of allNearestNeighbors(1) that walks a_packetSize spatially
-   * adjacent queries through the tree together.
-   * @details Same result as allNearestNeighbors(1) (each point's single nearest *other* point), but
-   * instead of one independent descent per point it processes a packet of consecutive (in build
-   * order, hence spatially near) points at once: every node is loaded once for the whole packet, and
-   * a per-node active bitmask tracks which packet members still need it. The single-query descent is
-   * a serial chain of dependent, latency-exposed node loads; a packet turns those into several
-   * independent chains in flight, exposing the memory-level parallelism that chain otherwise wastes.
-   * Each query still seeds from its own leaf and excludes its own point, so results are identical.
-   * @param[in] a_packetSize Queries processed together (clamped to [1, 64]). ~8 is a reasonable start.
-   * @return numPoints() Hits; result[i] is the nearest other point of cloud point i.
-   */
-  [[nodiscard]] inline std::vector<Hit>
-  allNearestNeighborsPacket(std::size_t a_packetSize = 8) const;
-
-  /**
    * @brief Brute-force closest point to an arbitrary query point (O(N) reference for closestPoint()).
    * @details Full linear scan. Same result contract as closestPoint().
    * @param[in] a_query Query point (need not be in the cloud).

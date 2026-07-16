@@ -146,23 +146,6 @@ TEMPLATE_TEST_CASE("PointCloudBVH queries match brute force", "[PointCloudBVH]",
     }
   }
 
-  SECTION("allNearestNeighborsPacket matches serial allNearestNeighbors for every packet size")
-  {
-    const auto serial = bvh.allNearestNeighbors(1);
-    REQUIRE(serial.size() == n);
-
-    // Packet sizes spanning single-query, sub-word, and full 64-bit mask; results must be identical
-    // regardless of how many queries share the walk.
-    for (const std::size_t packet : {std::size_t(1), std::size_t(3), std::size_t(8), std::size_t(64)}) {
-      const auto pk = bvh.allNearestNeighborsPacket(packet);
-      REQUIRE(pk.size() == n);
-
-      for (std::size_t i = 0; i < n; i++) {
-        CHECK_THAT(pk[i].distanceSquared, withinAbsT<T>(serial[i].distanceSquared, tol));
-      }
-    }
-  }
-
   SECTION("accessors return the stored cloud data")
   {
     for (std::size_t i = 0; i < n; i += 313) {
