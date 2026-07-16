@@ -94,3 +94,32 @@ TriangleMeshDistance       ~115         10.5
   widely-used point of reference.
 - `TriMeshSDF` and TriangleMeshDistance compute the *signed* distance (their purpose); the comparison
   is on unsigned closest-surface distance, and the cross-check confirms all three agree.
+
+Finding: the `float` BVH branching ratio (cache lines over SIMD width)
+----------------------------------------------------------------------
+
+These benchmarks drove a change to EBGeometry's default BVH branching factor,
+`BVH::DefaultBranchingRatio<T>()`. On AVX-512 the register-filling factor for `float` is 16 (one
+`_mm512_load_ps` covers all children), which used to be the default. But the flat BVH node stores `K`
+child offsets, so a `K=16` float node is 96 bytes — 24 B bounding volume + 8 B leaf fields + 16×4 B
+child offsets — and straddles **two** 64-byte cache lines, whereas `K=8` is exactly 64 B: **one** line.
+
+Both traversals here turn out to be **memory-latency-bound**, not compute-bound, so the
+cache-line-sized node wins despite the narrower SIMD fan-out (measured, one machine, `K=8` vs `K=16`
+at `float` precision):
+
+- **`NearestNeighbor` (point cloud):** ~7% faster query on the uniform cube, ~14% faster on the
+  sphere surface.
+- **`MeshSDF` (triangle mesh):** ~6–9% faster query and ~8% faster build.
+
+The mesh case is the telling one: its external queries use the SIMD child-box traversal where `K=16`
+genuinely fills a 512-bit register — a real compute advantage `K=8` gives up for a 256-bit load — and
+`K=8` *still* won. The single-cache-line node beats the wider load. So `float` is now capped at 8 to
+match `double`; every other (ISA, precision) default already fit one cache line. `K=16` remains
+available by passing the template parameter explicitly for workloads that favor it.
+
+A corollary worth flagging: simply compiling everything in `float` does **not** speed the query up on
+its own — `float`'s old default `K=16` re-inflated the node and offset the smaller scalars, so the two
+effects roughly cancelled. Holding `K=8` is what captures the win (build time, separately, is ~35%
+faster in `float` regardless). As always these are single-machine snapshots — the point is the
+mechanism and that it is reproducible, not the exact percentages.
