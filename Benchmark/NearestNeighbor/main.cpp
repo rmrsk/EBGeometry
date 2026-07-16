@@ -2,17 +2,23 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Benchmark: EBGeometry PointCloudBVH and PointCloudHashGrid vs picoflann vs nanoflann,
-// all-nearest-neighbor. 500k 3D points (double). Every point's nearest OTHER point. All four
-// verified against a brute-force sample. Both KD-trees used vanilla; distances are squared throughout.
+// Benchmark: EBGeometry PointCloudBVH and PointCloudHashGrid vs picoflann vs nanoflann vs kd3,
+// all-nearest-neighbor. 500k 3D points (double). Every point's nearest OTHER point. All five
+// verified against a brute-force sample. The KD-trees are used vanilla; distances are squared throughout.
 //
 // Two point distributions are benchmarked in turn, since spatial data structures behave very
 // differently depending on how the points fill space:
 //   1. Uniform in the unit cube      -- points fill a 3D volume evenly (the easy, balanced case).
 //   2. On the unit-sphere surface    -- points lie on a 2D manifold: locally dense, globally hollow,
 //                                       a harder case for uniform grids (many empty cells inside).
+//
+// kd3 (https://github.com/KaruroChori/kd3) requires C++23 (std::expected/std::span), so this whole
+// benchmark is built with -std=c++23. For a like-for-like comparison it is run here in double and
+// single-threaded (compiled without -fopenmp); kd3 is primarily float/SIMD-tuned and can parallelize
+// its build with OpenMP, neither of which is exercised here.
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -25,11 +31,16 @@
 
 #include <EBGeometry.hpp>
 
+#include <kd3/kd3.hpp>
+
 #include "nanoflann.hpp"
 #include "picoflann.h"
 
 using T    = double;
 using Vec3 = EBGeometry::Vec3T<T>;
+
+// kd3 tree, in double precision (its distance_t defaults to float; pin it to T for a fair comparison).
+using Kd3 = kd3::KdTree<kd3::limits<T, 3, T, std::uint32_t>>;
 
 constexpr std::size_t   numPoints  = 500000;
 constexpr std::size_t   sampleSize = 500;
@@ -264,7 +275,59 @@ runCase(const std::string& a_label, const std::vector<Vec3>& a_positions)
     row("nanoflann", buildMs, queryUs, bad);
   }
 
-  std::cout << "  flann query loops iterate in Hilbert order (warm cache, like EBGeometry's leaf order).\n";
+  // ── kd3 (per-point query_knn, k=2) ──
+  {
+    // kd3 builds from its own FatPoint {coords, payload} array (payload = cloud index), and sorts it
+    // in place. Constructing that array is kd3's required input format, so it is folded into the timed
+    // build (mirroring how fcpw's soup construction is timed as part of its build in MeshSDF).
+    std::vector<Kd3::FatPoint> fat(n);
+    timer.start();
+    for (std::size_t i = 0; i < n; i++) {
+      fat[i] = Kd3::FatPoint{{a_positions[i][0], a_positions[i][1], a_positions[i][2]}, static_cast<std::uint32_t>(i)};
+    }
+
+    auto treeExpected = Kd3::build(fat);
+    timer.stop();
+    const double buildMs = 1.0e3 * timer.seconds();
+
+    if (!treeExpected) {
+      row("kd3", buildMs, std::numeric_limits<double>::infinity(), sampleSize); // build failed -> flag it
+    }
+    else {
+      const Kd3& tree = *treeExpected;
+
+      auto nnOther = [&](std::size_t i) -> T {
+        const Kd3::point_t              q = {a_positions[i][0], a_positions[i][1], a_positions[i][2]};
+        std::array<Kd3::KnnResult, 2>   buf{};
+        const auto                      res = tree.query_knn(q, buf);
+        if (res) {
+          for (const auto& kr : *res) {
+            if (kr.payload_id != static_cast<std::uint32_t>(i)) { // skip the query point itself (dist 0)
+              return kr.dist_sq;
+            }
+          }
+        }
+        return std::numeric_limits<T>::max();
+      };
+
+      volatile T sink = T(0);
+      timer.start();
+      for (const std::uint32_t p : order) {
+        sink += nnOther(p);
+      }
+      timer.stop();
+      (void)sink;
+      const double queryUs = 1.0e6 * timer.seconds() / double(n);
+
+      std::size_t bad = 0;
+      for (std::size_t s = 0; s < sampleSize; s++) {
+        bad += !ok(nnOther(s * stride), s);
+      }
+      row("kd3", buildMs, queryUs, bad);
+    }
+  }
+
+  std::cout << "  flann/kd3 query loops iterate in Hilbert order (warm cache, like EBGeometry's leaf order).\n";
   std::cout << "  One-time Hilbert sort the flann libs need for that order: " << std::setprecision(3) << sortUsPerPt
             << " us/pt\n  (add to their query if counted; EBGeometry reuses its build order for free).\n\n";
 }
@@ -274,7 +337,7 @@ runCase(const std::string& a_label, const std::vector<Vec3>& a_positions)
 int
 main()
 {
-  std::cout << "All-nearest-neighbor: PointCloudBVH & PointCloudHashGrid vs picoflann vs nanoflann\n\n";
+  std::cout << "All-nearest-neighbor: PointCloudBVH & PointCloudHashGrid vs picoflann vs nanoflann vs kd3\n\n";
 
   runCase("Uniform in the unit cube", EBGeometry::Random::samplePoints<T>(numPoints, pointSeed));
   runCase("On the unit-sphere surface", samplePointsOnSphere(numPoints, pointSeed));

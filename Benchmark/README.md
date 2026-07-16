@@ -14,13 +14,14 @@ does not *run* or time them (see issue #109). They are pinned as git submodules 
 
 * [nanoflann](https://github.com/jlblancoc/nanoflann) — header-only KD-tree (point kNN)
 * [picoflann](https://github.com/rmsalinas/picoflann) — tiny header-only KD-tree (point kNN)
+* [kd3](https://github.com/KaruroChori/kd3) — header-only SoA/SIMD KD-tree (point kNN), **requires C++23**
 * [fcpw](https://github.com/rohan-sawhney/fcpw) — closest-point / SDF on triangle meshes
 * [TriangleMeshDistance](https://github.com/InteractiveComputerGraphics/TriangleMeshDistance) — header-only signed distance to triangle meshes
 
 Fetch them (and the top-level mesh submodule) with:
 
 ```bash
-git submodule update --init Benchmark/nanoflann Benchmark/picoflann Benchmark/fcpw \
+git submodule update --init Benchmark/nanoflann Benchmark/picoflann Benchmark/kd3 Benchmark/fcpw \
                             Benchmark/TriangleMeshDistance common-3d-test-models
 git -C Benchmark/fcpw submodule update --init deps/eigen   # fcpw's Eigen (skip the GPU slang-rhi dep)
 ```
@@ -36,7 +37,7 @@ that transfers across machines even when the timings do not.
 ----------------------------------------------------------
 
 For every point in a 500,000-point cloud (double precision), find its nearest *other* point. Compares
-EBGeometry's `PointCloudBVH` and `PointCloudHashGrid` against picoflann and nanoflann. The same
+EBGeometry's `PointCloudBVH` and `PointCloudHashGrid` against picoflann, nanoflann, and kd3. The same
 comparison is run over two point distributions, since spatial structures behave very differently
 depending on how the points fill space:
 
@@ -49,10 +50,11 @@ Representative result (one machine, illustrative — see the note on machine dep
 ```
                         uniform cube            sphere surface
 Method               Build(ms)  Query(us/pt)  Build(ms)  Query(us/pt)
-PointCloudBVH            ~165        0.90         ~155        0.66
-PointCloudHashGrid       ~19        1.85          ~17        2.04
-picoflann               ~132        0.87         ~130        0.55
-nanoflann               ~262        0.44         ~273        0.33
+PointCloudBVH           ~118        0.62         ~105        0.48
+PointCloudHashGrid       ~12        1.50          ~11        1.60
+picoflann               ~104        0.75         ~104        0.48
+nanoflann               ~225        0.41         ~230        0.36
+kd3                      ~83        0.57          ~86        0.50
 ```
 
 - The KD-tree queries are iterated in **Hilbert order** so their node cache is as warm as
@@ -61,13 +63,19 @@ nanoflann               ~262        0.44         ~273        0.33
   the EBGeometry structures reuse the ordering their build already produced.
 - **`PointCloudHashGrid` trades query speed for build speed**: an O(N) uniform grid builds ~8x faster
   than the BVH but scans neighbor cells per query, so it queries ~2x slower. It is the weakest on the
-  sphere surface (query ~2.0 us/pt) — the hollow distribution leaves its grid mostly empty while the
+  sphere surface (query ~1.6 us/pt) — the hollow distribution leaves its grid mostly empty while the
   occupied surface cells are denser than the ~1-point-per-cell target.
 - The tree/BVH methods, by contrast, get *faster* on the sphere surface than in the cube (the local
   neighborhood is effectively lower-dimensional, so pruning is tighter). nanoflann has the fastest
   raw per-query traversal throughout; `PointCloudBVH` is competitive end-to-end because it gets its
   query order for free and builds faster. Which structure to pick depends on the build/query balance
   and the point distribution — that is the point of running both cases.
+- **kd3 is run here in a deliberately restricted mode for parity**: double precision and
+  single-threaded (compiled without `-fopenmp`). In that mode it posts the fastest *build* and a
+  competitive query. Its headline ">2x faster than nanoflann" claim, though, is for `float` with its
+  SoA/SIMD fast path and an OpenMP-parallel build — none of which this same-precision, same-thread
+  comparison exercises, so treat kd3's numbers here as a lower bound on what it can do. (kd3 requires
+  C++23, so this benchmark is built with `-std=c++23`.)
 
 `MeshSDF/` — closest-point on a triangle mesh
 ---------------------------------------------

@@ -445,7 +445,7 @@ jobs:
       matrix:
         include:
           - directory: Benchmark/NearestNeighbor
-            submodules: Benchmark/picoflann Benchmark/nanoflann
+            submodules: Benchmark/picoflann Benchmark/nanoflann Benchmark/kd3
           - directory: Benchmark/MeshSDF
             submodules: Benchmark/fcpw Benchmark/TriangleMeshDistance
     steps:

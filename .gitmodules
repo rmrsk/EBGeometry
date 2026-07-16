@@ -17,3 +17,7 @@
 [submodule "Benchmark/TriangleMeshDistance"]
 	path = Benchmark/TriangleMeshDistance
 	url = https://github.com/InteractiveComputerGraphics/TriangleMeshDistance
+[submodule "Benchmark/kd3"]
+	path = Benchmark/kd3
+	url = https://github.com/KaruroChori/kd3
+	shallow = true

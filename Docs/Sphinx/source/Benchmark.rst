@@ -20,16 +20,18 @@ submodule) with:
 
 .. code-block:: bash
 
-   git submodule update --init Benchmark/nanoflann Benchmark/picoflann Benchmark/fcpw \
+   git submodule update --init Benchmark/nanoflann Benchmark/picoflann Benchmark/kd3 Benchmark/fcpw \
                                Benchmark/TriangleMeshDistance common-3d-test-models
    git -C Benchmark/fcpw submodule update --init deps/eigen   # fcpw's Eigen (skip the GPU dep)
 
 Each benchmark ships a ``GNUmakefile`` (``make && ./<name>.ex``). See each folder's ``README.md`` for
 the full detail and representative numbers.
 
-* :file:`Benchmark/NearestNeighbor` -- all-nearest-neighbor over a point cloud: ``PointCloudBVH`` vs
-  `nanoflann <https://github.com/jlblancoc/nanoflann>`_ vs
-  `picoflann <https://github.com/rmsalinas/picoflann>`_.
+* :file:`Benchmark/NearestNeighbor` -- all-nearest-neighbor over a point cloud: ``PointCloudBVH`` and
+  ``PointCloudHashGrid`` vs `nanoflann <https://github.com/jlblancoc/nanoflann>`_ vs
+  `picoflann <https://github.com/rmsalinas/picoflann>`_ vs
+  `kd3 <https://github.com/KaruroChori/kd3>`_ (a SoA/SIMD KD-tree; needs C++23, run here in double and
+  single-threaded for parity).
 * :file:`Benchmark/MeshSDF` -- closest-point on a triangle mesh: ``TriMeshSDF`` vs
   `fcpw <https://github.com/rohan-sawhney/fcpw>`_ (built with its Enoki CPU vectorization) vs
   `TriangleMeshDistance <https://github.com/InteractiveComputerGraphics/TriangleMeshDistance>`_.
