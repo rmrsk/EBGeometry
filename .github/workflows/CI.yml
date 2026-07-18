@@ -430,6 +430,29 @@ jobs:
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
           ASAN_OPTIONS: detect_leaks=1
 
+  GPU-CUDA-Compile:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: GPU CUDA compile (device-portability smoke)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Advisory while the GPU port is in progress: compiles the Tests/GPU/*.cu device-portability
+    # smoke test with nvcc to verify the EBGEOMETRY_HOST_DEVICE annotations. Compile-only -- no GPU
+    # is needed. continue-on-error keeps it off the merge gate until it has been confirmed green;
+    # promote it (add to CI-passed needs, drop continue-on-error) once stable.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install CUDA toolkit
+        uses: Jimver/cuda-toolkit@v0.2.19
+        with:
+          cuda: '12.5.0'
+          method: 'network'
+          sub-packages: '["nvcc", "cudart"]'
+      - name: Configure (CUDA smoke test)
+        run: cmake -S . -B build/cuda -DEBGEOMETRY_ENABLE_CUDA=ON
+      - name: Build CUDA smoke test
+        run: cmake --build build/cuda --target EBGeometry_GPUSmoke --parallel 2
+
   CI-passed:
     needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Build-documentation, Unit-Tests, Release-Test, Sanitizers]
     runs-on: ubuntu-latest

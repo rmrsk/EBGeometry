@@ -7,6 +7,16 @@
 > (old&rarr;new commit map + how to repoint). If you just clone/build the library
 > or vendor `EBGeometry.hpp`, no action is needed.
 
+<!-- REMOVE this banner once the GPU port (issue #115) is complete. -->
+> [!WARNING]
+> **GPU port in progress.** EBGeometry is undergoing a large, multi-PR port to add
+> run-time-polymorphic GPU evaluation (CUDA/HIP/SYCL/OpenACC) via a compiled "tape"
+> (see [issue #115](https://github.com/rmrsk/EBGeometry/issues/115)). During this
+> work intermediate commits may leave the tree in a transient, **API-unstable**,
+> partially-ported state, and public interfaces may change without deprecation
+> aliases (clean breaks). Pin a tagged release if you need stability while the port
+> lands.
+
 ## EBGeometry - a header-only C++ library for signed distance fields
 
 [![Documentation](https://github.com/rmrsk/EBGeometry/actions/workflows/docs.yml/badge.svg)](https://rmrsk.github.io/EBGeometry/)
