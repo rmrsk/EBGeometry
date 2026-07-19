@@ -543,10 +543,10 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::getClosestTriangle(const Vec3T<T>& a_p
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  // Same SIMD-pruned traversal as signedDistance(), but the running state also carries the winning
+  // Same SIMD-pruned traversal as value(), but the running state also carries the winning
   // triangle's metadata: each visited leaf group reports both its closest signed distance and that
   // triangle's Meta via TriangleAoSoA::signedDistance(point, Meta&). The pruning bound is still the
-  // squared running distance, so node pruning is identical to signedDistance()'s.
+  // squared running distance, so node pruning is identical to value()'s.
   ClosestTriangle closest;
 
   const auto& groups = m_bvh->getPrimitives();
