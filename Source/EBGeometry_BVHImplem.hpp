@@ -1038,6 +1038,13 @@ PackedBVH<T, P, K, StoragePolicy>::getPrimitives() const noexcept
 }
 
 template <class T, class P, size_t K, class StoragePolicy>
+inline const std::vector<typename PackedBVH<T, P, K, StoragePolicy>::Node>&
+PackedBVH<T, P, K, StoragePolicy>::getNodes() const noexcept
+{
+  return m_linearNodes;
+}
+
+template <class T, class P, size_t K, class StoragePolicy>
 inline const EBGeometry::BoundingVolumes::AABBT<T>&
 PackedBVH<T, P, K, StoragePolicy>::getBoundingVolume() const noexcept
 {

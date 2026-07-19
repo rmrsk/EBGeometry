@@ -633,6 +633,20 @@ public:
   [[nodiscard]] const EBGeometry::BoundingVolumes::AABBT<T>&
   getBoundingVolume() const noexcept;
 
+  /**
+   * @brief Lower this BVH union into the tape as a native BVH clause (see EBGeometry_Tape.hpp).
+   * @details Emits a BVH_UNION clause whose block copies the internal PackedBVH's node topology;
+   * every leaf primitive's subtree is flattened into the tape's deferred clause region and
+   * executed on demand by the interpreter's pruned traversal. A BVH union that is itself a leaf
+   * primitive of an enclosing BVH union lowers to an opaque host callback instead (exact, but
+   * host-only).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
+
 protected:
   /**
    * @brief Flat BVH over all input primitives.
@@ -714,6 +728,20 @@ public:
    */
   [[nodiscard]] const EBGeometry::BoundingVolumes::AABBT<T>&
   getBoundingVolume() const noexcept;
+
+  /**
+   * @brief Lower this BVH smooth union into the tape (see EBGeometry_Tape.hpp).
+   * @details When Blend has a registered smooth ISA opcode (SmoothMinOp, SmoothMaxOp, ExpMinOp),
+   * emits a native BVH_SMOOTH_UNION clause whose pruned traversal tracks the two nearest leaf
+   * values and blends them with Blend's trait -- exactly what value() computes. An unregistered
+   * custom Blend, or a smooth union that is itself a leaf primitive of an enclosing BVH union,
+   * lowers to an opaque host callback instead (exact, but host-only).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
 
 protected:
   /**

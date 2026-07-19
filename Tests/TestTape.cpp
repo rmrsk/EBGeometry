@@ -4,9 +4,10 @@
 // Test suite for EBGeometry_Tape.hpp: the flat linear-SSA tape and its single-pass interpreter.
 // Validates the tape against the recursive value() oracle -- for every covered tree,
 // compile(tree).value(p) must reproduce tree.value(p). It also checks device-eligibility
-// bookkeeping: pure-primitive trees (including binary smooth combiners with a registered Blend) are
-// device-eligible, while opaque-host fallbacks (Perlin, Blur, smooth combiners over more than two
-// children, custom unregistered blends, BVH unions) are not.
+// bookkeeping: pure-primitive trees (including binary smooth combiners with a registered Blend and
+// the BVH-accelerated unions, which lower to native BVH clauses with an in-interpreter pruned
+// traversal) are device-eligible, while opaque-host fallbacks (Perlin, Blur, smooth combiners over
+// more than two children, custom unregistered blends, nested BVH unions) are not.
 
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
@@ -462,40 +463,471 @@ TEMPLATE_TEST_CASE("Tape: TapeView::value with caller-provided scratch matches T
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// (11) BVH-accelerated union -> opaque host fallback (Tier 6 gives it a native BVH opcode)
+// (11) BVH-accelerated unions -> native BVH clauses (Tier 6): the tape carries the PackedBVH's
+//      topology and the interpreter runs a pruned traversal that executes leaf clause sub-ranges
+//      from the deferred region on demand.
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("Tape: BVH-accelerated union compiles via the opaque-host fallback",
-                   "[Tape][DeviceEligible][BVH]",
+namespace {
+
+// A row of disjoint unit spheres, centers a_spacing apart, with tight AABBs.
+template <class T>
+void
+makeSphereRow(int                                         a_numSpheres,
+              T                                           a_spacing,
+              std::vector<std::shared_ptr<SphereSDF<T>>>& a_spheres,
+              std::vector<BoundingVolumes::AABBT<T>>&     a_bvs)
+{
+  for (int i = 0; i < a_numSpheres; i++) {
+    const Vec3T<T> center(T(i) * a_spacing, 0, 0);
+
+    a_spheres.push_back(std::make_shared<SphereSDF<T>>(center, T(1)));
+    a_bvs.emplace_back(center - Vec3T<T>::ones(), center + Vec3T<T>::ones());
+  }
+}
+
+// A 6x6x6 grid (216 entries) of mixed, transformed primitives -- spheres, rotated boxes, scaled
+// tori, offset capsules -- with conservative AABBs. Every entry is a metric SDF built from
+// registered primitives/transforms only, so the whole scene lowers natively.
+template <class T>
+void
+makeMixedScene(std::vector<std::shared_ptr<IF<T>>>& a_primitives, std::vector<BoundingVolumes::AABBT<T>>& a_bvs)
+{
+  constexpr int n = 6;
+
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      for (int k = 0; k < n; k++) {
+        const Vec3T<T> center(T(3 * i), T(3 * j), T(3 * k));
+
+        std::shared_ptr<IF<T>> primitive;
+
+        switch ((i + j + k) % 4) {
+        case 0: {
+          primitive = Translate<T>(std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), T(0.8)), center);
+
+          break;
+        }
+        case 1: {
+          primitive = Translate<T>(
+            Rotate<T>(std::make_shared<BoxSDF<T>>(Vec3T<T>(-0.7, -0.7, -0.7), Vec3T<T>(0.7, 0.7, 0.7)), T(30), 2),
+            center);
+
+          break;
+        }
+        case 2: {
+          primitive =
+            Translate<T>(Scale<T>(std::make_shared<TorusSDF<T>>(Vec3T<T>::zeros(), T(0.5), T(0.2)), T(1.5)), center);
+
+          break;
+        }
+        default: {
+          primitive = Translate<T>(
+            Offset<T>(std::make_shared<CapsuleSDF<T>>(Vec3T<T>(0, -0.4, 0), Vec3T<T>(0, 0.4, 0), T(0.3)), T(0.1)),
+            center);
+
+          break;
+        }
+        }
+
+        a_primitives.push_back(primitive);
+        a_bvs.emplace_back(center - Vec3T<T>(1.5, 1.5, 1.5), center + Vec3T<T>(1.5, 1.5, 1.5));
+      }
+    }
+  }
+}
+
+// A dense-ish grid of query points spanning the mixed scene (inside, on-surface, and far), plus
+// the standard query spread.
+template <class T>
+std::vector<Vec3T<T>>
+mixedScenePoints()
+{
+  std::vector<Vec3T<T>> points = queryPoints<T>();
+
+  const T coords[6] = {T(-2.0), T(1.3), T(4.9), T(8.1), T(11.7), T(16.4)};
+
+  for (const T x : coords) {
+    for (const T y : coords) {
+      for (const T z : coords) {
+        points.emplace_back(x, y, z);
+      }
+    }
+  }
+
+  return points;
+}
+
+// Golden equivalence for one branching factor: the tape must be device-eligible and reproduce
+// BVHUnionIF::value. Exact agreement is expected for metric primitives: both sides fold identical
+// clause-evaluated leaf values, and branch-and-bound with a valid lower bound returns the exact
+// minimum regardless of visited-set differences.
+template <class T, size_t K>
+void
+requireBVHUnionGolden()
+{
+  using BV = BoundingVolumes::AABBT<T>;
+
+  std::vector<std::shared_ptr<IF<T>>> primitives;
+  std::vector<BV>                     bvs;
+
+  makeMixedScene<T>(primitives, bvs);
+
+  const BVHUnionIF<T, IF<T>, BV, K> bvhUnion(primitives, bvs);
+
+  const Tape<T> tape = compile<T>(bvhUnion);
+
+  REQUIRE(tape.isDeviceEligible());
+
+  for (const auto& p : mixedScenePoints<T>()) {
+    REQUIRE_THAT(tape.value(p), withinAbsT(bvhUnion.value(p), exactMargin<T>()));
+  }
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Tape: BVH union over mixed transformed primitives lowers natively (K in {2,4,8})",
+                   "[Tape][BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  requireBVHUnionGolden<T, 2>();
+  requireBVHUnionGolden<T, 4>();
+  requireBVHUnionGolden<T, 8>();
+}
+
+TEMPLATE_TEST_CASE("Tape: BVH tape structure: deferred clause region and block/leaf tables",
+                   "[Tape][BVH]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T  = TestType;
   using BV = BoundingVolumes::AABBT<T>;
 
-  constexpr size_t K          = 4;
-  constexpr int    numSpheres = 4;
+  constexpr int numSpheres = 4;
 
-  // A row of disjoint unit spheres, centers 3 apart (mirrors TestCSG's sphereRow fixture).
   std::vector<std::shared_ptr<SphereSDF<T>>> spheres;
   std::vector<BV>                            bvs;
 
-  for (int i = 0; i < numSpheres; i++) {
+  makeSphereRow<T>(numSpheres, T(3), spheres, bvs);
+
+  const BVHUnionIF<T, SphereSDF<T>, BV, 2> bvhUnion(spheres, bvs);
+
+  const Tape<T> tape = compile<T>(bvhUnion);
+
+  // The whole main program is the single BVH clause; every sphere's subtree lives in the deferred
+  // region behind it.
+  REQUIRE(tape.getNumMainClauses() == 1);
+  REQUIRE(tape.getNumMainClauses() < static_cast<uint32_t>(tape.getClauses().size()));
+  REQUIRE(tape.getBVHBlocks().size() == 1);
+  REQUIRE(tape.getBVHBlocks()[0].numLeaves == static_cast<uint32_t>(numSpheres));
+  REQUIRE(tape.getBVHBlocks()[0].numNodes == static_cast<uint32_t>(tape.getBVHNodes().size()));
+  REQUIRE(tape.getBVHLeaves().size() == static_cast<size_t>(numSpheres));
+
+  for (const auto& leaf : tape.getBVHLeaves()) {
+    REQUIRE(leaf.clauseBegin >= tape.getNumMainClauses());
+    REQUIRE(leaf.clauseCount > 0);
+    REQUIRE(leaf.clauseBegin + leaf.clauseCount <= static_cast<uint32_t>(tape.getClauses().size()));
+  }
+
+  // A tape without BVH clauses has no deferred region.
+  const auto sphereA = std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), T(1));
+  const auto sphereB = std::make_shared<SphereSDF<T>>(Vec3T<T>(3, 0, 0), T(1));
+
+  const Tape<T> plainTape = compile<T>(*Union<T>(sphereA, sphereB));
+
+  REQUIRE(plainTape.getNumMainClauses() == static_cast<uint32_t>(plainTape.getClauses().size()));
+  REQUIRE(plainTape.getBVHBlocks().empty());
+}
+
+namespace {
+
+// A sphere that counts its value() evaluations. It has no flatten() override and no leaf trait, so
+// inside a BVH leaf subtree it lowers to a HOST_CALLBACK clause -- allowed (the tape merely
+// becomes host-only), and the counter then observes directly whether the interpreter's traversal
+// executed or skipped that leaf's clause sub-range.
+template <class T>
+class CountingSphereIF : public ImplicitFunction<T>
+{
+public:
+  CountingSphereIF(const Vec3T<T>& a_center, const T a_radius, int* a_counter) noexcept
+    : m_sphere(a_center, a_radius), m_counter(a_counter)
+  {}
+
+  [[nodiscard]] T
+  value(const Vec3T<T>& a_point) const noexcept override
+  {
+    (*m_counter)++;
+
+    return m_sphere.value(a_point);
+  }
+
+private:
+  SphereSDF<T> m_sphere;
+  int*         m_counter;
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Tape: BVH traversal prunes leaf clause sub-ranges (observed via a counting leaf)",
+                   "[Tape][BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T  = TestType;
+  using BV = BoundingVolumes::AABBT<T>;
+
+  int counter = 0;
+
+  // Four unit spheres near the origin plus a counting sphere far away at x = 30.
+  std::vector<std::shared_ptr<IF<T>>> primitives;
+  std::vector<BV>                     bvs;
+
+  for (int i = 0; i < 4; i++) {
     const Vec3T<T> center(T(3 * i), 0, 0);
 
-    spheres.push_back(std::make_shared<SphereSDF<T>>(center, T(1)));
+    primitives.push_back(std::make_shared<SphereSDF<T>>(center, T(1)));
     bvs.emplace_back(center - Vec3T<T>::ones(), center + Vec3T<T>::ones());
   }
 
-  const BVHUnionIF<T, SphereSDF<T>, BV, K> bvhUnion(spheres, bvs);
+  const Vec3T<T> farCenter(T(30), 0, 0);
 
-  // BVHUnionIF has no flatten() lowering override, so the whole node lowers to a single opaque
-  // host-callback clause -- correct but host-only. Tier 6 gives it a native BVH opcode.
+  primitives.push_back(std::make_shared<CountingSphereIF<T>>(farCenter, T(1), &counter));
+  bvs.emplace_back(farCenter - Vec3T<T>::ones(), farCenter + Vec3T<T>::ones());
+
+  const BVHUnionIF<T, IF<T>, BV, 2> bvhUnion(primitives, bvs);
+
   const Tape<T> tape = compile<T>(bvhUnion);
+
+  // The counting leaf's subtree is a host callback, so the tape is host-only -- but the BVH clause
+  // itself is still native.
+  REQUIRE_FALSE(tape.isDeviceEligible());
+  REQUIRE(counter == 0);
+
+  // Querying inside the first sphere gives a negative running best, collapsing the pruning bound
+  // to zero: the far leaf's sub-range must never execute.
+  const T nearValue = tape.value(Vec3T<T>::zeros());
+
+  REQUIRE(counter == 0);
+  REQUIRE_THAT(nearValue, withinAbsT(T(-1), exactMargin<T>()));
+
+  // Querying at the far sphere's center must execute its sub-range.
+  const T farValue = tape.value(farCenter);
+
+  REQUIRE(counter > 0);
+  REQUIRE_THAT(farValue, withinAbsT(T(-1), exactMargin<T>()));
+}
+
+TEMPLATE_TEST_CASE("Tape: a nested BVH union lowers to a host callback and stays exact",
+                   "[Tape][BVH][DeviceEligible]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T  = TestType;
+  using BV = BoundingVolumes::AABBT<T>;
+
+  std::vector<std::shared_ptr<SphereSDF<T>>> innerSpheres;
+  std::vector<BV>                            innerBVs;
+
+  makeSphereRow<T>(4, T(3), innerSpheres, innerBVs);
+
+  const auto inner = std::make_shared<BVHUnionIF<T, SphereSDF<T>, BV, 2>>(innerSpheres, innerBVs);
+
+  // Outer union: the inner BVH union is one leaf primitive among ordinary spheres.
+  std::vector<std::shared_ptr<IF<T>>> outerPrimitives;
+  std::vector<BV>                     outerBVs;
+
+  outerPrimitives.push_back(inner);
+  outerBVs.push_back(inner->getBoundingVolume());
+
+  for (int i = 0; i < 3; i++) {
+    const Vec3T<T> center(T(3 * i), T(5), 0);
+
+    outerPrimitives.push_back(std::make_shared<SphereSDF<T>>(center, T(1)));
+    outerBVs.emplace_back(center - Vec3T<T>::ones(), center + Vec3T<T>::ones());
+  }
+
+  const BVHUnionIF<T, IF<T>, BV, 2> outer(outerPrimitives, outerBVs);
+
+  const Tape<T> tape = compile<T>(outer);
+
+  // The inner union's leaf subtree is an opaque host callback (Tier 6 forbids nested BVH clauses),
+  // so the tape is host-only -- but values still match the recursive oracle exactly.
+  REQUIRE_FALSE(tape.isDeviceEligible());
+
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE_THAT(tape.value(p), withinAbsT(outer.value(p), exactMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: BVH smooth union with the default SmoothMinOp blend lowers natively",
+                   "[Tape][BVH][Smooth]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T  = TestType;
+  using BV = BoundingVolumes::AABBT<T>;
+
+  // Overlapping spheres (centers 1.5 apart, radius 1) so the two-nearest blend is active over much
+  // of the row.
+  std::vector<std::shared_ptr<SphereSDF<T>>> spheres;
+  std::vector<BV>                            bvs;
+
+  makeSphereRow<T>(8, T(1.5), spheres, bvs);
+
+  const T smoothLen = T(0.25);
+
+  const BVHSmoothUnionIF<T, SphereSDF<T>, BV, 4> smooth(spheres, bvs, smoothLen);
+
+  const Tape<T> tape = compile<T>(smooth);
+
+  REQUIRE(tape.isDeviceEligible());
+
+  for (const auto& p : mixedScenePoints<T>()) {
+    REQUIRE_THAT(tape.value(p), withinAbsT(smooth.value(p), formulaMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: BVH smooth union with an explicit ExpMinOp blend lowers natively",
+                   "[Tape][BVH][Smooth]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T  = TestType;
+  using BV = BoundingVolumes::AABBT<T>;
+
+  std::vector<std::shared_ptr<SphereSDF<T>>> spheres;
+  std::vector<BV>                            bvs;
+
+  makeSphereRow<T>(8, T(1.5), spheres, bvs);
+
+  const T smoothLen = T(0.25);
+
+  const BVHSmoothUnionIF<T, SphereSDF<T>, BV, 4, ExpMinOp<T>> smooth(spheres, bvs, smoothLen);
+
+  const Tape<T> tape = compile<T>(smooth);
+
+  REQUIRE(tape.isDeviceEligible());
+
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE_THAT(tape.value(p), withinAbsT(smooth.value(p), formulaMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: BVH smooth union with an unregistered custom blend falls back to a host callback",
+                   "[Tape][BVH][Smooth][DeviceEligible]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T  = TestType;
+  using BV = BoundingVolumes::AABBT<T>;
+
+  std::vector<std::shared_ptr<SphereSDF<T>>> spheres;
+  std::vector<BV>                            bvs;
+
+  makeSphereRow<T>(8, T(1.5), spheres, bvs);
+
+  const T smoothLen = T(0.25);
+
+  const BVHSmoothUnionIF<T, SphereSDF<T>, BV, 4, QuadraticBlend<T>> smooth(spheres, bvs, smoothLen);
+
+  const Tape<T> tape = compile<T>(smooth);
 
   REQUIRE_FALSE(tape.isDeviceEligible());
 
   for (const auto& p : queryPoints<T>()) {
-    REQUIRE_THAT(tape.value(p), withinAbsT(bvhUnion.value(p), exactMargin<T>()));
+    REQUIRE_THAT(tape.value(p), withinAbsT(smooth.value(p), formulaMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: single-primitive BVH smooth union blends against +inf, matching value()",
+                   "[Tape][BVH][Smooth]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T  = TestType;
+  using BV = BoundingVolumes::AABBT<T>;
+
+  std::vector<std::shared_ptr<SphereSDF<T>>> spheres{std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), T(1))};
+  std::vector<BV>                            bvs{BV(-Vec3T<T>::ones(), Vec3T<T>::ones())};
+
+  const BVHSmoothUnionIF<T, SphereSDF<T>, BV, 2> smooth(spheres, bvs, T(0.25));
+
+  const Tape<T> tape = compile<T>(smooth);
+
+  REQUIRE(tape.isDeviceEligible());
+
+  // With a single primitive the second-nearest value stays +inf and the blend must reduce to the
+  // primitive's own value, exactly as in BVHSmoothUnionIF::value.
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE_THAT(tape.value(p), withinAbsT(smooth.value(p), formulaMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: BVH leaf subtrees share one scratch slot window",
+                   "[Tape][BVH][Slots]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T  = TestType;
+  using BV = BoundingVolumes::AABBT<T>;
+
+  constexpr int numLeaves = 128;
+
+  // Every leaf is Translate(Sphere): one coordinate slot (the translated frame) plus one value
+  // slot (the sphere) per leaf if slots were disjoint.
+  std::vector<std::shared_ptr<IF<T>>> primitives;
+  std::vector<BV>                     bvs;
+
+  for (int i = 0; i < numLeaves; i++) {
+    const Vec3T<T> center(T(3 * i), 0, 0);
+
+    primitives.push_back(Translate<T>(std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), T(1)), center));
+    bvs.emplace_back(center - Vec3T<T>::ones(), center + Vec3T<T>::ones());
+  }
+
+  const BVHUnionIF<T, IF<T>, BV, 8> bvhUnion(primitives, bvs);
+
+  const Tape<T> tape = compile<T>(bvhUnion);
+
+  REQUIRE(tape.isDeviceEligible());
+
+  // Leaf sub-ranges execute strictly sequentially and each leaf's value slot is folded immediately
+  // after its range runs, so all 128 leaves share one slot window: scratch is main program + max
+  // over leaves, not main + sum. Disjoint slots would need >= numLeaves entries here.
+  REQUIRE(tape.getNumValueSlots() < static_cast<uint32_t>(numLeaves));
+  REQUIRE(tape.getNumCoordSlots() < static_cast<uint32_t>(numLeaves));
+
+  // Exact budget for this tape: {BVH output, shared leaf value} and {root frame, shared translated
+  // frame}.
+  REQUIRE(tape.getNumValueSlots() == 2);
+  REQUIRE(tape.getNumCoordSlots() == 2);
+
+  const BVHUnionIF<T, IF<T>, BV, 8>& oracle = bvhUnion;
+
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE_THAT(tape.value(p), withinAbsT(oracle.value(p), exactMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: TapeView::value with exactly-sized caller scratch works on a BVH tape",
+                   "[Tape][BVH][Value]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T  = TestType;
+  using BV = BoundingVolumes::AABBT<T>;
+
+  std::vector<std::shared_ptr<IF<T>>> primitives;
+  std::vector<BV>                     bvs;
+
+  makeMixedScene<T>(primitives, bvs);
+
+  const BVHUnionIF<T, IF<T>, BV, 4> bvhUnion(primitives, bvs);
+
+  const Tape<T>     tape = compile<T>(bvhUnion);
+  const TapeView<T> view = tape.view();
+
+  // Buffers sized to exactly the advertised slot counts: the deferred leaf sub-ranges must fit in
+  // the same scratch as the main pass (the shared slot window), with no out-of-bounds access
+  // (verified under ASan in the debug-san preset).
+  std::vector<Vec3T<T>> coordScratch(tape.getNumCoordSlots());
+  std::vector<T>        valueScratch(tape.getNumValueSlots());
+
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE_THAT(view.value(p, coordScratch.data(), valueScratch.data()), withinAbsT(tape.value(p), exactMargin<T>()));
   }
 }
 
@@ -556,5 +988,53 @@ TEMPLATE_TEST_CASE("Tape: nested tape evaluation through a host callback is safe
 
   for (const auto& p : queryPoints<T>()) {
     REQUIRE_THAT(tape.value(p), withinAbsT(outer->value(p), exactMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: nested tape evaluation through a BVH leaf host callback is safe",
+                   "[Tape][BVH][HostCallback][Reentrancy]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T  = TestType;
+  using BV = BoundingVolumes::AABBT<T>;
+
+  // The adapter's inner tree is deliberately deeper (more slots) than the enclosing BVH tape, so a
+  // naively shared scratch buffer would be regrown and overwritten when the BVH leaf's HOST_CALLBACK
+  // re-enters Tape::value mid-traversal on this same thread.
+  const Vec3T<T> adapterCenter(T(9), 0, 0);
+
+  const auto box   = std::make_shared<BoxSDF<T>>(Vec3T<T>(-1, -1, -1), Vec3T<T>(1, 1, 1));
+  const auto inner = Offset<T>(Translate<T>(Rotate<T>(Scale<T>(box, T(0.5)), T(20), 1), adapterCenter), T(0.1));
+
+  const auto adapter = std::make_shared<TapeBackedIF<T>>(inner);
+
+  std::vector<std::shared_ptr<IF<T>>> primitives;
+  std::vector<BV>                     bvs;
+
+  for (int i = 0; i < 3; i++) {
+    const Vec3T<T> center(T(3 * i), 0, 0);
+
+    primitives.push_back(std::make_shared<SphereSDF<T>>(center, T(1)));
+    bvs.emplace_back(center - Vec3T<T>::ones(), center + Vec3T<T>::ones());
+  }
+
+  primitives.push_back(adapter);
+  bvs.emplace_back(adapterCenter - Vec3T<T>(2, 2, 2), adapterCenter + Vec3T<T>(2, 2, 2));
+
+  const BVHUnionIF<T, IF<T>, BV, 2> bvhUnion(primitives, bvs);
+
+  const Tape<T> tape = compile<T>(bvhUnion);
+
+  REQUIRE_FALSE(tape.isDeviceEligible());
+
+  // Points near the adapter force its leaf sub-range (and thus the nested tape evaluation) to run;
+  // the standard spread covers the pruned side too.
+  std::vector<Vec3T<T>> points = queryPoints<T>();
+
+  points.push_back(adapterCenter);
+  points.emplace_back(T(8.4), T(0.2), T(-0.1));
+
+  for (const auto& p : points) {
+    REQUIRE_THAT(tape.value(p), withinAbsT(bvhUnion.value(p), exactMargin<T>()));
   }
 }

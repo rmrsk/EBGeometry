@@ -34,6 +34,7 @@
 
 // Our includes
 #include "EBGeometry_AnalyticDistanceFunctions.hpp"
+#include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_CSG.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_ImplicitFunction.hpp"
@@ -156,6 +157,11 @@ enum class Opcode : uint16_t
   SMOOTH_MIN,       ///< Smooth combiner: polynomial smooth minimum (SmoothMinOp::eval).
   SMOOTH_MAX,       ///< Smooth combiner: polynomial smooth maximum (SmoothMaxOp::eval).
   EXP_MIN,          ///< Smooth combiner: exponential smooth minimum (ExpMinOp::eval).
+  BVH_UNION,        ///< BVH-pruned sharp union: valueSlot[out] = min over all non-culled leaf
+                    ///  subtrees. paramIndex indexes the TapeBVHBlock array; in0 is the input
+                    ///  coordinate slot.
+  BVH_SMOOTH_UNION, ///< BVH-pruned smooth union: the two nearest leaf-subtree values, blended with
+                    ///  the block's registered smooth operator. Same operand layout as BVH_UNION.
   HOST_CALLBACK     ///< Opaque host node: valueSlot[out] = node->value(coordSlot[in0]). Host only.
 };
 #else
@@ -166,7 +172,9 @@ enum class Opcode : uint16_t
     EBGEOMETRY_TAPE_MAPVALUE_OPS(EBGEOMETRY_TAPE_ENUM_ENTRY) EBGEOMETRY_TAPE_COMBINE_OPS(EBGEOMETRY_TAPE_ENUM_ENTRY)
       EBGEOMETRY_TAPE_SMOOTH_OPS(EBGEOMETRY_TAPE_ENUM_ENTRY)
 #undef EBGEOMETRY_TAPE_ENUM_ENTRY
-        HOST_CALLBACK
+        BVH_UNION,
+  BVH_SMOOTH_UNION,
+  HOST_CALLBACK
 };
 #endif
 
@@ -249,6 +257,141 @@ inline constexpr bool isRegisteredBlend = false;
 template <class Blend>
 inline constexpr bool isRegisteredBlend<Blend, std::void_t<decltype(BlendOpcodeOf<Blend>::value)>> = true;
 /// @endcond
+
+/**
+ * @brief Fixed traversal-stack capacity for the tape-internal BVH traversal.
+ * @details Mirrors the fixed 256-entry stacks used by every SIMD path of
+ * @c BVH::PackedBVH::pruneTraverse; guarded by @c EBGEOMETRY_EXPECT at push time.
+ */
+inline constexpr uint32_t TapeBVHStackSize = 256;
+
+/**
+ * @brief Maximum number of children per tape-internal BVH node.
+ * @details Covers every SIMD-supported branching factor K of @c BVH::PackedBVH; enforced by
+ * @c static_assert in the BVH-union @c flatten overrides and by @c EBGEOMETRY_EXPECT in
+ * @ref TapeBuilder::emitBVHUnion.
+ */
+inline constexpr uint32_t TapeBVHMaxChildren = 16;
+
+/**
+ * @brief One flattened BVH node stored in the tape's shared BVH node array.
+ * @details All index fields are global indices into the tape's shared @c bvhNodes / @c bvhChildren
+ * / @c bvhLeaves arrays (blocks are appended back to back, so no per-block base arithmetic is
+ * needed at query time). The bounding box is stored as raw corners rather than an
+ * @c BoundingVolumes::AABBT (whose user-provided copy constructor makes it not trivially
+ * copyable); the interpreter rebuilds an @c AABBT on the fly and evaluates its
+ * @c getDistance2 -- the single source of truth for the point-to-box distance.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct TapeBVHNode
+{
+  /**
+   * @brief Low corner of this node's axis-aligned bounding box.
+   */
+  Vec3T<T> lo;
+
+  /**
+   * @brief High corner of this node's axis-aligned bounding box.
+   */
+  Vec3T<T> hi;
+
+  /**
+   * @brief Interior nodes: index of the first entry in the shared child array (entries are global
+   * node indices). Unused for leaves.
+   */
+  uint32_t childBegin = 0;
+
+  /**
+   * @brief Interior nodes: number of children (the K of the source PackedBVH). Zero for leaves.
+   */
+  uint32_t childCount = 0;
+
+  /**
+   * @brief Leaves: index of the first entry in the shared leaf array. Unused for interior nodes.
+   */
+  uint32_t leafBegin = 0;
+
+  /**
+   * @brief Leaves: number of leaf primitives; a value greater than zero marks this node as a leaf
+   * (mirroring @c PackedBVH::Node::isLeaf).
+   */
+  uint32_t leafCount = 0;
+};
+
+static_assert(std::is_trivially_copyable_v<TapeBVHNode<float>>, "TapeBVHNode must be trivially copyable");
+
+/**
+ * @brief One BVH leaf primitive: a clause sub-range of the same tape holding its flattened subtree.
+ * @details The sub-range lives in the tape's deferred region @c [numMainClauses, numClauses) and is
+ * executed on demand by a BVH clause; after the range has run, @ref valueSlot holds the subtree's
+ * value at the query point.
+ */
+struct TapeBVHLeaf
+{
+  /**
+   * @brief First clause of the subtree, inside the deferred region.
+   */
+  uint32_t clauseBegin = 0;
+
+  /**
+   * @brief Number of clauses in the subtree (always at least one).
+   */
+  uint32_t clauseCount = 0;
+
+  /**
+   * @brief Value slot holding the subtree's result after the sub-range has executed.
+   */
+  uint32_t valueSlot = 0;
+};
+
+static_assert(std::is_trivially_copyable_v<TapeBVHLeaf>, "TapeBVHLeaf must be trivially copyable");
+
+/**
+ * @brief Per-clause header of one BVH-union block, indexed by the clause's @c paramIndex.
+ * @details Ties one BVH_UNION / BVH_SMOOTH_UNION clause to its slice of the tape's shared BVH
+ * arrays. The blend tag is a tape-internal selector (the smooth opcode of the block's registered
+ * blend operator); the public choice of blend is the @c Blend template parameter of
+ * @c BVHSmoothUnionIF.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct TapeBVHBlock
+{
+  /**
+   * @brief Smoothing length (BVH_SMOOTH_UNION only; zero for BVH_UNION).
+   */
+  T smoothLen = T(0);
+
+  /**
+   * @brief Global index of this block's root node in the shared BVH node array.
+   */
+  uint32_t rootNode = 0;
+
+  /**
+   * @brief Number of nodes in this block (validation/debugging).
+   */
+  uint32_t numNodes = 0;
+
+  /**
+   * @brief Index of this block's first entry in the shared leaf array.
+   */
+  uint32_t leafBegin = 0;
+
+  /**
+   * @brief Total number of leaf primitives in this block.
+   */
+  uint32_t numLeaves = 0;
+
+  /**
+   * @brief Tape-internal blend tag (BVH_SMOOTH_UNION only): the smooth opcode (SMOOTH_MIN,
+   * SMOOTH_MAX, or EXP_MIN) whose trait the interpreter's epilogue applies to the two nearest
+   * values. Unused for BVH_UNION.
+   */
+  Opcode blend = Opcode::SMOOTH_MIN;
+};
+
+static_assert(std::is_trivially_copyable_v<TapeBVHBlock<float>>, "TapeBVHBlock must be trivially copyable");
 
 /**
  * @brief A single trivially-copyable clause in the flat tape (16 bytes).
@@ -338,6 +481,33 @@ struct TapeView
   const ImplicitFunction<T>* const* hostNodes = nullptr;
 
   /**
+   * @brief Pointer to the shared BVH node array indexed (via TapeBVHBlock) by BVH clauses.
+   */
+  const TapeBVHNode<T>* bvhNodes = nullptr;
+
+  /**
+   * @brief Pointer to the shared BVH child-index array (entries are global node indices).
+   */
+  const uint32_t* bvhChildren = nullptr;
+
+  /**
+   * @brief Pointer to the shared BVH leaf array (clause sub-ranges of this same tape).
+   */
+  const TapeBVHLeaf* bvhLeaves = nullptr;
+
+  /**
+   * @brief Pointer to the per-clause BVH block headers indexed by a BVH clause's paramIndex.
+   */
+  const TapeBVHBlock<T>* bvhBlocks = nullptr;
+
+  /**
+   * @brief Main-pass clause bound: the forward pass executes clauses [0, numMainClauses); the
+   * deferred region [numMainClauses, numClauses) holds BVH leaf subtrees executed on demand by
+   * BVH clauses. Equal to numClauses for a tape without BVH clauses.
+   */
+  uint32_t numMainClauses = 0;
+
+  /**
    * @brief Number of coordinate slots the interpreter's coordinate scratch buffer must hold.
    */
   uint32_t numCoordSlots = 0;
@@ -359,9 +529,12 @@ struct TapeView
 
   /**
    * @brief Evaluate the tape at a point via a single forward pass (host and device).
-   * @details Runs each clause in order, dispatching to the shared trait static functions. The
-   * caller supplies scratch buffers sized to the tape's slot counts (@ref numCoordSlots coordinate
-   * slots and @ref numValueSlots value slots). A HOST_CALLBACK clause is only valid on the host.
+   * @details Runs each main-region clause (indices [0, @ref numMainClauses)) in order, dispatching
+   * to the shared trait static functions; a BVH clause additionally runs a pruned, iterative
+   * traversal that executes non-culled leaf sub-ranges from the deferred clause region on demand.
+   * The caller supplies scratch buffers sized to the tape's slot counts (@ref numCoordSlots
+   * coordinate slots and @ref numValueSlots value slots). A HOST_CALLBACK clause is only valid on
+   * the host.
    * @param[in]  a_point        Query point.
    * @param[out] a_coordScratch Coordinate scratch buffer (at least @ref numCoordSlots entries).
    * @param[out] a_valueScratch Value scratch buffer (at least @ref numValueSlots entries).
@@ -459,6 +632,59 @@ public:
     return m_clauses;
   }
 
+  /**
+   * @brief Get the main-pass clause bound.
+   * @details The forward pass executes clauses [0, numMainClauses); clauses in
+   * [numMainClauses, numClauses) are BVH leaf subtrees executed on demand by BVH clauses. Equal to
+   * the total clause count for a tape without BVH clauses.
+   * @return Number of main-region clauses.
+   */
+  [[nodiscard]] uint32_t
+  getNumMainClauses() const noexcept
+  {
+    return m_numMainClauses;
+  }
+
+  /**
+   * @brief Get the shared BVH node array.
+   * @return Const reference to the BVH node vector.
+   */
+  [[nodiscard]] const std::vector<TapeBVHNode<T>>&
+  getBVHNodes() const noexcept
+  {
+    return m_bvhNodes;
+  }
+
+  /**
+   * @brief Get the shared BVH child-index array (entries are global node indices).
+   * @return Const reference to the BVH child-index vector.
+   */
+  [[nodiscard]] const std::vector<uint32_t>&
+  getBVHChildren() const noexcept
+  {
+    return m_bvhChildren;
+  }
+
+  /**
+   * @brief Get the shared BVH leaf array.
+   * @return Const reference to the BVH leaf vector.
+   */
+  [[nodiscard]] const std::vector<TapeBVHLeaf>&
+  getBVHLeaves() const noexcept
+  {
+    return m_bvhLeaves;
+  }
+
+  /**
+   * @brief Get the per-clause BVH block headers.
+   * @return Const reference to the BVH block vector.
+   */
+  [[nodiscard]] const std::vector<TapeBVHBlock<T>>&
+  getBVHBlocks() const noexcept
+  {
+    return m_bvhBlocks;
+  }
+
 private:
   friend class TapeBuilder<T>;
 
@@ -483,6 +709,32 @@ private:
    * @brief Opaque host nodes indexed by HOST_CALLBACK clauses (raw, non-owning back-pointers).
    */
   std::vector<const ImplicitFunction<T>*> m_hostNodes;
+
+  /**
+   * @brief Shared BVH node array (all blocks appended back to back; global indices).
+   */
+  std::vector<TapeBVHNode<T>> m_bvhNodes;
+
+  /**
+   * @brief Shared BVH child-index array (entries are global node indices; may contain duplicates
+   * when the source PackedBVH padded an interior node by repeating a child).
+   */
+  std::vector<uint32_t> m_bvhChildren;
+
+  /**
+   * @brief Shared BVH leaf array (clause sub-ranges of this same tape).
+   */
+  std::vector<TapeBVHLeaf> m_bvhLeaves;
+
+  /**
+   * @brief Per-clause BVH block headers indexed by a BVH clause's paramIndex.
+   */
+  std::vector<TapeBVHBlock<T>> m_bvhBlocks;
+
+  /**
+   * @brief Main-pass clause bound (see @ref getNumMainClauses).
+   */
+  uint32_t m_numMainClauses = 0;
 
   /**
    * @brief Number of coordinate slots.
@@ -518,6 +770,36 @@ class TapeBuilder
   static_assert(std::is_floating_point_v<T>, "TapeBuilder<T>: T must be a floating-point type");
 
 public:
+  /**
+   * @brief Block-local, K-erased description of one PackedBVH node (host-only build type).
+   * @details Produced by the BVH-union @c flatten overrides from @c PackedBVH::getNodes and
+   * consumed by @ref emitBVHUnion, which globalises the block-local indices into the tape's shared
+   * BVH arrays.
+   */
+  struct BVHNodeInfo
+  {
+    /**
+     * @brief Axis-aligned bounding box of this node's subtree.
+     */
+    BoundingVolumes::AABBT<T> aabb;
+
+    /**
+     * @brief Leaves: block-local index of the first primitive (leaf-traversal order).
+     */
+    uint32_t primOff = 0;
+
+    /**
+     * @brief Leaves: number of primitives; a value greater than zero marks this node as a leaf.
+     */
+    uint32_t numPrims = 0;
+
+    /**
+     * @brief Interior nodes: block-local node indices of the children (size K of the source
+     * PackedBVH; duplicates from PackedBVH's power-of-K padding are kept verbatim).
+     */
+    std::vector<uint32_t> children;
+  };
+
   /**
    * @brief Default constructor. Constructs a builder over an empty tape.
    */
@@ -605,7 +887,48 @@ public:
   emitHostCallback(int a_inCoord, const ImplicitFunction<T>* a_node);
 
   /**
+   * @brief Emit a BVH-pruned union clause (sharp or smooth) and record its leaf primitives for
+   * deferred flattening.
+   * @details Globalises @p a_nodes into the tape's shared BVH arrays, appends the block header and
+   * the BVH clause, and records the primitives on a pending list; @ref finish later flattens every
+   * pending primitive's subtree into the tape's deferred clause region. Every leaf subtree is
+   * flattened against the same input frame @p a_inCoord (matching UnionIF::flatten's convention).
+   * @param[in] a_inCoord    Input coordinate slot.
+   * @param[in] a_nodes      Block-local node descriptions, depth-first with the root first.
+   * @param[in] a_primitives Leaf primitives in leaf-traversal order (non-owning; must stay alive
+   * until @ref finish has run).
+   * @param[in] a_smooth     True for BVH_SMOOTH_UNION, false for BVH_UNION.
+   * @param[in] a_blend      Tape-internal blend tag (SMOOTH_MIN, SMOOTH_MAX, or EXP_MIN); only
+   * read for the smooth variant.
+   * @param[in] a_smoothLen  Smoothing length (must be positive for the smooth variant; pass zero
+   * for the sharp union).
+   * @return Value slot holding the union's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  emitBVHUnion(int                                       a_inCoord,
+               std::vector<BVHNodeInfo>&&                a_nodes,
+               std::vector<const ImplicitFunction<T>*>&& a_primitives,
+               bool                                      a_smooth,
+               Opcode                                    a_blend,
+               T                                         a_smoothLen);
+
+  /**
+   * @brief Whether the builder is currently flattening a BVH leaf subtree (finish's deferred
+   * phase).
+   * @details Used by the BVH-union @c flatten overrides to route a nested BVH union to an opaque
+   * host callback: the tape's interpreter executes leaf sub-ranges through an inner clause loop
+   * that does not itself handle BVH clauses (that would require a per-nesting-level traversal
+   * stack), so a BVH union inside a BVH leaf must stay opaque in this tier.
+   * @return True while @ref finish is flattening pending BVH leaf subtrees.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST bool
+  isFlatteningBVHLeaf() const noexcept;
+
+  /**
    * @brief Finalise and hand back the built tape.
+   * @details Freezes the main clause region, then flattens every pending BVH block's leaf
+   * primitives into the deferred clause region (reusing one shared coordinate/value slot window
+   * across all leaves; see the implementation for why that is safe).
    * @param[in] a_rootValueSlot Value slot holding the whole tree's result.
    * @return The completed tape (moved out of the builder).
    */
@@ -623,9 +946,41 @@ private:
                                 paramArrayFor();
 
   /**
+   * @brief One BVH block recorded by @ref emitBVHUnion whose leaf subtrees still await flattening.
+   */
+  struct PendingBVHBlock
+  {
+    /**
+     * @brief Index of the block in the tape's BVH block array.
+     */
+    uint32_t blockIndex = 0;
+
+    /**
+     * @brief Coordinate slot every leaf subtree of this block is flattened against.
+     */
+    int coordSlot = 0;
+
+    /**
+     * @brief Leaf primitives in leaf-traversal order (non-owning).
+     */
+    std::vector<const ImplicitFunction<T>*> primitives;
+  };
+
+  /**
    * @brief The tape being assembled; moved out by @ref finish.
    */
   Tape<T> m_tape;
+
+  /**
+   * @brief BVH blocks awaiting the deferred leaf-flattening phase of @ref finish.
+   */
+  std::vector<PendingBVHBlock> m_pendingBlocks;
+
+  /**
+   * @brief True while @ref finish is flattening pending BVH leaf subtrees (see
+   * @ref isFlatteningBVHLeaf).
+   */
+  bool m_flatteningBVHLeaf = false;
 };
 
 /**

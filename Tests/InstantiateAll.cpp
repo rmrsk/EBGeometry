@@ -90,6 +90,16 @@ using Meta = short;
   template class SmoothDifferenceIF<PREC, ExpMinOp<PREC>>;                   \
   template class FiniteRepetitionIF<PREC>;                                   \
                                                                                \
+  /* -- BVH-accelerated CSG unions (default + non-default Blend, so both  */ \
+  /* -- native and host-fallback tape lowerings stay compile-checked) ------*/ \
+  template class BVHUnionIF<PREC, ImplicitFunction<PREC>,                    \
+                            BoundingVolumes::AABBT<PREC>, 4>;                \
+  template class BVHSmoothUnionIF<PREC, ImplicitFunction<PREC>,              \
+                                  BoundingVolumes::AABBT<PREC>, 4>;          \
+  template class BVHSmoothUnionIF<PREC, ImplicitFunction<PREC>,              \
+                                  BoundingVolumes::AABBT<PREC>, 4,           \
+                                  ExpMinOp<PREC>>;                           \
+                                                                               \
   /* -- Transformation distance-formula traits ----------------------------*/ \
   template struct ComplementOp<PREC>;                                       \
   template struct TranslateOp<PREC>;                                        \
@@ -104,6 +114,8 @@ using Meta = short;
   template class Tape<PREC>;                                                 \
   template struct TapeView<PREC>;                                            \
   template class TapeBuilder<PREC>;                                          \
+  template struct TapeBVHNode<PREC>;                                         \
+  template struct TapeBVHBlock<PREC>;                                        \
                                                                                \
   /* -- Transformation implicit functions ----------------------------------*/\
   template class ComplementIF<PREC>;                                         \

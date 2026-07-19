@@ -1605,6 +1605,17 @@ public:
   getPrimitives() const noexcept;
 
   /**
+   * @brief Get the flat node array (depth-first pre-order; root at index 0).
+   * @details Read-only access to the packed node topology: each node exposes its bounding volume,
+   * its primitive range (leaves), and its child index table (interior nodes). Leaf primitive
+   * offsets index the list returned by getPrimitives(). Used by e.g. the tape lowering of the
+   * BVH-accelerated CSG unions to mirror this BVH's topology.
+   * @return Reference to m_linearNodes.
+   */
+  [[nodiscard]] inline const std::vector<Node>&
+  getNodes() const noexcept;
+
+  /**
    * @brief Get the bounding volume of the root node.
    * @return Reference to the root node's bounding volume.
    */
