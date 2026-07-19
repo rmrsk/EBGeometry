@@ -123,7 +123,7 @@ ComplementIF<T>::ComplementIF(const std::shared_ptr<ImplicitFunction<T>>& a_impl
 
   m_implicitFunction = a_implicitFunction;
 
-  this->m_sdf = a_implicitFunction->isSignedDistance();
+  this->m_sdf = ComplementOp<T>::preservesSignedDistance && a_implicitFunction->isSignedDistance();
 }
 
 template <class T>
@@ -150,7 +150,7 @@ TranslateIF<T>::TranslateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implic
   m_implicitFunction = a_implicitFunction;
   m_params.shift     = a_translation;
 
-  this->m_sdf = a_implicitFunction->isSignedDistance();
+  this->m_sdf = TranslateOp<T>::preservesSignedDistance && a_implicitFunction->isSignedDistance();
 }
 
 template <class T>
@@ -182,7 +182,7 @@ RotateIF<T>::RotateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunc
   m_params.cosAngle = std::cos(theta);
   m_params.sinAngle = std::sin(theta);
 
-  this->m_sdf = a_implicitFunction->isSignedDistance();
+  this->m_sdf = RotateOp<T>::preservesSignedDistance && a_implicitFunction->isSignedDistance();
 }
 
 template <class T>
@@ -206,7 +206,7 @@ OffsetIF<T>::OffsetIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunc
   m_implicitFunction = a_implicitFunction;
   m_params.offset    = a_offset;
 
-  this->m_sdf = a_implicitFunction->isSignedDistance();
+  this->m_sdf = OffsetOp<T>::preservesSignedDistance && a_implicitFunction->isSignedDistance();
 }
 
 template <class T>
@@ -231,7 +231,7 @@ ScaleIF<T>::ScaleIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFuncti
   m_implicitFunction = a_implicitFunction;
   m_params.scale     = a_scale;
 
-  this->m_sdf = a_implicitFunction->isSignedDistance();
+  this->m_sdf = ScaleOp<T>::preservesSignedDistance && a_implicitFunction->isSignedDistance();
 }
 
 template <class T>
@@ -255,7 +255,7 @@ AnnularIF<T>::AnnularIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFu
   m_implicitFunction = a_implicitFunction;
   m_params.delta     = a_delta;
 
-  this->m_sdf = a_implicitFunction->isSignedDistance();
+  this->m_sdf = AnnularOp<T>::preservesSignedDistance && a_implicitFunction->isSignedDistance();
 }
 
 template <class T>
@@ -404,7 +404,7 @@ ElongateIF<T>::ElongateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicit
   m_implicitFunction  = a_implicitFunction;
   m_params.elongation = a_elongation;
 
-  this->m_sdf = false;
+  this->m_sdf = ElongateOp<T>::preservesSignedDistance && a_implicitFunction->isSignedDistance();
 }
 
 template <class T>
@@ -433,7 +433,7 @@ ReflectIF<T>::ReflectIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFu
     m_params.reflectParams[a_reflectPlane] = -1;
   }
 
-  this->m_sdf = a_implicitFunction->isSignedDistance();
+  this->m_sdf = ReflectOp<T>::preservesSignedDistance && a_implicitFunction->isSignedDistance();
 }
 
 template <class T>
