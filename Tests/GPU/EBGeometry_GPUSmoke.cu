@@ -13,8 +13,8 @@
  * @author Robert Marskar
  */
 
-#include "EBGeometry_BoundingVolumes.hpp"
-#include "EBGeometry_Vec.hpp"
+#include "Source/EBGeometry_BoundingVolumes.hpp"
+#include "Source/EBGeometry_Vec.hpp"
 
 using T = double;
 
