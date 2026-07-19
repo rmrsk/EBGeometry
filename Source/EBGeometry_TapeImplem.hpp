@@ -228,7 +228,7 @@ flatten(const ImplicitFunction<T>& a_tree)
 }
 
 template <class T>
-T
+EBGEOMETRY_HOST_DEVICE T
 evaluate(const TapeView<T>& a_view, const Vec3T<T>& a_point, Vec3T<T>* a_coordScratch, T* a_valueScratch) noexcept
 {
   a_coordScratch[0] = a_point;

@@ -8,7 +8,7 @@
  * @details The tape is a depth-first flattening of an implicit-function tree into a linear array of
  * trivially-copyable @ref EBGeometry::TapeClause "clauses" that a single forward pass
  * (@ref EBGeometry::evaluate) can execute identically on host and (later) device. Every clause
- * dispatches to the SAME trait statics used by the recursive @c value() path -- @c SphereOp::eval,
+ * dispatches to the SAME trait static functions used by the recursive @c value() path -- @c SphereOp::eval,
  * @c TranslateOp::mapPoint, @c ScaleOp::mapValue, @c UnionOp::combine, @c SmoothMinOp::eval, ... --
  * so the tape is never a second copy of any distance or blend formula; it is a different traversal
  * order over the same single-source-of-truth math.
@@ -322,7 +322,7 @@ struct TapeView
  * @brief Host-owned flat tape: the clause array plus every per-op parameter array.
  * @details Built by @ref TapeBuilder (via the free @ref flatten function) and consumed through a
  * trivially-copyable @ref view. The distance/blend math itself lives entirely in the shared trait
- * statics; a Tape stores only clauses and parameters, never a formula.
+ * static functions; a Tape stores only clauses and parameters, never a formula.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -578,7 +578,7 @@ template <class T>
 
 /**
  * @brief Evaluate a flattened tape at a point via a single forward pass (host and device).
- * @details Runs each clause in order, dispatching to the shared trait statics. The caller supplies
+ * @details Runs each clause in order, dispatching to the shared trait static functions. The caller supplies
  * scratch buffers sized to the tape's slot counts (@c a_view.numCoordSlots coordinate slots and
  * @c a_view.numValueSlots value slots). A HOST_CALLBACK clause is only valid on the host.
  * @tparam T Floating-point precision.
