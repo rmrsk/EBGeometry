@@ -165,7 +165,7 @@ TEMPLATE_TEST_CASE("SphereOp::eval equals SphereSDF::value", "[SphereSDF][Traits
   const typename SphereOp<T>::Params params{Vec3T<T>(1, 2, 3), T(2.0)};
 
   for (const Vec3T<T>& p : {Vec3T<T>(0, 0, 0), Vec3T<T>(1, 2, 3), Vec3T<T>(3, 2, 3), Vec3T<T>(-4, 5, 6)}) {
-    REQUIRE_THAT(SphereOp<T>::eval(params, p), WithinAbs(sphere.value(p), tightMargin<T>()));
+    REQUIRE_THAT(SphereOp<T>::eval(params, p), withinAbsT(sphere.value(p), tightMargin<T>()));
   }
 }
 
@@ -177,7 +177,7 @@ TEMPLATE_TEST_CASE("BoxOp::eval equals BoxSDF::value", "[BoxSDF][Traits]", EBGEO
   const typename BoxOp<T>::Params params{Vec3T<T>(-1, -1, -1), Vec3T<T>(1, 1, 1)};
 
   for (const Vec3T<T>& p : {Vec3T<T>(0, 0, 0), Vec3T<T>(1, 0, 0), Vec3T<T>(3, 0, 0), Vec3T<T>(2, 2, 0)}) {
-    REQUIRE_THAT(BoxOp<T>::eval(params, p), WithinAbs(box.value(p), tightMargin<T>()));
+    REQUIRE_THAT(BoxOp<T>::eval(params, p), withinAbsT(box.value(p), tightMargin<T>()));
   }
 }
 
