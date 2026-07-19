@@ -126,7 +126,7 @@ TapeBuilder<T>::emitLeaf(int a_inCoord, const typename Op::Params& a_params)
   auto& array = this->template paramArrayFor<Op>();
   array.push_back(a_params);
 
-  const uint16_t paramIndex = static_cast<uint16_t>(array.size() - 1);
+  const uint32_t paramIndex = static_cast<uint32_t>(array.size() - 1);
 
   m_tape.m_clauses.push_back(
     TapeClause{OpcodeOf<Op>::value, paramIndex, static_cast<uint32_t>(a_inCoord), 0, static_cast<uint32_t>(out)});
@@ -144,7 +144,7 @@ TapeBuilder<T>::emitCoordTransform(Opcode a_opcode, int a_inCoord, const typenam
   auto& array = this->template paramArrayFor<Op>();
   array.push_back(a_params);
 
-  const uint16_t paramIndex = static_cast<uint16_t>(array.size() - 1);
+  const uint32_t paramIndex = static_cast<uint32_t>(array.size() - 1);
 
   m_tape.m_clauses.push_back(
     TapeClause{a_opcode, paramIndex, static_cast<uint32_t>(a_inCoord), 0, static_cast<uint32_t>(out)});
@@ -162,7 +162,7 @@ TapeBuilder<T>::emitValueTransform(Opcode a_opcode, int a_inValue, const typenam
   auto& array = this->template paramArrayFor<Op>();
   array.push_back(a_params);
 
-  const uint16_t paramIndex = static_cast<uint16_t>(array.size() - 1);
+  const uint32_t paramIndex = static_cast<uint32_t>(array.size() - 1);
 
   m_tape.m_clauses.push_back(
     TapeClause{a_opcode, paramIndex, static_cast<uint32_t>(a_inValue), 0, static_cast<uint32_t>(out)});
@@ -190,7 +190,7 @@ TapeBuilder<T>::emitSmooth(Opcode a_opcode, int a_valA, int a_valB, T a_smoothLe
 
   m_tape.m_scalarParams.push_back(a_smoothLen);
 
-  const uint16_t paramIndex = static_cast<uint16_t>(m_tape.m_scalarParams.size() - 1);
+  const uint32_t paramIndex = static_cast<uint32_t>(m_tape.m_scalarParams.size() - 1);
 
   m_tape.m_clauses.push_back(TapeClause{
     a_opcode, paramIndex, static_cast<uint32_t>(a_valA), static_cast<uint32_t>(a_valB), static_cast<uint32_t>(out)});
@@ -206,7 +206,7 @@ TapeBuilder<T>::emitHostCallback(int a_inCoord, const ImplicitFunction<T>* a_nod
 
   m_tape.m_hostNodes.push_back(a_node);
 
-  const uint16_t paramIndex = static_cast<uint16_t>(m_tape.m_hostNodes.size() - 1);
+  const uint32_t paramIndex = static_cast<uint32_t>(m_tape.m_hostNodes.size() - 1);
 
   m_tape.m_clauses.push_back(
     TapeClause{Opcode::HOST_CALLBACK, paramIndex, static_cast<uint32_t>(a_inCoord), 0, static_cast<uint32_t>(out)});
@@ -237,7 +237,7 @@ TapeBuilder<T>::emitBVHUnion(int                                       a_inCoord
 
   const size_t blockIndex = m_tape.m_bvhBlocks.size();
 
-  EBGEOMETRY_EXPECT(blockIndex <= size_t(std::numeric_limits<uint16_t>::max()));
+  EBGEOMETRY_EXPECT(blockIndex <= size_t(std::numeric_limits<uint32_t>::max()));
 
   // Globalise the block-local node/child/leaf indices into the tape's shared arrays (blocks are
   // appended back to back, so a block-local index maps to base + local).
@@ -290,7 +290,7 @@ TapeBuilder<T>::emitBVHUnion(int                                       a_inCoord
   m_tape.m_bvhBlocks.push_back(block);
 
   m_tape.m_clauses.push_back(TapeClause{a_smooth ? Opcode::BVH_SMOOTH_UNION : Opcode::BVH_UNION,
-                                        static_cast<uint16_t>(blockIndex),
+                                        static_cast<uint32_t>(blockIndex),
                                         static_cast<uint32_t>(a_inCoord),
                                         0,
                                         static_cast<uint32_t>(out)});
@@ -340,7 +340,12 @@ TapeBuilder<T>::finish(int a_rootValueSlot)
 
   m_flatteningBVHLeaf = true;
 
-  for (const auto& block : m_pendingBlocks) {
+  // Indexed loop rather than a range-for: nested BVH unions lower to host callbacks during this
+  // phase (asserted below), but an index stays valid even if m_pendingBlocks were ever to grow
+  // mid-loop, where a range-for iterator would be silently invalidated.
+  for (size_t b = 0; b < m_pendingBlocks.size(); b++) {
+    const PendingBVHBlock& block = m_pendingBlocks[b];
+
     EBGEOMETRY_EXPECT(block.coordSlot >= 0);
     EBGEOMETRY_EXPECT(static_cast<uint32_t>(block.coordSlot) < coordBase);
 
@@ -941,6 +946,39 @@ template <class T, class PackedBVHType>
   return info;
 }
 
+// Worst-case occupancy of the interpreter's fixed traversal stack for one BVH block: when the
+// traversal descends into a child, the child's up-to-(childCount - 1) siblings stay stacked, so the
+// occupancy along any root-to-leaf path is bounded by depth * (maxChildCount - 1) + 1. Computed
+// iteratively (explicit stack, no recursion) so an adversarially deep, unbalanced tree -- the very
+// case this guards against -- cannot overflow the host call stack while being measured.
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST uint32_t
+tapeBVHStackBound(const std::vector<typename TapeBuilder<T>::BVHNodeInfo>& a_nodes)
+{
+  uint32_t maxDepth      = 0;
+  uint32_t maxChildCount = 1;
+
+  std::vector<std::pair<uint32_t, uint32_t>> stack;
+
+  stack.emplace_back(0, 0);
+
+  while (!stack.empty()) {
+    const auto [node, depth] = stack.back();
+
+    stack.pop_back();
+
+    maxDepth = std::max(maxDepth, depth);
+
+    for (const uint32_t child : a_nodes[node].children) {
+      stack.emplace_back(child, depth + 1);
+    }
+
+    maxChildCount = std::max(maxChildCount, static_cast<uint32_t>(a_nodes[node].children.size()));
+  }
+
+  return maxDepth * (maxChildCount - 1) + 1;
+}
+
 template <class T, class PackedBVHType>
 [[nodiscard]] EBGEOMETRY_HOST std::vector<const ImplicitFunction<T>*>
                               collectBVHLeafPrimitives(const PackedBVHType& a_bvh)
@@ -975,8 +1013,17 @@ BVHUnionIF<T, P, BV, K>::flatten(TapeBuilder<T>& a_builder, int a_coordSlot) con
     return a_builder.emitHostCallback(a_coordSlot, this);
   }
 
+  auto nodes = TapeDetail::collectBVHNodeInfo<T>(*m_bvh);
+
+  // An adversarially unbalanced tree (e.g. chain splits from degenerate centroid distributions)
+  // could exceed the interpreter's fixed traversal stack; keep such a block opaque rather than risk
+  // an out-of-bounds stack write in release builds.
+  if (TapeDetail::tapeBVHStackBound<T>(nodes) > TapeBVHStackSize) {
+    return a_builder.emitHostCallback(a_coordSlot, this);
+  }
+
   return a_builder.emitBVHUnion(a_coordSlot,
-                                TapeDetail::collectBVHNodeInfo<T>(*m_bvh),
+                                std::move(nodes),
                                 TapeDetail::collectBVHLeafPrimitives<T>(*m_bvh),
                                 false,
                                 Opcode::SMOOTH_MIN, // blend tag is unused for the sharp union
@@ -996,12 +1043,17 @@ BVHSmoothUnionIF<T, P, BV, K, Blend>::flatten(TapeBuilder<T>& a_builder, int a_c
   // an opaque host callback, which reproduces value() exactly.
   if constexpr (isRegisteredBlend<Blend>) {
     if (!a_builder.isFlatteningBVHLeaf()) {
-      return a_builder.emitBVHUnion(a_coordSlot,
-                                    TapeDetail::collectBVHNodeInfo<T>(*m_bvh),
-                                    TapeDetail::collectBVHLeafPrimitives<T>(*m_bvh),
-                                    true,
-                                    BlendOpcodeOf<Blend>::value,
-                                    m_smoothLen);
+      auto nodes = TapeDetail::collectBVHNodeInfo<T>(*m_bvh);
+
+      // Same fixed-traversal-stack guard as BVHUnionIF::flatten above.
+      if (TapeDetail::tapeBVHStackBound<T>(nodes) <= TapeBVHStackSize) {
+        return a_builder.emitBVHUnion(a_coordSlot,
+                                      std::move(nodes),
+                                      TapeDetail::collectBVHLeafPrimitives<T>(*m_bvh),
+                                      true,
+                                      BlendOpcodeOf<Blend>::value,
+                                      m_smoothLen);
+      }
     }
   }
 

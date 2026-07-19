@@ -136,7 +136,8 @@ public:
    * @details Non-pure virtual: the base default emits a single opaque host-callback clause that, at
    * evaluation, invokes this node's value() on the host. Trait-based leaves and the CSG/transform
    * nodes override this to emit native clauses; any node without an override (Perlin, Blur, Mollify,
-   * FiniteRepetition, the BVH unions, or a user subclass) keeps the opaque-host default. Host only.
+   * FiniteRepetition, or a user subclass) keeps the opaque-host default; the BVH unions emit native
+   * BVH clauses (falling back to this default only when nested inside another BVH leaf). Host only.
    * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
    * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
    * @return Value slot holding this subtree's result.

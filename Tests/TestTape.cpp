@@ -294,8 +294,49 @@ TEMPLATE_TEST_CASE("Tape: a single-child smooth union lowers to the child itself
 }
 
 // The SMOOTH_MIN/SMOOTH_MAX/EXP_MIN opcodes are the device ISA for the registered blends. They are
-// also exercised here directly through the builder API (the path a later BVH-smooth tier uses),
-// decoupled from the smooth combiner nodes above.
+// also exercised here directly through the builder API (decoupled from any combiner node) and are
+// the same clauses the BVH smooth union epilogue selects from its block blend tag.
+TEMPLATE_TEST_CASE("Tape: parameter indices address more than 65536 bundles per op type",
+                   "[Tape][Builder][ParamIndex]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Regression test: paramIndex was once uint16_t, so bundle 65536 silently aliased bundle 0 --
+  // wrong geometry with no assertion. BVH unions over 10^5+ primitives are the flagship use case,
+  // so the clause index must be 32 bits wide. Built via the builder (a union fold of 70000 sphere
+  // leaves) to keep the test independent of BVH construction cost.
+  constexpr int numSpheres = 70000;
+  constexpr int probe      = 65536;
+
+  TapeBuilder<T> builder;
+
+  const int coord0 = builder.newCoordSlot();
+
+  int root = -1;
+
+  for (int i = 0; i < numSpheres; i++) {
+    const typename SphereOp<T>::Params params{Vec3T<T>(T(3 * i), 0, 0), T(1)};
+
+    const int leaf = builder.template emitLeaf<SphereOp<T>>(coord0, params);
+
+    root = (root < 0) ? leaf : builder.emitCombine(Opcode::UNION, root, leaf);
+  }
+
+  const Tape<T> tape = builder.finish(root);
+
+  // Leaf 0 sits at clause 0; every later leaf i sits at clause 2i - 1 (a fold clause follows each).
+  // The probe leaf must reference its own parameter bundle, not bundle (probe % 65536) == 0.
+  REQUIRE(tape.getClauses()[size_t(2) * probe - 1].paramIndex == uint32_t(probe));
+
+  // Inside sphere #65536: the old wraparound read sphere #0's parameters and returned a large
+  // positive distance here instead of -1.
+  const Vec3T<T> probeCenter(T(3 * probe), 0, 0);
+
+  REQUIRE_THAT(tape.value(probeCenter), withinAbsT(T(-1), exactMargin<T>()));
+  REQUIRE_THAT(tape.value(Vec3T<T>::zeros()), withinAbsT(T(-1), exactMargin<T>()));
+}
+
 TEMPLATE_TEST_CASE("Tape: smooth ISA opcodes match their trait eval via the builder",
                    "[Tape][Smooth][Opcode]",
                    EBGEOMETRY_TEST_PRECISIONS)

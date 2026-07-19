@@ -320,6 +320,7 @@ struct TapeBVHNode
 };
 
 static_assert(std::is_trivially_copyable_v<TapeBVHNode<float>>, "TapeBVHNode must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<TapeBVHNode<double>>, "TapeBVHNode must be trivially copyable");
 
 /**
  * @brief One BVH leaf primitive: a clause sub-range of the same tape holding its flattened subtree.
@@ -392,9 +393,10 @@ struct TapeBVHBlock
 };
 
 static_assert(std::is_trivially_copyable_v<TapeBVHBlock<float>>, "TapeBVHBlock must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<TapeBVHBlock<double>>, "TapeBVHBlock must be trivially copyable");
 
 /**
- * @brief A single trivially-copyable clause in the flat tape (16 bytes).
+ * @brief A single trivially-copyable clause in the flat tape (20 bytes).
  * @details One clause performs exactly one operation. The @ref opcode selects which trait static
  * runs and which slot files @ref in0 / @ref in1 / @ref out address (coordinate slots for coordinate
  * transforms, value slots otherwise); the interpreter never branches on anything but @ref opcode.
@@ -408,10 +410,12 @@ struct TapeClause
 
   /**
    * @brief Index into this op's parameter array. For a smooth combiner it indexes the shared scalar
-   * (smoothing length) array; for a HOST_CALLBACK it indexes the host-node array; unused for sharp
-   * combiners.
+   * (smoothing length) array; for a BVH clause it indexes the BVH block array; for a HOST_CALLBACK
+   * it indexes the host-node array; unused for sharp combiners. 32 bits wide so that unions over
+   * hundreds of thousands of primitives -- the BVH_UNION use case -- cannot overflow it (two padding
+   * bytes follow the opcode; the clause is 20 bytes).
    */
-  uint16_t paramIndex;
+  uint32_t paramIndex;
 
   /**
    * @brief First input slot. Coordinate slot for leaves, coordinate transforms, and host callbacks;
@@ -430,7 +434,7 @@ struct TapeClause
   uint32_t out;
 };
 
-static_assert(sizeof(TapeClause) == 16, "TapeClause must be 16 bytes");
+static_assert(sizeof(TapeClause) == 20, "TapeClause must be 20 bytes");
 static_assert(std::is_trivially_copyable_v<TapeClause>, "TapeClause must be trivially copyable");
 
 /**

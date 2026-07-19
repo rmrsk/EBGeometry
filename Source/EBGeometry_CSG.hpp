@@ -423,7 +423,7 @@ struct HasBlendEval<
   Blend,
   T,
   std::void_t<decltype(static_cast<T>(Blend::eval(std::declval<T>(), std::declval<T>(), std::declval<T>())))>>
-  : std::true_type
+  : std::bool_constant<noexcept(Blend::eval(std::declval<T>(), std::declval<T>(), std::declval<T>()))>
 {
 };
 
