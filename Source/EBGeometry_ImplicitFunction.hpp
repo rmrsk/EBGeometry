@@ -23,6 +23,16 @@
 namespace EBGeometry {
 
 /**
+ * @brief Forward declaration of the host-side tape builder (see EBGeometry_Tape.hpp).
+ * @details Declared here so that the @c flatten lowering hook can appear on the implicit-function
+ * base and leaf templates without pulling in the tape header (which itself depends on these
+ * classes). The definition is only needed in EBGeometry_TapeImplem.hpp.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class TapeBuilder;
+
+/**
  * @brief Primary implicit-function template.
  * @details This template has two roles, selected by the @c Op parameter:
  *   - @c Op = @c void (the default) selects the type-erased base class -- the common handle held by
@@ -121,6 +131,19 @@ public:
                                   const unsigned int a_maxTreeDepth,
                                   const T&           a_safety = 0.0) const;
 
+  /**
+   * @brief Lower this implicit function into a flat tape (see EBGeometry_Tape.hpp).
+   * @details Non-pure virtual: the base default emits a single opaque host-callback clause that, at
+   * evaluation, invokes this node's value() on the host. Trait-based leaves and the CSG/transform
+   * nodes override this to emit native clauses; any node without an override (Perlin, Blur, Mollify,
+   * FiniteRepetition, the BVH unions, or a user subclass) keeps the opaque-host default. Host only.
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST virtual int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const;
+
 protected:
   /**
    * @brief Whether or not this implicit function is a signed distance function.
@@ -192,6 +215,18 @@ public:
   {
     return m_params;
   }
+
+  /**
+   * @brief Lower this leaf into a native tape clause (or an opaque host callback for an unregistered
+   * @c Op).
+   * @details If @c Op has a registered @ref Opcode this emits a single leaf clause via
+   * @c TapeBuilder::emitLeaf; otherwise it falls back to an opaque host callback. Host only.
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding the query point's frame.
+   * @return Value slot holding this leaf's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
 
 protected:
   /**

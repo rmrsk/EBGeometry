@@ -96,6 +96,10 @@ using Meta = short;
   template struct ElongateOp<PREC>;                                         \
   template struct ReflectOp<PREC>;                                          \
                                                                                \
+  /* -- Flat tape + interpreter -------------------------------------------*/ \
+  template class Tape<PREC>;                                                 \
+  template class TapeBuilder<PREC>;                                          \
+                                                                               \
   /* -- Transformation implicit functions ----------------------------------*/\
   template class ComplementIF<PREC>;                                         \
   template class TranslateIF<PREC>;                                         \
@@ -181,6 +185,12 @@ instantiateFunctionTemplates()
   (void)PLY<T>().template convertToDCEL<Meta>();
   (void)VTK<T>().template convertToDCEL<Meta>();
   (void)OBJ<T>().template convertToDCEL<Meta>();
+
+  // Free tape functions (flatten/evaluate) are not reached by explicit class instantiation, so
+  // odr-use them here over a small sphere so both precisions are analysed.
+  const SphereSDF<T> sphere;
+  const Tape<T>      tape = EBGeometry::flatten<T>(sphere);
+  (void)EBGeometry::evaluate<T>(tape, Vec3T<T>::zeros());
 }
 
 template void

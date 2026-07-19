@@ -44,6 +44,11 @@
 #include "Source/EBGeometry_VTK.hpp"
 #include "Source/EBGeometry_Vec.hpp"
 
+// EBGeometry_Tape.hpp is intentionally included out of alphabetical order, after CSG and Transform:
+// its flatten() lowering and single-pass interpreter need the complete CSG combiner and transform
+// node definitions (not just their forward declarations) to define the flatten() overrides.
+#include "Source/EBGeometry_Tape.hpp"
+
 /**
  * @brief Namespace containing all of EBGeometry's functionality.
  * @details EBGeometry is a header-only C++17 library for implicit functions, signed distance

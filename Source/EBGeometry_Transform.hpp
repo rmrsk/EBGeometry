@@ -27,6 +27,13 @@
 namespace EBGeometry {
 
 /**
+ * @brief Forward declaration of the host-side tape builder (see EBGeometry_Tape.hpp).
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class TapeBuilder;
+
+/**
  * @brief Convenience function for taking the complement of an implicit function
  * @tparam T Floating-point precision
  * @param[in] a_implicitFunction Input implicit function
@@ -238,6 +245,15 @@ public:
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
+  /**
+   * @brief Lower this complement into the tape as a value transform (see EBGeometry_Tape.hpp).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
+
 protected:
   /**
    * @brief Implicit function
@@ -347,6 +363,15 @@ public:
    */
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
+
+  /**
+   * @brief Lower this translation into the tape as a coordinate transform (see EBGeometry_Tape.hpp).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
 
 protected:
   /**
@@ -496,6 +521,15 @@ public:
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
+  /**
+   * @brief Lower this rotation into the tape as a coordinate transform (see EBGeometry_Tape.hpp).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
+
 protected:
   /**
    * @brief Underlying implicit function.
@@ -605,6 +639,15 @@ public:
    */
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
+
+  /**
+   * @brief Lower this offset into the tape as a value transform (see EBGeometry_Tape.hpp).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
 
 protected:
   /**
@@ -729,6 +772,16 @@ public:
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
+  /**
+   * @brief Lower this scaling into the tape (pre-scale coordinate transform, then post-scale value
+   * transform straddling the child; see EBGeometry_Tape.hpp).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
+
 protected:
   /**
    * @brief Original implicit function.
@@ -839,6 +892,15 @@ public:
    */
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
+
+  /**
+   * @brief Lower this annulus into the tape as a value transform (see EBGeometry_Tape.hpp).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
 
 protected:
   /**
@@ -1129,6 +1191,15 @@ public:
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
+  /**
+   * @brief Lower this elongation into the tape as a coordinate transform (see EBGeometry_Tape.hpp).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
+
 protected:
   /**
    * @brief Underlying implicit function to be elongated
@@ -1239,6 +1310,15 @@ public:
    */
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
+
+  /**
+   * @brief Lower this reflection into the tape as a coordinate transform (see EBGeometry_Tape.hpp).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
 
 protected:
   /**
