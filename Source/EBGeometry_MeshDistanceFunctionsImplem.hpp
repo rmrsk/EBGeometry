@@ -378,6 +378,15 @@ MeshSDF<T, Meta, K>::getRoot() const noexcept
 }
 
 template <class T, class Meta, size_t K>
+const std::shared_ptr<typename MeshSDF<T, Meta, K>::Mesh>&
+MeshSDF<T, Meta, K>::getMesh() const noexcept
+{
+  EBGEOMETRY_EXPECT(m_mesh != nullptr);
+
+  return (m_mesh);
+}
+
+template <class T, class Meta, size_t K>
 EBGeometry::BoundingVolumes::AABBT<T>
 MeshSDF<T, Meta, K>::computeBoundingVolume() const noexcept
 {

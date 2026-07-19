@@ -565,7 +565,8 @@ step. See `its doxygen page <doxygen/html/classEBGeometry_1_1TriMeshSDF.html>`__
 page for TriangleSoAT <doxygen/html/structEBGeometry_1_1TriangleSoAT.html>`__ for the SoA storage
 itself.
 
-Just as ``MeshSDF::getClosestFaces()`` recovers the nearest face (and its ``Meta``) for a DCEL mesh,
+Just as ``MeshSDF::getClosestFaces()`` recovers the nearest face index for a DCEL mesh (from which
+its ``Meta`` is read by indexing the retained mesh, exposed via ``MeshSDF::getMesh()``),
 ``TriMeshSDF::getClosestTriangle()`` recovers the nearest triangle's signed distance *and* its
 metadata through the SIMD SoA path -- the supported route when you need both maximum SIMD throughput
 and per-triangle metadata retrieval. Each leaf group is a ``TriangleAoSoA<T, Meta, W>``: a

@@ -20,19 +20,22 @@ Main types
 
 The main DCEL functionality (vertices, edges, faces) is provided by classes templated on both a
 floating-point precision ``T`` and a user-defined meta-data type ``Meta`` attached to each
-instance:
+instance. The mesh owns its vertices, half-edges, and faces in flat arrays; each element is a
+trivially copyable value type, and every topological link between them is an integer index
+(``DCELIndex``) into those arrays -- with ``InvalidIndex`` denoting "no link" (e.g. the pair edge
+of a boundary half-edge) -- rather than a pointer:
 
-*  ``VertexT<T, Meta>`` stores the vertex position, its (outward) normal vector, and the outgoing
-   half-edge from the vertex, plus pointers to every polygon face sharing that vertex. It also has
-   member functions for computing the vertex pseudonormal, see :ref:`Chap:NormalDCEL`. For the
-   full API, see the Doxygen reference for
+*  ``VertexT<T, Meta>`` stores the vertex position, its (outward) normal vector, and the index of
+   an outgoing half-edge from the vertex, plus the indices of every polygon face sharing that
+   vertex. It also has member functions for computing the vertex pseudonormal, see
+   :ref:`Chap:NormalDCEL`. For the full API, see the Doxygen reference for
    `VertexT <doxygen/html/classEBGeometry_1_1DCEL_1_1VertexT.html>`__.
 
-*  ``EdgeT<T, Meta>`` represents a half-edge: it stores a reference to its owning face, and
-   pointers to the next edge, its pair edge, and its starting vertex. For the full API, see the
-   Doxygen reference for `EdgeT <doxygen/html/classEBGeometry_1_1DCEL_1_1EdgeT.html>`__.
+*  ``EdgeT<T, Meta>`` represents a half-edge: it stores the indices of its owning face, its next
+   edge, its pair edge (``InvalidIndex`` on a boundary), and its origin vertex. For the full API,
+   see the Doxygen reference for `EdgeT <doxygen/html/classEBGeometry_1_1DCEL_1_1EdgeT.html>`__.
 
-*  ``FaceT<T, Meta>`` represents a polygon face. Besides its half-edge, it also stores the face
+*  ``FaceT<T, Meta>`` represents a polygon face. Besides the index of one of its half-edges, it also stores the face
    normal vector, a 2D embedding of the polygon, and its centroid position: the normal and 2D
    embedding exist because the signed distance computation needs them, and the centroid exists
    because BVH partitioners use it when partitioning the surface mesh. For the full API, see the
@@ -43,8 +46,9 @@ instance:
    ``unsignedDistance2()``, that scan every face directly. It is not itself a
    ``SignedDistanceFunction<T>``: for anything beyond small meshes, one instead wraps a
    ``MeshT<T, Meta>`` in one of the BVH-accelerated classes described in
-   :ref:`Chap:MeshSDFClasses`, which hold a ``shared_ptr<MeshT<T, Meta>>`` internally and only fall
-   back to it for topology (not for the accelerated distance queries themselves). A mesh is
+   :ref:`Chap:MeshSDFClasses`, which hold a ``shared_ptr<MeshT<T, Meta>>`` internally; the
+   accelerated hierarchy stores face indices into that mesh and resolves each pruned candidate
+   face's distance against it. A mesh is
    typically never constructed by hand -- it is built by a file parser reading vertices and faces
    from disk, see :ref:`Chap:Parsers`. For the full API, see the Doxygen reference for
    `MeshT <doxygen/html/classEBGeometry_1_1DCEL_1_1MeshT.html>`__.

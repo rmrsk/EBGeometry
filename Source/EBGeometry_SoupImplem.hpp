@@ -221,8 +221,11 @@ Soup::reconcilePairEdgesDCEL(std::vector<EBGeometry::DCEL::EdgeT<T, Meta>>& a_ed
 
   using DCELIndex = EBGeometry::DCEL::DCELIndex;
 
-  // Map each undirected vertex pair (min,max) to the first half-edge seen with that pair. When a
-  // second half-edge with the same undirected pair appears, the two are each other's twins.
+  // Map each DIRECTED half-edge (origin, other) to its index. A half-edge (u -> w) is the twin of the
+  // anti-parallel half-edge (w -> u), so when we encounter (u -> w) we look for a previously seen
+  // (w -> u) and pair the two. This is orientation-aware: two half-edges with the SAME direction are
+  // never paired, so an inconsistently oriented or non-watertight mesh correctly leaves the affected
+  // edges unpaired (which MeshT::sanityCheck then reports).
   std::map<std::pair<DCELIndex, DCELIndex>, DCELIndex> edgeMap;
 
   for (size_t i = 0; i < a_edges.size(); i++) {
@@ -237,17 +240,19 @@ Soup::reconcilePairEdgesDCEL(std::vector<EBGeometry::DCEL::EdgeT<T, Meta>>& a_ed
     EBGEOMETRY_EXPECT(u != EBGeometry::DCEL::InvalidIndex);
     EBGEOMETRY_EXPECT(w != EBGeometry::DCEL::InvalidIndex);
 
-    const std::pair<DCELIndex, DCELIndex> key = std::minmax(u, w);
-
-    const auto it = edgeMap.find(key);
-    if (it == edgeMap.end()) {
-      edgeMap.emplace(key, edgeIdx);
-    }
-    else {
+    // Look for the anti-parallel half-edge (w -> u).
+    const auto it = edgeMap.find(std::make_pair(w, u));
+    if (it != edgeMap.end()) {
       const DCELIndex otherEdge = it->second;
 
       a_edges[edgeIdx].setPairEdge(otherEdge);
       a_edges[otherEdge].setPairEdge(edgeIdx);
+
+      // Consume the match so a third half-edge over the same undirected edge cannot re-pair it.
+      edgeMap.erase(it);
+    }
+    else {
+      edgeMap.emplace(std::make_pair(u, w), edgeIdx);
     }
   }
 }

@@ -263,6 +263,15 @@ public:
   getRoot() const noexcept;
 
   /**
+   * @brief Get the source DCEL mesh that the BVH's face indices refer to.
+   * @details The BVH stores only face indices; callers of getClosestFaces() resolve those indices
+   * against this mesh (e.g. to read a face's metadata or vertices).
+   * @return Const reference to the shared pointer owning the DCEL mesh.
+   */
+  [[nodiscard]] const std::shared_ptr<Mesh>&
+  getMesh() const noexcept;
+
+  /**
    * @brief Compute the AABB enclosing the entire mesh.
    * @return Axis-aligned bounding box of the mesh.
    */

@@ -779,6 +779,42 @@ TEMPLATE_TEST_CASE("MeshT: deepCopy preserves a prior flip() instead of silently
   }
 }
 
+TEMPLATE_TEST_CASE("MeshT: reconcile gives boundary half-edges their own face normal",
+                   "[DCEL][Mesh]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // A single open triangle in the z = 0 plane: three boundary half-edges, no twins. This exercises
+  // the boundary branch of the edge pseudonormal (a half-edge with no pair edge uses only its own
+  // face normal) that a closed, watertight mesh never reaches.
+  std::vector<TestVertex<T>> vertices = {
+    TestVertex<T>(Vec3T<T>(0, 0, 0)), TestVertex<T>(Vec3T<T>(1, 0, 0)), TestVertex<T>(Vec3T<T>(0, 1, 0))};
+  std::vector<TestEdge<T>> edges(3);
+  std::vector<TestFace<T>> faces = {TestFace<T>(0)};
+
+  for (DCELIndex i = 0; i < 3; i++) {
+    edges[i].define(i, InvalidIndex, (i + 1) % 3); // origin vertex i, no pair, next edge (i+1)%3
+    edges[i].setFace(0);
+
+    vertices[i].setEdge(i);
+    vertices[i].addFace(0);
+  }
+
+  MeshT<T, DefaultMetaData> mesh(faces, edges, vertices);
+  mesh.reconcile(VertexNormalWeight::None);
+
+  const auto&     meshEdges  = mesh.getEdges();
+  const Vec3T<T>& faceNormal = mesh.getFaces()[0].getNormal();
+
+  REQUIRE_THAT(faceNormal.length(), withinAbsT(T(1.0), exactMargin<T>()));
+
+  for (DCELIndex i = 0; i < 3; i++) {
+    REQUIRE(meshEdges[i].getPairEdge() == InvalidIndex);                             // boundary edge, no twin
+    REQUIRE((meshEdges[i].getNormal() - faceNormal).length() < T(exactMargin<T>())); // uses own face normal
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Soup tests
 // ─────────────────────────────────────────────────────────────────────────────

@@ -212,6 +212,9 @@ TEMPLATE_TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BV
   for (const auto build : {BVH::Build::TopDown, BVH::Build::Morton, BVH::Build::Nested, BVH::Build::SAH}) {
     const MeshSDF<T, Meta, K> packed(mesh, build);
 
+    // The BVH stores face indices into the retained mesh; getMesh() exposes it for index resolution.
+    REQUIRE(packed.getMesh() == mesh);
+
     for (const auto& p : queryPoints<T>()) {
       REQUIRE_THAT(packed.signedDistance(p), withinAbsT(flat.signedDistance(p), traversalMargin<T>()));
     }
