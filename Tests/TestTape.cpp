@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Test suite for EBGeometry_Tape.hpp: the flat linear-SSA tape and its single-pass interpreter.
-// Tier 4 validates the tape against the recursive value() oracle -- for every covered tree,
-// evaluate(flatten(tree), p) must reproduce tree.value(p). It also checks device-eligibility
+// Validates the tape against the recursive value() oracle -- for every covered tree,
+// compile(tree).value(p) must reproduce tree.value(p). It also checks device-eligibility
 // bookkeeping: pure-primitive trees are device-eligible, while opaque-host fallbacks (Perlin, Blur,
-// smooth combiners over more than two children) are not.
+// smooth combiners over more than two children, BVH unions) are not.
 
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
@@ -64,10 +64,10 @@ template <class T>
 void
 requireTapeMatchesOracle(const ImplicitFunction<T>& a_tree, const double a_margin)
 {
-  const Tape<T> tape = flatten(a_tree);
+  const Tape<T> tape = compile(a_tree);
 
   for (const auto& p : queryPoints<T>()) {
-    REQUIRE_THAT(evaluate(tape, p), withinAbsT(a_tree.value(p), a_margin));
+    REQUIRE_THAT(tape.value(p), withinAbsT(a_tree.value(p), a_margin));
   }
 }
 
@@ -209,9 +209,9 @@ TEMPLATE_TEST_CASE("Tape: smooth combiners match value() via an opaque host node
   requireTapeMatchesOracle<T>(*smoothDiff, formulaMargin<T>());
 
   // A std::function blend operator keeps every smooth combiner host-only.
-  REQUIRE_FALSE(flatten<T>(*smoothUnion).isDeviceEligible());
-  REQUIRE_FALSE(flatten<T>(*smoothInter).isDeviceEligible());
-  REQUIRE_FALSE(flatten<T>(*smoothDiff).isDeviceEligible());
+  REQUIRE_FALSE(compile<T>(*smoothUnion).isDeviceEligible());
+  REQUIRE_FALSE(compile<T>(*smoothInter).isDeviceEligible());
+  REQUIRE_FALSE(compile<T>(*smoothDiff).isDeviceEligible());
 }
 
 // The SMOOTH_MIN/SMOOTH_MAX/EXP_MIN opcodes are the device ISA for blends emitted with a known
@@ -247,7 +247,7 @@ TEMPLATE_TEST_CASE("Tape: smooth ISA opcodes match their trait eval via the buil
                          : (op == Opcode::SMOOTH_MAX) ? SmoothMaxOp<T>::eval(va, vb, s)
                                                       : ExpMinOp<T>::eval(va, vb, s);
 
-      REQUIRE_THAT(evaluate<T>(tape, p), withinAbsT(expected, formulaMargin<T>()));
+      REQUIRE_THAT(tape.value(p), withinAbsT(expected, formulaMargin<T>()));
     }
   }
 }
@@ -289,17 +289,17 @@ TEMPLATE_TEST_CASE("Tape: pure-primitive trees are device-eligible; opaque nodes
 
   // A pure primitive + transforms + sharp combiners tree stays device-eligible.
   const auto pureTree = Difference<T>(Union<T>(a, b), Scale<T>(d, T(1.5)));
-  REQUIRE(flatten<T>(*pureTree).isDeviceEligible());
+  REQUIRE(compile<T>(*pureTree).isDeviceEligible());
 
   // Perlin noise is a direct-value node with no leaf trait -> opaque host callback.
   const PerlinSDF<T> perlin(T(1), Vec3T<T>(1, 1, 1), T(0.5), 2);
-  const Tape<T>      perlinTape = flatten<T>(perlin);
+  const Tape<T>      perlinTape = compile<T>(perlin);
   REQUIRE_FALSE(perlinTape.isDeviceEligible());
   requireTapeMatchesOracle<T>(perlin, exactMargin<T>());
 
   // Blur wraps a child but overrides value() (no trait) -> opaque host callback.
   const auto    blurred  = Blur<T>(a, T(0.1));
-  const Tape<T> blurTape = flatten<T>(*blurred);
+  const Tape<T> blurTape = compile<T>(*blurred);
   REQUIRE_FALSE(blurTape.isDeviceEligible());
   requireTapeMatchesOracle<T>(*blurred, exactMargin<T>());
 }
@@ -321,8 +321,156 @@ TEMPLATE_TEST_CASE("Tape: smooth union over three children falls back to an opaq
   const std::vector<std::shared_ptr<SphereSDF<T>>> three{a, b, c};
 
   const auto    smoothN    = SmoothUnion<T, SphereSDF<T>>(three, T(0.5));
-  const Tape<T> smoothTape = flatten<T>(*smoothN);
+  const Tape<T> smoothTape = compile<T>(*smoothN);
 
   REQUIRE_FALSE(smoothTape.isDeviceEligible());
   requireTapeMatchesOracle<T>(*smoothN, formulaMargin<T>());
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// (10) Tape::value host convenience query (thread-local scratch)
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEMPLATE_TEST_CASE("Tape: Tape::value matches the recursive value() oracle over mixed trees",
+                   "[Tape][Value]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const auto sphere = std::make_shared<SphereSDF<T>>(Vec3T<T>(0.3, 0, 0), T(0.8));
+  const auto box    = std::make_shared<BoxSDF<T>>(Vec3T<T>(-1, -1, -1), Vec3T<T>(1, 1, 1));
+
+  // Union(Translate(Sphere), Box) and a nested-transform chain Offset(Rotate(Scale(Sphere))).
+  const auto mixed  = Union<T>(Translate<T>(sphere, Vec3T<T>(0.4, -0.1, 0.2)), box);
+  const auto nested = Offset<T>(Rotate<T>(Scale<T>(sphere, T(1.5)), T(30), 1), T(0.1));
+
+  const Tape<T> mixedTape  = compile<T>(*mixed);
+  const Tape<T> nestedTape = compile<T>(*nested);
+
+  // Repeated queries on the same thread exercise the thread-local scratch reuse path.
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE_THAT(mixedTape.value(p), withinAbsT(mixed->value(p), exactMargin<T>()));
+    REQUIRE_THAT(nestedTape.value(p), withinAbsT(nested->value(p), exactMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: TapeView::value with caller-provided scratch matches Tape::value",
+                   "[Tape][Value]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const auto a = std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), T(1));
+  const auto b = std::make_shared<SphereSDF<T>>(Vec3T<T>(3, 0, 0), T(1));
+  const auto d = std::make_shared<SphereSDF<T>>(Vec3T<T>(0.8, 0, 0), T(1));
+
+  const auto tree = Difference<T>(Union<T>(a, b), Scale<T>(d, T(1.5)));
+
+  const Tape<T>     tape = compile<T>(*tree);
+  const TapeView<T> view = tape.view();
+
+  std::vector<Vec3T<T>> coordScratch(tape.getNumCoordSlots());
+  std::vector<T>        valueScratch(tape.getNumValueSlots());
+
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE_THAT(view.value(p, coordScratch.data(), valueScratch.data()), withinAbsT(tape.value(p), exactMargin<T>()));
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// (11) BVH-accelerated union -> opaque host fallback (Tier 6 gives it a native BVH opcode)
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEMPLATE_TEST_CASE("Tape: BVH-accelerated union compiles via the opaque-host fallback",
+                   "[Tape][DeviceEligible][BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T  = TestType;
+  using BV = BoundingVolumes::AABBT<T>;
+
+  constexpr size_t K          = 4;
+  constexpr int    numSpheres = 4;
+
+  // A row of disjoint unit spheres, centers 3 apart (mirrors TestCSG's sphereRow fixture).
+  std::vector<std::shared_ptr<SphereSDF<T>>> spheres;
+  std::vector<BV>                            bvs;
+
+  for (int i = 0; i < numSpheres; i++) {
+    const Vec3T<T> center(T(3 * i), 0, 0);
+
+    spheres.push_back(std::make_shared<SphereSDF<T>>(center, T(1)));
+    bvs.emplace_back(center - Vec3T<T>::ones(), center + Vec3T<T>::ones());
+  }
+
+  const BVHUnionIF<T, SphereSDF<T>, BV, K> bvhUnion(spheres, bvs);
+
+  // BVHUnionIF has no flatten() lowering override, so the whole node lowers to a single opaque
+  // host-callback clause -- correct but host-only. Tier 6 gives it a native BVH opcode.
+  const Tape<T> tape = compile<T>(bvhUnion);
+
+  REQUIRE_FALSE(tape.isDeviceEligible());
+
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE_THAT(tape.value(p), withinAbsT(bvhUnion.value(p), exactMargin<T>()));
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// (12) Re-entrancy: a host-callback node whose value() itself evaluates a tape
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+// An implicit function backed by its own compiled tape -- the natural adapter a user writes once
+// tapes exist. It has no flatten() override, so an enclosing compile() lowers it to an opaque host
+// callback, and evaluating the enclosing tape re-enters Tape::value on the same thread mid-pass.
+// Tape::value must detect this and give the nested pass its own scratch instead of resizing or
+// clobbering the outer pass's thread-local buffers.
+template <class T>
+class TapeBackedIF : public ImplicitFunction<T>
+{
+public:
+  explicit TapeBackedIF(const std::shared_ptr<ImplicitFunction<T>>& a_tree) : m_tree(a_tree), m_tape(compile(*a_tree))
+  {}
+
+  [[nodiscard]] T
+  value(const Vec3T<T>& a_point) const noexcept override
+  {
+    return m_tape.value(a_point);
+  }
+
+private:
+  std::shared_ptr<ImplicitFunction<T>> m_tree;
+  Tape<T>                              m_tape;
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Tape: nested tape evaluation through a host callback is safe",
+                   "[Tape][HostCallback][Reentrancy]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // The inner tree is deliberately deeper (more slots) than the outer tape, so a naively shared
+  // scratch buffer would be regrown and overwritten by the nested pass.
+  const auto box   = std::make_shared<BoxSDF<T>>(Vec3T<T>(-1, -1, -1), Vec3T<T>(1, 1, 1));
+  const auto inner = Offset<T>(
+    Annular<T>(Translate<T>(Rotate<T>(Scale<T>(box, T(1.5)), T(20), 1), Vec3T<T>(0.5, 0, 0)), T(0.1)), T(0.2));
+
+  const auto adapter = std::make_shared<TapeBackedIF<T>>(inner);
+  const auto sphere  = std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), T(1));
+
+  // Union(sphere, adapter): the outer tape computes the sphere's value slot first, then runs the
+  // adapter's host callback (which evaluates the inner tape on this same thread), then combines --
+  // so a clobbered sphere slot or a reallocated scratch buffer would corrupt the result.
+  const auto outer = Union<T>(sphere, adapter);
+
+  const Tape<T> tape = compile<T>(*outer);
+
+  REQUIRE_FALSE(tape.isDeviceEligible());
+
+  for (const auto& p : queryPoints<T>()) {
+    REQUIRE_THAT(tape.value(p), withinAbsT(outer->value(p), exactMargin<T>()));
+  }
 }
