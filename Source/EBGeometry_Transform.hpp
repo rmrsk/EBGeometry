@@ -12,6 +12,7 @@
 #define EBGEOMETRY_TRANSFORM_HPP
 
 // Std includes
+#include <cmath>
 #include <cstddef>
 #include <memory>
 #include <type_traits>
@@ -20,6 +21,7 @@
 
 // Our includes
 #include "EBGeometry_ImplicitFunction.hpp"
+#include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -138,6 +140,43 @@ template <class T>
 Reflect(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction, const size_t& a_reflectPlane);
 
 /**
+ * @brief Distance-formula trait for the complement transform.
+ * @details Single source of truth for the complement's value remapping: the complement negates the
+ * wrapped function value. This math is reused verbatim by the tape interpreter, so it must live in the
+ * HOST_DEVICE trait static rather than inline in ComplementIF::value.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct ComplementOp
+{
+  /**
+   * @brief Stored parameters for the complement transform (none).
+   */
+  struct Params
+  {
+  };
+
+  /**
+   * @brief The complement of a signed distance function is again a signed distance function.
+   */
+  static constexpr bool preservesSignedDistance = true;
+
+  /**
+   * @brief Remap the child value to its complement.
+   * @param[in] a_params     Complement parameters (unused).
+   * @param[in] a_childValue Value of the wrapped implicit function.
+   * @return The negated child value.
+   */
+  EBGEOMETRY_HOST_DEVICE static T
+  mapValue(const Params& a_params, T a_childValue) noexcept
+  {
+    (void)a_params;
+
+    return -a_childValue;
+  }
+};
+
+/**
  * @brief Complemented implicit function
  * @tparam T Floating-point precision
  */
@@ -204,6 +243,46 @@ protected:
    * @brief Implicit function
    */
   std::shared_ptr<ImplicitFunction<T>> m_implicitFunction = nullptr;
+
+  /**
+   * @brief Transform parameters (empty for the complement).
+   */
+  typename ComplementOp<T>::Params m_params;
+};
+
+/**
+ * @brief Distance-formula trait for the translation transform.
+ * @details Single source of truth for the translation's coordinate remapping: the query point is
+ * shifted by -shift before evaluating the wrapped function. Reused verbatim by the tape interpreter.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct TranslateOp
+{
+  /**
+   * @brief Stored parameters for the translation transform.
+   */
+  struct Params
+  {
+    Vec3T<T> shift = Vec3T<T>::zeros(); ///< Translation amount.
+  };
+
+  /**
+   * @brief A rigid translation of a signed distance function is again a signed distance function.
+   */
+  static constexpr bool preservesSignedDistance = true;
+
+  /**
+   * @brief Remap the query point by the inverse translation.
+   * @param[in] a_params Translation parameters.
+   * @param[in] a_point  Query point.
+   * @return The query point shifted by -shift.
+   */
+  EBGEOMETRY_HOST_DEVICE static Vec3T<T>
+  mapPoint(const Params& a_params, const Vec3T<T>& a_point) noexcept
+  {
+    return a_point - a_params.shift;
+  }
 };
 
 /**
@@ -264,7 +343,7 @@ public:
   /**
    * @brief Value function
    * @param[in] a_point Query point
-   * @return Value of the wrapped implicit function evaluated at a_point shifted by -m_shift
+   * @return Value of the wrapped implicit function evaluated at a_point shifted by -m_params.shift
    */
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
@@ -276,9 +355,79 @@ protected:
   std::shared_ptr<ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
-   * @brief Input point translate.
+   * @brief Transform parameters (translation shift).
    */
-  Vec3T<T> m_shift;
+  typename TranslateOp<T>::Params m_params;
+};
+
+/**
+ * @brief Distance-formula trait for the rotation transform.
+ * @details Single source of truth for the rotation's coordinate remapping: the query point is rotated
+ * about a Cartesian axis by the pre-computed cos/sin of the rotation angle before evaluating the
+ * wrapped function. Reused verbatim by the tape interpreter.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RotateOp
+{
+  /**
+   * @brief Stored parameters for the rotation transform.
+   */
+  struct Params
+  {
+    size_t axis     = 0;    ///< Axis to rotate about (0=x, 1=y, 2=z).
+    T      cosAngle = T(1); ///< Cosine of the rotation angle.
+    T      sinAngle = T(0); ///< Sine of the rotation angle.
+  };
+
+  /**
+   * @brief A rigid rotation of a signed distance function is again a signed distance function.
+   */
+  static constexpr bool preservesSignedDistance = true;
+
+  /**
+   * @brief Remap the query point by the rotation.
+   * @param[in] a_params Rotation parameters.
+   * @param[in] a_point  Query point.
+   * @return The rotated query point.
+   */
+  EBGEOMETRY_HOST_DEVICE static Vec3T<T>
+  mapPoint(const Params& a_params, const Vec3T<T>& a_point) noexcept
+  {
+    const T& x = a_point[0];
+    const T& y = a_point[1];
+    const T& z = a_point[2];
+
+    Vec3T<T> rotatedPoint = a_point;
+
+    switch (a_params.axis) {
+    case 0: {
+      rotatedPoint[1] = y * a_params.cosAngle + z * a_params.sinAngle;
+      rotatedPoint[2] = -y * a_params.sinAngle + z * a_params.cosAngle;
+
+      break;
+    }
+    case 1: {
+      rotatedPoint[0] = x * a_params.cosAngle - z * a_params.sinAngle;
+      rotatedPoint[2] = x * a_params.sinAngle + z * a_params.cosAngle;
+
+      break;
+    }
+    case 2: {
+      rotatedPoint[0] = x * a_params.cosAngle + y * a_params.sinAngle;
+      rotatedPoint[1] = -x * a_params.sinAngle + y * a_params.cosAngle;
+
+      break;
+    }
+    default: {
+      EBGEOMETRY_EXPECT(false && "RotateOp: axis must be 0, 1, or 2");
+
+      break;
+    }
+    }
+
+    return rotatedPoint;
+  }
 };
 
 /**
@@ -354,24 +503,44 @@ protected:
   std::shared_ptr<ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
-   * @brief Axis to rotate about
+   * @brief Transform parameters (rotation axis and pre-computed cos/sin of the angle).
    */
-  size_t m_axis;
+  typename RotateOp<T>::Params m_params;
+};
+
+/**
+ * @brief Distance-formula trait for the offset transform.
+ * @details Single source of truth for the offset's value remapping: a constant offset is subtracted
+ * from the wrapped function value. Reused verbatim by the tape interpreter.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct OffsetOp
+{
+  /**
+   * @brief Stored parameters for the offset transform.
+   */
+  struct Params
+  {
+    T offset = T(0); ///< Offset subtracted from the wrapped value.
+  };
 
   /**
-   * @brief Angle to rotate.
+   * @brief Offsetting a signed distance function by a constant preserves the signed distance property.
    */
-  T m_angle;
+  static constexpr bool preservesSignedDistance = true;
 
   /**
-   * @brief Parameter in rotation matrix. Stored for efficiency.
+   * @brief Remap the child value by subtracting the offset.
+   * @param[in] a_params     Offset parameters.
+   * @param[in] a_childValue Value of the wrapped implicit function.
+   * @return The child value minus the offset.
    */
-  T m_cosAngle;
-
-  /**
-   * @brief Parameter in rotation matrix. Stored for efficiency.
-   */
-  T m_sinAngle;
+  EBGEOMETRY_HOST_DEVICE static T
+  mapValue(const Params& a_params, T a_childValue) noexcept
+  {
+    return a_childValue - a_params.offset;
+  }
 };
 
 /**
@@ -444,9 +613,57 @@ protected:
   std::shared_ptr<ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
-   * @brief Offset value.
+   * @brief Transform parameters (offset value).
    */
-  T m_offset;
+  typename OffsetOp<T>::Params m_params;
+};
+
+/**
+ * @brief Distance-formula trait for the uniform-scaling transform.
+ * @details Single source of truth for the scale's remapping: the query point is divided by the scale
+ * factor before evaluating the wrapped function and the result is multiplied back by the scale factor.
+ * Reused verbatim by the tape interpreter.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct ScaleOp
+{
+  /**
+   * @brief Stored parameters for the scaling transform.
+   */
+  struct Params
+  {
+    T scale = T(1); ///< Uniform scaling factor (non-zero).
+  };
+
+  /**
+   * @brief A uniform scaling of a signed distance function is again a signed distance function.
+   */
+  static constexpr bool preservesSignedDistance = true;
+
+  /**
+   * @brief Remap the query point by the inverse scaling.
+   * @param[in] a_params Scaling parameters.
+   * @param[in] a_point  Query point.
+   * @return The query point divided by the scale factor.
+   */
+  EBGEOMETRY_HOST_DEVICE static Vec3T<T>
+  mapPoint(const Params& a_params, const Vec3T<T>& a_point) noexcept
+  {
+    return a_point / a_params.scale;
+  }
+
+  /**
+   * @brief Post-scale the child value.
+   * @param[in] a_params     Scaling parameters.
+   * @param[in] a_childValue Value of the wrapped implicit function.
+   * @return The child value multiplied by the scale factor.
+   */
+  EBGEOMETRY_HOST_DEVICE static T
+  mapValue(const Params& a_params, T a_childValue) noexcept
+  {
+    return a_childValue * a_params.scale;
+  }
 };
 
 /**
@@ -507,7 +724,7 @@ public:
   /**
    * @brief Value function.
    * @param[in] a_point Query point
-   * @return Signed distance of the wrapped function evaluated at a_point/m_scale, multiplied by m_scale
+   * @return Signed distance of the wrapped function evaluated at a_point/m_params.scale, multiplied by m_params.scale
    */
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
@@ -519,9 +736,45 @@ protected:
   std::shared_ptr<ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
-   * @brief Scaling factor.
+   * @brief Transform parameters (scaling factor).
    */
-  T m_scale;
+  typename ScaleOp<T>::Params m_params;
+};
+
+/**
+ * @brief Distance-formula trait for the annular (shell) transform.
+ * @details Single source of truth for the annular value remapping: the absolute value of the wrapped
+ * function is taken and the shell thickness is subtracted, hollowing the shape into a shell. Reused
+ * verbatim by the tape interpreter.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct AnnularOp
+{
+  /**
+   * @brief Stored parameters for the annular transform.
+   */
+  struct Params
+  {
+    T delta = T(0); ///< Shell thickness.
+  };
+
+  /**
+   * @brief The annular map of a signed distance function is again a signed distance function.
+   */
+  static constexpr bool preservesSignedDistance = true;
+
+  /**
+   * @brief Remap the child value into a shell.
+   * @param[in] a_params     Annular parameters.
+   * @param[in] a_childValue Value of the wrapped implicit function.
+   * @return std::abs(a_childValue) - delta.
+   */
+  EBGEOMETRY_HOST_DEVICE static T
+  mapValue(const Params& a_params, T a_childValue) noexcept
+  {
+    return std::abs(a_childValue) - a_params.delta;
+  }
 };
 
 /**
@@ -582,7 +835,7 @@ public:
   /**
    * @brief Value function.
    * @param[in] a_point Query point
-   * @return std::abs(f(a_point)) - m_delta, hollowing out the shape at distance m_delta from the surface
+   * @return std::abs(f(a_point)) - m_params.delta, hollowing out the shape at distance m_params.delta from the surface
    */
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
@@ -594,9 +847,9 @@ protected:
   std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
-   * @brief Shell thickness.
+   * @brief Transform parameters (shell thickness).
    */
-  T m_delta;
+  typename AnnularOp<T>::Params m_params;
 };
 
 /**
@@ -775,6 +1028,42 @@ protected:
 };
 
 /**
+ * @brief Distance-formula trait for the elongation transform.
+ * @details Single source of truth for the elongation's coordinate remapping: the query point is
+ * clamped component-wise to [-elongation, +elongation] and the clamped value is subtracted before
+ * evaluating the wrapped function. Reused verbatim by the tape interpreter.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct ElongateOp
+{
+  /**
+   * @brief Stored parameters for the elongation transform.
+   */
+  struct Params
+  {
+    Vec3T<T> elongation = Vec3T<T>::zeros(); ///< Per-axis elongation amounts.
+  };
+
+  /**
+   * @brief Elongation does not preserve the signed distance property (the swept region is not metric).
+   */
+  static constexpr bool preservesSignedDistance = false;
+
+  /**
+   * @brief Remap the query point by the elongation.
+   * @param[in] a_params Elongation parameters.
+   * @param[in] a_point  Query point.
+   * @return a_point minus its component-wise clamp to [-elongation, +elongation].
+   */
+  EBGEOMETRY_HOST_DEVICE static Vec3T<T>
+  mapPoint(const Params& a_params, const Vec3T<T>& a_point) noexcept
+  {
+    return a_point - clamp(a_point, -a_params.elongation, a_params.elongation);
+  }
+};
+
+/**
  * @brief Implicit function which is an elongation of another implicit function along each axis.
  * @details Elongation clamps the query point component-wise to [-elongation, +elongation] and
  * subtracts the clamped value before evaluating the wrapped function — effectively stretching
@@ -835,7 +1124,7 @@ public:
   /**
    * @brief Value function
    * @param[in] a_point Query point
-   * @return Value of the wrapped function evaluated at a_point clamped by m_elongation
+   * @return Value of the wrapped function evaluated at a_point clamped by m_params.elongation
    */
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
@@ -847,9 +1136,45 @@ protected:
   std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
-   * @brief Elongation
+   * @brief Transform parameters (per-axis elongation).
    */
-  Vec3T<T> m_elongation;
+  typename ElongateOp<T>::Params m_params;
+};
+
+/**
+ * @brief Distance-formula trait for the reflection transform.
+ * @details Single source of truth for the reflection's coordinate remapping: the query point is
+ * multiplied component-wise by the reflection parameters (ones, with -1 in the reflected axis) before
+ * evaluating the wrapped function. Reused verbatim by the tape interpreter.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct ReflectOp
+{
+  /**
+   * @brief Stored parameters for the reflection transform.
+   */
+  struct Params
+  {
+    Vec3T<T> reflectParams = Vec3T<T>::ones(); ///< Per-axis reflection multipliers (-1 in reflected axis).
+  };
+
+  /**
+   * @brief A reflection of a signed distance function is again a signed distance function.
+   */
+  static constexpr bool preservesSignedDistance = true;
+
+  /**
+   * @brief Remap the query point by the reflection.
+   * @param[in] a_params Reflection parameters.
+   * @param[in] a_point  Query point.
+   * @return The query point multiplied component-wise by the reflection parameters.
+   */
+  EBGEOMETRY_HOST_DEVICE static Vec3T<T>
+  mapPoint(const Params& a_params, const Vec3T<T>& a_point) noexcept
+  {
+    return a_point * a_params.reflectParams;
+  }
 };
 
 /**
@@ -922,9 +1247,9 @@ protected:
   std::shared_ptr<const ImplicitFunction<T>> m_implicitFunction = nullptr;
 
   /**
-   * @brief Reflection parameters
+   * @brief Transform parameters (per-axis reflection multipliers).
    */
-  Vec3T<T> m_reflectParams;
+  typename ReflectOp<T>::Params m_params;
 };
 
 } // namespace EBGeometry

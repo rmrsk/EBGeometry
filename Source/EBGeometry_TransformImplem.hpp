@@ -122,6 +122,8 @@ ComplementIF<T>::ComplementIF(const std::shared_ptr<ImplicitFunction<T>>& a_impl
   EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
 
   m_implicitFunction = a_implicitFunction;
+
+  this->m_sdf = a_implicitFunction->isSignedDistance();
 }
 
 template <class T>
@@ -133,7 +135,7 @@ ComplementIF<T>::value(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  return -m_implicitFunction->value(a_point);
+  return ComplementOp<T>::mapValue(m_params, m_implicitFunction->value(a_point));
 }
 
 template <class T>
@@ -146,7 +148,9 @@ TranslateIF<T>::TranslateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implic
   EBGEOMETRY_EXPECT(std::isfinite(a_translation[2]));
 
   m_implicitFunction = a_implicitFunction;
-  m_shift            = a_translation;
+  m_params.shift     = a_translation;
+
+  this->m_sdf = a_implicitFunction->isSignedDistance();
 }
 
 template <class T>
@@ -158,7 +162,7 @@ TranslateIF<T>::value(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  return m_implicitFunction->value(a_point - m_shift);
+  return m_implicitFunction->value(TranslateOp<T>::mapPoint(m_params, a_point));
 }
 
 template <class T>
@@ -171,13 +175,14 @@ RotateIF<T>::RotateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunc
   EBGEOMETRY_EXPECT(a_axis <= 2U);
 
   m_implicitFunction = a_implicitFunction;
-  m_angle            = a_angle;
-  m_axis             = a_axis;
 
-  const T theta = m_angle * pi<T> / T(180);
+  const T theta = a_angle * pi<T> / T(180);
 
-  m_cosAngle = std::cos(theta);
-  m_sinAngle = std::sin(theta);
+  m_params.axis     = a_axis;
+  m_params.cosAngle = std::cos(theta);
+  m_params.sinAngle = std::sin(theta);
+
+  this->m_sdf = a_implicitFunction->isSignedDistance();
 }
 
 template <class T>
@@ -189,39 +194,7 @@ RotateIF<T>::value(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  const T& x = a_point[0];
-  const T& y = a_point[1];
-  const T& z = a_point[2];
-
-  Vec3T<T> rotatedPoint = a_point;
-
-  switch (m_axis) {
-  case 0: {
-    rotatedPoint[1] = y * m_cosAngle + z * m_sinAngle;
-    rotatedPoint[2] = -y * m_sinAngle + z * m_cosAngle;
-
-    break;
-  }
-  case 1: {
-    rotatedPoint[0] = x * m_cosAngle - z * m_sinAngle;
-    rotatedPoint[2] = x * m_sinAngle + z * m_cosAngle;
-
-    break;
-  }
-  case 2: {
-    rotatedPoint[0] = x * m_cosAngle + y * m_sinAngle;
-    rotatedPoint[1] = -x * m_sinAngle + y * m_cosAngle;
-
-    break;
-  }
-  default: {
-    EBGEOMETRY_EXPECT(false && "RotateIF: m_axis must be 0, 1, or 2");
-
-    break;
-  }
-  }
-
-  return m_implicitFunction->value(rotatedPoint);
+  return m_implicitFunction->value(RotateOp<T>::mapPoint(m_params, a_point));
 }
 
 template <class T>
@@ -231,7 +204,9 @@ OffsetIF<T>::OffsetIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunc
   EBGEOMETRY_EXPECT(std::isfinite(a_offset));
 
   m_implicitFunction = a_implicitFunction;
-  m_offset           = a_offset;
+  m_params.offset    = a_offset;
+
+  this->m_sdf = a_implicitFunction->isSignedDistance();
 }
 
 template <class T>
@@ -243,7 +218,7 @@ OffsetIF<T>::value(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  return m_implicitFunction->value(a_point) - m_offset;
+  return OffsetOp<T>::mapValue(m_params, m_implicitFunction->value(a_point));
 }
 
 template <class T>
@@ -254,7 +229,9 @@ ScaleIF<T>::ScaleIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFuncti
   EBGEOMETRY_EXPECT(a_scale != T(0));
 
   m_implicitFunction = a_implicitFunction;
-  m_scale            = a_scale;
+  m_params.scale     = a_scale;
+
+  this->m_sdf = a_implicitFunction->isSignedDistance();
 }
 
 template <class T>
@@ -266,7 +243,7 @@ ScaleIF<T>::value(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  return (m_implicitFunction->value(a_point / m_scale)) * m_scale;
+  return ScaleOp<T>::mapValue(m_params, m_implicitFunction->value(ScaleOp<T>::mapPoint(m_params, a_point)));
 }
 
 template <class T>
@@ -276,7 +253,9 @@ AnnularIF<T>::AnnularIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFu
   EBGEOMETRY_EXPECT(std::isfinite(a_delta));
 
   m_implicitFunction = a_implicitFunction;
-  m_delta            = a_delta;
+  m_params.delta     = a_delta;
+
+  this->m_sdf = a_implicitFunction->isSignedDistance();
 }
 
 template <class T>
@@ -288,7 +267,7 @@ AnnularIF<T>::value(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  return std::abs(m_implicitFunction->value(a_point)) - m_delta;
+  return AnnularOp<T>::mapValue(m_params, m_implicitFunction->value(a_point));
 }
 
 template <class T>
@@ -305,6 +284,8 @@ BlurIF<T>::BlurIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunction
   m_implicitFunction = a_implicitFunction;
   m_blurDistance     = a_blurDistance;
   m_alpha            = a_alpha;
+
+  this->m_sdf = false;
 }
 
 template <class T>
@@ -353,6 +334,8 @@ MollifyIF<T>::MollifyIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFu
 
   m_implicitFunction = a_implicitFunction;
   m_mollifier        = a_mollifier;
+
+  this->m_sdf = false;
 
   const T maxVal = std::abs(a_maxValue);
 
@@ -418,8 +401,10 @@ ElongateIF<T>::ElongateIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicit
   EBGEOMETRY_EXPECT(a_elongation[1] >= T(0));
   EBGEOMETRY_EXPECT(a_elongation[2] >= T(0));
 
-  m_implicitFunction = a_implicitFunction;
-  m_elongation       = a_elongation;
+  m_implicitFunction  = a_implicitFunction;
+  m_params.elongation = a_elongation;
+
+  this->m_sdf = false;
 }
 
 template <class T>
@@ -431,7 +416,7 @@ ElongateIF<T>::value(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  return m_implicitFunction->value(a_point - clamp(a_point, -m_elongation, m_elongation));
+  return m_implicitFunction->value(ElongateOp<T>::mapPoint(m_params, a_point));
 }
 
 template <class T>
@@ -441,12 +426,14 @@ ReflectIF<T>::ReflectIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFu
   EBGEOMETRY_EXPECT(a_implicitFunction != nullptr);
   EBGEOMETRY_EXPECT(a_reflectPlane <= 2U);
 
-  m_implicitFunction = a_implicitFunction;
-  m_reflectParams    = Vec3T<T>::ones();
+  m_implicitFunction     = a_implicitFunction;
+  m_params.reflectParams = Vec3T<T>::ones();
 
   if (a_reflectPlane <= 2) {
-    m_reflectParams[a_reflectPlane] = -1;
+    m_params.reflectParams[a_reflectPlane] = -1;
   }
+
+  this->m_sdf = a_implicitFunction->isSignedDistance();
 }
 
 template <class T>
@@ -458,7 +445,7 @@ ReflectIF<T>::value(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  return m_implicitFunction->value(a_point * m_reflectParams);
+  return m_implicitFunction->value(ReflectOp<T>::mapPoint(m_params, a_point));
 }
 
 } // namespace EBGeometry

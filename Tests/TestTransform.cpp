@@ -597,3 +597,63 @@ TEMPLATE_TEST_CASE("Reflect: free function matches ReflectIF", "[Transform][Refl
     REQUIRE_THAT(freeFunc->value(p), withinAbsT(direct.value(p), exactMargin<T>()));
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// isSignedDistance() propagation
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEMPLATE_TEST_CASE("Transform: preserving transforms propagate the child's metric-ness",
+                   "[Transform][isSignedDistance]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A sphere is a true signed distance function; a Perlin noise field is a general (non-metric)
+  // implicit function.
+  const std::shared_ptr<IF<T>> metric    = std::make_shared<Sphere<T>>(Vec3::zeros(), T(1));
+  const std::shared_ptr<IF<T>> nonMetric = std::make_shared<PerlinSDF<T>>();
+
+  REQUIRE(metric->isSignedDistance());
+  REQUIRE_FALSE(nonMetric->isSignedDistance());
+
+  // Each preserving transform is metric iff its child is metric.
+  REQUIRE(ComplementIF<T>(metric).isSignedDistance());
+  REQUIRE_FALSE(ComplementIF<T>(nonMetric).isSignedDistance());
+
+  REQUIRE(TranslateIF<T>(metric, Vec3(1, 2, 3)).isSignedDistance());
+  REQUIRE_FALSE(TranslateIF<T>(nonMetric, Vec3(1, 2, 3)).isSignedDistance());
+
+  REQUIRE(RotateIF<T>(metric, T(30), size_t(2)).isSignedDistance());
+  REQUIRE_FALSE(RotateIF<T>(nonMetric, T(30), size_t(2)).isSignedDistance());
+
+  REQUIRE(ReflectIF<T>(metric, size_t(1)).isSignedDistance());
+  REQUIRE_FALSE(ReflectIF<T>(nonMetric, size_t(1)).isSignedDistance());
+
+  REQUIRE(ScaleIF<T>(metric, T(2)).isSignedDistance());
+  REQUIRE_FALSE(ScaleIF<T>(nonMetric, T(2)).isSignedDistance());
+
+  REQUIRE(OffsetIF<T>(metric, T(0.3)).isSignedDistance());
+  REQUIRE_FALSE(OffsetIF<T>(nonMetric, T(0.3)).isSignedDistance());
+
+  REQUIRE(AnnularIF<T>(metric, T(0.2)).isSignedDistance());
+  REQUIRE_FALSE(AnnularIF<T>(nonMetric, T(0.2)).isSignedDistance());
+}
+
+TEMPLATE_TEST_CASE("Transform: clearing transforms are never metric, even over a metric child",
+                   "[Transform][isSignedDistance]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const std::shared_ptr<IF<T>> metric = std::make_shared<Sphere<T>>(Vec3::zeros(), T(1));
+
+  REQUIRE(metric->isSignedDistance());
+
+  REQUIRE_FALSE(ElongateIF<T>(metric, Vec3(1, 0, 0)).isSignedDistance());
+  REQUIRE_FALSE(BlurIF<T>(metric, T(0.3)).isSignedDistance());
+
+  const auto mollifier = std::make_shared<Sphere<T>>(Vec3::zeros(), T(0.5));
+  REQUIRE_FALSE(MollifyIF<T>(metric, mollifier, T(0.4), 3).isSignedDistance());
+}

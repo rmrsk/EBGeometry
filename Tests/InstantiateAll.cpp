@@ -69,6 +69,14 @@ using Meta = short;
   template class RoundedCylinderSDF<PREC>;                                   \
   template class PerlinSDF<PREC>;                                            \
                                                                                \
+  /* -- CSG reduction traits ----------------------------------------------*/ \
+  template struct UnionOp<PREC>;                                             \
+  template struct IntersectionOp<PREC>;                                     \
+  template struct DifferenceOp<PREC>;                                       \
+  template struct SmoothMinOp<PREC>;                                        \
+  template struct SmoothMaxOp<PREC>;                                        \
+  template struct ExpMinOp<PREC>;                                           \
+                                                                               \
   /* -- CSG implicit functions --------------------------------------------*/ \
   template class UnionIF<PREC>;                                              \
   template class SmoothUnionIF<PREC>;                                        \
@@ -77,6 +85,16 @@ using Meta = short;
   template class DifferenceIF<PREC>;                                         \
   template class SmoothDifferenceIF<PREC>;                                   \
   template class FiniteRepetitionIF<PREC>;                                   \
+                                                                               \
+  /* -- Transformation distance-formula traits ----------------------------*/ \
+  template struct ComplementOp<PREC>;                                       \
+  template struct TranslateOp<PREC>;                                        \
+  template struct RotateOp<PREC>;                                           \
+  template struct OffsetOp<PREC>;                                           \
+  template struct ScaleOp<PREC>;                                            \
+  template struct AnnularOp<PREC>;                                          \
+  template struct ElongateOp<PREC>;                                         \
+  template struct ReflectOp<PREC>;                                          \
                                                                                \
   /* -- Transformation implicit functions ----------------------------------*/\
   template class ComplementIF<PREC>;                                         \

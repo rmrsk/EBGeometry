@@ -884,3 +884,80 @@ TEMPLATE_TEST_CASE("FiniteRepetition: free function matches FiniteRepetitionIF",
     REQUIRE_THAT(freeFunc->value(p), withinAbsT(direct.value(p), formulaMargin<T>()));
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// isSignedDistance() propagation
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEMPLATE_TEST_CASE("CSG: sharp combiners are metric iff all operands are metric",
+                   "[CSG][isSignedDistance]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A sphere is a true signed distance function; a Perlin noise field is a general (non-metric)
+  // implicit function.
+  const std::shared_ptr<IF<T>> metricA   = std::make_shared<Sphere<T>>(Vec3::zeros(), T(1));
+  const std::shared_ptr<IF<T>> metricB   = std::make_shared<Sphere<T>>(Vec3(3, 0, 0), T(1));
+  const std::shared_ptr<IF<T>> nonMetric = std::make_shared<PerlinSDF<T>>();
+
+  REQUIRE(metricA->isSignedDistance());
+  REQUIRE_FALSE(nonMetric->isSignedDistance());
+
+  const std::vector<std::shared_ptr<IF<T>>> bothMetric{metricA, metricB};
+  const std::vector<std::shared_ptr<IF<T>>> mixed{metricA, nonMetric};
+
+  // Sharp union / intersection: metric iff every operand is metric.
+  REQUIRE(UnionIF<T>(bothMetric).isSignedDistance());
+  REQUIRE_FALSE(UnionIF<T>(mixed).isSignedDistance());
+
+  REQUIRE(IntersectionIF<T>(bothMetric).isSignedDistance());
+  REQUIRE_FALSE(IntersectionIF<T>(mixed).isSignedDistance());
+
+  // Sharp difference A \ B: metric iff both stored children are metric.
+  REQUIRE(DifferenceIF<T>(metricA, metricB).isSignedDistance());
+  REQUIRE_FALSE(DifferenceIF<T>(metricA, nonMetric).isSignedDistance());
+  REQUIRE_FALSE(DifferenceIF<T>(nonMetric, metricA).isSignedDistance());
+}
+
+TEMPLATE_TEST_CASE("CSG: smooth combiners always clear the metric flag",
+                   "[CSG][isSignedDistance]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const std::shared_ptr<IF<T>> metricA = std::make_shared<Sphere<T>>(Vec3::zeros(), T(1));
+  const std::shared_ptr<IF<T>> metricB = std::make_shared<Sphere<T>>(Vec3(3, 0, 0), T(1));
+
+  const std::vector<std::shared_ptr<IF<T>>> bothMetric{metricA, metricB};
+
+  const T smoothLen = T(0.5);
+
+  // Even with two metric operands, every smooth combiner is non-metric.
+  REQUIRE_FALSE(SmoothUnionIF<T>(bothMetric, smoothLen).isSignedDistance());
+  REQUIRE_FALSE(SmoothIntersectionIF<T>(metricA, metricB, smoothLen).isSignedDistance());
+  REQUIRE_FALSE(SmoothDifferenceIF<T>(metricA, metricB, smoothLen).isSignedDistance());
+}
+
+TEMPLATE_TEST_CASE("CSG: BVH-accelerated combiners propagate metric-ness like their sharp/smooth kin",
+                   "[CSG][isSignedDistance]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr size_t K = 4;
+
+  const auto               spheres = sphereRow<T>();
+  const std::vector<BV<T>> bvs     = sphereRowBVs<T>();
+
+  const T smoothLen = T(0.5);
+
+  // Sharp BVH union of metric spheres is metric; its smooth counterpart is not.
+  const BVHUnionIF<T, Sphere<T>, BV<T>, K> bvhUnion(spheres, bvs);
+  REQUIRE(bvhUnion.isSignedDistance());
+
+  const BVHSmoothUnionIF<T, Sphere<T>, BV<T>, K> bvhSmooth(spheres, bvs, smoothLen);
+  REQUIRE_FALSE(bvhSmooth.isSignedDistance());
+}
