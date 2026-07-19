@@ -30,6 +30,13 @@
 namespace EBGeometry {
 
 /**
+ * @brief Forward declaration of the host-side tape builder (see EBGeometry_Tape.hpp).
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class TapeBuilder;
+
+/**
  * @brief Constructs an implicit function whose interior is the union of the interiors of all input functions.
  * @details The returned object evaluates to the minimum over all input functions at any query point.
  * @tparam T Floating-point precision.
@@ -466,6 +473,16 @@ public:
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
+  /**
+   * @brief Lower this union into the tape as a left-fold of pairwise sharp-union clauses (see
+   * EBGeometry_Tape.hpp).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
+
 protected:
   /**
    * @brief Stored implicit functions.
@@ -515,6 +532,17 @@ public:
    */
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
+
+  /**
+   * @brief Lower this smooth union into the tape (see EBGeometry_Tape.hpp).
+   * @details Exactly two children lower to a single smooth-minimum clause; any other count falls
+   * back to an opaque host callback (keeping the two-closest-of-N blend exact).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
 
 protected:
   /**
@@ -739,6 +767,16 @@ public:
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
 
+  /**
+   * @brief Lower this intersection into the tape as a left-fold of pairwise sharp-intersection
+   * clauses (see EBGeometry_Tape.hpp).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
+
 protected:
   /**
    * @brief Stored implicit functions.
@@ -800,6 +838,17 @@ public:
    */
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
+
+  /**
+   * @brief Lower this smooth intersection into the tape (see EBGeometry_Tape.hpp).
+   * @details Exactly two children lower to a single smooth-maximum clause; any other count falls
+   * back to an opaque host callback (keeping the two-closest-of-N blend exact).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
 
 protected:
   /**
@@ -864,6 +913,16 @@ public:
    */
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
+
+  /**
+   * @brief Lower this difference into the tape as a single binary sharp-difference clause (see
+   * EBGeometry_Tape.hpp).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
 
 protected:
   /**
@@ -932,6 +991,16 @@ public:
    */
   [[nodiscard]] T
   value(const Vec3T<T>& a_point) const noexcept override;
+
+  /**
+   * @brief Lower this smooth difference into the tape by recursing into its internal smooth
+   * intersection of A with the complement of B (see EBGeometry_Tape.hpp).
+   * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
+   * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
+   * @return Value slot holding this subtree's result.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST int
+  flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const override;
 
 protected:
   /**
