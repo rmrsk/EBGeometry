@@ -1847,12 +1847,20 @@ Parser::readIntoTriangles(const std::string a_filename)
 
   bool onlyTriangles = true;
 
-  for (const auto& f : mesh->getFaces()) {
-    const auto normal   = f->getNormal();
-    const auto vertices = f->gatherVertices();
-    const auto edges    = f->gatherEdges();
+  const auto& meshVertices = mesh->getVertices();
+  const auto& meshEdges    = mesh->getEdges();
 
-    if (vertices.size() != 3) {
+  for (const auto& f : mesh->getFaces()) {
+    const auto normal = f.getNormal();
+
+    // Gather the face's vertex indices in half-edge order.
+    std::vector<EBGeometry::DCEL::DCELIndex> vertexIndices;
+
+    for (EBGeometry::DCEL::EdgeIteratorT<T, Meta> it(meshEdges, f.getHalfEdge()); it.ok(); ++it) {
+      vertexIndices.emplace_back(meshEdges[it()].getVertex());
+    }
+
+    if (vertexIndices.size() != 3) {
       onlyTriangles = false;
     }
 
@@ -1860,9 +1868,15 @@ Parser::readIntoTriangles(const std::string a_filename)
     auto tri = std::make_shared<Triangle<T, Meta>>();
 
     tri->setNormal(normal);
-    tri->setVertexPositions({vertices[0]->getPosition(), vertices[1]->getPosition(), vertices[2]->getPosition()});
-    tri->setVertexNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
-    tri->setEdgeNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
+    tri->setVertexPositions({meshVertices[vertexIndices[0]].getPosition(),
+                             meshVertices[vertexIndices[1]].getPosition(),
+                             meshVertices[vertexIndices[2]].getPosition()});
+    tri->setVertexNormals({meshVertices[vertexIndices[0]].getNormal(),
+                           meshVertices[vertexIndices[1]].getNormal(),
+                           meshVertices[vertexIndices[2]].getNormal()});
+    tri->setEdgeNormals({meshVertices[vertexIndices[0]].getNormal(),
+                         meshVertices[vertexIndices[1]].getNormal(),
+                         meshVertices[vertexIndices[2]].getNormal()});
 
     triangles.emplace_back(tri);
   }

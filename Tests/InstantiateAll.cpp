@@ -95,6 +95,7 @@ using Meta = short;
   template class FaceT<PREC, Meta>;                                         \
   template class EdgeT<PREC, Meta>;                                         \
   template class VertexT<PREC, Meta>;                                       \
+  template class EdgeIteratorT<PREC, Meta>;                                 \
   }
 
 EBGEOMETRY_INSTANTIATE_ALL(double)

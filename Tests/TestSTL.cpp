@@ -172,6 +172,6 @@ TEMPLATE_TEST_CASE("Parser::readSTL + convertToDCEL round-trips into a valid, wa
   REQUIRE(mesh->getEdges().size() == 12);
 
   for (const auto& e : mesh->getEdges()) {
-    REQUIRE(e->getPairEdge() != nullptr); // Watertight: every half-edge has a pair.
+    REQUIRE(e.getPairEdge() != DCEL::InvalidIndex); // Watertight: every half-edge has a pair.
   }
 }

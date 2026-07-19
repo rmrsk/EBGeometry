@@ -95,7 +95,7 @@ TEMPLATE_TEST_CASE("Dodecahedron: all four file formats parse into an identical,
     REQUIRE(mesh->getEdges().size() == 108); // 54 undirected edges * 2 half-edges each.
 
     for (const auto& e : mesh->getEdges()) {
-      REQUIRE(e->getPairEdge() != nullptr); // Watertight: every half-edge has a pair.
+      REQUIRE(e.getPairEdge() != DCEL::InvalidIndex); // Watertight: every half-edge has a pair.
     }
   }
 
@@ -122,11 +122,14 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.obj"));
   REQUIRE(mesh != nullptr);
 
-  using Face = DCEL::FaceT<T, Meta>;
+  // The BVH primitive is the DCEL face index; each distance query resolves it against the mesh,
+  // exactly as MeshSDF does internally.
+  using Prim = DCEL::DCELIndex;
 
-  BVH::PrimAndBVList<Face, AABB> primsAndBVs;
-  for (const auto& f : mesh->getFaces()) {
-    primsAndBVs.emplace_back(f, AABB(f->getAllVertexCoordinates()));
+  BVH::PrimAndBVList<Prim, AABB> primsAndBVs;
+  for (size_t i = 0; i < mesh->getFaces().size(); i++) {
+    const Prim faceIdx = static_cast<Prim>(i);
+    primsAndBVs.emplace_back(std::make_shared<const Prim>(faceIdx), AABB(mesh->getFaceVertexCoordinates(faceIdx)));
   }
   REQUIRE(primsAndBVs.size() == 36);
 
@@ -139,7 +142,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   auto buildAndCheck = [&](const char* a_label, auto&& a_partitionFunction) {
     INFO("Build strategy: " << a_label);
 
-    auto tree = std::make_shared<BVH::TreeBVH<T, Face, AABB, K>>(primsAndBVs);
+    auto tree = std::make_shared<BVH::TreeBVH<T, Prim, AABB, K>>(primsAndBVs);
     a_partitionFunction(*tree);
 
     const auto packed = tree->pack();
@@ -148,14 +151,14 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
 
     // PackedBVH has no signedDistance() of its own -- callers build their own thin wrapper
     // around pruneTraverse(), exactly as MeshSDF/TriMeshSDF::signedDistance() do.
-    const auto& faces = packed->getPrimitives();
+    const auto& faceIndices = packed->getPrimitives();
 
     for (const auto& p : queryPoints<T>()) {
       T state = std::numeric_limits<T>::max();
 
-      const auto evalLeaf = [&faces, &p](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      const auto evalLeaf = [&faceIndices, &mesh, &p](T& a_state, size_t a_offset, size_t a_count) noexcept {
         for (size_t i = 0; i < a_count; i++) {
-          const T d = faces[a_offset + i]->signedDistance(p);
+          const T d = mesh->signedDistanceToFace(*faceIndices[a_offset + i], p);
           if (std::abs(d) < std::abs(a_state)) {
             a_state = d;
           }
@@ -173,19 +176,19 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   buildAndCheck("TopDown (default BVCentroidPartitioner)", [](auto& a_tree) { a_tree.topDownSortAndPartition(); });
 
   buildAndCheck("TopDown (BinnedSAHPartitioner)", [](auto& a_tree) {
-    using Node              = BVH::TreeBVH<T, Face, AABB, K>;
+    using Node              = BVH::TreeBVH<T, Prim, AABB, K>;
     using LeafPred          = typename Node::LeafPredicate;
     const LeafPred stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
 
-    a_tree.topDownSortAndPartition(BVH::BinnedSAHPartitioner<T, Face, AABB, K>, stopCrit);
+    a_tree.topDownSortAndPartition(BVH::BinnedSAHPartitioner<T, Prim, AABB, K>, stopCrit);
   });
 
   buildAndCheck("TopDown (BinnedSAHPartitioner, longest-axis)", [](auto& a_tree) {
-    using Node              = BVH::TreeBVH<T, Face, AABB, K>;
+    using Node              = BVH::TreeBVH<T, Prim, AABB, K>;
     using LeafPred          = typename Node::LeafPredicate;
     const LeafPred stopCrit = [](const Node& n) noexcept -> bool { return n.getPrimitives().size() < K; };
 
-    a_tree.topDownSortAndPartition(BVH::BinnedSAHPartitioner<T, Face, AABB, K, true>, stopCrit);
+    a_tree.topDownSortAndPartition(BVH::BinnedSAHPartitioner<T, Prim, AABB, K, true>, stopCrit);
   });
 
   buildAndCheck("BottomUp (Morton)", [](auto& a_tree) { a_tree.template bottomUpSortAndPartition<SFC::Morton>(); });
@@ -941,8 +944,8 @@ TEMPLATE_TEST_CASE("StoragePolicy: appendAliased genuinely appends for both poli
   }
 }
 
-TEMPLATE_TEST_CASE("TriMeshSDF: default StoragePolicy is BVH::ValueStorage<TriSoA>; MeshSDF has no "
-                   "StoragePolicy choice at all",
+TEMPLATE_TEST_CASE("TriMeshSDF: default StoragePolicy is BVH::ValueStorage<TriSoA>; MeshSDF stores "
+                   "face indices by value",
                    "[BVH][StoragePolicy]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -951,17 +954,14 @@ TEMPLATE_TEST_CASE("TriMeshSDF: default StoragePolicy is BVH::ValueStorage<TriSo
   constexpr size_t K = 4;
   constexpr size_t W = 4;
 
-  using Face     = DCEL::FaceT<T, Meta>;
   using TriAoSoA = TriangleAoSoA<T, Meta, W>;
 
-  // MeshSDF always shares each packed face with the DCEL mesh's own face list (no copy, and no
-  // StoragePolicy template parameter to override it): DCEL::FaceT's copy constructor deliberately
-  // does not copy its cached 2D polygon embedding (m_poly2, needed by signedDistance()'s
-  // point-in-face test), so a naive by-value copy is unsafe -- see FaceT's copy-constructor
-  // documentation. TriMeshSDF's SoA groups have no such restriction (freshly built by packing,
-  // shared with nothing else), so it defaults to storing them inline with no indirection. See
-  // ImplemBVH.rst's "Storage policy" section for the full rationale.
-  static_assert(std::is_same_v<typename MeshSDF<T, Meta, K>::Root::StorageType, std::shared_ptr<const Face>>);
+  // MeshSDF stores the DCEL face INDEX (a DCEL::DCELIndex) as its BVH primitive, by value: the
+  // flat index-based DCEL keeps the topology in the retained mesh, so the BVH need only carry a
+  // trivially-copyable face index. TriMeshSDF's SoA groups are likewise stored inline with no
+  // indirection (freshly built by packing, shared with nothing else). See ImplemBVH.rst's
+  // "Storage policy" section for the full rationale.
+  static_assert(std::is_same_v<typename MeshSDF<T, Meta, K>::Root::StorageType, DCEL::DCELIndex>);
   static_assert(std::is_same_v<typename TriMeshSDF<T, Meta, K, W>::Root::StorageType, TriAoSoA>);
 }
 
@@ -1477,9 +1477,9 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   buildAndCheckTree("BottomUp (Nested)", [](auto& a_tree) { a_tree.template bottomUpSortAndPartition<SFC::Nested>(); });
 
   // Remaining build methods go straight to PackedBVH, bypassing TreeBVH entirely -- Triangle<T,
-  // Meta> (unlike DCEL::FaceT) has a genuine memberwise copy constructor -- see its class
-  // declaration -- so it is safe to use with constructors that take primitives by value; see
-  // MeshSDF's own class doc for why DCEL::FaceT is not.
+  // Meta> is a self-contained value type, so it is safe to use with constructors that take
+  // primitives by value. MeshSDF instead stores DCEL face indices as its primitive -- see its
+  // class doc.
   auto checkDirect = [&](const char* a_label, const BVH::PackedBVH<T, Tri, K>& a_packed) {
     INFO(a_label);
     REQUIRE(a_packed.getPrimitives().size() == 4);
@@ -1941,16 +1941,17 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
 {
   using T    = TestType;
   using AABB = BoundingVolumes::AABBT<T>;
-  using Face = DCEL::FaceT<T, Meta>;
+  using Prim = DCEL::DCELIndex;
 
   constexpr size_t K = 4;
 
   const auto mesh = Parser::readIntoDCEL<T, Meta>(dataPath("dodecahedron.stl"));
   REQUIRE(mesh != nullptr);
 
-  BVH::PrimAndBVList<Face, AABB> primsAndBVs;
-  for (const auto& f : mesh->getFaces()) {
-    primsAndBVs.emplace_back(f, AABB(f->getAllVertexCoordinates()));
+  BVH::PrimAndBVList<Prim, AABB> primsAndBVs;
+  for (size_t i = 0; i < mesh->getFaces().size(); i++) {
+    const Prim faceIdx = static_cast<Prim>(i);
+    primsAndBVs.emplace_back(std::make_shared<const Prim>(faceIdx), AABB(mesh->getFaceVertexCoordinates(faceIdx)));
   }
 
   const FlatMeshSDF<T, Meta> flat(mesh);
@@ -1958,14 +1959,14 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
 
   // Pack a (partitioned) tree and query it the way MeshSDF does, comparing to the brute-force scan.
   const auto packAndCheck = [&](const auto& a_tree) {
-    const auto  packed = a_tree->pack();
-    const auto& faces  = packed->getPrimitives();
+    const auto  packed      = a_tree->pack();
+    const auto& faceIndices = packed->getPrimitives();
 
     for (const auto& p : queryPoints<T>()) {
       T          state    = std::numeric_limits<T>::max();
-      const auto evalLeaf = [&faces, &p](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      const auto evalLeaf = [&faceIndices, &mesh, &p](T& a_state, size_t a_offset, size_t a_count) noexcept {
         for (size_t i = 0; i < a_count; i++) {
-          const T d = faces[a_offset + i]->signedDistance(p);
+          const T d = mesh->signedDistanceToFace(*faceIndices[a_offset + i], p);
           if (std::abs(d) < std::abs(a_state)) {
             a_state = d;
           }
@@ -1981,7 +1982,7 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
 
   SECTION("clone of an unpartitioned tree shares primitives; the copies then partition independently")
   {
-    auto tree = std::make_shared<BVH::TreeBVH<T, Face, AABB, K>>(primsAndBVs);
+    auto tree = std::make_shared<BVH::TreeBVH<T, Prim, AABB, K>>(primsAndBVs);
     REQUIRE_FALSE(tree->isPartitioned());
 
     const auto clone = tree->deepCopy();
@@ -1989,7 +1990,7 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
     REQUIRE(clone.get() != tree.get());
     REQUIRE(clone->isPartitioned() == tree->isPartitioned());
 
-    // Primitives are shared by handle, not cloned: same underlying Face objects, same order.
+    // Primitives are shared by handle, not cloned: same underlying face-index handles, same order.
     // (std::as_const selects the public const getPrimitives() overload; the mutable one is protected.)
     const auto& treePrims  = std::as_const(*tree).getPrimitives();
     const auto& clonePrims = std::as_const(*clone).getPrimitives();
@@ -2011,7 +2012,7 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
 
   SECTION("clone of a partitioned tree duplicates the node hierarchy but shares primitives")
   {
-    auto tree = std::make_shared<BVH::TreeBVH<T, Face, AABB, K>>(primsAndBVs);
+    auto tree = std::make_shared<BVH::TreeBVH<T, Prim, AABB, K>>(primsAndBVs);
     tree->topDownSortAndPartition();
     REQUIRE(tree->isPartitioned());
 

@@ -75,9 +75,13 @@ public:
   using Vec3 = Vec3T<T>;
 
   /**
-   * @brief Disallowed constructor, use the one with the normal vector and points
+   * @brief Default constructor, creating an empty polygon (no projected points).
+   * @details Needed so that DCEL::FaceT can store a Polygon2D by value and be default-constructible
+   * before the mesh is reconciled. An empty polygon must not be queried with isPointInside() until
+   * it has been assigned a properly-defined polygon (via the full constructor); the DCEL reconcile
+   * step does exactly that for every face before any distance query.
    */
-  Polygon2D() = delete;
+  Polygon2D() noexcept = default;
 
   /**
    * @brief Full constructor

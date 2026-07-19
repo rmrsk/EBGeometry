@@ -27,6 +27,7 @@
 // Our includes
 #include "EBGeometry_DCEL_Edge.hpp"
 #include "EBGeometry_DCEL_Face.hpp"
+#include "EBGeometry_DCEL_Iterator.hpp"
 #include "EBGeometry_DCEL_Mesh.hpp"
 #include "EBGeometry_DCEL_Vertex.hpp"
 #include "EBGeometry_Macros.hpp"
@@ -42,7 +43,8 @@ namespace MeshDistanceFunctionsDetail {
 
 /**
  * @brief Build a tree BVH from a DCEL mesh.
- * @details Internal helper; not part of the public API.
+ * @details Internal helper; not part of the public API. The BVH primitive is the face INDEX into
+ * the mesh's face array; each face's bounding volume is built from that face's vertex coordinates.
  * @tparam T    Floating-point precision type.
  * @tparam Meta Face and vertex metadata type.
  * @tparam BV   Bounding-volume type (e.g. AABBT<T>).
@@ -52,7 +54,7 @@ namespace MeshDistanceFunctionsDetail {
  * @return Shared pointer to the root of the resulting tree BVH.
  */
 template <class T, class Meta, class BV, size_t K>
-[[nodiscard]] std::shared_ptr<EBGeometry::BVH::TreeBVH<T, DCEL::FaceT<T, Meta>, BV, K>>
+[[nodiscard]] std::shared_ptr<EBGeometry::BVH::TreeBVH<T, EBGeometry::DCEL::DCELIndex, BV, K>>
 buildDCELTreeBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcelMesh,
                  const BVH::Build                                         a_build = BVH::Build::SAH)
 {
@@ -63,16 +65,17 @@ buildDCELTreeBVH(const std::shared_ptr<EBGeometry::DCEL::MeshT<T, Meta>>& a_dcel
   EBGEOMETRY_EXPECT(a_dcelMesh != nullptr);
   EBGEOMETRY_EXPECT(!a_dcelMesh->getFaces().empty());
 
-  using Prim          = EBGeometry::DCEL::FaceT<T, Meta>;
+  using Prim          = EBGeometry::DCEL::DCELIndex;
   using PrimAndBVList = std::vector<std::pair<std::shared_ptr<const Prim>, BV>>;
 
-  // Create a pair-wise list of DCEL faces and their bounding volumes.
+  // Create a pair-wise list of DCEL face indices and their bounding volumes.
   PrimAndBVList primsAndBVs;
 
-  for (const auto& f : a_dcelMesh->getFaces()) {
-    EBGEOMETRY_EXPECT(f != nullptr);
+  for (size_t i = 0; i < a_dcelMesh->getFaces().size(); i++) {
+    const Prim faceIdx = static_cast<Prim>(i);
 
-    primsAndBVs.emplace_back(std::make_pair(f, BV(f->getAllVertexCoordinates())));
+    primsAndBVs.emplace_back(
+      std::make_pair(std::make_shared<const Prim>(faceIdx), BV(a_dcelMesh->getFaceVertexCoordinates(faceIdx))));
   }
 
   // Partition the BVH using the default input arguments.
@@ -254,14 +257,11 @@ MeshSDF<T, Meta, K>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Bui
   using AABB     = EBGeometry::BoundingVolumes::AABBT<T>;
   const auto bvh = EBGeometry::MeshDistanceFunctionsDetail::buildDCELTreeBVH<T, Meta, AABB, K>(a_mesh, a_build);
 
-  m_bvh = bvh->pack();
+  m_bvh = bvh->template pack<EBGeometry::BVH::ValueStorage<PrimIndex>>();
 
-  // DCEL::FaceT/EdgeT/VertexT only hold weak_ptr back-references to their neighboring
-  // half-edges/vertices/faces (to avoid reference cycles); the mesh's own vertex/edge/face
-  // vectors are the sole owners keeping them alive. m_bvh only keeps the faces themselves
-  // alive (as its primitives), so the source mesh must be retained here too, or every face's
-  // half-edge (and the rest of its edge loop) would dangle as soon as the caller's mesh
-  // shared_ptr goes out of scope.
+  // m_bvh stores only face INDICES into a_mesh's face array; every distance query resolves an
+  // index against the mesh. The source mesh must therefore be retained here, or those indices
+  // would dangle as soon as the caller's mesh shared_ptr goes out of scope.
   m_mesh = a_mesh;
 }
 
@@ -276,10 +276,11 @@ MeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
   T           minDist = std::numeric_limits<T>::max();
   const auto& faces   = m_bvh->getPrimitives();
+  const Mesh& mesh    = *m_mesh;
 
-  const auto evalLeaf = [&faces, &a_point](T& a_state, size_t a_offset, size_t a_count) noexcept {
+  const auto evalLeaf = [&faces, &mesh, &a_point](T& a_state, size_t a_offset, size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
-      const T curDist = faces[i]->signedDistance(a_point);
+      const T curDist = mesh.signedDistanceToFace(faces[i], a_point);
 
       EBGEOMETRY_EXPECT(!std::isnan(curDist));
 
@@ -295,7 +296,7 @@ MeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T, class Meta, size_t K>
-std::vector<std::pair<std::shared_ptr<const EBGeometry::DCEL::FaceT<T, Meta>>, T>>
+std::vector<std::pair<typename MeshSDF<T, Meta, K>::PrimIndex, T>>
 MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
@@ -303,10 +304,12 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  using FaceAndDist = std::pair<std::shared_ptr<const Face>, T>;
+  using FaceAndDist = std::pair<PrimIndex, T>;
 
-  // List of candidate faces.
+  // List of candidate face indices.
   std::vector<FaceAndDist> candidateFaces;
+
+  const Mesh& mesh = *m_mesh;
 
   // Declaration of the BVH metadata attached to each node - this will be the distance to the node itself.
   using BVHNodeKey = T;
@@ -330,11 +333,11 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
   const EBGeometry::BVH::NodeKeyFactory<Node, BVHNodeKey> nodeKeyFactory =
     [&a_point](const Node& a_node) noexcept -> BVHNodeKey { return a_node.getDistanceToBoundingVolume(a_point); };
 
-  const EBGeometry::BVH::PackedLeafEvaluator<Face> leafEvaluator =
-    [&shortestDistanceSoFar, &a_point, &candidateFaces](
-      const std::vector<std::shared_ptr<const Face>>& a_faces, size_t offset, size_t count) noexcept -> void {
+  const EBGeometry::BVH::PackedLeafEvaluator<PrimIndex, EBGeometry::BVH::ValueStorage<PrimIndex>> leafEvaluator =
+    [&shortestDistanceSoFar, &mesh, &a_point, &candidateFaces](
+      const std::vector<PrimIndex>& a_faces, size_t offset, size_t count) noexcept -> void {
     for (size_t i = offset; i < offset + count; i++) {
-      const T distToFace = std::sqrt(a_faces[i]->unsignedDistance2(a_point));
+      const T distToFace = std::sqrt(mesh.unsignedDistance2ToFace(a_faces[i], a_point));
 
       EBGEOMETRY_EXPECT(!std::isnan(distToFace));
 
@@ -357,7 +360,7 @@ MeshSDF<T, Meta, K>::getClosestFaces(const Vec3T<T>& a_point, const bool a_sorte
 }
 
 template <class T, class Meta, size_t K>
-std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::DCEL::FaceT<T, Meta>, K>>&
+std::shared_ptr<typename MeshSDF<T, Meta, K>::Root>&
 MeshSDF<T, Meta, K>::getRoot() noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
@@ -366,7 +369,7 @@ MeshSDF<T, Meta, K>::getRoot() noexcept
 }
 
 template <class T, class Meta, size_t K>
-const std::shared_ptr<EBGeometry::BVH::PackedBVH<T, EBGeometry::DCEL::FaceT<T, Meta>, K>>&
+const std::shared_ptr<typename MeshSDF<T, Meta, K>::Root>&
 MeshSDF<T, Meta, K>::getRoot() const noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
@@ -426,27 +429,41 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::shared_ptr<Mesh>
 
   std::vector<std::shared_ptr<Tri>> triangles;
 
+  const auto& meshVertices = a_mesh->getVertices();
+  const auto& meshEdges    = a_mesh->getEdges();
+
   for (const auto& f : a_mesh->getFaces()) {
-    EBGEOMETRY_EXPECT(f != nullptr);
+    const auto normal = f.getNormal();
 
-    const auto normal   = f->getNormal();
-    const auto vertices = f->gatherVertices();
-    const auto edges    = f->gatherEdges();
+    // Gather the face's vertex and edge indices in half-edge order.
+    std::vector<EBGeometry::DCEL::DCELIndex> vertexIndices;
+    std::vector<EBGeometry::DCEL::DCELIndex> edgeIndices;
 
-    EBGEOMETRY_EXPECT(vertices.size() == 3);
-    EBGEOMETRY_EXPECT(edges.size() == 3);
+    for (EBGeometry::DCEL::EdgeIteratorT<T, Meta> it(meshEdges, f.getHalfEdge()); it.ok(); ++it) {
+      edgeIndices.emplace_back(it());
+      vertexIndices.emplace_back(meshEdges[it()].getVertex());
+    }
 
-    if ((vertices.size() != 3) || (edges.size() != 3)) {
+    EBGEOMETRY_EXPECT(vertexIndices.size() == 3);
+    EBGEOMETRY_EXPECT(edgeIndices.size() == 3);
+
+    if ((vertexIndices.size() != 3) || (edgeIndices.size() != 3)) {
       std::cerr << "TriMeshSDF -- mesh not triangulated!\n";
     }
 
     auto tri = std::make_shared<Tri>();
 
     tri->setNormal(normal);
-    tri->setVertexPositions({vertices[0]->getPosition(), vertices[1]->getPosition(), vertices[2]->getPosition()});
-    tri->setVertexNormals({vertices[0]->getNormal(), vertices[1]->getNormal(), vertices[2]->getNormal()});
-    tri->setEdgeNormals({edges[0]->getNormal(), edges[1]->getNormal(), edges[2]->getNormal()});
-    tri->setMetaData(f->getMetaData());
+    tri->setVertexPositions({meshVertices[vertexIndices[0]].getPosition(),
+                             meshVertices[vertexIndices[1]].getPosition(),
+                             meshVertices[vertexIndices[2]].getPosition()});
+    tri->setVertexNormals({meshVertices[vertexIndices[0]].getNormal(),
+                           meshVertices[vertexIndices[1]].getNormal(),
+                           meshVertices[vertexIndices[2]].getNormal()});
+    tri->setEdgeNormals({meshEdges[edgeIndices[0]].getNormal(),
+                         meshEdges[edgeIndices[1]].getNormal(),
+                         meshEdges[edgeIndices[2]].getNormal()});
+    tri->setMetaData(f.getMetaData());
 
     triangles.emplace_back(tri);
   }
