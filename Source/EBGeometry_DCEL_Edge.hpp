@@ -14,12 +14,10 @@
 
 // Std includes
 #include <cstddef>
-#include <memory>
 #include <type_traits>
 
 // Our includes
 #include "EBGeometry_DCEL.hpp"
-#include "EBGeometry_DCEL_Face.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -30,17 +28,13 @@ namespace DCEL {
  * @brief Class which represents a half-edge in a double-edge connected list
  * (DCEL).
  * @details This class is used in DCEL functionality which stores polygonal
- * surfaces in a mesh. The information contain in an EdgeT object contains the
- * necessary object for logically circulating the inside of a polygon face. This
- * means that a polygon face has a double-connected list of half-edges which
- * circulate the interior of the face. The EdgeT object is such a half-edge; it
- * represents the outgoing half-edge from a vertex, located such that it can be
- * logically represented as a half edge on the "inside" of a polygon face. It
- * contains pointers to the polygon face, vertex, and next half edge It also contains
- * a pointer to the "pair" half edge, i.e. the
- * corresponding half-edge on the other face that shares this edge. Since this
- * class is used with DCEL functionality and signed distance fields, this class
- * also has a signed distance function and thus a "normal vector".
+ * surfaces in a mesh. In the flat, index-based DCEL representation the half-edge is a pure data
+ * holder: it stores a normal vector plus four topological links, each a @c DCELIndex index into
+ * the owning MeshT's flat arrays -- the origin vertex, the pair (twin) half-edge, the next
+ * half-edge around the face, and the owning face. @c InvalidIndex means "no link" (e.g. the pair
+ * of a boundary half-edge). There is no stored previous-edge link. Walking a face's edge loop, and
+ * all geometric queries (signed distance, projection, the end vertex), are performed by MeshT,
+ * which owns the arrays these indices refer to.
  * @note The normal vector is outgoing, i.e. a point x is "outside" if the dot
  * product between n and (x - x0) is positive.
  * @tparam T    Floating-point precision.
@@ -58,73 +52,35 @@ public:
   using Vec3 = Vec3T<T>;
 
   /**
-   * @brief Alias for vertex type
-   */
-  using Vertex = VertexT<T, Meta>;
-
-  /**
    * @brief Alias for edge type
    */
   using Edge = EdgeT<T, Meta>;
 
   /**
-   * @brief Alias for face type
-   */
-  using Face = FaceT<T, Meta>;
-
-  /**
-   * @brief Alias for vertex pointer type
-   */
-  using VertexPtr = std::shared_ptr<Vertex>;
-
-  /**
-   * @brief Alias for edge pointer type
-   */
-  using EdgePtr = std::shared_ptr<Edge>;
-
-  /**
-   * @brief Alias for face pointer type
-   */
-  using FacePtr = std::shared_ptr<Face>;
-
-  /**
-   * @brief Default constructor. Sets all pointers to zero and vectors to zero
-   * vectors
+   * @brief Default constructor. Sets all indices to InvalidIndex and the normal to the zero vector.
    */
   EdgeT() noexcept = default;
 
   /**
-   * @brief Copy constructor.
-   * @details Copies the normal vector and all four topology pointers (vertex, pair edge, next
-   * edge, face) from the other half-edge. Meta-data (m_metaData) is deliberately NOT copied --
-   * it default-constructs instead; use setMetaData() afterwards if it needs to be populated.
-   * Rationale: same as VertexT's copy constructor -- these pointers are back-references into a
-   * specific mesh's topology (the objects they point to still reference the original edge, not
-   * this copy), so copying them wholesale is not topologically meaningful in general, but is
-   * occasionally useful (e.g. duplicating an edge's geometric/adjacency snapshot).
-   * operator=(const Edge&) has identical semantics.
+   * @brief Copy constructor (defaulted memberwise copy).
+   * @details The half-edge is a flat data holder whose topological links are plain array indices,
+   * so an ordinary memberwise copy is well-defined -- the indices remain valid in a copied MeshT
+   * array. Copies the normal vector, all four topology indices, and the meta-data.
    * @param[in] a_otherEdge Other edge.
    */
-  EdgeT(const Edge& a_otherEdge) noexcept;
+  EdgeT(const Edge& a_otherEdge) noexcept = default;
 
   /**
-   * @brief Move constructor.
-   * @details Unlike the copy constructor, this transfers the entire state (including m_metaData)
-   * from a_otherEdge, since moving relocates a single object's identity. Defaulted (memberwise
-   * move) rather than hand-written: explicitly defaulting is required here since the presence of a
-   * user-declared copy constructor would otherwise suppress the implicitly-generated move
-   * constructor. Not marked noexcept since Meta is an unconstrained template parameter whose move
-   * constructor is not guaranteed to be noexcept.
+   * @brief Move constructor (defaulted memberwise move).
    * @param[in, out] a_otherEdge Other edge.
    */
-  EdgeT(Edge&& a_otherEdge) = default;
+  EdgeT(Edge&& a_otherEdge) noexcept = default;
 
   /**
-   * @brief Partial constructor. Calls the default constructor but sets the
-   * starting vertex.
-   * @param[in] a_vertex Starting vertex.
+   * @brief Partial constructor. Sets the starting-vertex index.
+   * @param[in] a_vertex Index of the starting (origin) vertex.
    */
-  EdgeT(const VertexPtr& a_vertex) noexcept;
+  EdgeT(const DCELIndex a_vertex) noexcept;
 
   /**
    * @brief Destructor (does nothing)
@@ -132,25 +88,20 @@ public:
   ~EdgeT() = default;
 
   /**
-   * @brief Copy assignment operator.
-   * @details Has the same semantics as the copy constructor (including that m_metaData is not
-   * copied; use setMetaData() afterwards if it needs to be populated). See the copy constructor's
-   * documentation for details.
+   * @brief Copy assignment operator (defaulted memberwise copy).
    * @param[in] a_otherEdge Other edge.
    * @return Reference to (*this).
    */
   Edge&
-  operator=(const Edge& a_otherEdge) noexcept;
+  operator=(const Edge& a_otherEdge) noexcept = default;
 
   /**
-   * @brief Move assignment operator.
-   * @details Has the same full-state-transfer semantics as the move constructor (defaulted
-   * memberwise move; see its documentation for why this must be defaulted explicitly).
+   * @brief Move assignment operator (defaulted memberwise move).
    * @param[in, out] a_otherEdge Other edge.
    * @return Reference to (*this).
    */
   Edge&
-  operator=(Edge&& a_otherEdge) = default;
+  operator=(Edge&& a_otherEdge) noexcept = default;
 
   /**
    * @brief Get size (in bytes) of this object.
@@ -160,20 +111,13 @@ public:
   size() const noexcept;
 
   /**
-   * @brief Define function. Sets the starting vertex, edges, and normal vectors
-   * @param[in] a_vertex       Starting vertex
-   * @param[in] a_pairEdge     Pair half-edge
-   * @param[in] a_nextEdge     Next half-edge
+   * @brief Define function. Sets the origin vertex, pair edge, and next edge indices.
+   * @param[in] a_vertex   Index of the origin vertex
+   * @param[in] a_pairEdge Index of the pair (twin) half-edge
+   * @param[in] a_nextEdge Index of the next half-edge around the face
    */
   inline void
-  define(const VertexPtr& a_vertex, const EdgePtr& a_pairEdge, const EdgePtr& a_nextEdge) noexcept;
-
-  /**
-   * @brief Reconcile internal logic
-   * @details Computes normal.
-   */
-  inline void
-  reconcile() noexcept;
+  define(const DCELIndex a_vertex, const DCELIndex a_pairEdge, const DCELIndex a_nextEdge) noexcept;
 
   /**
    * @brief Flip surface normal
@@ -182,32 +126,32 @@ public:
   flipNormal() noexcept;
 
   /**
-   * @brief Set the starting vertex
-   * @param[in] a_vertex Starting vertex
+   * @brief Set the origin-vertex index
+   * @param[in] a_vertex Index of the origin vertex
    */
   inline void
-  setVertex(const VertexPtr& a_vertex) noexcept;
+  setVertex(const DCELIndex a_vertex) noexcept;
 
   /**
-   * @brief Set the pair edge
-   * @param[in] a_pairEdge Pair edge
+   * @brief Set the pair-edge index
+   * @param[in] a_pairEdge Index of the pair edge
    */
   inline void
-  setPairEdge(const EdgePtr& a_pairEdge) noexcept;
+  setPairEdge(const DCELIndex a_pairEdge) noexcept;
 
   /**
-   * @brief Set the next edge
-   * @param[in] a_nextEdge Next edge
+   * @brief Set the next-edge index
+   * @param[in] a_nextEdge Index of the next edge
    */
   inline void
-  setNextEdge(const EdgePtr& a_nextEdge) noexcept;
+  setNextEdge(const DCELIndex a_nextEdge) noexcept;
 
   /**
-   * @brief Set the pointer to this half-edge's face.
-   * @param[in] a_face Face to associate with this half-edge.
+   * @brief Set the index of this half-edge's face.
+   * @param[in] a_face Index of the face to associate with this half-edge.
    */
   inline void
-  setFace(const FacePtr& a_face) noexcept;
+  setFace(const DCELIndex a_face) noexcept;
 
   /**
    * @brief Set the meta-data.
@@ -217,71 +161,32 @@ public:
   setMetaData(const Meta& a_metaData) noexcept;
 
   /**
-   * @brief Get the starting vertex.
-   * @details Returns a shared_ptr obtained by locking the internal weak_ptr (see the class-level
-   * @details note on ownership). Returns nullptr if the vertex has been destroyed, which should
-   * not happen while the owning mesh is alive.
-   * @return Starting vertex, or nullptr.
+   * @brief Get the index of the origin vertex.
+   * @return Origin-vertex index, or InvalidIndex.
    */
-  [[nodiscard]] inline VertexPtr
-  getVertex() noexcept;
-
-  /**
-   * @brief Get the starting vertex (const overload).
-   * @return Starting vertex, or nullptr.
-   */
-  [[nodiscard]] inline VertexPtr
+  [[nodiscard]] inline DCELIndex
   getVertex() const noexcept;
 
   /**
-   * @brief Get the end vertex.
-   * @return The next half-edge's starting vertex, or nullptr.
+   * @brief Get the index of the pair (twin) edge.
+   * @return Pair-edge index, or InvalidIndex.
    */
-  [[nodiscard]] inline VertexPtr
-  getOtherVertex() noexcept;
-
-  /**
-   * @brief Get the end vertex (const overload).
-   * @return The next half-edge's starting vertex, or nullptr.
-   */
-  [[nodiscard]] inline VertexPtr
-  getOtherVertex() const noexcept;
-
-  /**
-   * @brief Get the pair edge.
-   * @return Pair edge, or nullptr.
-   */
-  [[nodiscard]] inline EdgePtr
-  getPairEdge() noexcept;
-
-  /**
-   * @brief Get the pair edge (const overload).
-   * @return Pair edge, or nullptr.
-   */
-  [[nodiscard]] inline EdgePtr
+  [[nodiscard]] inline DCELIndex
   getPairEdge() const noexcept;
 
   /**
-   * @brief Get the next edge.
-   * @return Next edge, or nullptr.
+   * @brief Get the index of the next edge around the face.
+   * @return Next-edge index, or InvalidIndex.
    */
-  [[nodiscard]] inline EdgePtr
-  getNextEdge() noexcept;
-
-  /**
-   * @brief Get the next edge (const overload).
-   * @return Next edge, or nullptr.
-   */
-  [[nodiscard]] inline EdgePtr
+  [[nodiscard]] inline DCELIndex
   getNextEdge() const noexcept;
 
   /**
-   * @brief Compute the normal vector as the average of the face normals on
-   * both sides of this edge.
-   * @return Unit normal vector for this edge.
+   * @brief Get the index of this half-edge's face.
+   * @return Owning-face index, or InvalidIndex.
    */
-  [[nodiscard]] inline Vec3T<T>
-  computeNormal() const noexcept;
+  [[nodiscard]] inline DCELIndex
+  getFace() const noexcept;
 
   /**
    * @brief Get modifiable normal vector.
@@ -298,20 +203,6 @@ public:
   getNormal() const noexcept;
 
   /**
-   * @brief Get this half-edge's face.
-   * @return Owning face, or nullptr.
-   */
-  [[nodiscard]] inline FacePtr
-  getFace() noexcept;
-
-  /**
-   * @brief Get this half-edge's face (const overload).
-   * @return Owning face, or nullptr.
-   */
-  [[nodiscard]] inline FacePtr
-  getFace() const noexcept;
-
-  /**
    * @brief Get meta-data
    * @return m_metaData
    */
@@ -325,28 +216,6 @@ public:
   [[nodiscard]] inline const Meta&
   getMetaData() const noexcept;
 
-  /**
-   * @brief Get the signed distance from a_x0 to this half-edge.
-   * @details Checks whether a_x0 projects onto the edge segment or past one of
-   * the end vertices. If it projects to a vertex, the signed distance to that
-   * vertex is returned. Otherwise the sign is determined from the edge normal.
-   * @param[in] a_x0 Query point.
-   * @return Signed distance; positive on the normal side of the edge.
-   */
-  [[nodiscard]] inline T
-  signedDistance(const Vec3& a_x0) const noexcept;
-
-  /**
-   * @brief Get the squared unsigned distance from a_x0 to this half-edge.
-   * @details Clamps the projection parameter to [0,1] so the closest point is
-   * always on the segment, then returns the squared distance. Faster than
-   * signedDistance().
-   * @param[in] a_x0 Query point.
-   * @return Squared Euclidean distance to the closest point on the edge.
-   */
-  [[nodiscard]] inline T
-  unsignedDistance2(const Vec3& a_x0) const noexcept;
-
 protected:
   /**
    * @brief Normal vector
@@ -354,55 +223,30 @@ protected:
   Vec3 m_normal = Vec3::zeros();
 
   /**
-   * @brief Starting vertex.
-   * @details Stored as a weak_ptr: the vertex is owned by the mesh's own vertex list, and a
-   * plain shared_ptr here (mirrored by the sibling m_pairEdge/m_nextEdge/m_face links, and by
-   * FaceT::m_halfEdge and VertexT::m_outgoingEdge) would form a reference cycle across the
-   * half-edge/face/vertex graph that shared_ptr's reference counting can never collect.
+   * @brief Index of the origin (starting) vertex (InvalidIndex if unset).
    */
-  std::weak_ptr<Vertex> m_vertex;
+  DCELIndex m_vertex = InvalidIndex;
 
   /**
-   * @brief Pair edge. See m_vertex for why this is a weak_ptr.
+   * @brief Index of the pair (twin) half-edge (InvalidIndex for a boundary edge).
    */
-  std::weak_ptr<Edge> m_pairEdge;
+  DCELIndex m_pairEdge = InvalidIndex;
 
   /**
-   * @brief Next edge. See m_vertex for why this is a weak_ptr.
+   * @brief Index of the next half-edge around the face (InvalidIndex if unset).
    */
-  std::weak_ptr<Edge> m_nextEdge;
+  DCELIndex m_nextEdge = InvalidIndex;
 
   /**
-   * @brief Enclosing polygon face. See m_vertex for why this is a weak_ptr.
+   * @brief Index of the enclosing polygon face (InvalidIndex if unset).
    */
-  std::weak_ptr<Face> m_face;
+  DCELIndex m_face = InvalidIndex;
 
   /**
    * @brief Meta-data attached to this edge
-   * @details Value-initialized so that every constructor leaves it in a defined state: for a
-   * fundamental Meta type (e.g. short, int), a member with no initializer and no explicit mention
-   * in a constructor's member-initializer list is left indeterminate, not zero.
+   * @details Value-initialized so that every constructor leaves it in a defined state.
    */
   Meta m_metaData{};
-
-  /**
-   * @brief Returns the parametric projection of a_x0 onto this edge.
-   * @details Parametrizes the edge as x(t) = x1 + (x2-x1)*t and computes t
-   * such that x(t) is the closest point to a_x0. Returns t in (-inf, +inf);
-   * the point is on the segment when t in [0,1].
-   * @param[in] a_x0 Query point.
-   * @return Projection parameter t.
-   */
-  [[nodiscard]] inline T
-  projectPointToEdge(const Vec3& a_x0) const noexcept;
-
-  /**
-   * @brief Get the vector pointing along this edge (from start to end vertex).
-   * @return x2 - x1, where x1 = getVertex()->getPosition() and x2 =
-   * getOtherVertex()->getPosition().
-   */
-  [[nodiscard]] inline Vec3T<T>
-  getX2X1() const noexcept;
 };
 } // namespace DCEL
 

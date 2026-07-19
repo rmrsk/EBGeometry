@@ -287,16 +287,20 @@ does not follow this template, edit the PR body to conform to it.
   `debug-san`, OFF in `release`/`release-test`) and are the primary way internal invariant
   violations (e.g. a dangling half-edge, a malformed mesh) surface during development; they compile
   to nothing in Release.
-- **DCEL topology uses `weak_ptr` for back-references** (edge→pair edge, edge→face, vertex→
-  outgoing edge, etc.) with the `DCEL::MeshT`'s own vertex/edge/face vectors as the sole
-  `shared_ptr` owners. Introducing a *new* back-reference field as a `shared_ptr` will very likely
-  create a reference cycle that leaks (invisible without a leak-checking sanitizer, since nothing
-  crashes) — always use `weak_ptr` + `.lock()` for anything that points "backward" in the mesh
-  graph.
-- **`MeshSDF` retains its source `DCEL::MeshT`, not just the packed BVH.** If you write a similar
-  wrapper around a DCEL mesh, remember that a `PackedBVH` of faces holds `shared_ptr<const
-  DCEL::FaceT>`s that transitively `weak_ptr`-reference the mesh's edges/vertices — nothing keeps
-  the mesh itself alive unless something holds an explicit `shared_ptr<DCEL::MeshT>`.
+- **DCEL topology is index-based, not pointer-based.** `DCEL::MeshT` owns its vertices, half-edges,
+  and faces in flat `std::vector`s by value; every topological link (edge→pair edge, edge→next edge,
+  edge→face, edge→origin vertex, vertex→outgoing edge, vertex→incident faces, face→half-edge) is a
+  `DCEL::DCELIndex` (`int`) into those arrays, with `DCEL::InvalidIndex` (`-1`) denoting "no link"
+  (e.g. a boundary half-edge's absent pair). There are no `shared_ptr`/`weak_ptr` links, so there is
+  no reference-cycle hazard. Traversal and geometric queries (`signedDistanceToFace/Edge/Vertex`,
+  the `EdgeIteratorT` cursor, `reconcile`, normals) live on `MeshT` because an element can no longer
+  chase pointers on its own — add new topology as an index field and resolve it against the mesh
+  arrays.
+- **`MeshSDF` retains its source `DCEL::MeshT`, not just the packed BVH.** The `PackedBVH` stores
+  face *indices* (`DCELIndex`, via `BVH::ValueStorage`) into the mesh's face array, and every
+  distance query resolves an index against the retained mesh (`MeshSDF::getMesh()`); the mesh must
+  therefore outlive the BVH. `getClosestFaces()` accordingly returns `(face index, distance)` pairs,
+  not face pointers.
 - **Every CMake preset gets its own `build/<preset-name>/` directory** (see `CMakePresets.json`'s
   `binaryDir`) specifically so switching presets can't silently reuse a stale `CMakeCache.txt` from
   a different configuration.

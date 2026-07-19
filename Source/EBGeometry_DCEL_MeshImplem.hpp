@@ -20,7 +20,6 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 // Our includes
@@ -36,9 +35,9 @@ namespace EBGeometry {
 namespace DCEL {
 
 template <class T, class Meta>
-inline MeshT<T, Meta>::MeshT(std::vector<FacePtr>&   a_faces,
-                             std::vector<EdgePtr>&   a_edges,
-                             std::vector<VertexPtr>& a_vertices) noexcept
+inline MeshT<T, Meta>::MeshT(std::vector<Face>&   a_faces,
+                             std::vector<Edge>&   a_edges,
+                             std::vector<Vertex>& a_vertices) noexcept
   : MeshT()
 {
   m_faces    = a_faces;
@@ -50,121 +49,17 @@ template <class T, class Meta>
 inline std::shared_ptr<MeshT<T, Meta>>
 MeshT<T, Meta>::deepCopy() const
 {
-  EBGEOMETRY_EXPECT(m_vertices.size() > 0 || m_edges.size() > 0 || m_faces.size() > 0);
-
-  // Pass 0: allocate a fresh, default-constructed object for every existing vertex/edge/face, and
-  // record the old->new correspondence. This must happen before any relinking below, since a
-  // vertex/edge/face's pointers can reference any other vertex/edge/face in the mesh.
-  std::vector<VertexPtr> newVertices(m_vertices.size());
-  std::vector<EdgePtr>   newEdges(m_edges.size());
-  std::vector<FacePtr>   newFaces(m_faces.size());
-
-  std::unordered_map<VertexPtr, VertexPtr> vertexMap;
-  std::unordered_map<EdgePtr, EdgePtr>     edgeMap;
-  std::unordered_map<FacePtr, FacePtr>     faceMap;
-
-  for (size_t i = 0; i < m_vertices.size(); i++) {
-    EBGEOMETRY_EXPECT(m_vertices[i] != nullptr);
-
-    newVertices[i]           = std::make_shared<Vertex>();
-    vertexMap[m_vertices[i]] = newVertices[i];
-  }
-  for (size_t i = 0; i < m_edges.size(); i++) {
-    EBGEOMETRY_EXPECT(m_edges[i] != nullptr);
-
-    newEdges[i]         = std::make_shared<Edge>();
-    edgeMap[m_edges[i]] = newEdges[i];
-  }
-  for (size_t i = 0; i < m_faces.size(); i++) {
-    EBGEOMETRY_EXPECT(m_faces[i] != nullptr);
-
-    newFaces[i]         = std::make_shared<Face>();
-    faceMap[m_faces[i]] = newFaces[i];
-  }
-
-  // Remap a possibly-null old pointer to its corresponding new one. A non-null pointer that is not
-  // in the map means it refers to a vertex/edge/face outside of this mesh's own vectors, which is a
-  // corrupted/inconsistent mesh (the same condition sanityCheck() is meant to catch beforehand).
-  auto remapVertex = [&](const VertexPtr& a_v) -> VertexPtr {
-    if (a_v == nullptr) {
-      return nullptr;
-    }
-    const auto it = vertexMap.find(a_v);
-    EBGEOMETRY_EXPECT(it != vertexMap.end());
-
-    return it->second;
-  };
-  auto remapEdge = [&](const EdgePtr& a_e) -> EdgePtr {
-    if (a_e == nullptr) {
-      return nullptr;
-    }
-    const auto it = edgeMap.find(a_e);
-    EBGEOMETRY_EXPECT(it != edgeMap.end());
-
-    return it->second;
-  };
-  auto remapFace = [&](const FacePtr& a_f) -> FacePtr {
-    if (a_f == nullptr) {
-      return nullptr;
-    }
-    const auto it = faceMap.find(a_f);
-    EBGEOMETRY_EXPECT(it != faceMap.end());
-
-    return it->second;
-  };
-
-  // Pass 1: vertices. Copy value data (position, normal, meta-data) exactly, and relink the
-  // outgoing edge and face list to the new objects.
-  for (size_t i = 0; i < m_vertices.size(); i++) {
-    const VertexPtr& oldV = m_vertices[i];
-    const VertexPtr& newV = newVertices[i];
-
-    newV->setPosition(oldV->getPosition());
-    newV->setNormal(oldV->getNormal());
-    newV->setMetaData(oldV->getMetaData());
-    newV->setEdge(remapEdge(oldV->getOutgoingEdge()));
-
-    for (const auto& f : oldV->getFaces()) {
-      newV->addFace(remapFace(f));
-    }
-  }
-
-  // Pass 2: edges. Copy the normal vector and meta-data exactly, and relink the vertex, pair edge,
-  // next edge, and face to the new objects.
-  for (size_t i = 0; i < m_edges.size(); i++) {
-    const EdgePtr& oldE = m_edges[i];
-    const EdgePtr& newE = newEdges[i];
-
-    newE->setVertex(remapVertex(oldE->getVertex()));
-    newE->setPairEdge(remapEdge(oldE->getPairEdge()));
-    newE->setNextEdge(remapEdge(oldE->getNextEdge()));
-    newE->setFace(remapFace(oldE->getFace()));
-    newE->getNormal() = oldE->getNormal();
-    newE->setMetaData(oldE->getMetaData());
-  }
-
-  // Pass 3: faces. Copy the normal vector, centroid, area, and meta-data exactly, relink the half
-  // edge to the new object, and rebuild the 2D embedding from the (already-relinked) topology and
-  // the (already-restored) normal vector. This deliberately does NOT call reconcile(), which would
-  // recompute the normal vector from vertex winding and silently discard a prior flipNormal().
-  for (size_t i = 0; i < m_faces.size(); i++) {
-    const FacePtr& oldF = m_faces[i];
-    const FacePtr& newF = newFaces[i];
-
-    newF->setHalfEdge(remapEdge(oldF->getHalfEdge()));
-    newF->getNormal()   = oldF->getNormal();
-    newF->getCentroid() = oldF->getCentroid();
-    newF->getArea()     = oldF->getArea();
-    newF->setMetaData(oldF->getMetaData());
-    newF->computePolygon2D();
-  }
-
+  // The flat representation stores topology as plain array indices and every element (including a
+  // face's cached 2D embedding) by value, so an independent copy is simply a by-value copy of the
+  // three arrays plus the search algorithm. The indices remain valid, and every geometric field
+  // (including flipped normals) is preserved exactly. This deliberately does NOT call reconcile(),
+  // which would recompute normals from vertex winding and silently discard a prior flip().
   auto newMesh = std::make_shared<Mesh>();
 
-  newMesh->getVertices() = std::move(newVertices);
-  newMesh->getEdges()    = std::move(newEdges);
-  newMesh->getFaces()    = std::move(newFaces);
-  newMesh->setSearchAlgorithm(m_algorithm);
+  newMesh->m_vertices  = m_vertices;
+  newMesh->m_edges     = m_edges;
+  newMesh->m_faces     = m_faces;
+  newMesh->m_algorithm = m_algorithm;
 
   return newMesh;
 }
@@ -199,81 +94,70 @@ template <class T, class Meta>
 inline void
 MeshT<T, Meta>::sanityCheck(const std::string a_id) const
 {
-  const std::string f_null       = "nullptr face";
   const std::string f_noEdge     = "face with no edge";
   const std::string f_degenerate = "degenerate face";
 
-  const std::string e_null       = "nullptr edges";
   const std::string e_degenerate = "degenerate edge";
   const std::string e_noPairEdge = "no pair edge (not watertight)";
   const std::string e_noNextEdge = "no next edge (badly linked dcel)";
   const std::string e_noOrigVert = "no origin vertex found for half edge (badly linked dcel)";
   const std::string e_noFace     = "no face found for half edge (badly linked dcel)";
 
-  const std::string v_null   = "nullptr vertex";
   const std::string v_noEdge = "no referenced edge for vertex (unreferenced vertex)";
 
-  std::map<std::string, size_t> warnings = {{f_null, 0},
-                                            {f_noEdge, 0},
+  std::map<std::string, size_t> warnings = {{f_noEdge, 0},
                                             {f_degenerate, 0},
-                                            {e_null, 0},
                                             {e_degenerate, 0},
                                             {e_noPairEdge, 0},
                                             {e_noNextEdge, 0},
                                             {e_noOrigVert, 0},
                                             {e_noFace, 0},
-                                            {v_null, 0},
                                             {v_noEdge, 0}};
 
-  for (const auto& f : m_faces) {
-    if (f == nullptr) {
-      this->incrementWarning(warnings, f_null);
+  for (size_t iFace = 0; iFace < m_faces.size(); iFace++) {
+    const DCELIndex halfEdge = m_faces[iFace].getHalfEdge();
+    if (halfEdge == InvalidIndex) {
+      this->incrementWarning(warnings, f_noEdge);
+
       continue;
     }
 
-    const auto& halfEdge = f->getHalfEdge();
-    if (halfEdge == nullptr) {
-      this->incrementWarning(warnings, f_noEdge);
+    std::vector<DCELIndex> vertices;
+
+    for (EdgeIteratorT<T, Meta> edgeIt(m_edges, halfEdge); edgeIt.ok(); ++edgeIt) {
+      vertices.emplace_back(m_edges[edgeIt()].getVertex());
     }
 
-    auto vertices = f->gatherVertices();
     std::sort(vertices.begin(), vertices.end());
-    auto       it           = std::unique(vertices.begin(), vertices.end());
+    const auto it           = std::unique(vertices.begin(), vertices.end());
     const bool noDuplicates = (it == vertices.end());
     if (!noDuplicates) {
       this->incrementWarning(warnings, f_degenerate);
     }
   }
 
-  for (const auto& e : m_edges) {
-    if (e == nullptr) {
-      this->incrementWarning(warnings, e_null);
-      continue;
-    }
+  for (size_t iEdge = 0; iEdge < m_edges.size(); iEdge++) {
+    const Edge& e = m_edges[iEdge];
 
-    if (e->getVertex() == e->getOtherVertex()) {
+    if (e.getNextEdge() != InvalidIndex && e.getVertex() == this->getOtherVertex(static_cast<DCELIndex>(iEdge))) {
       this->incrementWarning(warnings, e_degenerate);
     }
-    if (e->getPairEdge() == nullptr) {
+    if (e.getPairEdge() == InvalidIndex) {
       this->incrementWarning(warnings, e_noPairEdge);
     }
-    if (e->getNextEdge() == nullptr) {
+    if (e.getNextEdge() == InvalidIndex) {
       this->incrementWarning(warnings, e_noNextEdge);
     }
-    if (e->getVertex() == nullptr) {
+    if (e.getVertex() == InvalidIndex) {
       this->incrementWarning(warnings, e_noOrigVert);
     }
-    if (e->getFace() == nullptr) {
+    if (e.getFace() == InvalidIndex) {
       this->incrementWarning(warnings, e_noFace);
     }
   }
 
-  // Vertex check
   for (const auto& v : m_vertices) {
-    if (v == nullptr) {
-      this->incrementWarning(warnings, v_null);
-    }
-    else if (v->getOutgoingEdge() == nullptr) {
+    if (v.getOutgoingEdge() == InvalidIndex) {
       this->incrementWarning(warnings, v_noEdge);
     }
   }
@@ -293,9 +177,7 @@ inline void
 MeshT<T, Meta>::setInsideOutsideAlgorithm(typename Polygon2D<T>::InsideOutsideAlgorithm a_algorithm) noexcept
 {
   for (auto& f : m_faces) {
-    EBGEOMETRY_EXPECT(f != nullptr);
-
-    f->setInsideOutsideAlgorithm(a_algorithm);
+    f.setInsideOutsideAlgorithm(a_algorithm);
   }
 }
 
@@ -319,12 +201,233 @@ MeshT<T, Meta>::flip() noexcept
 
 template <class T, class Meta>
 inline void
+MeshT<T, Meta>::reconcileFace(const DCELIndex a_faceIdx) noexcept
+{
+  EBGEOMETRY_EXPECT(a_faceIdx >= 0 && a_faceIdx < static_cast<DCELIndex>(m_faces.size()));
+
+  Face& face = m_faces[a_faceIdx];
+
+  const std::vector<Vec3> vertices = this->getFaceVertexCoordinates(a_faceIdx);
+  const size_t            N        = vertices.size();
+
+  // A polygon face needs at least 3 vertices to span a plane.
+  EBGEOMETRY_EXPECT(N >= 3);
+
+  // Compute the normal vector from three non-degenerate vertices spanning the face plane.
+  Vec3 normal = Vec3::zeros();
+
+  for (size_t i = 0; i < N; i++) {
+    const Vec3& x0 = vertices[i];
+    const Vec3& x1 = vertices[(i + 1) % N];
+    const Vec3& x2 = vertices[(i + 2) % N];
+
+    normal = (x2 - x0).cross(x2 - x1);
+
+    if (normal.length() > T(0.0)) {
+      break; // Found one.
+    }
+  }
+
+  EBGEOMETRY_EXPECT(normal.length() > std::numeric_limits<T>::epsilon());
+
+  face.getNormal() = normal;
+  face.normalizeNormalVector();
+
+  // Compute the centroid.
+  Vec3 centroid = Vec3::zeros();
+
+  for (const auto& v : vertices) {
+    centroid += v;
+  }
+
+  centroid = centroid / static_cast<T>(N);
+
+  face.getCentroid() = centroid;
+
+  // Compute the area using the cross-product/shoelace formula over ALL N edges, including the
+  // wraparound edge from vertices[N-1] back to vertices[0].
+  T area = T(0.0);
+
+  for (size_t i = 0; i < N; i++) {
+    const Vec3& v1 = vertices[i];
+    const Vec3& v2 = vertices[(i + 1) % N];
+
+    area += face.getNormal().dot(v2.cross(v1));
+  }
+
+  face.getArea() = T(0.5) * std::abs(area);
+
+  // Compute the 2D embedding from the (now-normalized) normal vector and the vertex coordinates.
+  face.setPolygon2D(Polygon2D<T>(face.getNormal(), vertices));
+}
+
+template <class T, class Meta>
+inline Vec3T<T>
+MeshT<T, Meta>::computeEdgeNormal(const DCELIndex a_edgeIdx) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_edgeIdx >= 0 && a_edgeIdx < static_cast<DCELIndex>(m_edges.size()));
+
+  const Edge& edge = m_edges[a_edgeIdx];
+
+  // Every half-edge belongs to exactly one face by DCEL invariant. The pair edge (and its face)
+  // may legitimately be missing for a boundary edge on an open mesh -- handled gracefully below.
+  EBGEOMETRY_EXPECT(edge.getFace() != InvalidIndex);
+
+  Vec3 normal = Vec3::zeros();
+
+  if (edge.getFace() != InvalidIndex) {
+    const Vec3& faceNormal = m_faces[edge.getFace()].getNormal();
+
+    EBGEOMETRY_EXPECT(std::isfinite(faceNormal[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(faceNormal[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(faceNormal[2]));
+
+    normal += faceNormal;
+  }
+  if (edge.getPairEdge() != InvalidIndex) {
+    const DCELIndex pairFaceIdx = m_edges[edge.getPairEdge()].getFace();
+
+    if (pairFaceIdx != InvalidIndex) {
+      const Vec3& pairFaceNormal = m_faces[pairFaceIdx].getNormal();
+
+      EBGEOMETRY_EXPECT(std::isfinite(pairFaceNormal[0]));
+      EBGEOMETRY_EXPECT(std::isfinite(pairFaceNormal[1]));
+      EBGEOMETRY_EXPECT(std::isfinite(pairFaceNormal[2]));
+
+      normal += pairFaceNormal;
+    }
+  }
+
+  const T len = normal.length();
+
+  EBGEOMETRY_EXPECT(len > T(0));
+
+  return (len > std::numeric_limits<T>::epsilon()) ? normal / len : Vec3::zeros();
+}
+
+template <class T, class Meta>
+inline void
+MeshT<T, Meta>::computeVertexNormalAverage(const DCELIndex a_vertexIdx) noexcept
+{
+  EBGEOMETRY_EXPECT(a_vertexIdx >= 0 && a_vertexIdx < static_cast<DCELIndex>(m_vertices.size()));
+
+  Vertex& vertex = m_vertices[a_vertexIdx];
+
+  const std::vector<DCELIndex>& faces = vertex.getFaces();
+
+  EBGEOMETRY_EXPECT(!faces.empty());
+
+  Vec3 normal = Vec3::zeros();
+
+  // We simply compute the sum of the normal vectors for each face incident on this vertex and then
+  // normalize -- an "average" of the incident faces' normal vectors.
+  for (const auto& faceIdx : faces) {
+    EBGEOMETRY_EXPECT(faceIdx >= 0 && faceIdx < static_cast<DCELIndex>(m_faces.size()));
+
+    normal += m_faces[faceIdx].getNormal();
+  }
+
+  vertex.getNormal() = normal;
+  vertex.normalizeNormalVector();
+}
+
+template <class T, class Meta>
+inline void
+MeshT<T, Meta>::computeVertexNormalAngleWeighted(const DCELIndex a_vertexIdx)
+{
+  EBGEOMETRY_EXPECT(a_vertexIdx >= 0 && a_vertexIdx < static_cast<DCELIndex>(m_vertices.size()));
+
+  Vertex& vertex = m_vertices[a_vertexIdx];
+
+  const std::vector<DCELIndex>& faces = vertex.getFaces();
+
+  // This routine computes the pseudonormal from Baerentzen and Aanes in "Signed distance
+  // computation using the angle weighted pseudonormal" (DOI: 10.1109/TVCG.2005.49). The normal is
+  // an average of the incident faces' normals weighted by the angle each face subtends at this
+  // vertex (the angle spanned by the incoming/outgoing edges of the face that pass through this
+  // vertex). We look through each incident face to find the two edge endpoints that neighbor this
+  // vertex on that face, so a flipped input face does not cause infinite iteration.
+  EBGEOMETRY_EXPECT(!faces.empty());
+  EBGEOMETRY_EXPECT(vertex.getOutgoingEdge() != InvalidIndex);
+
+  Vec3 normal = Vec3::zeros();
+
+  for (const auto& faceIdx : faces) {
+    EBGEOMETRY_EXPECT(faceIdx >= 0 && faceIdx < static_cast<DCELIndex>(m_faces.size()));
+
+    std::vector<DCELIndex> inoutVertices(0);
+
+    for (EdgeIteratorT<T, Meta> edgeIt(m_edges, m_faces[faceIdx].getHalfEdge()); edgeIt.ok(); ++edgeIt) {
+      const DCELIndex v1 = m_edges[edgeIt()].getVertex();
+      const DCELIndex v2 = this->getOtherVertex(edgeIt());
+
+      if (v1 == a_vertexIdx || v2 == a_vertexIdx) {
+        if (v1 == a_vertexIdx) {
+          inoutVertices.emplace_back(v2);
+        }
+        else if (v2 == a_vertexIdx) {
+          inoutVertices.emplace_back(v1);
+        }
+        else {
+          std::cerr << "MeshT<T, Meta>::computeVertexNormalAngleWeighted(): unreachable branch hit "
+                       "-- a half-edge of the face was found to have the origin vertex as one of "
+                       "its two endpoints, but neither v1 nor v2 compares equal to it. This points "
+                       "to a corrupted or inconsistent half-edge/vertex topology.\n";
+        }
+      }
+    }
+
+    if (inoutVertices.size() != 2) {
+      std::cerr << "MeshT<T, Meta>::computeVertexNormalAngleWeighted(): face should be incident on "
+                   "the origin vertex through exactly 2 half-edges (one incoming, one outgoing), "
+                   "but "
+                << inoutVertices.size()
+                << " were found. This means the face is not a well-formed triangle sharing this "
+                   "vertex -- check the mesh for degenerate or non-manifold faces.\n";
+    }
+
+    EBGEOMETRY_EXPECT(inoutVertices.size() == 2);
+
+    const Vec3& x0 = vertex.getPosition();
+    const Vec3& x1 = m_vertices[inoutVertices[0]].getPosition();
+    const Vec3& x2 = m_vertices[inoutVertices[1]].getPosition();
+
+    if (x0 == x1 || x0 == x2 || x1 == x2) {
+      std::cerr << "MeshT<T, Meta>::computeVertexNormalAngleWeighted(): degenerate face -- two of "
+                   "the origin vertex position ("
+                << x0 << ") and its two neighboring vertex positions (" << x1 << ", " << x2
+                << ") coincide. This produces a zero-length edge, which has no well-defined "
+                   "subtended angle -- check the mesh for duplicate/collapsed vertices.\n";
+    }
+
+    EBGEOMETRY_EXPECT(x0 != x1);
+    EBGEOMETRY_EXPECT(x0 != x2);
+    EBGEOMETRY_EXPECT(x1 != x2);
+
+    Vec3 v1 = x1 - x0;
+    Vec3 v2 = x2 - x0;
+
+    v1 = v1 / v1.length();
+    v2 = v2 / v2.length();
+
+    const Vec3& norm = m_faces[faceIdx].getNormal();
+
+    // Clamp to [-1,1] to guard against std::acos(NaN) from floating-point rounding.
+    const T alpha = std::acos(std::clamp(v1.dot(v2), T(-1), T(1)));
+
+    normal += alpha * norm;
+  }
+
+  vertex.getNormal() = normal;
+  vertex.normalizeNormalVector();
+}
+
+template <class T, class Meta>
+inline void
 MeshT<T, Meta>::reconcileFaces() noexcept
 {
-  for (auto& f : m_faces) {
-    EBGEOMETRY_EXPECT(f != nullptr);
-
-    f->reconcile();
+  for (size_t i = 0; i < m_faces.size(); i++) {
+    this->reconcileFace(static_cast<DCELIndex>(i));
   }
 }
 
@@ -332,10 +435,8 @@ template <class T, class Meta>
 inline void
 MeshT<T, Meta>::reconcileEdges() noexcept
 {
-  for (auto& e : m_edges) {
-    EBGEOMETRY_EXPECT(e != nullptr);
-
-    e->reconcile();
+  for (size_t i = 0; i < m_edges.size(); i++) {
+    m_edges[i].getNormal() = this->computeEdgeNormal(static_cast<DCELIndex>(i));
   }
 }
 
@@ -343,17 +444,15 @@ template <class T, class Meta>
 inline void
 MeshT<T, Meta>::reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexcept
 {
-  for (auto& v : m_vertices) {
-    EBGEOMETRY_EXPECT(v != nullptr);
-
+  for (size_t i = 0; i < m_vertices.size(); i++) {
     switch (a_weight) {
     case DCEL::VertexNormalWeight::None: {
-      v->computeVertexNormalAverage();
+      this->computeVertexNormalAverage(static_cast<DCELIndex>(i));
 
       break;
     }
     case DCEL::VertexNormalWeight::Angle: {
-      v->computeVertexNormalAngleWeighted();
+      this->computeVertexNormalAngleWeighted(static_cast<DCELIndex>(i));
 
       break;
     }
@@ -375,9 +474,7 @@ inline void
 MeshT<T, Meta>::flipFaceNormals() noexcept
 {
   for (auto& f : m_faces) {
-    EBGEOMETRY_EXPECT(f != nullptr);
-
-    f->flipNormal();
+    f.flipNormal();
   }
 }
 
@@ -386,9 +483,7 @@ inline void
 MeshT<T, Meta>::flipEdgeNormals() noexcept
 {
   for (auto& e : m_edges) {
-    EBGEOMETRY_EXPECT(e != nullptr);
-
-    e->flipNormal();
+    e.flipNormal();
   }
 }
 
@@ -397,49 +492,47 @@ inline void
 MeshT<T, Meta>::flipVertexNormals() noexcept
 {
   for (auto& v : m_vertices) {
-    EBGEOMETRY_EXPECT(v != nullptr);
-
-    v->flipNormal();
+    v.flipNormal();
   }
 }
 
 template <class T, class Meta>
-inline std::vector<std::shared_ptr<VertexT<T, Meta>>>&
+inline std::vector<VertexT<T, Meta>>&
 MeshT<T, Meta>::getVertices() noexcept
 {
   return m_vertices;
 }
 
 template <class T, class Meta>
-inline const std::vector<std::shared_ptr<VertexT<T, Meta>>>&
+inline const std::vector<VertexT<T, Meta>>&
 MeshT<T, Meta>::getVertices() const noexcept
 {
   return m_vertices;
 }
 
 template <class T, class Meta>
-inline std::vector<std::shared_ptr<EdgeT<T, Meta>>>&
+inline std::vector<EdgeT<T, Meta>>&
 MeshT<T, Meta>::getEdges() noexcept
 {
   return m_edges;
 }
 
 template <class T, class Meta>
-inline const std::vector<std::shared_ptr<EdgeT<T, Meta>>>&
+inline const std::vector<EdgeT<T, Meta>>&
 MeshT<T, Meta>::getEdges() const noexcept
 {
   return m_edges;
 }
 
 template <class T, class Meta>
-inline std::vector<std::shared_ptr<FaceT<T, Meta>>>&
+inline std::vector<FaceT<T, Meta>>&
 MeshT<T, Meta>::getFaces() noexcept
 {
   return m_faces;
 }
 
 template <class T, class Meta>
-inline const std::vector<std::shared_ptr<FaceT<T, Meta>>>&
+inline const std::vector<FaceT<T, Meta>>&
 MeshT<T, Meta>::getFaces() const noexcept
 {
   return m_faces;
@@ -451,13 +544,231 @@ MeshT<T, Meta>::getAllVertexCoordinates() const noexcept
 {
   std::vector<Vec3> vertexCoordinates;
   vertexCoordinates.reserve(m_vertices.size());
-  for (const auto& v : m_vertices) {
-    EBGEOMETRY_EXPECT(v != nullptr);
 
-    vertexCoordinates.emplace_back(v->getPosition());
+  for (const auto& v : m_vertices) {
+    vertexCoordinates.emplace_back(v.getPosition());
   }
 
   return vertexCoordinates;
+}
+
+template <class T, class Meta>
+inline std::vector<Vec3T<T>>
+MeshT<T, Meta>::getFaceVertexCoordinates(const DCELIndex a_faceIdx) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_faceIdx >= 0 && a_faceIdx < static_cast<DCELIndex>(m_faces.size()));
+
+  std::vector<Vec3> coordinates;
+  coordinates.reserve(3);
+
+  for (EdgeIteratorT<T, Meta> edgeIt(m_edges, m_faces[a_faceIdx].getHalfEdge()); edgeIt.ok(); ++edgeIt) {
+    coordinates.emplace_back(m_vertices[m_edges[edgeIt()].getVertex()].getPosition());
+  }
+
+  return coordinates;
+}
+
+template <class T, class Meta>
+inline DCELIndex
+MeshT<T, Meta>::getOtherVertex(const DCELIndex a_edgeIdx) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_edgeIdx >= 0 && a_edgeIdx < static_cast<DCELIndex>(m_edges.size()));
+
+  const DCELIndex nextEdge = m_edges[a_edgeIdx].getNextEdge();
+
+  EBGEOMETRY_EXPECT(nextEdge != InvalidIndex);
+
+  return m_edges[nextEdge].getVertex();
+}
+
+template <class T, class Meta>
+inline Vec3T<T>
+MeshT<T, Meta>::projectPointIntoFacePlane(const DCELIndex a_faceIdx, const Vec3& a_p) const noexcept
+{
+  EBGEOMETRY_EXPECT(std::isfinite(a_p[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_p[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_p[2]));
+
+  const Face& face = m_faces[a_faceIdx];
+
+  return a_p - face.getNormal() * (face.getNormal().dot(a_p - face.getCentroid()));
+}
+
+template <class T, class Meta>
+inline bool
+MeshT<T, Meta>::isPointInsideFace(const DCELIndex a_faceIdx, const Vec3& a_p) const noexcept
+{
+  const Face& face = m_faces[a_faceIdx];
+
+  const Vec3 p = this->projectPointIntoFacePlane(a_faceIdx, a_p);
+
+  return face.getPolygon2D().isPointInside(p, face.getInsideOutsideAlgorithm());
+}
+
+template <class T, class Meta>
+inline T
+MeshT<T, Meta>::signedDistanceToVertex(const DCELIndex a_vertexIdx, const Vec3& a_x0) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_vertexIdx >= 0 && a_vertexIdx < static_cast<DCELIndex>(m_vertices.size()));
+
+  return m_vertices[a_vertexIdx].signedDistance(a_x0);
+}
+
+template <class T, class Meta>
+inline T
+MeshT<T, Meta>::unsignedDistance2ToVertex(const DCELIndex a_vertexIdx, const Vec3& a_x0) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_vertexIdx >= 0 && a_vertexIdx < static_cast<DCELIndex>(m_vertices.size()));
+
+  return m_vertices[a_vertexIdx].unsignedDistance2(a_x0);
+}
+
+template <class T, class Meta>
+inline T
+MeshT<T, Meta>::signedDistanceToEdge(const DCELIndex a_edgeIdx, const Vec3& a_x0) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_edgeIdx >= 0 && a_edgeIdx < static_cast<DCELIndex>(m_edges.size()));
+  EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
+
+  const DCELIndex v1Idx = m_edges[a_edgeIdx].getVertex();
+  const DCELIndex v2Idx = this->getOtherVertex(a_edgeIdx);
+
+  const Vec3& x1   = m_vertices[v1Idx].getPosition();
+  const Vec3& x2   = m_vertices[v2Idx].getPosition();
+  const Vec3  x2x1 = x2 - x1;
+
+  EBGEOMETRY_EXPECT(x2x1.dot(x2x1) > T(0));
+
+  const T t = (a_x0 - x1).dot(x2x1) / x2x1.dot(x2x1);
+
+  T retval = std::numeric_limits<T>::max();
+
+  if (t <= T(0.0)) {
+    // Closest point is the starting vertex.
+    retval = this->signedDistanceToVertex(v1Idx, a_x0);
+  }
+  else if (t >= T(1.0)) {
+    // Closest point is the end vertex.
+    retval = this->signedDistanceToVertex(v2Idx, a_x0);
+  }
+  else {
+    // Closest point is the edge itself.
+    const Vec3 linePoint = x1 + t * x2x1;
+    const Vec3 delta     = a_x0 - linePoint;
+    const T    dot       = m_edges[a_edgeIdx].getNormal().dot(delta);
+
+    const int sgn = (dot > T(0.0)) ? 1 : -1;
+
+    retval = sgn * delta.length();
+  }
+
+  return retval;
+}
+
+template <class T, class Meta>
+inline T
+MeshT<T, Meta>::unsignedDistance2ToEdge(const DCELIndex a_edgeIdx, const Vec3& a_x0) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_edgeIdx >= 0 && a_edgeIdx < static_cast<DCELIndex>(m_edges.size()));
+  EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
+
+  const DCELIndex v1Idx = m_edges[a_edgeIdx].getVertex();
+  const DCELIndex v2Idx = this->getOtherVertex(a_edgeIdx);
+
+  const Vec3& x1   = m_vertices[v1Idx].getPosition();
+  const Vec3& x2   = m_vertices[v2Idx].getPosition();
+  const Vec3  x2x1 = x2 - x1;
+
+  EBGEOMETRY_EXPECT(x2x1.dot(x2x1) > T(0));
+
+  const T t = std::clamp((a_x0 - x1).dot(x2x1) / x2x1.dot(x2x1), T(0.0), T(1.0));
+
+  const Vec3 linePoint = x1 + t * x2x1;
+  const Vec3 delta     = a_x0 - linePoint;
+
+  return delta.dot(delta);
+}
+
+template <class T, class Meta>
+inline T
+MeshT<T, Meta>::signedDistanceToFace(const DCELIndex a_faceIdx, const Vec3& a_x0) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_faceIdx >= 0 && a_faceIdx < static_cast<DCELIndex>(m_faces.size()));
+  EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
+
+  const Face& face = m_faces[a_faceIdx];
+
+  EBGEOMETRY_EXPECT(face.getHalfEdge() != InvalidIndex);
+
+  T retval = std::numeric_limits<T>::infinity();
+
+  if (this->isPointInsideFace(a_faceIdx, a_x0)) {
+    retval = face.getNormal().dot(a_x0 - face.getCentroid());
+  }
+  else {
+    const DCELIndex startEdge = face.getHalfEdge();
+    DCELIndex       cur       = startEdge;
+
+    while (true) {
+      const T curDist = this->signedDistanceToEdge(cur, a_x0);
+
+      retval = (std::abs(curDist) < std::abs(retval)) ? curDist : retval;
+
+      cur = m_edges[cur].getNextEdge();
+
+      if (cur == InvalidIndex || cur == startEdge) {
+        break;
+      }
+    }
+  }
+
+  return retval;
+}
+
+template <class T, class Meta>
+inline T
+MeshT<T, Meta>::unsignedDistance2ToFace(const DCELIndex a_faceIdx, const Vec3& a_x0) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_faceIdx >= 0 && a_faceIdx < static_cast<DCELIndex>(m_faces.size()));
+  EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_x0[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_x0[2]));
+
+  const Face& face = m_faces[a_faceIdx];
+
+  EBGEOMETRY_EXPECT(face.getHalfEdge() != InvalidIndex);
+
+  T retval = std::numeric_limits<T>::infinity();
+
+  if (this->isPointInsideFace(a_faceIdx, a_x0)) {
+    const T normDist = face.getNormal().dot(a_x0 - face.getCentroid());
+
+    retval = normDist * normDist;
+  }
+  else {
+    const DCELIndex startEdge = face.getHalfEdge();
+    DCELIndex       cur       = startEdge;
+
+    while (true) {
+      const T curDist2 = this->unsignedDistance2ToEdge(cur, a_x0);
+
+      retval = (curDist2 < retval) ? curDist2 : retval;
+
+      cur = m_edges[cur].getNextEdge();
+
+      if (cur == InvalidIndex || cur == startEdge) {
+        break;
+      }
+    }
+  }
+
+  return retval;
 }
 
 template <class T, class Meta>
@@ -485,10 +796,8 @@ MeshT<T, Meta>::unsignedDistance2(const Vec3& a_point) const noexcept
 
   T minDist2 = std::numeric_limits<T>::max();
 
-  for (const auto& f : m_faces) {
-    EBGEOMETRY_EXPECT(f != nullptr);
-
-    const T curDist2 = f->unsignedDistance2(a_point);
+  for (size_t i = 0; i < m_faces.size(); i++) {
+    const T curDist2 = this->unsignedDistance2ToFace(static_cast<DCELIndex>(i), a_point);
 
     minDist2 = std::min(minDist2, curDist2);
   }
@@ -543,15 +852,11 @@ MeshT<T, Meta>::DirectSignedDistance(const Vec3& a_point) const noexcept
     return std::numeric_limits<T>::infinity();
   }
 
-  EBGEOMETRY_EXPECT(m_faces.front() != nullptr);
-
-  T minDist  = m_faces.front()->signedDistance(a_point);
+  T minDist  = this->signedDistanceToFace(0, a_point);
   T minDist2 = minDist * minDist;
 
-  for (const auto& f : m_faces) {
-    EBGEOMETRY_EXPECT(f != nullptr);
-
-    const T curDist  = f->signedDistance(a_point);
+  for (size_t i = 0; i < m_faces.size(); i++) {
+    const T curDist  = this->signedDistanceToFace(static_cast<DCELIndex>(i), a_point);
     const T curDist2 = curDist * curDist;
 
     if (curDist2 < minDist2) {
@@ -575,23 +880,19 @@ MeshT<T, Meta>::DirectSignedDistance2(const Vec3& a_point) const noexcept
     return std::numeric_limits<T>::infinity();
   }
 
-  EBGEOMETRY_EXPECT(m_faces.front() != nullptr);
+  DCELIndex closest  = 0;
+  T         minDist2 = this->unsignedDistance2ToFace(0, a_point);
 
-  FacePtr closest  = m_faces.front();
-  T       minDist2 = closest->unsignedDistance2(a_point);
-
-  for (const auto& f : m_faces) {
-    EBGEOMETRY_EXPECT(f != nullptr);
-
-    const T curDist2 = f->unsignedDistance2(a_point);
+  for (size_t i = 0; i < m_faces.size(); i++) {
+    const T curDist2 = this->unsignedDistance2ToFace(static_cast<DCELIndex>(i), a_point);
 
     if (curDist2 < minDist2) {
-      closest  = f;
+      closest  = static_cast<DCELIndex>(i);
       minDist2 = curDist2;
     }
   }
 
-  return closest->signedDistance(a_point);
+  return this->signedDistanceToFace(closest, a_point);
 }
 } // namespace DCEL
 

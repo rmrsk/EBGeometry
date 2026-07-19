@@ -28,6 +28,21 @@ namespace DCEL {
 using DefaultMetaData = short;
 
 /**
+ * @brief Integer type used for topology cross-references in the index-based DCEL.
+ * @details The mesh owns its vertices, half-edges, and faces in flat arrays; every topological
+ * link (an edge's origin vertex, pair edge, next edge, and face; a vertex's outgoing edge and
+ * incident faces; a face's half-edge) is stored as an index into the corresponding @c MeshT array
+ * rather than as a pointer. This keeps the representation flat and trivially copyable -- the same
+ * structure is used on the host and (after annotation) on the device.
+ */
+using DCELIndex = int;
+
+/**
+ * @brief Sentinel index denoting "no link" (e.g. the pair edge of a boundary half-edge).
+ */
+static constexpr DCELIndex InvalidIndex = -1;
+
+/**
  * @brief Vertex class for navigating a DCEL mesh.
  * @tparam T    Floating-point precision type.
  * @tparam Meta User-defined metadata type.

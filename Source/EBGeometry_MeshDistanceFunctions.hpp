@@ -132,15 +132,13 @@ protected:
 /**
  * @brief Signed distance function for a DCEL mesh. Stores the mesh in a PackedBVH for
  * SIMD-accelerated traversal. Accepts any polygon, not just triangles.
- * @details The mesh faces are packed into a flat-array PackedBVH. SIMD traversal
- * is used when T and K match an available ISA path. Unlike TriMeshSDF, MeshSDF does not expose a
- * PackedBVH StoragePolicy choice: its PackedBVH always uses BVH::SharedPtrStorage<Face>, sharing
- * each packed face with the DCEL mesh's own face list rather than copying it. This is not just a
- * default -- DCEL::FaceT's copy constructor deliberately does not copy its cached 2D polygon
- * embedding (m_poly2, used by signedDistance()'s point-in-face test), so a naive by-value copy
- * (as BVH::ValueStorage would produce) is left with a null embedding and crashes on first query;
- * see FaceT's copy-constructor documentation. See the user documentation for the full rationale,
- * including why TriMeshSDF's SoA groups do not have this restriction.
+ * @details The mesh faces are packed into a flat-array PackedBVH whose primitive is the face INDEX
+ * (a @c DCEL::DCELIndex) into the retained DCEL mesh's face array, stored by value
+ * (BVH::ValueStorage<DCELIndex>). SIMD traversal is used when T and K match an available ISA path.
+ * Each distance query resolves a face index against the retained mesh and calls
+ * MeshT::signedDistanceToFace()/unsignedDistance2ToFace(). Storing indices rather than face objects
+ * keeps the packed representation flat and trivially copyable, and avoids duplicating the DCEL
+ * topology.
  * @tparam T    Floating-point precision type (float or double).
  * @tparam Meta Triangle metadata type stored on each DCEL face.
  * @tparam K    BVH branching factor (number of children per internal node).
@@ -163,9 +161,14 @@ public:
   using Mesh = typename EBGeometry::DCEL::MeshT<T, Meta>;
 
   /**
-   * @brief Alias for the linearized BVH root
+   * @brief Alias for the BVH primitive type: a face index into the DCEL mesh's face array.
    */
-  using Root = EBGeometry::BVH::PackedBVH<T, Face, K>;
+  using PrimIndex = EBGeometry::DCEL::DCELIndex;
+
+  /**
+   * @brief Alias for the linearized BVH root. Primitives are face indices stored by value.
+   */
+  using Root = EBGeometry::BVH::PackedBVH<T, PrimIndex, K, EBGeometry::BVH::ValueStorage<PrimIndex>>;
 
   /**
    * @brief Alias for a single linearized node
@@ -235,13 +238,14 @@ public:
   /**
    * @brief Return faces within BVH-pruned candidate distance of a_point.
    * @details Traverses the PackedBVH and collects candidate faces.  The
-   * result pairs each face with its unsigned distance to a_point.
+   * result pairs each face INDEX (into the retained DCEL mesh) with its unsigned distance to
+   * a_point.
    * @param[in] a_point  Query point.
    * @param[in] a_sorted If true, the returned vector is sorted by ascending
    * unsigned distance (closest face first).
-   * @return Vector of (face, unsigned_distance) pairs, optionally sorted.
+   * @return Vector of (face index, unsigned_distance) pairs, optionally sorted.
    */
-  [[nodiscard]] virtual std::vector<std::pair<std::shared_ptr<const Face>, T>>
+  [[nodiscard]] virtual std::vector<std::pair<PrimIndex, T>>
   getClosestFaces(const Vec3T<T>& a_point, const bool a_sorted) const;
 
   /**
@@ -259,6 +263,15 @@ public:
   getRoot() const noexcept;
 
   /**
+   * @brief Get the source DCEL mesh that the BVH's face indices refer to.
+   * @details The BVH stores only face indices; callers of getClosestFaces() resolve those indices
+   * against this mesh (e.g. to read a face's metadata or vertices).
+   * @return Const reference to the shared pointer owning the DCEL mesh.
+   */
+  [[nodiscard]] const std::shared_ptr<Mesh>&
+  getMesh() const noexcept;
+
+  /**
    * @brief Compute the AABB enclosing the entire mesh.
    * @return Axis-aligned bounding box of the mesh.
    */
@@ -273,9 +286,8 @@ protected:
 
   /**
    * @brief Source DCEL mesh.
-   * @details Retained so that the faces held by m_bvh -- whose half-edges (and the edges/vertices
-   * reachable from them) are only weakly referenced, not owned, see DCEL::FaceT::m_halfEdge -- stay
-   * valid. The mesh's own vertex/edge/face vectors are the sole owners of that topology.
+   * @details Retained because m_bvh stores only face INDICES into this mesh's face array; every
+   * distance query resolves an index against this mesh. It must therefore outlive the BVH.
    */
   std::shared_ptr<Mesh> m_mesh;
 };

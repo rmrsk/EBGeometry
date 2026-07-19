@@ -22,6 +22,9 @@
 
 // Our includes
 #include "EBGeometry_DCEL.hpp"
+#include "EBGeometry_DCEL_Edge.hpp"
+#include "EBGeometry_DCEL_Face.hpp"
+#include "EBGeometry_DCEL_Vertex.hpp"
 #include "EBGeometry_Polygon2D.hpp"
 
 namespace EBGeometry {
@@ -32,12 +35,12 @@ namespace DCEL {
  * @brief Mesh class which stores a full DCEL mesh (with signed distance
  * functions)
  * @details This encapsulates a full DCEL mesh, and also includes DIRECT signed
- * distance functions. The mesh consists of a set of vertices, half-edges, and
- * polygon faces who each have references to other vertices, half-edges, and
- * polygon faces. The signed distance functions DIRECT, which means that they go
- * through ALL of the polygon faces and compute the signed distance to them. This
- * is extremely inefficient, which is why this class is almost always embedded
- * into a bounding volume hierarchy.
+ * distance functions. The mesh owns its vertices, half-edges, and polygon faces in three flat
+ * arrays (by value); every topological link between them is a @c DCELIndex index into these
+ * arrays. Because the elements can no longer chase pointers, all traversal and geometric-query
+ * logic lives on this class. The signed distance functions are DIRECT, which means that they go
+ * through ALL of the polygon faces and compute the signed distance to them. This is extremely
+ * inefficient, which is why this class is almost always embedded into a bounding volume hierarchy.
  * @note This class is not for the light of heart -- it will almost always be
  * instantiated through a file parser which reads vertices and edges from file
  * and builds the mesh from that. Do not try to build a MeshT object yourself,
@@ -89,34 +92,17 @@ public:
   using Mesh = MeshT<T, Meta>;
 
   /**
-   * @brief Alias for vertex pointer type
-   */
-  using VertexPtr = std::shared_ptr<Vertex>;
-
-  /**
-   * @brief Alias for edge pointer type
-   */
-  using EdgePtr = std::shared_ptr<Edge>;
-
-  /**
-   * @brief Alias for face pointer type
-   */
-  using FacePtr = std::shared_ptr<Face>;
-
-  /**
    * @brief Default constructor.
    * @details Leaves the mesh empty (no vertices, edges, or faces) with the default search
-   * algorithm; use define() or the mutable getVertices()/getEdges()/getFaces() to populate it.
+   * algorithm; use the full constructor or the mutable getVertices()/getEdges()/getFaces() to
+   * populate it.
    */
   MeshT() noexcept = default;
 
   /**
    * @brief Disallowed copy construction.
-   * @details Copying is deliberately disallowed: a shallow copy of m_vertices/m_edges/m_faces would
-   * share the same underlying vertex/edge/face objects as the original (they reference each other
-   * internally), so it would not behave like an independent mesh -- mutating the "copy" would also
-   * mutate the original. Use a file parser to build an independent mesh instead. Moving is allowed
-   * (see the move constructor), since that transfers ownership rather than aliasing it.
+   * @details Copying is deliberately disallowed; use deepCopy() to obtain an independent mesh.
+   * Moving is allowed (see the move constructor), since that transfers ownership.
    * @param[in] a_otherMesh Other mesh.
    */
   MeshT(const Mesh& a_otherMesh) = delete;
@@ -130,9 +116,8 @@ public:
   /**
    * @brief Full constructor. This provides the faces, edges, and vertices to the
    * mesh.
-   * @details Copies the three vectors directly into m_faces/m_edges/m_vertices. This only
-   * associates pointer structures through the mesh; internal parameters like face area and normal
-   * are computed by reconcile().
+   * @details Copies the three vectors directly into m_faces/m_edges/m_vertices. This only stores
+   * the topology; internal parameters like face area and normal are computed by reconcile().
    * @param[in] a_faces    Polygon faces
    * @param[in] a_edges    Half-edges
    * @param[in] a_vertices Vertices
@@ -140,7 +125,7 @@ public:
    * description. This is usually done through a file parser which reads a mesh
    * file format and creates the DCEL mesh structure
    */
-  MeshT(std::vector<FacePtr>& a_faces, std::vector<EdgePtr>& a_edges, std::vector<VertexPtr>& a_vertices) noexcept;
+  MeshT(std::vector<Face>& a_faces, std::vector<Edge>& a_edges, std::vector<Vertex>& a_vertices) noexcept;
 
   /**
    * @brief Destructor (does nothing)
@@ -149,7 +134,7 @@ public:
 
   /**
    * @brief Disallowed copy assignment.
-   * @details Has the same rationale as the disallowed copy constructor; see its documentation.
+   * @details Has the same rationale as the disallowed copy constructor; use deepCopy().
    * @param[in] a_otherMesh Other mesh.
    * @return Reference to (*this).
    */
@@ -166,14 +151,13 @@ public:
 
   /**
    * @brief Create an independent, fully-decoupled copy of this mesh.
-   * @details Since copy construction/assignment are disallowed (see their documentation), this is
-   * the supported way to duplicate a mesh. Unlike a shallow copy, this creates brand new
-   * VertexT/EdgeT/FaceT objects and relinks all of their internal pointers (outgoing edge, pair
-   * edge, next edge, half edge, adjacent faces) so that the copy shares no vertex, edge, or face
-   * with the original -- mutating one mesh does not affect the other. Every field is preserved
-   * exactly (position, normal vector, centroid, area, meta-data, search algorithm) rather than
-   * recomputed, so a mesh that has had flipNormal()/flip() called on it and not yet been
-   * re-reconciled will be copied faithfully rather than silently "un-flipped".
+   * @details Since copy construction/assignment are disallowed, this is the supported way to
+   * duplicate a mesh. Because the flat representation stores topology as plain array indices and
+   * every element (including a face's cached 2D embedding) by value, an independent copy is simply
+   * a by-value copy of the three arrays -- the indices remain valid and every geometric field
+   * (including a face's 2D embedding) is preserved exactly. In particular a mesh that has had
+   * flip()/flipNormal() called on it and not yet been re-reconciled is copied faithfully rather
+   * than silently "un-flipped".
    * @return A new mesh, independent of this one.
    */
   [[nodiscard]] inline std::shared_ptr<Mesh>
@@ -182,7 +166,7 @@ public:
   /**
    * @brief Perform a sanity check.
    * @details This will provide error messages if vertices are badly linked,
-   * faces are nullptr, and so on. These messages are logged by calling
+   * faces have no half-edge, and so on. These messages are logged by calling
    * incrementWarning() which identifies types of errors that can occur, and how
    * many of those errors have occurred.
    * @param[in] a_id Identifier when printing error messages (can be empty string).
@@ -201,7 +185,7 @@ public:
    * @brief Set the inside/outside algorithm to use when computing the signed
    * distance to polygon faces.
    * @details Computing the signed distance to faces requires testing if a point
-   * projected to a polygo face plane falls inside or outside the polygon face.
+   * projected to a polygon face plane falls inside or outside the polygon face.
    * There are multiple algorithms to use here.
    * @param[in] a_algorithm Algorithm to use
    */
@@ -231,14 +215,14 @@ public:
    * @brief Get modifiable vertices in this mesh
    * @return Reference to the vector of vertices.
    */
-  [[nodiscard]] inline std::vector<VertexPtr>&
+  [[nodiscard]] inline std::vector<Vertex>&
   getVertices() noexcept;
 
   /**
    * @brief Get immutable vertices in this mesh
    * @return Const reference to the vector of vertices.
    */
-  [[nodiscard]] inline const std::vector<VertexPtr>&
+  [[nodiscard]] inline const std::vector<Vertex>&
   getVertices() const noexcept;
 
   /**
@@ -252,29 +236,100 @@ public:
    * @brief Get modifiable half-edges in this mesh
    * @return Reference to the vector of half-edges.
    */
-  [[nodiscard]] inline std::vector<EdgePtr>&
+  [[nodiscard]] inline std::vector<Edge>&
   getEdges() noexcept;
 
   /**
    * @brief Get immutable half-edges in this mesh
    * @return Const reference to the vector of half-edges.
    */
-  [[nodiscard]] inline const std::vector<EdgePtr>&
+  [[nodiscard]] inline const std::vector<Edge>&
   getEdges() const noexcept;
 
   /**
    * @brief Get modifiable faces in this mesh
    * @return Reference to the vector of polygon faces.
    */
-  [[nodiscard]] inline std::vector<FacePtr>&
+  [[nodiscard]] inline std::vector<Face>&
   getFaces() noexcept;
 
   /**
    * @brief Get immutable faces in this mesh
    * @return Const reference to the vector of polygon faces.
    */
-  [[nodiscard]] inline const std::vector<FacePtr>&
+  [[nodiscard]] inline const std::vector<Face>&
   getFaces() const noexcept;
+
+  /**
+   * @brief Return the coordinates of all the vertices on the given polygon face.
+   * @param[in] a_faceIdx Face index.
+   * @return Vector of 3D vertex coordinates, in half-edge order around the face.
+   */
+  [[nodiscard]] inline std::vector<Vec3T<T>>
+  getFaceVertexCoordinates(const DCELIndex a_faceIdx) const noexcept;
+
+  /**
+   * @brief Get the index of the end (destination) vertex of a half-edge.
+   * @details This is the origin vertex of the half-edge's next edge around the face.
+   * @param[in] a_edgeIdx Half-edge index.
+   * @return Index of the end vertex.
+   */
+  [[nodiscard]] inline DCELIndex
+  getOtherVertex(const DCELIndex a_edgeIdx) const noexcept;
+
+  /**
+   * @brief Compute the signed distance from a point to a polygon face.
+   * @param[in] a_faceIdx Face index.
+   * @param[in] a_x0      Query point.
+   * @return Signed distance to the face; sign determined by the face normal direction.
+   */
+  [[nodiscard]] inline T
+  signedDistanceToFace(const DCELIndex a_faceIdx, const Vec3& a_x0) const noexcept;
+
+  /**
+   * @brief Compute the unsigned squared distance from a point to a polygon face.
+   * @param[in] a_faceIdx Face index.
+   * @param[in] a_x0      Query point.
+   * @return Squared unsigned distance to the face.
+   */
+  [[nodiscard]] inline T
+  unsignedDistance2ToFace(const DCELIndex a_faceIdx, const Vec3& a_x0) const noexcept;
+
+  /**
+   * @brief Compute the signed distance from a point to a half-edge.
+   * @param[in] a_edgeIdx Half-edge index.
+   * @param[in] a_x0      Query point.
+   * @return Signed distance; positive on the normal side of the edge.
+   */
+  [[nodiscard]] inline T
+  signedDistanceToEdge(const DCELIndex a_edgeIdx, const Vec3& a_x0) const noexcept;
+
+  /**
+   * @brief Compute the unsigned squared distance from a point to a half-edge.
+   * @param[in] a_edgeIdx Half-edge index.
+   * @param[in] a_x0      Query point.
+   * @return Squared distance to the closest point on the edge segment.
+   */
+  [[nodiscard]] inline T
+  unsignedDistance2ToEdge(const DCELIndex a_edgeIdx, const Vec3& a_x0) const noexcept;
+
+  /**
+   * @brief Compute the signed distance from a point to a vertex.
+   * @param[in] a_vertexIdx Vertex index.
+   * @param[in] a_x0        Query point.
+   * @return Signed distance to the vertex.
+   */
+  [[nodiscard]] inline T
+  signedDistanceToVertex(const DCELIndex a_vertexIdx, const Vec3& a_x0) const noexcept;
+
+  /**
+   * @brief Compute the unsigned squared distance from a point to a vertex.
+   * @param[in] a_vertexIdx Vertex index.
+   * @param[in] a_x0        Query point.
+   * @return Squared distance to the vertex.
+   */
+  [[nodiscard]] inline T
+  unsignedDistance2ToVertex(const DCELIndex a_vertexIdx, const Vec3& a_x0) const noexcept;
 
   /**
    * @brief Compute the signed distance from a point to this mesh
@@ -325,28 +380,75 @@ protected:
   /**
    * @brief Mesh vertices
    */
-  std::vector<VertexPtr> m_vertices;
+  std::vector<Vertex> m_vertices;
 
   /**
    * @brief Mesh half-edges
    */
-  std::vector<EdgePtr> m_edges;
+  std::vector<Edge> m_edges;
 
   /**
    * @brief Mesh faces
    */
-  std::vector<FacePtr> m_faces;
+  std::vector<Face> m_faces;
+
+  /**
+   * @brief Project a point onto the plane of a polygon face.
+   * @param[in] a_faceIdx Face index.
+   * @param[in] a_p       Point in space.
+   * @return Projected point in the face plane.
+   */
+  [[nodiscard]] inline Vec3
+  projectPointIntoFacePlane(const DCELIndex a_faceIdx, const Vec3& a_p) const noexcept;
+
+  /**
+   * @brief Check if a point projects to inside or outside a polygon face.
+   * @param[in] a_faceIdx Face index.
+   * @param[in] a_p       Point in space.
+   * @return True if a_p projects to inside the polygon and false otherwise.
+   */
+  [[nodiscard]] inline bool
+  isPointInsideFace(const DCELIndex a_faceIdx, const Vec3& a_p) const noexcept;
+
+  /**
+   * @brief Reconcile a single face: compute its normal vector, centroid, area, and 2D embedding.
+   * @param[in] a_faceIdx Face index.
+   */
+  inline void
+  reconcileFace(const DCELIndex a_faceIdx) noexcept;
+
+  /**
+   * @brief Compute the pseudonormal of a half-edge (average of its face normal and its pair
+   * edge's face normal; a boundary edge uses just its own face normal).
+   * @param[in] a_edgeIdx Half-edge index.
+   * @return Unit pseudonormal vector for this edge.
+   */
+  [[nodiscard]] inline Vec3
+  computeEdgeNormal(const DCELIndex a_edgeIdx) const noexcept;
+
+  /**
+   * @brief Compute the vertex normal as the unweighted average of its incident faces' normals.
+   * @param[in] a_vertexIdx Vertex index.
+   */
+  inline void
+  computeVertexNormalAverage(const DCELIndex a_vertexIdx) noexcept;
+
+  /**
+   * @brief Compute the angle-weighted pseudonormal of a vertex (Baerentzen and Aanes,
+   * DOI: 10.1109/TVCG.2005.49).
+   * @param[in] a_vertexIdx Vertex index.
+   */
+  inline void
+  computeVertexNormalAngleWeighted(const DCELIndex a_vertexIdx);
 
   /**
    * @brief Function which computes internal things for the polygon faces.
-   * @note This calls DCEL::FaceT<T, Meta>::reconcile()
    */
   inline void
   reconcileFaces() noexcept;
 
   /**
    * @brief Function which computes internal things for the half-edges
-   * @note This calls DCEL::EdgeT<T, Meta>::reconcile()
    */
   inline void
   reconcileEdges() noexcept;
@@ -354,8 +456,6 @@ protected:
   /**
    * @brief Function which computes internal things for the vertices
    * @param[in] a_weight Vertex angle weighting
-   * @note This calls DCEL::VertexT<T, Meta>::computeVertexNormalAverage() or
-   * DCEL::VertexT<T, Meta>::computeVertexNormalAngleWeighted()
    */
   inline void
   reconcileVertices(const DCEL::VertexNormalWeight a_weight) noexcept;
@@ -390,8 +490,8 @@ protected:
   /**
    * @brief Implementation of squared signed distance function which iterates
    * through all faces.
-   * @details This first find the face with the smallest unsigned square
-   * distance, and the returns the signed distance to that face (more efficient
+   * @details This first finds the face with the smallest unsigned square
+   * distance, and then returns the signed distance to that face (more efficient
    * than the other version).
    * @param[in] a_point 3D point
    * @return Signed distance to the nearest face.

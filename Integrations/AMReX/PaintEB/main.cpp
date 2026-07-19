@@ -40,7 +40,7 @@ public:
     // Set the meta-data for all facets to their "index", i.e. position in the list of facets
     auto& faces = mesh->getFaces();
     for (size_t i = 0; i < faces.size(); i++) {
-      faces[i]->getMetaData() = 1.0 * i;
+      faces[i].getMetaData() = 1.0 * i;
     }
 
     m_sdf = std::make_shared<EBGeometry::MeshSDF<T, Meta, K>>(mesh, EBGeometry::BVH::Build::SAH);
@@ -75,11 +75,23 @@ public:
 
   /*!
     @brief Get the face(s) that are closest to the input point.
+    @details The DCEL is index-based, so this returns (face index, unsigned distance) pairs. Resolve
+    a face index against the mesh with getFaceMetaData() (or m_sdf->getMesh()).
   */
-  inline std::vector<std::pair<std::shared_ptr<const Face>, T>>
+  inline std::vector<std::pair<EBGeometry::DCEL::DCELIndex, T>>
   getClosestFaces(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
     return m_sdf->getClosestFaces(EBGeometry::Vec3T<T>(x, y, z), true);
+  }
+
+  /*!
+    @brief Resolve a face index (from getClosestFaces) to its metadata.
+    @param[in] a_faceIdx Index into the DCEL mesh's face array.
+  */
+  inline Meta
+  getFaceMetaData(EBGeometry::DCEL::DCELIndex a_faceIdx) const noexcept
+  {
+    return m_sdf->getMesh()->getFaces()[a_faceIdx].getMetaData();
   }
 
 protected:
@@ -170,7 +182,7 @@ main(int argc, char* argv[])
 
         const auto& candidateFaces = sdf.getClosestFaces(x, y, z);
 
-        mf_array(i, j, k) = 1.0 * (candidateFaces.front().first)->getMetaData();
+        mf_array(i, j, k) = 1.0 * sdf.getFaceMetaData(candidateFaces.front().first);
       });
     }
   }
