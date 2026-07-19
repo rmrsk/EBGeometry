@@ -224,9 +224,169 @@ FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
                  const Vec3T<T>&           a_repeatHi);
 
 /**
+ * @brief Reduction trait for the sharp CSG union.
+ * @details Single source of truth for the sharp-union reduction: the union of two signed-distance
+ * values is their minimum. Reused verbatim by the tape interpreter.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct UnionOp
+{
+  static_assert(std::is_floating_point_v<T>, "UnionOp requires a floating-point type T");
+
+  /**
+   * @brief Combine two signed-distance values by taking their minimum.
+   * @param[in] a First value.
+   * @param[in] b Second value.
+   * @return min(a, b).
+   */
+  EBGEOMETRY_HOST_DEVICE static T
+  combine(T a, T b) noexcept
+  {
+    return std::min(a, b);
+  }
+};
+
+/**
+ * @brief Reduction trait for the sharp CSG intersection.
+ * @details Single source of truth for the sharp-intersection reduction: the intersection of two
+ * signed-distance values is their maximum. Reused verbatim by the tape interpreter.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct IntersectionOp
+{
+  static_assert(std::is_floating_point_v<T>, "IntersectionOp requires a floating-point type T");
+
+  /**
+   * @brief Combine two signed-distance values by taking their maximum.
+   * @param[in] a First value.
+   * @param[in] b Second value.
+   * @return max(a, b).
+   */
+  EBGEOMETRY_HOST_DEVICE static T
+  combine(T a, T b) noexcept
+  {
+    return std::max(a, b);
+  }
+};
+
+/**
+ * @brief Reduction trait for the sharp CSG difference A \ B.
+ * @details Single source of truth for the sharp-difference reduction: A \ B evaluates to max(A, -B).
+ * Reused verbatim by the tape interpreter.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct DifferenceOp
+{
+  static_assert(std::is_floating_point_v<T>, "DifferenceOp requires a floating-point type T");
+
+  /**
+   * @brief Combine two signed-distance values into the set difference A \ B.
+   * @param[in] a Value of the minuend A.
+   * @param[in] b Value of the subtrahend B.
+   * @return max(a, -b).
+   */
+  EBGEOMETRY_HOST_DEVICE static T
+  combine(T a, T b) noexcept
+  {
+    return std::max(a, -b);
+  }
+};
+
+/**
+ * @brief Reduction trait for the exponential smooth minimum.
+ * @details Single source of truth for the exponential smooth-minimum blend formula, reused verbatim by
+ * the tape interpreter and by the ExpMin std::function wrapper.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct ExpMinOp
+{
+  static_assert(std::is_floating_point_v<T>, "ExpMinOp requires a floating-point type T");
+
+  /**
+   * @brief Exponentially blended minimum of two signed-distance values.
+   * @param[in] a First value.
+   * @param[in] b Second value.
+   * @param[in] s Smoothing length (must be > 0).
+   * @return Exponentially blended approximation of min(a, b).
+   */
+  EBGEOMETRY_HOST_DEVICE static T
+  eval(T a, T b, T s) noexcept
+  {
+    EBGEOMETRY_EXPECT(s > T(0));
+
+    const T ret = std::exp(-a / s) + std::exp(-b / s);
+
+    return -std::log(ret) * s;
+  }
+};
+
+/**
+ * @brief Reduction trait for the quadratic polynomial smooth minimum.
+ * @details Single source of truth for the polynomial smooth-minimum blend formula, reused verbatim by
+ * the tape interpreter and by the SmoothMin std::function wrapper.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct SmoothMinOp
+{
+  static_assert(std::is_floating_point_v<T>, "SmoothMinOp requires a floating-point type T");
+
+  /**
+   * @brief Polynomially blended minimum of two signed-distance values.
+   * @param[in] a First value.
+   * @param[in] b Second value.
+   * @param[in] s Smoothing length (must be > 0). Controls the blend region width.
+   * @return Polynomial-blended approximation of min(a, b).
+   */
+  EBGEOMETRY_HOST_DEVICE static T
+  eval(T a, T b, T s) noexcept
+  {
+    EBGEOMETRY_EXPECT(s > T(0));
+
+    const T h = std::max(s - std::abs(a - b), T(0)) / s;
+
+    return std::min(a, b) - T(0.25) * h * h * s;
+  }
+};
+
+/**
+ * @brief Reduction trait for the quadratic polynomial smooth maximum.
+ * @details Single source of truth for the polynomial smooth-maximum blend formula, reused verbatim by
+ * the tape interpreter and by the SmoothMax std::function wrapper.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct SmoothMaxOp
+{
+  static_assert(std::is_floating_point_v<T>, "SmoothMaxOp requires a floating-point type T");
+
+  /**
+   * @brief Polynomially blended maximum of two signed-distance values.
+   * @param[in] a First value.
+   * @param[in] b Second value.
+   * @param[in] s Smoothing length (must be > 0). Controls the blend region width.
+   * @return Polynomial-blended approximation of max(a, b).
+   */
+  EBGEOMETRY_HOST_DEVICE static T
+  eval(T a, T b, T s) noexcept
+  {
+    EBGEOMETRY_EXPECT(s > T(0));
+
+    const T h = std::max(s - std::abs(a - b), T(0)) / s;
+
+    return std::max(a, b) + T(0.25) * h * h * s;
+  }
+};
+
+/**
  * @brief Exponential smooth minimum for blending two signed-distance values.
  * @details Approximates min(a, b) with exponential weighting; the blend region width scales with s.
- * Useful when a differentiable interface is required. Approaches min(a, b) as s → 0.
+ * Useful when a differentiable interface is required. Approaches min(a, b) as s → 0. Thin std::function
+ * wrapper around ExpMinOp, which is the single source of truth for the formula.
  * @tparam T Floating-point precision.
  * @param[in] a First value.
  * @param[in] b Second value.
@@ -234,19 +394,14 @@ FiniteRepetition(const std::shared_ptr<P>& a_implicitFunction,
  * @return Exponentially blended approximation of min(a, b).
  */
 template <class T>
-std::function<T(const T& a, const T& b, const T& s)> ExpMin = [](const T& a, const T& b, const T& s) -> T {
-  static_assert(std::is_floating_point_v<T>, "ExpMin requires a floating-point type T");
-
-  EBGEOMETRY_EXPECT(s > T(0));
-  T ret = std::exp(-a / s) + std::exp(-b / s);
-
-  return -std::log(ret) * s;
-};
+std::function<T(const T& a, const T& b, const T& s)> ExpMin =
+  [](const T& a, const T& b, const T& s) -> T { return ExpMinOp<T>::eval(a, b, s); };
 
 /**
  * @brief Quadratic polynomial smooth minimum for blending two signed-distance values.
  * @details Approximates min(a, b) within the overlap region |a - b| < s; coincides exactly with
  * min(a, b) outside that region. Cheaper to evaluate than ExpMin and the default choice for CSG unions.
+ * Thin std::function wrapper around SmoothMinOp, which is the single source of truth for the formula.
  * @tparam T Floating-point precision.
  * @param[in] a First value.
  * @param[in] b Second value.
@@ -254,19 +409,15 @@ std::function<T(const T& a, const T& b, const T& s)> ExpMin = [](const T& a, con
  * @return Polynomial-blended approximation of min(a, b).
  */
 template <class T>
-std::function<T(const T& a, const T& b, const T& s)> SmoothMin = [](const T& a, const T& b, const T& s) -> T {
-  static_assert(std::is_floating_point_v<T>, "SmoothMin requires a floating-point type T");
-
-  EBGEOMETRY_EXPECT(s > T(0));
-  const T h = std::max(s - std::abs(a - b), T(0)) / s;
-
-  return std::min(a, b) - T(0.25) * h * h * s;
-};
+std::function<T(const T& a, const T& b, const T& s)> SmoothMin =
+  [](const T& a, const T& b, const T& s) -> T { return SmoothMinOp<T>::eval(a, b, s); };
 
 /**
  * @brief Quadratic polynomial smooth maximum for blending two signed-distance values.
  * @details Approximates max(a, b) within the overlap region |a - b| < s; coincides exactly with
- * max(a, b) outside that region. Symmetric counterpart to SmoothMin; used for CSG intersections and differences.
+ * max(a, b) outside that region. Symmetric counterpart to SmoothMin; used for CSG intersections and
+ * differences. Thin std::function wrapper around SmoothMaxOp, which is the single source of truth for
+ * the formula.
  * @tparam T Floating-point precision.
  * @param[in] a First value.
  * @param[in] b Second value.
@@ -274,14 +425,8 @@ std::function<T(const T& a, const T& b, const T& s)> SmoothMin = [](const T& a, 
  * @return Polynomial-blended approximation of max(a, b).
  */
 template <class T>
-std::function<T(const T& a, const T& b, const T& s)> SmoothMax = [](const T& a, const T& b, const T& s) -> T {
-  static_assert(std::is_floating_point_v<T>, "SmoothMax requires a floating-point type T");
-
-  EBGEOMETRY_EXPECT(s > T(0));
-  const T h = std::max(s - std::abs(a - b), T(0)) / s;
-
-  return std::max(a, b) + T(0.25) * h * h * s;
-};
+std::function<T(const T& a, const T& b, const T& s)> SmoothMax =
+  [](const T& a, const T& b, const T& s) -> T { return SmoothMaxOp<T>::eval(a, b, s); };
 
 /**
  * @brief Implicit function whose interior is the union of all input function interiors.
