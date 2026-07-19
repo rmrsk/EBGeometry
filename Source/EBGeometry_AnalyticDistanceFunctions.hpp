@@ -5,6 +5,10 @@
 /**
  * @file   EBGeometry_AnalyticDistanceFunctions.hpp
  * @brief  File containing various analytic signed distance fields.
+ * @details Each analytic primitive is expressed as a distance-formula trait (an @c XxxOp struct with
+ * a nested @c Params bundle and a single-source-of-truth @c eval) and a thin named wrapper class that
+ * derives from @c ImplicitFunction<T, XxxOp<T>>. The trait's @c eval holds the distance math in
+ * exactly one place; the wrapper only provides friendly constructors and accessors.
  * @author Robert Marskar
  */
 
@@ -17,39 +21,76 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
-#include <memory>
 #include <random>
 #include <type_traits>
 
 // Our includes
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_Constants.hpp"
+#include "EBGeometry_GPU.hpp"
+#include "EBGeometry_ImplicitFunction.hpp"
 #include "EBGeometry_Macros.hpp"
-#include "EBGeometry_SignedDistanceFunction.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
 
 /**
- * @brief Signed distance function for a plane.
- * @details The SDF evaluates to `dot(a_point - m_point, m_normal)`: positive on the half-space
- * the normal points into, negative on the opposite side. The plane itself is the zero level-set.
- * `m_normal` must be unit length for the SDF to return a true distance; the full constructor
- * normalizes the input automatically. By default the plane is the y = 0 plane with normal (0,1,0).
+ * @brief Distance-formula trait for a plane.
+ * @details The SDF evaluates to `dot(a_point - point, normal)`. `normal` must be unit length for the
+ * SDF to return a true distance (the PlaneSDF wrapper normalizes on construction).
  * @tparam T Floating-point precision.
  */
 template <class T>
-class PlaneSDF : public SignedDistanceFunction<T>
+struct PlaneOp
+{
+  /**
+   * @brief Stored parameters for a plane.
+   */
+  struct Params
+  {
+    Vec3T<T> point  = Vec3T<T>::zeros();          ///< Point on plane.
+    Vec3T<T> normal = Vec3T<T>(T(0), T(1), T(0)); ///< Plane normal (unit length).
+  };
+
+  /**
+   * @brief All planes are true signed distance functions.
+   */
+  static constexpr bool isSignedDistance = true;
+
+  /**
+   * @brief Signed distance to the plane.
+   * @param[in] a_params Plane parameters.
+   * @param[in] a_point  Query point.
+   * @return Signed distance; negative on the side opposite to the normal.
+   */
+  EBGEOMETRY_HOST_DEVICE static T
+  eval(const Params& a_params, const Vec3T<T>& a_point) noexcept
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+    EBGEOMETRY_EXPECT(std::abs(a_params.normal.length() - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+
+    return dot((a_point - a_params.point), a_params.normal);
+  }
+};
+
+/**
+ * @brief Signed distance function for a plane.
+ * @details Thin wrapper around PlaneOp. By default the plane is the y = 0 plane with normal (0,1,0).
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class PlaneSDF : public ImplicitFunction<T, PlaneOp<T>>
 {
   static_assert(std::is_floating_point_v<T>, "PlaneSDF<T>: T must be a floating-point type");
 
 public:
   /**
    * @brief Default constructor. Constructs the y = 0 plane with outward normal (0, 1, 0).
-   * @details The default plane passes through the origin and separates y < 0 (negative SDF) from
-   * y > 0 (positive SDF).
    */
-  PlaneSDF() = default;
+  PlaneSDF() noexcept : ImplicitFunction<T, PlaneOp<T>>(typename PlaneOp<T>::Params{})
+  {}
 
   /**
    * @brief Full constructor.
@@ -57,6 +98,7 @@ public:
    * @param[in] a_normal Plane normal vector (need not be unit length; it is normalized internally).
    */
   PlaneSDF(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) noexcept
+    : ImplicitFunction<T, PlaneOp<T>>(typename PlaneOp<T>::Params{a_point, a_normal / a_normal.length()})
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -65,77 +107,54 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_normal[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_normal[2]));
     EBGEOMETRY_EXPECT(a_normal.length() > T(0));
-
-    m_point  = a_point;
-    m_normal = a_normal / a_normal.length();
   }
+};
+
+/**
+ * @brief Distance-formula trait for a sphere.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct SphereOp
+{
+  /**
+   * @brief Stored parameters for a sphere.
+   */
+  struct Params
+  {
+    Vec3T<T> center = Vec3T<T>::zeros(); ///< Sphere center.
+    T        radius = T(1);              ///< Sphere radius.
+  };
 
   /**
-   * @brief Copy constructor.
+   * @brief All spheres are true signed distance functions.
    */
-  PlaneSDF(const PlaneSDF&) = default;
+  static constexpr bool isSignedDistance = true;
 
   /**
-   * @brief Move constructor.
+   * @brief Signed distance to the sphere.
+   * @param[in] a_params Sphere parameters.
+   * @param[in] a_point  Query point.
+   * @return Signed distance; negative inside the sphere.
    */
-  PlaneSDF(PlaneSDF&&) = default;
-
-  /**
-   * @brief Copy assignment.
-   * @return Reference to (*this).
-   */
-  PlaneSDF&
-  operator=(const PlaneSDF&) = default;
-
-  /**
-   * @brief Move assignment.
-   * @return Reference to (*this).
-   */
-  PlaneSDF&
-  operator=(PlaneSDF&&) = default;
-
-  /**
-   * @brief Destructor.
-   */
-  ~PlaneSDF() override = default;
-
-  /**
-   * @brief Signed distance function for the plane.
-   * @param[in] a_point Position.
-   * @return Signed distance from a_point to the plane; negative on the side opposite to the normal.
-   */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  EBGEOMETRY_HOST_DEVICE static T
+  eval(const Params& a_params, const Vec3T<T>& a_point) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-    EBGEOMETRY_EXPECT(std::abs(m_normal.length() - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
 
-    return dot((a_point - m_point), m_normal);
+    return (a_point - a_params.center).length() - a_params.radius;
   }
-
-protected:
-  /**
-   * @brief Point on plane.
-   */
-  Vec3T<T> m_point = Vec3T<T>::zeros();
-
-  /**
-   * @brief Plane normal vector (unit length).
-   */
-  Vec3T<T> m_normal = Vec3T<T>(T(0), T(1), T(0));
 };
 
 /**
  * @brief Signed distance field for a sphere.
- * @details The sphere is placed at `m_center` with radius `m_radius`. The SDF is negative
- * inside the sphere and positive outside. By default the sphere is centered at the origin
- * with radius 1.
+ * @details Thin wrapper around SphereOp. By default the sphere is centered at the origin with radius 1.
  * @tparam T Floating-point precision.
  */
 template <class T>
-class SphereSDF : public SignedDistanceFunction<T>
+class SphereSDF : public ImplicitFunction<T, SphereOp<T>>
 {
   static_assert(std::is_floating_point_v<T>, "SphereSDF<T>: T must be a floating-point type");
 
@@ -143,7 +162,8 @@ public:
   /**
    * @brief Default constructor. Constructs a unit sphere centered at the origin.
    */
-  SphereSDF() = default;
+  SphereSDF() noexcept : ImplicitFunction<T, SphereOp<T>>(typename SphereOp<T>::Params{})
+  {}
 
   /**
    * @brief Full constructor.
@@ -151,45 +171,14 @@ public:
    * @param[in] a_radius Sphere radius.
    */
   SphereSDF(const Vec3T<T>& a_center, const T& a_radius) noexcept
+    : ImplicitFunction<T, SphereOp<T>>(typename SphereOp<T>::Params{a_center, a_radius})
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_center[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_center[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_center[2]));
     EBGEOMETRY_EXPECT(std::isfinite(a_radius));
     EBGEOMETRY_EXPECT(a_radius > T(0));
-
-    m_center = a_center;
-    m_radius = a_radius;
   }
-
-  /**
-   * @brief Copy constructor.
-   */
-  SphereSDF(const SphereSDF&) = default;
-
-  /**
-   * @brief Move constructor.
-   */
-  SphereSDF(SphereSDF&&) = default;
-
-  /**
-   * @brief Copy assignment.
-   * @return Reference to (*this).
-   */
-  SphereSDF&
-  operator=(const SphereSDF&) = default;
-
-  /**
-   * @brief Move assignment.
-   * @return Reference to (*this).
-   */
-  SphereSDF&
-  operator=(SphereSDF&&) = default;
-
-  /**
-   * @brief Destructor.
-   */
-  ~SphereSDF() override = default;
 
   /**
    * @brief Get sphere center (const).
@@ -198,7 +187,7 @@ public:
   [[nodiscard]] const Vec3T<T>&
   getCenter() const noexcept
   {
-    return m_center;
+    return this->m_params.center;
   }
 
   /**
@@ -208,7 +197,7 @@ public:
   Vec3T<T>&
   getCenter() noexcept
   {
-    return m_center;
+    return this->m_params.center;
   }
 
   /**
@@ -218,7 +207,7 @@ public:
   [[nodiscard]] const T&
   getRadius() const noexcept
   {
-    return m_radius;
+    return this->m_params.radius;
   }
 
   /**
@@ -228,153 +217,39 @@ public:
   T&
   getRadius() noexcept
   {
-    return m_radius;
+    return this->m_params.radius;
   }
-
-  /**
-   * @brief Signed distance function for the sphere.
-   * @param[in] a_point Position.
-   * @return Signed distance from a_point to the sphere surface; negative inside the sphere.
-   */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
-  {
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-
-    return (a_point - m_center).length() - m_radius;
-  }
-
-protected:
-  /**
-   * @brief Sphere center.
-   */
-  Vec3T<T> m_center = Vec3T<T>::zeros();
-
-  /**
-   * @brief Sphere radius.
-   */
-  T m_radius = T(1);
 };
 
 /**
- * @brief Signed distance field for an axis-aligned box (AABB).
- * @details The box is defined by its lower and upper corners `m_loCorner` and `m_hiCorner`.
- * It is axis-aligned (faces are perpendicular to the coordinate axes). The SDF is negative
- * inside and positive outside. Side lengths are `m_hiCorner[i] - m_loCorner[i]` per axis.
- * By default the box is the unit cube `[-0.5, 0.5]^3` centered at the origin.
+ * @brief Distance-formula trait for an axis-aligned box (AABB).
  * @tparam T Floating-point precision.
  */
 template <class T>
-class BoxSDF : public SignedDistanceFunction<T>
+struct BoxOp
 {
-  static_assert(std::is_floating_point_v<T>, "BoxSDF<T>: T must be a floating-point type");
-
-public:
   /**
-   * @brief Default constructor. Constructs a unit cube centered at the origin: [-0.5, 0.5]^3.
+   * @brief Stored parameters for an axis-aligned box.
    */
-  BoxSDF() = default;
-
-  /**
-   * @brief Full constructor.
-   * @param[in] a_loCorner Lower corner (minimum x, y, z).
-   * @param[in] a_hiCorner Upper corner (maximum x, y, z). Each component must be strictly greater
-   * than the corresponding component of a_loCorner.
-   */
-  BoxSDF(const Vec3T<T>& a_loCorner, const Vec3T<T>& a_hiCorner) noexcept
+  struct Params
   {
-    EBGEOMETRY_EXPECT(std::isfinite(a_loCorner[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_loCorner[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_loCorner[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_hiCorner[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_hiCorner[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_hiCorner[2]));
-    EBGEOMETRY_EXPECT(a_loCorner[0] < a_hiCorner[0]);
-    EBGEOMETRY_EXPECT(a_loCorner[1] < a_hiCorner[1]);
-    EBGEOMETRY_EXPECT(a_loCorner[2] < a_hiCorner[2]);
-
-    m_loCorner = a_loCorner;
-    m_hiCorner = a_hiCorner;
-  }
+    Vec3T<T> loCorner = Vec3T<T>(T(-0.5), T(-0.5), T(-0.5)); ///< Low box corner.
+    Vec3T<T> hiCorner = Vec3T<T>(T(0.5), T(0.5), T(0.5));    ///< High box corner.
+  };
 
   /**
-   * @brief Copy constructor.
+   * @brief All boxes are true signed distance functions.
    */
-  BoxSDF(const BoxSDF&) = default;
+  static constexpr bool isSignedDistance = true;
 
   /**
-   * @brief Move constructor.
+   * @brief Signed distance to the axis-aligned box.
+   * @param[in] a_params Box parameters.
+   * @param[in] a_point  Query point.
+   * @return Signed distance; negative inside the box.
    */
-  BoxSDF(BoxSDF&&) = default;
-
-  /**
-   * @brief Copy assignment.
-   * @return Reference to (*this).
-   */
-  BoxSDF&
-  operator=(const BoxSDF&) = default;
-
-  /**
-   * @brief Move assignment.
-   * @return Reference to (*this).
-   */
-  BoxSDF&
-  operator=(BoxSDF&&) = default;
-
-  /**
-   * @brief Destructor.
-   */
-  ~BoxSDF() override = default;
-
-  /**
-   * @brief Get lower-left corner
-   * @return m_loCorner
-   */
-  [[nodiscard]] const Vec3T<T>&
-  getLowCorner() const noexcept
-  {
-    return m_loCorner;
-  }
-
-  /**
-   * @brief Get lower-left corner
-   * @return m_loCorner
-   */
-  Vec3T<T>&
-  getLowCorner() noexcept
-  {
-    return m_loCorner;
-  }
-
-  /**
-   * @brief Get upper-right corner
-   * @return m_hiCorner
-   */
-  [[nodiscard]] const Vec3T<T>&
-  getHighCorner() const noexcept
-  {
-    return m_hiCorner;
-  }
-
-  /**
-   * @brief Get upper-right corner
-   * @return m_hiCorner
-   */
-  Vec3T<T>&
-  getHighCorner() noexcept
-  {
-    return m_hiCorner;
-  }
-
-  /**
-   * @brief Signed distance function for the axis-aligned box.
-   * @param[in] a_point Position.
-   * @return Signed distance from a_point to the box surface; negative inside the box.
-   */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  EBGEOMETRY_HOST_DEVICE static T
+  eval(const Params& a_params, const Vec3T<T>& a_point) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -384,9 +259,9 @@ public:
     // between xLo and xHi. In this case delta[dir] will be the signed distance
     // to the closest box face in the dir-direction. Otherwise, if a_point[dir]
     // is outside the corner we have delta[dir] > 0.
-    const Vec3T<T> delta(std::max(m_loCorner[0] - a_point[0], a_point[0] - m_hiCorner[0]),
-                         std::max(m_loCorner[1] - a_point[1], a_point[1] - m_hiCorner[1]),
-                         std::max(m_loCorner[2] - a_point[2], a_point[2] - m_hiCorner[2]));
+    const Vec3T<T> delta(std::max(a_params.loCorner[0] - a_point[0], a_point[0] - a_params.hiCorner[0]),
+                         std::max(a_params.loCorner[1] - a_point[1], a_point[1] - a_params.hiCorner[1]),
+                         std::max(a_params.loCorner[2] - a_point[2], a_point[2] - a_params.hiCorner[2]));
 
     // Note: max is max(Vec3T<T>, Vec3T<T>) and not std::max. It returns a
     // vector with coordinate-wise largest components. Note that the first part
@@ -397,32 +272,138 @@ public:
 
     return d;
   }
+};
 
-protected:
+/**
+ * @brief Signed distance field for an axis-aligned box (AABB).
+ * @details Thin wrapper around BoxOp. By default the box is the unit cube `[-0.5, 0.5]^3`.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class BoxSDF : public ImplicitFunction<T, BoxOp<T>>
+{
+  static_assert(std::is_floating_point_v<T>, "BoxSDF<T>: T must be a floating-point type");
+
+public:
   /**
-   * @brief Low box corner.
+   * @brief Default constructor. Constructs a unit cube centered at the origin: [-0.5, 0.5]^3.
    */
-  Vec3T<T> m_loCorner = Vec3T<T>(T(-0.5), T(-0.5), T(-0.5));
+  BoxSDF() noexcept : ImplicitFunction<T, BoxOp<T>>(typename BoxOp<T>::Params{})
+  {}
 
   /**
-   * @brief High box corner.
+   * @brief Full constructor.
+   * @param[in] a_loCorner Lower corner (minimum x, y, z).
+   * @param[in] a_hiCorner Upper corner (maximum x, y, z). Each component must be strictly greater
+   * than the corresponding component of a_loCorner.
    */
-  Vec3T<T> m_hiCorner = Vec3T<T>(T(0.5), T(0.5), T(0.5));
+  BoxSDF(const Vec3T<T>& a_loCorner, const Vec3T<T>& a_hiCorner) noexcept
+    : ImplicitFunction<T, BoxOp<T>>(typename BoxOp<T>::Params{a_loCorner, a_hiCorner})
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_loCorner[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_loCorner[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_loCorner[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_hiCorner[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_hiCorner[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_hiCorner[2]));
+    EBGEOMETRY_EXPECT(a_loCorner[0] < a_hiCorner[0]);
+    EBGEOMETRY_EXPECT(a_loCorner[1] < a_hiCorner[1]);
+    EBGEOMETRY_EXPECT(a_loCorner[2] < a_hiCorner[2]);
+  }
+
+  /**
+   * @brief Get lower-left corner
+   * @return Low corner.
+   */
+  [[nodiscard]] const Vec3T<T>&
+  getLowCorner() const noexcept
+  {
+    return this->m_params.loCorner;
+  }
+
+  /**
+   * @brief Get lower-left corner
+   * @return Low corner.
+   */
+  Vec3T<T>&
+  getLowCorner() noexcept
+  {
+    return this->m_params.loCorner;
+  }
+
+  /**
+   * @brief Get upper-right corner
+   * @return High corner.
+   */
+  [[nodiscard]] const Vec3T<T>&
+  getHighCorner() const noexcept
+  {
+    return this->m_params.hiCorner;
+  }
+
+  /**
+   * @brief Get upper-right corner
+   * @return High corner.
+   */
+  Vec3T<T>&
+  getHighCorner() noexcept
+  {
+    return this->m_params.hiCorner;
+  }
+};
+
+/**
+ * @brief Distance-formula trait for a torus.
+ * @details The torus ring lies in the xy-plane and is centred at `center`.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct TorusOp
+{
+  /**
+   * @brief Stored parameters for a torus.
+   */
+  struct Params
+  {
+    Vec3T<T> center      = Vec3T<T>::zeros(); ///< Torus center.
+    T        majorRadius = T(1);              ///< Major (ring) radius.
+    T        minorRadius = T(0.5);            ///< Minor (tube) radius.
+  };
+
+  /**
+   * @brief All tori are true signed distance functions.
+   */
+  static constexpr bool isSignedDistance = true;
+
+  /**
+   * @brief Signed distance to the torus.
+   * @param[in] a_params Torus parameters.
+   * @param[in] a_point  Query point.
+   * @return Signed distance; negative inside the torus tube.
+   */
+  EBGEOMETRY_HOST_DEVICE static T
+  eval(const Params& a_params, const Vec3T<T>& a_point) noexcept
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+    const Vec3T<T> p   = a_point - a_params.center;
+    const T        rho = std::sqrt(p[0] * p[0] + p[1] * p[1]) - a_params.majorRadius;
+    const T        d   = std::sqrt(rho * rho + p[2] * p[2]) - a_params.minorRadius;
+
+    return d;
+  }
 };
 
 /**
  * @brief Signed distance field for a torus.
- * @details The torus ring lies in the xy-plane and is centred at `m_center`. The major radius
- * `m_majorRadius` is the distance from the torus centre to the centre-line of the tube; the minor
- * radius `m_minorRadius` is the tube radius. The bounding box spans
- * `[center ± (majorRadius + minorRadius)]` in x and y, and `[center ± minorRadius]` in z.
- * The SDF is negative inside the tube and positive outside. The minor radius must be strictly
- * less than the major radius; otherwise the tube would self-intersect at the torus centre.
- * By default the torus is centred at the origin with major radius 1 and minor radius 0.5.
+ * @details Thin wrapper around TorusOp. By default the torus is centred at the origin with major
+ * radius 1 and minor radius 0.5.
  * @tparam T Floating-point precision.
  */
 template <class T>
-class TorusSDF : public SignedDistanceFunction<T>
+class TorusSDF : public ImplicitFunction<T, TorusOp<T>>
 {
   static_assert(std::is_floating_point_v<T>, "TorusSDF<T>: T must be a floating-point type");
 
@@ -430,7 +411,8 @@ public:
   /**
    * @brief Default constructor. Constructs a torus centered at the origin with major radius 1 and minor radius 0.5.
    */
-  TorusSDF() = default;
+  TorusSDF() noexcept : ImplicitFunction<T, TorusOp<T>>(typename TorusOp<T>::Params{})
+  {}
 
   /**
    * @brief Full constructor.
@@ -439,6 +421,7 @@ public:
    * @param[in] a_minorRadius Minor (tube) radius.
    */
   TorusSDF(const Vec3T<T>& a_center, const T& a_majorRadius, const T& a_minorRadius) noexcept
+    : ImplicitFunction<T, TorusOp<T>>(typename TorusOp<T>::Params{a_center, a_majorRadius, a_minorRadius})
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_center[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_center[1]));
@@ -448,250 +431,104 @@ public:
     EBGEOMETRY_EXPECT(a_majorRadius > T(0));
     EBGEOMETRY_EXPECT(a_minorRadius > T(0));
     EBGEOMETRY_EXPECT(a_minorRadius < a_majorRadius);
-
-    m_center      = a_center;
-    m_majorRadius = a_majorRadius;
-    m_minorRadius = a_minorRadius;
   }
 
   /**
-   * @brief Copy constructor.
-   */
-  TorusSDF(const TorusSDF&) = default;
-
-  /**
-   * @brief Move constructor.
-   */
-  TorusSDF(TorusSDF&&) = default;
-
-  /**
-   * @brief Copy assignment.
-   * @return Reference to (*this).
-   */
-  TorusSDF&
-  operator=(const TorusSDF&) = default;
-
-  /**
-   * @brief Move assignment.
-   * @return Reference to (*this).
-   */
-  TorusSDF&
-  operator=(TorusSDF&&) = default;
-
-  /**
-   * @brief Destructor.
-   */
-  ~TorusSDF() override = default;
-
-  /**
    * @brief Get torus center.
-   * @return m_center
+   * @return Torus center.
    */
   [[nodiscard]] const Vec3T<T>&
   getCenter() const noexcept
   {
-    return m_center;
+    return this->m_params.center;
   }
 
   /**
    * @brief Get torus center.
-   * @return m_center
+   * @return Torus center.
    */
   Vec3T<T>&
   getCenter() noexcept
   {
-    return m_center;
+    return this->m_params.center;
   }
 
   /**
    * @brief Get major radius.
-   * @return m_majorRadius
+   * @return Major radius.
    */
   [[nodiscard]] const T&
   getMajorRadius() const noexcept
   {
-    return m_majorRadius;
+    return this->m_params.majorRadius;
   }
 
   /**
    * @brief Get major radius.
-   * @return m_majorRadius
+   * @return Major radius.
    */
   T&
   getMajorRadius() noexcept
   {
-    return m_majorRadius;
+    return this->m_params.majorRadius;
   }
 
   /**
    * @brief Get minor radius.
-   * @return m_minorRadius
+   * @return Minor radius.
    */
   [[nodiscard]] const T&
   getMinorRadius() const noexcept
   {
-    return m_minorRadius;
+    return this->m_params.minorRadius;
   }
 
   /**
    * @brief Get minor radius.
-   * @return m_minorRadius
+   * @return Minor radius.
    */
   T&
   getMinorRadius() noexcept
   {
-    return m_minorRadius;
+    return this->m_params.minorRadius;
   }
-  /**
-   * @brief Signed distance function for the torus.
-   * @param[in] a_point Position.
-   * @return Signed distance from a_point to the torus surface; negative inside the torus tube.
-   */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
-  {
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-
-    const Vec3T<T> p   = a_point - m_center;
-    const T        rho = std::sqrt(p[0] * p[0] + p[1] * p[1]) - m_majorRadius;
-    const T        d   = std::sqrt(rho * rho + p[2] * p[2]) - m_minorRadius;
-
-    return d;
-  }
-
-protected:
-  /**
-   * @brief Torus center.
-   */
-  Vec3T<T> m_center = Vec3T<T>::zeros();
-
-  /**
-   * @brief Major (ring) radius.
-   */
-  T m_majorRadius = T(1);
-
-  /**
-   * @brief Minor (tube) radius.
-   */
-  T m_minorRadius = T(0.5);
 };
 
 /**
- * @brief Signed distance field for a finite, flat-capped cylinder.
- * @details The cylinder is defined by two cap-centre positions `m_center1` and `m_center2` and a
- * radius `m_radius`. The cylinder axis is the unit vector from `m_center1` to `m_center2`, and its
- * height (distance between the two flat caps) equals `distance(m_center1, m_center2)`. The SDF is
- * negative inside the cylinder and positive outside. By default the cylinder has radius 1 and
- * height 1, centred at the origin with its axis along y (cap centres at (0,-0.5,0) and (0,0.5,0)).
+ * @brief Distance-formula trait for a finite, flat-capped cylinder.
+ * @details The cylinder axis is the unit vector from `center1` to `center2`; `center`, `axis`, and
+ * `length` are precomputed by the CylinderSDF wrapper.
  * @tparam T Floating-point precision.
  */
 template <class T>
-class CylinderSDF : public SignedDistanceFunction<T>
+struct CylinderOp
 {
-  static_assert(std::is_floating_point_v<T>, "CylinderSDF<T>: T must be a floating-point type");
-
-public:
   /**
-   * @brief Default constructor. Constructs a unit cylinder of radius 1 and height 1, centred at the
-   * origin with its axis along y (cap centres at (0,-0.5,0) and (0,0.5,0)).
+   * @brief Stored parameters for a finite cylinder.
    */
-  CylinderSDF() = default;
-
-  /**
-   * @brief Full constructor.
-   * @param[in] a_center1 One endpoint (cap center).
-   * @param[in] a_center2 Other endpoint (cap center).
-   * @param[in] a_radius  Cylinder radius.
-   */
-  CylinderSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T& a_radius) noexcept
+  struct Params
   {
-    EBGEOMETRY_EXPECT(std::isfinite(a_center1[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center1[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center1[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center2[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center2[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_center2[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_radius));
-    EBGEOMETRY_EXPECT(a_radius > T(0));
-    EBGEOMETRY_EXPECT((a_center2 - a_center1).length() > T(0));
-
-    m_center1 = a_center1;
-    m_center2 = a_center2;
-    m_radius  = a_radius;
-
-    m_center = (m_center2 + m_center1) * T(0.5);
-    m_length = (m_center2 - m_center1).length();
-    m_axis   = (m_center2 - m_center1) / m_length;
-  }
+    Vec3T<T> center1 = Vec3T<T>(T(0), T(-0.5), T(0)); ///< One endpoint (cap center).
+    Vec3T<T> center2 = Vec3T<T>(T(0), T(0.5), T(0));  ///< Other endpoint (cap center).
+    Vec3T<T> center  = Vec3T<T>::zeros();             ///< Midpoint of the two endpoints.
+    Vec3T<T> axis    = Vec3T<T>(T(0), T(1), T(0));    ///< Unit axis from center1 to center2.
+    T        length  = T(1);                          ///< Distance between the two endpoints.
+    T        radius  = T(1);                          ///< Cylinder radius.
+  };
 
   /**
-   * @brief Copy constructor.
+   * @brief All cylinders are true signed distance functions.
    */
-  CylinderSDF(const CylinderSDF&) = default;
+  static constexpr bool isSignedDistance = true;
 
   /**
-   * @brief Move constructor.
+   * @brief Signed distance to the cylinder.
+   * @param[in] a_params Cylinder parameters.
+   * @param[in] a_point  Query point.
+   * @return Signed distance; negative inside.
    */
-  CylinderSDF(CylinderSDF&&) = default;
-
-  /**
-   * @brief Copy assignment.
-   * @return Reference to (*this).
-   */
-  CylinderSDF&
-  operator=(const CylinderSDF&) = default;
-
-  /**
-   * @brief Move assignment.
-   * @return Reference to (*this).
-   */
-  CylinderSDF&
-  operator=(CylinderSDF&&) = default;
-
-  /**
-   * @brief Destructor.
-   */
-  ~CylinderSDF() override = default;
-
-  /**
-   * @brief Get one endpoint
-   * @return m_center1
-   */
-  [[nodiscard]] const Vec3T<T>&
-  getCenter1() const noexcept
-  {
-    return m_center1;
-  }
-
-  /**
-   * @brief Get the other endpoint
-   * @return m_center2
-   */
-  [[nodiscard]] const Vec3T<T>&
-  getCenter2() const noexcept
-  {
-    return m_center2;
-  }
-
-  /**
-   * @brief Get radius.
-   * @return m_radius.
-   */
-  [[nodiscard]] const T&
-  getRadius() const noexcept
-  {
-    return m_radius;
-  }
-
-  /**
-   * @brief Signed distance function for the cylinder.
-   * @param[in] a_point Position.
-   * @return Signed distance from a_point to the cylinder surface; negative inside.
-   */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  EBGEOMETRY_HOST_DEVICE static T
+  eval(const Params& a_params, const Vec3T<T>& a_point) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -699,17 +536,17 @@ public:
 
     T d = std::numeric_limits<T>::infinity();
 
-    if (m_length > T(0.0) && m_radius > T(0.0)) {
-      EBGEOMETRY_EXPECT(std::abs(m_axis.length() - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+    if (a_params.length > T(0.0) && a_params.radius > T(0.0)) {
+      EBGEOMETRY_EXPECT(std::abs(a_params.axis.length() - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
 
-      const Vec3T<T> point = a_point - m_center;
-      const T        para  = dot(point, m_axis);
-      const Vec3T<T> ortho = point - para * m_axis; // Distance from cylinder axis.
+      const Vec3T<T> point = a_point - a_params.center;
+      const T        para  = dot(point, a_params.axis);
+      const Vec3T<T> ortho = point - para * a_params.axis; // Distance from cylinder axis.
 
       // w: Distance from cylinder wall. < 0 on inside and > 0 on outside.
       // h: Distance from cylinder top.  < 0 on inside and > 0 on outside.
-      const T w = ortho.length() - m_radius;
-      const T h = std::abs(para) - T(0.5) * m_length;
+      const T w = ortho.length() - a_params.radius;
+      const T h = std::abs(para) - T(0.5) * a_params.length;
 
       constexpr T zero = T(0.0);
 
@@ -732,50 +569,155 @@ public:
 
     return d;
   }
+};
+
+/**
+ * @brief Signed distance field for a finite, flat-capped cylinder.
+ * @details Thin wrapper around CylinderOp. By default the cylinder has radius 1 and height 1, centred
+ * at the origin with its axis along y (cap centres at (0,-0.5,0) and (0,0.5,0)).
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class CylinderSDF : public ImplicitFunction<T, CylinderOp<T>>
+{
+  static_assert(std::is_floating_point_v<T>, "CylinderSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief Default constructor. Constructs a unit cylinder of radius 1 and height 1, centred at the
+   * origin with its axis along y (cap centres at (0,-0.5,0) and (0,0.5,0)).
+   */
+  CylinderSDF() noexcept : ImplicitFunction<T, CylinderOp<T>>(typename CylinderOp<T>::Params{})
+  {}
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_center1 One endpoint (cap center).
+   * @param[in] a_center2 Other endpoint (cap center).
+   * @param[in] a_radius  Cylinder radius.
+   */
+  CylinderSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T& a_radius) noexcept
+    : ImplicitFunction<T, CylinderOp<T>>(makeParams(a_center1, a_center2, a_radius))
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_center1[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center1[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center1[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center2[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center2[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_center2[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_radius));
+    EBGEOMETRY_EXPECT(a_radius > T(0));
+    EBGEOMETRY_EXPECT((a_center2 - a_center1).length() > T(0));
+  }
+
+  /**
+   * @brief Get one endpoint
+   * @return One cap center.
+   */
+  [[nodiscard]] const Vec3T<T>&
+  getCenter1() const noexcept
+  {
+    return this->m_params.center1;
+  }
+
+  /**
+   * @brief Get the other endpoint
+   * @return Other cap center.
+   */
+  [[nodiscard]] const Vec3T<T>&
+  getCenter2() const noexcept
+  {
+    return this->m_params.center2;
+  }
+
+  /**
+   * @brief Get radius.
+   * @return Cylinder radius.
+   */
+  [[nodiscard]] const T&
+  getRadius() const noexcept
+  {
+    return this->m_params.radius;
+  }
 
 protected:
   /**
-   * @brief One endpoint (cap center).
+   * @brief Build the parameter bundle from the two cap centers and radius.
+   * @param[in] a_center1 One endpoint.
+   * @param[in] a_center2 Other endpoint.
+   * @param[in] a_radius  Cylinder radius.
+   * @return Populated cylinder parameters (with precomputed center, axis, and length).
    */
-  Vec3T<T> m_center1 = Vec3T<T>(T(0), T(-0.5), T(0));
+  [[nodiscard]] static typename CylinderOp<T>::Params
+  makeParams(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T& a_radius) noexcept
+  {
+    typename CylinderOp<T>::Params p;
+
+    p.center1 = a_center1;
+    p.center2 = a_center2;
+    p.radius  = a_radius;
+    p.center  = (a_center2 + a_center1) * T(0.5);
+    p.length  = (a_center2 - a_center1).length();
+    p.axis    = (a_center2 - a_center1) / p.length;
+
+    return p;
+  }
+};
+
+/**
+ * @brief Distance-formula trait for an infinitely long cylinder.
+ * @details The cylinder is infinite along the coordinate axis selected by `axis` (0 = x, 1 = y,
+ * 2 = z) with a circular cross-section of radius `radius` centred at `center`.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct InfiniteCylinderOp
+{
+  /**
+   * @brief Stored parameters for an infinite cylinder.
+   */
+  struct Params
+  {
+    Vec3T<T> center = Vec3T<T>::zeros(); ///< Center point on the cylinder axis.
+    T        radius = T(1);              ///< Cylinder radius.
+    size_t   axis   = 1U;                ///< Coordinate axis index (0 = x, 1 = y, 2 = z).
+  };
 
   /**
-   * @brief Other endpoint (cap center).
+   * @brief All infinite cylinders are true signed distance functions.
    */
-  Vec3T<T> m_center2 = Vec3T<T>(T(0), T(0.5), T(0));
+  static constexpr bool isSignedDistance = true;
 
   /**
-   * @brief Midpoint of m_center1 and m_center2.
+   * @brief Signed distance to the infinite cylinder.
+   * @param[in] a_params Cylinder parameters.
+   * @param[in] a_point  Query point.
+   * @return Signed distance; negative inside.
    */
-  Vec3T<T> m_center = Vec3T<T>::zeros();
+  EBGEOMETRY_HOST_DEVICE static T
+  eval(const Params& a_params, const Vec3T<T>& a_point) noexcept
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  /**
-   * @brief Unit axis pointing from m_center1 to m_center2.
-   */
-  Vec3T<T> m_axis = Vec3T<T>(T(0), T(1), T(0));
+    Vec3T<T> delta       = a_point - a_params.center;
+    delta[a_params.axis] = 0.0;
 
-  /**
-   * @brief Distance between the two endpoints.
-   */
-  T m_length = T(1);
+    const T d = delta.length() - a_params.radius;
 
-  /**
-   * @brief Cylinder radius.
-   */
-  T m_radius = T(1);
+    return d;
+  }
 };
 
 /**
  * @brief Signed distance field for an infinitely long cylinder.
- * @details The cylinder is infinite in one coordinate direction (selected by `m_axis`: 0 = x,
- * 1 = y, 2 = z) and has a circular cross-section of radius `m_radius` centred at `m_center`
- * in the plane perpendicular to that axis. The SDF is the radial distance from the axis minus
- * the radius: negative inside the cylinder and positive outside. By default the cylinder has
- * radius 1, passes through the origin, and extends along y.
+ * @details Thin wrapper around InfiniteCylinderOp. By default the cylinder has radius 1, passes
+ * through the origin, and extends along y.
  * @tparam T Floating-point precision.
  */
 template <class T>
-class InfiniteCylinderSDF : public SignedDistanceFunction<T>
+class InfiniteCylinderSDF : public ImplicitFunction<T, InfiniteCylinderOp<T>>
 {
   static_assert(std::is_floating_point_v<T>, "InfiniteCylinderSDF<T>: T must be a floating-point type");
 
@@ -784,7 +726,8 @@ public:
    * @brief Default constructor. Constructs an infinite cylinder of radius 1 centred at the origin
    * with its axis along y (axis index 1).
    */
-  InfiniteCylinderSDF() = default;
+  InfiniteCylinderSDF() noexcept : ImplicitFunction<T, InfiniteCylinderOp<T>>(typename InfiniteCylinderOp<T>::Params{})
+  {}
 
   /**
    * @brief Full constructor.
@@ -793,6 +736,7 @@ public:
    * @param[in] a_axis   Coordinate axis index (0 = x, 1 = y, 2 = z).
    */
   InfiniteCylinderSDF(const Vec3T<T>& a_center, const T& a_radius, const size_t a_axis) noexcept
+    : ImplicitFunction<T, InfiniteCylinderOp<T>>(typename InfiniteCylinderOp<T>::Params{a_center, a_radius, a_axis})
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_center[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_center[1]));
@@ -800,120 +744,85 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_radius));
     EBGEOMETRY_EXPECT(a_radius > T(0));
     EBGEOMETRY_EXPECT(a_axis < 3U);
-
-    m_center = a_center;
-    m_radius = a_radius;
-    m_axis   = a_axis;
   }
+};
+
+/**
+ * @brief Distance-formula trait for a capsule (pill shape): a cylinder capped with hemispheres.
+ * @details The hemisphere centres `center1`/`center2` are inset from the tips by the radius along the
+ * capsule axis; the CapsuleSDF wrapper computes them from the outer tip positions.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct CapsuleOp
+{
+  /**
+   * @brief Stored parameters for a capsule.
+   */
+  struct Params
+  {
+    Vec3T<T> center1 = Vec3T<T>(T(0), T(-0.5), T(0)); ///< Center of one hemispherical cap.
+    Vec3T<T> center2 = Vec3T<T>(T(0), T(0.5), T(0));  ///< Center of the other hemispherical cap.
+    T        radius  = T(0.5);                        ///< Capsule radius.
+  };
 
   /**
-   * @brief Copy constructor.
+   * @brief All capsules are true signed distance functions.
    */
-  InfiniteCylinderSDF(const InfiniteCylinderSDF&) = default;
+  static constexpr bool isSignedDistance = true;
 
   /**
-   * @brief Move constructor.
+   * @brief Signed distance to the capsule.
+   * @param[in] a_params Capsule parameters.
+   * @param[in] a_point  Query point.
+   * @return Signed distance; negative inside.
    */
-  InfiniteCylinderSDF(InfiniteCylinderSDF&&) = default;
-
-  /**
-   * @brief Copy assignment.
-   * @return Reference to (*this).
-   */
-  InfiniteCylinderSDF&
-  operator=(const InfiniteCylinderSDF&) = default;
-
-  /**
-   * @brief Move assignment.
-   * @return Reference to (*this).
-   */
-  InfiniteCylinderSDF&
-  operator=(InfiniteCylinderSDF&&) = default;
-
-  /**
-   * @brief Destructor.
-   */
-  ~InfiniteCylinderSDF() override = default;
-
-  /**
-   * @brief Signed distance function for the infinite cylinder.
-   * @param[in] a_point Position.
-   * @return Signed distance from a_point to the cylinder surface; negative inside.
-   */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  EBGEOMETRY_HOST_DEVICE static T
+  eval(const Params& a_params, const Vec3T<T>& a_point) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+    EBGEOMETRY_EXPECT((a_params.center2 - a_params.center1).length() > T(0));
 
-    Vec3T<T> delta = a_point - m_center;
-    delta[m_axis]  = 0.0;
+    const Vec3T<T> v1 = a_point - a_params.center1;
+    const Vec3T<T> v2 = a_params.center2 - a_params.center1;
 
-    const T d = delta.length() - m_radius;
+    const T h = std::clamp(dot(v1, v2) / dot(v2, v2), T(0.0), T(1.0));
+    const T d = length(v1 - h * v2) - a_params.radius;
 
     return d;
   }
-
-protected:
-  /**
-   * @brief Center point on the cylinder axis.
-   */
-  Vec3T<T> m_center = Vec3T<T>::zeros();
-
-  /**
-   * @brief Cylinder radius.
-   */
-  T m_radius = T(1);
-
-  /**
-   * @brief Coordinate axis index (0 = x, 1 = y, 2 = z).
-   */
-  size_t m_axis = 1U;
 };
 
 /**
- * @brief Signed distance field for a capsule (pill shape): a cylinder capped with hemispheres.
- * @details A capsule is defined by two outer tip positions and a radius. The tips are the
- * outermost points of each hemispherical endcap. The total length (tip to tip) equals
- * `distance(tip1, tip2)`. The internal cylindrical body has length
- * `distance(tip1, tip2) - 2 * radius`, and the two hemispheres each contribute a further
- * `radius` to each end.
- *
- * Internally the hemisphere centres are stored as `m_center1` and `m_center2` (inset from the
- * tips by `radius` along the capsule axis). These are **not** the same as the tip positions
- * passed to the constructor.
- *
- * The SDF is negative inside the capsule and positive outside. By default the capsule is
- * centred at the origin, aligned along y, with tips at (0,-1,0) and (0,1,0) and radius 0.5,
- * giving a total height of 2 and a cylindrical body of length 1.
+ * @brief Signed distance field for a capsule (pill shape).
+ * @details Thin wrapper around CapsuleOp. By default the capsule is centred at the origin, aligned
+ * along y, with tips at (0,-1,0) and (0,1,0) and radius 0.5.
  * @tparam T Floating-point precision.
  */
 template <class T>
-class CapsuleSDF : public SignedDistanceFunction<T>
+class CapsuleSDF : public ImplicitFunction<T, CapsuleOp<T>>
 {
   static_assert(std::is_floating_point_v<T>, "CapsuleSDF<T>: T must be a floating-point type");
 
 public:
   /**
    * @brief Default constructor. Constructs a capsule with tips at (0,-1,0) and (0,1,0), radius 0.5.
-   * @details Total height = 2, cylindrical body length = 1, aligned along y, centred at origin.
-   * The stored hemisphere centres are at (0,-0.5,0) and (0,0.5,0).
    */
-  CapsuleSDF() = default;
+  CapsuleSDF() noexcept : ImplicitFunction<T, CapsuleOp<T>>(typename CapsuleOp<T>::Params{})
+  {}
 
   /**
    * @brief Full constructor.
    * @details The hemisphere centres stored internally are derived from the tips:
-   * `m_center1 = a_tip1 + a_radius * axis` and `m_center2 = a_tip2 - a_radius * axis`,
-   * where `axis = (a_tip2 - a_tip1) / distance(a_tip1, a_tip2)`.
-   * The cylindrical body length is `distance(a_tip1, a_tip2) - 2 * a_radius`; for a valid
-   * non-degenerate shape this must be positive, i.e. `distance(a_tip1, a_tip2) > 2 * a_radius`.
+   * `center1 = a_tip1 + a_radius * axis` and `center2 = a_tip2 - a_radius * axis`.
    * @param[in] a_tip1   Outer tip of one hemispherical cap (outermost point in that direction).
    * @param[in] a_tip2   Outer tip of the other hemispherical cap.
    * @param[in] a_radius Capsule radius (applied to both the tube and the hemispherical caps).
    */
   CapsuleSDF(const Vec3T<T>& a_tip1, const Vec3T<T>& a_tip2, const T& a_radius) noexcept
+    : ImplicitFunction<T, CapsuleOp<T>>(makeParams(a_tip1, a_tip2, a_radius))
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_tip1[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_tip1[1]));
@@ -924,99 +833,86 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_radius));
     EBGEOMETRY_EXPECT(a_radius > T(0));
     EBGEOMETRY_EXPECT((a_tip2 - a_tip1).length() > T(0));
-
-    const Vec3T<T> axis = (a_tip2 - a_tip1) / length(a_tip2 - a_tip1);
-
-    m_center1 = a_tip1 + a_radius * axis;
-    m_center2 = a_tip2 - a_radius * axis;
-    m_radius  = a_radius;
-  }
-
-  /**
-   * @brief Copy constructor.
-   */
-  CapsuleSDF(const CapsuleSDF&) = default;
-
-  /**
-   * @brief Move constructor.
-   */
-  CapsuleSDF(CapsuleSDF&&) = default;
-
-  /**
-   * @brief Copy assignment.
-   * @return Reference to (*this).
-   */
-  CapsuleSDF&
-  operator=(const CapsuleSDF&) = default;
-
-  /**
-   * @brief Move assignment.
-   * @return Reference to (*this).
-   */
-  CapsuleSDF&
-  operator=(CapsuleSDF&&) = default;
-
-  /**
-   * @brief Destructor.
-   */
-  ~CapsuleSDF() override = default;
-
-  /**
-   * @brief Signed distance function for the capsule.
-   * @param[in] a_point Position.
-   * @return Signed distance from a_point to the capsule surface; negative inside.
-   */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
-  {
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-    EBGEOMETRY_EXPECT((m_center2 - m_center1).length() > T(0));
-
-    const Vec3T<T> v1 = a_point - m_center1;
-    const Vec3T<T> v2 = m_center2 - m_center1;
-
-    const T h = std::clamp(dot(v1, v2) / dot(v2, v2), T(0.0), T(1.0));
-    const T d = length(v1 - h * v2) - m_radius;
-
-    return d;
   }
 
 protected:
   /**
-   * @brief Center of one hemispherical cap.
+   * @brief Build the parameter bundle from the two outer tips and radius.
+   * @param[in] a_tip1   Outer tip of one hemispherical cap.
+   * @param[in] a_tip2   Outer tip of the other hemispherical cap.
+   * @param[in] a_radius Capsule radius.
+   * @return Populated capsule parameters (with hemisphere centres inset from the tips).
    */
-  Vec3T<T> m_center1 = Vec3T<T>(T(0), T(-0.5), T(0));
+  [[nodiscard]] static typename CapsuleOp<T>::Params
+  makeParams(const Vec3T<T>& a_tip1, const Vec3T<T>& a_tip2, const T& a_radius) noexcept
+  {
+    const Vec3T<T> axis = (a_tip2 - a_tip1) / length(a_tip2 - a_tip1);
+
+    typename CapsuleOp<T>::Params p;
+
+    p.center1 = a_tip1 + a_radius * axis;
+    p.center2 = a_tip2 - a_radius * axis;
+    p.radius  = a_radius;
+
+    return p;
+  }
+};
+
+/**
+ * @brief Distance-formula trait for an infinite cone.
+ * @details The cone tip is at `tip` and the body opens in the -z direction; `c` encodes
+ * `(sin, cos)` of the half opening-angle.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct InfiniteConeOp
+{
+  /**
+   * @brief Stored parameters for an infinite cone.
+   */
+  struct Params
+  {
+    Vec3T<T> tip = Vec3T<T>::zeros();                                        ///< Tip position.
+    Vec2T<T> c   = Vec2T<T>(std::sin(pi<T> / T(8)), std::cos(pi<T> / T(8))); ///< (sin, cos) of half opening-angle.
+  };
 
   /**
-   * @brief Center of the other hemispherical cap.
+   * @brief All infinite cones are true signed distance functions.
    */
-  Vec3T<T> m_center2 = Vec3T<T>(T(0), T(0.5), T(0));
+  static constexpr bool isSignedDistance = true;
 
   /**
-   * @brief Capsule radius.
+   * @brief Signed distance to the infinite cone.
+   * @param[in] a_params Cone parameters.
+   * @param[in] a_point  Query point.
+   * @return Signed distance; negative inside the cone.
    */
-  T m_radius = T(0.5);
+  EBGEOMETRY_HOST_DEVICE static T
+  eval(const Params& a_params, const Vec3T<T>& a_point) noexcept
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+    EBGEOMETRY_EXPECT(std::abs(length(a_params.c) - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+
+    const Vec3T<T> delta = a_point - a_params.tip;
+    const Vec2T<T> q(std::sqrt(delta[0] * delta[0] + delta[1] * delta[1]), -delta[2]);
+
+    const T d1 = length(q - a_params.c * std::max(dot(q, a_params.c), T(0.0)));
+    const T d2 = d1 * ((q.x * a_params.c.y - q.y * a_params.c.x < T(0.0)) ? T(-1.0) : T(1.0));
+
+    return d2;
+  }
 };
 
 /**
  * @brief Signed distance field for an infinite cone.
- * @details The cone tip is at `m_tip`. The cone body opens in the **-z** direction from the tip
- * (the interior, where SDF < 0, is the solid region extending downward along -z within the
- * cone surface). The full opening angle `a_angle` (tip-to-tip across the cone) is halved
- * internally; the half-angle is stored as `m_c = (std::sin(half_angle), std::cos(half_angle))`.
- *
- * For a 45° full opening angle the half-angle is 22.5°; a point directly below the tip at
- * depth `d` sits on the cone surface when its radial distance from the axis equals
- * `d * std::tan(half_angle)`.
- *
- * The cone is infinite: it has no base plane. By default the tip is at the origin and the full
+ * @details Thin wrapper around InfiniteConeOp. By default the tip is at the origin and the full
  * opening angle is 45°, with the body extending along -z.
  * @tparam T Floating-point precision.
  */
 template <class T>
-class InfiniteConeSDF : public SignedDistanceFunction<T>
+class InfiniteConeSDF : public ImplicitFunction<T, InfiniteConeOp<T>>
 {
   static_assert(std::is_floating_point_v<T>, "InfiniteConeSDF<T>: T must be a floating-point type");
 
@@ -1025,15 +921,17 @@ public:
    * @brief Default constructor. Constructs an infinite cone with tip at the origin, 45° full
    * opening angle, and body extending in the -z direction.
    */
-  InfiniteConeSDF() = default;
+  InfiniteConeSDF() noexcept : ImplicitFunction<T, InfiniteConeOp<T>>(typename InfiniteConeOp<T>::Params{})
+  {}
 
   /**
    * @brief Full constructor.
    * @param[in] a_tip   Cone tip position.
-   * @param[in] a_angle Full opening angle in degrees (must be in (0°, 180°)). The half-angle
-   * `a_angle / 2` is used internally and encoded as `m_c = (sin, cos)` of that half-angle.
+   * @param[in] a_angle Full opening angle in degrees (must be in (0°, 180°)).
    */
   InfiniteConeSDF(const Vec3T<T>& a_tip, const T& a_angle) noexcept
+    : ImplicitFunction<T, InfiniteConeOp<T>>(typename InfiniteConeOp<T>::Params{
+        a_tip, Vec2T<T>(std::sin(T(0.5) * a_angle * pi<T> / T(180)), std::cos(T(0.5) * a_angle * pi<T> / T(180)))})
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_tip[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_tip[1]));
@@ -1041,173 +939,56 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_angle));
     EBGEOMETRY_EXPECT(a_angle > T(0));
     EBGEOMETRY_EXPECT(a_angle < T(180));
-
-    m_tip = a_tip;
-    m_c.x = std::sin(T(0.5) * a_angle * pi<T> / T(180));
-    m_c.y = std::cos(T(0.5) * a_angle * pi<T> / T(180));
   }
-
-  /**
-   * @brief Copy constructor.
-   */
-  InfiniteConeSDF(const InfiniteConeSDF&) = default;
-
-  /**
-   * @brief Move constructor.
-   */
-  InfiniteConeSDF(InfiniteConeSDF&&) = default;
-
-  /**
-   * @brief Copy assignment.
-   * @return Reference to (*this).
-   */
-  InfiniteConeSDF&
-  operator=(const InfiniteConeSDF&) = default;
-
-  /**
-   * @brief Move assignment.
-   * @return Reference to (*this).
-   */
-  InfiniteConeSDF&
-  operator=(InfiniteConeSDF&&) = default;
-
-  /**
-   * @brief Destructor.
-   */
-  ~InfiniteConeSDF() override = default;
-
-  /**
-   * @brief Signed distance function for the infinite cone.
-   * @param[in] a_point Position.
-   * @return Signed distance from a_point to the cone surface; negative inside the cone.
-   */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
-  {
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-    EBGEOMETRY_EXPECT(std::abs(length(m_c) - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
-
-    const Vec3T<T> delta = a_point - m_tip;
-    const Vec2T<T> q(std::sqrt(delta[0] * delta[0] + delta[1] * delta[1]), -delta[2]);
-
-    const T d1 = length(q - m_c * std::max(dot(q, m_c), T(0.0)));
-    const T d2 = d1 * ((q.x * m_c.y - q.y * m_c.x < T(0.0)) ? T(-1.0) : T(1.0));
-
-    return d2;
-  }
-
-protected:
-  /**
-   * @brief Tip position.
-   */
-  Vec3T<T> m_tip = Vec3T<T>::zeros();
-
-  /**
-   * @brief (sin, cos) of the half opening-angle. Default: 45° full angle → half-angle 22.5°.
-   */
-  Vec2T<T> m_c = Vec2T<T>(std::sin(pi<T> / T(8)), std::cos(pi<T> / T(8)));
 };
 
 /**
- * @brief Signed distance field for a finite cone.
- * @details The cone tip is at `m_tip` and the body opens in the **-z** direction, so the base
- * disc lies at `m_tip + (0, 0, -m_height)`. The full opening angle `a_angle` is the tip-to-tip
- * apex angle; internally the half-angle is encoded as `m_c = (std::sin(half_angle), std::cos(half_angle))`.
- * The base radius equals `m_height * std::tan(half_angle) = m_height * m_c.x / m_c.y`.
- *
- * The SDF is negative inside the solid cone (including the base disc) and positive outside.
- * By default the tip is at the origin, the height is 1, and the full opening angle is 45°,
- * giving a base radius of `std::tan(22.5°) ≈ 0.414`.
+ * @brief Distance-formula trait for a finite cone.
+ * @details The cone tip is at `tip` and the body opens in the -z direction with height `height`;
+ * `c` encodes `(sin, cos)` of the half opening-angle.
  * @tparam T Floating-point precision.
  */
 template <class T>
-class ConeSDF : public SignedDistanceFunction<T>
+struct ConeOp
 {
-  static_assert(std::is_floating_point_v<T>, "ConeSDF<T>: T must be a floating-point type");
-
-public:
   /**
-   * @brief Default constructor. Constructs a finite cone with its tip at the origin, height 1,
-   * and a 45-degree opening angle, body extending in the -z direction.
+   * @brief Stored parameters for a finite cone.
    */
-  ConeSDF() = default;
-
-  /**
-   * @brief Full constructor.
-   * @param[in] a_tip    Cone tip position.
-   * @param[in] a_height Cone height (tip to base).
-   * @param[in] a_angle  Full opening angle in degrees.
-   */
-  ConeSDF(const Vec3T<T>& a_tip, const T& a_height, const T& a_angle) noexcept
+  struct Params
   {
-    EBGEOMETRY_EXPECT(std::isfinite(a_tip[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_tip[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_tip[2]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_height));
-    EBGEOMETRY_EXPECT(std::isfinite(a_angle));
-    EBGEOMETRY_EXPECT(a_height > T(0));
-    EBGEOMETRY_EXPECT(a_angle > T(0));
-    EBGEOMETRY_EXPECT(a_angle < T(180));
-
-    m_tip    = a_tip;
-    m_height = a_height;
-    m_c.x    = std::sin(T(0.5) * a_angle * pi<T> / T(180));
-    m_c.y    = std::cos(T(0.5) * a_angle * pi<T> / T(180));
-  }
+    Vec3T<T> tip    = Vec3T<T>::zeros();                                        ///< Tip position.
+    Vec2T<T> c      = Vec2T<T>(std::sin(pi<T> / T(8)), std::cos(pi<T> / T(8))); ///< (sin, cos) of half opening-angle.
+    T        height = T(1);                                                     ///< Cone height (tip to base).
+  };
 
   /**
-   * @brief Copy constructor.
+   * @brief All finite cones are true signed distance functions.
    */
-  ConeSDF(const ConeSDF&) = default;
+  static constexpr bool isSignedDistance = true;
 
   /**
-   * @brief Move constructor.
+   * @brief Signed distance to the finite cone.
+   * @param[in] a_params Cone parameters.
+   * @param[in] a_point  Query point.
+   * @return Signed distance; negative inside the cone.
    */
-  ConeSDF(ConeSDF&&) = default;
-
-  /**
-   * @brief Copy assignment.
-   * @return Reference to (*this).
-   */
-  ConeSDF&
-  operator=(const ConeSDF&) = default;
-
-  /**
-   * @brief Move assignment.
-   * @return Reference to (*this).
-   */
-  ConeSDF&
-  operator=(ConeSDF&&) = default;
-
-  /**
-   * @brief Destructor.
-   */
-  ~ConeSDF() override = default;
-
-  /**
-   * @brief Signed distance function for the finite cone.
-   * @param[in] a_point Position.
-   * @return Signed distance from a_point to the cone surface; negative inside the cone.
-   */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  EBGEOMETRY_HOST_DEVICE static T
+  eval(const Params& a_params, const Vec3T<T>& a_point) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-    EBGEOMETRY_EXPECT(std::abs(length(m_c) - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
-    EBGEOMETRY_EXPECT(m_c.y > T(0));
+    EBGEOMETRY_EXPECT(std::abs(length(a_params.c) - T(1)) < std::sqrt(std::numeric_limits<T>::epsilon()));
+    EBGEOMETRY_EXPECT(a_params.c.y > T(0));
 
-    const Vec3T<T> delta = a_point - m_tip;
+    const Vec3T<T> delta = a_point - a_params.tip;
     const T        dr    = std::sqrt(delta[0] * delta[0] + delta[1] * delta[1]);
     const T        dz    = delta[2];
 
     constexpr T zero = T(0.0);
     constexpr T one  = T(1.0);
 
-    const Vec2T<T> q = m_height * Vec2T<T>(m_c.x / m_c.y, -1.0);
+    const Vec2T<T> q = a_params.height * Vec2T<T>(a_params.c.x / a_params.c.y, -1.0);
     const Vec2T<T> w = Vec2T<T>(dr, dz);
     const Vec2T<T> a = w - std::clamp(dot(w, q) / dot(q, q), zero, one) * q;
     const Vec2T<T> b = w - Vec2T<T>(q.x * std::clamp(w.x / q.x, zero, one), q.y);
@@ -1220,36 +1001,101 @@ public:
 
     return std::sqrt(d) * sign(s);
   }
+};
 
-protected:
+/**
+ * @brief Signed distance field for a finite cone.
+ * @details Thin wrapper around ConeOp. By default the tip is at the origin, the height is 1, and the
+ * full opening angle is 45°.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class ConeSDF : public ImplicitFunction<T, ConeOp<T>>
+{
+  static_assert(std::is_floating_point_v<T>, "ConeSDF<T>: T must be a floating-point type");
+
+public:
   /**
-   * @brief Tip position.
+   * @brief Default constructor. Constructs a finite cone with its tip at the origin, height 1,
+   * and a 45-degree opening angle, body extending in the -z direction.
    */
-  Vec3T<T> m_tip = Vec3T<T>::zeros();
+  ConeSDF() noexcept : ImplicitFunction<T, ConeOp<T>>(typename ConeOp<T>::Params{})
+  {}
 
   /**
-   * @brief (sin, cos) of the half opening-angle. Default: 45° full angle → half-angle 22.5°.
+   * @brief Full constructor.
+   * @param[in] a_tip    Cone tip position.
+   * @param[in] a_height Cone height (tip to base).
+   * @param[in] a_angle  Full opening angle in degrees.
    */
-  Vec2T<T> m_c = Vec2T<T>(std::sin(pi<T> / T(8)), std::cos(pi<T> / T(8)));
+  ConeSDF(const Vec3T<T>& a_tip, const T& a_height, const T& a_angle) noexcept
+    : ImplicitFunction<T, ConeOp<T>>(typename ConeOp<T>::Params{
+        a_tip,
+        Vec2T<T>(std::sin(T(0.5) * a_angle * pi<T> / T(180)), std::cos(T(0.5) * a_angle * pi<T> / T(180))),
+        a_height})
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_tip[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_tip[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_tip[2]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_height));
+    EBGEOMETRY_EXPECT(std::isfinite(a_angle));
+    EBGEOMETRY_EXPECT(a_height > T(0));
+    EBGEOMETRY_EXPECT(a_angle > T(0));
+    EBGEOMETRY_EXPECT(a_angle < T(180));
+  }
+};
+
+/**
+ * @brief Distance-formula trait for an axis-aligned box with rounded corners.
+ * @details `dimensions` are the inner box half-extents (= 0.5 * user-supplied full side lengths) and
+ * `curvature` is the corner sphere radius. The formula inlines the composed sphere directly.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RoundedBoxOp
+{
+  /**
+   * @brief Stored parameters for a rounded box.
+   */
+  struct Params
+  {
+    Vec3T<T> dimensions = Vec3T<T>(T(0.5), T(0.5), T(0.5)); ///< Inner box half-extents.
+    T        curvature  = T(0.1);                           ///< Corner sphere radius.
+  };
 
   /**
-   * @brief Cone height (tip to base).
+   * @brief All rounded boxes are true signed distance functions.
    */
-  T m_height = T(1);
+  static constexpr bool isSignedDistance = true;
+
+  /**
+   * @brief Signed distance to the rounded box.
+   * @param[in] a_params Rounded-box parameters.
+   * @param[in] a_point  Query point.
+   * @return Signed distance; negative inside.
+   */
+  EBGEOMETRY_HOST_DEVICE static T
+  eval(const Params& a_params, const Vec3T<T>& a_point) noexcept
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+    // Direct rounded-box formula: distance from the query point to the inner (clamped) box, minus the
+    // corner curvature. This is exactly SphereSDF(center=0, radius=curvature) evaluated at
+    // a_point - clamp(a_point, -dimensions, dimensions).
+    return (a_point - clamp(a_point, -a_params.dimensions, a_params.dimensions)).length() - a_params.curvature;
+  }
 };
 
 /**
  * @brief Signed distance field for an axis-aligned box with rounded corners.
- * @details The box is centred at the origin. The constructor takes the full side lengths along
- * each axis and a corner curvature radius. Internally, half-extents `m_dimensions = 0.5 *
- * a_dimensions` are stored. The actual bounding half-extent in each direction is
- * `m_dimensions[i] + curvature`, so the total bounding box has full side lengths
- * `a_dimensions[i] + 2 * curvature`. The corners are rounded by spheres of radius `curvature`.
- * The SDF is negative inside and positive outside.
+ * @details Thin wrapper around RoundedBoxOp. By default it is a rounded unit cube ([-0.5, 0.5]^3
+ * before rounding) with corner curvature 0.1.
  * @tparam T Floating-point precision.
  */
 template <class T>
-class RoundedBoxSDF : public SignedDistanceFunction<T>
+class RoundedBoxSDF : public ImplicitFunction<T, RoundedBoxOp<T>>
 {
   static_assert(std::is_floating_point_v<T>, "RoundedBoxSDF<T>: T must be a floating-point type");
 
@@ -1257,9 +1103,9 @@ public:
   /**
    * @brief Default constructor. Constructs a rounded unit cube centered at the origin
    * ([-0.5, 0.5]^3 before rounding) with corner curvature 0.1.
-   * @details Total half-extent in each direction is 0.5 + 0.1 = 0.6.
    */
-  RoundedBoxSDF() = default;
+  RoundedBoxSDF() noexcept : ImplicitFunction<T, RoundedBoxOp<T>>(typename RoundedBoxOp<T>::Params{})
+  {}
 
   /**
    * @brief Full constructor.
@@ -1268,6 +1114,7 @@ public:
    * @param[in] a_curvature  Corner sphere radius. Must be > 0.
    */
   RoundedBoxSDF(const Vec3T<T>& a_dimensions, const T a_curvature) noexcept
+    : ImplicitFunction<T, RoundedBoxOp<T>>(typename RoundedBoxOp<T>::Params{T(0.5) * a_dimensions, a_curvature})
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_dimensions[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_dimensions[1]));
@@ -1277,65 +1124,93 @@ public:
     EBGEOMETRY_EXPECT(a_dimensions[1] > T(0));
     EBGEOMETRY_EXPECT(a_dimensions[2] > T(0));
     EBGEOMETRY_EXPECT(a_curvature > T(0));
-
-    m_dimensions = T(0.5) * a_dimensions;
-    m_sphere     = std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), a_curvature);
   }
+};
+
+/**
+ * @brief Distance-formula trait for a cylinder with rounded (toroidal) edges.
+ * @details The cylinder is centred at the origin with its axis along y. `majorRadius` is the inner
+ * core radius, `minorRadius` the edge rounding radius, and `height` the inner half-height.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RoundedCylinderOp
+{
+  /**
+   * @brief Stored parameters for a rounded cylinder.
+   */
+  struct Params
+  {
+    T majorRadius = T(0.9); ///< Inner cylinder radius (= outer radius - curvature).
+    T minorRadius = T(0.1); ///< Edge rounding radius (= curvature).
+    T height      = T(0.4); ///< Inner half-height (= 0.5*height - curvature).
+  };
 
   /**
-   * @brief Copy constructor. Shares the internal sphere object.
+   * @brief All rounded cylinders are true signed distance functions.
    */
-  RoundedBoxSDF(const RoundedBoxSDF&) = default;
+  static constexpr bool isSignedDistance = true;
 
   /**
-   * @brief Move constructor.
+   * @brief Signed distance to the rounded cylinder.
+   * @param[in] a_params Rounded-cylinder parameters.
+   * @param[in] a_point  Query point.
+   * @return Signed distance; negative inside.
    */
-  RoundedBoxSDF(RoundedBoxSDF&&) = default;
-
-  /**
-   * @brief Copy assignment. Shares the internal sphere object.
-   * @return Reference to (*this).
-   */
-  RoundedBoxSDF&
-  operator=(const RoundedBoxSDF&) = default;
-
-  /**
-   * @brief Move assignment.
-   * @return Reference to (*this).
-   */
-  RoundedBoxSDF&
-  operator=(RoundedBoxSDF&&) = default;
-
-  /**
-   * @brief Destructor.
-   */
-  ~RoundedBoxSDF() override = default;
-
-  /**
-   * @brief Signed distance function for the rounded box.
-   * @param[in] a_point Position.
-   * @return Signed distance from a_point to the rounded-box surface; negative inside.
-   */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  EBGEOMETRY_HOST_DEVICE static T
+  eval(const Params& a_params, const Vec3T<T>& a_point) noexcept
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-    return m_sphere->signedDistance(a_point - clamp(a_point, -m_dimensions, m_dimensions));
+    const T    xz = std::sqrt(a_point[2] * a_point[2] + a_point[0] * a_point[0]);
+    const auto d1 = Vec2T<T>(xz - a_params.majorRadius, std::abs(a_point[1]) - a_params.height);
+    const auto d2 = Vec2T<T>(std::max(d1.x, T(0)), std::max(d1.y, T(0)));
+
+    return std::min(std::max(d1.x, d1.y), T(0)) + std::sqrt(d2.x * d2.x + d2.y * d2.y) - a_params.minorRadius;
   }
+};
 
-protected:
+/**
+ * @brief Signed distance field for a cylinder with rounded (toroidal) edges.
+ * @details Thin wrapper around RoundedCylinderOp. By default the cylinder has outer radius 1, height
+ * 1, and edge curvature 0.1 (stored as majorRadius=0.9, minorRadius=0.1, height=0.4).
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class RoundedCylinderSDF : public ImplicitFunction<T, RoundedCylinderOp<T>>
+{
+  static_assert(std::is_floating_point_v<T>, "RoundedCylinderSDF<T>: T must be a floating-point type");
+
+public:
   /**
-   * @brief Sphere of radius = curvature used to round the corners.
+   * @brief Default constructor. Constructs a rounded cylinder centred at the origin, axis along y,
+   * with outer radius 1, total height 1, and edge curvature 0.1.
    */
-  std::shared_ptr<SphereSDF<T>> m_sphere = std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), T(0.1));
+  RoundedCylinderSDF() noexcept : ImplicitFunction<T, RoundedCylinderOp<T>>(typename RoundedCylinderOp<T>::Params{})
+  {}
 
   /**
-   * @brief Half-extents of the inner box (= 0.5 * the user-supplied dimensions).
+   * @brief Full constructor.
+   * @param[in] a_radius    Outer cylinder radius. Must be > 0 and > a_curvature.
+   * @param[in] a_curvature Edge rounding radius. Must be > 0 and satisfy
+   * a_curvature < a_radius and 2 * a_curvature < a_height.
+   * @param[in] a_height    Total cylinder height. Must be > 0 and > 2 * a_curvature.
    */
-  Vec3T<T> m_dimensions = Vec3T<T>(T(0.5), T(0.5), T(0.5));
+  RoundedCylinderSDF(const T a_radius, const T a_curvature, const T a_height) noexcept
+    : ImplicitFunction<T, RoundedCylinderOp<T>>(
+        typename RoundedCylinderOp<T>::Params{a_radius - a_curvature, a_curvature, T(0.5) * a_height - a_curvature})
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_radius));
+    EBGEOMETRY_EXPECT(std::isfinite(a_curvature));
+    EBGEOMETRY_EXPECT(std::isfinite(a_height));
+    EBGEOMETRY_EXPECT(a_radius > T(0));
+    EBGEOMETRY_EXPECT(a_curvature > T(0));
+    EBGEOMETRY_EXPECT(a_height > T(0));
+    EBGEOMETRY_EXPECT(a_curvature < a_radius);
+    EBGEOMETRY_EXPECT(T(2) * a_curvature < a_height);
+  }
 };
 
 /**
@@ -1345,10 +1220,10 @@ protected:
  * guaranteed to equal 1), but it can serve as a procedural displacement field when added to or
  * subtracted from a conventional SDF.
  *
- * The output of `signedDistance` is on the range `[0, m_noiseAmplitude]` for a single octave.
- * Multiple octaves sum scaled contributions: each successive octave doubles the spatial frequency
- * (controlled by `m_noisePersistence` dividing the frequency) and attenuates the amplitude by
- * `m_noisePersistence`.
+ * Unlike the geometric primitives in this header, PerlinSDF is kept as a direct
+ * @c ImplicitFunction<T> subclass that overrides value() rather than a trait-based leaf: it owns a
+ * mutable 512-entry permutation table plus stateful helpers (shuffle(), getPermutationTable()) and
+ * is explicitly not an SDF, so `isSignedDistance()` reports false.
  *
  * @note The default constructor leaves the permutation table all-zeros, producing constant-zero
  * noise. Use the full constructor (which initialises the table from Ken Perlin's reference
@@ -1356,7 +1231,7 @@ protected:
  * @tparam T Floating-point precision.
  */
 template <class T>
-class PerlinSDF : public SignedDistanceFunction<T>
+class PerlinSDF : public ImplicitFunction<T>
 {
   static_assert(std::is_floating_point_v<T>, "PerlinSDF<T>: T must be a floating-point type");
 
@@ -1365,7 +1240,10 @@ public:
    * @brief Default constructor. Constructs a single-octave Perlin noise field with unit amplitude,
    * unit frequency along all axes, and persistence 0.5.
    */
-  PerlinSDF() = default;
+  PerlinSDF() noexcept
+  {
+    this->m_sdf = false;
+  }
 
   /**
    * @brief Full constructor.
@@ -1384,6 +1262,8 @@ public:
     EBGEOMETRY_EXPECT(std::isfinite(a_noiseFrequency[1]));
     EBGEOMETRY_EXPECT(std::isfinite(a_noiseFrequency[2]));
     EBGEOMETRY_EXPECT(std::isfinite(a_noisePersistence));
+
+    this->m_sdf = false;
 
     m_noiseAmplitude   = a_noiseAmplitude;
     m_noiseFrequency   = a_noiseFrequency;
@@ -1429,12 +1309,12 @@ public:
   ~PerlinSDF() override = default;
 
   /**
-   * @brief Signed distance function. Generates a noise value on [0, m_noiseAmplitude].
+   * @brief Value function. Generates a noise value on [0, m_noiseAmplitude].
    * @param[in] a_point Input point.
    * @return Octave-summed Perlin noise value scaled by m_noiseAmplitude.
    */
   [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
+  value(const Vec3T<T>& a_point) const noexcept override
   {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -1625,128 +1505,6 @@ protected:
                 grad(m_permutationTable[AB + 1], x, y - 1, z - 1),
                 grad(m_permutationTable[BB + 1], x - 1, y - 1, z - 1))));
   };
-};
-
-/**
- * @brief Signed distance field for a cylinder with rounded (toroidal) edges.
- * @details The cylinder is centred at the origin with its axis along **y**. The constructor
- * takes the outer radius, the total height, and an edge curvature radius. The curvature rounds
- * the sharp edges where the flat caps meet the cylindrical wall; the resulting shape is sometimes
- * called a "stadium of revolution" or a "pill cylinder".
- *
- * Internally three derived parameters are stored:
- * - `m_majorRadius = a_radius - a_curvature`: radius of the inner cylindrical core (before edge
- * rounding).
- * - `m_minorRadius = a_curvature`: radius of the torus-like edge rounding.
- * - `m_height = 0.5 * a_height - a_curvature`: half-height of the inner cylindrical core (before
- * edge rounding).
- *
- * The outer bounding cylinder has radius `m_majorRadius + m_minorRadius = a_radius` and
- * half-height `m_height + m_minorRadius = 0.5 * a_height`. For the geometry to be valid,
- * `a_curvature` must be strictly less than `a_radius` and less than `0.5 * a_height`.
- *
- * The SDF is negative inside and positive outside. By default the cylinder has outer radius 1,
- * height 1, and edge curvature 0.1 (stored as m_majorRadius=0.9, m_minorRadius=0.1, m_height=0.4).
- * @tparam T Floating-point precision.
- */
-template <class T>
-class RoundedCylinderSDF : public SignedDistanceFunction<T>
-{
-  static_assert(std::is_floating_point_v<T>, "RoundedCylinderSDF<T>: T must be a floating-point type");
-
-public:
-  /**
-   * @brief Default constructor. Constructs a rounded cylinder centred at the origin, axis along y,
-   * with outer radius 1, total height 1, and edge curvature 0.1.
-   */
-  RoundedCylinderSDF() = default;
-
-  /**
-   * @brief Full constructor.
-   * @param[in] a_radius    Outer cylinder radius. Must be > 0 and > a_curvature.
-   * @param[in] a_curvature Edge rounding radius. Must be > 0 and satisfy
-   * a_curvature < a_radius and 2 * a_curvature < a_height.
-   * @param[in] a_height    Total cylinder height. Must be > 0 and > 2 * a_curvature.
-   */
-  RoundedCylinderSDF(const T a_radius, const T a_curvature, const T a_height) noexcept
-  {
-    EBGEOMETRY_EXPECT(std::isfinite(a_radius));
-    EBGEOMETRY_EXPECT(std::isfinite(a_curvature));
-    EBGEOMETRY_EXPECT(std::isfinite(a_height));
-    EBGEOMETRY_EXPECT(a_radius > T(0));
-    EBGEOMETRY_EXPECT(a_curvature > T(0));
-    EBGEOMETRY_EXPECT(a_height > T(0));
-    EBGEOMETRY_EXPECT(a_curvature < a_radius);
-    EBGEOMETRY_EXPECT(T(2) * a_curvature < a_height);
-
-    m_majorRadius = a_radius - a_curvature;
-    m_minorRadius = a_curvature;
-    m_height      = T(0.5) * a_height - a_curvature;
-  }
-
-  /**
-   * @brief Copy constructor.
-   */
-  RoundedCylinderSDF(const RoundedCylinderSDF&) = default;
-
-  /**
-   * @brief Move constructor.
-   */
-  RoundedCylinderSDF(RoundedCylinderSDF&&) = default;
-
-  /**
-   * @brief Copy assignment.
-   * @return Reference to (*this).
-   */
-  RoundedCylinderSDF&
-  operator=(const RoundedCylinderSDF&) = default;
-
-  /**
-   * @brief Move assignment.
-   * @return Reference to (*this).
-   */
-  RoundedCylinderSDF&
-  operator=(RoundedCylinderSDF&&) = default;
-
-  /**
-   * @brief Destructor.
-   */
-  ~RoundedCylinderSDF() override = default;
-
-  /**
-   * @brief Signed distance function for the rounded cylinder.
-   * @param[in] a_point Position.
-   * @return Signed distance from a_point to the rounded-cylinder surface; negative inside.
-   */
-  [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override
-  {
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
-    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
-
-    const T    xz = std::sqrt(a_point[2] * a_point[2] + a_point[0] * a_point[0]);
-    const auto d1 = Vec2T<T>(xz - m_majorRadius, std::abs(a_point[1]) - m_height);
-    const auto d2 = Vec2T<T>(std::max(d1.x, T(0)), std::max(d1.y, T(0)));
-
-    return std::min(std::max(d1.x, d1.y), T(0)) + std::sqrt(d2.x * d2.x + d2.y * d2.y) - m_minorRadius;
-  }
-
-protected:
-  /**
-   * @brief Inner cylinder radius (= outer radius - curvature).
-   */
-  T m_majorRadius = T(0.9);
-
-  /**
-   * @brief Edge rounding radius (= curvature).
-   */
-  T m_minorRadius = T(0.1);
-
-  /**
-   * @brief Inner half-height (= 0.5*height - curvature).
-   */
-  T m_height = T(0.4);
 };
 
 } // namespace EBGeometry

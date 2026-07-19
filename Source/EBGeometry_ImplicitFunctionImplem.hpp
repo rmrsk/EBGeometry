@@ -30,7 +30,7 @@ namespace EBGeometry {
 
 template <class T>
 T
-ImplicitFunction<T>::operator()(const Vec3T<T>& a_point) const noexcept
+ImplicitFunction<T, void>::operator()(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -40,12 +40,39 @@ ImplicitFunction<T>::operator()(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T>
+Vec3T<T>
+ImplicitFunction<T, void>::normal(const Vec3T<T>& a_point, const T& a_delta) const noexcept
+{
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+  EBGEOMETRY_EXPECT(a_delta > T(0));
+
+  Vec3T<T> n = Vec3T<T>::zeros();
+
+  const T id = T(1.) / (2 * a_delta);
+
+  for (size_t dir = 0; dir < 3; dir++) {
+    const T hi = this->value(a_point + a_delta * Vec3T<T>::unit(dir));
+    const T lo = this->value(a_point - a_delta * Vec3T<T>::unit(dir));
+
+    n[dir] = (hi - lo) * id;
+  }
+
+  EBGEOMETRY_EXPECT(n.length() > T(0));
+
+  n /= n.length();
+
+  return n;
+}
+
+template <class T>
 template <class BV>
 BV
-ImplicitFunction<T>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initialLowCorner,
-                                                     const Vec3T<T>&    a_initialHighCorner,
-                                                     const unsigned int a_maxTreeDepth,
-                                                     const T&           a_safetyFactor) const
+ImplicitFunction<T, void>::approximateBoundingVolumeOctree(const Vec3T<T>&    a_initialLowCorner,
+                                                           const Vec3T<T>&    a_initialHighCorner,
+                                                           const unsigned int a_maxTreeDepth,
+                                                           const T&           a_safetyFactor) const
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_initialLowCorner[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_initialLowCorner[1]));

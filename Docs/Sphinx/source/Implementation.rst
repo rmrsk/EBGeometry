@@ -14,8 +14,9 @@ components). A handful of design choices recur throughout the implementation:
 
 * **A common interface for composability.** Every signed distance field and implicit function --
   analytic shapes, surface meshes, CSG combinations of either -- derives from the same small
-  polymorphic interface, ``ImplicitFunction<T>`` (with ``SignedDistanceFunction<T>`` as a
-  refinement of it). Because every concrete type honors exactly the same interface, the
+  polymorphic interface, ``ImplicitFunction<T>`` (whose ``isSignedDistance()`` flag records which
+  instances additionally honor the true-signed-distance contract). Because every concrete type
+  honors exactly the same interface, the
   transform and CSG combinators can wrap or combine *any* of them interchangeably through
   ordinary virtual dispatch, without needing to know which concrete type they are actually
   holding. See :ref:`Chap:ImplemCSG`.
@@ -47,7 +48,7 @@ components). A handful of design choices recur throughout the implementation:
 The remaining pages in this section cover each component in more detail:
 
 * :ref:`Chap:Vector` -- the ``Vec2T``/``Vec3T`` vector types used throughout the library.
-* :ref:`Chap:ImplemCSG` -- the ``ImplicitFunction``/``SignedDistanceFunction`` interface, the
+* :ref:`Chap:ImplemCSG` -- the ``ImplicitFunction`` interface, the
   analytic shape library, transforms, and CSG combinators.
 * :ref:`Chap:ImplemDCEL` -- the half-edge (DCEL) surface mesh representation.
 * :ref:`Chap:ImplemBVH` -- bounding volume hierarchy construction, traversal, and the packed

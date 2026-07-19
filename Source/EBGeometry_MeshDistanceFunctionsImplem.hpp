@@ -220,7 +220,7 @@ FlatMeshSDF<T, Meta>::FlatMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
 
 template <class T, class Meta>
 T
-FlatMeshSDF<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
+FlatMeshSDF<T, Meta>::value(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(m_mesh != nullptr);
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -267,7 +267,7 @@ MeshSDF<T, Meta, K>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Bui
 
 template <class T, class Meta, size_t K>
 T
-MeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
+MeshSDF<T, Meta, K>::value(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -505,7 +505,7 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::vector<std::shar
 
 template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
 T
-TriMeshSDF<T, Meta, K, W, StoragePolicy>::signedDistance(const Vec3T<T>& a_point) const noexcept
+TriMeshSDF<T, Meta, K, W, StoragePolicy>::value(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));

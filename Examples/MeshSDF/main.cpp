@@ -84,15 +84,15 @@ main(int argc, char* argv[])
 
   const auto t0 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    dcelSum += dcelSDF->signedDistance(x);
+    dcelSum += dcelSDF->value(x);
   }
   const auto t1 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    meshSum += meshSDF->signedDistance(x);
+    meshSum += meshSDF->value(x);
   }
   const auto t2 = std::chrono::high_resolution_clock::now();
   for (const auto& x : ranPoints) {
-    triSum += triSDF->signedDistance(x);
+    triSum += triSDF->value(x);
   }
   const auto t3 = std::chrono::high_resolution_clock::now();
 

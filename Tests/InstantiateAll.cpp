@@ -26,9 +26,34 @@ using Meta = short;
   template class Vec3T<PREC>;                                                \
   template class Polygon2D<PREC>;                                            \
                                                                                \
-  /* -- Abstract bases --------------------------------------------------- */ \
+  /* -- Type-erased base ------------------------------------------------- */ \
   template class ImplicitFunction<PREC>;                                     \
-  template class SignedDistanceFunction<PREC>;                                \
+                                                                               \
+  /* -- Analytic distance-formula traits ----------------------------------*/ \
+  template struct PlaneOp<PREC>;                                             \
+  template struct SphereOp<PREC>;                                            \
+  template struct BoxOp<PREC>;                                               \
+  template struct TorusOp<PREC>;                                             \
+  template struct CylinderOp<PREC>;                                          \
+  template struct InfiniteCylinderOp<PREC>;                                  \
+  template struct CapsuleOp<PREC>;                                           \
+  template struct InfiniteConeOp<PREC>;                                      \
+  template struct ConeOp<PREC>;                                              \
+  template struct RoundedBoxOp<PREC>;                                        \
+  template struct RoundedCylinderOp<PREC>;                                   \
+                                                                               \
+  /* -- Concrete trait-based leaves ---------------------------------------*/ \
+  template class ImplicitFunction<PREC, PlaneOp<PREC>>;                      \
+  template class ImplicitFunction<PREC, SphereOp<PREC>>;                     \
+  template class ImplicitFunction<PREC, BoxOp<PREC>>;                        \
+  template class ImplicitFunction<PREC, TorusOp<PREC>>;                      \
+  template class ImplicitFunction<PREC, CylinderOp<PREC>>;                   \
+  template class ImplicitFunction<PREC, InfiniteCylinderOp<PREC>>;           \
+  template class ImplicitFunction<PREC, CapsuleOp<PREC>>;                    \
+  template class ImplicitFunction<PREC, InfiniteConeOp<PREC>>;               \
+  template class ImplicitFunction<PREC, ConeOp<PREC>>;                       \
+  template class ImplicitFunction<PREC, RoundedBoxOp<PREC>>;                 \
+  template class ImplicitFunction<PREC, RoundedCylinderOp<PREC>>;            \
                                                                                \
   /* -- Analytic signed distance functions --------------------------------*/ \
   template class PlaneSDF<PREC>;                                             \

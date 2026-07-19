@@ -13,8 +13,9 @@ integration, the underlying geometric concepts), see the
 
 ### Where to start reading
 
-* EBGeometry::SignedDistanceFunction and EBGeometry::ImplicitFunction — the two abstract base
-  classes almost everything else in the library implements.
+* EBGeometry::ImplicitFunction — the abstract base class almost everything else in the library
+  implements; its `isSignedDistance()` flag marks instances that additionally honor the true
+  signed-distance contract.
 * EBGeometry::DCEL::MeshT — the half-edge (doubly-connected edge list) surface mesh
   representation, together with EBGeometry::DCEL::VertexT, EBGeometry::DCEL::EdgeT, and
   EBGeometry::DCEL::FaceT.

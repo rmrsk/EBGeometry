@@ -37,7 +37,7 @@ sphereBV(const Vec3T<T>& a_center, const T a_radius)
 
 // Two well-separated (non-overlapping) unit-ish spheres: centers 3 apart, radius 1 each, so
 // there's a gap of 1 between them. Every sharp-CSG expected value below is hand-computable from
-// these two spheres' own signedDistance().
+// these two spheres' own value().
 template <class T>
 std::shared_ptr<Sphere<T>>
 sphereA()
@@ -229,9 +229,8 @@ TEMPLATE_TEST_CASE("UnionIF: value is the pointwise minimum of two disjoint sphe
   const Vec3 center = Vec3::zeros();
   const Vec3 far(10, 10, 10);
 
-  REQUIRE_THAT(u.value(center),
-               withinAbsT(std::min(a->signedDistance(center), b->signedDistance(center)), exactMargin<T>()));
-  REQUIRE_THAT(u.value(far), withinAbsT(std::min(a->signedDistance(far), b->signedDistance(far)), exactMargin<T>()));
+  REQUIRE_THAT(u.value(center), withinAbsT(std::min(a->value(center), b->value(center)), exactMargin<T>()));
+  REQUIRE_THAT(u.value(far), withinAbsT(std::min(a->value(far), b->value(far)), exactMargin<T>()));
 
   // A point strictly inside A only.
   REQUIRE(u.value(center) < T(0.0));
@@ -278,7 +277,7 @@ TEMPLATE_TEST_CASE("SmoothUnionIF: converges to the sharp union far from the ble
   const SmoothUnionIF<T> su({a, b}, smoothLen);
   const UnionIF<T>       sharp({a, b});
 
-  // Deep inside A, far from B: |signedDistance(A) - signedDistance(B)| >> smoothLen.
+  // Deep inside A, far from B: |value(A) - value(B)| >> smoothLen.
   const Vec3 deepInA(0, 0, 0);
   REQUIRE_THAT(su.value(deepInA), withinAbsT(sharp.value(deepInA), asymptoticMargin<T>()));
 }
@@ -550,13 +549,13 @@ TEMPLATE_TEST_CASE("IntersectionIF: value is the pointwise maximum, giving a non
   // Inside both spheres.
   const Vec3 insideBoth(0.5, 0, 0);
   REQUIRE_THAT(inter.value(insideBoth),
-               withinAbsT(std::max(c->signedDistance(insideBoth), d->signedDistance(insideBoth)), exactMargin<T>()));
+               withinAbsT(std::max(c->value(insideBoth), d->value(insideBoth)), exactMargin<T>()));
   REQUIRE(inter.value(insideBoth) < T(0.0));
 
   // Inside D only (outside C): must not be in the intersection.
   const Vec3 insideDOnly(2.5, 0, 0);
-  REQUIRE(c->signedDistance(insideDOnly) > T(0.0));
-  REQUIRE(d->signedDistance(insideDOnly) < T(0.0));
+  REQUIRE(c->value(insideDOnly) > T(0.0));
+  REQUIRE(d->value(insideDOnly) < T(0.0));
   REQUIRE(inter.value(insideDOnly) > T(0.0));
 }
 
@@ -681,12 +680,12 @@ TEMPLATE_TEST_CASE("DifferenceIF: A \\ B is max(A, -B), inside A and outside B o
   const Vec3 insideBoth(0.5, 0, 0);
   REQUIRE(diff.value(insideBoth) > T(0.0));
   REQUIRE_THAT(diff.value(insideBoth),
-               withinAbsT(std::max(c->signedDistance(insideBoth), -d->signedDistance(insideBoth)), exactMargin<T>()));
+               withinAbsT(std::max(c->value(insideBoth), -d->value(insideBoth)), exactMargin<T>()));
 
   // Inside C, outside D.
   const Vec3 insideCOnly(-1.5, 0, 0);
-  REQUIRE(c->signedDistance(insideCOnly) < T(0.0));
-  REQUIRE(d->signedDistance(insideCOnly) > T(0.0));
+  REQUIRE(c->value(insideCOnly) < T(0.0));
+  REQUIRE(d->value(insideCOnly) > T(0.0));
   REQUIRE(diff.value(insideCOnly) < T(0.0));
 }
 
@@ -809,7 +808,7 @@ TEMPLATE_TEST_CASE("FiniteRepetitionIF: matches the base function directly withi
   const FiniteRepetitionIF<T> tiled(base, period, repeatLo, repeatHi);
 
   for (const Vec3 p : {Vec3::zeros(), Vec3(0.5, 0, 0), Vec3(4.9, 0, 0), Vec3(-4.9, 0, 0)}) {
-    REQUIRE_THAT(tiled.value(p), withinAbsT(base->signedDistance(p), formulaMargin<T>()));
+    REQUIRE_THAT(tiled.value(p), withinAbsT(base->value(p), formulaMargin<T>()));
   }
 }
 
@@ -834,7 +833,7 @@ TEMPLATE_TEST_CASE("FiniteRepetitionIF: is periodic within the repetition range"
     const Vec3 p(0.3, 0, 0);
     const Vec3 shifted = p + Vec3(5.0 * n, 0, 0);
     REQUIRE_THAT(tiled.value(shifted), withinAbsT(tiled.value(p), formulaMargin<T>()));
-    REQUIRE_THAT(tiled.value(shifted), withinAbsT(base->signedDistance(p), formulaMargin<T>()));
+    REQUIRE_THAT(tiled.value(shifted), withinAbsT(base->value(p), formulaMargin<T>()));
   }
 }
 
@@ -857,12 +856,12 @@ TEMPLATE_TEST_CASE("FiniteRepetitionIF: clamps to the boundary tile beyond the r
   // tile 0 and not extrapolated as if more tiles existed.
   const Vec3 farBeyond(23.0, 0, 0);
   const Vec3 expectedLocal = farBeyond - Vec3(5.0, 0, 0);
-  REQUIRE_THAT(tiled.value(farBeyond), withinAbsT(base->signedDistance(expectedLocal), formulaMargin<T>()));
+  REQUIRE_THAT(tiled.value(farBeyond), withinAbsT(base->value(expectedLocal), formulaMargin<T>()));
 
   // Symmetric check on the negative side.
   const Vec3 farBelow(-23.0, 0, 0);
   const Vec3 expectedLocalNeg = farBelow + Vec3(5.0, 0, 0);
-  REQUIRE_THAT(tiled.value(farBelow), withinAbsT(base->signedDistance(expectedLocalNeg), formulaMargin<T>()));
+  REQUIRE_THAT(tiled.value(farBelow), withinAbsT(base->value(expectedLocalNeg), formulaMargin<T>()));
 }
 
 TEMPLATE_TEST_CASE("FiniteRepetition: free function matches FiniteRepetitionIF",

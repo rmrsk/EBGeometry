@@ -43,8 +43,8 @@ of a boundary half-edge) -- rather than a pointer:
 
 *  ``MeshT<T, Meta>`` stores an entire DCEL mesh -- all of its vertices, half-edges, and faces --
    and provides brute-force (:math:`\mathcal{O}(N)`) distance queries, ``signedDistance()`` and
-   ``unsignedDistance2()``, that scan every face directly. It is not itself a
-   ``SignedDistanceFunction<T>``: for anything beyond small meshes, one instead wraps a
+   ``unsignedDistance2()``, that scan every face directly. It is not itself an
+   ``ImplicitFunction<T>``: for anything beyond small meshes, one instead wraps a
    ``MeshT<T, Meta>`` in one of the BVH-accelerated classes described in
    :ref:`Chap:MeshSDFClasses`, which hold a ``shared_ptr<MeshT<T, Meta>>`` internally; the
    accelerated hierarchy stores face indices into that mesh and resolves each pruned candidate

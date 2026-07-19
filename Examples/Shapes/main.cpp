@@ -15,7 +15,7 @@ main()
   using T    = EBGEOMETRY_PRECISION;
   using Vec3 = EBGeometry::Vec3T<T>;
 
-  // Various analytic shapes. Call ::signedDistance(Vec3) on any of them to evaluate the
+  // Various analytic shapes. Call ::value(Vec3) on any of them to evaluate the
   // signed distance at a point (see the class declarations in EBGeometry_AnalyticDistanceFunctions.hpp
   // for the full parameter documentation).
 
