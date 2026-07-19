@@ -15,7 +15,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <functional>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -35,6 +34,14 @@ namespace EBGeometry {
  */
 template <class T>
 class TapeBuilder;
+
+// Forward declarations of the smooth-blend operator traits (defined further below), needed as
+// default arguments for the smooth combiners' Blend template parameter.
+template <class T>
+struct SmoothMinOp;
+
+template <class T>
+struct SmoothMaxOp;
 
 /**
  * @brief Constructs an implicit function whose interior is the union of the interiors of all input functions.
@@ -63,28 +70,31 @@ Union(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr<P2>&
 
 /**
  * @brief Constructs an implicit function whose interior is a smoothly blended union of all input function interiors.
- * @details Uses SmoothMin to blend the two closest values; the blend region width is a_smooth.
- * @tparam T Floating-point precision.
- * @tparam P Primitive type; must derive from ImplicitFunction<T>.
+ * @details Uses the Blend operator (SmoothMinOp by default) to blend the two closest values; the
+ * blend region width is a_smooth. Choose another blend as e.g. SmoothUnion<T, ExpMinOp<T>>(...).
+ * @tparam T     Floating-point precision.
+ * @tparam Blend Smooth-minimum blend operator; must provide static T eval(T a, T b, T s) noexcept.
+ * @tparam P     Primitive type; must derive from ImplicitFunction<T>.
  * @param[in] a_implicitFunctions Input implicit functions.
  * @param[in] a_smooth Smoothing length (must be > 0).
- * @return Shared pointer to a SmoothUnionIF<T> wrapping all input functions.
+ * @return Shared pointer to a SmoothUnionIF<T, Blend> wrapping all input functions.
  */
-template <class T, class P = ImplicitFunction<T>>
+template <class T, class Blend = SmoothMinOp<T>, class P = ImplicitFunction<T>>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 SmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth);
 
 /**
  * @brief Constructs an implicit function whose interior is a smoothly blended union of the interiors of A and B.
- * @tparam T  Floating-point precision.
- * @tparam P1 Type of A; must derive from ImplicitFunction<T>.
- * @tparam P2 Type of B; must derive from ImplicitFunction<T>.
+ * @tparam T     Floating-point precision.
+ * @tparam Blend Smooth-minimum blend operator; must provide static T eval(T a, T b, T s) noexcept.
+ * @tparam P1    Type of A; must derive from ImplicitFunction<T>.
+ * @tparam P2    Type of B; must derive from ImplicitFunction<T>.
  * @param[in] a_implicitFunctionA First implicit function.
  * @param[in] a_implicitFunctionB Second implicit function.
  * @param[in] a_smooth Smoothing length (must be > 0).
- * @return Shared pointer to a SmoothUnionIF<T> containing both functions.
+ * @return Shared pointer to a SmoothUnionIF<T, Blend> containing both functions.
  */
-template <class T, class P1, class P2>
+template <class T, class Blend = SmoothMinOp<T>, class P1, class P2>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 SmoothUnion(const std::shared_ptr<P1>& a_implicitFunctionA,
             const std::shared_ptr<P2>& a_implicitFunctionB,
@@ -111,16 +121,17 @@ BVHUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const std::
  * @brief Constructs a BVH-accelerated smooth union of implicit functions.
  * @details Uses the BVH to locate the two nearest primitives and applies a smooth-minimum to their
  * values, yielding C1 (or better) blending across nearby surfaces. Sub-linear query cost.
- * @tparam T  Floating-point precision.
- * @tparam P  Primitive type; must derive from ImplicitFunction<T>.
- * @tparam BV Bounding volume type (e.g. AABBT<T>).
- * @tparam K  BVH branching factor.
+ * @tparam T     Floating-point precision.
+ * @tparam P     Primitive type; must derive from ImplicitFunction<T>.
+ * @tparam BV    Bounding volume type (e.g. AABBT<T>).
+ * @tparam K     BVH branching factor.
+ * @tparam Blend Smooth-minimum blend operator; must provide static T eval(T a, T b, T s) noexcept.
  * @param[in] a_implicitFunctions Input implicit functions.
  * @param[in] a_boundingVolumes   Bounding volumes for each implicit function.
  * @param[in] a_smoothLen         Smoothing length (must be > 0).
- * @return Shared pointer to a BVHSmoothUnionIF<T,P,BV,K> with an internal BVH.
+ * @return Shared pointer to a BVHSmoothUnionIF<T,P,BV,K,Blend> with an internal BVH.
  */
-template <class T, class P, class BV, size_t K>
+template <class T, class P, class BV, size_t K, class Blend = SmoothMinOp<T>>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 BVHSmoothUnion(const std::vector<std::shared_ptr<P>>& a_implicitFunctions,
                const std::vector<BV>&                 a_boundingVolumes,
@@ -153,27 +164,30 @@ Intersection(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_p
 
 /**
  * @brief Constructs an implicit function whose interior is a smoothly blended intersection of all input function interiors.
- * @tparam T Floating-point precision.
- * @tparam P Primitive type; must derive from ImplicitFunction<T>.
+ * @details Uses the Blend operator (SmoothMaxOp by default) to blend the two largest values.
+ * @tparam T     Floating-point precision.
+ * @tparam Blend Smooth-maximum blend operator; must provide static T eval(T a, T b, T s) noexcept.
+ * @tparam P     Primitive type; must derive from ImplicitFunction<T>.
  * @param[in] a_implicitFunctions Input implicit functions.
  * @param[in] a_smooth Smoothing length (must be > 0).
- * @return Shared pointer to a SmoothIntersectionIF<T> wrapping all input functions.
+ * @return Shared pointer to a SmoothIntersectionIF<T, Blend> wrapping all input functions.
  */
-template <class T, class P>
+template <class T, class Blend = SmoothMaxOp<T>, class P = ImplicitFunction<T>>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 SmoothIntersection(const std::vector<std::shared_ptr<P>>& a_implicitFunctions, const T a_smooth);
 
 /**
  * @brief Constructs an implicit function whose interior is a smoothly blended intersection of the interiors of A and B.
- * @tparam T  Floating-point precision.
- * @tparam P1 Type of A; must derive from ImplicitFunction<T>.
- * @tparam P2 Type of B; must derive from ImplicitFunction<T>.
+ * @tparam T     Floating-point precision.
+ * @tparam Blend Smooth-maximum blend operator; must provide static T eval(T a, T b, T s) noexcept.
+ * @tparam P1    Type of A; must derive from ImplicitFunction<T>.
+ * @tparam P2    Type of B; must derive from ImplicitFunction<T>.
  * @param[in] a_implicitFunctionA First implicit function.
  * @param[in] a_implicitFunctionB Second implicit function.
  * @param[in] a_smooth Smoothing length (must be > 0).
- * @return Shared pointer to a SmoothIntersectionIF<T> containing both functions.
+ * @return Shared pointer to a SmoothIntersectionIF<T, Blend> containing both functions.
  */
-template <class T, class P1, class P2>
+template <class T, class Blend = SmoothMaxOp<T>, class P1, class P2>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 SmoothIntersection(const std::shared_ptr<P1>& a_implicitFunctionA,
                    const std::shared_ptr<P2>& a_implicitFunctionB,
@@ -195,16 +209,18 @@ Difference(const std::shared_ptr<P1>& a_implicitFunctionA, const std::shared_ptr
 
 /**
  * @brief Constructs an implicit function representing a smoothly blended set difference A \ B.
- * @details Implemented as a smooth intersection of A with the complement of B.
- * @tparam T  Floating-point precision.
- * @tparam P1 Type of the minuend A; must derive from ImplicitFunction<T>.
- * @tparam P2 Type of the subtrahend B; must derive from ImplicitFunction<T>.
+ * @details Implemented as a smooth intersection of A with the complement of B, which is why the
+ * default Blend is SmoothMaxOp (the smooth-intersection default) rather than SmoothMinOp.
+ * @tparam T     Floating-point precision.
+ * @tparam Blend Smooth-maximum blend operator; must provide static T eval(T a, T b, T s) noexcept.
+ * @tparam P1    Type of the minuend A; must derive from ImplicitFunction<T>.
+ * @tparam P2    Type of the subtrahend B; must derive from ImplicitFunction<T>.
  * @param[in] a_implicitFunctionA Minuend implicit function.
  * @param[in] a_implicitFunctionB Subtrahend implicit function.
  * @param[in] a_smoothLen         Smoothing length (must be > 0).
- * @return Shared pointer to a SmoothDifferenceIF<T> representing the smooth A \ B.
+ * @return Shared pointer to a SmoothDifferenceIF<T, Blend> representing the smooth A \ B.
  */
-template <class T, class P1 = ImplicitFunction<T>, class P2 = ImplicitFunction<T>>
+template <class T, class Blend = SmoothMaxOp<T>, class P1 = ImplicitFunction<T>, class P2 = ImplicitFunction<T>>
 [[nodiscard]] std::shared_ptr<ImplicitFunction<T>>
 SmoothDifference(const std::shared_ptr<P1>& a_implicitFunctionA,
                  const std::shared_ptr<P2>& a_implicitFunctionB,
@@ -304,8 +320,9 @@ struct DifferenceOp
 
 /**
  * @brief Reduction trait for the exponential smooth minimum.
- * @details Single source of truth for the exponential smooth-minimum blend formula, reused verbatim by
- * the tape interpreter and by the ExpMin std::function wrapper.
+ * @details Single source of truth for the exponential smooth-minimum blend formula, reused verbatim
+ * by the tape interpreter. A more expensive alternative to SmoothMinOp; select it as e.g.
+ * SmoothUnion<T, ExpMinOp<T>>(...).
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -333,8 +350,9 @@ struct ExpMinOp
 
 /**
  * @brief Reduction trait for the quadratic polynomial smooth minimum.
- * @details Single source of truth for the polynomial smooth-minimum blend formula, reused verbatim by
- * the tape interpreter and by the SmoothMin std::function wrapper.
+ * @details Single source of truth for the polynomial smooth-minimum blend formula, reused verbatim
+ * by the tape interpreter. Coincides exactly with min(a, b) outside the overlap region
+ * |a - b| < s; cheaper to evaluate than ExpMinOp and the default Blend for the smooth CSG unions.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -362,8 +380,9 @@ struct SmoothMinOp
 
 /**
  * @brief Reduction trait for the quadratic polynomial smooth maximum.
- * @details Single source of truth for the polynomial smooth-maximum blend formula, reused verbatim by
- * the tape interpreter and by the SmoothMax std::function wrapper.
+ * @details Single source of truth for the polynomial smooth-maximum blend formula, reused verbatim
+ * by the tape interpreter. Symmetric counterpart to SmoothMinOp; the default Blend for the smooth
+ * CSG intersection and difference.
  * @tparam T Floating-point precision.
  */
 template <class T>
@@ -389,51 +408,42 @@ struct SmoothMaxOp
   }
 };
 
-/**
- * @brief Exponential smooth minimum for blending two signed-distance values.
- * @details Approximates min(a, b) with exponential weighting; the blend region width scales with s.
- * Useful when a differentiable interface is required. Approaches min(a, b) as s → 0. Thin std::function
- * wrapper around ExpMinOp, which is the single source of truth for the formula.
- * @tparam T Floating-point precision.
- * @param[in] a First value.
- * @param[in] b Second value.
- * @param[in] s Smoothing length (must be > 0).
- * @return Exponentially blended approximation of min(a, b).
- */
-template <class T>
-std::function<T(const T& a, const T& b, const T& s)> ExpMin =
-  [](const T& a, const T& b, const T& s) -> T { return ExpMinOp<T>::eval(a, b, s); };
+/// @cond EBGEOMETRY_INTERNAL
+namespace CSGDetail {
+
+// Detection helper behind isValidBlend: true iff Blend::eval(a, b, s) is callable with three T
+// values and its result converts to T.
+template <class Blend, class T, class = void>
+struct HasBlendEval : std::false_type
+{
+};
+
+template <class Blend, class T>
+struct HasBlendEval<
+  Blend,
+  T,
+  std::void_t<decltype(static_cast<T>(Blend::eval(std::declval<T>(), std::declval<T>(), std::declval<T>())))>>
+  : std::true_type
+{
+};
+
+} // namespace CSGDetail
+/// @endcond
 
 /**
- * @brief Quadratic polynomial smooth minimum for blending two signed-distance values.
- * @details Approximates min(a, b) within the overlap region |a - b| < s; coincides exactly with
- * min(a, b) outside that region. Cheaper to evaluate than ExpMin and the default choice for CSG unions.
- * Thin std::function wrapper around SmoothMinOp, which is the single source of truth for the formula.
- * @tparam T Floating-point precision.
- * @param[in] a First value.
- * @param[in] b Second value.
- * @param[in] s Smoothing length (must be > 0). Controls the blend region width.
- * @return Polynomial-blended approximation of min(a, b).
+ * @brief Detection trait: true iff Blend is a valid smooth-blend operator for precision T.
+ * @details A valid blend operator exposes the trait shape shared by SmoothMinOp, SmoothMaxOp, and
+ * ExpMinOp -- a static eval taking two signed-distance values and the smoothing length:
+ * @code
+ * static T eval(T a, T b, T s) noexcept;
+ * @endcode
+ * The smooth combiners static_assert on this so that an ill-shaped Blend produces a readable error
+ * message instead of a template-instantiation avalanche.
+ * @tparam Blend Candidate blend operator.
+ * @tparam T     Floating-point precision.
  */
-template <class T>
-std::function<T(const T& a, const T& b, const T& s)> SmoothMin =
-  [](const T& a, const T& b, const T& s) -> T { return SmoothMinOp<T>::eval(a, b, s); };
-
-/**
- * @brief Quadratic polynomial smooth maximum for blending two signed-distance values.
- * @details Approximates max(a, b) within the overlap region |a - b| < s; coincides exactly with
- * max(a, b) outside that region. Symmetric counterpart to SmoothMin; used for CSG intersections and
- * differences. Thin std::function wrapper around SmoothMaxOp, which is the single source of truth for
- * the formula.
- * @tparam T Floating-point precision.
- * @param[in] a First value.
- * @param[in] b Second value.
- * @param[in] s Smoothing length (must be > 0). Controls the blend region width.
- * @return Polynomial-blended approximation of max(a, b).
- */
-template <class T>
-std::function<T(const T& a, const T& b, const T& s)> SmoothMax =
-  [](const T& a, const T& b, const T& s) -> T { return SmoothMaxOp<T>::eval(a, b, s); };
+template <class Blend, class T>
+inline constexpr bool isValidBlend = CSGDetail::HasBlendEval<Blend, T>::value;
 
 /**
  * @brief Implicit function whose interior is the union of all input function interiors.
@@ -492,16 +502,21 @@ protected:
 
 /**
  * @brief Implicit function whose interior is a smoothly blended union of all input function interiors.
- * @details Replaces the sharp min of UnionIF with a smooth-minimum operator, yielding a C1 (or better)
- * interface where interiors overlap. Only the two closest values are blended; the blend region width
- * is controlled by m_smoothLen.
- * @tparam T Floating-point precision.
+ * @details Replaces the sharp min of UnionIF with a smooth-minimum blend operator, yielding a C1 (or
+ * better) interface where interiors overlap. Only the two closest values are blended; the blend
+ * region width is controlled by m_smoothLen.
+ * @tparam T     Floating-point precision.
+ * @tparam Blend Smooth-minimum blend operator; must provide static T eval(T a, T b, T s) noexcept
+ * (see SmoothMinOp, the default, or ExpMinOp).
  */
-template <class T>
+template <class T, class Blend = SmoothMinOp<T>>
 class SmoothUnionIF : public ImplicitFunction<T>
 {
 public:
   static_assert(std::is_floating_point_v<T>, "SmoothUnionIF requires a floating-point type T");
+  static_assert(isValidBlend<Blend, T>,
+                "SmoothUnionIF requires Blend to provide 'static T eval(T a, T b, T s) noexcept' "
+                "(see SmoothMinOp/SmoothMaxOp/ExpMinOp)");
 
   /**
    * @brief Disallowed, use the full constructor.
@@ -512,11 +527,8 @@ public:
    * @brief Constructs the smooth union of the given implicit functions.
    * @param[in] a_implicitFunctions List of implicit functions (must be non-empty; no null entries).
    * @param[in] a_smoothLen         Smoothing length (must be > 0).
-   * @param[in] a_smoothMin         Smooth-minimum operator; defaults to SmoothMin<T>.
    */
-  SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>&   a_implicitFunctions,
-                const T                                                    a_smoothLen,
-                const std::function<T(const T& a, const T& b, const T& s)> a_smoothMin = SmoothMin<T>);
+  SmoothUnionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions, const T a_smoothLen);
 
   /**
    * @brief Destructor.
@@ -525,8 +537,8 @@ public:
 
   /**
    * @brief Evaluates the smoothly blended signed distance at a_point.
-   * @details Finds the two closest function values and applies the stored smooth-minimum operator.
-   * Negative when inside the smooth union.
+   * @details Finds the two closest function values and applies the Blend operator. Negative when
+   * inside the smooth union.
    * @param[in] a_point 3D query point.
    * @return Smooth minimum signed distance value.
    */
@@ -535,8 +547,10 @@ public:
 
   /**
    * @brief Lower this smooth union into the tape (see EBGeometry_Tape.hpp).
-   * @details Exactly two children lower to a single smooth-minimum clause; any other count falls
-   * back to an opaque host callback (keeping the two-closest-of-N blend exact).
+   * @details A single child lowers to the child itself; exactly two children lower to a single
+   * native smooth clause when Blend has a registered ISA opcode. Any other case (more than two
+   * children, whose two-closest-of-N blend is not expressible as a fold of binary clauses, or an
+   * unregistered custom Blend) falls back to an opaque host callback.
    * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
    * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
    * @return Value slot holding this subtree's result.
@@ -554,11 +568,6 @@ protected:
    * @brief Smoothing length.
    */
   T m_smoothLen;
-
-  /**
-   * @brief Smooth-minimum operator.
-   */
-  std::function<T(const T&, const T&, const T&)> m_smoothMin;
 };
 
 /**
@@ -642,15 +651,17 @@ protected:
 
 /**
  * @brief BVH-accelerated smooth union of implicit functions.
- * @details Uses the BVH to locate the two nearest primitives and applies a smooth-minimum operator
- * to their values, yielding C1 (or better) blending across nearby surfaces. Query cost is sub-linear
- * in the number of primitives.
- * @tparam T  Floating-point precision.
- * @tparam P  Primitive type; must derive from ImplicitFunction<T>.
- * @tparam BV Bounding volume type (e.g. AABBT<T>).
- * @tparam K  BVH branching factor.
+ * @details Uses the BVH to locate the two nearest primitives and applies a smooth-minimum blend
+ * operator to their values, yielding C1 (or better) blending across nearby surfaces. Query cost is
+ * sub-linear in the number of primitives.
+ * @tparam T     Floating-point precision.
+ * @tparam P     Primitive type; must derive from ImplicitFunction<T>.
+ * @tparam BV    Bounding volume type (e.g. AABBT<T>).
+ * @tparam K     BVH branching factor.
+ * @tparam Blend Smooth-minimum blend operator; must provide static T eval(T a, T b, T s) noexcept
+ * (see SmoothMinOp, the default, or ExpMinOp).
  */
-template <class T, class P, class BV, size_t K>
+template <class T, class P, class BV, size_t K, class Blend = SmoothMinOp<T>>
 class BVHSmoothUnionIF : public ImplicitFunction<T>
 {
 public:
@@ -658,6 +669,9 @@ public:
   static_assert(std::is_base_of_v<EBGeometry::ImplicitFunction<T>, P>,
                 "BVHSmoothUnionIF requires an implicit function");
   static_assert(K > 0, "BVHSmoothUnionIF BVH branching factor K must be positive");
+  static_assert(isValidBlend<Blend, T>,
+                "BVHSmoothUnionIF requires Blend to provide 'static T eval(T a, T b, T s) noexcept' "
+                "(see SmoothMinOp/SmoothMaxOp/ExpMinOp)");
 
   /**
    * @brief Alias for the flat BVH type.
@@ -674,12 +688,10 @@ public:
    * @param[in] a_distanceFunctions Input implicit functions (must be non-empty; no null entries).
    * @param[in] a_boundingVolumes   Bounding volumes for each function (same length as a_distanceFunctions).
    * @param[in] a_smoothLen         Smoothing length (must be > 0).
-   * @param[in] a_smoothMin         Smooth-minimum operator; defaults to SmoothMin<T>.
    */
-  BVHSmoothUnionIF(const std::vector<std::shared_ptr<P>>&               a_distanceFunctions,
-                   const std::vector<BV>&                               a_boundingVolumes,
-                   const T                                              a_smoothLen,
-                   const std::function<T(const T&, const T&, const T&)> a_smoothMin = SmoothMin<T>) noexcept;
+  BVHSmoothUnionIF(const std::vector<std::shared_ptr<P>>& a_distanceFunctions,
+                   const std::vector<BV>&                 a_boundingVolumes,
+                   const T                                a_smoothLen) noexcept;
 
   /**
    * @brief Destructor.
@@ -688,8 +700,8 @@ public:
 
   /**
    * @brief Evaluates the smoothly blended signed distance at a_point using BVH traversal.
-   * @details Finds the two nearest primitives via BVH and applies the stored smooth-minimum. Negative
-   * when inside the smooth union.
+   * @details Finds the two nearest primitives via BVH and applies the Blend operator. Negative when
+   * inside the smooth union.
    * @param[in] a_point 3D query point.
    * @return Smooth minimum signed distance blended from the two closest primitives.
    */
@@ -713,11 +725,6 @@ protected:
    * @brief Smoothing length.
    */
   T m_smoothLen;
-
-  /**
-   * @brief Smooth-minimum operator.
-   */
-  std::function<T(const T&, const T&, const T&)> m_smoothMin;
 
   /**
    * @brief Builds the internal BVH from primitive/BV pairs.
@@ -786,16 +793,21 @@ protected:
 
 /**
  * @brief Implicit function whose interior is a smoothly blended intersection of all input function interiors.
- * @details Replaces the sharp max of IntersectionIF with a smooth-maximum operator, yielding a C1 (or better)
- * interface at intersection boundaries. Only the two largest values are blended; the blend region width
- * is controlled by m_smoothLen.
- * @tparam T Floating-point precision.
+ * @details Replaces the sharp max of IntersectionIF with a smooth-maximum blend operator, yielding a
+ * C1 (or better) interface at intersection boundaries. Only the two largest values are blended; the
+ * blend region width is controlled by m_smoothLen.
+ * @tparam T     Floating-point precision.
+ * @tparam Blend Smooth-maximum blend operator; must provide static T eval(T a, T b, T s) noexcept
+ * (see SmoothMaxOp, the default).
  */
-template <class T>
+template <class T, class Blend = SmoothMaxOp<T>>
 class SmoothIntersectionIF : public ImplicitFunction<T>
 {
 public:
   static_assert(std::is_floating_point_v<T>, "SmoothIntersectionIF requires a floating-point type T");
+  static_assert(isValidBlend<Blend, T>,
+                "SmoothIntersectionIF requires Blend to provide 'static T eval(T a, T b, T s) noexcept' "
+                "(see SmoothMinOp/SmoothMaxOp/ExpMinOp)");
 
   /**
    * @brief Disallowed, use the full constructor.
@@ -807,22 +819,18 @@ public:
    * @param[in] a_implicitFunctionA First implicit function (must not be null).
    * @param[in] a_implicitFunctionB Second implicit function (must not be null).
    * @param[in] a_smoothLen         Smoothing length (must be > 0).
-   * @param[in] a_smoothMax         Smooth-maximum operator; defaults to SmoothMax<T>.
    */
-  SmoothIntersectionIF(const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionA,
-                       const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionB,
-                       const T                                                     a_smoothLen,
-                       const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax = SmoothMax<T>) noexcept;
+  SmoothIntersectionIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionA,
+                       const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionB,
+                       const T                                     a_smoothLen) noexcept;
 
   /**
    * @brief Constructs the smooth intersection of a list of implicit functions.
    * @param[in] a_implicitFunctions List of implicit functions (must be non-empty; no null entries).
    * @param[in] a_smoothLen         Smoothing length (must be > 0).
-   * @param[in] a_smoothMax         Smooth-maximum operator; defaults to SmoothMax<T>.
    */
-  SmoothIntersectionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>&    a_implicitFunctions,
-                       const T                                                     a_smoothLen,
-                       const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax = SmoothMax<T>) noexcept;
+  SmoothIntersectionIF(const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctions,
+                       const T                                                  a_smoothLen) noexcept;
 
   /**
    * @brief Destructor.
@@ -831,8 +839,8 @@ public:
 
   /**
    * @brief Evaluates the smoothly blended signed distance at a_point.
-   * @details Finds the two largest function values and applies the stored smooth-maximum operator.
-   * Negative when inside the smooth intersection.
+   * @details Finds the two largest function values and applies the Blend operator. Negative when
+   * inside the smooth intersection.
    * @param[in] a_point 3D query point.
    * @return Smooth maximum signed distance value.
    */
@@ -841,8 +849,10 @@ public:
 
   /**
    * @brief Lower this smooth intersection into the tape (see EBGeometry_Tape.hpp).
-   * @details Exactly two children lower to a single smooth-maximum clause; any other count falls
-   * back to an opaque host callback (keeping the two-closest-of-N blend exact).
+   * @details A single child lowers to the child itself; exactly two children lower to a single
+   * native smooth clause when Blend has a registered ISA opcode. Any other case (more than two
+   * children, whose two-largest-of-N blend is not expressible as a fold of binary clauses, or an
+   * unregistered custom Blend) falls back to an opaque host callback.
    * @param[in,out] a_builder   Tape builder accumulating the flattened clauses.
    * @param[in]     a_coordSlot Coordinate slot holding this subtree's input frame.
    * @return Value slot holding this subtree's result.
@@ -860,11 +870,6 @@ protected:
    * @brief Smoothing length.
    */
   T m_smoothLen;
-
-  /**
-   * @brief Smooth-maximum operator.
-   */
-  std::function<T(const T& a, const T& b, const T& s)> m_smoothMax;
 };
 
 /**
@@ -938,16 +943,22 @@ protected:
 
 /**
  * @brief Implicit function representing a smoothly blended set difference A \ B.
- * @details Implemented as a smooth intersection of A with the complement of B. A point is
- * near-inside if it is inside A and outside (or near-outside) B; the interface is smoothed
- * over a region of width m_smoothLen.
- * @tparam T Floating-point precision.
+ * @details Implemented as a smooth intersection of A with the complement of B (which is why the
+ * default Blend is SmoothMaxOp, the smooth-intersection default). A point is near-inside if it is
+ * inside A and outside (or near-outside) B; the interface is smoothed over a region of width
+ * m_smoothLen.
+ * @tparam T     Floating-point precision.
+ * @tparam Blend Smooth-maximum blend operator; must provide static T eval(T a, T b, T s) noexcept
+ * (see SmoothMaxOp, the default).
  */
-template <class T>
+template <class T, class Blend = SmoothMaxOp<T>>
 class SmoothDifferenceIF : public ImplicitFunction<T>
 {
 public:
   static_assert(std::is_floating_point_v<T>, "SmoothDifferenceIF requires a floating-point type T");
+  static_assert(isValidBlend<Blend, T>,
+                "SmoothDifferenceIF requires Blend to provide 'static T eval(T a, T b, T s) noexcept' "
+                "(see SmoothMinOp/SmoothMaxOp/ExpMinOp)");
 
   /**
    * @brief Disallowed, use the full constructor.
@@ -959,24 +970,20 @@ public:
    * @param[in] a_implicitFunctionA Minuend (must not be null).
    * @param[in] a_implicitFunctionB Subtrahend (must not be null).
    * @param[in] a_smoothLen         Smoothing length (must be > 0).
-   * @param[in] a_smoothMax         Smooth-maximum operator; defaults to SmoothMax<T>.
    */
-  SmoothDifferenceIF(const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionA,
-                     const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionB,
-                     const T                                                     a_smoothLen,
-                     const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax = SmoothMax<T>) noexcept;
+  SmoothDifferenceIF(const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionA,
+                     const std::shared_ptr<ImplicitFunction<T>>& a_implicitFunctionB,
+                     const T                                     a_smoothLen) noexcept;
 
   /**
    * @brief Constructs the smooth difference A \ union(Bs) from A and a list of subtrahends.
    * @param[in] a_implicitFunctionA  Minuend (must not be null).
    * @param[in] a_implicitFunctionsB Subtrahends (must be non-empty; no null entries).
    * @param[in] a_smoothLen          Smoothing length (must be > 0).
-   * @param[in] a_smoothMax          Smooth-maximum operator; defaults to SmoothMax<T>.
    */
-  SmoothDifferenceIF(const std::shared_ptr<ImplicitFunction<T>>&                 a_implicitFunctionA,
-                     const std::vector<std::shared_ptr<ImplicitFunction<T>>>&    a_implicitFunctionsB,
-                     const T                                                     a_smoothLen,
-                     const std::function<T(const T& a, const T& b, const T& s)>& a_smoothMax = SmoothMax<T>) noexcept;
+  SmoothDifferenceIF(const std::shared_ptr<ImplicitFunction<T>>&              a_implicitFunctionA,
+                     const std::vector<std::shared_ptr<ImplicitFunction<T>>>& a_implicitFunctionsB,
+                     const T                                                  a_smoothLen) noexcept;
 
   /**
    * @brief Destructor.
@@ -1006,7 +1013,7 @@ protected:
   /**
    * @brief Internal smooth intersection implementing smooth(A ∩ complement(B)).
    */
-  std::shared_ptr<SmoothIntersectionIF<T>> m_smoothIntersectionIF;
+  std::shared_ptr<SmoothIntersectionIF<T, Blend>> m_smoothIntersectionIF;
 };
 
 /**

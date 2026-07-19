@@ -211,6 +211,46 @@ template <class Op>
 inline constexpr bool IsRegistered = OpcodeOf<Op>::registered;
 
 /**
+ * @brief Compile-time map from a smooth-blend operator trait to its interpreter @ref Opcode.
+ * @details The primary template is deliberately empty (no nested @c value) so that a smooth
+ * combiner instantiated with an unregistered custom @c Blend falls back to an opaque host callback
+ * in its @c flatten. The X-macro-generated specialisations (one per smooth op in the ISA) expose
+ * the matching opcode as @c value.
+ * @tparam Blend Smooth-blend operator trait (e.g. @c SmoothMinOp<T>).
+ */
+template <class Blend>
+struct BlendOpcodeOf
+{
+};
+
+/// @cond EBGEOMETRY_INTERNAL
+#define EBGEOMETRY_TAPE_BLEND_OPCODEOF(TAG, OP)  \
+  template <class T>                             \
+  struct BlendOpcodeOf<OP<T>>                    \
+  {                                              \
+    static constexpr Opcode value = Opcode::TAG; \
+  };
+EBGEOMETRY_TAPE_SMOOTH_OPS(EBGEOMETRY_TAPE_BLEND_OPCODEOF)
+#undef EBGEOMETRY_TAPE_BLEND_OPCODEOF
+/// @endcond
+
+/**
+ * @brief Detection trait: true iff @c Blend has a registered smooth @ref Opcode (i.e.
+ * @ref BlendOpcodeOf exposes a nested @c value for it).
+ * @details Used by the smooth combiners' @c flatten with @c if @c constexpr so that a registered
+ * blend (SmoothMinOp, SmoothMaxOp, ExpMinOp) lowers to a native smooth clause while an unregistered
+ * custom blend lowers to an opaque host callback.
+ * @tparam Blend Smooth-blend operator trait.
+ */
+template <class Blend, class = void>
+inline constexpr bool isRegisteredBlend = false;
+
+/// @cond EBGEOMETRY_INTERNAL
+template <class Blend>
+inline constexpr bool isRegisteredBlend<Blend, std::void_t<decltype(BlendOpcodeOf<Blend>::value)>> = true;
+/// @endcond
+
+/**
  * @brief A single trivially-copyable clause in the flat tape (16 bytes).
  * @details One clause performs exactly one operation. The @ref opcode selects which trait static
  * runs and which slot files @ref in0 / @ref in1 / @ref out address (coordinate slots for coordinate

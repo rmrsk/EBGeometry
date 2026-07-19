@@ -470,34 +470,69 @@ DifferenceIF<T>::flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const
   return a_builder.emitCombine(Opcode::DIFFERENCE, valueA, valueB);
 }
 
-// Smooth combiners carry a user-overridable std::function blend operator (SmoothMinIF's m_smoothMin,
-// SmoothIntersectionIF's m_smoothMax) that defaults to SmoothMin/SmoothMax but may be any callable --
-// including the enumerated ExpMin or an arbitrary user lambda. A std::function cannot be introspected
-// to recover which enumerated ISA op it is, so, per the project rule that user-supplied std::function
-// blends stay host-only, every smooth combiner lowers to an opaque host callback (keeping tape
-// evaluation == value() exact for any operator, at the cost of device-eligibility). The SMOOTH_MIN/
-// SMOOTH_MAX/EXP_MIN opcodes remain the device ISA for blends emitted with a known operator (e.g. the
-// builder API directly, and the BVH smooth union of a later tier); they are not reachable from a
-// std::function-carrying node here.
-template <class T>
+// Smooth combiners are templated on their blend operator (the Blend parameter, defaulting to
+// SmoothMinOp/SmoothMaxOp), so the blend's identity is known at compile time and a registered blend
+// (one with a BlendOpcodeOf specialisation: SmoothMinOp, SmoothMaxOp, ExpMinOp) lowers to its native
+// SMOOTH_MIN/SMOOTH_MAX/EXP_MIN clause. The lowering must reproduce value() exactly, and value()
+// blends only the two closest (union) / two largest (intersection) of its N child values in a single
+// Blend::eval call -- so only the arities where that selection is trivial lower natively:
+//
+//   - one child:  value() returns the child unblended, so lower the child directly (exact for ANY
+//                 Blend, registered or not);
+//   - two children: value() blends exactly those two, so emit one native smooth clause (the
+//                 registered blends are all symmetric in (a, b), so child order is immaterial);
+//   - N > 2:      two-closest-of-N is NOT a left-fold of binary blend clauses, so lowering it as a
+//                 fold would change results -- keep the opaque host callback;
+//   - unregistered custom Blend: no ISA opcode exists -- keep the opaque host callback.
+//
+// The host-callback fallback keeps tape evaluation == value() exact in every case, at the cost of
+// device-eligibility.
+template <class T, class Blend>
 int
-SmoothUnionIF<T>::flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const
+SmoothUnionIF<T, Blend>::flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const
 {
+  if (m_implicitFunctions.size() == 1) {
+    return m_implicitFunctions.front()->flatten(a_builder, a_coordSlot);
+  }
+
+  if constexpr (isRegisteredBlend<Blend>) {
+    if (m_implicitFunctions.size() == 2) {
+      const int valueA = m_implicitFunctions[0]->flatten(a_builder, a_coordSlot);
+      const int valueB = m_implicitFunctions[1]->flatten(a_builder, a_coordSlot);
+
+      return a_builder.emitSmooth(BlendOpcodeOf<Blend>::value, valueA, valueB, m_smoothLen);
+    }
+  }
+
   return a_builder.emitHostCallback(a_coordSlot, this);
 }
 
-template <class T>
+template <class T, class Blend>
 int
-SmoothIntersectionIF<T>::flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const
+SmoothIntersectionIF<T, Blend>::flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const
 {
+  if (m_implicitFunctions.size() == 1) {
+    return m_implicitFunctions.front()->flatten(a_builder, a_coordSlot);
+  }
+
+  if constexpr (isRegisteredBlend<Blend>) {
+    if (m_implicitFunctions.size() == 2) {
+      const int valueA = m_implicitFunctions[0]->flatten(a_builder, a_coordSlot);
+      const int valueB = m_implicitFunctions[1]->flatten(a_builder, a_coordSlot);
+
+      return a_builder.emitSmooth(BlendOpcodeOf<Blend>::value, valueA, valueB, m_smoothLen);
+    }
+  }
+
   return a_builder.emitHostCallback(a_coordSlot, this);
 }
 
 // Smooth difference is stored as a SmoothIntersectionIF of A with complement(B): recurse into it so
-// it takes the same opaque-host path.
-template <class T>
+// it takes the same native-or-host path (native for the pairwise A \ B with a registered Blend,
+// host callback for multiple subtrahends or an unregistered Blend).
+template <class T, class Blend>
 int
-SmoothDifferenceIF<T>::flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const
+SmoothDifferenceIF<T, Blend>::flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const
 {
   return m_smoothIntersectionIF->flatten(a_builder, a_coordSlot);
 }

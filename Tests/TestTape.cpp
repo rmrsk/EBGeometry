@@ -4,8 +4,9 @@
 // Test suite for EBGeometry_Tape.hpp: the flat linear-SSA tape and its single-pass interpreter.
 // Validates the tape against the recursive value() oracle -- for every covered tree,
 // compile(tree).value(p) must reproduce tree.value(p). It also checks device-eligibility
-// bookkeeping: pure-primitive trees are device-eligible, while opaque-host fallbacks (Perlin, Blur,
-// smooth combiners over more than two children, BVH unions) are not.
+// bookkeeping: pure-primitive trees (including binary smooth combiners with a registered Blend) are
+// device-eligible, while opaque-host fallbacks (Perlin, Blur, smooth combiners over more than two
+// children, custom unregistered blends, BVH unions) are not.
 
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
@@ -183,12 +184,13 @@ TEMPLATE_TEST_CASE("Tape: sharp union/intersection/difference match value(), bin
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// (6) Smooth combiners lower to an opaque host callback (their blend operator is a
-//     user-overridable std::function that cannot be verified against the ISA), so they still match
-//     value() exactly but are not device-eligible.
+// (6) Smooth combiners are templated on their Blend operator, so a binary combiner with a
+//     registered blend (SmoothMinOp/SmoothMaxOp/ExpMinOp) lowers to a native SMOOTH_MIN/
+//     SMOOTH_MAX/EXP_MIN clause: it matches value() AND is device-eligible. An unregistered
+//     custom blend still matches value() exactly, but via an opaque host callback.
 // ─────────────────────────────────────────────────────────────────────────────
 
-TEMPLATE_TEST_CASE("Tape: smooth combiners match value() via an opaque host node",
+TEMPLATE_TEST_CASE("Tape: binary smooth combiners with default blends lower natively and are device-eligible",
                    "[Tape][CSG][Smooth]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -208,15 +210,91 @@ TEMPLATE_TEST_CASE("Tape: smooth combiners match value() via an opaque host node
   requireTapeMatchesOracle<T>(*smoothInter, formulaMargin<T>());
   requireTapeMatchesOracle<T>(*smoothDiff, formulaMargin<T>());
 
-  // A std::function blend operator keeps every smooth combiner host-only.
-  REQUIRE_FALSE(compile<T>(*smoothUnion).isDeviceEligible());
-  REQUIRE_FALSE(compile<T>(*smoothInter).isDeviceEligible());
-  REQUIRE_FALSE(compile<T>(*smoothDiff).isDeviceEligible());
+  // The default blends (SmoothMinOp/SmoothMaxOp) have registered ISA opcodes, so every binary
+  // smooth combiner now compiles to a native smooth clause -- no host callback involved.
+  REQUIRE(compile<T>(*smoothUnion).isDeviceEligible());
+  REQUIRE(compile<T>(*smoothInter).isDeviceEligible());
+  REQUIRE(compile<T>(*smoothDiff).isDeviceEligible());
 }
 
-// The SMOOTH_MIN/SMOOTH_MAX/EXP_MIN opcodes are the device ISA for blends emitted with a known
-// operator. They are exercised here directly through the builder API (the path a later BVH-smooth
-// tier uses), decoupled from the std::function-carrying smooth combiner nodes above.
+TEMPLATE_TEST_CASE("Tape: an explicitly chosen ExpMinOp blend lowers natively and matches value()",
+                   "[Tape][CSG][Smooth]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const auto a = std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), T(1));
+  const auto b = std::make_shared<SphereSDF<T>>(Vec3T<T>(3, 0, 0), T(1));
+
+  const T s = T(0.5);
+
+  const auto expUnion = SmoothUnion<T, ExpMinOp<T>>(a, b, s);
+
+  requireTapeMatchesOracle<T>(*expUnion, formulaMargin<T>());
+
+  REQUIRE(compile<T>(*expUnion).isDeviceEligible());
+}
+
+namespace {
+
+// A custom smooth blend with the right trait shape but no BlendOpcodeOf registration: the smooth
+// combiners must still reproduce value() exactly (via an opaque host callback), but the tape
+// cannot be device-eligible.
+template <class T>
+struct QuadraticBlend
+{
+  static T
+  eval(T a, T b, T s) noexcept
+  {
+    const T h = std::max(s - std::abs(a - b), T(0)) / s;
+
+    return std::min(a, b) - T(0.5) * h * h * s;
+  }
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Tape: an unregistered custom blend matches value() via an opaque host node",
+                   "[Tape][CSG][Smooth]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const auto a = std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), T(1));
+  const auto b = std::make_shared<SphereSDF<T>>(Vec3T<T>(3, 0, 0), T(1));
+
+  const T s = T(0.5);
+
+  const auto customUnion = SmoothUnion<T, QuadraticBlend<T>>(a, b, s);
+
+  requireTapeMatchesOracle<T>(*customUnion, formulaMargin<T>());
+
+  REQUIRE_FALSE(compile<T>(*customUnion).isDeviceEligible());
+}
+
+TEMPLATE_TEST_CASE("Tape: a single-child smooth union lowers to the child itself",
+                   "[Tape][CSG][Smooth]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const auto a = std::make_shared<SphereSDF<T>>(Vec3T<T>::zeros(), T(1));
+
+  // value() returns the lone child unblended, so the lowering is the child's own clause -- exact
+  // and device-eligible even for an unregistered blend.
+  const SmoothUnionIF<T>                    oneDefault({a}, T(0.5));
+  const SmoothUnionIF<T, QuadraticBlend<T>> oneCustom({a}, T(0.5));
+
+  requireTapeMatchesOracle<T>(oneDefault, exactMargin<T>());
+  requireTapeMatchesOracle<T>(oneCustom, exactMargin<T>());
+
+  REQUIRE(compile<T>(oneDefault).isDeviceEligible());
+  REQUIRE(compile<T>(oneCustom).isDeviceEligible());
+}
+
+// The SMOOTH_MIN/SMOOTH_MAX/EXP_MIN opcodes are the device ISA for the registered blends. They are
+// also exercised here directly through the builder API (the path a later BVH-smooth tier uses),
+// decoupled from the smooth combiner nodes above.
 TEMPLATE_TEST_CASE("Tape: smooth ISA opcodes match their trait eval via the builder",
                    "[Tape][Smooth][Opcode]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -271,6 +349,10 @@ TEMPLATE_TEST_CASE("Tape: deep mixed tree matches value()", "[Tape][CSG][Smooth]
   const auto tree        = Difference<T>(smoothUnion, Rotate<T>(cyl, T(25), 0));
 
   requireTapeMatchesOracle<T>(*tree, formulaMargin<T>());
+
+  // Every node here (including the binary smooth union, whose default SmoothMinOp blend lowers
+  // natively) has a native clause, so the whole mixed tree is device-eligible.
+  REQUIRE(compile<T>(*tree).isDeviceEligible());
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -305,7 +387,9 @@ TEMPLATE_TEST_CASE("Tape: pure-primitive trees are device-eligible; opaque nodes
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// (9) Smooth combiner over more than two children -> opaque host fallback
+// (9) Smooth combiner over more than two children -> opaque host fallback. value() blends only the
+//     two closest of the N child values, which is not expressible as a fold of binary smooth
+//     clauses, so even a registered blend must keep the host callback to stay exact.
 // ─────────────────────────────────────────────────────────────────────────────
 
 TEMPLATE_TEST_CASE("Tape: smooth union over three children falls back to an opaque host node",
@@ -320,7 +404,7 @@ TEMPLATE_TEST_CASE("Tape: smooth union over three children falls back to an opaq
 
   const std::vector<std::shared_ptr<SphereSDF<T>>> three{a, b, c};
 
-  const auto    smoothN    = SmoothUnion<T, SphereSDF<T>>(three, T(0.5));
+  const auto    smoothN    = SmoothUnion<T>(three, T(0.5));
   const Tape<T> smoothTape = compile<T>(*smoothN);
 
   REQUIRE_FALSE(smoothTape.isDeviceEligible());

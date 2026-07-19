@@ -222,7 +222,8 @@ Test coverage
        correct after a moving geometry (idempotent on an unchanged cloud, queries still matching a
        brute-force scan after displacement).
    * - ``TestCSG``
-     - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin` blending primitives;
+     - :cpp:class:`SmoothMinOp`/:cpp:class:`SmoothMaxOp`/:cpp:class:`ExpMinOp` blend operator
+       traits;
        sharp and smooth :cpp:class:`UnionIF`/:cpp:class:`IntersectionIF`/:cpp:class:`DifferenceIF`
        (and their BVH-accelerated counterparts); :cpp:class:`FiniteRepetitionIF` tiling and
        boundary clamping.

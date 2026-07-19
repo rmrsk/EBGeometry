@@ -77,13 +77,17 @@ using Meta = short;
   template struct SmoothMaxOp<PREC>;                                        \
   template struct ExpMinOp<PREC>;                                           \
                                                                                \
-  /* -- CSG implicit functions --------------------------------------------*/ \
+  /* -- CSG implicit functions (smooth combiners: default Blend plus one  */ \
+  /* -- non-default Blend each, so both lowerings stay compile-checked) ---*/ \
   template class UnionIF<PREC>;                                              \
   template class SmoothUnionIF<PREC>;                                        \
+  template class SmoothUnionIF<PREC, ExpMinOp<PREC>>;                        \
   template class IntersectionIF<PREC>;                                       \
   template class SmoothIntersectionIF<PREC>;                                 \
+  template class SmoothIntersectionIF<PREC, ExpMinOp<PREC>>;                 \
   template class DifferenceIF<PREC>;                                         \
   template class SmoothDifferenceIF<PREC>;                                   \
+  template class SmoothDifferenceIF<PREC, ExpMinOp<PREC>>;                   \
   template class FiniteRepetitionIF<PREC>;                                   \
                                                                                \
   /* -- Transformation distance-formula traits ----------------------------*/ \

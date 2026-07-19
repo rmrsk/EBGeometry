@@ -65,7 +65,7 @@ public:
     }
 
     // Create the standard and fast CSG unions.
-    m_slowUnion = EBGeometry::SmoothUnion<T, Prim>(spheres, smoothLen);
+    m_slowUnion = EBGeometry::SmoothUnion<T>(spheres, smoothLen);
     m_fastUnion = EBGeometry::BVHSmoothUnion<T, Prim, BV, K>(spheres, boundingVolumes, smoothLen);
 
     // AMReX uses the opposite to EBGeometry.
