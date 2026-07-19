@@ -7,7 +7,7 @@
  * @brief  Flat linear-SSA "tape" plus single-pass interpreter for implicit-function DAGs.
  * @details The tape is a depth-first flattening of an implicit-function tree into a linear array of
  * trivially-copyable @ref EBGeometry::TapeClause "clauses" that a single forward pass
- * (@ref EBGeometry::evaluate) can execute identically on host and (later) device. Every clause
+ * (@ref EBGeometry::TapeView::value) can execute identically on host and (later) device. Every clause
  * dispatches to the SAME trait static functions used by the recursive @c value() path -- @c SphereOp::eval,
  * @c TranslateOp::mapPoint, @c ScaleOp::mapValue, @c UnionOp::combine, @c SmoothMinOp::eval, ... --
  * so the tape is never a second copy of any distance or blend formula; it is a different traversal
@@ -316,11 +316,24 @@ struct TapeView
    * @brief Whether the tape is free of host callbacks (and thus, in a later tier, device-evaluable).
    */
   bool deviceEligible = true;
+
+  /**
+   * @brief Evaluate the tape at a point via a single forward pass (host and device).
+   * @details Runs each clause in order, dispatching to the shared trait static functions. The
+   * caller supplies scratch buffers sized to the tape's slot counts (@ref numCoordSlots coordinate
+   * slots and @ref numValueSlots value slots). A HOST_CALLBACK clause is only valid on the host.
+   * @param[in]  a_point        Query point.
+   * @param[out] a_coordScratch Coordinate scratch buffer (at least @ref numCoordSlots entries).
+   * @param[out] a_valueScratch Value scratch buffer (at least @ref numValueSlots entries).
+   * @return The value at @p a_point (the tape's root value slot after the pass).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE T
+  value(const Vec3T<T>& a_point, Vec3T<T>* a_coordScratch, T* a_valueScratch) const noexcept;
 };
 
 /**
  * @brief Host-owned flat tape: the clause array plus every per-op parameter array.
- * @details Built by @ref TapeBuilder (via the free @ref flatten function) and consumed through a
+ * @details Built by @ref TapeBuilder (via the free @ref compile function) and consumed through a
  * trivially-copyable @ref view. The distance/blend math itself lives entirely in the shared trait
  * static functions; a Tape stores only clauses and parameters, never a formula.
  * @tparam T Floating-point precision.
@@ -344,6 +357,17 @@ public:
    */
   [[nodiscard]] EBGEOMETRY_HOST TapeView<T>
                                 view() const noexcept;
+
+  /**
+   * @brief Evaluate the tape at a point, managing scratch internally (host convenience).
+   * @details Delegates to @ref TapeView::value with two thread-local scratch buffers grown to this
+   * tape's slot counts, so each thread's queries are allocation-free after its first call and
+   * concurrent readers never share scratch. Host only.
+   * @param[in] a_point Query point.
+   * @return The value at @p a_point.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST T
+  value(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief Get the number of coordinate slots the interpreter's coordinate scratch must hold.
@@ -565,45 +589,17 @@ private:
 };
 
 /**
- * @brief Lower an implicit-function tree into a flat @ref Tape.
+ * @brief Compile an implicit-function tree into a flat @ref Tape.
  * @details Seeds coordinate slot 0 with the query point's frame and drives the tree's @c flatten
- * overrides. Host only.
+ * lowering overrides. Host only. Evaluate the result with @ref Tape::value (host convenience) or
+ * @ref TapeView::value (caller-provided scratch).
  * @tparam T Floating-point precision.
  * @param[in] a_tree Source implicit-function tree (must outlive any host-callback tape produced).
- * @return The flattened tape.
+ * @return The compiled tape.
  */
 template <class T>
 [[nodiscard]] EBGEOMETRY_HOST Tape<T>
-                              flatten(const ImplicitFunction<T>& a_tree);
-
-/**
- * @brief Evaluate a flattened tape at a point via a single forward pass (host and device).
- * @details Runs each clause in order, dispatching to the shared trait static functions. The caller supplies
- * scratch buffers sized to the tape's slot counts (@c a_view.numCoordSlots coordinate slots and
- * @c a_view.numValueSlots value slots). A HOST_CALLBACK clause is only valid on the host.
- * @tparam T Floating-point precision.
- * @param[in]  a_view         Non-owning view of the tape.
- * @param[in]  a_point        Query point.
- * @param[out] a_coordScratch Coordinate scratch buffer (at least @c a_view.numCoordSlots entries).
- * @param[out] a_valueScratch Value scratch buffer (at least @c a_view.numValueSlots entries).
- * @return The value at @p a_point (the tape's root value slot after the pass).
- */
-template <class T>
-[[nodiscard]] EBGEOMETRY_HOST_DEVICE T
-evaluate(const TapeView<T>& a_view, const Vec3T<T>& a_point, Vec3T<T>* a_coordScratch, T* a_valueScratch) noexcept;
-
-/**
- * @brief Host convenience overload: evaluate a tape at a point, sizing scratch internally.
- * @details Allocates two @c std::vector scratch buffers sized to the tape's slot counts and calls
- * the pointer-based @ref evaluate with @c a_tape.view(). Host only.
- * @tparam T Floating-point precision.
- * @param[in] a_tape  The tape.
- * @param[in] a_point Query point.
- * @return The value at @p a_point.
- */
-template <class T>
-[[nodiscard]] EBGEOMETRY_HOST T
-evaluate(const Tape<T>& a_tape, const Vec3T<T>& a_point);
+                              compile(const ImplicitFunction<T>& a_tree);
 
 } // namespace EBGeometry
 

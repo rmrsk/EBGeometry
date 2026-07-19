@@ -6,9 +6,10 @@
  * @file   EBGeometry_TapeImplem.hpp
  * @brief  Implementation of EBGeometry_Tape.hpp.
  * @details Holds every out-of-line definition: the TapeBuilder methods, Tape::view, the free
- * flatten/evaluate functions, and every flatten() override body (the base opaque-host default, the
- * leaf template, and all transform/combiner nodes). Included last from EBGeometry_Tape.hpp so that
- * Tape, TapeView, TapeBuilder, and every implicit-function class are complete here.
+ * compile function, the TapeView::value/Tape::value evaluators, and every flatten() override body
+ * (the base opaque-host default, the leaf template, and all transform/combiner nodes). Included
+ * last from EBGeometry_Tape.hpp so that Tape, TapeView, TapeBuilder, and every implicit-function
+ * class are complete here.
  * @author Robert Marskar
  */
 
@@ -214,10 +215,10 @@ TapeBuilder<T>::finish(int a_rootValueSlot)
   return std::move(m_tape);
 }
 
-// ── Free functions: flatten / evaluate ────────────────────────────────────────
+// ── Free function: compile ────────────────────────────────────────────────────
 template <class T>
 Tape<T>
-flatten(const ImplicitFunction<T>& a_tree)
+compile(const ImplicitFunction<T>& a_tree)
 {
   TapeBuilder<T> builder;
 
@@ -227,33 +228,37 @@ flatten(const ImplicitFunction<T>& a_tree)
   return builder.finish(rootValueSlot);
 }
 
+// ── Interpreter: TapeView::value / Tape::value ────────────────────────────────
 template <class T>
 EBGEOMETRY_HOST_DEVICE T
-evaluate(const TapeView<T>& a_view, const Vec3T<T>& a_point, Vec3T<T>* a_coordScratch, T* a_valueScratch) noexcept
+TapeView<T>::value(const Vec3T<T>& a_point, Vec3T<T>* a_coordScratch, T* a_valueScratch) const noexcept
 {
+  EBGEOMETRY_EXPECT(numCoordSlots > 0);
+  EBGEOMETRY_EXPECT(numValueSlots > 0);
+
   a_coordScratch[0] = a_point;
 
-  for (uint32_t i = 0; i < a_view.numClauses; i++) {
-    const TapeClause& c = a_view.clauses[i];
+  for (uint32_t i = 0; i < numClauses; i++) {
+    const TapeClause& c = clauses[i];
 
     switch (c.opcode) {
-#define EBGEOMETRY_TAPE_EVAL_LEAF(TAG, OP, MEMBER)                                           \
-  case Opcode::TAG:                                                                          \
-    a_valueScratch[c.out] = OP<T>::eval(a_view.MEMBER[c.paramIndex], a_coordScratch[c.in0]); \
+#define EBGEOMETRY_TAPE_EVAL_LEAF(TAG, OP, MEMBER)                                    \
+  case Opcode::TAG:                                                                   \
+    a_valueScratch[c.out] = OP<T>::eval(MEMBER[c.paramIndex], a_coordScratch[c.in0]); \
     break;
       EBGEOMETRY_TAPE_LEAF_OPS(EBGEOMETRY_TAPE_EVAL_LEAF)
 #undef EBGEOMETRY_TAPE_EVAL_LEAF
 
-#define EBGEOMETRY_TAPE_EVAL_MAPPOINT(TAG, OP, MEMBER)                                           \
-  case Opcode::TAG:                                                                              \
-    a_coordScratch[c.out] = OP<T>::mapPoint(a_view.MEMBER[c.paramIndex], a_coordScratch[c.in0]); \
+#define EBGEOMETRY_TAPE_EVAL_MAPPOINT(TAG, OP, MEMBER)                                    \
+  case Opcode::TAG:                                                                       \
+    a_coordScratch[c.out] = OP<T>::mapPoint(MEMBER[c.paramIndex], a_coordScratch[c.in0]); \
     break;
       EBGEOMETRY_TAPE_MAPPOINT_OPS(EBGEOMETRY_TAPE_EVAL_MAPPOINT)
 #undef EBGEOMETRY_TAPE_EVAL_MAPPOINT
 
-#define EBGEOMETRY_TAPE_EVAL_MAPVALUE(TAG, OP, MEMBER)                                           \
-  case Opcode::TAG:                                                                              \
-    a_valueScratch[c.out] = OP<T>::mapValue(a_view.MEMBER[c.paramIndex], a_valueScratch[c.in0]); \
+#define EBGEOMETRY_TAPE_EVAL_MAPVALUE(TAG, OP, MEMBER)                                    \
+  case Opcode::TAG:                                                                       \
+    a_valueScratch[c.out] = OP<T>::mapValue(MEMBER[c.paramIndex], a_valueScratch[c.in0]); \
     break;
       EBGEOMETRY_TAPE_MAPVALUE_OPS(EBGEOMETRY_TAPE_EVAL_MAPVALUE)
 #undef EBGEOMETRY_TAPE_EVAL_MAPVALUE
@@ -265,17 +270,16 @@ evaluate(const TapeView<T>& a_view, const Vec3T<T>& a_point, Vec3T<T>* a_coordSc
       EBGEOMETRY_TAPE_COMBINE_OPS(EBGEOMETRY_TAPE_EVAL_COMBINE)
 #undef EBGEOMETRY_TAPE_EVAL_COMBINE
 
-#define EBGEOMETRY_TAPE_EVAL_SMOOTH(TAG, OP)                                                        \
-  case Opcode::TAG:                                                                                 \
-    a_valueScratch[c.out] =                                                                         \
-      OP<T>::eval(a_valueScratch[c.in0], a_valueScratch[c.in1], a_view.scalarParams[c.paramIndex]); \
+#define EBGEOMETRY_TAPE_EVAL_SMOOTH(TAG, OP)                                                                       \
+  case Opcode::TAG:                                                                                                \
+    a_valueScratch[c.out] = OP<T>::eval(a_valueScratch[c.in0], a_valueScratch[c.in1], scalarParams[c.paramIndex]); \
     break;
       EBGEOMETRY_TAPE_SMOOTH_OPS(EBGEOMETRY_TAPE_EVAL_SMOOTH)
 #undef EBGEOMETRY_TAPE_EVAL_SMOOTH
 
     case Opcode::HOST_CALLBACK: {
 #ifndef EBGEOMETRY_DEVICE_COMPILE
-      a_valueScratch[c.out] = a_view.hostNodes[c.paramIndex]->value(a_coordScratch[c.in0]);
+      a_valueScratch[c.out] = hostNodes[c.paramIndex]->value(a_coordScratch[c.in0]);
 #else
       EBGEOMETRY_EXPECT(false && "HOST_CALLBACK clause is not evaluable on device");
 #endif
@@ -284,17 +288,44 @@ evaluate(const TapeView<T>& a_view, const Vec3T<T>& a_point, Vec3T<T>* a_coordSc
     }
   }
 
-  return a_valueScratch[a_view.rootValueSlot];
+  return a_valueScratch[rootValueSlot];
 }
 
 template <class T>
 T
-evaluate(const Tape<T>& a_tape, const Vec3T<T>& a_point)
+Tape<T>::value(const Vec3T<T>& a_point) const noexcept
 {
-  std::vector<Vec3T<T>> coordScratch(a_tape.getNumCoordSlots());
-  std::vector<T>        valueScratch(a_tape.getNumValueSlots());
+  // Per-thread scratch, only ever grown: queries are allocation-free after each thread's first
+  // call, and concurrent readers never share a buffer. The inUse flag guards re-entrancy: a
+  // HOST_CALLBACK clause calls back into arbitrary user code, and if that code evaluates a tape on
+  // this same thread the shared scratch would be resized/clobbered mid-pass -- so a nested call
+  // detects the live outer pass and falls back to fresh local buffers instead.
+  thread_local std::vector<Vec3T<T>> coordScratch;
+  thread_local std::vector<T>        valueScratch;
+  thread_local bool                  inUse = false;
 
-  return evaluate(a_tape.view(), a_point, coordScratch.data(), valueScratch.data());
+  if (inUse) {
+    std::vector<Vec3T<T>> localCoordScratch(m_numCoordSlots);
+    std::vector<T>        localValueScratch(m_numValueSlots);
+
+    return this->view().value(a_point, localCoordScratch.data(), localValueScratch.data());
+  }
+
+  if (coordScratch.size() < m_numCoordSlots) {
+    coordScratch.resize(m_numCoordSlots);
+  }
+
+  if (valueScratch.size() < m_numValueSlots) {
+    valueScratch.resize(m_numValueSlots);
+  }
+
+  inUse = true;
+
+  const T ret = this->view().value(a_point, coordScratch.data(), valueScratch.data());
+
+  inUse = false;
+
+  return ret;
 }
 
 // ── flatten() overrides ───────────────────────────────────────────────────────
@@ -443,8 +474,8 @@ DifferenceIF<T>::flatten(TapeBuilder<T>& a_builder, int a_coordSlot) const
 // SmoothIntersectionIF's m_smoothMax) that defaults to SmoothMin/SmoothMax but may be any callable --
 // including the enumerated ExpMin or an arbitrary user lambda. A std::function cannot be introspected
 // to recover which enumerated ISA op it is, so, per the project rule that user-supplied std::function
-// blends stay host-only, every smooth combiner lowers to an opaque host callback (keeping
-// evaluate == value exact for any operator, at the cost of device-eligibility). The SMOOTH_MIN/
+// blends stay host-only, every smooth combiner lowers to an opaque host callback (keeping tape
+// evaluation == value() exact for any operator, at the cost of device-eligibility). The SMOOTH_MIN/
 // SMOOTH_MAX/EXP_MIN opcodes remain the device ISA for blends emitted with a known operator (e.g. the
 // builder API directly, and the BVH smooth union of a later tier); they are not reachable from a
 // std::function-carrying node here.

@@ -98,6 +98,7 @@ using Meta = short;
                                                                                \
   /* -- Flat tape + interpreter -------------------------------------------*/ \
   template class Tape<PREC>;                                                 \
+  template struct TapeView<PREC>;                                            \
   template class TapeBuilder<PREC>;                                          \
                                                                                \
   /* -- Transformation implicit functions ----------------------------------*/\
@@ -186,11 +187,12 @@ instantiateFunctionTemplates()
   (void)VTK<T>().template convertToDCEL<Meta>();
   (void)OBJ<T>().template convertToDCEL<Meta>();
 
-  // Free tape functions (flatten/evaluate) are not reached by explicit class instantiation, so
-  // odr-use them here over a small sphere so both precisions are analysed.
+  // The free tape compiler is not reached by explicit class instantiation, so odr-use it here
+  // over a small sphere so both precisions are analysed (Tape::value / TapeView::value are covered
+  // by the explicit Tape/TapeView instantiations above).
   const SphereSDF<T> sphere;
-  const Tape<T>      tape = EBGeometry::flatten<T>(sphere);
-  (void)EBGeometry::evaluate<T>(tape, Vec3T<T>::zeros());
+  const Tape<T>      tape = EBGeometry::compile<T>(sphere);
+  (void)tape.value(Vec3T<T>::zeros());
 }
 
 template void
