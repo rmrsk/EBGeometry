@@ -3,6 +3,12 @@
 Language:        Cpp
 AccessModifierOffset: -2
 AlignAfterOpenBracket: Align
+AttributeMacros:
+  - EBGEOMETRY_HOST_DEVICE
+  - EBGEOMETRY_DEVICE
+  - EBGEOMETRY_HOST
+  - EBGEOMETRY_GLOBAL
+  - EBGEOMETRY_INLINE
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
 AlignEscapedNewlinesLeft: false

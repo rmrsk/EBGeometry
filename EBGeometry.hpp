@@ -19,6 +19,7 @@
 #include "Source/EBGeometry_DCEL_Iterator.hpp"
 #include "Source/EBGeometry_DCEL_Mesh.hpp"
 #include "Source/EBGeometry_DCEL_Vertex.hpp"
+#include "Source/EBGeometry_GPU.hpp"
 #include "Source/EBGeometry_ImplicitFunction.hpp"
 #include "Source/EBGeometry_Macros.hpp"
 #include "Source/EBGeometry_MeshDistanceFunctions.hpp"
