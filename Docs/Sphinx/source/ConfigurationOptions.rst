@@ -135,7 +135,7 @@ transitively) includes ``EBGeometry_Macros.hpp``, which is pulled in automatical
    #include <type_traits>
 
    template <class T>
-   class MySDF : public EBGeometry::SignedDistanceFunction<T>
+   class MySDF : public EBGeometry::ImplicitFunction<T>
    {
    public:
      static_assert(std::is_floating_point_v<T>, "MySDF requires a floating-point type T");

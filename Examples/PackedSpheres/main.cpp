@@ -22,7 +22,7 @@ using T = EBGEOMETRY_PRECISION;
 // Aliases for cutting down on typing.
 using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Vec3   = EBGeometry::Vec3T<T>;
-using SDF    = EBGeometry::SignedDistanceFunction<T>;
+using SDF    = EBGeometry::ImplicitFunction<T>;
 using Sphere = EBGeometry::SphereSDF<T>;
 
 using namespace std::chrono_literals;

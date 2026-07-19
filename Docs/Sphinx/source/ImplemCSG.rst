@@ -42,31 +42,36 @@ For the full API (including the exact parameters and defaults of
 ``approximateBoundingVolumeOctree``), see the Doxygen page for
 `ImplicitFunction <doxygen/html/classEBGeometry_1_1ImplicitFunction.html>`__.
 
-SignedDistanceFunction
------------------------
+Signed distance functions
+-------------------------
 
-``SignedDistanceFunction<T>`` (:file:`Source/EBGeometry_SignedDistanceFunction.hpp`) inherits
-from ``ImplicitFunction<T>`` and refines its contract, without adding to the public ``value()``
-interface itself: it implements ``value()`` (marked ``final``) to delegate to a new pure virtual
-member function, ``signedDistance(point)``, which subclasses must implement instead. The
-distinction is one of guarantee rather than signature -- an arbitrary ``ImplicitFunction<T>``
-only promises that the sign of its output indicates inside/outside, whereas a
-``SignedDistanceFunction<T>`` additionally promises that the *magnitude* of its output is the
-true Euclidean distance to the surface (the Eikonal property, :math:`|\nabla S| = 1`; see
-:ref:`Chap:GeometryRepresentations` for why this property matters). Every analytic shape and
-mesh distance field shipped with EBGeometry is a ``SignedDistanceFunction<T>``.
+Some implicit functions additionally satisfy the *signed distance* contract: the *magnitude* of
+their output is the true Euclidean distance to the surface (the Eikonal property,
+:math:`|\nabla S| = 1`; see :ref:`Chap:GeometryRepresentations` for why this property matters),
+not merely a value whose sign indicates inside/outside. Rather than a separate base class, this
+guarantee is carried by a boolean flag on ``ImplicitFunction<T>`` itself: the protected member
+``m_sdf`` (queried through ``isSignedDistance()``) records whether a given instance is a true
+signed distance function. Every analytic shape and mesh distance field shipped with EBGeometry
+sets it to ``true``.
 
-Because the true distance is available, ``SignedDistanceFunction<T>`` also provides a concrete
-``normal(point, delta)`` member function that estimates the outward unit normal from central
-finite differences of ``signedDistance`` with step size ``delta`` -- something that cannot be
-done reliably from an arbitrary implicit function's value alone.
+The finite-difference ``normal(point, delta)`` member function -- which estimates the outward
+unit normal from central differences of ``value()`` with step size ``delta`` -- lives directly on
+``ImplicitFunction<T>`` and is therefore available on every implicit function, not just true
+signed distance functions.
+
+The analytic primitives are expressed as *trait-based leaves*: a distance-formula trait
+``XxxOp<T>`` holds the closed-form math in exactly one place (its ``eval``), and the named class
+(``SphereSDF``, ``BoxSDF``, ...) is a thin wrapper deriving from ``ImplicitFunction<T, XxxOp<T>>``
+whose ``value()`` simply forwards to ``XxxOp<T>::eval``. The type-erased base every
+``shared_ptr<ImplicitFunction<T>>`` refers to is the partial specialization
+``ImplicitFunction<T, void>``.
 
 For the full API, see the Doxygen page for
-`SignedDistanceFunction <doxygen/html/classEBGeometry_1_1SignedDistanceFunction.html>`__.
+`ImplicitFunction <doxygen/html/classEBGeometry_1_1ImplicitFunction_3_01T_00_01void_01_4.html>`__.
 
 .. tip::
 
-   Various ready-to-use implementations of both interfaces are declared in
+   Various ready-to-use implementations are declared in
    :file:`Source/EBGeometry_AnalyticDistanceFunctions.hpp` (spheres, boxes, planes, cylinders,
    tori, and other closed-form primitives) and in
    :file:`Source/EBGeometry_MeshDistanceFunctions.hpp` (the DCEL/triangle-mesh-backed classes

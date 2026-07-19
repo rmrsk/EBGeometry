@@ -1006,20 +1006,20 @@ TEMPLATE_TEST_CASE("MeshSDF: tetrahedron signed distances", "[DCEL][MeshSDF]", E
 
   SECTION("centroid is inside (SDF < 0)")
   {
-    const T d = sdf.signedDistance(Vec3T<T>(0.25, 0.25, 0.25));
+    const T d = sdf.value(Vec3T<T>(0.25, 0.25, 0.25));
     REQUIRE(d < T(0.0));
   }
 
   SECTION("exterior point has positive SDF")
   {
-    const T d = sdf.signedDistance(Vec3T<T>(2.0, 2.0, 2.0));
+    const T d = sdf.value(Vec3T<T>(2.0, 2.0, 2.0));
     REQUIRE(d > T(0.0));
   }
 
   SECTION("point on a face centroid is near-zero")
   {
     // Bottom face (z=0): vertices (0,0,0),(0,1,0),(1,0,0), centroid = (1/3, 1/3, 0)
-    const T d = sdf.signedDistance(Vec3T<T>(1.0 / 3.0, 1.0 / 3.0, 0.0));
+    const T d = sdf.value(Vec3T<T>(1.0 / 3.0, 1.0 / 3.0, 0.0));
     REQUIRE_THAT(d, withinAbsT(T(0.0), formulaMargin<T>()));
   }
 }
@@ -1049,7 +1049,7 @@ TEMPLATE_TEST_CASE("MeshSDF::getClosestFaces returns face indices sorted by asce
 
   // The closest face reported must be consistent with the scalar signed-distance query.
   const T closestUnsignedDist = sorted.front().second;
-  REQUIRE_THAT(closestUnsignedDist, withinAbsT(std::abs(sdf.signedDistance(p)), formulaMargin<T>()));
+  REQUIRE_THAT(closestUnsignedDist, withinAbsT(std::abs(sdf.value(p)), formulaMargin<T>()));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1065,11 +1065,11 @@ TEMPLATE_TEST_CASE("DCEL sign convention: exterior point has positive SDF", "[DC
   TestMeshSDF<T> sdf(mesh, BVH::Build::SAH);
 
   // Far outside: must be positive.
-  REQUIRE(sdf.signedDistance(Vec3T<T>(2.0, 2.0, 2.0)) > T(0.0));
+  REQUIRE(sdf.value(Vec3T<T>(2.0, 2.0, 2.0)) > T(0.0));
   // Outside along each axis.
-  REQUIRE(sdf.signedDistance(Vec3T<T>(-1.0, 0.0, 0.0)) > T(0.0));
-  REQUIRE(sdf.signedDistance(Vec3T<T>(0.0, -1.0, 0.0)) > T(0.0));
-  REQUIRE(sdf.signedDistance(Vec3T<T>(0.0, 0.0, -1.0)) > T(0.0));
+  REQUIRE(sdf.value(Vec3T<T>(-1.0, 0.0, 0.0)) > T(0.0));
+  REQUIRE(sdf.value(Vec3T<T>(0.0, -1.0, 0.0)) > T(0.0));
+  REQUIRE(sdf.value(Vec3T<T>(0.0, 0.0, -1.0)) > T(0.0));
 }
 
 TEMPLATE_TEST_CASE("DCEL sign convention: interior point has negative SDF", "[DCEL][sign]", EBGEOMETRY_TEST_PRECISIONS)
@@ -1079,7 +1079,7 @@ TEMPLATE_TEST_CASE("DCEL sign convention: interior point has negative SDF", "[DC
   TestMeshSDF<T> sdf(mesh, BVH::Build::SAH);
 
   // Centroid of the tetrahedron is clearly inside.
-  REQUIRE(sdf.signedDistance(Vec3T<T>(0.25, 0.25, 0.25)) < T(0.0));
+  REQUIRE(sdf.value(Vec3T<T>(0.25, 0.25, 0.25)) < T(0.0));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1106,13 +1106,13 @@ TEMPLATE_TEST_CASE("FastTriMeshSDF: matches MeshSDF for tetrahedron",
   };
 
   for (const auto& q : queries) {
-    const T dBrute = mesh->signedDistance(q);
-    const T dFast  = fast->signedDistance(q);
+    const T dBrute = mesh->value(q);
+    const T dFast  = fast->value(q);
     REQUIRE_THAT(dFast, WithinRel(dBrute, T(traversalMargin<T>())));
   }
 
   // Edge point: both should be near-zero
-  const T dEdgeBrute = mesh->signedDistance(Vec3T<T>(0.5, 0.0, 0.0));
-  const T dEdgeFast  = fast->signedDistance(Vec3T<T>(0.5, 0.0, 0.0));
+  const T dEdgeBrute = mesh->value(Vec3T<T>(0.5, 0.0, 0.0));
+  const T dEdgeFast  = fast->value(Vec3T<T>(0.5, 0.0, 0.0));
   REQUIRE_THAT(dEdgeFast, withinAbsT(dEdgeBrute, traversalMargin<T>()));
 }

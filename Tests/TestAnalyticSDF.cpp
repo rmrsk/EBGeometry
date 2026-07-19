@@ -26,17 +26,17 @@ TEMPLATE_TEST_CASE("SphereSDF: exact signed distances", "[SphereSDF]", EBGEOMETR
   const SphereSDF<T> sphere(center, T(1.0));
 
   // On the surface
-  REQUIRE_THAT(sphere.signedDistance(Vec3T<T>(1, 0, 0)), WithinAbs(0.0, looseMargin<T>()));
-  REQUIRE_THAT(sphere.signedDistance(Vec3T<T>(-1, 0, 0)), WithinAbs(0.0, looseMargin<T>()));
+  REQUIRE_THAT(sphere.value(Vec3T<T>(1, 0, 0)), WithinAbs(0.0, looseMargin<T>()));
+  REQUIRE_THAT(sphere.value(Vec3T<T>(-1, 0, 0)), WithinAbs(0.0, looseMargin<T>()));
 
   // Outside: positive distance
-  REQUIRE_THAT(sphere.signedDistance(Vec3T<T>(2, 0, 0)), WithinRel(T(1.0)));
-  REQUIRE_THAT(sphere.signedDistance(Vec3T<T>(0, 3, 0)), WithinRel(T(2.0)));
+  REQUIRE_THAT(sphere.value(Vec3T<T>(2, 0, 0)), WithinRel(T(1.0)));
+  REQUIRE_THAT(sphere.value(Vec3T<T>(0, 3, 0)), WithinRel(T(2.0)));
 
   // Inside: negative distance
-  REQUIRE(sphere.signedDistance(Vec3T<T>(0, 0, 0)) < T(0.0));
-  REQUIRE_THAT(sphere.signedDistance(Vec3T<T>(0, 0, 0)), WithinRel(T(-1.0)));
-  REQUIRE_THAT(sphere.signedDistance(Vec3T<T>(0.5, 0, 0)), WithinRel(T(-0.5)));
+  REQUIRE(sphere.value(Vec3T<T>(0, 0, 0)) < T(0.0));
+  REQUIRE_THAT(sphere.value(Vec3T<T>(0, 0, 0)), WithinRel(T(-1.0)));
+  REQUIRE_THAT(sphere.value(Vec3T<T>(0.5, 0, 0)), WithinRel(T(-0.5)));
 }
 
 TEMPLATE_TEST_CASE("SphereSDF: off-centre sphere", "[SphereSDF]", EBGEOMETRY_TEST_PRECISIONS)
@@ -46,10 +46,10 @@ TEMPLATE_TEST_CASE("SphereSDF: off-centre sphere", "[SphereSDF]", EBGEOMETRY_TES
   SphereSDF<T> sphere(Vec3T<T>(1, 2, 3), T(2.0));
 
   // Point at centre
-  REQUIRE_THAT(sphere.signedDistance(Vec3T<T>(1, 2, 3)), WithinRel(T(-2.0)));
+  REQUIRE_THAT(sphere.value(Vec3T<T>(1, 2, 3)), WithinRel(T(-2.0)));
 
   // Point on surface along x
-  REQUIRE_THAT(sphere.signedDistance(Vec3T<T>(3, 2, 3)), WithinAbs(0.0, looseMargin<T>()));
+  REQUIRE_THAT(sphere.value(Vec3T<T>(3, 2, 3)), WithinAbs(0.0, looseMargin<T>()));
 
   // Getters
   REQUIRE(sphere.getCenter()[0] == T(1.0));
@@ -67,9 +67,9 @@ TEMPLATE_TEST_CASE("PlaneSDF: signed distances from xy-plane", "[PlaneSDF]", EBG
   // Plane z = 0 with outward normal +z
   const PlaneSDF<T> plane(Vec3T<T>(0, 0, 0), Vec3T<T>(0, 0, 1));
 
-  REQUIRE_THAT(plane.signedDistance(Vec3T<T>(0, 0, 3)), WithinRel(T(3.0)));
-  REQUIRE_THAT(plane.signedDistance(Vec3T<T>(0, 0, -2)), WithinRel(T(-2.0)));
-  REQUIRE_THAT(plane.signedDistance(Vec3T<T>(5, 7, 0)), WithinAbs(0.0, looseMargin<T>()));
+  REQUIRE_THAT(plane.value(Vec3T<T>(0, 0, 3)), WithinRel(T(3.0)));
+  REQUIRE_THAT(plane.value(Vec3T<T>(0, 0, -2)), WithinRel(T(-2.0)));
+  REQUIRE_THAT(plane.value(Vec3T<T>(5, 7, 0)), WithinAbs(0.0, looseMargin<T>()));
 }
 
 TEMPLATE_TEST_CASE("PlaneSDF: non-unit normal is normalised", "[PlaneSDF]", EBGEOMETRY_TEST_PRECISIONS)
@@ -80,7 +80,7 @@ TEMPLATE_TEST_CASE("PlaneSDF: non-unit normal is normalised", "[PlaneSDF]", EBGE
   const PlaneSDF<T> plane(Vec3T<T>(0, 0, 0), Vec3T<T>(2, 0, 0));
 
   // Point at (3, 0, 0): distance = 3 (along +x)
-  REQUIRE_THAT(plane.signedDistance(Vec3T<T>(3, 0, 0)), WithinRel(T(3.0)));
+  REQUIRE_THAT(plane.value(Vec3T<T>(3, 0, 0)), WithinRel(T(3.0)));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -94,18 +94,18 @@ TEMPLATE_TEST_CASE("BoxSDF: axis-aligned unit box", "[BoxSDF]", EBGEOMETRY_TEST_
   const BoxSDF<T> box(Vec3T<T>(-1, -1, -1), Vec3T<T>(1, 1, 1));
 
   // Inside: negative SDF
-  REQUIRE(box.signedDistance(Vec3T<T>(0, 0, 0)) < T(0.0));
-  REQUIRE_THAT(box.signedDistance(Vec3T<T>(0, 0, 0)), WithinRel(T(-1.0)));
+  REQUIRE(box.value(Vec3T<T>(0, 0, 0)) < T(0.0));
+  REQUIRE_THAT(box.value(Vec3T<T>(0, 0, 0)), WithinRel(T(-1.0)));
 
   // On a face: zero SDF
-  REQUIRE_THAT(box.signedDistance(Vec3T<T>(1, 0, 0)), WithinAbs(0.0, looseMargin<T>()));
+  REQUIRE_THAT(box.value(Vec3T<T>(1, 0, 0)), WithinAbs(0.0, looseMargin<T>()));
 
   // Outside along one axis: positive SDF
-  REQUIRE_THAT(box.signedDistance(Vec3T<T>(3, 0, 0)), WithinRel(T(2.0)));
+  REQUIRE_THAT(box.value(Vec3T<T>(3, 0, 0)), WithinRel(T(2.0)));
 
   // Outside near a corner
   // Point (2, 2, 0): distance = sqrt(1+1) = sqrt(2)
-  REQUIRE_THAT(box.signedDistance(Vec3T<T>(2, 2, 0)), WithinRel(std::sqrt(T(2.0)), T(1.0e-4)));
+  REQUIRE_THAT(box.value(Vec3T<T>(2, 2, 0)), WithinRel(std::sqrt(T(2.0)), T(1.0e-4)));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -120,16 +120,16 @@ TEMPLATE_TEST_CASE("CylinderSDF: unit cylinder along z-axis", "[CylinderSDF]", E
   const CylinderSDF<T> cyl(Vec3T<T>(0, 0, -1), Vec3T<T>(0, 0, 1), T(1.0));
 
   // Centre of cylinder is inside
-  REQUIRE(cyl.signedDistance(Vec3T<T>(0, 0, 0)) < T(0.0));
+  REQUIRE(cyl.value(Vec3T<T>(0, 0, 0)) < T(0.0));
 
   // Point on the curved surface
-  REQUIRE_THAT(cyl.signedDistance(Vec3T<T>(1, 0, 0)), WithinAbs(0.0, looseMargin<T>()));
+  REQUIRE_THAT(cyl.value(Vec3T<T>(1, 0, 0)), WithinAbs(0.0, looseMargin<T>()));
 
   // Outside radially
-  REQUIRE(cyl.signedDistance(Vec3T<T>(3, 0, 0)) > T(0.0));
+  REQUIRE(cyl.value(Vec3T<T>(3, 0, 0)) > T(0.0));
 
   // Outside axially beyond cap
-  REQUIRE(cyl.signedDistance(Vec3T<T>(0, 0, 3)) > T(0.0));
+  REQUIRE(cyl.value(Vec3T<T>(0, 0, 3)) > T(0.0));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -144,13 +144,41 @@ TEMPLATE_TEST_CASE("TorusSDF: point on surface", "[TorusSDF]", EBGEOMETRY_TEST_P
   const TorusSDF<T> torus(Vec3T<T>(0, 0, 0), T(2.0), T(0.5));
 
   // Point on surface: along +x from tube centre (major_radius + minor_radius, 0, 0)
-  REQUIRE_THAT(torus.signedDistance(Vec3T<T>(2.5, 0, 0)), WithinAbs(0.0, looseMargin<T>()));
+  REQUIRE_THAT(torus.value(Vec3T<T>(2.5, 0, 0)), WithinAbs(0.0, looseMargin<T>()));
 
   // Point inside the tube
-  REQUIRE(torus.signedDistance(Vec3T<T>(2.0, 0, 0)) < T(0.0));
+  REQUIRE(torus.value(Vec3T<T>(2.0, 0, 0)) < T(0.0));
 
   // Point at the origin: outside the torus
-  REQUIRE(torus.signedDistance(Vec3T<T>(0, 0, 0)) > T(0.0));
+  REQUIRE(torus.value(Vec3T<T>(0, 0, 0)) > T(0.0));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Traits: single-source-of-truth check that XxxOp::eval matches the named class's value()
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEMPLATE_TEST_CASE("SphereOp::eval equals SphereSDF::value", "[SphereSDF][Traits]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const SphereSDF<T>                 sphere(Vec3T<T>(1, 2, 3), T(2.0));
+  const typename SphereOp<T>::Params params{Vec3T<T>(1, 2, 3), T(2.0)};
+
+  for (const Vec3T<T>& p : {Vec3T<T>(0, 0, 0), Vec3T<T>(1, 2, 3), Vec3T<T>(3, 2, 3), Vec3T<T>(-4, 5, 6)}) {
+    REQUIRE_THAT(SphereOp<T>::eval(params, p), withinAbsT(sphere.value(p), tightMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("BoxOp::eval equals BoxSDF::value", "[BoxSDF][Traits]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const BoxSDF<T>                 box(Vec3T<T>(-1, -1, -1), Vec3T<T>(1, 1, 1));
+  const typename BoxOp<T>::Params params{Vec3T<T>(-1, -1, -1), Vec3T<T>(1, 1, 1)};
+
+  for (const Vec3T<T>& p : {Vec3T<T>(0, 0, 0), Vec3T<T>(1, 0, 0), Vec3T<T>(3, 0, 0), Vec3T<T>(2, 2, 0)}) {
+    REQUIRE_THAT(BoxOp<T>::eval(params, p), withinAbsT(box.value(p), tightMargin<T>()));
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

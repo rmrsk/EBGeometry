@@ -27,7 +27,7 @@ The template parameters shared by both are:
    ``PackedBVH`` holds primitives opaquely, handing them back only to whatever leaf-visit
    callback a caller supplies to ``traverse()`` or ``pruneTraverse()`` (see below). Whether
    ``P`` needs a ``signedDistance(Vec3T<T>)`` member (or anything else) is entirely up to that
-   callback -- see ``MeshSDF``/``TriMeshSDF::signedDistance()`` in :ref:`Chap:MeshSDFClasses` for
+   callback -- see ``MeshSDF``/``TriMeshSDF::value()`` in :ref:`Chap:MeshSDFClasses` for
    the signed-distance case; a callback could equally perform, say, a nearest-neighbor search over
    a point cloud whose primitive carries no ``signedDistance()`` at all.
 *  ``BV`` Bounding volume type (``TreeBVH`` only — ``PackedBVH`` always uses
@@ -463,7 +463,7 @@ Splitting the pruning rule apart from the leaf-eval like this is what lets a pri
 notion of "signed distance" reuse the same SIMD box test: a nearest-neighbor search over a point
 cloud can track a plain running squared distance as its ``State`` (no ``abs()``, no extra
 squaring, no square root anywhere in the hot path) with a pruning rule that returns the state
-unchanged, whereas ``MeshSDF``/``TriMeshSDF::signedDistance()`` (see :ref:`Chap:MeshSDFClasses`)
+unchanged, whereas ``MeshSDF``/``TriMeshSDF::value()`` (see :ref:`Chap:MeshSDFClasses`)
 track a signed distance and square its magnitude for the bound -- both are ordinary
 instantiations of the same ``pruneTraverse()``, not special cases hardcoded into ``PackedBVH``.
 The former needs nothing more than a bare point struct with no ``signedDistance()`` member at all,
@@ -487,7 +487,7 @@ The DCEL mesh distance fields use a traversal pattern based on
 * When visiting a subtree, investigate the closest bounding volume first.
 * When visiting a leaf node, check if the primitives are closer than the minimum distance computed so far.
 
-``MeshSDF::signedDistance()`` implements these rules directly as the four traversal callbacks:
+``MeshSDF::value()`` implements these rules directly as the four traversal callbacks:
 the leaf-evaluator scans a leaf's faces and keeps the signed distance with the smallest magnitude seen so
 far; the prune-predicate prunes any node whose bounding-volume distance already exceeds that magnitude;
 the child-orderer visits the closest child first; and the node-key-factory supplies each node's distance to
@@ -549,7 +549,7 @@ BVH type, and supported geometry:
 ``FlatMeshSDF`` is useful for correctness checks and tiny meshes. See `its doxygen page
 <doxygen/html/classEBGeometry_1_1FlatMeshSDF.html>`__.
 
-``MeshSDF`` handles arbitrary polygon meshes; its ``signedDistance()`` builds the traversal
+``MeshSDF`` handles arbitrary polygon meshes; its ``value()`` builds the traversal
 criteria shown above (a leaf-eval and a pruning rule, not the full four-callback ``traverse()``
 shape) and drives them through ``PackedBVH::pruneTraverse()``, picking up SIMD node pruning
 whenever ``(K, T)`` matches a compiled ISA path and falling back to the generic, scalar
@@ -572,7 +572,7 @@ metadata through the SIMD SoA path -- the supported route when you need both max
 and per-triangle metadata retrieval. Each leaf group is a ``TriangleAoSoA<T, Meta, W>``: a
 geometry-only ``TriangleSoAT<T, W>`` plus a physically-separate per-lane ``std::array<Meta, W>`` (the
 same metadata-carrying wrapper relationship ``PointAoSoA`` has with ``PointSoAT``). The hot
-``signedDistance()`` path never reads the metadata array; only ``getClosestTriangle()`` does, taking a
+``value()`` path never reads the metadata array; only ``getClosestTriangle()`` does, taking a
 scalar per-lane step to recover the winning lane. See `the doxygen page for TriangleAoSoA
 <doxygen/html/structEBGeometry_1_1TriangleAoSoA.html>`__.
 

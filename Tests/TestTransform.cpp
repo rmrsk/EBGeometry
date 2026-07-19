@@ -102,7 +102,7 @@ TEMPLATE_TEST_CASE("ComplementIF: value is the negation of the wrapped function"
   ComplementIF<T> comp(sphere);
 
   for (const auto& p : samplePoints<T>()) {
-    REQUIRE_THAT(comp.value(p), withinAbsT(-sphere->signedDistance(p), exactMargin<T>()));
+    REQUIRE_THAT(comp.value(p), withinAbsT(-sphere->value(p), exactMargin<T>()));
   }
 
   // Inside the sphere becomes "outside" the complement, and vice versa.
@@ -144,7 +144,7 @@ TEMPLATE_TEST_CASE("TranslateIF: matches an equivalent sphere built directly at 
   const TranslateIF<T> translated(sphereAtOrigin, shift);
 
   for (const auto& p : samplePoints<T>()) {
-    REQUIRE_THAT(translated.value(p), withinAbsT(sphereAtShift.signedDistance(p), exactMargin<T>()));
+    REQUIRE_THAT(translated.value(p), withinAbsT(sphereAtShift.value(p), exactMargin<T>()));
   }
 
   // The translated sphere's center is now at `shift`, so that point is the deepest interior point.
@@ -183,7 +183,7 @@ TEMPLATE_TEST_CASE("RotateIF: a full 360-degree rotation is the identity",
     const RotateIF<T> full(box, T(360), axis);
 
     for (const auto& p : samplePoints<T>()) {
-      REQUIRE_THAT(full.value(p), withinAbsT(box->signedDistance(p), formulaMargin<T>()));
+      REQUIRE_THAT(full.value(p), withinAbsT(box->value(p), formulaMargin<T>()));
     }
   }
 }
@@ -202,7 +202,7 @@ TEMPLATE_TEST_CASE("RotateIF: composing a rotation with its inverse is the ident
     const RotateIF<T> roundTrip(rotated, T(-37), axis);
 
     for (const auto& p : samplePoints<T>()) {
-      REQUIRE_THAT(roundTrip.value(p), withinAbsT(box->signedDistance(p), formulaMargin<T>()));
+      REQUIRE_THAT(roundTrip.value(p), withinAbsT(box->value(p), formulaMargin<T>()));
     }
   }
 }
@@ -222,10 +222,10 @@ TEMPLATE_TEST_CASE("RotateIF: rotating a long-in-x box by 90 degrees about z swa
   // (1.5, 0, 0) is inside the original box (|x|=1.5 < 2) but would be outside a box that's only
   // long in y (half-extent 1 along x). After a 90-degree rotation about z, evaluating the rotated
   // shape at (1.5, 0, 0) must match evaluating the ORIGINAL box at (0, 1.5, 0) (its long axis).
-  REQUIRE_THAT(rotated.value(Vec3(1.5, 0, 0)), withinAbsT(box->signedDistance(Vec3(0, 1.5, 0)), formulaMargin<T>()));
+  REQUIRE_THAT(rotated.value(Vec3(1.5, 0, 0)), withinAbsT(box->value(Vec3(0, 1.5, 0)), formulaMargin<T>()));
 
   // Conversely, (0, 1.5, 0) on the rotated shape must match the original box's short-axis value.
-  REQUIRE_THAT(rotated.value(Vec3(0, 1.5, 0)), withinAbsT(box->signedDistance(Vec3(-1.5, 0, 0)), formulaMargin<T>()));
+  REQUIRE_THAT(rotated.value(Vec3(0, 1.5, 0)), withinAbsT(box->value(Vec3(-1.5, 0, 0)), formulaMargin<T>()));
 }
 
 TEMPLATE_TEST_CASE("Rotate: free function matches RotateIF", "[Transform][Rotate]", EBGEOMETRY_TEST_PRECISIONS)
@@ -261,7 +261,7 @@ TEMPLATE_TEST_CASE("ScaleIF: matches an equivalent sphere built directly with th
   const ScaleIF<T> scaled(unitSphere, scale);
 
   for (const auto& p : samplePoints<T>()) {
-    REQUIRE_THAT(scaled.value(p), withinAbsT(bigSphere.signedDistance(p), exactMargin<T>()));
+    REQUIRE_THAT(scaled.value(p), withinAbsT(bigSphere.value(p), exactMargin<T>()));
   }
 }
 
@@ -299,7 +299,7 @@ TEMPLATE_TEST_CASE("OffsetIF: matches an equivalent sphere built directly with t
   const OffsetIF<T> offsetted(unitSphere, offset);
 
   for (const auto& p : samplePoints<T>()) {
-    REQUIRE_THAT(offsetted.value(p), withinAbsT(grownSphere.signedDistance(p), exactMargin<T>()));
+    REQUIRE_THAT(offsetted.value(p), withinAbsT(grownSphere.value(p), exactMargin<T>()));
   }
 }
 
@@ -345,7 +345,7 @@ TEMPLATE_TEST_CASE("AnnularIF: hollows out a shell of the requested thickness",
 
   // Matches std::abs(sphere) - delta everywhere.
   for (const auto& p : samplePoints<T>()) {
-    REQUIRE_THAT(shell.value(p), withinAbsT(std::abs(sphere->signedDistance(p)) - delta, exactMargin<T>()));
+    REQUIRE_THAT(shell.value(p), withinAbsT(std::abs(sphere->value(p)) - delta, exactMargin<T>()));
   }
 }
 
@@ -377,7 +377,7 @@ TEMPLATE_TEST_CASE("BlurIF: alpha = 1 (no blur) reproduces the wrapped function 
   const BlurIF<T> noBlur(sphere, T(0.3), T(1.0));
 
   for (const auto& p : samplePoints<T>()) {
-    REQUIRE_THAT(noBlur.value(p), withinAbsT(sphere->signedDistance(p), exactMargin<T>()));
+    REQUIRE_THAT(noBlur.value(p), withinAbsT(sphere->value(p), exactMargin<T>()));
   }
 }
 
@@ -426,7 +426,7 @@ TEMPLATE_TEST_CASE("MollifyIF: a_maxValue = 0 disables smoothing and reproduces 
   const MollifyIF<T> noSmoothing(sphere, mollifier, T(0.0), 4);
 
   for (const auto& p : samplePoints<T>()) {
-    REQUIRE_THAT(noSmoothing.value(p), withinAbsT(sphere->signedDistance(p), exactMargin<T>()));
+    REQUIRE_THAT(noSmoothing.value(p), withinAbsT(sphere->value(p), exactMargin<T>()));
   }
 }
 
@@ -442,7 +442,7 @@ TEMPLATE_TEST_CASE("MollifyIF: a_numPoints <= 1 disables smoothing and reproduce
   const MollifyIF<T> noSmoothing(sphere, mollifier, T(0.5), 1);
 
   for (const auto& p : samplePoints<T>()) {
-    REQUIRE_THAT(noSmoothing.value(p), withinAbsT(sphere->signedDistance(p), exactMargin<T>()));
+    REQUIRE_THAT(noSmoothing.value(p), withinAbsT(sphere->value(p), exactMargin<T>()));
   }
 }
 
@@ -478,7 +478,7 @@ TEMPLATE_TEST_CASE("Mollify: free function matches MollifyIF", "[Transform][Moll
   // a hand-picked mollifier here.
   for (const auto& p : samplePoints<T>()) {
     REQUIRE(std::isfinite(freeFunc->value(p)));
-    REQUIRE_THAT(freeFunc->value(p), withinAbsT(sphere->signedDistance(p), 0.5));
+    REQUIRE_THAT(freeFunc->value(p), withinAbsT(sphere->value(p), 0.5));
   }
 }
 
@@ -503,18 +503,17 @@ TEMPLATE_TEST_CASE("ElongateIF: matches an equivalent capsule-like union built f
   const ElongateIF<T> elongated(sphere, elongation);
 
   // At the shape's own center: clamp(0, -e, e) = 0, so value equals the base sphere's own center value.
-  REQUIRE_THAT(elongated.value(Vec3::zeros()), withinAbsT(sphere->signedDistance(Vec3::zeros()), exactMargin<T>()));
+  REQUIRE_THAT(elongated.value(Vec3::zeros()), withinAbsT(sphere->value(Vec3::zeros()), exactMargin<T>()));
 
   // Beyond the elongated tip (x = 3): clamp(3, -1.5, 1.5) = 1.5, so this matches a sphere
   // translated to (1.5, 0, 0) evaluated at (3, 0, 0).
   const Sphere<T> tipSphere(Vec3(1.5, 0, 0), T(1));
-  REQUIRE_THAT(elongated.value(Vec3(3, 0, 0)), withinAbsT(tipSphere.signedDistance(Vec3(3, 0, 0)), exactMargin<T>()));
+  REQUIRE_THAT(elongated.value(Vec3(3, 0, 0)), withinAbsT(tipSphere.value(Vec3(3, 0, 0)), exactMargin<T>()));
 
   // Directly above the elongated "barrel" (not past either tip): clamp(0.5, -1.5, 1.5) = 0.5,
   // matching a sphere translated to (0.5, 0, 0).
   const Sphere<T> midSphere(Vec3(0.5, 0, 0), T(1));
-  REQUIRE_THAT(elongated.value(Vec3(0.5, 1.5, 0)),
-               withinAbsT(midSphere.signedDistance(Vec3(0.5, 1.5, 0)), exactMargin<T>()));
+  REQUIRE_THAT(elongated.value(Vec3(0.5, 1.5, 0)), withinAbsT(midSphere.value(Vec3(0.5, 1.5, 0)), exactMargin<T>()));
 }
 
 TEMPLATE_TEST_CASE("Elongate: free function matches ElongateIF", "[Transform][Elongate]", EBGEOMETRY_TEST_PRECISIONS)
@@ -549,21 +548,21 @@ TEMPLATE_TEST_CASE("ReflectIF: matches an equivalent sphere built directly at th
   const ReflectIF<T> reflectedX(offsetSphere, size_t(0));
   const Sphere<T>    mirroredX(Vec3(-2, 3, -1), T(1));
   for (const auto& p : samplePoints<T>()) {
-    REQUIRE_THAT(reflectedX.value(p), withinAbsT(mirroredX.signedDistance(p), exactMargin<T>()));
+    REQUIRE_THAT(reflectedX.value(p), withinAbsT(mirroredX.value(p), exactMargin<T>()));
   }
 
   // Reflecting across the xz-plane (plane 1) flips y.
   const ReflectIF<T> reflectedY(offsetSphere, size_t(1));
   const Sphere<T>    mirroredY(Vec3(2, -3, -1), T(1));
   for (const auto& p : samplePoints<T>()) {
-    REQUIRE_THAT(reflectedY.value(p), withinAbsT(mirroredY.signedDistance(p), exactMargin<T>()));
+    REQUIRE_THAT(reflectedY.value(p), withinAbsT(mirroredY.value(p), exactMargin<T>()));
   }
 
   // Reflecting across the xy-plane (plane 2) flips z.
   const ReflectIF<T> reflectedZ(offsetSphere, size_t(2));
   const Sphere<T>    mirroredZ(Vec3(2, 3, 1), T(1));
   for (const auto& p : samplePoints<T>()) {
-    REQUIRE_THAT(reflectedZ.value(p), withinAbsT(mirroredZ.signedDistance(p), exactMargin<T>()));
+    REQUIRE_THAT(reflectedZ.value(p), withinAbsT(mirroredZ.value(p), exactMargin<T>()));
   }
 }
 
@@ -581,7 +580,7 @@ TEMPLATE_TEST_CASE("ReflectIF: reflecting twice across the same plane is the ide
     const ReflectIF<T> twice(once, plane);
 
     for (const auto& p : samplePoints<T>()) {
-      REQUIRE_THAT(twice.value(p), withinAbsT(sphere->signedDistance(p), exactMargin<T>()));
+      REQUIRE_THAT(twice.value(p), withinAbsT(sphere->value(p), exactMargin<T>()));
     }
   }
 }

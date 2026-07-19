@@ -134,7 +134,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   REQUIRE(primsAndBVs.size() == 36);
 
   const FlatMeshSDF<T, Meta> flat(mesh);
-  const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
+  const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.value(a_point); };
 
   // Every value of BVH::Build is exercised through one BVH::TreeBVH built the same way MeshSDF
   // builds one internally (see MeshDistanceFunctionsDetail::buildDCELTreeBVH), so this covers the
@@ -216,7 +216,7 @@ TEMPLATE_TEST_CASE("MeshSDF: signedDistance agrees with FlatMeshSDF for every BV
     REQUIRE(packed.getMesh() == mesh);
 
     for (const auto& p : queryPoints<T>()) {
-      REQUIRE_THAT(packed.signedDistance(p), withinAbsT(flat.signedDistance(p), traversalMargin<T>()));
+      REQUIRE_THAT(packed.value(p), withinAbsT(flat.value(p), traversalMargin<T>()));
     }
   }
 }
@@ -240,8 +240,8 @@ TEMPLATE_TEST_CASE("TriMeshSDF: signedDistance agrees with FlatMeshSDF and MeshS
     const TriMeshSDF<T, Meta, K, W> tri(mesh, build, 2);
 
     for (const auto& p : queryPoints<T>()) {
-      REQUIRE_THAT(tri.signedDistance(p), withinAbsT(flat.signedDistance(p), traversalMargin<T>()));
-      REQUIRE_THAT(tri.signedDistance(p), withinAbsT(packed.signedDistance(p), traversalMargin<T>()));
+      REQUIRE_THAT(tri.value(p), withinAbsT(flat.value(p), traversalMargin<T>()));
+      REQUIRE_THAT(tri.value(p), withinAbsT(packed.value(p), traversalMargin<T>()));
     }
   }
 }
@@ -270,7 +270,7 @@ TEMPLATE_TEST_CASE("MeshSDF::getClosestFaces returns the correct number of candi
 
   // The closest face reported must be consistent with the scalar signed-distance query.
   const T closestUnsignedDist = sorted.front().second;
-  REQUIRE_THAT(closestUnsignedDist, withinAbsT(std::abs(packed.signedDistance(p)), traversalMargin<T>()));
+  REQUIRE_THAT(closestUnsignedDist, withinAbsT(std::abs(packed.value(p)), traversalMargin<T>()));
 }
 
 TEMPLATE_TEST_CASE("TriMeshSDF::getClosestTriangle reports the closest triangle's metadata and a "
@@ -312,7 +312,7 @@ TEMPLATE_TEST_CASE("TriMeshSDF::getClosestTriangle reports the closest triangle'
       const auto closest = tri.getClosestTriangle(q);
 
       REQUIRE(closest.metaData == static_cast<Meta>(100 + i));
-      REQUIRE_THAT(closest.signedDistance, withinAbsT(tri.signedDistance(q), traversalMargin<T>()));
+      REQUIRE_THAT(closest.signedDistance, withinAbsT(tri.value(q), traversalMargin<T>()));
     }
   }
 }
@@ -646,7 +646,7 @@ TEMPLATE_TEST_CASE("Parser::readIntoPackedBVH matches MeshSDF built directly fro
   REQUIRE(fromFile != nullptr);
 
   for (const auto& p : queryPoints<T>()) {
-    REQUIRE_THAT(fromFile->signedDistance(p), withinAbsT(expected.signedDistance(p), formatMargin<T>()));
+    REQUIRE_THAT(fromFile->value(p), withinAbsT(expected.value(p), formatMargin<T>()));
   }
 }
 
@@ -687,7 +687,7 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
     for (size_t i = 0; i < files.size(); i++) {
       const auto single = Parser::readIntoMesh<T, Meta>(files[i]);
       for (const auto& p : queryPoints<T>()) {
-        REQUIRE_THAT(flatSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
+        REQUIRE_THAT(flatSDFs[i]->value(p), withinAbsT(single->value(p), formatMargin<T>()));
       }
     }
   }
@@ -700,7 +700,7 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
     for (size_t i = 0; i < files.size(); i++) {
       const auto single = Parser::readIntoPackedBVH<T, Meta, K>(files[i]);
       for (const auto& p : queryPoints<T>()) {
-        REQUIRE_THAT(packedSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
+        REQUIRE_THAT(packedSDFs[i]->value(p), withinAbsT(single->value(p), formatMargin<T>()));
       }
     }
   }
@@ -713,7 +713,7 @@ TEMPLATE_TEST_CASE("Parser: multi-file overloads return one result per file, eac
     for (size_t i = 0; i < files.size(); i++) {
       const auto single = Parser::readIntoTriangleBVH<T, Meta>(files[i]);
       for (const auto& p : queryPoints<T>()) {
-        REQUIRE_THAT(triSDFs[i]->signedDistance(p), withinAbsT(single->signedDistance(p), formatMargin<T>()));
+        REQUIRE_THAT(triSDFs[i]->value(p), withinAbsT(single->value(p), formatMargin<T>()));
       }
     }
   }
@@ -987,7 +987,7 @@ TEMPLATE_TEST_CASE("TriMeshSDF: explicit BVH::SharedPtrStorage<TriAoSoA> agrees 
   const TriMeshSDF<T, Meta, K, W, BVH::SharedPtrStorage<TriAoSoA>> sharedStorage(mesh, BVH::Build::SAH, 2);
 
   for (const auto& p : queryPoints<T>()) {
-    REQUIRE_THAT(sharedStorage.signedDistance(p), withinAbsT(defaultStorage.signedDistance(p), traversalMargin<T>()));
+    REQUIRE_THAT(sharedStorage.value(p), withinAbsT(defaultStorage.value(p), traversalMargin<T>()));
   }
 }
 
@@ -1010,7 +1010,7 @@ TEMPLATE_TEST_CASE("Parser::readIntoTriangleBVH accepts an explicit StoragePolic
   REQUIRE(sharedTri != nullptr);
 
   for (const auto& p : queryPoints<T>()) {
-    REQUIRE_THAT(sharedTri->signedDistance(p), withinAbsT(defaultTri->signedDistance(p), formatMargin<T>()));
+    REQUIRE_THAT(sharedTri->value(p), withinAbsT(defaultTri->value(p), formatMargin<T>()));
   }
 }
 
@@ -1424,7 +1424,7 @@ TEMPLATE_TEST_CASE("TreeBVH/PackedBVH: signedDistance agrees with the brute-forc
   REQUIRE(triangles.size() == 4);
 
   const FlatMeshSDF<T, Meta> flat(mesh);
-  const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
+  const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.value(a_point); };
 
   BVH::PrimAndBVList<Tri, AABB> primsAndBVs;
   for (const auto& tri : triangles) {
@@ -1958,7 +1958,7 @@ TEMPLATE_TEST_CASE("TreeBVH::deepCopy: independent clone -- distinct nodes, shar
   }
 
   const FlatMeshSDF<T, Meta> flat(mesh);
-  const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.signedDistance(a_point); };
+  const auto                 brute = [&flat](const Vec3T<T>& a_point) -> T { return flat.value(a_point); };
 
   // Pack a (partitioned) tree and query it the way MeshSDF does, comparing to the brute-force scan.
   const auto packAndCheck = [&](const auto& a_tree) {

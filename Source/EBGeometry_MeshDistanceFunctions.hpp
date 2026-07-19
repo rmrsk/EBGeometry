@@ -24,7 +24,7 @@
 #include "EBGeometry_BVH.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_DCEL_Mesh.hpp"
-#include "EBGeometry_SignedDistanceFunction.hpp"
+#include "EBGeometry_ImplicitFunction.hpp"
 #include "EBGeometry_Triangle.hpp"
 #include "EBGeometry_TriangleAoSoA.hpp"
 #include "EBGeometry_TriangleSoA.hpp"
@@ -40,7 +40,7 @@ namespace EBGeometry {
  * @tparam Meta Triangle metadata type stored on each DCEL face.
  */
 template <class T, class Meta = DCEL::DefaultMetaData>
-class FlatMeshSDF : public SignedDistanceFunction<T>
+class FlatMeshSDF : public ImplicitFunction<T>
 {
   static_assert(std::is_floating_point_v<T>, "FlatMeshSDF requires a floating-point T");
 
@@ -104,7 +104,7 @@ public:
    * @return Signed distance to the nearest face; negative inside the mesh.
    */
   [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override;
+  value(const Vec3T<T>& a_point) const noexcept override;
 
   /**
    * @brief Get the underlying DCEL mesh.
@@ -144,7 +144,7 @@ protected:
  * @tparam K    BVH branching factor (number of children per internal node).
  */
 template <class T, class Meta, size_t K>
-class MeshSDF : public SignedDistanceFunction<T>
+class MeshSDF : public ImplicitFunction<T>
 {
   static_assert(std::is_floating_point_v<T>, "MeshSDF requires a floating-point T");
   static_assert(K >= 2, "MeshSDF requires branching factor K >= 2");
@@ -233,7 +233,7 @@ public:
    * @return Signed distance to the nearest face; negative inside the mesh.
    */
   [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override;
+  value(const Vec3T<T>& a_point) const noexcept override;
 
   /**
    * @brief Return faces within BVH-pruned candidate distance of a_point.
@@ -323,7 +323,7 @@ template <class T,
           size_t K,
           size_t W,
           class StoragePolicy = BVH::ValueStorage<EBGeometry::TriangleAoSoA<T, Meta, W>>>
-class TriMeshSDF : public SignedDistanceFunction<T>
+class TriMeshSDF : public ImplicitFunction<T>
 {
   static_assert(std::is_floating_point_v<T>, "TriMeshSDF<T,Meta,K,W> requires a floating-point T");
   static_assert(K >= 2, "TriMeshSDF requires branching factor K >= 2");
@@ -441,7 +441,7 @@ public:
    * @return Signed distance to the nearest triangle; negative inside the mesh.
    */
   [[nodiscard]] T
-  signedDistance(const Vec3T<T>& a_point) const noexcept override;
+  value(const Vec3T<T>& a_point) const noexcept override;
 
   /**
    * @brief Signed distance to the closest triangle, together with that triangle's metadata.

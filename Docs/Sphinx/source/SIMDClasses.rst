@@ -51,7 +51,7 @@ reduction discards; it is used only by the (non-throughput) closest-triangle que
 
 **What this means in practice:** evaluating a ``TriangleSoAT<T, W>`` block costs roughly the
 same number of instructions as evaluating a *single* triangle scalar, but produces the answer
-for :math:`W` of them. This is the leaf-level cost inside every ``TriMeshSDF::signedDistance()``
+for :math:`W` of them. This is the leaf-level cost inside every ``TriMeshSDF::value()``
 BVH leaf visit.
 
 **Choosing and tuning** :math:`W`: the width is chosen from ISA auto-detection at compile time
@@ -111,7 +111,7 @@ children to descend into (or prune) during traversal, in ``PackedBVH::pruneTrave
 :math:`K` children of a node are tested against the query point in a single SIMD batch --
 one ``_mm(256\|512)_load_p[sd]`` per coordinate array, then vectorised subtract/max/multiply/add
 to get all :math:`K` squared distances at once -- rather than a scalar loop over children.
-``PackedBVH`` has no ``signedDistance()`` of its own; ``MeshSDF``/``TriMeshSDF::signedDistance()``
+``PackedBVH`` has no ``signedDistance()`` of its own; ``MeshSDF``/``TriMeshSDF::value()``
 each build a thin wrapper around ``pruneTraverse()``, supplying a signed-distance leaf-eval and
 pruning rule. Any caller can invoke ``pruneTraverse()`` directly with its own leaf-eval/pruning-
 rule pair to get the same SIMD node pruning over a different search (e.g. nearest-neighbor search

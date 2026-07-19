@@ -24,7 +24,7 @@
 using T    = Real;
 using Vec3 = EBGeometry::Vec3T<T>;
 using BV   = EBGeometry::BoundingVolumes::AABBT<T>;
-using SDF  = EBGeometry::SignedDistanceFunction<T>;
+using SDF  = EBGeometry::ImplicitFunction<T>;
 using Prim = EBGeometry::SphereSDF<T>;
 
 constexpr int K         = 4;

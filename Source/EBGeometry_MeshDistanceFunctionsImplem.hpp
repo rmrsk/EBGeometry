@@ -220,7 +220,7 @@ FlatMeshSDF<T, Meta>::FlatMeshSDF(const std::shared_ptr<Mesh>& a_mesh) noexcept
 
 template <class T, class Meta>
 T
-FlatMeshSDF<T, Meta>::signedDistance(const Vec3T<T>& a_point) const noexcept
+FlatMeshSDF<T, Meta>::value(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(m_mesh != nullptr);
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -267,7 +267,7 @@ MeshSDF<T, Meta, K>::MeshSDF(const std::shared_ptr<Mesh>& a_mesh, const BVH::Bui
 
 template <class T, class Meta, size_t K>
 T
-MeshSDF<T, Meta, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
+MeshSDF<T, Meta, K>::value(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -505,7 +505,7 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::TriMeshSDF(const std::vector<std::shar
 
 template <class T, class Meta, size_t K, size_t W, class StoragePolicy>
 T
-TriMeshSDF<T, Meta, K, W, StoragePolicy>::signedDistance(const Vec3T<T>& a_point) const noexcept
+TriMeshSDF<T, Meta, K, W, StoragePolicy>::value(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(m_bvh != nullptr);
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
@@ -543,10 +543,10 @@ TriMeshSDF<T, Meta, K, W, StoragePolicy>::getClosestTriangle(const Vec3T<T>& a_p
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  // Same SIMD-pruned traversal as signedDistance(), but the running state also carries the winning
+  // Same SIMD-pruned traversal as value(), but the running state also carries the winning
   // triangle's metadata: each visited leaf group reports both its closest signed distance and that
   // triangle's Meta via TriangleAoSoA::signedDistance(point, Meta&). The pruning bound is still the
-  // squared running distance, so node pruning is identical to signedDistance()'s.
+  // squared running distance, so node pruning is identical to value()'s.
   ClosestTriangle closest;
 
   const auto& groups = m_bvh->getPrimitives();
